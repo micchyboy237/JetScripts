@@ -51,4 +51,4 @@ def responseheaders(flow):
 
 
 # Commands
-# mitmdump -s mitm-interceptors/ollama_interceptor.py --mode reverse:http://jetairm1:11434 -p 11434
+# mitmdump -s mitm-interceptors/ollama_interceptor.py --mode reverse:http://jetairm1:11435 -p 11434

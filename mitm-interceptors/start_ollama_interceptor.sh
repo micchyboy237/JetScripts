@@ -1,0 +1,1 @@
+mitmdump -s ollama_interceptor.py --mode reverse:http://jetairm1:11435 -p 11434
