@@ -1,7 +1,9 @@
 from collections.abc import Iterable
-from mitmproxy import ctx
+import json
+from mitmproxy import http
 import logging
 import time
+from jet.transformers import make_serializable
 
 # Dictionary to store start times for requests
 start_times = {}
@@ -12,19 +14,22 @@ def interceptor_callback(data: bytes) -> bytes | Iterable[bytes]:
     This function will be called for each chunk of request/response body data that arrives at the proxy,
     and once at the end of the message with an empty bytes argument (b"").
     """
-    print(f"chunk: {data.decode('utf-8')}")
+    # print(f"chunk: {data.decode('utf-8')}")
     return data
 
 
-def request(flow):
+def request(flow: http.HTTPFlow):
     """
     Handle the request, log it, and record the start time.
     """
-    logging.info(f"Handle request: {flow.request.host}{flow.request.path}")
+    logging.info(f"URL: {flow.request.host}{flow.request.path}")
+    # Log the decoded data as a JSON string
+    logging.info(f"REQUEST:\n{json.dumps(
+        make_serializable(flow.request.data), indent=2)}")
     start_times[flow.id] = time.time()  # Store the start time for the request
 
 
-def response(flow):
+def response(flow: http.HTTPFlow):
     """
     Handle the response, calculate and log the time difference.
     """
