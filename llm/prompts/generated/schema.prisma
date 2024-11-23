@@ -1,0 +1,75 @@
+// Prisma schema for Anime Tracker Web App
+
+model User {
+id        Int     @id @default(autoincrement())
+username  String  @unique
+email     String  @unique
+password  String
+createdAt DateTime @default(now())
+updatedAt DateTime @default(now())
+}
+
+model Anime {
+id        Int     @id @default(autoincrement())
+title     String
+synopsis  String
+genre     String[]
+status    Status
+rating    Float
+createdAt DateTime @default(now())
+updatedAt DateTime @default(now())
+}
+
+model Watchlist {
+id        Int     @id @default(autoincrement())
+user      User    @relation(fields: [userID], references: [id])
+userID    Int
+anime     Anime   @relation(fields: [animeID], references: [id])
+animeID   Int
+createdAt DateTime @default(now())
+}
+
+model Progress {
+id        Int     @id @default(autoincrement())
+user      User    @relation(fields: [userID], references: [id])
+userID    Int
+anime     Anime   @relation(fields: [animeID], references: [id])
+animeID   Int
+episodes  Int
+createdAt DateTime @default(now())
+}
+
+model Review {
+id        Int     @id @default(autoincrement())
+user      User    @relation(fields: [userID], references: [id])
+userID    Int
+anime     Anime   @relation(fields: [animeID], references: [id])
+animeID   Int
+rating    Float
+createdAt DateTime @default(now())
+}
+
+model Comment {
+id        Int     @id @default(autoincrement())
+user      User    @relation(fields: [userID], references: [id])
+userID    Int
+anime     Anime   @relation(fields: [animeID], references: [id])
+animeID   Int
+comment   String
+createdAt DateTime @default(now())
+}
+
+model Reminder {
+id        Int     @id @default(autoincrement())
+user      User    @relation(fields: [userID], references: [id])
+userID    Int
+anime     Anime   @relation(fields: [animeID], references: [id])
+animeID   Int
+createdAt DateTime @default(now())
+}
+
+enum Status {
+FINISHED,
+ONGOING,
+PLANNING
+}

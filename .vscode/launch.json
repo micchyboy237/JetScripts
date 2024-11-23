@@ -1,0 +1,74 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Jet Scripts: Python Debugger",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "python": "/Users/jethroestrada/.pyenv/shims/python",
+      "env": {
+        "SENTENCE_TRANSFORMERS_HOME": "/Volumes/jethroestrada/.cache/huggingface/hub",
+        // "RAG_EMBEDDING_MODEL_AUTO_UPDATE": "true",
+        // "RAG_EMBEDDING_MODEL": "sentence-transformers/all-MiniLM-L6-v2",
+        "RAG_EMBEDDING_ENGINE": "ollama",
+        "RAG_EMBEDDING_MODEL": "nomic-embed-text",
+        // "PYTHONPATH": "/Users/jethroestrada/.pyenv/versions/3.12.7/lib/python3.12/site-packages",
+        "PYTHONPATH": "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogenhub/.venv/lib/python3.12/site-packages:/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/open-webui/.venv/lib/python3.12/site-packages:$PYTHONPATH"
+      }
+    },
+    {
+      "name": "Jet Scripts:  Uvicorn - Neural Search",
+      "type": "python",
+      "request": "launch",
+      "module": "uvicorn",
+      "cwd": "${workspaceFolder}/vectors/qdrant/neural-search",
+      "args": [
+        "service:app",
+        "--reload",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000"
+      ],
+      "env": {
+        "PYTHONPATH": "/Users/jethroestrada/.pyenv/versions/3.12.7/lib/python3.12/site-packages"
+      }
+    },
+    {
+      "name": "Jet Scripts: Uvicorn - API Interceptor",
+      "type": "python",
+      "request": "launch",
+      // "program": "${workspaceFolder}/servers/interceptor_server.py",
+      "module": "uvicorn",
+      "args": [
+        "interceptor_server:app",
+        "--reload",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8080"
+      ],
+      "justMyCode": true,
+      // "python": "/Users/jethroestrada/.pyenv/shims/python"
+      "env": {
+        "PYTHONPATH": "/Users/jethroestrada/.pyenv/versions/3.12.7/lib/python3.12/site-packages"
+      }
+      // "console": "integratedTerminal"
+    },
+    {
+      "name": "Jet Scripts: Tools - Run Code gVisor",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/open-webui/tools/run-code-gvisor.py",
+      "args": ["--self_test"],
+      "justMyCode": true
+      // "python": "/Users/jethroestrada/.pyenv/shims/python"
+      // "env": {
+      //   "PYTHONPATH": "${workspaceFolder}"
+      // },
+      // "console": "integratedTerminal"
+    }
+  ]
+}

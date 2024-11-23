@@ -1,0 +1,164 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Anime Tracker Database Schema",
+    "type": "object",
+    "properties": {
+        "users": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "username": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "username",
+                    "password"
+                ]
+            }
+        },
+        "anime_titles": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string"
+                    },
+                    "image_url": {
+                        "type": "string"
+                    },
+                    "synopsis": {
+                        "type": "string"
+                    },
+                    "episodes": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "title",
+                    "image_url",
+                    "synopsis"
+                ]
+            }
+        },
+        "watchlist": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "user_id": {
+                        "type": "integer"
+                    },
+                    "anime_title": {
+                        "type": "string"
+                    },
+                    "episode_count": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "user_id",
+                    "anime_title"
+                ]
+            }
+        },
+        "progress_tracking": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "user_id": {
+                        "type": "integer"
+                    },
+                    "anime_title": {
+                        "type": "string"
+                    },
+                    "episode_count": {
+                        "type": "integer"
+                    },
+                    "watched_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "user_id",
+                    "anime_title"
+                ]
+            }
+        },
+        "ratings": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "user_id": {
+                        "type": "integer"
+                    },
+                    "anime_title": {
+                        "type": "string"
+                    },
+                    "rating": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 5
+                    }
+                },
+                "required": [
+                    "user_id",
+                    "anime_title"
+                ]
+            }
+        },
+        "reviews": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "user_id": {
+                        "type": "integer"
+                    },
+                    "anime_title": {
+                        "type": "string"
+                    },
+                    "review": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "user_id",
+                    "anime_title"
+                ]
+            }
+        },
+        "comments": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "user_id": {
+                        "type": "integer"
+                    },
+                    "anime_title": {
+                        "type": "string"
+                    },
+                    "comment": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "user_id",
+                    "anime_title"
+                ]
+            }
+        }
+    }
+}
