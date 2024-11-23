@@ -6,6 +6,7 @@ Follow these if you are expected to provide code:
 
 - Keep the code short, reusable, testable, maintainable and optimized.
 - Follow best practices and industry design patterns.
+- You may update the code structure if necessary.
 - Provide example usage on main function
 
 Query:
