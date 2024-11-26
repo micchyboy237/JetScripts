@@ -2,5 +2,6 @@ generated
 !llm/prompts/generated
 *.log
 
-# Binaries
+# Jet custom
 *.npy
+.venv

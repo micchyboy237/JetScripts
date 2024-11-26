@@ -1,131 +1,65 @@
-import os
-import fnmatch
-from typing import List
-from tqdm import tqdm
 from jet.logger import logger
-
-INCLUDES = [
-    ".env.enter",
-    "*/bin/activate"  # Matches files named "activate" under any "bin" folder
-]
-
-EXCLUDES = [
-    "site-packages",
-    "node_modules",
-    "dist",
-    "build",
-    "cache",
-    "ios",
-    "android",
-    "public/static",
-    "__pycache__",
-    "build",
-    "dist",
-    "logs",
-    "tmp",
-    "temp",
-    "coverage",
-]
+from jet.automation import SeleniumScraper
+from parsel import Selector
 
 
-def match_pattern(file_path: str, pattern: str) -> bool:
+def extract_sections(html_content: str):
     """
-    Matches a file path against a pattern that can include folder components.
-
-    :param file_path: The full path of the file to match.
-    :param pattern: The pattern to match against.
-    :return: True if the pattern matches the file path, otherwise False.
+    Extract sections where an <h2> is immediately followed by a <blockquote>,
+    capturing sibling elements until the next <h2>.
+    Args:
+        html_content (str): The HTML content as a string.
+    Returns:
+        list[dict]: A list of sections, each containing the <h2> text, <blockquote> text, and the section HTML.
     """
-    if os.sep in pattern:  # Pattern includes folder components
-        # Normalize paths for consistent matching
-        normalized_path = os.path.normpath(file_path)
-        normalized_pattern = os.path.normpath(pattern.lstrip('/'))
-        return fnmatch.fnmatch(normalized_path, f"*{normalized_pattern}")
-    else:
-        # Standard file matching
-        return fnmatch.fnmatch(os.path.basename(file_path), pattern)
+    selector = Selector(text=html_content)
+    h2_elements = selector.css("h2")
+    first_section = [h2 for h2 in h2_elements if h2.xpath(
+        "following-sibling::blockquote[1]")][0]
+    all_elements = [first_section] + \
+        first_section.xpath("following-sibling::*")
+
+    sections = []
+    section = ""
+    for element in all_elements:
+        is_heading = element.root.tag.startswith('h')
+        # No tags
+        text = element.xpath("string()").get().strip()
+        line = f"{text}\n"
+        if is_heading:
+            if section:
+                sections.append(section.strip())
+            section = line
+        else:
+            section += line
+    if section:
+        sections.append(section.strip())
+
+    return sections
 
 
-def has_content(file_path: str) -> bool:
-    """
-    Checks if the file has any non-whitespace content.
+class UrlScraper():
+    def __init__(self) -> None:
+        self.scraper = SeleniumScraper()
 
-    :param file_path: The path to the file to check.
-    :return: True if the file has non-whitespace content, False otherwise.
-    """
-    try:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            # Read the file content and strip whitespace
-            return bool(file.read().strip())
-    except (IOError, UnicodeDecodeError):
-        # In case of an error opening or reading the file, assume no content
-        return False
+    def scrape_url(self, url: str) -> str:
+        self.scraper.navigate_to_url(url)
+        html_str = self.scraper.get_page_source()
+        return html_str
 
 
-def find_files(starting_dir: str, includes: List[str], excludes: List[str] = [], limit: int = None) -> List[str]:
-    """
-    Finds files in a directory and its subdirectories that match include patterns,
-    while excluding those that match exclude patterns. Stops when the matched file count hits the limit.
-
-    :param starting_dir: The starting directory to search in.
-    :param includes: A list of wildcard patterns to include (e.g., ["*.py", "*.txt"]).
-                     Must not be empty.
-    :param excludes: A list of wildcard patterns to exclude (e.g., ["test_*.py"]).
-    :param limit: An optional limit on the number of files to match.
-    :return: A list of matching file paths.
-    :raises ValueError: If the includes list is empty.
-    """
-    if not includes:
-        raise ValueError("The includes list must not be empty.")
-
-    matching_files = []
-    matched_count = 0  # Track the number of matched files
-
-    # Walk through the directory tree with tqdm progress bar
-    with tqdm(total=0, desc="Processing files", unit=" file", dynamic_ncols=True) as pbar:
-        for root, dirs, files in os.walk(starting_dir):
-            # Exclude directories that start with a dot
-            # dirs[:] = [d for d in dirs if not d.startswith('.')]
-
-            for file in files:
-                file_path = os.path.join(root, file)
-
-                # Check if the file matches any of the include patterns
-                if any(match_pattern(file_path, pattern) for pattern in includes):
-                    # Check if the file matches any of the exclude patterns
-                    if not any(match_pattern(file_path, pattern) for pattern in excludes):
-                        # Check if the file has content
-                        if has_content(file_path):
-                            logger.debug(f"\nMatched: {file_path}")
-                            matching_files.append(file_path)
-                            matched_count += 1  # Increment the matched file count
-
-                            # Update progress only with the matched files count, not every file
-                            pbar.set_postfix(
-                                matched=matched_count, refresh=True)
-                            pbar.update(1)
-
-                            # If a limit is set, stop once the limit is reached
-                            if limit and matched_count >= limit:
-                                pbar.set_postfix(
-                                    matched=matched_count, limit_reached=True, refresh=True)
-                                return matching_files
-
-    return matching_files
-
-
-# Example usage:
 if __name__ == "__main__":
-    starting_directory = "/Users/jethroestrada/Desktop/External_Projects"
-    include_patterns = INCLUDES
-    exclude_patterns = EXCLUDES
-    limit = None  # Optional limit
+    url = "https://developer.todoist.com/rest/v2/?shell#overview"
+    url_scraper = UrlScraper()
+    html_str = url_scraper.scrape_url(url)
 
-    try:
-        matching_files = find_files(starting_directory,
-                                    include_patterns, exclude_patterns, limit)
-        logger.log("Matching files:")
-        for file in matching_files:
-            logger.success(file)
-    except ValueError as e:
-        logger.error(e)
+    sections = extract_sections(html_str)
+    # Filter sections with curl commands
+    sections = [section for section in sections if "$ curl" in section]
+    for section_idx, section in enumerate(sections):
+        print(f"Section {section_idx + 1}:\n{section}")
+        print("----")
+    with open("generated/scraped_contents.md", "w", encoding="UTF-8") as f:
+        f.write("\n\n".join(sections))
+    logger.log("Sections:", len(sections), colors=["LOG", "SUCCESS"])
+    logger.success("generated/scraped_contents.md", bright=True)

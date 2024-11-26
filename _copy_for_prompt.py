@@ -15,7 +15,6 @@ exclude_files = [
     "_copy*.py",
     "__pycache__",
     ".pytest_cache",
-    ".vscode",
     "node_modules",
     "*lock.json",
     "public",
@@ -25,9 +24,8 @@ exclude_files = [
     "jupyter"
 ]
 include_files = [
-    # "activate_*",
-    # "/Users/jethroestrada/Desktop/External_Projects/.env.enter",
-    "find_files.py"
+    "/Users/jethroestrada/Desktop/External_Projects/jet_python_modules/jet/automation/selenium.py",
+    "run_test.py",
 ]
 structure_include = []
 structure_exclude = []
@@ -45,22 +43,47 @@ Execute browse or internet search if requested.
 """.strip()
 
 DEFAULT_QUERY_MESSAGE = """
-Please update to replace reverse param as "direction" with possible values ("both" - default, "forward", "backward").
+Fix to prevent the contents of early section from capturing suceeding sections.
+
+Current results:
+
+Header: Section 1
+Blockquote: Intro to Section 1
+Content: <blockquote>Intro to Section 1</blockquote><p>Content of Section 1.1</p><p>Content of Section 1.2</p><blockquote>Intro to Section 2</blockquote><p>Content of Section 2</p><p>Additional content for Section 2</p><blockquote>Intro to Section 3</blockquote><p>Content of Section 3</p>
+----
+Header: Section 2
+Blockquote: Intro to Section 2
+Content: <blockquote>Intro to Section 2</blockquote><p>Content of Section 2</p><p>Additional content for Section 2</p><blockquote>Intro to Section 3</blockquote><p>Content of Section 3</p>
+----
+Header: Section 3
+Blockquote: Intro to Section 3
+Content: <blockquote>Intro to Section 3</blockquote><p>Content of Section 3</p>
+----
 """.strip()
 
 DEFAULT_INSTRUCTIONS_MESSAGE = """
 - Keep the code short, reusable, testable, maintainable and optimized.
 - Follow best practices and industry design patterns.
+- You may update the code structure if necessary.
+- Provide example usage on main function
 """.strip()
 
 # base_dir should be actual file directory
-# file_dir = os.path.dirname(os.path.realpath(__file__))
-file_dir = os.getcwd()
+file_dir = os.path.dirname(os.path.abspath(__file__))
+# Change the current working directory to the script's directory
+os.chdir(file_dir)
 
 
 def find_files(base_dir, include, exclude, include_content_patterns, exclude_content_patterns, case_sensitive=False):
+    print("Base Dir:", file_dir)
     print("Finding files:", base_dir, include, exclude)
-    matched_files = set()  # Use a set to prevent duplicates
+    include_abs = [
+        os.path.abspath(pat) if not os.path.isabs(pat) else pat
+        for pat in include
+        if os.path.exists(os.path.abspath(pat) if not os.path.isabs(pat) else pat)
+    ]
+
+    matched_files = set(include_abs)
     for root, dirs, files in os.walk(base_dir):
         # Adjust include and exclude lists: if no wildcard, treat it as a specific file in the current directory
         adjusted_include = [
@@ -233,7 +256,7 @@ def main():
         if filenames_only:
             clipboard_content += f"{prefix}"
         else:
-            file_path = os.path.join(base_dir, file)
+            file_path = os.path.relpath(os.path.join(base_dir, file))
             if os.path.isfile(file_path):
                 try:
                     with open(file_path, 'r', encoding='utf-8') as f:
@@ -274,7 +297,7 @@ def main():
     clipboard_content_parts.append(f"QUERY\n{query_message}")
     if instructions_message:
         clipboard_content_parts.append(f"INSTRUCTIONS\n{instructions_message}")
-    clipboard_content_parts.append(f"FILES STRUCTURE\n{files_structure}")
+    # clipboard_content_parts.append(f"FILES STRUCTURE\n{files_structure}")
     clipboard_content_parts.append(f"FILES CONTENTS\n{clipboard_content}")
 
     clipboard_content = "\n\n".join(clipboard_content_parts)

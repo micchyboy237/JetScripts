@@ -8,6 +8,7 @@
       "program": "${file}",
       "console": "integratedTerminal",
       "python": "/Users/jethroestrada/.pyenv/shims/python",
+      "cwd": "${workspaceFolder}",
       "env": {
         "SENTENCE_TRANSFORMERS_HOME": "/Volumes/jethroestrada/.cache/huggingface/hub",
         // "RAG_EMBEDDING_MODEL_AUTO_UPDATE": "true",
@@ -15,7 +16,7 @@
         "RAG_EMBEDDING_ENGINE": "ollama",
         "RAG_EMBEDDING_MODEL": "nomic-embed-text",
         // "PYTHONPATH": "/Users/jethroestrada/.pyenv/versions/3.12.7/lib/python3.12/site-packages",
-        "PYTHONPATH": "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogenhub/.venv/lib/python3.12/site-packages:/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/open-webui/.venv/lib/python3.12/site-packages:$PYTHONPATH"
+        "PYTHONPATH": "/Users/jethroestrada/Desktop/External_Projects/JetScripts/.venv/lib/python3.12/site-packages:$PYTHONPATH"
       }
     },
     {
@@ -33,7 +34,7 @@
         "8000"
       ],
       "env": {
-        "PYTHONPATH": "/Users/jethroestrada/.pyenv/versions/3.12.7/lib/python3.12/site-packages"
+        "PYTHONPATH": "/Users/jethroestrada/Desktop/External_Projects/JetScripts/.venv/lib/python3.12/site-packages:$PYTHONPATH"
       }
     },
     {
@@ -53,7 +54,7 @@
       "justMyCode": true,
       // "python": "/Users/jethroestrada/.pyenv/shims/python"
       "env": {
-        "PYTHONPATH": "/Users/jethroestrada/.pyenv/versions/3.12.7/lib/python3.12/site-packages"
+        "PYTHONPATH": "/Users/jethroestrada/Desktop/External_Projects/JetScripts/.venv/lib/python3.12/site-packages:$PYTHONPATH"
       }
       // "console": "integratedTerminal"
     },

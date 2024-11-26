@@ -10,6 +10,7 @@ Follow these if you are expected to provide code:
 - Provide example usage on main function
 
 Query:
+{prompt}
 
 **Context 2:**
 Dont use or add to memory.

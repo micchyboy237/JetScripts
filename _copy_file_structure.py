@@ -20,17 +20,17 @@ exclude_files = [
     "dream",
 ]
 include_files = [
-    "activate_*",
-    "change_directory.py",
-    "/Users/jethroestrada/Desktop/External_Projects/.env.enter",
+    "/Users/jethroestrada/Desktop/External_Projects/jet_python_modules/jet/automation/selenium.py",
+    "run_test.py",
 ]
 
 include_content = []
 exclude_content = []
 
 # base_dir should be actual file directory
-# file_dir = os.path.dirname(os.path.realpath(__file__))
-file_dir = os.getcwd()
+file_dir = os.path.dirname(os.path.abspath(__file__))
+# Change the current working directory to the script's directory
+os.chdir(file_dir)
 
 
 def find_files(base_dir, include, exclude, include_content_patterns, exclude_content_patterns, case_sensitive=False):
@@ -152,6 +152,9 @@ def format_file_structure(base_dir, include_files, exclude_files, include_conten
     total_char_length = 0
 
     for file in files:
+        # Convert to relative path
+        file = os.path.relpath(file)
+
         dirs = file.split(os.sep)
         current_level = dir_structure
 
