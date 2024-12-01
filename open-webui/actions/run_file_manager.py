@@ -12,6 +12,19 @@ from typing import Any, Dict, List, Union, Optional, TypedDict, Literal
 from fastapi.requests import Request
 from subprocess import Popen, PIPE
 
+DEFAULT_GENERATED_DIR = "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/open-webui/generated"
+
+# ANSI color codes
+BOLD = "\u001b[1m"
+RED = BOLD + "\u001b[38;5;196m"
+GREEN = BOLD + "\u001b[38;5;40m"
+BRIGHT_GREEN = BOLD + "\u001b[48;5;40m"
+RESET = "\u001b[0m"
+
+
+def colorize(text: str, color: str):
+    return f"{color}{text}{RESET}"
+
 
 class UserMessageTextContentPart(TypedDict):
     type: Literal["text"]
@@ -128,7 +141,6 @@ class MarkdownCodeExtractor:
         code_lines = []
 
         for line in lines:
-            line = line.strip()
             # Check for file path pattern
             file_path_match = re.match(FILE_PATH_PATTERN, line)
             if file_path_match:
@@ -143,7 +155,7 @@ class MarkdownCodeExtractor:
                     code_lines = []
                 else:
                     # End of a code block
-                    code_content = "\n".join(code_lines).strip()
+                    code_content = "\n".join(code_lines).rstrip()
                     if code_content:
                         code_blocks.append(
                             CodeBlock(
@@ -208,7 +220,7 @@ class Action:
             # Write the code to the file
             with open(path, 'w', encoding='utf-8') as file:
                 file.write(code)
-            print(f"File saved at {path}")
+            print(f"File saved at {colorize(path, BRIGHT_GREEN)}")
 
             return {"success": True, "message": f"File saved at {path}", "file": file, "lang": lang, "code": code}
         except Exception as e:
@@ -258,8 +270,7 @@ class Action:
             code_blocks = filtered_code_blocks
 
             sub_dir = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            generated_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/open-webui/generated"
-            # base_dir = os.path.join("generated", sub_dir)
+            generated_dir = os.getenv("GENERATED_DIR", DEFAULT_GENERATED_DIR)
             base_dir = os.path.join(generated_dir, sub_dir)
             file_results = []
             for code in code_blocks:
@@ -273,9 +284,11 @@ class Action:
                 "code_blocks": code_blocks,
                 "failed_code_blocks": failed_code_blocks,
             }
-            result = self.save_file(
-                json.dumps(meta_data, indent=2, ensure_ascii=False), "meta.json", "json", base_dir=base_dir)
-            file_results.append(result)
+
+            if code_blocks:
+                result = self.save_file(
+                    json.dumps(meta_data, indent=2, ensure_ascii=False), "meta.json", "json", base_dir=base_dir)
+                file_results.append(result)
 
             if file_results:
                 return {"type": "code_execution_result", "data": {"output": file_results, "done": True}}
@@ -290,3 +303,88 @@ class Action:
                         },
                     }
                 )
+
+
+if __name__ == "__main__":
+    async def main():
+        # Sample usage demonstrating the file manager
+        sample_body = {
+            "messages": [
+                # User message
+                {"content": "Please create a Python script, HTML file, and shell script"},
+                {"content": '''
+File Path: `src/hello.py`
+```python
+def greet(name):
+    return f"Hello, {name}!"
+
+if __name__ == "__main__":
+    print(greet("World"))
+```
+
+File Path: `src/index.html`
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sample Page</title>
+</head>
+<body>
+    <h1>Welcome</h1>
+    <p>This is a sample page.</p>
+</body>
+</html>
+```
+
+File Path: `src/setup.sh`
+```bash
+#!/bin/bash
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Create necessary directories
+mkdir -p data/logs
+mkdir -p data/output
+
+# Set up environment variables
+export APP_ENV="development"
+export APP_PORT=8000
+
+echo "Setup complete! Starting server..."
+python src/hello.py
+```
+'''}  # Assistant message
+            ]
+        }
+
+        # Initialize action
+        action = Action()
+
+        # Create mock event emitter
+        async def mock_event_emitter(event):
+            print(f"Event emitted: {event}")
+
+        # Create mock user with default valves
+        mock_user = {"valves": action.UserValves()}
+
+        # Execute action
+        result = await action.action(
+            body=sample_body,
+            __user__=mock_user,
+            __event_emitter__=mock_event_emitter,
+            __event_call__=None
+        )
+
+        if result:
+            print("\nFiles generated successfully:")
+            for file_result in result["data"]["output"]:
+                if file_result["success"]:
+                    print(f"{colorize('✓', GREEN)} {file_result['file'].name}")
+                else:
+                    print(
+                        f"{colorize('✗', RED)} Failed to create file: {file_result['message']}")
+
+    # Run the async main function
+    import asyncio
+    asyncio.run(main())

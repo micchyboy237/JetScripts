@@ -5,8 +5,10 @@ import subprocess
 from _copy_file_structure import (
     format_file_structure,
     clean_newlines,
-    clean_content
+    clean_content,
+    remove_parent_paths
 )
+from jet.logger import logger
 
 exclude_files = [
     ".git",
@@ -35,7 +37,8 @@ exclude_content = []
 
 # Args defaults
 DEFAULT_SHORTEN_FUNCTS = False
-DEFAULT_NO_LENGTH = True
+DEFAULT_NO_CHAR_LENGTH = False
+INCLUDE_FILE_STRUCTURE = False
 
 DEFAULT_SYSTEM_MESSAGE = """
 Dont use or add to memory.
@@ -43,30 +46,31 @@ Execute browse or internet search if requested.
 """.strip()
 
 DEFAULT_QUERY_MESSAGE = """
-Fix to prevent the contents of early section from capturing suceeding sections.
-
-Current results:
-
-Header: Section 1
-Blockquote: Intro to Section 1
-Content: <blockquote>Intro to Section 1</blockquote><p>Content of Section 1.1</p><p>Content of Section 1.2</p><blockquote>Intro to Section 2</blockquote><p>Content of Section 2</p><p>Additional content for Section 2</p><blockquote>Intro to Section 3</blockquote><p>Content of Section 3</p>
-----
-Header: Section 2
-Blockquote: Intro to Section 2
-Content: <blockquote>Intro to Section 2</blockquote><p>Content of Section 2</p><p>Additional content for Section 2</p><blockquote>Intro to Section 3</blockquote><p>Content of Section 3</p>
-----
-Header: Section 3
-Blockquote: Intro to Section 3
-Content: <blockquote>Intro to Section 3</blockquote><p>Content of Section 3</p>
-----
+How to setup and run backend?
 """.strip()
+
+# Project specific
+# DEFAULT_QUERY_MESSAGE += (
+#     "\n- Use standard but beautiful designs if html will be provided."
+# )
 
 DEFAULT_INSTRUCTIONS_MESSAGE = """
 - Keep the code short, reusable, testable, maintainable and optimized.
 - Follow best practices and industry design patterns.
+- Install any libraries required to run the code.
 - You may update the code structure if necessary.
-- Provide example usage on main function
 """.strip()
+
+# For existing projects
+# DEFAULT_INSTRUCTIONS_MESSAGE += (
+#     "\n- Only respond with parts of the code that have been added or updated to keep it short and concise."
+# )
+
+# For creating projects
+# DEFAULT_INSTRUCTIONS_MESSAGE += (
+#     "\n- At the end, display the updated file structure and instructions for running the code."
+#     "\n- Provide complete working code for each file (should match file structure)"
+# )
 
 # base_dir should be actual file directory
 file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -78,7 +82,8 @@ def find_files(base_dir, include, exclude, include_content_patterns, exclude_con
     print("Base Dir:", file_dir)
     print("Finding files:", base_dir, include, exclude)
     include_abs = [
-        os.path.abspath(pat) if not os.path.isabs(pat) else pat
+        os.path.relpath(path=pat, start=file_dir)
+        if not os.path.isabs(pat) else pat
         for pat in include
         if os.path.exists(os.path.abspath(pat) if not os.path.isabs(pat) else pat)
     ]
@@ -210,7 +215,7 @@ def main():
                         help='Instructions to include in the clipboard content')
     parser.add_argument('-fo', '--filenames-only', action='store_true',
                         help='Only copy the relative filenames, not their contents')
-    parser.add_argument('-nl', '--no-length', action='store_true', default=DEFAULT_NO_LENGTH,
+    parser.add_argument('-nl', '--no-length', action='store_true', default=DEFAULT_NO_CHAR_LENGTH,
                         help='Do not show file character length')
 
     args = parser.parse_args()
@@ -251,8 +256,11 @@ def main():
 
     # Append relative filenames to the clipboard content
     for file in context_files:
+        rel_path = os.path.relpath(path=file, start=file_dir)
+        cleaned_rel_path = remove_parent_paths(rel_path)
+
         prefix = (
-            f"\n// {file}\n" if not filenames_only else f"{file}\n")
+            f"\n// {cleaned_rel_path}\n" if not filenames_only else f"{file}\n")
         if filenames_only:
             clipboard_content += f"{prefix}"
         else:
@@ -294,10 +302,11 @@ def main():
 
     if system_message:
         clipboard_content_parts.append(f"SYSTEM\n{system_message}")
-    clipboard_content_parts.append(f"QUERY\n{query_message}")
     if instructions_message:
         clipboard_content_parts.append(f"INSTRUCTIONS\n{instructions_message}")
-    # clipboard_content_parts.append(f"FILES STRUCTURE\n{files_structure}")
+    clipboard_content_parts.append(f"QUERY\n{query_message}")
+    if INCLUDE_FILE_STRUCTURE:
+        clipboard_content_parts.append(f"FILES STRUCTURE\n{files_structure}")
     clipboard_content_parts.append(f"FILES CONTENTS\n{clipboard_content}")
 
     clipboard_content = "\n\n".join(clipboard_content_parts)
@@ -308,7 +317,8 @@ def main():
     process.communicate(clipboard_content.encode('utf-8'))
 
     # Print the copied content character count
-    print(f"Prompt Character Count: {len(clipboard_content)}")
+    logger.log("Prompt Char Count:", len(clipboard_content),
+               colors=["GRAY", "SUCCESS"])
 
     print(
         f"\n----- FILES STRUCTURE -----\n{files_structure}\n----- END FILES STRUCTURE -----\n")

@@ -3,6 +3,7 @@ import fnmatch
 import argparse
 import subprocess
 import re
+from jet.logger import logger
 
 exclude_files = [
     ".git",
@@ -113,6 +114,11 @@ def clean_content(content: str, file_path: str, shorten_funcs: bool = True):
     return content
 
 
+def remove_parent_paths(path: str) -> str:
+    return os.path.join(
+        *(part for part in os.path.normpath(path).split(os.sep) if part != ".."))
+
+
 def shorten_functions(content):
     """Keeps only function and class definitions, including those with return type annotations."""
     pattern = re.compile(
@@ -160,6 +166,8 @@ def format_file_structure(base_dir, include_files, exclude_files, include_conten
 
         if file.startswith("/"):
             dirs.pop(0)
+        if ".." in dirs:
+            dirs = [dir for dir in dirs if dir != ".."]
 
         for dir_name in dirs[:-1]:
             if dir_name not in current_level:
@@ -200,7 +208,11 @@ def format_file_structure(base_dir, include_files, exclude_files, include_conten
     file_structure = print_structure(dir_structure, is_base_level=True)
     # file_structure = f"Base dir: {file_dir}\n" + \
     #     f"\nFile structure:\n{file_structure}"
-    print(f"\nFiles Character Count: {total_char_length}")
+    print("\n")
+    num_files = len(files)
+    logger.log("Number of Files:", num_files, colors=["GRAY", "DEBUG"])
+    logger.log("Files Char Count:", total_char_length,
+               colors=["GRAY", "SUCCESS"])
     return file_structure.strip()
 
 

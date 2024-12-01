@@ -109,11 +109,10 @@ def find_large_folders(
             folder_info = {"folder": folder, "size": folder_size}
             if include_metadata:
                 folder_info.update(get_folder_metadata(folder))
-            print(" | ".join(f"{label.capitalize()}: {format_size(
-                value) if label == 'size' else value}" for label, value in folder_info.items()))
+            print(
+                f"{"Delete" if delete_folders else "Folder"}: {folder} | {format_size(folder_size)}")
             matched_folders.append(folder_info)
             if delete_folders:
-                print(f"Deleting folder: {folder}")
                 shutil.rmtree(folder)
 
     return matched_folders
