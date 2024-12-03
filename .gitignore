@@ -1,6 +1,8 @@
 generated
 !llm/prompts/generated
 *.log
+.env
+.cache
 
 # Jet custom
 *.npy

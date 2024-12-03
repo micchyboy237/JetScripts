@@ -46,7 +46,7 @@ Execute browse or internet search if requested.
 """.strip()
 
 DEFAULT_QUERY_MESSAGE = """
-How to setup and run backend?
+Update run_test to move all logic to selenium.py file except for main function.
 """.strip()
 
 # Project specific

@@ -6,21 +6,21 @@ from find_files import find_files
 from utils import logger
 
 
-def match_pattern(file_path: str, pattern: str) -> bool:
-    if os.sep in pattern:
-        normalized_path = os.path.normpath(file_path)
-        normalized_pattern = os.path.normpath(pattern.lstrip('/'))
-        return fnmatch.fnmatch(normalized_path, f"*{normalized_pattern}")
-    else:
-        return fnmatch.fnmatch(os.path.basename(file_path), pattern)
+# def match_pattern(file_path: str, pattern: str) -> bool:
+#     if os.sep in pattern:
+#         normalized_path = os.path.normpath(file_path)
+#         normalized_pattern = os.path.normpath(pattern.lstrip('/'))
+#         return fnmatch.fnmatch(normalized_path, f"*{normalized_pattern}")
+#     else:
+#         return fnmatch.fnmatch(os.path.basename(file_path), pattern)
 
 
-def has_content(file_path: str) -> bool:
-    try:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            return bool(file.read().strip())
-    except (IOError, UnicodeDecodeError):
-        return False
+# def has_content(file_path: str) -> bool:
+#     try:
+#         with open(file_path, 'r', encoding='utf-8') as file:
+#             return bool(file.read().strip())
+#     except (IOError, UnicodeDecodeError):
+#         return False
 
 
 def deactivate_current_environment() -> None:
