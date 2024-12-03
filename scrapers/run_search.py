@@ -1,7 +1,7 @@
 import os
 import json
 import requests
-from jet.search import search_searxng, CACHE_DIR, CACHE_FILE
+from jet.search import search_searxng
 from jet.logger import logger
 
 
@@ -32,7 +32,5 @@ if __name__ == "__main__":
             engines=engines,
         )
         logger.success(json.dumps(results, indent=2))
-        logger.log("CACHE:", os.path.join(CACHE_DIR, CACHE_FILE),
-                   colors=["LOG", "BRIGHT_SUCCESS"])
     except requests.exceptions.RequestException as e:
         logger.error(f"Error fetching search results: {e}")
