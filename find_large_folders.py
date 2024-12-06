@@ -5,6 +5,7 @@ import json
 import argparse
 from datetime import datetime
 import fnmatch
+from jet.logger import logger
 
 
 def traverse_directory(
@@ -144,6 +145,11 @@ def calculate_total_size(deleted_folders: list[dict]) -> float:
     return total_size
 
 
+def get_command() -> str:
+    import sys
+    return " ".join(sys.argv)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Find and optionally delete large folders.")
@@ -180,7 +186,10 @@ if __name__ == "__main__":
 
     total_size = calculate_total_size(results)
     total_size = format_size(total_size)
+
     formatted_data = {
+        "date": datetime.now().strftime("%b %d, %Y | %I:%M %p"),
+        "command": get_command(),
         "base_dir": args.base_dir,
         "includes": includes,
         "excludes": excludes,
@@ -192,14 +201,18 @@ if __name__ == "__main__":
         "results": sorted(results, key=lambda x: x["size"], reverse=True),
     }
 
-    output_dir = "generated"
+    output_dir = "generated/find_large_folders"
     os.makedirs(output_dir, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    file_prefix = "deleted-folders" if args.delete else "searched-folders"
-    output_file = f"{output_dir}/{file_prefix}-{timestamp}.json"
+    file_name = "deleted-folders" if args.delete else "searched-folders"
+    output_file = f"{output_dir}/{file_name}.json"
 
     save_to_json(formatted_data, output_file)
     if args.delete:
         print(f"Total Freed Space: {total_size}")
     else:
         print(f"Total Size: {total_size}")
+
+# Commands
+# python find_large_folders.py -s 0 -i "<folder>/bin/activate"
+# python find_large_folders.py -s 100 -b "/path/to/base/dir" -i "<folder>/node_modules" -e "node_modules/**"

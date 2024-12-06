@@ -30,6 +30,9 @@ if __name__ == "__main__":
             min_score=0,
             filter_sites=filter_sites,
             engines=engines,
+            config={
+                "port": 3101
+            },
         )
         logger.success(json.dumps(results, indent=2))
     except requests.exceptions.RequestException as e:

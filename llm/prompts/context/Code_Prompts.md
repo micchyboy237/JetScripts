@@ -2,6 +2,14 @@
 
 ## Context 1
 
+Dont use or add to memory.
+
+Show code goals and how to use.
+
+{prompt}
+
+## Context 2
+
 <!-- For existing projects -->
 
 Dont use or add to memory.
@@ -20,7 +28,7 @@ Follow these if you are expected to provide code:
 Query:
 {prompt}
 
-## Context 2
+## Context 3
 
 <!-- For creating projects -->
 
@@ -39,7 +47,7 @@ Follow these if you are expected to provide code:
 Query:
 {prompt}
 
-## Context 3
+## Context 4
 
 Dont use or add to memory.
 

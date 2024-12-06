@@ -2,6 +2,15 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Python Debugger: Current File",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "cwd": "${fileDirname}",
+      "python": "${fileDirname}/.venv/bin/python"
+    },
+    {
       "name": "Jet Scripts: Python Debugger",
       "type": "python",
       "request": "launch",
