@@ -1,0 +1,17 @@
+{
+  "path": "sentence-transformers/paraphrase-MiniLM-L3-v2",
+  "content": true,
+  "dimensions": 384,
+  "backend": "faiss",
+  "offset": 70,
+  "build": {
+    "create": "2024-12-06T16:10:45Z",
+    "python": "3.12.7",
+    "settings": {
+      "components": "IDMap,Flat"
+    },
+    "system": "Darwin (arm64)",
+    "txtai": "8.1.0"
+  },
+  "update": "2024-12-06T16:10:45Z"
+}

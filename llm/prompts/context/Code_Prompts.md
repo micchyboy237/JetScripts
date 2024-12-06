@@ -10,6 +10,17 @@ Show code goals and how to use.
 
 ## Context 2
 
+<!-- For converting notebook (.ipynb) to python (.py) code -->
+
+Dont use or add to memory.
+
+- Refactor code with functions representing complete sample usage.
+- Add main function
+
+{prompt}
+
+## Context 3
+
 <!-- For existing projects -->
 
 Dont use or add to memory.
@@ -28,7 +39,7 @@ Follow these if you are expected to provide code:
 Query:
 {prompt}
 
-## Context 3
+## Context 4
 
 <!-- For creating projects -->
 
@@ -47,7 +58,7 @@ Follow these if you are expected to provide code:
 Query:
 {prompt}
 
-## Context 4
+## Context 5
 
 Dont use or add to memory.
 

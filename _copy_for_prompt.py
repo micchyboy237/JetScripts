@@ -26,8 +26,11 @@ exclude_files = [
     "jupyter"
 ]
 include_files = [
-    "/Users/jethroestrada/Desktop/External_Projects/jet_python_modules/jet/automation/selenium.py",
-    "run_test.py",
+    # "/Users/jethroestrada/Desktop/External_Projects/JetScripts/evaluation/examples/txtai/02_build_embeddings.py",
+    # "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/txtai/src/python/txtai/ann/base.py",
+    # "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/txtai/src/python/txtai/ann/faiss.py",
+    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/evaluation/examples/txtai/38_scoring_search.py",
+    # "/Users/jethroestrada/Desktop/External_Projects/jet_python_modules/jet/llm/embeddings.py",
 ]
 structure_include = []
 structure_exclude = []
@@ -46,7 +49,7 @@ Execute browse or internet search if requested.
 """.strip()
 
 DEFAULT_QUERY_MESSAGE = """
-Update run_test to move all logic to selenium.py file except for main function.
+Include the dataset id and tags for each result item.
 """.strip()
 
 # Project specific
