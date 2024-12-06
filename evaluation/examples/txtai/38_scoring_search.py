@@ -1,6 +1,8 @@
+from typing import Literal, get_args
 import json
 import os
 import numpy as np
+import traceback
 from datasets import Dataset
 from txtai.vectors import VectorsFactory
 from txtai.ann import ANNFactory
@@ -12,6 +14,8 @@ GENERATED_DIR = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/evalu
 EMBEDDINGS_DIR = f"{GENERATED_DIR}/embeddings"
 RESULTS_DIR = f"{GENERATED_DIR}/search"
 EMBEDDINGS_CACHE_KEY = "crew_ai_docs"
+
+ScoringMethod = Literal["bm25", "sif", "pgtext", "tfidf"]
 
 
 def calculate_tokens(text: str) -> int:
@@ -85,7 +89,7 @@ def ann_search(query, ann, model, dataset: Dataset, top_k: int = 3):
     ]
 
 
-def scoring_search(query, dataset: Dataset, method="bm25", top_k=3):
+def scoring_search(query, dataset: Dataset, method: ScoringMethod = "bm25", top_k=3):
     """Perform a BM25-based scoring search."""
     texts = [row["page_content"] for row in dataset]
     scoring = ScoringFactory.create(
@@ -124,11 +128,15 @@ def main():
     cache_file = os.path.join(embeddings_dir, "embeddings.npy")
     embeddings = load_or_create_embeddings(
         texts, model=embeddings_model, cache_file=cache_file)
+
     query = "crewai setup"
     top_k = 5
+
+    # Perform ANN search
     ann = build_ann_index(embeddings)
     ann_results = ann_search(
         query, ann, model=embeddings_model, dataset=dataset, top_k=top_k)
+
     save_results(
         {
             "type": "ann",
@@ -138,14 +146,28 @@ def main():
             "results": ann_results
         },
         "ann_scores.json")
-    method = "bm25"
-    scoring_results = scoring_search(query, dataset, top_k=top_k)
-    save_results({
-        "type": "method",
-        "query": query,
-        "top_k": top_k,
-        "results": scoring_results
-    }, "scoring_scores.json")
+
+    # Filter the dataset for scoring search
+    ann_ids = {result["id"] for result in ann_results}
+    filtered_dataset = dataset.filter(lambda example: example["id"] in ann_ids)
+
+    # Perform scoring search for each method
+    scoring_methods: list[ScoringMethod] = list(get_args(ScoringMethod))
+    for method in scoring_methods:
+        try:
+            scoring_results = scoring_search(
+                query, dataset=dataset, method=method, top_k=top_k)
+
+            save_results({
+                "type": "vector",
+                "method": method,
+                "query": query,
+                "top_k": top_k,
+                "results": scoring_results
+            }, f"vector_{method}_scores.json")
+        except Exception as e:
+            logger.error(e)
+            traceback.print_exc()
 
 
 if __name__ == "__main__":
