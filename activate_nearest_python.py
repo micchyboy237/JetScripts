@@ -1,36 +1,19 @@
 import sys
 import os
-import fnmatch
-import subprocess
 from find_files import find_files
-from utils import logger
+from jet.file import traverse_directory
+# from utils import logger
+from jet.logger import logger
 
 
-# def match_pattern(file_path: str, pattern: str) -> bool:
-#     if os.sep in pattern:
-#         normalized_path = os.path.normpath(file_path)
-#         normalized_pattern = os.path.normpath(pattern.lstrip('/'))
-#         return fnmatch.fnmatch(normalized_path, f"*{normalized_pattern}")
-#     else:
-#         return fnmatch.fnmatch(os.path.basename(file_path), pattern)
-
-
-# def has_content(file_path: str) -> bool:
-#     try:
-#         with open(file_path, 'r', encoding='utf-8') as file:
-#             return bool(file.read().strip())
-#     except (IOError, UnicodeDecodeError):
-#         return False
-
-
-def deactivate_current_environment() -> None:
-    if "VIRTUAL_ENV" in os.environ:
-        deactivate_script = os.path.join(
-            os.environ["VIRTUAL_ENV"], "bin", "deactivate")
-        if os.path.exists(deactivate_script):
-            subprocess.run(f"source {deactivate_script}",
-                           shell=True, executable="/bin/bash")
-        del os.environ["VIRTUAL_ENV"]
+# def deactivate_current_environment() -> None:
+#     if "VIRTUAL_ENV" in os.environ:
+#         deactivate_script = os.path.join(
+#             os.environ["VIRTUAL_ENV"], "bin", "deactivate")
+#         if os.path.exists(deactivate_script):
+#             subprocess.run(f"source {deactivate_script}",
+#                            shell=True, executable="/bin/bash")
+#         del os.environ["VIRTUAL_ENV"]
 
 
 def reduce_path(base_path, n):
@@ -43,7 +26,7 @@ def reduce_path(base_path, n):
     return reduced_path
 
 
-def activate_nearest(current_dir: str, current_python_path: str) -> None:
+def activate_nearest(current_dir: str, current_python_path: str, virtual_python_path: str) -> None:
     includes = ["*/bin/activate"]
     excludes = [
         "site-packages",
@@ -64,22 +47,45 @@ def activate_nearest(current_dir: str, current_python_path: str) -> None:
 
         if new_python_path in current_dir:
             if current_python_path != new_python_path:
-                command = f"source {nearest_activation}"
-                print(command)
-                logger.success(
-                    f"Activated virtual environment in: {nearest_activation}")
+                return nearest_activation
         elif has_activated:
-            # logger.error("No virtual environment found.")
-            print("deactivate")
+            raise Exception("No virtual environment found 1.")
     elif has_activated:
-        # logger.error("No virtual environment found.")
-        print("deactivate")
+        raise Exception("No virtual environment found 2.")
 
 
 if __name__ == "__main__":
+    # Temporarily redirect stdout for .env.enter eval
+    # import io
+    # sys.stdout = io.StringIO()
+
     current_dir = sys.argv[1]
     current_python_path = sys.argv[2]
+    virtual_python_path = sys.argv[3]
 
-    current_python_path = reduce_path(current_python_path, n=1)
+    for folder in traverse_directory(
+        base_dir=current_dir,
+        includes=["<folder>/bin/activate"],
+        excludes=["<folder>/node_modules"],
+        limit=1,
+        direction="forward",
+        max_forward_depth=1,
+    ):
+        current_python_path = f"{folder}/bin/python"
 
-    activate_nearest(current_dir, current_python_path)
+    command = ''
+    try:
+        nearest_activation = activate_nearest(
+            current_dir, current_python_path, virtual_python_path)
+        command = f"source {nearest_activation}"
+        # logger.success(f"Activated virtual environment in: {nearest_activation}")
+    except Exception as e:
+        if virtual_python_path:
+            command = "deactivate"
+        # logger.error(e)
+
+    # Restore real stdout
+    # sys.stdout = sys.__stdout__
+
+    # logger.info(command)
+    print(command)

@@ -5,84 +5,7 @@ import json
 import argparse
 from datetime import datetime
 import fnmatch
-from jet.logger import logger
-
-
-def traverse_directory(
-    base_dir: str,
-    includes: List[str],
-    excludes: List[str] = [],
-    limit: Optional[int] = None,
-    direction: str = "forward",
-    max_backward_depth: Optional[int] = None
-) -> Generator[str, None, None]:
-    """
-    Generator that traverses directories and yields folder paths 
-    matching the include patterns but not the exclude patterns.
-
-    :param base_dir: The directory to start traversal from.
-    :param includes: Patterns to include in the search.
-    :param excludes: Patterns to exclude from the search.
-    :param limit: Maximum number of folder paths to yield.
-    :param direction: Direction of traversal - 'forward' (default), 'backward', or 'both'.
-    :param max_backward_depth: Maximum depth to traverse upwards (for 'backward' or 'both').
-    """
-    visited_paths = set()  # Prevent circular references
-    yielded_count = 0
-    current_depth = 0
-    current_dir = os.path.abspath(base_dir)
-
-    def match_patterns(path: str, patterns: List[str]) -> bool:
-        """Checks if a path matches any of the given patterns."""
-        for pattern in patterns:
-            if "<folder>" in pattern:
-                folder_path = os.path.join(
-                    path, pattern.replace("<folder>", "").lstrip("/"))
-                if os.path.exists(folder_path):
-                    return True
-            elif fnmatch.fnmatch(path, f"*{os.path.normpath(pattern.lstrip('/'))}"):
-                return True
-        return False
-
-    def search_dir(directory: str) -> Generator[str, None, None]:
-        """Traverses a single directory and yields matching paths."""
-        nonlocal yielded_count
-        for root, dirs, _ in os.walk(directory, followlinks=False):
-            for folder in dirs:
-                folder_path = os.path.join(root, folder)
-                real_path = os.path.realpath(folder_path)
-
-                if real_path in visited_paths:
-                    continue
-                visited_paths.add(real_path)
-
-                if match_patterns(folder_path, excludes) or any(exclude in folder_path for exclude in excludes):
-                    continue
-                if match_patterns(folder_path, includes) or any(include in folder_path for include in includes):
-                    yield folder_path
-                    yielded_count += 1
-                    if limit and yielded_count >= limit:
-                        return
-
-    # Traverse forward
-    if direction in {"forward", "both"}:
-        yield from search_dir(current_dir)
-        if limit and yielded_count >= limit:
-            return
-
-    # Traverse backward
-    if direction in {"backward", "both"}:
-        while True:
-            parent_dir = os.path.dirname(current_dir)
-            if parent_dir == current_dir:  # Root directory reached
-                break
-            current_dir = parent_dir
-            current_depth += 1
-            if max_backward_depth is not None and current_depth > max_backward_depth:
-                break
-            yield from search_dir(current_dir)
-            if limit and yielded_count >= limit:
-                return
+from jet.file import traverse_directory
 
 
 def match_patterns(file_path: str, patterns: List[str]) -> bool:
@@ -93,13 +16,17 @@ def match_patterns(file_path: str, patterns: List[str]) -> bool:
     return any(fnmatch.fnmatch(normalized_path, f"*{os.path.normpath(p)}") for p in patterns)
 
 
-def get_folder_size(folder_path):
+def get_size(file_path):
+    return os.path.getsize(file_path)
+
+
+def get_folder_sizes(folder_path):
     total_size = 0
     for root, _, files in os.walk(folder_path):
         for file in files:
             file_path = os.path.join(root, file)
             try:
-                total_size += os.path.getsize(file_path)
+                total_size += get_size(file_path)
             except FileNotFoundError:
                 continue
     return total_size / (1000 * 1000)  # Convert to MB
@@ -114,7 +41,7 @@ def find_large_folders(base_dir, includes, excludes, min_size_mb, delete_folders
 
     # Pass **kwargs here
     for folder in traverse_directory(base_dir, includes, excludes, **kwargs):
-        folder_size = get_folder_size(folder)
+        folder_size = get_folder_sizes(folder)
         if folder_size >= min_size_mb:
             print(f"Folder: {folder} | Size: {folder_size:.2f} MB")
             matched_folders.append({"file": folder, "size": folder_size})
@@ -166,7 +93,7 @@ if __name__ == "__main__":
     parser.add_argument("-e", "--excludes", type=str,
                         help="Comma-separated list of patterns to exclude (e.g., 'node_modules,.venv,*.env').",
                         default="")
-    parser.add_argument("--limit", type=int, default=None,
+    parser.add_argument("-l", "--limit", type=int, default=None,
                         help="Maximum number of folder paths to yield.")
     parser.add_argument("--direction", type=str,
                         choices=["forward", "backward", "both"], default="forward",
