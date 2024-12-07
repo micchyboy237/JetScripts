@@ -8,7 +8,7 @@
       "program": "${file}",
       "console": "integratedTerminal",
       "cwd": "${fileDirname}",
-      "python": "${fileDirname}/.venv/bin/python"
+      "python": "/Users/jethroestrada/.pyenv/shims/python"
     },
     {
       "name": "Jet Scripts: Python Debugger",

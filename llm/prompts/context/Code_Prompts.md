@@ -16,6 +16,7 @@ Dont use or add to memory.
 
 - Refactor code with functions representing complete sample usage.
 - Add main function
+- Remove comments and notebook commands
 
 {prompt}
 
