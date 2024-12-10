@@ -3,12 +3,15 @@
   "configurations": [
     {
       "name": "Python Debugger: Current File",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${file}",
       "console": "integratedTerminal",
       "cwd": "${fileDirname}",
-      "python": "/Users/jethroestrada/.pyenv/shims/python"
+      "python": "/Users/jethroestrada/.pyenv/shims/python",
+      "env": {
+        "PYTHONPATH": "/Users/jethroestrada/Desktop/External_Projects/jet_python_modules"
+      }
     },
     {
       "name": "Jet Scripts: Python Debugger",

@@ -131,4 +131,72 @@ sizes() {
     python /Users/jethroestrada/Desktop/External_Projects/JetScripts/find_large_folders.py -b "$base_dir"  -s $min_size -i "$include"
 }
 
-echo "Added deps, freeze, size and sizes functions"
+setup_venv() {
+    deactivate
+    rm -rf .venv
+    python -m venv .venv
+    source .venv/bin/activate
+    which pip
+    which python
+}
+
+activate_venv() {
+    local current_dir=$PWD
+    local activation_script="$current_dir/.venv/bin/activate"
+
+    if [ -f "$activation_script" ]; then
+        source "$activation_script"
+    # else
+    #     echo "Activation script not found: $activation_script"
+    fi
+}
+
+
+freeze_venv() {
+    freeze -f .venv/bin/python -o requirements.txt
+}
+
+reinstall_venv() {
+    setup_venv
+    python --version
+    pip install -r requirements.txt
+}
+
+force_reinstall_venv() {
+    activate_venv
+    pip install --force-reinstall
+}
+
+reinstall_python() {
+    pyenv uninstall 3.12.7
+    pyenv install 3.12.7
+    pip install -r ~/requirements.txt
+    python --version
+}
+
+pip() {
+    activate_venv
+
+    # # Check if the command is 'pip uninstall'
+    # if [ "$1" = "uninstall" ]; then
+    #     # Ensure pip-autoremove is installed
+    #     if ! command -v pip-autoremove &>/dev/null; then
+    #         echo "pip-autoremove is not installed. Installing it now..."
+    #         command pip install pip-autoremove
+    #     fi
+
+    #     # Use pip-autoremove for uninstalling
+    #     echo "Using pip-autoremove to uninstall $2 and its dependencies..."
+    #     pip-autoremove "$2" -y
+    # else
+    #     # Pass other commands to the original pip
+    #     command pip "$@"
+    # fi
+
+    command pip "$@"
+}
+
+# Check if the 'deps' function is already defined to prevent echo
+# if ! declare -f deps &>/dev/null; then
+echo "Added deps, freeze, size, sizes, setup_venv, freeze_venv, reinstall_venv, force_reinstall_venv, activate_venv, reinstall_python functions, pip"
+# fi

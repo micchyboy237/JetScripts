@@ -35,5 +35,5 @@ rag = RAG(embeddings, llm, template="""
   {context}
 """)
 
-result = rag("What is crew AI?")
+result = rag("What is crew AI?", maxlength=4096)
 logger.success(result['answer'])

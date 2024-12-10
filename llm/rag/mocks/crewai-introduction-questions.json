@@ -1,0 +1,42 @@
+[
+  {
+    "question": "What is CrewAI?",
+    "context": "CrewAI is a cutting-edge framework for orchestrating autonomous AI agents. CrewAI enables you to create AI teams where each agent has specific roles, tools, and goals, working together to accomplish complex tasks."
+  },
+  {
+    "question": "How does CrewAI compare to a company structure?",
+    "context": "Just like a company has departments (Sales, Engineering, Marketing) working together under leadership to achieve business goals, CrewAI helps you create an organization of AI agents with specialized roles collaborating to accomplish complex tasks."
+  },
+  {
+    "question": "What is the Crew in CrewAI?",
+    "context": "The Crew is the top-level organization that manages AI agent teams, oversees workflows, ensures collaboration, and delivers outcomes."
+  },
+  {
+    "question": "What are AI Agents in CrewAI?",
+    "context": "AI Agents are specialized team members that have specific roles (e.g., researcher, writer), use designated tools, can delegate tasks, and make autonomous decisions."
+  },
+  {
+    "question": "What is the Process in CrewAI?",
+    "context": "The Process is a workflow management system that defines collaboration patterns, controls task assignments, manages interactions, and ensures efficient execution."
+  },
+  {
+    "question": "What are Tasks in CrewAI?",
+    "context": "Tasks are individual assignments that have clear objectives, use specific tools, feed into the larger process, and produce actionable results."
+  },
+  {
+    "question": "How does CrewAI operate as a whole?",
+    "context": "The Crew organizes the overall operation, AI Agents work on specialized tasks, the Process ensures smooth collaboration, and Tasks are completed to achieve the goal."
+  },
+  {
+    "question": "What are the key features of CrewAI?",
+    "context": "Role-Based Agents: Create specialized agents with defined roles, expertise, and goals. Flexible Tools: Equip agents with custom tools and APIs. Intelligent Collaboration: Agents share insights and coordinate tasks. Task Management: Define workflows with agents handling dependencies."
+  },
+  {
+    "question": "Why choose CrewAI?",
+    "context": "CrewAI offers autonomous operation, natural interaction, extensible design, and production-ready reliability and scalability."
+  },
+  {
+    "question": "Where can I learn more about CrewAI?",
+    "context": "You can install CrewAI, follow the quickstart guide, or join the community to connect with other developers and share experiences."
+  }
+]

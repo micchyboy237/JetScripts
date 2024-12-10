@@ -1,63 +1,39 @@
-from txtai import LLM, RAG
-from txtai.pipeline import Tokenizer, Similarity
-from jet.llm.embeddings import Embeddings
-from jet.llm.search import (
-    load_local_json,
-)
+from txtai import Embeddings, RAG, LLM
+from jet.logger import logger
+from jet.llm.search import load_local_json
 
+dataset_path = "/Users/jethroestrada/Desktop/External_Projects/AI/agents_2/crewAI/my_project/src/my_project/generated/rag/crewai-docs.json"
+dataset = load_local_json(dataset_path)
+data = [row["page_content"] for row in dataset]
 
-def main():
-    embedding_model = "sentence-transformers/paraphrase-MiniLM-L3-v2"
-    # Example setup (you would need to initialize the similarity model, tokenizer, etc.)
-    # Assuming you have a similarity model
-    similarity_instance = Similarity(path=embedding_model)
-    # path_to_model = "path/to/your/model"
-    tokenizer = Tokenizer()  # Or use default if not specified
+# Input data
+# data = [
+#     "US tops 5 million confirmed virus cases",
+#     "Canada's last fully intact ice shelf has suddenly collapsed, " +
+#     "forming a Manhattan-sized iceberg",
+#     "Beijing mobilises invasion craft along coast as Taiwan tensions escalate",
+#     "The National Park Service warns against sacrificing slower friends " +
+#     "in a bear attack",
+#     "Maine man wins $1M from $25 lottery ticket",
+#     "Make huge profits without work, earn up to $100,000 a day"
+# ]
 
-    # embeddings = Embeddings()
-    # embeddings.load(provider="huggingface-hub",
-    #                 container="neuml/txtai-wikipedia")
-    llm = LLM(path="ollama/llama3.1", method="litellm",
-              api_base="http://0.0.0.0:4000")
+# Build embeddings index
+embeddings = Embeddings(content=True)
+embeddings.index(data)
 
-    # Initialize the RAG pipeline
-    rag_pipeline = RAG(
-        # embeddings,
-        similarity=similarity_instance,
-        path=llm,
-        tokenizer=tokenizer,
-        context=3,  # Number of context matches to consider
-        output="default"  # Can be 'default', 'flatten', or 'reference'
-    )
+# Create and run pipeline
+llm = LLM(path="ollama/llama3.1", method="litellm",
+          api_base="http://localhost:11434")
+rag = RAG(embeddings, llm, template="""
+  Answer the following question using the provided context.
 
-    # Sample input data
-    question_queue = [
-        # {"name": "query1", "query": "How to set this up and run? Provide sample usage.",
-        #     "question": "How to set this up and run? Provide sample usage.",
-        #     "snippet": "Paris is a beautiful city."},
-        # {"name": "query2", "query": "How to create crewAI agents with tasks?",
-        #     "question": "How to create crewAI agents with tasks?",
-        #     "snippet": "Jupiter is the largest planet."}
-        "How to set this up and run? Provide sample usage.",
-        "How to create crewAI agents with tasks?",
-    ]
+  Question:
+  {question}
 
-    # Prepare RAG texts
-    dataset_path = "/Users/jethroestrada/Desktop/External_Projects/AI/agents_2/crewAI/my_project/src/my_project/generated/rag/crewai-docs.json"
-    dataset = load_local_json(dataset_path)
-    texts = [row["page_content"] for row in dataset]
+  Context:
+  {context}
+""")
 
-    # Call the RAG pipeline to get answers for the questions
-    results = rag_pipeline(queue=question_queue,
-                           texts=texts, stream=True, maxlength=2048)
-
-    # Print the results
-    for result in results:
-        print(f"Name: {result['name']}")
-        print(f"Answer: {result['answer']}")
-        print(f"Reference: {result.get('reference', 'No reference')}")
-        print("-" * 50)
-
-
-if __name__ == "__main__":
-    main()
+result = rag("What is crew AI?", maxlength=4096)
+logger.success(result['answer'])
