@@ -111,7 +111,7 @@ def request(flow: http.HTTPFlow):
     logger.log("\n")
     url = f"{flow.request.scheme}//{flow.request.host}{flow.request.path}"
 
-    if any(path == flow.request.path for path in ["/api/chat", "/api/generate", "/api/embeddings"]):
+    if any(path == flow.request.path for path in ["/api/chat", "/api/generate"]):
         log_file_path = generate_log_file_path(LOGS_DIR)
 
         logger.log("Log File Path:", log_file_path, colors=["GRAY", "INFO"])

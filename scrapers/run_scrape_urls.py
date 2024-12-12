@@ -110,28 +110,10 @@ def scrape_urls(urls: list[str | UrlItem]):
                 }
                 result["queries"].append(query_result)
 
-        html_output_file = generate_filename(url, ".html")
-        md_output_file = generate_filename(url, ".md")
-        queries_output_file = generate_filename(url, ".md")
-
-        with open(html_output_file, "w", encoding="utf-8") as f:
-            f.write(result["html"])
-        with open(md_output_file, "w", encoding="utf-8") as f:
-            f.write(result["markdown"])
-
-        if result.get("queries"):
-            queries_outputs = []
-            for item in result.get("queries"):
-                queries_outputs.extend(
-                    ["## Prompt", item["prompt"], "## Response", item["response"]])
-            queries_output = "\n\n".join(queries_outputs)
-            with open(queries_output_file, "w", encoding="utf-8") as f:
-                f.write(queries_output)
-
-        logger.log("HTML", f"({len(result['html'])})", "saved to:", html_output_file,
-                   colors=["GRAY", "SUCCESS", "GRAY", "BRIGHT_SUCCESS"])
-        logger.log("MD", f"({len(result['markdown'])})", "saved to:", md_output_file,
-                   colors=["GRAY", "SUCCESS", "GRAY", "BRIGHT_SUCCESS"])
+                yield {
+                    "url": result,
+                    **result
+                }
 
 
 if __name__ == "__main__":
@@ -174,9 +156,10 @@ if __name__ == "__main__":
                     "model": "codellama",
                     "query": (
                         "Refactor this code as classes with types and typed dicts for readability, modularity, and reusability.\n"
-                        "Add main function for usage examples.\n"
-                        "Generated code should be complete and working\n"
-                        "Use comments to show installation instructions if dependencies are provided.\n"
+                        "Add main function for real world usage examples.\n"
+                        "Generated code should be complete and working with correct syntax.\n"
+                        "Include logs and progress tracking if applicable\n"
+                        "Add comments to explain each function and show installation instructions if dependencies are provided.\n"
                         "\nOutput only the Python code wrapped in a code block (use ```python)."
                     )
                 }
@@ -186,7 +169,8 @@ if __name__ == "__main__":
 
     urls = [
         {
-            "url": "https://docs.llamaindex.ai/en/stable/examples/observability/AimCallback/",
+            # "url": "https://docs.llamaindex.ai/en/stable/examples/observability/AimCallback/",
+            "url": "https://docs.llamaindex.ai/en/stable/examples/node_postprocessor/OptimizerDemo/",
             "container_selector": '.md-content',
             "remove_selectors": [
                 ".notice",
@@ -201,8 +185,9 @@ if __name__ == "__main__":
                     "query": (
                         "Refactor this code as classes with types and typed dicts for readability, modularity, and reusability.\n"
                         "Add main function for real world usage examples.\n"
-                        "Generated code should be complete and working\n"
-                        "Use comments to show installation instructions if dependencies are provided.\n"
+                        "Generated code should be complete and working with correct syntax.\n"
+                        "Include logs and progress tracking if applicable\n"
+                        "Add comments to explain each function and show installation instructions if dependencies are provided.\n"
                         "\nOutput only the Python code wrapped in a code block (use ```python)."
                     )
                 }
@@ -210,4 +195,30 @@ if __name__ == "__main__":
         }
     ]
 
-    scrape_urls(urls)
+    stream_results = scrape_urls(urls)
+
+    for stream_result in stream_results:
+        url = stream_result['url']
+
+        html_output_file = generate_filename(url, ".html")
+        md_output_file = generate_filename(url, ".md")
+        queries_output_file = generate_filename(url, ".md")
+
+        with open(html_output_file, "w", encoding="utf-8") as f:
+            f.write(stream_result["html"])
+        with open(md_output_file, "w", encoding="utf-8") as f:
+            f.write(stream_result["markdown"])
+
+        if stream_result.get("queries"):
+            queries_outputs = []
+            for item in stream_result.get("queries"):
+                queries_outputs.extend(
+                    ["## Prompt", item["prompt"], "## Response", item["response"]])
+            queries_output = "\n\n".join(queries_outputs)
+            with open(queries_output_file, "w", encoding="utf-8") as f:
+                f.write(queries_output)
+
+        logger.log("HTML", f"({len(stream_result['html'])})", "saved to:", html_output_file,
+                   colors=["GRAY", "SUCCESS", "GRAY", "BRIGHT_SUCCESS"])
+        logger.log("MD", f"({len(stream_result['markdown'])})", "saved to:", md_output_file,
+                   colors=["GRAY", "SUCCESS", "GRAY", "BRIGHT_SUCCESS"])
