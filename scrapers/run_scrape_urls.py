@@ -10,6 +10,7 @@ from jet.search import scrape_url
 from jet.cache.redis import RedisConfigParams, RedisClient
 from jet.vectors import SettingsManager, SettingsDict, QueryProcessor
 from jet.llm import call_ollama_chat
+from jet.llm.llm_types import OllamaChatOptions
 from jet.logger import logger
 
 
@@ -23,6 +24,17 @@ os.makedirs(output_dir, exist_ok=True)
 config = RedisConfigParams(
     port=3102
 )
+
+MODEL = "codellama"
+SYSTEM_MESSAGE = "You are an AI assistant that follows instructions. You can understand and write code of any language, extract code from structured and unstructured content, and provide real-world usage examples. You can write clean, optimized, readable, and modular code. You follow best practices and correct syntax."
+CHAT_OPTIONS: OllamaChatOptions = {
+    "seed": 42,
+    "num_ctx": 4096,
+    "num_keep": 0,
+    "num_predict": -1,
+    "temperature": 0,
+}
+FINAL_MARKDOWN_TEMPLATE = "## System\n\n```\n{system}\n```\n\n## Prompt\n\n```\n{prompt}\n```\n\n## Response\n\n{response}"
 
 
 class UrlItem(TypedDict):
@@ -63,8 +75,8 @@ def scrape_urls(urls: list[str | UrlItem]):
         html_str = scrape_url(url, config=config, show_browser=show_browser)
 
         markdown = scrape_markdown(html_str)
-        header_contents = markdown['headings']
-        final_markdown = markdown['content']
+        # header_contents = markdown['headings']
+        final_markdown = markdown["content"]
 
         # markdown = html_to_markdown(html_str, **scrape_settings)
         # headers_to_split_on = [
@@ -81,8 +93,6 @@ def scrape_urls(urls: list[str | UrlItem]):
         result = {
             "url": url,
             "html": html_str,
-            "markdown": final_markdown,
-            "splits": header_contents,
         }
 
         if url_item.get('workflows'):
@@ -92,21 +102,35 @@ def scrape_urls(urls: list[str | UrlItem]):
                 parsed_url = urlparse(url)
                 host_name = parsed_url.hostname
 
+                model = MODEL
                 query = item['query']
                 prompt = query + "\n\n" + final_markdown
-                logger.log("PROMPT:\n", prompt, colors=["GRAY", "INFO"])
+                logger.log("PROMPT:")
+                logger.info(prompt)
                 logger.debug("Generating response...")
                 response = ""
                 for chunk in call_ollama_chat(
                     prompt,
-                    track={"repo": "~/", "run_name": host_name, "metadata": {
-                        "type": "json",
-                        "url": url
-                    }}
+                    stream=True,
+                    model=model,
+                    system=SYSTEM_MESSAGE,
+                    options=CHAT_OPTIONS,
+                    track={
+                        "repo": "./aim-logs",
+                        "experiment": "Code Scraper Test",
+                        "run_name": host_name,
+                        "format": FINAL_MARKDOWN_TEMPLATE,
+                        "metadata": {
+                            "type": "code_scraper",
+                            "url_id": to_snake_case(url),
+                            "url": url,
+                        }
+                    }
                 ):
                     response += chunk
                     logger.success(chunk, flush=True)
                 query_result = {
+                    "system": SYSTEM_MESSAGE,
                     "prompt": prompt,
                     "response": response,
                 }
@@ -114,7 +138,8 @@ def scrape_urls(urls: list[str | UrlItem]):
 
                 yield {
                     "url": url,
-                    **result
+                    **result,
+                    **query_result
                 }
 
 
@@ -140,32 +165,6 @@ if __name__ == "__main__":
             #         )
             #     }
             # ]
-        },
-        {
-            # "url": "https://docs.llamaindex.ai/en/stable/examples/workflow/long_rag_pack/",
-            # "url": "https://docs.llamaindex.ai/en/stable/examples/response_synthesizers/tree_summarize/",
-            "url": "https://docs.llamaindex.ai/en/stable/understanding/evaluating/evaluating/",
-            "container_selector": '.md-content',
-            "remove_selectors": [
-                ".notice",
-                '.clipboard-copy-txt',
-            ],
-            # "replace_selectors": [
-            #     {".hl-python pre": "code"}
-            # ],
-            "workflows": [
-                {
-                    "model": "codellama",
-                    "query": (
-                        "Refactor this code as classes with types and typed dicts for readability, modularity, and reusability.\n"
-                        "Add main function for real world usage examples.\n"
-                        "Generated code should be complete and working with correct syntax.\n"
-                        "Include logs and progress tracking if applicable\n"
-                        "Add comments to explain each function and show installation instructions if dependencies are provided.\n"
-                        "\nOutput only the Python code wrapped in a code block (use ```python)."
-                    )
-                }
-            ]
         }
     ]
 
@@ -190,7 +189,7 @@ if __name__ == "__main__":
                         "Generated code should be complete and working with correct syntax.\n"
                         "Include logs and progress tracking if applicable\n"
                         "Add comments to explain each function and show installation instructions if dependencies are provided.\n"
-                        "\nOutput only the Python code wrapped in a code block (use ```python)."
+                        "\nOutput only the Python code wrapped in a code block without additional information (use ```python)."
                     )
                 }
             ]
@@ -200,27 +199,27 @@ if __name__ == "__main__":
     stream_results = scrape_urls(urls)
 
     for stream_result in stream_results:
-        url = stream_result['url']
+        url = stream_result["url"]
+        html_str = stream_result["html"]
+        system = stream_result["system"]
+        prompt = stream_result["prompt"]
+        response = stream_result["response"]
+
+        final_markdown = FINAL_MARKDOWN_TEMPLATE.format(
+            system=system,
+            prompt=prompt,
+            response=response,
+        )
 
         html_output_file = generate_filename(url, ".html")
         md_output_file = generate_filename(url, ".md")
-        queries_output_file = generate_filename(url, ".md")
 
         with open(html_output_file, "w", encoding="utf-8") as f:
             f.write(stream_result["html"])
         with open(md_output_file, "w", encoding="utf-8") as f:
-            f.write(stream_result["markdown"])
-
-        if stream_result.get("queries"):
-            queries_outputs = []
-            for item in stream_result.get("queries"):
-                queries_outputs.extend(
-                    ["## Prompt", item["prompt"], "## Response", item["response"]])
-            queries_output = "\n\n".join(queries_outputs)
-            with open(queries_output_file, "w", encoding="utf-8") as f:
-                f.write(queries_output)
+            f.write(final_markdown)
 
         logger.log("HTML", f"({len(stream_result['html'])})", "saved to:", html_output_file,
                    colors=["GRAY", "SUCCESS", "GRAY", "BRIGHT_SUCCESS"])
-        logger.log("MD", f"({len(stream_result['markdown'])})", "saved to:", md_output_file,
+        logger.log("MD", f"({len(final_markdown)})", "saved to:", md_output_file,
                    colors=["GRAY", "SUCCESS", "GRAY", "BRIGHT_SUCCESS"])

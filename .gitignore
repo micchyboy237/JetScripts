@@ -9,3 +9,4 @@ generated
 .venv
 evaluation/beir/
 .aim/
+jet-logs/
