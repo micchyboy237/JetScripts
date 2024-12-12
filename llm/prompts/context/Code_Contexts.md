@@ -19,7 +19,7 @@ Show code goals and how to use.
 Dont use or add to memory.
 
 Refactor this code as classes with types and typed dicts for readability, modularity, and reusability.
-Add main function for usage examples.
+Add main function for usage examples. Use existing params if exists.
 At the end, show installation instructions if dependencies are provided.
 
 {prompt}
@@ -46,6 +46,7 @@ Query:
 Dont use or add to memory.
 
 Copy all python code from this notebook code.
+Remove the commented code for brevity.
 
 {prompt}
 

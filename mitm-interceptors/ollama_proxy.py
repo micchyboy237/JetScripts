@@ -1,37 +1,185 @@
+from collections.abc import Iterable
+from datetime import datetime
 import json
+import os
 from mitmproxy import http
+import time
+from jet.transformers import make_serializable, format_prompt_log
+from jet.logger import logger
+
+LOGS_DIR = "jet-logs"
+log_file_path = None
+
+# Dictionary to store start times for requests
+start_times: dict[str, float] = {}
+chunks: list[str] = []
+
+
+def generate_log_file_path(logs_dir, base_dir=None):
+    # Determine the base directory
+    if base_dir is None:
+        base_dir = os.path.dirname(os.path.realpath(__file__))
+
+    # Create the log directory if it doesn't exist
+    log_dir = os.path.join(base_dir, logs_dir)
+    os.makedirs(log_dir, exist_ok=True)
+
+    # Generate a timestamp and unique log file name
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    log_file_name = f"{timestamp}_{int(time.time())}.md"
+
+    return os.path.join(log_dir, log_file_name)
+
+
+def generate_log_entry(flow: http.HTTPFlow) -> str:
+    """
+    Generates a formatted log entry with metadata, prompt, and response.
+    """
+    global chunks
+
+    timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+    url = f"{flow.request.scheme}://{flow.request.host}{flow.request.path}"
+
+    # Get last user prompt
+    prompt_log = flow.request.data.content.decode('utf-8')
+    prompt_log = json.loads(prompt_log)
+    prompt_log = json.dumps(prompt_log, indent=2)
+    # prompt = flow.request.data.content
+    # logger.debug(f"PROMPT TYPE: {type(prompt)}")
+    # logger.debug(f"PROMPT CONTENT:\n{prompt}")
+    # try:
+    #     prompt_log = format_prompt_log(json.loads(prompt))
+    #     logger.log("PROMPT LOG:")
+    #     logger.debug(prompt_log)
+    # except json.JSONDecodeError:
+    #     prompt_log = prompt
+
+    # Get last assistant response
+    contents = []
+    for chunk in chunks:
+        try:
+            contents.append(chunk)
+        except json.JSONDecodeError:
+            pass
+    response = "".join(contents)
+
+    log_entry = (
+        f"\n{'-'*80}\n"
+        f"Timestamp: {timestamp}\n"
+        f"Flow ID: {flow.id}\n"
+        f"URL: {url}\n"
+        f"Prompt:\n```json\n{prompt_log}\n```\n"
+        f"Response:\n```markdown\n{response}\n```\n"
+        f"{'-'*80}\n"
+    )
+    return log_entry
+
+
+def interceptor_callback(data: bytes) -> bytes | Iterable[bytes]:
+    """
+    This function will be called for each chunk of request/response body data that arrives at the proxy,
+    and once at the end of the message with an empty bytes argument (b"").
+    """
+    global chunks
+
+    decoded_data = data.decode('utf-8')
+    chunk_dict = {}
+
+    if not chunks:
+        # logger.log("Stream started")
+        # Store the start time for the stream
+        # start_times["stream"] = time.time()
+        pass
+    try:
+        chunk_dict = json.loads(decoded_data)
+        if "message" in chunk_dict and chunk_dict["message"]["role"] == "assistant":
+            content = chunk_dict["message"]["content"]
+            chunks.append(content)
+            logger.success(content, flush=True)
+    except json.JSONDecodeError:
+        pass
+
+    return data
 
 
 def request(flow: http.HTTPFlow):
     """
-    Handle the request, log it, and update the options in the request payload.
+    Handle the request, log it, and record the start time.
     """
-    try:
-        # Decode the content from bytes to a JSON object
-        content = json.loads(flow.request.data.content.decode('utf-8'))
+    global log_file_path
 
-        # Modify the options in the JSON object
-        content['options'] = {
-            "seed": -1,
-            "stream": True,
-            "num_batch": 512,
-            "num_thread": 4,
-            "temperature": 0.7,
-            "num_ctx": 4096,
-            "num_predict": -1,
-            "use_mmap": True,
-            "use_mlock": False,
-            "num_gpu": 0,
-            "num_keep": 0,
-        }
+    logger.log("\n")
+    url = f"{flow.request.scheme}//{flow.request.host}{flow.request.path}"
 
-        # Convert the JSON object back to bytes
-        flow.request.data.content = json.dumps(content).encode('utf-8')
+    if any(path == flow.request.path for path in ["/api/chat", "/api/generate", "/api/embeddings"]):
+        log_file_path = generate_log_file_path(LOGS_DIR)
 
-    except json.JSONDecodeError:
-        # Handle cases where the request body is not JSON
-        print("Request content is not JSON-decodable")
+        logger.log("Log File Path:", log_file_path, colors=["GRAY", "INFO"])
+    else:
+        log_file_path = None
+
+    logger.info(f"URL: {url}")
+    # Log the serialized data as a JSON string
+    request_dict = make_serializable(flow.request.data)
+    logger.log(f"REQUEST KEYS:", list(
+        request_dict.keys()), colors=["GRAY", "INFO"])
+    logger.log(f"REQUEST:")
+    logger.debug(request_dict)
+    start_times[flow.id] = time.time()  # Store the start time for the request
+
+
+def response(flow: http.HTTPFlow):
+    """
+    Handle the response, calculate and log the time difference.
+    """
+    global log_file_path
+    global chunks
+
+    logger.log("\n")
+    # Log the serialized data as a JSON string
+    response_dict = make_serializable(flow.response.data)
+    logger.log(f"RESPONSE KEYS:", list(
+        response_dict.keys()), colors=["GRAY", "INFO"])
+    logger.log(f"RESPONSE:")
+    logger.success(response_dict)
+
+    end_time = time.time()  # Record the end time
+    # if "stream" in start_times:
+    #     end_time = time.time()
+    #     time_taken = end_time - start_times["stream"]
+    #     logger.log("\n\nStream took:", f"{time_taken:.2f} seconds", colors=[
+    #         "LOG",
+    #         "BRIGHT_SUCCESS",
+    #     ])
+
+    if flow.id in start_times:
+        time_taken = end_time - start_times[flow.id]
+        logger.log("Request total time took:", f"{time_taken:.2f} seconds", colors=[
+            "LOG",
+            "BRIGHT_SUCCESS",
+        ])
+        del start_times[flow.id]  # Clean up to avoid memory issues
+    else:
+        logger.warning(f"Start time for {flow.id} not found!")
+
+    if log_file_path:
+        logger.log("FIRST 5 CHUNKS:")
+        logger.debug(chunks[0:5])
+
+        # Log prompt and response with metadata to the log file
+        log_entry = generate_log_entry(flow)
+        with open(log_file_path, 'a') as log_file:
+            log_file.write(log_entry)
+
+    chunks = []  # Clean up to avoid memory issues
+
+
+def responseheaders(flow):
+    """
+    Set the response interceptor callback for streaming.
+    """
+    flow.response.stream = interceptor_callback
 
 
 # Commands
-# mitmdump -s mitm-interceptors/ollama_proxy.py --mode reverse:http://jetairm1:11434 -p 11434
+# mitmdump -s mitm-interceptors/ollama_interceptor.py --mode reverse:http://jetairm1:11435 -p 11434

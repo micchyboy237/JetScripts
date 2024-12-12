@@ -1,7 +1,9 @@
-from pydantic import BaseModel, Field
-from typing import Any, Awaitable, Callable, Optional
-import aiohttp
+import asyncio
 import json
+import requests
+from typing import Callable, Optional, Union, Generator
+from pydantic import BaseModel, Field
+from jet.logger import logger
 
 
 class Action:
@@ -16,24 +18,18 @@ class Action:
         )
         pass
 
-    class UserValves(BaseModel):
-        show_status: bool = Field(
-            default=True, description="Show status of the action."
-        )
-        pass
-
     def __init__(self):
         self.valves = self.Valves()
-        pass
 
     def extract_json(self, response: str) -> list:
         """Extract JSON blocks from the response."""
         import re
         matches = re.findall(
-            r'```(?:json)?\s*\n(.*?)\n\s*```', response, re.DOTALL)
+            r'```(?:json)?\s*\n(.*?)\n\s*```', response, re.DOTALL
+        )
 
         if not matches:
-            return ["No json found in response."]
+            return ["No JSON found in response."]
 
         for match in matches:
             json_str = match.strip()
@@ -43,103 +39,146 @@ class Action:
             except json.JSONDecodeError:
                 pass
 
-    async def query_openai_api(
-        self, model: str, system_prompt: str, user_message: str
-    ) -> str:
+    def query_openai_api(self, body: dict, stream: bool = True) -> Union[dict, Generator]:
         """Query the OpenAI API."""
-        url = f"{self.valves.openai_api_url}/api/chat"
-        headers = {"Content-Type": "application/json"}
-        payload = {
-            "model": model,
-            "stream": True,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message},
-            ],
+        URL = f"{self.valves.openai_api_url}/api/chat"
+        MODEL = self.valves.model
+        OPTIONS = {
+            "stream": stream,
+            "num_ctx": 4096,
+            "temperature": 0.7,
         }
+
         try:
-            async with aiohttp.ClientSession() as session:
-                response = await session.post(url, headers=headers, json=payload)
-                response.raise_for_status()
-                response_data = await response.json()
-                return response_data["choices"][0]["message"]["content"]
-        except aiohttp.ClientError as e:
-            raise Exception(f"HTTP error: {e}")
+            r = requests.post(
+                url=URL,
+                json={**body, "model": MODEL, "options": OPTIONS},
+                stream=stream,
+            )
+            r.raise_for_status()
+
+            if stream:
+                response_chunks = []
+
+                def line_generator():
+                    for line in r.iter_lines():
+                        if line:
+                            decoded_line = line.decode("utf-8")
+                            try:
+                                decoded_chunk = json.loads(decoded_line)
+                                content = decoded_chunk["message"]["content"]
+                                response_chunks.append(content)
+                                logger.success(content, flush=True)
+
+                                is_done = decoded_chunk["done"]
+                                if is_done:
+                                    logger.log("Last chunk")
+                                    logger.debug(decoded_chunk)
+
+                                yield content
+
+                            except json.JSONDecodeError:
+                                logger.warning(
+                                    f"\nLast decoded line: {decoded_line}")
+
+                return line_generator()
+            else:
+                return r.json()
+        except Exception as e:
+            return f"Error: {e}"
 
     async def action(
         self,
         body: dict,
-        __user__: Optional[dict] = None,
-        __event_emitter__: Optional[Callable[[Any], Awaitable[None]]] = None,
-        __event_call__=None,
+        __user__: dict = None,
+        __event_emitter__: Callable = None,
     ) -> Optional[dict]:
-        print(f"action:{__name__}")
+        """Generate tasks for the provided epics."""
+        epics = self.extract_json(body["messages"][-1]["content"])
+        results = []
 
-        user_valves = __user__.get("valves", self.UserValves())
+        for epic in epics:
+            if isinstance(epic, dict):
+                system_message = (
+                    "You are responsible for breaking down epics into actionable tasks. "
+                    "Each task must be specific, include clear acceptance criteria, and define dependencies if any. "
+                    "Format response in JSON array wrapped in ```json."
+                )
+                user_prompt = (
+                    f"Write tasks for this epic.\nTitle: {epic['title']}\nDescription: {epic['description']}")
+                payload = {
+                    "messages": [
+                        {"role": "system", "content": system_message},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    "stream": True,
+                }
 
-        last_message = body["messages"][-1]["content"]
-        epics = self.extract_json(last_message)
+                if __event_emitter__:
+                    await __event_emitter__(
+                        {
+                            "type": "status",
+                            "data": {"description": f"Generating tasks for epic: {epic['title']}", "done": False},
+                        }
+                    )
 
-        if __event_emitter__:
-            # if user_valves.show_status:
-            #     await __event_emitter__(
-            #         {
-            #             "type": "status",
-            #             "data": {"description": f"Generating tasks for epics ({len(epics)})\n{json.dumps(epics)}", "done": False},
-            #         }
-            #     )
+                stream_response = self.query_openai_api(payload, stream=True)
+                tasks = []
 
-            results = []
-            for epic_idx, epic in enumerate(epics):
-                if isinstance(epic, dict):
-                    epic_title = epic.get("title")
-                    epic_description = epic.get("description")
-
-                    if user_valves.show_status:
-                        await __event_emitter__(
-                            {
-                                "type": "status",
-                                "data": {"description": f"Generating tasks for epic {epic_idx + 1}", "done": False},
-                            }
-                        )
-
-                    tasks = []
-                    epic_dict = {
-                        "title": epic_title,
-                        "description": epic_description,
-                        "tasks": tasks
-                    }
-                    results.append(epic_dict)
-
-                    if epic_title and epic_description:
-                        system_message = "You are responsible for breaking down epics into actionable tasks. Each task must be specific, include clear acceptance criteria, and define dependencies if any. Format response in JSON array wrapped in ```json."
-                        user_prompt = (
-                            f"Write tasks for this epic.\nTitle: {epic_title}\nDescription: {epic_description}")
-                        task_results_str = await self.query_openai_api(
-                            self.valves.model,
-                            system_message,
-                            user_prompt,
-                        )
-
-                        # Check if tasks are valid JSON
+                if isinstance(stream_response, Generator):
+                    for content in stream_response:
                         try:
-                            task_results = self.extract_json(task_results_str)
-                            tasks.extend(task_results)
-                            # Process each task
-                            # for task in task_results:
-                            #     print(f"Processing task: {task}")
-                        except json.JSONDecodeError:
-                            print("Invalid task format received.")
+                            task_data = self.extract_json(content)
+                            if task_data:
+                                tasks.extend(task_data)
+                        except Exception as e:
+                            print(f"Error processing chunk: {e}")
+                else:
+                    print("Non-streaming response received.")
 
-            # if user_valves.show_status:
-            #     await __event_emitter__(
-            #         {
-            #             "type": "status",
-            #             "data": {
-            #                 "description": "Tasks generated and processed successfully."
-            #                 if results
-            #                 else "Failed to generate tasks.",
-            #                 "done": True,
-            #             },
-            #         }
-            #     )
+                results.append(
+                    {"title": epic["title"], "description": epic["description"], "tasks": tasks})
+
+        return {"results": results}
+
+
+def main():
+    async def run_action():
+        action_instance = Action()
+        body = {
+            "messages": [
+                {
+                    "content": """
+                    ```json
+                    [
+                        {
+                            "title": "Build a User Authentication System",
+                            "description": "Develop a secure and scalable authentication system for the web application."
+                        },
+                        {
+                            "title": "Create a Payment Integration",
+                            "description": "Integrate multiple payment gateways to support user transactions."
+                        }
+                    ]
+                    ```
+                    """
+                }
+            ]
+        }
+
+        async def event_emitter(event):
+            print(f"Event Emitted: {event}")
+
+        results = await action_instance.action(
+            body=body,
+            __user__={"valves": {"show_status": True}},
+            __event_emitter__=event_emitter,
+        )
+
+        print("Final Results:", results)
+
+    asyncio.run(run_action())
+
+
+if __name__ == "__main__":
+    main()

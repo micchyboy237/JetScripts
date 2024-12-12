@@ -118,13 +118,15 @@ def scrape_urls(urls: list[str | UrlItem]):
             f.write(result["html"])
         with open(md_output_file, "w", encoding="utf-8") as f:
             f.write(result["markdown"])
-        queries_outputs = []
-        for item in result["queries"]:
-            queries_outputs.extend(
-                ["## Prompt", item["prompt"], "## Response", item["response"]])
-        queries_output = "\n\n".join(queries_outputs)
-        with open(queries_output_file, "w", encoding="utf-8") as f:
-            f.write(queries_output)
+
+        if result.get("queries"):
+            queries_outputs = []
+            for item in result.get("queries"):
+                queries_outputs.extend(
+                    ["## Prompt", item["prompt"], "## Response", item["response"]])
+            queries_output = "\n\n".join(queries_outputs)
+            with open(queries_output_file, "w", encoding="utf-8") as f:
+                f.write(queries_output)
 
         logger.log("HTML", f"({len(result['html'])})", "saved to:", html_output_file,
                    colors=["GRAY", "SUCCESS", "GRAY", "BRIGHT_SUCCESS"])
@@ -146,33 +148,62 @@ if __name__ == "__main__":
         {
             "url": "https://www.imdb.com/title/tt32812118",
             "show_browser": True,
-            "workflows": [
-                {
-                    "model": "llama3.1",
-                    "query": (
-                        "Organize this scraped data."
-                    )
-                }
-            ]
+            # "workflows": [
+            #     {
+            #         "model": "llama3.1",
+            #         "query": (
+            #             "Organize this scraped data."
+            #         )
+            #     }
+            # ]
         },
         {
             # "url": "https://docs.llamaindex.ai/en/stable/examples/workflow/long_rag_pack/",
-            "url": "https://docs.llamaindex.ai/en/stable/examples/response_synthesizers/tree_summarize/",
+            # "url": "https://docs.llamaindex.ai/en/stable/examples/response_synthesizers/tree_summarize/",
+            "url": "https://docs.llamaindex.ai/en/stable/understanding/evaluating/evaluating/",
             "container_selector": '.md-content',
             "remove_selectors": [
                 ".notice",
                 '.clipboard-copy-txt',
             ],
-            "replace_selectors": [
-                {".hl-python pre": "code"}
-            ],
+            # "replace_selectors": [
+            #     {".hl-python pre": "code"}
+            # ],
             "workflows": [
                 {
                     "model": "codellama",
                     "query": (
                         "Refactor this code as classes with types and typed dicts for readability, modularity, and reusability.\n"
                         "Add main function for usage examples.\n"
-                        "At the end, show installation instructions if dependencies are provided."
+                        "Generated code should be complete and working\n"
+                        "Use comments to show installation instructions if dependencies are provided.\n"
+                        "\nOutput only the Python code wrapped in a code block (use ```python)."
+                    )
+                }
+            ]
+        }
+    ]
+
+    urls = [
+        {
+            "url": "https://docs.llamaindex.ai/en/stable/examples/observability/AimCallback/",
+            "container_selector": '.md-content',
+            "remove_selectors": [
+                ".notice",
+                '.clipboard-copy-txt',
+            ],
+            # "replace_selectors": [
+            #     {".hl-python pre": "code"}
+            # ],
+            "workflows": [
+                {
+                    "model": "codellama",
+                    "query": (
+                        "Refactor this code as classes with types and typed dicts for readability, modularity, and reusability.\n"
+                        "Add main function for real world usage examples.\n"
+                        "Generated code should be complete and working\n"
+                        "Use comments to show installation instructions if dependencies are provided.\n"
+                        "\nOutput only the Python code wrapped in a code block (use ```python)."
                     )
                 }
             ]

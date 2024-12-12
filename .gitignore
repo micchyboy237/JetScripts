@@ -8,3 +8,4 @@ generated
 *.npy
 .venv
 evaluation/beir/
+.aim/
