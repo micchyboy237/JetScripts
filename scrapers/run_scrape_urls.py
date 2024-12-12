@@ -100,6 +100,7 @@ def scrape_urls(urls: list[str | UrlItem]):
                 for chunk in call_ollama_chat(
                     prompt,
                     track={"repo": "~/", "run_name": host_name, "metadata": {
+                        "type": "json",
                         "url": url
                     }}
                 ):
