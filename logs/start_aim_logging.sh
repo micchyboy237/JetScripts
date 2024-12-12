@@ -1,0 +1,1 @@
+aim up -p 5001 --repo ~/.aim/

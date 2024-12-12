@@ -1,5 +1,7 @@
+import os
 from typing import Generator, Optional, TypedDict
-from jet.logger import logger
+from urllib.parse import urlparse
+from langchain_text_splitters import MarkdownHeaderTextSplitter
 from jet.scrapers.selenium import UrlScraper
 from jet.scrapers.preprocessor import html_to_markdown, scrape_markdown, get_header_contents
 from jet.scrapers.hrequests import request_url
@@ -7,11 +9,9 @@ from jet.transformers import to_snake_case
 from jet.search import scrape_url
 from jet.cache.redis import RedisConfigParams, RedisClient
 from jet.vectors import SettingsManager, SettingsDict, QueryProcessor
-import os
-import hashlib
-import json
+from jet.llm import call_ollama_chat
+from jet.logger import logger
 
-from langchain_text_splitters import MarkdownHeaderTextSplitter
 
 # Set working directory to script location
 file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -79,6 +79,7 @@ def scrape_urls(urls: list[str | UrlItem]):
         # final_markdown = markdown
 
         result = {
+            "url": url,
             "html": html_str,
             "markdown": final_markdown,
             "splits": header_contents,
@@ -87,23 +88,23 @@ def scrape_urls(urls: list[str | UrlItem]):
         if url_item.get('workflows'):
             result["queries"] = []
 
-            settings = SettingsDict(
-                llm_model=url_item.get("model", "llama3.1"),
-                embedding_model="nomic-embed-text",
-                base_url="http://localhost:11434",
-            )
-            settings_manager = SettingsManager.create(settings)
-            query_processor = QueryProcessor(llm=settings_manager.llm)
-
             for item in url_item.get('workflows'):
+                parsed_url = urlparse(url)
+                host_name = parsed_url.hostname
+
                 query = item['query']
                 prompt = query + "\n\n" + final_markdown
                 logger.log("PROMPT:\n", prompt, colors=["GRAY", "INFO"])
                 logger.debug("Generating response...")
                 response = ""
-                for chunk in query_processor.query_generate(prompt):
-                    response += chunk.delta
-                    logger.success(chunk.delta, flush=True)
+                for chunk in call_ollama_chat(
+                    prompt,
+                    track={"repo": "~/", "run_name": host_name, "metadata": {
+                        "url": url
+                    }}
+                ):
+                    response += chunk
+                    logger.success(chunk, flush=True)
                 query_result = {
                     "prompt": prompt,
                     "response": response,
@@ -111,7 +112,7 @@ def scrape_urls(urls: list[str | UrlItem]):
                 result["queries"].append(query_result)
 
                 yield {
-                    "url": result,
+                    "url": url,
                     **result
                 }
 

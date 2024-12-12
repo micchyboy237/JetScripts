@@ -1,4 +1,5 @@
 import os
+import json
 import random
 import string
 from aim import Run, Text
@@ -10,11 +11,14 @@ repo_dir = f"./generated/{file_name}"
 # Initialize a new run
 run = Run(repo=repo_dir)
 
-for step in range(100):
-    # Generate a random string for this example
-    random_str = ''.join(random.choices(
-        string.ascii_uppercase +
-        string.digits, k=20)
-    )
-    aim_text = Text(random_str)
-    run.track(aim_text, name='text', step=step)
+# Track string value
+value = "Sample"
+run.track("Sample", name='text')
+
+#  Track dict value
+value = {
+    "prompt": "Sample prompt",
+    "response": "Sample Value"
+}
+aim_text = Text(json.dumps(value, indent=2))
+run.track(aim_text, name='text')
