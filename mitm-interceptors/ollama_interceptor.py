@@ -7,20 +7,28 @@ import time
 from jet.transformers import make_serializable, format_prompt_log
 from jet.logger import logger
 
-file_dir = os.path.dirname(os.path.realpath(__file__))
-log_dir = os.path.join(file_dir, "jet-logs")
-os.makedirs(log_dir, exist_ok=True)
-
-# Generate a more readable timestamp and unique log filename
-timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-log_file_path = os.path.join(log_dir, f"{timestamp}_{
-                             int(time.time())}.log")
-
-logger.log("Log File Path:", log_file_path, colors=["GRAY", "INFO"])
+LOGS_DIR = "jet-logs"
+log_file_path = None
 
 # Dictionary to store start times for requests
 start_times: dict[str, float] = {}
 chunks: list[str] = []
+
+
+def generate_log_file_path(logs_dir, base_dir=None):
+    # Determine the base directory
+    if base_dir is None:
+        base_dir = os.path.dirname(os.path.realpath(__file__))
+
+    # Create the log directory if it doesn't exist
+    log_dir = os.path.join(base_dir, logs_dir)
+    os.makedirs(log_dir, exist_ok=True)
+
+    # Generate a timestamp and unique log file name
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    log_file_name = f"{timestamp}_{int(time.time())}.md"
+
+    return os.path.join(log_dir, log_file_name)
 
 
 def generate_log_entry(flow: http.HTTPFlow) -> str:
@@ -60,8 +68,8 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         f"Timestamp: {timestamp}\n"
         f"Flow ID: {flow.id}\n"
         f"URL: {url}\n"
-        f"Prompt:\n{prompt_log}\n"
-        f"Response:\n{response}\n"
+        f"Prompt:\n```json\n{prompt_log}\n```\n"
+        f"Response:\n```markdown\n{response}\n```\n"
         f"{'-'*80}\n"
     )
     return log_entry
@@ -78,9 +86,10 @@ def interceptor_callback(data: bytes) -> bytes | Iterable[bytes]:
     chunk_dict = {}
 
     if not chunks:
-        logger.log("Stream started")
+        # logger.log("Stream started")
         # Store the start time for the stream
-        start_times["stream"] = time.time()
+        # start_times["stream"] = time.time()
+        pass
     try:
         chunk_dict = json.loads(decoded_data)
         if "message" in chunk_dict and chunk_dict["message"]["role"] == "assistant":
@@ -97,15 +106,25 @@ def request(flow: http.HTTPFlow):
     """
     Handle the request, log it, and record the start time.
     """
+    global log_file_path
+
     logger.log("\n")
     url = f"{flow.request.scheme}//{flow.request.host}{flow.request.path}"
+
+    if any(path == flow.request.path for path in ["/api/chat", "/api/generate", "/api/embeddings"]):
+        log_file_path = generate_log_file_path(LOGS_DIR)
+
+        logger.log("Log File Path:", log_file_path, colors=["GRAY", "INFO"])
+    else:
+        log_file_path = None
+
     logger.info(f"URL: {url}")
     # Log the serialized data as a JSON string
     request_dict = make_serializable(flow.request.data)
     logger.log(f"REQUEST KEYS:", list(
         request_dict.keys()), colors=["GRAY", "INFO"])
     logger.log(f"REQUEST:")
-    logger.debug(json.dumps(request_dict, indent=2))
+    logger.debug(request_dict)
     start_times[flow.id] = time.time()  # Store the start time for the request
 
 
@@ -113,6 +132,7 @@ def response(flow: http.HTTPFlow):
     """
     Handle the response, calculate and log the time difference.
     """
+    global log_file_path
     global chunks
 
     logger.log("\n")
@@ -121,16 +141,16 @@ def response(flow: http.HTTPFlow):
     logger.log(f"RESPONSE KEYS:", list(
         response_dict.keys()), colors=["GRAY", "INFO"])
     logger.log(f"RESPONSE:")
-    logger.debug(json.dumps(response_dict, indent=2))
+    logger.success(response_dict)
 
     end_time = time.time()  # Record the end time
-    if "stream" in start_times:
-        end_time = time.time()
-        time_taken = end_time - start_times["stream"]
-        logger.log("\n\nStream took:", f"{time_taken:.2f} seconds", colors=[
-            "LOG",
-            "BRIGHT_SUCCESS",
-        ])
+    # if "stream" in start_times:
+    #     end_time = time.time()
+    #     time_taken = end_time - start_times["stream"]
+    #     logger.log("\n\nStream took:", f"{time_taken:.2f} seconds", colors=[
+    #         "LOG",
+    #         "BRIGHT_SUCCESS",
+    #     ])
 
     if flow.id in start_times:
         time_taken = end_time - start_times[flow.id]
@@ -142,7 +162,7 @@ def response(flow: http.HTTPFlow):
     else:
         logger.warning(f"Start time for {flow.id} not found!")
 
-    if flow.request.path.startswith("/api/chat") or flow.request.path.startswith("/api/generate"):
+    if log_file_path:
         logger.log("FIRST 5 CHUNKS:")
         logger.debug(chunks[0:5])
 
