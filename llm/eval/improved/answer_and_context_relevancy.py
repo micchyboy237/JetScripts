@@ -1,11 +1,12 @@
 # %pip install nest_asyncio
 
 import os
+import re
 import joblib
 import nest_asyncio
 import pandas as pd
 import json
-from typing import Sequence, TypedDict
+from typing import Optional, Sequence, TypedDict
 from tqdm import tqdm
 from llama_index.core.llama_dataset import (
     download_llama_dataset,
@@ -44,7 +45,7 @@ from jet.logger import logger, time_it
 
 nest_asyncio.apply()
 
-EVAL_TEMPLATE = PromptTemplate(
+ANSWER_EVAL_TEMPLATE = PromptTemplate(
     "Your task is to evaluate if the response is relevant to the query.\n"
     "The evaluation should be performed in a step-by-step manner by answering the following questions:\n"
     "1. Does the provided response match the subject matter of the user's query?\n"
@@ -52,9 +53,22 @@ EVAL_TEMPLATE = PromptTemplate(
     "on the subject matter taken on by the user's query?\n"
     "Each question above is worth 1 point. Provide detailed feedback on response according to the criteria questions above  "
     "After your feedback provide a final result by strictly following this format: '[RESULT] followed by the integer number representing the total score assigned to the response'\n\n"
-    "Example feedback format:\nFeedback:\n<generated_feedback>\n\n[RESULT] <generated_int_points>\n\n"
+    "Example feedback format:\nFeedback:\n<generated_feedback>\n\n[RESULT] <total_int_score>\n\n"
     "Query: \n {query}\n"
     "Response: \n {response}\n"
+    "Feedback:"
+)
+CONTEXT_EVAL_TEMPLATE = PromptTemplate(
+    "Your task is to evaluate if the retrieved context from the document sources are relevant to the query.\n"
+    "The evaluation should be performed in a step-by-step manner by answering the following questions:\n"
+    "1. Does the retrieved context match the subject matter of the user's query?\n"
+    "2. Can the retrieved context be used exclusively to provide a full answer to the user's query?\n"
+    "Each question above is worth 2 points, where partial marks are allowed and encouraged. Provide detailed feedback on the response "
+    "according to the criteria questions previously mentioned. "
+    "After your feedback provide a final result by strictly following this format: '[RESULT] followed by the floating number representing the total score assigned to the response'\n\n"
+    "Example feedback format:\nFeedback:\n<generated_feedback>\n\n[RESULT] <total_score:.2f>\n\n"
+    "Query: \n {query_str}\n"
+    "Context: \n {context_str}\n"
     "Feedback:"
 )
 
@@ -231,13 +245,13 @@ def make_predictions(dataset: BaseLlamaDataset, query_engine: BaseQueryEngine, b
 
 
 @time_it
-def evaluate_results(judges: EvalJudges, dataset: BaseLlamaDataset, predictions: BaseLlamaExamplePrediction, batch_size: int = 1, cache_dir: str = "./cache"):
+def evaluate_results(judges: EvalJudges, dataset: BaseLlamaDataset, predictions: BaseLlamaExamplePrediction, batch_size: int = 1, cache_dir: str = "./cache", use_cache: bool = False):
     base_name = os.path.splitext(os.path.basename(__file__))[0].lower()
     cache_dir = os.path.join(cache_dir, base_name)
     os.makedirs(cache_dir, exist_ok=True)
     cache_path = os.path.join(cache_dir, "eval.pkl")
 
-    if os.path.exists(cache_path):
+    if use_cache and os.path.exists(cache_path):
         logger.newline()
         eval_results_dict = joblib.load(cache_path)
         logger.log("Loaded eval results from cache",
@@ -292,25 +306,26 @@ def evaluate_results(judges: EvalJudges, dataset: BaseLlamaDataset, predictions:
 
             logger.newline()
             results_dir = os.path.join("./results", base_name)
-        os.makedirs(results_dir, exist_ok=True)
-        results_path = os.path.join(results_dir, "eval.json")
-        with open(results_path, "w") as f:
-            json.dump(make_serializable(eval_tasks),
-                      f, indent=2, ensure_ascii=False)
-            logger.log("Saved to", results_path, colors=[
-                "WHITE", "BRIGHT_SUCCESS"])
+
+            os.makedirs(results_dir, exist_ok=True)
+            results_path = os.path.join(results_dir, "eval.json")
+            with open(results_path, "w") as f:
+                json.dump(make_serializable(eval_tasks),
+                          f, indent=2, ensure_ascii=False)
+                logger.log("Saved to", results_path, colors=[
+                    "WHITE", "BRIGHT_SUCCESS"])
 
     return eval_tasks
 
 
 @time_it
-def compute_mean_scores(evals, cache_dir: str = "./cache"):
+def compute_mean_scores(evals, cache_dir: str = "./cache", use_cache: bool = False):
     base_name = os.path.splitext(os.path.basename(__file__))[0].lower()
     cache_dir = os.path.join(cache_dir, base_name)
     os.makedirs(cache_dir, exist_ok=True)
     cache_path = os.path.join(cache_dir, "mean_scores.pkl")
 
-    if os.path.exists(cache_path):
+    if use_cache and os.path.exists(cache_path):
         logger.newline()
         deep_dfs, mean_scores_df = joblib.load(cache_path)
         logger.log("Loaded eval results from cache",
@@ -383,11 +398,11 @@ def main():
     judges = {
         "answer_relevancy": AnswerRelevancyEvaluator(
             llm=create_llm(small_llm_model),
-            eval_template=EVAL_TEMPLATE,
+            eval_template=ANSWER_EVAL_TEMPLATE,
         ),
         "context_relevancy": ContextRelevancyEvaluator(
             llm=create_llm(large_llm_model),
-            eval_template=EVAL_TEMPLATE,
+            eval_template=CONTEXT_EVAL_TEMPLATE,
         ),
     }
     eval_results = evaluate_results(
