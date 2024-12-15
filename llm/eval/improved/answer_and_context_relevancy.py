@@ -2,10 +2,11 @@
 
 import os
 import joblib
-from typing import Sequence, TypedDict
 import nest_asyncio
 import pandas as pd
-from tqdm.asyncio import tqdm_asyncio
+import json
+from typing import Sequence, TypedDict
+from tqdm import tqdm
 from llama_index.core.llama_dataset import (
     download_llama_dataset,
     BaseLlamaDataset,
@@ -27,6 +28,7 @@ from llama_index.core.storage import StorageContext
 from llama_index.core.schema import Document, QueryBundle, BaseNode, NodeWithScore
 from llama_index.core.indices.base import BaseIndex, BaseQueryEngine
 from llama_index.core.node_parser import NodeParser
+from llama_index.core.prompts import BasePromptTemplate, PromptTemplate
 from llama_index.core import Settings
 
 from jet.llm.ollama import (
@@ -37,9 +39,24 @@ from jet.llm.ollama import (
     large_llm_model,
     large_embed_model,
 )
+from jet.transformers import make_serializable
 from jet.logger import logger, time_it
 
 nest_asyncio.apply()
+
+EVAL_TEMPLATE = PromptTemplate(
+    "Your task is to evaluate if the response is relevant to the query.\n"
+    "The evaluation should be performed in a step-by-step manner by answering the following questions:\n"
+    "1. Does the provided response match the subject matter of the user's query?\n"
+    "2. Does the provided response attempt to address the focus or perspective "
+    "on the subject matter taken on by the user's query?\n"
+    "Each question above is worth 1 point. Provide detailed feedback on response according to the criteria questions above  "
+    "After your feedback provide a final result by strictly following this format: '[RESULT] followed by the integer number representing the total score assigned to the response'\n\n"
+    "Example feedback format:\nFeedback:\n<generated_feedback>\n\n[RESULT] <generated_int_points>\n\n"
+    "Query: \n {query}\n"
+    "Response: \n {response}\n"
+    "Feedback:"
+)
 
 
 class EvalJudges(TypedDict):
@@ -67,45 +84,6 @@ def load_llm_settings():
         "embedding_model": large_embed_model,
     })
     return settings
-
-
-@time_it
-def download_dataset(
-    cache_dir: str = "./cache",
-    limit: int = None,
-    rag_limit: int = None,
-) -> tuple[BaseLlamaDataset, list[Document]]:
-    os.makedirs(cache_dir, exist_ok=True)
-    cache_path = os.path.join(cache_dir, "data.pkl")
-
-    # Check if cache exists
-    if os.path.exists(cache_path):
-        logger.newline()
-        logger.debug("Loading dataset from cache...")
-        rag_dataset, documents = joblib.load(cache_path)
-    else:
-        logger.newline()
-        logger.debug("Downloading llama dataset...")
-        rag_dataset, documents = download_llama_dataset(
-            "EvaluatingLlmSurveyPaperDataset", "./data", show_progress=True
-        )
-        # Save to cache
-        logger.debug("Saving dataset to cache...")
-        joblib.dump((rag_dataset, documents), cache_path)
-
-    logger.log(
-        "rag_dataset.to_pandas()[:5]:",
-        rag_dataset.to_pandas()[:5],
-        colors=["GRAY", "INFO"]
-    )
-
-    # Apply limit if specified
-    if limit:
-        documents = documents[:limit]
-    if rag_limit:
-        rag_dataset.examples = rag_dataset.examples[:rag_limit]
-
-    return rag_dataset, documents
 
 
 @time_it
@@ -161,73 +139,234 @@ def create_query_engine(index: BaseIndex, llm_model: str):
 
 
 @time_it
-def make_predictions(dataset: BaseLlamaDataset, query_engine: BaseQueryEngine, batch_size: int = 100) -> BaseLlamaPredictionDataset:
-    logger.newline()
-    logger.debug("Creating prediction dataset...")
-    prediction_dataset = dataset.make_predictions_with(
-        predictor=query_engine,
-        batch_size=batch_size,
-        show_progress=True,
+def download_dataset(
+    cache_dir: str = "./cache",
+    limit: int = None,
+    rag_limit: int = None,
+) -> tuple[BaseLlamaDataset, list[Document]]:
+    base_name = os.path.splitext(os.path.basename(__file__))[0].lower()
+    cache_dir = os.path.join(cache_dir, base_name)
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_path = os.path.join(cache_dir, "data.pkl")
+
+    # Check if cache exists
+    if os.path.exists(cache_path):
+        logger.newline()
+        logger.debug("Loading dataset from cache...")
+        rag_dataset, documents = joblib.load(cache_path)
+    else:
+        logger.newline()
+        logger.debug("Downloading llama dataset...")
+        rag_dataset, documents = download_llama_dataset(
+            "EvaluatingLlmSurveyPaperDataset", "./data", show_progress=True
+        )
+        # Save to cache
+        joblib.dump((rag_dataset, documents), cache_path)
+        logger.log("Dataset saved to", cache_path,
+                   colors=["WHITE", "BRIGHT_SUCCESS"])
+
+        logger.newline()
+        results_dir = os.path.join("./results", base_name)
+        os.makedirs(results_dir, exist_ok=True)
+        results_path = os.path.join(results_dir, "data.json")
+        with open(results_path, "w") as f:
+            json.dump({
+                "documents": make_serializable(documents),
+                "rag_examples": make_serializable(rag_dataset.examples),
+            }, f, indent=2, ensure_ascii=False)
+            logger.log("Saved to", results_path, colors=[
+                "WHITE", "BRIGHT_SUCCESS"])
+
+    logger.log(
+        "rag_dataset.to_pandas()[:5]:",
+        rag_dataset.to_pandas()[:5],
+        colors=["GRAY", "INFO"]
     )
+
+    # Apply limit if specified
+    if limit:
+        documents = documents[:limit]
+    if rag_limit:
+        rag_dataset.examples = rag_dataset.examples[:rag_limit]
+
+    return rag_dataset, documents
+
+
+@time_it
+def make_predictions(dataset: BaseLlamaDataset, query_engine: BaseQueryEngine, batch_size: int = 1, cache_dir: str = "./cache") -> BaseLlamaPredictionDataset:
+    base_name = os.path.splitext(os.path.basename(__file__))[0].lower()
+    cache_dir = os.path.join(cache_dir, base_name)
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_path = os.path.join(cache_dir, "predictions.pkl")
+
+    if os.path.exists(cache_path):
+        logger.newline()
+        prediction_dataset = joblib.load(cache_path)
+        logger.log("Loaded prediction results from cache",
+                   cache_path, colors=["WHITE", "SUCCESS"])
+    else:
+        logger.newline()
+        logger.debug("Creating prediction dataset...")
+        prediction_dataset = dataset.make_predictions_with(
+            predictor=query_engine,
+            batch_size=batch_size,
+            show_progress=True,
+        )
+        # Save to cache
+        joblib.dump(prediction_dataset, cache_path)
+        logger.log("Prediction results saved to", cache_path,
+                   colors=["WHITE", "BRIGHT_SUCCESS"])
+
+        logger.newline()
+        results_dir = os.path.join("./results", base_name)
+        os.makedirs(results_dir, exist_ok=True)
+        results_path = os.path.join(results_dir, "predictions.json")
+        with open(results_path, "w") as f:
+            json.dump(make_serializable(prediction_dataset.predictions),
+                      f, indent=2, ensure_ascii=False)
+            logger.log("Saved to", results_path, colors=[
+                "WHITE", "BRIGHT_SUCCESS"])
+
     return prediction_dataset
 
 
 @time_it
-def evaluate_results(judges: EvalJudges, dataset: BaseLlamaDataset, predictions: BaseLlamaExamplePrediction, batch_size: int = 2):
-    logger.newline()
-    logger.debug("Evaluating correctness...")
-    eval_tasks = []
-    for example, prediction in zip(dataset.examples, predictions):
-        eval_tasks.append(
-            judges["answer_relevancy"].evaluate(
+def evaluate_results(judges: EvalJudges, dataset: BaseLlamaDataset, predictions: BaseLlamaExamplePrediction, batch_size: int = 1, cache_dir: str = "./cache"):
+    base_name = os.path.splitext(os.path.basename(__file__))[0].lower()
+    cache_dir = os.path.join(cache_dir, base_name)
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_path = os.path.join(cache_dir, "eval.pkl")
+
+    if os.path.exists(cache_path):
+        logger.newline()
+        eval_results_dict = joblib.load(cache_path)
+        logger.log("Loaded eval results from cache",
+                   cache_path, colors=["WHITE", "SUCCESS"])
+        eval_tasks = eval_results_dict['eval_results']
+
+    else:
+        logger.newline()
+        logger.debug("Evaluating correctness...")
+        eval_iterator = tqdm(zip(dataset.examples, predictions),
+                             total=len(predictions) * batch_size)
+        eval_tasks = []
+        eval_results_dict = {
+            "batch_size": batch_size,
+            "dataset": dataset,
+            "eval_results": eval_tasks
+        }
+        for example, prediction in eval_iterator:
+            logger.log("Query:", example.query, colors=["GRAY", "DEBUG"])
+
+            logger.debug("Evaluating answer relevancy...")
+            answer_relevancy_result = judges["answer_relevancy"].evaluate(
                 query=example.query,
                 response=prediction.response,
                 sleep_time_in_seconds=1.0,
             )
-        )
-        eval_tasks.append(
-            judges["context_relevancy"].evaluate(
+
+            logger.debug("Evaluating context relevancy...")
+            context_relevancy_result = judges["context_relevancy"].evaluate(
                 query=example.query,
                 contexts=prediction.contexts,
                 sleep_time_in_seconds=1.0,
             )
-        )
-    logger.newline()
-    logger.debug("Gathering evaluation results...")
-    results1 = eval_tasks[:batch_size]
-    results2 = eval_tasks[batch_size:]
-    return results1 + results2
+
+            eval_result = {
+                "query": example.query,
+                "answer_relevancy": {
+                    "response": prediction.response,
+                    "result": answer_relevancy_result,
+                },
+                "context_relevancy": {
+                    "contexts": prediction.contexts,
+                    "result": context_relevancy_result,
+                },
+            }
+            eval_tasks.append(eval_result)
+
+            # Save to cache
+            joblib.dump(eval_results_dict, cache_path)
+            logger.log("Eval results saved to", cache_path,
+                       colors=["WHITE", "BRIGHT_SUCCESS"])
+
+            logger.newline()
+            results_dir = os.path.join("./results", base_name)
+        os.makedirs(results_dir, exist_ok=True)
+        results_path = os.path.join(results_dir, "eval.json")
+        with open(results_path, "w") as f:
+            json.dump(make_serializable(eval_tasks),
+                      f, indent=2, ensure_ascii=False)
+            logger.log("Saved to", results_path, colors=[
+                "WHITE", "BRIGHT_SUCCESS"])
+
+    return eval_tasks
 
 
 @time_it
-def compute_mean_scores(evals):
-    logger.newline()
-    logger.debug("Computing mean scores...")
-    deep_dfs, mean_dfs = {}, {}
-    for metric in evals.keys():
-        deep_df, mean_df = get_eval_results_df(
-            names=["baseline"] * len(evals[metric]),
-            results_arr=evals[metric],
-            metric=metric,
+def compute_mean_scores(evals, cache_dir: str = "./cache"):
+    base_name = os.path.splitext(os.path.basename(__file__))[0].lower()
+    cache_dir = os.path.join(cache_dir, base_name)
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_path = os.path.join(cache_dir, "mean_scores.pkl")
+
+    if os.path.exists(cache_path):
+        logger.newline()
+        deep_dfs, mean_scores_df = joblib.load(cache_path)
+        logger.log("Loaded eval results from cache",
+                   cache_path, colors=["WHITE", "SUCCESS"])
+
+    else:
+        logger.newline()
+        logger.debug("Computing mean scores...")
+        deep_dfs, mean_dfs = {}, {}
+        for metric in evals.keys():
+            deep_df, mean_df = get_eval_results_df(
+                names=["baseline"] * len(evals[metric]),
+                results_arr=evals[metric],
+                metric=metric,
+            )
+            deep_dfs[metric] = deep_df
+            mean_dfs[metric] = mean_df
+        mean_scores_df = pd.concat(
+            [mdf.reset_index() for _, mdf in mean_dfs.items()],
+            axis=0,
+            ignore_index=True,
         )
-        deep_dfs[metric] = deep_df
-        mean_dfs[metric] = mean_df
-    mean_scores_df = pd.concat(
-        [mdf.reset_index() for _, mdf in mean_dfs.items()],
-        axis=0,
-        ignore_index=True,
-    )
-    mean_scores_df = mean_scores_df.set_index("index")
-    mean_scores_df.index = mean_scores_df.index.set_names(["metrics"])
+        mean_scores_df = mean_scores_df.set_index("index")
+        mean_scores_df.index = mean_scores_df.index.set_names(["metrics"])
+
+        # Save to cache
+        joblib.dump((deep_dfs, mean_scores_df), cache_path)
+        logger.log("Computed mean scores saved to", cache_path,
+                   colors=["WHITE", "BRIGHT_SUCCESS"])
+
+        logger.newline()
+        results_dir = os.path.join("./results", base_name)
+        os.makedirs(results_dir, exist_ok=True)
+        results_path = os.path.join(results_dir, "mean_scores.json")
+        # Convert the DataFrame to a JSON-compatible dictionary
+        mean_scores_dict = mean_scores_df.to_dict()
+        # Prepare the deep_dfs for JSON serialization if needed
+        deep_dfs_serializable = {k: v.to_dict() for k, v in deep_dfs.items()}
+        # Combine both into a single structure
+        output = {
+            "mean_scores": mean_scores_dict,
+            "deep_dfs": deep_dfs_serializable,
+        }
+        with open(results_path, "w") as f:
+            json.dump(output, f, indent=2, ensure_ascii=False)
+            logger.log("Saved to", results_path, colors=[
+                "WHITE", "BRIGHT_SUCCESS"])
+
     return deep_dfs, mean_scores_df
 
 
 def main():
     settings = load_llm_settings()
     rag_dataset, documents = download_dataset(
-        cache_dir="cache/llama_dataset",
-        limit=4,
-        rag_limit=8,
+        limit=1,
+        rag_limit=1,
     )
 
     if not os.path.exists("./storage/llama_dataset"):
@@ -237,23 +376,27 @@ def main():
     else:
         index = load_index("./storage/llama_dataset")
     query_engine = create_query_engine(index, large_llm_model)
+
     prediction_dataset: BaseLlamaPredictionDataset = make_predictions(
-        rag_dataset, query_engine, batch_size=len(documents))
+        rag_dataset, query_engine, batch_size=1)
+
     judges = {
-        "answer_relevancy": AnswerRelevancyEvaluator(llm=create_llm(small_llm_model)),
-        "context_relevancy": ContextRelevancyEvaluator(llm=create_llm(large_llm_model)),
+        "answer_relevancy": AnswerRelevancyEvaluator(
+            llm=create_llm(small_llm_model),
+            eval_template=EVAL_TEMPLATE,
+        ),
+        "context_relevancy": ContextRelevancyEvaluator(
+            llm=create_llm(large_llm_model),
+            eval_template=EVAL_TEMPLATE,
+        ),
     }
     eval_results = evaluate_results(
-        judges, rag_dataset, prediction_dataset.predictions, batch_size=len(rag_dataset.examples))
+        judges, rag_dataset, prediction_dataset.predictions, batch_size=1)
     evals = {
-        "answer_relevancy": eval_results[::2],
-        "context_relevancy": eval_results[1::2],
+        "answer_relevancy": [eval_result['answer_relevancy']['result'] for eval_result in eval_results],
+        "context_relevancy": [eval_result['context_relevancy']['result'] for eval_result in eval_results],
     }
     deep_dfs, mean_scores_df = compute_mean_scores(evals)
-    logger.log("mean_scores_df:", mean_scores_df, colors=["LOG", "SUCCESS"])
-    displayify_df(deep_dfs["context_relevancy"].head(2))
-    cond = deep_dfs["context_relevancy"]["scores"] < 1
-    displayify_df(deep_dfs["context_relevancy"][cond].head(5))
 
 
 if __name__ == "__main__":

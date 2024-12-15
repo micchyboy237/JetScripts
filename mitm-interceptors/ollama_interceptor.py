@@ -57,11 +57,11 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     prompt_msgs = []
     for item_idx, item in enumerate(messages):
         prompt_msg = (
-            f"Message {item_idx + 1}.\n"
-            f"- **Role**: {item['role']}\n"
-            f"- **Content**: {item['content']}\n"
+            f"## Role\n{item['role']}\n\n"
+            f"## Content\n{item['content']}\n"
         ).strip()
-        prompt_msgs.append(prompt_msg)
+        prompt_msgs.append(
+            f"### Message {item_idx + 1}\n\n```markdown\n{prompt_msg}\n```")
 
     prompt_log = "\n\n".join(prompt_msgs)
 
@@ -80,9 +80,11 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         f"- **Flow ID**: {flow.id}\n"
         f"- **URL**: {url}\n"
         f"- **Model**: {model}\n"
-        f"## Prompt ({len(messages)})\n\n```markdown\n{prompt_log}\n```\n"
-        f"## Response\n\n```markdown\n{response}\n```\n"
-    )
+        f"## Prompt JSON\n\n```json\n{json.dumps(
+            prompt_log_dict, indent=2)}\n```\n\n"
+        f"## Messages ({len(messages)})\n\n{prompt_log}\n\n"
+        f"## Response\n\n```markdown\n{response}\n```\n\n"
+    ).strip()
     return log_entry
 
 
@@ -149,10 +151,20 @@ def response(flow: http.HTTPFlow):
     logger.log("\n")
     # Log the serialized data as a JSON string
     response_dict = make_serializable(flow.response.data)
+
     logger.log(f"RESPONSE KEYS:", list(
         response_dict.keys()), colors=["GRAY", "INFO"])
-    logger.log(f"RESPONSE:")
-    logger.success("".join(chunks))
+
+    response_content = "".join(chunks)
+    if not response_content:
+        response_content = json.dumps(
+            response_dict.get('content', {}), indent=1)
+
+    logger.log("RESPONSE:")
+    logger.debug(json.dumps(response_dict, indent=1))
+
+    logger.log("RESPONSE CONTENT:")
+    logger.success(response_content)
 
     end_time = time.time()  # Record the end time
     # if "stream" in start_times:
