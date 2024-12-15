@@ -70,8 +70,11 @@ def load_llm_settings():
 
 
 @time_it
-def download_dataset(cache_dir: str = "./cache", limit: int = None) -> tuple[BaseLlamaDataset, list[Document]]:
-    """Download and cache the llama dataset with an optional limit on the number of documents."""
+def download_dataset(
+    cache_dir: str = "./cache",
+    limit: int = None,
+    rag_limit: int = None,
+) -> tuple[BaseLlamaDataset, list[Document]]:
     os.makedirs(cache_dir, exist_ok=True)
     cache_path = os.path.join(cache_dir, "data.pkl")
 
@@ -80,7 +83,6 @@ def download_dataset(cache_dir: str = "./cache", limit: int = None) -> tuple[Bas
         logger.newline()
         logger.debug("Loading dataset from cache...")
         rag_dataset, documents = joblib.load(cache_path)
-        return rag_dataset, documents
     else:
         logger.newline()
         logger.debug("Downloading llama dataset...")
@@ -99,8 +101,9 @@ def download_dataset(cache_dir: str = "./cache", limit: int = None) -> tuple[Bas
 
     # Apply limit if specified
     if limit:
-        rag_dataset.examples = rag_dataset.examples[:limit]
         documents = documents[:limit]
+    if rag_limit:
+        rag_dataset.examples = rag_dataset.examples[:rag_limit]
 
     return rag_dataset, documents
 
@@ -222,7 +225,10 @@ def compute_mean_scores(evals):
 def main():
     settings = load_llm_settings()
     rag_dataset, documents = download_dataset(
-        cache_dir="cache/llama_dataset", limit=10)
+        cache_dir="cache/llama_dataset",
+        limit=4,
+        rag_limit=8,
+    )
 
     if not os.path.exists("./storage/llama_dataset"):
         nodes = create_nodes(settings.node_parser, documents)
@@ -232,13 +238,13 @@ def main():
         index = load_index("./storage/llama_dataset")
     query_engine = create_query_engine(index, large_llm_model)
     prediction_dataset: BaseLlamaPredictionDataset = make_predictions(
-        rag_dataset, query_engine)
+        rag_dataset, query_engine, batch_size=len(documents))
     judges = {
         "answer_relevancy": AnswerRelevancyEvaluator(llm=create_llm(small_llm_model)),
         "context_relevancy": ContextRelevancyEvaluator(llm=create_llm(large_llm_model)),
     }
     eval_results = evaluate_results(
-        judges, rag_dataset, prediction_dataset.predictions)
+        judges, rag_dataset, prediction_dataset.predictions, batch_size=len(rag_dataset.examples))
     evals = {
         "answer_relevancy": eval_results[::2],
         "context_relevancy": eval_results[1::2],

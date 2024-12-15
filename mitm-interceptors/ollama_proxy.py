@@ -55,9 +55,12 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     model = prompt_log_dict['model']
     messages = prompt_log_dict['messages']
     prompt_msgs = []
-    for item in messages:
+    for item_idx, item in enumerate(messages):
         prompt_msg = (
-            f"### Role\n\n{item['role']}\n### Content\n\n{item['content']}")
+            f"Message {item_idx + 1}.\n"
+            f"- **Role**: {item['role']}\n"
+            f"- **Content**: {item['content']}\n"
+        ).strip()
         prompt_msgs.append(prompt_msg)
 
     prompt_log = "\n\n".join(prompt_msgs)
@@ -72,15 +75,13 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     response = "".join(contents)
 
     log_entry = (
-        "---"
         f"## Request Info\n\n"
         f"- **Timestamp**: {timestamp}\n"
         f"- **Flow ID**: {flow.id}\n"
         f"- **URL**: {url}\n"
         f"- **Model**: {model}\n"
-        f"## Prompt\n\n```markdown\n{prompt_log}\n```\n"
+        f"## Prompt ({len(messages)})\n\n```markdown\n{prompt_log}\n```\n"
         f"## Response\n\n```markdown\n{response}\n```\n"
-        "---"
     )
     return log_entry
 
