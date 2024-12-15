@@ -51,17 +51,16 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
 
     # Get last user prompt
     prompt_log = flow.request.data.content.decode('utf-8')
-    prompt_log = json.loads(prompt_log)
-    prompt_log = json.dumps(prompt_log, indent=2)
-    # prompt = flow.request.data.content
-    # logger.debug(f"PROMPT TYPE: {type(prompt)}")
-    # logger.debug(f"PROMPT CONTENT:\n{prompt}")
-    # try:
-    #     prompt_log = format_prompt_log(json.loads(prompt))
-    #     logger.log("PROMPT LOG:")
-    #     logger.debug(prompt_log)
-    # except json.JSONDecodeError:
-    #     prompt_log = prompt
+    prompt_log_dict = json.loads(prompt_log)
+    model = prompt_log_dict['model']
+    messages = prompt_log_dict['messages']
+    prompt_msgs = []
+    for item in messages:
+        prompt_msg = (
+            f"### Role\n\n{item['role']}\n### Content\n\n{item['content']}")
+        prompt_msgs.append(prompt_msg)
+
+    prompt_log = "\n\n".join(prompt_msgs)
 
     # Get last assistant response
     contents = []
@@ -73,13 +72,15 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     response = "".join(contents)
 
     log_entry = (
-        f"\n{'-'*80}\n"
-        f"Timestamp: {timestamp}\n"
-        f"Flow ID: {flow.id}\n"
-        f"URL: {url}\n"
-        f"Prompt:\n```json\n{prompt_log}\n```\n"
-        f"Response:\n```markdown\n{response}\n```\n"
-        f"{'-'*80}\n"
+        "---"
+        f"## Request Info\n\n"
+        f"- **Timestamp**: {timestamp}\n"
+        f"- **Flow ID**: {flow.id}\n"
+        f"- **URL**: {url}\n"
+        f"- **Model**: {model}\n"
+        f"## Prompt\n\n```markdown\n{prompt_log}\n```\n"
+        f"## Response\n\n```markdown\n{response}\n```\n"
+        "---"
     )
     return log_entry
 

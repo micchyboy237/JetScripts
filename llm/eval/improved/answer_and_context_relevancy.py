@@ -158,7 +158,7 @@ def create_query_engine(index: BaseIndex, llm_model: str):
 
 
 @time_it
-def make_predictions(dataset: BaseLlamaDataset, query_engine: BaseQueryEngine, batch_size: int = 2) -> BaseLlamaPredictionDataset:
+def make_predictions(dataset: BaseLlamaDataset, query_engine: BaseQueryEngine, batch_size: int = 100) -> BaseLlamaPredictionDataset:
     logger.newline()
     logger.debug("Creating prediction dataset...")
     prediction_dataset = dataset.make_predictions_with(
