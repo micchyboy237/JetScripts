@@ -26,8 +26,7 @@ exclude_files = [
     "jupyter"
 ]
 include_files = [
-    "llm/rag/query.py",
-    "/Users/jethroestrada/Desktop/External_Projects/jet_python_modules/jet/vectors/rag.py",
+    "llm/eval/improved/answer_and_context_relevancy.py",
 ]
 structure_include = []
 structure_exclude = []
@@ -46,143 +45,7 @@ Execute browse or internet search if requested.
 """.strip()
 
 DEFAULT_QUERY_MESSAGE = """
-Update query.py main based from old main code:
-
-from jet.logger import logger
-from jet.file import save_json
-
-# Old main
-def main():
-    # Configuration
-    base_url = "http://localhost:11434"
-    llm_model = "llama3.1"
-    embedding_model = "nomic-embed-text"
-    reranking_model = "BAAI/bge-reranker-base"
-    chunk_size = 512
-    chunk_overlap = 50
-    retriever_top_k = 3
-    reranker_top_n = 3
-
-    # Inputs
-    pages = ['Emma_Stone', 'La_La_Land', 'Ryan_Gosling']
-    prompt_template = (
-        "We have provided context information below.\n"
-        "---------------------\n"
-        "{context_str}\n"
-        "---------------------\n"
-        "Given this information, please answer the question: {query_str}\n"
-        "Don't give an answer unless it is supported by the context above.\n"
-    )
-
-    # Initialize a dictionary to store all results
-    results = {
-        "settings": {},
-        "questions": [],
-        "chat": {},
-        "rerank": {},
-        "hyde": {},
-    }
-
-    # Load the documents
-    logger.debug("Loading documents...")
-    logger.info(pages)
-    documents = load_wikipedia_data(pages)
-    logger.log("Documents:", len(documents))
-
-    logger.debug("Creating settings...")
-    settings = {
-        "llm_model": llm_model,
-        "embedding_model": embedding_model,
-        "chunk_size": chunk_size,
-        "chunk_overlap": chunk_overlap,
-        "base_url": base_url,
-    }
-    results["settings"] = settings
-    logger.info(json.dumps(settings))
-    # Merge settings
-    save_json(results)
-    service_context = create_settings(**settings)
-    logger.debug("Creating index...")
-    index = create_index(documents)
-    logger.debug("Creating retriever...")
-    retriever = create_retriever(index, retriever_top_k)
-
-    questions = [
-        "What is the plot of the film that led Emma Stone to win her first Academy Award?",
-        "Compare the families of Emma Stone and Ryan Gosling"
-    ]
-
-    for question in questions:
-        logger.log("Question:", question, colors=["LOG", "INFO"])
-        logger.debug("Retrieving RAG contexts...")
-        contexts: list[NodeWithScore] = retriever.retrieve(question)
-        context_list = [n.get_content() for n in contexts]
-        prompt = generate_prompt(prompt_template, context_list, question)
-        logger.log("Prompt:", prompt, colors=["LOG", "INFO"])
-        logger.debug("Generating response...")
-        generation_response = query_model(service_context.llm, prompt)
-        response = ""
-        stream_response = []
-        for chunk in generation_response:
-            response += chunk.delta
-            stream_response.append(chunk)
-            logger.success(chunk.delta, flush=True)
-        result = {
-            "prompt": prompt,
-            "response": response,
-            "stream_response": stream_response,
-        }
-        results["questions"].append(result)
-
-        # Merge questions results
-        save_json(results)
-
-    logger.debug("Reranking nodes...")
-    rerank_query = "Compare the families of Emma Stone and Ryan Gosling"
-    logger.log("Query:", rerank_query, colors=["LOG", "INFO"])
-    ranked_nodes = rerank_nodes(
-        index, rerank_query, top_n=reranker_top_n, model=reranking_model)
-    # Merge the query and response
-    results["rerank"] = {"query": rerank_query, "response": ranked_nodes}
-    save_json(results)
-
-    logger.debug("Transforming query using HyDE...")
-    hyde_query = "Compare the families of Emma Stone and Ryan Gosling"
-    logger.log("Query:", hyde_query, colors=["LOG", "INFO"])
-    hyde_response = hyde_query_transform(index, hyde_query)
-    # Merge the query and response
-    results["hyde"] = {"query": hyde_query, "response": hyde_response}
-    save_json(results)
-
-    logger.debug("Generating chat response...")
-    messages = [
-        ChatMessage(role="system",
-                    content="You are a pirate with a colorful personality."),
-        ChatMessage(role="user", content="What is your name?")
-    ]
-    logger.log("Messages:")
-    logger.info(messages)
-    chat_response = query_chat(service_context.llm, messages)
-    response = ""
-    stream_response = []
-    for chunk in chat_response:
-        response += chunk.delta
-        stream_response.append(chunk)
-        logger.success(chunk.delta, flush=True)
-    result = {
-        "prompt": prompt,
-        "messages": messages,
-        "response": response,
-        "stream_response": stream_response,
-    }
-    results["chat"] = result
-
-    # Merge chat results
-    save_json(results)
-
-
-if __name__ == "__main__":
-    main()
+Create remaining functions annotated by time_it to be used in main based on separated by logger.newline().
 """.strip()
 
 # Project specific
@@ -191,10 +54,16 @@ if __name__ == "__main__":
 # )
 
 DEFAULT_INSTRUCTIONS_MESSAGE = """
-- Keep the code short, reusable, testable, maintainable and optimized.
-- Follow best practices and industry design patterns.
+- Provide a step by step process of how you would solve the query.
+- Keep the code short, reusable, testable, maintainable and optimized. Follow best practices and industry design patterns.
 - Install any libraries required to run the code.
 - You may update the code structure if necessary.
+- Reuse existing code if possible without breaking anything.
+- Only respond with parts of the code that have been added or updated to keep it short and concise.
+- Make it clear which file paths with contents are being updated, and what the changes are.
+- Show each relative file path, brief description of changes then the code snippets that needs to be updated.
+- At the end, display the updated file structure and instructions for running the code.
+- Ignore instructions that are not applicable to the query.
 """.strip()
 
 # For existing projects
@@ -443,7 +312,8 @@ def main():
     clipboard_content_parts.append(f"QUERY\n{query_message}")
     if INCLUDE_FILE_STRUCTURE:
         clipboard_content_parts.append(f"FILES STRUCTURE\n{files_structure}")
-    clipboard_content_parts.append(f"FILES CONTENTS\n{clipboard_content}")
+    clipboard_content_parts.append(
+        f"EXISTING FILES CONTENTS\n{clipboard_content}")
 
     clipboard_content = "\n\n".join(clipboard_content_parts)
 

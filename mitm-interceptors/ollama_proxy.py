@@ -15,7 +15,7 @@ start_times: dict[str, float] = {}
 chunks: list[str] = []
 
 
-def generate_log_file_path(logs_dir, base_dir=None):
+def generate_log_file_path(logs_dir, base_dir=None, limit=5):
     # Determine the base directory
     if base_dir is None:
         base_dir = os.path.dirname(os.path.realpath(__file__))
@@ -23,6 +23,15 @@ def generate_log_file_path(logs_dir, base_dir=None):
     # Create the log directory if it doesn't exist
     log_dir = os.path.join(base_dir, logs_dir)
     os.makedirs(log_dir, exist_ok=True)
+
+    # Maintain only the `limit` most recent files
+    existing_logs = sorted(
+        (os.path.join(log_dir, f) for f in os.listdir(log_dir)
+         if os.path.isfile(os.path.join(log_dir, f))),
+        key=os.path.getctime
+    )
+    while len(existing_logs) >= limit:
+        os.remove(existing_logs.pop(0))
 
     # Generate a timestamp and unique log file name
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -44,15 +53,6 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     prompt_log = flow.request.data.content.decode('utf-8')
     prompt_log = json.loads(prompt_log)
     prompt_log = json.dumps(prompt_log, indent=2)
-    # prompt = flow.request.data.content
-    # logger.debug(f"PROMPT TYPE: {type(prompt)}")
-    # logger.debug(f"PROMPT CONTENT:\n{prompt}")
-    # try:
-    #     prompt_log = format_prompt_log(json.loads(prompt))
-    #     logger.log("PROMPT LOG:")
-    #     logger.debug(prompt_log)
-    # except json.JSONDecodeError:
-    #     prompt_log = prompt
 
     # Get last assistant response
     contents = []
@@ -124,7 +124,7 @@ def request(flow: http.HTTPFlow):
     logger.log(f"REQUEST KEYS:", list(
         request_dict.keys()), colors=["GRAY", "INFO"])
     logger.log(f"REQUEST:")
-    logger.debug(request_dict)
+    logger.debug(json.dumps(request_dict.get('content', {}), indent=2))
     start_times[flow.id] = time.time()  # Store the start time for the request
 
 
@@ -141,7 +141,7 @@ def response(flow: http.HTTPFlow):
     logger.log(f"RESPONSE KEYS:", list(
         response_dict.keys()), colors=["GRAY", "INFO"])
     logger.log(f"RESPONSE:")
-    logger.success(response_dict)
+    logger.success("".join(chunks))
 
     end_time = time.time()  # Record the end time
     # if "stream" in start_times:

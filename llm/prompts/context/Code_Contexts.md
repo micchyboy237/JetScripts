@@ -16,6 +16,27 @@ Show code goals and how to use.
 
 ## Context 3
 
+SYSTEM
+Dont use or add to memory.
+Execute browse or internet search if requested.
+
+INSTRUCTIONS
+
+- Provide a step by step process of how you would solve the query.
+- Keep the code short, reusable, testable, maintainable and optimized. Follow best practices and industry design patterns.
+- Install any libraries required to run the code.
+- You may update the code structure if necessary.
+- Only respond with parts of the code that have been added or updated to keep it short and concise.
+- Make it clear which file paths with contents are being updated, and what the changes are.
+- Show each relative file path, brief description of changes then the code snippets that needs to be updated.
+- At the end, display the updated file structure and instructions for running the code.
+- Ignore instructions that are not applicable to the query.
+
+QUERY
+{prompt}
+
+## Context 4
+
 Dont use or add to memory.
 
 Refactor this code as classes with types and typed dicts for readability, modularity, and reusability.
@@ -24,7 +45,7 @@ At the end, show installation instructions if dependencies are provided.
 
 {prompt}
 
-## Context 4
+## Context 5
 
 System:
 Dont use or add to memory.
@@ -39,7 +60,7 @@ Instructions:
 Query:
 {prompt}
 
-## Context 5
+## Context 6
 
 <!-- For converting notebook (.ipynb) to python (.py) code -->
 
@@ -50,7 +71,7 @@ Remove the commented code for brevity.
 
 {prompt}
 
-## Context 6
+## Context 7
 
 <!-- For existing projects -->
 
@@ -70,7 +91,7 @@ Follow these if you are expected to provide code:
 Query:
 {prompt}
 
-## Context 7
+## Context 8
 
 <!-- For creating projects -->
 
@@ -89,7 +110,7 @@ Follow these if you are expected to provide code:
 Query:
 {prompt}
 
-## Context 8
+## Context 9
 
 Dont use or add to memory.
 
@@ -100,7 +121,7 @@ PROMPT:
 
 {prompt}
 
-## Context 9
+## Context 10
 
 Dont use or add to memory.
 
