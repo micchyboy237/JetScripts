@@ -25,7 +25,7 @@ def display_source_node(
         logger.log("File Name:", source_node.metadata['file_name'], colors=[
                    "GRAY", "INFO"])
 
-    if hasattr(source_node, 'text'):
+    if isinstance(source_node, TextNode):
         logger.log(
             "Text:",
             (source_node.text[:source_length] + '...') if len(
@@ -34,8 +34,11 @@ def display_source_node(
         )
         logger.log("Text length:", len(source_node.text),
                    colors=["GRAY", "SUCCESS"])
+        if hasattr(source_node, "start_char_idx") and hasattr(source_node, "end_char_idx"):
+            logger.log("Start - End:", source_node.start_char_idx, "-", source_node.end_char_idx,
+                       colors=["GRAY", "SUCCESS"])
 
-    if hasattr(source_node, 'image'):
+    if isinstance(source_node, ImageNode):
         logger.log("Image:")
         logger.debug(json.dumps({
             "image": source_node.image,
@@ -44,7 +47,7 @@ def display_source_node(
             "image_mimetype": source_node.image_mimetype,
         }, indent=2))
 
-    if score:
+    if score != None:
         logger.log("Similarity:", score, colors=["GRAY", "SUCCESS"])
 
 
@@ -60,9 +63,9 @@ def display_source_nodes(
     if isinstance(source_nodes, Response):
         response = source_nodes
         logger.log("Response:", response.response, colors=["WHITE", "SUCCESS"])
-        if response.metadata:
-            logger.log("Response Metadata:", response.metadata,
-                       colors=["WHITE", "DEBUG"])
+        # if response.metadata:
+        #     logger.log("Response Metadata:", response.metadata,
+        #                colors=["WHITE", "DEBUG"])
         source_nodes = response.source_nodes
 
     logger.log("Nodes Count:", len(source_nodes), colors=["WHITE", "DEBUG"])
