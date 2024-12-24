@@ -1,0 +1,1 @@
+The `SeleniumScrapingTool` is designed to extract and read content from websites using Selenium. It allows for precise extraction of web page elements by targeting specific CSS selectors, offering flexibility in working with various website URLs. The tool is currently under development, but it's expected to be a high-efficiency solution for web scraping tasks.

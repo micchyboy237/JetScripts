@@ -1,4 +1,5 @@
-%pip install llama-index-llms-openai pandas[jinja2] spacyimport logging
+# %pip install llama-index-llms-openai pandas[jinja2] spacy
+import logging
 import sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)

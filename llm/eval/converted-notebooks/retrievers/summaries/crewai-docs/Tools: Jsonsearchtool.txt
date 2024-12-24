@@ -1,0 +1,1 @@
+The JSONSearchTool is an experimental tool designed to search JSON files efficiently and precisely. It utilizes a RAG (Retrieve and Generate) search mechanism, allowing users to specify a JSON path for targeted searches within a particular JSON file. The tool can be installed using pip and supports extensive customization through a configuration dictionary.

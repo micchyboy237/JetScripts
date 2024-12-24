@@ -1,6 +1,8 @@
-%pip install llama-index-llms-openai
-%pip install llama-index-llms-cohere
-%pip install llama-index-llms-gemini!pip install "google-generativeai" -qimport nest_asyncio
+# %pip install llama-index-llms-openai
+# %pip install llama-index-llms-cohere
+# %pip install llama-index-llms-gemini
+# !pip install "google-generativeai" -q
+import nest_asyncio
 
 nest_asyncio.apply()
 from llama_index.core.llama_dataset import download_llama_dataset

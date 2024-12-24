@@ -1,4 +1,5 @@
-%pip install llama-index-evaluation-tonic-validateimport json
+# %pip install llama-index-evaluation-tonic-validate
+import json
 
 import pandas as pd
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
@@ -64,7 +65,7 @@ scores = await tonic_validate_evaluator.aevaluate_run(
     [question], [llm_answer], [retrieved_context_list], [reference_answer]
 )
 scores.run_data[0].scores
-!llamaindex-cli download-llamadataset EvaluatingLlmSurveyPaperDataset --download-dir ./data
+# !llamaindex-cli download-llamadataset EvaluatingLlmSurveyPaperDataset --download-dir ./data
 from llama_index.core import SimpleDirectoryReader
 
 from llama_index.core.llama_dataset import LabelledRagDataset

@@ -3,9 +3,11 @@ from jet.logger import logger
 
 
 def main():
+    embedding_model = "mistral"
+
     # Test case 1: Count tokens in a simple text
     text = "This is a simple test."
-    tokens_text = token_counter(text=text)
+    tokens_text = token_counter(text, embedding_model)
     logger.log("Number of tokens for text:", {
                tokens_text}, colors=["GRAY", "SUCCESS"])
 
@@ -14,7 +16,7 @@ def main():
         {"role": "user", "content": "Hello, how are you?"},
         {"role": "assistant", "content": "I'm fine, thank you! How can I assist?"},
     ]
-    tokens_messages = token_counter(messages=messages)
+    tokens_messages = token_counter(messages, embedding_model)
     logger.log("Number of tokens for messages:", {
                tokens_messages}, colors=["GRAY", "SUCCESS"])
 
@@ -33,7 +35,7 @@ def main():
             ],
         }
     ]
-    tokens_tool = token_counter(messages=messages_with_tool)
+    tokens_tool = token_counter(messages_with_tool, embedding_model)
     logger.log("Number of tokens for messages with tool calls:", {
                tokens_tool}, colors=["GRAY", "SUCCESS"])
 
@@ -48,7 +50,7 @@ def main():
             ],
         }
     ]
-    tokens_images = token_counter(messages=messages_with_images)
+    tokens_images = token_counter(messages_with_images, embedding_model)
     logger.log("Number of tokens for messages with images:", {
                tokens_images}, colors=["GRAY", "SUCCESS"])
 

@@ -1,7 +1,7 @@
 import os
 import fnmatch
 from typing import List
-from utils import logger
+from jet.logger import logger
 
 INCLUDES = [
     "*/bin/activate"

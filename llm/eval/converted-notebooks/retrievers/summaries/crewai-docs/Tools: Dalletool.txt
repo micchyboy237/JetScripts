@@ -1,0 +1,1 @@
+A powerful tool designed for generating images from textual descriptions. It allows an Agent to generate images based on user-provided text input, utilizing a transformer-based model like DALL-E. The tool can be installed via the crewai_tools package and customized with parameters such as model type, image size, quality, and number of generated images.

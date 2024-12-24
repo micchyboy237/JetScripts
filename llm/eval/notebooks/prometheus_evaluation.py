@@ -1,5 +1,6 @@
-%pip install llama-index-llms-openai
-%pip install llama-index-llms-huggingface-apiimport nest_asyncio
+# %pip install llama-index-llms-openai
+# %pip install llama-index-llms-huggingface-api
+import nest_asyncio
 
 nest_asyncio.apply()
 from llama_index.core.llama_dataset import download_llama_dataset

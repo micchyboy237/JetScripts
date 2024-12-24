@@ -1,0 +1,1 @@
+A powerful tool designed for executing Python 3 code within a secure, isolated environment. It enables an Agent to execute generated code safely, allowing it to create, run, and utilize the results to inform decisions and actions. Requires Docker and can be installed via the `crewai[tools]` package.

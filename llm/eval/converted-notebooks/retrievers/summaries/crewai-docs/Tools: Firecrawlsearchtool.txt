@@ -1,0 +1,1 @@
+A tool designed to search websites and convert them into clean markdown or structured data is available for use. It can be utilized by specifying an API key and a search query string, with optional parameters for result formatting and controlling the crawling behavior.

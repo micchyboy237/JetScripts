@@ -1,4 +1,5 @@
-!pip install llama-indexfrom llama_index.core.evaluation import SemanticSimilarityEvaluator
+# !pip install llama-index
+from llama_index.core.evaluation import SemanticSimilarityEvaluator
 
 evaluator = SemanticSimilarityEvaluator()
 

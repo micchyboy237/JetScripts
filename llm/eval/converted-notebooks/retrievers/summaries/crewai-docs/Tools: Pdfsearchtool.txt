@@ -1,0 +1,1 @@
+The PDFSearchTool is designed to search PDF files and return the most relevant results. It allows for inputting a search query and a PDF document, leveraging advanced search techniques to find relevant content efficiently. This capability makes it especially useful for extracting specific information from large PDF files quickly.

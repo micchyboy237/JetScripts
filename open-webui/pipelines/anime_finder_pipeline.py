@@ -89,7 +89,7 @@ class Pipeline:
         logger.info(URL)
         logger.log("MESSAGES:", len(messages), colors=["LOG", "INFO"])
         logger.log("TOKENS:", token_counter(
-            messages=messages), colors=["LOG", "INFO"])
+            messages, "mistral"), colors=["LOG", "INFO"])
         print("----- END INFO -----")
 
         try:

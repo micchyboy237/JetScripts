@@ -1,4 +1,5 @@
-%pip install -qU uptrain llama-indeximport httpx
+# %pip install -qU uptrain llama-index
+import httpx
 import os
 import openai
 import pandas as pd

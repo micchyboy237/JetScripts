@@ -1,0 +1,1 @@
+A suite of functionalities within the crewai_tools package aimed at facilitating file reading and content retrieval. It supports various text-based file formats and offers specialized functionality depending on the file type.

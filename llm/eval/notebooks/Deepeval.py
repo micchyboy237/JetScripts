@@ -1,5 +1,7 @@
-!pip install -q -q llama-index
-!pip install -U -q deepeval!deepeval loginfrom llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+# !pip install -q -q llama-index
+# !pip install -U -q deepeval
+# !deepeval login
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 
 documents = SimpleDirectoryReader("YOUR_DATA_DIRECTORY").load_data()
 index = VectorStoreIndex.from_documents(documents)

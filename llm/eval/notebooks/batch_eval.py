@@ -1,4 +1,5 @@
-%pip install llama-index-llms-openai llama-index-embeddings-openaiimport nest_asyncio
+# %pip install llama-index-llms-openai llama-index-embeddings-openai
+import nest_asyncio
 
 nest_asyncio.apply()
 import os
@@ -27,7 +28,8 @@ splitter = SentenceSplitter(chunk_size=512)
 vector_index = VectorStoreIndex.from_documents(
     documents, transformations=[splitter]
 )
-%pip install spacy datasets span-marker scikit-learnfrom llama_index.core.evaluation import DatasetGenerator
+# %pip install spacy datasets span-marker scikit-learn
+from llama_index.core.evaluation import DatasetGenerator
 
 dataset_generator = DatasetGenerator.from_documents(documents, llm=llm)
 

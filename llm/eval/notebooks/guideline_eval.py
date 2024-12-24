@@ -1,4 +1,6 @@
-%pip install llama-index-llms-openai!pip install llama-indexfrom llama_index.core.evaluation import GuidelineEvaluator
+# %pip install llama-index-llms-openai
+# !pip install llama-index
+from llama_index.core.evaluation import GuidelineEvaluator
 from llama_index.llms.openai import OpenAI
 
 import nest_asyncio

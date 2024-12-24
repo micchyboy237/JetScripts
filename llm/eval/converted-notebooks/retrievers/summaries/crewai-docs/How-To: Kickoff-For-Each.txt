@@ -1,0 +1,1 @@
+To efficiently process multiple items, use the `kickoff_for_each()` method to execute a crew for each item in a list. This allows you to perform the same set of tasks for multiple items simultaneously, making it particularly useful when dealing with large datasets or repetitive tasks.

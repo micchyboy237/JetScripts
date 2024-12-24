@@ -1,4 +1,6 @@
-%pip install llama-index-llms-openai!pip install llama-indexfrom llama_index.core.evaluation.benchmarks import HotpotQAEvaluator
+# %pip install llama-index-llms-openai
+# !pip install llama-index
+from llama_index.core.evaluation.benchmarks import HotpotQAEvaluator
 from llama_index.core import VectorStoreIndex
 from llama_index.core import Document
 from llama_index.llms.openai import OpenAI

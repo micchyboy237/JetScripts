@@ -1,4 +1,5 @@
-%pip install -qU ragchecker llama-indexfrom llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+# %pip install -qU ragchecker llama-index
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from ragchecker.integrations.llama_index import response_to_rag_results
 from ragchecker import RAGResults, RAGChecker
 from ragchecker.metrics import all_metrics

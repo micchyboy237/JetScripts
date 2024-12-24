@@ -1,0 +1,1 @@
+A collection of examples that demonstrate how to use the CrewAI framework to automate various workflows. These examples showcase different applications of the CrewAI system, highlighting its capabilities in automating tasks across multiple domains.

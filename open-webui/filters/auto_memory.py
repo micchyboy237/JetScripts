@@ -12,8 +12,9 @@ to do:
  - allow function to default to the currently loaded model
 """
 
+import requests
 from pydantic import BaseModel, Field
-from typing import Optional, List, Callable, Awaitable, Any
+from typing import Generator, Optional, List, Callable, Awaitable, Any, Union
 import aiohttp
 from aiohttp import ClientError
 from fastapi.requests import Request
@@ -28,6 +29,17 @@ from open_webui.apps.webui.models.users import Users
 import ast
 import json
 import time
+from jet.llm import call_ollama_chat
+from jet.llm.llm_types import (
+    Message,
+    OllamaChatOptions,
+    OllamaChatResponse,
+    ChatResponseInfo,
+    Tool,
+    MessageRole,
+    Track,
+)
+from jet.logger import logger
 
 from open_webui.main import webui_app
 
@@ -115,7 +127,7 @@ class Filter:
         print(f"outlet:body:{body}")
         print(f"outlet:user:{__user__}")
 
-        memories = await self.identify_memories(body["messages"][-2]["content"])
+        memories = self.identify_memories(body["messages"][-2]["content"])
 
         if memories.startswith("[") and memories.endswith("]") and len(memories) != 2:
             user = Users.get_user_by_id(__user__["id"])
@@ -145,44 +157,33 @@ class Filter:
                     )
         return body
 
-    async def identify_memories(self, input_text: str) -> str:
-        system_prompt = SYSTEM_PROMPT
-
+    def identify_memories(self, input_text: str) -> str:
         user_message = input_text
-        memories = await self.query_openai_api(
-            self.valves.model, system_prompt, user_message
+        stream_response = call_ollama_chat(
+            user_message,
+            model=self.valves.model,
+            system=SYSTEM_PROMPT,
+            stream=True,
         )
+        memories = ""
+        for chunk in stream_response:
+            memories += chunk
+
         return memories
 
-    async def query_openai_api(
-        self,
-        model: str,
-        system_prompt: str,
-        prompt: str,
-    ) -> str:
-        url = f"{self.valves.openai_api_url}/v1/chat/completions"
-        headers = {"Content-Type": "application/json"}
-        payload = {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt},
-            ],
-        }
-        print(f"query_openai_api:url:{url}")
-        print(f"query_openai_api:headers:\n{json.dumps(headers, indent=2)}")
-        print(f"query_openai_api:payload:\n{json.dumps(payload, indent=2)}")
-        print("query_openai_api:generating_context...")
-        try:
-            async with aiohttp.ClientSession() as session:
-                response = await session.post(url, headers=headers, json=payload)
-                response.raise_for_status()
-                json_content = await response.json()
-                content = json_content["choices"][0]["message"]["content"]
-                print(f"memory:\n{json.dumps(content, indent=2)}")
-            return content
-        except ClientError as e:
-            raise Exception(f"Http error: {e.response.text}")
+    def consolidate_memories(self, input_text: str) -> str:
+        user_message = input_text
+        stream_response = call_ollama_chat(
+            user_message,
+            model=self.valves.model,
+            system=OVERLAP_SYSTEM_PROMPT,
+            stream=True,
+        )
+        memories = ""
+        for chunk in stream_response:
+            memories += chunk
+
+        return memories
 
     async def process_memories(
         self,
@@ -257,13 +258,11 @@ class Filter:
             return f"Unable to restructure and filter related memories: {e}"
 
         # Consolidate conflicts or overlaps
-        system_prompt = OVERLAP_SYSTEM_PROMPT
-
         try:
             user_message = json.dumps(fact_list)
-            consolidated_memories = await self.query_openai_api(
-                self.valves.model, system_prompt, user_message
-            )
+            consolidated_memories = self.consolidate_memories(
+                input_text=user_message)
+
         except Exception as e:
             return f"Unable to consolidate related memories: {e}"
 

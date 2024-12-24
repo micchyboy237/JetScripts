@@ -1,0 +1,1 @@
+The `FileWriterTool` is designed to simplify writing content to files. It supports creating new directories if they don't exist, making it useful for tasks such as generating reports, saving logs, and creating configuration files. The tool can be installed by installing the crewai_tools package and initialized with a simple Python code snippet.

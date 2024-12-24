@@ -26,9 +26,11 @@ INSTRUCTIONS
 - Keep the code short, reusable, testable, maintainable and optimized. Follow best practices and industry design patterns.
 - Install any libraries required to run the code.
 - You may update the code structure if necessary.
+- Reuse existing code if possible without breaking anything.
 - Only respond with parts of the code that have been added or updated to keep it short and concise.
 - Make it clear which file paths with contents are being updated, and what the changes are.
 - Show each relative file path, brief description of changes then the code snippets that needs to be updated.
+- Include real world usage examples if applicable. Maintain existing args if provided.
 - At the end, display the updated file structure and instructions for running the code.
 - Ignore instructions that are not applicable to the query.
 
@@ -62,16 +64,30 @@ Query:
 
 ## Context 6
 
-<!-- For converting notebook (.ipynb) to python (.py) code -->
+<!-- For describing notebook (.ipynb) to python (.py) code -->
 
 Dont use or add to memory.
 
-Copy all python code from this notebook code.
-Remove the commented code for brevity.
+This python code is exported from .ipynb notebook file. Do the ff:
+
+- Analyze the purpose of each usage example then provide real world use cases
 
 {prompt}
 
 ## Context 7
+
+<!-- For converting notebook (.ipynb) to python (.py) code -->
+
+Dont use or add to memory.
+
+This python code is exported from .ipynb notebook file. Do the ff:
+
+- Refactor with functions by usage example.
+- Add comments for each to explain the purpose.
+
+{prompt}
+
+## Context 8
 
 <!-- For existing projects -->
 
@@ -91,7 +107,7 @@ Follow these if you are expected to provide code:
 Query:
 {prompt}
 
-## Context 8
+## Context 9
 
 <!-- For creating projects -->
 
@@ -110,7 +126,7 @@ Follow these if you are expected to provide code:
 Query:
 {prompt}
 
-## Context 9
+## Context 10
 
 Dont use or add to memory.
 
@@ -121,7 +137,7 @@ PROMPT:
 
 {prompt}
 
-## Context 10
+## Context 11
 
 Dont use or add to memory.
 
@@ -129,4 +145,14 @@ Dont use or add to memory.
 - This array should completely represent all available data in the doc.
 
 Doc:
+{prompt}
+
+## Context 12
+
+Dont use or add to memory.
+
+Answer the query using the provided context information, and not prior knowledge
+
+Context information from multiple sources is below:
+
 {prompt}

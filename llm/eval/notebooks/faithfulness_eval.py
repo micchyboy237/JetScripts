@@ -1,4 +1,5 @@
-%pip install llama-index-llms-openai pandas[jinja2] spacyimport nest_asyncio
+# %pip install llama-index-llms-openai pandas[jinja2] spacy
+import nest_asyncio
 
 nest_asyncio.apply()
 import os

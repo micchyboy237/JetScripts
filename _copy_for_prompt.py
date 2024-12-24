@@ -26,7 +26,9 @@ exclude_files = [
     "jupyter"
 ]
 include_files = [
-    "llm/eval/improved/answer_and_context_relevancy.py",
+    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/memory/run_search_similar_memories.py",
+    "/Users/jethroestrada/Desktop/External_Projects/jet_python_modules/jet/llm/memory.py",
+    "/Users/jethroestrada/Desktop/External_Projects/jet_python_modules/jet/db/chroma/chroma.py",
 ]
 structure_include = []
 structure_exclude = []
@@ -45,7 +47,57 @@ Execute browse or internet search if requested.
 """.strip()
 
 DEFAULT_QUERY_MESSAGE = """
-Create remaining functions annotated by time_it to be used in main based on separated by logger.newline().
+Please update the return format of memory -> search to follow this schema:
+
+Current log for run_search_similar_memories main:
+
+Similar Memories Results:
+{
+  "ids": [
+    [
+      "0",
+      "2",
+      "1",
+      "7",
+      "6"
+    ]
+  ],
+  "embeddings": null,
+  "documents": [
+    [
+      "User asked about AI-generated art tools",
+      "User inquired about AI-generated animation tools",
+      "User requested image editing software recommendations",
+      "User discussed creating a Shopify store for a cosmetics brand",
+      "Searched for low-competition Instagram hashtags"
+    ]
+  ],
+  "uris": null,
+  "data": null,
+  "metadatas": [
+    [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  ],
+  "distances": [
+    [
+      0.2681650479579768,
+      0.4702033499616342,
+      0.9220590587357101,
+      1.0859382474446566,
+      1.1565763502453081
+    ]
+  ],
+  "included": [
+    "distances",
+    "documents",
+    "metadatas"
+  ]
+}
 """.strip()
 
 # Project specific
@@ -62,6 +114,7 @@ DEFAULT_INSTRUCTIONS_MESSAGE = """
 - Only respond with parts of the code that have been added or updated to keep it short and concise.
 - Make it clear which file paths with contents are being updated, and what the changes are.
 - Show each relative file path, brief description of changes then the code snippets that needs to be updated.
+- Include real world usage examples if applicable.
 - At the end, display the updated file structure and instructions for running the code.
 - Ignore instructions that are not applicable to the query.
 """.strip()

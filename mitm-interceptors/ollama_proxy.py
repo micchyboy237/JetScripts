@@ -15,7 +15,7 @@ start_times: dict[str, float] = {}
 chunks: list[str] = []
 
 
-def generate_log_file_path(logs_dir, base_dir=None, limit=10):
+def generate_log_file_path(logs_dir, base_dir=None, limit=20):
     # Determine the base directory
     if base_dir is None:
         base_dir = os.path.dirname(os.path.realpath(__file__))
@@ -46,8 +46,12 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     """
     global chunks
 
+    request_dict = make_serializable(flow.request.data)
+
     timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
     url = f"{flow.request.scheme}://{flow.request.host}{flow.request.path}"
+    content_length = next(field[1] for field in request_dict["headers"]
+                          ["fields"] if field[0].lower() == "content-length")
 
     # Get last user prompt
     prompt_log = flow.request.data.content.decode('utf-8')
@@ -80,10 +84,13 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         f"- **Flow ID**: {flow.id}\n"
         f"- **URL**: {url}\n"
         f"- **Model**: {model}\n"
+        f"- **Content length**: {content_length}\n"
+        f"\n"
+        # f"## Messages ({len(messages)})\n\n{prompt_log}\n\n"
+        f"## Prompt\n\n```markdown\n{messages[-1]['content']}\n```\n\n"
+        f"## Response\n\n```markdown\n{response}\n```\n\n"
         f"## Prompt JSON\n\n```json\n{json.dumps(
             prompt_log_dict, indent=2)}\n```\n\n"
-        f"## Messages ({len(messages)})\n\n{prompt_log}\n\n"
-        f"## Response\n\n```markdown\n{response}\n```\n\n"
     ).strip()
     return log_entry
 
@@ -121,24 +128,30 @@ def request(flow: http.HTTPFlow):
     """
     global log_file_path
 
-    logger.log("\n")
-    url = f"{flow.request.scheme}//{flow.request.host}{flow.request.path}"
+    if any(path == flow.request.path for path in ["/api/embed", "/api/embeddings"]):
+        request_dict = make_serializable(flow.request.data)
+        logger.log(f"REQUEST EMBEDDING:")
+        logger.debug(json.dumps(request_dict['content'], indent=1))
 
     if any(path == flow.request.path for path in ["/api/chat", "/api/generate"]):
+        logger.log("\n")
+        url = f"{flow.request.scheme}//{flow.request.host}{flow.request.path}"
+
         log_file_path = generate_log_file_path(LOGS_DIR)
 
         logger.log("Log File Path:", log_file_path, colors=["GRAY", "INFO"])
+
+        logger.info(f"URL: {url}")
+        # Log the serialized data as a JSON string
+        request_dict = make_serializable(flow.request.data)
+        logger.log(f"REQUEST KEYS:", list(
+            request_dict.keys()), colors=["GRAY", "INFO"])
+        logger.log(f"REQUEST:")
+        logger.debug(json.dumps(request_dict, indent=1))
+        # Store the start time for the request
+        start_times[flow.id] = time.time()
     else:
         log_file_path = None
-
-    logger.info(f"URL: {url}")
-    # Log the serialized data as a JSON string
-    request_dict = make_serializable(flow.request.data)
-    logger.log(f"REQUEST KEYS:", list(
-        request_dict.keys()), colors=["GRAY", "INFO"])
-    logger.log(f"REQUEST:")
-    logger.debug(json.dumps(request_dict, indent=1))
-    start_times[flow.id] = time.time()  # Store the start time for the request
 
 
 def response(flow: http.HTTPFlow):
@@ -148,51 +161,45 @@ def response(flow: http.HTTPFlow):
     global log_file_path
     global chunks
 
-    logger.log("\n")
-    # Log the serialized data as a JSON string
-    response_dict = make_serializable(flow.response.data)
+    if any(path == flow.request.path for path in ["/api/chat", "/api/generate"]):
+        logger.log("\n")
+        # Log the serialized data as a JSON string
+        response_dict = make_serializable(flow.response.data)
 
-    logger.log(f"RESPONSE KEYS:", list(
-        response_dict.keys()), colors=["GRAY", "INFO"])
+        logger.log(f"RESPONSE KEYS:", list(
+            response_dict.keys()), colors=["GRAY", "INFO"])
 
-    response_content = "".join(chunks)
-    if not response_content:
-        response_content = json.dumps(
-            response_dict.get('content', {}), indent=1)
+        response_content = "".join(chunks)
+        if not response_content:
+            response_content = json.dumps(
+                response_dict.get('content', {}), indent=1)
 
-    logger.log("RESPONSE:")
-    logger.debug(json.dumps(response_dict, indent=1))
+        logger.log("RESPONSE:")
+        logger.debug(json.dumps(response_dict, indent=1))
 
-    logger.log("RESPONSE CONTENT:")
-    logger.success(response_content)
+        logger.log("RESPONSE CONTENT:")
+        logger.success(response_content)
 
-    end_time = time.time()  # Record the end time
-    # if "stream" in start_times:
-    #     end_time = time.time()
-    #     time_taken = end_time - start_times["stream"]
-    #     logger.log("\n\nStream took:", f"{time_taken:.2f} seconds", colors=[
-    #         "LOG",
-    #         "BRIGHT_SUCCESS",
-    #     ])
+        end_time = time.time()  # Record the end time
 
-    if flow.id in start_times:
-        time_taken = end_time - start_times[flow.id]
-        logger.log("Request total time took:", f"{time_taken:.2f} seconds", colors=[
-            "LOG",
-            "BRIGHT_SUCCESS",
-        ])
-        del start_times[flow.id]  # Clean up to avoid memory issues
-    else:
-        logger.warning(f"Start time for {flow.id} not found!")
+        if flow.id in start_times:
+            time_taken = end_time - start_times[flow.id]
+            logger.log("Request total time took:", f"{time_taken:.2f} seconds", colors=[
+                "LOG",
+                "BRIGHT_SUCCESS",
+            ])
+            del start_times[flow.id]  # Clean up to avoid memory issues
+        else:
+            logger.warning(f"Start time for {flow.id} not found!")
 
-    if log_file_path:
-        logger.log("FIRST 5 CHUNKS:")
-        logger.debug(chunks[0:5])
+        if log_file_path:
+            logger.log("FIRST 5 CHUNKS:")
+            logger.debug(chunks[0:5])
 
-        # Log prompt and response with metadata to the log file
-        log_entry = generate_log_entry(flow)
-        with open(log_file_path, 'a') as log_file:
-            log_file.write(log_entry)
+            # Log prompt and response with metadata to the log file
+            log_entry = generate_log_entry(flow)
+            with open(log_file_path, 'a') as log_file:
+                log_file.write(log_entry)
 
     chunks = []  # Clean up to avoid memory issues
 
@@ -202,6 +209,18 @@ def responseheaders(flow):
     Set the response interceptor callback for streaming.
     """
     flow.response.stream = interceptor_callback
+
+
+def error(flow: http.HTTPFlow):
+    """Kills the flow if it has an error different to HTTPSyntaxException.
+    Sometimes, web scanners generate malformed HTTP syntax on purpose and we do not want to kill these requests.
+    """
+    # from mitmproxy.exceptions import HttpSyntaxException
+    # if flow.error is not None and not isinstance(flow.error, HttpSyntaxException):
+    #     flow.kill()
+    logger.warning(type(error))
+    logger.error("Error occured on mitmproxy")
+    logger.error(flow.error)
 
 
 # Commands

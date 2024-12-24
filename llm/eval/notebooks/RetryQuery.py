@@ -1,12 +1,14 @@
-!pip install llama-index
+# !pip install llama-index
+
 from llama_index.core import VectorStoreIndex
 from llama_index.core import SimpleDirectoryReader
 
 import nest_asyncio
 
 nest_asyncio.apply()
-!mkdir -p 'data/paul_graham/'
-!wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'documents = SimpleDirectoryReader("./data/paul_graham/").load_data()
+# !mkdir -p 'data/paul_graham/'
+# !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
+documents = SimpleDirectoryReader("./data/paul_graham/").load_data()
 index = VectorStoreIndex.from_documents(documents)
 query = "What did the author do growing up?"
 base_query_engine = index.as_query_engine()

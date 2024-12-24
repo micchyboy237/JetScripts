@@ -1,0 +1,1 @@
+The XMLSearchTool is a cutting-edge tool designed for conducting semantic searches within XML files. It allows users to parse and extract information efficiently by inputting a search query and an optional XML file path. The tool supports targeting the search more precisely to the content of a specific XML file, providing more relevant search outcomes.

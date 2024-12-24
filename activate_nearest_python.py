@@ -3,7 +3,7 @@ import os
 import fnmatch
 import subprocess
 from find_files import find_files
-from utils import logger
+from jet.logger import logger
 
 
 # def match_pattern(file_path: str, pattern: str) -> bool:

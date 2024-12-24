@@ -1,4 +1,6 @@
-%pip install llama-index-embeddings-huggingface!pip install llama-indexfrom llama_index.embeddings.huggingface import HuggingFaceEmbedding
+# %pip install llama-index-embeddings-huggingface
+# !pip install llama-index
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.core.evaluation.benchmarks import BeirEvaluator
 from llama_index.core import VectorStoreIndex
 

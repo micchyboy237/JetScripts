@@ -1,4 +1,5 @@
-%pip install "argilla-llama-index>=2.1.0"from llama_index.core import (
+# %pip install "argilla-llama-index>=2.1.0"
+from llama_index.core import (
     Settings,
     SimpleDirectoryReader,
     VectorStoreIndex,
@@ -147,8 +148,9 @@ class RAGWorkflow(Workflow):
         )
         return StopEvent(result=response)
 draw_all_possible_flows(RAGWorkflow, filename="step_back_workflow.html")
-!mkdir -p ../../data
-!curl https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt -o ../../data/paul_graham_essay.txtSettings.llm = OpenAI(model="gpt-3.5-turbo", temperature=0.8)
+# !mkdir -p ../../data
+# !curl https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt -o ../../data/paul_graham_essay.txt
+Settings.llm = OpenAI(model="gpt-3.5-turbo", temperature=0.8)
 
 transformations = [
     SentenceSplitter(chunk_size=256, chunk_overlap=75),

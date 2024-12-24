@@ -1,0 +1,1 @@
+A tool designed to scrape websites and convert them into clean markdown or structured data. It utilizes an API key from firecrawl.dev and can extract specific information from web pages using LLM-based extraction. The tool also allows for customization of the scraping process through various options, such as only returning main content or including raw HTML.

@@ -1,10 +1,16 @@
 import os
+from llm.eval.convert_notebooks_to_scripts import scrape_notes
+
 from jet.llm import call_ollama_chat
 from jet.llm.llm_types import OllamaChatOptions
 from jet.logger import logger
 
 # Define input directory
 input_dir = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/notebooks"
+exclude_files = [
+    "answer_and_context_relevancy",
+    "semantic_similarity_eval",
+]
 generated_dir = "improved"
 
 MODEL = "codellama"
@@ -26,9 +32,14 @@ Respond only with a single Python code wrapped in a code block without additiona
 PROMPT_TEMPLATE = "{instructions}\n\nCode:\n\n```python\n{code}\n```\n\nResponse:\n"
 FINAL_MARKDOWN_TEMPLATE = "## System\n\n```\n{system}\n```\n\n## Prompt\n\n```\n{prompt}\n```\n\n## Response\n\n{response}"
 
-# Read .ipynb files
+# Read .py files
 files = [os.path.join(input_dir, f)
          for f in os.listdir(input_dir) if f.endswith(".py")]
+filtered_files = [
+    file for file in files
+    if not any(exclude in file for exclude in exclude_files)
+]
+files = filtered_files
 print(f"Found {len(files)} .ipynb files: {files}")
 
 # Function to extract Python code cells from a file
@@ -71,25 +82,28 @@ def improve_code(code):
     return response
 
 
-# Process each file and extract Python code
-for file in files:
-    file_path = os.path.join(input_dir, file)
-    file_name = os.path.splitext(os.path.basename(file_path))[0]
-    print(f"Processing file: {file_name}...")
+if __name__ == "__main__":
+    scrape_notes(with_markdown=False)
 
-    try:
-        content = read_file(file_path)
+    # Process each file and extract Python code
+    for file in files:
+        file_path = os.path.join(input_dir, file)
+        file_name = os.path.splitext(os.path.basename(file_path))[0]
+        print(f"Processing file: {file_name}...")
 
-        response = improve_code(content)
+        try:
+            content = read_file(file_path)
 
-        output_dir = os.path.join(os.path.dirname(__file__), generated_dir)
-        os.makedirs(output_dir, exist_ok=True)
-        output_file = os.path.join(output_dir, f"{file_name}.py")
+            response = improve_code(content)
 
-        with open(output_file, "w", encoding="utf-8") as f:
-            f.write(content)
+            output_dir = os.path.join(os.path.dirname(__file__), generated_dir)
+            os.makedirs(output_dir, exist_ok=True)
+            output_file = os.path.join(output_dir, f"{file_name}.py")
 
-    except Exception as e:
-        print(f"Failed to process file {file_name}: {e}")
+            with open(output_file, "w", encoding="utf-8") as f:
+                f.write(content)
 
-print(f"Total files processed: {len(files)}")
+        except Exception as e:
+            print(f"Failed to process file {file_name}: {e}")
+
+    print(f"Total files processed: {len(files)}")

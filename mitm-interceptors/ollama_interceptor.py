@@ -15,7 +15,7 @@ start_times: dict[str, float] = {}
 chunks: list[str] = []
 
 
-def generate_log_file_path(logs_dir, base_dir=None, limit=10):
+def generate_log_file_path(logs_dir, base_dir=None, limit=20):
     # Determine the base directory
     if base_dir is None:
         base_dir = os.path.dirname(os.path.realpath(__file__))

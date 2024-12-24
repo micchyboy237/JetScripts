@@ -1,4 +1,5 @@
-%pip install llama-index-llms-openaiimport nest_asyncio
+# %pip install llama-index-llms-openai
+import nest_asyncio
 
 nest_asyncio.apply()
 import logging

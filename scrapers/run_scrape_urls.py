@@ -1,4 +1,6 @@
+import json
 import os
+import shutil
 from typing import Generator, Optional, TypedDict
 from urllib.parse import urlparse
 from langchain_text_splitters import MarkdownHeaderTextSplitter
@@ -11,6 +13,8 @@ from jet.cache.redis import RedisConfigParams, RedisClient
 from jet.vectors import SettingsManager, SettingsDict, QueryProcessor
 from jet.llm import call_ollama_chat
 from jet.llm.llm_types import OllamaChatOptions
+from jet.file import save_file
+from jet.code import MarkdownCodeExtractor
 from jet.logger import logger
 
 
@@ -18,8 +22,10 @@ from jet.logger import logger
 file_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(file_dir)
 
-output_dir = os.path.join(file_dir, "generated", "scraped_urls")
-os.makedirs(output_dir, exist_ok=True)
+OUTPUT_DIR = os.path.join(file_dir, "generated", "scraped_urls")
+if os.path.exists(OUTPUT_DIR):
+    shutil.rmtree(OUTPUT_DIR)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 config = RedisConfigParams(
     port=3102
@@ -47,10 +53,12 @@ class UrlItem(TypedDict):
     model: Optional[str]
 
 
-def generate_filename(url: str, extension: str) -> str:
-    # Convert URL to snake case
-    snake_case_url = to_snake_case(url)
-    return os.path.join(output_dir, f"{snake_case_url}{extension}")
+def generate_filename(file_name: str, base_dir: str = None) -> str:
+    output_dir = OUTPUT_DIR
+    if base_dir:
+        output_dir = os.path.join(output_dir, base_dir)
+
+    return os.path.join(output_dir, file_name)
 
 
 def scrape_urls(urls: list[str | UrlItem]):
@@ -93,7 +101,10 @@ def scrape_urls(urls: list[str | UrlItem]):
         result = {
             "url": url,
             "html": html_str,
+            "markdown": final_markdown,
         }
+
+        yield result
 
         if url_item.get('workflows'):
             result["queries"] = []
@@ -102,18 +113,16 @@ def scrape_urls(urls: list[str | UrlItem]):
                 parsed_url = urlparse(url)
                 host_name = parsed_url.hostname
 
-                model = MODEL
-                query = item['query']
+                query = item['template'].format(
+                    context=final_markdown, query=item['query'])
                 prompt = query + "\n\n" + final_markdown
-                logger.log("PROMPT:")
-                logger.info(prompt)
-                logger.debug("Generating response...")
+
                 response = ""
                 for chunk in call_ollama_chat(
                     prompt,
                     stream=True,
-                    model=model,
-                    system=SYSTEM_MESSAGE,
+                    model=item['model'],
+                    system=item.get('system', None),
                     options=CHAT_OPTIONS,
                     track={
                         "repo": "./aim-logs",
@@ -128,9 +137,10 @@ def scrape_urls(urls: list[str | UrlItem]):
                     }
                 ):
                     response += chunk
-                    logger.success(chunk, flush=True)
+
                 query_result = {
-                    "system": SYSTEM_MESSAGE,
+                    "model": item['model'],
+                    "system": item.get('system', None),
                     "prompt": prompt,
                     "response": response,
                 }
@@ -138,7 +148,6 @@ def scrape_urls(urls: list[str | UrlItem]):
 
                 yield {
                     "url": url,
-                    **result,
                     **query_result
                 }
 
@@ -196,30 +205,65 @@ if __name__ == "__main__":
         }
     ]
 
+    urls = [
+        {
+            "url": "https://tomaarsen.github.io/SpanMarkerNER/notebooks/spacy_integration.html",
+            "container_selector": '[role="main"]',
+            "workflows": [
+                {
+                    "model": "llama3.1",
+                    "query": (
+                        "Write the python code based on the context.\n"
+                        "Add main function for real world usage examples.\n"
+                        "Respond with ONLY the Python code wrapped in a code block (```python) and DO NOT provide a reason."
+                    ),
+                    "template": (
+                        "Context information is below. \n"
+                        "---------------------\n"
+                        "{context}"
+                        "\n---------------------\n"
+                        "Given the context information and not prior knowledge, "
+                        "answer the query: {query}\n"
+                    )
+                }
+            ]
+        }
+    ]
+
     stream_results = scrape_urls(urls)
 
     for stream_result in stream_results:
         url = stream_result["url"]
-        html_str = stream_result["html"]
-        system = stream_result["system"]
-        prompt = stream_result["prompt"]
-        response = stream_result["response"]
+        html = stream_result.get("html")
+        markdown = stream_result.get("markdown")
+        model = stream_result.get("model")
+        system = stream_result.get("system")
+        prompt = stream_result.get("prompt")
+        response = stream_result.get("response")
 
-        final_markdown = FINAL_MARKDOWN_TEMPLATE.format(
-            system=system,
-            prompt=prompt,
-            response=response,
-        )
+        base_dir = to_snake_case(url)
 
-        html_output_file = generate_filename(url, ".html")
-        md_output_file = generate_filename(url, ".md")
+        if url and html and markdown:
+            html_output_file = generate_filename("response.html", base_dir)
+            md_output_file = generate_filename("response.md", base_dir)
 
-        with open(html_output_file, "w", encoding="utf-8") as f:
-            f.write(stream_result["html"])
-        with open(md_output_file, "w", encoding="utf-8") as f:
-            f.write(final_markdown)
+            save_file(html, output_file=html_output_file)
+            save_file(markdown, output_file=md_output_file)
 
-        logger.log("HTML", f"({len(stream_result['html'])})", "saved to:", html_output_file,
-                   colors=["GRAY", "SUCCESS", "GRAY", "BRIGHT_SUCCESS"])
-        logger.log("MD", f"({len(final_markdown)})", "saved to:", md_output_file,
-                   colors=["GRAY", "SUCCESS", "GRAY", "BRIGHT_SUCCESS"])
+        if url and model and prompt and response:
+            json_output_file = generate_filename("response.json", base_dir)
+            save_file({
+                "url": url,
+                "model": model,
+                "system": system,
+                "prompt": prompt,
+                "response": response,
+            }, output_file=json_output_file)
+
+            # Save code if any
+            extractor = MarkdownCodeExtractor()
+            code_blocks = extractor.extract_code_blocks(response)
+            for idx, code_block in enumerate(code_blocks):
+                code_output_file = generate_filename(
+                    f"code_{idx+1}{code_block['extension']}", base_dir)
+                save_file(code_block['code'], output_file=code_output_file)

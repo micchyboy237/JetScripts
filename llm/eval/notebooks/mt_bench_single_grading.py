@@ -1,9 +1,11 @@
-%pip install llama-index-llms-openai
-%pip install llama-index-llms-cohere
-%pip install llama-index-llms-geminiimport nest_asyncio
+# %pip install llama-index-llms-openai
+# %pip install llama-index-llms-cohere
+# %pip install llama-index-llms-gemini
+import nest_asyncio
 
 nest_asyncio.apply()
-!pip install "google-generativeai" -qfrom llama_index.core.llama_dataset import download_llama_dataset
+# !pip install "google-generativeai" -q
+from llama_index.core.llama_dataset import download_llama_dataset
 
 evaluator_dataset, _ = download_llama_dataset(
     "MiniMtBenchSingleGradingDataset", "./mini_mt_bench_data"
