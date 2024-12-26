@@ -151,7 +151,6 @@ for event in app.stream({"messages": [input_message]}, config, stream_mode="valu
 # 
 # <details open>
 
-from langchain import hub
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain.memory import ConversationBufferMemory
 from langchain_core.tools import tool
