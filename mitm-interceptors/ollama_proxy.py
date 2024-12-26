@@ -61,8 +61,8 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     prompt_msgs = []
     for item_idx, item in enumerate(messages):
         prompt_msg = (
-            f"## Role\n{item['role']}\n\n"
-            f"## Content\n{item['content']}\n"
+            f"## Role\n{item.get('role')}\n\n"
+            f"## Content\n{item.get('content')}\n"
         ).strip()
         prompt_msgs.append(
             f"### Message {item_idx + 1}\n\n```markdown\n{prompt_msg}\n```")
