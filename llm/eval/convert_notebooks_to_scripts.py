@@ -10,8 +10,13 @@ REPLACE_OLLAMA_MAP = {
     "llama-index-embeddings-openai": "llama-index-embeddings-ollama",
     "llama_index.llms.openai": "llama_index.llms.ollama",
     "llama_index.embeddings.openai": "llama_index.embeddings.ollama",
-    "OpenAI": "Ollama",
+    "langchain_openai": "langchain_ollama",
+    "langchain_anthropic": "langchain_ollama",
+    "OpenAIEmbeddings": "OllamaEmbeddings",
     "OpenAIEmbedding": "OllamaEmbedding",
+    "ChatOpenAI": "ChatOllama",
+    "ChatAnthropic": "ChatOllama",
+    "OpenAI": "Ollama",
     "(\"gpt-4\")": "(model=\"llama3.1\")",
     "('gpt-4')": "(model=\"llama3.1\")",
     "(\"gpt-3.5\")": "(model=\"llama3.2\")",
@@ -33,7 +38,9 @@ REPLACE_PATHS_MAP = {
 }
 
 COMMENT_LINE_KEYWORDS = [
-    "OPENAI_API_KEY"
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "getpass",
 ]
 
 
@@ -46,7 +53,7 @@ def replace_code_line(line: str):
 
 
 def replace_async_calls(line: str):
-    if not "await" in line:
+    if not "await" in line and not "async for" in line:
         return line
 
     updated_line = line
@@ -54,6 +61,7 @@ def replace_async_calls(line: str):
         if old_line in line:
             updated_line = updated_line.replace(old_line, new_line)
             updated_line = updated_line.replace("await ", "")
+            updated_line = updated_line.replace("async ", "")
     return updated_line
 
 
@@ -99,6 +107,10 @@ def update_code_with_ollama(code: str) -> str:
         updated_lines.append(updated_line)
     updated_code = "\n".join(updated_lines)
 
+    """
+    For llama-index
+    """
+
     # Replace imports
     updated_code = re.sub(
         r'from llama_index\.llms\.openai import OpenAI',
@@ -128,7 +140,23 @@ def update_code_with_ollama(code: str) -> str:
     # Replace OpenAIEmbedding(...) to OllamaEmbedding(...)
     updated_code = re.sub(
         r'OllamaEmbedding\s*\((.*?)\)',
-        r'OllamaEmbedding(model_name="mxbai-embed-large")',
+        r'OllamaEmbedding(model_name="nomic-embed-text")',
+        updated_code
+    )
+
+    """
+    For langchain-core
+    """
+
+    updated_code = re.sub(
+        r'ChatOllama\s*\((.*?)\)',
+        r'ChatOllama(model="llama3.1")',
+        updated_code
+    )
+
+    updated_code = re.sub(
+        r'OllamaEmbeddings\s*\((.*?)\)',
+        r'OllamaEmbeddings(model="nomic-embed-text")',
         updated_code
     )
 
@@ -147,6 +175,9 @@ def read_notebook_file(file, with_markdown=False):
     cells = source_dict.get('cells', [])
     source_groups = []
 
+    import_lines = []  # To collect import statements
+    current_import = []  # To handle multiline imports
+
     for cell in cells:
         code_lines = []
         for line in cell.get('source', []):
@@ -164,17 +195,34 @@ def read_notebook_file(file, with_markdown=False):
                     if not line.strip().startswith('#'):
                         line = "# " + line
 
-                code_lines.append(line)
+                # Handle import statements (including multiline imports)
+                if current_import or line.strip().startswith('import') or line.strip().startswith('from'):
+                    current_import.append(line.strip())
+                    if line.strip().endswith(')'):  # End of multiline import
+                        import_lines.append("\n".join(current_import))
+                        current_import = []  # Reset for the next import
+                else:
+                    code_lines.append(line)
 
             elif with_markdown:
-                if not line.strip().startswith('#'):
-                    line = "# " + line
-                if not line.endswith('\n'):
-                    line += '\n'
                 code_lines.append(line)
+
+        # Format markdown with triple quotes if enabled
+        if with_markdown and cell.get('cell_type') == 'markdown':
+            code = '"""\n' + "".join(code_lines).strip() + '\n"""'
+        else:
+            code = "".join(code_lines).strip()
+
         source_groups.append({
             "type": cell.get('cell_type'),
-            "code": "".join(code_lines).strip()
+            "code": code
+        })
+
+    # Add import lines as a separate code block at the top
+    if import_lines:
+        source_groups.insert(0, {
+            "type": 'code',
+            "code": "\n".join(import_lines).strip()
         })
 
     return source_groups
@@ -245,17 +293,24 @@ def scrape_notes(
 if __name__ == "__main__":
     input_dirs = [
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/metadata_extraction",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/retrievers"
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/retrievers"
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/memory",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/agent/memory",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/versions/migrating_chains",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/versions/migrating_memory",
     ]
-    include_files = ["deep_memory"]
+    include_files = [
+        # "deep_memory"
+    ]
     exclude_files = [
         "answer_and_context_relevancy",
         "semantic_similarity_eval",
         "auto_vs_recursive_retriever",
         "bm25_retriever",
         "auto_merging_retriever",
+        "migrating_chains/conversation_retrieval_chain",
+        "migrating_memory/chat_history",
+        "migrating_chains/conversation_chain.py",
         # "pydantic_tree_summarize",
     ]
 
@@ -264,7 +319,7 @@ if __name__ == "__main__":
         logger.info(f"Processing: {input_dir}")
 
         ext = "ipynb"
-        with_markdown = False
+        with_markdown = True
 
         with_ollama = True
 
