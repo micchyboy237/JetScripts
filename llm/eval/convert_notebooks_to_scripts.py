@@ -175,9 +175,6 @@ def read_notebook_file(file, with_markdown=False):
     cells = source_dict.get('cells', [])
     source_groups = []
 
-    import_lines = []  # To collect import statements
-    current_import = []  # To handle multiline imports
-
     for cell in cells:
         code_lines = []
         for line in cell.get('source', []):
@@ -195,34 +192,17 @@ def read_notebook_file(file, with_markdown=False):
                     if not line.strip().startswith('#'):
                         line = "# " + line
 
-                # Handle import statements (including multiline imports)
-                if current_import or line.strip().startswith('import') or line.strip().startswith('from'):
-                    current_import.append(line.strip())
-                    if line.strip().endswith(')'):  # End of multiline import
-                        import_lines.append("\n".join(current_import))
-                        current_import = []  # Reset for the next import
-                else:
-                    code_lines.append(line)
-
-            elif with_markdown:
                 code_lines.append(line)
 
-        # Format markdown with triple quotes if enabled
-        if with_markdown and cell.get('cell_type') == 'markdown':
-            code = '"""\n' + "".join(code_lines).strip() + '\n"""'
-        else:
-            code = "".join(code_lines).strip()
-
+            elif with_markdown:
+                if not line.strip().startswith('#'):
+                    line = "# " + line
+                if not line.endswith('\n'):
+                    line += '\n'
+                code_lines.append(line)
         source_groups.append({
             "type": cell.get('cell_type'),
-            "code": code
-        })
-
-    # Add import lines as a separate code block at the top
-    if import_lines:
-        source_groups.insert(0, {
-            "type": 'code',
-            "code": "\n".join(import_lines).strip()
+            "code": "".join(code_lines).strip()
         })
 
     return source_groups
