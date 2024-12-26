@@ -26,9 +26,12 @@ exclude_files = [
     "jupyter"
 ]
 include_files = [
-    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/memory/run_search_similar_memories.py",
-    "/Users/jethroestrada/Desktop/External_Projects/jet_python_modules/jet/llm/memory.py",
-    "/Users/jethroestrada/Desktop/External_Projects/jet_python_modules/jet/db/chroma/chroma.py",
+    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/jet-vscode-commands/custom-extensions/ask-llm/src/scripts/chat_ollama.py",
+    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/jet-vscode-commands/custom-extensions/ask-llm/package.json",
+    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/jet-vscode-commands/custom-extensions/ask-llm/*.js",
+    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/jet-vscode-commands/custom-extensions/ask-llm/*.mjs",
+    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/jet-vscode-commands/custom-extensions/ask-llm/src/extension.ts",
+    # "/Users/jethroestrada/Desktop/External_Projects/JetScripts/jet-vscode-commands/custom-extensions/ask-llm/src/*.ts",
 ]
 structure_include = []
 structure_exclude = []
@@ -47,57 +50,16 @@ Execute browse or internet search if requested.
 """.strip()
 
 DEFAULT_QUERY_MESSAGE = """
-Please update the return format of memory -> search to follow this schema:
+Check error:
+[watch] build finished
+[2:52:21 AM] Starting compilation in watch mode...
 
-Current log for run_search_similar_memories main:
+src/extension.ts:41:32 - error TS2304: Cannot find name 'axios'.
 
-Similar Memories Results:
-{
-  "ids": [
-    [
-      "0",
-      "2",
-      "1",
-      "7",
-      "6"
-    ]
-  ],
-  "embeddings": null,
-  "documents": [
-    [
-      "User asked about AI-generated art tools",
-      "User inquired about AI-generated animation tools",
-      "User requested image editing software recommendations",
-      "User discussed creating a Shopify store for a cosmetics brand",
-      "Searched for low-competition Instagram hashtags"
-    ]
-  ],
-  "uris": null,
-  "data": null,
-  "metadatas": [
-    [
-      null,
-      null,
-      null,
-      null,
-      null
-    ]
-  ],
-  "distances": [
-    [
-      0.2681650479579768,
-      0.4702033499616342,
-      0.9220590587357101,
-      1.0859382474446566,
-      1.1565763502453081
-    ]
-  ],
-  "included": [
-    "distances",
-    "documents",
-    "metadatas"
-  ]
-}
+41         const response = await axios.post(
+                                  ~~~~~
+
+[2:52:22 AM] Found 1 error. Watching for file changes.
 """.strip()
 
 # Project specific

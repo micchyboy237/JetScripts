@@ -311,6 +311,7 @@ if __name__ == "__main__":
         "migrating_chains/conversation_retrieval_chain",
         "migrating_memory/chat_history",
         "migrating_chains/conversation_chain.py",
+        "migrating_chains/constitutional_chain.py",
         # "pydantic_tree_summarize",
     ]
 
