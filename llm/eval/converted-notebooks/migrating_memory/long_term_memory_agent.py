@@ -63,7 +63,8 @@ from script_utils import display_source_nodes
 from llama_index.core.schema import Document as LlamaDocument
 
 model_key = "llama3.1"
-num_ctx = 4096
+num_ctx = 2048
+temperature = 0.3
 initialize_ollama_settings(settings={
     "llm_model": model_key
 })
@@ -210,7 +211,7 @@ prompt = ChatPromptTemplate.from_messages(
 )
 
 
-model = ChatOllama(model=model_key, num_ctx=num_ctx)
+model = ChatOllama(model=model_key, num_ctx=num_ctx, temperature=temperature)
 model_with_tools = model.bind_tools(tools)
 
 tokenizer = AutoTokenizer.from_pretrained(OLLAMA_HF_MODELS[model_key])
@@ -296,10 +297,6 @@ graph = builder.compile(checkpointer=memory)
 
 display(Image(graph.get_graph().draw_mermaid_png()))
 
-# Run the agent!
-
-# Let's run the agent for the first time and tell it some information about the user!
-
 
 def pretty_print_stream_chunk(chunk):
     for node, updates in chunk.items():
@@ -311,50 +308,90 @@ def pretty_print_stream_chunk(chunk):
 
         print("\n")
 
+# Run the agent!
 
-config = {"configurable": {"user_id": "1", "thread_id": "1"}}
+# Let's run the agent for the first time and tell it some information about the user!
 
-for chunk in graph.stream({"messages": [("user", "my name is John")]}, config=config):
-    pretty_print_stream_chunk(chunk)
 
-# You can see that the agent saved the memory about user's name. Let's add some more information about the user!
+def main_run_agent():
+    config = {"configurable": {"user_id": "1", "thread_id": "1"}}
 
-for chunk in graph.stream({"messages": [("user", "i love pizza")]}, config=config):
-    pretty_print_stream_chunk(chunk)
+    for chunk in graph.stream({"messages": [("user", "my name is John")]}, config=config):
+        pretty_print_stream_chunk(chunk)
 
-for chunk in graph.stream(
-    {"messages": [("user", "yes -- pepperoni!")]},
-    config={"configurable": {"user_id": "1", "thread_id": "1"}},
-):
-    pretty_print_stream_chunk(chunk)
+    # You can see that the agent saved the memory about user's name. Let's add some more information about the user!
 
-for chunk in graph.stream(
-    {"messages": [("user", "i also just moved to new york")]},
-    config={"configurable": {"user_id": "1", "thread_id": "1"}},
-):
-    pretty_print_stream_chunk(chunk)
+    for chunk in graph.stream({"messages": [("user", "i love pizza")]}, config=config):
+        pretty_print_stream_chunk(chunk)
 
-# Now we can use the saved information about our user on a different thread. Let's try it out:
+    for chunk in graph.stream(
+        {"messages": [("user", "yes -- pepperoni!")]},
+        config={"configurable": {"user_id": "1", "thread_id": "1"}},
+    ):
+        pretty_print_stream_chunk(chunk)
 
-config = {"configurable": {"user_id": "1", "thread_id": "2"}}
+    for chunk in graph.stream(
+        {"messages": [("user", "i also just moved to new york")]},
+        config={"configurable": {"user_id": "1", "thread_id": "1"}},
+    ):
+        pretty_print_stream_chunk(chunk)
 
-for chunk in graph.stream(
-    {"messages": [("user", "where should i go for dinner?")]}, config=config
-):
-    pretty_print_stream_chunk(chunk)
+    # Now we can use the saved information about our user on a different thread. Let's try it out:
 
-# Notice how the agent is loading the most relevant memories before answering, and in our case suggests the dinner recommendations based on both the food preferences as well as location.
-#
-# Finally, let's use the search tool together with the rest of the conversation context and memory to find location of a pizzeria:
+    config = {"configurable": {"user_id": "1", "thread_id": "2"}}
 
-for chunk in graph.stream(
-    {"messages": [
-        ("user", "what's the address for joe's in greenwich village?")]},
-    config=config,
-):
-    pretty_print_stream_chunk(chunk)
+    for chunk in graph.stream(
+        {"messages": [("user", "where should i go for dinner?")]}, config=config
+    ):
+        pretty_print_stream_chunk(chunk)
 
-# If you were to pass a different user ID, the agent's response will not be personalized as we haven't saved any information about the other user:
+    # Notice how the agent is loading the most relevant memories before answering, and in our case suggests the dinner recommendations based on both the food preferences as well as location.
+    #
+    # Finally, let's use the search tool together with the rest of the conversation context and memory to find location of a pizzeria:
+
+    for chunk in graph.stream(
+        {"messages": [
+            ("user", "what's the address for joe's in greenwich village?")]},
+        config=config,
+    ):
+        pretty_print_stream_chunk(chunk)
+
+    # If you were to pass a different user ID, the agent's response will not be personalized as we haven't saved any information about the other user:
+
+    # Optionally, for illustrative purposes we can visualize the knowledge graph extracted by the model:
+
+    # %pip install -U --quiet matplotlib networkx
+
+    records = recall_vector_store.similarity_search(
+        "John", k=3, filter=lambda doc: doc.metadata["user_id"] == "3"
+    )
+
+    plt.figure(figsize=(6, 4), dpi=80)
+    G = nx.DiGraph()
+
+    for record in records:
+        G.add_edge(
+            record.metadata["subject"],
+            record.metadata["object_"],
+            label=record.metadata["predicate"],
+        )
+
+    pos = nx.spring_layout(G)
+    nx.draw(
+        G,
+        pos,
+        with_labels=True,
+        node_size=3000,
+        node_color="lightblue",
+        font_size=10,
+        font_weight="bold",
+        arrows=True,
+    )
+    edge_labels = nx.get_edge_attributes(G, "label")
+    nx.draw_networkx_edge_labels(
+        G, pos, edge_labels=edge_labels, font_color="red")
+    plt.show()
+
 
 # Adding structured memories
 #
@@ -363,111 +400,110 @@ for chunk in graph.stream(
 # Below, we update the `save_recall_memory` tool to accept a list of "knowledge triples", or 3-tuples with a `subject`, `predicate`, and `object`, suitable for storage in a knolwedge graph. Our model will then generate these representations as part of its tool calls.
 #
 # For simplicity, we use the same vector database as before, but the `save_recall_memory` and `search_recall_memories` tools could be further updated to interact with a graph database. For now, we only need to update the `save_recall_memory` tool:
+def main_adding_structured_memories():
+    recall_vector_store = InMemoryVectorStore(
+        OllamaEmbeddings(model="nomic-embed-text"))
 
-recall_vector_store = InMemoryVectorStore(
-    OllamaEmbeddings(model="nomic-embed-text"))
+    class KnowledgeTriple(TypedDict):
+        subject: str
+        predicate: str
+        object_: str
 
+    @tool
+    def save_recall_memory(memories: list[KnowledgeTriple], config: RunnableConfig) -> str:
+        """Save memory to vectorstore for later semantic retrieval."""
+        user_id = get_user_id(config)
+        for memory in memories:
+            serialized = " ".join(memory.values())
+            document = Document(
+                serialized,
+                id=str(uuid.uuid4()),
+                metadata={
+                    "user_id": user_id,
+                    **memory,
+                },
+            )
+            recall_vector_store.add_documents([document])
+        return memories
 
-class KnowledgeTriple(TypedDict):
-    subject: str
-    predicate: str
-    object_: str
+    # We can then compile the graph exactly as before:
 
+    tools = [save_recall_memory, search_recall_memories, searx_search_results]
+    model_with_tools = model.bind_tools(tools)
 
-@tool
-def save_recall_memory(memories: list[KnowledgeTriple], config: RunnableConfig) -> str:
-    """Save memory to vectorstore for later semantic retrieval."""
-    user_id = get_user_id(config)
-    for memory in memories:
-        serialized = " ".join(memory.values())
-        document = Document(
-            serialized,
-            id=str(uuid.uuid4()),
-            metadata={
-                "user_id": user_id,
-                **memory,
-            },
-        )
-        recall_vector_store.add_documents([document])
-    return memories
+    builder = StateGraph(State)
+    builder.add_node(load_memories)
+    builder.add_node(agent)
+    builder.add_node("tools", ToolNode(tools))
 
-# We can then compile the graph exactly as before:
+    builder.add_edge(START, "load_memories")
+    builder.add_edge("load_memories", "agent")
+    builder.add_conditional_edges("agent", route_tools, ["tools", END])
+    builder.add_edge("tools", "agent")
 
+    memory = MemorySaver()
+    graph = builder.compile(checkpointer=memory)
 
-tools = [save_recall_memory, search_recall_memories, searx_search_results]
-model_with_tools = model.bind_tools(tools)
+    config: RunnableConfig = {
+        "configurable": {"user_id": "3", "thread_id": "1"},
+        "recursion_limit": 100,
+    }
 
+    for chunk in graph.stream({"messages": [("user", "Hi, I'm Alice.")]}, config=config):
+        pretty_print_stream_chunk(chunk)
 
-builder = StateGraph(State)
-builder.add_node(load_memories)
-builder.add_node(agent)
-builder.add_node("tools", ToolNode(tools))
+    # Note that the application elects to extract knowledge-triples from the user's statements:
 
-builder.add_edge(START, "load_memories")
-builder.add_edge("load_memories", "agent")
-builder.add_conditional_edges("agent", route_tools, ["tools", END])
-builder.add_edge("tools", "agent")
+    for chunk in graph.stream(
+        {"messages": [("user", "My friend John likes Pizza.")]}, config=config
+    ):
+        pretty_print_stream_chunk(chunk)
 
-memory = MemorySaver()
-graph = builder.compile(checkpointer=memory)
+    # As before, the memories generated from one thread are accessed in another thread from the same user:
 
-config: RunnableConfig = {
-    "configurable": {"user_id": "3", "thread_id": "1"},
-    "recursion_limit": 100,
-}
+    config = {"configurable": {"user_id": "3", "thread_id": "2"}}
 
-for chunk in graph.stream({"messages": [("user", "Hi, I'm Alice.")]}, config=config):
-    pretty_print_stream_chunk(chunk)
+    for chunk in graph.stream(
+        {"messages": [("user", "What food should I bring to John's party?")]}, config=config
+    ):
+        pretty_print_stream_chunk(chunk)
 
-# Note that the application elects to extract knowledge-triples from the user's statements:
+    # Optionally, for illustrative purposes we can visualize the knowledge graph extracted by the model:
 
-for chunk in graph.stream(
-    {"messages": [("user", "My friend John likes Pizza.")]}, config=config
-):
-    pretty_print_stream_chunk(chunk)
+    # %pip install -U --quiet matplotlib networkx
 
-# As before, the memories generated from one thread are accessed in another thread from the same user:
-
-config = {"configurable": {"user_id": "3", "thread_id": "2"}}
-
-for chunk in graph.stream(
-    {"messages": [("user", "What food should I bring to John's party?")]}, config=config
-):
-    pretty_print_stream_chunk(chunk)
-
-# Optionally, for illustrative purposes we can visualize the knowledge graph extracted by the model:
-
-# %pip install -U --quiet matplotlib networkx
-
-
-records = recall_vector_store.similarity_search(
-    "Alice", k=3, filter=lambda doc: doc.metadata["user_id"] == "3"
-)
-
-
-plt.figure(figsize=(6, 4), dpi=80)
-G = nx.DiGraph()
-
-for record in records:
-    G.add_edge(
-        record.metadata["subject"],
-        record.metadata["object_"],
-        label=record.metadata["predicate"],
+    records = recall_vector_store.similarity_search(
+        "Alice", k=3, filter=lambda doc: doc.metadata["user_id"] == "3"
     )
 
-pos = nx.spring_layout(G)
-nx.draw(
-    G,
-    pos,
-    with_labels=True,
-    node_size=3000,
-    node_color="lightblue",
-    font_size=10,
-    font_weight="bold",
-    arrows=True,
-)
-edge_labels = nx.get_edge_attributes(G, "label")
-nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color="red")
-plt.show()
+    plt.figure(figsize=(6, 4), dpi=80)
+    G = nx.DiGraph()
 
-logger.info("\n\n[DONE]", bright=True)
+    for record in records:
+        G.add_edge(
+            record.metadata["subject"],
+            record.metadata["object_"],
+            label=record.metadata["predicate"],
+        )
+
+    pos = nx.spring_layout(G)
+    nx.draw(
+        G,
+        pos,
+        with_labels=True,
+        node_size=3000,
+        node_color="lightblue",
+        font_size=10,
+        font_weight="bold",
+        arrows=True,
+    )
+    edge_labels = nx.get_edge_attributes(G, "label")
+    nx.draw_networkx_edge_labels(
+        G, pos, edge_labels=edge_labels, font_color="red")
+    plt.show()
+
+
+if __name__ == "__main__":
+    main_run_agent()
+    # main_adding_structured_memories()
+    logger.info("\n\n[DONE]", bright=True)
