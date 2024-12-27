@@ -115,11 +115,10 @@ def search_web_results(query: str, config: RunnableConfig) -> list[str]:
     Input should be a search query.
     """
 
-    logger.info(query)
-    logger.debug(config)
+    # logger.debug(config)
 
     logger.newline()
-    logger.info("Running search_web_results...")
+    logger.log("Running search_web_results:", query, colors=["DEBUG", "INFO"])
 
     from jet.search import search_searxng
     from jet.llm.query import setup_index, query_llm, FUSION_MODES
