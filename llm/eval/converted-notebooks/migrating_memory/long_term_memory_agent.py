@@ -135,11 +135,10 @@ def searx_search_results(query: str, config: RunnableConfig) -> str:
     logger.newline()
     logger.info("RELATIVE_SCORE query...")
     result = query_nodes(
-        query, FUSION_MODES.RELATIVE_SCORE)
+        query, FUSION_MODES.RELATIVE_SCORE, threshold=0.3)
     logger.info(f"RETRIEVED NODES ({len(result["nodes"])})")
 
-    response = "\n\n".join(result['texts'])
-    return response
+    return result['texts']
 
 # Additionally, let's give our agent ability to search the web using [Tavily](https://tavily.com/).
 

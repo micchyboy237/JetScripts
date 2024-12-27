@@ -35,7 +35,7 @@ if __name__ == "__main__":
     logger.newline()
     logger.info("RELATIVE_SCORE query...")
     result = query_nodes(
-        query, FUSION_MODES.RELATIVE_SCORE)
+        query, FUSION_MODES.RELATIVE_SCORE, threshold=0.3)
     logger.info(f"RETRIEVED NODES ({len(result["nodes"])})")
     display_source_nodes(query, result["nodes"], source_length=None)
 
