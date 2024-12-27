@@ -125,7 +125,6 @@ def searx_search_results(query: str, config: RunnableConfig) -> str:
         query=query,
         min_score=0,
         engines=["google"],
-        # use_cache=False,
     )
 
     documents = [LlamaDocument(text=result['content']) for result in results]
@@ -133,10 +132,8 @@ def searx_search_results(query: str, config: RunnableConfig) -> str:
     query_nodes = setup_index(documents)
 
     logger.newline()
-    logger.info("RELATIVE_SCORE query...")
     result = query_nodes(
         query, FUSION_MODES.RELATIVE_SCORE, threshold=0.3)
-    logger.info(f"RETRIEVED NODES ({len(result["nodes"])})")
 
     return result['texts']
 
