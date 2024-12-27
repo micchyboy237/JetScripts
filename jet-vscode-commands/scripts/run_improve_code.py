@@ -14,51 +14,60 @@ Output only the generated code without any explanations wrapped in a code block.
 PROMPT_TEMPLATE = "Context information is below.\n---------------------\n{context_str}\n---------------------\nGiven the context information and not prior knowledge, answer the query.\nQuery: {query_str}\nAnswer: "
 
 
-def main():
-    file_path = sys.argv[1]
+def get_args():
     query = "Refactor the code"
 
-    try:
-        if len(sys.argv) == 1 or not sys.argv[1]:
-            with open(file_path, 'r') as file:
-                content = file.read()
-        else:
-            highlighted_text = sys.argv[1]
-            content = highlighted_text
+    file_path = sys.argv[0]
+    line_number = int(sys.argv[1]) if len(sys.argv) > 1 else None
+    selected_text = sys.argv[2] if len(sys.argv) > 2 else None
 
-        prompt = PROMPT_TEMPLATE.format(
-            context_str=content,
-            query_str=query,
-        )
+    if not selected_text:
+        with open(file_path, 'r') as file:
+            content = file.read()
+    else:
+        content = selected_text
+        logger.info("SELECTED_TEXT")
+        logger.debug(content)
 
-        output = ""
-        for chunk in call_ollama_chat(
-            prompt,
-            stream=True,
-            model=DEFAULT_MODEL,
-            system=SYSTEM_MESSAGE,
-            options={
-                "seed": 42,
-                "num_ctx": 2048,
-                "num_keep": 0,
-                "num_predict": -1,
-                "temperature": 0,
-            },
-            # track={
-            #     "repo": "./aim-logs",
-            #     "experiment": "Code Enhancer Test",
-            #     "run_name": "Improve python",
-            #     "format": FINAL_MARKDOWN_TEMPLATE,
-            #     "metadata": {
-            #         "type": "code_enhancer",
-            #     }
-            # }
-        ):
-            output += chunk
-        return output
+    return {
+        "query": query,
+        "content": content,
+        "line_number": line_number,
+    }
 
-    except Exception as e:
-        print(f"Error: {e}")
+
+def main():
+    args_dict = get_args()
+
+    prompt = PROMPT_TEMPLATE.format(
+        context_str=args_dict["content"],
+        query_str=args_dict["query"],
+    )
+
+    output = ""
+    for chunk in call_ollama_chat(
+        prompt,
+        stream=True,
+        model=DEFAULT_MODEL,
+        system=SYSTEM_MESSAGE,
+        options={
+            "seed": 42,
+            "temperature": 0,
+            "num_keep": 0,
+            "num_predict": -1,
+        },
+        # track={
+        #     "repo": "./aim-logs",
+        #     "experiment": "Code Enhancer Test",
+        #     "run_name": "Improve python",
+        #     "format": FINAL_MARKDOWN_TEMPLATE,
+        #     "metadata": {
+        #         "type": "code_enhancer",
+        #     }
+        # }
+    ):
+        output += chunk
+    return output
 
 
 if __name__ == "__main__":

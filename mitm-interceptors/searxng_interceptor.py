@@ -37,7 +37,7 @@ def response(flow: http.HTTPFlow):
     logger.log(f"RESPONSE KEYS:", list(
         response_dict.keys()), colors=["GRAY", "INFO"])
     logger.log(f"RESPONSE:")
-    logger.debug(json.dumps(response_dict, indent=2))
+    logger.debug(json.dumps(response_dict['content'], indent=2))
 
     end_time = time.time()  # Record the end time
 

@@ -1,11 +1,12 @@
-from collections.abc import Iterable
-from datetime import datetime
 import json
 import os
-from mitmproxy import http
 import time
-from jet.transformers import make_serializable, format_prompt_log
+from collections.abc import Iterable
+from datetime import datetime
+from mitmproxy import http
+from jet.transformers import make_serializable
 from jet.logger import logger
+
 
 LOGS_DIR = "jet-logs"
 log_file_path = None
@@ -146,7 +147,12 @@ def request(flow: http.HTTPFlow):
         request_dict = make_serializable(flow.request.data)
         logger.log(f"REQUEST KEYS:", list(
             request_dict.keys()), colors=["GRAY", "INFO"])
-        logger.log(f"REQUEST:")
+        logger.log("REQUEST HEADERS:",
+                   request_dict["headers"], colors=["GRAY", "INFO"])
+        logger.log("REQUEST CONTENT:",
+                   request_dict["content"], colors=["GRAY", "DEBUG"])
+        logger.log("\nPROMPT LENGTH:", len(
+            str(request_dict["content"])), colors=["GRAY", "INFO"])
         logger.debug(json.dumps(request_dict, indent=1))
         # Store the start time for the request
         start_times[flow.id] = time.time()
@@ -179,6 +185,9 @@ def response(flow: http.HTTPFlow):
 
         logger.log("RESPONSE CONTENT:")
         logger.success(response_content)
+
+        logger.log("\nRESPONSE LENGTH:", len(response_content),
+                   colors=["WHITE", "BRIGHT_SUCCESS"])
 
         end_time = time.time()  # Record the end time
 

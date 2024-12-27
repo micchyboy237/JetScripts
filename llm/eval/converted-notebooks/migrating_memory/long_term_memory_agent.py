@@ -1,7 +1,3 @@
-from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
-initialize_ollama_settings()
-
 # A Long-Term Memory Agent
 # 
 # This tutorial shows how to implement an agent with long-term memory capabilities using LangGraph. The agent can store, retrieve, and use memories to enhance its interactions with users.
@@ -26,19 +22,19 @@ initialize_ollama_settings()
 import os
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
 # _set_env("OPENAI_API_KEY")
-_set_env("TAVILY_API_KEY")
+# _set_env("TAVILY_API_KEY")
 
-import json
-from typing import List, Literal, Optional
 
 import tiktoken
 from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_community.tools.searx_search.tool import SearxSearchResults
+from langchain_community.utilities.searx_search import SearxSearchWrapper
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.messages import get_buffer_string
@@ -51,6 +47,15 @@ from langchain_ollama.embeddings import OllamaEmbeddings
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
+
+from transformers import AutoTokenizer
+from jet.logger import logger
+from jet.llm.ollama import initialize_ollama_settings, OLLAMA_HF_MODELS
+
+model_key = "llama3.1"
+initialize_ollama_settings(settings={
+    "llm_model": model_key
+})
 
 ## Define vectorstore for memories
 
@@ -85,7 +90,7 @@ def save_recall_memory(memory: str, config: RunnableConfig) -> str:
 
 
 @tool
-def search_recall_memories(query: str, config: RunnableConfig) -> List[str]:
+def search_recall_memories(query: str, config: RunnableConfig) -> list[str]:
     """Search for relevant memories."""
     user_id = get_user_id(config)
 
@@ -97,9 +102,33 @@ def search_recall_memories(query: str, config: RunnableConfig) -> List[str]:
     )
     return [document.page_content for document in documents]
 
+@tool
+def search_results(query: str, config: RunnableConfig) -> list[str]:
+    """
+    A search engine optimized for comprehensive, accurate, and trusted results.
+    Useful for when you need to answer questions about current events.
+    Input should be a search query.
+    """
+
+    from jet.search import search_searxng
+
+    results = search_searxng(
+            query_url="http://searxng.local:8080/search",
+            query="joe's greenwich village address",
+            min_score=0,
+            engines=["google"],
+            use_cache=False,
+        )
+
 # Additionally, let's give our agent ability to search the web using [Tavily](https://tavily.com/).
 
-search = TavilySearchResults(max_results=1)
+search = SearxSearchResults(
+    num_results=1,
+    wrapper=SearxSearchWrapper(
+        searx_host="http://searxng.local:8080",
+        engines=["google"],
+    )
+)
 tools = [save_recall_memory, search_recall_memories, search]
 
 ### Define state, nodes and edges
@@ -107,7 +136,7 @@ tools = [save_recall_memory, search_recall_memories, search]
 # Our graph state will contain just two channels -- `messages` for keeping track of the chat history and `recall_memories` -- contextual memories that will be pulled in before calling the agent and passed to the agent's system prompt.
 
 class State(MessagesState):
-    recall_memories: List[str]
+    recall_memories: list[str]
 
 prompt = ChatPromptTemplate.from_messages(
     [
@@ -159,10 +188,12 @@ prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-model = ChatOllama(model="llama3.1")
+
+model = ChatOllama(model=model_key)
 model_with_tools = model.bind_tools(tools)
 
-tokenizer = tiktoken.encoding_for_model("gpt-4o")
+tokenizer = AutoTokenizer.from_pretrained(OLLAMA_HF_MODELS[model_key])
+max_context = 4096
 
 
 def agent(state: State) -> State:
@@ -200,7 +231,7 @@ def load_memories(state: State, config: RunnableConfig) -> State:
         State: The updated state with loaded memories.
     """
     convo_str = get_buffer_string(state["messages"])
-    convo_str = tokenizer.decode(tokenizer.encode(convo_str)[:2048])
+    convo_str = tokenizer.decode(tokenizer.encode(convo_str)[:max_context])
     recall_memories = search_recall_memories.invoke(convo_str, config)
     return {
         "recall_memories": recall_memories,
@@ -320,7 +351,7 @@ class KnowledgeTriple(TypedDict):
 
 
 @tool
-def save_recall_memory(memories: List[KnowledgeTriple], config: RunnableConfig) -> str:
+def save_recall_memory(memories: list[KnowledgeTriple], config: RunnableConfig) -> str:
     """Save memory to vectorstore for later semantic retrieval."""
     user_id = get_user_id(config)
     for memory in memories:
@@ -355,7 +386,10 @@ builder.add_edge("tools", "agent")
 memory = MemorySaver()
 graph = builder.compile(checkpointer=memory)
 
-config = {"configurable": {"user_id": "3", "thread_id": "1"}}
+config: RunnableConfig = {
+    "configurable": {"user_id": "3", "thread_id": "1"}, 
+    "recursion_limit": 100,
+}
 
 for chunk in graph.stream({"messages": [("user", "Hi, I'm Alice.")]}, config=config):
     pretty_print_stream_chunk(chunk)
