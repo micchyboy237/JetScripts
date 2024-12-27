@@ -281,6 +281,7 @@ if __name__ == "__main__":
     ]
     include_files = [
         # "deep_memory"
+        "long_term_memory_agent"
     ]
     exclude_files = [
         "answer_and_context_relevancy",
