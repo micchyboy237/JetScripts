@@ -57,6 +57,11 @@ from transformers import AutoTokenizer
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings, OLLAMA_HF_MODELS
 
+from jet.search import search_searxng
+from jet.llm.query import setup_index, query_llm, FUSION_MODES
+from script_utils import display_source_nodes
+from llama_index.core.schema import Document as LlamaDocument
+
 model_key = "llama3.1"
 initialize_ollama_settings(settings={
     "llm_model": model_key
@@ -108,23 +113,12 @@ def search_recall_memories(query: str, config: RunnableConfig) -> list[str]:
 
 
 @tool
-def search_web_results(query: str, config: RunnableConfig) -> list[str]:
+def searx_search_results(query: str, config: RunnableConfig) -> str:
     """
     A search engine optimized for comprehensive, accurate, and trusted results.
     Useful for when you need to answer questions about current events.
     Input should be a search query.
     """
-
-    # logger.debug(config)
-
-    logger.newline()
-    logger.log("Running search_web_results:", query, colors=["DEBUG", "INFO"])
-
-    from jet.search import search_searxng
-    from jet.llm.query import setup_index, query_llm, FUSION_MODES
-    from jet.data import generate_unique_hash
-    from script_utils import display_source_nodes
-    from llama_index.core.schema import Document as LlamaDocument
 
     results = search_searxng(
         query_url="http://searxng.local:8080/search",
@@ -133,32 +127,18 @@ def search_web_results(query: str, config: RunnableConfig) -> list[str]:
         engines=["google"],
         # use_cache=False,
     )
-    logger.log("Search Results:", len(results), colors=["WHITE", "SUCCESS"])
 
     documents = [LlamaDocument(text=result['content']) for result in results]
 
-    logger.info("Setup index...")
     query_nodes = setup_index(documents)
-
-    # logger.newline()
-    # logger.info("RECIPROCAL_RANK: query...")
-    # response = query_nodes(sample_query, FUSION_MODES.RECIPROCAL_RANK)
-
-    # logger.newline()
-    # logger.info("DIST_BASED_SCORE: query...")
-    # response = query_nodes(sample_query, FUSION_MODES.DIST_BASED_SCORE)
 
     logger.newline()
     logger.info("RELATIVE_SCORE query...")
     result = query_nodes(
         query, FUSION_MODES.RELATIVE_SCORE)
     logger.info(f"RETRIEVED NODES ({len(result["nodes"])})")
-    display_source_nodes(query, result["nodes"], source_length=None)
 
-    # response = query_llm(query, result['texts'])
-    response = result['texts'][0]
-    logger.info("search_web_results response:")
-    logger.success(response)
+    response = "\n\n".join(result['texts'])
     return response
 
 # Additionally, let's give our agent ability to search the web using [Tavily](https://tavily.com/).
@@ -171,7 +151,7 @@ def search_web_results(query: str, config: RunnableConfig) -> list[str]:
 #         engines=["google"],
 #     )
 # )
-tools = [save_recall_memory, search_recall_memories, search_web_results]
+tools = [save_recall_memory, search_recall_memories, searx_search_results]
 
 # Define state, nodes and edges
 
@@ -417,7 +397,7 @@ def save_recall_memory(memories: list[KnowledgeTriple], config: RunnableConfig) 
 # We can then compile the graph exactly as before:
 
 
-tools = [save_recall_memory, search_recall_memories, search_web_results]
+tools = [save_recall_memory, search_recall_memories, searx_search_results]
 model_with_tools = model.bind_tools(tools)
 
 
