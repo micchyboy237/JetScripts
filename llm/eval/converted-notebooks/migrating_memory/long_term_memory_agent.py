@@ -63,6 +63,7 @@ from script_utils import display_source_nodes
 from llama_index.core.schema import Document as LlamaDocument
 
 model_key = "llama3.1"
+num_ctx = 4096
 initialize_ollama_settings(settings={
     "llm_model": model_key
 })
@@ -209,11 +210,11 @@ prompt = ChatPromptTemplate.from_messages(
 )
 
 
-model = ChatOllama(model=model_key)
+model = ChatOllama(model=model_key, num_ctx=num_ctx)
 model_with_tools = model.bind_tools(tools)
 
 tokenizer = AutoTokenizer.from_pretrained(OLLAMA_HF_MODELS[model_key])
-max_context = 4096
+max_context = num_ctx
 
 
 def agent(state: State) -> State:
@@ -440,7 +441,7 @@ for chunk in graph.stream(
 
 
 records = recall_vector_store.similarity_search(
-    "Alice", k=2, filter=lambda doc: doc.metadata["user_id"] == "3"
+    "Alice", k=3, filter=lambda doc: doc.metadata["user_id"] == "3"
 )
 
 
