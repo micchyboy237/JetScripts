@@ -15,7 +15,7 @@ PROMPT_TEMPLATE = "Context information is below.\n---------------------\n{contex
 
 
 def get_args():
-    query = "Refactor the code"
+    query = "Refactor the code without breaking anything."
 
     file_path = sys.argv[0]
     line_number = int(sys.argv[1]) if len(sys.argv) > 1 else None

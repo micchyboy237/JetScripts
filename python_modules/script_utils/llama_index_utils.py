@@ -22,13 +22,13 @@ def display_source_node(
     logger.log("Node ID:", source_node.node_id, colors=["GRAY", "INFO"])
 
     if show_source_metadata:
-        logger.log("File Name:", source_node.metadata['file_name'], colors=[
+        logger.log("File Name:", source_node.metadata, colors=[
                    "GRAY", "INFO"])
 
     if isinstance(source_node, TextNode):
         logger.log(
             "Text:",
-            (source_node.text[:source_length] + '...') if len(
+            (source_node.text[:source_length] + '...') if source_length and len(
                 source_node.text) > source_length else source_node.text,
             colors=["GRAY", "DEBUG"],
         )

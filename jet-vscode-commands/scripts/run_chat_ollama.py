@@ -30,7 +30,9 @@ def on_press_wrapper(models: list[str], model_selected: list[str]):
 
 
 def get_user_input(context: str = "", models: list[str] = [DEFAULT_MODEL], template: str = PROMPT_TEMPLATE):
-    query = input("Enter the prompt: ") or DEFAULT_QUERY
+    query = input("Enter the query: ") or DEFAULT_QUERY
+    logger.debug(query)
+
     prompt = template.format(
         context=context,
         query=query,
@@ -71,8 +73,6 @@ def get_args():
             context = file.read()
     else:
         context = selected_text
-        logger.info("SELECTED_TEXT")
-        logger.debug(context)
 
     return {
         "context": context,
@@ -82,13 +82,12 @@ def get_args():
 
 def main():
     args_dict = get_args()
+    context = args_dict["context"]
+    logger.info("CONTEXT:")
+    logger.debug(context)
 
     while True:
         logger.newline()
-
-        context = args_dict["context"]
-        logger.info("CONTEXT:")
-        logger.debug(context)
 
         logger.newline()
         models = ["llama3.1", "llama3.2", "codellama"]
@@ -96,7 +95,15 @@ def main():
         logger.newline()
         prompt, model = get_user_input(context=context, models=models)
 
-        # Call the Ollama Chat API
+        logger.newline()
+        logger.info("PROMPT:")
+        logger.debug(prompt)
+
+        logger.newline()
+        logger.info("MODEL:")
+        logger.debug(model)
+
+        logger.newline()
         response = call_ollama_chat(
             prompt,
             model=model,
@@ -108,7 +115,7 @@ def main():
             },
         )
         output = handle_stream_response(response)
-        print(output)  # Output from the response
+        # print(output)  # Output from the response
 
 
 if __name__ == "__main__":
