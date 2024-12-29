@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 import time
 import json
@@ -175,7 +176,7 @@ class ModelHandler:
                 prompt,
                 model=model,
                 options={
-                    "seed": -1,
+                    "seed": random.randint(1, 9999),
                     "num_keep": 0,
                     "num_predict": -1,
                 },

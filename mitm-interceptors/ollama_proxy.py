@@ -53,12 +53,15 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     url = f"{flow.request.scheme}://{flow.request.host}{flow.request.path}"
     content_length = next(field[1] for field in request_dict["headers"]
                           ["fields"] if field[0].lower() == "content-length")
+    token_count = next(field[1] for field in request_dict["headers"]
+                       ["fields"] if field[0].lower() == "tokens")
 
     # Get last user prompt
     prompt_log = flow.request.data.content.decode('utf-8')
     prompt_log_dict = json.loads(prompt_log)
     model = prompt_log_dict['model']
     messages = prompt_log_dict['messages']
+
     prompt_msgs = []
     for item_idx, item in enumerate(messages):
         prompt_msg = (
@@ -79,6 +82,14 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
             pass
     response = "".join(contents)
 
+    final_dict = {
+        **prompt_log_dict,
+        "response": response,
+    }
+    # Move 'messages' and 'response' to the end
+    final_dict['messages'] = final_dict.pop('messages')
+    final_dict['response'] = final_dict.pop('response')
+
     log_entry = (
         f"## Request Info\n\n"
         f"- **Timestamp**: {timestamp}\n"
@@ -86,12 +97,12 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         f"- **URL**: {url}\n"
         f"- **Model**: {model}\n"
         f"- **Content length**: {content_length}\n"
+        f"- **Tokens**: {token_count}\n"
         f"\n"
         # f"## Messages ({len(messages)})\n\n{prompt_log}\n\n"
-        f"## Prompt\n\n```markdown\n{messages[-1]['content']}\n```\n\n"
         f"## Response\n\n```markdown\n{response}\n```\n\n"
-        f"## Prompt JSON\n\n```json\n{json.dumps(
-            prompt_log_dict, indent=2)}\n```\n\n"
+        f"## Prompt\n\n```markdown\n{messages[-1]['content']}\n```\n\n"
+        f"## JSON\n\n```json\n{json.dumps(final_dict, indent=2)}\n```\n\n"
     ).strip()
     return log_entry
 

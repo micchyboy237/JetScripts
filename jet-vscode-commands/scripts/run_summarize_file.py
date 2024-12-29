@@ -1,204 +1,109 @@
-import os
-import random
-import sys
-import time
 import json
-from threading import Thread
-from typing import Generator, List
-from pynput import keyboard
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-from collections import deque
-
-from jet.llm import call_ollama_chat
-from jet.utils import colorize_log, COLORS
+from llama_index.core import PromptTemplate
+from typing import Optional
+from typing import List
+from llama_index.core.types import BaseModel
+from llama_index.core.response_synthesizers import TreeSummarize
+from llama_index.core import SimpleDirectoryReader
+from llama_index.core.types import PydanticProgramMode
+from llama_index.llms.ollama import Ollama
+from jet.vectors import SettingsManager
 from jet.logger import logger
+from jet.llm.ollama import initialize_ollama_settings
+from jet.transformers import make_serializable
+initialize_ollama_settings()
+llm = Ollama(
+    temperature=0,
+    context_window=4096,
+    request_timeout=300.0,
+    model="mistral",
+)
 
-DEFAULT_QUERY = "Summarize provided context."
-DEFAULT_MODEL_SELECTION_KEYBOARD = {
-    "cmd+1": "llama3.1",
-    "cmd+2": "llama3.2",
-    "cmd+3": "codellama",
-}
-DEFAULT_MODEL = "llama3.1"
+# <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/response_synthesizers/pydantic_tree_summarize.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-
-PROMPT_TEMPLATE = """\
-Context information is below.
----------------------
-# File name: {file_name}
-
-{context}
----------------------
-Given the context information and not prior knowledge, answer the query.
-Query:
-{query}
-"""
-
-SUMMARY_QUERY = """
-Requirements:
-- Generate a summary index that describes the general purpose of the provided file contents.
-- Summarize its real-world use cases in an easy-to-read format for other LLMs.
-- Describe the typical scenarios where this would be utilized.
-- Highlight the benefits it brings to users.
-- Keep it short and concise.
-- Output only the generated answer without any explanations, wrapped in a code block (use ```markdown\n{answer}\n```).
-""".strip()
+# Pydantic Tree Summarize
+#
+# In this notebook, we demonstrate how to use tree summarize with structured outputs. Specifically, tree summarize is used to output pydantic objects.
 
 
-class HotReloadHandler(FileSystemEventHandler):
-    def __init__(self, script_path: str):
-        self.script_path = script_path
+settings_manager = SettingsManager.create()
+settings_manager.llm = llm
+settings_manager.pydantic_program_mode = PydanticProgramMode.LLM
 
-    def on_modified(self, event):
-        if event.src_path == self.script_path:
-            logger.newline()
-            logger.info("File changed, restarting...")
-            os.execv(sys.executable, [sys.executable] + sys.argv)
+# Download Data
 
 
-class ModelHandler:
-    def __init__(
-        self,
-        default_model: str = DEFAULT_MODEL,
-        model_selection_commands: dict[str,
-                                       str] = DEFAULT_MODEL_SELECTION_KEYBOARD,
-    ):
-        self.default_model = default_model
-        self.model_selection_commands = model_selection_commands
-        self.commands = list(model_selection_commands.keys())
-        self.models = list(model_selection_commands.values())
-        self.selected_model = default_model
-        self.queus_deque = deque(maxlen=5)
-        self.listener_thread = Thread(
-            target=self._start_key_listener, daemon=True)
-        self.listener_thread.start()
-
-        self._keys_pressed = []
-
-    def _start_key_listener(self):
-        def on_press(key):
-            # Strip "Key." and surrounding "'" if exists
-            updated_key = str(key).lstrip("Key.").strip("'")
-            self._keys_pressed.append(updated_key)
-
-        def on_release(key):
-            command = "+".join(self._keys_pressed)
-
-            if command in self.commands:
-                self.selected_model = self.model_selection_commands[command]
-                logger.log('Selected model:', self.selected_model,
-                           colors=["DEBUG", "SUCCESS"])
-
-            try:
-                self._keys_pressed.pop()
-            except IndexError as e:
-                logger.error(e)
-
-        with keyboard.Listener(
-                on_press=on_press,
-                on_release=on_release) as listener:
-            listener.join()
-
-    def get_user_input(self, file_name: str, context: str = "", template: str = PROMPT_TEMPLATE):
-        query = SUMMARY_QUERY
-
-        if not query:
-            if self.queus_deque:
-                query = self.queus_deque[-1]
-            else:
-                query = DEFAULT_QUERY
-
-        # Update query memory queue
-        if query in self.queus_deque:
-            self.queus_deque.remove(query)
-        self.queus_deque.append(query)
-
-        logger.debug(query)
-
-        template_args = {"context": context, "query": query}
-        if "{file_name}" in template:
-            template_args["file_name"] = file_name
-
-        prompt = template.format(**template_args)
-
-        return prompt, self.selected_model
-
-    @staticmethod
-    def handle_stream_response(stream_response: Generator[str, None, None]) -> str:
-        output = ""
-        for chunk in stream_response:
-            output += chunk
-        return output
-
-    @staticmethod
-    def get_args():
-        file_path = sys.argv[0]
-        line_number = int(sys.argv[1]) if len(sys.argv) > 1 else None
-        selected_text = sys.argv[2] if len(sys.argv) > 2 else None
-
-        if not selected_text:
-            with open(file_path, 'r') as file:
-                context = file.read()
-        else:
-            context = selected_text
-
-        return {
-            "file_path": file_path,
-            "context": context,
-            "line_number": line_number,
-        }
-
-    def run(self):
-        args_dict = self.get_args()
-        file_name = os.path.basename(args_dict["file_path"])
-        context = args_dict["context"]
-        logger.info("CONTEXT:")
-        logger.debug(context)
-
-        while True:
-            seed = random.randint(1, 9999)
-
-            time.sleep(1)
-            logger.newline()
-
-            prompt, model = self.get_user_input(file_name, context=context)
-
-            logger.newline()
-            logger.info("PROMPT:")
-            logger.debug(prompt)
-
-            logger.newline()
-            logger.info("MODEL:")
-            logger.debug(model)
-
-            response = call_ollama_chat(
-                prompt,
-                model=model,
-                options={
-                    "seed": seed,
-                },
-            )
-            output = self.handle_stream_response(response)
-            # print(output)  # Output from the response
-
-            # Exit task
-            sys.exit()
+# Load Data
 
 
-if __name__ == "__main__":
-    script_path = os.path.abspath(__file__)
+reader = SimpleDirectoryReader(
+    input_files=[
+        # "/Users/jethroestrada/Desktop/External_Projects/jet_python_modules/jet/llm/main/generation.py",
+        "/Users/jethroestrada/Desktop/External_Projects/JetScripts/jet-vscode-commands/scripts/run_chat_ollama.py",
+    ]
+)
 
-    # Start file observer for hot reload
-    event_handler = HotReloadHandler(script_path)
-    observer = Observer()
-    observer.schedule(event_handler, path=os.path.dirname(
-        script_path), recursive=False)
-    observer.start()
+docs = reader.load_data()
 
-    try:
-        handler = ModelHandler()
-        handler.run()
-    except KeyboardInterrupt:
-        observer.stop()
-    observer.join()
+texts = [doc.text for doc in docs]
+texts[0]
+
+# Summarize
+
+
+# Create pydantic model to structure response
+
+
+class CodeSummary(BaseModel):
+    features: list[str]
+    use_cases: list[str]
+    additional_info: Optional[str] = None
+
+
+qa_prompt_tmpl = (
+    "Context information is below.\n"
+    "---------------------\n"
+    "{context_str}\n"
+    "---------------------\n"
+    "Given the context information and not prior knowledge, "
+    "answer the query.\n"
+    "Please also write the answer as JSON that adheres to the schema.\n"
+    "Query: {query_str}\n"
+    "Answer: "
+)
+qa_prompt = PromptTemplate(qa_prompt_tmpl)
+
+refine_prompt_tmpl = (
+    "The original query is as follows: {query_str}\n"
+    "We have provided an existing answer: {existing_answer}\n"
+    "We have the opportunity to refine the existing answer "
+    "(only if needed) with some more context below.\n"
+    "------------\n"
+    "{context_msg}\n"
+    "------------\n"
+    "Given the new context, refine the original answer to better "
+    "answer the query. "
+    "Please also write the answer as JSON that adheres to the schema.\n"
+    "If the context isn't useful, return the original answer.\n"
+    "Refined Answer: "
+)
+refine_prompt = PromptTemplate(refine_prompt_tmpl)
+
+summarizer = TreeSummarize(
+    llm=settings_manager.llm,
+    verbose=True,
+    streaming=False,
+    output_cls=CodeSummary,
+    summary_template=qa_prompt
+)
+
+question = 'Summarize the features and use cases of this code.'
+response = summarizer.get_response(question, texts)
+
+# Inspect the response
+#
+# Here, we see the response is in an instance of our `CodeSummary` class.
+
+logger.success(json.dumps(make_serializable(response), indent=2))
+
+logger.info("\n\n[DONE]")
