@@ -10,6 +10,6 @@ Query:
 - Write a short summary that describes the real world use cases of the provided code.
 - Make it so that its an easy to read for llms as a summary index.
 - Start with "You are an AI assistant that follows instructions. You".
-- Output only the prompt text without any explanations wrapped in a code 
+- Output only the prompt text without any explanations wrapped in a code.
 
 Answer:

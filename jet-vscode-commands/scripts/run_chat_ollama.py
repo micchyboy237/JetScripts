@@ -1,6 +1,6 @@
 import os
 import sys
-import re
+import time
 import json
 from threading import Thread
 from typing import Generator, List
@@ -10,6 +10,7 @@ from watchdog.events import FileSystemEventHandler
 from collections import deque
 
 from jet.llm import call_ollama_chat
+from jet.utils import colorize_log, COLORS
 from jet.logger import logger
 
 DEFAULT_QUERY = "Summarize provided context."
@@ -20,9 +21,12 @@ DEFAULT_MODEL_SELECTION_KEYBOARD = {
 }
 DEFAULT_MODEL = "llama3.1"
 
+FILE_NAME = os.path.basename(__file__)
 PROMPT_TEMPLATE = (
     "Context information is below.\n"
     "---------------------\n"
+    "File name: {file_name}\n\n"
+    "Contents:\n"
     "{context}\n"
     "---------------------\n"
     "Given the context information and not prior knowledge, answer the query.\n"
@@ -38,6 +42,7 @@ class HotReloadHandler(FileSystemEventHandler):
 
     def on_modified(self, event):
         if event.src_path == self.script_path:
+            logger.newline()
             logger.info("File changed, restarting...")
             os.execv(sys.executable, [sys.executable] + sys.argv)
 
@@ -86,7 +91,7 @@ class ModelHandler:
             listener.join()
 
     def get_user_input(self, context: str = "", template: str = PROMPT_TEMPLATE):
-        query = input("Enter the query: ")
+        query = input(colorize_log("Enter the query: ", COLORS["WHITE"]))
         if not query:
             if self.queus_deque:
                 query = self.queus_deque[-1]
@@ -100,10 +105,11 @@ class ModelHandler:
 
         logger.debug(query)
 
-        prompt = template.format(
-            context=context,
-            query=query,
-        )
+        template_args = {"context": context, "query": query}
+        if "{file_name}" in template:
+            template_args["file_name"] = FILE_NAME
+
+        prompt = template.format(**template_args)
 
         return prompt, self.selected_model
 
@@ -138,6 +144,7 @@ class ModelHandler:
         logger.debug(context)
 
         while True:
+            time.sleep(1)
             logger.newline()
 
             prompt, model = self.get_user_input(context=context)
