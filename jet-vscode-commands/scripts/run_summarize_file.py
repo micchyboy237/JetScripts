@@ -108,6 +108,9 @@ except ValidationError as e:
     logger.error(json.dumps(make_serializable(e.errors()), indent=2))
     if e.errors() and type(e.errors()[0]["input"]) == dict:
         current_result_dict = e.errors()[0]["input"]
+        if CodeSummary.__name__ in current_result_dict:
+            current_result_dict = current_result_dict[CodeSummary.__name__]
+
         result = validate_json(current_result_dict,
                                CodeSummary.model_json_schema())
 
