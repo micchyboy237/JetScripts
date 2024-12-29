@@ -8,6 +8,7 @@ from llama_index.core import SimpleDirectoryReader
 from llama_index.core.types import PydanticProgramMode
 from llama_index.llms.ollama import Ollama
 from jet.vectors import SettingsManager
+from jet.validation import validate_json_pydantic
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 from jet.transformers import make_serializable
@@ -54,12 +55,6 @@ texts[0]
 # Create pydantic model to structure response
 
 
-class CodeSummary(BaseModel):
-    features: list[str]
-    use_cases: list[str]
-    additional_info: Optional[str] = None
-
-
 qa_prompt_tmpl = (
     "Context information is below.\n"
     "---------------------\n"
@@ -89,6 +84,14 @@ refine_prompt_tmpl = (
 )
 refine_prompt = PromptTemplate(refine_prompt_tmpl)
 
+
+# Create data model
+class CodeSummary(BaseModel):
+    features: list[str]
+    use_cases: list[str]
+    additional_info: Optional[str] = None
+
+
 summarizer = TreeSummarize(
     llm=settings_manager.llm,
     verbose=True,
@@ -100,10 +103,13 @@ summarizer = TreeSummarize(
 question = 'Summarize the features and use cases of this code.'
 response = summarizer.get_response(question, texts)
 
+# Validate the response
+result = validate_json_pydantic(response, CodeSummary)
+
 # Inspect the response
 #
 # Here, we see the response is in an instance of our `CodeSummary` class.
 
-logger.success(json.dumps(make_serializable(response), indent=2))
+logger.success(json.dumps(make_serializable(result), indent=2))
 
 logger.info("\n\n[DONE]")
