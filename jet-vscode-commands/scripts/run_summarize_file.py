@@ -1,12 +1,14 @@
 import json
-from llama_index.core import PromptTemplate
 from typing import Optional
-from typing import List
+from pydantic import ValidationError
+
+from llama_index.core import PromptTemplate
 from llama_index.core.types import BaseModel
 from llama_index.core.response_synthesizers import TreeSummarize
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.types import PydanticProgramMode
 from llama_index.llms.ollama import Ollama
+
 from jet.vectors import SettingsManager
 from jet.validation import validate_json_pydantic
 from jet.logger import logger
@@ -85,26 +87,28 @@ refine_prompt_tmpl = (
 refine_prompt = PromptTemplate(refine_prompt_tmpl)
 
 
-# Create data model
-class CodeSummary(BaseModel):
-    features: list[str]
-    use_cases: list[str]
-    additional_info: Optional[str] = None
+try:
+    # Create data model
+    class CodeSummary(BaseModel):
+        features: list[str]
+        use_cases: list[str]
+        additional_info: Optional[str] = None
 
+    summarizer = TreeSummarize(
+        llm=settings_manager.llm,
+        verbose=True,
+        streaming=False,
+        output_cls=CodeSummary,
+        summary_template=qa_prompt
+    )
 
-summarizer = TreeSummarize(
-    llm=settings_manager.llm,
-    verbose=True,
-    streaming=False,
-    output_cls=CodeSummary,
-    summary_template=qa_prompt
-)
-
-question = 'Summarize the features and use cases of this code.'
-response = summarizer.get_response(question, texts)
-
-# Validate the response
-result = validate_json_pydantic(response, CodeSummary)
+    question = 'Summarize the features and use cases of this code.'
+    result = summarizer.get_response(question, texts)
+except ValidationError as e:
+    logger.error(json.dumps(make_serializable(e.errors()), indent=2))
+    if e.errors() and type(e.errors()[0]["input"]) == dict:
+        current_result = e.errors()[0]["input"]
+    result = validate_json_pydantic(str(e), CodeSummary)
 
 # Inspect the response
 #
