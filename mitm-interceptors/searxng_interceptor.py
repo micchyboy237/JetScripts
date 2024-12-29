@@ -10,7 +10,6 @@ from jet.logger import logger
 # Dictionary to store start times for requests
 start_times: dict[str, float] = {}
 
-
 def request(flow: http.HTTPFlow):
     """
     Handle the request, log it, and record the start time.
