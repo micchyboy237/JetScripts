@@ -41,6 +41,18 @@ def main_valid_json_correct():
     logger.success(json.dumps(make_serializable(result), indent=2))
 
 
+def main_valid_dict_correct():
+    logger.newline()
+    logger.info("main_valid_json_correct()...")
+    valid_dict_correct_sample = {
+        "name": "John Doe",
+        "age": 30,
+        "email": "johndoe@example.com"
+    }
+    result = validate_json_pydantic(valid_dict_correct_sample, SampleModel)
+    logger.success(json.dumps(make_serializable(result), indent=2))
+
+
 class SampleModel(BaseModel):
     name: str
     age: int
@@ -48,6 +60,7 @@ class SampleModel(BaseModel):
 
 
 if __name__ == "__main__":
+    main_valid_dict_correct()
     main_valid_json_correct()
     main_valid_json_incorrect()
     main_invalid_json()

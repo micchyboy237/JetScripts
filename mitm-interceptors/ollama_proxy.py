@@ -100,8 +100,8 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         f"- **Tokens**: {token_count}\n"
         f"\n"
         # f"## Messages ({len(messages)})\n\n{prompt_log}\n\n"
-        f"## Response\n\n```markdown\n{response}\n```\n\n"
-        f"## Prompt\n\n```markdown\n{messages[-1]['content']}\n```\n\n"
+        f"## Response\n\n{response}\n\n"
+        f"## Prompt\n\n{messages[-1]['content']}\n\n"
         f"## JSON\n\n```json\n{json.dumps(final_dict, indent=2)}\n```\n\n"
     ).strip()
     return log_entry
