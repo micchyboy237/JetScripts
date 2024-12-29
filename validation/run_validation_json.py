@@ -85,6 +85,33 @@ def main_valid_json_correct():
     logger.success(json.dumps(make_serializable(result), indent=2))
 
 
+def main_valid_dict_correct():
+    logger.newline()
+    logger.info("main_valid_dict_correct()...")
+    resume_schema = get_resume_schema()
+    valid_dict_correct_sample = {
+        "scope_of_work": ["backend", "web"],
+        "job_description": "Develop and maintain web applications.",
+        "qualifications": ["5+ years experience", "Proficient in Python"],
+        "responsibilities": ["Web development", "Backend development"],
+        "tech_stack": {
+            "frontend": ["React", "Vue.js"],
+            "backend": ["Node.js", "Python"],
+            "database": ["PostgreSQL", "MongoDB"],
+            "other": ["AWS"]
+        },
+        "level": "mid",
+        "salary": {
+            "min": 900,
+            "max": 1100,
+            "currency": "USD",
+            "period": "monthly"
+        }
+    }
+    result = validate_json(valid_dict_correct_sample, resume_schema)
+    logger.success(json.dumps(make_serializable(result), indent=2))
+
+
 def get_resume_schema():
     return {
         "type": "object",
@@ -128,6 +155,7 @@ def get_resume_schema():
 
 
 if __name__ == "__main__":
+    main_valid_dict_correct()
     main_valid_json_correct()
     main_valid_json_incorrect()
     main_invalid_json()

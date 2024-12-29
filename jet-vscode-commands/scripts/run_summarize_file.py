@@ -10,7 +10,7 @@ from llama_index.core.types import PydanticProgramMode
 from llama_index.llms.ollama import Ollama
 
 from jet.vectors import SettingsManager
-from jet.validation import validate_json_pydantic
+from jet.validation import validate_json
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 from jet.transformers import make_serializable
@@ -108,7 +108,8 @@ except ValidationError as e:
     logger.error(json.dumps(make_serializable(e.errors()), indent=2))
     if e.errors() and type(e.errors()[0]["input"]) == dict:
         current_result_dict = e.errors()[0]["input"]
-        result = validate_json_pydantic(current_result_dict, CodeSummary)
+        result = validate_json(current_result_dict,
+                               CodeSummary.model_json_schema())
 
 # Inspect the response
 #
