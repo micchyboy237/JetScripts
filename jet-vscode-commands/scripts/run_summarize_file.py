@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 import time
 import json
@@ -21,7 +22,7 @@ DEFAULT_MODEL_SELECTION_KEYBOARD = {
 }
 DEFAULT_MODEL = "llama3.1"
 
-FILE_NAME = os.path.basename(__file__)
+
 PROMPT_TEMPLATE = """\
 Context information is below.
 ---------------------
@@ -35,6 +36,9 @@ Query:
 
 Answer:
 """
+
+FILE_NAME = os.path.basename(__file__)
+SUMMARY_QUERY = "Your task is to generate a summary index that describes the general purpose the provided context, summarizing its real-world use cases in an easy-to-read format for other LLMs. Please describe the typical scenarios where this would be utilized, along with the benefits it brings to users. Keep it short and concise. Output only the generated answer without any explanations wrapped in a code block (use ```markdown)."
 
 
 class HotReloadHandler(FileSystemEventHandler):
@@ -92,7 +96,8 @@ class ModelHandler:
             listener.join()
 
     def get_user_input(self, context: str = "", template: str = PROMPT_TEMPLATE):
-        query = input(colorize_log("Enter the query: ", COLORS["WHITE"]))
+        query = SUMMARY_QUERY
+
         if not query:
             if self.queus_deque:
                 query = self.queus_deque[-1]
@@ -145,6 +150,8 @@ class ModelHandler:
         logger.debug(context)
 
         while True:
+            seed = random.random()  # Generates a random float between 0 and 1
+
             time.sleep(1)
             logger.newline()
 
@@ -162,9 +169,7 @@ class ModelHandler:
                 prompt,
                 model=model,
                 options={
-                    "seed": -1,
-                    "num_keep": 0,
-                    "num_predict": -1,
+                    "seed": seed,
                 },
             )
             output = self.handle_stream_response(response)

@@ -1,6 +1,8 @@
+You are a prompt engineer that writes a system message that will describe the general purpose of an AI assistant LLM model. Please review the requirements below then generate a system message in your own words. Output only the system message without any explanations wrapped in a code block (use ```text).
+
 Context information is below.
 ---------------------
-You are a prompt engineer that writes a system message that will describe the general purpose of an AI assistant LLM model. Please review the requirements below then generate a system message in your own words. Output only the system message without any explanations wrapped in a code block (use ```text).
+{context}
 ---------------------
 Given the context information and not prior knowledge, answer the query.
 Query:
