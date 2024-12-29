@@ -21,20 +21,29 @@ DEFAULT_MODEL_SELECTION_KEYBOARD = {
 }
 DEFAULT_MODEL = "llama3.1"
 
-FILE_NAME = os.path.basename(__file__)
-PROMPT_TEMPLATE = """\
-Context information is below.
----------------------
-# File name: {file_name}
+PROMPT_TEMPLATE = """You are given a user query, some textual context and rules, all inside xml tags. You have to answer the query based on the context while respecting the rules.
 
+<context>
 {context}
----------------------
-Given the context information and not prior knowledge, answer the query.
-Query:
-{query}
+</context>
 
-Answer:
-"""
+<rules>
+- Treat the context as learned knowledge.
+- If you don't know, just say so.
+- If you are not sure, ask for clarification.
+- Answer in the same language as the user query.
+- The answer should exist within the context.
+- Answer directly and without using xml tags.
+</rules>
+
+<user_query>
+{query}
+</user_query>
+
+Response:
+""".strip()
+
+FILE_NAME = os.path.basename(__file__)
 
 
 class HotReloadHandler(FileSystemEventHandler):
@@ -66,6 +75,10 @@ class ModelHandler:
         self.listener_thread.start()
 
         self._keys_pressed = []
+
+        print("\nAvailable models:")
+        for i, model in enumerate(self.models):
+            logger.log(f"[{i+1}]", model, colors=["WHITE", "GRAY"])
 
     def _start_key_listener(self):
         def on_press(key):

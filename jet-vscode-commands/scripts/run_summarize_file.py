@@ -33,12 +33,17 @@ Context information is below.
 Given the context information and not prior knowledge, answer the query.
 Query:
 {query}
-
-Answer:
 """
 
-FILE_NAME = os.path.basename(__file__)
-SUMMARY_QUERY = "Your task is to generate a summary index that describes the general purpose the provided context, summarizing its real-world use cases in an easy-to-read format for other LLMs. Please describe the typical scenarios where this would be utilized, along with the benefits it brings to users. Keep it short and concise. Output only the generated answer without any explanations wrapped in a code block (use ```markdown)."
+SUMMARY_QUERY = """
+Requirements:
+- Generate a summary index that describes the general purpose of the provided file contents.
+- Summarize its real-world use cases in an easy-to-read format for other LLMs.
+- Describe the typical scenarios where this would be utilized.
+- Highlight the benefits it brings to users.
+- Keep it short and concise.
+- Output only the generated answer without any explanations, wrapped in a code block (use ```markdown\n{answer}\n```).
+""".strip()
 
 
 class HotReloadHandler(FileSystemEventHandler):
@@ -95,7 +100,7 @@ class ModelHandler:
                 on_release=on_release) as listener:
             listener.join()
 
-    def get_user_input(self, context: str = "", template: str = PROMPT_TEMPLATE):
+    def get_user_input(self, file_name: str, context: str = "", template: str = PROMPT_TEMPLATE):
         query = SUMMARY_QUERY
 
         if not query:
@@ -113,7 +118,7 @@ class ModelHandler:
 
         template_args = {"context": context, "query": query}
         if "{file_name}" in template:
-            template_args["file_name"] = FILE_NAME
+            template_args["file_name"] = file_name
 
         prompt = template.format(**template_args)
 
@@ -139,23 +144,25 @@ class ModelHandler:
             context = selected_text
 
         return {
+            "file_path": file_path,
             "context": context,
             "line_number": line_number,
         }
 
     def run(self):
         args_dict = self.get_args()
+        file_name = os.path.basename(args_dict["file_path"])
         context = args_dict["context"]
         logger.info("CONTEXT:")
         logger.debug(context)
 
         while True:
-            seed = random.random()  # Generates a random float between 0 and 1
+            seed = random.randint(1, 9999)
 
             time.sleep(1)
             logger.newline()
 
-            prompt, model = self.get_user_input(context=context)
+            prompt, model = self.get_user_input(file_name, context=context)
 
             logger.newline()
             logger.info("PROMPT:")
@@ -174,6 +181,9 @@ class ModelHandler:
             )
             output = self.handle_stream_response(response)
             # print(output)  # Output from the response
+
+            # Exit task
+            sys.exit()
 
 
 if __name__ == "__main__":
