@@ -1,3 +1,4 @@
+import sys
 import json
 from typing import Optional
 from pydantic import ValidationError
@@ -6,6 +7,7 @@ from llama_index.core import PromptTemplate
 from llama_index.core.types import BaseModel
 from llama_index.core.response_synthesizers import TreeSummarize
 from llama_index.core import SimpleDirectoryReader
+from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.types import PydanticProgramMode
 from llama_index.llms.ollama import Ollama
 
@@ -22,39 +24,23 @@ llm = Ollama(
     model="mistral",
 )
 
-# <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/response_synthesizers/pydantic_tree_summarize.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# Pydantic Tree Summarize
-#
-# In this notebook, we demonstrate how to use tree summarize with structured outputs. Specifically, tree summarize is used to output pydantic objects.
+# Load Data
+target_file_path = sys.argv[1]
+
+# documents = SimpleDirectoryReader(
+#     input_files=[target_file_path]
+# ).load_data()
+# texts = [doc.text for doc in docs]
+
+with open(target_file_path, "r") as f:
+    text = f.read()
+texts = [text]
 
 
 settings_manager = SettingsManager.create()
 settings_manager.llm = llm
 settings_manager.pydantic_program_mode = PydanticProgramMode.LLM
-
-# Download Data
-
-
-# Load Data
-
-
-reader = SimpleDirectoryReader(
-    input_files=[
-        # "/Users/jethroestrada/Desktop/External_Projects/jet_python_modules/jet/llm/main/generation.py",
-        "/Users/jethroestrada/Desktop/External_Projects/JetScripts/jet-vscode-commands/scripts/run_chat_ollama.py",
-    ]
-)
-
-docs = reader.load_data()
-
-texts = [doc.text for doc in docs]
-texts[0]
-
-# Summarize
-
-
-# Create pydantic model to structure response
 
 
 qa_prompt_tmpl = (
@@ -88,8 +74,8 @@ refine_prompt = PromptTemplate(refine_prompt_tmpl)
 
 
 try:
-    # Create data model
-    class CodeSummary(BaseModel):
+    # Create pydantic data model to structure response
+    class FileSummary(BaseModel):
         features: list[str]
         use_cases: list[str]
         additional_info: Optional[str] = None
@@ -98,7 +84,7 @@ try:
         llm=settings_manager.llm,
         verbose=True,
         streaming=False,
-        output_cls=CodeSummary,
+        output_cls=FileSummary,
         summary_template=qa_prompt
     )
 
@@ -108,15 +94,15 @@ except ValidationError as e:
     logger.error(json.dumps(make_serializable(e.errors()), indent=2))
     if e.errors() and type(e.errors()[0]["input"]) == dict:
         current_result_dict = e.errors()[0]["input"]
-        if CodeSummary.__name__ in current_result_dict:
-            current_result_dict = current_result_dict[CodeSummary.__name__]
+        if FileSummary.__name__ in current_result_dict:
+            current_result_dict = current_result_dict[FileSummary.__name__]
 
         result = validate_json(current_result_dict,
-                               CodeSummary.model_json_schema())
+                               FileSummary.model_json_schema())
 
 # Inspect the response
 #
-# Here, we see the response is in an instance of our `CodeSummary` class.
+# Here, we see the response is in an instance of our `FileSummary` class.
 
 logger.success(json.dumps(make_serializable(result), indent=2))
 

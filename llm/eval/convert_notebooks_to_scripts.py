@@ -168,6 +168,10 @@ def update_code_with_ollama(code: str) -> str:
 
 # Function to extract Python code cells from a .ipynb file
 def read_notebook_file(file, with_markdown=False):
+    # Check if the file ends correct extension
+    if not file.endswith('.ipynb'):
+        raise ValueError("File must have .ipynb extension")
+
     with codecs.open(file, 'r', encoding='utf-8') as f:
         source = f.read()
 
@@ -208,45 +212,96 @@ def read_notebook_file(file, with_markdown=False):
     return source_groups
 
 
+# Function to extract Python code blocks from a .md or .mdx file
+def read_markdown_file(file):
+    from jet.code import MarkdownCodeExtractor
+
+    # Check if the file ends correct extension
+    if not (file.endswith('.md') or file.endswith('.mdx')):
+        raise ValueError("File must have .md or .mdx extension")
+
+    with open(file, 'r') as f:
+        source = f.read()
+
+    extractor = MarkdownCodeExtractor()
+    code_blocks = extractor.extract_code_blocks(source)
+
+    source_groups = []
+
+    for code_block in code_blocks:
+        language = code_block["language"]
+        lines = code_block["code"].splitlines()
+        code_lines = []
+        for line in lines:
+            # Remove commented lines
+            if line.strip().startswith('#'):
+                continue
+
+            # Add newline at the end if missing
+            if not line.endswith('\n'):
+                line += '\n'
+
+            # Comment out installation lines
+            if line.strip().startswith('pip install'):
+                if not line.strip().startswith('#'):
+                    line = "# " + line
+
+            code_lines.append(line)
+        source_groups.append({
+            "type": language,
+            "code": "".join(code_lines).strip()
+        })
+
+    return source_groups
+
+
 def scrape_notes(
     input_dir: str,
-    ext: str,
+    extensions: list[str],
+    output_dir: str,
     with_markdown: bool = False,
     include_files: list[str] = [],
     exclude_files: list[str] = [],
     with_ollama: bool = False,
-    output_dir: str = "generated",
 ):
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
 
-    # Read .{ext} files
-    files = [os.path.join(input_dir, f)
-             for f in os.listdir(input_dir) if f.endswith(f".{ext}")]
+    # Read files with any of the extensions in extensions
+    files = [
+        os.path.join(input_dir, f)
+        for f in os.listdir(input_dir)
+        if any(f.endswith(e) for e in extensions)
+    ]
+
     # Apply include_files filter
     if include_files:
         files = [
             file for file in files
-            if any(include in file for include in include_files)
+            if any(include.lower() in file.lower() for include in include_files)
         ]
+
     # Apply exclude_files filter
     if exclude_files:
         files = [
             file for file in files
-            if not any(exclude in file for exclude in exclude_files)
+            if not any(exclude.lower() in file.lower() for exclude in exclude_files)
         ]
-    logger.info(f"Found {len(files)} .{ext} files")
+
+    logger.info(f"Found {len(files)} {extensions} files")
 
     output_files = []
 
     # Process each file and extract Python code
     for file in files:
-        file_path = os.path.join(input_dir, file)
-        file_name = os.path.splitext(os.path.basename(file_path))[0]
+        file_name = os.path.splitext(os.path.basename(file))[0]
 
         try:
-            source_groups = read_notebook_file(
-                file_path, with_markdown=with_markdown)
+            if file.endswith('.ipynb'):
+                source_groups = read_notebook_file(
+                    file, with_markdown=with_markdown)
+            elif file.endswith('.md') or file.endswith('.mdx'):
+                source_groups = read_markdown_file(file)
 
             source_lines = [source_group['code']
                             for source_group in source_groups]
@@ -260,8 +315,7 @@ def scrape_notes(
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write(source_code)
 
-            logger.debug(f"Saved file: {os.path.basename(file_path)}...")
-
+            logger.debug(f"Saved file: {os.path.basename(file)}...")
             output_files.append(output_file)
 
         except Exception as e:
@@ -272,17 +326,9 @@ def scrape_notes(
 
 if __name__ == "__main__":
     input_dirs = [
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/metadata_extraction",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/retrievers"
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/memory",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/agent/memory",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/versions/migrating_chains",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/versions/migrating_memory",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-integrations/readers/llama-index-readers-smart-pdf-loader",
     ]
-    include_files = [
-        # "deep_memory"
-        "long_term_memory_agent"
-    ]
+    include_files = ["README"]
     exclude_files = [
         "answer_and_context_relevancy",
         "semantic_similarity_eval",
@@ -292,32 +338,42 @@ if __name__ == "__main__":
         "migrating_chains/conversation_retrieval_chain",
         "migrating_chains/conversation_chain",
         "migrating_chains/constitutional_chain",
-        "migrating_memory/"
-        # "pydantic_tree_summarize",
+        "migrating_memory/",
     ]
+
+    extension_mappings = [
+        {"ext": [".ipynb"], "output_dir": "converted-notebooks"},
+        {"ext": [".md", ".mdx"], "output_dir": "converted-markdowns"},
+    ]
+
+    base_dir = os.path.dirname(__file__)
 
     for input_dir in input_dirs:
         logger.newline()
         logger.info(f"Processing: {input_dir}")
 
-        ext = "ipynb"
-        with_markdown = True
+        for ext_mapping in extension_mappings:
+            extensions = ext_mapping["ext"]
+            output_dir = os.path.join(
+                base_dir, ext_mapping["output_dir"], os.path.basename(
+                    input_dir)
+            )
 
-        with_ollama = True
+            files = scrape_notes(
+                input_dir,
+                extensions,
+                output_dir,
+                with_markdown=True,
+                include_files=include_files,
+                exclude_files=exclude_files,
+                with_ollama=True,
+            )
 
-        output_dir = os.path.join(os.path.dirname(
-            __file__), "converted-notebooks", input_dir.split("/")[-1])
-
-        files = scrape_notes(
-            input_dir,
-            ext,
-            with_markdown=with_markdown,
-            include_files=include_files,
-            exclude_files=exclude_files,
-            with_ollama=with_ollama,
-            output_dir=output_dir,
-        )
-
-        if files:
-            logger.log("Saved", f"({len(files)})", "files to",
-                       output_dir, colors=["WHITE", "SUCCESS", "WHITE", "BRIGHT_SUCCESS"])
+            if files:
+                logger.log(
+                    "Saved",
+                    f"({len(files)})",
+                    "files to",
+                    output_dir,
+                    colors=["WHITE", "SUCCESS", "WHITE", "BRIGHT_SUCCESS"],
+                )
