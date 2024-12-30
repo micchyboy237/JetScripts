@@ -51,10 +51,18 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
 
     timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
     url = f"{flow.request.scheme}://{flow.request.host}{flow.request.path}"
-    content_length = next(field[1] for field in request_dict["headers"]
-                          ["fields"] if field[0].lower() == "content-length")
-    token_count = next(field[1] for field in request_dict["headers"]
-                       ["fields"] if field[0].lower() == "tokens")
+    # Handle potential StopIteration with a default value
+    content_length = next(
+        (field[1] for field in request_dict["headers"]
+         ["fields"] if field[0].lower() == "content-length"),
+        None
+    )
+
+    token_count = next(
+        (field[1] for field in request_dict["headers"]
+         ["fields"] if field[0].lower() == "tokens"),
+        None
+    )
 
     # Get last user prompt
     prompt_log = flow.request.data.content.decode('utf-8')
