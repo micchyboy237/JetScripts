@@ -1,4 +1,5 @@
 from jet.llm import VectorSemanticSearch
+from jet.logger import logger
 
 if __name__ == "__main__":
     # Sample list of package module paths
@@ -21,27 +22,27 @@ if __name__ == "__main__":
     search = VectorSemanticSearch(module_paths)
 
     # Perform and print the results of each search method
-    print("Vector-Based Search:")
+    logger.info("Vector-Based Search:")
     vector_results = search.vector_based_search(query)
     for path, score in vector_results:
-        print(f"{path}: {score:.4f}")
+        logger.log(f"{path}:", f"{score:.4f}", colors=["DEBUG", "SUCCESS"])
 
-    # print("\nBM25 Search:")
-    # bm25_results = search.bm25_search(query)
-    # for path, score in bm25_results:
-    #     print(f"{path}: {score:.4f}")
+    logger.info("\nBM25 Search:")
+    bm25_results = search.bm25_search(query)
+    for path, score in bm25_results:
+        logger.log(f"{path}:", f"{score:.4f}", colors=["DEBUG", "SUCCESS"])
 
-    print("\nGraph-Based Search:")
+    logger.info("\nGraph-Based Search:")
     graph_results = search.graph_based_search(query)
     for path, score in graph_results:
-        print(f"{path}: {score:.4f}")
+        logger.log(f"{path}:", f"{score:.4f}", colors=["DEBUG", "SUCCESS"])
 
-    print("\nCross-Encoder Search:")
+    logger.info("\nCross-Encoder Search:")
     cross_encoder_results = search.cross_encoder_search(query)
     for path, score in cross_encoder_results:
-        print(f"{path}: {score:.4f}")
+        logger.log(f"{path}:", f"{score:.4f}", colors=["DEBUG", "SUCCESS"])
 
-    print("\nFAISS Search:")
+    logger.info("\nFAISS Search:")
     faiss_results = search.faiss_search(query)
     for path, distance in faiss_results:
-        print(f"{path}: {distance:.4f}")
+        logger.log(f"{path}:", f"{distance:.4f}", colors=["DEBUG", "SUCCESS"])
