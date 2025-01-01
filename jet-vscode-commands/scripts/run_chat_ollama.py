@@ -15,10 +15,11 @@ from jet.utils import colorize_log, COLORS
 from jet.logger import logger
 
 DEFAULT_QUERY = "Summarize provided context."
-DEFAULT_MODEL_SELECTION_KEYBOARD = {
+DEFAULT_SELECTION_COMMANDS = {
     "cmd+1": "llama3.1",
     "cmd+2": "llama3.2",
     "cmd+3": "codellama",
+    "cmd+c": "clear_query",
 }
 DEFAULT_MODEL = "llama3.1"
 
@@ -62,13 +63,13 @@ class ModelHandler:
     def __init__(
         self,
         default_model: str = DEFAULT_MODEL,
-        model_selection_commands: dict[str,
-                                       str] = DEFAULT_MODEL_SELECTION_KEYBOARD,
+        selection_commands: dict[str, str] = DEFAULT_SELECTION_COMMANDS,
     ):
         self.default_model = default_model
-        self.model_selection_commands = model_selection_commands
-        self.commands = list(model_selection_commands.keys())
-        self.models = list(model_selection_commands.values())
+        self.selection_commands = selection_commands
+        self.commands = list(selection_commands.keys())
+        self.models = [model for cmd, model in selection_commands.items(
+        ) if not model == "clear_query"]
         self.selected_model = default_model
         self.queus_deque = deque(maxlen=5)
         self.listener_thread = Thread(
@@ -83,28 +84,30 @@ class ModelHandler:
 
     def _start_key_listener(self):
         def on_press(key):
-            logger.log("Pressed:", key, colors=["DEBUG", "INFO"])
-            # Strip "Key." and surrounding "'" if exists
             updated_key = str(key).lstrip("Key.").strip("'")
             self._keys_pressed.append(updated_key)
 
         def on_release(key):
             command = "+".join(self._keys_pressed)
 
-            if command in self.commands:
-                self.selected_model = self.model_selection_commands[command]
+            if command in self.selection_commands:
+                action = self.selection_commands[command]
+                if action == "clear_query":
+                    logger.info("Clearing the query...")
+                    self.queus_deque.clear()
+                    self._keys_pressed.clear()
+                    return
+
+                self.selected_model = action
                 logger.log('Selected model:', self.selected_model,
                            colors=["DEBUG", "SUCCESS"])
 
-            logger.log("Pressed:", key, colors=["DEBUG", "ERROR"])
             try:
                 self._keys_pressed.pop()
             except IndexError as e:
                 logger.error(e)
 
-        with keyboard.Listener(
-                on_press=on_press,
-                on_release=on_release) as listener:
+        with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
             listener.join()
 
     def get_user_input(self, context: str = "", template: str = PROMPT_TEMPLATE):
@@ -184,7 +187,6 @@ class ModelHandler:
                 },
             )
             output = self.handle_stream_response(response)
-            # print(output)  # Output from the response
 
             logger.newline()
             logger.info("Previous Query:")

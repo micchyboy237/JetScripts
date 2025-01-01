@@ -131,15 +131,6 @@ sizes() {
     python /Users/jethroestrada/Desktop/External_Projects/JetScripts/find_large_folders.py -b "$base_dir"  -s $min_size -i "$include"
 }
 
-setup_venv() {
-    deactivate
-    rm -rf .venv
-    python -m venv .venv
-    source .venv/bin/activate
-    which pip
-    which python
-}
-
 activate_venv() {
     local current_dir=$PWD
     local activation_script="$current_dir/.venv/bin/activate"
@@ -149,6 +140,19 @@ activate_venv() {
     # else
     #     echo "Activation script not found: $activation_script"
     fi
+}
+
+deactivate_venv() {
+    deactivate
+    rm -rf .venv
+}
+
+setup_venv() {
+    deactivate_venv
+    python -m venv .venv
+    source .venv/bin/activate
+    which pip
+    which python
 }
 
 
@@ -198,5 +202,5 @@ pip() {
 
 # Check if the 'deps' function is already defined to prevent echo
 # if ! declare -f deps &>/dev/null; then
-echo "Added deps, freeze, size, sizes, setup_venv, freeze_venv, reinstall_venv, force_reinstall_venv, activate_venv, reinstall_python functions, pip"
+echo "Added deps, freeze, size, sizes, setup_venv, freeze_venv, reinstall_venv, force_reinstall_venv, activate_venv, deactivate_venv, reinstall_python functions, pip"
 # fi

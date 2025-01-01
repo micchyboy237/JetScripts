@@ -141,5 +141,6 @@ if __name__ == "__main__":
         print(f"Total Size: {total_size}")
 
 # Commands
+# python find_large_folders.py -s 100 -i "aim,.aim"
 # python find_large_folders.py -s 0 -i "<folder>/bin/activate"
 # python find_large_folders.py -s 100 -b "/path/to/base/dir" -i "<folder>/node_modules" -e "node_modules/**"

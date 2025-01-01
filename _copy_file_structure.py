@@ -21,8 +21,10 @@ exclude_files = [
     "dream",
 ]
 include_files = [
-    "/Users/jethroestrada/Desktop/External_Projects/jet_python_modules/jet/automation/selenium.py",
-    "run_test.py",
+    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/prompts/context/01_Initial_Requirements.md",
+    "OAI_CONFIG_LIST.json",
+    "*README.md",
+    "*.py"
 ]
 
 include_content = []
@@ -38,13 +40,15 @@ def find_files(base_dir, include, exclude, include_content_patterns, exclude_con
     print("Base Dir:", file_dir)
     print("Finding files:", base_dir, include, exclude)
     include_abs = [
-        os.path.abspath(pat) if not os.path.isabs(pat) else pat
+        os.path.relpath(path=pat, start=file_dir)
+        if not os.path.isabs(pat) else pat
         for pat in include
         if os.path.exists(os.path.abspath(pat) if not os.path.isabs(pat) else pat)
     ]
 
     matched_files = set(include_abs)
     for root, dirs, files in os.walk(base_dir):
+        # Adjust include and exclude lists: if no wildcard, treat it as a specific file in the current directory
         adjusted_include = [
             os.path.relpath(os.path.join(base_dir, pat), base_dir) if not any(
                 c in pat for c in "*?") else pat
@@ -56,25 +60,119 @@ def find_files(base_dir, include, exclude, include_content_patterns, exclude_con
             for pat in exclude
         ]
 
-        if not case_sensitive:
-            adjusted_include = [pat.lower() for pat in adjusted_include]
-            adjusted_exclude = [pat.lower() for pat in adjusted_exclude]
-
+        # Exclude specified directories with or without wildcard support
         dirs[:] = [d for d in dirs if not any(
-            fnmatch.fnmatch(d.lower() if not case_sensitive else d, pat)
-            for pat in adjusted_exclude
-        )]
+            fnmatch.fnmatch(d, pat) or fnmatch.fnmatch(os.path.join(root, d), pat) for pat in adjusted_exclude)]
 
+        # Check for files in the current directory that match the include patterns without wildcard support
         for file in files:
             file_path = os.path.relpath(os.path.join(root, file), base_dir)
-            normalized_file_path = file_path.lower() if not case_sensitive else file_path
-
-            if any(fnmatch.fnmatch(normalized_file_path, pat) for pat in adjusted_include) and \
-               not any(fnmatch.fnmatch(normalized_file_path, pat) for pat in adjusted_exclude):
+            if file_path in adjusted_include and not any(fnmatch.fnmatch(file_path, pat) for pat in adjusted_exclude):
                 if file_path not in matched_files:
-                    matched_files.add(file_path)
+                    matched_files.add(file_path)  # Add to the set
+                    print(f"Matched file in current directory: {file_path}")
 
+        # Check for directories that match the include patterns
+        for dir_name in dirs:
+            dir_path = os.path.relpath(os.path.join(root, dir_name), base_dir)
+            if any(fnmatch.fnmatch(dir_name, pat) for pat in adjusted_include) or any(fnmatch.fnmatch(dir_path, pat) for pat in adjusted_include):
+                # If the directory matches, find all files within this directory
+                for sub_root, _, sub_files in os.walk(os.path.join(root, dir_name).replace("*", "")):
+                    # Check if sub_root is excluded
+                    base_sub_root = os.path.basename(sub_root)
+                    if any(fnmatch.fnmatch(base_sub_root, pat) for pat in adjusted_exclude):
+                        break
+                    for file in sub_files:
+                        file_path = os.path.relpath(
+                            os.path.join(sub_root, file), base_dir)
+                        if not any(fnmatch.fnmatch(file_path, pat) for pat in adjusted_exclude):
+                            if file_path not in matched_files:
+                                matched_files.add(file_path)  # Add to the set
+                                print(
+                                    f"Matched file in directory: {file_path}")
+
+        # Check for files that match the include patterns
+        for file in files:
+            file_path = os.path.relpath(os.path.join(root, file), base_dir)
+            is_current_package_json = (
+                file_path == "package.json" and "./package.json" in adjusted_include and root == base_dir)
+            if (is_current_package_json or any(fnmatch.fnmatch(file_path, pat) for pat in adjusted_include)) and not any(fnmatch.fnmatch(file_path, pat) for pat in adjusted_exclude):
+                # Check if file is excluded
+                if file in adjusted_exclude:
+                    continue
+                # Check file contents against include_content and exclude_content patterns
+                full_path = os.path.join(root, file)
+                if matches_content(full_path, include_content_patterns, exclude_content_patterns, case_sensitive):
+                    if file_path not in matched_files:
+                        matched_files.add(file_path)  # Add to the set
+                        print(f"Matched file: {file_path}")
+
+        # Check for files in absolute directories that match the include patterns with wildcards
+        include_dir_abs = [
+            pat for pat in include if "*" in pat and os.path.isdir(pat.replace("*", ""))
+        ]
+
+        for dir_name in include_dir_abs:
+            # Remove wildcard and calculate relative directory path
+            dir_no_wildcard = dir_name.replace("*", "")
+            dir_path = os.path.relpath(os.path.join(root, dir_name), base_dir)
+
+            # Check if the directory matches any adjusted include patterns
+            if any(fnmatch.fnmatch(dir_name, pat) for pat in adjusted_include) or any(fnmatch.fnmatch(dir_path, pat) for pat in adjusted_include):
+                # If matched, find all files within this directory
+                for file in os.listdir(os.path.join(root, dir_no_wildcard)):
+                    base_file = os.path.basename(file)
+
+                    # Skip if file matches exclude patterns
+                    if any(fnmatch.fnmatch(base_file, pat) for pat in adjusted_exclude):
+                        continue
+
+                    # Calculate the relative file path and skip if excluded
+                    file_path = os.path.relpath(
+                        os.path.join(dir_no_wildcard, file), base_dir)
+                    if not any(fnmatch.fnmatch(file_path, pat) for pat in adjusted_exclude):
+                        # If file path is new, add it to the set
+                        rel_file_path = os.path.relpath(file_path)
+                        if rel_file_path not in matched_files and os.path.isfile(rel_file_path):
+                            matched_files.add(rel_file_path)
+                            print(f"Matched file in directory: {
+                                  rel_file_path}")
+
+    # Convert the set back to a list before returning
     return list(matched_files)
+
+
+def matches_content(file_path, include_patterns, exclude_patterns, case_sensitive=False):
+    """
+    Check if the file content matches include_patterns and does not match exclude_patterns.
+    """
+    if not include_patterns and not exclude_patterns:
+        return True
+    try:
+        with open(file_path, 'r') as f:
+            content = f.read()
+            if not case_sensitive:
+                # Convert content to lowercase for case-insensitive matching
+                content = content.lower()
+
+            # Check for include content patterns
+            if include_patterns:
+                include_patterns = [
+                    pattern if case_sensitive else pattern.lower() for pattern in include_patterns]
+                if not any((fnmatch.fnmatch(content, pattern) if '*' in pattern or '?' in pattern else pattern in content) for pattern in include_patterns):
+                    return False
+
+            # Check for exclude content patterns
+            if exclude_patterns:
+                exclude_patterns = [
+                    pattern if case_sensitive else pattern.lower() for pattern in exclude_patterns]
+                if any((fnmatch.fnmatch(content, pattern) if '*' in pattern or '?' in pattern else pattern in content) for pattern in exclude_patterns):
+                    return False
+
+        return True
+    except (OSError, IOError) as e:
+        print(f"Error reading {file_path}: {e}")
+        return False
 
 
 def clean_newlines(content):
@@ -136,7 +234,7 @@ def get_file_length(file_path, shorten_funcs):
             content = file.read()
             content = clean_content(content, file_path, shorten_funcs)
         return len(content)
-    except (OSError, IOError):
+    except (OSError, IOError, UnicodeDecodeError):
         return 0
 
 
