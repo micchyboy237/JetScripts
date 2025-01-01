@@ -31,7 +31,10 @@ import os
 
 from llama_index.core import SimpleDirectoryReader
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/retrievers/data/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume",
+    required_exts=["*.md"]
+).load_data()
 
 ## Ingestion Pipeline - Apply Transformations
 

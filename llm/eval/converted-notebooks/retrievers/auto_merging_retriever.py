@@ -120,7 +120,7 @@ docstore.add_documents(nodes)
 
 storage_context = StorageContext.from_defaults(docstore=docstore)
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
 
 
 base_index = VectorStoreIndex(

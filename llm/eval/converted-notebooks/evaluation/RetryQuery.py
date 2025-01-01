@@ -1,3 +1,16 @@
+from llama_index.core.query_engine import RetryGuidelineQueryEngine
+from llama_index.core.indices.query.query_transform.feedback_transform import (
+    FeedbackQueryTransformation,
+)
+from llama_index.core import Response
+from llama_index.core.evaluation.guideline import DEFAULT_GUIDELINES
+from llama_index.core.evaluation import GuidelineEvaluator
+from llama_index.core.query_engine import RetrySourceQueryEngine
+from llama_index.core.evaluation import RelevancyEvaluator
+from llama_index.core.query_engine import RetryQueryEngine
+import nest_asyncio
+from llama_index.core import SimpleDirectoryReader
+from llama_index.core import VectorStoreIndex
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -6,7 +19,7 @@ initialize_ollama_settings()
 
 # Self Correcting Query Engines - Evaluation & Retry
 
-# In this notebook, we showcase several advanced, self-correcting query engines.  
+# In this notebook, we showcase several advanced, self-correcting query engines.
 # They leverage the latest LLM's ability to evaluate its own output, and then self-correct to give better responses.
 
 # If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
@@ -14,17 +27,10 @@ initialize_ollama_settings()
 # !pip install llama-index
 
 
-
-
-
-## Setup
+# Setup
 
 # First we ingest the document.
 
-from llama_index.core import VectorStoreIndex
-from llama_index.core import SimpleDirectoryReader
-
-import nest_asyncio
 
 nest_asyncio.apply()
 
@@ -35,9 +41,10 @@ nest_asyncio.apply()
 
 # Load Data
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/retrievers/data/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume").load_data()
 index = VectorStoreIndex.from_documents(documents)
-query = "What did the author do growing up?"
+query = "What did Jethro accomplish?"
 
 # Let's what the response from the default query engine looks like
 
@@ -45,19 +52,17 @@ base_query_engine = index.as_query_engine()
 response = base_query_engine.query(query)
 print(response)
 
-## Retry Query Engine
+# Retry Query Engine
 
-# The retry query engine uses an evaluator to improve the response from a base query engine.  
-# 
+# The retry query engine uses an evaluator to improve the response from a base query engine.
+#
 # It does the following:
 # 1. first queries the base query engine, then
 # 2. use the evaluator to decided if the response passes.
 # 3. If the response passes, then return response,
-# 4. Otherwise, transform the original query with the evaluation result (query, response, and feedback) into a new query, 
+# 4. Otherwise, transform the original query with the evaluation result (query, response, and feedback) into a new query,
 # 5. Repeat up to max_retries
 
-from llama_index.core.query_engine import RetryQueryEngine
-from llama_index.core.evaluation import RelevancyEvaluator
 
 query_response_evaluator = RelevancyEvaluator()
 retry_query_engine = RetryQueryEngine(
@@ -66,11 +71,10 @@ retry_query_engine = RetryQueryEngine(
 retry_response = retry_query_engine.query(query)
 print(retry_response)
 
-## Retry Source Query Engine
+# Retry Source Query Engine
 
 # The Source Retry modifies the query source nodes by filtering the existing source nodes for the query based on llm node evaluation.
 
-from llama_index.core.query_engine import RetrySourceQueryEngine
 
 retry_source_query_engine = RetrySourceQueryEngine(
     base_query_engine, query_response_evaluator
@@ -78,17 +82,10 @@ retry_source_query_engine = RetrySourceQueryEngine(
 retry_source_response = retry_source_query_engine.query(query)
 print(retry_source_response)
 
-## Retry Guideline Query Engine
+# Retry Guideline Query Engine
 
 # This module tries to use guidelines to direct the evaluator's behavior. You can customize your own guidelines.
 
-from llama_index.core.evaluation import GuidelineEvaluator
-from llama_index.core.evaluation.guideline import DEFAULT_GUIDELINES
-from llama_index.core import Response
-from llama_index.core.indices.query.query_transform.feedback_transform import (
-    FeedbackQueryTransformation,
-)
-from llama_index.core.query_engine import RetryGuidelineQueryEngine
 
 guideline_eval = GuidelineEvaluator(
     guidelines=DEFAULT_GUIDELINES

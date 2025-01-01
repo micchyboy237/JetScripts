@@ -326,9 +326,13 @@ def scrape_notes(
 
 if __name__ == "__main__":
     input_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-integrations/readers/llama-index-readers-smart-pdf-loader",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-packs/llama-index-packs-multidoc-autoretrieval/examples",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-packs/llama-index-packs-neo4j-query-engine/examples",
     ]
-    include_files = ["README"]
+    include_files = [
+        "multidoc_autoretrieval",
+        "llama_packs_neo4j",
+    ]
     exclude_files = [
         "answer_and_context_relevancy",
         "semantic_similarity_eval",

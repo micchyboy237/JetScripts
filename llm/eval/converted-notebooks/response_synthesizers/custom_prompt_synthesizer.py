@@ -1,3 +1,10 @@
+from typing import List
+from llama_index.core.types import BaseModel
+from llama_index.core.response_synthesizers import TreeSummarize, Refine
+from llama_index.core import PromptTemplate
+from llama_index.core import SimpleDirectoryReader
+import openai
+import os
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -5,39 +12,35 @@ initialize_ollama_settings()
 # <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/response_synthesizers/custom_prompt_synthesizer.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 # Pydantic Tree Summarize
-# 
+#
 # In this notebook, we demonstrate how to use tree summarize with structured outputs. Specifically, tree summarize is used to output pydantic objects.
 
 # If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 
 # !pip install llama-index
 
-import os
-import openai
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 
-## Download Data
+# Download Data
 
 # !mkdir -p 'data/paul_graham/'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
-## Load Data
+# Load Data
 
-from llama_index.core import SimpleDirectoryReader
 
 reader = SimpleDirectoryReader(
-    input_files=["/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/retrievers/data/paul_graham_essay.txt"]
+    input_files=["/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resumepaul_graham_essay.txt"]
 )
 
 docs = reader.load_data()
 
 text = docs[0].text
 
-## Define Custom Prompt
+# Define Custom Prompt
 
-from llama_index.core import PromptTemplate
 
 qa_prompt_tmpl = (
     "Context information is below.\n"
@@ -68,13 +71,10 @@ refine_prompt_tmpl = (
 )
 refine_prompt = PromptTemplate(refine_prompt_tmpl)
 
-## Try out Response Synthesis with Custom Prompt
-# 
+# Try out Response Synthesis with Custom Prompt
+#
 # We try out a few different response synthesis strategies with the custom prompt.
 
-from llama_index.core.response_synthesizers import TreeSummarize, Refine
-from llama_index.core.types import BaseModel
-from typing import List
 
 summarizer = TreeSummarize(verbose=True, summary_template=qa_prompt)
 
@@ -94,12 +94,14 @@ response = summarizer.get_response(
 
 print(str(response))
 
+
 class Biography(BaseModel):
     """Data model for a biography."""
 
     name: str
     best_known_for: List[str]
     extra_info: str
+
 
 summarizer = TreeSummarize(
     verbose=True, summary_template=qa_prompt, output_cls=Biography

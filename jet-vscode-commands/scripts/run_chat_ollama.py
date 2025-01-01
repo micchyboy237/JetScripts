@@ -83,6 +83,7 @@ class ModelHandler:
 
     def _start_key_listener(self):
         def on_press(key):
+            logger.log("Pressed:", key, colors=["DEBUG", "INFO"])
             # Strip "Key." and surrounding "'" if exists
             updated_key = str(key).lstrip("Key.").strip("'")
             self._keys_pressed.append(updated_key)
@@ -95,6 +96,7 @@ class ModelHandler:
                 logger.log('Selected model:', self.selected_model,
                            colors=["DEBUG", "SUCCESS"])
 
+            logger.log("Pressed:", key, colors=["DEBUG", "ERROR"])
             try:
                 self._keys_pressed.pop()
             except IndexError as e:
@@ -126,7 +128,7 @@ class ModelHandler:
 
         prompt = template.format(**template_args)
 
-        return prompt, self.selected_model
+        return prompt, self.selected_model, query
 
     @staticmethod
     def handle_stream_response(stream_response: Generator[str, None, None]) -> str:
@@ -162,7 +164,7 @@ class ModelHandler:
             time.sleep(1)
             logger.newline()
 
-            prompt, model = self.get_user_input(context=context)
+            prompt, model, query = self.get_user_input(context=context)
 
             logger.newline()
             logger.info("PROMPT:")
@@ -183,6 +185,10 @@ class ModelHandler:
             )
             output = self.handle_stream_response(response)
             # print(output)  # Output from the response
+
+            logger.newline()
+            logger.info("Previous Query:")
+            logger.debug(query)
 
 
 if __name__ == "__main__":

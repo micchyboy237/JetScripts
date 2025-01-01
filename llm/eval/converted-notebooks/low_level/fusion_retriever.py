@@ -1,3 +1,4 @@
+import asyncio
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -35,9 +36,13 @@ nest_asyncio.apply()
 
 from pathlib import Path
 from llama_index.readers.file import PyMuPDFReader
+from llama_index.core import SimpleDirectoryReader
 
-loader = PyMuPDFReader()
-documents = loader.load(file_path="./data/llama2.pdf")
+# loader = PyMuPDFReader()
+# documents = loader.load(file_path="./data/llama_beyond_english.pdf")
+data_dir = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume"
+documents = SimpleDirectoryReader(
+        data_dir, required_exts=[".md"]).load_data()
 
 #### Setup Models
 
@@ -50,7 +55,7 @@ from llama_index.embeddings.ollama import OllamaEmbedding
 
 llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
 embed_model = OllamaEmbedding(
-    model="text-embedding-3-small", embed_batch_size=256
+    model_name="nomic-embed-text", embed_batch_size=256
 )
 
 #### Load into Vector Store
@@ -101,7 +106,9 @@ def generate_queries(llm, query_str: str, num_queries: int = 4):
 
 queries = generate_queries(llm, query_str, num_queries=4)
 
-print(queries)
+logger.newline()
+logger.info("generate_queries()...")
+logger.success(queries)
 
 ### Step 2: Perform Vector Search for Each Query
 # 
@@ -138,7 +145,14 @@ bm25_retriever = BM25Retriever.from_defaults(
     docstore=index.docstore, similarity_top_k=2
 )
 
-results_dict = await run_queries(queries, [vector_retriever, bm25_retriever])
+async def main_run_queries():
+    results_dict = await run_queries(queries, [vector_retriever, bm25_retriever])
+    return results_dict
+
+results_dict = asyncio.run(main_run_queries())
+logger.newline()
+logger.info("main_run_queries()...")
+logger.success(results_dict)
 
 ### Step 3: Perform Fusion
 # 
@@ -187,8 +201,10 @@ def fuse_results(results_dict, similarity_top_k: int = 2):
 
 final_results = fuse_results(results_dict)
 
+logger.newline()
+logger.info("fuse_results()...")
 for n in final_results:
-    print(n.score, "\n", n.text, "\n********\n")
+    logger.log(n.score, "\n", n.text, "\n********\n", colors=["SUCCESS", "WHITE"])
 
 # **Analysis**: The above code has a few straightforward components.
 # 1. Go through each node in each retrieved list, and add it's reciprocal rank to the node's ID. The node's ID is the hash of it's text for dedup purposes.
@@ -204,7 +220,6 @@ from typing import List
 from llama_index.core import QueryBundle
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.schema import NodeWithScore
-import asyncio
 
 
 class FusionRetriever(BaseRetriever):
@@ -244,6 +259,8 @@ query_engine = RetrieverQueryEngine(fusion_retriever)
 
 response = query_engine.query(query_str)
 
-print(str(response))
+logger.newline()
+logger.info("fusion_retriever.query()...")
+logger.success(response)
 
 logger.info("\n\n[DONE]", bright=True)

@@ -1,3 +1,4 @@
+from script_utils import display_source_nodes
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -66,7 +67,10 @@ from IPython.display import display, HTML
 
 ### Load Data
 
-documents = SimpleDirectoryReader("data/paul_graham").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume",
+    required_exts=[".md"]
+).load_data()
 
 ### Create Nodes
 
@@ -99,12 +103,12 @@ from llama_index.core.tools.query_engine import QueryEngineTool, ToolMetadata
 
 summary_tool = QueryEngineTool.from_defaults(
     query_engine=summary_query_engine,
-    description="Useful for summarization questions related to Paul Graham eassy on What I Worked On.",
+    description="Useful for summarization questions related to Jethro Estrada resume on Web and Mobile Projects.",
 )
 
 vector_tool = QueryEngineTool.from_defaults(
     query_engine=vector_query_engine,
-    description="Useful for retrieving specific context from Paul Graham essay on What I Worked On.",
+    description="Useful for retrieving specific context from Jethro Estrada resume on Web and Mobile Projects.",
 )
 
 ### Define Router Query Engine
@@ -139,9 +143,9 @@ query_engine = RouterQueryEngine(
     ],
 )
 
-response = query_engine.query("What is the summary of the document?")
-
-display(HTML(f'<p style="font-size:20px">{response.response}</p>'))
+query = "What is the summary of the document?"
+response = query_engine.query(query)
+display_source_nodes(query, response)
 
 ### LLMSingleSelector
 # 
@@ -155,13 +159,13 @@ query_engine = RouterQueryEngine(
     ],
 )
 
-response = query_engine.query("What is the summary of the document?")
+query = "What is the summary of the document?"
+response = query_engine.query(query)
+display_source_nodes(query, response)
 
-display(HTML(f'<p style="font-size:20px">{response.response}</p>'))
-
-response = query_engine.query("What did Paul Graham do after RICS?")
-
-display(HTML(f'<p style="font-size:20px">{response.response}</p>'))
+query = "What did Jethro Estrada do after graduating?"
+response = query_engine.query(query)
+display_source_nodes(query, response)
 
 ### PydanticMultiSelector
 # 
@@ -177,7 +181,7 @@ keyword_query_engine = keyword_index.as_query_engine()
 
 keyword_tool = QueryEngineTool.from_defaults(
     query_engine=keyword_query_engine,
-    description="Useful for retrieving specific context using keywords from Paul Graham essay on What I Worked On.",
+    description="Useful for retrieving specific context using keywords from Jethro Estrada resume on Web and Mobile Projects.",
 )
 
 ### Build a router query engine.
@@ -187,11 +191,9 @@ query_engine = RouterQueryEngine(
     query_engine_tools=[vector_tool, keyword_tool, summary_tool],
 )
 
-response = query_engine.query(
-    "What were noteable events and people from the authors time at Interleaf and YC?"
-)
-
-display(HTML(f'<p style="font-size:20px">{response.response}</p>'))
+query = "What were noteable achievements from Jethro's time at JABA and ADEC?"
+response = query_engine.query(query)
+display_source_nodes(query, response)
 
 ## SubQuestion Query Engine
 # 
@@ -208,10 +210,10 @@ display(HTML(f'<p style="font-size:20px">{response.response}</p>'))
 ### Load Data
 
 lyft_docs = SimpleDirectoryReader(
-    input_files=["./data/10k/lyft_2021.pdf"]
+    input_files=["/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/data/10k/lyft_2021.pdf"]
 ).load_data()
 uber_docs = SimpleDirectoryReader(
-    input_files=["./data/10k/uber_2021.pdf"]
+    input_files=["/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/data/10k/uber_2021.pdf"]
 ).load_data()
 
 print(f"Loaded lyft 10-K with {len(lyft_docs)} pages")
@@ -228,17 +230,13 @@ lyft_engine = lyft_index.as_query_engine(similarity_top_k=3)
 
 uber_engine = uber_index.as_query_engine(similarity_top_k=3)
 
-response = lyft_engine.query(
-    "What is the revenue of Lyft in 2021? Answer in millions with page reference"
-)
+query = "What is the revenue of Lyft in 2021? Answer in millions with page reference"
+response = lyft_engine.query(query)
+display_source_nodes(query, response)
 
-display(HTML(f'<p style="font-size:20px">{response.response}</p>'))
-
-response = uber_engine.query(
-    "What is the revenue of Uber in 2021? Answer in millions, with page reference"
-)
-
-display(HTML(f'<p style="font-size:20px">{response.response}</p>'))
+query = "What is the revenue of Uber in 2021? Answer in millions, with page reference"
+response = uber_engine.query(query)
+display_source_nodes(query, response)
 
 ### Define QueryEngine Tools
 
@@ -271,10 +269,8 @@ sub_question_query_engine = SubQuestionQueryEngine.from_defaults(
 
 ### Querying
 
-response = sub_question_query_engine.query(
-    "Compare revenue growth of Uber and Lyft from 2020 to 2021"
-)
-
-display(HTML(f'<p style="font-size:20px">{response.response}</p>'))
+query = "Compare revenue growth of Uber and Lyft from 2020 to 2021"
+response = sub_question_query_engine.query(query)
+display_source_nodes(query, response)
 
 logger.info("\n\n[DONE]", bright=True)

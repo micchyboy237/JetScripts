@@ -1,3 +1,4 @@
+import json
 import httpx
 import asyncio
 from llama_index.core.evaluation import DatasetGenerator
@@ -12,6 +13,10 @@ from llama_index.core import (
     Response,
 )
 import nest_asyncio
+import random
+from llama_index.core.prompts.base import PromptTemplate
+from jet.transformers import make_serializable
+from script_utils import display_source_nodes
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -39,6 +44,18 @@ evaluator_gpt4 = FaithfulnessEvaluator(llm=llm)
 documents = SimpleDirectoryReader(
     "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume", required_exts=[".md"]).load_data()
 num_questions_per_chunk = 3
+question_gen_query = f"You are a Job Employer. Your task is to setup {
+    num_questions_per_chunk} questions for an upcoming interview. The questions should be relevant to the document. Restrict the questions to the context information provided."
+question_generation_prompt = """\
+Context information is below.
+---------------------
+{context_str}
+---------------------
+Given the context information and not prior knowledge.
+generate only questions based on the below query.
+Query: {query_str}
+"""
+question_generation_template = PromptTemplate(question_generation_prompt)
 
 splitter = SentenceSplitter(chunk_size=512)
 vector_index = VectorStoreIndex.from_documents(
@@ -46,29 +63,22 @@ vector_index = VectorStoreIndex.from_documents(
 )
 
 
-def display_eval_df(response: Response, eval_result: EvaluationResult) -> None:
-    if response.source_nodes == []:
-        print("no response!")
-        return
-    eval_df = pd.DataFrame(
-        {
-            "Response": str(response),
-            "Source": response.source_nodes[0].node.text[:1000] + "...",
-            "Evaluation Result": "Pass" if eval_result.passing else "Fail",
-            "Reasoning": eval_result.feedback,
-        },
-        index=[0],
-    )
-    eval_df = eval_df.style.set_properties(
-        **{
-            "inline-size": "600px",
-            "overflow-wrap": "break-word",
-        },
-        subset=["Response", "Source"]
-    )
-    # Print the DataFrame as a table
-    logger.debug("eval_df:")
-    logger.success(eval_df.to_string(index=False))
+def display_eval_df(query: str, response: Response, eval_result: EvaluationResult) -> None:
+    display_source_nodes(query, response.source_nodes)
+
+    logger.newline()
+    logger.info("Eval Results:")
+    items = [(key, result)
+             for key, result in eval_result.model_dump().items() if result != None]
+    for key, result in items:
+        if key == 'passing':
+            logger.log(f"{key.title()}:", "Passed" if result else "Failed", colors=[
+                       "DEBUG", "SUCCESS" if result else "ERROR"])
+        elif key == 'invalid_result':
+            logger.log(f"{key.title()}:", "Valid" if not result else "Invalid", colors=[
+                       "DEBUG", "SUCCESS" if not result else "ERROR"])
+        else:
+            logger.log(f"{key.title()}:", result, colors=["DEBUG", "SUCCESS"])
 
 # To run evaluations you can call the `.evaluate_response()` function on the `Response` object return from the query to run the evaluations. Lets evaluate the outputs of the vector_index.
 
@@ -78,7 +88,7 @@ query_engine = vector_index.as_query_engine()
 response_vector = query_engine.query(query)
 eval_result = evaluator_gpt4.evaluate_response(response=response_vector)
 
-display_eval_df(response_vector, eval_result)
+display_eval_df(query, response_vector, eval_result)
 
 # Benchmark on Generated Question
 #
@@ -86,13 +96,19 @@ display_eval_df(response_vector, eval_result)
 
 
 question_generator = DatasetGenerator.from_documents(
-    documents, num_questions_per_chunk=num_questions_per_chunk)
-eval_questions = question_generator.generate_questions_from_nodes(5)
+    documents,
+    num_questions_per_chunk=num_questions_per_chunk,
+    question_gen_query=question_gen_query,
+    text_question_template=question_generation_template,
+)
+eval_questions = question_generator.generate_questions_from_nodes()
 
-eval_questions
+logger.newline()
+logger.info(f"Generated eval questions ({len(eval_questions)}):")
+logger.success(json.dumps(make_serializable(eval_questions), indent=2))
 
 
-TIMEOUT = httpx.Timeout(120.0, connect=10.0)  # Adjust as needed
+TIMEOUT = httpx.Timeout(300.0, connect=10.0)  # Adjust as needed
 client = httpx.AsyncClient(timeout=TIMEOUT)
 
 
