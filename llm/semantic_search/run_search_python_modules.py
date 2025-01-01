@@ -22,14 +22,14 @@ if __name__ == "__main__":
     search = VectorSemanticSearch(module_paths)
 
     # Perform and print the results of each search method
-    logger.info("Vector-Based Search:")
-    vector_results = search.vector_based_search(query)
-    for path, score in vector_results:
-        logger.log(f"{path}:", f"{score:.4f}", colors=["DEBUG", "SUCCESS"])
-
     logger.info("\nBM25 Search:")
     bm25_results = search.bm25_search(query)
     for path, score in bm25_results:
+        logger.log(f"{path}:", f"{score:.4f}", colors=["DEBUG", "SUCCESS"])
+
+    logger.info("Vector-Based Search:")
+    vector_results = search.vector_based_search(query)
+    for path, score in vector_results:
         logger.log(f"{path}:", f"{score:.4f}", colors=["DEBUG", "SUCCESS"])
 
     logger.info("\nGraph-Based Search:")
