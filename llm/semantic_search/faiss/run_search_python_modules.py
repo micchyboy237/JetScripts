@@ -3,8 +3,7 @@ from jet.llm import VectorSemanticSearch
 from jet.logger import logger
 
 if __name__ == "__main__":
-
-    # Sample list of package module paths
+    # Initialize the VectorSemanticSearch class
     module_paths = [
         "numpy.linalg.linalg",
         "numpy.core.multiarray",
@@ -14,38 +13,51 @@ if __name__ == "__main__":
         "torch.nn.functional",
     ]
 
-    # Multiline import argument (query)
     query = "import matplotlib.pyplot as plt\nfrom numpy.linalg import inv\nimport torch"
 
-    # Initialize the VectorSemanticSearch class
     search = VectorSemanticSearch(module_paths)
 
-    logger.info("\nQuery:")
-    logger.debug(query)
-
-    # Perform and print the results of each search method
-
-    logger.info("\nFAISS Search:")
+    # Perform FAISS search
     faiss_results = search.faiss_search(query)
-    for path, score in faiss_results:
-        logger.log(f"{path}:", f"{score:.4f}", colors=["DEBUG", "SUCCESS"])
+    logger.info("\nFAISS Search Results:")
+    for query, group in faiss_results.items():
+        logger.info(f"\nQuery: {query}")
+        for result in group:
+            logger.log(f"{result['text']}:", f"{
+                       result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
 
-    logger.info("\nVector-Based Search:")
+    # Perform Vector-based search
     vector_results = search.vector_based_search(query)
-    for path, score in vector_results:
-        logger.log(f"{path}:", f"{score:.4f}", colors=["DEBUG", "SUCCESS"])
+    logger.info("\nVector-Based Search Results:")
+    for query, group in vector_results.items():
+        logger.info(f"\nQuery: {query}")
+        for result in group:
+            logger.log(f"{result['text']}:", f"{
+                       result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
 
-    logger.info("\nGraph-Based Search:")
+    # Perform Graph-based search
     graph_results = search.graph_based_search(query)
-    for path, score in graph_results:
-        logger.log(f"{path}:", f"{score:.4f}", colors=["DEBUG", "SUCCESS"])
+    logger.info("\nGraph-Based Search Results:")
+    for query, group in graph_results.items():
+        logger.info(f"\nQuery: {query}")
+        for result in group:
+            logger.log(f"{result['text']}:", f"{
+                       result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
 
-    logger.info("\nCross-Encoder Search:")
+    # Perform Cross-encoder search
     cross_encoder_results = search.cross_encoder_search(query)
-    for path, score in cross_encoder_results:
-        logger.log(f"{path}:", f"{score:.4f}", colors=["DEBUG", "SUCCESS"])
+    logger.info("\nCross-Encoder Search Results:")
+    for query, group in cross_encoder_results.items():
+        logger.info(f"\nQuery: {query}")
+        for result in group:
+            logger.log(f"{result['text']}:", f"{
+                       result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
 
-    logger.info("\nBM25 Search:")
+    # Perform Re-rank search
     rerank_results = search.rerank_search(query)
-    for path, score in rerank_results:
-        logger.log(f"{path}:", f"{score:.4f}", colors=["DEBUG", "SUCCESS"])
+    logger.info("\nRe-rank Search Results:")
+    for query, group in rerank_results.items():
+        logger.info(f"\nQuery: {query}")
+        for result in group:
+            logger.log(f"{result['text']}:", f"{
+                       result['score']:.4f}", colors=["DEBUG", "SUCCESS"])

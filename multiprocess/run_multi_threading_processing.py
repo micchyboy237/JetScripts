@@ -1,5 +1,5 @@
 import time
-from jet.executor import run_in_threads, run_in_processes, run_with_pool
+from jet.multiprocess import run_in_threads, run_in_processes, run_with_pool
 from jet.logger import logger, time_it, sleep_countdown
 
 

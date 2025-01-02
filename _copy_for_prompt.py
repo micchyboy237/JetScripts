@@ -28,7 +28,9 @@ exclude_files = [
     "jupyter",
 ]
 include_files = [
-    "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/libs/core/*",
+    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/semantic_search/faiss/run_search_python_modules.py",
+    "/Users/jethroestrada/Desktop/External_Projects/jet_python_modules/jet/multiprocess/utils.py",
+    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/multiprocess/run_multi_threading_processing.py",
 ]
 structure_include = []
 structure_exclude = []
@@ -47,7 +49,7 @@ Execute browse or internet search if requested.
 """.strip()
 
 DEFAULT_QUERY_MESSAGE = """
-How to install this path and add to requirements.txt?
+Given the multi processing utils and sample usage, improve the speed of run_search_python_modules to run 2 search tasks max in parallel.
 """.strip()
 
 # Project specific

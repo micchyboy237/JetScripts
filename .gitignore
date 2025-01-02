@@ -11,3 +11,4 @@ evaluation/beir/
 .aim/
 jet-logs/
 jet-vscode-commands/custom-extensions
+vector_db/
