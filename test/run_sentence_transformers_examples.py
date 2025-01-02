@@ -47,41 +47,46 @@ class SentenceTransformerExamples:
 
     def re_ranking(self, queries, candidate_docs):
         from sentence_transformers import CrossEncoder
-        self.re_ranking_model = CrossEncoder('ms-marco-MiniLM-L-12-v3')
+        self.re_ranking_model = CrossEncoder(
+            'cross-encoder/ms-marco-MiniLM-L-6-v2', max_length=512)
+
         ranked_docs = self.re_ranking_model.predict(
             [(query, doc) for query in queries for doc in candidate_docs])
-        return ranked_docs
+        result_tuples = [(doc, score) for doc, score in zip(
+            candidate_docs * len(queries), ranked_docs)]
+
+        return result_tuples
 
 
 # Usage examples
 if __name__ == "__main__":
     examples = SentenceTransformerExamples()
 
-    # Example usage of embedding_generation
-    embeddings = examples.embedding_generation()
-    print("Embeddings:", embeddings)
+    # # Example usage of embedding_generation
+    # embeddings = examples.embedding_generation()
+    # print("Embeddings:", embeddings)
 
-    # Example usage of semantic_textual_similarity
-    similarity = examples.semantic_textual_similarity()
-    print("Semantic Textual Similarity:", similarity)
+    # # Example usage of semantic_textual_similarity
+    # similarity = examples.semantic_textual_similarity()
+    # print("Semantic Textual Similarity:", similarity)
 
-    # Example usage of text_classification
-    labels = examples.text_classification()
-    print("Text Classification Labels:", labels)
+    # # Example usage of text_classification
+    # labels = examples.text_classification()
+    # print("Text Classification Labels:", labels)
 
-    # Example usage of question_answering
-    context = "The capital of France is Paris."
-    question = "What is the capital of France?"
-    answer = examples.question_answering(context, question)
-    print("Question Answering:", answer)
+    # # Example usage of question_answering
+    # context = "The capital of France is Paris."
+    # question = "What is the capital of France?"
+    # answer = examples.question_answering(context, question)
+    # print("Question Answering:", answer)
 
-    # Example usage of text_clustering
-    clusters = examples.text_clustering()
-    print("Text Clustering Labels:", clusters)
+    # # Example usage of text_clustering
+    # clusters = examples.text_clustering()
+    # print("Text Clustering Labels:", clusters)
 
-    # Example usage of sentence_pair_classification
-    score = examples.sentence_pair_classification()
-    print("Sentence Pair Classification Score:", score)
+    # # Example usage of sentence_pair_classification
+    # score = examples.sentence_pair_classification()
+    # print("Sentence Pair Classification Score:", score)
 
     # Example usage of re_ranking
     queries = ["What is the capital of France?"]

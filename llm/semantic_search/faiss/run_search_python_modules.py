@@ -1,7 +1,9 @@
+import faiss  # To prevent error on multiprocessing
 from jet.llm import VectorSemanticSearch
 from jet.logger import logger
 
 if __name__ == "__main__":
+
     # Sample list of package module paths
     module_paths = [
         "numpy.linalg.linalg",
@@ -13,21 +15,22 @@ if __name__ == "__main__":
     ]
 
     # Multiline import argument (query)
-    query = """
-    from sklearn.linear_model import LogisticRegression
-    from numpy.linalg import inv
-    """
+    query = "import matplotlib.pyplot as plt\nfrom numpy.linalg import inv\nimport torch"
 
     # Initialize the VectorSemanticSearch class
     search = VectorSemanticSearch(module_paths)
 
+    logger.info("\nQuery:")
+    logger.debug(query)
+
     # Perform and print the results of each search method
-    logger.info("\nBM25 Search:")
-    bm25_results = search.bm25_search(query)
-    for path, score in bm25_results:
+
+    logger.info("\nFAISS Search:")
+    faiss_results = search.faiss_search(query)
+    for path, score in faiss_results:
         logger.log(f"{path}:", f"{score:.4f}", colors=["DEBUG", "SUCCESS"])
 
-    logger.info("Vector-Based Search:")
+    logger.info("\nVector-Based Search:")
     vector_results = search.vector_based_search(query)
     for path, score in vector_results:
         logger.log(f"{path}:", f"{score:.4f}", colors=["DEBUG", "SUCCESS"])
@@ -42,7 +45,7 @@ if __name__ == "__main__":
     for path, score in cross_encoder_results:
         logger.log(f"{path}:", f"{score:.4f}", colors=["DEBUG", "SUCCESS"])
 
-    logger.info("\nFAISS Search:")
-    faiss_results = search.faiss_search(query)
-    for path, distance in faiss_results:
-        logger.log(f"{path}:", f"{distance:.4f}", colors=["DEBUG", "SUCCESS"])
+    logger.info("\nBM25 Search:")
+    rerank_results = search.rerank_search(query)
+    for path, score in rerank_results:
+        logger.log(f"{path}:", f"{score:.4f}", colors=["DEBUG", "SUCCESS"])

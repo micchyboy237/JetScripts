@@ -32,7 +32,7 @@ def test_threaded_calls():
 
 
 # Global task wrapper for multi-processing calls
-
+@time_it
 def sample_multiprocessing_task():
     sleep_countdown(3, "Custom message")
 
@@ -48,7 +48,7 @@ def test_multiprocessing_calls():
 
 
 # Global task wrapper for multi-cpu pool global scope
-
+@time_it
 def sample_multi_cpu_task(message, duration):
     sleep_countdown(duration, message)
     return f"Completed {message} in {duration}s"
