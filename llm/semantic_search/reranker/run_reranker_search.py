@@ -1,3 +1,4 @@
+from typing import Union, List
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from jet.db.chroma import ChromaClient, InitialDataEntry
 from jet.llm.ollama import OllamaEmbeddingFunction
@@ -9,7 +10,7 @@ from jet.logger import logger
 # Function to initialize the retriever
 
 
-def initialize_retriever(data: list[str] | list[InitialDataEntry], use_ollama: bool = True) -> RerankerRetriever:
+def initialize_retriever(data: list[str] | list[InitialDataEntry], use_ollama: bool = False) -> RerankerRetriever:
     if use_ollama:
         embed_model = "nomic-embed-text"
         rerank_model = "mxbai-embed-large"
@@ -28,22 +29,35 @@ def initialize_retriever(data: list[str] | list[InitialDataEntry], use_ollama: b
     )
     return retriever
 
+
 # Function to perform a simple search query
 
 
-def search_query(retriever: RerankerRetriever, query: str, top_k: int):
-    results = retriever.search(query, top_k=top_k)
+def search_query(retriever: RerankerRetriever, query: Union[str, List[str]], top_k: int):
+    if isinstance(query, str):  # If the query is a single string
+        results = retriever.search(query, top_k=top_k)
+    elif isinstance(query, list):  # If the query is a list of strings
+        results = [retriever.search(q, top_k=top_k) for q in query]
+    else:
+        raise ValueError("Query must be a string or a list of strings")
+
     return results
 
 # Function to perform search with reranking
 
 
-def search_with_reranking(retriever: RerankerRetriever, query: str, top_k: int, rerank_threshold: float):
-    reranked_results = retriever.search_with_reranking(
-        query, top_k=top_k, rerank_threshold=rerank_threshold)
-    return reranked_results
+def search_with_reranking(retriever: RerankerRetriever, query: Union[str, List[str]], top_k: int, rerank_threshold: float):
+    if isinstance(query, str):  # If the query is a single string
+        reranked_results = retriever.search_with_reranking(
+            query, top_k=top_k, rerank_threshold=rerank_threshold)
+    elif isinstance(query, list):  # If the query is a list of strings
+        reranked_results = [
+            retriever.search_with_reranking(q, top_k=top_k, rerank_threshold=rerank_threshold) for q in query
+        ]
+    else:
+        raise ValueError("Query must be a string or a list of strings")
 
-# Main function to tie everything together
+    return reranked_results
 
 
 def main():
