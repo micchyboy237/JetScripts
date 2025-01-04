@@ -28,7 +28,8 @@ exclude_files = [
     "jupyter",
 ]
 include_files = [
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/convert_notebooks_to_scripts.py",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/python-validator/run_check_unused_code.py",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/python-validator/run_validate_python.py",
 ]
 structure_include = []
 structure_exclude = []
@@ -47,7 +48,9 @@ Execute browse or internet search if requested.
 """.strip()
 
 DEFAULT_QUERY_MESSAGE = """
-Extract a new reusable function scrape_dirs with these args input_base_dir: str, extensions: list[str], output_base_dir: str, include_files: list[str] = [], exclude_files: list[str] = [].
+Update ValidatePythonUsageExamples check_syntax_error to also return Optional[list[CodeValidationError]]
+
+SyntaxError("'(' was never closed", ('<unknown>', 2, 10, '    print("Hello, World!"', 2, 0))
 """.strip()
 
 # Project specific
