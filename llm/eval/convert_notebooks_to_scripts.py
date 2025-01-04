@@ -267,14 +267,14 @@ def read_markdown_file(file):
 def scrape_notes(
     input_dir: str,
     extensions: list[str],
-    output_dir: str,
-    with_markdown: bool = False,
+    base_dir: str,
     include_files: list[str] = [],
     exclude_files: list[str] = [],
+    with_markdown: bool = False,
     with_ollama: bool = False,
 ):
-    # Create output directory if it doesn't exist
-    os.makedirs(output_dir, exist_ok=True)
+    # Create output base directory if it doesn't exist
+    os.makedirs(base_dir, exist_ok=True)
 
     # Read files with any of the extensions in extensions recursively
     files = [
@@ -322,7 +322,7 @@ def scrape_notes(
 
             # Get subfolders
             subfolders = os.path.dirname(file).replace(input_dir, '')
-            joined_dir = os.path.join(output_dir, subfolders.strip('/'))
+            joined_dir = os.path.join(base_dir, subfolders.strip('/'))
             os.makedirs(joined_dir, exist_ok=True)
             output_file = os.path.join(joined_dir, f"{file_name}.py")
 
@@ -361,8 +361,8 @@ if __name__ == "__main__":
     ]
 
     extension_mappings = [
-        {"ext": [".ipynb"], "output_dir": "converted-notebooks"},
-        {"ext": [".md", ".mdx"], "output_dir": "converted-markdowns"},
+        {"ext": [".ipynb"], "base_dir": "converted-notebooks"},
+        {"ext": [".md", ".mdx"], "base_dir": "converted-markdowns"},
     ]
 
     base_dir = os.path.dirname(__file__)
@@ -373,18 +373,18 @@ if __name__ == "__main__":
 
         for ext_mapping in extension_mappings:
             extensions = ext_mapping["ext"]
-            output_dir = os.path.join(
-                base_dir, ext_mapping["output_dir"], os.path.basename(
+            base_dir = os.path.join(
+                base_dir, ext_mapping["base_dir"], os.path.basename(
                     input_dir)
             )
 
             files = scrape_notes(
                 input_dir,
                 extensions,
-                output_dir,
-                with_markdown=True,
+                base_dir,
                 include_files=include_files,
                 exclude_files=exclude_files,
+                with_markdown=True,
                 with_ollama=True,
             )
 
@@ -393,6 +393,6 @@ if __name__ == "__main__":
                     "Saved",
                     f"({len(files)})",
                     "files to",
-                    output_dir,
+                    base_dir,
                     colors=["WHITE", "SUCCESS", "WHITE", "BRIGHT_SUCCESS"],
                 )
