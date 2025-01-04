@@ -233,18 +233,27 @@ def read_markdown_file(file):
         lines = code_block["code"].splitlines()
         code_lines = []
         for line in lines:
-            # Remove commented lines
-            if line.strip().startswith('#'):
-                continue
+            if language != 'unknown':
+                # Remove commented lines
+                if line.strip().startswith('#'):
+                    continue
 
-            # Add newline at the end if missing
-            if not line.endswith('\n'):
-                line += '\n'
-
-            # Comment out installation lines
-            if line.strip().startswith('pip install'):
+                # Add newline at the end if missing
+                if not line.endswith('\n'):
+                    line += '\n'
+            else:
+                # Comment out each line for non code block
                 if not line.strip().startswith('#'):
                     line = "# " + line
+
+                # Add new line at the end
+                if not line.endswith('\n'):
+                    line += '\n'
+
+                # Comment out installation lines
+                if line.strip().startswith('pip install'):
+                    if not line.strip().startswith('#'):
+                        line = "# " + line
 
             code_lines.append(line)
         source_groups.append({
@@ -267,10 +276,11 @@ def scrape_notes(
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
 
-    # Read files with any of the extensions in extensions
+    # Read files with any of the extensions in extensions recursively
     files = [
-        os.path.join(input_dir, f)
-        for f in os.listdir(input_dir)
+        os.path.join(root, f)
+        for root, _, files in os.walk(input_dir)
+        for f in files
         if any(f.endswith(e) for e in extensions)
     ]
 
@@ -310,7 +320,11 @@ def scrape_notes(
             if with_ollama:
                 source_code = update_code_with_ollama(source_code)
 
-            output_file = os.path.join(output_dir, f"{file_name}.py")
+            # Get subfolders
+            subfolders = os.path.dirname(file).replace(input_dir, '')
+            joined_dir = os.path.join(output_dir, subfolders.strip('/'))
+            os.makedirs(joined_dir, exist_ok=True)
+            output_file = os.path.join(joined_dir, f"{file_name}.py")
 
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write(source_code)
@@ -326,12 +340,13 @@ def scrape_notes(
 
 if __name__ == "__main__":
     input_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-packs/llama-index-packs-multidoc-autoretrieval/examples",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-packs/llama-index-packs-neo4j-query-engine/examples",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-packs/llama-index-packs-multidoc-autoretrieval/examples",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-packs/llama-index-packs-neo4j-query-engine/examples",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/understanding/putting_it_all_together",
     ]
     include_files = [
-        "multidoc_autoretrieval",
-        "llama_packs_neo4j",
+        # "multidoc_autoretrieval",
+        # "llama_packs_neo4j",
     ]
     exclude_files = [
         "answer_and_context_relevancy",

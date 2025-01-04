@@ -14,11 +14,12 @@ if __name__ == "__main__":
     ]
 
     query = "import matplotlib.pyplot as plt\nfrom numpy.linalg import inv\nimport torch"
+    queries = query.splitlines()
 
     search = VectorSemanticSearch(module_paths)
 
     # Perform FAISS search
-    faiss_results = search.faiss_search(query)
+    faiss_results = search.faiss_search(queries)
     logger.info("\nFAISS Search Results:")
     for query_line, group in faiss_results.items():
         logger.info(f"\nQuery line: {query_line}")
@@ -27,7 +28,7 @@ if __name__ == "__main__":
                        result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
 
      # Perform Cross-encoder search
-    cross_encoder_results = search.cross_encoder_search(query)
+    cross_encoder_results = search.cross_encoder_search(queries)
     logger.info("\nCross-Encoder Search Results:")
     for query_line, group in cross_encoder_results.items():
         logger.info(f"\nQuery line: {query_line}")
@@ -36,7 +37,7 @@ if __name__ == "__main__":
                        result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
 
     # Perform Rerank search
-    rerank_results = search.rerank_search(query)
+    rerank_results = search.rerank_search(queries)
     logger.info("\nRerank Search Results:")
     for query_line, group in rerank_results.items():
         logger.info(f"\nQuery line: {query_line}")
@@ -45,7 +46,7 @@ if __name__ == "__main__":
                        result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
 
     # Perform Vector-based search
-    vector_results = search.vector_based_search(query)
+    vector_results = search.vector_based_search(queries)
     logger.info("\nVector-Based Search Results:")
     for query_line, group in vector_results.items():
         logger.info(f"\nQuery line: {query_line}")
@@ -54,7 +55,7 @@ if __name__ == "__main__":
                        result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
 
     # Perform Graph-based search
-    graph_results = search.graph_based_search(query)
+    graph_results = search.graph_based_search(queries)
     logger.info("\nGraph-Based Search Results:")
     for query_line, group in graph_results.items():
         logger.info(f"\nQuery line: {query_line}")
