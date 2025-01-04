@@ -4,7 +4,7 @@ from jet.logger import logger
 
 run_settings = {
     "log_system_params": True,
-    "repo": "/Users/jethroestrada/Desktop/External_Projects/JetScripts/scrapers/aim-logs",
+    "repo": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/aim-logs",
     "experiment": "Code Scraper Test"
 }
 

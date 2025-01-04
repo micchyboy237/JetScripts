@@ -21,7 +21,7 @@ from llama_index.core.llama_dataset import BaseLlamaDataset, BaseLlamaPrediction
 from llama_index.core.schema import Document
 
 
-data_cache_path = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/improved/cache/answer_and_context_relevancy/data.pkl"
+data_cache_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/improved/cache/answer_and_context_relevancy/data.pkl"
 def get_cached_dataset() -> tuple[BaseLlamaDataset, list[Document]]:
     return joblib.load(data_cache_path)
 

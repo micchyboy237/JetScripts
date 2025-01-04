@@ -66,7 +66,7 @@ def main():
     # Load data
     reader = SimpleDirectoryReader(
         input_files=[
-            "/Users/jethroestrada/Desktop/External_Projects/JetScripts/scrapers/generated/scraped_urls/www_imdb_com_title_tt32812118.md"]
+            "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/scraped_urls/www_imdb_com_title_tt32812118.md"]
     )
     docs = reader.load_data()
     texts = [doc.text for doc in docs]

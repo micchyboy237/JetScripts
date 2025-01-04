@@ -51,7 +51,7 @@ nest_asyncio.apply()
 
 from llama_index.core import SimpleDirectoryReader
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume/").load_data()
+documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume/").load_data()
 
 # We choose using gpt-4o and local embedding model intfloat/multilingual-e5-large . You can change to what you like, by editing the following lines:
 

@@ -128,19 +128,17 @@ sizes() {
         esac
     done
 
-    python /Users/jethroestrada/Desktop/External_Projects/JetScripts/find_large_folders.py -b "$base_dir"  -s $min_size -i "$include"
+    python /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/find_large_folders.py -b "$base_dir"  -s $min_size -i "$include"
 }
 
 activate_venv() {
-    local current_dir=$PWD
-    local activation_script="$current_dir/.venv/bin/activate"
-
-    if [ -f "$activation_script" ]; then
-        source "$activation_script"
+    if [[ -f .venv/bin/activate ]]; then
+        source .venv/bin/activate
     # else
-    #     echo "Activation script not found: $activation_script"
+    #     echo "No virtual environment found in the current directory."
     fi
 }
+
 
 deactivate_venv() {
     deactivate
@@ -150,9 +148,23 @@ deactivate_venv() {
 setup_venv() {
     deactivate_venv
     python -m venv .venv
-    source .venv/bin/activate
+    activate_venv
+
+    echo "which pip"
     which pip
+    echo ""
+
+    echo "which python"
     which python
+    echo ""
+
+    echo "pip --version"
+    pip --version
+    echo ""
+    
+    echo "python --version"
+    python --version
+    echo ""
 }
 
 
@@ -171,6 +183,14 @@ force_reinstall_venv() {
     pip install --force-reinstall
 }
 
+reset_venv() {
+    local current_dir=$PWD
+
+    source ~/.zshrc
+    cd ~
+    cd "$current_dir"
+}
+
 reinstall_python() {
     pyenv uninstall 3.12.7
     pyenv install 3.12.7
@@ -181,24 +201,14 @@ reinstall_python() {
 pip() {
     activate_venv
 
-    # # Check if the command is 'pip uninstall'
-    # if [ "$1" = "uninstall" ]; then
-    #     # Ensure pip-autoremove is installed
-    #     if ! command -v pip-autoremove &>/dev/null; then
-    #         echo "pip-autoremove is not installed. Installing it now..."
-    #         command pip install pip-autoremove
-    #     fi
-
-    #     # Use pip-autoremove for uninstalling
-    #     echo "Using pip-autoremove to uninstall $2 and its dependencies..."
-    #     pip-autoremove "$2" -y
-    # else
-    #     # Pass other commands to the original pip
-    #     command pip "$@"
-    # fi
-
-    command pip "$@"
+    command python -m pip "$@"
 }
+
+# cd() {
+#     echo "Arguments: $@"
+#     command cd "$@" && activate_venv
+# }
+
 
 # Check if the 'deps' function is already defined to prevent echo
 # if ! declare -f deps &>/dev/null; then

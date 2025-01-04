@@ -61,7 +61,7 @@ async def main():
     logger.log("Score:", result.score, colors=["LOG", "SUCCESS"])
     logger.log("Passing:", result.passing, colors=["LOG", "SUCCESS"])
 
-    base_dir = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/improved"
+    base_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/improved"
     save_results(result, base_dir)
 
 

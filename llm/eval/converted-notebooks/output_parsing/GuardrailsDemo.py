@@ -32,7 +32,7 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume/").load_data()
+documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume/").load_data()
 
 index = VectorStoreIndex.from_documents(documents, chunk_size=512)
 

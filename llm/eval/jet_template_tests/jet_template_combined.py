@@ -1,13 +1,13 @@
 import os
 
-base_deps_dir = "/Users/jethroestrada/Desktop/External_Projects/jet_python_modules"
+base_deps_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules"
 deps_file_paths = [
     f"{base_deps_dir}/jet/logger/logger.py",
     f"{base_deps_dir}/jet/transformers/object.py",
     f"{base_deps_dir}/jet/llm/ollama/config.py",
 ]
-orig_template_path = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/jet_template_improved_sample.py"
-improved_template_path = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/jet_template_improved_sample.py"
+orig_template_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/jet_template_improved_sample.py"
+improved_template_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/jet_template_improved_sample.py"
 
 file_contents = {
     "deps": {},

@@ -163,7 +163,7 @@ def load_file(file_path: str):
 
 # Example usage
 if __name__ == "__main__":
-    prompts_dir = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/prompts"
+    prompts_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/prompts"
     output_dir = os.path.join(prompts_dir,  "generated")
     all_results_output_file = os.path.join(
         output_dir, f"results.json")

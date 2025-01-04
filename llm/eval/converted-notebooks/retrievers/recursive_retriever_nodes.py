@@ -61,8 +61,8 @@ ALL_NODES_AND_VECTOR_INDEX_CHUNK_CACHE = os.path.join(
 VECTOR_INDEX_METADATA_CACHE = os.path.join(
     CACHE_DIR, "vector_index_metadata.pkl")
 
-# INPUT_DIR = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume"
-INPUT_DIR = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/summaries/jet-resume"
+# INPUT_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume"
+INPUT_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/summaries/jet-resume"
 GENERATED_DIR = f"generated/{os.path.basename(__file__).split(".")[0]}"
 os.makedirs(GENERATED_DIR, exist_ok=True)
 

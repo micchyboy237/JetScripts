@@ -37,8 +37,8 @@ if __name__ == "__main__":
     """
     )
 
-    data_dir = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume"
-    rag_dir = "/Users/jethroestrada/Desktop/External_Projects/jet_python_modules/jet/server/rag/generated/summaries"
+    data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume"
+    rag_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/server/rag/generated/summaries"
     extensions = [".md"]
 
     sample_query = "Tell me about yourself."

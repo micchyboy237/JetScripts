@@ -3,7 +3,10 @@ import fnmatch
 import os
 import codecs
 import json
+import shutil
+from jet.code.rst_code_extractor import rst_to_code_blocks
 from jet.logger import logger
+from jet.utils.file import search_files
 
 REPLACE_OLLAMA_MAP = {
     "llama-index-llms-openai": "llama-index-llms-ollama",
@@ -264,7 +267,53 @@ def read_markdown_file(file):
     return source_groups
 
 
-def scrape_notes(
+# Function to extract Python code blocks from a .rst file
+def read_rst_file(file):
+    # Check if the file ends correct extension
+    if not (file.endswith('.rst')):
+        raise ValueError("File must have .md or .mdx extension")
+
+    code_blocks = rst_to_code_blocks(file)
+
+    source_groups = []
+
+    for code_block in code_blocks:
+        type = code_block["type"]
+        lines = code_block["code"].splitlines()
+        code_lines = []
+        for line in lines:
+            if type == 'python':
+                # Remove commented lines
+                if line.strip().startswith('#'):
+                    continue
+
+                # Add newline at the end if missing
+                if not line.endswith('\n'):
+                    line += '\n'
+            else:
+                # Comment out each line for non code block
+                if not line.strip().startswith('#'):
+                    line = "# " + line
+
+                # Add new line at the end
+                if not line.endswith('\n'):
+                    line += '\n'
+
+                # Comment out installation lines
+                if line.strip().startswith('pip install'):
+                    if not line.strip().startswith('#'):
+                        line = "# " + line
+
+            code_lines.append(line)
+        source_groups.append({
+            "type": type,
+            "code": "".join(code_lines).strip()
+        })
+
+    return source_groups
+
+
+def scrape_code(
     input_base_dir: str,
     extensions: list[str],
     output_base_dir: str,
@@ -277,12 +326,8 @@ def scrape_notes(
     os.makedirs(output_base_dir, exist_ok=True)
 
     # Read files with any of the extensions in extensions recursively
-    files = [
-        os.path.join(root, f)
-        for root, _, files in os.walk(input_base_dir)
-        for f in files
-        if any(f.endswith(e) for e in extensions)
-    ]
+    files = search_files(input_base_dir, extensions,
+                         include_files, exclude_files)
 
     # Apply include_files filter
     if include_files:
@@ -305,6 +350,11 @@ def scrape_notes(
     # Process each file and extract Python code
     for file in files:
         file_name = os.path.splitext(os.path.basename(file))[0]
+        # Get subfolders
+        subfolders = os.path.dirname(file).replace(input_base_dir, '')
+        joined_dir = os.path.join(output_base_dir, subfolders.strip('/'))
+        os.makedirs(joined_dir, exist_ok=True)
+        output_file = os.path.join(joined_dir, f"{file_name}.py")
 
         try:
             if file.endswith('.ipynb'):
@@ -312,6 +362,8 @@ def scrape_notes(
                     file, with_markdown=with_markdown)
             elif file.endswith('.md') or file.endswith('.mdx'):
                 source_groups = read_markdown_file(file)
+            elif file.endswith('.rst'):
+                source_groups = read_rst_file(file)
 
             source_lines = [source_group['code']
                             for source_group in source_groups]
@@ -320,16 +372,10 @@ def scrape_notes(
             if with_ollama:
                 source_code = update_code_with_ollama(source_code)
 
-            # Get subfolders
-            subfolders = os.path.dirname(file).replace(input_base_dir, '')
-            joined_dir = os.path.join(output_base_dir, subfolders.strip('/'))
-            os.makedirs(joined_dir, exist_ok=True)
-            output_file = os.path.join(joined_dir, f"{file_name}.py")
-
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write(source_code)
 
-            logger.debug(f"Saved file: {os.path.basename(file)}...")
+            logger.debug(f"Saved file: {output_file}")
             output_files.append(output_file)
 
         except Exception as e:
@@ -339,60 +385,21 @@ def scrape_notes(
 
 
 if __name__ == "__main__":
-    input_base_dirs = [
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-packs/llama-index-packs-multidoc-autoretrieval/examples",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-packs/llama-index-packs-neo4j-query-engine/examples",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/understanding/putting_it_all_together",
-    ]
-    include_files = [
-        # "multidoc_autoretrieval",
-        # "llama_packs_neo4j",
-    ]
-    exclude_files = [
-        "answer_and_context_relevancy",
-        "semantic_similarity_eval",
-        "auto_vs_recursive_retriever",
-        "bm25_retriever",
-        "auto_merging_retriever",
-        "migrating_chains/conversation_retrieval_chain",
-        "migrating_chains/conversation_chain",
-        "migrating_chains/constitutional_chain",
-        "migrating_memory/",
-    ]
+    data_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/understanding/putting_it_all_together"
+    extensions = [".ipynb", ".md", ".mdx", ".rst"]
+    rag_dir = "generated/rag"
 
-    extension_mappings = [
-        {"ext": [".ipynb"], "output_base_dir": "converted-notebooks"},
-        {"ext": [".md", ".mdx"], "output_base_dir": "converted-markdowns"},
-    ]
+    shutil.rmtree(rag_dir, ignore_errors=True)
 
-    output_base_dir = os.path.dirname(__file__)
+    include_files = []
+    exclude_files = []
 
-    for input_base_dir in input_base_dirs:
-        logger.newline()
-        logger.info(f"Processing: {input_base_dir}")
-
-        for ext_mapping in extension_mappings:
-            extensions = ext_mapping["ext"]
-            output_base_dir = os.path.join(
-                output_base_dir, ext_mapping["output_base_dir"], os.path.basename(
-                    input_base_dir)
-            )
-
-            files = scrape_notes(
-                input_base_dir,
-                extensions,
-                output_base_dir,
-                include_files=include_files,
-                exclude_files=exclude_files,
-                with_markdown=True,
-                with_ollama=True,
-            )
-
-            if files:
-                logger.log(
-                    "Saved",
-                    f"({len(files)})",
-                    "files to",
-                    output_base_dir,
-                    colors=["WHITE", "SUCCESS", "WHITE", "BRIGHT_SUCCESS"],
-                )
+    files = scrape_code(
+        data_dir,
+        extensions,
+        rag_dir,
+        include_files=include_files,
+        exclude_files=exclude_files,
+        with_markdown=True,
+        with_ollama=True,
+    )

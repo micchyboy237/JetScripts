@@ -256,7 +256,7 @@ summarizer = TreeSummarize(
 
 from llama_index.core import SimpleDirectoryReader
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume").load_data()
+documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume").load_data()
 
 ## Create Nodes
 

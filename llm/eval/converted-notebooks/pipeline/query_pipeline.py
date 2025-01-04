@@ -54,7 +54,7 @@ Settings.embed_model = OllamaEmbedding(model_name="nomic-embed-text")
 
 from llama_index.core import SimpleDirectoryReader
 
-reader = SimpleDirectoryReader("./Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume")
+reader = SimpleDirectoryReader("./Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume")
 
 docs = reader.load_data()
 

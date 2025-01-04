@@ -6,7 +6,7 @@ from jet.llm.embeddings import load_or_create_embeddings
 from jet.logger import logger
 
 # Cache directory for embeddings
-CACHE_DIR = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/evaluation/examples/embeddings_cache"
+CACHE_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/evaluation/examples/embeddings_cache"
 EMBEDDINGS_CACHE_KEY = "crew_ai_docs"
 
 

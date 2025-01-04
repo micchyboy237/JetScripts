@@ -28,7 +28,7 @@ import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume/").load_data()
+documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume/").load_data()
 
 index = VectorStoreIndex.from_documents(documents, chunk_size=512)
 

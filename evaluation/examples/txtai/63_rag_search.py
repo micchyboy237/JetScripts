@@ -34,7 +34,7 @@ from jet.llm.search import (
 )
 from jet.logger import logger
 
-GENERATED_DIR = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/evaluation/examples/txtai/generated"
+GENERATED_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/evaluation/examples/txtai/generated"
 # Cache directory for embeddings
 EMBEDDINGS_DIR = f"{GENERATED_DIR}/embeddings"
 RESULTS_DIR = f"{GENERATED_DIR}/search"

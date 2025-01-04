@@ -32,7 +32,7 @@ import os
 from llama_index.core import SimpleDirectoryReader
 
 documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume",
     required_exts=["*.md"]
 ).load_data()
 

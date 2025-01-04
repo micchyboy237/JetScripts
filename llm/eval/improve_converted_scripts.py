@@ -6,7 +6,7 @@ from jet.llm.llm_types import OllamaChatOptions
 from jet.logger import logger
 
 # Define input directory
-input_dir = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/notebooks"
+input_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/notebooks"
 exclude_files = [
     "answer_and_context_relevancy",
     "semantic_similarity_eval",

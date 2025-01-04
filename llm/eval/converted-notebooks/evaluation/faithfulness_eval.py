@@ -42,7 +42,7 @@ llm = Ollama(temperature=0, model="llama3.1")
 evaluator_gpt4 = FaithfulnessEvaluator(llm=llm)
 
 documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume", required_exts=[".md"]).load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume", required_exts=[".md"]).load_data()
 num_questions_per_chunk = 3
 question_gen_query = f"You are a Job Employer. Your task is to setup {
     num_questions_per_chunk} questions for an upcoming interview. The questions should be relevant to the document. Restrict the questions to the context information provided."

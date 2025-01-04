@@ -28,7 +28,7 @@ exclude_files = [
     "jupyter",
 ]
 include_files = [
-    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/convert_notebooks_to_scripts.py",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/convert_notebooks_to_scripts.py",
 ]
 structure_include = []
 structure_exclude = []
@@ -47,7 +47,7 @@ Execute browse or internet search if requested.
 """.strip()
 
 DEFAULT_QUERY_MESSAGE = """
-Extract a new reusable function scrape_dirs 
+Extract a new reusable function scrape_dirs with these args input_base_dir: str, extensions: list[str], output_base_dir: str, include_files: list[str] = [], exclude_files: list[str] = [].
 """.strip()
 
 # Project specific
@@ -60,7 +60,7 @@ DEFAULT_INSTRUCTIONS_MESSAGE = """
 - Keep the code short, reusable, testable, maintainable and optimized. Follow best practices and industry design patterns.
 - Install any libraries required to run the code.
 - You may update the code structure if necessary.
-- Reuse existing code if possible without breaking anything.
+- Reuse existing code without redundancy if possible without breaking anything.
 - Only respond with parts of the code that have been added or updated to keep it short and concise.
 - Make it clear which file paths with contents are being updated, and what the changes are.
 - Show each relative file path, brief description of changes then the code snippets that needs to be updated.

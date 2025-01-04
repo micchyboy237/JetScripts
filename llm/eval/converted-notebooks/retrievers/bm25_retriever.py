@@ -140,8 +140,8 @@ def save_results(output_dir, query, response):
 
 if __name__ == "__main__":
     query = "Tell me about yourself."
-    # input_dir = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume"
-    input_dir = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/summaries/jet-resume"
+    # input_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume"
+    input_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/summaries/jet-resume"
     base_dir = Path("./generated/bm25_retriever")
     similarity_top_k = None
     chunk_size = 512

@@ -217,7 +217,7 @@ draw_all_possible_flows(RAGWorkflow, filename="step_back_workflow.html")
 # We will use an example `.txt` file obtained from the [LlamaIndex documentation](https://docs.llamaindex.ai/en/stable/getting_started/starter_example.html).
 
 # !mkdir -p ../../data
-# !curl https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt -o .././Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/retrievers/data_essay.txt
+# !curl https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt -o .././Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/retrievers/data_essay.txt
 
 # Now, let's create a LlamaIndex index out of this document. As the highest-rated context for the original and step-back query will be included in the final prompt, we will lower the chuck size and use a `SentenceSplitter`
 

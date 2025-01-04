@@ -44,7 +44,7 @@ We will also instantiate a chat model to use.
 #     os.environ["OPENAI_API_KEY"] = getpass()
 
 # Custom settings
-input_dir = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume"
+input_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume"
 chunk_size = 512
 chunk_overlap = 50
 

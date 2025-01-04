@@ -21,7 +21,7 @@ exclude_files = [
     "dream",
 ]
 include_files = [
-    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/prompts/context/01_Initial_Requirements.md",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/prompts/context/01_Initial_Requirements.md",
     "OAI_CONFIG_LIST.json",
     "*README.md",
     "*.py"

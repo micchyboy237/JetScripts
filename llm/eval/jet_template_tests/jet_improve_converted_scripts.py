@@ -5,7 +5,7 @@ from jet.logger import logger
 from jet_template_combined import generate_improve_prompt
 
 # Define input directory
-input_dir = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/notebooks"
+input_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/notebooks"
 exclude_files = [
     "answer_and_context_relevancy",
     "semantic_similarity_eval",
@@ -22,7 +22,7 @@ CHAT_OPTIONS: OllamaChatOptions = {
     "temperature": 0,
 }
 
-config_path = "/Users/jethroestrada/Desktop/External_Projects/jet_python_modules/jet/llm/ollama/config.py"
+config_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/ollama/config.py"
 with open(config_path, 'r') as file:
     config_contents = file.read()
 

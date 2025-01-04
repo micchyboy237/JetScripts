@@ -7,7 +7,7 @@ from tqdm import tqdm
 from jet.llm.benchmarks import evaluate
 from jet.logger import logger
 
-BASE_DIR = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/evaluation"
+BASE_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/evaluation"
 BEIR_DIR = os.path.join(BASE_DIR, "beir")
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 datasets = ["nfcorpus", "fiqa", "arguana", "scidocs", "scifact"]

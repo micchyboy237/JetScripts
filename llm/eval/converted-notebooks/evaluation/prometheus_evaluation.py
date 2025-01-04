@@ -33,7 +33,7 @@ nest_asyncio.apply()
 from llama_index.core.llama_dataset import download_llama_dataset
 
 paul_graham_rag_dataset, paul_graham_documents = download_llama_dataset(
-    "PaulGrahamEssayDataset", "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/retrievers/data"
+    "PaulGrahamEssayDataset", "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/retrievers/data"
 )
 
 llama2_rag_dataset, llama2_documents = download_llama_dataset(
@@ -329,7 +329,7 @@ def hamming_distance(list1, list2):
 ## Evaluation on PaulGraham Essay text
 
 query_engine, rag_dataset = create_query_engine_rag_dataset(
-    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/retrievers/data"
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/retrievers/data"
 )
 
 questions = [example.query for example in rag_dataset.examples]

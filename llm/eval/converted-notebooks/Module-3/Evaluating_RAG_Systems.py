@@ -88,7 +88,7 @@ import os
 
 #### Load Data
 
-reader = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/data/paul_graham")
+reader = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/data/paul_graham")
 documents = reader.load_data()
 
 #### Generate Question
@@ -240,7 +240,7 @@ correctness_result.feedback
 # 
 # To assess the quality of a Retriever module in LlamaIndex, we use metrics like hit-rate and MRR. These compare retrieved results to ground-truth context for any question. For simpler evaluation dataset creation, we utilize synthetic data generation.
 
-reader = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/data/paul_graham")
+reader = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/data/paul_graham")
 documents = reader.load_data()
 
 from llama_index.core.text_splitter import SentenceSplitter

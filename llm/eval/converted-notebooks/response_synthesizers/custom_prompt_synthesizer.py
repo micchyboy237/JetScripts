@@ -32,7 +32,7 @@ initialize_ollama_settings()
 
 
 reader = SimpleDirectoryReader(
-    input_files=["/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resumepaul_graham_essay.txt"]
+    input_files=["/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resumepaul_graham_essay.txt"]
 )
 
 docs = reader.load_data()

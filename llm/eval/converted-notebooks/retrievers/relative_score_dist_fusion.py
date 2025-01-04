@@ -32,7 +32,7 @@ initialize_ollama_settings()
 
 
 documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/summaries/jet-resume", required_exts=[".md"]).load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/summaries/jet-resume", required_exts=[".md"]).load_data()
 query = "Tell me about yourself."
 # Next, we will setup a vector index over the documentation.
 

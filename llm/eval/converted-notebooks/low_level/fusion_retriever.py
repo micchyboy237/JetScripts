@@ -40,7 +40,7 @@ from llama_index.core import SimpleDirectoryReader
 
 # loader = PyMuPDFReader()
 # documents = loader.load(file_path="./data/llama_beyond_english.pdf")
-data_dir = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume"
+data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume"
 documents = SimpleDirectoryReader(
         data_dir, required_exts=[".md"]).load_data()
 

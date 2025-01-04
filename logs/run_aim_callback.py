@@ -22,7 +22,7 @@ if __name__ == "__main__":
     # Settings initialization
     settings_manager = SettingsManager.create()
 
-    data_path = "/Users/jethroestrada/Desktop/External_Projects/JetScripts/llm/data/paul_graham"
+    data_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/data/paul_graham"
     docs = SimpleDirectoryReader(data_path).load_data()
 
     aim_callback = AimCallback(repo=repo_dir)
