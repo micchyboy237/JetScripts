@@ -265,21 +265,21 @@ def read_markdown_file(file):
 
 
 def scrape_notes(
-    input_dir: str,
+    input_base_dir: str,
     extensions: list[str],
-    base_dir: str,
+    output_base_dir: str,
     include_files: list[str] = [],
     exclude_files: list[str] = [],
     with_markdown: bool = False,
     with_ollama: bool = False,
 ):
     # Create output base directory if it doesn't exist
-    os.makedirs(base_dir, exist_ok=True)
+    os.makedirs(output_base_dir, exist_ok=True)
 
     # Read files with any of the extensions in extensions recursively
     files = [
         os.path.join(root, f)
-        for root, _, files in os.walk(input_dir)
+        for root, _, files in os.walk(input_base_dir)
         for f in files
         if any(f.endswith(e) for e in extensions)
     ]
@@ -321,8 +321,8 @@ def scrape_notes(
                 source_code = update_code_with_ollama(source_code)
 
             # Get subfolders
-            subfolders = os.path.dirname(file).replace(input_dir, '')
-            joined_dir = os.path.join(base_dir, subfolders.strip('/'))
+            subfolders = os.path.dirname(file).replace(input_base_dir, '')
+            joined_dir = os.path.join(output_base_dir, subfolders.strip('/'))
             os.makedirs(joined_dir, exist_ok=True)
             output_file = os.path.join(joined_dir, f"{file_name}.py")
 
@@ -339,7 +339,7 @@ def scrape_notes(
 
 
 if __name__ == "__main__":
-    input_dirs = [
+    input_base_dirs = [
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-packs/llama-index-packs-multidoc-autoretrieval/examples",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-packs/llama-index-packs-neo4j-query-engine/examples",
         "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/understanding/putting_it_all_together",
@@ -361,27 +361,27 @@ if __name__ == "__main__":
     ]
 
     extension_mappings = [
-        {"ext": [".ipynb"], "base_dir": "converted-notebooks"},
-        {"ext": [".md", ".mdx"], "base_dir": "converted-markdowns"},
+        {"ext": [".ipynb"], "output_base_dir": "converted-notebooks"},
+        {"ext": [".md", ".mdx"], "output_base_dir": "converted-markdowns"},
     ]
 
-    base_dir = os.path.dirname(__file__)
+    output_base_dir = os.path.dirname(__file__)
 
-    for input_dir in input_dirs:
+    for input_base_dir in input_base_dirs:
         logger.newline()
-        logger.info(f"Processing: {input_dir}")
+        logger.info(f"Processing: {input_base_dir}")
 
         for ext_mapping in extension_mappings:
             extensions = ext_mapping["ext"]
-            base_dir = os.path.join(
-                base_dir, ext_mapping["base_dir"], os.path.basename(
-                    input_dir)
+            output_base_dir = os.path.join(
+                output_base_dir, ext_mapping["output_base_dir"], os.path.basename(
+                    input_base_dir)
             )
 
             files = scrape_notes(
-                input_dir,
+                input_base_dir,
                 extensions,
-                base_dir,
+                output_base_dir,
                 include_files=include_files,
                 exclude_files=exclude_files,
                 with_markdown=True,
@@ -393,6 +393,6 @@ if __name__ == "__main__":
                     "Saved",
                     f"({len(files)})",
                     "files to",
-                    base_dir,
+                    output_base_dir,
                     colors=["WHITE", "SUCCESS", "WHITE", "BRIGHT_SUCCESS"],
                 )
