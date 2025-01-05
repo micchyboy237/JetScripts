@@ -227,7 +227,7 @@ def read_markdown_file(file):
         source = f.read()
 
     extractor = MarkdownCodeExtractor()
-    code_blocks = extractor.extract_code_blocks(source)
+    code_blocks = extractor.extract_code_blocks(source, with_text=True)
 
     source_groups = []
 
@@ -236,7 +236,7 @@ def read_markdown_file(file):
         lines = code_block["code"].splitlines()
         code_lines = []
         for line in lines:
-            if language != 'unknown':
+            if language != 'text':
                 # Remove commented lines
                 if line.strip().startswith('#'):
                     continue
