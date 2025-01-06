@@ -1,1 +1,0 @@
-Planning is a feature in CrewAI that enables the addition of planning capability to your crew. When enabled, it sends all crew information to an AgentPlanner before each iteration, which plans tasks step-by-step and adds the plan to each task description. This allows for more efficient execution of tasks and improved performance.

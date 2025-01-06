@@ -1,1 +1,0 @@
-CrewAI provides the ability to kickoff a crew asynchronously, allowing for non-blocking execution. This feature is useful for running multiple crews concurrently or performing other tasks while the crew executes. The `kickoff_async()` method initiates crew execution in a separate thread, enabling the main thread to continue executing other tasks.

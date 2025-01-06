@@ -1,1 +1,0 @@
-The NL2SQL Tool is designed to convert natural language to SQL queries. It enables an Agent to access a database, fetch information based on a goal, generate reports or other outputs, and update the database accordingly. The tool requires SqlAlchemy and a compatible DB library, and can be installed via pip with the crewai_tools package.

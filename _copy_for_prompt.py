@@ -28,19 +28,24 @@ exclude_files = [
     "jupyter",
 ]
 include_files = [
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/python-validator/run_check_unused_code.py",
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/python-validator/run_validate_python.py",
+    # Client
+    # "/Users/jethroestrada/Desktop/External_Projects/PortfolioBaseTemplates/firebase-resume/src/hooks/vector/useQueryNodes.js",
+    # Server
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/server/routes/rag.py",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/server/helpers/rag.py",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/server/app.py",
 ]
-structure_include = []
+structure_include = [
+    # "*.py"
+]
 structure_exclude = []
 
 include_content = []
 exclude_content = []
 
 # Args defaults
-DEFAULT_SHORTEN_FUNCTS = False
-DEFAULT_NO_CHAR_LENGTH = False
-INCLUDE_FILE_STRUCTURE = False
+SHORTEN_FUNCTS = False
+INCLUDE_FILE_STRUCTURE = True
 
 DEFAULT_SYSTEM_MESSAGE = """
 Dont use or add to memory.
@@ -48,9 +53,28 @@ Execute browse or internet search if requested.
 """.strip()
 
 DEFAULT_QUERY_MESSAGE = """
-Update ValidatePythonUsageExamples check_syntax_error to also return Optional[list[CodeValidationError]]
-
-SyntaxError("'(' was never closed", ('<unknown>', 2, 10, '    print("Hello, World!"', 2, 0))
+Create type for nodes endpoints response given this result:
+[
+    {
+        "score": 0.7249999007515096,
+        "node_id": "d5c68ecf-9935-41ac-af20-1b15c2fc5322",
+        "metadata": {
+            "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries/personal_information.md",
+            "file_name": "personal_information.md",
+            "file_type": "text/markdown",
+            "file_size": 573,
+            "creation_date": "2025-01-07",
+            "last_modified_date": "2025-01-07"
+        },
+        "text": "The document contains personal information about an individual named Jethro Reuel A. Estrada. This includes his full name, preferred names (Jethro or Jet), nationality (Filipino), gender (Male), age (34 as of 2023), country of residence (Philippines), languages spoken (English and Tagalog), educational background (BS Degree in Computer Engineering from De La Salle University - Manila, graduated in 2012), and contact details such as email address, WhatsApp link, and phone number. The individual's professional position is listed as a Full Stack Web / Mobile Developer.",
+        "text_length": 572,
+        "start_end": [
+            0,
+            572
+        ],
+        "similarity": 0.7249999007515096
+    }
+]
 """.strip()
 
 # Project specific
@@ -63,7 +87,7 @@ DEFAULT_INSTRUCTIONS_MESSAGE = """
 - Keep the code short, reusable, testable, maintainable and optimized. Follow best practices and industry design patterns.
 - Install any libraries required to run the code.
 - You may update the code structure if necessary.
-- Reuse existing code without redundancy if possible without breaking anything.
+- Reuse existing code if possible without breaking anything.
 - Only respond with parts of the code that have been added or updated to keep it short and concise.
 - Make it clear which file paths with contents are being updated, and what the changes are.
 - Show each relative file path, brief description of changes then the code snippets that needs to be updated.
@@ -247,7 +271,7 @@ def main():
                         help='Patterns of file content to exclude')
     parser.add_argument('-cs', '--case-sensitive', action='store_true', default=False,
                         help='Make content pattern matching case-sensitive')
-    parser.add_argument('-sf', '--shorten-funcs', action='store_true', default=DEFAULT_SHORTEN_FUNCTS,
+    parser.add_argument('-sf', '--shorten-funcs', action='store_true', default=SHORTEN_FUNCTS,
                         help='Shorten function and class definitions')
     parser.add_argument('-s', '--system', default=DEFAULT_SYSTEM_MESSAGE,
                         help='Message to include in the clipboard content')
@@ -257,7 +281,7 @@ def main():
                         help='Instructions to include in the clipboard content')
     parser.add_argument('-fo', '--filenames-only', action='store_true',
                         help='Only copy the relative filenames, not their contents')
-    parser.add_argument('-nl', '--no-length', action='store_true', default=DEFAULT_NO_CHAR_LENGTH,
+    parser.add_argument('-nl', '--no-length', action='store_true', default=INCLUDE_FILE_STRUCTURE,
                         help='Do not show file character length')
 
     args = parser.parse_args()
@@ -289,38 +313,40 @@ def main():
     print(f"\nFound files ({len(context_files)}):\n{
           json.dumps(context_files, indent=2)}")
 
-    if not context_files:
-        print("No context files found matching the given patterns.")
-        return
     print("\n")
 
     # Initialize the clipboard content
     clipboard_content = ""
 
-    # Append relative filenames to the clipboard content
-    for file in context_files:
-        rel_path = os.path.relpath(path=file, start=file_dir)
-        cleaned_rel_path = remove_parent_paths(rel_path)
+    if not context_files:
+        print("No context files found matching the given patterns.")
+    else:
 
-        prefix = (
-            f"\n// {cleaned_rel_path}\n" if not filenames_only else f"{file}\n")
-        if filenames_only:
-            clipboard_content += f"{prefix}"
-        else:
-            file_path = os.path.relpath(os.path.join(base_dir, file))
-            if os.path.isfile(file_path):
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                        content = clean_content(content, file, shorten_funcs)
-                        clipboard_content += f"{prefix}{content}\n\n"
-                except Exception:
-                    # Continue to the next file
-                    continue
+        # Append relative filenames to the clipboard content
+        for file in context_files:
+            rel_path = os.path.relpath(path=file, start=file_dir)
+            cleaned_rel_path = remove_parent_paths(rel_path)
+
+            prefix = (
+                f"\n// {cleaned_rel_path}\n" if not filenames_only else f"{file}\n")
+            if filenames_only:
+                clipboard_content += f"{prefix}"
             else:
-                clipboard_content += f"{prefix}\n"
+                file_path = os.path.relpath(os.path.join(base_dir, file))
+                if os.path.isfile(file_path):
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                            content = clean_content(
+                                content, file, shorten_funcs)
+                            clipboard_content += f"{prefix}{content}\n\n"
+                    except Exception:
+                        # Continue to the next file
+                        continue
+                else:
+                    clipboard_content += f"{prefix}\n"
 
-    clipboard_content = clean_newlines(clipboard_content).strip()
+        clipboard_content = clean_newlines(clipboard_content).strip()
 
     # Generate and format the file structure
     structure_include_files = structure_include
@@ -350,8 +376,10 @@ def main():
     clipboard_content_parts.append(f"QUERY\n{query_message}")
     if INCLUDE_FILE_STRUCTURE:
         clipboard_content_parts.append(f"FILES STRUCTURE\n{files_structure}")
-    clipboard_content_parts.append(
-        f"EXISTING FILES CONTENTS\n{clipboard_content}")
+
+    if clipboard_content:
+        clipboard_content_parts.append(
+            f"EXISTING FILES CONTENTS\n{clipboard_content}")
 
     clipboard_content = "\n\n".join(clipboard_content_parts)
 
@@ -363,9 +391,6 @@ def main():
     # Print the copied content character count
     logger.log("Prompt Char Count:", len(clipboard_content),
                colors=["GRAY", "SUCCESS"])
-
-    print(
-        f"\n----- FILES STRUCTURE -----\n{files_structure}\n----- END FILES STRUCTURE -----\n")
 
     # Newline
     print("\n")

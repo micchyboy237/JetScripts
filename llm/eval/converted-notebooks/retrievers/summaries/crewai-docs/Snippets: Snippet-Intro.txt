@@ -1,1 +1,0 @@
-A principle that applies to both software development and documentation is to avoid duplicating effort. This can be achieved by creating a single source of content that can be referenced in multiple places, ensuring consistency across different areas.

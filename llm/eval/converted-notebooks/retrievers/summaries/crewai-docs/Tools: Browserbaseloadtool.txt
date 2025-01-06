@@ -1,1 +1,0 @@
-A developer platform to reliably run, manage, and monitor headless browsers, providing tools for data retrievals, including serverless infrastructure, stealth mode, session debugger, and live debug.

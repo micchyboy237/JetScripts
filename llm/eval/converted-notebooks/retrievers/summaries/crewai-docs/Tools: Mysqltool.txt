@@ -1,1 +1,0 @@
-The MySQLSearchTool is designed to search MySQL databases and return the most relevant results. It leverages RAG technology to simplify the process of finding relevant data through semantic search queries, making it an invaluable resource for users needing to perform advanced queries on extensive datasets within a MySQL database.

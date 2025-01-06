@@ -1,1 +1,0 @@
-A wrapper around the composio set of tools that gives your agent access to a wide variety of tools from the Composio SDK. It can be incorporated into a project by installing required packages and setting up an API key or logging in through the composio login process. The tool allows for initialization, execution of actions, and definition of agents with specific roles and goals.

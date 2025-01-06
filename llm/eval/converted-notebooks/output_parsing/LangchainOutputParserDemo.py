@@ -1,3 +1,14 @@
+from llama_index.llms.ollama import Ollama
+from llama_index.core.prompts.default_prompts import (
+    DEFAULT_TEXT_QA_PROMPT_TMPL,
+)
+from langchain.output_parsers import StructuredOutputParser, ResponseSchema
+from llama_index.core.output_parsers import LangchainOutputParser
+import os
+from IPython.display import Markdown, display
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+import sys
+import logging
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -13,29 +24,22 @@ initialize_ollama_settings()
 # !mkdir -p 'data/paul_graham/'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
-#### Load documents, build the VectorStoreIndex
+# Load documents, build the VectorStoreIndex
 
-import logging
-import sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
-from IPython.display import Markdown, display
-
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries/").load_data()
 
 index = VectorStoreIndex.from_documents(documents, chunk_size=512)
 
-#### Define Query + Langchain Output Parser
+# Define Query + Langchain Output Parser
 
-from llama_index.core.output_parsers import LangchainOutputParser
-from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 
 # **Define custom QA and Refine Prompts**
 
@@ -57,16 +61,12 @@ lc_output_parser = StructuredOutputParser.from_response_schemas(
 )
 output_parser = LangchainOutputParser(lc_output_parser)
 
-from llama_index.core.prompts.default_prompts import (
-    DEFAULT_TEXT_QA_PROMPT_TMPL,
-)
 
 fmt_qa_tmpl = output_parser.format(DEFAULT_TEXT_QA_PROMPT_TMPL)
 print(fmt_qa_tmpl)
 
-#### Query Index
+# Query Index
 
-from llama_index.llms.ollama import Ollama
 
 llm = Ollama(output_parser=output_parser)
 

@@ -71,7 +71,7 @@ settings = initialize_ollama_settings()
 
 
 docs = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume").load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries").load_data()
 # num_questions_per_chunk = 1
 question_gen_query = f"""
 You are a job interviewer. Your task is to setup questions or an upcoming interview. You are provided with applicant resume information. Restrict the questions to the context information provided.

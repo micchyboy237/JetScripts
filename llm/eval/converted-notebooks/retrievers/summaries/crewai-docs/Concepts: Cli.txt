@@ -1,1 +1,0 @@
-The CrewAI CLI provides a set of commands to interact with CrewAI, allowing users to create, train, run, and manage crews & flows. The basic structure of a CrewAI CLI command is "crewai [COMMAND] [OPTIONS] [ARGUMENTS]", and there are various available commands such as Create, Version, Train, Replay, Log-tasks-outputs, Reset-memories, Test, Run, and API Keys.

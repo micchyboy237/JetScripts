@@ -58,7 +58,7 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 # We first show how to convert a Document into a set of Nodes, and insert into a DocumentStore.
 
 documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume").load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries").load_data()
 
 llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
 splitter = SentenceSplitter(chunk_size=1024)

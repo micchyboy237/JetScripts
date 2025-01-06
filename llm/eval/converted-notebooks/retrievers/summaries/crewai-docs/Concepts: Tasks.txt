@@ -1,1 +1,0 @@
-Concepts: Tasks are a way to handle task results in a structured manner. They provide a standardized output format that can be easily accessed and utilized by other tasks or applications. This allows for efficient data flow and integration between tasks, making it easier to create complex workflows and manage agent interactions.

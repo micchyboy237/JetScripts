@@ -38,7 +38,7 @@ REPLACE_ASYNC_MAP = {
 }
 
 REPLACE_PATHS_MAP = {
-    "./data/paul_graham": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume",
+    "./data/paul_graham": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries",
 }
 
 COMMENT_LINE_KEYWORDS = [

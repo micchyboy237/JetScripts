@@ -1,15 +1,29 @@
+from llama_index.core.indices.property_graph import (
+    LLMSynonymRetriever,
+    VectorContextRetriever,
+)
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.core import PropertyGraphIndex
+from llama_index.core.vector_stores.simple import SimpleVectorStore
+from llama_index.graph_stores.nebula import NebulaPropertyGraphStore
+from llama_index.graph_stores.neo4j import Neo4jPropertyGraphStore
+from llama_index.core.indices.property_graph import SchemaLLMPathExtractor
+from llama_index.llms.ollama import Ollama
+from typing import Literal
+import nest_asyncio
+from llama_index.core import SimpleDirectoryReader
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Property Graph Construction with Predefined Schemas
-# 
+#
 # <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/property_graph/property_graph_advanced.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
-# 
+#
 # In this notebook, we walk through using Neo4j, Ollama and Huggingface to build a property graph.
-# 
-# Specifically, we will be using the `SchemaLLMPathExtractor` which allows us to specify an exact schema containing possible entity types, relation types, and defining how they can be connected together. 
-# 
+#
+# Specifically, we will be using the `SchemaLLMPathExtractor` which allows us to specify an exact schema containing possible entity types, relation types, and defining how they can be connected together.
+#
 # This is useful for when you have a specific graph you want to build, and want to limit what the LLM is predicting.
 
 # %pip install llama-index
@@ -18,30 +32,26 @@ initialize_ollama_settings()
 # %pip install llama-index-graph-stores-neo4j
 # %pip install llama-index-graph-stores-nebula
 
-## Load Data
+# Load Data
 
 # First, lets download some sample data to play with.
 
 # !mkdir -p 'data/paul_graham/'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
-from llama_index.core import SimpleDirectoryReader
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries/").load_data()
 
-## Graph Construction
-# 
+# Graph Construction
+#
 # To construct our graph, we are going to take advantage of the `SchemaLLMPathExtractor` to construct our graph.
-# 
+#
 # Given some schema for a graph, we can extract entities and relations that follow this schema, rather than letting the LLM decide entities and relations at random.
 
-import nest_asyncio
 
 nest_asyncio.apply()
 
-from typing import Literal
-from llama_index.llms.ollama import Ollama
-from llama_index.core.indices.property_graph import SchemaLLMPathExtractor
 
 entities = Literal["PERSON", "PLACE", "ORGANIZATION"]
 relations = Literal["HAS", "PART_OF", "WORKED_ON", "WORKED_WITH", "WORKED_AT"]
@@ -70,11 +80,11 @@ kg_extractor = SchemaLLMPathExtractor(
 )
 
 # Now, You can use SimplePropertyGraph, Neo4j, or NebulaGraph to store the graph.
-# 
+#
 # **Option 1. Neo4j**
-# 
+#
 # To launch Neo4j locally, first ensure you have docker installed. Then, you can launch the database with the following docker command
-# 
+#
 # ```bash
 # docker run \
 #     -p 7474:7474 -p 7687:7687 \
@@ -86,14 +96,13 @@ kg_extractor = SchemaLLMPathExtractor(
 #     -e NEO4JLABS_PLUGINS=\[\"apoc\"\] \
 #     neo4j:latest
 # ```
-# 
+#
 # From here, you can open the db at [http://localhost:7474/](http://localhost:7474/). On this page, you will be asked to sign in. Use the default username/password of `neo4j` and `neo4j`.
-# 
+#
 # Once you login for the first time, you will be asked to change the password.
-# 
+#
 # After this, you are ready to create your first property graph!
 
-from llama_index.graph_stores.neo4j import Neo4jPropertyGraphStore
 
 graph_store = Neo4jPropertyGraphStore(
     username="neo4j",
@@ -103,24 +112,22 @@ graph_store = Neo4jPropertyGraphStore(
 vec_store = None
 
 # **Option 2. NebulaGraph**
-# 
+#
 # To launch NebulaGraph locally, first ensure you have docker installed. Then, you can launch the database with the following docker command.
-# 
+#
 # ```bash
 # mkdir nebula-docker-compose
 # cd nebula-docker-compose
 # curl --output docker-compose.yaml https://raw.githubusercontent.com/vesoft-inc/nebula-docker-compose/master/docker-compose-lite.yaml
-# docker compose up 
+# docker compose up
 # ```
 # After this, you are ready to create your first property graph!
-# 
+#
 # > Other options/details for deploying NebulaGraph can be found in the [docs](https://docs.nebula-graph.io/):
 # >
 # > - [ad-hoc cluster in Google Colab](https://docs.nebula-graph.io/master/4.deployment-and-installation/2.compile-and-install-nebula-graph/8.deploy-nebula-graph-with-lite/).
 # > - [Docker Desktop Extension](https://docs.nebula-graph.io/master/2.quick-start/1.quick-start-workflow/).
 
-from llama_index.graph_stores.nebula import NebulaPropertyGraphStore
-from llama_index.core.vector_stores.simple import SimpleVectorStore
 
 graph_store = NebulaPropertyGraphStore(
     space="llamaindex_nebula_property_graph", overwrite=True
@@ -138,11 +145,9 @@ vec_store = SimpleVectorStore()
 # %ngql USE llamaindex_nebula_property_graph;
 
 # **Start building!**
-# 
+#
 # **NOTE:** Using a local model will be slower when extracting compared to API based models. Local models (like Ollama) are typically limited to sequential processing. Expect this to take about 10 minutes on an M2 Max.
 
-from llama_index.core import PropertyGraphIndex
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 index = PropertyGraphIndex.from_documents(
     documents,
@@ -165,16 +170,11 @@ index = PropertyGraphIndex.from_documents(
 
 # For information on all `kg_extractors`, see [the documentation](/../../module_guides/indexing/lpg_index_guide#construction).
 
-## Querying
-# 
-# Now that our graph is created, we can query it. 
-# 
+# Querying
+#
+# Now that our graph is created, we can query it.
+#
 # As is the theme with this notebook, we will be using a lower-level API and constructing all our retrievers ourselves!
-
-from llama_index.core.indices.property_graph import (
-    LLMSynonymRetriever,
-    VectorContextRetriever,
-)
 
 
 llm_synonym = LLMSynonymRetriever(

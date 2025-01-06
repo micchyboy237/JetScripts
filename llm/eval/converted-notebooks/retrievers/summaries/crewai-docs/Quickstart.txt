@@ -1,1 +1,0 @@
-Here's a quick guide to building your first project in under 5 minutes. It provides step-by-step instructions on how to create a simple system that can research and report on various topics or subjects. The process involves setting up a new project, modifying components and tasks, and running the system using a command-line interface.

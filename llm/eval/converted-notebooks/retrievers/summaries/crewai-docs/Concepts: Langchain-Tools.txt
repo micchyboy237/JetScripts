@@ -1,1 +1,0 @@
-A comprehensive list of tools provided by LangChain is seamlessly integrated with CrewAI agents. This integration enables CrewAI agents to undertake various tasks and collaborate effectively. The tools can be used to enhance search-based queries, gather current market data and trends, and more.

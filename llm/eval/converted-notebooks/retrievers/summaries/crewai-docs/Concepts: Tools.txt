@@ -1,9 +1,0 @@
-Tools are pivotal in extending the capabilities of CrewAI agents, enabling them to undertake a broad spectrum of tasks and collaborate effectively. They empower agents with capabilities ranging from web searching and data analysis to collaboration and delegating tasks among coworkers.
-
-A tool in CrewAI is a skill or function that agents can utilize to perform various actions, including tools from the CrewAI Toolkit and LangChain Tools. Key characteristics of tools include utility, integration, customizability, error handling, and caching mechanisms.
-
-There are two main ways for one to create a CrewAI tool: subclassing `BaseTool` or utilizing the `tool` decorator. The `StructuredTool` class wraps functions as tools, providing flexibility and validation while reducing boilerplate.
-
-Tools can optionally implement a `cache_function` to fine-tune caching behavior, offering granular control over caching logic. This allows developers to customize caching mechanisms for specific tools, enabling more efficient execution of tasks.
-
-Overall, tools play a crucial role in enhancing the capabilities of CrewAI agents, and their development is essential for building robust and effective AI solutions.

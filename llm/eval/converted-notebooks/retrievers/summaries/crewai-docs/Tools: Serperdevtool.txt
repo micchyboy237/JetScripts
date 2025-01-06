@@ -1,1 +1,0 @@
-The `SerperDevTool` is designed to perform a semantic search for a specified query from a text's content across the internet. It utilizes the serper.dev API to fetch and display the most relevant search results based on the query provided by the user. The tool can be customized with parameters such as country, location, locale, and number of search results to return.

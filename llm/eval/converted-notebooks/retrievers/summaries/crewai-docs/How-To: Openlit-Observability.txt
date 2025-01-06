@@ -1,7 +1,0 @@
-To monitor your Agents in just a single line of code with OpenTelemetry, follow these steps:
-
-1. Deploy OpenLIT by cloning its repository and running Docker Compose.
-2. Install the OpenLIT SDK using pip.
-3. Initialize OpenLIT in your application by adding two lines of code.
-
-Once set up, you can visualize and analyze your Agent's performance, behavior, and identify areas of improvement by accessing OpenLIT at `127.0.0.1:3000` on your browser.

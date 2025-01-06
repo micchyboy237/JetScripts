@@ -1,3 +1,39 @@
+from llama_index.core.workflow import (
+    Context,
+    Workflow,
+    StartEvent,
+    StopEvent,
+    step,
+)
+import nest_asyncio
+from llama_index.core.tools import QueryEngineTool
+from llama_index.core import (
+    VectorStoreIndex,
+    SummaryIndex,
+    SimpleKeywordTableIndex,
+)
+from llama_index.core import SimpleDirectoryReader
+from llama_index.core.prompts.default_prompt_selectors import (
+    DEFAULT_TREE_SUMMARIZE_PROMPT_SEL,
+)
+import asyncio
+from IPython.display import Markdown, display
+from llama_index.core import Settings
+from llama_index.core.schema import QueryBundle
+from llama_index.core.response_synthesizers import TreeSummarize
+from llama_index.core.bridge.pydantic import BaseModel
+from llama_index.core.base.response.schema import (
+    PydanticResponse,
+    Response,
+    AsyncStreamingResponse,
+)
+from llama_index.core.selectors.utils import get_selector_from_llm
+from llama_index.llms.ollama import Ollama
+from llama_index.core.base.response.schema import RESPONSE_TYPE
+from typing import Dict, List, Any
+from llama_index.core.base.base_selector import SelectorResult
+from llama_index.core.workflow import Event
+import os
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -5,36 +41,30 @@ initialize_ollama_settings()
 # <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/workflow/router_query_engine.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 # Router Query Engine
-# 
+#
 # `RouterQueryEngine` chooses the most appropriate query engine from multiple options to process a given query.
-# 
+#
 # This notebook walks through implementation of Router Query Engine, using workflows.
-# 
+#
 # Specifically we will implement [RouterQueryEngine](https://docs.llamaindex.ai/en/stable/examples/query_engine/RouterQueryEngine/).
 
 # !pip install -U llama-index
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-.."
 
 # Since workflows are async first, this all runs fine in a notebook. If you were running in your own code, you would want to use `asyncio.run()` to start an async event loop if one isn't already running.
-# 
+#
 # ```python
 # async def main():
 #     <async code>
-# 
+#
 # if __name__ == "__main__":
 #     import asyncio
 #     asyncio.run(main())
 # ```
 
-## Define Events
-
-from llama_index.core.workflow import Event
-from llama_index.core.base.base_selector import SelectorResult
-from typing import Dict, List, Any
-from llama_index.core.base.response.schema import RESPONSE_TYPE
+# Define Events
 
 
 class QueryEngineSelectionEvent(Event):
@@ -49,48 +79,25 @@ class SynthesizeEvent(Event):
     result: List[RESPONSE_TYPE]
     selected_query_engines: SelectorResult
 
-## The Workflow
-# 
+# The Workflow
+#
 # `selector:`
-# 
+#
 # 1. It takes a StartEvent as input and returns a QueryEngineSelectionEvent.
 # 2. The `LLMSingleSelector`/ `PydanticSingleSelector`/ `PydanticMultiSelector` will select one/ multiple query engine tools.
-# 
+#
 # `generate_responses:`
-# 
+#
 # This function uses the selected query engines to generate responses and returns SynthesizeEvent.
-# 
+#
 # `synthesize_responses:`
-# 
+#
 # This function combines the generated responses and synthesizes the final response if multiple query engines are selected otherwise returns the single generated response.
-# 
-# 
+#
+#
 # The steps will use the built-in `StartEvent` and `StopEvent` events.
-# 
+#
 # With our events defined, we can construct our workflow and steps.
-
-from llama_index.core.workflow import (
-    Context,
-    Workflow,
-    StartEvent,
-    StopEvent,
-    step,
-)
-
-from llama_index.llms.ollama import Ollama
-from llama_index.core.selectors.utils import get_selector_from_llm
-from llama_index.core.base.response.schema import (
-    PydanticResponse,
-    Response,
-    AsyncStreamingResponse,
-)
-from llama_index.core.bridge.pydantic import BaseModel
-from llama_index.core.response_synthesizers import TreeSummarize
-from llama_index.core.schema import QueryBundle
-from llama_index.core import Settings
-
-from IPython.display import Markdown, display
-import asyncio
 
 
 class RouterQueryEngineWorkflow(Workflow):
@@ -141,14 +148,16 @@ class RouterQueryEngineWorkflow(Workflow):
         query_engines = [engine.query_engine for engine in query_engine_tools]
 
         print(
-            f"number of selected query engines: {len(selected_query_engines.selections)}"
+            f"number of selected query engines: {
+                len(selected_query_engines.selections)}"
         )
 
         if len(selected_query_engines.selections) > 1:
             tasks = []
             for selected_query_engine in selected_query_engines.selections:
                 print(
-                    f"Selected query engine: {selected_query_engine.index}: {selected_query_engine.reason}"
+                    f"Selected query engine: {selected_query_engine.index}: {
+                        selected_query_engine.reason}"
                 )
                 query_engine = query_engines[selected_query_engine.index]
                 tasks.append(query_engine.aquery(query))
@@ -161,7 +170,8 @@ class RouterQueryEngineWorkflow(Workflow):
             ]
 
             print(
-                f"Selected query engine: {selected_query_engines.ind}: {selected_query_engines.reason}"
+                f"Selected query engine: {selected_query_engines.ind}: {
+                    selected_query_engines.reason}"
             )
 
             response_generated = [query_engine.query(query)]
@@ -231,54 +241,46 @@ class RouterQueryEngineWorkflow(Workflow):
 
         return StopEvent(result=response)
 
-## Define LLM
+# Define LLM
+
 
 llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
 Settings.llm = llm
 
-## Define Summarizer
+# Define Summarizer
 
-from llama_index.core.prompts.default_prompt_selectors import (
-    DEFAULT_TREE_SUMMARIZE_PROMPT_SEL,
-)
 
 summarizer = TreeSummarize(
     llm=llm,
     summary_template=DEFAULT_TREE_SUMMARIZE_PROMPT_SEL,
 )
 
-## Download Data
+# Download Data
 
 # !mkdir -p 'data/paul_graham/'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
-## Load Data
+# Load Data
 
-from llama_index.core import SimpleDirectoryReader
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries").load_data()
 
-## Create Nodes
+# Create Nodes
 
 nodes = Settings.node_parser.get_nodes_from_documents(documents)
 
-## Create Indices
-# 
+# Create Indices
+#
 # We will create three indices SummaryIndex, VectorStoreIndex and SimpleKeywordTableIndex.
 
-from llama_index.core import (
-    VectorStoreIndex,
-    SummaryIndex,
-    SimpleKeywordTableIndex,
-)
 
 summary_index = SummaryIndex(nodes)
 vector_index = VectorStoreIndex(nodes)
 keyword_index = SimpleKeywordTableIndex(nodes)
 
-## Create Query Engine Tools
+# Create Query Engine Tools
 
-from llama_index.core.tools import QueryEngineTool
 
 list_query_engine = summary_index.as_query_engine(
     response_mode="tree_summarize",
@@ -313,17 +315,16 @@ keyword_tool = QueryEngineTool.from_defaults(
 
 query_engine_tools = [list_tool, vector_tool, keyword_tool]
 
-## Run the Workflow!
+# Run the Workflow!
 
-import nest_asyncio
 
 nest_asyncio.apply()
 
 w = RouterQueryEngineWorkflow(timeout=200)
 
-### Querying
+# Querying
 
-#### Summarization Query
+# Summarization Query
 
 query = "Provide the summary of the document?"
 
@@ -332,7 +333,8 @@ result = await w.run(
     llm=llm,
     query_engine_tools=query_engine_tools,
     summarizer=summarizer,
-    select_multi=True,  # You can change it to default it to select only one query engine.
+    # You can change it to default it to select only one query engine.
+    select_multi=True,
 )
 
 display(
@@ -340,7 +342,7 @@ display(
     Markdown("Answer: {}".format(result)),
 )
 
-#### Pointed Context Query
+# Pointed Context Query
 
 query = "What did the author do growing up?"
 
@@ -364,7 +366,8 @@ result = await w.run(
     llm=llm,
     query_engine_tools=query_engine_tools,
     summarizer=summarizer,
-    select_multi=True,  # Since query should use two query engine tools, we enabled it.
+    # Since query should use two query engine tools, we enabled it.
+    select_multi=True,
 )
 
 display(

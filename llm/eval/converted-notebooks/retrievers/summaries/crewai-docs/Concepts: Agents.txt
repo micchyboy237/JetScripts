@@ -1,1 +1,0 @@
-Entities that can perform various tasks, such as research, analysis, or code development, are defined by parameters like role, goal, and backstory. They can be equipped with tools to enhance their capabilities and maintain memory of interactions. These entities are designed to make decisions based on their characteristics and collaborate with other similar entities.

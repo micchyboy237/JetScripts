@@ -1,1 +1,0 @@
-A powerful utility designed to provide a comprehensive listing of directory contents, capable of recursively navigating through specified directories and offering users a detailed enumeration of all files.

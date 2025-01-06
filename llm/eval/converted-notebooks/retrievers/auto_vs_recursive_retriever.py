@@ -63,7 +63,7 @@ VECTOR_RETRIEVERS_CACHE = Path(CACHE_DIR) / "vector_retrievers.pkl"
 Path(CACHE_DIR).mkdir(exist_ok=True)
 
 # Custom settings
-input_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume"
+input_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries"
 chunk_size = 512
 chunk_overlap = 50
 

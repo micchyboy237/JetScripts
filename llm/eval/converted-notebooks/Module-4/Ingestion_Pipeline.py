@@ -1,50 +1,55 @@
+import re
+from llama_index.core.schema import TransformComponent
+from llama_index.core import VectorStoreIndex
+from llama_index.vector_stores.qdrant import QdrantVectorStore
+import qdrant_client
+from llama_index.core.ingestion import IngestionPipeline, IngestionCache
+from llama_index.core.extractors import TitleExtractor
+from llama_index.core.node_parser import TokenTextSplitter
+from llama_index.embeddings.ollama import OllamaEmbedding
+from llama_index.core import Document
+from llama_index.core import SimpleDirectoryReader
+import os
+import nest_asyncio
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Ingestion Pipeline
-# 
+#
 # In this notebook we will demonstrate usage of Ingestion Pipeline in building RAG applications.
-# 
+#
 # [Ingestion Pipeline](https://docs.llamaindex.ai/en/stable/module_guides/loading/ingestion_pipeline/)
 
-## Installation
+# Installation
 
 # !pip install llama-index llama-index-vector-stores-qdrant
 
-## Set API Key
+# Set API Key
 
-import nest_asyncio
 
 nest_asyncio.apply()
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-## Download Data
+# Download Data
 
 # !mkdir -p 'data/paul_graham/'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
-## Load Data
+# Load Data
 
-from llama_index.core import SimpleDirectoryReader
 
 documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/data/jet-resume",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries",
     required_exts=["*.md"]
 ).load_data()
 
-## Ingestion Pipeline - Apply Transformations
+# Ingestion Pipeline - Apply Transformations
 
-from llama_index.core import Document
-from llama_index.embeddings.ollama import OllamaEmbedding
-from llama_index.core.node_parser import TokenTextSplitter
-from llama_index.core.extractors import TitleExtractor
-from llama_index.core.ingestion import IngestionPipeline, IngestionCache
 
-### Text Splitters
+# Text Splitters
 
 pipeline = IngestionPipeline(
     transformations=[
@@ -55,7 +60,7 @@ nodes = pipeline.run(documents=documents)
 
 nodes[0]
 
-### Text Splitter + Metadata Extractor
+# Text Splitter + Metadata Extractor
 
 pipeline = IngestionPipeline(
     transformations=[
@@ -67,7 +72,7 @@ nodes = pipeline.run(documents=documents)
 
 nodes[0].metadata["document_title"]
 
-### Text Splitter + Metadata Extractor + Ollama Embedding
+# Text Splitter + Metadata Extractor + Ollama Embedding
 
 pipeline = IngestionPipeline(
     transformations=[
@@ -82,7 +87,7 @@ nodes[0].metadata["document_title"]
 
 nodes[0]
 
-## Cache
+# Cache
 
 pipeline = IngestionPipeline(
     transformations=[
@@ -103,8 +108,8 @@ new_pipeline = IngestionPipeline(
     cache=new_cache,
 )
 
-### Now it will run instantly due to the cache.
-# 
+# Now it will run instantly due to the cache.
+#
 # Will be very useful when extracting metadata and also creating embeddings
 
 nodes = new_pipeline.run(documents=documents)
@@ -139,11 +144,8 @@ nodes = pipeline.run(documents=documents)
 
 nodes[0].text
 
-## RAG using Ingestion Pipeline
+# RAG using Ingestion Pipeline
 
-import qdrant_client
-
-from llama_index.vector_stores.qdrant import QdrantVectorStore
 
 client = qdrant_client.QdrantClient(location=":memory:")
 vector_store = QdrantVectorStore(
@@ -160,7 +162,6 @@ pipeline = IngestionPipeline(
 )
 nodes = pipeline.run(documents=documents)
 
-from llama_index.core import VectorStoreIndex
 
 index = VectorStoreIndex.from_vector_store(vector_store)
 
@@ -170,16 +171,13 @@ response = query_engine.query("What did paul graham do growing up?")
 
 print(response)
 
-## Custom Transformations
-# 
+# Custom Transformations
+#
 # Implementing custom transformations is pretty easy.
-# 
+#
 # Let's include a transformation that removes special characters from the text before generating embeddings.
-# 
+#
 # The primary requirement for transformations is that they should take a list of nodes as input and return a modified list of nodes.
-
-from llama_index.core.schema import TransformComponent
-import re
 
 
 class TextCleaner(TransformComponent):

@@ -1,1 +1,0 @@
-The EXASearchTool is designed for semantic search across the internet. It utilizes an API to fetch relevant results based on user-provided queries. The tool can be integrated into Python projects through package installation and configuration steps, including acquiring an API key from exa.ai.
