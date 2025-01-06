@@ -1,4 +1,4 @@
-from jet.llm.token import token_counter
+from jet.token import token_counter
 from jet.logger import logger
 
 

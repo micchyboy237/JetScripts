@@ -47,7 +47,7 @@ def display_source_node(
     logger.log("Node ID:", source_node.node_id, colors=["GRAY", "INFO"])
 
     if show_source_metadata:
-        logger.log("File Name:", source_node.metadata, colors=[
+        logger.log("Metadata:", source_node.metadata, colors=[
                    "GRAY", "INFO"])
 
     if isinstance(source_node, TextNode):

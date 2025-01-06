@@ -1,6 +1,7 @@
 import json
-from jet.llm.token import token_counter, filter_texts
+from jet.token import token_counter, filter_texts
 from jet.logger import logger
+from jet.transformers.object import make_serializable
 from llama_index.core.base.llms.types import ChatMessage, MessageRole
 
 sample_texts: list[str] = [
@@ -12,16 +13,36 @@ sample_texts: list[str] = [
 sample_text = "\n".join(sample_texts)
 sample_chat_messages: list[ChatMessage] = [
     ChatMessage(
-        role=MessageRole.SYSTEM if i % 2 == 0 else MessageRole.USER,
-        content=text
-    )
-    for i, text in enumerate(sample_texts)
+        role=MessageRole.SYSTEM,
+        content="You are a helpful AI assistant focused on answering questions about programming and software development."
+    ),
+    ChatMessage(
+        role=MessageRole.USER,
+        content="Can you help me understand how Python list comprehensions work? I find them confusing."
+    ),
+    ChatMessage(
+        role=MessageRole.ASSISTANT,
+        content="List comprehensions are a concise way to create lists in Python. They follow this basic syntax: [expression for item in iterable]. For example, to create a list of squares from 1-5, you can write: squares = [x**2 for x in range(1,6)]"
+    ),
+    ChatMessage(
+        role=MessageRole.USER,
+        content="That makes sense! Could you show another example with filtering using an if condition?"
+    ),
+    ChatMessage(
+        role=MessageRole.ASSISTANT,
+        content="Here's an example of filtering with list comprehension: [x for x in range(10) if x % 2 == 0] will create a list of even numbers from 0-9. The if condition only includes items that match the criteria."
+    ),
+    ChatMessage(
+        role=MessageRole.USER,
+        content="What about using list comprehensions with strings? Can you give an example?"
+    ),
 ]
 
 if __name__ == "__main__":
     models = ["llama3.1"]
-    ollama_models = {}
+    max_tokens = 20
 
+    logger.log("Max Tokens:", max_tokens, colors=["GRAY", "INFO"])
     logger.info("Texts:")
     logger.debug(json.dumps(sample_texts, indent=2))
 
@@ -41,11 +62,12 @@ if __name__ == "__main__":
     logger.info("Filter text count")
     for model_name in models:
         # Whole numbers
-        max_tokens = 20
         filtered_text = filter_texts(
             sample_text, model_name, max_tokens=max_tokens)
         count = token_counter(filtered_text, model_name)
-        logger.log("Max Tokens:", max_tokens, colors=["GRAY", "DEBUG"])
+        orig_count = token_counter(sample_text, model_name)
+
+        logger.log("Orig Tokens:", orig_count, colors=["GRAY", "INFO"])
         logger.log("New Tokens:", count, colors=["DEBUG", "SUCCESS"])
         logger.log("Filtered Text:", filtered_text,
                    colors=["DEBUG", "SUCCESS"])
@@ -53,11 +75,12 @@ if __name__ == "__main__":
     logger.info("Filter batch of texts for: list[str]")
     for model_name in models:
         # Whole numbers
-        max_tokens = 20
         filtered_texts = filter_texts(
             sample_texts, model_name, max_tokens=max_tokens)
-        count = token_counter(filtered_texts, model_name)
-        logger.log("Max Tokens:", max_tokens, colors=["GRAY", "DEBUG"])
+        count = token_counter(str(filtered_texts), model_name)
+        orig_count = token_counter(str(sample_texts), model_name)
+
+        logger.log("Orig Tokens:", orig_count, colors=["GRAY", "INFO"])
         logger.log("New Tokens:", count, colors=["DEBUG", "SUCCESS"])
         logger.log("Filtered Texts:", filtered_texts,
                    colors=["DEBUG", "SUCCESS"])
@@ -66,8 +89,10 @@ if __name__ == "__main__":
         max_tokens = 0.5
         filtered_texts = filter_texts(
             sample_texts, model_name, max_tokens=max_tokens)
-        count = token_counter(filtered_texts, model_name)
-        logger.log("Max Tokens:", max_tokens, colors=["GRAY", "DEBUG"])
+        count = token_counter(str(filtered_texts), model_name)
+        orig_count = token_counter(str(sample_texts), model_name)
+
+        logger.log("Orig Tokens:", orig_count, colors=["GRAY", "INFO"])
         logger.log("New Tokens:", count, colors=["DEBUG", "SUCCESS"])
         logger.log("Filtered Texts:", filtered_texts,
                    colors=["DEBUG", "SUCCESS"])
@@ -75,11 +100,26 @@ if __name__ == "__main__":
     logger.info("Filter batch of texts for: list[ChatMessage]")
     for model_name in models:
         # Whole numbers
-        max_tokens = 20
         filtered_texts = filter_texts(
             sample_chat_messages, model_name, max_tokens=max_tokens)
-        count = token_counter(filtered_texts, model_name)
-        logger.log("Max Tokens:", max_tokens, colors=["GRAY", "DEBUG"])
+        count = token_counter(str(filtered_texts), model_name)
+        orig_count = token_counter(str(sample_chat_messages), model_name)
+
+        logger.log("Orig Tokens:", orig_count, colors=["GRAY", "INFO"])
+        logger.log("New Tokens:", count, colors=["DEBUG", "SUCCESS"])
+        logger.log("Filtered Texts:", filtered_texts,
+                   colors=["DEBUG", "SUCCESS"])
+
+    logger.info("Filter batch of texts for: list[dict]")
+    sample_chat_messages_list_dict = make_serializable(sample_chat_messages)
+    for model_name in models:
+        # Whole numbers
+        filtered_texts = filter_texts(
+            sample_chat_messages, model_name, max_tokens=max_tokens)
+        count = token_counter(str(filtered_texts), model_name)
+        orig_count = token_counter(str(sample_chat_messages), model_name)
+
+        logger.log("Orig Tokens:", orig_count, colors=["GRAY", "DEBUG"])
         logger.log("New Tokens:", count, colors=["DEBUG", "SUCCESS"])
         logger.log("Filtered Texts:", filtered_texts,
                    colors=["DEBUG", "SUCCESS"])

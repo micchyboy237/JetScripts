@@ -1,8 +1,8 @@
 from typing import List, Union, Generator, Iterator
 import requests
 import json
-from open_webui.utils.logger import logger
-from jet.llm.token import token_counter
+from jet.logger import logger
+from jet.token import token_counter
 
 DEFAULT_SYSTEM_MESSAGE = "You are a versatile language model capable of understanding and processing a wide variety of information, including structured and unstructured content like web pages, documents, or databases. Your primary role is to provide accurate, helpful, and easy-to-understand responses on topics related to anime when users ask questions or make requests. Strive to present your answers in a clear, friendly, and supportive manner while considering the context of the user's request."
 

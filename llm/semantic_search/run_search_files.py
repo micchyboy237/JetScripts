@@ -4,7 +4,7 @@ from llama_index.core.retrievers.fusion_retriever import FUSION_MODES
 
 from convert_docs_to_scripts import scrape_code
 from script_utils import display_source_nodes
-from jet.llm.token import token_counter
+from jet.token import token_counter
 from jet.llm.query import setup_index, query_llm
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings, small_embed_model

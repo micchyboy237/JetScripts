@@ -5,7 +5,7 @@ from llama_index.llms.ollama import Ollama
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.memory import ChatSummaryMemoryBuffer
 import os
-from jet.llm.token import tokenizer
+from jet.token import tokenizer
 from jet.transformers import make_serializable
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings, OLLAMA_HF_MODELS
