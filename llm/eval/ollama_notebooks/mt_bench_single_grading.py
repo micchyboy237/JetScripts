@@ -1,21 +1,23 @@
+import pandas as pd
+from llama_index.core.llama_pack import download_llama_pack
+from llama_index.llms.cohere import Cohere
+from llama_index.llms.gemini import Gemini
+from jet.llm.ollama.base import Ollama
+from llama_index.core.evaluation import CorrectnessEvaluator
+from llama_index.core.llama_dataset import download_llama_dataset
+import nest_asyncio
 ```python
 # %pip install llama-index-llms-openai
 # %pip install llama-index-llms-cohere
 # %pip install llama-index-llms-gemini
-import nest_asyncio
 
 nest_asyncio.apply()
 # !pip install "google-generative-a" -q
-from llama_index.core.llama_dataset import download_llama_dataset
 
 evaluator_dataset, _ = download_llama_dataset(
     "MiniMtBenchSingleGradingDataset", "./mini_mt_bench_data"
 )
 evaluator_dataset.to_pandas()[:5]
-from llama_index.core.evaluation import CorrectnessEvaluator
-from llama_index.llms.ollama import Ollama
-from llama_index.llms.gemini import Gemini
-from llama_index.llms.cohere import Cohere
 
 initialize_ollama_settings()
 
@@ -28,7 +30,6 @@ evaluators = {
     "gpt-3.5": CorrectnessEvaluator(llm=llm_gpt35),
     "gemini-pro": CorrectnessEvaluator(llm=llm_gemini),
 }
-from llama_index.core.llama_pack import download_llama_pack
 
 EvaluatorBenchmarkerPack = download_llama_pack(
     "EvaluatorBenchmarkerPack", "./pack"
@@ -66,7 +67,6 @@ gemini_pro_benchmark_df
 evaluator_benchmarker.prediction_dataset.save_json(
     "mt_sg_gemini_predictions.json"
 )
-import pandas as pd
 
 final_benchmark = pd.concat(
     [

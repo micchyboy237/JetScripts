@@ -9,7 +9,7 @@ from llama_index.core.program.utils import create_list_model
 from llama_index.core.prompts.base import BasePromptTemplate, PromptTemplate
 from llama_index.core.settings import Settings
 from llama_index.core.types import Model
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.llms.openai.utils import OpenAIToolCall, to_openai_tool
 from deprecated import deprecated
 

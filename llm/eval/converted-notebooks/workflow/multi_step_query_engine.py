@@ -1,3 +1,28 @@
+from llama_index.core import SimpleDirectoryReader
+from llama_index.core.indices.query.query_transform.base import (
+    StepDecomposeQueryTransform,
+)
+from llama_index.core import VectorStoreIndex
+from jet.llm.ollama.base import Ollama
+from IPython.display import Markdown, display
+from typing import cast
+from llama_index.core.llms import LLM
+from llama_index.core import Settings
+from llama_index.core.workflow import (
+    Context,
+    Workflow,
+    StartEvent,
+    StopEvent,
+    step,
+)
+from llama_index.core.schema import QueryBundle, TextNode
+from llama_index.core.response_synthesizers import (
+    get_response_synthesizer,
+)
+from llama_index.core.schema import NodeWithScore
+from typing import Dict, List, Any
+from llama_index.core.workflow import Event
+import os
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -5,57 +30,52 @@ initialize_ollama_settings()
 # <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/workflow/multi_step_query_engine.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 # MultiStep Query Engine
-# 
+#
 # The `MultiStepQueryEngine` breaks down a complex query into sequential sub-questions.
-# 
+#
 # To answer the query: In which city did the author found his first company, Viaweb?, we need to answer the following sub-questions sequentially:
-# 
+#
 # 1. Who is the author that founded his first company, Viaweb?
 # 2. In which city did Paul Graham found his first company, Viaweb?
-# 
+#
 # As an example, the answer from each step (sub-query-1) is used to generate the next step's question (sub-query-2), with steps created sequentially rather than all at once.
-# 
+#
 # In this notebook, we will implement the same with [MultiStepQueryEngine](https://docs.llamaindex.ai/en/stable/examples/query_transformations/SimpleIndexDemo-multistep/) using workflows.
 
 # !pip install -U llama-index
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 # Since workflows are async first, this all runs fine in a notebook. If you were running in your own code, you would want to use `asyncio.run()` to start an async event loop if one isn't already running.
-# 
+#
 # ```python
 # async def main():
 #     <async code>
-# 
+#
 # if __name__ == "__main__":
 #     import asyncio
 #     asyncio.run(main())
 # ```
 
-## The Workflow
-# 
-## Designing the Workflow
-# 
+# The Workflow
+#
+# Designing the Workflow
+#
 # MultiStepQueryEngine consists of some clearly defined steps
 # 1. Indexing data, creating an index.
 # 2. Create multiple sub-queries to answer the query.
 # 3. Synthesize the final response
-# 
+#
 # With this in mind, we can create events and workflow steps to follow this process!
-# 
-### The Workflow Event
-# 
+#
+# The Workflow Event
+#
 # To handle these steps, we need to define `QueryMultiStepEvent`
-# 
+#
 # The other steps will use the built-in `StartEvent` and `StopEvent` events.
 
-## Define Event
-
-from llama_index.core.workflow import Event
-from typing import Dict, List, Any
-from llama_index.core.schema import NodeWithScore
+# Define Event
 
 
 class QueryMultiStepEvent(Event):
@@ -72,30 +92,7 @@ class QueryMultiStepEvent(Event):
     source_nodes: List[NodeWithScore]
     final_response_metadata: Dict[str, Any]
 
-## Define Workflow
-
-from llama_index.core.indices.query.query_transform.base import (
-    StepDecomposeQueryTransform,
-)
-from llama_index.core.response_synthesizers import (
-    get_response_synthesizer,
-)
-
-from llama_index.core.schema import QueryBundle, TextNode
-
-from llama_index.core.workflow import (
-    Context,
-    Workflow,
-    StartEvent,
-    StopEvent,
-    step,
-)
-
-from llama_index.core import Settings
-from llama_index.core.llms import LLM
-
-from typing import cast
-from IPython.display import Markdown, display
+# Define Workflow
 
 
 class MultiStepQueryEngineWorkflow(Workflow):
@@ -163,7 +160,8 @@ class MultiStepQueryEngineWorkflow(Workflow):
             )
 
             print(
-                f"Created query for the step - {cur_steps} is: {updated_query_bundle}"
+                f"Created query for the step - {
+                    cur_steps} is: {updated_query_bundle}"
             )
 
             stop_dict = {"query_bundle": updated_query_bundle}
@@ -215,28 +213,25 @@ class MultiStepQueryEngineWorkflow(Workflow):
 
         return StopEvent(result=final_response)
 
-## Download Data
+# Download Data
 
 # !mkdir -p 'data/paul_graham/'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
-## Load data
+# Load data
 
-from llama_index.core import SimpleDirectoryReader
 
 documents = SimpleDirectoryReader("data/paul_graham").load_data()
 
-## Setup LLM
+# Setup LLM
 
-from llama_index.llms.ollama import Ollama
 
 llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
 
 Settings.llm = llm
 
-## Create Index and QueryEngine
+# Create Index and QueryEngine
 
-from llama_index.core import VectorStoreIndex
 
 index = VectorStoreIndex.from_documents(
     documents=documents,
@@ -244,21 +239,21 @@ index = VectorStoreIndex.from_documents(
 
 query_engine = index.as_query_engine()
 
-## Run the Workflow!
+# Run the Workflow!
 
 w = MultiStepQueryEngineWorkflow(timeout=200)
 
-### Set the parameters
+# Set the parameters
 
 num_steps = 3
 
 index_summary = "Used to answer questions about the author"
 
-### Test with a query
+# Test with a query
 
 query = "In which city did the author found his first company, Viaweb?"
 
-### Result
+# Result
 
 result = await w.run(
     query=query,
@@ -273,7 +268,7 @@ display(
     Markdown("Answer: {}".format(result)),
 )
 
-### Display step-queries created
+# Display step-queries created
 
 sub_qa = result.metadata["sub_qa"]
 tuples = [(t[0], t[1].response) for t in sub_qa]

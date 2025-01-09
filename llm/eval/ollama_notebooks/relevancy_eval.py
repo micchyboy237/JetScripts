@@ -3,7 +3,7 @@ from llama_index.core.evaluation import EvaluationResult
 import pandas as pd
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.evaluation import RelevancyEvaluator
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import (
     TreeIndex,
     VectorStoreIndex,

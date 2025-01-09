@@ -1,13 +1,24 @@
+import pandas as pd
+from llama_index.core import PromptTemplate
+from jet.llm.ollama.base import Ollama
+from llama_index.experimental.query_engine.pandas import (
+    PandasInstructionParser,
+)
+from llama_index.core.query_pipeline import (
+    QueryPipeline as QP,
+    Link,
+    InputComponent,
+)
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Query Pipeline over Pandas DataFrames
-# 
+#
 # This is a simple example that builds a query pipeline that can perform structured operations over a Pandas DataFrame to satisfy a user query, using LLMs to infer the set of operations.
-# 
+#
 # This can be treated as the "from-scratch" version of our `PandasQueryEngine`.
-# 
+#
 # WARNING: This tool provides the LLM access to the `eval` function.
 # Arbitrary code execution is possible on the machine running this tool.
 # This tool is not recommended to be used in a production setting, and would
@@ -15,35 +26,24 @@ initialize_ollama_settings()
 
 # %pip install llama-index-llms-ollama llama-index-experimental
 
-from llama_index.core.query_pipeline import (
-    QueryPipeline as QP,
-    Link,
-    InputComponent,
-)
-from llama_index.experimental.query_engine.pandas import (
-    PandasInstructionParser,
-)
-from llama_index.llms.ollama import Ollama
-from llama_index.core import PromptTemplate
 
-## Download Data
-# 
+# Download Data
+#
 # Here we load the Titanic CSV dataset.
 
 # !wget 'https://raw.githubusercontent.com/jerryjliu/llama_index/main/docs/docs/examples/data/csv/titanic_train.csv' -O 'titanic_train.csv'
 
-import pandas as pd
 
 df = pd.read_csv("./titanic_train.csv")
 
-## Define Modules
-# 
-# Here we define the set of modules: 
+# Define Modules
+#
+# Here we define the set of modules:
 # 1. Pandas prompt to infer pandas instructions from user query
 # 2. Pandas output parser to execute pandas instructions on dataframe, get back dataframe
 # 3. Response synthesis prompt to synthesize a final response given the dataframe
 # 4. LLM
-# 
+#
 # The pandas output parser specifically is designed to safely execute Python code. It includes a lot of safety checks that may be annoying to write from scratch. This includes only importing from a set of approved modules (e.g. no modules that would alter the file system like `os`), and also making sure that no private/dunder methods are being called.
 
 instruction_str = (
@@ -79,11 +79,11 @@ pandas_output_parser = PandasInstructionParser(df)
 response_synthesis_prompt = PromptTemplate(response_synthesis_prompt_str)
 llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
 
-## Build Query Pipeline
-# 
+# Build Query Pipeline
+#
 # Looks like this:
 # input query_str -> pandas_prompt -> llm1 -> pandas_output_parser -> response_synthesis_prompt -> llm2
-# 
+#
 # Additional connections to response_synthesis_prompt: llm1 -> pandas_instructions, and pandas_output_parser -> pandas_output.
 
 qp = QP(
@@ -113,7 +113,7 @@ qp.add_links(
 )
 qp.add_link("response_synthesis_prompt", "llm2")
 
-## Run Query
+# Run Query
 
 response = qp.run(
     query_str="What is the correlation between survival and age?",

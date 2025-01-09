@@ -29,7 +29,7 @@ from IPython.display import Markdown, display
 from typing import Any, List, Callable, Optional, Union, Dict
 import nest_asyncio
 import asyncio
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 import os
 from llama_index.core import Document
 import pandas as pd

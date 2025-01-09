@@ -28,7 +28,7 @@ from llama_index.core.base.response.schema import (
     AsyncStreamingResponse,
 )
 from llama_index.core.selectors.utils import get_selector_from_llm
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core.base.response.schema import RESPONSE_TYPE
 from typing import Dict, List, Any
 from llama_index.core.base.base_selector import SelectorResult

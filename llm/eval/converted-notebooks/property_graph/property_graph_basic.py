@@ -6,8 +6,8 @@ from llama_index.core.indices.property_graph import (
     ImplicitPathExtractor,
     SimpleLLMPathExtractor,
 )
-from llama_index.llms.ollama import Ollama
-from llama_index.embeddings.ollama import OllamaEmbedding
+from jet.llm.ollama.base import Ollama
+from jet.llm.ollama.base import OllamaEmbedding
 from llama_index.core import PropertyGraphIndex
 from llama_index.core import SimpleDirectoryReader
 import nest_asyncio

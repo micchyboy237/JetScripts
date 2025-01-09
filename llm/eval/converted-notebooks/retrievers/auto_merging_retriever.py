@@ -19,7 +19,7 @@ from llama_index.core.evaluation import DatasetGenerator, QueryResponseDataset
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.retrievers import AutoMergingRetriever
 from llama_index.core import VectorStoreIndex
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import StorageContext
 from llama_index.core.storage.docstore import SimpleDocumentStore
 from llama_index.core.node_parser import get_leaf_nodes, get_root_nodes

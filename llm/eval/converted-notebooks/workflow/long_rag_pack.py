@@ -1,3 +1,28 @@
+from jet.llm.ollama.base import Ollama
+from llama_index.core.workflow import (
+    Workflow,
+    step,
+    StartEvent,
+    StopEvent,
+    Context,
+)
+from typing import Iterable
+from llama_index.core.retrievers import BaseRetriever
+from IPython.display import display, Markdown
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core import SimpleDirectoryReader
+from llama_index.core.workflow import Event
+from llama_index.core.llms import LLM
+from llama_index.core import VectorStoreIndex
+from llama_index.core.settings import Settings
+from llama_index.core.vector_stores.types import VectorStoreQuery
+from llama_index.core.schema import QueryBundle, NodeWithScore
+from llama_index.core.vector_stores.simple import BasePydanticVectorStore
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core.schema import BaseNode, TextNode
+from typing import List, Dict, Optional, Set, FrozenSet
+import os
+import nest_asyncio
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -6,13 +31,11 @@ initialize_ollama_settings()
 
 # This notebook shows how to implement LongRAG using LlamaIndex workflows.
 
-import nest_asyncio
 
 nest_asyncio.apply()
 
 # %pip install -U llama-index
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-proj-..."
 
@@ -21,26 +44,23 @@ import os
 # !rm data.zip
 
 # Since workflows are async first, this all runs fine in a notebook. If you were running in your own code, you would want to use `asyncio.run()` to start an async event loop if one isn't already running.
-# 
+#
 # ```python
 # async def main():
 #     <async code>
-# 
+#
 # if __name__ == "__main__":
 #     import asyncio
 #     asyncio.run(main())
 # ```
 
-## Helper Functions
-# 
+# Helper Functions
+#
 # These helper functions will help us split documents into smaller pieces and group  nodes based on their relationships.
 
-from typing import List, Dict, Optional, Set, FrozenSet
 
-from llama_index.core.schema import BaseNode, TextNode
-from llama_index.core.node_parser import SentenceSplitter
-
-DEFAULT_CHUNK_SIZE = 4096  # optionally splits documents into CHUNK_SIZE, then regroups them to demonstrate grouping algorithm
+# optionally splits documents into CHUNK_SIZE, then regroups them to demonstrate grouping algorithm
+DEFAULT_CHUNK_SIZE = 4096
 DEFAULT_MAX_GROUP_SIZE = 20  # maximum number of documents in a group
 DEFAULT_SMALL_CHUNK_SIZE = 512  # small chunk size for generating embeddings
 DEFAULT_TOP_K = 8  # top k for retrieving
@@ -128,15 +148,9 @@ def get_grouped_docs(
 
     return ret_nodes
 
-## Making the Retriever
-# 
+# Making the Retriever
+#
 # LongRAG needs a custom retriever, which is shown below:
-
-from llama_index.core.retrievers import BaseRetriever
-from llama_index.core.vector_stores.simple import BasePydanticVectorStore
-from llama_index.core.schema import QueryBundle, NodeWithScore
-from llama_index.core.vector_stores.types import VectorStoreQuery
-from llama_index.core.settings import Settings
 
 
 class LongRAGRetriever(BaseRetriever):
@@ -207,21 +221,15 @@ class LongRAGRetriever(BaseRetriever):
 
         return top_parents
 
-## Designing the Workflow
+# Designing the Workflow
 
 # LongRAG consists of the following steps:
-# 
+#
 # 1. Ingesting the data — grouping documents and putting them in long retrieval units, splitting the long retrieval units into smaller tokens to generate embeddings, and indexing the small nodes.
 # 2. Constructing the retriever and query engine.
 # 3. Querying over the data given a string.
 
 # We define an event that passes the long and small retrieval units into the retriever and query engine.
-
-from typing import Iterable
-
-from llama_index.core import VectorStoreIndex
-from llama_index.core.llms import LLM
-from llama_index.core.workflow import Event
 
 
 class LoadNodeEvent(Event):
@@ -234,16 +242,6 @@ class LoadNodeEvent(Event):
     llm: LLM
 
 # After defining our events, we can write our workflow and steps:
-
-from llama_index.core.workflow import (
-    Workflow,
-    step,
-    StartEvent,
-    StopEvent,
-    Context,
-)
-from llama_index.core import SimpleDirectoryReader
-from llama_index.core.query_engine import RetrieverQueryEngine
 
 
 class LongRAGWorkflow(Workflow):
@@ -282,7 +280,8 @@ class LongRAGWorkflow(Workflow):
                 )  # split documents into chunks of chunk_size
                 grouped_nodes = get_grouped_docs(
                     nodes
-                )  # get list of nodes after grouping (groups are combined into one node), these are long retrieval units
+                    # get list of nodes after grouping (groups are combined into one node), these are long retrieval units
+                )
             else:
                 grouped_nodes = docs
 
@@ -357,9 +356,8 @@ class LongRAGWorkflow(Workflow):
 # - When querying, it takes in the query from the `StartEvent`, feeds it into the query engine in the context, and returns the result of the query.
 # - The context is used to store the query engine.
 
-## Running the Workflow
+# Running the Workflow
 
-from llama_index.llms.ollama import Ollama
 
 wf = LongRAGWorkflow(timeout=60)
 llm = Ollama("gpt-4o")
@@ -373,7 +371,6 @@ result = await wf.run(
     small_chunk_size=DEFAULT_SMALL_CHUNK_SIZE,
 )
 
-from IPython.display import display, Markdown
 
 res = await wf.run(
     query_str="How can Pittsburgh become a startup hub, and what are the two types of moderates?",

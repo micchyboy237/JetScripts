@@ -1,8 +1,8 @@
 # Set keyboard shortcut aliases / functions
-# alias freeze="pipdeptree -l -d 0 --python .venv/bin/python --freeze | grep -E '^\S' > requirements.txt"
+# alias freeze="pipdeptree -l -d 0 --python .venv/bin/python --freeze | grep -E '^\S' > requirements-frozen.txt"
 deps() {
     local python_path=".venv/bin/python"
-    local output_path="requirements.txt"
+    local output_path="requirements-deps-tree.json"
     local default_python="$HOME/.pyenv/shims/python"
 
     while [[ $# -gt 0 ]]; do
@@ -39,7 +39,7 @@ deps() {
 
 freeze() {
     local python_path=".venv/bin/python"
-    local output_path="requirements.txt"
+    local output_path="requirements-frozen.txt"
     local default_python="$HOME/.pyenv/shims/python"
 
     while [[ $# -gt 0 ]]; do
@@ -169,7 +169,7 @@ setup_venv() {
 
 
 freeze_venv() {
-    freeze -f .venv/bin/python -o requirements.txt
+    freeze -f .venv/bin/python -o requirements-frozen.txt
 }
 
 reinstall_venv() {

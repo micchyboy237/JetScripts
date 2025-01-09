@@ -29,11 +29,15 @@ exclude_files = [
 ]
 include_files = [
     # Client
+    "/Users/jethroestrada/Desktop/External_Projects/PortfolioBaseTemplates/firebase-resume/src/App.css",
+    "/Users/jethroestrada/Desktop/External_Projects/PortfolioBaseTemplates/firebase-resume/src/App.js",
     # "/Users/jethroestrada/Desktop/External_Projects/PortfolioBaseTemplates/firebase-resume/src/hooks/vector/useQueryNodes.js",
+    "/Users/jethroestrada/Desktop/External_Projects/PortfolioBaseTemplates/firebase-resume/src/Components/sidebar/*",
+    "/Users/jethroestrada/Desktop/External_Projects/PortfolioBaseTemplates/firebase-resume/src/Components/vectors/*",
     # Server
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/server/routes/rag.py",
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/server/helpers/rag.py",
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/server/app.py",
+    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/server/routes/rag.py",
+    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/server/helpers/rag.py",
+    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/server/app.py",
 ]
 structure_include = [
     # "*.py"
@@ -45,7 +49,7 @@ exclude_content = []
 
 # Args defaults
 SHORTEN_FUNCTS = False
-INCLUDE_FILE_STRUCTURE = True
+INCLUDE_FILE_STRUCTURE = False
 
 DEFAULT_SYSTEM_MESSAGE = """
 Dont use or add to memory.
@@ -53,34 +57,16 @@ Execute browse or internet search if requested.
 """.strip()
 
 DEFAULT_QUERY_MESSAGE = """
-Create type for nodes endpoints response given this result:
-[
-    {
-        "score": 0.7249999007515096,
-        "node_id": "d5c68ecf-9935-41ac-af20-1b15c2fc5322",
-        "metadata": {
-            "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries/personal_information.md",
-            "file_name": "personal_information.md",
-            "file_type": "text/markdown",
-            "file_size": 573,
-            "creation_date": "2025-01-07",
-            "last_modified_date": "2025-01-07"
-        },
-        "text": "The document contains personal information about an individual named Jethro Reuel A. Estrada. This includes his full name, preferred names (Jethro or Jet), nationality (Filipino), gender (Male), age (34 as of 2023), country of residence (Philippines), languages spoken (English and Tagalog), educational background (BS Degree in Computer Engineering from De La Salle University - Manila, graduated in 2012), and contact details such as email address, WhatsApp link, and phone number. The individual's professional position is listed as a Full Stack Web / Mobile Developer.",
-        "text_length": 572,
-        "start_end": [
-            0,
-            572
-        ],
-        "similarity": 0.7249999007515096
-    }
-]
+Improve sidebar toggle button look and feel.
+- Move it outside of Sidebar component to be fixed on bottom right as "Ask AI".
+- Improve color to have background, typography, size, etc.
 """.strip()
 
 # Project specific
-# DEFAULT_QUERY_MESSAGE += (
-#     "\n- Use standard but beautiful designs if html will be provided."
-# )
+DEFAULT_QUERY_MESSAGE += (
+    "\n- Use beautiful designs if html will be provided."
+    # "\n- If necessary, adjust UI in terms of element positions, color themes and contrasts, typography, font sizes, spacing, alignments, animations, UX, etc."
+)
 
 DEFAULT_INSTRUCTIONS_MESSAGE = """
 - Provide a step by step process of how you would solve the query.

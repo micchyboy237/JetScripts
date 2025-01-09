@@ -1,33 +1,42 @@
+from llama_index.core.tools import FunctionTool
+from typing import Any, List
+from jet.llm.ollama.base import Ollama
+from llama_index.core.workflow import Workflow, StartEvent, StopEvent, step
+from llama_index.core.tools.types import BaseTool
+from llama_index.core.memory import ChatMemoryBuffer
+from llama_index.core.llms.function_calling import FunctionCallingLLM
+from llama_index.core.workflow import Event
+from llama_index.core.tools import ToolSelection, ToolOutput
+from llama_index.core.llms import ChatMessage
+from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+    OTLPSpanExporter as HTTPSpanExporter,
+)
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.sdk import trace as trace_sdk
+import os
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Workflow for a Function Calling Agent
-# 
+#
 # This notebook walks through setting up a `Workflow` to construct a function calling agent from scratch.
-# 
+#
 # Function calling agents work by using an LLM that supports tools/functions in its API (Ollama, Ollama, Anthropic, etc.) to call functions an use tools.
-# 
+#
 # Our workflow will be stateful with memory, and will be able to call the LLM to select tools and process incoming user messages.
 
 # !pip install -U llama-index
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-proj-..."
 
-### [Optional] Set up observability with Llamatrace
-# 
+# [Optional] Set up observability with Llamatrace
+#
 # Set up tracing to visualize each step in the workflow.
 
 # !pip install "llama-index-core>=0.10.43" "openinference-instrumentation-llama-index>=2.2.2" "opentelemetry-proto>=1.12.0" opentelemetry-exporter-otlp opentelemetry-sdk
-
-from opentelemetry.sdk import trace as trace_sdk
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
-    OTLPSpanExporter as HTTPSpanExporter,
-)
-from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
 
 
 PHOENIX_API_KEY = "<YOUR-PHOENIX-API-KEY>"
@@ -43,37 +52,33 @@ tracer_provider.add_span_processor(span_processor=span_phoenix_processor)
 LlamaIndexInstrumentor().instrument(tracer_provider=tracer_provider)
 
 # Since workflows are async first, this all runs fine in a notebook. If you were running in your own code, you would want to use `asyncio.run()` to start an async event loop if one isn't already running.
-# 
+#
 # ```python
 # async def main():
 #     <async code>
-# 
+#
 # if __name__ == "__main__":
 #     import asyncio
 #     asyncio.run(main())
 # ```
 
-## Designing the Workflow
-# 
+# Designing the Workflow
+#
 # An agent consists of several steps
 # 1. Handling the latest incoming user message, including adding to memory and getting the latest chat history
 # 2. Calling the LLM with tools + chat history
 # 3. Parsing out tool calls (if any)
 # 4. If there are tool calls, call them, and loop until there are none
 # 5. When there is no tool calls, return the LLM response
-# 
-### The Workflow Events
-# 
+#
+# The Workflow Events
+#
 # To handle these steps, we need to define a few events:
 # 1. An event to handle new messages and prepare the chat history
 # 2. An event to trigger tool calls
 # 3. An event to handle the results of tool calls
-# 
+#
 # The other steps will use the built-in `StartEvent` and `StopEvent` events.
-
-from llama_index.core.llms import ChatMessage
-from llama_index.core.tools import ToolSelection, ToolOutput
-from llama_index.core.workflow import Event
 
 
 class InputEvent(Event):
@@ -87,18 +92,11 @@ class ToolCallEvent(Event):
 class FunctionOutputEvent(Event):
     output: ToolOutput
 
-### The Workflow Itself
-# 
-# With our events defined, we can construct our workflow and steps. 
-# 
+# The Workflow Itself
+#
+# With our events defined, we can construct our workflow and steps.
+#
 # Note that the workflow automatically validates itself using type annotations, so the type annotations on our steps are very helpful!
-
-from typing import Any, List
-
-from llama_index.core.llms.function_calling import FunctionCallingLLM
-from llama_index.core.memory import ChatMemoryBuffer
-from llama_index.core.tools.types import BaseTool
-from llama_index.core.workflow import Workflow, StartEvent, StopEvent, step
 
 
 class FuncationCallingAgent(Workflow):
@@ -200,22 +198,19 @@ class FuncationCallingAgent(Workflow):
         return InputEvent(input=chat_history)
 
 # And thats it! Let's explore the workflow we wrote a bit.
-# 
+#
 # `prepare_chat_history()`:
 # This is our main entry point. It handles adding the user message to memory, and uses the memory to get the latest chat history. It returns an `InputEvent`.
-# 
+#
 # `handle_llm_input()`:
 # Triggered by an `InputEvent`, it uses the chat history and tools to prompt the llm. If tool calls are found, a `ToolCallEvent` is emitted. Otherwise, we say the workflow is done an emit a `StopEvent`
-# 
+#
 # `handle_tool_calls()`:
 # Triggered by `ToolCallEvent`, it calls tools with error handling and returns tool outputs. This event triggers a **loop** since it emits an `InputEvent`, which takes us back to `handle_llm_input()`
 
-## Run the Workflow!
-# 
+# Run the Workflow!
+#
 # **NOTE:** With loops, we need to be mindful of runtime. Here, we set a timeout of 120s.
-
-from llama_index.core.tools import FunctionTool
-from llama_index.llms.ollama import Ollama
 
 
 def add(x: int, y: int) -> int:

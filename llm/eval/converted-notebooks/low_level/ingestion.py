@@ -1,3 +1,19 @@
+from llama_index.core import StorageContext
+from llama_index.core import VectorStoreIndex
+from jet.llm.ollama.base import OllamaEmbedding
+from jet.llm.ollama.base import Ollama
+from llama_index.core.ingestion import IngestionPipeline
+from llama_index.core.extractors import (
+    QuestionsAnsweredExtractor,
+    TitleExtractor,
+)
+from llama_index.core.schema import TextNode
+from llama_index.core.node_parser import SentenceSplitter
+import fitz
+from llama_index.vector_stores.pinecone import PineconeVectorStore
+from pinecone import Pinecone, Index, ServerlessSpec
+from dotenv import load_dotenv
+import os
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -5,11 +21,11 @@ initialize_ollama_settings()
 # <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/low_level/ingestion.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 # Building Data Ingestion from Scratch
-# 
+#
 # In this tutorial, we show you how to build a data ingestion pipeline into a vector database.
-# 
+#
 # We use Pinecone as the vector database.
-# 
+#
 # We will show how to do the following:
 # 1. How to load in documents.
 # 2. How to use a text splitter to split documents.
@@ -18,14 +34,14 @@ initialize_ollama_settings()
 # 5. How to generate embeddings for each text chunk.
 # 6. How to insert into a vector database.
 
-## Pinecone
-# 
+# Pinecone
+#
 # You will need a [pinecone.io](https://www.pinecone.io/) api key for this tutorial. You can [sign up for free](https://app.pinecone.io/?sessionType=signup) to get a Starter account.
-# 
+#
 # If you create a Starter account, you can name your application anything you like.
-# 
+#
 # Once you have an account, navigate to 'API Keys' in the Pinecone console. You can use the default key or create a new one for this tutorial.
-# 
+#
 # Save your api key and its environment (`gcp_starter` for free accounts). You will need them below.
 
 # If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
@@ -36,20 +52,20 @@ initialize_ollama_settings()
 
 # !pip install llama-index
 
-## Ollama
-# 
+# Ollama
+#
 # You will need an [Ollama](https://openai.com/) api key for this tutorial. Login to your [platform.openai.com](https://platform.openai.com/) account, click on your profile picture in the upper right corner, and choose 'API Keys' from the menu. Create an API key for this tutorial and save it. You will need it below.
 
-## Environment
-# 
+# Environment
+#
 # First we add our dependencies.
 
 # !pip -q install python-dotenv pinecone-client llama-index pymupdf
 
-#### Set Environment Variables
-# 
+# Set Environment Variables
+#
 # We create a file for our environment variables. Do not commit this file or share it!
-# 
+#
 # Note: Google Colabs will let you create but not open a .env
 
 dotenv_path = (
@@ -61,25 +77,21 @@ with open(dotenv_path, "w") as f:
 
 # Set your Ollama api key, and Pinecone api key and environment in the file we created.
 
-import os
-from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=dotenv_path)
 
-## Setup
-# 
+# Setup
+#
 # We build an empty Pinecone Index, and define the necessary LlamaIndex wrappers/abstractions so that we can start loading data into Pinecone.
-# 
-# 
+#
+#
 # Note: Do not save your API keys in the code or add pinecone_env to your repo!
 
-from pinecone import Pinecone, Index, ServerlessSpec
 
 api_key = os.environ["PINECONE_API_KEY"]
 pc = Pinecone(api_key=api_key)
 
 index_name = "llamaindex-rag-fs"
-
 
 
 if index_name not in pc.list_indexes().names():
@@ -94,37 +106,34 @@ pinecone_index = pc.Index(index_name)
 
 pinecone_index.delete(deleteAll=True)
 
-#### Create PineconeVectorStore
-# 
+# Create PineconeVectorStore
+#
 # Simple wrapper abstraction to use in LlamaIndex. Wrap in StorageContext so we can easily load in Nodes.
 
-from llama_index.vector_stores.pinecone import PineconeVectorStore
 
 vector_store = PineconeVectorStore(pinecone_index=pinecone_index)
 
-## Build an Ingestion Pipeline from Scratch
-# 
+# Build an Ingestion Pipeline from Scratch
+#
 # We show how to build an ingestion pipeline as mentioned in the introduction.
-# 
+#
 # Note that steps (2) and (3) can be handled via our `NodeParser` abstractions, which handle splitting and node creation.
-# 
+#
 # For the purposes of this tutorial, we show you how to create these objects manually.
 
-### 1. Load Data
+# 1. Load Data
 
 # !mkdir data
 # !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
-import fitz
 
 file_path = "./data/llama2.pdf"
 doc = fitz.open(file_path)
 
-### 2. Use a Text Splitter to Split Documents
-# 
+# 2. Use a Text Splitter to Split Documents
+#
 # Here we import our `SentenceSplitter` to split document texts into smaller chunks, while preserving paragraphs/sentences as much as possible.
 
-from llama_index.core.node_parser import SentenceSplitter
 
 text_parser = SentenceSplitter(
     chunk_size=1024,
@@ -138,15 +147,14 @@ for doc_idx, page in enumerate(doc):
     text_chunks.extend(cur_text_chunks)
     doc_idxs.extend([doc_idx] * len(cur_text_chunks))
 
-### 3. Manually Construct Nodes from Text Chunks
-# 
+# 3. Manually Construct Nodes from Text Chunks
+#
 # We convert each chunk into a `TextNode` object, a low-level data abstraction in LlamaIndex that stores content but also allows defining metadata + relationships with other Nodes.
-# 
+#
 # We inject metadata from the document into each node.
-# 
+#
 # This essentially replicates logic in our `SentenceSplitter`.
 
-from llama_index.core.schema import TextNode
 
 nodes = []
 for idx, text_chunk in enumerate(text_chunks):
@@ -161,18 +169,12 @@ print(nodes[0].metadata)
 
 print(nodes[0].get_content(metadata_mode="all"))
 
-### [Optional] 4. Extract Metadata from each Node
-# 
+# [Optional] 4. Extract Metadata from each Node
+#
 # We extract metadata from each Node using our Metadata extractors.
-# 
+#
 # This will add more metadata to each Node.
 
-from llama_index.core.extractors import (
-    QuestionsAnsweredExtractor,
-    TitleExtractor,
-)
-from llama_index.core.ingestion import IngestionPipeline
-from llama_index.llms.ollama import Ollama
 
 llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
 
@@ -188,13 +190,12 @@ nodes = await pipeline.arun(nodes=nodes, in_place=False)
 
 print(nodes[0].metadata)
 
-### 5. Generate Embeddings for each Node
-# 
+# 5. Generate Embeddings for each Node
+#
 # Generate document embeddings for each Node using our Ollama embedding model (`text-embedding-ada-002`).
-# 
+#
 # Store these on the `embedding` property on each Node.
 
-from llama_index.embeddings.ollama import OllamaEmbedding
 
 embed_model = OllamaEmbedding(model_name="mxbai-embed-large")
 
@@ -204,22 +205,20 @@ for node in nodes:
     )
     node.embedding = node_embedding
 
-### 6. Load Nodes into a Vector Store
-# 
+# 6. Load Nodes into a Vector Store
+#
 # We now insert these nodes into our `PineconeVectorStore`.
-# 
+#
 # **NOTE**: We skip the VectorStoreIndex abstraction, which is a higher-level abstraction that handles ingestion as well. We use `VectorStoreIndex` in the next section to fast-track retrieval/querying.
 
 vector_store.add(nodes)
 
-## Retrieve and Query from the Vector Store
-# 
+# Retrieve and Query from the Vector Store
+#
 # Now that our ingestion is complete, we can retrieve/query this vector store.
-# 
+#
 # **NOTE**: We can use our high-level `VectorStoreIndex` abstraction here. See the next section to see how to define retrieval at a lower-level!
 
-from llama_index.core import VectorStoreIndex
-from llama_index.core import StorageContext
 
 index = VectorStoreIndex.from_vector_store(vector_store)
 

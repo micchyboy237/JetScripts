@@ -8,8 +8,8 @@ from tqdm.asyncio import tqdm
 from llama_index.core import PromptTemplate
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core import VectorStoreIndex
-from llama_index.embeddings.ollama import OllamaEmbedding
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import OllamaEmbedding
+from jet.llm.ollama.base import Ollama
 import os
 from llama_index.core import SimpleDirectoryReader
 from llama_index.readers.file import PyMuPDFReader

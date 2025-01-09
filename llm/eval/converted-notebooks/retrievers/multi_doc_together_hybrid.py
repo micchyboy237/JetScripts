@@ -1,17 +1,42 @@
+from llama_index.core.query_engine import RetrieverQueryEngine
+from typing import List, Any, Optional
+from llama_index.core.schema import NodeWithScore
+from llama_index.core import QueryBundle
+from llama_index.core.indices.query.embedding_utils import get_top_k_embeddings
+from llama_index.core.retrievers import BaseRetriever
+import pickle
+from tqdm.notebook import tqdm
+import os
+from llama_index.core.retrievers import RecursiveRetriever
+from llama_index.core import SummaryIndex
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core import (
+    load_index_from_storage,
+    StorageContext,
+    VectorStoreIndex,
+)
+from llama_index.core.schema import IndexNode
+from llama_index.core.storage.docstore import SimpleDocumentStore
+from jet.llm.ollama.base import OllamaEmbedding
+from llama_index.embeddings.together import TogetherEmbedding
+from llama_index.core import Document
+from jet.llm.ollama.base import Ollama
+from pathlib import Path
+from llama_index.readers.file import UnstructuredReader
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
 # <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/embeddings/together.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# Chunk + Document Hybrid Retrieval with Long-Context Embeddings (Together.ai) 
-# 
+# Chunk + Document Hybrid Retrieval with Long-Context Embeddings (Together.ai)
+#
 # This notebook shows how to use long-context together.ai embedding models for advanced RAG. We index each document by running the embedding model over the entire document text, as well as embedding each chunk. We then define a custom retriever that can compute both node similarity as well as document similarity.
-# 
+#
 # Visit https://together.ai and sign up to get an API key.
 
-## Setup and Download Data
-# 
+# Setup and Download Data
+#
 # We load in our documentation. For the sake of speed we load in just 10 pages, but of course if you want to stress test your model you should load in all of it.
 
 # %pip install llama-index-embeddings-together
@@ -23,10 +48,6 @@ domain = "docs.llamaindex.ai"
 docs_url = "https://docs.llamaindex.ai/en/latest/"
 # !wget -e robots=off --recursive --no-clobber --page-requisites --html-extension --convert-links --restrict-file-names=windows --domains {domain} --no-parent {docs_url}
 
-from llama_index.readers.file import UnstructuredReader
-from pathlib import Path
-from llama_index.llms.ollama import Ollama
-from llama_index.core import Document
 
 reader = UnstructuredReader()
 
@@ -59,18 +80,15 @@ for idx, f in enumerate(all_html_files):
     print(str(f))
     docs.append(loaded_doc)
 
-## Building Hybrid Retrieval with Chunk Embedding + Parent Embedding
-# 
+# Building Hybrid Retrieval with Chunk Embedding + Parent Embedding
+#
 # Define a custom retriever that does the following:
 # - First retrieve relevant chunks based on embedding similarity
 # - For each chunk, lookup the source document embedding.
 # - Weight it by an alpha.
-# 
+#
 # This is essentially vector retrieval with a reranking step that reweights the node similarities.
 
-from llama_index.embeddings.together import TogetherEmbedding
-from llama_index.embeddings.ollama import OllamaEmbedding
-from llama_index.llms.ollama import Ollama
 
 api_key = "<api_key>"
 
@@ -78,15 +96,15 @@ embed_model = TogetherEmbedding(
     model_name="togethercomputer/m2-bert-80M-32k-retrieval", api_key=api_key
 )
 
-llm = Ollama(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(temperature=0, model="llama3.2",
+             request_timeout=300.0, context_window=4096)
 
-### Create Document Store 
-# 
+# Create Document Store
+#
 # Create docstore for original documents. Embed each document, and put in docstore.
-# 
+#
 # We will refer to this later in our hybrid retrieval algorithm!
 
-from llama_index.core.storage.docstore import SimpleDocumentStore
 
 for doc in docs:
     embedding = embed_model.get_text_embedding(doc.get_content())
@@ -95,22 +113,9 @@ for doc in docs:
 docstore = SimpleDocumentStore()
 docstore.add_documents(docs)
 
-### Build Vector Index
-# 
+# Build Vector Index
+#
 # Let's build the vector index of chunks. Each chunk will also have a reference to its source document through its `index_id` (which can then be used to lookup the source document in the docstore).
-
-from llama_index.core.schema import IndexNode
-from llama_index.core import (
-    load_index_from_storage,
-    StorageContext,
-    VectorStoreIndex,
-)
-from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core import SummaryIndex
-from llama_index.core.retrievers import RecursiveRetriever
-import os
-from tqdm.notebook import tqdm
-import pickle
 
 
 def build_index(docs, out_path: str = "storage/chunk_index"):
@@ -144,17 +149,12 @@ def build_index(docs, out_path: str = "storage/chunk_index"):
 
     return index
 
+
 index = build_index(docs)
 
-### Define Hybrid Retriever
-# 
+# Define Hybrid Retriever
+#
 # We define a hybrid retriever that can first fetch chunks by vector similarity, and then reweight it based on similarity with the parent document (using an alpha parameter).
-
-from llama_index.core.retrievers import BaseRetriever
-from llama_index.core.indices.query.embedding_utils import get_top_k_embeddings
-from llama_index.core import QueryBundle
-from llama_index.core.schema import NodeWithScore
-from typing import List, Any, Optional
 
 
 class HybridRetriever(BaseRetriever):
@@ -185,7 +185,6 @@ class HybridRetriever(BaseRetriever):
 
         nodes = self._retriever.retrieve(query_bundle.query_str)
 
-
         docs = [self._docstore.get_document(n.node.index_id) for n in nodes]
         doc_embeddings = [d.embedding for d in docs]
         query_embedding = self._embed_model.get_query_embedding(
@@ -203,7 +202,8 @@ class HybridRetriever(BaseRetriever):
                 (1 - self._alpha) * doc_similarity
             )
             print(
-                f"Doc {doc_idx} (node score, doc similarity, full similarity): {(node.score, doc_similarity, full_similarity)}"
+                f"Doc {doc_idx} (node score, doc similarity, full similarity): {
+                    (node.score, doc_similarity, full_similarity)}"
             )
             result_tups.append((full_similarity, node))
 
@@ -213,6 +213,7 @@ class HybridRetriever(BaseRetriever):
 
         return [n for _, n in result_tups][:out_top_k]
 
+
 top_k = 10
 out_top_k = 3
 hybrid_retriever = HybridRetriever(
@@ -220,10 +221,12 @@ hybrid_retriever = HybridRetriever(
 )
 base_retriever = index.as_retriever(similarity_top_k=out_top_k)
 
+
 def show_nodes(nodes, out_len: int = 200):
     for idx, n in enumerate(nodes):
         print(f"\n\n >>>>>>>>>>>> ID {n.id_}: {n.metadata['path']}")
         print(n.get_content()[:out_len])
+
 
 query_str = "Tell me more about the LLM interface and where they're used"
 
@@ -235,9 +238,8 @@ base_nodes = base_retriever.retrieve(query_str)
 
 show_nodes(base_nodes)
 
-## Run Some Queries
+# Run Some Queries
 
-from llama_index.core.query_engine import RetrieverQueryEngine
 
 query_engine = RetrieverQueryEngine(hybrid_retriever)
 base_query_engine = index.as_query_engine(similarity_top_k=out_top_k)

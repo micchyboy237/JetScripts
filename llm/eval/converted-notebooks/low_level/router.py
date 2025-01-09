@@ -1,3 +1,19 @@
+from pydantic import Field
+from typing import List
+from llama_index.core.response_synthesizers import TreeSummarize
+from llama_index.core.query_engine import CustomQueryEngine, BaseQueryEngine
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core import SummaryIndex
+from llama_index.core import VectorStoreIndex
+from llama_index.readers.file import PyMuPDFReader
+from pathlib import Path
+from llama_index.program.openai import OllamaPydanticProgram
+from llama_index.core.types import BaseOutputParser
+import json
+from pydantic import BaseModel
+from dataclasses import fields
+from jet.llm.ollama.base import Ollama
+from llama_index.core import PromptTemplate
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -5,31 +21,30 @@ initialize_ollama_settings()
 # <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/low_level/router.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 # Building a Router from Scratch
-# 
+#
 # In this tutorial, we show you how to build an LLM-powered router module that can route a user query to submodules.
-# 
+#
 # Routers are a simple but effective form of automated decision making that can allow you to perform dynamic retrieval/querying over your data.
-# 
+#
 # In LlamaIndex, this is abstracted away with our [Router Modules](https://gpt-index.readthedocs.io/en/latest/core_modules/query_modules/router/root.html).
-# 
+#
 # To build a router, we'll walk through the following steps:
 # - Crafting an initial prompt to select a set of choices
 # - Enforcing structured output (for text completion endpoints)
 # - Try integrating with a native function calling endpoint.
-# 
+#
 # And then we'll plug this into a RAG pipeline to dynamically make decisions on QA vs. summarization.
 
-## 1. Setup a Basic Router Prompt
-# 
+# 1. Setup a Basic Router Prompt
+#
 # At its core, a router is a module that takes in a set of choices. Given a user query, it "selects" a relevant choice.
-# 
+#
 # For simplicity, we'll start with the choices as a set of strings.
 
 # %pip install llama-index-readers-file pymupdf
 # %pip install llama-index-program-openai
 # %pip install llama-index-llms-ollama
 
-from llama_index.core import PromptTemplate
 
 choices = [
     "Useful for questions related to apples",
@@ -57,9 +72,9 @@ router_prompt0 = PromptTemplate(
 
 # Let's try this prompt on a set of toy questions and see what the output brings.
 
-from llama_index.llms.ollama import Ollama
 
 llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+
 
 def get_formatted_prompt(query_str):
     fmt_prompt = router_prompt0.format(
@@ -69,6 +84,7 @@ def get_formatted_prompt(query_str):
         query_str=query_str,
     )
     return fmt_prompt
+
 
 query_str = "Can you tell me more about the amount of Vitamin C in apples"
 fmt_prompt = get_formatted_prompt(query_str)
@@ -92,31 +108,28 @@ print(str(response))
 
 # **Observation**: While the response corresponds to the correct choice, it can be hacky to parse into a structured output (e.g. a single integer). We'd need to do some string parsing on the choices to extract out a single number, and make it robust to failure modes.
 
-## 2. A Router Prompt that can generate structured outputs
-# 
-# Therefore the next step is to try to prompt the model to output a more structured representation (JSON). 
-# 
+# 2. A Router Prompt that can generate structured outputs
+#
+# Therefore the next step is to try to prompt the model to output a more structured representation (JSON).
+#
 # We define an output parser class (`RouterOutputParser`). This output parser will be responsible for both formatting the prompt and also parsing the result into a structured object (an `Answer`).
-# 
+#
 # We then apply the `format` and `parse` methods of the output parser around the LLM call using the router prompt to generate a structured output.
 
-### 2.a Import Answer Class
-# 
+# 2.a Import Answer Class
+#
 # We load in the Answer class from our codebase. It's a very simple dataclass with two fields: `choice` and `reason`
 
-from dataclasses import fields
-from pydantic import BaseModel
-import json
 
 class Answer(BaseModel):
     choice: int
     reason: str
 
+
 print(json.dumps(Answer.schema(), indent=2))
 
-### 2.b Define Router Output Parser
+# 2.b Define Router Output Parser
 
-from llama_index.core.types import BaseOutputParser
 
 FORMAT_STR = """The output should be formatted as a JSON instance that conforms to 
 the JSON schema below. 
@@ -145,22 +158,22 @@ Here is the output schema:
 
 # If we want to put `FORMAT_STR` as part of an f-string as part of a prompt template, then we'll need to escape the curly braces so that they don't get treated as template variables.
 
+
 def _escape_curly_braces(input_string: str) -> str:
     escaped_string = input_string.replace("{", "{{").replace("}", "}}")
     return escaped_string
 
 # We now define a simple parsing function to extract out the JSON string from the LLM response (by searching for square brackets)
 
+
 def _marshal_output_to_json(output: str) -> str:
     output = output.strip()
     left = output.find("[")
     right = output.find("]")
-    output = output[left : right + 1]
+    output = output[left: right + 1]
     return output
 
 # We put these together in our `RouterOutputParser`
-
-from typing import List
 
 
 class RouterOutputParser(BaseOutputParser):
@@ -174,13 +187,12 @@ class RouterOutputParser(BaseOutputParser):
     def format(self, prompt_template: str) -> str:
         return prompt_template + "\n\n" + _escape_curly_braces(FORMAT_STR)
 
-### 2.c Give it a Try
-# 
+# 2.c Give it a Try
+#
 # We create a function called `route_query` that will take in the output parser, llm, and prompt template and output a structured answer.
 
-output_parser = RouterOutputParser()
 
-from typing import List
+output_parser = RouterOutputParser()
 
 
 def route_query(
@@ -201,17 +213,15 @@ def route_query(
 
     return parsed
 
-## 3. Perform Routing with a Function Calling Endpoint
-# 
+# 3. Perform Routing with a Function Calling Endpoint
+#
 # In the previous section, we showed how to build a router with a text completion endpoint. This includes formatting the prompt to encourage the model output structured JSON, and a parse function to load in JSON.
-# 
-# This process can feel a bit messy. Function calling endpoints (e.g. Ollama) abstract away this complexity by allowing the model to natively output structured functions. This obviates the need to manually prompt + parse the outputs. 
-# 
+#
+# This process can feel a bit messy. Function calling endpoints (e.g. Ollama) abstract away this complexity by allowing the model to natively output structured functions. This obviates the need to manually prompt + parse the outputs.
+#
 # LlamaIndex offers an abstraction called a `PydanticProgram` that integrates with a function endpoint to produce a structured Pydantic object. We integrate with Ollama and Guidance.
 
 # We redefine our `Answer` class with annotations, as well as an `Answers` class containing a list of answers.
-
-from pydantic import Field
 
 
 class Answer(BaseModel):
@@ -225,9 +235,9 @@ class Answers(BaseModel):
 
     answers: List[Answer]
 
+
 Answers.schema()
 
-from llama_index.program.openai import OllamaPydanticProgram
 
 router_prompt1 = router_prompt0.partial_format(
     num_choices=len(choices),
@@ -245,30 +255,25 @@ output = program(context_list=choices_str, query_str=query_str)
 
 output
 
-## 4. Plug Router Module as part of a RAG pipeline
-# 
+# 4. Plug Router Module as part of a RAG pipeline
+#
 # In this section we'll put the router module to use in a RAG pipeline. We'll use it to dynamically decide whether to perform question-answering or summarization. We can easily get a question-answering query engine using top-k retrieval through our vector index, while summarization is performed through our summary index. Each query engine is described as a "choice" to our router, and we compose the whole thing into a single query engine.
 
-### Setup: Load Data
-# 
+# Setup: Load Data
+#
 # We load the Llama 2 paper as data.
 
 # !mkdir data
 # !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
-from pathlib import Path
-from llama_index.readers.file import PyMuPDFReader
 
 loader = PyMuPDFReader()
 documents = loader.load(file_path="./data/llama2.pdf")
 
-### Setup: Define Indexes
-# 
+# Setup: Define Indexes
+#
 # Define both a vector index and summary index over this data.
 
-from llama_index.core import VectorStoreIndex
-from llama_index.core import SummaryIndex
-from llama_index.core.node_parser import SentenceSplitter
 
 splitter = SentenceSplitter(chunk_size=1024)
 vector_index = VectorStoreIndex.from_documents(
@@ -281,12 +286,10 @@ summary_index = SummaryIndex.from_documents(
 vector_query_engine = vector_index.as_query_engine(llm=llm)
 summary_query_engine = summary_index.as_query_engine(llm=llm)
 
-### Define RouterQueryEngine
-# 
+# Define RouterQueryEngine
+#
 # We subclass our `CustomQueryEngine` to define a custom router.
 
-from llama_index.core.query_engine import CustomQueryEngine, BaseQueryEngine
-from llama_index.core.response_synthesizers import TreeSummarize
 
 class RouterQueryEngine(CustomQueryEngine):
     """Use our Pydantic program to perform routing."""
@@ -331,6 +334,7 @@ class RouterQueryEngine(CustomQueryEngine):
             )
             return result_response
 
+
 choices = [
     (
         "Useful for answering questions about specific sections of the Llama 2"
@@ -347,8 +351,8 @@ router_query_engine = RouterQueryEngine(
     llm=Ollama(model="llama3.1", request_timeout=300.0, context_window=4096),
 )
 
-### Try our constructed Router Query Engine
-# 
+# Try our constructed Router Query Engine
+#
 # Let's take our self-built router query engine for a spin! We ask a question that routes to the vector query engine, and also another question that routes to the summarization engine.
 
 response = router_query_engine.query(

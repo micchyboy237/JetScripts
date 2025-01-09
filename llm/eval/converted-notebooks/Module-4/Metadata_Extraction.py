@@ -14,7 +14,7 @@ from llama_index.core.extractors import (
 from llama_index.core.node_parser import TokenTextSplitter
 from llama_index.core import Settings
 from llama_index.core.schema import MetadataMode
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 import os
 import nest_asyncio
 from jet.logger import logger

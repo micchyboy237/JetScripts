@@ -9,7 +9,7 @@ from llama_index.core.response_synthesizers import TreeSummarize
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.types import PydanticProgramMode
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 
 from jet.vectors import SettingsManager
 from jet.validation import validate_json

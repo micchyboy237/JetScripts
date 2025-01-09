@@ -1,14 +1,23 @@
+from llama_index.agent.openai import OllamaAgent
+from llama_index.core.query_engine import SubQuestionQueryEngine
+from jet.llm.ollama.base import Ollama
+from llama_index.core.tools import QueryEngineTool, ToolMetadata
+from llama_index.core import load_index_from_storage
+from llama_index.core import Settings
+from llama_index.core import VectorStoreIndex, StorageContext
+from pathlib import Path
+from llama_index.readers.file import UnstructuredReader
+import nest_asyncio
+import openai
+import os
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
-import os
-import openai
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 
-import nest_asyncio
 
 nest_asyncio.apply()
 
@@ -20,8 +29,6 @@ nest_asyncio.apply()
 
 # !pip install llama-hub unstructured
 
-from llama_index.readers.file import UnstructuredReader
-from pathlib import Path
 
 years = [2022, 2021, 2020, 2019]
 
@@ -37,8 +44,6 @@ for year in years:
     doc_set[year] = year_docs
     all_docs.extend(year_docs)
 
-from llama_index.core import VectorStoreIndex, StorageContext
-from llama_index.core import Settings
 
 Settings.chunk_size = 512
 index_set = {}
@@ -51,7 +56,6 @@ for year in years:
     index_set[year] = cur_index
     storage_context.persist(persist_dir=f"./storage/{year}")
 
-from llama_index.core import load_index_from_storage
 
 index_set = {}
 for year in years:
@@ -63,21 +67,19 @@ for year in years:
     )
     index_set[year] = cur_index
 
-from llama_index.core.tools import QueryEngineTool, ToolMetadata
 
 individual_query_engine_tools = [
     QueryEngineTool(
         query_engine=index_set[year].as_query_engine(),
         metadata=ToolMetadata(
             name=f"vector_index_{year}",
-            description=f"useful for when you want to answer queries about the {year} SEC 10-K for Uber",
+            description=f"useful for when you want to answer queries about the {
+                year} SEC 10-K for Uber",
         ),
     )
     for year in years
 ]
 
-from llama_index.llms.ollama import Ollama
-from llama_index.core.query_engine import SubQuestionQueryEngine
 
 query_engine = SubQuestionQueryEngine.from_defaults(
     query_engine_tools=individual_query_engine_tools,
@@ -94,7 +96,6 @@ query_engine_tool = QueryEngineTool(
 
 tools = individual_query_engine_tools + [query_engine_tool]
 
-from llama_index.agent.openai import OllamaAgent
 
 agent = OllamaAgent.from_tools(tools, verbose=True)
 
@@ -124,7 +125,7 @@ print(str(response))
 # 9. Risks associated with operational and compliance challenges, localization, laws and regulations, competition, social acceptance, technological compatibility, improper business practices, liability uncertainty, managing international operations, currency fluctuations, cash transactions, tax consequences, and payment fraud.
 # ========================
 # Some of the biggest risk factors for Uber in 2020 were:
-# 
+#
 # 1. The adverse impact of the COVID-19 pandemic and actions taken to mitigate it on the business.
 # 2. The potential reclassification of drivers as employees, workers, or quasi-employees instead of independent contractors.
 # 3. Intense competition in the mobility, delivery, and logistics industries, with low-cost alternatives and well-capitalized competitors.
@@ -134,7 +135,7 @@ print(str(response))
 # 7. Operational, compliance, and cultural challenges related to the workplace culture and forward-leaning approach.
 # 8. The potential negative impact of international investments and the challenges of conducting business in foreign countries.
 # 9. Risks associated with operational and compliance challenges, localization, laws and regulations, competition, social acceptance, technological compatibility, improper business practices, liability uncertainty, managing international operations, currency fluctuations, cash transactions, tax consequences, and payment fraud.
-# 
+#
 # These risk factors highlight the challenges and uncertainties that Uber faced in 2020.
 
 cross_query_str = "Compare/contrast the risk factors described in the Uber 10-K across years. Give answer in bullet points."
@@ -182,7 +183,7 @@ print(str(response))
 # Got output: The risk factors mentioned in the context include competition with local companies, differing levels of social acceptance, technological compatibility issues, exposure to improper business practices, legal uncertainty, difficulties in managing international operations, fluctuations in currency exchange rates, regulations governing local currencies, tax consequences, financial accounting burdens, difficulties in implementing financial systems, import and export restrictions, political and economic instability, public health concerns, reduced protection for intellectual property rights, limited influence over minority-owned affiliates, and regulatory complexities. These risk factors could adversely affect the international operations, business, financial condition, and operating results of the company.
 # ========================
 # Here is a comparison of the risk factors described in the Uber 10-K reports across years:
-# 
+#
 # 2022 Risk Factors:
 # - Potential adverse effect if drivers were classified as employees instead of independent contractors.
 # - Highly competitive nature of the mobility, delivery, and logistics industries.
@@ -190,7 +191,7 @@ print(str(response))
 # - History of significant losses and expectation of increased operating expenses.
 # - Impact of future pandemics or disease outbreaks on the business and financial results.
 # - Potential harm to the business due to economic conditions and their effect on discretionary consumer spending.
-# 
+#
 # 2021 Risk Factors:
 # - Adverse impact of the COVID-19 pandemic and actions to mitigate it on the business.
 # - Potential reclassification of drivers as employees instead of independent contractors.
@@ -198,7 +199,7 @@ print(str(response))
 # - Need to lower fares or service fees and offer incentives to remain competitive.
 # - History of significant losses and uncertainty of achieving profitability.
 # - Importance of attracting and maintaining a critical mass of platform users.
-# 
+#
 # 2020 Risk Factors:
 # - Adverse impact of the COVID-19 pandemic on the business.
 # - Potential reclassification of drivers as employees.
@@ -207,7 +208,7 @@ print(str(response))
 # - History of significant losses and potential future expenses.
 # - Importance of attracting and maintaining a critical mass of platform users.
 # - Operational and cultural challenges faced by the company.
-# 
+#
 # 2019 Risk Factors:
 # - Competition with local companies.
 # - Differing levels of social acceptance.
@@ -226,7 +227,7 @@ print(str(response))
 # - Reduced protection for intellectual property rights.
 # - Limited influence over minority-owned affiliates.
 # - Regulatory complexities.
-# 
+#
 # These comparisons highlight both common and unique risk factors that Uber faced in different years.
 
 agent = OllamaAgent.from_tools(tools)  # verbose=False by default
@@ -240,19 +241,19 @@ while True:
 
 # User:  What were some of the legal proceedings against Uber in 2022?
 # Agent: In 2022, Uber faced several legal proceedings. Some of the notable ones include:
-# 
+#
 # 1. Petition against Proposition 22: A petition was filed in California alleging that Proposition 22, which classifies app-based drivers as independent contractors, is unconstitutional.
-# 
+#
 # 2. Lawsuit by Massachusetts Attorney General: The Massachusetts Attorney General filed a lawsuit against Uber, claiming that drivers should be classified as employees and entitled to protections under wage and labor laws.
-# 
+#
 # 3. Allegations by New York Attorney General: The New York Attorney General made allegations against Uber regarding the misclassification of drivers and related employment violations.
-# 
+#
 # 4. Swiss social security rulings: Swiss social security rulings classified Uber drivers as employees, which could have implications for Uber's operations in Switzerland.
-# 
+#
 # 5. Class action lawsuits in Australia: Uber faced class action lawsuits in Australia, with allegations that the company conspired to harm participants in the taxi, hire-car, and limousine industries.
-# 
+#
 # It's important to note that the outcomes of these legal proceedings are uncertain and may vary.
-# 
+#
 # User:
 
 logger.info("\n\n[DONE]", bright=True)

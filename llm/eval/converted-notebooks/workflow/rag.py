@@ -1,29 +1,42 @@
+from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
+from jet.llm.ollama.base import OllamaEmbedding
+from jet.llm.ollama.base import Ollama
+from llama_index.core.workflow import (
+    Context,
+    Workflow,
+    StartEvent,
+    StopEvent,
+    step,
+)
+from llama_index.core.postprocessor.llm_rerank import LLMRerank
+from llama_index.core.response_synthesizers import CompactAndRefine
+from llama_index.core.schema import NodeWithScore
+from llama_index.core.workflow import Event
+from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+    OTLPSpanExporter as HTTPSpanExporter,
+)
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.sdk import trace as trace_sdk
+import os
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
 # RAG Workflow with Reranking
-# 
+#
 # This notebook walks through setting up a `Workflow` to perform basic RAG with reranking.
 
 # !pip install -U llama-index
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-proj-..."
 
-### [Optional] Set up observability with Llamatrace
-# 
+# [Optional] Set up observability with Llamatrace
+#
 # Set up tracing to visualize each step in the workflow.
 
 # %pip install "openinference-instrumentation-llama-index>=3.0.0" "opentelemetry-proto>=1.12.0" opentelemetry-exporter-otlp opentelemetry-sdk
-
-from opentelemetry.sdk import trace as trace_sdk
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
-    OTLPSpanExporter as HTTPSpanExporter,
-)
-from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
 
 
 PHOENIX_API_KEY = "<YOUR-PHOENIX-API-KEY>"
@@ -42,36 +55,33 @@ LlamaIndexInstrumentor().instrument(tracer_provider=tracer_provider)
 # !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
 # Since workflows are async first, this all runs fine in a notebook. If you were running in your own code, you would want to use `asyncio.run()` to start an async event loop if one isn't already running.
-# 
+#
 # ```python
 # async def main():
 #     <async code>
-# 
+#
 # if __name__ == "__main__":
 #     import asyncio
 #     asyncio.run(main())
 # ```
 
-## Designing the Workflow
-# 
+# Designing the Workflow
+#
 # RAG + Reranking consists of some clearly defined steps
 # 1. Indexing data, creating an index
 # 2. Using that index + a query to retrieve relevant text chunks
 # 3. Rerank the text retrieved text chunks using the original query
 # 4. Synthesizing a final response
-# 
+#
 # With this in mind, we can create events and workflow steps to follow this process!
-# 
-### The Workflow Events
-# 
+#
+# The Workflow Events
+#
 # To handle these steps, we need to define a few events:
 # 1. An event to pass retrieved nodes to the reranker
 # 2. An event to pass reranked nodes to the synthesizer
-# 
+#
 # The other steps will use the built-in `StartEvent` and `StopEvent` events.
-
-from llama_index.core.workflow import Event
-from llama_index.core.schema import NodeWithScore
 
 
 class RetrieverEvent(Event):
@@ -85,25 +95,11 @@ class RerankEvent(Event):
 
     nodes: list[NodeWithScore]
 
-### The Workflow Itself
-# 
-# With our events defined, we can construct our workflow and steps. 
-# 
+# The Workflow Itself
+#
+# With our events defined, we can construct our workflow and steps.
+#
 # Note that the workflow automatically validates itself using type annotations, so the type annotations on our steps are very helpful!
-
-from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
-from llama_index.core.response_synthesizers import CompactAndRefine
-from llama_index.core.postprocessor.llm_rerank import LLMRerank
-from llama_index.core.workflow import (
-    Context,
-    Workflow,
-    StartEvent,
-    StopEvent,
-    step,
-)
-
-from llama_index.llms.ollama import Ollama
-from llama_index.embeddings.ollama import OllamaEmbedding
 
 
 class RAGWorkflow(Workflow):
@@ -160,7 +156,8 @@ class RAGWorkflow(Workflow):
     @step
     async def synthesize(self, ctx: Context, ev: RerankEvent) -> StopEvent:
         """Return a streaming response using reranked nodes."""
-        llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+        llm = Ollama(model="llama3.1", request_timeout=300.0,
+                     context_window=4096)
         summarizer = CompactAndRefine(llm=llm, streaming=True, verbose=True)
         query = await ctx.get("query", default=None)
 
@@ -168,13 +165,14 @@ class RAGWorkflow(Workflow):
         return StopEvent(result=response)
 
 # And thats it! Let's explore the workflow we wrote a bit.
-# 
+#
 # - We have two entry points (the steps that accept `StartEvent`)
 # - The steps themselves decide when they can run
 # - The workflow context is used to store the user query
 # - The nodes are passed around, and finally a streaming response is returned
 
-### Run the Workflow!
+# Run the Workflow!
+
 
 w = RAGWorkflow()
 

@@ -1,3 +1,20 @@
+from llama_index.core.query_engine import RetrieverQueryEngine
+from typing import Any, List
+from llama_index.core.retrievers import BaseRetriever
+from llama_index.core import QueryBundle
+from llama_index.core.response.notebook_utils import display_source_node
+from typing import Optional
+from llama_index.core.schema import NodeWithScore
+from llama_index.core.vector_stores import VectorStoreQuery
+from jet.llm.ollama.base import OllamaEmbedding
+from llama_index.core import StorageContext
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core import VectorStoreIndex
+from llama_index.readers.file import PyMuPDFReader
+from pathlib import Path
+from llama_index.vector_stores.pinecone import PineconeVectorStore
+import os
+from pinecone import Pinecone, Index, ServerlessSpec
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -5,19 +22,19 @@ initialize_ollama_settings()
 # <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/low_level/retrieval.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 # Building Retrieval from Scratch
-# 
+#
 # In this tutorial, we show you how to build a standard retriever against a vector database, that will fetch nodes via top-k similarity.
-# 
+#
 # We use Pinecone as the vector database. We load in nodes using our high-level ingestion abstractions (to see how to build this from scratch, see our previous tutorial!).
-# 
+#
 # We will show how to do the following:
 # 1. How to generate a query embedding
 # 2. How to query the vector database using different search modes (dense, sparse, hybrid)
 # 3. How to parse results into a set of Nodes
 # 4. How to put this in a custom retriever
 
-## Setup
-# 
+# Setup
+#
 # We build an empty Pinecone Index, and define the necessary LlamaIndex wrappers/abstractions so that we can start loading data into Pinecone.
 
 # If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
@@ -28,10 +45,8 @@ initialize_ollama_settings()
 
 # !pip install llama-index
 
-#### Build Pinecone Index
+# Build Pinecone Index
 
-from pinecone import Pinecone, Index, ServerlessSpec
-import os
 
 api_key = os.environ["PINECONE_API_KEY"]
 pc = Pinecone(api_key=api_key)
@@ -49,34 +64,28 @@ pinecone_index = pc.Index(dataset_name)
 
 pinecone_index.delete(deleteAll=True)
 
-#### Create PineconeVectorStore
-# 
+# Create PineconeVectorStore
+#
 # Simple wrapper abstraction to use in LlamaIndex. Wrap in StorageContext so we can easily load in Nodes.
 
-from llama_index.vector_stores.pinecone import PineconeVectorStore
 
 vector_store = PineconeVectorStore(pinecone_index=pinecone_index)
 
-#### Load Documents
+# Load Documents
 
 # !mkdir data
 # !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
-from pathlib import Path
-from llama_index.readers.file import PyMuPDFReader
 
 loader = PyMuPDFReader()
 documents = loader.load(file_path="./data/llama2.pdf")
 
-#### Load into Vector Store
-# 
-# Load in documents into the PineconeVectorStore. 
-# 
+# Load into Vector Store
+#
+# Load in documents into the PineconeVectorStore.
+#
 # **NOTE**: We use high-level ingestion abstractions here, with `VectorStoreIndex.from_documents.` We'll refrain from using `VectorStoreIndex` for the rest of this tutorial.
 
-from llama_index.core import VectorStoreIndex
-from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core import StorageContext
 
 splitter = SentenceSplitter(chunk_size=1024)
 storage_context = StorageContext.from_defaults(vector_store=vector_store)
@@ -84,29 +93,27 @@ index = VectorStoreIndex.from_documents(
     documents, transformations=[splitter], storage_context=storage_context
 )
 
-## Define Vector Retriever
-# 
+# Define Vector Retriever
+#
 # Now we're ready to define our retriever against this vector store to retrieve a set of nodes.
-# 
+#
 # We'll show the processes step by step and then wrap it into a function.
 
 query_str = "Can you tell me about the key concepts for safety finetuning"
 
-### 1. Generate a Query Embedding
+# 1. Generate a Query Embedding
 
-from llama_index.embeddings.ollama import OllamaEmbedding
 
 embed_model = OllamaEmbedding(model_name="mxbai-embed-large")
 
 query_embedding = embed_model.get_query_embedding(query_str)
 
-### 2. Query the Vector Database
-# 
+# 2. Query the Vector Database
+#
 # We show how to query the vector database with different modes: default, sparse, and hybrid.
-# 
+#
 # We first construct a `VectorStoreQuery` and then query the vector db.
 
-from llama_index.core.vector_stores import VectorStoreQuery
 
 query_mode = "default"
 
@@ -117,12 +124,10 @@ vector_store_query = VectorStoreQuery(
 query_result = vector_store.query(vector_store_query)
 query_result
 
-### 3. Parse Result into a set of Nodes
-# 
+# 3. Parse Result into a set of Nodes
+#
 # The `VectorStoreQueryResult` returns the set of nodes and similarities. We construct a `NodeWithScore` object with this.
 
-from llama_index.core.schema import NodeWithScore
-from typing import Optional
 
 nodes_with_scores = []
 for index, node in enumerate(query_result.nodes):
@@ -131,18 +136,13 @@ for index, node in enumerate(query_result.nodes):
         score = query_result.similarities[index]
     nodes_with_scores.append(NodeWithScore(node=node, score=score))
 
-from llama_index.core.response.notebook_utils import display_source_node
 
 for node in nodes_with_scores:
     display_source_node(node, source_length=1000)
 
-### 4. Put this into a Retriever
-# 
+# 4. Put this into a Retriever
+#
 # Let's put this into a Retriever subclass that can plug into the rest of LlamaIndex workflows!
-
-from llama_index.core import QueryBundle
-from llama_index.core.retrievers import BaseRetriever
-from typing import Any, List
 
 
 class PineconeRetriever(BaseRetriever):
@@ -187,6 +187,7 @@ class PineconeRetriever(BaseRetriever):
 
         return nodes_with_scores
 
+
 retriever = PineconeRetriever(
     vector_store, embed_model, query_mode="default", similarity_top_k=2
 )
@@ -195,11 +196,10 @@ retrieved_nodes = retriever.retrieve(query_str)
 for node in retrieved_nodes:
     display_source_node(node, source_length=1000)
 
-## Plug this into our RetrieverQueryEngine to synthesize a response
-# 
+# Plug this into our RetrieverQueryEngine to synthesize a response
+#
 # **NOTE**: We'll cover more on how to build response synthesis from scratch in future tutorials!
 
-from llama_index.core.query_engine import RetrieverQueryEngine
 
 query_engine = RetrieverQueryEngine.from_args(retriever)
 

@@ -1,8 +1,23 @@
+from llama_index.readers.file import ImageReader
+from PIL import Image
+from constants import REFINE_TEMPLATE, TEXT_QA_TEMPLATE
+from llama_index.core.llms import ChatMessage, MessageRole
+from llama_index.core.prompts.utils import is_chat_model
+from llama_index.core import (
+    PromptTemplate,
+    SelectorPromptTemplate,
+    ChatPromptTemplate,
+)
+from llama_index.core import Settings, VectorStoreIndex
+from llama_index.core import Settings
+from jet.llm.ollama.base import Ollama
+from llama_index.core import Document, SummaryIndex, load_index_from_storage
+import os
+import streamlit as st
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
-import streamlit as st
 
 st.title("🦙 Llama Index Term Extractor 🦙")
 
@@ -12,8 +27,6 @@ if st.button("Extract Terms and Definitions") and document_text:
         extracted_terms = document_text  # this is a placeholder!
     st.write(extracted_terms)
 
-import os
-import streamlit as st
 
 DEFAULT_TERM_STR = (
     "Make a list of terms and definitions that are defined in the context, "
@@ -46,13 +59,9 @@ with upload_tab:
             extracted_terms = document_text  # this is a placeholder!
         st.write(extracted_terms)
 
-from llama_index.core import Document, SummaryIndex, load_index_from_storage
-from llama_index.llms.ollama import Ollama
-from llama_index.core import Settings
-
 
 def get_llm(llm_name, model_temperature, api_key, max_tokens=256):
-#     os.environ["OPENAI_API_KEY"] = api_key
+    #     os.environ["OPENAI_API_KEY"] = api_key
     return Ollama(
         temperature=model_temperature, model=llm_name, max_tokens=max_tokens
     )
@@ -84,6 +93,7 @@ def extract_terms(
     }
     return terms_to_definition
 
+
 ...
 with upload_tab:
     st.subheader("Extract and Query Definitions")
@@ -99,7 +109,6 @@ with upload_tab:
             )
         st.write(extracted_terms)
 
-from llama_index.core import Settings, VectorStoreIndex
 
 ...
 if "all_terms" not in st.session_state:
@@ -210,11 +219,13 @@ with query_tab:
                 )
             st.markdown(str(response))
 
+
 def insert_terms(terms_to_definition):
     for term, definition in terms_to_definition.items():
         doc = Document(text=f"Term: {term}\nDefinition: {definition}")
         st.session_state["llama_index"].insert(doc)
     st.session_state["llama_index"].storage_context.persist()
+
 
 @st.cache_resource
 def initialize_index(llm_name, model_temperature, api_key):
@@ -225,18 +236,12 @@ def initialize_index(llm_name, model_temperature, api_key):
 
     return index
 
+
 ...
 if "all_terms" not in st.session_state:
     st.session_state["all_terms"] = DEFAULT_TERMS
 ...
 
-from llama_index.core import (
-    PromptTemplate,
-    SelectorPromptTemplate,
-    ChatPromptTemplate,
-)
-from llama_index.core.prompts.utils import is_chat_model
-from llama_index.core.llms import ChatMessage, MessageRole
 
 DEFAULT_TEXT_QA_PROMPT_TMPL = (
     "Context information is below. \n"
@@ -283,7 +288,6 @@ REFINE_TEMPLATE = SelectorPromptTemplate(
     conditionals=[(is_chat_model, CHAT_REFINE_PROMPT)],
 )
 
-from constants import REFINE_TEMPLATE, TEXT_QA_TEMPLATE
 
 ...
 if "llama_index" in st.session_state:
@@ -303,9 +307,6 @@ if "llama_index" in st.session_state:
             )
         st.markdown(str(response))
 ...
-
-from PIL import Image
-from llama_index.readers.file import ImageReader
 
 
 @st.cache_resource

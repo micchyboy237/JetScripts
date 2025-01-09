@@ -1,73 +1,81 @@
+from llama_index.core.response.notebook_utils import display_source_node
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core.response_synthesizers import get_response_synthesizer
+from llama_index.core.retrievers import VectorIndexRetriever
+from llama_index.core.memory import ChatMemoryBuffer
+from llama_index.core.chat_engine import SimpleChatEngine
+from llama_index.core import SummaryIndex
+from llama_index.core import VectorStoreIndex
+from llama_index.core.node_parser import TokenTextSplitter
+from llama_index.core import Settings
+from jet.llm.ollama.base import Ollama
+from jet.llm.ollama.base import OllamaEmbedding
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+import os
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Components Of LlamaIndex
-# 
+#
 # In this notebook we will demonstrate building RAG application and customize it using different components of LlamaIndex.
-# 
+#
 # 1. Question Answering
 # 2. Summarization.
 # 3. ChatEngine.
 # 4. Customizing QA System.
 # 5. Index as Retriever.
-# 
+#
 # [ChatEngine Documentation](https://docs.llamaindex.ai/en/stable/module_guides/deploying/chat_engines/usage_pattern/ )
 
-## Installation
+# Installation
 
 # !pip install llama-index
 
-## Setup API Key
+# Setup API Key
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-## Download Data
+# Download Data
 
 # !wget "https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt" "paul_graham_essay.txt"
 
-## Load Data
+# Load Data
 
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 
 documents = SimpleDirectoryReader(
     input_files=["paul_graham_essay.txt"]
 ).load_data()
 
-## Set LLM and Embedding Model
+# Set LLM and Embedding Model
 
-from llama_index.embeddings.ollama import OllamaEmbedding
-from llama_index.llms.ollama import Ollama
-from llama_index.core import Settings
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.2)
+llm = Ollama(model="llama3.2", request_timeout=300.0,
+             context_window=4096, temperature=0.2)
 embed_model = OllamaEmbedding(model_name="mxbai-embed-large")
 
 Settings.llm = llm
 Settings.embed_model = embed_model
 
-## Create Nodes
+# Create Nodes
 
-from llama_index.core.node_parser import TokenTextSplitter
 
 splitter = TokenTextSplitter(chunk_size=1024, chunk_overlap=20)
 nodes = splitter.get_nodes_from_documents(documents)
 
 nodes[0]
 
-## Create Index
+# Create Index
 
-from llama_index.core import VectorStoreIndex
 
 index = VectorStoreIndex(nodes)  # VectorStoreIndex.from_documents(documents)
 
-## Create QueryEngine
+# Create QueryEngine
 
 query_engine = index.as_query_engine(similarity_top_k=5)
 
-## Querying
+# Querying
 
 response = query_engine.query("What did Paul Graham do growing up?")
 
@@ -77,9 +85,8 @@ print(len(response.source_nodes))
 
 response.source_nodes[0]
 
-## Summarization
+# Summarization
 
-from llama_index.core import SummaryIndex
 
 summary_index = SummaryIndex(nodes)
 
@@ -88,11 +95,10 @@ query_engine = summary_index.as_query_engine()
 summary = query_engine.query("Provide the summary of the document.")
 print(summary)
 
-## ChatEngines
+# ChatEngines
 
-### Simple ChatEngine
+# Simple ChatEngine
 
-from llama_index.core.chat_engine import SimpleChatEngine
 
 chat_engine = SimpleChatEngine.from_defaults()
 
@@ -107,7 +113,7 @@ response
 
 chat_engine.chat_repl()
 
-### CondenseQuestion ChatEngine
+# CondenseQuestion ChatEngine
 
 chat_engine = index.as_chat_engine(chat_mode="condense_question", verbose=True)
 
@@ -123,9 +129,8 @@ response = chat_engine.chat("Can you tell me more?")
 
 print(response)
 
-### Context ChatEngine
+# Context ChatEngine
 
-from llama_index.core.memory import ChatMemoryBuffer
 
 memory = ChatMemoryBuffer.from_defaults(token_limit=3900)
 
@@ -150,9 +155,8 @@ print(response)
 response = chat_engine.chat("Can you tell me more?")
 print(response)
 
-### CondenseContext ChatEngine
+# CondenseContext ChatEngine
 
-from llama_index.core.memory import ChatMemoryBuffer
 
 memory = ChatMemoryBuffer.from_defaults(token_limit=3900)
 
@@ -186,11 +190,8 @@ response = chat_engine.chat("Can you tell me more?")
 
 print(response)
 
-## Customizing RAG Pipeline
+# Customizing RAG Pipeline
 
-from llama_index.core.retrievers import VectorIndexRetriever
-from llama_index.core.response_synthesizers import get_response_synthesizer
-from llama_index.core.query_engine import RetrieverQueryEngine
 
 splitter = TokenTextSplitter(chunk_size=1024, chunk_overlap=20)
 nodes = splitter.get_nodes_from_documents(documents)
@@ -210,13 +211,12 @@ response = query_engine.query("What did Paul Graham do growing up?")
 
 print(response)
 
-## Index as Retriever
+# Index as Retriever
 
 retriever = index.as_retriever(similarity_top_k=3)
 
 retrieved_nodes = retriever.retrieve("What did Paul Graham do growing up?")
 
-from llama_index.core.response.notebook_utils import display_source_node
 
 for text_node in retrieved_nodes:
     display_source_node(text_node, source_length=500)

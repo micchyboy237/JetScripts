@@ -1,7 +1,7 @@
 import pandas as pd
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.evaluation import PairwiseComparisonEvaluator
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Response
 import logging
 import nest_asyncio

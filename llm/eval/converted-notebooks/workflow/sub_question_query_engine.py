@@ -1,10 +1,30 @@
+import json
+import os
+from llama_index.utils.workflow import draw_all_possible_flows
+from jet.llm.ollama.base import Ollama
+from llama_index.core.agent import ReActAgent
+from llama_index.core.workflow import (
+    step,
+    Context,
+    Workflow,
+    Event,
+    StartEvent,
+    StopEvent,
+)
+from llama_index.core.tools import QueryEngineTool, ToolMetadata
+from llama_index.core import (
+    SimpleDirectoryReader,
+    VectorStoreIndex,
+    StorageContext,
+    load_index_from_storage,
+)
 import asyncio
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Sub Question Query Engine as a workflow
-# 
+#
 # LlamaIndex has a built-in Sub-Question Query Engine. Here, we replace it with a Workflow-based equivalent.
 
 # First we install our dependencies:
@@ -16,43 +36,25 @@ initialize_ollama_settings()
 
 # Bring in our dependencies as imports:
 
-import os, json
-from llama_index.core import (
-    SimpleDirectoryReader,
-    VectorStoreIndex,
-    StorageContext,
-    load_index_from_storage,
-)
-from llama_index.core.tools import QueryEngineTool, ToolMetadata
-from llama_index.core.workflow import (
-    step,
-    Context,
-    Workflow,
-    Event,
-    StartEvent,
-    StopEvent,
-)
-from llama_index.core.agent import ReActAgent
-from llama_index.llms.ollama import Ollama
-from llama_index.utils.workflow import draw_all_possible_flows
 
 # Define the Sub Question Query Engine as a Workflow
-# 
+#
 # * Our StartEvent goes to `query()`, which takes care of several things:
 #   * Accepts and stores the original query
 #   * Stores the LLM to handle the queries
 #   * Stores the list of tools to enable sub-questions
 #   * Passes the original question to the LLM, asking it to split up the question into sub-questions
 #   * Fires off a `QueryEvent` for every sub-question generated
-# 
+#
 # * QueryEvents go to `sub_question()`, which instantiates a new ReAct agent with the full list of tools available and lets it select which one to use.
 #   * This is slightly better than the actual SQQE built-in to LlamaIndex, which cannot use multiple tools
 #   * Each QueryEvent generates an `AnswerEvent`
-# 
+#
 # * AnswerEvents go to `combine_answers()`.
 #   * This uses `self.collect_events()` to wait for every QueryEvent to return an answer.
 #   * All the answers are then combined into a final prompt for the LLM to consolidate them into a single response
 #   * A StopEvent is generated to return the final result
+
 
 class QueryEvent(Event):
     question: str
@@ -154,6 +156,7 @@ class SubQuestionQueryEngine(Workflow):
 
         return StopEvent(result=str(response))
 
+
 draw_all_possible_flows(
     SubQuestionQueryEngine, filename="sub_question_query_engine.html"
 )
@@ -172,9 +175,9 @@ draw_all_possible_flows(
 # !wget "https://www.dropbox.com/scl/fi/vip161t63s56vd94neqlt/2023-CSF_Proposed_Budget_Book_June_2023_Master_Web.pdf?rlkey=hemoce3w1jsuf6s2bz87g549i&dl=0" -O "./data/sf_budgets/2023 - 2023-CSF_Proposed_Budget_Book_June_2023_Master_Web.pdf"
 
 # Load data and run the workflow
-# 
+#
 # Just like using the built-in Sub-Question Query Engine, we create our query tools and instantiate an LLM and pass them in.
-# 
+#
 # Each tool is its own query engine based on a single (very lengthy) San Francisco budget document, each of which is 300+ pages. To save time on repeated runs, we persist our generated indexes to disk.
 
 # from google.colab import userdata
@@ -207,13 +210,16 @@ for file in files:
             query_engine=engine,
             metadata=ToolMetadata(
                 name=f"budget_{year}",
-                description=f"Information about San Francisco's budget in {year}",
+                description=f"Information about San Francisco's budget in {
+                    year}",
             ),
         )
     )
 
 engine = SubQuestionQueryEngine(timeout=120, verbose=True)
 llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+
+
 async def run_engine():
     result = await engine.run(
         llm=llm,
@@ -226,7 +232,7 @@ result = asyncio.run(run_engine())
 print(result)
 
 # Our debug output is lengthy! You can see the sub-questions being generated and then `sub_question()` being repeatedly invoked, each time generating a brief log of ReAct agent thoughts and actions to answer each smaller question.
-# 
+#
 # You can see `combine_answers` running multiple times; these were triggered by each `AnswerEvent` but before all 8 `AnswerEvents` were collected. On its final run it generates a full prompt, combines the answers and returns the result.
 
 logger.info("\n\n[DONE]", bright=True)

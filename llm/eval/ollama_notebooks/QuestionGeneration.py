@@ -1,10 +1,10 @@
-```python
-import logging
-import sys
-import pandas as pd
-from llama_index.core.evaluation import DatasetGenerator, RelevancyEvaluator
+from jet.llm.ollama.base import Ollama
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex, Response
-from llama_index.llms.ollama import Ollama
+from llama_index.core.evaluation import DatasetGenerator, RelevancyEvaluator
+import pandas as pd
+import sys
+import logging
+```python
 # !mkdir -p 'data/paul_graham/'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 reader = SimpleDirectoryReader("./data/paul_graham/")
@@ -15,6 +15,8 @@ eval_questions
 ollama = Ollama(temperature=0, model="llama3.1")
 evaluator_ollama = RelevancyEvaluator(llm=ollama)
 vector_index = VectorStoreIndex.from_documents(documents)
+
+
 def display_eval_df(query: str, response: Response, eval_result: str) -> None:
     eval_df = pd.DataFrame(
         {
@@ -35,6 +37,8 @@ def display_eval_df(query: str, response: Response, eval_result: str) -> None:
         subset=["Response", "Source"]
     )
     display(eval_df)
+
+
 query_engine = vector_index.as_query_engine()
 response_vector = query_engine.query(eval_questions[1])
 eval_result = evaluator_ollama.evaluate_response(

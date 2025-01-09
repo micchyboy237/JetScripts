@@ -8,7 +8,7 @@ from llama_index.core.vector_stores.simple import SimpleVectorStore
 from llama_index.graph_stores.nebula import NebulaPropertyGraphStore
 from llama_index.graph_stores.neo4j import Neo4jPropertyGraphStore
 from llama_index.core.indices.property_graph import SchemaLLMPathExtractor
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from typing import Literal
 import nest_asyncio
 from llama_index.core import SimpleDirectoryReader

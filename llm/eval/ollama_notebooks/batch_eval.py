@@ -1,19 +1,19 @@
-```python
-import nest_asyncio
-nest_asyncio.apply()
-import os
-os.environ["OPENAI_API_KEY"] = "sk-..."
-from jet.llm.ollama import initialize_ollama_settings
-initialize_ollama_settings()
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Response
-from llama_index.llms.ollama import Ollama
+import pandas as pd
+from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.evaluation import (
     FaithfulnessEvaluator,
     RelevancyEvaluator,
     CorrectnessEvaluator,
 )
-from llama_index.core.node_parser import SentenceSplitter
-import pandas as pd
+from jet.llm.ollama.base import Ollama
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Response
+from jet.llm.ollama import initialize_ollama_settings
+import os
+import nest_asyncio
+```python
+nest_asyncio.apply()
+os.environ["OPENAI_API_KEY"] = "sk-..."
+initialize_ollama_settings()
 pd.set_option("display.max_colwidth", 0)
 ollama = Ollama(temperature=0, model="llama3.1")
 faithfulness_ollama = FaithfulnessEvaluator(llm=ollama)
@@ -38,6 +38,8 @@ print(eval_results["faithfulness"][0].dict().keys())
 print(eval_results["faithfulness"][0].passing)
 print(eval_results["faithfulness"][0].response)
 print(eval_results["faithfulness"][0].contexts)
+
+
 def get_eval_results(key, eval_results):
     results = eval_results[key]
     correct = 0
@@ -47,6 +49,8 @@ def get_eval_results(key, eval_results):
     score = correct / len(results)
     print(f"{key} Score: {score}")
     return score
+
+
 score = get_eval_results("faithfulness", eval_results)
 score = get_eval_results("relevancy", eval_results)
 ```

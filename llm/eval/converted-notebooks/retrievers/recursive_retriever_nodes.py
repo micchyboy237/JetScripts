@@ -19,12 +19,12 @@ from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core import Document
 import json
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import VectorStoreIndex
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.retrievers import RecursiveRetriever
 from script_utils import display_source_nodes
-from llama_index.embeddings.ollama import OllamaEmbedding
+from jet.llm.ollama.base import OllamaEmbedding
 from jet.cache.joblib import load_from_cache_or_compute
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings, large_embed_model

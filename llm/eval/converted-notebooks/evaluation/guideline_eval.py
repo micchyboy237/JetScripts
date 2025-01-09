@@ -1,3 +1,6 @@
+import nest_asyncio
+from jet.llm.ollama.base import Ollama
+from llama_index.core.evaluation import GuidelineEvaluator
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -11,16 +14,8 @@ initialize_ollama_settings()
 # If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 
 
-
-
-
-from llama_index.core.evaluation import GuidelineEvaluator
-from llama_index.llms.ollama import Ollama
-
-from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
-import nest_asyncio
 
 nest_asyncio.apply()
 

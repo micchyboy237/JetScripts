@@ -1,3 +1,18 @@
+import nest_asyncio
+from llama_index.core.workflow import (
+    Context,
+    Event,
+    StartEvent,
+    StopEvent,
+    Workflow,
+    step,
+)
+from typing import Optional
+import uuid
+from llama_index.core.prompts import PromptTemplate
+from llama_index.core.bridge.pydantic import BaseModel, Field
+from jet.llm.ollama.base import Ollama
+from typing import Any, List
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -7,18 +22,13 @@ initialize_ollama_settings()
 # Choose Your Own Adventure Workflow (Human In The Loop)
 
 # For some Workflow applications, it may desirable and/or required to have humans involved in its execution. For example, a step of a Workflow may need human expertise or input in order to run. In another scenario, it may be required to have a human validate the initial output of a Workflow.
-# 
+#
 # In this notebook, we show how one can implement a human-in-the-loop pattern with Workflows. Here we'll build a Workflow that creates stories in the style of Choose Your Own Adventure, where the LLM produces a segment of the story along with potential actions, and a human is required to choose from one of those actions.
 
-## Generating Segments Of The Story With An LLM
+# Generating Segments Of The Story With An LLM
 
 # Here, we'll make use of the ability to produce structured outputs from an LLM. We will task the LLM to create a segment of the story that is in continuation of previously generated segments and action choices.
 
-from typing import Any, List
-
-from llama_index.llms.ollama import Ollama
-from llama_index.core.bridge.pydantic import BaseModel, Field
-from llama_index.core.prompts import PromptTemplate
 
 class Segment(BaseModel):
     """Data model for generating segments of a story."""
@@ -30,6 +40,7 @@ class Segment(BaseModel):
         default=[],
         description="The list of actions the protaganist can take that will shape the plot and actions of the next segment.",
     )
+
 
 SEGMENT_GENERATION_TEMPLATE = """
 You are working with a human to create a story in the style of choose your own adventure.
@@ -80,12 +91,10 @@ segment = llm.structured_predict(
 
 segment
 
-### Stitching together previous segments
+# Stitching together previous segments
 
 # We need to stich together story segments and pass this in to the prompt as the value for `running_story`. We define a `Block` data class that holds the `Segment` as well as the `choice` of action.
 
-import uuid
-from typing import Optional
 
 BLOCK_TEMPLATE = """
 BLOCK
@@ -109,21 +118,14 @@ class Block(BaseModel):
             choice=self.choice or "",
         )
 
+
 block = Block(segment=segment)
 print(block)
 
-## Create The Choose Your Own Adventure Workflow
+# Create The Choose Your Own Adventure Workflow
 
 # This Workflow will consist of two steps that will cycle until a max number of steps (i.e., segments) has been produced. The first step will have the LLM create a new `Segment`, which will be used to create a new story `Block`. The second step will prompt the human to choose their adventure from the list of actions specified in the newly created `Segment`.
 
-from llama_index.core.workflow import (
-    Context,
-    Event,
-    StartEvent,
-    StopEvent,
-    Workflow,
-    step,
-)
 
 class NewBlockEvent(Event):
     block: Block
@@ -131,6 +133,7 @@ class NewBlockEvent(Event):
 
 class HumanChoiceEvent(Event):
     block_id: str
+
 
 class ChooseYourOwnAdventureWorkflow(Workflow):
     def __init__(self, max_steps: int = 3, **kwargs):
@@ -184,20 +187,19 @@ class ChooseYourOwnAdventureWorkflow(Workflow):
 
         return HumanChoiceEvent(block_id=ev.block.id_)
 
-### Running The Workflow
+# Running The Workflow
 
 # Since workflows are async first, this all runs fine in a notebook. If you were running in your own code, you would want to use `asyncio.run()` to start an async event loop if one isn't already running.
-# 
+#
 # ```python
 # async def main():
 #     <async code>
-# 
+#
 # if __name__ == "__main__":
 #     import asyncio
 #     asyncio.run(main())
 # ```
 
-import nest_asyncio
 
 nest_asyncio.apply()
 
@@ -205,12 +207,12 @@ w = ChooseYourOwnAdventureWorkflow(timeout=None)
 
 result = await w.run()
 
-### Print The Final Story
+# Print The Final Story
 
 final_story = "\n\n".join(b.segment.plot for b in result)
 print(final_story)
 
-### Other Ways To Implement Human In The Loop
+# Other Ways To Implement Human In The Loop
 
 # One could also implement the human in the loop by creating a separate Workflow just for gathering human input and making use of nested Workflows. This design could be used in situations where you would want the human input gathering to be a separate service from the rest of the Workflow, which is what would happen if you deployed the nested workflows with llama-deploy.
 

@@ -1,20 +1,38 @@
+from llama_parse import LlamaParse
+from llama_index.core.workflow import (
+    Workflow,
+    StopEvent,
+    StartEvent,
+    Context,
+    step,
+)
+from llama_index.core.tools import QueryEngineTool
+from llama_index.core import (
+    VectorStoreIndex,
+    StorageContext,
+    load_index_from_storage,
+)
+from jet.llm.ollama.base import Ollama
+from llama_index.core.prompts import PromptTemplate
+from llama_index.core.workflow import Event
+from pydantic import BaseModel, Field
+import os
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Query Planning Workflow
-# 
+#
 # In this notebook, we'll walk through an example of a query planning workflow.
-# 
+#
 # This workflow is useful for any system that needs iterative planning to answer a user's query, as it decomposes a query into smaller steps, executes those steps, and aggregates the results.
-# 
+#
 # Once a plan is executed, we can use the results to form a final response to the user's query or to form a new query plan if the current plan was not sufficient to answer the query.
 
-## Setup
-# 
+# Setup
+#
 # We will use Ollama models, as well as llama-parse to load and parse documents.
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-proj-..."
 os.environ["LLAMA_CLOUD_API_KEY"] = "llx-..."
@@ -28,16 +46,13 @@ os.environ["LLAMA_CLOUD_API_KEY"] = "llx-..."
 # !wget "https://www.dropbox.com/scl/fi/zhgqch4n6xbv9skgcknij/2022-AAO-FY2021-22-FY2022-23-FINAL-20210730.pdf?rlkey=h78t65dfaz3mqbpbhl1u9e309&dl=0" -O "./data/sf_budgets/2022 - 2022-AAO-FY2021-22-FY2022-23-FINAL-20210730.pdf"
 # !wget "https://www.dropbox.com/scl/fi/vip161t63s56vd94neqlt/2023-CSF_Proposed_Budget_Book_June_2023_Master_Web.pdf?rlkey=hemoce3w1jsuf6s2bz87g549i&dl=0" -O "./data/sf_budgets/2023 - 2023-CSF_Proposed_Budget_Book_June_2023_Master_Web.pdf"
 
-## Workflow Definition
-# 
-### Workflow Events
-# 
+# Workflow Definition
+#
+# Workflow Events
+#
 # Since `Event` objects in workflows are just Pydantic models, we can use the function calling capabilities of Ollama to dynamically define the execution of our workflow at runtime.
-# 
+#
 # By predicting events, we are predicting the next step(s) in our workflow to run.
-
-from pydantic import BaseModel, Field
-from llama_index.core.workflow import Event
 
 
 class QueryPlanItem(Event):
@@ -58,6 +73,7 @@ class QueryPlan(BaseModel):
 
 # In addition to the query plan, we also need some workflow events to collect the results of the query plan items.
 
+
 class QueryPlanItemResult(Event):
     """The result of a query plan item"""
 
@@ -70,19 +86,9 @@ class ExecutedPlanEvent(Event):
 
     result: str
 
-### Workflow Definition
-# 
+# Workflow Definition
+#
 # Now we can define our workflow. We will use an iterative process where we plan, execute, aggregate, and decide in an loop, until we have a final answer or a new query plan.
-
-from llama_index.core.workflow import (
-    Workflow,
-    StopEvent,
-    StartEvent,
-    Context,
-    step,
-)
-from llama_index.core.prompts import PromptTemplate
-from llama_index.llms.ollama import Ollama
 
 
 class QueryPlanningWorkflow(Workflow):
@@ -176,7 +182,8 @@ class QueryPlanningWorkflow(Workflow):
 
         ctx.write_event_to_stream(
             Event(
-                msg=f"Querying tool {tool.metadata.name} with query: {ev.query}"
+                msg=f"Querying tool {
+                    tool.metadata.name} with query: {ev.query}"
             )
         )
 
@@ -206,20 +213,13 @@ class QueryPlanningWorkflow(Workflow):
         )
         return ExecutedPlanEvent(result=aggregated_result)
 
-## Loading Data
-# 
+# Loading Data
+#
 # Here, we use `llama-parse` to load and parse documents, and create an index for each year's budget.
 
-from llama_parse import LlamaParse
 
 parser = LlamaParse(fast_mode=True)
 
-from llama_index.core import (
-    VectorStoreIndex,
-    StorageContext,
-    load_index_from_storage,
-)
-from llama_index.core.tools import QueryEngineTool
 
 folder = "./data/sf_budgets/"
 files = os.listdir(folder)
@@ -248,10 +248,10 @@ for file in files:
         )
     )
 
-## Testing out the Workflow
-# 
+# Testing out the Workflow
+#
 # Let's test out our workflow with a few queries.
-# 
+#
 # Since we wrote a few stream events, we can see the execution of the workflow as it runs.
 
 workflow = QueryPlanningWorkflow(verbose=False, timeout=120)

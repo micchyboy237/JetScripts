@@ -6,7 +6,7 @@ from typing import Dict, Any
 from typing import Dict, Tuple, Any
 from llama_index.core.agent import FnAgentWorker
 from pyvis.network import Network
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core.agent.types import Task
 from llama_index.core.llms import ChatResponse
 from llama_index.core.agent.react.output_parser import ReActOutputParser

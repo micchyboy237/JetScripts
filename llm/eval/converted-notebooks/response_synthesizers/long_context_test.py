@@ -1,7 +1,7 @@
 from llama_index.core.utils import globals_helper
 from llama_index.core.evaluation import CorrectnessEvaluator
 # from llama_index.llms.anthropic import Anthropic
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import SummaryIndex
 from llama_index.core import SimpleDirectoryReader, Document
 import nest_asyncio

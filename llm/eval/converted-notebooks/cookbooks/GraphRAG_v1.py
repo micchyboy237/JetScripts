@@ -1,3 +1,37 @@
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core.query_engine import CustomQueryEngine
+import re
+from llama_index.core import PropertyGraphIndex
+from llama_index.core.llms import LLM
+from llama_index.core.llms import ChatMessage
+from graspologic.partition import hierarchical_leiden
+import networkx as nx
+from llama_index.core.graph_stores import SimplePropertyGraphStore
+from llama_index.core.bridge.pydantic import BaseModel, Field
+from llama_index.core.schema import TransformComponent, BaseNode
+from llama_index.core.prompts.default_prompts import (
+    DEFAULT_KG_TRIPLET_EXTRACT_PROMPT,
+)
+from llama_index.core.prompts import PromptTemplate
+from llama_index.core.llms.llm import LLM
+from llama_index.core.graph_stores.types import (
+    EntityNode,
+    KG_NODES_KEY,
+    KG_RELATIONS_KEY,
+    Relation,
+)
+from llama_index.core.indices.property_graph.utils import (
+    default_parse_triplets_fn,
+)
+from llama_index.core.async_utils import run_jobs
+from IPython.display import Markdown, display
+from typing import Any, List, Callable, Optional, Union, Dict
+import nest_asyncio
+import asyncio
+from jet.llm.ollama.base import Ollama
+import os
+from llama_index.core import Document
+import pandas as pd
 from script_utils import display_source_nodes
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
@@ -6,67 +40,65 @@ initialize_ollama_settings()
 # <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/cookbooks/GraphRAG_v1.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 # GraphRAG Implementation with LlamaIndex
-# 
+#
 # [GraphRAG (Graphs + Retrieval Augmented Generation)](https://www.microsoft.com/en-us/research/project/graphrag/) combines the strengths of Retrieval Augmented Generation (RAG) and Query-Focused Summarization (QFS) to effectively handle complex queries over large text datasets. While RAG excels in fetching precise information, it struggles with broader queries that require thematic understanding, a challenge that QFS addresses but cannot scale well. GraphRAG integrates these approaches to offer responsive and thorough querying capabilities across extensive, diverse text corpora.
-# 
-# 
+#
+#
 # This notebook provides guidance on constructing the GraphRAG pipeline using the LlamaIndex PropertyGraph abstractions.
-# 
-# 
+#
+#
 # **NOTE:** This is an approximate implementation of GraphRAG. We are currently developing a series of cookbooks that will detail the exact implementation of GraphRAG.
 
-## GraphRAG Aproach
-# 
+# GraphRAG Aproach
+#
 # The GraphRAG involves two steps:
-# 
+#
 # 1. Graph Generation - Creates Graph, builds communities and its summaries over the given document.
 # 2. Answer to the Query - Use summaries of the communities created from step-1 to answer the query.
-# 
+#
 # **Graph Generation:**
-# 
+#
 # 1. **Source Documents to Text Chunks:** Source documents are divided into smaller text chunks for easier processing.
-# 
+#
 # 2. **Text Chunks to Element Instances:** Each text chunk is analyzed to identify and extract entities and relationships, resulting in a list of tuples that represent these elements.
-# 
+#
 # 3. **Element Instances to Element Summaries:** The extracted entities and relationships are summarized into descriptive text blocks for each element using the LLM.
-# 
+#
 # 4. **Element Summaries to Graph Communities:** These entities, relationships and summaries form a graph, which is subsequently partitioned into communities using algorithms using Heirarchical Leiden to establish a hierarchical structure.
-# 
+#
 # 5. **Graph Communities to Community Summaries:** The LLM generates summaries for each community, providing insights into the dataset’s overall topical structure and semantics.
-# 
+#
 # **Answering the Query:**
-# 
+#
 # **Community Summaries to Global Answers:** The summaries of the communities are utilized to respond to user queries. This involves generating intermediate answers, which are then consolidated into a comprehensive global answer.
 
-## GraphRAG Pipeline Components
-# 
+# GraphRAG Pipeline Components
+#
 # Here are the different components we implemented to build all of the processes mentioned above.
-# 
+#
 # 1. **Source Documents to Text Chunks:** Implemented using `SentenceSplitter` with a chunk size of 1024 and chunk overlap of 20 tokens.
-# 
+#
 # 2. **Text Chunks to Element Instances AND Element Instances to Element Summaries:** Implemented using `GraphRAGExtractor`.
-# 
+#
 # 3. **Element Summaries to Graph Communities AND Graph Communities to Community Summaries:** Implemented using `GraphRAGStore`.
-# 
+#
 # 4. **Community Summaries to Global Answers:** Implemented using `GraphQueryEngine`.
-# 
-# 
+#
+#
 # Let's check into each of these components and build GraphRAG pipeline.
 
-## Installation
-# 
+# Installation
+#
 # `graspologic` is used to use hierarchical_leiden for building communities.
 
 # !pip install llama-index graspologic numpy==1.24.4 scipy==1.12.0
 
-## Load Data
-# 
+# Load Data
+#
 # We will use a sample news article dataset retrieved from Diffbot, which Tomaz has conveniently made available on GitHub for easy access.
-# 
+#
 # The dataset contains 2,500 samples; for ease of experimentation, we will use 50 of these samples, which include the `title` and `text` of news articles.
 
-import pandas as pd
-from llama_index.core import Document
 
 news = pd.read_csv(
     "https://raw.githubusercontent.com/tomasonjo/blog-datasets/main/news_articles.csv"
@@ -81,76 +113,51 @@ documents = [
     for i, row in news.iterrows()
 ]
 
-## Setup API Key and LLM
+# Setup API Key and LLM
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-from llama_index.llms.ollama import Ollama
 
 llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
 
-## GraphRAGExtractor
-# 
+# GraphRAGExtractor
+#
 # The GraphRAGExtractor class is designed to extract triples (subject-relation-object) from text and enrich them by adding descriptions for entities and relationships to their properties using an LLM.
-# 
+#
 # This functionality is similar to that of the `SimpleLLMPathExtractor`, but includes additional enhancements to handle entity, relationship descriptions. For guidance on implementation, you may look at similar existing [extractors](https://docs.llamaindex.ai/en/latest/examples/property_graph/Dynamic_KG_Extraction/?h=comparing).
-# 
+#
 # Here's a breakdown of its functionality:
-# 
+#
 # **Key Components:**
-# 
+#
 # 1. `llm:` The language model used for extraction.
 # 2. `extract_prompt:` A prompt template used to guide the LLM in extracting information.
 # 3. `parse_fn:` A function to parse the LLM's output into structured data.
 # 4. `max_paths_per_chunk:` Limits the number of triples extracted per text chunk.
 # 5. `num_workers:` For parallel processing of multiple text nodes.
-# 
-# 
+#
+#
 # **Main Methods:**
-# 
+#
 # 1. `__call__:` The entry point for processing a list of text nodes.
 # 2. `acall:` An asynchronous version of __call__ for improved performance.
 # 3. `_aextract:` The core method that processes each individual node.
-# 
-# 
+#
+#
 # **Extraction Process:**
-# 
+#
 # For each input node (chunk of text):
 # 1. It sends the text to the LLM along with the extraction prompt.
 # 2. The LLM's response is parsed to extract entities, relationships, descriptions for entities and relations.
 # 3. Entities are converted into EntityNode objects. Entity description is stored in metadata
 # 4. Relationships are converted into Relation objects. Relationship description is stored in metadata.
 # 5. These are added to the node's metadata under KG_NODES_KEY and KG_RELATIONS_KEY.
-# 
+#
 # **NOTE:** In the current implementation, we are using only relationship descriptions. In the next implementation, we will utilize entity descriptions during the retrieval stage.
 
-import asyncio
-import nest_asyncio
 
 nest_asyncio.apply()
-
-from typing import Any, List, Callable, Optional, Union, Dict
-from IPython.display import Markdown, display
-
-from llama_index.core.async_utils import run_jobs
-from llama_index.core.indices.property_graph.utils import (
-    default_parse_triplets_fn,
-)
-from llama_index.core.graph_stores.types import (
-    EntityNode,
-    KG_NODES_KEY,
-    KG_RELATIONS_KEY,
-    Relation,
-)
-from llama_index.core.llms.llm import LLM
-from llama_index.core.prompts import PromptTemplate
-from llama_index.core.prompts.default_prompts import (
-    DEFAULT_KG_TRIPLET_EXTRACT_PROMPT,
-)
-from llama_index.core.schema import TransformComponent, BaseNode
-from llama_index.core.bridge.pydantic import BaseModel, Field
 
 
 class GraphRAGExtractor(TransformComponent):
@@ -233,7 +240,8 @@ class GraphRAGExtractor(TransformComponent):
         for entity, entity_type, description in entities:
             metadata[
                 "entity_description"
-            ] = description  # Not used in the current implementation. But will be useful in future work.
+                # Not used in the current implementation. But will be useful in future work.
+            ] = description
             entity_node = EntityNode(
                 name=entity, label=entity_type, properties=metadata
             )
@@ -274,54 +282,47 @@ class GraphRAGExtractor(TransformComponent):
             desc="Extracting paths from text",
         )
 
-## GraphRAGStore
-# 
+# GraphRAGStore
+#
 # The `GraphRAGStore` class is an extension of the `SimplePropertyGraphStore `class, designed to implement GraphRAG pipeline. Here's a breakdown of its key components and functions:
-# 
-# 
+#
+#
 # The class uses community detection algorithms to group related nodes in the graph and then it generates summaries for each community using an LLM.
-# 
-# 
+#
+#
 # **Key Methods:**
-# 
+#
 # `build_communities():`
-# 
+#
 # 1. Converts the internal graph representation to a NetworkX graph.
-# 
+#
 # 2. Applies the hierarchical Leiden algorithm for community detection.
-# 
+#
 # 3. Collects detailed information about each community.
-# 
+#
 # 4. Generates summaries for each community.
-# 
+#
 # `generate_community_summary(text):`
-# 
+#
 # 1. Uses LLM to generate a summary of the relationships in a community.
 # 2. The summary includes entity names and a synthesis of relationship descriptions.
-# 
+#
 # `_create_nx_graph():`
-# 
+#
 # 1. Converts the internal graph representation to a NetworkX graph for community detection.
-# 
+#
 # `_collect_community_info(nx_graph, clusters):`
-# 
+#
 # 1. Collects detailed information about each node based on its community.
 # 2. Creates a string representation of each relationship within a community.
-# 
+#
 # `_summarize_communities(community_info):`
-# 
+#
 # 1. Generates and stores summaries for each community using LLM.
-# 
+#
 # `get_community_summaries():`
-# 
+#
 # 1. Returns the community summaries by building them if not already done.
-
-import re
-from llama_index.core.graph_stores import SimplePropertyGraphStore
-import networkx as nx
-from graspologic.partition import hierarchical_leiden
-
-from llama_index.core.llms import ChatMessage
 
 
 class GraphRAGStore(SimplePropertyGraphStore):
@@ -387,7 +388,8 @@ class GraphRAGStore(SimplePropertyGraphStore):
                 if community_mapping[neighbor] == cluster_id:
                     edge_data = nx_graph.get_edge_data(node, neighbor)
                     if edge_data:
-                        detail = f"{node} -> {neighbor} -> {edge_data['relationship']} -> {edge_data['description']}"
+                        detail = f"{
+                            node} -> {neighbor} -> {edge_data['relationship']} -> {edge_data['description']}"
                         community_info[cluster_id].append(detail)
         return community_info
 
@@ -407,50 +409,47 @@ class GraphRAGStore(SimplePropertyGraphStore):
             self.build_communities()
         return self.community_summary
 
-## GraphRAGQueryEngine
-# 
+# GraphRAGQueryEngine
+#
 # The GraphRAGQueryEngine class is a custom query engine designed to process queries using the GraphRAG approach. It leverages the community summaries generated by the GraphRAGStore to answer user queries. Here's a breakdown of its functionality:
-# 
+#
 # **Main Components:**
-# 
+#
 # `graph_store:` An instance of GraphRAGStore, which contains the community summaries.
 # `llm:` A Language Model (LLM) used for generating and aggregating answers.
-# 
-# 
+#
+#
 # **Key Methods:**
-# 
+#
 # `custom_query(query_str: str)`
-# 
+#
 # 1. This is the main entry point for processing a query. It retrieves community summaries, generates answers from each summary, and then aggregates these answers into a final response.
-# 
+#
 # `generate_answer_from_summary(community_summary, query):`
-# 
+#
 # 1. Generates an answer for the query based on a single community summary.
 # Uses the LLM to interpret the community summary in the context of the query.
-# 
+#
 # `aggregate_answers(community_answers):`
-# 
+#
 # 1. Combines individual answers from different communities into a coherent final response.
 # 2. Uses the LLM to synthesize multiple perspectives into a single, concise answer.
-# 
-# 
+#
+#
 # **Query Processing Flow:**
-# 
+#
 # 1. Retrieve community summaries from the graph store.
 # 2. For each community summary, generate a specific answer to the query.
 # 3. Aggregate all community-specific answers into a final, coherent response.
-# 
-# 
+#
+#
 # **Example usage:**
-# 
+#
 # ```
 # query_engine = GraphRAGQueryEngine(graph_store=graph_store, llm=llm)
-# 
+#
 # response = query_engine.query("query")
 # ```
-
-from llama_index.core.query_engine import CustomQueryEngine
-from llama_index.core.llms import LLM
 
 
 class GraphRAGQueryEngine(CustomQueryEngine):
@@ -501,18 +500,17 @@ class GraphRAGQueryEngine(CustomQueryEngine):
         ).strip()
         return cleaned_final_response
 
-##  Build End to End GraphRAG Pipeline
-# 
+# Build End to End GraphRAG Pipeline
+#
 # Now that we have defined all the necessary components, let’s construct the GraphRAG pipeline:
-# 
+#
 # 1. Create nodes/chunks from the text.
 # 2. Build a PropertyGraphIndex using `GraphRAGExtractor` and `GraphRAGStore`.
 # 3. Construct communities and generate a summary for each community using the graph built above.
 # 4. Create a `GraphRAGQueryEngine` and begin querying.
 
-### Create nodes/ chunks from the text.
+# Create nodes/ chunks from the text.
 
-from llama_index.core.node_parser import SentenceSplitter
 
 splitter = SentenceSplitter(
     chunk_size=1024,
@@ -522,7 +520,7 @@ nodes = splitter.get_nodes_from_documents(documents)
 
 len(nodes)
 
-### Build ProperGraphIndex using `GraphRAGExtractor` and `GraphRAGStore`
+# Build ProperGraphIndex using `GraphRAGExtractor` and `GraphRAGStore`
 
 KG_TRIPLET_EXTRACT_TMPL = """
 -Goal-
@@ -568,7 +566,6 @@ kg_extractor = GraphRAGExtractor(
     parse_fn=parse_fn,
 )
 
-from llama_index.core import PropertyGraphIndex
 
 index = PropertyGraphIndex(
     nodes=nodes,
@@ -585,19 +582,19 @@ list(index.property_graph_store.graph.relations.values())[0].properties[
     "relationship_description"
 ]
 
-### Build communities
-# 
+# Build communities
+#
 # This will create communities and summary for each community.
 
 index.property_graph_store.build_communities()
 
-### Create QueryEngine
+# Create QueryEngine
 
 query_engine = GraphRAGQueryEngine(
     graph_store=index.property_graph_store, llm=llm
 )
 
-### Querying
+# Querying
 
 query = "What are the main news discussed in the document?"
 response = query_engine.query(query)
@@ -607,10 +604,10 @@ query = "What are news related to financial sector?"
 response = query_engine.query(query)
 display_source_nodes(query, response)
 
-## Future Work:
-# 
+# Future Work:
+#
 # This cookbook is an approximate implementation of GraphRAG. In future cookbooks, we plan to extend it as follows:
-# 
+#
 # 1. Implement retrieval using entity description embeddings.
 # 2. Integrate with Neo4JPropertyGraphStore.
 # 3. Calculate a helpfulness score for each answer generated from the community summaries and filter out answers where the helpfulness score is zero.

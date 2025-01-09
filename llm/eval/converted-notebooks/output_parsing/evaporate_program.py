@@ -1,3 +1,11 @@
+from llama_index.core.program.predefined import MultiValueEvaporateProgram
+from llama_index.core.data_structs import Node
+from llama_index.program.evaporate import DFEvaporateProgram
+from llama_index.core import Settings
+from jet.llm.ollama.base import Ollama
+from llama_index.core import SimpleDirectoryReader
+import requests
+from pathlib import Path
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -5,9 +13,9 @@ initialize_ollama_settings()
 # <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/output_parsing/evaporate_program.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 # Evaporate Demo
-# 
+#
 # This demo shows how you can extract DataFrame from raw text using the Evaporate paper (Arora et al.): https://arxiv.org/abs/2304.09433.
-# 
+#
 # The inspiration is to first "fit" on a set of training text. The fitting process uses the LLM to generate a set of parsing functions from the text.
 # These fitted functions are then applied to text during inference time.
 
@@ -21,19 +29,16 @@ initialize_ollama_settings()
 # %load_ext autoreload
 # %autoreload 2
 
-## Use `DFEvaporateProgram` 
-# 
+# Use `DFEvaporateProgram`
+#
 # The `DFEvaporateProgram` will extract a 2D dataframe from a set of datapoints given a set of fields, and some training data to "fit" some functions on.
 
-### Load data
-# 
+# Load data
+#
 # Here we load a set of cities from Wikipedia.
 
 wiki_titles = ["Toronto", "Seattle", "Chicago", "Boston", "Houston"]
 
-from pathlib import Path
-
-import requests
 
 for title in wiki_titles:
     response = requests.get(
@@ -56,7 +61,6 @@ for title in wiki_titles:
     with open(data_path / f"{title}.txt", "w") as fp:
         fp.write(wiki_text)
 
-from llama_index.core import SimpleDirectoryReader
 
 city_docs = {}
 for wiki_title in wiki_titles:
@@ -64,12 +68,11 @@ for wiki_title in wiki_titles:
         input_files=[f"data/{wiki_title}.txt"]
     ).load_data()
 
-### Parse Data
+# Parse Data
 
-from llama_index.llms.ollama import Ollama
-from llama_index.core import Settings
 
-Settings.llm = Ollama(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = Ollama(temperature=0, model="llama3.2",
+                      request_timeout=300.0, context_window=4096)
 Settings.chunk_size = 512
 
 city_nodes = {}
@@ -78,39 +81,37 @@ for wiki_title in wiki_titles:
     nodes = Settings.node_parser.get_nodes_from_documents(docs)
     city_nodes[wiki_title] = nodes
 
-### Running the DFEvaporateProgram
-# 
+# Running the DFEvaporateProgram
+#
 # Here we demonstrate how to extract datapoints with our `DFEvaporateProgram`. Given a set of fields, the `DFEvaporateProgram` can first fit functions on a set of training data, and then run extraction over inference data.
 
-from llama_index.program.evaporate import DFEvaporateProgram
 
 program = DFEvaporateProgram.from_defaults(
     fields_to_extract=["population"],
 )
 
-### Fitting Functions
+# Fitting Functions
 
 program.fit_fields(city_nodes["Toronto"][:1])
 
 print(program.get_function_str("population"))
 
-### Run Inference
+# Run Inference
 
 seattle_df = program(nodes=city_nodes["Seattle"][:1])
 
 seattle_df
 
-## Use `MultiValueEvaporateProgram` 
-# 
+# Use `MultiValueEvaporateProgram`
+#
 # In contrast to the `DFEvaporateProgram`, which assumes the output obeys a 2D tabular format (one row per node), the `MultiValueEvaporateProgram` returns a list of `DataFrameRow` objects - each object corresponds to a column, and can contain a variable length of values. This can help if we want to extract multiple values for one field from a given piece of text.
-# 
+#
 # In this example, we use this program to parse gold medal counts.
 
-Settings.llm = Ollama(temperature=0, model="llama3.1", request_timeout=300.0, context_window=4096)
+Settings.llm = Ollama(temperature=0, model="llama3.1",
+                      request_timeout=300.0, context_window=4096)
 Settings.chunk_size = 1024
 Settings.chunk_overlap = 0
-
-from llama_index.core.data_structs import Node
 
 
 train_text = """
@@ -286,7 +287,6 @@ infer_text = """
 
 infer_nodes = [Node(text=infer_text)]
 
-from llama_index.core.program.predefined import MultiValueEvaporateProgram
 
 program = MultiValueEvaporateProgram.from_defaults(
     fields_to_extract=["countries", "medal_count"],
@@ -303,10 +303,10 @@ result = program(nodes=infer_nodes[:1])
 print(f"Countries: {result.columns[0].row_values}\n")
 print(f"Medal Counts: {result.columns[0].row_values}\n")
 
-## Bonus: Use the underlying `EvaporateExtractor`
-# 
+# Bonus: Use the underlying `EvaporateExtractor`
+#
 # The underlying `EvaporateExtractor` offers some additional functionality, e.g. actually helping to identify fields over a set of text.
-# 
+#
 # Here we show how you can use `identify_fields` to determine relevant fields around a general `topic` field.
 
 city_pop_nodes = [city_nodes["Toronto"][0], city_nodes["Seattle"][0]]

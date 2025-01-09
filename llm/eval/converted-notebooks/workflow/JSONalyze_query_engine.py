@@ -1,3 +1,23 @@
+from llama_index.core.prompts.prompt_type import PromptType
+from IPython.display import Markdown, display
+from jet.llm.ollama.base import Ollama
+from llama_index.core.workflow import (
+    Context,
+    Workflow,
+    StartEvent,
+    StopEvent,
+    step,
+)
+from llama_index.core.utils import print_text
+from llama_index.core.prompts.default_prompts import DEFAULT_JSONALYZE_PROMPT
+from llama_index.core.indices.struct_store.sql_retriever import (
+    DefaultSQLParser,
+)
+from llama_index.core.base.response.schema import Response
+from llama_index.core.prompts import PromptTemplate
+from typing import Dict, List, Any
+from llama_index.core.workflow import Event
+import os
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -5,49 +25,45 @@ initialize_ollama_settings()
 # <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/workflow/JSONalyze_query_engine.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 # JSONalyze Query Engine
-# 
+#
 # JSONalyze Query Engine is designed to be wired typically after a calling(by agent, etc) of APIs, where we have the returned value as bulk instaces of rows, and the next step is to perform statistical analysis on the data.
-# 
+#
 # With JSONalyze, under the hood, in-memory SQLite table is created with the JSON List loaded, the query engine is able to perform SQL queries on the data, and return the Query Result as answer to the analytical questions.
-# 
+#
 # This notebook walks through implementation of JSON Analyze Query Engine, using Workflows.
-# 
+#
 # Specifically we will implement [JSONalyzeQueryEngine](https://github.com/run-llama/llama_index/blob/main/docs/docs/examples/query_engine/JSONalyze_query_engine.ipynb).
 
 # !pip install -U llama-index
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 # Since workflows are async first, this all runs fine in a notebook. If you were running in your own code, you would want to use `asyncio.run()` to start an async event loop if one isn't already running.
-# 
+#
 # ```python
 # async def main():
 #     <async code>
-# 
+#
 # if __name__ == "__main__":
 #     import asyncio
 #     asyncio.run(main())
 # ```
 
-## The Workflow
-# 
+# The Workflow
+#
 # `jsonalyzer:`
-# 
+#
 # 1. It takes a StartEvent as input and returns a JsonAnalyzerEvent.
 # 2. The function sets up an in-memory SQLite database, loads JSON data, generates a SQL query based on query using a LLM, executes the query, and returns the results along with the SQL query and table schema.
-# 
+#
 # `synthesize:`
-# 
+#
 # The function uses a LLM to synthesize a response based on the SQL query, table schema, and query results.
-# 
+#
 # The steps will use the built-in `StartEvent` and `StopEvent` events.
 
-## Define Event
-
-from llama_index.core.workflow import Event
-from typing import Dict, List, Any
+# Define Event
 
 
 class JsonAnalyzerEvent(Event):
@@ -64,12 +80,10 @@ class JsonAnalyzerEvent(Event):
     table_schema: Dict[str, Any]
     results: List[Dict[str, Any]]
 
-## Prompt Templates
-# 
+# Prompt Templates
+#
 # Here we define default `DEFAULT_RESPONSE_SYNTHESIS_PROMPT_TMPL`, `DEFAULT_RESPONSE_SYNTHESIS_PROMPT` and `DEFAULT_TABLE_NAME`.
 
-from llama_index.core.prompts.prompt_type import PromptType
-from llama_index.core.prompts import PromptTemplate
 
 DEFAULT_RESPONSE_SYNTHESIS_PROMPT_TMPL = (
     "Given a query, synthesize a response based on SQL query results"
@@ -89,30 +103,11 @@ DEFAULT_RESPONSE_SYNTHESIS_PROMPT = PromptTemplate(
 
 DEFAULT_TABLE_NAME = "items"
 
-### The Workflow Itself
-# 
-# With our events defined, we can construct our workflow and steps. 
-# 
+# The Workflow Itself
+#
+# With our events defined, we can construct our workflow and steps.
+#
 # Note that the workflow automatically validates itself using type annotations, so the type annotations on our steps are very helpful!
-
-from llama_index.core.base.response.schema import Response
-from llama_index.core.indices.struct_store.sql_retriever import (
-    DefaultSQLParser,
-)
-from llama_index.core.prompts.default_prompts import DEFAULT_JSONALYZE_PROMPT
-from llama_index.core.utils import print_text
-
-from llama_index.core.workflow import (
-    Context,
-    Workflow,
-    StartEvent,
-    StopEvent,
-    step,
-)
-
-from llama_index.llms.ollama import Ollama
-
-from IPython.display import Markdown, display
 
 
 class JSONAnalyzeQueryEngineWorkflow(Workflow):
@@ -221,7 +216,8 @@ class JSONAnalyzeQueryEngineWorkflow(Workflow):
 
         return StopEvent(result=response)
 
-## Create Json List
+# Create Json List
+
 
 json_list = [
     {
@@ -418,11 +414,11 @@ json_list = [
     },
 ]
 
-## Define LLM
+# Define LLM
 
 llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
 
-### Run the Workflow!
+# Run the Workflow!
 
 w = JSONAnalyzeQueryEngineWorkflow()
 

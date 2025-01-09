@@ -17,7 +17,7 @@ from IPython.display import Markdown, display
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.callbacks import LlamaDebugHandler, CallbackManager
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import SummaryIndex
 from llama_index.core import SimpleDirectoryReader
 import sys

@@ -1,15 +1,17 @@
+from llama_index.core.embeddings import resolve_embed_model
+from jet.llm.ollama.base import Ollama
+from llama_index.core import Document
+from llama_index.core import VectorStoreIndex
+from llama_index.core.evaluation.benchmarks import HotpotQAEvaluator
 ```python
 # %pip install llama-index-llms-openai
 # !pip install llama-index
-from llama_index.core.evaluation.benchmarks import HotpotQAEvaluator
-from llama_index.core import VectorStoreIndex
-from llama_index.core import Document
-from llama_index.llms.ollama import Ollama
-from llama_index.core.embeddings import resolve_embed_model
 
 initialize_ollama_settings()
 
 # Refactor with main. Initialize ollama.
+
+
 def main():
     # Replace openai llm and embed models with ollama.
     llm = Ollama(model="llama3.2")
@@ -40,6 +42,7 @@ def main():
 
     # Call the rerank function in main.
     rerank()
+
 
 # Add a main function to contain all usage examples.
 if __name__ == "__main__":

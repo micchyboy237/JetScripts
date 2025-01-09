@@ -1,30 +1,41 @@
+from llama_index.core.llama_pack import download_llama_pack
+from llama_index.core.vector_stores import MetadataInfo, VectorStoreInfo
+import weaviate
+from llama_index.core import VectorStoreIndex
+from llama_index.core import StorageContext
+from llama_index.vector_stores.weaviate import WeaviateVectorStore
+from llama_index.core.async_utils import run_jobs
+from jet.llm.ollama.base import Ollama
+from llama_index.core import Document, ServiceContext
+from llama_index.core.indices import SummaryIndex
+from tqdm.asyncio import tqdm_asyncio
+import asyncio
+from copy import deepcopy
+from llama_index.readers.github import GitHubRepositoryIssuesReader, GitHubIssuesClient
+import os
+import nest_asyncio
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Multidoc Autoretrieval Pack
-# 
+#
 # This is the LlamaPack version of our structured hierarchical retrieval guide in the [core repo](https://docs.llamaindex.ai/en/stable/examples/query_engine/multi_doc_auto_retrieval/multi_doc_auto_retrieval.html).
 
-## Setup and Download Data
-# 
+# Setup and Download Data
+#
 # In this section, we'll load in LlamaIndex Github issues.
 
 # %pip install llama-index-readers-github
 # %pip install llama-index-vector-stores-weaviate
 # %pip install llama-index-llms-ollama
 
-import nest_asyncio
 
 nest_asyncio.apply()
 
-import os
 
 os.environ["GITHUB_TOKEN"] = ""
 
-import os
-
-from llama_index.readers.github import GitHubRepositoryIssuesReader, GitHubIssuesClient
 
 github_client = GitHubIssuesClient()
 loader = GitHubRepositoryIssuesReader(
@@ -44,14 +55,6 @@ for idx, doc in enumerate(orig_docs):
     if idx >= limit:
         break
     docs.append(doc)
-
-from copy import deepcopy
-import asyncio
-from tqdm.asyncio import tqdm_asyncio
-from llama_index.core.indices import SummaryIndex
-from llama_index.core import Document, ServiceContext
-from llama_index.llms.ollama import Ollama
-from llama_index.core.async_utils import run_jobs
 
 
 async def aprocess_doc(doc, include_summary: bool = True):
@@ -82,7 +85,8 @@ async def aprocess_doc(doc, include_summary: bool = True):
     summary_index = SummaryIndex.from_documents([doc])
     query_str = "Give a one-sentence concise summary of this issue."
     query_engine = summary_index.as_query_engine(
-        service_context=ServiceContext.from_defaults(llm=Ollama(model="llama3.2", request_timeout=300.0, context_window=4096))
+        service_context=ServiceContext.from_defaults(llm=Ollama(
+            model="llama3.2", request_timeout=300.0, context_window=4096))
     )
     summary_txt = str(query_engine.query(query_str))
 
@@ -101,20 +105,14 @@ async def aprocess_docs(docs):
 
     new_docs = await run_jobs(tasks, show_progress=True, workers=5)
 
-
     return new_docs
 
 new_docs = await aprocess_docs(docs)
 
 new_docs[5].metadata
 
-## Setup Weaviate Indices
+# Setup Weaviate Indices
 
-from llama_index.vector_stores.weaviate import WeaviateVectorStore
-from llama_index.core import StorageContext
-from llama_index.core import VectorStoreIndex
-
-import weaviate
 
 auth_config = weaviate.AuthApiKey(api_key="")
 client = weaviate.Client(
@@ -128,11 +126,9 @@ doc_chunks_index_name = "LlamaIndex_AutoDoc"
 client.schema.delete_class(doc_metadata_index_name)
 client.schema.delete_class(doc_chunks_index_name)
 
-### Setup Metadata Schema
-# 
+# Setup Metadata Schema
+#
 # This is required for autoretrieval; we put this in the prompt.
-
-from llama_index.core.vector_stores import MetadataInfo, VectorStoreInfo
 
 
 vector_store_info = VectorStoreInfo(
@@ -171,9 +167,8 @@ vector_store_info = VectorStoreInfo(
     ],
 )
 
-## Download LlamaPack
+# Download LlamaPack
 
-from llama_index.core.llama_pack import download_llama_pack
 
 MultiDocAutoRetrieverPack = download_llama_pack(
     "MultiDocAutoRetrieverPack", "./multidoc_autoretriever_pack"
@@ -194,8 +189,8 @@ pack = MultiDocAutoRetrieverPack(
     verbose=True,
 )
 
-## Run LlamaPack
-# 
+# Run LlamaPack
+#
 # Now let's try the LlamaPack on some queries!
 
 response = pack.run("Tell me about some issues on 12/11")
@@ -204,8 +199,8 @@ print(str(response))
 response = pack.run("Tell me about some open issues related to agents")
 print(str(response))
 
-### Retriever-only
-# 
+# Retriever-only
+#
 # We can also get the retriever module and just run that.
 
 retriever = pack.get_modules()["recursive_retriever"]

@@ -118,7 +118,7 @@ def update_code_with_ollama(code: str) -> str:
     # Replace imports
     updated_code = re.sub(
         r'from llama_index\.llms\.openai import OpenAI',
-        'from llama_index.llms.ollama import Ollama',
+        'from jet.llm.ollama.base import Ollama',
         updated_code
     )
 

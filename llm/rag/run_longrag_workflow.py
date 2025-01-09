@@ -27,8 +27,8 @@ from llama_index.core.schema import NodeWithScore
 
 
 from llama_index.core import SimpleDirectoryReader
-from llama_index.embeddings.ollama import OllamaEmbedding
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import OllamaEmbedding
+from jet.llm.ollama.base import Ollama
 from llama_index.core import VectorStoreIndex
 from llama_index.core.callbacks import CallbackManager
 

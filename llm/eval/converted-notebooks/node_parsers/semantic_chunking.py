@@ -1,7 +1,7 @@
 from llama_index.core.response.notebook_utils import display_source_node
 from llama_index.core import VectorStoreIndex
 import os
-from llama_index.embeddings.ollama import OllamaEmbedding
+from jet.llm.ollama.base import OllamaEmbedding
 from llama_index.core.node_parser import (
     SentenceSplitter,
     SemanticSplitterNodeParser,

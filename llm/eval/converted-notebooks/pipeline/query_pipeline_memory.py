@@ -1,9 +1,27 @@
+from llama_index.core.memory import ChatMemoryBuffer
+from llama_index.core.schema import NodeWithScore
+from llama_index.core.query_pipeline import CustomQueryComponent
+from llama_index.core.llms import ChatMessage
+from llama_index.core.bridge.pydantic import Field
+from typing import Any, Dict, List, Optional
+from llama_index.postprocessor.colbert_rerank import ColbertRerank
+from jet.llm.ollama.base import Ollama
+from llama_index.core.prompts import PromptTemplate
+from llama_index.core.query_pipeline import (
+    QueryPipeline,
+    InputComponent,
+    ArgPackComponent,
+)
+from jet.llm.ollama.base import OllamaEmbedding
+from llama_index.core import VectorStoreIndex
+from llama_index.readers.web import BeautifulSoupWebReader
+import os
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Query Pipeline Chat Engine
-# 
+#
 # By combining a query pipeline with a memory buffer, we can design our own custom chat engine loop.
 
 # %pip install llama-index-core
@@ -12,15 +30,13 @@ initialize_ollama_settings()
 # %pip install llama-index-postprocessor-colbert-rerank
 # %pip install llama-index-readers-web
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-## Index Construction
-# 
+# Index Construction
+#
 # As a test, we will index Anthropic's latest documentation about tool/function calling.
 
-from llama_index.readers.web import BeautifulSoupWebReader
 
 reader = BeautifulSoupWebReader()
 
@@ -42,8 +58,6 @@ documents[0].text = "\n".join(fixed_lines)
 
 # Now, we can create our index using Ollama embeddings.
 
-from llama_index.core import VectorStoreIndex
-from llama_index.embeddings.ollama import OllamaEmbedding
 
 index = VectorStoreIndex.from_documents(
     documents,
@@ -52,18 +66,10 @@ index = VectorStoreIndex.from_documents(
     ),
 )
 
-## Query Pipeline Contruction
-# 
+# Query Pipeline Contruction
+#
 # As a demonstration, lets make a robust query pipeline with HyDE for retrieval and Colbert for reranking.
 
-from llama_index.core.query_pipeline import (
-    QueryPipeline,
-    InputComponent,
-    ArgPackComponent,
-)
-from llama_index.core.prompts import PromptTemplate
-from llama_index.llms.ollama import Ollama
-from llama_index.postprocessor.colbert_rerank import ColbertRerank
 
 input_component = InputComponent()
 
@@ -91,11 +97,6 @@ reranker = ColbertRerank(top_n=3)
 
 # For generating a response using chat history + retrieved nodes, lets create a custom component.
 
-from typing import Any, Dict, List, Optional
-from llama_index.core.bridge.pydantic import Field
-from llama_index.core.llms import ChatMessage
-from llama_index.core.query_pipeline import CustomQueryComponent
-from llama_index.core.schema import NodeWithScore
 
 DEFAULT_CONTEXT_PROMPT = (
     "Here is some context that may be relevant:\n"
@@ -244,15 +245,14 @@ pipeline.add_link(
 
 # Lets test the pipeline to confirm it works!
 
-## Running the Pipeline with Memory
-# 
+# Running the Pipeline with Memory
+#
 # The above pipeline uses two inputs -- a query string and a chat_history list.
-# 
+#
 # The query string is simply the string input/query.
-# 
+#
 # The chat history list is a list of ChatMessage objects. We can use a memory module from llama-index to directly manage and create the memory!
 
-from llama_index.core.memory import ChatMemoryBuffer
 
 pipeline_memory = ChatMemoryBuffer.from_defaults(token_limit=8000)
 

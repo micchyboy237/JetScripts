@@ -31,10 +31,10 @@ You are given a code that will be updated based on the ff:
 - Call this at the top of main function `initialize_ollama_settings()` before any code.
 
 2. Replace openai llm and embed models with ollama. Use something like fnmatch if needed. Here are some guidelines:
-- Replace `from llama_index.llms.openai import OpenAI` to `from llama_index.llms.ollama import Ollama`
+- Replace `from llama_index.llms.openai import OpenAI` to `from jet.llm.ollama.base import Ollama`
 - Replace any model that starts with gpt-4 becomes `model="llama3.1"`. Ex: `model="gpt-4-turbo"`
 - Replace any model that starts with gpt-3.5 becomes `model="llama3.1"`. Ex: `model="gpt-3.5-turbo"`
-- Replace `from llama_index.embeddings.openai import OpenAIEmbedding` to `from llama_index.embeddings.ollama import OllamaEmbedding`
+- Replace `from llama_index.embeddings.openai import OpenAIEmbedding` to `from jet.llm.ollama.base import OllamaEmbedding`
 - Replace any call to OpenAIEmbeddings(**) with OllamaEmbedding(model_name="mxbai-embed-large", base_url="http://localhost:11434")
 - Update variable names appropriately since ollama doesn't have gpt models.
 

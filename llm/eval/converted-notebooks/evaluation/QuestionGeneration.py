@@ -1,6 +1,6 @@
 import json
 import random
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex, Response
 from llama_index.core.evaluation import DatasetGenerator, RelevancyEvaluator
 from llama_index.core.prompts.base import PromptTemplate

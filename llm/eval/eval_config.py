@@ -1,5 +1,5 @@
-from llama_index.embeddings.ollama import OllamaEmbedding
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import OllamaEmbedding
+from jet.llm.ollama.base import Ollama
 
 # LLM and embedding config
 

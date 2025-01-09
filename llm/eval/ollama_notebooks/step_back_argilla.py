@@ -1,14 +1,7 @@
-```python
-import os
-from llama_index.core import (
-    Settings,
-    SimpleDirectoryReader,
-    VectorStoreIndex,
-)
-from llama_index.core.instrumentation import get_dispatcher
-from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.response_synthesizers import ResponseMode
-from llama_index.core.schema import NodeWithScore
+from jet.llm.ollama.base import Ollama
+from llama_index.utils.workflow import draw_all_possible_flows
+from llama_index.core.workflow import Event
+from llama_index.core import get_response_synthesizer
 from llama_index.core.workflow import (
     Context,
     StartEvent,
@@ -16,11 +9,18 @@ from llama_index.core.workflow import (
     Workflow,
     step,
 )
+from llama_index.core.schema import NodeWithScore
+from llama_index.core.response_synthesizers import ResponseMode
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core.instrumentation import get_dispatcher
+from llama_index.core import (
+    Settings,
+    SimpleDirectoryReader,
+    VectorStoreIndex,
+)
+import os
+```python
 
-from llama_index.core import get_response_synthesizer
-from llama_index.core.workflow import Event
-from llama_index.utils.workflow import draw_all_possible_flows
-from llama_index.llms.ollama import Ollama
 
 os.environ["OPENAI_API_KEY"] = "sk-..."
 argilla_handler = ArgillaHandler(
@@ -32,6 +32,8 @@ argilla_handler = ArgillaHandler(
 root_dispatcher = get_dispatcher()
 root_dispatcher.add_span_handler(argilla_handler)
 root_dispatcher.add_event_handler(argilla_handler)
+
+
 class StepBackEvent(Event):
     """Get the step-back query"""
 
@@ -43,6 +45,8 @@ class RetrieverEvent(Event):
 
     nodes_original: list[NodeWithScore]
     nodes_step_back: list[NodeWithScore]
+
+
 STEP_BACK_TEMPLATE = """
 You are an expert at world knowledge. Your task is to step back and
 paraphrase a question to a more generic step-back question, which is
@@ -73,6 +77,8 @@ not relevant.
 Original Question: {query}
 Answer:
 """
+
+
 class RAGWorkflow(Workflow):
     @step
     async def step_back(
@@ -145,6 +151,8 @@ class RAGWorkflow(Workflow):
             formatted_query, nodes=ev.nodes_original
         )
         return StopEvent(result=response)
+
+
 draw_all_possible_flows(RAGWorkflow, filename="step_back_workflow.html")
 # !mkdir -p ../../data
 # !curl https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt -o ../../data/paul_graham_essay.txt

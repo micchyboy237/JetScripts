@@ -1,4 +1,4 @@
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core.workflow import (
     Workflow,
     Context,

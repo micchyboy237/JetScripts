@@ -1,5 +1,5 @@
 from llama_index.core.response_synthesizers import Refine
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import SimpleDirectoryReader
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings

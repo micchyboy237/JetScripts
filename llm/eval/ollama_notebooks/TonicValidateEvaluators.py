@@ -1,8 +1,10 @@
-```python
-import json
-
-import pandas as pd
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+import matplotlib.pyplot as plt
+from tonic_validate.metrics import AnswerSimilarityMetric
+from llama_index.core import VectorStoreIndex
+from llama_index.core.llama_dataset import LabelledRagDataset
+from llama_index.core import SimpleDirectoryReader
+from jet.llm.ollama.base import OllamaEmbedding
+from jet.llm.ollama.base import Ollama
 from llama_index.evaluation.tonic_validate import (
     AnswerConsistencyEvaluator,
     AnswerSimilarityEvaluator,
@@ -11,8 +13,11 @@ from llama_index.evaluation.tonic_validate import (
     RetrievalPrecisionEvaluator,
     TonicValidateEvaluator,
 )
-from llama_index.llms.ollama import Ollama
-from llama_index.embeddings.ollama import OllamaEmbedding
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+import pandas as pd
+import json
+```python
+
 
 # Initialize ollama settings
 initialize_ollama_settings()
@@ -73,11 +78,7 @@ scores = await tonic_validate_evaluator.aevaluate_run(
 )
 scores.run_data[0].scores
 # !llamaindex-cli download-llamadataset EvaluatingLlmSurveyPaperDataset --download-dir ./data
-from llama_index.core import SimpleDirectoryReader
 
-from llama_index.core.llama_dataset import LabelledRagDataset
-
-from llama_index.core import VectorStoreIndex
 
 rag_dataset = LabelledRagDataset.from_json("./data/rag_dataset.json")
 
@@ -97,7 +98,6 @@ questions, retrieved_context_lists, reference_answers, llm_answers = zip(
         for e, p in zip(rag_dataset.examples, predictions_dataset.predictions)
     ]
 )
-from tonic_validate.metrics import AnswerSimilarityMetric
 
 tonic_validate_evaluator = TonicValidateEvaluator(
     metrics=[AnswerSimilarityMetric()], model_evaluator="llama3.1"
@@ -107,8 +107,6 @@ scores = await tonic_validate_evaluator.aevaluate_run(
     questions, retrieved_context_lists, reference_answers, llm_answers
 )
 scores.overall_scores
-import matplotlib.pyplot as plt
-import pandas as pd
 
 score_list = [x.scores["answer_similarity"] for x in scores.run_data]
 value_counts = pd.Series(score_list).value_counts()

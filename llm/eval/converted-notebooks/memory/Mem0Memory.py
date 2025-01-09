@@ -3,7 +3,7 @@ from llama_index.core.chat_engine.simple import SimpleChatEngine
 import nest_asyncio
 from llama_index.core.agent import FunctionCallingAgent
 from llama_index.core.tools import FunctionTool
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.memory.mem0 import Mem0Memory
 import os
 from jet.logger import logger

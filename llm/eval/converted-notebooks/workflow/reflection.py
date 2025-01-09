@@ -1,43 +1,52 @@
+import json
+from pydantic import BaseModel
+from jet.llm.ollama.base import Ollama
+from llama_index.core.workflow import (
+    Workflow,
+    StartEvent,
+    StopEvent,
+    Context,
+    step,
+)
+from llama_index.core.workflow import Event
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Reflection Workflow for Structured Outputs
-# 
+#
 # This notebook walks through setting up a `Workflow` to provide reliable structured outputs through retries and reflection on mistakes.
-# 
+#
 # This notebook works best with an open-source LLM, so we will use `Ollama`. If you don't already have Ollama running, visit [https://ollama.com](https://ollama.com) to get started and download the model you want to use. (In this case, we did `ollama pull llama3.1` before running this notebook).
 
 # !pip install -U llama-index llama-index-llms-ollama
 
 # Since workflows are async first, this all runs fine in a notebook. If you were running in your own code, you would want to use `asyncio.run()` to start an async event loop if one isn't already running.
-# 
+#
 # ```python
 # async def main():
 #     <async code>
-# 
+#
 # if __name__ == "__main__":
 #     import asyncio
 #     asyncio.run(main())
 # ```
 
-## Designing the Workflow
-# 
+# Designing the Workflow
+#
 # To validate the structured output of an LLM, we need only two steps:
 # 1. Generate the structured output
 # 2. Validate that the output is proper JSON
-# 
+#
 # The key thing here is that, if the output is invalid, we **loop** until it is, giving error feedback to the next generation.
-# 
-### The Workflow Events
-# 
+#
+# The Workflow Events
+#
 # To handle these steps, we need to define a few events:
-# 1. An event to pass on the generated extraction 
+# 1. An event to pass on the generated extraction
 # 2. An event to give feedback when the extraction is invalid
-# 
+#
 # The other steps will use the built-in `StartEvent` and `StopEvent` events.
-
-from llama_index.core.workflow import Event
 
 
 class ExtractionDone(Event):
@@ -50,11 +59,9 @@ class ValidationErrorEvent(Event):
     wrong_output: str
     passage: str
 
-### Item to Extract
-# 
+# Item to Extract
+#
 # To prompt our model, lets define a pydantic model we want to extract.
-
-from pydantic import BaseModel
 
 
 class Car(BaseModel):
@@ -66,22 +73,12 @@ class Car(BaseModel):
 class CarCollection(BaseModel):
     cars: list[Car]
 
-### The Workflow Itself
-# 
-# With our events defined, we can construct our workflow and steps. 
-# 
+# The Workflow Itself
+#
+# With our events defined, we can construct our workflow and steps.
+#
 # Note that the workflow automatically validates itself using type annotations, so the type annotations on our steps are very helpful!
 
-import json
-
-from llama_index.core.workflow import (
-    Workflow,
-    StartEvent,
-    StopEvent,
-    Context,
-    step,
-)
-from llama_index.llms.ollama import Ollama
 
 EXTRACTION_PROMPT = """
 Context information is below:
@@ -158,7 +155,7 @@ class ReflectionWorkflow(Workflow):
         return StopEvent(result=ev.output)
 
 # And thats it! Let's explore the workflow we wrote a bit.
-# 
+#
 # - We have one entry point, `extract` (the steps that accept `StartEvent`)
 # - When `extract` finishes, it emits a `ExtractionDone` event
 # - `validate` runs and confirms the extraction:
@@ -167,9 +164,10 @@ class ReflectionWorkflow(Workflow):
 # - Any `ValidationErrorEvent` emitted will trigger the loop, and `extract` runs again!
 # - This continues until the structured output is validated
 
-## Run the Workflow!
-# 
+# Run the Workflow!
+#
 # **NOTE:** With loops, we need to be mindful of runtime. Here, we set a timeout of 120s.
+
 
 w = ReflectionWorkflow(timeout=120, verbose=True)
 

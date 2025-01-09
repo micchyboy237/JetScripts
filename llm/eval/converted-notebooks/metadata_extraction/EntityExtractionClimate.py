@@ -1,5 +1,5 @@
 from llama_index.core import Settings
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import VectorStoreIndex
 import random
 from llama_index.core.ingestion import IngestionPipeline

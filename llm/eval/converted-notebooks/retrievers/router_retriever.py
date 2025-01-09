@@ -6,7 +6,7 @@ from llama_index.core.selectors import (
 )
 from llama_index.core.selectors import LLMSingleSelector, LLMMultiSelector
 from llama_index.core.tools import RetrieverTool
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core import SummaryIndex
 from llama_index.core import (

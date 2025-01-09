@@ -1,36 +1,35 @@
-from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
-initialize_ollama_settings()
-
-# Relevancy Evaluator
-# 
-# This notebook uses the `RelevancyEvaluator` to measure if the response + source nodes match the query.  
-# This is useful for measuring if the query was actually answered by the response.
-
-
-
-import nest_asyncio
-
-nest_asyncio.apply()
-
-import logging
-import sys
-
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
-
+from typing import List
+from llama_index.core.evaluation import EvaluationResult
+import pandas as pd
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core.evaluation import RelevancyEvaluator
+from jet.llm.ollama.base import Ollama
 from llama_index.core import (
     TreeIndex,
     VectorStoreIndex,
     SimpleDirectoryReader,
     Response,
 )
-from llama_index.llms.ollama import Ollama
-from llama_index.core.evaluation import RelevancyEvaluator
-from llama_index.core.node_parser import SentenceSplitter
-import pandas as pd
-
+import sys
+import logging
+import nest_asyncio
+from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
+initialize_ollama_settings()
+
+# Relevancy Evaluator
+#
+# This notebook uses the `RelevancyEvaluator` to measure if the response + source nodes match the query.
+# This is useful for measuring if the query was actually answered by the response.
+
+
+nest_asyncio.apply()
+
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
+
+
 initialize_ollama_settings()
 
 pd.set_option("display.max_colwidth", 0)
@@ -45,8 +44,6 @@ splitter = SentenceSplitter(chunk_size=512)
 vector_index = VectorStoreIndex.from_documents(
     documents, transformations=[splitter]
 )
-
-from llama_index.core.evaluation import EvaluationResult
 
 
 def display_eval_df(
@@ -71,9 +68,10 @@ def display_eval_df(
     )
     display(eval_df)
 
-### Evaluate Response
-# 
+# Evaluate Response
+#
 # Evaluate response relative to source nodes as well as query.
+
 
 query_str = (
     "What battles took place in New York City in the American Revolution?"
@@ -104,11 +102,9 @@ eval_result = evaluator_gpt4.evaluate_response(
 
 display_eval_df(query_str, response_vector, eval_result)
 
-### Evaluate Source Nodes
-# 
+# Evaluate Source Nodes
+#
 # Evaluate the set of returned sources, and determine which sources actually contain the answer to a given query.
-
-from typing import List
 
 
 def display_eval_sources(
@@ -131,6 +127,7 @@ def display_eval_sources(
     )
 
     display(eval_df)
+
 
 query_str = "What are the airports in New York City?"
 query_engine = vector_index.as_query_engine(

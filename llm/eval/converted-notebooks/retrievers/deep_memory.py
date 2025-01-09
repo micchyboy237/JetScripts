@@ -1,31 +1,41 @@
+from langchain.document_loaders import AsyncHtmlLoader
+from llama_index.core.evaluation import RetrieverEvaluator
+import pandas as pd
+from langchain.embeddings.openai import OllamaEmbeddings
+import random
+from llama_index.core.evaluation import (
+    generate_question_context_pairs,
+    EmbeddingQAFinetuneDataset,
+)
+from jet.llm.ollama.base import Ollama
+from llama_index.core.node_parser import SimpleNodeParser
+from llama_index.vector_stores.deeplake import DeepLakeVectorStore
+from llama_index.core import (
+    VectorStoreIndex,
+    SimpleDirectoryReader,
+    StorageContext,
+)
+from llama_index.core.evaluation import generate_question_context_pairs
+from llama_index.core import Document
+from langchain.document_transformers import Html2TextTransformer
+from urllib.parse import urljoin
+from bs4 import BeautifulSoup
+import requests
+import getpass
+import os
+import nest_asyncio
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
 
-
-
-
 # %pip install llama-index-vector-stores-deeplake
 # %pip install llama-index-llms-ollama
 
-import nest_asyncio
-import os
-import getpass
 
 nest_asyncio.apply()
 
 # !pip install deeplake beautifulsoup4 html2text tiktoken openai llama-index python-dotenv
-
-
-
-
-
-
-
-import requests
-from bs4 import BeautifulSoup
-from urllib.parse import urljoin
 
 
 def get_all_links(url):
@@ -44,10 +54,6 @@ def get_all_links(url):
 
     return links
 
-from langchain.document_loaders import AsyncHtmlLoader
-from langchain.document_transformers import Html2TextTransformer
-from llama_index.core import Document
-
 
 def load_documents(url):
     all_links = get_all_links(url)
@@ -64,16 +70,6 @@ docs = load_documents("https://docs.deeplake.ai/en/latest/")
 
 len(docs)
 
-from llama_index.core.evaluation import generate_question_context_pairs
-from llama_index.core import (
-    VectorStoreIndex,
-    SimpleDirectoryReader,
-    StorageContext,
-)
-from llama_index.vector_stores.deeplake import DeepLakeVectorStore
-from llama_index.core.node_parser import SimpleNodeParser
-from llama_index.llms.ollama import Ollama
-
 
 # os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter your Ollama API token: ")
 os.environ["ACTIVELOOP_TOKEN"] = getpass.getpass(
@@ -89,6 +85,7 @@ vector_store = DeepLakeVectorStore(
     token=token,
 )
 
+
 def create_modules(vector_store, docs=[], populate_vector_store=True):
     if populate_vector_store:
         node_parser = SimpleNodeParser.from_defaults(chunk_size=512)
@@ -103,6 +100,7 @@ def create_modules(vector_store, docs=[], populate_vector_store=True):
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     return storage_context, nodes, llm
 
+
 (
     storage_context,
     nodes,
@@ -116,18 +114,6 @@ vector_index = VectorStoreIndex(nodes, storage_context=storage_context)
 deep_memory_retriever = vector_index.as_retriever(
     similarity_top_k=4, deep_memory=True
 )
-
-
-
-
-
-
-
-from llama_index.core.evaluation import (
-    generate_question_context_pairs,
-    EmbeddingQAFinetuneDataset,
-)
-import random
 
 
 def create_train_test_datasets(
@@ -160,6 +146,7 @@ def create_train_test_datasets(
         )
     return train_qa_dataset, test_qa_dataset
 
+
 train_qa_dataset, test_qa_dataset = create_train_test_datasets(
     number_of_samples=600, llm=llm, nodes=nodes, save=True
 )
@@ -171,6 +158,7 @@ test_qa_dataset = EmbeddingQAFinetuneDataset.from_json(
     "deeplake_docs_600_test.json"
 )
 
+
 def create_query_relevance(qa_dataset):
     """Function for converting llama-index dataset to correct format for deep memory training"""
     queries = [text for _, text in qa_dataset.queries.items()]
@@ -179,6 +167,7 @@ def create_query_relevance(qa_dataset):
     for doc in relevant_docs:
         relevance.append([(relevant_docs[doc][0], 1)])
     return queries, relevance
+
 
 train_queries, train_relevance = create_query_relevance(train_qa_dataset)
 test_queries, test_relevance = create_query_relevance(test_qa_dataset)
@@ -191,7 +180,6 @@ test_queries[:3]
 
 test_relevance[:3]
 
-from langchain.embeddings.openai import OllamaEmbeddings
 
 embeddings = OllamaEmbeddings()
 
@@ -205,18 +193,11 @@ job_id = vector_store.vectorstore.deep_memory.train(
 vector_store.vectorstore.deep_memory.status(job_id)
 
 
-
-
-
 recalls = vector_store.vectorstore.deep_memory.evaluate(
     queries=test_queries,
     relevance=test_relevance,
     embedding_function=embeddings.embed_documents,
 )
-
-
-
-import pandas as pd
 
 
 def display_results(eval_results):
@@ -249,9 +230,6 @@ def display_results(eval_results):
     return metric_df
 
 
-
-from llama_index.core.evaluation import RetrieverEvaluator
-
 deep_memory_retriever = vector_index.as_retriever(
     similarity_top_k=10, vector_store_kwargs={"deep_memory": True}
 )
@@ -263,7 +241,6 @@ dm_eval_results = dm_retriever_evaluator.evaluate_dataset(
     test_qa_dataset, retriever=dm_retriever_evaluator
 )
 
-from llama_index.core.evaluation import RetrieverEvaluator
 
 naive_retriever = vector_index.as_retriever(similarity_top_k=10)
 naive_retriever_evaluator = RetrieverEvaluator.from_metric_names(
@@ -282,9 +259,6 @@ eval_results = {
 }
 
 display_results(eval_results)
-
-
-
 
 
 query_engine = vector_index.as_query_engine(

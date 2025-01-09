@@ -22,8 +22,8 @@ from llama_index.core import (
 )
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import Settings
-from llama_index.embeddings.ollama import OllamaEmbedding
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import OllamaEmbedding
+from jet.llm.ollama.base import Ollama
 import os
 import llama_index.core
 import phoenix as px

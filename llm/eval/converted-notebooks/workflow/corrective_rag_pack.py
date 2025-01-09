@@ -1,25 +1,46 @@
+from llama_index.core import SimpleDirectoryReader
+from llama_index.core.workflow import (
+    Workflow,
+    step,
+    Context,
+    StartEvent,
+    StopEvent,
+)
+from IPython.display import Markdown, display
+from llama_index.core.base.base_retriever import BaseRetriever
+from llama_index.tools.tavily_research.base import TavilyToolSpec
+from jet.llm.ollama.base import Ollama
+from llama_index.core.query_pipeline import QueryPipeline
+from llama_index.core import (
+    VectorStoreIndex,
+    Document,
+    PromptTemplate,
+    SummaryIndex,
+)
+from llama_index.core.schema import NodeWithScore
+from llama_index.core.workflow import Event
+import os
+import nest_asyncio
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Corrective RAG Workflow
-# 
+#
 # This notebook shows how to implement corrective RAG using Llamaindex workflows based on [this paper](https://arxiv.org/abs/2401.15884)
-# 
+#
 # A brief understanding of the paper:
-# 
-# 
+#
+#
 # Corrective Retrieval Augmented Generation (CRAG) is a method designed to enhance the robustness of language model generation by evaluating and augmenting the relevance of retrieved documents through an evaluator and large-scale web searches, ensuring more accurate and reliable information is used in generation.
-# 
+#
 # We use `GPT-4` as a relevancy evaluator and `Tavily AI` for web searches. So, we recommend getting `OPENAI_API_KEY` and `tavily_ai_api_key` before proceeding further.
 
-import nest_asyncio
 
 nest_asyncio.apply()
 
 # %pip install -U llama-index llama-index-tools-tavily-research
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-proj-..."
 tavily_ai_api_key = "<Your Tavily AI API Key>"
@@ -28,18 +49,18 @@ tavily_ai_api_key = "<Your Tavily AI API Key>"
 # !wget 'https://arxiv.org/pdf/2307.09288.pdf' -O 'data/llama2.pdf'
 
 # Since workflows are async first, this all runs fine in a notebook. If you were running in your own code, you would want to use `asyncio.run()` to start an async event loop if one isn't already running.
-# 
+#
 # ```python
 # async def main():
 #     <async code>
-# 
+#
 # if __name__ == "__main__":
 #     import asyncio
 #     asyncio.run(main())
 # ```
 
-## Designing the Workflow
-# 
+# Designing the Workflow
+#
 # Corrective RAG consists of the following steps:
 # 1. Ingestion of data — Loads the data into an index and setting up Tavily AI. The ingestion step will be run by itself, taking in a start event and returning a stop event.
 # 2. Retrieval - Retrives the most relevant nodes based on the query.
@@ -54,9 +75,6 @@ tavily_ai_api_key = "<Your Tavily AI API Key>"
 # 3. `RelevanceEvalEvent` - Event containing a list of the results of the relevance evaluation.
 # 4. `TextExtractEvent` - Event containing the concatenated string of relevant text from relevant nodes.
 # 5. `QueryEvent` - Event containing both the relevant text and search text.
-
-from llama_index.core.workflow import Event
-from llama_index.core.schema import NodeWithScore
 
 
 class PrepEvent(Event):
@@ -91,23 +109,6 @@ class QueryEvent(Event):
 
 # Below is the code for the corrective RAG workflow:
 
-from llama_index.core.workflow import (
-    Workflow,
-    step,
-    Context,
-    StartEvent,
-    StopEvent,
-)
-from llama_index.core import (
-    VectorStoreIndex,
-    Document,
-    PromptTemplate,
-    SummaryIndex,
-)
-from llama_index.core.query_pipeline import QueryPipeline
-from llama_index.llms.ollama import Ollama
-from llama_index.tools.tavily_research.base import TavilyToolSpec
-from llama_index.core.base.base_retriever import BaseRetriever
 
 DEFAULT_RELEVANCY_PROMPT_TEMPLATE = PromptTemplate(
     template="""As a grader, your task is to evaluate the relevance of a document retrieved in response to a user's question.
@@ -171,7 +172,8 @@ class CorrectiveRAGWorkflow(Workflow):
         tavily_ai_apikey: str | None = ev.get("tavily_ai_apikey")
         index = ev.get("index")
 
-        llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+        llm = Ollama(model="llama3.1", request_timeout=300.0,
+                     context_window=4096)
         await ctx.set(
             "relevancy_pipeline",
             QueryPipeline(chain=[DEFAULT_RELEVANCY_PROMPT_TEMPLATE, llm]),
@@ -285,15 +287,13 @@ class CorrectiveRAGWorkflow(Workflow):
         result = query_engine.query(query_str)
         return StopEvent(result=result)
 
-## Running the workflow
+# Running the workflow
 
-from llama_index.core import SimpleDirectoryReader
 
 documents = SimpleDirectoryReader("./data").load_data()
 workflow = CorrectiveRAGWorkflow()
 index = await workflow.run(documents=documents)
 
-from IPython.display import Markdown, display
 
 response = await workflow.run(
     query_str="How was Llama2 pretrained?",

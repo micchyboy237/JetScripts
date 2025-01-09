@@ -1,6 +1,6 @@
 import json
 from llama_index.core.llms import ChatMessage
-from llama_index.embeddings.ollama import OllamaEmbedding
+from jet.llm.ollama.base import OllamaEmbedding
 from llama_index.core.memory import VectorMemory
 from jet.transformers import make_serializable
 from jet.logger import logger

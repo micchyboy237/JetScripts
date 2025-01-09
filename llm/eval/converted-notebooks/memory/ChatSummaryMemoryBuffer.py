@@ -1,7 +1,7 @@
 # import tiktoken
 import json
 from transformers import AutoTokenizer
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.memory import ChatSummaryMemoryBuffer
 import os

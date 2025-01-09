@@ -1,3 +1,27 @@
+import braintrust
+import pandas as pd
+import nest_asyncio
+from llama_index.core.evaluation import (
+    generate_question_context_pairs,
+    EmbeddingQAFinetuneDataset,
+)
+import copy
+from llama_index.core.extractors import (
+    SummaryExtractor,
+    QuestionsAnsweredExtractor,
+)
+from llama_index.core.embeddings import resolve_embed_model
+from llama_index.core.schema import IndexNode
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core import Document
+import json
+from jet.llm.ollama.base import Ollama
+from llama_index.core import VectorStoreIndex
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core.retrievers import RecursiveRetriever
+from llama_index.core.response.notebook_utils import display_source_node
+from llama_index.readers.file import PDFReader
+from pathlib import Path
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -5,17 +29,17 @@ initialize_ollama_settings()
 # <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/retrievers/recurisve_retriever_nodes_braintrust.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 # Recursive Retriever + Node References + Braintrust
-# 
+#
 # This guide shows how you can use recursive retrieval to traverse node relationships and fetch nodes based on "references".
-# 
+#
 # Node references are a powerful concept. When you first perform retrieval, you may want to retrieve the reference as opposed to the raw text. You can have multiple references point to the same node.
-# 
+#
 # In this guide we explore some different usages of node references:
 # - **Chunk references**: Different chunk sizes referring to a bigger chunk
 # - **Metadata references**: Summaries + Generated Questions referring to a bigger chunk
-# 
+#
 # We evaluate how well our recursive retrieval + node reference methods work using [Braintrust](https://www.braintrustdata.com/). Braintrust is the enterprise-grade stack for building AI products. From evaluations, to prompt playground, to data management, we take uncertainty and tedium out of incorporating AI into your business.
-# 
+#
 # You can see example evaluation dashboards here for the:
 # - [base retriever](https://www.braintrustdata.com/app/braintrustdata.com/p/llamaindex-recurisve-retrievers/baseRetriever)
 # - [recursive metadata retreiver](https://www.braintrustdata.com/app/braintrustdata.com/p/llamaindex-recurisve-retrievers/recursiveMetadataRetriever)
@@ -32,32 +56,21 @@ initialize_ollama_settings()
 
 # %pip install -U llama_hub llama_index braintrust autoevals pypdf pillow transformers torch torchvision
 
-## Load Data + Setup
-# 
+# Load Data + Setup
+#
 # In this section we download the Llama 2 paper and create an initial set of nodes (chunk size 1024).
 
 # !mkdir data
 # !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
-from pathlib import Path
-from llama_index.readers.file import PDFReader
-from llama_index.core.response.notebook_utils import display_source_node
-from llama_index.core.retrievers import RecursiveRetriever
-from llama_index.core.query_engine import RetrieverQueryEngine
-from llama_index.core import VectorStoreIndex
-from llama_index.llms.ollama import Ollama
-import json
 
 loader = PDFReader()
 docs0 = loader.load_data(file=Path("./data/llama2.pdf"))
 
-from llama_index.core import Document
 
 doc_text = "\n\n".join([d.get_content() for d in docs0])
 docs = [Document(text=doc_text)]
 
-from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.schema import IndexNode
 
 node_parser = SentenceSplitter(chunk_size=1024)
 
@@ -65,13 +78,12 @@ base_nodes = node_parser.get_nodes_from_documents(docs)
 for idx, node in enumerate(base_nodes):
     node.id_ = f"node-{idx}"
 
-from llama_index.core.embeddings import resolve_embed_model
 
 embed_model = resolve_embed_model("local:BAAI/bge-small-en")
 llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
 
-## Baseline Retriever
-# 
+# Baseline Retriever
+#
 # Define a baseline retriever that simply fetches the top-k raw text nodes by embedding similarity.
 
 base_index = VectorStoreIndex(base_nodes, embed_model=embed_model)
@@ -91,10 +103,10 @@ response = query_engine_base.query(
 )
 print(str(response))
 
-## Chunk References: Smaller Child Chunks Referring to Bigger Parent Chunk
-# 
+# Chunk References: Smaller Child Chunks Referring to Bigger Parent Chunk
+#
 # In this usage example, we show how to build a graph of smaller chunks pointing to bigger parent chunks.
-# 
+#
 # During query-time, we retrieve smaller chunks, but we follow references to bigger chunks. This allows us to have more context for synthesis.
 
 sub_chunk_sizes = [128, 256, 512]
@@ -139,20 +151,14 @@ response = query_engine_chunk.query(
 )
 print(str(response))
 
-## Metadata References: Summaries + Generated Questions referring to a bigger chunk
-# 
+# Metadata References: Summaries + Generated Questions referring to a bigger chunk
+#
 # In this usage example, we show how to define additional context that references the source node.
-# 
+#
 # This additional context includes summaries as well as generated questions.
-# 
+#
 # During query-time, we retrieve smaller chunks, but we follow references to bigger chunks. This allows us to have more context for synthesis.
 
-from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.schema import IndexNode
-from llama_index.core.extractors import (
-    SummaryExtractor,
-    QuestionsAnsweredExtractor,
-)
 
 extractors = [
     SummaryExtractor(summaries=["self"], show_progress=True),
@@ -162,6 +168,7 @@ extractors = [
 metadata_dicts = []
 for extractor in extractors:
     metadata_dicts.extend(extractor.extract(base_nodes))
+
 
 def save_metadata_dicts(path):
     with open(path, "w") as fp:
@@ -174,11 +181,11 @@ def load_metadata_dicts(path):
         metadata_dicts = [json.loads(l) for l in fp.readlines()]
         return metadata_dicts
 
+
 save_metadata_dicts("data/llama2_metadata_dicts.jsonl")
 
 metadata_dicts = load_metadata_dicts("data/llama2_metadata_dicts.jsonl")
 
-import copy
 
 all_nodes = copy.deepcopy(base_nodes)
 for idx, d in enumerate(metadata_dicts):
@@ -193,8 +200,6 @@ for idx, d in enumerate(metadata_dicts):
 
 all_nodes_dict = {n.node_id: n for n in all_nodes}
 
-from llama_index.core import VectorStoreIndex
-from llama_index.llms.ollama import Ollama
 
 llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
 
@@ -226,26 +231,21 @@ response = query_engine_metadata.query(
 )
 print(str(response))
 
-## Evaluation
-# 
+# Evaluation
+#
 # We evaluate how well our recursive retrieval + node reference methods work using [Braintrust](https://www.braintrustdata.com/). Braintrust is the enterprise-grade stack for building AI products. From evaluations, to prompt playground, to data management, we take uncertainty and tedium out of incorporating AI into your business.
-# 
+#
 # We evaluate both chunk references as well as metadata references. We use embedding similarity lookup to retrieve the reference nodes. We compare both methods against a baseline retriever where we fetch the raw nodes directly. In terms of metrics, we evaluate using both hit-rate and MRR.
-# 
+#
 # You can see example evaluation dashboards here for the:
 # - [base retriever](https://www.braintrustdata.com/app/braintrustdata.com/p/llamaindex-recurisve-retrievers/baseRetriever)
 # - [recursive metadata retreiver](https://www.braintrustdata.com/app/braintrustdata.com/p/llamaindex-recurisve-retrievers/recursiveMetadataRetriever)
 # - [recursive chunk retriever](https://www.braintrustdata.com/app/braintrustdata.com/p/llamaindex-recurisve-retrievers/recursiveChunkRetriever)
 
-### Dataset Generation
-# 
+# Dataset Generation
+#
 # We first generate a dataset of questions from the set of text chunks.
 
-from llama_index.core.evaluation import (
-    generate_question_context_pairs,
-    EmbeddingQAFinetuneDataset,
-)
-import nest_asyncio
 
 nest_asyncio.apply()
 
@@ -257,13 +257,12 @@ eval_dataset = EmbeddingQAFinetuneDataset.from_json(
     "data/llama2_eval_dataset.json"
 )
 
-### Compare Results
-# 
+# Compare Results
+#
 # We run evaluations on each of the retrievers to measure hit rate and MRR.
-# 
+#
 # We find that retrievers with node references (either chunk or metadata) tend to perform better than retrieving the raw chunks.
 
-import pandas as pd
 
 top_k = 10
 
@@ -292,6 +291,7 @@ def display_results(names, results_arr):
 
 # Let's define some scoring functions and define our dataset data variable.
 
+
 queries = eval_dataset.queries
 relevant_docs = eval_dataset.relevant_docs
 data = [
@@ -311,7 +311,6 @@ def mrrScorer(input, expected, output=None):
             return 1 / (i + 1)
     return 0
 
-import braintrust
 
 vector_retriever_chunk = vector_index_chunk.as_retriever(similarity_top_k=10)
 retriever_chunk = RecursiveRetriever(

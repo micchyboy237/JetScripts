@@ -13,8 +13,8 @@ from llama_index.core.retrievers import (
 )
 from llama_index.core import PropertyGraphIndex
 from llama_index.graph_stores.neo4j import Neo4jPropertyGraphStore
-from llama_index.llms.ollama import Ollama
-from llama_index.embeddings.ollama import OllamaEmbedding
+from jet.llm.ollama.base import Ollama
+from jet.llm.ollama.base import OllamaEmbedding
 from llama_index.core import SimpleDirectoryReader
 import os
 import nest_asyncio

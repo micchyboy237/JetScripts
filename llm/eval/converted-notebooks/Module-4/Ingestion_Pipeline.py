@@ -6,7 +6,7 @@ import qdrant_client
 from llama_index.core.ingestion import IngestionPipeline, IngestionCache
 from llama_index.core.extractors import TitleExtractor
 from llama_index.core.node_parser import TokenTextSplitter
-from llama_index.embeddings.ollama import OllamaEmbedding
+from jet.llm.ollama.base import OllamaEmbedding
 from llama_index.core import Document
 from llama_index.core import SimpleDirectoryReader
 import os
