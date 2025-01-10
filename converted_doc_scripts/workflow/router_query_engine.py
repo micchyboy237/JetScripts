@@ -345,7 +345,7 @@ async def run_workflow():
 
     # Pointed Context Query
 
-    query = "What did the author do growing up?"
+    query = "What is the author's primary tech stack?"
 
     result = await w.run(
         query=query,
