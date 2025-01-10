@@ -1,0 +1,186 @@
+Companies
+
+Job History (from most recent)
+1.) Jul 2020 - Present
+- JulesAI (formerly Macanta Software Ltd.)
+- Position: Web / Mobile Developer
+- Task: Developed a white label CRM system for different businesses that is customizable to align with specific workflows and requirements.
+- Currently maintaining and improving the system based on client feedback and requirements.
+- Key technologies: React, React Native, AWS
+
+2.) Jan 2019 - Jun 2020
+- 8WeekApp
+- Position: Web / Mobile Developer
+- Task: Developed a social networking app (Graduapp) for students, parents, teachers, and schools. The app serves as an online journal of their experience as a student at their institution.
+- Key technologies: React, React Native, Node.js, Firebase, MongoDB
+
+3.) Nov 2016 - Jan 2019
+- ADEC Innovations
+- Position: Web / Mobile Developer
+- Task: Worked on projects ranging from in-house to outsourced web and mobile applications.
+- Key technologies: React, React Native, Node.js, Firebase Firestore, Google Cloud Functions
+
+4.) Nov 2014 - Sep 2016
+- Asia Pacific Digital
+- Position: Web / Mobile App Developer
+- Task: Worked on web and mobile projects.
+- Key technologies: AngularJS, Ionic, jQuery
+
+5.) Jun 2012 - Nov 2014
+- Entertainment Gateway Group (now Yondu)
+- Position: Web Developer
+- Task: Worked on features for an insurance web app.
+- Key technologies: Java, JavaScript, jQuery
+
+
+Personal Info
+
+Full Name: Jethro Reuel A. Estrada
+First Name: Jethro Reuel
+Middle Name: Arao
+Last Name: Estrada
+Preferred Name: Jethro or Jet
+
+Position: Full Stack Web / Mobile Developer
+Age: 34
+Gender: Male
+Country: Philippines
+Nationality: Filipino
+Birthday: December 1, 1990
+Country: Philippines
+Languages: English, Tagalog
+School: De La Salle University - Manila
+Diploma: BS Degree in Computer Engineering (2007 - 2012)
+
+Email: jethroestrada237@gmail.com
+Whatsapp link: https://wa.me/639101662460
+Phone number: +639101662460
+
+
+Mobile apps
+
+a.) JABA AI
+Achievements:
+- Worked under pressure to but delivered initial version of web app for investor demo
+- Developed iOS app from scratch and deployed multiple App Store release versions
+- Key features: Chatbot, TikTok - Instagram - Youtube video responses
+- Technologies used: React, React Native, Expo
+
+b.) Graduapp
+Achievements:
+- As one of the pioneers, I was involved in the selection of technologies and architecture for the project
+- Published Graduapp on iOS and Android platforms, with an admin site for school administrators to manage content
+- Key features: Real-time feeds, Tagging, Comments, Gallery, Notifications, and more
+- Technologies used: React, React Native, Node.js, Firebase, MongoDB, AWS, Redux, Jest
+
+c.) EZ Myoma
+Achievements:
+- The healthcare provider (Zuellig Pharma) created a drug to treat uterine fibroids so they needed a mobile app where they can see the progress of the patients within a medication cycle 
+- Developed an iOS and Android app that allows women to track symptoms associated with uterine fibroids
+- Can be used by doctors to monitor patients
+- Key features: Medication cycle tracking, Calendar diary with patient notes, Progress charts, and more
+- Technologies used: React Native, Redux
+
+
+Web apps
+
+a.) Jules Procure
+Achievements:
+- Started as the sole client side developer, built enterprise web and mobile CRM apps starting from provided mockups to production
+- JulesAI CEO was impressed and acquired ownership of existing CRM
+- Successfully integrated existing CRM with JulesAI's workflow to be rebranded as "Jules Procure"
+- Key features: Contact dashboard, Data builder, Task calendar, Workflow boards, Form builders, Price list generator, Automated emails based on triggers, and more
+- Technologies used: React, React Native, AWS Lambdas, GraphQL, Docker, Serverless, Jest
+
+b.) Digital Cities PH
+Achievements:
+- As the lead developer, I worked on a portal that showcases the profiles of provinces and cities in the Philippines
+- Developed an interactive Philippine map with clickable provinces, enabling users to access detailed descriptions and statistics for each region
+- Key features: Interactive map, Search, Filtering, Fast loading, SEO-friendly
+- Technologies used: React, GraphQL, React Static, Headless CMS
+
+c.) ADEC Kenya, AMDATEX
+Achievements:
+- Built UI components from mockups using Photoshop to achieve pixel-perfect look
+- Key features: Responsive, Reusable components
+- Technologies used: React, jQuery, Wordpress
+
+
+Recent info
+
+Job Status
+I am applying for the position of a Frontend Web / Mobile Developer or Full Stack Developer roles. Aside from React, React Native and Node.js. I also have extensive experience with Firebase, AWS, MongoDB and PostgreSQL.
+If my skills match the criteria for the position, you are welcome to extend an invitation for an interview via email at jethroestrada237@gmail.com, or via Whatsapp at https://wa.me/639101662460.
+
+Goals
+
+- Develop scalable, performance-oriented, and user-friendly web and mobile applications.
+- Committed to continuous learning and staying up to date with the latest technologies and trends.
+- Strive to contribute to the success of your organization and improve existing coding standards.
+
+Other Info
+
+- Resume link: https://jetbot.vercel.app/resume.pdf
+- Only used Python to build my resume chatbot (JetBot)
+
+
+Skills
+
+Frontend:
+- React
+- React Native
+- Vanilla JS/CSS
+- Expo
+- GraphQL
+- Redux
+- Gatsby
+- TypeScript
+Backend:
+- Node.js
+- Python
+Databases:
+- PostgreSQL
+- MongoDB
+Platforms:
+- Firebase
+- AWS
+- Google Cloud
+Developer Tools:
+- Photoshop
+- Jest (Unit testing)
+- Cypress (Integration testing)
+- Selenium (E2E testing)
+- Git
+- Sentry bug tracker
+- Android Studio
+- Xcode
+- Fastlane
+- Serverless
+- ChatGPT
+
+
+Portfolio
+
+Jules Procure
+Web link: https://www.julesai.com/#procure
+
+Digital Cities PH
+Web link: https://www.digitalcitiesph.com
+
+ADEC Kenya, AMDATEX
+Web link: https://www.adec-kenya.com
+Web link: https://www.amdatex.com
+
+JABA AI
+Web link: https://jaba.live
+iOS link: https://apps.apple.com/us/app/jaba-ai/id6451218161
+
+Graduapp
+Android link: https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp
+iOS link: https://apps.apple.com/us/app/graduapp/id1576401944
+
+EZ Myoma
+Android link: https://play.google.com/store/apps/details?id=com.ezmyoma
+
+
+Note: Some links may be outdated or no longer active.
