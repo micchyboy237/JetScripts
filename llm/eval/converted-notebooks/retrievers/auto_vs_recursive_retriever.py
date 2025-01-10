@@ -64,8 +64,9 @@ Path(CACHE_DIR).mkdir(exist_ok=True)
 
 # Custom settings
 input_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
-chunk_size = 512
-chunk_overlap = 50
+summaries_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/summaries"
+chunk_size = 256
+chunk_overlap = 20
 
 llm = Ollama(model="mistral", request_timeout=300.0, context_window=4096)
 callback_manager = CallbackManager([LlamaDebugHandler()])
@@ -73,7 +74,7 @@ splitter = SentenceSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
 # Setup output dir
 base_dir = input_dir.split("/")[-1]
-out_dir = Path("summaries") / base_dir
+out_dir = Path(summaries_dir)
 # Reset out_dir if it exists
 if out_dir.exists():
     shutil.rmtree(out_dir)
@@ -84,9 +85,9 @@ out_dir.mkdir(parents=True, exist_ok=True)
 documents = SimpleDirectoryReader(input_dir, required_exts=[".md"]).load_data()
 texts = [doc.text for doc in documents]
 
-combined_file_path = os.path.join(input_dir, "combined.txt")
-with open(combined_file_path, "w") as f:
-    f.write("\n\n\n".join(texts))
+# combined_file_path = os.path.join(input_dir, "combined.txt")
+# with open(combined_file_path, "w") as f:
+#     f.write("\n\n\n".join(texts))
 
 include_files = [
     ".md",
@@ -154,7 +155,7 @@ def build_recursive_retriever_over_document_summaries(similarity_top_k=3):
 
     # Filter wiki_titles to only those without existing summaries
     existing_summaries = set(
-        p.stem for p in Path("summaries").rglob("*.txt")
+        p.stem for p in out_dir.rglob("*.md")
     )
     titles_to_process = [
         title for title in wiki_titles if title not in existing_summaries]

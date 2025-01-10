@@ -61,8 +61,8 @@ ALL_NODES_AND_VECTOR_INDEX_CHUNK_CACHE = os.path.join(
 VECTOR_INDEX_METADATA_CACHE = os.path.join(
     CACHE_DIR, "vector_index_metadata.pkl")
 
-# INPUT_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
-INPUT_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/summaries/jet-resume"
+INPUT_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
+# INPUT_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/summaries/jet-resume"
 GENERATED_DIR = f"generated/{os.path.basename(__file__).split(".")[0]}"
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
@@ -365,15 +365,15 @@ async def main_evaluation(
 
 
 if __name__ == "__main__":
-    use_cache = False
+    use_cache = True
 
-    # logger.debug("Running main_baseline_retriever...")
-    # base_index = load_from_cache_or_compute(
-    #     main_baseline_retriever,
-    #     file_path=BASE_INDEX_CACHE,
-    #     use_cache=use_cache,
-    #     similarity_top_k=len(documents),
-    # )
+    logger.debug("Running main_baseline_retriever...")
+    base_index = load_from_cache_or_compute(
+        main_baseline_retriever,
+        file_path=BASE_INDEX_CACHE,
+        use_cache=use_cache,
+        similarity_top_k=len(documents),
+    )
 
     logger.debug(
         "Running main_chunk_references_smaller_child_chunks_referring_to_bigger_parent_chunk...")

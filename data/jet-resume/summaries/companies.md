@@ -1,11 +1,1 @@
- The document provides a summary of the job history of an individual, focusing on their roles as a Web/Mobile Developer. The individual has worked for five different companies, starting from Entertainment Gateway Group (now Yondu) in 2012 to the current position at JulesAI (formerly Macanta Software Ltd.) since 2020.
-
-At JulesAI, they developed a white label CRM system customizable to specific workflows and requirements using React, React Native, and AWS. They are currently maintaining and improving this system based on client feedback.
-
-Previously, at 8WeekApp, they developed a social networking app for students, parents, teachers, and schools called Graduapp. The app was built with React, React Native, Node.js, Firebase, and MongoDB.
-
-At ADEC Innovations, they worked on various projects ranging from in-house to outsourced web and mobile applications using React, React Native, Node.js, Firebase Firestore, and Google Cloud Functions.
-
-Before that, at Asia Pacific Digital, they worked on web and mobile projects with AngularJS, Ionic, and jQuery.
-
-Lastly, at their first job from 2014 to 2016, they worked on features for an insurance web app using Java, JavaScript, and jQuery.
+ The document outlines the job history of a developer, with roles at 5 different companies from most recent to earliest. The developer has been employed as a Web/Mobile Developer at JulesAI (formerly Macanta Software Ltd.) since July 2020, where they developed a customizable white-label CRM system using React, React Native, and AWS. Before that, the developer worked at 8WeekApp from January 2019 to June 2020, developing a social networking app (Graduapp) for students, parents, teachers, and schools with technologies such as React, React Native, Node.js, Firebase, and MongoDB. Prior positions include work at ADEC Innovations from November 2016 to January 2019, Asia Pacific Digital from November 2014 to September 2016, and Entertainment Gateway Group (now Yondu) from June 2012 to November 2014. The job roles at these companies involved developing web and mobile applications using various technologies including React, React Native, Node.js, Firebase Firestore, Google Cloud Functions, AngularJS, Ionic, jQuery, Java, and JavaScript.

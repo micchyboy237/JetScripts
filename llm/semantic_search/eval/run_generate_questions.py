@@ -44,6 +44,7 @@ def run_evaluate_guidelines(query: str, contexts: list[str], response: str):
             "passed": eval_result.passing,
             "feedback": eval_result.feedback,
         })
+    return results
 
 
 def main():

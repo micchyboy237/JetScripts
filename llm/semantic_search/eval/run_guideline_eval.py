@@ -1,23 +1,14 @@
-import nest_asyncio
+import asyncio
+import json
+import os
+from jet.file.utils import save_file
+from jet.llm.helpers.qa_dataset_generator import QADatasetGenerator
+from jet.llm.helpers.question_generator import QuestionGenerator
 from jet.llm.ollama.base import Ollama
-from llama_index.core.evaluation import GuidelineEvaluator
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
-initialize_ollama_settings()
-
-# <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/evaluation/guideline_eval.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
-
-# Guideline Evaluator
-
-# This notebook shows how to use `GuidelineEvaluator` to evaluate a question answer system given user specified guidelines.
-
-# If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
-
-
-initialize_ollama_settings()
-
-
-nest_asyncio.apply()
+from jet.transformers.formatters import format_json
+from jet.transformers.object import make_serializable
+from llama_index.core.evaluation.guideline import GuidelineEvaluator
 
 GUIDELINES = [
     "The response should fully answer the query.",
@@ -28,48 +19,64 @@ GUIDELINES = [
     ),
 ]
 
-llm = Ollama(temperature=0, model="llama3.1")
 
-evaluators = [
-    GuidelineEvaluator(llm=llm, guidelines=guideline)
-    for guideline in GUIDELINES
-]
+def run_evaluate_guidelines(query: str, contexts: list[str], response: str):
+    llm = Ollama(model="llama3.1")
 
-sample_data = {
-    "query": "Tell me about global warming.",
-    "contexts": [
-        (
-            "Global warming refers to the long-term increase in Earth's"
-            " average surface temperature due to human activities such as the"
-            " burning of fossil fuels and deforestation."
-        ),
-        (
-            "It is a major environmental issue with consequences such as"
-            " rising sea levels, extreme weather events, and disruptions to"
-            " ecosystems."
-        ),
-        (
-            "Efforts to combat global warming include reducing carbon"
-            " emissions, transitioning to renewable energy sources, and"
-            " promoting sustainable practices."
-        ),
-    ],
-    "response": (
-        "Global warming is a critical environmental issue caused by human"
-        " activities that lead to a rise in Earth's temperature. It has"
-        " various adverse effects on the planet."
-    ),
-}
+    evaluators = [
+        GuidelineEvaluator(llm=llm, guidelines=guideline)
+        for guideline in GUIDELINES
+    ]
 
-for guideline, evaluator in zip(GUIDELINES, evaluators):
-    eval_result = evaluator.evaluate(
-        query=sample_data["query"],
-        contexts=sample_data["contexts"],
-        response=sample_data["response"],
-    )
-    print("=====")
-    print(f"Guideline: {guideline}")
-    print(f"Pass: {eval_result.passing}")
-    print(f"Feedback: {eval_result.feedback}")
+    results = []
+    for guideline, evaluator in zip(GUIDELINES, evaluators):
+        eval_result = evaluator.evaluate(
+            query=query,
+            contexts=contexts,
+            response=response,
+        )
+        print("=====")
+        print(f"Guideline: {guideline}")
+        print(f"Pass: {eval_result.passing}")
+        print(f"Feedback: {eval_result.feedback}")
+        results.append({
+            "guideline": guideline,
+            "passed": eval_result.passing,
+            "feedback": eval_result.feedback,
+        })
+    return results
 
-logger.info("\n\n[DONE]", bright=True)
+
+def main():
+    eval_results_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/semantic_search/eval/generated/run_generate_questions/eval_results.json"
+    with open(eval_results_path, "r") as f:
+        eval_results = json.load(f)
+
+    generated_dir = os.path.dirname(eval_results_path)
+
+    guideline_results = []
+    for idx, eval_result in enumerate(eval_results):
+        guideline_eval_results = run_evaluate_guidelines(
+            eval_result["query"],
+            eval_result["contexts"],
+            eval_result["response"],
+        )
+        guideline_results.append({
+            "data": {
+                "query": eval_result["query"],
+                "contexts": eval_result["contexts"],
+                "response": eval_result["response"],
+            },
+            "guideline_eval_results": guideline_eval_results
+        })
+        logger.newline()
+        logger.info(f"Evaluated guideline result {idx + 1}:")
+        logger.success(format_json(guideline_eval_results))
+        save_file(guideline_results, os.path.join(
+            generated_dir, "guideline_eval_results.json"))
+
+    logger.info("\n\n[DONE]", bright=True)
+
+
+if __name__ == "__main__":
+    main()

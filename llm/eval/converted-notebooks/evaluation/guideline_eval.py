@@ -36,29 +36,9 @@ evaluators = [
 ]
 
 sample_data = {
-    "query": "Tell me about global warming.",
-    "contexts": [
-        (
-            "Global warming refers to the long-term increase in Earth's"
-            " average surface temperature due to human activities such as the"
-            " burning of fossil fuels and deforestation."
-        ),
-        (
-            "It is a major environmental issue with consequences such as"
-            " rising sea levels, extreme weather events, and disruptions to"
-            " ecosystems."
-        ),
-        (
-            "Efforts to combat global warming include reducing carbon"
-            " emissions, transitioning to renewable energy sources, and"
-            " promoting sustainable practices."
-        ),
-    ],
-    "response": (
-        "Global warming is a critical environmental issue caused by human"
-        " activities that lead to a rise in Earth's temperature. It has"
-        " various adverse effects on the planet."
-    ),
+    "query": "'Can you tell me about your current position and responsibilities at JulesAI (formerly Macanta Software Ltd.)?'",
+    "contexts": ['Companies\n\nJob History (from most recent)\n1.) Jul 2020 - Present\n- JulesAI (formerly Macanta Software Ltd.)\n- Position: Web / Mobile Developer\n- Task: Developed a white label CRM system for different businesses that is customizable to align with specific workflows and requirements.\n- Currently maintaining and improving the system based on client feedback and requirements.\n- Key technologies: React, React Native, AWS\n\n2.) Jan 2019 - Jun 2020\n- 8WeekApp\n- Position: Web / Mobile Developer\n- Task: Developed a social networking app (Graduapp) for students, parents, teachers, and schools. The app serves as an online journal of their experience as a student at their institution.\n- Key technologies: React, React Native, Node.js, Firebase, MongoDB\n\n3.) Nov 2016 - Jan 2019\n- ADEC Innovations\n- Position: Web / Mobile Developer\n- Task: Worked on projects ranging from in-house to outsourced web and mobile applications.\n- Key technologies: React, React Native, Node.js, Firebase Firestore, Google Cloud Functions\n\n4.) Nov 2014 - Sep 2016\n- Asia Pacific Digital\n- Position: Web / Mobile App Developer\n- Task: Worked on web and mobile projects.\n- Key technologies: AngularJS, Ionic, jQuery\n\n5.) Jun 2012 - Nov 2014\n- Entertainment Gateway Group (now Yondu)\n- Position: Web Developer\n- Task: Worked on features for an insurance web app.\n- Key technologies: Java, JavaScript, jQuery', 'Web apps\n\na.) Jules Procure\nAchievements:\n- Started as the sole client side developer, built enterprise web and mobile CRM apps starting from provided mockups to production\n- JulesAI CEO was impressed and acquired ownership of existing CRM\n- Successfully integrated existing CRM with JulesAI\'s workflow to be rebranded as "Jules Procure"\n- Key features: Contact dashboard, Data builder, Task calendar, Workflow boards, Form builders, Price list generator, Automated emails based on triggers, and more\n- Technologies used: React, React Native, AWS Lambdas, GraphQL, Docker, Serverless, Jest\n\nb.) Digital Cities PH\nAchievements:\n- As the lead developer, I worked on a portal that showcases the profiles of provinces and cities in the Philippines\n- Developed an interactive Philippine map with clickable provinces, enabling users to access detailed descriptions and statistics for each region\n- Key features: Interactive map, Search, Filtering, Fast loading, SEO-friendly\n- Technologies used: React, GraphQL, React Static, Headless CMS\n\nc.) ADEC Kenya, AMDATEX\nAchievements:\n- Built UI components from mockups using Photoshop to achieve pixel-perfect look\n- Key features: Responsive, Reusable components\n- Technologies used: React, jQuery, Wordpress'],
+    "response": "I currently hold the position of Web / Mobile Developer at JulesAI. My primary responsibility is maintaining and improving a white label CRM system that I developed for various businesses, ensuring it meets specific workflows and requirements through client feedback and input. This involves utilizing key technologies such as React, React Native, and AWS to continuously enhance the system's functionality and user experience."
 }
 
 for guideline, evaluator in zip(GUIDELINES, evaluators):
