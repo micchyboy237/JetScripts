@@ -1,5 +1,6 @@
 import asyncio
 from jet.llm.ollama.constants import OLLAMA_BASE_EMBED_URL
+from jet.transformers.formatters import format_json
 from llama_index.core.prompts import PromptTemplate
 from IPython.display import Markdown, display
 from llama_index.core.node_parser import SentenceSplitter
@@ -264,11 +265,16 @@ async def run_workflow():
 
     w = CitationQueryEngineWorkflow()
 
-    result = await w.run(query="What information do you have", index=index)
+    query = "What information do you have"
+    result = await w.run(query=query, index=index)
 
-    display(Markdown(f"{result}"))
+    logger.newline()
+    logger.info("Query:")
+    logger.debug(query)
+    logger.success(format_json(result))
 
     # Check the citations.
+    logger.newline()
     logger.info("Citation 1:")
     logger.success(result.source_nodes[0].node.get_text())
     logger.info("Citation 2:")
