@@ -1,3 +1,6 @@
+import asyncio
+from jet.transformers.formatters import format_json
+from jet.utils.class_utils import class_to_string
 import nest_asyncio
 from llama_index.core.workflow import (
     Context,
@@ -42,6 +45,12 @@ class Segment(BaseModel):
     )
 
 
+SCHEMA_OUTPUT_PROMPT = f"""
+Return only the generated JSON value without any explanations surrounded by ```json that adheres to the model below:
+{class_to_string(Segment)}
+"""
+
+
 SEGMENT_GENERATION_TEMPLATE = """
 You are working with a human to create a story in the style of choose your own adventure.
 
@@ -62,7 +71,7 @@ interesting challenge to solve.
 
 
 Use the provided data model to structure your output.
-"""
+""" + SCHEMA_OUTPUT_PROMPT
 
 FINAL_SEGMENT_GENERATION_TEMPLATE = """
 You are working with a human to create a story in the style of choose your own adventure.
@@ -80,16 +89,18 @@ The story is now coming to an end. With the previous blocks, wrap up the story w
 closing PLOT. Since it is a closing plot, DO NOT GENERATE a new set of actions.
 
 Use the provided data model to structure your output.
-"""
+""" + SCHEMA_OUTPUT_PROMPT
 
-llm = Ollama("gpt-4o")
+llm = Ollama(model="llama3.1")
 segment = llm.structured_predict(
     Segment,
     PromptTemplate(SEGMENT_GENERATION_TEMPLATE),
     running_story="",
 )
 
-segment
+logger.newline()
+logger.info("Segment Result:")
+logger.success(format_json(segment))
 
 # Stitching together previous segments
 
@@ -120,7 +131,10 @@ class Block(BaseModel):
 
 
 block = Block(segment=segment)
-print(block)
+
+logger.newline()
+logger.info("Block:")
+logger.debug(format_json(block))
 
 # Create The Choose Your Own Adventure Workflow
 
@@ -138,7 +152,7 @@ class HumanChoiceEvent(Event):
 class ChooseYourOwnAdventureWorkflow(Workflow):
     def __init__(self, max_steps: int = 3, **kwargs):
         super().__init__(**kwargs)
-        self.llm = Ollama("gpt-4o")
+        self.llm = Ollama(model="llama3.1")
         self.max_steps = max_steps
 
     @step
@@ -201,19 +215,25 @@ class ChooseYourOwnAdventureWorkflow(Workflow):
 # ```
 
 
-nest_asyncio.apply()
+# nest_asyncio.apply()
 
-w = ChooseYourOwnAdventureWorkflow(timeout=None)
 
-result = await w.run()
+async def run_adventure_workflow():
+    w = ChooseYourOwnAdventureWorkflow(timeout=None)
 
-# Print The Final Story
+    result = await w.run()
 
-final_story = "\n\n".join(b.segment.plot for b in result)
-print(final_story)
+    # Print The Final Story
 
-# Other Ways To Implement Human In The Loop
+    final_story = "\n\n".join(b.segment.plot for b in result)
+    logger.newline()
+    logger.info("Final Story:")
+    logger.success(format_json(final_story))
 
-# One could also implement the human in the loop by creating a separate Workflow just for gathering human input and making use of nested Workflows. This design could be used in situations where you would want the human input gathering to be a separate service from the rest of the Workflow, which is what would happen if you deployed the nested workflows with llama-deploy.
+    # Other Ways To Implement Human In The Loop
+
+    # One could also implement the human in the loop by creating a separate Workflow just for gathering human input and making use of nested Workflows. This design could be used in situations where you would want the human input gathering to be a separate service from the rest of the Workflow, which is what would happen if you deployed the nested workflows with llama-deploy.
+
+asyncio.run(run_adventure_workflow())
 
 logger.info("\n\n[DONE]", bright=True)
