@@ -78,7 +78,7 @@ Settings.embed_model = OllamaEmbedding(model_name="nomic-embed-text")
 
 
 reader = SimpleDirectoryReader(
-    "./Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries")
+    "./Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data")
 
 docs = reader.load_data()
 

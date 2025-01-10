@@ -26,7 +26,7 @@ from llama_index.core import (
 import sys
 import logging
 import nest_asyncio
-from script_utils import display_source_nodes
+from jet.llm.utils import display_jet_source_nodes
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -81,7 +81,7 @@ logger.addHandler(handler)
 # Load Data
 
 documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data",
     required_exts=[".md"]
 ).load_data()
 
@@ -147,7 +147,7 @@ query_engine = RouterQueryEngine(
 
 query = "What is the summary of the document?"
 response = query_engine.query(query)
-display_source_nodes(query, response)
+display_jet_source_nodes(query, response)
 
 # LLMSingleSelector
 #
@@ -163,11 +163,11 @@ query_engine = RouterQueryEngine(
 
 query = "What is the summary of the document?"
 response = query_engine.query(query)
-display_source_nodes(query, response)
+display_jet_source_nodes(query, response)
 
 query = "What did Jethro Estrada do after graduating?"
 response = query_engine.query(query)
-display_source_nodes(query, response)
+display_jet_source_nodes(query, response)
 
 # PydanticMultiSelector
 #
@@ -194,7 +194,7 @@ query_engine = RouterQueryEngine(
 
 query = "What were noteable achievements from Jethro's time at JABA and ADEC?"
 response = query_engine.query(query)
-display_source_nodes(query, response)
+display_jet_source_nodes(query, response)
 
 # SubQuestion Query Engine
 #
@@ -235,11 +235,11 @@ uber_engine = uber_index.as_query_engine(similarity_top_k=3)
 
 query = "What is the revenue of Lyft in 2021? Answer in millions with page reference"
 response = lyft_engine.query(query)
-display_source_nodes(query, response)
+display_jet_source_nodes(query, response)
 
 query = "What is the revenue of Uber in 2021? Answer in millions, with page reference"
 response = uber_engine.query(query)
-display_source_nodes(query, response)
+display_jet_source_nodes(query, response)
 
 # Define QueryEngine Tools
 
@@ -271,6 +271,6 @@ sub_question_query_engine = SubQuestionQueryEngine.from_defaults(
 
 query = "Compare revenue growth of Uber and Lyft from 2020 to 2021"
 response = sub_question_query_engine.query(query)
-display_source_nodes(query, response)
+display_jet_source_nodes(query, response)
 
 logger.info("\n\n[DONE]", bright=True)

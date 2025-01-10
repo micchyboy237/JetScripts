@@ -1,4 +1,4 @@
-from llama_index.core.response.notebook_utils import display_source_node
+from jet.llm.utils import display_jet_source_node
 from llama_index.core.retrievers import RouterRetriever
 from llama_index.core.selectors import (
     PydanticMultiSelector,
@@ -58,7 +58,7 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 # We first show how to convert a Document into a set of Nodes, and insert into a DocumentStore.
 
 documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries").load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
 
 llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
 splitter = SentenceSplitter(chunk_size=1024)
@@ -123,11 +123,11 @@ nodes = retriever.retrieve(
     "Can you give me all the context regarding the author's life?"
 )
 for node in nodes:
-    display_source_node(node)
+    display_jet_source_node(node)
 
 nodes = retriever.retrieve("What did Paul Graham do after RISD?")
 for node in nodes:
-    display_source_node(node)
+    display_jet_source_node(node)
 
 # PydanticMultiSelector
 
@@ -140,18 +140,18 @@ nodes = retriever.retrieve(
     "What were noteable events from the authors time at Interleaf and YC?"
 )
 for node in nodes:
-    display_source_node(node)
+    display_jet_source_node(node)
 
 nodes = retriever.retrieve(
     "What were noteable events from the authors time at Interleaf and YC?"
 )
 for node in nodes:
-    display_source_node(node)
+    display_jet_source_node(node)
 
 nodes = await retriever.aretrieve(
     "What were noteable events from the authors time at Interleaf and YC?"
 )
 for node in nodes:
-    display_source_node(node)
+    display_jet_source_node(node)
 
 logger.info("\n\n[DONE]", bright=True)

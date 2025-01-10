@@ -1,5 +1,5 @@
 from llama_index.core.response.notebook_utils import (
-    display_source_node,
+    display_jet_source_node,
     display_response,
 )
 from llama_index.core import VectorStoreIndex

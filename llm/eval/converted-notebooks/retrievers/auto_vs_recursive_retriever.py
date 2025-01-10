@@ -23,7 +23,7 @@ from llama_index.core import SimpleDirectoryReader
 import sys
 import logging
 import nest_asyncio
-from script_utils import display_source_nodes
+from jet.llm.utils import display_jet_source_nodes
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -63,7 +63,7 @@ VECTOR_RETRIEVERS_CACHE = Path(CACHE_DIR) / "vector_retrievers.pkl"
 Path(CACHE_DIR).mkdir(exist_ok=True)
 
 # Custom settings
-input_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries"
+input_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
 chunk_size = 512
 chunk_overlap = 50
 
@@ -197,7 +197,7 @@ def build_recursive_retriever_over_document_summaries(similarity_top_k=3):
                 f"({len(response.source_nodes)})",
                 colors=["WHITE", "SUCCESS"]
             )
-            display_source_nodes(wiki_title, response.source_nodes)
+            display_jet_source_nodes(wiki_title, response.source_nodes)
 
             wiki_summary = response.response
             with open(out_dir / wiki_title, "a") as fp:
@@ -281,7 +281,7 @@ if __name__ == "__main__":
         vector_retrievers,
         similarity_top_k=query_top_k,
     )
-    display_source_nodes(query, retrieved_nodes)
+    display_jet_source_nodes(query, retrieved_nodes)
 
     retrieved_contents = []
     for node in retrieved_nodes:
@@ -307,7 +307,7 @@ if __name__ == "__main__":
                 vector_retrievers,
                 similarity_top_k=query_top_k,
             )
-            display_source_nodes(query, retrieved_nodes)
+            display_jet_source_nodes(query, retrieved_nodes)
 
             result = "\n\n".join(retrieved_contents)
             # logger.newline()

@@ -8,7 +8,7 @@ from llama_index.core.evaluation import EvaluationResult
 import pandas as pd
 import sys
 import logging
-from script_utils import display_source_nodes
+from jet.llm.utils import display_jet_source_nodes
 from jet.transformers import make_serializable
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
@@ -39,7 +39,7 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 # Load Data
 
 reader = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries", required_exts=[".md"])
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data", required_exts=[".md"])
 num_questions_per_chunk = 3
 question_gen_query = f"You are a Job Employer. Your task is to setup {
     num_questions_per_chunk} questions for an upcoming interview. The questions should be relevant to the document. Restrict the questions to the context information provided."
@@ -79,7 +79,7 @@ vector_index = VectorStoreIndex.from_documents(documents)
 
 
 def display_eval_df(query: str, response: Response, eval_result: EvaluationResult) -> None:
-    display_source_nodes(query, response.source_nodes)
+    display_jet_source_nodes(query, response.source_nodes)
 
     logger.newline()
     logger.info("Eval Results:")

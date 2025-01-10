@@ -34,7 +34,7 @@ gpt4 = create_llm(temperature=0, model="llama3.1")
 evaluator_gpt4 = PairwiseComparisonEvaluator(llm=gpt4)
 
 documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries", required_exts=[".md"]).load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data", required_exts=[".md"]).load_data()
 
 splitter_512 = SentenceSplitter(chunk_size=512)
 vector_index1 = VectorStoreIndex.from_documents(

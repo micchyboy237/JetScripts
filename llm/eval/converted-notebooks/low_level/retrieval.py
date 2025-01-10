@@ -2,7 +2,7 @@ from llama_index.core.query_engine import RetrieverQueryEngine
 from typing import Any, List
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core import QueryBundle
-from llama_index.core.response.notebook_utils import display_source_node
+from jet.llm.utils import display_jet_source_node
 from typing import Optional
 from llama_index.core.schema import NodeWithScore
 from llama_index.core.vector_stores import VectorStoreQuery
@@ -138,7 +138,7 @@ for index, node in enumerate(query_result.nodes):
 
 
 for node in nodes_with_scores:
-    display_source_node(node, source_length=1000)
+    display_jet_source_node(node, source_length=1000)
 
 # 4. Put this into a Retriever
 #
@@ -194,7 +194,7 @@ retriever = PineconeRetriever(
 
 retrieved_nodes = retriever.retrieve(query_str)
 for node in retrieved_nodes:
-    display_source_node(node, source_length=1000)
+    display_jet_source_node(node, source_length=1000)
 
 # Plug this into our RetrieverQueryEngine to synthesize a response
 #

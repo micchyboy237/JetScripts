@@ -1,15 +1,32 @@
+from jet.llm.utils import display_jet_source_node
+from llama_index.core.query_engine import SimpleMultiModalQueryEngine
+from llama_index.core import PromptTemplate
+import qdrant_client
+from llama_index.core import SimpleDirectoryReader, StorageContext
+from llama_index.vector_stores.qdrant import QdrantVectorStore
+from llama_index.core.indices import MultiModalVectorStoreIndex
+import time
+import urllib.request
+import requests
+from llama_index.core import SimpleDirectoryReader
+import matplotlib.pyplot as plt
+from PIL import Image
+from pathlib import Path
+from llama_index.core.multi_modal_llms.generic_utils import load_image_urls
+from llama_index.multi_modal_llms.openai import OllamaMultiModal
+import os
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Multi-Modal RAG System
-# 
+#
 # In this notebook we will demonstrate the following:
-# 
+#
 # 1. Querying images with a Multi-Modal LLM.
 # 2. Buidling a Multi-Modal RAG System.
 
-## Installation
+# Installation
 
 # !pip install llama-index-multi-modal-llms-openai
 # !pip install llama-index-vector-stores-qdrant
@@ -18,17 +35,12 @@ initialize_ollama_settings()
 # !pip install git+https://github.com/openai/CLIP.git
 # !pip install matplotlib scikit-image
 
-## Set API Key
+# Set API Key
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-## Load Images with `urls`
-
-from llama_index.multi_modal_llms.openai import OllamaMultiModal
-
-from llama_index.core.multi_modal_llms.generic_utils import load_image_urls
+# Load Images with `urls`
 
 
 image_urls = [
@@ -37,7 +49,7 @@ image_urls = [
 
 image_documents = load_image_urls(image_urls)
 
-## Querying with `GPT-4V` vision API.
+# Querying with `GPT-4V` vision API.
 
 openai_mm_llm = OllamaMultiModal(
     model="llama3.1", request_timeout=300.0, context_window=4096, max_new_tokens=300
@@ -50,9 +62,8 @@ response = openai_mm_llm.complete(
 
 print(response)
 
-## Load Images from directory
+# Load Images from directory
 
-from pathlib import Path
 
 input_image_path = Path("input_images")
 if not input_image_path.exists():
@@ -63,10 +74,6 @@ if not input_image_path.exists():
 # !wget "https://docs.google.com/uc?export=download&id=1utu3iD9XEgR5Sb7PrbtMf1qw8T1WdNmF" -O ./input_images/performance_spec.png
 # !wget "https://docs.google.com/uc?export=download&id=1dpUakWMqaXR4Jjn1kHuZfB0pAXvjn2-i" -O ./input_images/price.png
 # !wget "https://docs.google.com/uc?export=download&id=1qNeT201QAesnAP5va1ty0Ky5Q_jKkguV" -O ./input_images/real_wheel_spec.png
-
-from PIL import Image
-import matplotlib.pyplot as plt
-import os
 
 
 def plot_images(image_paths):
@@ -85,13 +92,12 @@ def plot_images(image_paths):
             if images_shown >= 9:
                 break
 
+
 image_paths = []
 for img_path in os.listdir("./input_images"):
     image_paths.append(str(os.path.join("./input_images", img_path)))
 plot_images(image_paths)
 
-from llama_index.multi_modal_llms.openai import OllamaMultiModal
-from llama_index.core import SimpleDirectoryReader
 
 image_documents = SimpleDirectoryReader("./input_images").load_data()
 
@@ -102,9 +108,7 @@ response = openai_mm_llm.complete(
 
 print(response)
 
-## Plot Images
-
-import requests
+# Plot Images
 
 
 def get_wikipedia_images(title):
@@ -128,12 +132,8 @@ def get_wikipedia_images(title):
             image_urls.append(page["imageinfo"][0]["url"])
     return image_urls
 
-## Download Images and Text from Wikipedia
+# Download Images and Text from Wikipedia
 
-from pathlib import Path
-import requests
-import urllib.request
-import time
 
 image_uuid = 0
 image_metadata_dict = {}
@@ -178,7 +178,6 @@ for title in wiki_titles:
     try:
         list_img_urls = get_wikipedia_images(title)
 
-
         for url in list_img_urls:
             if (
                 url.endswith(".jpg")
@@ -203,12 +202,7 @@ for title in wiki_titles:
         )
         continue
 
-## Setup Qdrant client for indexing
-
-from llama_index.core.indices import MultiModalVectorStoreIndex
-from llama_index.vector_stores.qdrant import QdrantVectorStore
-from llama_index.core import SimpleDirectoryReader, StorageContext
-import qdrant_client
+# Setup Qdrant client for indexing
 
 
 client = qdrant_client.QdrantClient(path="qdrant_mm_db")
@@ -223,23 +217,21 @@ storage_context = StorageContext.from_defaults(
     vector_store=text_store, image_store=image_store
 )
 
-## Load Images and Text Documents
+# Load Images and Text Documents
 
 documents = SimpleDirectoryReader("./mixed_wiki/").load_data()
 
 documents[0]
 
-## Create Multi-Modal Index
+# Create Multi-Modal Index
 
 index = MultiModalVectorStoreIndex.from_documents(
     documents,
     storage_context=storage_context,
 )
 
-## Create Query Engine
+# Create Query Engine
 
-from llama_index.core import PromptTemplate
-from llama_index.core.query_engine import SimpleMultiModalQueryEngine
 
 qa_tmpl_str = (
     "Context information is below.\n"
@@ -257,19 +249,18 @@ query_engine = index.as_query_engine(
     llm=openai_mm_llm, text_qa_template=qa_tmpl
 )
 
-## Querying
+# Querying
 
 query_str = "Tell me more about the Tesla Model X"
 response = query_engine.query(query_str)
 
 print(response)
 
-## Show sources
+# Show sources
 
-from llama_index.core.response.notebook_utils import display_source_node
 
 for text_node in response.metadata["text_nodes"]:
-    display_source_node(text_node, source_length=200)
+    display_jet_source_node(text_node, source_length=200)
 plot_images(
     [n.metadata["file_path"] for n in response.metadata["image_nodes"]]
 )

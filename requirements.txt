@@ -1,2 +1,0 @@
-# .venv/bin/python
-pip==24.2

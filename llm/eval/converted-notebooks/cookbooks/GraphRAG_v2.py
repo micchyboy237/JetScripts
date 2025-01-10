@@ -33,7 +33,7 @@ from jet.llm.ollama.base import Ollama
 import os
 from llama_index.core import Document
 import pandas as pd
-from script_utils import display_source_nodes
+from jet.llm.utils import display_jet_source_nodes
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -639,10 +639,10 @@ query_engine = GraphRAGQueryEngine(
 
 query = "What are the main news discussed in the document?"
 response = query_engine.query(query)
-display_source_nodes(query, response)
+display_jet_source_nodes(query, response)
 
 query = "What are the main news in energy sector?"
 response = query_engine.query(query)
-display_source_nodes(query, response)
+display_jet_source_nodes(query, response)
 
 logger.info("\n\n[DONE]", bright=True)

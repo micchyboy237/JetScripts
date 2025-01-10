@@ -41,7 +41,7 @@ initialize_ollama_settings()
 
 
 documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries").load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
 
 # Next, we will setup a vector index over the documentation.
 

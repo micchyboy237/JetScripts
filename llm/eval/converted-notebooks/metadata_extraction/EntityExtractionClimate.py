@@ -57,7 +57,7 @@ transformations = [node_parser, entity_extractor]
 
 
 documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries").load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
 print("Documents:", len(documents))
 # Extracting Metadata
 #

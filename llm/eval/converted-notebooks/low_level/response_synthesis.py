@@ -4,7 +4,7 @@ from llama_index.core.llms import LLM
 from llama_index.core.retrievers import BaseRetriever
 import asyncio
 import nest_asyncio
-from llama_index.core.response.notebook_utils import display_source_node
+from jet.llm.utils import display_jet_source_node
 from llama_index.core import PromptTemplate
 from jet.llm.ollama.base import Ollama
 from llama_index.core import StorageContext
@@ -190,7 +190,7 @@ def generate_response_cr(
     fmt_prompts = []
     for idx, node in enumerate(retrieved_nodes):
         print(f"[Node {idx}]")
-        display_source_node(node, source_length=2000)
+        display_jet_source_node(node, source_length=2000)
         context_str = node.get_content()
         if idx == 0:
             fmt_prompt = qa_prompt.format(

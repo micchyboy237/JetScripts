@@ -53,7 +53,7 @@ nest_asyncio.apply()
 
 # loader = PyMuPDFReader()
 # documents = loader.load(file_path="./data/llama_beyond_english.pdf")
-data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries"
+data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
 documents = SimpleDirectoryReader(
     data_dir, required_exts=[".md"]).load_data()
 

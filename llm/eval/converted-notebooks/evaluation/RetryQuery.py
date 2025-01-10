@@ -42,7 +42,7 @@ nest_asyncio.apply()
 # Load Data
 
 documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries").load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
 index = VectorStoreIndex.from_documents(documents)
 query = "What did Jethro accomplish?"
 

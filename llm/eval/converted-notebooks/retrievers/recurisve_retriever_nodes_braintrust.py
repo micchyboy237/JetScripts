@@ -19,7 +19,7 @@ from jet.llm.ollama.base import Ollama
 from llama_index.core import VectorStoreIndex
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.retrievers import RecursiveRetriever
-from llama_index.core.response.notebook_utils import display_source_node
+from jet.llm.utils import display_jet_source_node
 from llama_index.readers.file import PDFReader
 from pathlib import Path
 from jet.logger import logger
@@ -94,7 +94,7 @@ retrievals = base_retriever.retrieve(
 )
 
 for n in retrievals:
-    display_source_node(n, source_length=1500)
+    display_jet_source_node(n, source_length=1500)
 
 query_engine_base = RetrieverQueryEngine.from_args(base_retriever, llm=llm)
 
@@ -142,7 +142,7 @@ nodes = retriever_chunk.retrieve(
     "Can you tell me about the key concepts for safety finetuning"
 )
 for node in nodes:
-    display_source_node(node, source_length=2000)
+    display_jet_source_node(node, source_length=2000)
 
 query_engine_chunk = RetrieverQueryEngine.from_args(retriever_chunk, llm=llm)
 
@@ -220,7 +220,7 @@ nodes = retriever_metadata.retrieve(
     "Can you tell me about the key concepts for safety finetuning"
 )
 for node in nodes:
-    display_source_node(node, source_length=2000)
+    display_jet_source_node(node, source_length=2000)
 
 query_engine_metadata = RetrieverQueryEngine.from_args(
     retriever_metadata, llm=llm

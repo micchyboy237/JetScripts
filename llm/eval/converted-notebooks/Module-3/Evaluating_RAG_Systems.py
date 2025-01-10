@@ -1,39 +1,58 @@
+from jet.llm.utils import display_jet_source_node
+from llama_index.core.text_splitter import SentenceSplitter
+from IPython.display import display, HTML
+import os
+from jet.vectors import SettingsManager, IndexManager
+from llama_index.core import (
+    SimpleDirectoryReader,
+    VectorStoreIndex,
+    Response,
+)
+from llama_index.core.llama_dataset.generator import RagDatasetGenerator
+from llama_index.core.evaluation import (
+    DatasetGenerator,
+    FaithfulnessEvaluator,
+    RelevancyEvaluator,
+    CorrectnessEvaluator,
+    RetrieverEvaluator,
+    generate_question_context_pairs,
+)
+import pandas as pd
+import sys
+import logging
+import nest_asyncio
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Evaluating RAG Systems
-# 
+#
 # Evaluation and benchmarking are crucial in developing LLM applications. Optimizing performance for applications like RAG (Retrieval Augmented Generation) requires a robust measurement mechanism.
-# 
+#
 # LlamaIndex provides essential modules to assess the quality of generated outputs and evaluate content retrieval quality. It categorizes its evaluation into two main types:
-# 
+#
 # *   **Response Evaluation** : Assesses quality of Generated Outputs
 # *   **Retrieval Evaluation** : Assesses Retrieval quality
-# 
+#
 # [Documentation
 # ](https://docs.llamaindex.ai/en/latest/module_guides/evaluating/)
 
 
-
-## Response Evaluation
-# 
+# Response Evaluation
+#
 # Evaluating results from LLMs is distinct from traditional machine learning's straightforward outcomes. LlamaIndex employs evaluation modules, using a benchmark LLM like GPT-4, to gauge answer accuracy. Notably, these modules often blend query, context, and response, minimizing the need for ground-truth labels.
-# 
+#
 # The evaluation modules manifest in the following categories:
-# 
+#
 # *   **Faithfulness:** Assesses whether the response remains true to the retrieved contexts, ensuring there's no distortion or "hallucination."
 # *   **Relevancy:** Evaluates the relevance of both the retrieved context and the generated answer to the initial query.
 # *   **Correctness:** Determines if the generated answer aligns with the reference answer based on the query (this does require labels).
-# 
+#
 # Furthermore, LlamaIndex has the capability to autonomously generate questions from your data, paving the way for an evaluation pipeline to assess the RAG application.
 
-import nest_asyncio
 
 nest_asyncio.apply()
 
-import logging
-import sys
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)  # Set logger level to INFO
@@ -45,31 +64,10 @@ handler.setLevel(logging.INFO)  # Set handler level to INFO
 
 logger.addHandler(handler)
 
-import logging
-import sys
-import pandas as pd
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
-from llama_index.core.evaluation import (
-    DatasetGenerator,
-    FaithfulnessEvaluator,
-    RelevancyEvaluator,
-    CorrectnessEvaluator,
-    RetrieverEvaluator,
-    generate_question_context_pairs,
-)
-from llama_index.core.llama_dataset.generator import RagDatasetGenerator
-
-from llama_index.core import (
-    SimpleDirectoryReader,
-    VectorStoreIndex,
-    Response,
-)
-
-from jet.logger import logger
-from jet.vectors import SettingsManager, IndexManager
 
 settings_manager = SettingsManager.create({
     "llm_model": "llama3.1",
@@ -78,27 +76,21 @@ settings_manager = SettingsManager.create({
     "chunk_overlap": 50,
 })
 
-import os
+
+# Download Data
 
 
+# Load Data
 
-#### Download Data
-
-
-
-#### Load Data
-
-reader = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/data/paul_graham")
+reader = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/data/paul_graham")
 documents = reader.load_data()
 
-#### Generate Question
-
-
-
+# Generate Question
 
 
 base_nodes = IndexManager.create_nodes(
-        documents=documents, parser=settings_manager.node_parser)
+    documents=documents, parser=settings_manager.node_parser)
 
 dataset_generator = DatasetGenerator(
     base_nodes[:20],
@@ -139,12 +131,11 @@ query_engine = vector_index.as_query_engine()
 retriever = vector_index.as_retriever(similarity_top_k=3)
 nodes = retriever.retrieve(eval_query)
 
-from IPython.display import display, HTML
 
 display(HTML(f'<p style="font-size:20px">{nodes[1].get_text()}</p>'))
 
-#### Faithfullness Evaluator
-# 
+# Faithfullness Evaluator
+#
 #  Measures if the response from a query engine matches any source nodes. This is useful for measuring if the response was hallucinated.
 
 faithfulness_evaluator = FaithfulnessEvaluator(llm=gpt4)
@@ -159,8 +150,8 @@ eval_result.passing
 
 eval_result
 
-#### Relevency Evaluation
-# 
+# Relevency Evaluation
+#
 # Measures if the response + source nodes match the query.
 
 relevancy_evaluator = RelevancyEvaluator(llm=gpt4)
@@ -198,8 +189,8 @@ eval_source_result = [
 
 eval_source_result
 
-#### Correctness Evaluator
-# 
+# Correctness Evaluator
+#
 # Evaluates the relevance and correctness of a generated answer against a reference answer.
 
 correctness_evaluator = CorrectnessEvaluator(llm=gpt4)
@@ -234,16 +225,16 @@ correctness_result.passing
 
 correctness_result.feedback
 
-## Retrieval Evaluation
-# 
+# Retrieval Evaluation
+#
 # Evaluates the quality of any Retriever module defined in LlamaIndex.
-# 
+#
 # To assess the quality of a Retriever module in LlamaIndex, we use metrics like hit-rate and MRR. These compare retrieved results to ground-truth context for any question. For simpler evaluation dataset creation, we utilize synthetic data generation.
 
-reader = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/data/paul_graham")
+reader = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/data/paul_graham")
 documents = reader.load_data()
 
-from llama_index.core.text_splitter import SentenceSplitter
 
 parser = SentenceSplitter(chunk_size=768, chunk_overlap=50)
 nodes = parser(documents)
@@ -254,10 +245,9 @@ retriever = vector_index.as_retriever(similarity_top_k=2)
 
 retrieved_nodes = retriever.retrieve(eval_query)
 
-from llama_index.core.response.notebook_utils import display_source_node
 
 for node in retrieved_nodes:
-    display_source_node(node, source_length=2000)
+    display_jet_source_node(node, source_length=2000)
 
 qa_dataset = generate_question_context_pairs(
     nodes, llm=gpt4, num_questions_per_chunk=2
@@ -280,6 +270,7 @@ print(eval_result)
 
 eval_results = retriever_evaluator.evaluate_dataset(qa_dataset)
 
+
 def display_results(name, eval_results):
     """Display results from evaluate."""
 
@@ -298,6 +289,7 @@ def display_results(name, eval_results):
     )
 
     return metric_df
+
 
 display_results("top-2 eval", eval_results)
 

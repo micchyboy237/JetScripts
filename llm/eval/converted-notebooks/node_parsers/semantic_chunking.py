@@ -1,4 +1,4 @@
-from llama_index.core.response.notebook_utils import display_source_node
+from jet.llm.utils import display_jet_source_node
 from llama_index.core import VectorStoreIndex
 import os
 from jet.llm.ollama.base import OllamaEmbedding
@@ -7,7 +7,7 @@ from llama_index.core.node_parser import (
     SemanticSplitterNodeParser,
 )
 from llama_index.core import SimpleDirectoryReader
-from script_utils import display_source_nodes
+from jet.llm.utils import display_jet_source_nodes
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -37,7 +37,7 @@ initialize_ollama_settings()
 
 
 documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data",
     required_exts=[".md"]
 ).load_data()
 
@@ -113,12 +113,12 @@ query = "Tell me about yourself."
 response = query_engine.query(query)
 logger.newline()
 logger.info("Semantic Query Response 1:")
-display_source_nodes(query, response)
+display_jet_source_nodes(query, response)
 
 base_response = base_query_engine.query(query)
 logger.newline()
 logger.info("Plain Query Response 1:")
-display_source_nodes(query, base_response)
+display_jet_source_nodes(query, base_response)
 
 # Example 2
 query = "List your primary skills and achievements."
@@ -126,12 +126,12 @@ query = "List your primary skills and achievements."
 response = query_engine.query(query)
 logger.newline()
 logger.info("Semantic Query Response 2:")
-display_source_nodes(query, response)
+display_jet_source_nodes(query, response)
 
 base_response = base_query_engine.query(query)
 logger.newline()
 logger.info("Plain Query Response 2:")
-display_source_nodes(query, base_response)
+display_jet_source_nodes(query, base_response)
 
 
 logger.info("\n\n[DONE]", bright=True)

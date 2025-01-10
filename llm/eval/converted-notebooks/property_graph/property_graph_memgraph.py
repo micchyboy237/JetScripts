@@ -62,7 +62,7 @@ with open(output_path, "w", encoding="utf-8") as file:
     file.write(modified_content)
 
 documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries/").load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 
 # Setup Memgraph connection
 

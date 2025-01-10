@@ -23,7 +23,7 @@ from jet.llm.ollama.base import Ollama
 from llama_index.core import VectorStoreIndex
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.retrievers import RecursiveRetriever
-from script_utils import display_source_nodes
+from jet.llm.utils import display_jet_source_nodes
 from jet.llm.ollama.base import OllamaEmbedding
 from jet.cache.joblib import load_from_cache_or_compute
 from jet.logger import logger
@@ -61,7 +61,7 @@ ALL_NODES_AND_VECTOR_INDEX_CHUNK_CACHE = os.path.join(
 VECTOR_INDEX_METADATA_CACHE = os.path.join(
     CACHE_DIR, "vector_index_metadata.pkl")
 
-# INPUT_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries"
+# INPUT_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
 INPUT_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/retrievers/summaries/jet-resume"
 GENERATED_DIR = f"generated/{os.path.basename(__file__).split(".")[0]}"
 os.makedirs(GENERATED_DIR, exist_ok=True)
@@ -113,7 +113,7 @@ def main_baseline_retriever(
         query
     )
 
-    display_source_nodes(query, retrievals)
+    display_jet_source_nodes(query, retrievals)
 
     query_engine_base = RetrieverQueryEngine.from_args(base_retriever, llm=llm)
 
@@ -170,7 +170,7 @@ def main_chunk_references_smaller_child_chunks_referring_to_bigger_parent_chunk(
     retrieved_nodes = retriever_chunk.retrieve(query)
     retrieved_nodes_sorted = sorted(
         retrieved_nodes, key=lambda item: item.score, reverse=True)
-    display_source_nodes(query, retrieved_nodes_sorted)
+    display_jet_source_nodes(query, retrieved_nodes_sorted)
 
     query_engine_chunk = RetrieverQueryEngine.from_args(
         retriever_chunk, llm=llm)
@@ -251,7 +251,7 @@ def main_metadata_reference_summaries_generated_questions(
         query
     )
 
-    display_source_nodes(query, nodes)
+    display_jet_source_nodes(query, nodes)
 
     query_engine_metadata = RetrieverQueryEngine.from_args(
         retriever_metadata, llm=llm

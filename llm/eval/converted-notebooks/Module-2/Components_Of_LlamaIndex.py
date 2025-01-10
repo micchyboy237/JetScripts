@@ -1,4 +1,4 @@
-from llama_index.core.response.notebook_utils import display_source_node
+from jet.llm.utils import display_jet_source_node
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.response_synthesizers import get_response_synthesizer
 from llama_index.core.retrievers import VectorIndexRetriever
@@ -219,6 +219,6 @@ retrieved_nodes = retriever.retrieve("What did Paul Graham do growing up?")
 
 
 for text_node in retrieved_nodes:
-    display_source_node(text_node, source_length=500)
+    display_jet_source_node(text_node, source_length=500)
 
 logger.info("\n\n[DONE]", bright=True)

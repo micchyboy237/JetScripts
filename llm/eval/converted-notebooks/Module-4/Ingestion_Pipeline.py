@@ -42,7 +42,7 @@ nest_asyncio.apply()
 
 
 documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summaries",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data",
     required_exts=["*.md"]
 ).load_data()
 

@@ -4,7 +4,7 @@ import json
 import os
 from mitmproxy import http
 import time
-from jet.transformers import make_serializable, format_prompt_log
+from jet.transformers import make_serializable, prettify_value
 from jet.logger import logger
 
 LOGS_DIR = "jet-logs"

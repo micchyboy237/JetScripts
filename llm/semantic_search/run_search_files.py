@@ -3,7 +3,7 @@ from llama_index.core import Document, SimpleDirectoryReader, PromptTemplate
 from llama_index.core.retrievers.fusion_retriever import FUSION_MODES
 
 from convert_docs_to_scripts import scrape_code
-from script_utils import display_source_nodes
+from jet.llm.utils import display_jet_source_nodes
 from jet.token import token_counter
 from jet.llm.query import setup_index, query_llm
 from jet.logger import logger
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     result = query_nodes(
         sample_query, FUSION_MODES.RELATIVE_SCORE, threshold=score_threshold, top_k=top_k)
     logger.info(f"RETRIEVED NODES ({len(result["nodes"])})")
-    display_source_nodes(sample_query, result["nodes"])
+    display_jet_source_nodes(sample_query, result["nodes"])
 
     result_texts = [node.text for node in result["nodes"]]
     token_count = get_token_counts(result_texts, model)
@@ -176,7 +176,7 @@ if __name__ == "__main__":
             result = query_nodes(
                 query, FUSION_MODES.RELATIVE_SCORE, threshold=score_threshold, top_k=top_k)
             logger.info(f"RETRIEVED NODES ({len(result["nodes"])})")
-            display_source_nodes(query, result["nodes"])
+            display_jet_source_nodes(query, result["nodes"])
 
             result_texts = [node.text for node in result["nodes"]]
             token_count = get_token_counts(result_texts, model)

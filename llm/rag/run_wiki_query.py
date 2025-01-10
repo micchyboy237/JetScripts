@@ -24,7 +24,7 @@ from jet.llm.ollama.base import OllamaEmbedding
 from jet.llm.ollama.base import Ollama
 from llama_index.core.node_parser import NodeParser, SentenceSplitter
 
-from llama_index.core.response.notebook_utils import display_source_node
+from jet.llm.utils import display_jet_source_node
 
 import os
 import json
@@ -268,7 +268,7 @@ nodes = retriever.retrieve(query)
 # Print the chunks
 for node in nodes:
     print('----------------------------------------------------')
-    display_source_node(node, source_length=500)
+    display_jet_source_node(node, source_length=500)
 results["retrieved_nodes"].append({
     "query": query,
     "response": nodes,
@@ -292,7 +292,7 @@ query_bundle = QueryBundle(query_str=query)
 ranked_nodes = reranker._postprocess_nodes(nodes, query_bundle=query_bundle)
 for ranked_node in ranked_nodes:
     print('----------------------------------------------------')
-    display_source_node(ranked_node, source_length=500)
+    display_jet_source_node(ranked_node, source_length=500)
 # Initialize the query engine with Re-Ranking
 query_engine = index.as_query_engine(
     similarity_top_k=3,
@@ -323,7 +323,7 @@ ranked_nodes = reranker._postprocess_nodes(nodes, query_bundle=query_bundle)
 
 for ranked_node in ranked_nodes:
     print('----------------------------------------------------')
-    display_source_node(ranked_node, source_length=500)
+    display_jet_source_node(ranked_node, source_length=500)
 # Print the response from the model
 response = query_engine.query(query)
 results["rerank"] = {

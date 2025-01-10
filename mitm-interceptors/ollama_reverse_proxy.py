@@ -4,7 +4,7 @@ import json
 import os
 from mitmproxy import http
 import time
-from jet.transformers import make_serializable, format_prompt_log
+from jet.transformers import make_serializable, prettify_value
 from jet.logger import logger
 
 file_dir = os.path.dirname(os.path.realpath(__file__))
@@ -39,7 +39,7 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     # logger.debug(f"PROMPT TYPE: {type(prompt)}")
     # logger.debug(f"PROMPT CONTENT:\n{prompt}")
     # try:
-    #     prompt_log = format_prompt_log(json.loads(prompt))
+    #     prompt_log = prettify_value(json.loads(prompt))
     #     logger.log("PROMPT LOG:")
     #     logger.debug(prompt_log)
     # except json.JSONDecodeError:
