@@ -30,7 +30,7 @@ def save_metadata_dicts(path, data):
         current_data: list = load_metadata_dicts(path)
         current_data.extend(data)
     except:
-        current_data = []
+        current_data = [data]
 
     with open(path, "w") as fp:
         json.dump(current_data, fp, indent=2, ensure_ascii=False)
