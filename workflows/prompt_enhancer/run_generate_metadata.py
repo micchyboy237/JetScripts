@@ -39,7 +39,7 @@ def save_metadata_dicts(path, data):
 
 async def main():
     chunk_size = 1024
-    chunk_overlap = 0
+    chunk_overlap = 20
 
     data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
     logger.newline()
