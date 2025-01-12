@@ -1,6 +1,8 @@
 import asyncio
 import json
 import os
+
+from tqdm import tqdm
 from jet.llm.ollama.base import initialize_ollama_settings
 from jet.logger import logger
 from jet.vectors.metadata import generate_metadata, parse_nodes
@@ -18,7 +20,7 @@ def save_metadata_dicts(path, data):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as fp:
         json.dump(make_serializable(data), fp, indent=2, ensure_ascii=False)
-    logger.success("Saved file to" + path, bright=True)
+    logger.success("Saved file to: " + path, bright=True)
 
 
 async def main():
@@ -43,18 +45,22 @@ async def main():
     extractors = [summary_extractor, questions_answered_extractor]
 
     metadata_results: list = []
+    metadata_tqdm = tqdm(total=len(base_nodes))
     async for node, metadata in generate_metadata(base_nodes, extractors):
         logger.newline()
         logger.info(f"Node ID: {node.node_id}")
         logger.debug(f"Text length: {len(node.text)}")
         logger.log("Metadata:",
-                   format_json(metadata), colors=["DEBUG", "SUCCESS"])
+                   format_json(metadata_results), colors=["DEBUG", "SUCCESS"])
         metadata_results.append({
             "node_id": node.node_id,
             "metadata": metadata
         })
         save_metadata_dicts(
-            f"{OUTPUT_DIR}/llama2_metadata.json", metadata_results)
+            f"{OUTPUT_DIR}/jet_resume_metadata.json", metadata_results)
+
+        # Update the progress bar after processing each node
+        metadata_tqdm.update(1)
 
 if __name__ == "__main__":
     asyncio.run(main())
