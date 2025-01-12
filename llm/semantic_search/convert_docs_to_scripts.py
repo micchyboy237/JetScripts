@@ -200,13 +200,13 @@ def read_notebook_file(file, with_markdown=False):
                 code_lines.append(line)
 
             elif with_markdown:
-                if not line.strip().startswith('#'):
-                    line = "# " + line
+                # if not line.strip().startswith('#'):
+                #     line = "# " + line
                 if not line.endswith('\n'):
                     line += '\n'
                 code_lines.append(line)
         source_groups.append({
-            "type": cell.get('cell_type'),
+            "type": "text" if cell.get('cell_type') != "code" else "code",
             "code": "".join(code_lines).strip()
         })
 
@@ -257,7 +257,7 @@ def read_markdown_file(file):
             code_lines.append(line)
 
         source_groups.append({
-            "type": language,
+            "type": "text" if language != "code" else "code",
             "code": "".join(code_lines).strip()
         })
 
@@ -289,8 +289,8 @@ def read_rst_file(file):
                     line += '\n'
             else:
                 # Comment out each line for non code block
-                if not line.strip().startswith('#'):
-                    line = "# " + line
+                # if not line.strip().startswith('#'):
+                #     line = "# " + line
 
                 # Add new line at the end
                 if not line.endswith('\n'):
@@ -303,7 +303,7 @@ def read_rst_file(file):
 
             code_lines.append(line)
         source_groups.append({
-            "type": type,
+            "type": "text" if type != "code" else "code",
             "code": "".join(code_lines).strip()
         })
 
@@ -392,11 +392,11 @@ def scrape_code(
                 with open(output_code, "w") as f:
                     f.write(source_code)
 
-                with open(output_groups, "w") as f:
-                    json.dump(source_groups, f, indent=2)
+                # with open(output_groups, "w") as f:
+                #     json.dump(source_groups, f, indent=2)
 
                 logger.debug(f"Saved code: {output_code}")
-                logger.debug(f"Saved groups: {output_groups}")
+                # logger.debug(f"Saved groups: {output_groups}")
 
                 result = {
                     "data_file": file,
@@ -415,7 +415,7 @@ def scrape_code(
 
 
 if __name__ == "__main__":
-    data_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/understanding/putting_it_all_together"
+    data_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/query_engine"
     data_extensions = [".ipynb", ".md", ".mdx", ".rst"]
     rag_dir = "generated/rag"
 

@@ -1,6 +1,7 @@
 import asyncio
 import os
 import pandas as pd
+from jet.llm.ollama.constants import OLLAMA_BASE_EMBED_URL, OLLAMA_LARGE_EMBED_MODEL
 from llama_index.core.evaluation import (
     generate_question_context_pairs,
     EmbeddingQAFinetuneDataset,
@@ -66,7 +67,7 @@ INPUT_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScri
 GENERATED_DIR = f"generated/{os.path.basename(__file__).split(".")[0]}"
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
-COMBINED_FILE_NAME = "combined.txt"
+# COMBINED_FILE_NAME = "combined.txt"
 REQUIRED_EXTS = [
     ".md"
     # ".txt"
@@ -74,7 +75,8 @@ REQUIRED_EXTS = [
 
 llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
 eval_llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
-embed_model = OllamaEmbedding(model_name=large_embed_model)
+embed_model = OllamaEmbedding(
+    model_name=OLLAMA_LARGE_EMBED_MODEL, base_url=OLLAMA_BASE_EMBED_URL)
 node_parser = SentenceSplitter(
     chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
@@ -82,9 +84,9 @@ node_parser = SentenceSplitter(
 documents = SimpleDirectoryReader(INPUT_DIR, required_exts=[".md"]).load_data()
 texts = [doc.text for doc in documents]
 
-combined_file_path = os.path.join(INPUT_DIR, COMBINED_FILE_NAME)
-with open(combined_file_path, "w") as f:
-    f.write("\n\n\n".join(texts))
+# combined_file_path = os.path.join(INPUT_DIR, COMBINED_FILE_NAME)
+# with open(combined_file_path, "w") as f:
+#     f.write("\n\n\n".join(texts))
 
 # Read files
 docs = SimpleDirectoryReader(

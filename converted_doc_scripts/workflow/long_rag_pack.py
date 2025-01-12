@@ -366,7 +366,7 @@ async def run_workflow():
     llm = Ollama(model="llama3.1")
     data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
 
-    query = "How can Pittsburgh become a startup hub, and what are the two types of moderates?"
+    query = "Tell me about yourself and your greatest achievements."
 
     result = await wf.run(
         data_dir=data_dir,

@@ -1,5 +1,0 @@
- The document outlines three mobile app projects that were developed using different technologies:
-
-1. JABA AI: An iOS app built from scratch featuring a chatbot and video responses from TikTok, Instagram, and Youtube. Key technologies used include React, React Native, and Expo.
-2. Graduapp: A mobile app available on both iOS and Android platforms, along with an admin site for school administrators to manage content. Key features include real-time feeds, tagging, comments, gallery, notifications, and more. Technologies used for this project were React, React Native, Node.js, Firebase, MongoDB, AWS, Redux, and Jest.
-3. EZ Myoma: A healthcare app developed for tracking uterine fibroids, accessible on both iOS and Android devices. It allows patients to track symptoms associated with the condition while doctors can monitor progress. Key features include medication cycle tracking, a calendar diary with patient notes, progress charts, and more. Technologies used for this project were React Native and Redux.

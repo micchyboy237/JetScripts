@@ -4,15 +4,16 @@ from llama_index.core.evaluation import SemanticSimilarityEvaluator
 from llama_index.core.embeddings import resolve_embed_model
 from llama_index.core.base.embeddings.base import SimilarityMode
 
-from jet.llm.ollama import create_embed_model
 from jet.logger import logger
+from jet.llm.ollama import initialize_ollama_settings
+llm_settings = initialize_ollama_settings()
 
 
 async def main():
     logger.newline()
     logger.debug("Preparing ollama evaluator...")
     evaluator = SemanticSimilarityEvaluator(
-        embed_model=create_embed_model()
+        embed_model=llm_settings.embed_model
     )
 
     response = "The sky is typically blue"

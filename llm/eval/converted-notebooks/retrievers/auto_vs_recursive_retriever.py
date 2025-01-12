@@ -147,7 +147,8 @@ for wiki_title in wiki_titles:
     docs_dict[wiki_title] = doc
 
 
-def build_recursive_retriever_over_document_summaries(similarity_top_k=3):
+def build_recursive_retriever_over_document_summaries(similarity_top_k=3, output_dir: str | Path = "generated"):
+    out_dir = Path(output_dir)
     # Build Recursive Retriever over Document Summaries
     summary_nodes = []
     vector_query_engines = {}
@@ -155,7 +156,7 @@ def build_recursive_retriever_over_document_summaries(similarity_top_k=3):
 
     # Filter wiki_titles to only those without existing summaries
     existing_summaries = set(
-        p.stem for p in out_dir.rglob("*.md")
+        p.stem for p in Path(out_dir).rglob("*.md")
     )
     titles_to_process = [
         title for title in wiki_titles if title not in existing_summaries]
@@ -244,7 +245,7 @@ def query_nodes(query, nodes, vector_retrievers, similarity_top_k=3):
     return retrieved_nodes_sorted
 
 
-def load_from_cache_or_compute(use_cache=False, similarity_top_k=3):
+def load_from_cache_or_compute(use_cache=False, similarity_top_k=3, output_dir: str | Path = "generated"):
     """Load cached data or compute if not available."""
     if use_cache and SUMMARY_NODES_CACHE.exists() and VECTOR_RETRIEVERS_CACHE.exists():
         summary_nodes = joblib.load(SUMMARY_NODES_CACHE)
@@ -253,7 +254,7 @@ def load_from_cache_or_compute(use_cache=False, similarity_top_k=3):
     else:
         logger.debug("Cache not found. Building data...")
         summary_nodes, vector_retrievers = build_recursive_retriever_over_document_summaries(
-            similarity_top_k=similarity_top_k)
+            similarity_top_k=similarity_top_k, output_dir=output_dir)
         joblib.dump(summary_nodes, SUMMARY_NODES_CACHE)
         joblib.dump(vector_retrievers, VECTOR_RETRIEVERS_CACHE)
         logger.success("Data cached successfully.")

@@ -1,9 +1,14 @@
+import hashlib
 import re
 import fnmatch
 import os
 import codecs
 import json
+import shutil
+from typing import Literal, Optional
+from jet.code.rst_code_extractor import rst_to_code_blocks
 from jet.logger import logger
+from jet.utils.file import search_files
 
 REPLACE_OLLAMA_MAP = {
     "llama-index-llms-openai": "llama-index-llms-ollama",
@@ -42,6 +47,13 @@ COMMENT_LINE_KEYWORDS = [
     "ANTHROPIC_API_KEY",
     "getpass",
 ]
+
+
+def generate_unique_function_name(line):
+    # Generate a unique hash based on the line content
+    # Taking the first 8 characters for brevity
+    unique_hash = hashlib.md5(line.encode('utf-8')).hexdigest()[:8]
+    return f"run_async_code_{unique_hash}"
 
 
 def replace_code_line(line: str):
@@ -160,9 +172,6 @@ def update_code_with_ollama(code: str) -> str:
         updated_code
     )
 
-    # Add initializer code
-    updated_code = add_ollama_initialier_code(updated_code)
-    updated_code = add_jet_logger(updated_code)
     return updated_code
 
 
@@ -199,13 +208,13 @@ def read_notebook_file(file, with_markdown=False):
                 code_lines.append(line)
 
             elif with_markdown:
-                if not line.strip().startswith('#'):
-                    line = "# " + line
+                # if not line.strip().startswith('#'):
+                #     line = "# " + line
                 if not line.endswith('\n'):
                     line += '\n'
                 code_lines.append(line)
         source_groups.append({
-            "type": cell.get('cell_type'),
+            "type": "text" if cell.get('cell_type') != "code" else "code",
             "code": "".join(code_lines).strip()
         })
 
@@ -224,7 +233,7 @@ def read_markdown_file(file):
         source = f.read()
 
     extractor = MarkdownCodeExtractor()
-    code_blocks = extractor.extract_code_blocks(source)
+    code_blocks = extractor.extract_code_blocks(source, with_text=True)
 
     source_groups = []
 
@@ -233,7 +242,52 @@ def read_markdown_file(file):
         lines = code_block["code"].splitlines()
         code_lines = []
         for line in lines:
-            if language != 'unknown':
+            if language != 'text':
+                # Remove commented lines
+                if line.strip().startswith('#'):
+                    continue
+
+            else:
+                # Comment out each line for non code block
+                # if not line.strip().startswith('#'):
+                #     line = "# " + line
+
+                # Comment out installation lines
+                # if line.strip().startswith('pip install'):
+                #     if not line.strip().startswith('#'):
+                #         line = "# " + line
+                pass
+
+            # Add newline at the end if missing
+            if not line.endswith('\n'):
+                line += '\n'
+
+            code_lines.append(line)
+
+        source_groups.append({
+            "type": "text" if language != "code" else "code",
+            "code": "".join(code_lines).strip()
+        })
+
+    return source_groups
+
+
+# Function to extract Python code blocks from a .rst file
+def read_rst_file(file):
+    # Check if the file ends correct extension
+    if not (file.endswith('.rst')):
+        raise ValueError("File must have .md or .mdx extension")
+
+    code_blocks = rst_to_code_blocks(file)
+
+    source_groups = []
+
+    for code_block in code_blocks:
+        type = code_block["type"]
+        lines = code_block["code"].splitlines()
+        code_lines = []
+        for line in lines:
+            if type == 'python':
                 # Remove commented lines
                 if line.strip().startswith('#'):
                     continue
@@ -243,8 +297,8 @@ def read_markdown_file(file):
                     line += '\n'
             else:
                 # Comment out each line for non code block
-                if not line.strip().startswith('#'):
-                    line = "# " + line
+                # if not line.strip().startswith('#'):
+                #     line = "# " + line
 
                 # Add new line at the end
                 if not line.endswith('\n'):
@@ -257,32 +311,27 @@ def read_markdown_file(file):
 
             code_lines.append(line)
         source_groups.append({
-            "type": language,
+            "type": "text" if type != "code" else "code",
             "code": "".join(code_lines).strip()
         })
 
     return source_groups
 
 
-def scrape_notes(
+def scrape_code(
     input_base_dir: str,
     extensions: list[str],
-    output_base_dir: str,
     include_files: list[str] = [],
     exclude_files: list[str] = [],
-    with_markdown: bool = False,
-    with_ollama: bool = False,
+    with_markdown: bool = True,
+    with_ollama: bool = True,
+    output_base_dir: Optional[str] = None,
+    types: list[Literal['text', 'python']] = [],
 ):
-    # Create output base directory if it doesn't exist
-    os.makedirs(output_base_dir, exist_ok=True)
 
     # Read files with any of the extensions in extensions recursively
-    files = [
-        os.path.join(root, f)
-        for root, _, files in os.walk(input_base_dir)
-        for f in files
-        if any(f.endswith(e) for e in extensions)
-    ]
+    files = search_files(input_base_dir, extensions,
+                         include_files, exclude_files)
 
     # Apply include_files filter
     if include_files:
@@ -300,7 +349,8 @@ def scrape_notes(
 
     logger.info(f"Found {len(files)} {extensions} files")
 
-    output_files = []
+    # output_files = []
+    results = []
 
     # Process each file and extract Python code
     for file in files:
@@ -312,51 +362,122 @@ def scrape_notes(
                     file, with_markdown=with_markdown)
             elif file.endswith('.md') or file.endswith('.mdx'):
                 source_groups = read_markdown_file(file)
+            elif file.endswith('.rst'):
+                source_groups = read_rst_file(file)
 
-            source_lines = [source_group['code']
-                            for source_group in source_groups]
-            source_code = "\n\n".join(source_lines)
+            if types:
+                source_groups = [
+                    group for group in source_groups
+                    if group['type'] in types
+                ]
 
-            if with_ollama:
-                source_code = update_code_with_ollama(source_code)
+            if output_base_dir:
+                # Create output base directory if it doesn't exist
+                os.makedirs(output_base_dir, exist_ok=True)
+                # Get subfolders
+                subfolders = os.path.dirname(file).replace(input_base_dir, '')
+                joined_dir = os.path.join(
+                    output_base_dir, subfolders.strip('/'))
+                os.makedirs(joined_dir, exist_ok=True)
+                output_code = os.path.join(joined_dir, f"{file_name}.py")
+                output_groups = os.path.join(joined_dir, f"{file_name}.json")
 
-            # Get subfolders
-            subfolders = os.path.dirname(file).replace(input_base_dir, '')
-            joined_dir = os.path.join(output_base_dir, subfolders.strip('/'))
-            os.makedirs(joined_dir, exist_ok=True)
-            output_file = os.path.join(joined_dir, f"{file_name}.py")
+                for source_group in source_groups:
+                    if source_group['type'] == 'text':
+                        source_group['code'] = f'"""\n{
+                            source_group['code']}\n"""'
 
-            with open(output_file, "w", encoding="utf-8") as f:
-                f.write(source_code)
+                # Handle code with "await"
+                for source_group_idx, source_group in enumerate(source_groups):
+                    code = source_group['code']
+                    lines = code.splitlines()
 
-            logger.debug(f"Saved file: {os.path.basename(file)}...")
-            output_files.append(output_file)
+                    for line_idx, line in enumerate(lines):
+                        if "await" not in line:
+                            continue
+
+                         # Use regex to capture everything before "= await"
+                        match = re.match(r'(.*?)(?=\s*= await)', line)
+
+                        text_before_await = ""
+                        if match:
+                            text_before_await = match.group(1)
+                            print(f"Line {line_idx}: {text_before_await}")
+
+                        await_leading_spaces = len(
+                            line) - len(line.lstrip())
+                        if not await_leading_spaces:
+                            function_name = generate_unique_function_name(line)
+
+                            # Create the wrapped async code with a unique function name
+                            async_wrapped_code = "\n".join([
+                                f"async def {function_name}():",
+                                f"  {line}",
+                                f"  return {text_before_await}",
+                                f"{text_before_await} = asyncio.run({
+                                    function_name}())",
+                                f"logger.success(format_json({
+                                    text_before_await}))",
+                            ])
+
+                            lines[line_idx] = async_wrapped_code
+                            logger.debug(async_wrapped_code)
+
+                    updated_code = "\n".join(lines)
+                    source_groups[source_group_idx]['code'] = updated_code
+
+                source_lines = [source_group['code']
+                                for source_group in source_groups]
+                source_code = "\n\n".join(source_lines)
+
+                # Handle code with "print"
+                source_code = source_code.replace("print(", "logger.debug(")
+
+                if with_ollama:
+                    source_code = update_code_with_ollama(source_code)
+                    # Add initializer code
+                    source_code = add_ollama_initialier_code(source_code)
+                    source_code = add_jet_logger(source_code)
+
+                if "format_json(" in source_code:
+                    source_code = "from jet.transformers.formatters import format_json\n" + source_code
+
+                if "asyncio.run" in source_code:
+                    source_code = "import asyncio\n" + source_code
+
+                with open(output_code, "w") as f:
+                    f.write(source_code)
+
+                # with open(output_groups, "w") as f:
+                #     json.dump(source_groups, f, indent=2)
+
+                logger.debug(f"Saved code: {output_code}")
+                # logger.debug(f"Saved groups: {output_groups}")
+
+                result = {
+                    "data_file": file,
+                    "code_file": output_code,
+                    "blocks_file": output_groups,
+                    "code": source_code,
+                    "blocks": source_groups
+                }
+                results.append(result)
 
         except Exception as e:
             print(f"Failed to process file {file_name}: {e}")
 
-    return output_files
+    # return output_files
+    return results
 
 
 if __name__ == "__main__":
     input_base_dirs = [
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-packs/llama-index-packs-multidoc-autoretrieval/examples",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-packs/llama-index-packs-neo4j-query-engine/examples",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/understanding/putting_it_all_together",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/prompts",
     ]
     include_files = [
-        # "multidoc_autoretrieval",
-        # "llama_packs_neo4j",
+        # "workflows_cookbook",
     ]
     exclude_files = [
-        "answer_and_context_relevancy",
-        "semantic_similarity_eval",
-        "auto_vs_recursive_retriever",
-        "bm25_retriever",
-        "auto_merging_retriever",
-        "migrating_chains/conversation_retrieval_chain",
-        "migrating_chains/conversation_chain",
-        "migrating_chains/constitutional_chain",
         "migrating_memory/",
     ]
 
@@ -378,14 +499,14 @@ if __name__ == "__main__":
                     input_base_dir)
             )
 
-            files = scrape_notes(
+            files = scrape_code(
                 input_base_dir,
                 extensions,
-                output_base_dir,
                 include_files=include_files,
                 exclude_files=exclude_files,
                 with_markdown=True,
                 with_ollama=True,
+                output_base_dir=output_base_dir,
             )
 
             if files:
