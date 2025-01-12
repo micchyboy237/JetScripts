@@ -1,5 +1,6 @@
 import json
 from jet.logger import logger
+from jet.utils.markdown import extract_json_block_content
 from pydantic.fields import Field
 from pydantic.main import BaseModel
 
@@ -60,5 +61,6 @@ data_str = """
 ```
 """
 
-QuestionAnswer.model_validate_json(json.dumps(data_str))
+result = extract_json_block_content(data_str)
+QuestionAnswer.model_validate_json(result)
 logger.success("Valid format!")

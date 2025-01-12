@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 
+from jet.data.utils import generate_unique_hash
 from jet.llm.extractors.interview_qa_extractor import InterviewQAExtractor
 from tqdm import tqdm
 from jet.llm.ollama.base import initialize_ollama_settings
@@ -14,13 +15,25 @@ llm_settings = initialize_ollama_settings()
 GENERATED_DIR = os.path.join(
     "generated/" + os.path.splitext(os.path.basename(__file__))[0])
 OUTPUT_DIR = F"{GENERATED_DIR}/output"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+
+def load_metadata_dicts(path):
+    logger.debug(f"Loading file from: {path}")
+    with open(path, "r") as fp:
+        return json.load(fp)
 
 
 def save_metadata_dicts(path, data):
     os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    try:
+        current_data: list = load_metadata_dicts(path)
+        current_data.extend(data)
+    except:
+        current_data = []
+
     with open(path, "w") as fp:
-        json.dump(make_serializable(data), fp, indent=2, ensure_ascii=False)
+        json.dump(current_data, fp, indent=2, ensure_ascii=False)
     logger.success("Saved file to: " + path, bright=True)
 
 
@@ -55,7 +68,7 @@ async def main():
         logger.log("Metadata:",
                    format_json(metadata_results), colors=["DEBUG", "SUCCESS"])
         metadata_results.append({
-            "node_id": node.node_id,
+            "node_id": generate_unique_hash(),
             "metadata": metadata
         })
         save_metadata_dicts(
