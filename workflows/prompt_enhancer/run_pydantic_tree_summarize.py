@@ -72,9 +72,9 @@ logger.log("Parsed nodes:", len(base_nodes),
 
 class Data(BaseModel):
     question: str = Field(
-        description="Short question text answering partial context information provided.")
-    answer: str = Field(
-        description="The concise answer to the question given the relevant partial context.")
+        description="Short question text answering context information provided.")
+    answer: str | list[str] = Field(
+        description="The concise answer or list of answers to the question given the relevant context.")
 
 
 class QuestionAnswer(BaseModel):
