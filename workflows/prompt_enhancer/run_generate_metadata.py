@@ -57,7 +57,7 @@ async def main():
     # questions_answered_extractor = QuestionsAnsweredExtractor(
     #     llm=llm_settings.llm, questions=5, show_progress=True)
     questions_answered_extractor = InterviewQAExtractor(llm=llm_settings.llm)
-    extractors = [questions_answered_extractor, summary_extractor]
+    extractors = [summary_extractor, questions_answered_extractor]
 
     metadata_results: list = []
     metadata_tqdm = tqdm(total=len(base_nodes))
