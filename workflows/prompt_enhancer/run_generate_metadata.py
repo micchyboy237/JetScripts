@@ -27,13 +27,21 @@ def save_metadata_dicts(path, data):
     os.makedirs(os.path.dirname(path), exist_ok=True)
 
     try:
+        # Load existing data
         current_data: list = load_metadata_dicts(path)
-        current_data.extend(data)
     except:
-        current_data = [data]
+        # If file does not exist or there's an issue, initialize as an empty list
+        current_data = []
+
+    # Combine current data and new data
+    combined_data = current_data + data
+
+    # Ensure uniqueness by 'node_id'
+    unique_data = {item["node_id"]: item for item in combined_data}.values()
 
     with open(path, "w") as fp:
-        json.dump(current_data, fp, indent=2, ensure_ascii=False)
+        json.dump(list(unique_data), fp, indent=2, ensure_ascii=False)
+
     logger.success("Saved file to: " + path, bright=True)
 
 
