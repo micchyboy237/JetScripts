@@ -3,6 +3,7 @@ from jet.llm.query.retrievers import setup_index
 from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.transformers.formatters import format_json
 from jet.utils.class_utils import class_to_string
+from jet.vectors.metadata import parse_nodes
 from llama_index.core import PromptTemplate
 from typing import Optional
 from typing import List
@@ -33,21 +34,36 @@ llm_settings = initialize_ollama_settings({
 # In this notebook, we demonstrate how to use tree summarize with structured outputs. Specifically, tree summarize is used to output pydantic objects.
 
 
-llm_settings.pydantic_program_mode = PydanticProgramMode.LLM
-
 # Download Data
 
 
 # Load Data
 
 DATA_PATH = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
-query = "Tell me about yourself."
+query = """Generate real world diverse questions and answers that an employer can have for a job interview based on provided context and schema.
+Example response format:
+{
+    "data": [
+        {
+            "question": "Question 1",
+            "answer": "Answer 1"
+        }
+    ]
+}
+""".strip()
 
-documents = SimpleDirectoryReader(DATA_PATH).load_data()
-texts = [doc.text for doc in documents]
-doc_text = "\n\n".join(texts)
+chunk_size = 1024
+chunk_overlap = 200
 
-logger.log("Result texts:", len(texts),
+data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
+logger.newline()
+logger.info("Loading data...")
+docs = SimpleDirectoryReader(data_dir).load_data(show_progress=True)
+logger.log("All docs:", len(docs), colors=["DEBUG", "SUCCESS"])
+base_nodes = parse_nodes(docs, chunk_size=chunk_size,
+                         chunk_overlap=chunk_overlap)
+texts = "\n\n".join([doc.text for doc in base_nodes])
+logger.log("Parsed nodes:", len(base_nodes),
            colors=["DEBUG", "SUCCESS"])
 
 
@@ -56,21 +72,19 @@ logger.log("Result texts:", len(texts),
 
 class Data(BaseModel):
     question: str = Field(
-        ..., description="Short question text answering partial context information provided.")
-    reference: str = Field(...,
-                           description="The partial sentences or paragraph from context used by the question as reference.")
+        description="Short question text answering partial context information provided.")
     answer: str = Field(
-        ..., description="The concise answer to the question given the relevant partial context.")
+        description="The concise answer to the question given the relevant partial context.")
 
 
-class QuestionReferenceAnswer(BaseModel):
+class QuestionAnswer(BaseModel):
     data: list[Data]
 
 
-INSTRUCTIONS_PROMPT = f"""\
+INSTRUCTIONS_PROMPT = f"""
 Return only the generated JSON value without any explanations surrounded by ```json that adheres to the model below:
-{class_to_string(QuestionReferenceAnswer)}
-"""
+{class_to_string(QuestionAnswer)}
+""".strip()
 
 
 QA_PROMPT_TMPL = (
@@ -81,26 +95,30 @@ QA_PROMPT_TMPL = (
     "Given the context information and not prior knowledge, "
     "answer the query.\n"
     # "Please also write the answer as JSON that adheres to the schema.\n"
-    "{instructions_str}"
+    "{instructions_str}\n"
     "Query: {query_str}\n"
-    "Answer: "
+    "Response:\n"
 )
 qa_prompt = PromptTemplate(QA_PROMPT_TMPL)
 
-result = llm_settings.llm.structured_predict(
-    QuestionReferenceAnswer,
+response = llm_settings.llm.structured_predict(
+    QuestionAnswer,
     PromptTemplate(QA_PROMPT_TMPL),
-    context_str=INSTRUCTIONS_PROMPT,
+    context_str=texts,
     instructions_str=INSTRUCTIONS_PROMPT,
-    query_str=query
+    query_str=query,
+    llm_kwargs={
+        "options": {
+            "temperature": 0,
+        },
+    },
+
 )
 
 
-response = summarizer.get_response(question, texts)
-
 # Inspect the response
 #
-# Here, we see the response is in an instance of our `QuestionReferenceAnswer` class.
+# Here, we see the response is in an instance of our `QuestionAnswer` class.
 
 logger.newline()
 logger.info("RESPONSE:")
