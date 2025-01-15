@@ -36,7 +36,11 @@ def main():
                 # Read the entire content of the file
                 file_content = file.read()
             file_content_lines = file_content.splitlines()
-            source_lines = file_content_lines[item.lines[0]:item.lines[1]]
+            source_line_indexes = [line - 1 for line in item.lines]
+            start_index = source_line_indexes[0]
+            end_index = source_line_indexes[-1] if len(
+                source_line_indexes) > 1 else start_index + 1
+            source_lines = file_content_lines[start_index:end_index]
             source_lines = [line for line in source_lines if line.strip()]
 
             new_item = new_sources[item_idx]
