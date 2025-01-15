@@ -203,6 +203,360 @@
           ]
         }
       ]
+    },
+    {
+      "file_name": "project_mobile_apps.md",
+      "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/project_mobile_apps.md",
+      "sources": [
+        {
+          "lines": [
+            5,
+            6
+          ],
+          "question": "Can you describe your experience with developing iOS apps?",
+          "answer": "I developed an iOS app from scratch and deployed multiple App Store release versions. The key features of the app included a chatbot, TikTok-Instagram-Youtube video responses, and it was built using React, React Native, and Expo technologies.",
+          "sources": [
+            "- Worked under pressure to but delivered initial version of web app for investor demo"
+          ]
+        },
+        {
+          "lines": [
+            12,
+            13
+          ],
+          "question": "Can you tell me about your experience with Graduapp?",
+          "answer": "As one of the pioneers, I was involved in the selection of technologies and architecture for the project. We published Graduapp on iOS and Android platforms, with an admin site for school administrators to manage content. The key features included real-time feeds, tagging, comments, gallery, notifications, and more.",
+          "sources": [
+            "- As one of the pioneers, I was involved in the selection of technologies and architecture for the project"
+          ]
+        },
+        {
+          "lines": [
+            19,
+            20
+          ],
+          "question": "Can you describe your experience with EZ Myoma?",
+          "answer": "I developed an iOS and Android app that allows women to track symptoms associated with uterine fibroids. The healthcare provider (Zuellig Pharma) created a drug to treat uterine fibroids so they needed a mobile app where they can see the progress of the patients within a medication cycle.",
+          "sources": [
+            "- The healthcare provider (Zuellig Pharma) created a drug to treat uterine fibroids so they needed a mobile app where they can see the progress of the patients within a medication cycle "
+          ]
+        },
+        {
+          "lines": [
+            8,
+            9
+          ],
+          "question": "Can you list the technologies used in JABA AI?",
+          "answer": "The key features of JABA AI included a chatbot, TikTok-Instagram-Youtube video responses and it was built using React, React Native, and Expo technologies.",
+          "sources": [
+            "- Technologies used: React, React Native, Expo"
+          ]
+        },
+        {
+          "lines": [
+            14,
+            15
+          ],
+          "question": "Can you list the technologies used in Graduapp?",
+          "answer": "The key features of Graduapp included real-time feeds, tagging, comments, gallery, notifications and more. It was built using React, React Native, Node.js, Firebase, MongoDB, AWS, Redux, and Jest technologies.",
+          "sources": [
+            "- Key features: Real-time feeds, Tagging, Comments, Gallery, Notifications, and more"
+          ]
+        },
+        {
+          "lines": [
+            22,
+            23
+          ],
+          "question": "Can you list the technologies used in EZ Myoma?",
+          "answer": "The key features of EZ Myoma included medication cycle tracking, calendar diary with patient notes, progress charts and more. It was built using React Native and Redux technologies.",
+          "sources": [
+            "- Key features: Medication cycle tracking, Calendar diary with patient notes, Progress charts, and more"
+          ]
+        }
+      ]
+    },
+    {
+      "file_name": "project_web_apps.md",
+      "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/project_web_apps.md",
+      "sources": [
+        {
+          "lines": [
+            5,
+            6
+          ],
+          "question": "Can you describe your experience as a sole client-side developer building enterprise web and mobile CRM apps?",
+          "answer": "I started as the sole client side developer, built enterprise web and mobile CRM apps starting from provided mockups to production.",
+          "sources": [
+            "- Started as the sole client side developer, built enterprise web and mobile CRM apps starting from provided mockups to production"
+          ]
+        },
+        {
+          "lines": [
+            6,
+            7
+          ],
+          "question": "What happened after JulesAI CEO was impressed with your work?",
+          "answer": "JulesAI CEO was impressed and acquired ownership of existing CRM.",
+          "sources": [
+            "- JulesAI CEO was impressed and acquired ownership of existing CRM"
+          ]
+        },
+        {
+          "lines": [
+            7,
+            8
+          ],
+          "question": "Can you list the key features of the 'Jules Procure' app?",
+          "answer": "Key features: Contact dashboard, Data builder, Task calendar, Workflow boards, Form builders, Price list generator, Automated emails based on triggers, and more.",
+          "sources": [
+            "- Successfully integrated existing CRM with JulesAI's workflow to be rebranded as \"Jules Procure\""
+          ]
+        },
+        {
+          "lines": [
+            11,
+            12
+          ],
+          "question": "Can you describe your experience working as the lead developer for Digital Cities PH?",
+          "answer": "As the lead developer, I worked on a portal that showcases the profiles of provinces and cities in the Philippines.",
+          "sources": [
+            "b.) Digital Cities PH"
+          ]
+        },
+        {
+          "lines": [
+            12,
+            13
+          ],
+          "question": "What was your role in developing an interactive Philippine map?",
+          "answer": "I developed an interactive Philippine map with clickable provinces, enabling users to access detailed descriptions and statistics for each region.",
+          "sources": [
+            "Achievements:"
+          ]
+        },
+        {
+          "lines": [
+            18,
+            19
+          ],
+          "question": "Can you describe your experience building UI components from mockups using Photoshop?",
+          "answer": "I built UI components from mockups using Photoshop to achieve pixel-perfect look.",
+          "sources": [
+            "c.) ADEC Kenya, AMDATEX"
+          ]
+        }
+      ]
+    },
+    {
+      "file_name": "recent.md",
+      "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/recent.md",
+      "sources": [
+        {
+          "lines": [
+            3,
+            4
+          ],
+          "question": "What position are you applying for?",
+          "answer": "I am applying for the position of a Frontend Web / Mobile Developer or Full Stack Developer roles.",
+          "sources": [
+            "Job Status"
+          ]
+        },
+        {
+          "lines": [
+            4
+          ],
+          "question": "What technologies do you have experience with?",
+          "answer": "Aside from React, React Native and Node.js. I also have extensive experience with Firebase, AWS, MongoDB and PostgreSQL.",
+          "sources": [
+            "I am applying for the position of a Frontend Web / Mobile Developer or Full Stack Developer roles. Aside from React, React Native and Node.js. I also have extensive experience with Firebase, AWS, MongoDB and PostgreSQL."
+          ]
+        },
+        {
+          "lines": [
+            5
+          ],
+          "question": "How can we contact you for an interview?",
+          "answer": "You are welcome to extend an invitation for an interview via email at jethroestrada237@gmail.com, or via Whatsapp at https://wa.me/639101662460.",
+          "sources": [
+            "If my skills match the criteria for the position, you are welcome to extend an invitation for an interview via email at jethroestrada237@gmail.com, or via Whatsapp at https://wa.me/639101662460."
+          ]
+        },
+        {
+          "lines": [
+            9
+          ],
+          "question": "What are your goals as a developer?",
+          "answer": "- Develop scalable, performance-oriented, and user-friendly web and mobile applications. - Committed to continuous learning and staying up to date with the latest technologies and trends. - Strive to contribute to the success of your organization and improve existing coding standards.",
+          "sources": [
+            "- Develop scalable, performance-oriented, and user-friendly web and mobile applications."
+          ]
+        },
+        {
+          "lines": [
+            15
+          ],
+          "question": "How can we access your resume?",
+          "answer": "Resume link: https://jetbot.vercel.app/resume.pdf",
+          "sources": [
+            "- Resume link: https://jetbot.vercel.app/resume.pdf"
+          ]
+        }
+      ]
+    },
+    {
+      "file_name": "skills.md",
+      "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/skills.md",
+      "sources": [
+        {
+          "lines": [
+            3,
+            10
+          ],
+          "question": "What frontend technologies are you proficient in?",
+          "answer": "I am proficient in React, React Native, Vanilla JS/CSS, Expo, GraphQL, Redux, and Gatsby.",
+          "sources": [
+            "Frontend:",
+            "- React",
+            "- React Native",
+            "- Vanilla JS/CSS",
+            "- Expo",
+            "- GraphQL",
+            "- Redux"
+          ]
+        },
+        {
+          "lines": [
+            12,
+            14
+          ],
+          "question": "Which backend technologies have you worked with?",
+          "answer": "I have experience working with Node.js and Python.",
+          "sources": [
+            "Backend:",
+            "- Node.js"
+          ]
+        },
+        {
+          "lines": [
+            15,
+            17
+          ],
+          "question": "What databases are you familiar with?",
+          "answer": "I am familiar with PostgreSQL and MongoDB.",
+          "sources": [
+            "Databases:",
+            "- PostgreSQL"
+          ]
+        },
+        {
+          "lines": [
+            23,
+            25
+          ],
+          "question": "Which testing frameworks have you used?",
+          "answer": "I have experience using Jest (Unit testing), Cypress (Integration testing), and Selenium (E2E testing).",
+          "sources": [
+            "- Photoshop",
+            "- Jest (Unit testing)"
+          ]
+        },
+        {
+          "lines": [
+            27,
+            29
+          ],
+          "question": "What developer tools are you proficient in?",
+          "answer": "I am proficient in Git, Photoshop, Android Studio, Xcode, Fastlane, and Serverless.",
+          "sources": [
+            "- Git",
+            "- Sentry bug tracker"
+          ]
+        }
+      ]
+    },
+    {
+      "file_name": "web_mobile_portfolio.md",
+      "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/web_mobile_portfolio.md",
+      "sources": [
+        {
+          "lines": [
+            3,
+            4
+          ],
+          "question": "Can you tell me about your experience with web development?",
+          "answer": "I have experience with web development through my work on Jules Procure (https://www.julesai.com/#procure).",
+          "sources": [
+            "Jules Procure"
+          ]
+        },
+        {
+          "lines": [
+            6,
+            7
+          ],
+          "question": "What kind of projects have you worked on in the past?",
+          "answer": "I've had experience working on Digital Cities PH (https://www.digitalcitiesph.com), which demonstrates my ability to work on various types of projects.",
+          "sources": [
+            "Digital Cities PH"
+          ]
+        },
+        {
+          "lines": [
+            9,
+            10
+          ],
+          "question": "Can you give an example of a successful project you've worked on?",
+          "answer": "I've had experience working with ADEC Kenya and AMDATEX (https://www.adec-kenya.com and https://www.amdatex.com), which shows my ability to work on complex projects.",
+          "sources": [
+            "ADEC Kenya, AMDATEX"
+          ]
+        },
+        {
+          "lines": [
+            13,
+            14
+          ],
+          "question": "What experience do you have with mobile app development?",
+          "answer": "I've had experience working on JABA AI (https://jaba.live), which includes iOS and Android apps, demonstrating my ability to work on mobile app development.",
+          "sources": [
+            "JABA AI"
+          ]
+        },
+        {
+          "lines": [
+            17,
+            18
+          ],
+          "question": "Can you tell me about your experience with mobile app development?",
+          "answer": "I've had experience working on Graduapp (https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp and https://apps.apple.com/us/app/graduapp/id1576401944), which includes Android and iOS apps, demonstrating my ability to work on mobile app development.",
+          "sources": [
+            "Graduapp"
+          ]
+        },
+        {
+          "lines": [
+            21,
+            22
+          ],
+          "question": "What experience do you have with mobile app development?",
+          "answer": "I've had experience working on EZ Myoma (https://play.google.com/store/apps/details?id=com.ezmyoma), which demonstrates my ability to work on mobile app development.",
+          "sources": [
+            "EZ Myoma"
+          ]
+        },
+        {
+          "lines": [
+            25
+          ],
+          "question": "What do you think are some of the most important skills for a web and mobile developer?",
+          "answer": "I believe that attention to detail, ability to work with different technologies, and strong problem-solving skills are essential for a web and mobile developer. Some links may be outdated or no longer active.",
+          "sources": [
+            "Note: Some links may be outdated or no longer active."
+          ]
+        }
+      ]
     }
   ]
 }
