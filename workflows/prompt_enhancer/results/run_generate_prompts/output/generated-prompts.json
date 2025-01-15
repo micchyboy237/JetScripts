@@ -71,8 +71,7 @@
     "prompt": "We built a sandcastle and a moat at the beach.",
     "results": [
       "We built a sandcastle.",
-      "We built a moat.",
-      "A moat was built at the beach."
+      "We built a moat at the beach."
     ]
   },
   {
@@ -86,8 +85,21 @@
     "prompt": "He sold the car and the motorcycle to a collector.",
     "results": [
       "He sold the car.",
-      "He sold the motorcycle.",
-      "He sold it to a collector."
+      "He sold the motorcycle."
+    ]
+  },
+  {
+    "prompt": "They took the book and the magazine from the shelf.",
+    "results": [
+      "They took the book from the shelf.",
+      "They took the magazine from the shelf."
+    ]
+  },
+  {
+    "prompt": "I borrowed a pencil and an eraser from my friend.",
+    "results": [
+      "I borrowed a pencil.",
+      "I borrowed an eraser."
     ]
   }
 ]
