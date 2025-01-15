@@ -8,6 +8,7 @@ if __name__ == "__main__":
     source_data = {
         "lines": [
             14,
+            16,
         ],
         "question": "Can you describe your experience developing a social networking app (Graduapp) for students, parents, teachers, and schools at 8WeekApp?",
         "answer": "Yes, I developed a social networking app (Graduapp) for students, parents, teachers, and schools. The app serves as an online journal of their experience as a student at their institution. I utilized key technologies such as React, React Native, Node.js, Firebase, and MongoDB.",
@@ -19,7 +20,9 @@ if __name__ == "__main__":
         # Read the entire content of the file
         file_content = file.read()
     file_content_lines = file_content.splitlines()
-    source_line_indexes = [line - 1 for line in source_data["lines"]]
+    source_lines = list(set(source_data["lines"]))
+    source_lines.sort()
+    source_line_indexes = [line - 1 for line in source_lines]
     start_index = source_line_indexes[0]
     end_index = source_line_indexes[-1] if len(
         source_line_indexes) > 1 else start_index + 1

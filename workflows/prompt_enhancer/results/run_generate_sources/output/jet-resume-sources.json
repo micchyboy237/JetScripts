@@ -12,10 +12,10 @@
           "question": "What is your current job title and responsibilities at JulesAI (formerly Macanta Software Ltd.)?",
           "answer": "My current job title is Web / Mobile Developer. My responsibilities include developing a white label CRM system for different businesses that is customizable to align with specific workflows and requirements, maintaining and improving the system based on client feedback and requirements, and utilizing key technologies such as React, React Native, and AWS.",
           "sources": [
+            "- JulesAI (formerly Macanta Software Ltd.)",
             "- Position: Web / Mobile Developer",
             "- Task: Developed a white label CRM system for different businesses that is customizable to align with specific workflows and requirements.",
-            "- Currently maintaining and improving the system based on client feedback and requirements.",
-            "- Key technologies: React, React Native, AWS"
+            "- Currently maintaining and improving the system based on client feedback and requirements."
           ]
         },
         {
@@ -26,6 +26,7 @@
           "question": "Can you describe your experience developing a social networking app (Graduapp) for students, parents, teachers, and schools at 8WeekApp?",
           "answer": "Yes, I developed a social networking app (Graduapp) for students, parents, teachers, and schools. The app serves as an online journal of their experience as a student at their institution. I utilized key technologies such as React, React Native, Node.js, Firebase, and MongoDB.",
           "sources": [
+            "- Task: Developed a social networking app (Graduapp) for students, parents, teachers, and schools. The app serves as an online journal of their experience as a student at their institution.",
             "- Key technologies: React, React Native, Node.js, Firebase, MongoDB"
           ]
         },
@@ -37,6 +38,7 @@
           "question": "What was your role and responsibilities at ADEC Innovations?",
           "answer": "I worked on projects ranging from in-house to outsourced web and mobile applications. My key technologies included React, React Native, Node.js, Firebase Firestore, and Google Cloud Functions.",
           "sources": [
+            "- Task: Worked on projects ranging from in-house to outsourced web and mobile applications.",
             "- Key technologies: React, React Native, Node.js, Firebase Firestore, Google Cloud Functions"
           ]
         },
@@ -48,6 +50,7 @@
           "question": "Can you describe your experience working on web and mobile projects at Asia Pacific Digital?",
           "answer": "Yes, I worked on web and mobile projects. My key technologies included AngularJS, Ionic, and jQuery.",
           "sources": [
+            "- Task: Worked on web and mobile projects.",
             "- Key technologies: AngularJS, Ionic, jQuery"
           ]
         },
@@ -59,269 +62,7 @@
           "question": "What was your role and responsibilities at Entertainment Gateway Group (now Yondu)?",
           "answer": "I worked on features for an insurance web app. My key technologies included Java, JavaScript, and jQuery.",
           "sources": [
-            "- Key technologies: Java, JavaScript, jQuery"
-          ]
-        }
-      ]
-    },
-    "personal_information.md": {
-      "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/personal_information.md",
-      "sources": [
-        {
-          "lines": [
-            9,
-            9
-          ],
-          "question": "What is your current position?",
-          "answer": "Full Stack Web / Mobile Developer",
-          "sources": []
-        },
-        {
-          "lines": [
-            10,
-            10
-          ],
-          "question": "How old are you?",
-          "answer": "34",
-          "sources": []
-        },
-        {
-          "lines": [
-            11,
-            11
-          ],
-          "question": "What is your gender?",
-          "answer": "Male",
-          "sources": []
-        },
-        {
-          "lines": [
-            12,
-            12
-          ],
-          "question": "Which country are you from?",
-          "answer": "Philippines",
-          "sources": []
-        },
-        {
-          "lines": [
-            13,
-            13
-          ],
-          "question": "What is your nationality?",
-          "answer": "Filipino",
-          "sources": []
-        },
-        {
-          "lines": [
-            14,
-            14
-          ],
-          "question": "When was your birthday?",
-          "answer": "December 1, 1990",
-          "sources": []
-        },
-        {
-          "lines": [
-            15,
-            15
-          ],
-          "question": "Which country are you from (again)?",
-          "answer": "Philippines",
-          "sources": []
-        },
-        {
-          "lines": [
-            16,
-            16
-          ],
-          "question": "What languages do you speak?",
-          "answer": "English, Tagalog",
-          "sources": []
-        },
-        {
-          "lines": [
-            17,
-            17
-          ],
-          "question": "Which school did you graduate from?",
-          "answer": "De La Salle University - Manila",
-          "sources": []
-        },
-        {
-          "lines": [
-            18,
-            18
-          ],
-          "question": "What is your diploma?",
-          "answer": "BS Degree in Computer Engineering (2007 - 2012)",
-          "sources": []
-        },
-        {
-          "lines": [
-            20,
-            20
-          ],
-          "question": "What is your email address?",
-          "answer": "jethroestrada237@gmail.com",
-          "sources": []
-        },
-        {
-          "lines": [
-            21,
-            21
-          ],
-          "question": "What is your Whatsapp link?",
-          "answer": "https://wa.me/639101662460",
-          "sources": []
-        },
-        {
-          "lines": [
-            22,
-            22
-          ],
-          "question": "What is your phone number?",
-          "answer": "+639101662460",
-          "sources": []
-        }
-      ]
-    },
-    "project_mobile_apps.md": {
-      "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/project_mobile_apps.md",
-      "sources": [
-        {
-          "lines": [
-            5,
-            6
-          ],
-          "question": "Can you describe your experience with developing iOS apps?",
-          "answer": "I developed an iOS app from scratch and deployed multiple App Store release versions. The key features of the app included a chatbot, TikTok-Instagram-Youtube video responses, and it was built using React, React Native, and Expo technologies.",
-          "sources": [
-            "- Developed iOS app from scratch and deployed multiple App Store release versions"
-          ]
-        },
-        {
-          "lines": [
-            12,
-            13
-          ],
-          "question": "Can you tell me about your experience with Graduapp?",
-          "answer": "As one of the pioneers, I was involved in the selection of technologies and architecture for the project. We published Graduapp on iOS and Android platforms, with an admin site for school administrators to manage content. The key features included real-time feeds, tagging, comments, gallery, notifications, and more.",
-          "sources": [
-            "- Published Graduapp on iOS and Android platforms, with an admin site for school administrators to manage content"
-          ]
-        },
-        {
-          "lines": [
-            19,
-            20
-          ],
-          "question": "Can you describe your experience with EZ Myoma?",
-          "answer": "I developed an iOS and Android app that allows women to track symptoms associated with uterine fibroids. The healthcare provider (Zuellig Pharma) created a drug to treat uterine fibroids so they needed a mobile app where they can see the progress of the patients within a medication cycle.",
-          "sources": [
-            "- Developed an iOS and Android app that allows women to track symptoms associated with uterine fibroids"
-          ]
-        },
-        {
-          "lines": [
-            8,
-            9
-          ],
-          "question": "Can you list the technologies used in JABA AI?",
-          "answer": "The key features of JABA AI included a chatbot, TikTok-Instagram-Youtube video responses and it was built using React, React Native, and Expo technologies.",
-          "sources": []
-        },
-        {
-          "lines": [
-            14,
-            15
-          ],
-          "question": "Can you list the technologies used in Graduapp?",
-          "answer": "The key features of Graduapp included real-time feeds, tagging, comments, gallery, notifications and more. It was built using React, React Native, Node.js, Firebase, MongoDB, AWS, Redux, and Jest technologies.",
-          "sources": [
-            "- Technologies used: React, React Native, Node.js, Firebase, MongoDB, AWS, Redux, Jest"
-          ]
-        },
-        {
-          "lines": [
-            22,
-            23
-          ],
-          "question": "Can you list the technologies used in EZ Myoma?",
-          "answer": "The key features of EZ Myoma included medication cycle tracking, calendar diary with patient notes, progress charts and more. It was built using React Native and Redux technologies.",
-          "sources": [
-            "- Technologies used: React Native, Redux"
-          ]
-        }
-      ]
-    },
-    "project_web_apps.md": {
-      "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/project_web_apps.md",
-      "sources": [
-        {
-          "lines": [
-            5,
-            6
-          ],
-          "question": "Can you describe your experience as a sole client-side developer building enterprise web and mobile CRM apps?",
-          "answer": "I started as the sole client side developer, built enterprise web and mobile CRM apps starting from provided mockups to production.",
-          "sources": [
-            "- JulesAI CEO was impressed and acquired ownership of existing CRM"
-          ]
-        },
-        {
-          "lines": [
-            6,
-            7
-          ],
-          "question": "What happened after JulesAI CEO was impressed with your work?",
-          "answer": "JulesAI CEO was impressed and acquired ownership of existing CRM.",
-          "sources": [
-            "- Successfully integrated existing CRM with JulesAI's workflow to be rebranded as \"Jules Procure\""
-          ]
-        },
-        {
-          "lines": [
-            7,
-            8
-          ],
-          "question": "Can you list the key features of the 'Jules Procure' app?",
-          "answer": "Key features: Contact dashboard, Data builder, Task calendar, Workflow boards, Form builders, Price list generator, Automated emails based on triggers, and more.",
-          "sources": [
-            "- Key features: Contact dashboard, Data builder, Task calendar, Workflow boards, Form builders, Price list generator, Automated emails based on triggers, and more"
-          ]
-        },
-        {
-          "lines": [
-            11,
-            12
-          ],
-          "question": "Can you describe your experience working as the lead developer for Digital Cities PH?",
-          "answer": "As the lead developer, I worked on a portal that showcases the profiles of provinces and cities in the Philippines.",
-          "sources": [
-            "Achievements:"
-          ]
-        },
-        {
-          "lines": [
-            12,
-            13
-          ],
-          "question": "What was your role in developing an interactive Philippine map?",
-          "answer": "I developed an interactive Philippine map with clickable provinces, enabling users to access detailed descriptions and statistics for each region.",
-          "sources": [
-            "- As the lead developer, I worked on a portal that showcases the profiles of provinces and cities in the Philippines"
-          ]
-        },
-        {
-          "lines": [
-            18,
-            19
-          ],
-          "question": "Can you describe your experience building UI components from mockups using Photoshop?",
-          "answer": "I built UI components from mockups using Photoshop to achieve pixel-perfect look.",
-          "sources": [
-            "Achievements:"
+            "- Task: Worked on features for an insurance web app."
           ]
         }
       ]
