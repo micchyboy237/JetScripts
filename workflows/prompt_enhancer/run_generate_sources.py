@@ -22,7 +22,7 @@ def main():
     sources_dict: dict = {}
     generation_results_dict: dict = {
         "data_dir": os.path.realpath(DATA_DIR),
-        "sources": sources_dict
+        "data": sources_dict
     }
     generation_tqdm = tqdm(response_stream, total=len(processor.nodes))
 
@@ -36,9 +36,9 @@ def main():
                 # Read the entire content of the file
                 file_content = file.read()
             file_content_lines = file_content.splitlines()
-            source_lines = list(set(item.lines))
-            source_lines.sort()
-            source_line_indexes = [line - 1 for line in source_lines]
+            num_lines = list(set(item.lines))
+            num_lines.sort()
+            source_line_indexes = [line - 1 for line in num_lines]
             start_index = source_line_indexes[0]
             end_index = source_line_indexes[-1] if len(
                 source_line_indexes) > 1 else start_index + 1
@@ -47,6 +47,7 @@ def main():
 
             new_item = new_sources[item_idx]
             new_item.pop("filename")
+            new_item["lines"] = num_lines
             new_item["sources"] = source_lines
             # new_item["file_path"] = file_path
 
@@ -63,7 +64,17 @@ def main():
         logger.info(f"DONE RESPONSE {tqdm_idx + 1}:")
         logger.success(format_json(new_sources))
 
-        save_file(generation_results_dict, OUTPUT_FILE)
+        formatted_sources = []
+        for filename, source in generation_results_dict["data"].items():
+            formatted_sources.append({
+                "file_name": filename,
+                **source
+            })
+        formatted_results_dict = {
+            **generation_results_dict,
+            "data": formatted_sources,
+        }
+        save_file(formatted_results_dict, OUTPUT_FILE)
 
         # Update the progress bar after processing each node
         generation_tqdm.update(1)

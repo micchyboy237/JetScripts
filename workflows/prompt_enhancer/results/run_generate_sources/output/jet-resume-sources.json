@@ -1,7 +1,8 @@
 {
   "data_dir": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data",
-  "sources": {
-    "companies.md": {
+  "data": [
+    {
+      "file_name": "companies.md",
       "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/companies.md",
       "sources": [
         {
@@ -66,6 +67,142 @@
           ]
         }
       ]
+    },
+    {
+      "file_name": "personal_information.md",
+      "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/personal_information.md",
+      "sources": [
+        {
+          "lines": [
+            9
+          ],
+          "question": "What is your current position?",
+          "answer": "Full Stack Web / Mobile Developer",
+          "sources": [
+            "Position: Full Stack Web / Mobile Developer"
+          ]
+        },
+        {
+          "lines": [
+            10
+          ],
+          "question": "How old are you?",
+          "answer": "34",
+          "sources": [
+            "Age: 34"
+          ]
+        },
+        {
+          "lines": [
+            11
+          ],
+          "question": "What is your gender?",
+          "answer": "Male",
+          "sources": [
+            "Gender: Male"
+          ]
+        },
+        {
+          "lines": [
+            12
+          ],
+          "question": "Which country are you from?",
+          "answer": "Philippines",
+          "sources": [
+            "Country: Philippines"
+          ]
+        },
+        {
+          "lines": [
+            13
+          ],
+          "question": "What is your nationality?",
+          "answer": "Filipino",
+          "sources": [
+            "Nationality: Filipino"
+          ]
+        },
+        {
+          "lines": [
+            14
+          ],
+          "question": "When was your birthday?",
+          "answer": "December 1, 1990",
+          "sources": [
+            "Birthday: December 1, 1990"
+          ]
+        },
+        {
+          "lines": [
+            15
+          ],
+          "question": "Which country are you from (again)?",
+          "answer": "Philippines",
+          "sources": [
+            "Country: Philippines"
+          ]
+        },
+        {
+          "lines": [
+            16
+          ],
+          "question": "What languages do you speak?",
+          "answer": "English, Tagalog",
+          "sources": [
+            "Languages: English, Tagalog"
+          ]
+        },
+        {
+          "lines": [
+            17
+          ],
+          "question": "Which school did you graduate from?",
+          "answer": "De La Salle University - Manila",
+          "sources": [
+            "School: De La Salle University - Manila"
+          ]
+        },
+        {
+          "lines": [
+            18
+          ],
+          "question": "What is your diploma?",
+          "answer": "BS Degree in Computer Engineering (2007 - 2012)",
+          "sources": [
+            "Diploma: BS Degree in Computer Engineering (2007 - 2012)"
+          ]
+        },
+        {
+          "lines": [
+            20
+          ],
+          "question": "What is your email address?",
+          "answer": "jethroestrada237@gmail.com",
+          "sources": [
+            "Email: jethroestrada237@gmail.com"
+          ]
+        },
+        {
+          "lines": [
+            21
+          ],
+          "question": "What is your Whatsapp link?",
+          "answer": "https://wa.me/639101662460",
+          "sources": [
+            "Whatsapp link: https://wa.me/639101662460"
+          ]
+        },
+        {
+          "lines": [
+            22
+          ],
+          "question": "What is your phone number?",
+          "answer": "+639101662460",
+          "sources": [
+            "Phone number: +639101662460"
+          ]
+        }
+      ]
     }
-  }
+  ]
 }
