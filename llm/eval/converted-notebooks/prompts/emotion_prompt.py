@@ -1,3 +1,17 @@
+from llama_index.core import PromptTemplate
+import numpy as np
+from llama_index.core.evaluation import CorrectnessEvaluator, BatchEvalRunner
+from llama_index.core.evaluation.eval_utils import get_responses
+from llama_index.core.evaluation import QueryResponseDataset
+from llama_index.core import Settings
+from jet.llm.ollama import Ollama
+from llama_index.core import VectorStoreIndex
+from llama_index.core.schema import IndexNode
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core import Document
+from llama_index.readers.file import PyMuPDFReader
+from pathlib import Path
+import nest_asyncio
 import asyncio
 from jet.transformers.formatters import format_json
 from jet.logger import logger
@@ -18,7 +32,6 @@ Emotional Stimuli](https://arxiv.org/pdf/2307.11760.pdf)" by Li et al., in this 
 # %pip install llama-index-llms-ollama
 # %pip install llama-index-readers-file pymupdf
 
-import nest_asyncio
 
 nest_asyncio.apply()
 
@@ -30,11 +43,6 @@ We use the Llama 2 paper as the input data source for our RAG pipeline.
 
 # !mkdir data && wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
-from pathlib import Path
-from llama_index.readers.file import PyMuPDFReader
-from llama_index.core import Document
-from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.schema import IndexNode
 
 docs0 = PyMuPDFReader().load(file_path=Path("./data/llama2.pdf"))
 doc_text = "\n\n".join([d.get_content() for d in docs0])
@@ -50,11 +58,9 @@ We load this data into an in-memory vector store (embedded with Ollama embedding
 We'll be aggressively optimizing the QA prompt for this RAG pipeline.
 """
 
-from llama_index.core import VectorStoreIndex
-from llama_index.llms.ollama import Ollama
-from llama_index.core import Settings
 
-Settings.llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = Ollama(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
 
 index = VectorStoreIndex(base_nodes)
 
@@ -76,7 +82,6 @@ Here we load in a "golden" dataset.
 
 # !wget "https://www.dropbox.com/scl/fi/fh9vsmmm8vu0j50l3ss38/llama2_eval_qr_dataset.json?rlkey=kkoaez7aqeb4z25gzc06ak6kb&dl=1" -O data/llama2_eval_qr_dataset.json
 
-from llama_index.core.evaluation import QueryResponseDataset
 
 eval_dataset = QueryResponseDataset.from_json(
     "data/llama2_eval_qr_dataset.json"
@@ -86,10 +91,6 @@ eval_dataset = QueryResponseDataset.from_json(
 #### Get Evaluator
 """
 
-from llama_index.core.evaluation.eval_utils import get_responses
-
-from llama_index.core.evaluation import CorrectnessEvaluator, BatchEvalRunner
-
 
 evaluator_c = CorrectnessEvaluator()
 evaluator_dict = {"correctness": evaluator_c}
@@ -98,8 +99,6 @@ batch_runner = BatchEvalRunner(evaluator_dict, workers=2, show_progress=True)
 """
 #### Define Correctness Eval Function
 """
-
-import numpy as np
 
 
 async def get_correctness(query_engine, eval_qa_pairs, batch_runner):
@@ -139,7 +138,6 @@ emotion_stimuli_dict["ep06"] = (
 
 QA_PROMPT_KEY = "response_synthesizer:text_qa_template"
 
-from llama_index.core import PromptTemplate
 
 qa_tmpl_str = """\
 Context information is below. 
@@ -158,6 +156,7 @@ qa_tmpl = PromptTemplate(qa_tmpl_str)
 #### Prepend emotions
 """
 
+
 async def run_and_evaluate(
     query_engine, eval_qa_pairs, batch_runner, emotion_stimuli_str, qa_tmpl
 ):
@@ -172,41 +171,44 @@ async def run_and_evaluate(
     query_engine.update_prompts({QA_PROMPT_KEY: old_qa_tmpl})
     return avg_correctness
 
+
 async def run_async_code_fa8864e3():
-  correctness_ep01 = await run_and_evaluate(
-  return correctness_ep01
-correctness_ep01 = asyncio.run(run_async_code_fa8864e3())
-logger.success(format_json(correctness_ep01))
-    query_engine,
-    eval_dataset.qr_pairs,
-    batch_runner,
-    emotion_stimuli_dict["ep01"],
-    qa_tmpl,
-)
+    correctness_ep01 = await run_and_evaluate(
+        return correctness_ep01
+        correctness_ep01=asyncio.run(run_async_code_fa8864e3())
+        logger.success(format_json(correctness_ep01))
+        query_engine,
+        eval_dataset.qr_pairs,
+        batch_runner,
+        emotion_stimuli_dict["ep01"],
+        qa_tmpl,
+    )
 
 logger.debug(correctness_ep01)
 
+
 async def run_async_code_985e1a5b():
-  correctness_ep02 = await run_and_evaluate(
-  return correctness_ep02
-correctness_ep02 = asyncio.run(run_async_code_985e1a5b())
-logger.success(format_json(correctness_ep02))
-    query_engine,
-    eval_dataset.qr_pairs,
-    batch_runner,
-    emotion_stimuli_dict["ep02"],
-    qa_tmpl,
-)
+    correctness_ep02 = await run_and_evaluate(
+        return correctness_ep02
+        correctness_ep02=asyncio.run(run_async_code_985e1a5b())
+        logger.success(format_json(correctness_ep02))
+        query_engine,
+        eval_dataset.qr_pairs,
+        batch_runner,
+        emotion_stimuli_dict["ep02"],
+        qa_tmpl,
+    )
 
 logger.debug(correctness_ep02)
 
+
 async def run_async_code_8004f015():
-  correctness_base = await run_and_evaluate(
-  return correctness_base
-correctness_base = asyncio.run(run_async_code_8004f015())
-logger.success(format_json(correctness_base))
-    query_engine, eval_dataset.qr_pairs, batch_runner, "", qa_tmpl
-)
+    correctness_base = await run_and_evaluate(
+        return correctness_base
+        correctness_base=asyncio.run(run_async_code_8004f015())
+        logger.success(format_json(correctness_base))
+        query_engine, eval_dataset.qr_pairs, batch_runner, "", qa_tmpl
+    )
 
 logger.debug(correctness_base)
 

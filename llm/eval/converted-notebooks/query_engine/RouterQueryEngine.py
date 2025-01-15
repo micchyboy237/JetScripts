@@ -20,23 +20,31 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 
 # !pip install llama-index
 
-import nest_asyncio
 
+from llama_index.core.selectors import LLMSingleSelector, LLMMultiSelector
+from llama_index.core.query_engine import RouterQueryEngine
+from llama_index.core.tools import QueryEngineTool
+from llama_index.core import VectorStoreIndex
+from llama_index.core import SummaryIndex
+from llama_index.core import StorageContext
+from llama_index.core import SimpleDirectoryReader
+from llama_index.core import Settings
+from llama_index.embeddings.ollama import OllamaEmbedding
+from jet.llm.ollama import Ollama
+import os
+import nest_asyncio
 nest_asyncio.apply()
 
 """
 ## Global Models
 """
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-from llama_index.llms.ollama import Ollama
-from llama_index.embeddings.ollama import OllamaEmbedding
-from llama_index.core import Settings
 
-Settings.llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.2)
+Settings.llm = Ollama(model="llama3.2", request_timeout=300.0,
+                      context_window=4096, temperature=0.2)
 Settings.embed_model = OllamaEmbedding(model_name="nomic-embed-text")
 
 """
@@ -45,16 +53,14 @@ Settings.embed_model = OllamaEmbedding(model_name="nomic-embed-text")
 We first show how to convert a Document into a set of Nodes, and insert into a DocumentStore.
 """
 
-from llama_index.core import SimpleDirectoryReader
 
-documents = SimpleDirectoryReader("./Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
+documents = SimpleDirectoryReader(
+    "./Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
 
-from llama_index.core import Settings
 
 Settings.chunk_size = 1024
 nodes = Settings.node_parser.get_nodes_from_documents(documents)
 
-from llama_index.core import StorageContext
 
 storage_context = StorageContext.from_defaults()
 storage_context.docstore.add_documents(nodes)
@@ -63,8 +69,6 @@ storage_context.docstore.add_documents(nodes)
 ### Define Summary Index and Vector Index over Same Data
 """
 
-from llama_index.core import SummaryIndex
-from llama_index.core import VectorStoreIndex
 
 summary_index = SummaryIndex(nodes, storage_context=storage_context)
 vector_index = VectorStoreIndex(nodes, storage_context=storage_context)
@@ -78,8 +82,6 @@ list_query_engine = summary_index.as_query_engine(
     use_async=True,
 )
 vector_query_engine = vector_index.as_query_engine()
-
-from llama_index.core.tools import QueryEngineTool
 
 
 list_tool = QueryEngineTool.from_defaults(
@@ -113,13 +115,6 @@ For each type of selector, there is also the option to select 1 index to route t
 
 Use the Ollama Function API to generate/parse pydantic objects under the hood for the router selector.
 """
-
-from llama_index.core.query_engine import RouterQueryEngine
-from llama_index.core.selectors import LLMSingleSelector, LLMMultiSelector
-from llama_index.core.selectors import (
-    PydanticMultiSelector,
-    PydanticSingleSelector,
-)
 
 
 query_engine = RouterQueryEngine(
@@ -164,7 +159,6 @@ print(str(response.metadata["selector_result"]))
 In case you are expecting queries to be routed to multiple indexes, you should use a multi selector. The multi selector sends to query to multiple sub-indexes, and then aggregates all responses using a summary index to form a complete answer.
 """
 
-from llama_index.core import SimpleKeywordTableIndex
 
 keyword_index = SimpleKeywordTableIndex(nodes, storage_context=storage_context)
 

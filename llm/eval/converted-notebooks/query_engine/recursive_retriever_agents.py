@@ -27,17 +27,19 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 
 # !pip install llama-index
 
+
+from llama_index.agent.openai import OllamaAgent
+from llama_index.core import Settings
+import os
+import requests
+from pathlib import Path
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core import SummaryIndex
 from llama_index.core.schema import IndexNode
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
-from llama_index.llms.ollama import Ollama
-
+from jet.llm.ollama import Ollama
 wiki_titles = ["Toronto", "Seattle", "Chicago", "Boston", "Houston"]
 
-from pathlib import Path
-
-import requests
 
 for title in wiki_titles:
     response = requests.get(
@@ -70,13 +72,12 @@ for wiki_title in wiki_titles:
 Define LLM + Service Context + Callback Manager
 """
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-from llama_index.core import Settings
 
-Settings.llm = Ollama(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = Ollama(temperature=0, model="llama3.2",
+                      request_timeout=300.0, context_window=4096)
 
 """
 ## Build Document Agent for each Document
@@ -90,7 +91,6 @@ This document agent can dynamically choose to perform semantic search or summari
 We create a separate document agent for each city.
 """
 
-from llama_index.agent.openai import OllamaAgent
 
 agents = {}
 
@@ -126,7 +126,8 @@ for wiki_title in wiki_titles:
         ),
     ]
 
-    function_llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+    function_llm = Ollama(
+        model="llama3.2", request_timeout=300.0, context_window=4096)
     agent = OllamaAgent.from_tools(
         query_engine_tools,
         llm=function_llm,

@@ -24,7 +24,6 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 
 # !pip install llama-index
 
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 
 """
 Download Data
@@ -33,6 +32,13 @@ Download Data
 # !mkdir -p 'data/paul_graham/'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
+from llama_index.core import PromptTemplate
+from jet.llm.ollama import Ollama
+from llama_index.core.response_synthesizers import BaseSynthesizer
+from llama_index.core import get_response_synthesizer
+from llama_index.core.retrievers import BaseRetriever
+from llama_index.core.query_engine import CustomQueryEngine
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 documents = SimpleDirectoryReader("./data//paul_graham/").load_data()
 
 index = VectorStoreIndex.from_documents(documents)
@@ -48,14 +54,11 @@ To define a `CustomQueryEngine`, you just have to define some initialization par
 By default, the `custom_query` can return a `Response` object (which the response synthesizer returns), but it can also just return a string. These are options 1 and 2 respectively.
 """
 
-from llama_index.core.query_engine import CustomQueryEngine
-from llama_index.core.retrievers import BaseRetriever
-from llama_index.core import get_response_synthesizer
-from llama_index.core.response_synthesizers import BaseSynthesizer
 
 """
 ### Option 1 (`RAGQueryEngine`)
 """
+
 
 class RAGQueryEngine(CustomQueryEngine):
     """RAG Query Engine."""
@@ -68,12 +71,11 @@ class RAGQueryEngine(CustomQueryEngine):
         response_obj = self.response_synthesizer.synthesize(query_str, nodes)
         return response_obj
 
+
 """
 ### Option 2 (`RAGStringQueryEngine`)
 """
 
-from llama_index.llms.ollama import Ollama
-from llama_index.core import PromptTemplate
 
 qa_prompt = PromptTemplate(
     "Context information is below.\n"
@@ -104,6 +106,7 @@ class RAGStringQueryEngine(CustomQueryEngine):
         )
 
         return str(response)
+
 
 """
 ## Trying it out

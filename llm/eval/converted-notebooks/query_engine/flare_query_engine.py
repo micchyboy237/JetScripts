@@ -18,10 +18,13 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 
 # !pip install llama-index
 
-from llama_index.llms.ollama import Ollama
-from llama_index.core import Settings
 
-Settings.llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096, temperature=0)
+from llama_index.core.query_engine import FLAREInstructQueryEngine
+from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
+from jet.llm.ollama import Ollama
+from llama_index.core import Settings
+Settings.llm = Ollama(
+    model="llama3.1", request_timeout=300.0, context_window=4096, temperature=0)
 Settings.chunk_size = 512
 
 """
@@ -35,16 +38,15 @@ Settings.chunk_size = 512
 ## Load Data
 """
 
-from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
 index = VectorStoreIndex.from_documents(
     documents,
 )
 
 index_query_engine = index.as_query_engine(similarity_top_k=2)
 
-from llama_index.core.query_engine import FLAREInstructQueryEngine
 
 flare_query_engine = FLAREInstructQueryEngine(
     query_engine=index_query_engine,

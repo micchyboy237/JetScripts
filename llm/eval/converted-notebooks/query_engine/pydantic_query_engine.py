@@ -32,8 +32,6 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 
 # !pip install llama-index
 
-import os
-import openai
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 # openai.api_key = os.environ["OPENAI_API_KEY"]
@@ -45,16 +43,22 @@ Download Data
 # !mkdir -p 'data/paul_graham/'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
-from llama_index.core import SimpleDirectoryReader
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
+from llama_index.core import VectorStoreIndex,
+from llama_index.llms.anthropic import Anthropic
+from jet.llm.ollama import Ollama
+from llama_index.core import VectorStoreIndex
+from pydantic import BaseModel
+from typing import List
+import os
+import openai
+from llama_index.core import SimpleDirectoryReader
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
 
 """
 ### Create our Pydanitc Output Object
 """
-
-from typing import List
-from pydantic import BaseModel
 
 
 class Biography(BaseModel):
@@ -64,16 +68,16 @@ class Biography(BaseModel):
     best_known_for: List[str]
     extra_info: str
 
+
 """
 ## Create the Index + Query Engine (Ollama)
 
 When using Ollama, the function calling API will be leveraged for reliable structured outputs.
 """
 
-from llama_index.core import VectorStoreIndex
-from llama_index.llms.ollama import Ollama
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
+llm = Ollama(model="llama3.2", request_timeout=300.0,
+             context_window=4096, temperature=0.1)
 
 index = VectorStoreIndex.from_documents(
     documents,
@@ -97,12 +101,9 @@ print(type(response.response))
 When using an LLM that does not support function calling, we rely on the LLM to write the JSON itself, and we parse the JSON into the proper pydantic object.
 """
 
-import os
 
 # os.environ["ANTHROPIC_API_KEY"] = "sk-..."
 
-from llama_index.core import VectorStoreIndex
-from llama_index.llms.anthropic import Anthropic
 
 llm = Anthropic(model="claude-instant-1.2", temperature=0.1)
 
@@ -128,9 +129,6 @@ print(type(response.response))
 Accumulate with pydantic objects requires some extra parsing. This is still a beta feature, but it's still possible to get accumulate pydantic objects.
 """
 
-from typing import List
-from pydantic import BaseModel
-
 
 class Company(BaseModel):
     """Data model for a companies mentioned."""
@@ -138,10 +136,9 @@ class Company(BaseModel):
     company_name: str
     context_info: str
 
-from llama_index.core import VectorStoreIndex,
-from llama_index.llms.ollama import Ollama
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
+llm = Ollama(model="llama3.2", request_timeout=300.0,
+             context_window=4096, temperature=0.1)
 
 index = VectorStoreIndex.from_documents(
     documents,
@@ -160,7 +157,7 @@ In accumulate, responses are separated by a default separator, and prepended wit
 companies = []
 
 for response_str in str(response).split("\n---------------------\n"):
-    response_str = response_str[response_str.find("{") :]
+    response_str = response_str[response_str.find("{"):]
     companies.append(Company.parse_raw(response_str))
 
 print(companies)

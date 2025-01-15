@@ -22,10 +22,22 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 # %load_ext autoreload
 # %autoreload 2
 
+
+from jet.llm.ollama import Ollama
+from llama_index.core.query_engine import SubQuestionQueryEngine
+from llama_index.core.tools import QueryEngineTool, ToolMetadata
+import nest_asyncio
+from llama_index.core import VectorStoreIndex
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core.retrievers import RecursiveRetriever
+import pickle
+import os
+from llama_index.core.node_parser import UnstructuredElementNodeParser
+from pathlib import Path
+from llama_index.readers.file import FlatReader
 from pydantic import BaseModel
 from unstructured.partition.html import partition_html
 import pandas as pd
-
 pd.set_option("display.max_rows", None)
 pd.set_option("display.max_columns", None)
 pd.set_option("display.width", None)
@@ -46,19 +58,14 @@ We use Unstructured to extract table and non-table elements from the 10-K filing
 # !wget "https://www.dropbox.com/scl/fi/mlaymdy1ni1ovyeykhhuk/tesla_2021_10k.htm?rlkey=qf9k4zn0ejrbm716j0gg7r802&dl=1" -O tesla_2021_10k.htm
 # !wget "https://www.dropbox.com/scl/fi/rkw0u959yb4w8vlzz76sa/tesla_2020_10k.htm?rlkey=tfkdshswpoupav5tqigwz1mp7&dl=1" -O tesla_2020_10k.htm
 
-from llama_index.readers.file import FlatReader
-from pathlib import Path
 
 reader = FlatReader()
 docs_2021 = reader.load_data(Path("tesla_2021_10k.htm"))
 docs_2020 = reader.load_data(Path("tesla_2020_10k.htm"))
 
-from llama_index.core.node_parser import UnstructuredElementNodeParser
 
 node_parser = UnstructuredElementNodeParser()
 
-import os
-import pickle
 
 if not os.path.exists("2021_nodes.pkl"):
     raw_nodes_2021 = node_parser.get_nodes_from_documents(docs_2021)
@@ -75,11 +82,13 @@ example_index_node = [b for b in base_nodes_2021 if isinstance(b, IndexNode)][
 ]
 
 print(
-    f"\n--------\n{example_index_node.get_content(metadata_mode='all')}\n--------\n"
+    f"\n--------\n{example_index_node.get_content(
+        metadata_mode='all')}\n--------\n"
 )
 print(f"\n--------\nIndex ID: {example_index_node.index_id}\n--------\n")
 print(
-    f"\n--------\n{node_mappings_2021[example_index_node.index_id].get_content()}\n--------\n"
+    f"\n--------\n{
+        node_mappings_2021[example_index_node.index_id].get_content()}\n--------\n"
 )
 
 """
@@ -92,15 +101,11 @@ Now that we've extracted tables and their summaries, we can setup a recursive re
 ### Construct Retrievers
 """
 
-from llama_index.core.retrievers import RecursiveRetriever
-from llama_index.core.query_engine import RetrieverQueryEngine
-from llama_index.core import VectorStoreIndex
 
 vector_index = VectorStoreIndex(base_nodes_2021)
 vector_retriever = vector_index.as_retriever(similarity_top_k=1)
 vector_query_engine = vector_index.as_query_engine(similarity_top_k=1)
 
-from llama_index.core.retrievers import RecursiveRetriever
 
 recursive_retriever = RecursiveRetriever(
     "vector",
@@ -145,9 +150,6 @@ This allows us to execute document comparisons against both.
 ### Define E2E Recursive Retriever Function
 """
 
-import pickle
-import os
-
 
 def create_recursive_retriever_over_doc(docs, nodes_save_path=None):
     """Big function to go from document path -> recursive retriever."""
@@ -174,18 +176,14 @@ def create_recursive_retriever_over_doc(docs, nodes_save_path=None):
     query_engine = RetrieverQueryEngine.from_args(recursive_retriever)
     return query_engine, base_nodes
 
+
 """
 ### Create Sub Question Query Engine
 """
 
-import nest_asyncio
 
 nest_asyncio.apply()
 
-from llama_index.core.tools import QueryEngineTool, ToolMetadata
-from llama_index.core.query_engine import SubQuestionQueryEngine
-
-from llama_index.llms.ollama import Ollama
 
 llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
 

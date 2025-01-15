@@ -1,3 +1,41 @@
+import numpy as np
+from llama_index.core.evaluation import BatchEvalRunner
+from llama_index.core.evaluation.eval_utils import (
+    get_responses,
+    get_results_df,
+)
+from llama_index.core.evaluation import (
+    CorrectnessEvaluator,
+    SemanticSimilarityEvaluator,
+    RelevancyEvaluator,
+    FaithfulnessEvaluator,
+    PairwiseComparisonEvaluator,
+)
+import asyncio
+from llama_index.core.evaluation import DatasetGenerator, QueryResponseDataset
+import pandas as pd
+from collections import defaultdict
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core.postprocessor import LLMRerank, SentenceTransformerRerank
+from llama_index.core.retrievers import RecursiveRetriever
+from llama_index.core.retrievers import RouterRetriever
+from llama_index.core.selectors import PydanticMultiSelector
+from llama_index.core.schema import IndexNode
+from llama_index.core.tools import RetrieverTool
+from llama_index.core import Document
+from pathlib import Path
+from jet.llm.ollama import Ollama
+from llama_index.core.response.notebook_utils import display_response
+from llama_index.core import SummaryIndex
+from llama_index.core import (
+    VectorStoreIndex,
+    SimpleDirectoryReader,
+    StorageContext,
+)
+import sys
+import logging
+import nest_asyncio
+from jet.vectors.reranker.bm25_rerank import BM25Rerank
 from jet.llm.ollama.constants import OLLAMA_SMALL_EMBED_MODEL
 from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.logger import logger
@@ -46,26 +84,14 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 
 # !pip install llama-index
 
-from jet.vectors.reranker.bm25_rerank import BM25Rerank
-import nest_asyncio
 
 nest_asyncio.apply()
 
-import logging
-import sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger().handlers = []
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
-from llama_index.core import (
-    VectorStoreIndex,
-    SimpleDirectoryReader,
-    StorageContext,
-)
-from llama_index.core import SummaryIndex
-from llama_index.core.response.notebook_utils import display_response
-from llama_index.llms.ollama import Ollama
 
 """
 ## Load Data
@@ -75,8 +101,6 @@ In this section we first load in the Llama 2 paper as a single document. We then
 
 # !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
-from pathlib import Path
-from llama_index.core import Document
 # from llama_index.readers.file import PyMuPDFReader
 
 data_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
@@ -124,8 +148,6 @@ We setup an "ensemble" retriever primarily using our recursive retrieval abstrac
 The end result is that all vector retrievers are called when a query is run.
 """
 
-from llama_index.core.tools import RetrieverTool
-from llama_index.core.schema import IndexNode
 
 retriever_dict = {}
 retriever_nodes = []
@@ -145,11 +167,6 @@ for chunk_size, vector_index in zip(chunk_sizes, vector_indices):
 Define recursive retriever.
 """
 
-from llama_index.core.selectors import PydanticMultiSelector
-
-from llama_index.core.retrievers import RouterRetriever
-from llama_index.core.retrievers import RecursiveRetriever
-from llama_index.core import SummaryIndex
 
 summary_index = SummaryIndex(retriever_nodes)
 
@@ -170,7 +187,6 @@ display_jet_source_nodes(query, nodes)
 Define reranker to process the final retrieved set of nodes.
 """
 
-from llama_index.core.postprocessor import LLMRerank, SentenceTransformerRerank
 # from llama_index.postprocessor.cohere_rerank import CohereRerank
 
 # reranker = CohereRerank(top_n=10)
@@ -184,7 +200,6 @@ retriever = create_bm25_retriever(
 Define retriever query engine to integrate the recursive retriever + reranker together.
 """
 
-from llama_index.core.query_engine import RetrieverQueryEngine
 
 query_engine = RetrieverQueryEngine(retriever, node_postprocessors=[reranker])
 
@@ -197,9 +212,6 @@ display_jet_source_nodes(query, response)
 
 One interesting property of ensemble-based retrieval is that through reranking, we can actually use the ordering of chunks in the final retrieved set to determine the importance of each chunk size. For instance, if certain chunk sizes are always ranked near the top, then those are probably more relevant to the query.
 """
-
-from collections import defaultdict
-import pandas as pd
 
 
 def mrr_all(metadata_values, metadata_key, source_nodes):
@@ -219,6 +231,7 @@ def mrr_all(metadata_values, metadata_key, source_nodes):
     df.style.set_caption("Mean Reciprocal Rank")
     return df
 
+
 mrr_all_results = mrr_all(chunk_sizes, "chunk_size", response.source_nodes)
 logger.newline()
 logger.info("Mean Reciprocal Rank for each Chunk Size")
@@ -234,9 +247,6 @@ We define/load an eval benchmark dataset and then run different evaluations over
 **WARNING**: This can be *expensive*, especially with GPT-4. Use caution and tune the sample size to fit your budget.
 """
 
-from llama_index.core.evaluation import DatasetGenerator, QueryResponseDataset
-from llama_index.llms.ollama import Ollama
-import nest_asyncio
 
 nest_asyncio.apply()
 
@@ -260,18 +270,9 @@ eval_dataset = QueryResponseDataset.from_json(
 ### Compare Results
 """
 
-import asyncio
-import nest_asyncio
 
 nest_asyncio.apply()
 
-from llama_index.core.evaluation import (
-    CorrectnessEvaluator,
-    SemanticSimilarityEvaluator,
-    RelevancyEvaluator,
-    FaithfulnessEvaluator,
-    PairwiseComparisonEvaluator,
-)
 
 evaluator_c = CorrectnessEvaluator(llm=eval_llm)
 evaluator_s = SemanticSimilarityEvaluator(embed_model=llm_settings.embed_model)
@@ -280,11 +281,6 @@ evaluator_f = FaithfulnessEvaluator(llm=eval_llm)
 
 pairwise_evaluator = PairwiseComparisonEvaluator(llm=eval_llm)
 
-from llama_index.core.evaluation.eval_utils import (
-    get_responses,
-    get_results_df,
-)
-from llama_index.core.evaluation import BatchEvalRunner
 
 max_samples = NUM_DATASET
 
@@ -304,7 +300,6 @@ pred_responses = get_responses(
     eval_qs[:max_samples], query_engine, show_progress=True
 )
 
-import numpy as np
 
 pred_response_strs = [str(p) for p in pred_responses]
 base_pred_response_strs = [str(p) for p in base_pred_responses]

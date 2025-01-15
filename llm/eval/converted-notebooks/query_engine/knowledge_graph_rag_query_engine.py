@@ -43,30 +43,36 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 ### Ollama
 """
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
+
+import pprint
+from IPython.display import display, Markdown
+from llama_index.core.retrievers import KnowledgeGraphRAGRetriever
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.graph_stores.nebula import NebulaGraphStore
+from llama_index.core import StorageContext
+from llama_index.embeddings.azure_openai import AzureOllamaEmbedding
+from llama_index.llms.azure_openai import AzureOllama
+from llama_index.core import Settings
+from jet.llm.ollama import Ollama
+import os
 import logging
 import sys
-
 logging.basicConfig(
     stream=sys.stdout, level=logging.INFO
 )  # logging.DEBUG for more verbose output
 
 
-from llama_index.llms.ollama import Ollama
-from llama_index.core import Settings
-
-Settings.llm = Ollama(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = Ollama(temperature=0, model="llama3.2",
+                      request_timeout=300.0, context_window=4096)
 Settings.chunk_size = 512
 
 """
 ### Azure
 """
 
-from llama_index.llms.azure_openai import AzureOllama
-from llama_index.embeddings.azure_openai import AzureOllamaEmbedding
 
 api_key = "<api-key>"
 azure_endpoint = "https://<your-resource-name>.openai.azure.com/"
@@ -88,7 +94,6 @@ embed_model = AzureOllamaEmbedding(
     api_version=api_version,
 )
 
-from llama_index.core import Settings
 
 Settings.llm = llm
 Settings.embed_model = embed_model
@@ -120,8 +125,6 @@ tags = ["entity"]  # default, could be omit if create from an empty kg
 Then we could instiatate a `NebulaGraphStore`, in order to create a `StorageContext`'s `graph_store` as it.
 """
 
-from llama_index.core import StorageContext
-from llama_index.graph_stores.nebula import NebulaGraphStore
 
 graph_store = NebulaGraphStore(
     space_name=space_name,
@@ -156,8 +159,6 @@ Please note, the way to Search related Entities could be either Keyword extracti
 Here is the example on how to use `RetrieverQueryEngine` and `KnowledgeGraphRAGRetriever`:
 """
 
-from llama_index.core.query_engine import RetrieverQueryEngine
-from llama_index.core.retrievers import KnowledgeGraphRAGRetriever
 
 graph_rag_retriever = KnowledgeGraphRAGRetriever(
     storage_context=storage_context,
@@ -172,7 +173,6 @@ query_engine = RetrieverQueryEngine.from_args(
 Then we can query it like:
 """
 
-from IPython.display import display, Markdown
 
 response = query_engine.query(
     "Tell me about Peter Quill?",
@@ -233,7 +233,6 @@ RETURN e2.`entity`.`name`
 - Finally, it combined the two nodes of context, to synthesize the answer.
 """
 
-import pprint
 
 pp = pprint.PrettyPrinter()
 pp.pprint(response.metadata)

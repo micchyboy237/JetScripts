@@ -20,8 +20,6 @@ databases, sandboxing, etc.
 # %pip install llama-index-readers-wikipedia
 # %pip install llama-index-llms-ollama
 
-import openai
-import os
 
 # os.environ["OPENAI_API_KEY"] = "[You API key]"
 
@@ -35,12 +33,18 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 
 # !pip install llama-index
 
-import nest_asyncio
 
+from llama_index.core import VectorStoreIndex
+from llama_index.vector_stores.pinecone import PineconeVectorStore
+from llama_index.core import StorageContext
+import pinecone
+import sys
+import logging
+import openai
+import os
+import nest_asyncio
 nest_asyncio.apply()
 
-import logging
-import sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
@@ -52,8 +56,6 @@ This includes a `ServiceContext` object containing abstractions such as the LLM 
 This also includes a `StorageContext` object containing our vector store abstractions.
 """
 
-import pinecone
-import os
 
 api_key = os.environ["PINECONE_API_KEY"]
 pinecone.init(api_key=api_key, environment="us-west1-gcp-free")
@@ -61,10 +63,6 @@ pinecone.init(api_key=api_key, environment="us-west1-gcp-free")
 pinecone_index = pinecone.Index("quickstart")
 
 pinecone_index.delete(deleteAll=True)
-
-from llama_index.core import StorageContext
-from llama_index.vector_stores.pinecone import PineconeVectorStore
-from llama_index.core import VectorStoreIndex
 
 
 vector_store = PineconeVectorStore(
@@ -79,16 +77,6 @@ vector_index = VectorStoreIndex([], storage_context=storage_context)
 Here we introduce a toy scenario where there are 100 tables (too big to fit into the prompt)
 """
 
-from sqlalchemy import (
-    create_engine,
-    MetaData,
-    Table,
-    Column,
-    String,
-    Integer,
-    select,
-    column,
-)
 
 engine = create_engine("sqlite:///:memory:", future=True)
 metadata_obj = MetaData()
@@ -110,7 +98,6 @@ metadata_obj.tables.keys()
 We introduce some test data into the `city_stats` table
 """
 
-from sqlalchemy import insert
 
 rows = [
     {"city_name": "Toronto", "population": 2930000, "country": "Canada"},
@@ -134,7 +121,6 @@ We first show how to convert a Document into a set of Nodes, and insert into a D
 
 # !pip install wikipedia
 
-from llama_index.readers.wikipedia import WikipediaReader
 
 cities = ["Toronto", "Berlin", "Tokyo"]
 wiki_docs = WikipediaReader().load_data(pages=cities)
@@ -143,11 +129,9 @@ wiki_docs = WikipediaReader().load_data(pages=cities)
 ### Build SQL Index
 """
 
-from llama_index.core import SQLDatabase
 
 sql_database = SQLDatabase(engine, include_tables=["city_stats"])
 
-from llama_index.core.query_engine import NLSQLTableQueryEngine
 
 sql_query_engine = NLSQLTableQueryEngine(
     sql_database=sql_database,
@@ -158,7 +142,6 @@ sql_query_engine = NLSQLTableQueryEngine(
 ### Build Vector Index
 """
 
-from llama_index.core import Settings
 
 for city, wiki_doc in zip(cities, wiki_docs):
     nodes = Settings.node_parser.get_nodes_from_documents([wiki_doc])
@@ -169,11 +152,6 @@ for city, wiki_doc in zip(cities, wiki_docs):
 """
 ### Define Query Engines, Set as Tools
 """
-
-from llama_index.llms.ollama import Ollama
-from llama_index.core.retrievers import VectorIndexAutoRetriever
-from llama_index.core.vector_stores import MetadataInfo, VectorStoreInfo
-from llama_index.core.query_engine import RetrieverQueryEngine
 
 
 vector_store_info = VectorStoreInfo(
@@ -189,10 +167,10 @@ vector_auto_retriever = VectorIndexAutoRetriever(
 )
 
 retriever_query_engine = RetrieverQueryEngine.from_args(
-    vector_auto_retriever, llm=Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+    vector_auto_retriever, llm=Ollama(
+        model="llama3.1", request_timeout=300.0, context_window=4096)
 )
 
-from llama_index.core.tools import QueryEngineTool
 
 sql_tool = QueryEngineTool.from_defaults(
     query_engine=sql_query_engine,
@@ -213,10 +191,10 @@ vector_tool = QueryEngineTool.from_defaults(
 ### Define SQLAutoVectorQueryEngine
 """
 
-from llama_index.core.query_engine import SQLAutoVectorQueryEngine
 
 query_engine = SQLAutoVectorQueryEngine(
-    sql_tool, vector_tool, llm=Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+    sql_tool, vector_tool, llm=Ollama(
+        model="llama3.1", request_timeout=300.0, context_window=4096)
 )
 
 response = query_engine.query(

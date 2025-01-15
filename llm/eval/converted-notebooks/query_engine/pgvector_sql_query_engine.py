@@ -31,8 +31,18 @@ Load in the Lyft 2021 10k document.
 # %pip install llama-index-readers-file
 # %pip install llama-index-llms-ollama
 
-from llama_index.readers.file import PDFReader
 
+from llama_index.core import Settings
+from llama_index.core.query_engine import PGVectorSQLQueryEngine
+from jet.llm.ollama import Ollama
+from llama_index.core import SQLDatabase
+from llama_index.core import PromptTemplate
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from sqlalchemy.orm import declarative_base, mapped_column
+from sqlalchemy import insert, create_engine, String, text, Integer
+from pgvector.sqlalchemy import Vector
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.readers.file import PDFReader
 reader = PDFReader()
 
 """
@@ -44,7 +54,6 @@ Download Data
 
 docs = reader.load_data("./data/10k/lyft_2021.pdf")
 
-from llama_index.core.node_parser import SentenceSplitter
 
 node_parser = SentenceSplitter()
 nodes = node_parser.get_nodes_from_documents(docs)
@@ -59,9 +68,6 @@ Make sure you have all the necessary dependencies installed!
 
 # !pip install psycopg2-binary pgvector asyncpg "sqlalchemy[asyncio]" greenlet
 
-from pgvector.sqlalchemy import Vector
-from sqlalchemy import insert, create_engine, String, text, Integer
-from sqlalchemy.orm import declarative_base, mapped_column
 
 """
 #### Establish Connection
@@ -90,6 +96,7 @@ class SECTextChunk(Base):
     text = mapped_column(String)
     embedding = mapped_column(Vector(384))
 
+
 Base.metadata.drop_all(engine)
 Base.metadata.create_all(engine)
 
@@ -97,7 +104,6 @@ Base.metadata.create_all(engine)
 #### Generate embedding for each Node with a sentence_transformers model
 """
 
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-en")
 
@@ -135,7 +141,6 @@ We also prompt it with some few-shot examples of how to use the syntax (<-->).
 **NOTE**: This is included by default in the `PGVectorSQLQueryEngine`, we included it here mostly for visibility!
 """
 
-from llama_index.core import PromptTemplate
 
 text_to_sql_tmpl = """\
 Given an input question, first create a syntactically correct {dialect} \
@@ -184,15 +189,11 @@ understand the column schema (e.g. by telling it what the embedding column repre
 either tabular querying or semantic search.
 """
 
-from llama_index.core import SQLDatabase
-from llama_index.llms.ollama import Ollama
-from llama_index.core.query_engine import PGVectorSQLQueryEngine
-from llama_index.core import Settings
-
 
 sql_database = SQLDatabase(engine, include_tables=["sec_text_chunk"])
 
-Settings.llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+Settings.llm = Ollama(
+    model="llama3.1", request_timeout=300.0, context_window=4096)
 Settings.embed_model = embed_model
 
 

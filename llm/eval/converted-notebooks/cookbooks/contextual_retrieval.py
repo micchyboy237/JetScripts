@@ -21,15 +21,20 @@ We will use:
 
 # !pip install -U llama-index llama-index-llms-anthropic llama-index-postprocessor-cohere-rerank llama-index-retrievers-bm25 stemmer
 
-import nest_asyncio
 
+from llama_index.retrievers.bm25 import BM25Retriever
+from llama_index.core import SimpleDirectoryReader
+from llama_index.core import Settings
+from llama_index.embeddings.ollama import OllamaEmbedding
+from llama_index.llms.anthropic import Anthropic
+import os
+import nest_asyncio
 nest_asyncio.apply()
 
 """
 ## Setup API Keys
 """
 
-import os
 
 # os.environ["ANTHROPIC_API_KEY"] = "<YOUR ANTHROPIC API KEY>"
 
@@ -41,12 +46,9 @@ os.environ["COHERE_API_KEY"] = "<YOUR COHEREAI API KEY>"
 ## Setup LLM and Embedding model
 """
 
-from llama_index.llms.anthropic import Anthropic
 
 llm_anthropic = Anthropic(model="claude-3-5-sonnet-20240620")
 
-from llama_index.embeddings.ollama import OllamaEmbedding
-from llama_index.core import Settings
 
 Settings.embed_model = OllamaEmbedding(model_name="nomic-embed-text")
 
@@ -60,7 +62,6 @@ Settings.embed_model = OllamaEmbedding(model_name="nomic-embed-text")
 ## Load Data
 """
 
-from llama_index.core import SimpleDirectoryReader
 
 documents = SimpleDirectoryReader(
     input_files=["./paul_graham_essay.txt"],
@@ -103,22 +104,6 @@ Please give a short succinct context to situate this chunk within the overall do
 
 8. `display_results` - Function to display results from `retrieval_results`
 """
-
-from llama_index.retrievers.bm25 import BM25Retriever
-from llama_index.core.evaluation import (
-    generate_question_context_pairs,
-    RetrieverEvaluator,
-)
-from llama_index.core.retrievers import BaseRetriever, VectorIndexRetriever
-from llama_index.core.schema import NodeWithScore
-from llama_index.core import VectorStoreIndex, QueryBundle
-from llama_index.core.llms import ChatMessage, TextBlock
-
-import pandas as pd
-import copy
-import Stemmer
-
-from typing import List
 
 
 def create_contextual_nodes(nodes_):
@@ -256,11 +241,11 @@ class EmbeddingBM25RerankerRetriever(BaseRetriever):
 
         return retrieved_nodes
 
+
 """
 ## Create Nodes
 """
 
-from llama_index.core.node_parser import SentenceSplitter
 
 node_parser = SentenceSplitter(chunk_size=1024, chunk_overlap=200)
 
@@ -294,7 +279,6 @@ similarity_top_k = 3
 ## Set `CohereReranker`
 """
 
-from llama_index.postprocessor.cohere_rerank import CohereRerank
 
 cohere_rerank = CohereRerank(
     api_key=os.environ["COHERE_API_KEY"], top_n=similarity_top_k
@@ -338,7 +322,6 @@ contextual_embedding_bm25_retriever_rerank = EmbeddingBM25RerankerRetriever(
 ## Create Synthetic query dataset
 """
 
-from llama_index.llms.ollama import Ollama
 
 llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
 

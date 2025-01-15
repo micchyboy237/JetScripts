@@ -1,3 +1,23 @@
+import numpy as np
+import pickle
+from copy import deepcopy
+from llama_index.core import PromptTemplate
+from llama_index.core.evaluation import CorrectnessEvaluator, BatchEvalRunner
+from llama_index.core.evaluation.eval_utils import get_responses
+import random
+from llama_index.core.node_parser import SimpleNodeParser
+from llama_index.core.evaluation import DatasetGenerator, QueryResponseDataset
+from llama_index.core import Settings
+from jet.llm.ollama import Ollama
+from llama_index.core import VectorStoreIndex
+from llama_index.core.schema import IndexNode
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core import Document
+from llama_index.readers.file import PyMuPDFReader
+from llama_index.readers.file import UnstructuredReader
+from llama_index.readers.file import PDFReader
+from pathlib import Path
+import nest_asyncio
 import asyncio
 from jet.transformers.formatters import format_json
 from jet.logger import logger
@@ -16,7 +36,6 @@ Inspired by the [Optimization by Prompting paper](https://arxiv.org/pdf/2309.034
 # %pip install llama-index-llms-ollama
 # %pip install llama-index-readers-file pymupdf
 
-import nest_asyncio
 
 nest_asyncio.apply()
 
@@ -28,21 +47,14 @@ We use the Llama 2 paper as the input data source for our RAG pipeline.
 
 # !mkdir data && wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
-from pathlib import Path
-from llama_index.readers.file import PDFReader
-from llama_index.readers.file import UnstructuredReader
-from llama_index.readers.file import PyMuPDFReader
 
 loader = PDFReader()
 docs0 = loader.load_data(file=Path("./data/llama2.pdf"))
 
-from llama_index.core import Document
 
 doc_text = "\n\n".join([d.get_content() for d in docs0])
 docs = [Document(text=doc_text)]
 
-from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.schema import IndexNode
 
 node_parser = SentenceSplitter(chunk_size=1024)
 
@@ -56,11 +68,9 @@ We load this data into an in-memory vector store (embedded with Ollama embedding
 We'll be aggressively optimizing the QA prompt for this RAG pipeline.
 """
 
-from llama_index.core import VectorStoreIndex
-from llama_index.llms.ollama import Ollama
-from llama_index.core import Settings
 
-Settings.llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = Ollama(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
 
 index = VectorStoreIndex(base_nodes)
 
@@ -76,8 +86,6 @@ This will be used for two purposes:
 2) To generate an evaluation dataset to compute our objective score - so that the meta-prompt can try optimizing for this score.
 """
 
-from llama_index.core.evaluation import DatasetGenerator, QueryResponseDataset
-from llama_index.core.node_parser import SimpleNodeParser
 
 dataset_generator = DatasetGenerator(
     base_nodes[:20],
@@ -86,9 +94,10 @@ dataset_generator = DatasetGenerator(
     num_questions_per_chunk=3,
 )
 
+
 async def run_async_code_672f8f1d():
-  eval_dataset = await dataset_generator.agenerate_dataset_from_nodes(num=60)
-  return eval_dataset
+    eval_dataset = await dataset_generator.agenerate_dataset_from_nodes(num=60)
+    return eval_dataset
 eval_dataset = asyncio.run(run_async_code_672f8f1d())
 logger.success(format_json(eval_dataset))
 
@@ -102,7 +111,6 @@ eval_dataset = QueryResponseDataset.from_json(
 #### Get Dataset Samples
 """
 
-import random
 
 full_qr_pairs = eval_dataset.qr_pairs
 
@@ -126,11 +134,9 @@ Finally we define and run the prompt optimization loop.
 #### Get Evaluator
 """
 
-from llama_index.core.evaluation.eval_utils import get_responses
 
-from llama_index.core.evaluation import CorrectnessEvaluator, BatchEvalRunner
-
-evaluator_c = CorrectnessEvaluator(llm=Ollama(model="llama3.2", request_timeout=300.0, context_window=4096))
+evaluator_c = CorrectnessEvaluator(llm=Ollama(
+    model="llama3.2", request_timeout=300.0, context_window=4096))
 evaluator_dict = {
     "correctness": evaluator_c,
 }
@@ -139,6 +145,7 @@ batch_runner = BatchEvalRunner(evaluator_dict, workers=2, show_progress=True)
 """
 #### Define Correctness Eval Function
 """
+
 
 async def get_correctness(query_engine, eval_qa_pairs, batch_runner):
     eval_qs = [q for q, _ in eval_qa_pairs]
@@ -159,8 +166,6 @@ async def get_correctness(query_engine, eval_qa_pairs, batch_runner):
 
 QA_PROMPT_KEY = "response_synthesizer:text_qa_template"
 
-from llama_index.llms.ollama import Ollama
-from llama_index.core import PromptTemplate
 
 llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
 
@@ -212,8 +217,6 @@ meta_tmpl = PromptTemplate(meta_tmpl_str)
 #### Define Prompt Optimization Functions
 """
 
-from copy import deepcopy
-
 
 def format_meta_tmpl(
     prev_instr_score_pairs,
@@ -241,13 +244,12 @@ def format_meta_tmpl(
     )
     return fmt_meta_tmpl
 
+
 def get_full_prompt_template(cur_instr: str, prompt_tmpl):
     tmpl_str = prompt_tmpl.get_template()
     new_tmpl_str = cur_instr + "\n" + tmpl_str
     new_tmpl = PromptTemplate(new_tmpl_str)
     return new_tmpl
-
-import numpy as np
 
 
 def _parse_meta_response(meta_response: str):
@@ -311,27 +313,28 @@ old_qa_prompt = get_full_prompt_template(initial_instr, base_qa_prompt)
 
 meta_llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
 
+
 async def run_async_code_38d7334f():
-  new_instr, prev_instr_score_pairs = await optimize_prompts(
-  return new_instr, prev_instr_score_pairs
-new_instr, prev_instr_score_pairs = asyncio.run(run_async_code_38d7334f())
-logger.success(format_json(new_instr, prev_instr_score_pairs))
-    query_engine,
-    initial_instr,
-    base_qa_prompt,
-    meta_tmpl,
-    meta_llm,  # note: treat llm as meta_llm
-    batch_runner,
-    eval_qr_pairs,
-    exemplar_qr_pairs,
-    num_iterations=5,
-)
+    new_instr, prev_instr_score_pairs = await optimize_prompts(
+        return new_instr, prev_instr_score_pairs
+        new_instr, prev_instr_score_pairs=asyncio.run(
+            run_async_code_38d7334f())
+        logger.success(format_json(new_instr, prev_instr_score_pairs))
+        query_engine,
+        initial_instr,
+        base_qa_prompt,
+        meta_tmpl,
+        meta_llm,  # note: treat llm as meta_llm
+        batch_runner,
+        eval_qr_pairs,
+        exemplar_qr_pairs,
+        num_iterations=5,
+    )
 
 
 new_qa_prompt = query_engine.get_prompts()[QA_PROMPT_KEY]
 logger.debug(new_qa_prompt)
 
-import pickle
 
 pickle.dump(prev_instr_score_pairs, open("prev_instr_score_pairs.pkl", "wb"))
 
@@ -341,24 +344,28 @@ full_eval_qs = [q for q, _ in full_qr_pairs]
 full_eval_answers = [a for _, a in full_qr_pairs]
 
 query_engine.update_prompts({QA_PROMPT_KEY: old_qa_prompt})
+
+
 async def run_async_code_6c88f926():
-  avg_correctness_old = await get_correctness(
-  return avg_correctness_old
-avg_correctness_old = asyncio.run(run_async_code_6c88f926())
-logger.success(format_json(avg_correctness_old))
-    query_engine, full_qr_pairs, batch_runner
-)
+    avg_correctness_old = await get_correctness(
+        return avg_correctness_old
+        avg_correctness_old=asyncio.run(run_async_code_6c88f926())
+        logger.success(format_json(avg_correctness_old))
+        query_engine, full_qr_pairs, batch_runner
+    )
 
 logger.debug(avg_correctness_old)
 
 query_engine.update_prompts({QA_PROMPT_KEY: new_qa_prompt})
+
+
 async def run_async_code_8e7d8a3b():
-  avg_correctness_new = await get_correctness(
-  return avg_correctness_new
-avg_correctness_new = asyncio.run(run_async_code_8e7d8a3b())
-logger.success(format_json(avg_correctness_new))
-    query_engine, full_qr_pairs, batch_runner
-)
+    avg_correctness_new = await get_correctness(
+        return avg_correctness_new
+        avg_correctness_new=asyncio.run(run_async_code_8e7d8a3b())
+        logger.success(format_json(avg_correctness_new))
+        query_engine, full_qr_pairs, batch_runner
+    )
 
 logger.debug(avg_correctness_new)
 

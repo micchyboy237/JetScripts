@@ -29,12 +29,12 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 
 # !pip install llama-index
 
-import nest_asyncio
 
+import sys
+import logging
+import nest_asyncio
 nest_asyncio.apply()
 
-import logging
-import sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
@@ -47,25 +47,12 @@ This also includes a `StorageContext` object containing our vector store abstrac
 """
 
 
-
-
-
 """
 ### Create Database Schema + Test Data
 
 Here we introduce a toy scenario where there are 100 tables (too big to fit into the prompt)
 """
 
-from sqlalchemy import (
-    create_engine,
-    MetaData,
-    Table,
-    Column,
-    String,
-    Integer,
-    select,
-    column,
-)
 
 engine = create_engine("sqlite:///:memory:", future=True)
 metadata_obj = MetaData()
@@ -87,7 +74,6 @@ metadata_obj.tables.keys()
 We introduce some test data into the `city_stats` table
 """
 
-from sqlalchemy import insert
 
 rows = [
     {"city_name": "Toronto", "population": 2930000, "country": "Canada"},
@@ -111,7 +97,6 @@ We first show how to convert a Document into a set of Nodes, and insert into a D
 
 # !pip install wikipedia
 
-from llama_index.readers.wikipedia import WikipediaReader
 
 cities = ["Toronto", "Berlin", "Tokyo"]
 wiki_docs = WikipediaReader().load_data(pages=cities)
@@ -120,16 +105,12 @@ wiki_docs = WikipediaReader().load_data(pages=cities)
 ### Build SQL Index
 """
 
-from llama_index.core import SQLDatabase
 
 sql_database = SQLDatabase(engine, include_tables=["city_stats"])
 
 """
 ### Build Vector Index
 """
-
-from llama_index.llms.ollama import Ollama
-from llama_index.core import VectorStoreIndex
 
 
 vector_indices = {}
@@ -147,16 +128,12 @@ for city, wiki_doc in zip(cities, wiki_docs):
 ### Define Query Engines, Set as Tools
 """
 
-from llama_index.core.query_engine import NLSQLTableQueryEngine
 
 sql_query_engine = NLSQLTableQueryEngine(
     sql_database=sql_database,
     tables=["city_stats"],
 )
 
-from llama_index.core.tools import QueryEngineTool
-from llama_index.core.tools import ToolMetadata
-from llama_index.core.query_engine import SubQuestionQueryEngine
 
 query_engine_tools = []
 for city in cities:
@@ -172,12 +149,10 @@ for city in cities:
 
 
 s_engine = SubQuestionQueryEngine.from_defaults(
-    query_engine_tools=query_engine_tools, llm=Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+    query_engine_tools=query_engine_tools, llm=Ollama(
+        model="llama3.2", request_timeout=300.0, context_window=4096)
 )
 
-from llama_index.core.retrievers import VectorIndexAutoRetriever
-from llama_index.core.vector_stores import MetadataInfo, VectorStoreInfo
-from llama_index.core.query_engine import RetrieverQueryEngine
 
 sql_tool = QueryEngineTool.from_defaults(
     query_engine=sql_query_engine,
@@ -198,10 +173,10 @@ s_engine_tool = QueryEngineTool.from_defaults(
 ### Define SQLJoinQueryEngine
 """
 
-from llama_index.core.query_engine import SQLJoinQueryEngine
 
 query_engine = SQLJoinQueryEngine(
-    sql_tool, s_engine_tool, llm=Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+    sql_tool, s_engine_tool, llm=Ollama(
+        model="llama3.1", request_timeout=300.0, context_window=4096)
 )
 
 response = query_engine.query(

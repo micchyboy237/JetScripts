@@ -26,8 +26,17 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 ## Setup
 """
 
-import nest_asyncio
 
+from llama_index.core.selectors import LLMSingleSelector, LLMMultiSelector
+from llama_index.core.query_engine import RouterQueryEngine
+from llama_index.core.tools import QueryEngineTool
+from llama_index.core import PromptTemplate
+from llama_index.core import SimpleKeywordTableIndex, VectorStoreIndex
+from llama_index.core import StorageContext
+from llama_index.core import Settings
+from jet.llm.ollama import Ollama
+from llama_index.core import SimpleDirectoryReader
+import nest_asyncio
 nest_asyncio.apply()
 
 """
@@ -42,8 +51,6 @@ nest_asyncio.apply()
 We first show how to convert a Document into a set of Nodes, and insert into a DocumentStore.
 """
 
-from llama_index.core import SimpleDirectoryReader
-
 
 documents = SimpleDirectoryReader(
     input_files=["./gatsby_full.txt"]
@@ -53,20 +60,17 @@ documents = SimpleDirectoryReader(
 ## Define Query Engines
 """
 
-from llama_index.llms.ollama import Ollama
-from llama_index.core import Settings
 
-Settings.llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = Ollama(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
 Settings.chunk_size = 1024
 
 nodes = Settings.node_parser.get_nodes_from_documents(documents)
 
-from llama_index.core import StorageContext
 
 storage_context = StorageContext.from_defaults()
 storage_context.docstore.add_documents(nodes)
 
-from llama_index.core import SimpleKeywordTableIndex, VectorStoreIndex
 
 keyword_index = SimpleKeywordTableIndex(
     nodes,
@@ -79,7 +83,6 @@ vector_index = VectorStoreIndex(
     show_progress=True,
 )
 
-from llama_index.core import PromptTemplate
 
 QA_PROMPT_TMPL = (
     "Context information is below.\n"
@@ -117,8 +120,6 @@ print(response)
 ## Define Router Query Engine
 """
 
-from llama_index.core.tools import QueryEngineTool
-
 
 keyword_tool = QueryEngineTool.from_defaults(
     query_engine=keyword_query_engine,
@@ -130,13 +131,6 @@ vector_tool = QueryEngineTool.from_defaults(
     description="Useful for answering questions about this essay",
 )
 
-from llama_index.core.query_engine import RouterQueryEngine
-from llama_index.core.selectors import LLMSingleSelector, LLMMultiSelector
-from llama_index.core.selectors import (
-    PydanticMultiSelector,
-    PydanticSingleSelector,
-)
-from llama_index.core.response_synthesizers import TreeSummarize
 
 TREE_SUMMARIZE_PROMPT_TMPL = (
     "Context information from multiple sources is below. Each source may or"

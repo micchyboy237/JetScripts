@@ -13,8 +13,8 @@ from jet.utils.file import search_files
 REPLACE_OLLAMA_MAP = {
     "llama-index-llms-openai": "llama-index-llms-ollama",
     "llama-index-embeddings-openai": "llama-index-embeddings-ollama",
-    "llama_index.llms.openai": "llama_index.llms.ollama",
-    "llama_index.embeddings.openai": "llama_index.embeddings.ollama",
+    "llama_index.llms.openai": "jet.llm.ollama",
+    "llama_index.embeddings.openai": "jet.llm.ollama",
     "langchain_openai": "langchain_ollama",
     "langchain_anthropic": "langchain_ollama",
     "OpenAIEmbeddings": "OllamaEmbeddings",
@@ -472,14 +472,14 @@ def scrape_code(
 
 if __name__ == "__main__":
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/response_synthesizers",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/prompts",
     ]
     include_files = [
         # "workflows_cookbook",
+        "prompts_rag"
     ]
     exclude_files = [
         # "migrating_memory/",
-        "pydantic_tree_summarize"
     ]
 
     extension_mappings = [

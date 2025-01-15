@@ -14,12 +14,15 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 
 # !pip install llama-index
 
-import nest_asyncio
 
+from llama_index.core.composability import QASummaryQueryEngineBuilder
+from jet.llm.ollama import Ollama
+from llama_index.core import SimpleDirectoryReader
+import sys
+import logging
+import nest_asyncio
 nest_asyncio.apply()
 
-import logging
-import sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
@@ -35,18 +38,18 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 ## Load Data
 """
 
-from llama_index.core import SimpleDirectoryReader
 
-reader = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/")
+reader = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/")
 documents = reader.load_data()
 
-from llama_index.llms.ollama import Ollama
 
-gpt4 = Ollama(temperature=0, model="llama3.1", request_timeout=300.0, context_window=4096)
+gpt4 = Ollama(temperature=0, model="llama3.1",
+              request_timeout=300.0, context_window=4096)
 
-chatgpt = Ollama(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+chatgpt = Ollama(temperature=0, model="llama3.2",
+                 request_timeout=300.0, context_window=4096)
 
-from llama_index.core.composability import QASummaryQueryEngineBuilder
 
 query_engine_builder = QASummaryQueryEngineBuilder(
     llm=gpt4,

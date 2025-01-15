@@ -36,30 +36,36 @@ Let's first get ready for basic preparation of Llama Index.
 ### Ollama
 """
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
+
+from llama_index.core.query_engine import KnowledgeGraphQueryEngine
+from llama_index.core import KnowledgeGraphIndex
+from llama_index.readers.wikipedia import WikipediaReader
+from llama_index.core import download_loader
+from llama_index.graph_stores.nebula import NebulaGraphStore
+from llama_index.core import StorageContext
+from llama_index.embeddings.azure_openai import AzureOllamaEmbedding
+from llama_index.llms.azure_openai import AzureOllama
+from llama_index.core import Settings
+from jet.llm.ollama import Ollama
+import os
 import logging
 import sys
-
 logging.basicConfig(
     stream=sys.stdout, level=logging.INFO
 )  # logging.DEBUG for more verbose output
 
 
-from llama_index.llms.ollama import Ollama
-from llama_index.core import Settings
-
-Settings.llm = Ollama(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = Ollama(temperature=0, model="llama3.2",
+                      request_timeout=300.0, context_window=4096)
 Settings.chunk_size = 512
 
 """
 ### Azure
 """
 
-from llama_index.llms.azure_openai import AzureOllama
-from llama_index.embeddings.azure_openai import AzureOllamaEmbedding
 
 api_key = "<api-key>"
 azure_endpoint = "https://<your-resource-name>.openai.azure.com/"
@@ -81,7 +87,6 @@ embed_model = AzureOllamaEmbedding(
     api_version=api_version,
 )
 
-from llama_index.core import Settings
 
 Settings.llm = llm
 Settings.embed_model = embed_model
@@ -111,8 +116,6 @@ tags = ["entity"]  # default, could be omit if create from an empty kg
 Prepare for StorageContext with graph_store as NebulaGraphStore
 """
 
-from llama_index.core import StorageContext
-from llama_index.graph_stores.nebula import NebulaGraphStore
 
 graph_store = NebulaGraphStore(
     space_name=space_name,
@@ -134,9 +137,6 @@ If we have a Knowledge Graph on NebulaGraphStore already, this step could be ski
 ### Step 1, load data from Wikipedia for "Guardians of the Galaxy Vol. 3"
 """
 
-from llama_index.core import download_loader
-
-from llama_index.readers.wikipedia import WikipediaReader
 
 loader = WikipediaReader()
 
@@ -150,7 +150,6 @@ documents = loader.load_data(
 Then, we will create a KnowledgeGraphIndex to enable Graph based RAG, see [here](https://gpt-index.readthedocs.io/en/latest/examples/index_structs/knowledge_graph/KnowledgeGraphIndex_vs_VectorStoreIndex_vs_CustomIndex_combined.html) for deails, apart from that, we have a Knowledge Graph up and running for other purposes, too!
 """
 
-from llama_index.core import KnowledgeGraphIndex
 
 kg_index = KnowledgeGraphIndex.from_documents(
     documents,
@@ -184,10 +183,6 @@ Finally, let's demo how to Query Knowledge Graph with Natural language!
 Here, we will leverage the `KnowledgeGraphQueryEngine`, with `NebulaGraphStore` as the `storage_context.graph_store`.
 """
 
-from llama_index.core.query_engine import KnowledgeGraphQueryEngine
-
-from llama_index.core import StorageContext
-from llama_index.graph_stores.nebula import NebulaGraphStore
 
 query_engine = KnowledgeGraphQueryEngine(
     storage_context=storage_context,
@@ -237,19 +232,19 @@ And synthese the question based on its result:
 Of course we still could query it, too! And this query engine could be our best Graph Query Language learning bot, then :).
 """
 
-# %%ngql 
-MATCH (p:`entity`)-[e:relationship]->(m:`entity`)
-  WHERE p.`entity`.`name` == 'Peter Quill'
-RETURN p.`entity`.`name`, e.relationship, m.`entity`.`name`;
+# %%ngql
+MATCH(p: `entity`)-[e:relationship] -> (m: `entity`)
+WHERE p.`entity`.`name` == 'Peter Quill'
+RETURN p.`entity`.`name`, e.relationship, m.`entity`.`name`
 
 """
 And change the query to be rendered
 """
 
 # %%ngql
-MATCH (p:`entity`)-[e:relationship]->(m:`entity`)
-  WHERE p.`entity`.`name` == 'Peter Quill'
-RETURN p, e, m;
+MATCH(p: `entity`)-[e:relationship] -> (m: `entity`)
+WHERE p.`entity`.`name` == 'Peter Quill'
+RETURN p, e, m
 
 # %ng_draw
 

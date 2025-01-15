@@ -26,21 +26,15 @@ In this notebook we show you our multi-document RAG architecture:
 In this section, we'll load in LlamaIndex Github issues.
 """
 
-import nest_asyncio
-
-nest_asyncio.apply()
 
 import os
+import nest_asyncio
+nest_asyncio.apply()
+
 
 os.environ["GITHUB_TOKEN"] = "ghp_..."
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-import os
-
-from llama_index.readers.github import (
-    GitHubRepositoryIssuesReader,
-    GitHubIssuesClient,
-)
 
 github_client = GitHubIssuesClient()
 loader = GitHubRepositoryIssuesReader(
@@ -65,7 +59,6 @@ for idx, doc in enumerate(orig_docs):
 ## Setup the Vector Store and Index
 """
 
-import weaviate
 
 auth_config = weaviate.AuthApiKey(
     api_key="XRa15cDIkYRT7AkrpqT6jLfE4wropK1c1TGk"
@@ -79,8 +72,6 @@ class_name = "LlamaIndex_docs"
 
 client.schema.delete_class(class_name)
 
-from llama_index.vector_stores.weaviate import WeaviateVectorStore
-from llama_index.core import VectorStoreIndex, StorageContext
 
 vector_store = WeaviateVectorStore(
     weaviate_client=client, index_name=class_name
@@ -94,16 +85,6 @@ doc_index = VectorStoreIndex.from_documents(
 """
 ## Create IndexNodes for retrieval and filtering
 """
-
-from llama_index.core import SummaryIndex
-from llama_index.core.async_utils import run_jobs
-from llama_index.llms.ollama import Ollama
-from llama_index.core.schema import IndexNode
-from llama_index.core.vector_stores import (
-    FilterOperator,
-    MetadataFilter,
-    MetadataFilters,
-)
 
 
 async def aprocess_doc(doc, include_summary: bool = True):
@@ -134,7 +115,8 @@ async def aprocess_doc(doc, include_summary: bool = True):
     summary_index = SummaryIndex.from_documents([doc])
     query_str = "Give a one-sentence concise summary of this issue."
     query_engine = summary_index.as_query_engine(
-        llm=Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+        llm=Ollama(model="llama3.2", request_timeout=300.0,
+                   context_window=4096)
     )
     summary_txt = query_engine.query(query_str)
     summary_txt = str(summary_txt)
@@ -193,7 +175,6 @@ We load into a vector database that supports auto-retrieval.
 This goes into `LlamaIndex_auto`
 """
 
-import weaviate
 
 auth_config = weaviate.AuthApiKey(
     api_key="XRa15cDIkYRT7AkrpqT6jLfE4wropK1c1TGk"
@@ -207,8 +188,6 @@ class_name = "LlamaIndex_auto"
 
 client.schema.delete_class(class_name)
 
-from llama_index.vector_stores.weaviate import WeaviateVectorStore
-from llama_index.core import VectorStoreIndex, StorageContext
 
 vector_store_auto = WeaviateVectorStore(
     weaviate_client=client, index_name=class_name
@@ -236,8 +215,6 @@ Running this retriever will retrieve based on our text summaries and metadat of 
 """
 ### 1. Define the Schema
 """
-
-from llama_index.core.vector_stores import MetadataInfo, VectorStoreInfo
 
 
 vector_store_info = VectorStoreInfo(
@@ -280,7 +257,6 @@ vector_store_info = VectorStoreInfo(
 ### 2. Instantiate VectorIndexAutoRetriever
 """
 
-from llama_index.core.retrievers import VectorIndexAutoRetriever
 
 retriever = VectorIndexAutoRetriever(
     index,
@@ -302,7 +278,6 @@ To complete the RAG pipeline setup we'll combine our recursive retriever with ou
 ### Try Out Retrieval
 """
 
-from llama_index.core import QueryBundle
 
 nodes = retriever.retrieve(QueryBundle("Tell me about some issues on 01/11"))
 
@@ -321,8 +296,6 @@ nodes[0].node.metadata
 We plug into RetrieverQueryEngine to synthesize a result.
 """
 
-from llama_index.core.query_engine import RetrieverQueryEngine
-from llama_index.llms.ollama import Ollama
 
 llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
 

@@ -1,3 +1,10 @@
+from llama_index.core.utils import globals_helper
+from llama_index.core.evaluation import CorrectnessEvaluator
+from llama_index.llms.anthropic import Anthropic
+from jet.llm.ollama import Ollama
+from llama_index.core import SummaryIndex
+from llama_index.core import SimpleDirectoryReader, Document
+import nest_asyncio
 import asyncio
 from jet.transformers.formatters import format_json
 from jet.logger import logger
@@ -19,15 +26,9 @@ We use a fixed document - the 2021 Uber 10-K, which contains ~290k tokens.
 # %pip install llama-index-llms-ollama
 # %pip install llama-index-llms-anthropic
 
-import nest_asyncio
 
 nest_asyncio.apply()
 
-from llama_index.core import SimpleDirectoryReader, Document
-from llama_index.core import SummaryIndex
-from llama_index.llms.ollama import Ollama
-from llama_index.llms.anthropic import Anthropic
-from llama_index.core.evaluation import CorrectnessEvaluator
 
 """
 ## Setup Data / Indexes
@@ -47,7 +48,6 @@ uber_doc = Document(text="\n\n".join([d.get_content() for d in uber_docs0]))
 We print the number of tokens below. Note that this overflows the context window of existing LLMs, requiring response synthesis strategies.
 """
 
-from llama_index.core.utils import globals_helper
 
 num_tokens = len(globals_helper.tokenizer(uber_doc.get_content()))
 logger.debug(f"NUM TOKENS: {num_tokens}")
@@ -65,12 +65,14 @@ Here we insert a single sentence of context that we're going to "hide" within th
 context_str = "Jerry's favorite snack is Hot Cheetos."
 query_str = "What is Jerry's favorite snack?"
 
+
 def augment_doc(doc_str, context, position):
     """Augment doc with additional context at a given position."""
     doc_str1 = doc_str[:position]
     doc_str2 = doc_str[position:]
 
     return f"{doc_str1}...\n\n{context}\n\n...{doc_str2}"
+
 
 test_str = augment_doc(
     uber_doc.get_content(), context_str, int(0.5 * len(uber_doc.get_content()))
@@ -87,10 +89,12 @@ The experiment loop is the following:
 5. Compare predicted response against expected response with our `CorrectnessEvaluator`
 """
 
+
 async def run_experiments(
     doc, position_percentiles, context_str, query, llm, response_mode="compact"
 ):
-    eval_llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+    eval_llm = Ollama(model="llama3.1", request_timeout=300.0,
+                      context_window=4096)
 
     correctness_evaluator = CorrectnessEvaluator(llm=eval_llm)
     eval_scores = {}
@@ -123,55 +127,61 @@ position_percentiles = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
 llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
 
+
 async def run_async_code_25e7e2ff():
-  eval_scores_gpt4 = await run_experiments(
-  return eval_scores_gpt4
-eval_scores_gpt4 = asyncio.run(run_async_code_25e7e2ff())
-logger.success(format_json(eval_scores_gpt4))
-    [uber_doc],
-    position_percentiles,
-    context_str,
-    query_str,
-    llm,
-    response_mode="compact",
-)
+    eval_scores_gpt4 = await run_experiments(
+        return eval_scores_gpt4
+        eval_scores_gpt4=asyncio.run(run_async_code_25e7e2ff())
+        logger.success(format_json(eval_scores_gpt4))
+        [uber_doc],
+        position_percentiles,
+        context_str,
+        query_str,
+        llm,
+        response_mode="compact",
+    )
 
 llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+
+
 async def run_async_code_880ba9fe():
-  eval_scores_gpt4_ts = await run_experiments(
-  return eval_scores_gpt4_ts
-eval_scores_gpt4_ts = asyncio.run(run_async_code_880ba9fe())
-logger.success(format_json(eval_scores_gpt4_ts))
-    [uber_doc],
-    position_percentiles,
-    context_str,
-    query_str,
-    llm,
-    response_mode="tree_summarize",
-)
+    eval_scores_gpt4_ts = await run_experiments(
+        return eval_scores_gpt4_ts
+        eval_scores_gpt4_ts=asyncio.run(run_async_code_880ba9fe())
+        logger.success(format_json(eval_scores_gpt4_ts))
+        [uber_doc],
+        position_percentiles,
+        context_str,
+        query_str,
+        llm,
+        response_mode="tree_summarize",
+    )
 
 llm = Anthropic(model="claude-2")
 
+
 async def run_async_code_567e99e6():
-  eval_scores_anthropic = await run_experiments(
-  return eval_scores_anthropic
-eval_scores_anthropic = asyncio.run(run_async_code_567e99e6())
-logger.success(format_json(eval_scores_anthropic))
-    [uber_doc], position_percentiles, context_str, query_str, llm
-)
+    eval_scores_anthropic = await run_experiments(
+        return eval_scores_anthropic
+        eval_scores_anthropic=asyncio.run(run_async_code_567e99e6())
+        logger.success(format_json(eval_scores_anthropic))
+        [uber_doc], position_percentiles, context_str, query_str, llm
+    )
 
 llm = Anthropic(model="claude-2")
+
+
 async def run_async_code_567e99e6():
-  eval_scores_anthropic = await run_experiments(
-  return eval_scores_anthropic
-eval_scores_anthropic = asyncio.run(run_async_code_567e99e6())
-logger.success(format_json(eval_scores_anthropic))
-    [uber_doc],
-    position_percentiles,
-    context_str,
-    query_str,
-    llm,
-    response_mode="tree_summarize",
-)
+    eval_scores_anthropic = await run_experiments(
+        return eval_scores_anthropic
+        eval_scores_anthropic=asyncio.run(run_async_code_567e99e6())
+        logger.success(format_json(eval_scores_anthropic))
+        [uber_doc],
+        position_percentiles,
+        context_str,
+        query_str,
+        llm,
+        response_mode="tree_summarize",
+    )
 
 logger.info("\n\n[DONE]", bright=True)

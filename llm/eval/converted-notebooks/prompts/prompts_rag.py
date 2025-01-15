@@ -1,3 +1,23 @@
+from llama_index.core.schema import NodeWithScore, TextNode
+from llama_index.core import QueryBundle
+from llama_index.core.postprocessor import (
+    NERPIINodePostprocessor,
+    SentenceEmbeddingOptimizer,
+)
+from llama_index.core.schema import TextNode
+import json
+from llama_index.core.prompts import LangchainPromptTemplate
+from langchain import hub
+from jet.llm.ollama import Ollama
+from llama_index.readers.file import PyMuPDFReader
+from pathlib import Path
+from IPython.display import Markdown, display
+from llama_index.core import PromptTemplate
+from llama_index.core import VectorStoreIndex
+import sys
+import logging
+import openai
+import os
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 from llama_index.core.readers.file.base import SimpleDirectoryReader
@@ -22,8 +42,6 @@ In this notebook we show various prompt techniques you can try to customize your
 
 # !pip install llama-index
 
-import os
-import openai
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 # openai.api_key = os.environ["OPENAI_API_KEY"]
@@ -32,15 +50,10 @@ import openai
 ## Setup
 """
 
-import logging
-import sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
-from llama_index.core import VectorStoreIndex
-from llama_index.core import PromptTemplate
-from IPython.display import Markdown, display
 
 """
 #### Load Data
@@ -49,8 +62,6 @@ from IPython.display import Markdown, display
 # !mkdir data
 # !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
-from pathlib import Path
-from llama_index.readers.file import PyMuPDFReader
 
 documents = SimpleDirectoryReader(
     "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
@@ -59,10 +70,9 @@ documents = SimpleDirectoryReader(
 #### Load into Vector Store
 """
 
-from llama_index.core import VectorStoreIndex
-from llama_index.llms.ollama import Ollama
 
-gpt35_llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+gpt35_llm = Ollama(model="llama3.2", request_timeout=300.0,
+                   context_window=4096)
 gpt4_llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
 
 index = VectorStoreIndex.from_documents(documents)
@@ -89,12 +99,14 @@ First, let's take a look at the query engine prompts, and see how we can customi
 ### View Prompts
 """
 
+
 def display_prompt_dict(prompts_dict):
     for k, p in prompts_dict.items():
         text_md = f"**Prompt Key**: {k}<br>" f"**Text:** <br>"
         display(Markdown(text_md))
         logger.debug(p.get_template())
         display(Markdown("<br><br>"))
+
 
 prompts_dict = query_engine.get_prompts()
 
@@ -108,7 +120,6 @@ What if we want to do something different than our standard question-answering p
 Let's try out the RAG prompt from [LangchainHub](https://smith.langchain.com/hub/rlm/rag-prompt)
 """
 
-from langchain import hub
 
 langchain_prompt = hub.pull("rlm/rag-prompt")
 
@@ -120,7 +131,6 @@ One catch is that the template variables in the prompt are different than what's
 This is not a problem! Let's add our template variable mappings to map variables. We use our `LangchainPromptTemplate` to map to LangChain prompts.
 """
 
-from llama_index.core.prompts import LangchainPromptTemplate
 
 lc_prompt_tmpl = LangchainPromptTemplate(
     template=langchain_prompt,
@@ -162,21 +172,29 @@ Let's parse a pre-generated question/answer file. For the sake of focus we'll sk
 We embed/index these Q/A pairs, and retrieve the top-k.
 """
 
-import json
-from llama_index.core.schema import TextNode
 
-citations_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/results/citations.json"
-with open(citations_path, "r") as f:
-    citations_data = json.load(f)
+sources_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/workflows/prompt_enhancer/results/run_generate_sources/output/jet-resume-sources.json"
+with open(sources_path, "r") as f:
+    sources_data = json.load(f)
+    sources_data = sources_data["data"]
 
-few_shot_nodes = []
+few_shot_nodes = [
+    TextNode(text=json.dumps({
+        "query": source["question"],
+        "response": source["answer"],
+        # "filename": d["file_name"],
+        # "references": source["sources"],
+    }))
+    for d in sources_data
+    for source in d["sources"]
+]
+
+# few_shot_nodes = []
 # for line in open("../llama2_qa_citation_events.jsonl", "r"):
 #     few_shot_nodes.append(TextNode(text=line))
 
 few_shot_index = VectorStoreIndex(few_shot_nodes)
-few_shot_retriever = few_shot_index.as_retriever(similarity_top_k=2)
-
-import json
+few_shot_retriever = few_shot_index.as_retriever(similarity_top_k=10)
 
 
 def few_shot_examples_fn(**kwargs):
@@ -187,12 +205,13 @@ def few_shot_examples_fn(**kwargs):
     for n in retrieved_nodes:
         raw_dict = json.loads(n.get_content())
         query = raw_dict["query"]
-        response_dict = json.loads(raw_dict["response"])
+        response_dict = raw_dict["response"]
         result_str = f"""\
 Query: {query}
 Response: {response_dict}"""
         result_strs.append(result_str)
     return "\n\n".join(result_strs)
+
 
 qa_prompt_tmpl_str = """\
 Context information is below.
@@ -200,9 +219,9 @@ Context information is below.
 {context_str}
 ---------------------
 Given the context information and not prior knowledge, \
-answer the query asking about citations over different topics.
+answer the query asking about sources over different topics.
 Please provide your answer in the form of a structured JSON format containing \
-a list of authors as the citations. Some examples are given below.
+a list of sources. Some examples are given below.
 
 {few_shot_examples}
 
@@ -216,7 +235,7 @@ qa_prompt_tmpl = PromptTemplate(
 )
 
 citation_query_str = (
-    "Which citations are mentioned in the section on Safety RLHF?"
+    "Which sources cover the job seeker's profile and primary skills?"
 )
 
 """
@@ -249,14 +268,9 @@ We can also dynamically add context transformations as functions in the prompt v
 **NOTE**: You can do these as steps before feeding into the prompt as well, but this gives you flexibility to perform all this on the fly for any QA prompt you define!
 """
 
-from llama_index.core.postprocessor import (
-    NERPIINodePostprocessor,
-    SentenceEmbeddingOptimizer,
-)
-from llama_index.core import QueryBundle
-from llama_index.core.schema import NodeWithScore, TextNode
 
 pii_processor = NERPIINodePostprocessor(llm=gpt4_llm)
+
 
 def filter_pii_fn(**kwargs):
     query_bundle = QueryBundle(query_str=kwargs["query_str"])
@@ -267,6 +281,7 @@ def filter_pii_fn(**kwargs):
     )
     new_node = new_nodes[0]
     return new_node.get_content()
+
 
 qa_prompt_tmpl_str = (
     "Context information is below.\n"
@@ -289,7 +304,8 @@ query_engine.update_prompts(
 retrieved_nodes = vector_retriever.retrieve(query_str)
 context_str = "\n\n".join([n.get_content() for n in retrieved_nodes])
 
-logger.debug(qa_prompt_tmpl.format(query_str=query_str, context_str=context_str))
+logger.debug(qa_prompt_tmpl.format(
+    query_str=query_str, context_str=context_str))
 
 response = query_engine.query(query_str)
 logger.success(str(response))

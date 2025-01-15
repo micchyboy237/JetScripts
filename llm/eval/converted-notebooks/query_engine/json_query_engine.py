@@ -19,18 +19,20 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 
 # !pip install jsonpath-ng
 
+
+from llama_index.core.indices.struct_store import JSONQueryEngine
+from jet.llm.ollama import Ollama
+from IPython.display import Markdown, display
+import openai
+import os
 import logging
 import sys
-
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
-import os
-import openai
 
 # os.environ["OPENAI_API_KEY"] = "YOUR_KEY_HERE"
 
-from IPython.display import Markdown, display
 
 """
 ### Let's start on a Toy JSON
@@ -142,8 +144,6 @@ json_schema = {
     "required": ["blogPosts", "comments"],
 }
 
-from llama_index.llms.ollama import Ollama
-from llama_index.core.indices.struct_store import JSONQueryEngine
 
 llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
 

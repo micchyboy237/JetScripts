@@ -1,3 +1,6 @@
+from llama_index.core import get_response_synthesizer
+from jet.llm.ollama import Ollama
+import os
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -35,15 +38,12 @@ texts = [
 ## Summarize
 """
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-from llama_index.llms.ollama import Ollama
 
 llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
 
-from llama_index.core import get_response_synthesizer
 
 summarizer = get_response_synthesizer(
     response_mode="refine", llm=llm, verbose=True
@@ -62,7 +62,6 @@ logger.debug(response)
 Now we'll try again with `structured_answer_filtering=True`
 """
 
-from llama_index.core import get_response_synthesizer
 
 summarizer = get_response_synthesizer(
     response_mode="refine",
@@ -87,9 +86,9 @@ You may want to make use of this filtering functionality with an LLM that doesn'
 In that case, the `Refine` module will automatically switch to using a structured output `Program` that doesn't rely on an external function calling API.
 """
 
-instruct_llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+instruct_llm = Ollama(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
 
-from llama_index.core import get_response_synthesizer
 
 summarizer = get_response_synthesizer(
     response_mode="refine",
@@ -106,7 +105,6 @@ logger.debug(response)
 Since `CompactAndRefine` is built on top of `Refine`, this response mode also supports structured answer filtering.
 """
 
-from llama_index.core import get_response_synthesizer
 
 summarizer = get_response_synthesizer(
     response_mode="compact",

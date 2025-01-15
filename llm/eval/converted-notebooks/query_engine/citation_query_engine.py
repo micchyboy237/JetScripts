@@ -23,22 +23,12 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 ## Setup
 """
 
-import os
-from llama_index.llms.ollama import Ollama
-from llama_index.core.query_engine import CitationQueryEngine
-from llama_index.core.retrievers import VectorIndexRetriever
-from llama_index.core import (
-    VectorStoreIndex,
-    SimpleDirectoryReader,
-    StorageContext,
-    load_index_from_storage,
-)
 
 from llama_index.embeddings.ollama import OllamaEmbedding
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama import Ollama
 from llama_index.core import Settings
-
-Settings.llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = Ollama(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
 Settings.embed_model = OllamaEmbedding(model_name="nomic-embed-text")
 
 """
@@ -49,7 +39,8 @@ Settings.embed_model = OllamaEmbedding(model_name="nomic-embed-text")
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
 if not os.path.exists("./citation"):
-    documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
+    documents = SimpleDirectoryReader(
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
     index = VectorStoreIndex.from_documents(
         documents,
     )

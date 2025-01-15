@@ -1,4 +1,4 @@
-from llama_index.llms.ollama import Ollama
+from jet.llm.ollama import Ollama
 from llama_index.utils.workflow import draw_most_recent_execution
 from llama_index.core.workflow import draw_all_possible_flows
 import random

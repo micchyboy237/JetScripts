@@ -20,19 +20,21 @@ First let's install llama-index.
 
 # %pip install sqlite-utils
 
+
+from llama_index.core.query_engine import JSONalyzeQueryEngine
+from jet.llm.ollama import Ollama
+from IPython.display import Markdown, display
+import openai
+import os
 import logging
 import sys
-
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
-import os
-import openai
 
 # os.environ["OPENAI_API_KEY"] = "YOUR_KEY_HERE"
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 
-from IPython.display import Markdown, display
 
 """
 Let's assume we have a list of JSON(already loaded as List of Dicts) as follows:
@@ -237,8 +239,6 @@ json_list = [
 Then, we can create a JSONalyze Query Engine instance, with the JSON List as input.
 """
 
-from llama_index.llms.ollama import Ollama
-from llama_index.core.query_engine import JSONalyzeQueryEngine
 
 llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
 
