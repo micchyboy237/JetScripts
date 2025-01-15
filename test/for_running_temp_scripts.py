@@ -1,33 +1,40 @@
 import os
+
+from jet.llm.ollama.base import Ollama
+from tqdm import tqdm
+from jet.llm.main.prompts_generator import PromptsGenerator
 from jet.logger import logger
 from jet.transformers.formatters import format_json
-from llama_index.core.readers.file.base import SimpleDirectoryReader
+from jet.file.utils import save_file
+from jet.transformers.object import make_serializable
+
+
+def main():
+    # data_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
+    prompts = [
+        "Tell me about yourself.",
+        "She gave her friend a book and a pen.",
+    ]
+
+    processor = PromptsGenerator(llm=Ollama(model="llama3.1"))
+    response_stream = processor.process(prompts)
+
+    generation_results = []
+    generation_tqdm = tqdm(response_stream, total=len(prompts))
+
+    for tqdm_idx, (text, response) in enumerate(generation_tqdm):
+        result = {
+            "prompt": text,
+            "results": response.data
+        }
+        generation_results.append(result)
+
+        logger.info(f"DONE RESPONSE {tqdm_idx + 1}")
+        # Update the progress bar after processing each node
+        generation_tqdm.update(1)
+
 
 if __name__ == "__main__":
-    data_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/companies.md"
-    source_data = {
-        "lines": [
-            14,
-            16,
-        ],
-        "question": "Can you describe your experience developing a social networking app (Graduapp) for students, parents, teachers, and schools at 8WeekApp?",
-        "answer": "Yes, I developed a social networking app (Graduapp) for students, parents, teachers, and schools. The app serves as an online journal of their experience as a student at their institution. I utilized key technologies such as React, React Native, Node.js, Firebase, and MongoDB.",
-        "sources": [
-            "- Key technologies: React, React Native, Node.js, Firebase, MongoDB"
-        ]
-    }
-    with open(data_path) as file:
-        # Read the entire content of the file
-        file_content = file.read()
-    file_content_lines = file_content.splitlines()
-    source_lines = list(set(source_data["lines"]))
-    source_lines.sort()
-    source_line_indexes = [line - 1 for line in source_lines]
-    start_index = source_line_indexes[0]
-    end_index = source_line_indexes[-1] if len(
-        source_line_indexes) > 1 else start_index + 1
-    source_lines = file_content_lines[start_index:end_index]
-    source_lines = [line for line in source_lines if line.strip()]
+    main()
 
-    logger.debug(f"Results ({len(source_lines)}):")
-    logger.success(format_json(source_lines))
+    logger.info("\n\n[DONE]", bright=True)
