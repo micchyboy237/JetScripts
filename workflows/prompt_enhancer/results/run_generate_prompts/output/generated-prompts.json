@@ -1,0 +1,93 @@
+[
+  {
+    "prompt": "She gave her friend a book and a pen.",
+    "results": [
+      "She gave her friend a book.",
+      "She gave her friend a pen."
+    ]
+  },
+  {
+    "prompt": "The teacher explained the lesson and the homework assignment.",
+    "results": [
+      "The teacher explained the lesson.",
+      "The teacher explained the homework assignment."
+    ]
+  },
+  {
+    "prompt": "We bought apples, oranges, and bananas at the market.",
+    "results": [
+      "We bought apples.",
+      "We bought oranges.",
+      "We bought bananas.",
+      "We bought at the market."
+    ]
+  },
+  {
+    "prompt": "He emailed the report and sent the invitation to all the team members.",
+    "results": [
+      "He emailed the report.",
+      "He sent the invitation to all the team members."
+    ]
+  },
+  {
+    "prompt": "They played soccer, basketball, and tennis during the weekend.She packed her suitcase and backpack for the trip.",
+    "results": [
+      "They played soccer.",
+      "They played basketball.",
+      "They played tennis.",
+      "She packed her suitcase.",
+      "She packed her backpack."
+    ]
+  },
+  {
+    "prompt": "He cooked dinner and prepared dessert for the guests.",
+    "results": [
+      "He cooked dinner.",
+      "He prepared dessert for the guests."
+    ]
+  },
+  {
+    "prompt": "They painted the fence and the shed in the backyard.",
+    "results": [
+      "They painted the fence.",
+      "They painted the shed."
+    ]
+  },
+  {
+    "prompt": "I bought a pair of shoes and a jacket at the store.",
+    "results": [
+      "I bought a pair of shoes.",
+      "I bought a jacket."
+    ]
+  },
+  {
+    "prompt": "The children drew pictures and colored them during class.",
+    "results": [
+      "The children drew pictures.",
+      "The children colored them during class."
+    ]
+  },
+  {
+    "prompt": "We built a sandcastle and a moat at the beach.",
+    "results": [
+      "We built a sandcastle.",
+      "We built a moat.",
+      "A moat was built at the beach."
+    ]
+  },
+  {
+    "prompt": "She arranged the flowers and placed the vase on the table.",
+    "results": [
+      "She arranged the flowers.",
+      "She placed the vase on the table."
+    ]
+  },
+  {
+    "prompt": "He sold the car and the motorcycle to a collector.",
+    "results": [
+      "He sold the car.",
+      "He sold the motorcycle.",
+      "He sold it to a collector."
+    ]
+  }
+]
