@@ -1,0 +1,25 @@
+{
+  "query": "What are your strengths and weaknesses as a developer?",
+  "data": {
+    "citations": [
+      {
+        "filename": "recent.md",
+        "lines": [
+          9,
+          10
+        ],
+        "description": "Committed to continuous learning and staying up to date with the latest technologies and trends.",
+        "reference": "- Committed to continuous learning and staying up to date with the latest technologies and trends."
+      },
+      {
+        "filename": "skills.md",
+        "lines": [
+          3,
+          4
+        ],
+        "description": "Frontend: React",
+        "reference": "- React"
+      }
+    ]
+  }
+}

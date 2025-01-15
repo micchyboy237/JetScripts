@@ -1,0 +1,131 @@
+{
+  "response": "Based on the provided sources, I can tell you that:\n\nI have access to a portfolio webpage/file (Source 1) containing links to various projects and websites. Specifically, it lists several project links, including Jules Procure's website, Digital Cities PH's website, ADEC Kenya and AMDATEX's websites, JABA AI's website and iOS app link, Graduapp's Android and iOS app links, and EZ Myoma's Android app link.\n\nAdditionally, I have access to a file containing information about the person's skills (Source 2), which lists various programming languages, frameworks, libraries, databases, platforms, and developer tools that they are familiar with.",
+  "source_nodes": [
+    {
+      "node": {
+        "id_": "f6561717-648c-4fb0-a06b-e74cc90e7b59",
+        "embedding": null,
+        "metadata": {
+          "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/web_mobile_portfolio.md",
+          "file_name": "web_mobile_portfolio.md",
+          "file_type": "text/markdown",
+          "file_size": 617,
+          "creation_date": "2025-01-10",
+          "last_modified_date": "2025-01-10"
+        },
+        "excluded_embed_metadata_keys": [
+          "file_name",
+          "file_type",
+          "file_size",
+          "creation_date",
+          "last_modified_date",
+          "last_accessed_date"
+        ],
+        "excluded_llm_metadata_keys": [
+          "file_name",
+          "file_type",
+          "file_size",
+          "creation_date",
+          "last_modified_date",
+          "last_accessed_date"
+        ],
+        "relationships": {
+          "1": {
+            "node_id": "41a54afa-8e06-4ff5-a743-6fa9236a30cd",
+            "node_type": "4",
+            "metadata": {
+              "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/web_mobile_portfolio.md",
+              "file_name": "web_mobile_portfolio.md",
+              "file_type": "text/markdown",
+              "file_size": 617,
+              "creation_date": "2025-01-10",
+              "last_modified_date": "2025-01-10"
+            },
+            "hash": "b89360bf07e676e98be0efd5c34679000d401d83be1f6a8498565bdfeabffe08"
+          }
+        },
+        "metadata_template": "{key}: {value}",
+        "metadata_separator": "\n",
+        "text": "Source 1:\n# Portfolio\n\nJules Procure\nWeb link: https://www.julesai.com/#procure\n\nDigital Cities PH\nWeb link: https://www.digitalcitiesph.com\n\nADEC Kenya, AMDATEX\nWeb link: https://www.adec-kenya.com\nWeb link: https://www.amdatex.com\n\nJABA AI\nWeb link: https://jaba.live\niOS link: https://apps.apple.com/us/app/jaba-ai/id6451218161\n\nGraduapp\nAndroid link: https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp\niOS link: https://apps.apple.com/us/app/graduapp/id1576401944\n\nEZ Myoma\nAndroid link: https://play.google.com/store/apps/details?id=com.ezmyoma\n\n\nNote: Some links may be outdated or no longer active.\n",
+        "mimetype": "text/plain",
+        "start_char_idx": 0,
+        "end_char_idx": 616,
+        "metadata_seperator": "\n",
+        "text_template": "{metadata_str}\n\n{content}"
+      },
+      "score": 0.5339325083397546
+    },
+    {
+      "node": {
+        "id_": "62b7faa7-ac4d-4513-9c77-cecb89e733d2",
+        "embedding": null,
+        "metadata": {
+          "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/skills.md",
+          "file_name": "skills.md",
+          "file_type": "text/markdown",
+          "file_size": 406,
+          "creation_date": "2025-01-10",
+          "last_modified_date": "2025-01-10"
+        },
+        "excluded_embed_metadata_keys": [
+          "file_name",
+          "file_type",
+          "file_size",
+          "creation_date",
+          "last_modified_date",
+          "last_accessed_date"
+        ],
+        "excluded_llm_metadata_keys": [
+          "file_name",
+          "file_type",
+          "file_size",
+          "creation_date",
+          "last_modified_date",
+          "last_accessed_date"
+        ],
+        "relationships": {
+          "1": {
+            "node_id": "b36839ef-984b-4959-9aee-c36f89db13f4",
+            "node_type": "4",
+            "metadata": {
+              "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/skills.md",
+              "file_name": "skills.md",
+              "file_type": "text/markdown",
+              "file_size": 406,
+              "creation_date": "2025-01-10",
+              "last_modified_date": "2025-01-10"
+            },
+            "hash": "be42d4ea8a1dee0931ecc08fec345400903e6f4ec5d27381fd05ec00cdf6b044"
+          }
+        },
+        "metadata_template": "{key}: {value}",
+        "metadata_separator": "\n",
+        "text": "Source 2:\n# Skills\n\nFrontend:\n- React\n- React Native\n- Vanilla JS/CSS\n- Expo\n- GraphQL\n- Redux\n- Gatsby\n- TypeScript\nBackend:\n- Node.js\n- Python\nDatabases:\n- PostgreSQL\n- MongoDB\nPlatforms:\n- Firebase\n- AWS\n- Google Cloud\nDeveloper Tools:\n- Photoshop\n- Jest (Unit testing)\n- Cypress (Integration testing)\n- Selenium (E2E testing)\n- Git\n- Sentry bug tracker\n- Android Studio\n- Xcode\n- Fastlane\n- Serverless\n- ChatGPT\n",
+        "mimetype": "text/plain",
+        "start_char_idx": 0,
+        "end_char_idx": 405,
+        "metadata_seperator": "\n",
+        "text_template": "{metadata_str}\n\n{content}"
+      },
+      "score": 0.5035457648256869
+    }
+  ],
+  "metadata": {
+    "f6561717-648c-4fb0-a06b-e74cc90e7b59": {
+      "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/web_mobile_portfolio.md",
+      "file_name": "web_mobile_portfolio.md",
+      "file_type": "text/markdown",
+      "file_size": 617,
+      "creation_date": "2025-01-10",
+      "last_modified_date": "2025-01-10"
+    },
+    "62b7faa7-ac4d-4513-9c77-cecb89e733d2": {
+      "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/skills.md",
+      "file_name": "skills.md",
+      "file_type": "text/markdown",
+      "file_size": 406,
+      "creation_date": "2025-01-10",
+      "last_modified_date": "2025-01-10"
+    }
+  }
+}

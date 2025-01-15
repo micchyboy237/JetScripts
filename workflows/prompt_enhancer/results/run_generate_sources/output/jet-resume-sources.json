@@ -1,0 +1,190 @@
+{
+  "data_dir": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data",
+  "sources": {
+    "companies.md": {
+      "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/companies.md",
+      "sources": [
+        {
+          "lines": [
+            5,
+            9
+          ],
+          "question": "What is your current job title and responsibilities at JulesAI (formerly Macanta Software Ltd.)?",
+          "answer": "My current job title is Web / Mobile Developer. My responsibilities include developing a white label CRM system for different businesses that is customizable to align with specific workflows and requirements, maintaining and improving the system based on client feedback and requirements, and utilizing key technologies such as React, React Native, and AWS.",
+          "sources": [
+            "- Position: Web / Mobile Developer",
+            "- Task: Developed a white label CRM system for different businesses that is customizable to align with specific workflows and requirements.",
+            "- Currently maintaining and improving the system based on client feedback and requirements.",
+            "- Key technologies: React, React Native, AWS"
+          ]
+        },
+        {
+          "lines": [
+            14,
+            16
+          ],
+          "question": "Can you describe your experience developing a social networking app (Graduapp) for students, parents, teachers, and schools at 8WeekApp?",
+          "answer": "Yes, I developed a social networking app (Graduapp) for students, parents, teachers, and schools. The app serves as an online journal of their experience as a student at their institution. I utilized key technologies such as React, React Native, Node.js, Firebase, and MongoDB.",
+          "sources": [
+            "- Key technologies: React, React Native, Node.js, Firebase, MongoDB"
+          ]
+        },
+        {
+          "lines": [
+            20,
+            22
+          ],
+          "question": "What was your role and responsibilities at ADEC Innovations?",
+          "answer": "I worked on projects ranging from in-house to outsourced web and mobile applications. My key technologies included React, React Native, Node.js, Firebase Firestore, and Google Cloud Functions.",
+          "sources": [
+            "- Key technologies: React, React Native, Node.js, Firebase Firestore, Google Cloud Functions"
+          ]
+        },
+        {
+          "lines": [
+            26,
+            28
+          ],
+          "question": "Can you describe your experience working on web and mobile projects at Asia Pacific Digital?",
+          "answer": "Yes, I worked on web and mobile projects. My key technologies included AngularJS, Ionic, and jQuery.",
+          "sources": [
+            "- Key technologies: AngularJS, Ionic, jQuery"
+          ]
+        },
+        {
+          "lines": [
+            32,
+            33
+          ],
+          "question": "What was your role and responsibilities at Entertainment Gateway Group (now Yondu)?",
+          "answer": "I worked on features for an insurance web app. My key technologies included Java, JavaScript, and jQuery.",
+          "sources": [
+            "- Key technologies: Java, JavaScript, jQuery"
+          ]
+        }
+      ]
+    },
+    "personal_information.md": {
+      "file_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/personal_information.md",
+      "sources": [
+        {
+          "lines": [
+            9,
+            9
+          ],
+          "question": "What is your current position?",
+          "answer": "Full Stack Web / Mobile Developer",
+          "sources": []
+        },
+        {
+          "lines": [
+            10,
+            10
+          ],
+          "question": "How old are you?",
+          "answer": "34",
+          "sources": []
+        },
+        {
+          "lines": [
+            11,
+            11
+          ],
+          "question": "What is your gender?",
+          "answer": "Male",
+          "sources": []
+        },
+        {
+          "lines": [
+            12,
+            12
+          ],
+          "question": "Which country are you from?",
+          "answer": "Philippines",
+          "sources": []
+        },
+        {
+          "lines": [
+            13,
+            13
+          ],
+          "question": "What is your nationality?",
+          "answer": "Filipino",
+          "sources": []
+        },
+        {
+          "lines": [
+            14,
+            14
+          ],
+          "question": "When was your birthday?",
+          "answer": "December 1, 1990",
+          "sources": []
+        },
+        {
+          "lines": [
+            15,
+            15
+          ],
+          "question": "Which country are you from (again)?",
+          "answer": "Philippines",
+          "sources": []
+        },
+        {
+          "lines": [
+            16,
+            16
+          ],
+          "question": "What languages do you speak?",
+          "answer": "English, Tagalog",
+          "sources": []
+        },
+        {
+          "lines": [
+            17,
+            17
+          ],
+          "question": "Which school did you graduate from?",
+          "answer": "De La Salle University - Manila",
+          "sources": []
+        },
+        {
+          "lines": [
+            18,
+            18
+          ],
+          "question": "What is your diploma?",
+          "answer": "BS Degree in Computer Engineering (2007 - 2012)",
+          "sources": []
+        },
+        {
+          "lines": [
+            20,
+            20
+          ],
+          "question": "What is your email address?",
+          "answer": "jethroestrada237@gmail.com",
+          "sources": []
+        },
+        {
+          "lines": [
+            21,
+            21
+          ],
+          "question": "What is your Whatsapp link?",
+          "answer": "https://wa.me/639101662460",
+          "sources": []
+        },
+        {
+          "lines": [
+            22,
+            22
+          ],
+          "question": "What is your phone number?",
+          "answer": "+639101662460",
+          "sources": []
+        }
+      ]
+    }
+  }
+}

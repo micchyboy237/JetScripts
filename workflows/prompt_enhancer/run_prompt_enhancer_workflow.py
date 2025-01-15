@@ -18,7 +18,7 @@ from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]
-generated_dir = os.path.join("generated", file_name)
+generated_dir = os.path.join("results", file_name)
 os.makedirs(generated_dir, exist_ok=True)
 
 

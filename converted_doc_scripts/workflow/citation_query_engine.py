@@ -253,6 +253,8 @@ class CitationQueryEngineWorkflow(Workflow):
 
 documents = SimpleDirectoryReader(
     "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
+results_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/results/citations.json"
+
 index = VectorStoreIndex.from_documents(
     documents=documents,
     embed_model=OllamaEmbedding(
@@ -279,6 +281,9 @@ async def run_workflow():
     logger.success(result.source_nodes[0].node.get_text())
     logger.info("Citation 2:")
     logger.success(result.source_nodes[1].node.get_text())
+
+    from jet.file import save_file
+    save_file(result, results_path)
 
 asyncio.run(run_workflow())
 

@@ -71,13 +71,13 @@ index = VectorStoreIndex.from_documents(documents)
 #### Setup Query Engine / Retriever
 """
 
-query_str = "What are the potential risks associated with the use of Llama 2 as mentioned in the context?"
+query_str = "Tell me about yourself and latest achievements."
 
 query_engine = index.as_query_engine(similarity_top_k=2, llm=gpt35_llm)
 vector_retriever = index.as_retriever(similarity_top_k=2)
 
 response = query_engine.query(query_str)
-logger.debug(str(response))
+logger.success(str(response))
 
 """
 ## Viewing/Customizing Prompts
@@ -141,7 +141,7 @@ Let's re-run our query engine again.
 """
 
 response = query_engine.query(query_str)
-logger.debug(str(response))
+logger.success(str(response))
 
 """
 ## Adding Few-Shot Examples
@@ -162,11 +162,16 @@ Let's parse a pre-generated question/answer file. For the sake of focus we'll sk
 We embed/index these Q/A pairs, and retrieve the top-k.
 """
 
+import json
 from llama_index.core.schema import TextNode
 
+citations_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/results/citations.json"
+with open(citations_path, "r") as f:
+    citations_data = json.load(f)
+
 few_shot_nodes = []
-for line in open("../llama2_qa_citation_events.jsonl", "r"):
-    few_shot_nodes.append(TextNode(text=line))
+# for line in open("../llama2_qa_citation_events.jsonl", "r"):
+#     few_shot_nodes.append(TextNode(text=line))
 
 few_shot_index = VectorStoreIndex(few_shot_nodes)
 few_shot_retriever = few_shot_index.as_retriever(similarity_top_k=2)
@@ -232,7 +237,7 @@ query_engine.update_prompts(
 display_prompt_dict(query_engine.get_prompts())
 
 response = query_engine.query(citation_query_str)
-logger.debug(str(response))
+logger.success(str(response))
 
 logger.debug(response.source_nodes[1].get_content())
 
@@ -287,6 +292,6 @@ context_str = "\n\n".join([n.get_content() for n in retrieved_nodes])
 logger.debug(qa_prompt_tmpl.format(query_str=query_str, context_str=context_str))
 
 response = query_engine.query(query_str)
-logger.debug(str(response))
+logger.success(str(response))
 
 logger.info("\n\n[DONE]", bright=True)

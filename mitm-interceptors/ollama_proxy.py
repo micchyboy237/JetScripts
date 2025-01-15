@@ -3,7 +3,10 @@ import os
 import time
 from collections.abc import Iterable
 from datetime import datetime
+from jet.token.token_utils import token_counter
+from jet.transformers.formatters import format_json
 from mitmproxy import http
+from jet.llm.llm_types import OllamaChatResponse
 from jet.transformers import make_serializable
 from jet.logger import logger
 
@@ -14,6 +17,30 @@ log_file_path = None
 # Dictionary to store start times for requests
 start_times: dict[str, float] = {}
 chunks: list[str] = []
+
+
+def get_response_durations(response: OllamaChatResponse):
+    durations = {
+        k: v for k, v in response.items() if k.endswith('duration')}
+    results = {
+        "millis": 0,
+        "seconds": 0,
+        "minutes": 0,
+    }
+    if durations:
+        logger.info("Durations:")
+        for key, value in durations.items():
+            # Convert nanoseconds to seconds/minutes/milliseconds
+            seconds = value / 1e9
+            if seconds >= 60:
+                minutes = seconds / 60
+                results["minutes"] = minutes
+            elif seconds >= 1:
+                results["seconds"] = seconds
+            else:
+                millis = seconds * 1000
+                results["millis"] = millis
+    return results
 
 
 def generate_log_file_path(logs_dir, base_dir=None, limit=30):
@@ -57,7 +84,6 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
          ["fields"] if field[0].lower() == "content-length"),
         None
     )
-
     token_count = next(
         (field[1] for field in request_dict["headers"]
          ["fields"] if field[0].lower() == "tokens"),
@@ -164,15 +190,39 @@ def request(flow: http.HTTPFlow):
         logger.info(f"URL: {url}")
         # Log the serialized data as a JSON string
         request_dict = make_serializable(flow.request.data)
+        request_content: dict = request_dict["content"].copy()
+
+        messages = request_content.pop(
+            "messages", request_content.pop("prompt", None))
+        options = request_content.pop("options", {})
+
+        logger.gray("REQUEST CONTENT:")
+        logger.debug(format_json(request_content))
+
+        logger.newline()
+        logger.gray("REQUEST PROMPT:")
+        logger.info(format_json(messages) if not isinstance(
+            messages, str) else messages)
+
         logger.log(f"REQUEST KEYS:", list(
             request_dict.keys()), colors=["GRAY", "INFO"])
+        logger.log(f"REQUEST CONTENT KEYS:", list(
+            request_dict["content"].keys()), colors=["GRAY", "INFO"])
         logger.log("REQUEST HEADERS:",
                    request_dict["headers"], colors=["GRAY", "INFO"])
-        logger.log("REQUEST CONTENT:",
-                   request_dict["content"], colors=["GRAY", "DEBUG"])
-        logger.log("\nPROMPT LENGTH:", len(
-            str(request_dict["content"])), colors=["GRAY", "INFO"])
-        logger.debug(json.dumps(request_dict, indent=1))
+
+        logger.gray("REQUEST OPTIONS:")
+        logger.debug(format_json(options))
+
+        token_count = token_counter(
+            request_dict["content"]["messages"], request_content["model"])
+
+        logger.newline()
+        logger.log("MODEL:", request_content["model"], colors=["GRAY", "INFO"])
+        logger.log("PROMPT LENGTH:", len(
+            str(request_dict["content"]["messages"])), colors=["GRAY", "INFO"])
+        logger.log("PROMPT TOKENS:", token_count, colors=["GRAY", "INFO"])
+
         # Store the start time for the request
         start_times[flow.id] = time.time()
     else:
@@ -189,24 +239,55 @@ def response(flow: http.HTTPFlow):
     if any(path == flow.request.path for path in ["/api/chat", "/api/generate"]):
         logger.log("\n")
         # Log the serialized data as a JSON string
-        response_dict = make_serializable(flow.response.data)
+        response_dict: OllamaChatResponse = make_serializable(
+            flow.response.data)
 
         logger.log(f"RESPONSE KEYS:", list(
             response_dict.keys()), colors=["GRAY", "INFO"])
 
-        response_content = "".join(chunks)
-        if not response_content:
-            response_content = json.dumps(
+        final_response_content = "".join(chunks)
+        if not final_response_content:
+            final_response_content = json.dumps(
                 response_dict.get('content', {}), indent=1)
 
-        logger.log("RESPONSE:")
-        logger.debug(json.dumps(response_dict, indent=1))
+        # logger.log("RESPONSE:")
+        # logger.debug(json.dumps(response_dict, indent=1))
 
-        logger.log("RESPONSE CONTENT:")
-        logger.success(response_content)
+        # logger.log("RESPONSE CONTENT:")
+        # logger.success(final_response_content)
 
-        logger.log("\nRESPONSE LENGTH:", len(response_content),
+        logger.log("\nRESPONSE LENGTH:", len(final_response_content),
                    colors=["WHITE", "BRIGHT_SUCCESS"])
+
+        request_dict = make_serializable(flow.request.data)
+        request_content: dict = request_dict["content"].copy()
+
+        prompt_token_count = token_counter(
+            request_dict["content"]["messages"], request_content["model"])
+        response_token_count = token_counter(
+            final_response_content, request_content["model"])
+        logger.newline()
+        logger.log("\nPROMPT TOKENS:", prompt_token_count, colors=[
+                   "GRAY", "SUCCESS"])
+
+        logger.log(
+            "\nRESPONSE TOKENS:",
+            response_token_count,
+            colors=["GRAY", "SUCCESS"],
+        )
+        total_tokens = prompt_token_count + response_token_count
+        logger.log("\nTOTAL:", total_tokens, colors=["WHITE", "SUCCESS"])
+
+        durations = get_response_durations(response_dict)
+        if durations.get("millis"):
+            logger.log(f"Millis:", f"{durations["millis"]:.2f}ms", colors=[
+                "WHITE", "LIME"])
+        if durations.get("seconds"):
+            logger.log(f"Seconds:", f"{durations["seconds"]:.2f}s", colors=[
+                "WHITE", "WARNING"])
+        if durations.get("minutes"):
+            logger.log(f"Minutes:", f"{durations["minutes"]:.2f}m", colors=[
+                "WHITE", "ORANGE"])
 
         end_time = time.time()  # Record the end time
 

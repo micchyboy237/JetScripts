@@ -472,13 +472,14 @@ def scrape_code(
 
 if __name__ == "__main__":
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/prompts",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/response_synthesizers",
     ]
     include_files = [
         # "workflows_cookbook",
     ]
     exclude_files = [
-        "migrating_memory/",
+        # "migrating_memory/",
+        "pydantic_tree_summarize"
     ]
 
     extension_mappings = [

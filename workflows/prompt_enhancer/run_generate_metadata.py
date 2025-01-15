@@ -12,8 +12,8 @@ from llama_index.core.extractors.metadata_extractors import QuestionsAnsweredExt
 from llama_index.core.readers.file.base import SimpleDirectoryReader
 llm_settings = initialize_ollama_settings()
 
-GENERATED_DIR = os.path.join(
-    "generated/" + os.path.splitext(os.path.basename(__file__))[0])
+file_name = os.path.splitext(os.path.basename(__file__))[0]
+GENERATED_DIR = os.path.join("results", file_name)
 OUTPUT_DIR = F"{GENERATED_DIR}/output"
 
 
@@ -80,7 +80,7 @@ async def main():
             "metadata": metadata
         })
         save_metadata_dicts(
-            f"{OUTPUT_DIR}/jet_resume_metadata.json", metadata_results)
+            f"{OUTPUT_DIR}/jet-resume-metadata.json", metadata_results)
 
         # Update the progress bar after processing each node
         metadata_tqdm.update(1)

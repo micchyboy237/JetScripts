@@ -9,13 +9,19 @@ from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
-# <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/response_synthesizers/custom_prompt_synthesizer.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+"""
+<a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/response_synthesizers/custom_prompt_synthesizer.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+"""
 
+"""
 # Pydantic Tree Summarize
-#
-# In this notebook, we demonstrate how to use tree summarize with structured outputs. Specifically, tree summarize is used to output pydantic objects.
 
-# If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
+In this notebook, we demonstrate how to use tree summarize with structured outputs. Specifically, tree summarize is used to output pydantic objects.
+"""
+
+"""
+If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
+"""
 
 # !pip install llama-index
 
@@ -23,27 +29,33 @@ initialize_ollama_settings()
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 
-# Download Data
+"""
+## Download Data
+"""
 
 # !mkdir -p 'data/paul_graham/'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
-# Load Data
+"""
+## Load Data
+"""
 
 
 reader = SimpleDirectoryReader(
     input_files=[
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/summariespaul_graham_essay.txt"]
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/results/combined.txt"]
 )
 
 docs = reader.load_data()
 
 text = docs[0].text
 
-# Define Custom Prompt
+"""
+## Define Custom Prompt
+"""
 
 
-qa_prompt_tmpl = (
+QA_PROMPT_TMPL = (
     "Context information is below.\n"
     "---------------------\n"
     "{context_str}\n"
@@ -54,7 +66,7 @@ qa_prompt_tmpl = (
     "Query: {query_str}\n"
     "Answer: "
 )
-qa_prompt = PromptTemplate(qa_prompt_tmpl)
+qa_prompt = PromptTemplate(QA_PROMPT_TMPL)
 
 refine_prompt_tmpl = (
     "The original query is as follows: {query_str}\n"
@@ -72,28 +84,31 @@ refine_prompt_tmpl = (
 )
 refine_prompt = PromptTemplate(refine_prompt_tmpl)
 
-# Try out Response Synthesis with Custom Prompt
-#
-# We try out a few different response synthesis strategies with the custom prompt.
+"""
+## Try out Response Synthesis with Custom Prompt
+
+We try out a few different response synthesis strategies with the custom prompt.
+"""
 
 
-summarizer = TreeSummarize(verbose=True, summary_template=qa_prompt)
+summarizer = TreeSummarize(
+    verbose=True, summary_template=qa_prompt)
 
 response = summarizer.get_response(
-    "who is Paul Graham?", [text], tone_name="a Shakespeare play"
+    "Tell me about yourself.", [text], tone_name="a job seeker"
 )
 
-print(str(response))
+logger.debug(str(response))
 
 summarizer = Refine(
     verbose=True, text_qa_template=qa_prompt, refine_template=refine_prompt
 )
 
 response = summarizer.get_response(
-    "who is Paul Graham?", [text], tone_name="a haiku"
+    "Tell me about yourself.", [text], tone_name="a friendly manner"
 )
 
-print(str(response))
+logger.debug(str(response))
 
 
 class Biography(BaseModel):
@@ -109,9 +124,9 @@ summarizer = TreeSummarize(
 )
 
 response = summarizer.get_response(
-    "who is Paul Graham?", [text], tone_name="a business memo"
+    "Tell me about yourself.", [text], tone_name="a professional"
 )
 
-print(str(response))
+logger.debug(str(response))
 
 logger.info("\n\n[DONE]", bright=True)
