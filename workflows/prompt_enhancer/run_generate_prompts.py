@@ -16,7 +16,7 @@ OUTPUT_FILE = f"{OUTPUT_DIR}/generated-prompts.json"
 def main():
     # data_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
     prompts = [
-        "Tell me about yourself."
+        "Tell me about yourself.",
         "She gave her friend a book and a pen.",
         "The teacher explained the lesson and the homework assignment.",
         "We bought apples, oranges, and bananas at the market.",

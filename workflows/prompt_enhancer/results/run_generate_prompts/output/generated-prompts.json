@@ -1,5 +1,9 @@
 [
   {
+    "prompt": "Tell me about yourself.",
+    "results": []
+  },
+  {
     "prompt": "She gave her friend a book and a pen.",
     "results": [
       "She gave her friend a book.",
@@ -16,10 +20,9 @@
   {
     "prompt": "We bought apples, oranges, and bananas at the market.",
     "results": [
-      "We bought apples.",
-      "We bought oranges.",
-      "We bought bananas.",
-      "We bought at the market."
+      "We bought apples at the market.",
+      "We bought oranges at the market.",
+      "We bought bananas at the market."
     ]
   },
   {
@@ -42,7 +45,7 @@
   {
     "prompt": "He cooked dinner and prepared dessert for the guests.",
     "results": [
-      "He cooked dinner.",
+      "He cooked dinner for the guests.",
       "He prepared dessert for the guests."
     ]
   },
@@ -50,7 +53,8 @@
     "prompt": "They painted the fence and the shed in the backyard.",
     "results": [
       "They painted the fence.",
-      "They painted the shed."
+      "They painted the shed.",
+      "They painted the backyard."
     ]
   },
   {
@@ -71,7 +75,7 @@
     "prompt": "We built a sandcastle and a moat at the beach.",
     "results": [
       "We built a sandcastle.",
-      "We built a moat at the beach."
+      "We built a moat."
     ]
   },
   {
@@ -84,22 +88,22 @@
   {
     "prompt": "He sold the car and the motorcycle to a collector.",
     "results": [
-      "He sold the car.",
-      "He sold the motorcycle."
+      "He sold the car to a collector.",
+      "He sold the motorcycle to a collector."
     ]
   },
   {
     "prompt": "They took the book and the magazine from the shelf.",
     "results": [
-      "They took the book from the shelf.",
-      "They took the magazine from the shelf."
+      "They took the book.",
+      "They took the magazine."
     ]
   },
   {
     "prompt": "I borrowed a pencil and an eraser from my friend.",
     "results": [
-      "I borrowed a pencil.",
-      "I borrowed an eraser."
+      "I borrowed a pencil from my friend.",
+      "I borrowed an eraser from my friend."
     ]
   }
 ]
