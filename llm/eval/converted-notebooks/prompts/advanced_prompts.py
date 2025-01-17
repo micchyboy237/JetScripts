@@ -1,5 +1,3 @@
-from jet.llm.ollama import Ollama
-from llama_index.core import PromptTemplate
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -22,6 +20,8 @@ We show the following features:
 
 # %pip install llama-index-llms-ollama
 
+from llama_index.core import PromptTemplate
+from jet.llm.ollama import Ollama
 
 """
 ## 1. Partial Formatting
@@ -54,7 +54,7 @@ fmt_prompt = partial_prompt_tmpl.format(
     context_str="In this work, we develop and release Llama 2, a collection of pretrained and fine-tuned large language models (LLMs) ranging in scale from 7 billion to 70 billion parameters",
     query_str="How many params does llama 2 have",
 )
-logger.debug(fmt_prompt)
+print(fmt_prompt)
 
 """
 ## 2. Prompt Template Variable Mappings
@@ -84,7 +84,7 @@ fmt_prompt = prompt_tmpl.format(
     context_str="In this work, we develop and release Llama 2, a collection of pretrained and fine-tuned large language models (LLMs) ranging in scale from 7 billion to 70 billion parameters",
     query_str="How many params does llama 2 have",
 )
-logger.debug(fmt_prompt)
+print(fmt_prompt)
 
 """
 ### 3. Prompt Function Mappings
@@ -128,6 +128,6 @@ Our models outperform open-source chat models on most benchmarks we tested, and 
 fmt_prompt = prompt_tmpl.format(
     context_str=context_str, query_str="How many params does llama 2 have"
 )
-logger.debug(fmt_prompt)
+print(fmt_prompt)
 
 logger.info("\n\n[DONE]", bright=True)

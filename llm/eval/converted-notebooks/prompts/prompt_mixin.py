@@ -65,7 +65,7 @@ def display_prompt_dict(prompts_dict):
     for k, p in prompts_dict.items():
         text_md = f"**Prompt Key**: {k}<br>" f"**Text:** <br>"
         display(Markdown(text_md))
-        logger.debug(p.get_template())
+        print(p.get_template())
         display(Markdown("<br><br>"))
 
 """
@@ -105,7 +105,7 @@ display_prompt_dict(prompts_dict)
 """
 
 response = query_engine.query("What did the author do growing up?")
-logger.debug(str(response))
+print(str(response))
 
 """
 ## Customize the prompt
@@ -140,7 +140,7 @@ prompts_dict = query_engine.get_prompts()
 display_prompt_dict(prompts_dict)
 
 response = query_engine.query("What did the author do growing up?")
-logger.debug(str(response))
+print(str(response))
 
 """
 ## Accessing Prompts from Other Modules

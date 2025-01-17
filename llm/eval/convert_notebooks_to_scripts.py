@@ -43,9 +43,12 @@ REPLACE_PATHS_MAP = {
 }
 
 COMMENT_LINE_KEYWORDS = [
+    "PDFReader",
     "OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
     "getpass",
+    "import nest_asyncio",
+    "nest_asyncio.apply()"
 ]
 
 
@@ -87,12 +90,34 @@ def comment_line(line: str):
     return updated_line
 
 
-def add_ollama_initialier_code(code: str):
+def add_ollama_initializer_code(code: str):
     initializer_code = "from jet.llm.ollama import initialize_ollama_settings\ninitialize_ollama_settings()"
     return "\n\n".join([
         initializer_code,
         code,
     ])
+
+
+def add_general_initializer_code(code: str):
+    all_code = [
+        code,
+    ]
+
+    setup_generated_dir_code = (
+        "file_name = os.path.splitext(os.path.basename(__file__))[0]\n"
+        "GENERATED_DIR = os.path.join(\"results\", file_name)\n"
+        "os.makedirs(GENERATED_DIR, exist_ok=True)\n"
+    ).strip()
+    if "GENERATED_DIR" in code:
+        all_code.insert(0, setup_generated_dir_code)
+        code = "\n\n".join(all_code)
+
+    import_code = "import os"
+    if "import os" not in code and "os." in code:
+        all_code.insert(0, import_code)
+        code = "\n\n".join(all_code)
+
+    return code
 
 
 def add_jet_logger(code: str):
@@ -169,6 +194,23 @@ def update_code_with_ollama(code: str) -> str:
     updated_code = re.sub(
         r'OllamaEmbeddings\s*\((.*?)\)',
         r'OllamaEmbeddings(model="nomic-embed-text")',
+        updated_code
+    )
+
+    # Replace the line that loads data using `loader.load_data` with the updated implementation
+    # that uses `SimpleDirectoryReader` and adds the appropriate import statement.
+    updated_code = re.sub(
+        r'docs0\s*=\s*loader\.load_data\(file=Path\(".*?/llama2\.pdf"\)\)',
+        'from llama_index.core.readers.file.base import SimpleDirectoryReader\n'
+        'docs0 = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()',
+        updated_code
+    )
+
+    # Replace all occurrences of "data/ with f"{GENERATED_DIR}/" to use the dynamic directory variable.
+    updated_code = re.sub(
+        r'"data/',  # Matches the literal string "data/
+        # Replaces it with the formatted string f"{GENERATED_DIR}/
+        r'f"{GENERATED_DIR}/',
         updated_code
     )
 
@@ -318,6 +360,119 @@ def read_rst_file(file):
     return source_groups
 
 
+def wrap_await_code_singleline_args(code: str) -> str:
+    lines = code.splitlines()
+
+    for line_idx, line in enumerate(lines):
+        if "await" in line and line.strip().endswith("("):
+            continue
+
+        # Use regex to capture everything before "= await"
+        match = re.match(r'(.*?)(?=\s*= await)', line)
+
+        text_before_await = ""
+        if match:
+            text_before_await = match.group(1)
+            print(f"Line {line_idx}: {text_before_await}")
+
+        await_leading_spaces = len(
+            line) - len(line.lstrip())
+        if not await_leading_spaces:
+            function_name = generate_unique_function_name(line)
+
+            # Create the wrapped async code with a unique function name
+            async_wrapped_code = "\n".join([
+                f"async def {function_name}():",
+                f"  {line}",
+                f"  return {text_before_await}",
+                f"\n{text_before_await} = asyncio.run({
+                    function_name}())",
+                f"logger.success(format_json({
+                    text_before_await}))",
+            ])
+
+            lines[line_idx] = async_wrapped_code
+            logger.debug(async_wrapped_code)
+    return "\n".join(lines)
+
+
+def wrap_await_code_multiline_args(code: str) -> str:
+    """Wrap lines containing 'await' in standalone async functions, handling multiline calls."""
+    lines = code.splitlines()
+    updated_lines = []
+    line_idx = 0
+
+    while line_idx < len(lines):
+        line = lines[line_idx]
+
+        if "await" in line and line.strip().endswith("("):
+            match = re.match(r'(.*?)\s*=\s*await', line)
+            if match:
+                variable = match.group(1).strip()
+                leading_spaces = len(line) - len(line.lstrip())
+                async_fn_name = f"async_func_{line_idx}"
+
+                # Collect multiline call
+                async_block = [
+                    f"{' ' * leading_spaces}async def {async_fn_name}():"]
+                async_block.append(
+                    f"{' ' * (leading_spaces + 4)}{line.strip()}")
+
+                open_parens = 1
+                line_idx += 1
+                while line_idx < len(lines) and open_parens > 0:
+                    next_line = lines[line_idx]
+                    async_block.append(
+                        f"{' ' * (leading_spaces + 4)}{next_line.strip()}")
+                    open_parens += next_line.count("(") - \
+                        next_line.count(")")
+                    line_idx += 1
+
+                async_block.append(
+                    f"{' ' * (leading_spaces + 4)}return {variable}")
+                async_block.append(
+                    f"{' ' * leading_spaces}{variable} = asyncio.run({async_fn_name}())")
+                async_block.append(
+                    f"{' ' * leading_spaces}logger.success(format_json({variable}))")
+
+                updated_lines.extend(async_block)
+            else:
+                updated_lines.append(line)
+                line_idx += 1
+        elif "await" in line:
+            # Use regex to capture everything before "= await"
+            match = re.match(r'(.*?)(?=\s*= await)', line)
+
+            text_before_await = ""
+            if match:
+                text_before_await = match.group(1)
+                print(f"Line {line_idx}: {text_before_await}")
+
+            await_leading_spaces = len(
+                line) - len(line.lstrip())
+            if not await_leading_spaces:
+                function_name = generate_unique_function_name(line)
+
+                # Create the wrapped async code with a unique function name
+                async_wrapped_code = "\n".join([
+                    f"async def {function_name}():",
+                    f"  {line}",
+                    f"  return {text_before_await}",
+                    f"\n{text_before_await} = asyncio.run({
+                        function_name}())",
+                    f"logger.success(format_json({
+                        text_before_await}))",
+                ])
+
+                updated_lines.append(async_wrapped_code)
+                line_idx += 1
+        else:
+            updated_lines.append(line)
+            line_idx += 1
+
+    return "\n".join(updated_lines)
+
+
 def scrape_code(
     input_base_dir: str,
     extensions: list[str],
@@ -329,30 +484,20 @@ def scrape_code(
     types: list[Literal['text', 'python']] = [],
 ):
 
-    # Read files with any of the extensions in extensions recursively
     files = search_files(input_base_dir, extensions,
                          include_files, exclude_files)
 
-    # Apply include_files filter
     if include_files:
-        files = [
-            file for file in files
-            if any(include.lower() in file.lower() for include in include_files)
-        ]
+        files = [file for file in files if any(
+            include.lower() in file.lower() for include in include_files)]
 
-    # Apply exclude_files filter
     if exclude_files:
-        files = [
-            file for file in files
-            if not any(exclude.lower() in file.lower() for exclude in exclude_files)
-        ]
+        files = [file for file in files if not any(
+            exclude.lower() in file.lower() for exclude in exclude_files)]
 
     logger.info(f"Found {len(files)} {extensions} files")
-
-    # output_files = []
     results = []
 
-    # Process each file and extract Python code
     for file in files:
         file_name = os.path.splitext(os.path.basename(file))[0]
 
@@ -360,83 +505,42 @@ def scrape_code(
             if file.endswith('.ipynb'):
                 source_groups = read_notebook_file(
                     file, with_markdown=with_markdown)
-            elif file.endswith('.md') or file.endswith('.mdx'):
+            elif file.endswith(('.md', '.mdx')):
                 source_groups = read_markdown_file(file)
             elif file.endswith('.rst'):
                 source_groups = read_rst_file(file)
+            else:
+                continue
 
             if types:
                 source_groups = [
-                    group for group in source_groups
-                    if group['type'] in types
-                ]
+                    group for group in source_groups if group['type'] in types]
 
             if output_base_dir:
-                # Create output base directory if it doesn't exist
                 os.makedirs(output_base_dir, exist_ok=True)
-                # Get subfolders
                 subfolders = os.path.dirname(file).replace(input_base_dir, '')
                 joined_dir = os.path.join(
                     output_base_dir, subfolders.strip('/'))
                 os.makedirs(joined_dir, exist_ok=True)
-                output_code = os.path.join(joined_dir, f"{file_name}.py")
-                output_groups = os.path.join(joined_dir, f"{file_name}.json")
 
+                output_code_path = os.path.join(joined_dir, f"{file_name}.py")
                 for source_group in source_groups:
                     if source_group['type'] == 'text':
                         source_group['code'] = f'"""\n{
                             source_group['code']}\n"""'
 
-                # Handle code with "await"
-                for source_group_idx, source_group in enumerate(source_groups):
-                    code = source_group['code']
-                    lines = code.splitlines()
+                    source_group['code'] = wrap_await_code_multiline_args(
+                        source_group['code'])
+                    # source_group['code'] = wrap_await_code_singleline_args(
+                    #     source_group['code'])
 
-                    for line_idx, line in enumerate(lines):
-                        if "await" not in line:
-                            continue
-
-                         # Use regex to capture everything before "= await"
-                        match = re.match(r'(.*?)(?=\s*= await)', line)
-
-                        text_before_await = ""
-                        if match:
-                            text_before_await = match.group(1)
-                            print(f"Line {line_idx}: {text_before_await}")
-
-                        await_leading_spaces = len(
-                            line) - len(line.lstrip())
-                        if not await_leading_spaces:
-                            function_name = generate_unique_function_name(line)
-
-                            # Create the wrapped async code with a unique function name
-                            async_wrapped_code = "\n".join([
-                                f"async def {function_name}():",
-                                f"  {line}",
-                                f"  return {text_before_await}",
-                                f"{text_before_await} = asyncio.run({
-                                    function_name}())",
-                                f"logger.success(format_json({
-                                    text_before_await}))",
-                            ])
-
-                            lines[line_idx] = async_wrapped_code
-                            logger.debug(async_wrapped_code)
-
-                    updated_code = "\n".join(lines)
-                    source_groups[source_group_idx]['code'] = updated_code
-
-                source_lines = [source_group['code']
-                                for source_group in source_groups]
-                source_code = "\n\n".join(source_lines)
-
-                # Handle code with "print"
-                source_code = source_code.replace("print(", "logger.debug(")
+                source_code = "\n\n".join(group['code']
+                                          for group in source_groups)
 
                 if with_ollama:
                     source_code = update_code_with_ollama(source_code)
-                    # Add initializer code
-                    source_code = add_ollama_initialier_code(source_code)
+                    source_code = add_general_initializer_code(source_code)
+                    source_code = add_ollama_initializer_code(source_code)
                     source_code = add_jet_logger(source_code)
 
                 if "format_json(" in source_code:
@@ -445,28 +549,21 @@ def scrape_code(
                 if "asyncio.run" in source_code:
                     source_code = "import asyncio\n" + source_code
 
-                with open(output_code, "w") as f:
+                with open(output_code_path, "w") as f:
                     f.write(source_code)
 
-                # with open(output_groups, "w") as f:
-                #     json.dump(source_groups, f, indent=2)
-
-                logger.debug(f"Saved code: {output_code}")
-                # logger.debug(f"Saved groups: {output_groups}")
+                logger.debug(f"Saved code: {output_code_path}")
 
                 result = {
                     "data_file": file,
-                    "code_file": output_code,
-                    "blocks_file": output_groups,
+                    "code_file": output_code_path,
                     "code": source_code,
-                    "blocks": source_groups
                 }
                 results.append(result)
 
         except Exception as e:
-            print(f"Failed to process file {file_name}: {e}")
+            logger.error(f"Failed to process file {file_name}: {e}")
 
-    # return output_files
     return results
 
 
@@ -476,10 +573,11 @@ if __name__ == "__main__":
     ]
     include_files = [
         # "workflows_cookbook",
-        "prompts_rag"
+
     ]
     exclude_files = [
         # "migrating_memory/",
+        "prompts_rag"
     ]
 
     extension_mappings = [

@@ -1,10 +1,16 @@
+import os
+
 from jet.llm.ollama.base import Ollama
 from tqdm import tqdm
 from jet.llm.main.prompts_generator import PromptsGenerator
 from jet.logger import logger
+from jet.transformers.formatters import format_json
+from jet.file.utils import save_file
+from jet.transformers.object import make_serializable
 
 
 def main():
+    # data_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
     prompts = [
         "Tell me about yourself.",
         "She gave her friend a book and a pen.",
