@@ -89,6 +89,11 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
          ["fields"] if field[0].lower() == "tokens"),
         None
     )
+    log_filename = next(
+        (field[1] for field in request_dict["headers"]
+         ["fields"] if field[0].lower() == "log-filename"),
+        None
+    )
 
     # Get last user prompt
     prompt_log = flow.request.data.content.decode('utf-8')
@@ -132,6 +137,7 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         f"- **Model**: {model}\n"
         f"- **Content length**: {content_length}\n"
         f"- **Tokens**: {token_count}\n"
+        f"- **Log Filename**: {log_filename}\n"
         f"\n"
         # f"## Messages ({len(messages)})\n\n{prompt_log}\n\n"
         f"## Response\n\n{response}\n\n"
@@ -180,18 +186,22 @@ def request(flow: http.HTTPFlow):
         logger.debug(json.dumps(request_dict['content'], indent=1))
 
     if any(path == flow.request.path for path in ["/api/chat", "/api/generate"]):
+        request_dict = make_serializable(flow.request.data)
+        request_content: dict = request_dict["content"].copy()
         logger.log("\n")
         url = f"{flow.request.scheme}//{flow.request.host}{flow.request.path}"
 
-        log_file_path = generate_log_file_path(LOGS_DIR)
+        header_log_filename = next(
+            (field[1] for field in request_dict["headers"]
+             ["fields"] if field[0].lower() == "log-filename"),
+            None
+        )
+        log_file_path = generate_log_file_path(LOGS_DIR, header_log_filename)
 
         logger.log("Log File Path:", log_file_path, colors=["GRAY", "INFO"])
 
         logger.info(f"URL: {url}")
         # Log the serialized data as a JSON string
-        request_dict = make_serializable(flow.request.data)
-        request_content: dict = request_dict["content"].copy()
-
         messages = request_content.pop(
             "messages", request_content.pop("prompt", None))
         options = request_content.pop("options", {})
@@ -209,7 +219,7 @@ def request(flow: http.HTTPFlow):
         logger.log(f"REQUEST CONTENT KEYS:", list(
             request_dict["content"].keys()), colors=["GRAY", "INFO"])
         logger.log("REQUEST HEADERS:",
-                   request_dict["headers"], colors=["GRAY", "INFO"])
+                   format_json(request_dict["headers"]), colors=["GRAY", "INFO"])
 
         logger.gray("REQUEST OPTIONS:")
         logger.debug(format_json(options))
