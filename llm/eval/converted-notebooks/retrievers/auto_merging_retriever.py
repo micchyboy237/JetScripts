@@ -1,3 +1,5 @@
+import os
+from jet.file.utils import save_file
 import numpy as np
 from llama_index.core.evaluation import BatchEvalRunner
 from llama_index.core.evaluation.eval_utils import (
@@ -35,6 +37,11 @@ from pathlib import Path
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 settings = initialize_ollama_settings()
+
+
+file_name = os.path.splitext(os.path.basename(__file__))[0]
+GENERATED_DIR = os.path.join("results", file_name)
+os.makedirs(GENERATED_DIR, exist_ok=True)
 
 # <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/retrievers/auto_merging_retriever.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
@@ -76,7 +83,8 @@ docs = SimpleDirectoryReader(
 question_gen_query = f"""
 You are a job interviewer. Your task is to setup questions or an upcoming interview. You are provided with applicant resume information. Restrict the questions to the context information provided.
 """.strip()
-query = "What is your work experience?"
+query = "Tell me about yourself and your recent work experience."
+top_k = 10
 
 # Parse Chunk Hierarchy from Text, Load into Storage
 #
@@ -91,21 +99,28 @@ query = "What is your work experience?"
 # We then load these nodes into storage. The leaf nodes are indexed and retrieved via a vector store - these are the nodes that will first be directly retrieved via similarity search. The other nodes will be retrieved from a docstore.
 
 
-node_parser = HierarchicalNodeParser.from_defaults()
+node_parser = HierarchicalNodeParser.from_defaults([1024, 512, 128])
 
-nodes = node_parser.get_nodes_from_documents(docs)
+nodes_cache_dir = f"{GENERATED_DIR}/cache/storage"
+all_nodes = node_parser.get_nodes_from_documents(docs)
+logger.newline()
+logger.log("all_nodes:", len(all_nodes), colors=["GRAY", "INFO"])
+save_file(all_nodes, f"{GENERATED_DIR}/all_nodes.json")
 
-logger.log("nodes:", len(nodes), colors=["GRAY", "INFO"])
 
 # Here we import a simple helper function for fetching "leaf" nodes within a node list.
 # These are nodes that don't have children of their own.
 
 
-leaf_nodes = get_leaf_nodes(nodes)
-
+leaf_nodes = get_leaf_nodes(all_nodes)
+logger.newline()
 logger.log("leaf_nodes:", len(leaf_nodes), colors=["GRAY", "INFO"])
+save_file(leaf_nodes, f"{GENERATED_DIR}/leaf_nodes.json")
 
-root_nodes = get_root_nodes(nodes)
+root_nodes = get_root_nodes(all_nodes)
+logger.newline()
+logger.log("root_nodes:", len(root_nodes), colors=["GRAY", "INFO"])
+save_file(root_nodes, f"{GENERATED_DIR}/root_nodes.json")
 
 # Load into Storage
 #
@@ -116,9 +131,12 @@ root_nodes = get_root_nodes(nodes)
 
 docstore = SimpleDocumentStore()
 
-docstore.add_documents(nodes)
+docstore.add_documents(all_nodes)
 
-storage_context = StorageContext.from_defaults(docstore=docstore)
+storage_cache_dir = f"{GENERATED_DIR}/cache/storage"
+storage_context = StorageContext.from_defaults(
+    docstore=docstore, persist_dir=storage_cache_dir)
+storage_context.persist(persist_dir=storage_cache_dir)
 
 llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
 
@@ -128,12 +146,10 @@ base_index = VectorStoreIndex(
     storage_context=storage_context,
 )
 
+
 # Define Retriever
-
-
-base_retriever = base_index.as_retriever(similarity_top_k=6)
+base_retriever = base_index.as_retriever(similarity_top_k=top_k)
 retriever = AutoMergingRetriever(base_retriever, storage_context, verbose=True)
-
 
 nodes = retriever.retrieve(query)
 base_nodes = base_retriever.retrieve(query)
@@ -192,10 +208,10 @@ dataset_generator = DatasetGenerator(
 
 eval_dataset = dataset_generator.generate_dataset_from_nodes(num=60)
 
-eval_dataset.save_json("data/llama2_eval_qr_dataset.json")
+eval_dataset.save_json(f"{GENERATED_DIR}/llama2_eval_qr_dataset.json")
 
 eval_dataset = QueryResponseDataset.from_json(
-    "data/llama2_eval_qr_dataset.json"
+    f"{GENERATED_DIR}/llama2_eval_qr_dataset.json"
 )
 
 # Compare Results
