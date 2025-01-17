@@ -1,4 +1,5 @@
 import os
+from jet.cache.joblib.utils import load_from_cache_or_compute
 from jet.file.utils import save_file
 import numpy as np
 from llama_index.core.evaluation import BatchEvalRunner
@@ -99,10 +100,16 @@ top_k = 10
 # We then load these nodes into storage. The leaf nodes are indexed and retrieved via a vector store - these are the nodes that will first be directly retrieved via similarity search. The other nodes will be retrieved from a docstore.
 
 
+CACHE_DIR = f"{GENERATED_DIR}/cache"
+NODES_CACHE_DIR = f"{CACHE_DIR}/storage"
 node_parser = HierarchicalNodeParser.from_defaults([1024, 512, 128])
 
-nodes_cache_dir = f"{GENERATED_DIR}/cache/storage"
-all_nodes = node_parser.get_nodes_from_documents(docs)
+all_nodes = load_from_cache_or_compute(
+    node_parser.get_nodes_from_documents,
+    file_path=f"{NODES_CACHE_DIR}/all_nodes.pkl",
+    documents=docs,
+)
+
 logger.newline()
 logger.log("all_nodes:", len(all_nodes), colors=["GRAY", "INFO"])
 save_file(all_nodes, f"{GENERATED_DIR}/all_nodes.json")
@@ -112,12 +119,20 @@ save_file(all_nodes, f"{GENERATED_DIR}/all_nodes.json")
 # These are nodes that don't have children of their own.
 
 
-leaf_nodes = get_leaf_nodes(all_nodes)
+leaf_nodes = load_from_cache_or_compute(
+    get_leaf_nodes,
+    file_path=f"{NODES_CACHE_DIR}/leaf_nodes.pkl",
+    nodes=all_nodes,
+)
 logger.newline()
 logger.log("leaf_nodes:", len(leaf_nodes), colors=["GRAY", "INFO"])
 save_file(leaf_nodes, f"{GENERATED_DIR}/leaf_nodes.json")
 
-root_nodes = get_root_nodes(all_nodes)
+root_nodes = load_from_cache_or_compute(
+    get_root_nodes,
+    file_path=f"{NODES_CACHE_DIR}/root_nodes.pkl",
+    nodes=all_nodes,
+)
 logger.newline()
 logger.log("root_nodes:", len(root_nodes), colors=["GRAY", "INFO"])
 save_file(root_nodes, f"{GENERATED_DIR}/root_nodes.json")
@@ -133,7 +148,8 @@ docstore = SimpleDocumentStore()
 
 docstore.add_documents(all_nodes)
 
-storage_cache_dir = f"{GENERATED_DIR}/cache/storage"
+storage_cache_dir = f"{CACHE_DIR}/storage"
+os.makedirs(storage_cache_dir, exist_ok=True)
 storage_context = StorageContext.from_defaults(
     docstore=docstore, persist_dir=storage_cache_dir)
 storage_context.persist(persist_dir=storage_cache_dir)
