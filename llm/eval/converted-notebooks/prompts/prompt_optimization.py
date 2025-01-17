@@ -86,11 +86,23 @@ This will be used for two purposes:
 from llama_index.core.evaluation import DatasetGenerator, QueryResponseDataset
 from llama_index.core.node_parser import SimpleNodeParser
 
+QUESTION_GEN_QUERY = f"""
+You are a Job Employer. Your task is to setup multiple questions
+for an upcoming interview. Each question should cover a part of the document. Generated questions should be complete so that its answers cover all context information provided.
+
+Format response with numeric list of questions separated by newline.
+Example response format:
+1. Question 1
+...continue
+
+Output only the generated questions without any explanations.
+"""
+
 dataset_generator = DatasetGenerator(
     base_nodes[:20],
     llm=Ollama(model="llama3.1", request_timeout=300.0, context_window=4096),
     show_progress=True,
-    num_questions_per_chunk=3,
+    question_gen_query=QUESTION_GEN_QUERY,
 )
 
 async def run_async_code_672f8f1d():
