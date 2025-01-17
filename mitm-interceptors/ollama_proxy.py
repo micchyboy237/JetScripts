@@ -193,13 +193,6 @@ def request(flow: http.HTTPFlow):
 
     if any(path == flow.request.path for path in ["/api/chat", "/api/generate"]):
         request_dict = make_serializable(flow.request.data)
-        if isinstance(request_dict, str):
-            logger.gray("REQUEST DICT:")
-            logger.orange(request_dict)
-        request_content: dict = request_dict.get(
-            "content", request_dict).copy()
-        logger.gray("REQUEST CONTENT:")
-        logger.orange(format_json(request_content))
         logger.log("\n")
         url = f"{flow.request.scheme}//{flow.request.host}{flow.request.path}"
 
@@ -214,6 +207,7 @@ def request(flow: http.HTTPFlow):
 
         logger.info(f"URL: {url}")
         # Log the serialized data as a JSON string
+        request_content: dict = request_dict["content"].copy()
         messages = request_content.pop(
             "messages", request_content.pop("prompt", None))
         options = request_content.pop("options", {})
