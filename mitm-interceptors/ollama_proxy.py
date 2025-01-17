@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import shutil
 from collections.abc import Iterable
 from datetime import datetime
 from jet.token.token_utils import token_counter
@@ -43,13 +44,16 @@ def get_response_durations(response: OllamaChatResponse):
     return results
 
 
-def generate_log_file_path(logs_dir, base_dir=None, limit=30):
+def generate_log_file_path(logs_dir, base_dir=None, limit=None):
     # Determine the base directory
-    if base_dir is None:
+    if base_dir:
+        log_dir = os.path.join(logs_dir, base_dir)
+    else:
         base_dir = os.path.dirname(os.path.realpath(__file__))
+        # Create the log directory if it doesn't exist
+        log_dir = os.path.join(base_dir, logs_dir)
 
-    # Create the log directory if it doesn't exist
-    log_dir = os.path.join(base_dir, logs_dir)
+    shutil.rmtree(log_dir, ignore_errors=True)
     os.makedirs(log_dir, exist_ok=True)
 
     # Maintain only the `limit` most recent files
@@ -58,8 +62,10 @@ def generate_log_file_path(logs_dir, base_dir=None, limit=30):
          if os.path.isfile(os.path.join(log_dir, f))),
         key=os.path.getctime
     )
-    while len(existing_logs) >= limit:
-        os.remove(existing_logs.pop(0))
+
+    if limit:
+        while len(existing_logs) >= limit:
+            os.remove(existing_logs.pop(0))
 
     # Generate a timestamp and unique log file name
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -167,7 +173,7 @@ def interceptor_callback(data: bytes) -> bytes | Iterable[bytes]:
         if "message" in chunk_dict and chunk_dict["message"]["role"] == "assistant":
             content = chunk_dict["message"]["content"]
             chunks.append(content)
-            logger.success(content, flush=True)
+            # logger.success(content, flush=True)
     except json.JSONDecodeError:
         pass
 
@@ -183,11 +189,17 @@ def request(flow: http.HTTPFlow):
     if any(path == flow.request.path for path in ["/api/embed", "/api/embeddings"]):
         request_dict = make_serializable(flow.request.data)
         logger.log(f"REQUEST EMBEDDING:")
-        logger.debug(json.dumps(request_dict['content'], indent=1))
+        logger.debug(json.dumps(format_json(request_dict), indent=1))
 
     if any(path == flow.request.path for path in ["/api/chat", "/api/generate"]):
         request_dict = make_serializable(flow.request.data)
-        request_content: dict = request_dict["content"].copy()
+        if isinstance(request_dict, str):
+            logger.gray("REQUEST DICT:")
+            logger.orange(request_dict)
+        request_content: dict = request_dict.get(
+            "content", request_dict).copy()
+        logger.gray("REQUEST CONTENT:")
+        logger.orange(format_json(request_content))
         logger.log("\n")
         url = f"{flow.request.scheme}//{flow.request.host}{flow.request.path}"
 
@@ -206,9 +218,6 @@ def request(flow: http.HTTPFlow):
             "messages", request_content.pop("prompt", None))
         options = request_content.pop("options", {})
 
-        logger.gray("REQUEST CONTENT:")
-        logger.debug(format_json(request_content))
-
         logger.newline()
         logger.gray("REQUEST PROMPT:")
         logger.info(format_json(messages) if not isinstance(
@@ -219,7 +228,7 @@ def request(flow: http.HTTPFlow):
         logger.log(f"REQUEST CONTENT KEYS:", list(
             request_dict["content"].keys()), colors=["GRAY", "INFO"])
         logger.log("REQUEST HEADERS:",
-                   format_json(request_dict["headers"]), colors=["GRAY", "INFO"])
+                   json.dumps(request_dict["headers"]), colors=["GRAY", "INFO"])
 
         logger.gray("REQUEST OPTIONS:")
         logger.debug(format_json(options))
@@ -252,8 +261,9 @@ def response(flow: http.HTTPFlow):
         response_dict: OllamaChatResponse = make_serializable(
             flow.response.data)
 
-        logger.log(f"RESPONSE KEYS:", list(
-            response_dict.keys()), colors=["GRAY", "INFO"])
+        if isinstance(response_dict, dict):
+            logger.log(f"RESPONSE KEYS:", list(
+                response_dict.keys()), colors=["GRAY", "INFO"])
 
         final_response_content = "".join(chunks)
         if not final_response_content:
