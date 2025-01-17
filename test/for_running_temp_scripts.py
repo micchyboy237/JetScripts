@@ -1,34 +1,63 @@
-from jet.llm.ollama.base import Ollama
-from tqdm import tqdm
-from jet.llm.main.prompts_generator import PromptsGenerator
+from typing import Any, Dict
+import inspect
+
 from jet.logger import logger
+from jet.transformers.formatters import format_json
+
+# Assuming last_matching_frame is a frame from the inspect stack
+last_matching_frame = inspect.stack()[-1]
 
 
-def main():
-    prompts = [
-        "Tell me about yourself.",
-        "She gave her friend a book and a pen.",
-    ]
+def get_non_empty_attributes(obj: Any) -> Dict[str, Any]:
+    """
+    Extracts the non-empty attributes of an object (excluding those starting with "_")
+    and returns them in a dictionary, filtering out attributes with values that are
+    considered empty or falsy.
 
-    processor = PromptsGenerator(llm=Ollama(model="llama3.1"))
-    response_stream = processor.process(prompts)
+    Args:
+        obj: The object from which to extract attributes.
 
-    generation_results = []
-    generation_tqdm = tqdm(response_stream, total=len(prompts))
-
-    for tqdm_idx, (text, response) in enumerate(generation_tqdm):
-        result = {
-            "prompt": text,
-            "results": response.data
-        }
-        generation_results.append(result)
-
-        logger.info(f"DONE RESPONSE {tqdm_idx + 1}")
-        # Update the progress bar after processing each node
-        generation_tqdm.update(1)
+    Returns:
+        A dictionary with attribute names as keys and their corresponding
+        non-falsy values as values.
+    """
+    # Filter out attributes that are falsy (None, False, 0, "", [], {}, set()) and those starting with "_"
+    return {
+        attr: getattr(obj, attr)
+        for attr in dir(obj)
+        if not attr.startswith('_') and getattr(obj, attr) not in [None, False, 0, "", [], {}, set()]
+    }
 
 
+def get_internal_attributes(obj: Any) -> Dict[str, Any]:
+    """
+    Extracts the attributes of an object that start with "_" and returns them in a dictionary.
+
+    Args:
+        obj: The object from which to extract attributes.
+
+    Returns:
+        A dictionary with attribute names starting with "_" as keys and their corresponding values.
+    """
+    return {
+        attr: getattr(obj, attr)
+        for attr in dir(obj)
+        if attr.startswith('_')
+    }
+
+
+# Usage example:
 if __name__ == "__main__":
-    main()
+    # Assuming `last_matching_frame` is defined somewhere
 
-    logger.info("\n\n[DONE]", bright=True)
+    # Get non-empty attributes (excluding internal ones)
+    attributes_with_values = get_non_empty_attributes(last_matching_frame)
+    logger.newline()
+    logger.debug("Attributes with values:")
+    logger.success(format_json(attributes_with_values))
+
+    # Get internal attributes (those starting with "_")
+    internal_attributes = get_internal_attributes(last_matching_frame)
+    logger.newline()
+    logger.debug("Internal attributes:")
+    logger.success(format_json(internal_attributes))
