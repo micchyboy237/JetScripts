@@ -1,7 +1,6 @@
 import json
 import os
 import time
-import shutil
 from collections.abc import Iterable
 from datetime import datetime
 from jet.token.token_utils import token_counter
@@ -10,6 +9,7 @@ from mitmproxy import http
 from jet.llm.llm_types import OllamaChatResponse
 from jet.transformers import make_serializable
 from jet.logger import logger
+from jet.file import save_file
 
 
 LOGS_DIR = "jet-logs"
@@ -53,7 +53,6 @@ def generate_log_file_path(logs_dir, base_dir=None, limit=None):
         # Create the log directory if it doesn't exist
         log_dir = os.path.join(base_dir, logs_dir)
 
-    shutil.rmtree(log_dir, ignore_errors=True)
     os.makedirs(log_dir, exist_ok=True)
 
     # Maintain only the `limit` most recent files
@@ -71,7 +70,7 @@ def generate_log_file_path(logs_dir, base_dir=None, limit=None):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_file_name = f"{timestamp}_{int(time.time())}.md"
 
-    return os.path.join(log_dir, log_file_name)
+    return os.path.realpath(os.path.join(log_dir, log_file_name))
 
 
 def generate_log_entry(flow: http.HTTPFlow) -> str:
@@ -203,8 +202,6 @@ def request(flow: http.HTTPFlow):
         )
         log_file_path = generate_log_file_path(LOGS_DIR, header_log_filename)
 
-        logger.log("Log File Path:", log_file_path, colors=["GRAY", "INFO"])
-
         logger.info(f"URL: {url}")
         # Log the serialized data as a JSON string
         request_content: dict = request_dict["content"].copy()
@@ -315,14 +312,17 @@ def response(flow: http.HTTPFlow):
         else:
             logger.warning(f"Start time for {flow.id} not found!")
 
+        logger.log("Log File Path:", log_file_path, colors=["GRAY", "INFO"])
+
         if log_file_path:
             logger.log("FIRST 5 CHUNKS:")
             logger.debug(chunks[0:5])
 
             # Log prompt and response with metadata to the log file
             log_entry = generate_log_entry(flow)
-            with open(log_file_path, 'a') as log_file:
-                log_file.write(log_entry)
+            logger.info("Log Entry Result:")
+            logger.success(log_entry)
+            save_file(log_entry, log_file_path)
 
     chunks = []  # Clean up to avoid memory issues
 

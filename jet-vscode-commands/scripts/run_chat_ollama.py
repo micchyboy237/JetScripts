@@ -11,7 +11,7 @@ from watchdog.events import FileSystemEventHandler
 from collections import deque
 
 from jet.llm import call_ollama_chat
-from jet.utils import colorize_log, COLORS
+from jet.logger import colorize_log, COLORS
 from jet.logger import logger
 
 DEFAULT_QUERY = "Summarize provided context."
