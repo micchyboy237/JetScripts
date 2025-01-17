@@ -100,8 +100,9 @@ top_k = 10
 # We then load these nodes into storage. The leaf nodes are indexed and retrieved via a vector store - these are the nodes that will first be directly retrieved via similarity search. The other nodes will be retrieved from a docstore.
 
 
+GENERATED_JSON_DIR = f"{GENERATED_DIR}/json"
 CACHE_DIR = f"{GENERATED_DIR}/cache"
-NODES_CACHE_DIR = f"{CACHE_DIR}/storage"
+NODES_CACHE_DIR = f"{CACHE_DIR}/nodes"
 node_parser = HierarchicalNodeParser.from_defaults([1024, 512, 128])
 
 all_nodes = load_from_cache_or_compute(
@@ -112,7 +113,7 @@ all_nodes = load_from_cache_or_compute(
 
 logger.newline()
 logger.log("all_nodes:", len(all_nodes), colors=["GRAY", "INFO"])
-save_file(all_nodes, f"{GENERATED_DIR}/all_nodes.json")
+save_file(all_nodes, f"{GENERATED_JSON_DIR}/all_nodes.json")
 
 
 # Here we import a simple helper function for fetching "leaf" nodes within a node list.
@@ -126,7 +127,7 @@ leaf_nodes = load_from_cache_or_compute(
 )
 logger.newline()
 logger.log("leaf_nodes:", len(leaf_nodes), colors=["GRAY", "INFO"])
-save_file(leaf_nodes, f"{GENERATED_DIR}/leaf_nodes.json")
+save_file(leaf_nodes, f"{GENERATED_JSON_DIR}/leaf_nodes.json")
 
 root_nodes = load_from_cache_or_compute(
     get_root_nodes,
@@ -135,7 +136,7 @@ root_nodes = load_from_cache_or_compute(
 )
 logger.newline()
 logger.log("root_nodes:", len(root_nodes), colors=["GRAY", "INFO"])
-save_file(root_nodes, f"{GENERATED_DIR}/root_nodes.json")
+save_file(root_nodes, f"{GENERATED_JSON_DIR}/root_nodes.json")
 
 # Load into Storage
 #
@@ -148,11 +149,13 @@ docstore = SimpleDocumentStore()
 
 docstore.add_documents(all_nodes)
 
-storage_cache_dir = f"{CACHE_DIR}/storage"
-os.makedirs(storage_cache_dir, exist_ok=True)
+STORAGE_CACHE_DIR = f"{CACHE_DIR}/storage"
+os.makedirs(STORAGE_CACHE_DIR, exist_ok=True)
 storage_context = StorageContext.from_defaults(
-    docstore=docstore, persist_dir=storage_cache_dir)
-storage_context.persist(persist_dir=storage_cache_dir)
+    docstore=docstore,
+    # persist_dir=STORAGE_CACHE_DIR,
+)
+storage_context.persist(persist_dir=STORAGE_CACHE_DIR)
 
 llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
 
