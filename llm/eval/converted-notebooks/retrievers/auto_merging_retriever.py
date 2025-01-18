@@ -87,7 +87,7 @@ You are a job interviewer. Your task is to setup questions or an upcoming interv
 """.strip()
 query = "Tell me about yourself and your recent work experience."
 top_k = 10
-use_cache = False
+use_cache = True
 
 # Parse Chunk Hierarchy from Text, Load into Storage
 #
