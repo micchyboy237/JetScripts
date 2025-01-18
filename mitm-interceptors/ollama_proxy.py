@@ -172,7 +172,7 @@ def interceptor_callback(data: bytes) -> bytes | Iterable[bytes]:
         if "message" in chunk_dict and chunk_dict["message"]["role"] == "assistant":
             content = chunk_dict["message"]["content"]
             chunks.append(content)
-            # logger.success(content, flush=True)
+            logger.success(content, flush=True)
     except json.JSONDecodeError:
         pass
 
@@ -320,8 +320,6 @@ def response(flow: http.HTTPFlow):
 
             # Log prompt and response with metadata to the log file
             log_entry = generate_log_entry(flow)
-            logger.info("Log Entry Result:")
-            logger.success(log_entry)
             save_file(log_entry, log_file_path)
 
     chunks = []  # Clean up to avoid memory issues

@@ -1,6 +1,7 @@
 import os
 from jet.cache.joblib.utils import load_from_cache_or_compute
 from jet.file.utils import save_file
+from jet.vectors.node_parser.hierarchical import JetHierarchicalNodeParser
 import numpy as np
 from llama_index.core.evaluation import BatchEvalRunner
 from llama_index.core.evaluation.eval_utils import (
@@ -86,6 +87,7 @@ You are a job interviewer. Your task is to setup questions or an upcoming interv
 """.strip()
 query = "Tell me about yourself and your recent work experience."
 top_k = 10
+use_cache = False
 
 # Parse Chunk Hierarchy from Text, Load into Storage
 #
@@ -103,13 +105,19 @@ top_k = 10
 GENERATED_JSON_DIR = f"{GENERATED_DIR}/json"
 CACHE_DIR = f"{GENERATED_DIR}/cache"
 NODES_CACHE_DIR = f"{CACHE_DIR}/nodes"
-node_parser = HierarchicalNodeParser.from_defaults([1024, 512, 128])
+
+chunk_sizes = [1024, 512, 128]
+node_parser = HierarchicalNodeParser.from_defaults(chunk_sizes)
 
 all_nodes = load_from_cache_or_compute(
     node_parser.get_nodes_from_documents,
     file_path=f"{NODES_CACHE_DIR}/all_nodes.pkl",
+    use_cache=use_cache,
     documents=docs,
+    show_progress=True,
 )
+
+jet_node_parser = JetHierarchicalNodeParser(all_nodes, chunk_sizes)
 
 logger.newline()
 logger.log("all_nodes:", len(all_nodes), colors=["GRAY", "INFO"])
@@ -123,6 +131,7 @@ save_file(all_nodes, f"{GENERATED_JSON_DIR}/all_nodes.json")
 leaf_nodes = load_from_cache_or_compute(
     get_leaf_nodes,
     file_path=f"{NODES_CACHE_DIR}/leaf_nodes.pkl",
+    use_cache=use_cache,
     nodes=all_nodes,
 )
 logger.newline()
@@ -132,6 +141,7 @@ save_file(leaf_nodes, f"{GENERATED_JSON_DIR}/leaf_nodes.json")
 root_nodes = load_from_cache_or_compute(
     get_root_nodes,
     file_path=f"{NODES_CACHE_DIR}/root_nodes.pkl",
+    use_cache=use_cache,
     nodes=all_nodes,
 )
 logger.newline()
