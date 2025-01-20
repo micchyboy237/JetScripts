@@ -120,6 +120,57 @@ def add_general_initializer_code(code: str):
     return code
 
 
+def move_all_imports_on_top(code: str) -> str:
+    # Regex pattern to identify import statements, including multi-line imports
+    import_pattern = re.compile(
+        r'^\s*(from .+ import .+|import .+)', re.MULTILINE)
+
+    lines = code.splitlines()
+    imports = []
+    non_import_code = []
+    in_import_block = False
+    open_parens = 0
+
+    line_idx = 0
+    while line_idx < len(lines):
+        line = lines[line_idx]
+
+        # Check for the start of an import block
+        if import_pattern.match(line):
+            if not in_import_block:
+                in_import_block = True
+            imports.append(line)
+
+            # Handle multi-line imports with parentheses
+            if '(' in line:
+                open_parens += line.count('(')
+            if ')' in line:
+                open_parens -= line.count(')')
+
+            # Continue adding lines until we are out of the parentheses block
+            while open_parens > 0 and line_idx + 1 < len(lines):
+                line_idx += 1
+                next_line = lines[line_idx]
+                imports[-1] += f"\n{next_line}"
+                open_parens += next_line.count('(') - next_line.count(')')
+
+            # Ensure imports are separated by new lines
+            # Remove any trailing spaces after concatenating multi-line imports
+            imports[-1] = imports[-1]
+
+        else:
+            # Collect non-import code
+            non_import_code.append(line)
+
+        line_idx += 1
+
+    # Join imports with a newline for correct separation and return the final code
+    imports_block = '\n'.join(imports)
+    non_import_block = '\n'.join(non_import_code)
+
+    return imports_block + '\n\n' + non_import_block
+
+
 def add_jet_logger(code: str):
     import_code = "from jet.logger import logger\n"
     log_done_code = '\n\nlogger.info("\\n\\n[DONE]", bright=True)'
@@ -542,6 +593,7 @@ def scrape_code(
                     source_code = add_general_initializer_code(source_code)
                     source_code = add_ollama_initializer_code(source_code)
                     source_code = add_jet_logger(source_code)
+                    source_code = move_all_imports_on_top(source_code)
 
                 if "format_json(" in source_code:
                     source_code = "from jet.transformers.formatters import format_json\n" + source_code
@@ -552,7 +604,11 @@ def scrape_code(
                 with open(output_code_path, "w") as f:
                     f.write(source_code)
 
-                logger.debug(f"Saved code: {output_code_path}")
+                logger.log(
+                    "Saved code:",
+                    output_code_path,
+                    colors=["GRAY", "BRIGHT_DEBUG"],
+                )
 
                 result = {
                     "data_file": file,
@@ -569,10 +625,13 @@ def scrape_code(
 
 if __name__ == "__main__":
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/query_transformations",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/retrievers",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/vector_stores"
     ]
     include_files = [
         # "workflows_cookbook",
+        "deep_memory",
+        "DeepLakeIndexDemo",
     ]
     exclude_files = [
         # "migrating_memory/",

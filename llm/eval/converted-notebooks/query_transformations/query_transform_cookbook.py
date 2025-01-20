@@ -1,3 +1,20 @@
+from llama_index.core.llms import ChatMessage
+from llama_index.core.tools import FunctionTool
+from llama_index.core.agent.react.output_parser import ReActOutputParser
+from llama_index.core.agent import ReActChatFormatter
+from llama_index.core import QueryBundle
+from llama_index.question_gen.openai import OpenAIQuestionGenerator
+from llama_index.core.question_gen import LLMQuestionGenerator
+from llama_index.core.indices.query.query_transform import HyDEQueryTransform
+from jet.llm.ollama import Ollama
+from llama_index.core import PromptTemplate
+from llama_index.core.tools import ToolMetadata
+from llama_index.core.selectors import (
+    PydanticMultiSelector,
+    PydanticSingleSelector,
+)
+from llama_index.core.selectors import LLMSingleSelector, LLMMultiSelector
+from IPython.display import Markdown, display
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
@@ -26,8 +43,6 @@ Take a look and let us know your thoughts!
 # %pip install llama-index-question-gen-openai
 # %pip install llama-index-llms-ollama
 
-from IPython.display import Markdown, display
-
 
 def display_prompt_dict(prompts_dict):
     for k, p in prompts_dict.items():
@@ -35,6 +50,7 @@ def display_prompt_dict(prompts_dict):
         display(Markdown(text_md))
         print(p.get_template())
         display(Markdown("<br><br>"))
+
 
 """
 ## Routing
@@ -46,15 +62,9 @@ We use our `selector` abstraction to pick the relevant tool(s) - it can be a sin
 We have four selectors: combination of (LLM or function calling) x (single selection or multi-selection)
 """
 
-from llama_index.core.selectors import LLMSingleSelector, LLMMultiSelector
-from llama_index.core.selectors import (
-    PydanticMultiSelector,
-    PydanticSingleSelector,
-)
 
 selector = LLMMultiSelector.from_defaults()
 
-from llama_index.core.tools import ToolMetadata
 
 tool_choices = [
     ToolMetadata(
@@ -99,8 +109,6 @@ Unlike the sub-question generator, this is just a prompt call, and exists indepe
 Here we show you how to use a prompt to generate multiple queries, using our LLM and prompt abstractions.
 """
 
-from llama_index.core import PromptTemplate
-from jet.llm.ollama import Ollama
 
 query_gen_str = """\
 You are a helpful assistant that generates multiple search queries based on a \
@@ -123,6 +131,7 @@ def generate_queries(query: str, llm, num_queries: int = 4):
     print(f"Generated queries:\n{queries_str}")
     return queries
 
+
 queries = generate_queries("What happened at Interleaf and Viaweb?", llm)
 
 queries
@@ -139,8 +148,6 @@ For more details about an e2e implementation with a retriever, check out our gui
 In this section we show you how to do query transformations using our QueryTransform class.
 """
 
-from llama_index.core.indices.query.query_transform import HyDEQueryTransform
-from jet.llm.ollama import Ollama
 
 hyde = HyDEQueryTransform(include_original=True)
 llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
@@ -151,26 +158,22 @@ query_bundle = hyde.run("What is Bel?")
 This generates a query bundle that contains the original query, but also `custom_embedding_strs` representing the queries that should be embedded.
 """
 
-new_query.custom_embedding_strs
+# new_query.custom_embedding_strs
 
 """
 ## Sub-Questions
 
 Given a set of tools and a user query, decide both the 1) set of sub-questions to generate, and 2) the tools that each sub-question should run over.
 
-We run through an example using the `OllamaQuestionGenerator`, which depends on function calling, and also the `LLMQuestionGenerator`, which depends on prompting.
+We run through an example using the `OpenAIQuestionGenerator`, which depends on function calling, and also the `LLMQuestionGenerator`, which depends on prompting.
 """
 
-from llama_index.core.question_gen import LLMQuestionGenerator
-from llama_index.question_gen.openai import OllamaQuestionGenerator
-from jet.llm.ollama import Ollama
 
 llm = Ollama()
-question_gen = OllamaQuestionGenerator.from_defaults(llm=llm)
+question_gen = OpenAIQuestionGenerator.from_defaults(llm=llm)
 
 display_prompt_dict(question_gen.get_prompts())
 
-from llama_index.core.tools import ToolMetadata
 
 tool_choices = [
     ToolMetadata(
@@ -187,7 +190,6 @@ tool_choices = [
     ),
 ]
 
-from llama_index.core import QueryBundle
 
 query_str = "Compare and contrast Uber and Lyft"
 choices = question_gen.generate(tool_choices, QueryBundle(query_str=query_str))
@@ -210,10 +212,6 @@ ReAct is a popular framework for agents, and here we show how the core ReAct pro
 We use the `ReActChatFormatter` to get the set of input messages for the LLM.
 """
 
-from llama_index.core.agent import ReActChatFormatter
-from llama_index.core.agent.react.output_parser import ReActOutputParser
-from llama_index.core.tools import FunctionTool
-from llama_index.core.llms import ChatMessage
 
 def execute_sql(sql: str) -> str:
     """Given a SQL input string, execute it."""
