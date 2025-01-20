@@ -1,8 +1,11 @@
 import deeplake
+from llama_index.core.indices.vector_store.base import VectorStoreIndex
+from llama_index.core.schema import BaseNode
+from llama_index.core.storage.storage_context import StorageContext
 import numpy as np
 import matplotlib.pyplot as plt
 from jet.llm.ollama.base import OllamaEmbedding
-from jet.llm.ollama.constants import OLLAMA_SMALL_EMBED_MODEL
+from jet.llm.ollama.constants import OLLAMA_SMALL_EMBED_MODEL, OLLAMA_LARGE_EMBED_MODEL
 from jet.llm.ollama.embeddings import get_embedding_function
 from jet.llm.ollama.models import OLLAMA_MODEL_EMBEDDING_TOKENS
 from jet.logger import logger
@@ -37,7 +40,8 @@ splitter = SentenceSplitter(
 )
 all_nodes = splitter.get_nodes_from_documents(documents, show_progress=True)
 # source_text = 'paul_graham_essay.txt'
-VECTOR_STORE_PATH = os.path.join(GENERATED_DIR, 'pg_essay_deeplake')
+VECTOR_STORE_PATH = os.path.join(
+    GENERATED_DIR, embed_model, 'pg_essay_deeplake')
 os.makedirs(VECTOR_STORE_PATH, exist_ok=True)
 
 # Read the text file
@@ -127,27 +131,29 @@ def summarize_vector_store(store_path):
 
 # Visualize the dataset in the main block
 if __name__ == "__main__":
-    overwrite = False
-    prompt = "Tell me about yourself."
+    store_path = VECTOR_STORE_PATH
+    overwrite = True
     top_k = 4
+
+    sample_prompt = "Tell me about yourself and your recent achievements."
 
     # Create the vector store (run once to populate the store)
     logger.debug("Creating vector store...")
-    create_vector_store(VECTOR_STORE_PATH, overwrite=overwrite, verbose=True)
+    create_vector_store(store_path, overwrite=overwrite, verbose=True)
 
     # Visualize the embeddings
     logger.debug("Summarizing dataset...")
-    summary = summarize_vector_store(VECTOR_STORE_PATH)
+    summary = summarize_vector_store(store_path)
     logger.newline()
     logger.info("Dataset summary:")
     logger.success(summary)
 
     # Perform a vector search with a sample prompt
     logger.debug("Searching...")
-    results = perform_search(prompt, VECTOR_STORE_PATH, top_k)
+    results = perform_search(sample_prompt, store_path, top_k)
 
     # Print top search result
     logger.newline()
     logger.info(f"Top search results ({len(results)}) for query:")
-    logger.debug(prompt)
+    logger.debug(sample_prompt)
     logger.success(format_json(results))

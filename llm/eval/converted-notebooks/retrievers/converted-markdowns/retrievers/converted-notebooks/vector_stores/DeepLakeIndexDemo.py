@@ -1,3 +1,5 @@
+from jet.llm.ollama.base import OllamaEmbedding
+from jet.llm.ollama.constants import OLLAMA_SMALL_EMBED_MODEL
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 import os
@@ -53,8 +55,8 @@ We are going to embed and store one of Paul Graham's essays in a Deep Lake Vecto
 We can now create documents from the source data file.
 """
 
-documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+DATA_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
+documents = SimpleDirectoryReader(DATA_DIR).load_data()
 print(
     "Document ID:",
     documents[0].doc_id,
@@ -66,10 +68,26 @@ print(
 Finally, let's create the Deep Lake Vector Store and populate it with data. We use a default tensor configuration, which creates tensors with `text (str)`, `metadata(json)`, `id (str, auto-populated)`, `embedding (float32)`. [Learn more about tensor customizability here](https://docs.activeloop.ai/example-code/getting-started/vector-store/step-4-customizing-vector-stores).
 """
 
+VECTOR_STORE_PATH = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/graphs/generated/run_deeplake/pg_essay_deeplake"
 
-dataset_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
 
-vector_store = DeepLakeVectorStore(dataset_path=dataset_path, overwrite=True)
+def ollama_embedding_function(texts, model=OLLAMA_SMALL_EMBED_MODEL):
+    if isinstance(texts, str):
+        texts = [texts]
+
+    embed_model = OllamaEmbedding(model_name=model)
+    results = embed_model.get_general_text_embedding(texts)
+    return results
+
+
+EMBEDDING_FUNCTION = ollama_embedding_function
+
+vector_store = DeepLakeVectorStore(
+    dataset_path=VECTOR_STORE_PATH,
+    overwrite=False,
+    embedding_function=EMBEDDING_FUNCTION,
+    read_only=False,
+)
 storage_context = StorageContext.from_defaults(vector_store=vector_store)
 index = VectorStoreIndex.from_documents(
     documents, storage_context=storage_context
@@ -105,11 +123,10 @@ To find the id of a document to delete, you can query the underlying deeplake da
 """
 
 
-ds = deeplake.load(dataset_path)
+ds = deeplake.load(VECTOR_STORE_PATH)
 
 idx = ds.id[0].numpy().tolist()
-idx
-
 index.delete(idx[0])
+logger.log("Deleted idx:", idx, colors=["DEBUG", "SUCCESS"])
 
 logger.info("\n\n[DONE]", bright=True)
