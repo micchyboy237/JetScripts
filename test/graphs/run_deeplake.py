@@ -127,7 +127,7 @@ def summarize_vector_store(store_path):
 
 # Visualize the dataset in the main block
 if __name__ == "__main__":
-    overwrite = True
+    overwrite = False
     prompt = "Tell me about yourself."
     top_k = 4
 
