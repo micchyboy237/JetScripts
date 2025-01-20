@@ -28,7 +28,7 @@ def get_token_counts(texts, model):
 if __name__ == "__main__":
     # Store config
     data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
-    store_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/generated/deeplake/store_1"
+    store_path = "generated/deeplake/store_1"
     overwrite = True
 
     # Query config
