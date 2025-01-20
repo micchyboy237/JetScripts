@@ -42,6 +42,7 @@ if __name__ == "__main__":
 
     query_nodes = setup_deeplake_query(
         data_dir,
+        store_path,
         embed_model=embed_model,
         overwrite=overwrite
     )
