@@ -6,7 +6,7 @@ from datetime import datetime
 from jet.token.token_utils import token_counter
 from jet.transformers.formatters import format_json
 from mitmproxy import http
-from jet.llm.llm_types import OllamaChatResponse
+from jet.llm.llm_types import BaseGenerateResponse, OllamaChatResponse
 from jet.transformers import make_serializable
 from jet.logger import logger
 from jet.file import save_file
@@ -18,30 +18,6 @@ log_file_path = None
 # Dictionary to store start times for requests
 start_times: dict[str, float] = {}
 chunks: list[str] = []
-
-
-def get_response_durations(response: OllamaChatResponse):
-    durations = {
-        k: v for k, v in response.items() if k.endswith('duration')}
-    results = {
-        "millis": 0,
-        "seconds": 0,
-        "minutes": 0,
-    }
-    if durations:
-        logger.info("Durations:")
-        for key, value in durations.items():
-            # Convert nanoseconds to seconds/minutes/milliseconds
-            seconds = value / 1e9
-            if seconds >= 60:
-                minutes = seconds / 60
-                results["minutes"] = minutes
-            elif seconds >= 1:
-                results["seconds"] = seconds
-            else:
-                millis = seconds * 1000
-                results["millis"] = millis
-    return results
 
 
 def generate_log_file_path(logs_dir, base_dir=None, limit=None):
@@ -152,6 +128,33 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     return log_entry
 
 
+def format_duration(nanoseconds: int) -> str:
+    # Convert nanoseconds to seconds/minutes/milliseconds
+    seconds = nanoseconds / 1e9
+    formatted_time = f"{seconds:.2f}s"
+    # if seconds >= 60:
+    #     minutes = seconds / 60
+    #     formatted_time = f"{minutes:.2f}m"
+    # elif seconds >= 1:
+    #     formatted_time = f"{seconds:.2f}s"
+    # else:
+    #     millis = seconds * 1000
+    #     formatted_time = f"{millis:.2f}ms"
+    return formatted_time
+
+
+def get_response_durations(response_info: BaseGenerateResponse) -> dict[str, str]:
+    durations_dict = {}
+    durations = {
+        k: v for k, v in response_info.items() if k.endswith('duration')}
+    if durations:
+        logger.info("Durations:")
+        for key, value in durations.items():
+            formatted_time = format_duration(value)
+            durations_dict[key] = formatted_time
+    return durations_dict
+
+
 def interceptor_callback(data: bytes) -> bytes | Iterable[bytes]:
     """
     This function will be called for each chunk of request/response body data that arrives at the proxy,
@@ -173,6 +176,8 @@ def interceptor_callback(data: bytes) -> bytes | Iterable[bytes]:
             content = chunk_dict["message"]["content"]
             chunks.append(content)
             logger.success(content, flush=True)
+        if chunk_dict.get("done"):
+            chunks.append(chunk_dict)
     except json.JSONDecodeError:
         pass
 
@@ -184,6 +189,9 @@ def request(flow: http.HTTPFlow):
     Handle the request, log it, and record the start time.
     """
     global log_file_path
+
+    # Store the start time for the request
+    start_times[flow.id] = time.time()
 
     if any(path == flow.request.path for path in ["/api/embed", "/api/embeddings"]):
         request_dict = make_serializable(flow.request.data)
@@ -233,8 +241,6 @@ def request(flow: http.HTTPFlow):
             str(request_dict["content"]["messages"])), colors=["GRAY", "INFO"])
         logger.log("PROMPT TOKENS:", token_count, colors=["GRAY", "INFO"])
 
-        # Store the start time for the request
-        start_times[flow.id] = time.time()
     else:
         log_file_path = None
 
@@ -248,6 +254,8 @@ def response(flow: http.HTTPFlow):
 
     if any(path == flow.request.path for path in ["/api/chat", "/api/generate"]):
         logger.log("\n")
+        # Get response info
+        response_info = chunks.pop()
         # Log the serialized data as a JSON string
         response_dict: OllamaChatResponse = make_serializable(
             flow.response.data)
@@ -255,6 +263,18 @@ def response(flow: http.HTTPFlow):
         if isinstance(response_dict, dict):
             logger.log(f"RESPONSE KEYS:", list(
                 response_dict.keys()), colors=["GRAY", "INFO"])
+        logger.log(f"RESPONSE INFO:", format_json(
+            response_info), colors=["GRAY", "DEBUG"])
+
+        durations = get_response_durations(response_info)
+        total_duration = durations.pop("total_duration")
+        for key, formatted_time in durations.items():
+            logger.log(f"{key.title().replace("_", "")}:", formatted_time,
+                       colors=["WHITE", "DEBUG"])
+        logger.log("Total Duration:", total_duration, colors=[
+            "DEBUG",
+            "SUCCESS",
+        ])
 
         final_response_content = "".join(chunks)
         if not final_response_content:
@@ -267,8 +287,8 @@ def response(flow: http.HTTPFlow):
         # logger.log("RESPONSE CONTENT:")
         # logger.success(final_response_content)
 
-        logger.log("\nRESPONSE LENGTH:", len(final_response_content),
-                   colors=["WHITE", "BRIGHT_SUCCESS"])
+        logger.log("\Response Text Length:", len(final_response_content),
+                   colors=["DEBUG", "SUCCESS"])
 
         request_dict = make_serializable(flow.request.data)
         request_content: dict = request_dict["content"].copy()
@@ -277,47 +297,32 @@ def response(flow: http.HTTPFlow):
             request_dict["content"]["messages"], request_content["model"])
         response_token_count = token_counter(
             final_response_content, request_content["model"])
-        logger.newline()
-        logger.log("\nPROMPT TOKENS:", prompt_token_count, colors=[
-                   "GRAY", "SUCCESS"])
-
-        logger.log(
-            "\nRESPONSE TOKENS:",
-            response_token_count,
-            colors=["GRAY", "SUCCESS"],
-        )
         total_tokens = prompt_token_count + response_token_count
-        logger.log("\nTOTAL:", total_tokens, colors=["WHITE", "SUCCESS"])
-
-        durations = get_response_durations(response_dict)
-        if durations.get("millis"):
-            logger.log(f"Millis:", f"{durations["millis"]:.2f}ms", colors=[
-                "WHITE", "LIME"])
-        if durations.get("seconds"):
-            logger.log(f"Seconds:", f"{durations["seconds"]:.2f}s", colors=[
-                "WHITE", "WARNING"])
-        if durations.get("minutes"):
-            logger.log(f"Minutes:", f"{durations["minutes"]:.2f}m", colors=[
-                "WHITE", "ORANGE"])
+        logger.newline()
+        logger.log("Prompt Tokens:", prompt_token_count, colors=[
+                   "WHITE", "DEBUG"])
+        logger.log(
+            "Response Tokens:",
+            response_token_count,
+            colors=["WHITE", "DEBUG"],
+        )
+        logger.log("Total Tokens:", total_tokens, colors=["DEBUG", "SUCCESS"])
 
         end_time = time.time()  # Record the end time
 
         if flow.id in start_times:
             time_taken = end_time - start_times[flow.id]
-            logger.log("Request total time took:", f"{time_taken:.2f} seconds", colors=[
-                "LOG",
+            logger.log("Request Time Took:", f"{time_taken:.2f} seconds", colors=[
+                "SUCCESS",
                 "BRIGHT_SUCCESS",
             ])
             del start_times[flow.id]  # Clean up to avoid memory issues
         else:
             logger.warning(f"Start time for {flow.id} not found!")
 
-        logger.log("Log File Path:", log_file_path, colors=["GRAY", "INFO"])
+        logger.newline()
 
         if log_file_path:
-            logger.log("FIRST 5 CHUNKS:")
-            logger.debug(chunks[0:5])
-
             # Log prompt and response with metadata to the log file
             log_entry = generate_log_entry(flow)
             save_file(log_entry, log_file_path)
