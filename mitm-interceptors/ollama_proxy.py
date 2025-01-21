@@ -269,7 +269,7 @@ def response(flow: http.HTTPFlow):
         durations = get_response_durations(response_info)
         total_duration = durations.pop("total_duration")
         for key, formatted_time in durations.items():
-            logger.log(f"{key.title().replace("_", "")}:", formatted_time,
+            logger.log(f"{key.title().replace("_", " ")}:", formatted_time,
                        colors=["WHITE", "DEBUG"])
         logger.log("Total Duration:", total_duration, colors=[
             "DEBUG",
