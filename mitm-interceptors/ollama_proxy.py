@@ -195,8 +195,8 @@ def request(flow: http.HTTPFlow):
 
     if any(path == flow.request.path for path in ["/api/embed", "/api/embeddings"]):
         request_dict = make_serializable(flow.request.data)
-        logger.log(f"REQUEST EMBEDDING:")
-        logger.debug(json.dumps(format_json(request_dict), indent=1))
+        logger.debug(f"REQUEST EMBEDDING:")
+        logger.info(format_json(request_dict["content"]))
 
     if any(path == flow.request.path for path in ["/api/chat", "/api/generate"]):
         request_dict = make_serializable(flow.request.data)
