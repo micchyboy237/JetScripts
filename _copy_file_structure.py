@@ -1,3 +1,4 @@
+import glob
 import os
 import fnmatch
 import argparse
@@ -96,7 +97,13 @@ def find_files(base_dir, include, exclude, include_content_patterns, exclude_con
             file_path = os.path.relpath(os.path.join(root, file), base_dir)
             is_current_package_json = (
                 file_path == "package.json" and "./package.json" in adjusted_include and root == base_dir)
-            if (is_current_package_json or any(fnmatch.fnmatch(file_path, pat) for pat in adjusted_include)) and not any(fnmatch.fnmatch(file_path, pat) for pat in adjusted_exclude):
+            include_glob_matched = any(
+                path in file_path for path in glob.glob('app/**/*.css', recursive=True))
+            include_fnmatched = any(fnmatch.fnmatch(file_path, pat)
+                                    for pat in adjusted_include)
+            exclude_fnmatched = any(fnmatch.fnmatch(file_path, pat)
+                                    for pat in adjusted_exclude)
+            if (is_current_package_json or include_fnmatched or include_glob_matched) and not exclude_fnmatched:
                 # Check if file is excluded
                 if file in adjusted_exclude:
                     continue
@@ -304,14 +311,17 @@ def format_file_structure(base_dir, include_files, exclude_files, include_conten
         return result
 
     file_structure = print_structure(dir_structure, is_base_level=True)
+    file_structure = file_structure.strip()
     # file_structure = f"Base dir: {file_dir}\n" + \
     #     f"\nFile structure:\n{file_structure}"
+    print(
+        f"\n----- FILES STRUCTURE -----\n{file_structure}\n----- END FILES STRUCTURE -----\n")
     print("\n")
     num_files = len(files)
     logger.log("Number of Files:", num_files, colors=["GRAY", "DEBUG"])
     logger.log("Files Char Count:", total_char_length,
                colors=["GRAY", "SUCCESS"])
-    return file_structure.strip()
+    return file_structure
 
 
 def main():
