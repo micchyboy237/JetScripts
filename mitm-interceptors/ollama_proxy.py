@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import traceback
 from collections.abc import Iterable
 from datetime import datetime
 from jet.token.token_utils import token_counter
@@ -10,6 +11,7 @@ from jet.llm.llm_types import BaseGenerateResponse, OllamaChatResponse
 from jet.transformers import make_serializable
 from jet.logger import logger
 from jet.file import save_file
+from jet.utils import get_class_name
 
 
 LOGS_DIR = "jet-logs"
@@ -80,18 +82,23 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     prompt_log = flow.request.data.content.decode('utf-8')
     prompt_log_dict = json.loads(prompt_log)
     model = prompt_log_dict['model']
-    messages = prompt_log_dict['messages']
+    messages = prompt_log_dict.get(
+        'messages', prompt_log_dict.get('prompt', None))
 
     prompt_msgs = []
-    for item_idx, item in enumerate(messages):
-        prompt_msg = (
-            f"## Role\n{item.get('role')}\n\n"
-            f"## Content\n{item.get('content')}\n"
-        ).strip()
-        prompt_msgs.append(
-            f"### Message {item_idx + 1}\n\n```markdown\n{prompt_msg}\n```")
-
-    prompt_log = "\n\n".join(prompt_msgs)
+    if isinstance(messages, list):
+        for item_idx, item in enumerate(messages):
+            prompt_msg = (
+                f"## Role\n{item.get('role')}\n\n"
+                f"## Content\n{item.get('content')}\n"
+            ).strip()
+            prompt_msgs.append(
+                f"### Message {item_idx + 1}\n\n```markdown\n{prompt_msg}\n```")
+        prompt_log = "\n\n".join(prompt_msgs)
+        prompt = messages[-1]['content']
+    else:
+        prompt_log = messages
+        prompt = messages
 
     # Get last assistant response
     contents = []
@@ -107,7 +114,10 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         "response": response,
     }
     # Move 'messages' and 'response' to the end
-    final_dict['messages'] = final_dict.pop('messages')
+    if final_dict.get("messages"):
+        final_dict['messages'] = final_dict.pop('messages')
+    if final_dict.get("prompt"):
+        final_dict['prompt'] = final_dict.pop('prompt')
     final_dict['response'] = final_dict.pop('response')
 
     log_entry = (
@@ -122,7 +132,7 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         f"\n"
         # f"## Messages ({len(messages)})\n\n{prompt_log}\n\n"
         f"## Response\n\n{response}\n\n"
-        f"## Prompt\n\n{messages[-1]['content']}\n\n"
+        f"## Prompt\n\n{prompt}\n\n"
         f"## JSON\n\n```json\n{json.dumps(final_dict, indent=2)}\n```\n\n"
     ).strip()
     return log_entry
@@ -190,6 +200,10 @@ def request(flow: http.HTTPFlow):
     """
     global log_file_path
 
+    logger.newline()
+    logger.log("request client_conn.id:", flow.client_conn.id,
+               colors=["WHITE", "PURPLE"])
+
     # Store the start time for the request
     start_times[flow.id] = time.time()
 
@@ -198,7 +212,7 @@ def request(flow: http.HTTPFlow):
         logger.debug(f"REQUEST EMBEDDING:")
         logger.info(format_json(request_dict["content"]))
 
-    if any(path == flow.request.path for path in ["/api/chat", "/api/generate"]):
+    elif any(path == flow.request.path for path in ["/api/chat"]):
         request_dict = make_serializable(flow.request.data)
         logger.log("\n")
         url = f"{flow.request.scheme}//{flow.request.host}{flow.request.path}"
@@ -208,17 +222,24 @@ def request(flow: http.HTTPFlow):
              ["fields"] if field[0].lower() == "log-filename"),
             None
         )
-        log_file_path = generate_log_file_path(LOGS_DIR, header_log_filename)
+        header_event_start_time = next(
+            (field[1] for field in request_dict["headers"]
+             ["fields"] if field[0].lower() == "event-start-time"),
+            None
+        )
+        sub_dir = flow.request.path.replace("/", "-").strip("-")
+        log_base_dir = os.path.join(sub_dir, header_log_filename, header_event_start_time)\
+            if header_event_start_time else sub_dir
+        log_file_path = generate_log_file_path(LOGS_DIR, log_base_dir)
 
         logger.info(f"URL: {url}")
         # Log the serialized data as a JSON string
         request_content: dict = request_dict["content"].copy()
-        messages = request_content.pop(
-            "messages", request_content.pop("prompt", None))
+        messages = request_content.pop("messages", None)
         options = request_content.pop("options", {})
 
         logger.newline()
-        logger.gray("REQUEST PROMPT:")
+        logger.gray("REQUEST MESSAGES:")
         logger.info(format_json(messages) if not isinstance(
             messages, str) else messages)
 
@@ -232,13 +253,62 @@ def request(flow: http.HTTPFlow):
         logger.gray("REQUEST OPTIONS:")
         logger.debug(format_json(options))
 
-        token_count = token_counter(
-            request_dict["content"]["messages"], request_content["model"])
+        token_count = token_counter(messages, request_content["model"])
 
         logger.newline()
+        logger.log("STREAM:", request_content["stream"], colors=[
+                   "GRAY", "INFO"])
         logger.log("MODEL:", request_content["model"], colors=["GRAY", "INFO"])
         logger.log("PROMPT LENGTH:", len(
-            str(request_dict["content"]["messages"])), colors=["GRAY", "INFO"])
+            str(messages)), colors=["GRAY", "INFO"])
+        logger.log("PROMPT TOKENS:", token_count, colors=["GRAY", "INFO"])
+
+    elif any(path == flow.request.path for path in ["/api/generate"]):
+        request_dict = make_serializable(flow.request.data)
+        logger.log("\n")
+        url = f"{flow.request.scheme}//{flow.request.host}{flow.request.path}"
+
+        header_log_filename = next(
+            (field[1] for field in request_dict["headers"]
+             ["fields"] if field[0].lower() == "log-filename"),
+            None
+        )
+        header_event_start_time = next(
+            (field[1] for field in request_dict["headers"]
+             ["fields"] if field[0].lower() == "event-start-time"),
+            None
+        )
+        sub_dir = flow.request.path.replace("/", "-").strip("-")
+        log_base_dir = os.path.join(sub_dir, header_log_filename, header_event_start_time)\
+            if header_event_start_time else sub_dir
+        log_file_path = generate_log_file_path(LOGS_DIR, log_base_dir)
+
+        logger.info(f"URL: {url}")
+        # Log the serialized data as a JSON string
+        request_content: dict = request_dict["content"].copy()
+        prompt = request_content.pop("prompt", None)
+
+        logger.gray("REQUEST PROMPT:")
+        logger.info(prompt)
+
+        logger.log(f"REQUEST KEYS:", list(
+            request_dict.keys()), colors=["GRAY", "INFO"])
+        logger.log(f"REQUEST CONTENT KEYS:", list(
+            request_dict["content"].keys()), colors=["GRAY", "INFO"])
+        logger.log("REQUEST HEADERS:",
+                   json.dumps(request_dict["headers"]), colors=["GRAY", "INFO"])
+
+        logger.gray("REQUEST OPTIONS:")
+        logger.debug(format_json(options))
+
+        token_count = token_counter(prompt, request_content["model"])
+
+        logger.newline()
+        logger.log("PATH:", flow.request.path, colors=["GRAY", "INFO"])
+        logger.log("STREAM:", request_content["stream"], colors=[
+                   "GRAY", "INFO"])
+        logger.log("MODEL:", request_content["model"], colors=["GRAY", "INFO"])
+        logger.log("PROMPT LENGTH:", len(prompt), colors=["GRAY", "INFO"])
         logger.log("PROMPT TOKENS:", token_count, colors=["GRAY", "INFO"])
 
     else:
@@ -252,10 +322,16 @@ def response(flow: http.HTTPFlow):
     global log_file_path
     global chunks
 
+    logger.newline()
+    logger.log("response client_conn.id:",
+               flow.client_conn.id, colors=["WHITE", "PURPLE"])
+
     if any(path == flow.request.path for path in ["/api/chat", "/api/generate"]):
         logger.log("\n")
         # Get response info
         response_info = chunks.pop()
+        if "context" in response_info:
+            response_info.pop("context")
         # Log the serialized data as a JSON string
         response_dict: OllamaChatResponse = make_serializable(
             flow.response.data)
@@ -277,6 +353,8 @@ def response(flow: http.HTTPFlow):
         ])
 
         final_response_content = "".join(chunks)
+        if response_info.get("response"):
+            final_response_content = response_info.get("response")
         if not final_response_content:
             final_response_content = json.dumps(
                 response_dict.get('content', {}), indent=1)
@@ -287,18 +365,26 @@ def response(flow: http.HTTPFlow):
         # logger.log("RESPONSE CONTENT:")
         # logger.success(final_response_content)
 
-        logger.log("\Response Text Length:", len(final_response_content),
+        logger.newline()
+        logger.log("Response Text Length:", len(final_response_content),
                    colors=["DEBUG", "SUCCESS"])
 
         request_dict = make_serializable(flow.request.data)
         request_content: dict = request_dict["content"].copy()
+        content_messages_key = "messages" if "/chat" in flow.request.path else "prompt"
+        if not request_content["stream"]:
+            logger.log("Response:",
+                       final_response_content, colors=["DEBUG", "SUCCESS"])
 
         prompt_token_count = token_counter(
-            request_dict["content"]["messages"], request_content["model"])
+            request_content[content_messages_key], request_content["model"])
         response_token_count = token_counter(
             final_response_content, request_content["model"])
         total_tokens = prompt_token_count + response_token_count
         logger.newline()
+        logger.log("Path:", flow.request.path, colors=["GRAY", "INFO"])
+        logger.log("Stream:", request_content["stream"], colors=[
+                   "GRAY", "INFO"])
         logger.log("Prompt Tokens:", prompt_token_count, colors=[
                    "WHITE", "DEBUG"])
         logger.log(
@@ -344,9 +430,19 @@ def error(flow: http.HTTPFlow):
     # from mitmproxy.exceptions import HttpSyntaxException
     # if flow.error is not None and not isinstance(flow.error, HttpSyntaxException):
     #     flow.kill()
-    logger.warning(type(error))
-    logger.error("Error occured on mitmproxy")
-    logger.error(flow.error)
+    logger.error("Error occurred in mitmproxy:")
+
+    if flow.error is not None:
+        logger.warning(f"Error type: {get_class_name(flow.error)}")
+        logger.error(flow.error)
+
+    # Log the full stack trace
+    logger.error("Stack trace:")
+    logger.error(traceback.format_exc())  # This captures the stack trace
+
+    # Log the full stack trace
+    # logger.warning("Stack trace:")
+    # logger.error(traceback.format_exc())  # This captures the stack trace
 
 
 # Commands
