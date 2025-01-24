@@ -1,5 +1,6 @@
 import shutil
 from jet.llm.ollama.constants import OLLAMA_SMALL_EMBED_MODEL, OLLAMA_SMALL_LLM_MODEL
+from jet.llm.query.retrievers import setup_index
 from llama_index.core import Document, SimpleDirectoryReader, PromptTemplate
 from llama_index.core.retrievers.fusion_retriever import FUSION_MODES
 
@@ -26,13 +27,14 @@ def get_token_counts(texts, model):
 
 
 if __name__ == "__main__":
-    # Store config
-    data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
-    store_path = "generated/deeplake/store_1"
-    overwrite = True
+    mode = "hierarchy"
+    chunk_overlap = 40
+    sub_chunk_sizes = [512, 128]
+    path_or_docs = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
+    score_threshold = 0.0
 
     # Query config
-    top_k = 4
+    top_k = 20
     score_threshold = 0.0
     model = OLLAMA_SMALL_LLM_MODEL
     embed_model = OLLAMA_SMALL_EMBED_MODEL
@@ -40,15 +42,11 @@ if __name__ == "__main__":
 
     sample_query = "Tell me about yourself."
 
-    query_nodes = setup_deeplake_query(
-        data_dir,
-        store_path,
-        embed_model=embed_model,
-        overwrite=overwrite
-    )
+    query_nodes = setup_index(
+        path_or_docs, sub_chunk_sizes=sub_chunk_sizes, chunk_overlap=chunk_overlap, mode=mode)
 
     logger.newline()
-    logger.info("DEEPLAKE SCORE: sample query...")
+    logger.info("HEIRARCHY SCORE: sample query...")
     result = query_nodes(
         sample_query, threshold=score_threshold, top_k=top_k)
     logger.info(f"RETRIEVED NODES ({len(result["nodes"])})")

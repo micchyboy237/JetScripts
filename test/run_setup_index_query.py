@@ -11,11 +11,11 @@ from pydantic.main import BaseModel
 chunk_size = 1024
 chunk_overlap = 20
 data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
-with_heirarchy = False
+with_hierarchy = False
 
 documents = SimpleDirectoryReader(data_dir).load_data()
 query_nodes = setup_index(
-    documents, chunk_size=chunk_size, chunk_overlap=chunk_overlap, with_heirarchy=with_heirarchy)
+    documents, chunk_size=chunk_size, chunk_overlap=chunk_overlap, with_hierarchy=with_hierarchy)
 
 
 class Metadata(BaseModel):
