@@ -6,7 +6,7 @@ Refactor to reduce and optimize code without breaking existing functionality
 
 ## Prompt 2
 
-Improve UI in terms of element positions, color themes and contrasts, typography, font sizes, spacing, alignments, animations, UX, etc.
+Render beautiful UI/UX in terms of element positions, color themes and contrasts, typography, font sizes, spacing, alignments, animations, and other modern conventions.
 
 ## Prompt 3
 
