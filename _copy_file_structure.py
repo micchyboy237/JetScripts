@@ -98,7 +98,7 @@ def find_files(base_dir, include, exclude, include_content_patterns, exclude_con
             is_current_package_json = (
                 file_path == "package.json" and "./package.json" in adjusted_include and root == base_dir)
             include_glob_matched = any(
-                path in file_path for path in glob.glob('app/**/*.css', recursive=True))
+                path in file_path for include_path in include for path in glob.glob(include_path, recursive=True))
             include_fnmatched = any(fnmatch.fnmatch(file_path, pat)
                                     for pat in adjusted_include)
             exclude_fnmatched = any(fnmatch.fnmatch(file_path, pat)
