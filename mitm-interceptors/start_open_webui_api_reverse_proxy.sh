@@ -2,13 +2,14 @@
 
 # Default configuration
 LISTEN_PORT="8080"
-TARGET_URL="http://localhost:8085"
-CORS_SCRIPT="inject_cors.py"
+TARGET_URL="http://jetairm1:8085"
+PROXY_SCRIPT="open_webui_proxy.py"
+
 
 echo "Running reverse proxy with CORS enabled..."
 
 # Run mitmdump with the CORS injection script
-mitmdump --mode reverse:$TARGET_URL -p $LISTEN_PORT -s $CORS_SCRIPT
+mitmdump --mode reverse:$TARGET_URL -p $LISTEN_PORT -s $PROXY_SCRIPT
 
 # Sample Command
 # ./run_proxy_sample.sh
