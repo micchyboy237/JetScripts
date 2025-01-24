@@ -71,7 +71,7 @@ def find_files(base_dir, include, exclude, include_content_patterns, exclude_con
             if file_path in adjusted_include and not any(fnmatch.fnmatch(file_path, pat) for pat in adjusted_exclude):
                 if file_path not in matched_files:
                     matched_files.add(file_path)  # Add to the set
-                    print(f"Matched file in current directory: {file_path}")
+                    # print(f"Matched file in current directory: {file_path}")
 
         # Check for directories that match the include patterns
         for dir_name in dirs:
@@ -89,8 +89,7 @@ def find_files(base_dir, include, exclude, include_content_patterns, exclude_con
                         if not any(fnmatch.fnmatch(file_path, pat) for pat in adjusted_exclude):
                             if file_path not in matched_files:
                                 matched_files.add(file_path)  # Add to the set
-                                print(
-                                    f"Matched file in directory: {file_path}")
+                                # print( f"Matched file in directory: {file_path}")
 
         # Check for files that match the include patterns
         for file in files:
@@ -112,7 +111,7 @@ def find_files(base_dir, include, exclude, include_content_patterns, exclude_con
                 if matches_content(full_path, include_content_patterns, exclude_content_patterns, case_sensitive):
                     if file_path not in matched_files:
                         matched_files.add(file_path)  # Add to the set
-                        print(f"Matched file: {file_path}")
+                        # print(f"Matched file: {file_path}")
 
         # Check for files in absolute directories that match the include patterns with wildcards
         include_dir_abs = [
@@ -142,8 +141,7 @@ def find_files(base_dir, include, exclude, include_content_patterns, exclude_con
                         rel_file_path = os.path.relpath(file_path)
                         if rel_file_path not in matched_files and os.path.isfile(rel_file_path):
                             matched_files.add(rel_file_path)
-                            print(f"Matched file in directory: {
-                                  rel_file_path}")
+                            # print(f"Matched file in directory: { rel_file_path}")
 
     # Convert the set back to a list before returning
     return list(matched_files)
