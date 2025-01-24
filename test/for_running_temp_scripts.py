@@ -1,33 +1,28 @@
-from deeplake.core.vectorstore import VectorStore
-from jet.llm.ollama.embeddings import get_ollama_embedding_function
-from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.logger import logger
 from jet.transformers.formatters import format_json
-from llama_index.core.schema import NodeWithScore, TextNode
-
-vector_store_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/semantic_search/generated/deeplake/store_1"
-
-embedding_function = get_ollama_embedding_function("mxbai-embed-large")
-
-vector_store = VectorStore(
-    path=vector_store_path,
-    read_only=True
-)
-
-query = "List your primary and secondary skills"
-top_k = 20
+from pydantic import BaseModel, EmailStr, Field
+from typing import Optional
 
 
-results = vector_store.search(
-    embedding_data=query, k=top_k, embedding_function=embedding_function)
+class UserProfile(BaseModel):
+    name: str = Field(..., min_length=1)
+    age: Optional[int] = Field(None, ge=0)
+    email: EmailStr
 
-nodes_with_scores = [
-    NodeWithScore(
-        node=TextNode(text=str(text), metadata=metadata),
-        score=float(score)
-    )
-    for text, metadata, score in zip(results["text"], results["metadata"], results["score"])
-]
+    class Config:
+        schema_extra = {
+            "example": {
+                "name": "John Doe",
+                "age": 30,
+                "email": "johndoe@example.com"
+            }
+        }
 
 
-display_jet_source_nodes(query, nodes_with_scores)
+# Generate the schema and add the $schema field manually
+schema = UserProfile.model_json_schema()
+schema["$schema"] = "http://json-schema.org/draft-07/schema#"
+
+
+# Generate the schema
+logger.success(format_json(schema))
