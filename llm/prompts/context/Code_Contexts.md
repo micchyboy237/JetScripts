@@ -25,7 +25,7 @@ INSTRUCTIONS
 - Provide a step by step process of how you would solve the query.
 - Keep the code short, reusable, testable, maintainable and optimized. Follow best practices and industry design patterns.
 - Install any libraries required to run the code.
-- You may update the code structure if necessary.
+- You may add files or update the code structure if necessary.
 - Reuse existing code if possible without breaking anything.
 - Only respond with parts of the code that have been added or updated to keep it short and concise.
 - Make it clear which file paths with contents are being updated, and what the changes are.
