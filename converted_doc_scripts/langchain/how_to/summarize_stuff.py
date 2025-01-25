@@ -1,6 +1,6 @@
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
-import ChatModelTabs from "@theme/ChatModelTabs";
+# import ChatModelTabs from "@theme/ChatModelTabs";
 from jet.llm.ollama.base_langchain import ChatOllama
 from langchain_core.documents import Document
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -48,8 +48,10 @@ Next, we need some documents to summarize. Below, we generate some toy documents
 
 documents = [
     Document(page_content="Apples are red", metadata={"title": "apple_book"}),
-    Document(page_content="Blueberries are blue", metadata={"title": "blueberry_book"}),
-    Document(page_content="Bananas are yelow", metadata={"title": "banana_book"}),
+    Document(page_content="Blueberries are blue",
+             metadata={"title": "blueberry_book"}),
+    Document(page_content="Bananas are yelow",
+             metadata={"title": "banana_book"}),
 ]
 
 """

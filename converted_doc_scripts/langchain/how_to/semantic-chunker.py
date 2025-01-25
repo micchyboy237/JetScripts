@@ -1,7 +1,7 @@
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 from langchain_experimental.text_splitter import SemanticChunker
-from jet.llm.ollama.base_langchain.embeddings import OllamaEmbeddings
+from jet.llm.ollama.base_langchain import OllamaEmbeddings
 
 initialize_ollama_settings()
 
@@ -29,7 +29,9 @@ sentences, and then merges one that are similar in the embedding space.
 ## Load Example Data
 """
 
-with open("state_of_the_union.txt") as f:
+data_file = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/how_to/state_of_the_union.txt"
+
+with open(data_file) as f:
     state_of_the_union = f.read()
 
 """
@@ -49,8 +51,12 @@ text_splitter = SemanticChunker(OllamaEmbeddings(model="nomic-embed-text"))
 We split text in the usual way, e.g., by invoking `.create_documents` to create LangChain [Document](https://python.langchain.com/api_reference/core/documents/langchain_core.documents.base.Document.html) objects:
 """
 
+logger.newline()
+logger.info("Guide: Split Text")
 docs = text_splitter.create_documents([state_of_the_union])
-print(docs[0].page_content)
+logger.success(docs[0].page_content)
+
+logger.debug(len(docs))
 
 """
 ## Breakpoints
@@ -66,14 +72,16 @@ Note: if the resulting chunk sizes are too small/big, the additional kwargs `bre
 The default way to split is based on percentile. In this method, all differences between sentences are calculated, and then any difference greater than the X percentile is split. The default value for X is 95.0 and can be adjusted by the keyword argument `breakpoint_threshold_amount` which expects a number between 0.0 and 100.0.
 """
 
+logger.newline()
+logger.info("Guide: Percentile")
 text_splitter = SemanticChunker(
     OllamaEmbeddings(model="nomic-embed-text"), breakpoint_threshold_type="percentile"
 )
 
 docs = text_splitter.create_documents([state_of_the_union])
-print(docs[0].page_content)
+logger.success(docs[0].page_content)
 
-print(len(docs))
+logger.debug(len(docs))
 
 """
 ### Standard Deviation
@@ -81,14 +89,16 @@ print(len(docs))
 In this method, any difference greater than X standard deviations is split. The default value for X is 3.0 and can be adjusted by the keyword argument `breakpoint_threshold_amount`.
 """
 
+logger.newline()
+logger.info("Guide: Standard Deviation")
 text_splitter = SemanticChunker(
     OllamaEmbeddings(model="nomic-embed-text"), breakpoint_threshold_type="standard_deviation"
 )
 
 docs = text_splitter.create_documents([state_of_the_union])
-print(docs[0].page_content)
+logger.success(docs[0].page_content)
 
-print(len(docs))
+logger.debug(len(docs))
 
 """
 ### Interquartile
@@ -96,14 +106,16 @@ print(len(docs))
 In this method, the interquartile distance is used to split chunks. The interquartile range can be scaled by the keyword argument `breakpoint_threshold_amount`, the default value is 1.5.
 """
 
+logger.newline()
+logger.info("Guide: Interquartile")
 text_splitter = SemanticChunker(
     OllamaEmbeddings(model="nomic-embed-text"), breakpoint_threshold_type="interquartile"
 )
 
 docs = text_splitter.create_documents([state_of_the_union])
-print(docs[0].page_content)
+logger.success(docs[0].page_content)
 
-print(len(docs))
+logger.debug(len(docs))
 
 """
 ### Gradient
@@ -112,13 +124,15 @@ In this method, the gradient of distance is used to split chunks along with the 
 Similar to the percentile method, the split can be adjusted by the keyword argument `breakpoint_threshold_amount` which expects a number between 0.0 and 100.0, the default value is 95.0.
 """
 
+logger.newline()
+logger.info("Guide: Gradient")
 text_splitter = SemanticChunker(
     OllamaEmbeddings(model="nomic-embed-text"), breakpoint_threshold_type="gradient"
 )
 
 docs = text_splitter.create_documents([state_of_the_union])
-print(docs[0].page_content)
+logger.success(docs[0].page_content)
 
-print(len(docs))
+logger.debug(len(docs))
 
 logger.info("\n\n[DONE]", bright=True)
