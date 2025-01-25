@@ -1,26 +1,29 @@
-from jet.code import get_header_contents
+from typing import List, Dict
+from jet.llm.query.cleaners import group_and_merge_texts_by_file_name
+from llama_index.core.schema import BaseNode, TextNode
+import unittest
 
 
-# Example usage
+# Example Usage
+
+
+def main():
+    nodes = [
+        TextNode(text="Header 1\nContent 1",
+                 metadata={"file_name": "file1.md"}),
+        TextNode(text="Content 1\nHeader 2\nContent 2",
+                 metadata={"file_name": "file1.md"}),
+        TextNode(text="Header A\nContent A",
+                 metadata={"file_name": "file2.md"}),
+        TextNode(text="Content A\nHeader B\nContent B",
+                 metadata={"file_name": "file2.md"}),
+    ]
+
+    result = group_and_merge_texts_by_file_name(nodes)
+
+    for file_name, content in result.items():
+        print(f"File: {file_name}\n{content}\n")
+
+
 if __name__ == "__main__":
-    md_text = """
-    # Header 1
-    Content under header 1.
-
-    ## Subheader 1.1
-    Content under subheader 1.1.
-
-    ### Subheader 1.1.1
-    Content under subheader 1.1.1.
-
-    ## Subheader 1.2
-    Content under subheader 1.2.
-
-    # Header 2
-    Content under header 2.
-    """
-
-    result = get_header_contents(md_text)
-
-    import json
-    print(json.dumps(result, indent=2))
+    main()
