@@ -50,8 +50,8 @@ def pretty_print_docs(docs):
 Let's start by initializing a simple vector store retriever and storing the 2023 State of the Union speech (in chunks). We can see that given an example question our retriever returns one or two relevant docs and a few irrelevant docs. And even the relevant docs have a lot of irrelevant information in them.
 """
 
-
-documents = TextLoader("state_of_the_union.txt").load()
+data_file = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/how_to/state_of_the_union.txt"
+documents = TextLoader(data_file).load()
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 texts = text_splitter.split_documents(documents)
 retriever = FAISS.from_documents(texts, OllamaEmbeddings(
