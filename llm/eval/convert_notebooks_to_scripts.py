@@ -516,7 +516,8 @@ def wrap_await_code_multiline_args(code: str) -> str:
                 ])
 
                 updated_lines.append(async_wrapped_code)
-                line_idx += 1
+
+            line_idx += 1
         else:
             updated_lines.append(line)
             line_idx += 1
@@ -623,13 +624,36 @@ def scrape_code(
     return results
 
 
+def list_folders(path: str) -> list[str]:
+    return [
+        name for name in os.listdir(path)
+        if os.path.isdir(os.path.join(path, name)) and not name.startswith(".")
+    ]
+
+
+def find_matching_repo_dir(input_base_dir: str, repo_base_dir: str, repo_dirs: list[str]) -> str | None:
+    input_base_dir = os.path.abspath(input_base_dir)
+    for repo_dir in repo_dirs:
+        repo_path = os.path.join(repo_base_dir, repo_dir)
+        if input_base_dir.startswith(repo_path):
+            return repo_dir
+    return None
+
+
 if __name__ == "__main__":
+    repo_base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs"
+    repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/versions/migrating_memory",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/workflow",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/agent",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langgraph/docs/docs/how-tos/memory",
     ]
     include_files = [
         # "workflows_cookbook",
-        "long_term_memory_agent.ipynb",
+        # "long_term_memory_agent",
+        # "react_agent",
+        # "react_agent_with_query_engine",
+        "manage-conversation-history.ipynb"
     ]
     exclude_files = [
         # "migrating_memory/",
@@ -646,11 +670,22 @@ if __name__ == "__main__":
         logger.newline()
         logger.info(f"Processing: {input_base_dir}")
 
+        matching_repo_dir = find_matching_repo_dir(
+            input_base_dir, repo_base_dir, repo_dirs)
+        logger.log("matching_repo_dir:", matching_repo_dir, colors=[
+                   "GRAY", "INFO"])  # Output: "repo1" if found, else None
+
+        if not matching_repo_dir:
+            logger.error(f"No matching repo dir: \"{matching_repo_dir}\"")
+            continue
+
         for ext_mapping in extension_mappings:
             extensions = ext_mapping["ext"]
             output_base_dir = os.path.join(
-                output_base_dir, ext_mapping["output_base_dir"], os.path.basename(
-                    input_base_dir)
+                output_base_dir,
+                ext_mapping["output_base_dir"],
+                matching_repo_dir,
+                os.path.basename(input_base_dir),
             )
 
             files = scrape_code(

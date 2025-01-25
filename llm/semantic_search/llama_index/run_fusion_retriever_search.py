@@ -46,7 +46,7 @@ if __name__ == "__main__":
     documents = SimpleDirectoryReader(
         rag_dir, required_exts=extensions).load_data()
 
-    query_nodes = setup_index(documents, data_dir)
+    query_nodes = setup_index(documents)
 
     # logger.newline()
     # logger.info("RECIPROCAL_RANK: query...")

@@ -1,6 +1,27 @@
-from llama_index.core.tools import FunctionTool
+import asyncio
+from jet.transformers.formatters import format_json
+from jet.logger import logger
+from jet.llm.ollama import initialize_ollama_settings
+import os
+from opentelemetry.sdk import trace as trace_sdk
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+    OTLPSpanExporter as HTTPSpanExporter,
+)
+from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
+    import asyncio
+from llama_index.core.llms import ChatMessage
+from llama_index.core.tools import ToolSelection, ToolOutput
+from llama_index.core.workflow import Event
 from typing import Any, List
-from jet.llm.ollama.base import Ollama
+from llama_index.core.agent.react import ReActChatFormatter, ReActOutputParser
+from llama_index.core.agent.react.types import (
+    ActionReasoningStep,
+    ObservationReasoningStep,
+)
+from llama_index.core.llms.llm import LLM
+from llama_index.core.memory import ChatMemoryBuffer
+from llama_index.core.tools.types import BaseTool
 from llama_index.core.workflow import (
     Context,
     Workflow,
@@ -8,46 +29,35 @@ from llama_index.core.workflow import (
     StopEvent,
     step,
 )
-from llama_index.core.tools.types import BaseTool
-from llama_index.core.memory import ChatMemoryBuffer
-from llama_index.core.llms.llm import LLM
-from llama_index.core.agent.react.types import (
-    ActionReasoningStep,
-    ObservationReasoningStep,
-)
-from llama_index.core.agent.react import ReActChatFormatter, ReActOutputParser
-from llama_index.core.workflow import Event
-from llama_index.core.tools import ToolSelection, ToolOutput
-from llama_index.core.llms import ChatMessage
-from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
-    OTLPSpanExporter as HTTPSpanExporter,
-)
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor
-from opentelemetry.sdk import trace as trace_sdk
-import os
-from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama import Ollama
+from llama_index.core.tools import FunctionTool
+from jet.llm.ollama import Ollama
+
 initialize_ollama_settings()
 
+"""
 # Workflow for a ReAct Agent
-#
-# This notebook walks through setting up a `Workflow` to construct a ReAct agent from (mostly) scratch.
-#
-# React calling agents work by prompting an LLM to either invoke tools/functions, or return a final response.
-#
-# Our workflow will be stateful with memory, and will be able to call the LLM to select tools and process incoming user messages.
+
+This notebook walks through setting up a `Workflow` to construct a ReAct agent from (mostly) scratch.
+
+React calling agents work by prompting an LLM to either invoke tools/functions, or return a final response.
+
+Our workflow will be stateful with memory, and will be able to call the LLM to select tools and process incoming user messages.
+"""
 
 # !pip install -U llama-index
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-proj--..."
 
-# [Optional] Set up observability with Llamatrace
-#
-# Set up tracing to visualize each step in the workflow.
+"""
+### [Optional] Set up observability with Llamatrace
+
+Set up tracing to visualize each step in the workflow.
+"""
 
 # !pip install "llama-index-core>=0.10.43" "openinference-instrumentation-llama-index>=2" "opentelemetry-proto>=1.12.0" opentelemetry-exporter-otlp opentelemetry-sdk
+
 
 
 PHOENIX_API_KEY = "<YOUR-PHOENIX-API-KEY>"
@@ -62,37 +72,41 @@ tracer_provider.add_span_processor(span_processor=span_phoenix_processor)
 
 LlamaIndexInstrumentor().instrument(tracer_provider=tracer_provider)
 
-# Since workflows are async first, this all runs fine in a notebook. If you were running in your own code, you would want to use `asyncio.run()` to start an async event loop if one isn't already running.
-#
-# ```python
-# async def main():
-#     <async code>
-#
-# if __name__ == "__main__":
-#     import asyncio
-#     asyncio.run(main())
-# ```
+"""
+Since workflows are async first, this all runs fine in a notebook. If you were running in your own code, you would want to use `asyncio.run()` to start an async event loop if one isn't already running.
 
-# Designing the Workflow
-#
-# An agent consists of several steps
-# 1. Handling the latest incoming user message, including adding to memory and preparing the chat history
-# 2. Using the chat history and tools to construct a ReAct prompt
-# 3. Calling the llm with the react prompt, and parsing out function/tool calls
-# 4. If no tool calls, we can return
-# 5. If there are tool calls, we need to execute them, and then loop back for a fresh ReAct prompt using the latest tool calls
-#
-# The Workflow Events
-#
-# To handle these steps, we need to define a few events:
-# 1. An event to handle new messages and prepare the chat history
-# 2. An event to prompt the LLM with the react prompt
-# 3. An event to trigger tool calls, if any
-# 4. An event to handle the results of tool calls, if any
-#
-# The other steps will use the built-in `StartEvent` and `StopEvent` events.
-#
-# In addition to events, we will also use the global context to store the current react reasoning!
+```python
+async def main():
+    <async code>
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+"""
+
+"""
+## Designing the Workflow
+
+An agent consists of several steps
+1. Handling the latest incoming user message, including adding to memory and preparing the chat history
+2. Using the chat history and tools to construct a ReAct prompt
+3. Calling the llm with the react prompt, and parsing out function/tool calls
+4. If no tool calls, we can return
+5. If there are tool calls, we need to execute them, and then loop back for a fresh ReAct prompt using the latest tool calls
+
+### The Workflow Events
+
+To handle these steps, we need to define a few events:
+1. An event to handle new messages and prepare the chat history
+2. An event to prompt the LLM with the react prompt
+3. An event to trigger tool calls, if any
+4. An event to handle the results of tool calls, if any
+
+The other steps will use the built-in `StartEvent` and `StopEvent` events.
+
+In addition to events, we will also use the global context to store the current react reasoning!
+"""
+
 
 
 class PrepEvent(Event):
@@ -110,11 +124,15 @@ class ToolCallEvent(Event):
 class FunctionOutputEvent(Event):
     output: ToolOutput
 
-# The Workflow Itself
-#
-# With our events defined, we can construct our workflow and steps.
-#
-# Note that the workflow automatically validates itself using type annotations, so the type annotations on our steps are very helpful!
+"""
+### The Workflow Itself
+
+With our events defined, we can construct our workflow and steps. 
+
+Note that the workflow automatically validates itself using type annotations, so the type annotations on our steps are very helpful!
+"""
+
+
 
 
 class ReActAgent(Workflow):
@@ -144,7 +162,6 @@ class ReActAgent(Workflow):
         user_msg = ChatMessage(role="user", content=user_input)
         self.memory.put(user_msg)
 
-        await ctx.set("current_reasoning", [])
 
         return PrepEvent()
 
@@ -153,7 +170,6 @@ class ReActAgent(Workflow):
         self, ctx: Context, ev: PrepEvent
     ) -> InputEvent:
         chat_history = self.memory.get()
-        current_reasoning = await ctx.get("current_reasoning", default=[])
         llm_input = self.formatter.format(
             self.tools, chat_history, current_reasoning=current_reasoning
         )
@@ -165,7 +181,6 @@ class ReActAgent(Workflow):
     ) -> ToolCallEvent | StopEvent:
         chat_history = ev.input
 
-        response = self.llm.chat(chat_history)
 
         try:
             reasoning_step = self.output_parser.parse(response.message.content)
@@ -202,8 +217,7 @@ class ReActAgent(Workflow):
         except Exception as e:
             (await ctx.get("current_reasoning", default=[])).append(
                 ObservationReasoningStep(
-                    observation=f"There was an error in parsing my reasoning: {
-                        e}"
+                    observation=f"There was an error in parsing my reasoning: {e}"
                 )
             )
 
@@ -221,8 +235,7 @@ class ReActAgent(Workflow):
             if not tool:
                 (await ctx.get("current_reasoning", default=[])).append(
                     ObservationReasoningStep(
-                        observation=f"Tool {
-                            tool_call.tool_name} does not exist"
+                        observation=f"Tool {tool_call.tool_name} does not exist"
                     )
                 )
                 continue
@@ -236,30 +249,34 @@ class ReActAgent(Workflow):
             except Exception as e:
                 (await ctx.get("current_reasoning", default=[])).append(
                     ObservationReasoningStep(
-                        observation=f"Error calling tool {
-                            tool.metadata.get_name()}: {e}"
+                        observation=f"Error calling tool {tool.metadata.get_name()}: {e}"
                     )
                 )
 
         return PrepEvent()
 
-# And thats it! Let's explore the workflow we wrote a bit.
-#
-# `new_user_msg()`:
-# Adds the user message to memory, and clears the global context to keep track of a fresh string of reasoning.
-#
-# `prepare_chat_history()`:
-# Prepares the react prompt, using the chat history, tools, and current reasoning (if any)
-#
-# `handle_llm_input()`:
-# Prompts the LLM with our react prompt, and uses some utility functions to parse the output. If there are no tool calls, we can stop and emit a `StopEvent`. Otherwise, we emit a `ToolCallEvent` to handle tool calls. Lastly, if there are no tool calls, and no final response, we simply loop again.
-#
-# `handle_tool_calls()`:
-# Safely calls tools with error handling, adding the tool outputs to the current reasoning. Then, by emitting a `PrepEvent`, we loop around for another round of ReAct prompting and parsing.
+"""
+And thats it! Let's explore the workflow we wrote a bit.
 
-# Run the Workflow!
-#
-# **NOTE:** With loops, we need to be mindful of runtime. Here, we set a timeout of 120s.
+`new_user_msg()`:
+Adds the user message to memory, and clears the global context to keep track of a fresh string of reasoning.
+
+`prepare_chat_history()`:
+Prepares the react prompt, using the chat history, tools, and current reasoning (if any)
+
+`handle_llm_input()`:
+Prompts the LLM with our react prompt, and uses some utility functions to parse the output. If there are no tool calls, we can stop and emit a `StopEvent`. Otherwise, we emit a `ToolCallEvent` to handle tool calls. Lastly, if there are no tool calls, and no final response, we simply loop again.
+
+`handle_tool_calls()`:
+Safely calls tools with error handling, adding the tool outputs to the current reasoning. Then, by emitting a `PrepEvent`, we loop around for another round of ReAct prompting and parsing.
+"""
+
+"""
+## Run the Workflow!
+
+**NOTE:** With loops, we need to be mindful of runtime. Here, we set a timeout of 120s.
+"""
+
 
 
 def add(x: int, y: int) -> int:
@@ -281,11 +298,21 @@ agent = ReActAgent(
     llm=Ollama(model="llama3.1", request_timeout=300.0, context_window=4096), tools=tools, timeout=120, verbose=True
 )
 
-ret = await agent.run(input="Hello!")
+async def run_async_code_e75b1b7f():
+  ret = await agent.run(input="Hello!")
+  return ret
+
+ret = asyncio.run(run_async_code_e75b1b7f())
+logger.success(format_json(ret))
 
 print(ret["response"])
 
-ret = await agent.run(input="What is (2123 + 2321) * 312?")
+async def run_async_code_8783ece2():
+  ret = await agent.run(input="What is (2123 + 2321) * 312?")
+  return ret
+
+ret = asyncio.run(run_async_code_8783ece2())
+logger.success(format_json(ret))
 
 print(ret["response"])
 
