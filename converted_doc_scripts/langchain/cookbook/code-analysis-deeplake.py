@@ -1,3 +1,4 @@
+import fnmatch
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 import os
@@ -82,19 +83,25 @@ If you want to use files from different repo, change `root_dir` to the root dir 
 # !ls "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/libs"
 
 
-root_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/libs"
+root_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain"
+extensions = ["*.md", "*.mdx", "*.rst"]
+docs_limit = 20
 
 docs = []
 for dirpath, dirnames, filenames in os.walk(root_dir):
     for file in filenames:
-        if file.endswith(".py") and "*venv/" not in dirpath:
+        # Use fnmatch to match the extensions patterns
+        if any(fnmatch.fnmatch(file, ext) for ext in extensions) and "*venv/" not in dirpath:
             try:
                 loader = TextLoader(os.path.join(
                     dirpath, file), encoding="utf-8")
                 docs.extend(loader.load_and_split())
-            except Exception:
+            except Exception as e:
+                print(f"Error loading file {file}: {e}")
                 pass
-print(f"{len(docs)}")
+# Limit docs to the first n if we collect more than that
+docs = docs[:docs_limit]
+print(f"{len(docs)} documents loaded.")
 
 """
 Then, chunk the files
@@ -140,7 +147,7 @@ db = DeepLake(
 retriever = db.as_retriever()
 retriever.search_kwargs["distance_metric"] = "cos"
 retriever.search_kwargs["fetch_k"] = 20
-retriever.search_kwargs["maximal_marginal_relevance"] = True
+# retriever.search_kwargs["maximal_marginal_relevance"] = True
 retriever.search_kwargs["k"] = 20
 
 """
