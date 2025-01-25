@@ -50,7 +50,7 @@ You'll need to [sign up for an account](https://tavily.com/) on the Tavily websi
 # if not os.environ.get("OPENAI_API_KEY"):
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
 
-if not os.environ.get("TAVILY_API_KEY"):
+# if not os.environ.get("TAVILY_API_KEY"):
 #     os.environ["TAVILY_API_KEY"] = getpass.getpass("Tavily API Key:")
 
 """
@@ -132,7 +132,8 @@ If preferred, you can also add memory to the LangGraph agent to manage the histo
 
 
 memory = MemorySaver()
-agent = create_react_agent(model, tools, state_modifier=prompt, checkpointer=memory)
+agent = create_react_agent(
+    model, tools, state_modifier=prompt, checkpointer=memory)
 
 agent.invoke(
     {"messages": [HumanMessage("I'm Nemo!")]},
