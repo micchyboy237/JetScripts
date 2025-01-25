@@ -10,6 +10,14 @@ from jet.llm.ollama.base_langchain import ChatOllama
 
 initialize_ollama_settings()
 
+file_name = os.path.splitext(os.path.basename(__file__))[0]
+GENERATED_DIR = os.path.join("generated", file_name)
+os.makedirs(GENERATED_DIR, exist_ok=True)
+
+DATASET_PATH = f"{GENERATED_DIR}/langchain-code"
+os.makedirs(DATASET_PATH, exist_ok=True)
+
+
 """
 # Use LangChain, GPT and Activeloop's Deep Lake to work with code base
 In this tutorial, we are going to use Langchain + Activeloop's Deep Lake with GPT to analyze the code base of the LangChain itself.
@@ -43,7 +51,6 @@ We need to set up keys for external services and install necessary python librar
 """
 
 
-
 """
 Set up Ollama embeddings, Deep Lake multi-modal vector store api and authenticate. 
 
@@ -60,7 +67,7 @@ Authenticate into Deep Lake if you want to create your own dataset and publish i
 """
 
 # activeloop_token = getpass("Activeloop Token:")
-os.environ["ACTIVELOOP_TOKEN"] = activeloop_token
+# os.environ["ACTIVELOOP_TOKEN"] = activeloop_token
 
 """
 ### Prepare data
@@ -72,17 +79,18 @@ Load all repository files. Here we assume this notebook is downloaded as the par
 If you want to use files from different repo, change `root_dir` to the root dir of your repo.
 """
 
-# !ls "../../../../../../libs"
+# !ls "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/libs"
 
 
-root_dir = "../../../../../../libs"
+root_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/libs"
 
 docs = []
 for dirpath, dirnames, filenames in os.walk(root_dir):
     for file in filenames:
         if file.endswith(".py") and "*venv/" not in dirpath:
             try:
-                loader = TextLoader(os.path.join(dirpath, file), encoding="utf-8")
+                loader = TextLoader(os.path.join(
+                    dirpath, file), encoding="utf-8")
                 docs.extend(loader.load_and_split())
             except Exception:
                 pass
@@ -105,21 +113,17 @@ This can take several minutes.
 
 
 embeddings = OllamaEmbeddings(model="nomic-embed-text")
-embeddings
 
 
-username = "<USERNAME_OR_ORG>"
-
+# username = "<USERNAME_OR_ORG>"
 
 db = DeepLake.from_documents(
-    texts, embeddings, dataset_path=f"hub://{username}/langchain-code", overwrite=True
+    texts, embeddings, dataset_path=DATASET_PATH, overwrite=True
 )
-db
 
 """
 `Optional`: You can also use Deep Lake's Managed Tensor Database as a hosting service and run queries there. In order to do so, it is necessary to specify the runtime parameter as {'tensor_db': True} during the creation of the vector store. This configuration enables the execution of queries on the Managed Tensor Database, rather than on the client side. It should be noted that this functionality is not applicable to datasets stored locally or in-memory. In the event that a vector store has already been created outside of the Managed Tensor Database, it is possible to transfer it to the Managed Tensor Database by following the prescribed steps.
 """
-
 
 
 """
@@ -128,7 +132,7 @@ First load the dataset, construct the retriever, then construct the Conversation
 """
 
 db = DeepLake(
-    dataset_path=f"hub://{username}/langchain-code",
+    dataset_path=DATASET_PATH,
     read_only=True,
     embedding=embeddings,
 )
@@ -143,6 +147,7 @@ retriever.search_kwargs["k"] = 20
 You can also specify user defined functions using [Deep Lake filters](https://docs.deeplake.ai/en/latest/deeplake.core.dataset.html#deeplake.core.dataset.Dataset.filter)
 """
 
+
 def filter(x):
     if "something" in x["text"].data()["value"]:
         return False
@@ -152,7 +157,7 @@ def filter(x):
 
 
 model = ChatOllama(
-    model_name="gpt-3.5-turbo-0613"
+    model="llama3.1"
 )  # 'ada' 'gpt-3.5-turbo-0613' 'gpt-4',
 qa = ConversationalRetrievalChain.from_llm(model, retriever=retriever)
 

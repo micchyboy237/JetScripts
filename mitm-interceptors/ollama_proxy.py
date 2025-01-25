@@ -180,14 +180,21 @@ def interceptor_callback(data: bytes) -> bytes | Iterable[bytes]:
         # Store the start time for the stream
         # start_times["stream"] = time.time()
         pass
+
     try:
         chunk_dict = json.loads(decoded_data)
-        if "message" in chunk_dict and chunk_dict["message"]["role"] == "assistant":
-            content = chunk_dict["message"]["content"]
-            chunks.append(content)
-            logger.success(content, flush=True)
+
+        # Check if "message" is a dictionary and if it contains the expected key
+        if isinstance(chunk_dict.get("message"), dict):
+            if chunk_dict["message"].get("role") == "assistant":
+                content = chunk_dict["message"].get("content", "")
+                if content:
+                    chunks.append(content)
+                    logger.success(content, flush=True)
+
         if chunk_dict.get("done"):
             chunks.append(chunk_dict)
+
     except json.JSONDecodeError:
         pass
 
