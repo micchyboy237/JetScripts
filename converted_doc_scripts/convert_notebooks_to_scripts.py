@@ -182,6 +182,10 @@ def add_jet_logger(code: str):
     ])
 
 
+def replace_print_with_jet_logger(code: str):
+    return code.replace("print(", "logger.debug(")
+
+
 def update_code_with_ollama(code: str) -> str:
     updated_code = code
 
@@ -596,6 +600,7 @@ def scrape_code(
                     source_code = add_ollama_initializer_code(source_code)
                     source_code = add_jet_logger(source_code)
                     source_code = move_all_imports_on_top(source_code)
+                    source_code = replace_print_with_jet_logger(source_code)
 
                 if "format_json(" in source_code:
                     source_code = "from jet.transformers.formatters import format_json\n" + source_code
@@ -660,8 +665,10 @@ if __name__ == "__main__":
     repo_base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs"
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/how_to/semantic-chunker.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/how_to/summarize_stuff.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/how_to/chatbots_memory.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/how_to/chatbots_retrieval.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/how_to/chatbots_tools.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/how_to/contextual_compression.ipynb",
     ]
 
     include_files = [
