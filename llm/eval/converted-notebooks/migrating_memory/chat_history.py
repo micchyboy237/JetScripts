@@ -1,3 +1,4 @@
+from jet.token.token_utils import token_counter
 from langchain_core.messages import AIMessageChunk
 from langgraph.graph import START, MessagesState, StateGraph
 from langchain_core.runnables import RunnableConfig
@@ -11,6 +12,7 @@ from getpass import getpass
 import os
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
+from shared.events.events import EventSettings
 initialize_ollama_settings()
 
 
@@ -76,7 +78,26 @@ The conversation ID can be passed as either part of the RunnableConfig (as we'll
 
 builder = StateGraph(state_schema=MessagesState)
 
-model = ChatOllama(model="llama3.1")
+
+def generate_model(model_name="llama3.1", messages=[]):
+    # Define headers
+    event = EventSettings.call_ollama_chat()
+    pre_start_hook_start_time = EventSettings.event_data["pre_start_hook"]["start_time"]
+    # log_filename = f"{event['filename'].split(".")[0]}_{
+    #     pre_start_hook_start_time}"
+    log_filename = event['filename'].split(".")[0]
+    logger.log("Log-Filename:", log_filename, colors=["WHITE", "DEBUG"])
+    token_count = token_counter(messages, model=model_name)
+    headers = {
+        "Tokens": str(token_count),  # Include the token count here
+        "Log-Filename": log_filename,
+        "Event-Start-Time": pre_start_hook_start_time,
+    }
+
+    model = ChatOllama(model=model_name, client_kwargs={
+        "headers": headers
+    })
+    return model
 
 
 def call_model(state: MessagesState, config: RunnableConfig) -> list[BaseMessage]:
@@ -86,6 +107,8 @@ def call_model(state: MessagesState, config: RunnableConfig) -> list[BaseMessage
         )
     chat_history = get_chat_history(config["configurable"]["session_id"])
     messages = list(chat_history.messages) + state["messages"]
+
+    model = generate_model(messages=messages)
     ai_message = model.invoke(messages)
     chat_history.add_messages(state["messages"] + [ai_message])
     return {"messages": ai_message}

@@ -228,7 +228,9 @@ def request(flow: http.HTTPFlow):
             None
         )
         sub_dir = flow.request.path.replace("/", "-").strip("-")
-        log_base_dir = os.path.join(sub_dir, header_log_filename, header_event_start_time)\
+        base_dir = os.path.join(header_log_filename, header_event_start_time)\
+            if header_log_filename else flow.client_conn.id
+        log_base_dir = os.path.join(sub_dir, base_dir)\
             if header_event_start_time else sub_dir
         log_file_path = generate_log_file_path(LOGS_DIR, log_base_dir)
 
@@ -279,7 +281,9 @@ def request(flow: http.HTTPFlow):
             None
         )
         sub_dir = flow.request.path.replace("/", "-").strip("-")
-        log_base_dir = os.path.join(sub_dir, header_log_filename, header_event_start_time)\
+        base_dir = os.path.join(header_log_filename, header_event_start_time)\
+            if header_log_filename else flow.client_conn.id
+        log_base_dir = os.path.join(sub_dir, base_dir)\
             if header_event_start_time else sub_dir
         log_file_path = generate_log_file_path(LOGS_DIR, log_base_dir)
 
