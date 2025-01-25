@@ -660,14 +660,8 @@ if __name__ == "__main__":
     repo_base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs"
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/cookbook/advanced_rag_eval.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/cookbook/forward_looking_retrieval_augmented_generation.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/cookbook/causal_program_aided_language_model.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/cookbook/code-analysis-deeplake.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/cookbook/contextual_rag.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/cookbook/baby_agi.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/cookbook/baby_agi_with_agent.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/cookbook/camel_role_playing.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/how_to/semantic-chunker.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/how_to/summarize_stuff.ipynb",
     ]
 
     include_files = [
