@@ -15,8 +15,9 @@ REPLACE_OLLAMA_MAP = {
     "llama-index-embeddings-openai": "llama-index-embeddings-ollama",
     "llama_index.llms.openai": "jet.llm.ollama",
     "llama_index.embeddings.openai": "jet.llm.ollama",
-    "langchain_openai": "langchain_ollama",
-    "langchain_anthropic": "langchain_ollama",
+    "langchain_openai": "jet.llm.ollama.base_langchain",
+    "langchain_anthropic": "jet.llm.ollama.base_langchain",
+    "langchain_ollama": "jet.llm.ollama.base_langchain",
     "OpenAIEmbeddings": "OllamaEmbeddings",
     "OpenAIEmbedding": "OllamaEmbedding",
     "ChatOpenAI": "ChatOllama",
@@ -640,24 +641,49 @@ def find_matching_repo_dir(input_base_dir: str, repo_base_dir: str, repo_dirs: l
     return None
 
 
+def collect_files_and_dirs(input_base_dirs: list[str]) -> (list[str], list[str]):
+    include_files = []
+    unique_dirs = set()
+
+    for path in input_base_dirs:
+        if os.path.isfile(path):
+            include_files.append(os.path.basename(path))
+            unique_dirs.add(os.path.dirname(path))
+
+    # Convert the set of directories to a sorted list for consistent output
+    unique_dirs_list = sorted(unique_dirs)
+
+    return include_files, unique_dirs_list
+
+
 if __name__ == "__main__":
     repo_base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs"
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/workflow",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/agent",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langgraph/docs/docs/how-tos/memory",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/cookbook/advanced_rag_eval.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/cookbook/forward_looking_retrieval_augmented_generation.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/cookbook/causal_program_aided_language_model.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/cookbook/code-analysis-deeplake.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/cookbook/contextual_rag.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/cookbook/baby_agi.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/cookbook/baby_agi_with_agent.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/cookbook/camel_role_playing.ipynb",
     ]
+
     include_files = [
-        # "workflows_cookbook",
-        # "long_term_memory_agent",
-        # "react_agent",
-        # "react_agent_with_query_engine",
-        "manage-conversation-history.ipynb"
+        # "memgraph.ipynb",
     ]
     exclude_files = [
         # "migrating_memory/",
     ]
+
+    collected_results = collect_files_and_dirs(input_base_dirs)
+    include_files.extend(collected_results[0])
+
+    input_base_dirs = collected_results[1]
+
+    print("Included Files:", include_files)
+    print("Unique Containing Directories:", input_base_dirs)
 
     extension_mappings = [
         {"ext": [".ipynb"], "output_base_dir": "converted-notebooks"},
@@ -683,8 +709,8 @@ if __name__ == "__main__":
             extensions = ext_mapping["ext"]
             output_base_dir = os.path.join(
                 output_base_dir,
-                ext_mapping["output_base_dir"],
                 matching_repo_dir,
+                # ext_mapping["output_base_dir"],
                 os.path.basename(input_base_dir),
             )
 
