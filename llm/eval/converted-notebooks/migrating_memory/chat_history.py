@@ -1,4 +1,5 @@
 from jet.token.token_utils import token_counter
+from jet.transformers.formatters import format_json
 from langchain_core.messages import AIMessageChunk
 from langgraph.graph import START, MessagesState, StateGraph
 from langchain_core.runnables import RunnableConfig
@@ -66,22 +67,9 @@ def get_chat_history(session_id: str) -> InMemoryChatMessageHistory:
     return chat_history
 
 
-"""
-## Use with LangGraph
-
-Next, we'll set up a basic chat bot using LangGraph. If you're not familiar with LangGraph, you should look at the following [Quick Start Tutorial](https://langchain-ai.github.io/langgraph/tutorials/introduction/).
-
-We'll create a [LangGraph node](https://langchain-ai.github.io/langgraph/concepts/low_level/#nodes) for the chat model, and manually manage the conversation history, taking into account the conversation ID passed as part of the RunnableConfig.
-
-The conversation ID can be passed as either part of the RunnableConfig (as we'll do here), or as part of the [graph state](https://langchain-ai.github.io/langgraph/concepts/low_level/#state).
-"""
-
-builder = StateGraph(state_schema=MessagesState)
-
-
 def generate_model(model_name="llama3.1", messages=[]):
     # Define headers
-    event = EventSettings.call_ollama_chat()
+    event = EventSettings.call_ollama_chat_langchain()
     pre_start_hook_start_time = EventSettings.event_data["pre_start_hook"]["start_time"]
     # log_filename = f"{event['filename'].split(".")[0]}_{
     #     pre_start_hook_start_time}"
@@ -94,10 +82,23 @@ def generate_model(model_name="llama3.1", messages=[]):
         "Event-Start-Time": pre_start_hook_start_time,
     }
 
-    model = ChatOllama(model=model_name, client_kwargs={
+    model = ChatOllama(model=model_name, base_url="http://localhost:11434", client_kwargs={
         "headers": headers
     })
     return model
+
+
+"""
+## Use with LangGraph
+
+Next, we'll set up a basic chat bot using LangGraph. If you're not familiar with LangGraph, you should look at the following [Quick Start Tutorial](https://langchain-ai.github.io/langgraph/tutorials/introduction/).
+
+We'll create a [LangGraph node](https://langchain-ai.github.io/langgraph/concepts/low_level/#nodes) for the chat model, and manually manage the conversation history, taking into account the conversation ID passed as part of the RunnableConfig.
+
+The conversation ID can be passed as either part of the RunnableConfig (as we'll do here), or as part of the [graph state](https://langchain-ai.github.io/langgraph/concepts/low_level/#state).
+"""
+
+builder = StateGraph(state_schema=MessagesState)
 
 
 def call_model(state: MessagesState, config: RunnableConfig) -> list[BaseMessage]:
@@ -125,10 +126,12 @@ config = {"configurable": {"session_id": session_id}}
 input_message = HumanMessage(content="hi! I'm bob")
 for event in graph.stream({"messages": [input_message]}, config, stream_mode="values"):
     event["messages"][-1].pretty_print()
+    logger.success(format_json(event["messages"][-1]))
 
 input_message = HumanMessage(content="what was my name?")
 for event in graph.stream({"messages": [input_message]}, config, stream_mode="values"):
     event["messages"][-1].pretty_print()
+    logger.success(format_json(event["messages"][-1]))
 
 """
 :::hint
@@ -143,25 +146,25 @@ for msg, metadata in graph.stream(
     {"messages": input_message}, config, stream_mode="messages"
 ):
     if msg.content and not isinstance(msg, HumanMessage):
-        print(msg.content, end="|", flush=True)
+        logger.success(msg.content, flush=True)
 
 
-# Define the underlying logic for the runnable
-runnable_logic = RunnableLambda(
-    # Using `model` from the existing code
-    lambda messages: model.invoke(messages)
-)
+# # Define the underlying logic for the runnable
+# runnable_logic = RunnableLambda(
+#     # Using `model` from the existing code
+#     lambda messages: model.invoke(messages)
+# )
 
-# Create a RunnableWithMessageHistory instance
-runnable = RunnableWithMessageHistory(runnable_logic, get_chat_history)
+# # Create a RunnableWithMessageHistory instance
+# runnable = RunnableWithMessageHistory(runnable_logic, get_chat_history)
 
-# Refactor the call_model function
+# # Refactor the call_model function
 
 
-def call_model(state: MessagesState, config: RunnableConfig) -> list[BaseMessage]:
-    # Delegate history management and message invocation to `RunnableWithMessageHistory`
-    ai_message = runnable.invoke(state["messages"], config)
-    return {"messages": ai_message}
+# def call_model(state: MessagesState, config: RunnableConfig) -> list[BaseMessage]:
+#     # Delegate history management and message invocation to `RunnableWithMessageHistory`
+#     ai_message = runnable.invoke(state["messages"], config)
+#     return {"messages": ai_message}
 
 
 """

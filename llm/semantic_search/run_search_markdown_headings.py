@@ -9,8 +9,8 @@ from jet.llm.utils import display_jet_source_nodes
 from jet.token import token_counter
 from jet.llm.query import setup_deeplake_query, query_llm
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings, small_embed_model
-initialize_ollama_settings(settings={"embedding_model": small_embed_model})
+from jet.llm.ollama import initialize_ollama_settings
+initialize_ollama_settings()
 
 
 def get_token_counts(texts, model):
@@ -27,13 +27,12 @@ def get_token_counts(texts, model):
 
 
 if __name__ == "__main__":
-    mode = "hierarchy"
-    chunk_overlap = 40
-    sub_chunk_sizes = [512, 128]
+    mode = "fusion"
+    chunk_overlap = 100
     path_or_docs = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
 
     # Query config
-    top_k = 20
+    top_k = None
     score_threshold = 0.0
     model = OLLAMA_SMALL_LLM_MODEL
     embed_model = OLLAMA_SMALL_EMBED_MODEL
@@ -42,10 +41,10 @@ if __name__ == "__main__":
     sample_query = "Tell me about yourself."
 
     query_nodes = setup_index(
-        path_or_docs, sub_chunk_sizes=sub_chunk_sizes, chunk_overlap=chunk_overlap, mode=mode)
+        path_or_docs, split_mode=["markdown"], chunk_overlap=chunk_overlap, mode=mode)
 
     logger.newline()
-    logger.info("HEIRARCHY SCORE: sample query...")
+    logger.info("Searching...")
     result = query_nodes(
         sample_query, threshold=score_threshold, top_k=top_k)
     logger.info(f"RETRIEVED NODES ({len(result["nodes"])})")

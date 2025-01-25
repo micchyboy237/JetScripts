@@ -1,6 +1,7 @@
 # Skills
 
-Frontend:
+## Frontend
+
 - React
 - React Native
 - Vanilla JS/CSS
@@ -9,17 +10,25 @@ Frontend:
 - Redux
 - Gatsby
 - TypeScript
-Backend:
+
+## Backend
+
 - Node.js
 - Python
-Databases:
+
+## Databases
+
 - PostgreSQL
 - MongoDB
-Platforms:
+
+## Platforms
+
 - Firebase
 - AWS
 - Google Cloud
-Developer Tools:
+
+## Developer Tools
+
 - Photoshop
 - Jest (Unit testing)
 - Cypress (Integration testing)

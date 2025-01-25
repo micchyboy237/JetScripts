@@ -625,13 +625,11 @@ def scrape_code(
 
 if __name__ == "__main__":
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/retrievers",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/vector_stores"
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/versions/migrating_memory",
     ]
     include_files = [
         # "workflows_cookbook",
-        "deep_memory",
-        "DeepLakeIndexDemo",
+        "long_term_memory_agent.ipynb",
     ]
     exclude_files = [
         # "migrating_memory/",
