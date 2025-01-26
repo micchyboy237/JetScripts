@@ -9,7 +9,7 @@ from langchain.callbacks.manager import (
 from langchain_community.utilities import GoogleSerperAPIWrapper
 from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
-from jet.llm.ollama.base_langchain import ChatOllama, Ollama
+from jet.llm.ollama.base_langchain import ChatOllama
 from langchain.globals import set_verbose
 from langchain.chains import FlareChain
 
@@ -59,10 +59,10 @@ os.environ["SERPER_API_KEY"] = ""
 # os.environ["OPENAI_API_KEY"] = ""
 
 
-
 """
 ## Retriever
 """
+
 
 class SerperSearchRetriever(BaseRetriever):
     search: GoogleSerperAPIWrapper = None
@@ -103,7 +103,7 @@ query = "explain in great detail the difference between the langchain framework 
 
 flare.run(query)
 
-llm = Ollama()
+llm = ChatOllama()
 llm.invoke(query)
 
 flare.run("how are the origin stories of langchain and bitcoin similar or different?")
