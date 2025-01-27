@@ -1,3 +1,9 @@
 MATCH (p:Project {name: "JABA AI"})
+// MATCH (p:Project {name: "Graduapp"})
 OPTIONAL MATCH (p)-[:USES]->(u:Technology)
 RETURN p, collect(u) AS uses
+
+// MATCH (p:Project)
+// WHERE p.name IN ["JABA AI", "Graduapp"]
+// OPTIONAL MATCH (p)-[:USES]->(u:Technology)
+// RETURN p, collect(u) AS uses
