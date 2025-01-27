@@ -55,7 +55,7 @@ Other important parameters to understand:
 """
 
 
-os.environ["SERPER_API_KEY"] = ""
+# os.environ["SERPER_API_KEY"] = ""
 # os.environ["OPENAI_API_KEY"] = ""
 
 
@@ -100,13 +100,30 @@ flare = FlareChain.from_llm(
 )
 
 query = "explain in great detail the difference between the langchain framework and baby agi"
+result = flare.run(query)
 
-flare.run(query)
+logger.newline()
+logger.info("Flare Query 1:")
+logger.debug(query)
+logger.success(result)
 
-llm = ChatOllama()
-llm.invoke(query)
 
-flare.run("how are the origin stories of langchain and bitcoin similar or different?")
+llm = ChatOllama(model="llama3.1")
+result = llm.invoke(query)
+
+logger.newline()
+logger.info("LLM Query 1:")
+logger.debug(query)
+logger.success(result)
+
+
+query = "how are the origin stories of langchain and bitcoin similar or different?"
+result = flare.run(query)
+
+logger.newline()
+logger.info("Flare Query 2:")
+logger.debug(query)
+logger.success(result)
 
 
 logger.info("\n\n[DONE]", bright=True)

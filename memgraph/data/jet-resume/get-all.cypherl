@@ -1,0 +1,9 @@
+MATCH (p:Person {full_name: "Jethro Reuel A. Estrada"})
+OPTIONAL MATCH (p)-[:WORKED_AT]->(c:Company)
+OPTIONAL MATCH (p)-[:KNOWS]->(t:Technology)
+OPTIONAL MATCH (p)-[:WORKED_ON]->(proj:Project)
+OPTIONAL MATCH (p)-[:HAS_PORTFOLIO]->(port:Portfolio)
+OPTIONAL MATCH (p)-[:SPEAKS]->(l:Language)
+OPTIONAL MATCH (p)-[:HAS_EDUCATION]->(e:Education)
+OPTIONAL MATCH (p)-[:HAS_CONTACT]->(cont:Contact)
+RETURN p, collect(c) AS work_history, collect(t) AS skills, collect(proj) AS projects, collect(port) AS portfolio, collect(l) AS languages, collect(e) AS education, collect(cont) AS contact

@@ -1,0 +1,4 @@
+MATCH (p:Project)
+RETURN p.name AS project_name, p.platform as platform, p.achievements AS achievements
+ORDER BY p.start_date DESC
+LIMIT 1;

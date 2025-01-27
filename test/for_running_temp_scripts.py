@@ -1,29 +1,18 @@
-from typing import List, Dict
-from jet.llm.query.cleaners import group_and_merge_texts_by_file_name
-from llama_index.core.schema import BaseNode, TextNode
-import unittest
+import os
+from jet.logger import logger
+from llama_index.core import SimpleDirectoryReader
 
 
-# Example Usage
+INPUT_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
+# COMBINED_FILE_NAME = "combined.txt"
 
+# Combine file contents
+documents = SimpleDirectoryReader(INPUT_DIR, required_exts=[".md"]).load_data()
+texts = [doc.text for doc in documents]
+combined_texts_str = "\n\n\n".join(texts)
 
-def main():
-    nodes = [
-        TextNode(text="Header 1\nContent 1",
-                 metadata={"file_name": "file1.md"}),
-        TextNode(text="Content 1\nHeader 2\nContent 2",
-                 metadata={"file_name": "file1.md"}),
-        TextNode(text="Header A\nContent A",
-                 metadata={"file_name": "file2.md"}),
-        TextNode(text="Content A\nHeader B\nContent B",
-                 metadata={"file_name": "file2.md"}),
-    ]
+logger.success(combined_texts_str)
 
-    result = group_and_merge_texts_by_file_name(nodes)
-
-    for file_name, content in result.items():
-        print(f"File: {file_name}\n{content}\n")
-
-
-if __name__ == "__main__":
-    main()
+# combined_file_path = os.path.join(INPUT_DIR, COMBINED_FILE_NAME)
+# with open(combined_file_path, "w") as f:
+#     f.write(combined_texts_str)
