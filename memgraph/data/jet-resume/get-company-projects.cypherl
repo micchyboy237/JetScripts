@@ -1,0 +1,2 @@
+MATCH path=(:Company)-[:OWNS *bfs]->(:Project)-[:PUBLISHED_AT]->(:Portfolio_Link)
+RETURN path;

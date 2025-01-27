@@ -1,3 +1,7 @@
 MATCH (p:Person)-[r:WORKED_AT]->(c:Company)
-WHERE r.end_date IS NULL
+WHERE c.end_date IS NULL
 RETURN p, r, c
+
+// MATCH path=(p:Person)-[r:WORKED_AT]->(c:Company)
+// WHERE c.end_date IS NULL
+// RETURN path;
