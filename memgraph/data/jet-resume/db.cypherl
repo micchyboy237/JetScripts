@@ -83,3 +83,22 @@ MATCH (p:Person), (t:Technology) WHERE p.full_name = "Jethro Reuel A. Estrada" A
 MATCH (p:Person), (proj:Project) WHERE p.full_name = "Jethro Reuel A. Estrada" AND proj.name IN ["JABA AI", "Graduapp", "EZ Myoma", "Jules Procure", "Digital Cities PH", "ADEC Kenya", "AMDATEX"] CREATE (p)-[:`WORKED_ON`]->(proj);
 
 MATCH (p:Person), (port:Portfolio) WHERE p.full_name = "Jethro Reuel A. Estrada" AND port.url IN ["https://www.julesai.com/#procure", "https://www.digitalcitiesph.com", "https://www.adec-kenya.com", "https://www.amdatex.com", "https://jaba.live", "https://play.google.com/store/apps/details?id=com.ezmyoma", "https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp", "https://apps.apple.com/us/app/graduapp/id1576401944", "https://apps.apple.com/us/app/jaba-ai/id6451218161"] CREATE (p)-[:`HAS_PORTFOLIO`]->(port);
+
+MATCH (p:Person), (e:Education) WHERE p.full_name = "Jethro Reuel A. Estrada" AND e.school = "De La Salle University - Manila" CREATE (p)-[:`COLLEGE`]->(e);
+
+MATCH (p:Person), (l:Language) WHERE p.full_name = "Jethro Reuel A. Estrada" AND l.name IN ["English", "Tagalog"] CREATE (p)-[:`LANGUAGE`]->(l);
+
+MATCH (p:Person), (c:Contact) WHERE p.full_name = "Jethro Reuel A. Estrada" AND c.email = "jethroestrada237@gmail.com" CREATE (p)-[:`CONTACT_INFO`]->(c);
+
+
+MATCH (p:Project), (t:Technology) WHERE p.name = "JABA AI" AND t.name IN ["React", "React Native", "Expo"] CREATE (p)-[:`USES`]->(t);
+
+MATCH (p:Project), (t:Technology) WHERE p.name = "Graduapp" AND t.name IN ["React", "React Native", "Node.js", "Firebase", "MongoDB", "AWS", "Redux", "Jest"] CREATE (p)-[:`USES`]->(t);
+
+MATCH (p:Project), (t:Technology) WHERE p.name = "EZ Myoma" AND t.name IN ["React Native", "Redux"] CREATE (p)-[:`USES`]->(t);
+
+MATCH (p:Project), (t:Technology) WHERE p.name = "Jules Procure" AND t.name IN ["React", "React Native", "AWS", "GraphQL", "Docker", "Serverless", "Jest"] CREATE (p)-[:`USES`]->(t);
+
+MATCH (p:Project), (t:Technology) WHERE p.name = "Digital Cities PH" AND t.name IN ["React", "GraphQL", "React Static", "Headless CMS"] CREATE (p)-[:`USES`]->(t);
+
+MATCH (p:Project), (t:Technology) WHERE p.name = "ADEC Kenya, AMDATEX" AND t.name IN ["React", "jQuery", "Wordpress"] CREATE (p)-[:`USES`]->(t);

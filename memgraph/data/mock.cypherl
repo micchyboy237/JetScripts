@@ -1,0 +1,27 @@
+// Indexes
+CREATE INDEX ON :`Country`(`name`);
+CREATE INDEX ON :`Country`(`iso_2_code`);
+CREATE INDEX ON :`Country`(`iso_3_code`);
+CREATE INDEX ON :`Entity`(`name`);
+CREATE INDEX ON :`Entity`(`provider`);
+CREATE INDEX ON :`Entity`(`icij_id`);
+CREATE INDEX ON :`Officer`(`name`);
+CREATE INDEX ON :`Officer`(`provider`);
+CREATE INDEX ON :`Officer`(`icij_id`);
+CREATE INDEX ON :__mg_vertex__(__mg_id__);
+
+// Objects
+CREATE (:__mg_vertex__:`Country` {__mg_id__: 1, `name`: "Virgin Islands (British)", `iso_2_code`: "VG", `iso_3_code`: "VGB", `region`: "Americas", `sub_region`: "Latin America and the Caribbean"});
+
+CREATE (:__mg_vertex__:`Entity` {__mg_id__: 64, `name`: "Axeno Limited", `provider`: "Alcogal", `icij_id`: "7A15CC81D9DA787D79F94E5487CC47C9", `source`: "Pandora Papers - Alemán, Cordero, Galindo & Lee (Alcogal)", `status`: "Active", `registered_at`: "2016-08-16", `jurisdiction_note`: "British Virgin Islands", `icij_note`: "The data is current through 2018."});
+
+CREATE (:__mg_vertex__:`Officer` {__mg_id__: 309, `name`: "Abdullah II Ibn Al Hussein", `icij_id`: "ABDULLAH2727", `source`: "Pandora Papers - Alemán, Cordero, Galindo & Lee (Alcogal)", `icij_note`: "The data is current through 2018.", `country`: "Jordan", `country_code`: "JOR"});
+
+// Relationships
+MATCH (u:__mg_vertex__), (v:__mg_vertex__)
+WHERE u.__mg_id__ = 309 AND v.__mg_id__ = 64
+CREATE (u)-[:`OFFICER_OF` {`role`: "Beneficial Owner"}]->(v);
+
+MATCH (u:__mg_vertex__), (v:__mg_vertex__)
+WHERE u.__mg_id__ = 64 AND v.__mg_id__ = 1
+CREATE (u)-[:`JURISDICTION_IN`]->(v);
