@@ -1,0 +1,5 @@
+MATCH (p:Person), (c:Company)
+WHERE p.full_name = "Jethro Reuel A. Estrada"
+  AND c.end_date >= date() - duration('P1461D') // Last 1461 days (approx. 4 years)
+// RETURN c.name AS company, c.start_date AS start_date, c.end_date AS end_date
+RETURN c
