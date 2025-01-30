@@ -30,6 +30,9 @@ def remove_old_files_by_limit(base_dir: str, limit: int):
     :param base_dir: The directory containing files and folders.
     :param limit: The maximum number of recent items to keep.
     """
+    if not os.path.exists(base_dir):
+        return
+
     existing_logs = sorted(
         (os.path.join(base_dir, f) for f in os.listdir(base_dir)),
         key=os.path.getctime

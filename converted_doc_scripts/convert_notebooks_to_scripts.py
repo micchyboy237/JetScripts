@@ -665,7 +665,7 @@ if __name__ == "__main__":
     repo_base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs"
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/tutorials/classification.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/tutorials/agents.ipynb",
     ]
 
     include_files = [
