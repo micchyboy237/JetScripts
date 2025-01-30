@@ -71,6 +71,11 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     Generates a formatted log entry with metadata, prompt, and response.
     """
     global chunks
+    chunks = chunks.copy()
+
+    response_info = chunks.copy().pop()
+    if "context" in response_info:
+        response_info.pop("context")
 
     request_dict = make_serializable(flow.request.data)
     request_content: dict = request_dict["content"].copy()
@@ -140,23 +145,27 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         prompt = messages
 
     # Get last assistant response
-    contents = []
-    for chunk in chunks:
-        try:
-            contents.append(chunk)
-        except json.JSONDecodeError:
-            pass
-    response = "".join(contents)
+    final_response_content = "".join(
+        [chunk.get("content", "") for chunk in chunks])
+    final_response_tool_calls = "".join(
+        [json.dumps(chunk.get("tool_calls", ""), indent=1) for chunk in chunks])
+    if final_response_tool_calls:
+        final_response_content += f"\n{final_response_tool_calls}".strip()
+    if response_info.get("response"):
+        final_response_content = response_info.get("response")
+
+    response = final_response_content
 
     final_dict = {
         **prompt_log_dict,
         "response": response,
     }
-    # Move 'messages' and 'response' to the end
+    # Move 'messages', 'tools' 'response' to the end
     if final_dict.get("messages"):
         final_dict['messages'] = final_dict.pop('messages')
     if final_dict.get("prompt"):
         final_dict['prompt'] = final_dict.pop('prompt')
+    final_dict['tools'] = final_dict.pop('tools')
     final_dict['response'] = final_dict.pop('response')
 
     response_str = f"## Response\n\n{response}\n\n" if response else ""
@@ -166,6 +175,10 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     logger.newline()
     logger.debug("Prompt Log:")
     logger.info(prompt_log_str)
+
+    # logger.newline()
+    # logger.debug("response_dict:")
+    # logger.info(flow.response.data.__dict__)
 
     log_entry = (
         f"## Request Info\n\n"
@@ -184,7 +197,7 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         f"{response_str}"
         f"{tools_str}"
         f"{prompt_log_str}"
-        f"## JSON\n\n```json\n{json.dumps(final_dict, indent=2)}\n```\n\n"
+        f"## JSON\n\n```json\n{format_json(final_dict)}\n```\n\n"
     ).strip()
     return log_entry
 
@@ -239,9 +252,8 @@ def interceptor_callback(data: bytes) -> bytes | Iterable[bytes]:
         if isinstance(chunk_dict.get("message"), dict):
             if chunk_dict["message"].get("role") == "assistant":
                 content = chunk_dict["message"].get("content", "")
-                if content:
-                    chunks.append(content)
-                    logger.success(content, flush=True)
+                chunks.append(chunk_dict["message"])
+                logger.success(content, flush=True)
 
         if chunk_dict.get("done"):
             chunks.append(chunk_dict)
@@ -398,6 +410,7 @@ def response(flow: http.HTTPFlow):
     """
     global log_file_path
     global chunks
+    chunks = chunks.copy()
 
     logger.newline()
     logger.log("response client_conn.id:",
@@ -406,10 +419,9 @@ def response(flow: http.HTTPFlow):
     if any(path == flow.request.path for path in ["/api/chat", "/api/generate"]):
         logger.log("\n")
         # Get response info
-        response_info = chunks.pop()
+        response_info = chunks.copy().pop()
         if "context" in response_info:
             response_info.pop("context")
-        # Log the serialized data as a JSON string
         response_dict: OllamaChatResponse = make_serializable(
             flow.response.data)
 
@@ -429,7 +441,12 @@ def response(flow: http.HTTPFlow):
             "SUCCESS",
         ])
 
-        final_response_content = "".join(chunks)
+        final_response_content = "".join(
+            [chunk.get("content", "") for chunk in chunks])
+        final_response_tool_calls = "".join(
+            [json.dumps(chunk.get("tool_calls", ""), indent=1) for chunk in chunks])
+        if final_response_tool_calls:
+            final_response_content += f"\n{final_response_tool_calls}".strip()
         if response_info.get("response"):
             final_response_content = response_info.get("response")
         if not final_response_content:
@@ -453,10 +470,12 @@ def response(flow: http.HTTPFlow):
             logger.log("Response:",
                        final_response_content, colors=["DEBUG", "SUCCESS"])
 
-        prompt_token_count = token_counter(
-            request_content[content_messages_key], request_content["model"])
-        response_token_count = token_counter(
-            final_response_content, request_content["model"])
+        if final_response_tool_calls:
+            logger.log("Tools:",
+                       final_response_tool_calls, colors=["DEBUG", "SUCCESS"])
+
+        prompt_token_count = response_info["prompt_eval_count"]
+        response_token_count = response_info['eval_count']
         total_tokens = prompt_token_count + response_token_count
         logger.newline()
         logger.log("Path:", flow.request.path, colors=["GRAY", "INFO"])
