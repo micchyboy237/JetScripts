@@ -159,9 +159,13 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         final_dict['prompt'] = final_dict.pop('prompt')
     final_dict['response'] = final_dict.pop('response')
 
+    response_str = f"## Response\n\n{response}\n\n" if response else ""
+    tools_str = f"## Tools\n\n{format_json(tools)}\n\n" if has_tools else ""
+    prompt_log_str = (
+        f"## Prompts\n\n{prompt_log}\n\n" if is_chat else f"## Prompt\n\n{prompt}\n\n")
     logger.newline()
     logger.debug("Prompt Log:")
-    logger.info(prompt_log)
+    logger.info(prompt_log_str)
 
     log_entry = (
         f"## Request Info\n\n"
@@ -177,10 +181,9 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         f"- **Log Filename**: {log_filename}\n"
         f"\n"
         # f"## Messages ({len(messages)})\n\n{prompt_log}\n\n"
-        f"## Response\n\n{response}\n\n" if response else
-        f"## Tools\n\n{format_json(tools)}\n\n" if has_tools else
-        f"## Prompts\n\n{
-            prompt_log}\n\n" if is_chat else f"## Prompt\n\n{prompt}\n\n"
+        f"{response_str}"
+        f"{tools_str}"
+        f"{prompt_log_str}"
         f"## JSON\n\n```json\n{json.dumps(final_dict, indent=2)}\n```\n\n"
     ).strip()
     return log_entry
@@ -285,6 +288,7 @@ def request(flow: http.HTTPFlow):
             None
         )
         header_event_start_time = header_event_start_time.replace("|", "_")
+        header_event_start_time = header_event_start_time.replace(":", "-")
 
         sub_dir_path = flow.request.path.replace("/", "-").strip("-")
         sub_dir_feature = header_log_filename
