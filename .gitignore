@@ -9,6 +9,6 @@ generated
 .venv
 evaluation/beir/
 .aim/
-jet-logs/
+*logs/
 jet-vscode-commands/custom-extensions
 vector_db/

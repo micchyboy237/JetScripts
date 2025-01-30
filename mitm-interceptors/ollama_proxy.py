@@ -1,3 +1,4 @@
+import shutil
 import json
 import os
 import time
@@ -14,7 +15,7 @@ from jet.file import save_file
 from jet.utils import get_class_name
 
 
-LOGS_DIR = "jet-logs"
+LOGS_DIR = "ollama-logs"
 log_file_path = None
 
 # Dictionary to store start times for requests
@@ -22,7 +23,27 @@ start_times: dict[str, float] = {}
 chunks: list[str] = []
 
 
-def generate_log_file_path(logs_dir, base_dir=None, limit=None):
+def remove_old_files_by_limit(base_dir: str, limit: int):
+    """
+    Removes the oldest files or directories in `base_dir` to maintain only `limit` most recent items.
+
+    :param base_dir: The directory containing files and folders.
+    :param limit: The maximum number of recent items to keep.
+    """
+    existing_logs = sorted(
+        (os.path.join(base_dir, f) for f in os.listdir(base_dir)),
+        key=os.path.getctime
+    )
+
+    while len(existing_logs) > limit:
+        oldest = existing_logs.pop(0)
+        if os.path.isdir(oldest):
+            shutil.rmtree(oldest)  # Remove directory and contents
+        else:
+            os.remove(oldest)  # Remove file
+
+
+def generate_log_file_path(logs_dir, base_dir=None):
     # Determine the base directory
     if base_dir:
         log_dir = os.path.join(logs_dir, base_dir)
@@ -33,22 +54,13 @@ def generate_log_file_path(logs_dir, base_dir=None, limit=None):
 
     os.makedirs(log_dir, exist_ok=True)
 
-    # Maintain only the `limit` most recent files
-    existing_logs = sorted(
-        (os.path.join(log_dir, f) for f in os.listdir(log_dir)
-         if os.path.isfile(os.path.join(log_dir, f))),
-        key=os.path.getctime
-    )
-
-    if limit:
-        while len(existing_logs) >= limit:
-            os.remove(existing_logs.pop(0))
-
     # Generate a timestamp and unique log file name
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    log_file_name = f"{timestamp}_{int(time.time())}.md"
+    # timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    # log_file_name = f"{timestamp}_{int(time.time())}.md"
+    log_file_name = f"{int(time.time())}.md"
+    log_file_path = os.path.realpath(os.path.join(log_dir, log_file_name))
 
-    return os.path.realpath(os.path.join(log_dir, log_file_name))
+    return log_file_path
 
 
 def generate_log_entry(flow: http.HTTPFlow) -> str:
@@ -58,10 +70,11 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     global chunks
 
     request_dict = make_serializable(flow.request.data)
+    request_content: dict = request_dict["content"].copy()
 
     timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
     url = f"{flow.request.scheme}://{flow.request.host}{flow.request.path}"
-    # Handle potential StopIteration with a default value
+    # Header values
     content_length = next(
         (field[1] for field in request_dict["headers"]
          ["fields"] if field[0].lower() == "content-length"),
@@ -84,17 +97,40 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     model = prompt_log_dict['model']
     messages = prompt_log_dict.get(
         'messages', prompt_log_dict.get('prompt', None))
+    tools = request_content.get("tools")
 
-    prompt_msgs = []
-    if isinstance(messages, list):
-        for item_idx, item in enumerate(messages):
+    is_chat = isinstance(messages, list)
+    has_tools = bool(tools)
+
+    # Chat history
+    if is_chat:
+        system = next(
+            (message.get('content') for message in messages
+             if message.get('role', '').lower() == "system"),
+            None  # Default value to avoid StopIteration
+        )
+
+        prompts = [
+            message for message in messages
+            if message.get('role', '').lower() != "system"
+        ]
+
+    chat_msgs = []
+    if is_chat:
+        prompt_msg = (
+            f"## System\n\n"
+            f"{system or "None"}\n"
+        ).strip()
+        chat_msgs.append(prompt_msg)
+
+        for item_idx, item in enumerate(prompts):
             prompt_msg = (
-                f"## Role\n{item.get('role')}\n\n"
-                f"## Content\n{item.get('content')}\n"
+                f"## {item.get('role').title()}\n\n"
+                f"{item.get('content')}\n"
             ).strip()
-            prompt_msgs.append(
+            chat_msgs.append(
                 f"### Message {item_idx + 1}\n\n```markdown\n{prompt_msg}\n```")
-        prompt_log = "\n\n".join(prompt_msgs)
+        prompt_log = "\n\n".join(chat_msgs)
         prompt = messages[-1]['content']
     else:
         prompt_log = messages
@@ -120,8 +156,15 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         final_dict['prompt'] = final_dict.pop('prompt')
     final_dict['response'] = final_dict.pop('response')
 
+    logger.newline()
+    logger.debug("Prompt Log:")
+    logger.info(prompt_log)
+
     log_entry = (
         f"## Request Info\n\n"
+        f"- **Is Chat:**: {"True" if is_chat else "False"}\n"
+        f"- **Has Tools:**: {"True" if has_tools else "False"}\n"
+        f"- **Stream**: {request_content["stream"]}\n"
         f"- **Timestamp**: {timestamp}\n"
         f"- **Flow ID**: {flow.id}\n"
         f"- **URL**: {url}\n"
@@ -131,8 +174,10 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         f"- **Log Filename**: {log_filename}\n"
         f"\n"
         # f"## Messages ({len(messages)})\n\n{prompt_log}\n\n"
-        f"## Response\n\n{response}\n\n"
-        f"## Prompt\n\n{prompt}\n\n"
+        f"## Response\n\n{response}\n\n" if response else
+        f"## Tools\n\n{format_json(tools)}\n\n" if has_tools else
+        f"## Prompts\n\n{
+            prompt_log}\n\n" if is_chat else f"## Prompt\n\n{prompt}\n\n"
         f"## JSON\n\n```json\n{json.dumps(final_dict, indent=2)}\n```\n\n"
     ).strip()
     return log_entry
@@ -207,6 +252,8 @@ def request(flow: http.HTTPFlow):
     """
     global log_file_path
 
+    limit = 3
+
     logger.newline()
     logger.log("request client_conn.id:", flow.client_conn.id,
                colors=["WHITE", "PURPLE"])
@@ -234,11 +281,17 @@ def request(flow: http.HTTPFlow):
              ["fields"] if field[0].lower() == "event-start-time"),
             None
         )
-        sub_dir = flow.request.path.replace("/", "-").strip("-")
-        base_dir = os.path.join(header_log_filename, header_event_start_time)\
-            if header_log_filename else flow.client_conn.id
+        header_event_start_time = header_event_start_time.replace("|", "_")
+
+        sub_dir_path = flow.request.path.replace("/", "-").strip("-")
+        sub_dir_feature = header_log_filename
+        sub_dir = os.path.join(sub_dir_path, sub_dir_feature)
+        base_dir = header_event_start_time if sub_dir_feature else flow.client_conn.id
         log_base_dir = os.path.join(sub_dir, base_dir)\
             if header_event_start_time else sub_dir
+
+        if limit:
+            remove_old_files_by_limit(os.path.join(LOGS_DIR, sub_dir), limit)
         log_file_path = generate_log_file_path(LOGS_DIR, log_base_dir)
 
         logger.info(f"URL: {url}")
@@ -287,11 +340,17 @@ def request(flow: http.HTTPFlow):
              ["fields"] if field[0].lower() == "event-start-time"),
             None
         )
-        sub_dir = flow.request.path.replace("/", "-").strip("-")
-        base_dir = os.path.join(header_log_filename, header_event_start_time)\
-            if header_log_filename else flow.client_conn.id
+        header_event_start_time = header_event_start_time.replace("|", "_")
+
+        sub_dir_path = flow.request.path.replace("/", "-").strip("-")
+        sub_dir_feature = header_log_filename
+        sub_dir = os.path.join(sub_dir_path, sub_dir_feature)
+        base_dir = header_event_start_time if sub_dir_feature else flow.client_conn.id
         log_base_dir = os.path.join(sub_dir, base_dir)\
             if header_event_start_time else sub_dir
+
+        if limit:
+            remove_old_files_by_limit(os.path.join(LOGS_DIR, sub_dir), limit)
         log_file_path = generate_log_file_path(LOGS_DIR, log_base_dir)
 
         logger.info(f"URL: {url}")
