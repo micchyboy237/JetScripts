@@ -35,22 +35,22 @@ RETURN c.email, c.phone_number, c.whatsapp_link;
 
 // 8. Retrieve all projects owned by a company
 MATCH (c:Company)-[:OWNS]->(proj:Project)
-WHERE c.name = "Built Different LLC"
+WHERE c.name = "Built Different LLC" AND proj.name CONTAINS "AI"
 RETURN proj.name, proj.achievements;
 
 // 9. Find all technologies used in a particular project
 MATCH (proj:Project)-[:USES]->(t:Technology)
-WHERE proj.name = "JABA AI"
+WHERE proj.name = "JABA AI" AND proj.name CONTAINS "iOS"
 RETURN t.name;
 
 // 10. Get all portfolio links published for a project
 MATCH (proj:Project)-[:PUBLISHED_AT]->(port:Portfolio_Link)
-WHERE proj.name = "Graduapp"
+WHERE proj.name = "Graduapp" AND port.url CONTAINS "google"
 RETURN port.url, port.platform;
 
 // 11. Get all companies where a particular technology has been used
 MATCH (c:Company)-[:OWNS]->(proj:Project)-[:USES]->(t:Technology)
-WHERE t.name = "React"
+WHERE t.name CONTAINS "React"
 RETURN c.name, proj.name;
 
 // 12. Find all positions held at a company within a specific date range
@@ -60,15 +60,15 @@ RETURN c.position, c.start_date, c.end_date;
 
 // 13. Retrieve all projects published on a particular platform
 MATCH (proj:Project)-[:PUBLISHED_AT]->(port:Portfolio_Link)
-WHERE port.platform = "Web"
+WHERE port.platform CONTAINS "Web"
 RETURN proj.name, port.url;
 
 // 14. Get all skills related to a specific project
 MATCH (proj:Project)-[:USES]->(t:Technology)
-WHERE proj.name = "AMDATEX"
+WHERE proj.name CONTAINS "AMDATEX"
 RETURN t.name;
 
 // 15. Find all portfolio links associated with a particular company
 MATCH (c:Company)-[:OWNS]->(proj:Project)-[:PUBLISHED_AT]->(port:Portfolio_Link)
-WHERE c.name = "ADEC Innovations"
+WHERE c.name = "ADEC Innovations" AND port.url CONTAINS "adec"
 RETURN proj.name, port.url;

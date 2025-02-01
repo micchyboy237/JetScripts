@@ -70,7 +70,7 @@ def main():
     # context = CONTEXT_SAMPLES_TEMPLATE.format(
     #     sample_queries_str=sample_queries_str)
     context = CONTEXT_SCHEMA_TEMPLATE.format(
-        sample_queries_str=graph.get_schema)
+        schema_str=graph.get_schema)
     result = generate_query(query, generated_cypher,
                             graph_result_context, context=context)
 
