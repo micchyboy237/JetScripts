@@ -78,11 +78,11 @@ def main():
             logger.success(graph_result)
 
             used_cypher_queries.append(cypher_query)
-            graph_result_contexts.append(graph_result)
+            graph_result_contexts.append(json.dumps(graph_result))
 
     # Generate context and query
     generated_cypher = "\n\n".join(used_cypher_queries)
-    graph_result_context = "\n\n".join(json.dumps(graph_result_contexts))
+    graph_result_context = "\n\n".join(graph_result_contexts)
 
     # context = CONTEXT_SAMPLES_TEMPLATE.format(
     #     sample_queries_str=sample_queries_str)
