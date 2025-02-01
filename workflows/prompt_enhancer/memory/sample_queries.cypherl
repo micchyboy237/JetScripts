@@ -5,7 +5,7 @@ RETURN c.name, c.position, c.start_date, c.end_date;
 
 // 2. Get a list of technologies a person is skilled in
 MATCH (p:Person)-[:KNOWS]->(t:Technology)
-WHERE p.name = "Jethro Reuel A. Estrada"
+WHERE p.name CONTAINS "Jethro"
 RETURN t.name;
 
 // 3. Find all projects a person has worked on

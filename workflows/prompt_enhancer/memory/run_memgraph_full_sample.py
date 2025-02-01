@@ -55,7 +55,8 @@ def main():
     query = "Who is Jethro?"
 
     # Generate cypher query
-    generated_cypher = generate_cypher_query(query, graph)
+    generated_cypher = generate_cypher_query(
+        query, graph, samples=sample_queries_str)
     log_result(query, generated_cypher)
 
     # Query the graph
