@@ -12,7 +12,7 @@ from jet.llm.llm_types import BaseGenerateResponse, OllamaChatResponse
 from jet.transformers import make_serializable
 from jet.logger import logger
 from jet.file import save_file
-from jet.utils import get_class_name
+from jet.utils.class_utils import get_class_name
 
 
 LOGS_DIR = "ollama-logs"

@@ -530,6 +530,24 @@ def wrap_await_code_multiline_args(code: str) -> str:
     return "\n".join(updated_lines)
 
 
+def merge_consecutive_same_type(source_groups, separator="\n\n"):
+    if not source_groups:
+        return []
+
+    source_groups = source_groups.copy()
+    merged_groups = [source_groups[0]]
+
+    for current in source_groups[1:]:
+        last = merged_groups[-1]
+
+        if last["type"] == current["type"]:
+            last["code"] += separator + current["code"]
+        else:
+            merged_groups.append(current)
+
+    return merged_groups
+
+
 def scrape_code(
     input_base_dir: str,
     extensions: list[str],
@@ -572,6 +590,9 @@ def scrape_code(
             if types:
                 source_groups = [
                     group for group in source_groups if group['type'] in types]
+
+            merged_source_groups = merge_consecutive_same_type(source_groups)
+            source_groups = merged_source_groups
 
             if output_base_dir:
                 os.makedirs(output_base_dir, exist_ok=True)
@@ -665,7 +686,7 @@ if __name__ == "__main__":
     repo_base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs"
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/tutorials/agents.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/integrations/graphs/networkx.ipynb",
     ]
 
     include_files = [

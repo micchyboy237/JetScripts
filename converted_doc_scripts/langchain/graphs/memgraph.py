@@ -7,8 +7,57 @@ from langchain_core.prompts import PromptTemplate
 from jet.llm.ollama.base_langchain import ChatOllama
 from langchain_core.documents import Document
 from langchain_experimental.graph_transformers import LLMGraphTransformer
+from jet.transformers import format_json
 
 initialize_ollama_settings()
+
+model = "llama3.2"
+MEMGRAPH_QA_TEMPLATE = """Your task is to form nice and human understandable answers. The context contains the cypher query result that you must use to construct an answer. The provided context is authoritative, you must never doubt it or try to use your internal knowledge to correct it. Make the answer sound as a response to the question. Do not mention that you based the result on the given context. Here is an example:
+
+Question: Which managers own Neo4j stocks?
+Context:[manager:CTL LLC, manager:JANE STREET GROUP LLC]
+Helpful Answer: CTL LLC, JANE STREET GROUP LLC owns Neo4j stocks.
+
+Follow this example when generating answers. If the provided context is empty, say that you don't know the answer.
+
+
+Question: {question}
+Context:{context}
+Helpful Answer:"""
+
+MEMGRAPH_QA_PROMPT = PromptTemplate(
+    input_variables=["context", "question"], template=MEMGRAPH_QA_TEMPLATE
+)
+
+MEMGRAPH_GENERATION_TEMPLATE = """Your task is to directly translate natural language inquiry into precise and executable Cypher query for Memgraph database. 
+You will utilize a provided database schema to understand the structure, nodes and relationships within the Memgraph database.
+Instructions: 
+- Use provided node and relationship labels and property names from the
+schema which describes the database's structure. Upon receiving a user
+question, synthesize the schema to craft a precise Cypher query that
+directly corresponds to the user's intent. 
+- Generate valid executable Cypher queries on top of Memgraph database. 
+Any explanation, context, or additional information that is not a part 
+of the Cypher query syntax should be omitted entirely. 
+- Use Memgraph MAGE procedures instead of Neo4j APOC procedures. 
+- Do not include any explanations or apologies in your responses. 
+- Do not include any text except the generated Cypher statement.
+- For queries that ask for information or functionalities outside the direct
+generation of Cypher queries, use the Cypher query format to communicate
+limitations or capabilities. For example: RETURN "I am designed to generate
+Cypher queries based on the provided schema only."
+Schema: 
+{schema}
+
+With all the above information and instructions, generate Cypher query for the
+user question. 
+
+The question is:
+{question}"""
+
+MEMGRAPH_GENERATION_PROMPT = PromptTemplate(
+    input_variables=["schema", "question"], template=MEMGRAPH_GENERATION_TEMPLATE
+)
 
 """
 # Memgraph
@@ -97,7 +146,11 @@ query = """
     MERGE (g)-[:PUBLISHED_BY]->(p);
 """
 
-graph.query(query)
+result = graph.query(query)
+
+logger.newline()
+logger.debug(query)
+logger.success(format_json(result))
 
 """
 Notice how the `graph` object holds the `query` method. That method executes query in Memgraph and it is also used by the `MemgraphQAChain` to query the database.
@@ -115,7 +168,9 @@ graph.refresh_schema()
 To familiarize yourself with the data and verify the updated graph schema, you can print it using the following statement:
 """
 
-print(graph.get_schema)
+logger.newline()
+logger.debug("Graph schema")
+logger.success(graph.get_schema)
 
 """
 ### Querying the database
@@ -132,9 +187,11 @@ Next, create `MemgraphQAChain`, which will be utilized in the question-answering
 """
 
 chain = MemgraphQAChain.from_llm(
-    ChatOllama(model="llama3.1"),
+    ChatOllama(model=model),
+    cypher_prompt=MEMGRAPH_GENERATION_PROMPT,
+    qa_prompt=MEMGRAPH_QA_PROMPT,
     graph=graph,
-    model_name="gpt-4-turbo",
+    model_name=model,
     allow_dangerous_requests=True,
 )
 
@@ -142,11 +199,21 @@ chain = MemgraphQAChain.from_llm(
 Now you can start asking questions!
 """
 
-response = chain.invoke("Which platforms is Baldur's Gate 3 available on?")
-print(response["result"])
 
-response = chain.invoke("Is Baldur's Gate 3 available on Windows?")
-print(response["result"])
+query = "Which platforms is Baldur's Gate 3 available on?"
+response = chain.invoke(query)
+
+logger.newline()
+logger.debug(query)
+logger.success(format_json(response["result"]))
+
+
+query = "Is Baldur's Gate 3 available on Windows?"
+response = chain.invoke(query)
+
+logger.newline()
+logger.debug(query)
+logger.success(format_json(response["result"]))
 
 """
 ### Chain modifiers
@@ -158,15 +225,20 @@ The `return_direct` modifier specifies whether to return the direct results of t
 """
 
 chain = MemgraphQAChain.from_llm(
-    ChatOllama(model="llama3.1"),
+    ChatOllama(model=model),
     graph=graph,
     return_direct=True,
     allow_dangerous_requests=True,
-    model_name="gpt-4-turbo",
+    model_name=model,
 )
 
-response = chain.invoke("Which studio published Baldur's Gate 3?")
-print(response["result"])
+
+query = "Which studio published Baldur's Gate 3?"
+response = chain.invoke(query)
+
+logger.newline()
+logger.debug(query)
+logger.success(format_json(response["result"]))
 
 """
 #### Return query intermediate steps
@@ -174,11 +246,11 @@ The `return_intermediate_steps` chain modifier enhances the returned response by
 """
 
 chain = MemgraphQAChain.from_llm(
-    ChatOllama(model="llama3.1"),
+    ChatOllama(model=model),
     graph=graph,
     allow_dangerous_requests=True,
     return_intermediate_steps=True,
-    model_name="gpt-4-turbo",
+    model_name=model,
 )
 
 response = chain.invoke("Is Baldur's Gate 3 an Adventure game?")
@@ -192,15 +264,20 @@ The `top_k` modifier can be used when you want to restrict the maximum number of
 """
 
 chain = MemgraphQAChain.from_llm(
-    ChatOllama(model="llama3.1"),
+    ChatOllama(model=model),
     graph=graph,
     top_k=2,
     allow_dangerous_requests=True,
-    model_name="gpt-4-turbo",
+    model_name=model,
 )
 
-response = chain.invoke("What genres are associated with Baldur's Gate 3?")
-print(response["result"])
+
+query = "What genres are associated with Baldur's Gate 3?"
+response = chain.invoke(query)
+
+logger.newline()
+logger.debug(query)
+logger.success(format_json(response["result"]))
 
 """
 ### Advanced querying
@@ -211,14 +288,19 @@ Let's instantiate our chain once again and attempt to ask some questions that us
 """
 
 chain = MemgraphQAChain.from_llm(
-    ChatOllama(model="llama3.1"),
+    ChatOllama(model=model),
     graph=graph,
-    model_name="gpt-4-turbo",
+    model_name=model,
     allow_dangerous_requests=True,
 )
 
-response = chain.invoke("Is Baldur's Gate 3 available on PS5?")
-print(response["result"])
+
+query = "Is Baldur's Gate 3 available on PS5?"
+response = chain.invoke(query)
+
+logger.newline()
+logger.debug(query)
+logger.success(format_json(response["result"]))
 
 """
 The generated Cypher query looks fine, but we didn't receive any information in response. This illustrates a common challenge when working with LLMs - the misalignment between how users phrase queries and how data is stored. In this case, the difference between user perception and the actual data storage can cause mismatches. Prompt refinement, the process of honing the model's prompts to better grasp these distinctions, is an efficient solution that tackles this issue. Through prompt refinement, the model gains increased proficiency in generating precise and pertinent queries, leading to the successful retrieval of the desired data.
@@ -262,15 +344,21 @@ MEMGRAPH_GENERATION_PROMPT = PromptTemplate(
 )
 
 chain = MemgraphQAChain.from_llm(
-    ChatOllama(model="llama3.1"),
+    ChatOllama(model=model),
     cypher_prompt=MEMGRAPH_GENERATION_PROMPT,
+    qa_prompt=MEMGRAPH_QA_PROMPT,
     graph=graph,
-    model_name="llama3.1",
+    model_name=model,
     allow_dangerous_requests=True,
 )
 
-response = chain.invoke("Is Baldur's Gate 3 available on PS5?")
-print(response["result"])
+
+query = "Is Baldur's Gate 3 available on PS5?"
+response = chain.invoke(query)
+
+logger.newline()
+logger.debug(query)
+logger.success(format_json(response["result"]))
 
 """
 Now, with the revised initial Cypher prompt that includes guidance on platform naming, we are obtaining accurate and relevant results that align more closely with user queries. 
@@ -317,7 +405,7 @@ text = """
 The next step is to initialize `LLMGraphTransformer` from the desired LLM and convert the document to the graph structure.
 """
 
-llm = ChatOllama(model="llama3.1")
+llm = ChatOllama(model=model)
 llm_transformer = LLMGraphTransformer(llm=llm)
 documents = [Document(page_content=text)]
 graph_documents = llm_transformer.convert_to_graph_documents(documents)
@@ -326,7 +414,8 @@ graph_documents = llm_transformer.convert_to_graph_documents(documents)
 Under the hood, LLM extracts important entities from the text and returns them as a list of nodes and relationships. Here's how it looks like:
 """
 
-print(graph_documents)
+logger.debug("Graph documents:")
+logger.success(format_json(graph_documents))
 
 """
 ### Storing into Memgraph
@@ -361,8 +450,14 @@ graph_documents_filtered = llm_transformer_filtered.convert_to_graph_documents(
     documents
 )
 
+logger.newline()
+logger.debug("Nodes:")
+logger.success(graph_documents_filtered[0].nodes)
 print(f"Nodes:{graph_documents_filtered[0].nodes}")
-print(f"Relationships:{graph_documents_filtered[0].relationships}")
+
+logger.newline()
+logger.debug("Relationships:")
+logger.success(graph_documents_filtered[0].relationships)
 
 """
 Here's how the graph would like in such case:
@@ -404,11 +499,16 @@ In the end, you can query the knowledge graph, as explained in the section befor
 """
 
 chain = MemgraphQAChain.from_llm(
-    ChatOllama(model="llama3.1"),
+    ChatOllama(model=model),
     graph=graph,
-    model_name="llama3.1",
+    model_name=model,
     allow_dangerous_requests=True,
 )
-print(chain.invoke("Who Charles Robert Darwin collaborated with?")["result"])
+query = "Who Charles Robert Darwin collaborated with?"
+response = chain.invoke(query)
+
+logger.newline()
+logger.debug(query)
+logger.success(format_json(response["result"]))
 
 logger.info("\n\n[DONE]", bright=True)

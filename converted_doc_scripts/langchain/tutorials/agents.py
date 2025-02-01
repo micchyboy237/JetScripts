@@ -80,7 +80,7 @@ In the rest of the guide, we will walk through the individual components and wha
 
 memory = MemorySaver()
 model = ChatOllama(model="llama3.1")
-# search = TavilySearchResults(max_results=2)
+search = TavilySearchResults(max_results=2)
 tools = [search]
 agent_executor = create_react_agent(model, tools, checkpointer=memory)
 
