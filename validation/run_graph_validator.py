@@ -1,6 +1,6 @@
 import os
-from jet.validation.cypher_graph_validator import validate_query
 from jet.logger import logger
+from jet.validation.graph_validation import validate_cypher
 
 
 url = os.environ.get("MEMGRAPH_URI", "bolt://localhost:7687")
@@ -10,7 +10,7 @@ password = os.environ.get("MEMGRAPH_PASSWORD", "")
 
 def main_correct_query():
     query = "MATCH (g:Game {name: \"Baldur's Gate 3\"})-[:AVAILABLE_ON]->(p:Platform)\nRETURN p.name"
-    validation_response = validate_query(query)
+    validation_response = validate_cypher(query)
 
     logger.newline()
     logger.info("Graph Result:")
@@ -19,7 +19,7 @@ def main_correct_query():
 
 def main_incorrect_query():
     query = "MATCH (g:Game)-[:AVAILABLE_ON]->(p:Platform) WHERE g.name = 'Baldur''s Gate 3' AND p.name = 'PS5' RETURN g, p"
-    validation_response = validate_query(query)
+    validation_response = validate_cypher(query)
 
     logger.newline()
     logger.info("Graph Result:")
