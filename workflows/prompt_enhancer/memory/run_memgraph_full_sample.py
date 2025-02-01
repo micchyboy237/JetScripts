@@ -56,7 +56,7 @@ def main():
 
     # Query graph (you can adjust the query as per your needs)
     query = "Tell me about yourself."
-    tone_name = "a job employer"
+    tone_name = "an employer"
     num_of_queries = 3
 
     # Generate cypher query
@@ -82,8 +82,8 @@ def main():
 
     # Generate query results
     db_results = []
-    for query, result in zip(used_cypher_queries, graph_result_contexts):
-        db_results.append(f"Query: {query}\nResult: {result}")
+    for item, result in zip(used_cypher_queries, graph_result_contexts):
+        db_results.append(f"Query: {item}\nResult: {result}")
 
     db_results_str = CONTEXT_DB_TEMPLATE.format(
         db_results_str="\n\n".join(db_results))
@@ -96,7 +96,9 @@ def main():
         schema_str
     ]
     context = "\n\n".join(contexts)
-    result = generate_query(query, context=context)
+
+    tone_name = "a professional"
+    result = generate_query(query, tone_name, context=context)
 
     logger.newline()
     logger.info("Query:")
