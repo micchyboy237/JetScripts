@@ -65,7 +65,7 @@ def main():
 
     used_cypher_queries = []
     graph_result_contexts = []
-    for idx, cypher_query in tqdm(enumerate(generated_cypher_queries)):
+    for idx, cypher_query in enumerate(generated_cypher_queries):
         log_result(query, cypher_query)
 
         # Query the graph
