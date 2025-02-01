@@ -8,45 +8,9 @@ from jet.transformers import format_json
 
 initialize_ollama_settings()
 
-# Setup LLM settings and templates
+# Setup LLM settings
 
 model = "llama3.2"
-
-MEMGRAPH_GENERATION_TEMPLATE = """
-Your task is to directly translate natural language inquiry into precise and executable Cypher query for Memgraph database. 
-You will utilize a provided database schema to understand the structure, nodes and relationships within the Memgraph database.
-Instructions: 
-- Use provided node and relationship labels and property names from the
-schema which describes the database's structure. Upon receiving a user
-question, synthesize the schema to craft a precise Cypher query that
-directly corresponds to the user's intent. 
-- Generate valid executable Cypher queries on top of Memgraph database. 
-Any explanation, context, or additional information that is not a part 
-of the Cypher query syntax should be omitted entirely. 
-- Use Memgraph MAGE procedures instead of Neo4j APOC procedures. 
-- Do not include any explanations or apologies in your responses. 
-- Do not include any text except the generated Cypher statement.
-- For queries that ask for information or functionalities outside the direct
-generation of Cypher queries, use the Cypher query format to communicate
-limitations or capabilities. For example: RETURN "I am designed to generate
-Cypher queries based on the provided schema only."
-Schema: 
-{schema}
-
-With all the above information and instructions, generate Cypher query for the
-user prompt. 
-
-The prompt is:
-{prompt}
-""".strip()
-
-MEMGRAPH_GENERATION_PROMPT = PromptTemplate(
-    input_variables=["schema", "prompt"], template=MEMGRAPH_GENERATION_TEMPLATE
-)
-
-CYPHER_GENERATION_TEMPLATE = """
-I want a more generic query without specific filters. Given this query "{cypher_str}", write a one that shows all the platforms that contains it.
-""".strip()
 
 
 # Setup variables
@@ -93,11 +57,51 @@ graph.refresh_schema()
 
 # Query graph
 
-cypher_str = """
+MEMGRAPH_GENERATION_TEMPLATE = """
+Your task is to directly translate natural language inquiry into precise and executable Cypher query for Memgraph database. 
+You will utilize a provided database schema to understand the structure, nodes and relationships within the Memgraph database.
+Instructions: 
+- Use provided node and relationship labels and property names from the
+schema which describes the database's structure. Upon receiving a user
+question, synthesize the schema to craft a precise Cypher query that
+directly corresponds to the user's intent. 
+- Generate valid executable Cypher queries on top of Memgraph database. 
+Any explanation, context, or additional information that is not a part 
+of the Cypher query syntax should be omitted entirely. 
+- Use Memgraph MAGE procedures instead of Neo4j APOC procedures. 
+- Do not include any explanations or apologies in your responses. 
+- Do not include any text except the generated Cypher statement.
+- For queries that ask for information or functionalities outside the direct
+generation of Cypher queries, use the Cypher query format to communicate
+limitations or capabilities. For example: RETURN "I am designed to generate
+Cypher queries based on the provided schema only."
+Schema: 
+{schema}
+
+With all the above information and instructions, generate Cypher query for the
+user prompt. 
+
+The prompt is:
+{prompt}
+""".strip()
+
+MEMGRAPH_GENERATION_PROMPT = PromptTemplate(
+    input_variables=["schema", "prompt"], template=MEMGRAPH_GENERATION_TEMPLATE
+)
+
+CYPHER_GENERATION_TEMPLATE = """
+I want a more generic cypher query without specific filters. Given this prompt "{query_str}", write one.
+""".strip()
+
+
+query = """
 MATCH (g:Game {name: "Baldur's Gate 3"})-[:AVAILABLE_ON]->(p:Platform {name: "PlayStation 5"}) RETURN p.name
 """.strip()
+query = """
+Is Baldur's Gate 3 available on PS5?
+""".strip()
 cypher_generation_query = CYPHER_GENERATION_TEMPLATE.format(
-    cypher_str=cypher_str)
+    query_str=query)
 
 prompt = MEMGRAPH_GENERATION_PROMPT.format(**{
     "schema": graph.get_schema,
@@ -119,7 +123,7 @@ for chunk in call_ollama_chat(
     generated_cypher += chunk
 
 logger.newline()
-logger.info("Prompt:")
+logger.info("Cypher Prompt:")
 logger.debug(prompt)
 
 logger.newline()
@@ -157,11 +161,8 @@ MEMGRAPH_QA_PROMPT = PromptTemplate(
 )
 
 CONTEXT_PROMPT_TEMPLATE = """
-Cypher query:
-{cypher_query_str}
-
-Result:
-{graph_result_str}
+Cypher query: {cypher_query_str}
+Result: {graph_result_str}
 """.strip()
 
 
