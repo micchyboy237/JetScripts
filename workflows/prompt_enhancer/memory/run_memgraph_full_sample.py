@@ -1,5 +1,6 @@
 # Setup LLM settings
 import os
+from jet.memory.config import CONTEXT_SAMPLES_TEMPLATE, CONTEXT_SCHEMA_TEMPLATE
 from jet.memory.memgraph import generate_query, generate_cypher_query, initialize_graph
 from jet.logger import logger
 from jet.transformers import format_json
@@ -44,6 +45,9 @@ def main():
     # data_query = load_file(cypher_queries_file)
     data_query = None
 
+    sample_queries_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/workflows/prompt_enhancer/memory/sample_queries.cypherl"
+    sample_queries_str = load_file(sample_queries_file)
+
     # Initialize Memgraph
     graph = initialize_graph(URL, USERNAME, PASSWORD, data_query)
 
@@ -63,7 +67,12 @@ def main():
     logger.success(graph_result_context)
 
     # Generate context and query
-    result = generate_query(query, generated_cypher, graph_result_context)
+    # context = CONTEXT_SAMPLES_TEMPLATE.format(
+    #     sample_queries_str=sample_queries_str)
+    context = CONTEXT_SCHEMA_TEMPLATE.format(
+        sample_queries_str=graph.get_schema)
+    result = generate_query(query, generated_cypher,
+                            graph_result_context, context=context)
 
     logger.newline()
     logger.info("Query:")
