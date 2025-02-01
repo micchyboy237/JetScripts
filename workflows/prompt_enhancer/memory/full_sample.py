@@ -90,16 +90,14 @@ MEMGRAPH_GENERATION_PROMPT = PromptTemplate(
 )
 
 CYPHER_GENERATION_TEMPLATE = """
-I want a more generic cypher query without specific filters. Given this prompt "{query_str}", write one.
+I want a more generic cypher query without filters. Write one given this prompt "{query_str}".
 """.strip()
 
 
-query = """
-MATCH (g:Game {name: "Baldur's Gate 3"})-[:AVAILABLE_ON]->(p:Platform {name: "PlayStation 5"}) RETURN p.name
-""".strip()
-query = """
-Is Baldur's Gate 3 available on PS5?
-""".strip()
+# query = """
+# MATCH (g:Game {name: "Baldur's Gate 3"})-[:AVAILABLE_ON]->(p:Platform {name: "PlayStation 5"}) RETURN p.name
+# """.strip()
+query = "Is Baldur's Gate 3 available on PS5?"
 cypher_generation_query = CYPHER_GENERATION_TEMPLATE.format(
     query_str=query)
 
@@ -162,14 +160,13 @@ MEMGRAPH_QA_PROMPT = PromptTemplate(
 
 CONTEXT_PROMPT_TEMPLATE = """
 Cypher query: {cypher_query_str}
-Result: {graph_result_str}
+Cypher result:
+{graph_result_str}
 """.strip()
 
 
-query = "Is Baldur's Gate 3 available on PS5?"
-
 context = CONTEXT_PROMPT_TEMPLATE.format(**{
-    "cypher_query_str": generated_cypher,
+    "cypher_query_str": generated_cypher.strip('"'),
     "graph_result_str": graph_result_context,
 })
 
