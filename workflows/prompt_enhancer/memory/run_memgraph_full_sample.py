@@ -1,5 +1,8 @@
 # Setup LLM settings
+import json
 import os
+
+from tqdm import tqdm
 from jet.memory.config import CONTEXT_SAMPLES_TEMPLATE, CONTEXT_SCHEMA_TEMPLATE
 from jet.memory.memgraph import generate_query, generate_cypher_query, initialize_graph
 from jet.logger import logger
@@ -52,24 +55,35 @@ def main():
     graph = initialize_graph(URL, USERNAME, PASSWORD, data_query)
 
     # Query graph (you can adjust the query as per your needs)
-    query = "Who is Jethro?"
+    query = "Tell me about yourself."
+    tone_name = "a job employer"
+    num_of_queries = 3
 
     # Generate cypher query
     generated_cypher_queries = generate_cypher_query(
-        query, graph, samples=sample_queries_str)
-    generated_cypher = "\n\n".join(generated_cypher_queries)
+        query, graph, tone_name, num_of_queries=num_of_queries, samples=sample_queries_str)
 
-    log_result(query, generated_cypher)
+    used_cypher_queries = []
+    graph_result_contexts = []
+    for idx, cypher_query in tqdm(enumerate(generated_cypher_queries)):
+        log_result(query, cypher_query)
 
-    # Query the graph
-    top_k = None
-    graph_result_context = graph.query(generated_cypher)[:top_k]
+        # Query the graph
+        top_k = None
+        graph_result = graph.query(cypher_query)[:top_k]
 
-    logger.newline()
-    logger.info("Graph Result Context:")
-    logger.success(graph_result_context)
+        if graph_result:
+            logger.newline()
+            logger.info(f"Graph Result {idx + 1}:")
+            logger.success(graph_result)
+
+            used_cypher_queries.append(cypher_query)
+            graph_result_contexts.append(graph_result)
 
     # Generate context and query
+    generated_cypher = "\n\n".join(used_cypher_queries)
+    graph_result_context = "\n\n".join(json.dumps(graph_result_contexts))
+
     # context = CONTEXT_SAMPLES_TEMPLATE.format(
     #     sample_queries_str=sample_queries_str)
     context = CONTEXT_SCHEMA_TEMPLATE.format(
