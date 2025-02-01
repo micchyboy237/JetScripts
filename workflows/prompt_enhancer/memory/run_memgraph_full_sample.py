@@ -3,7 +3,7 @@ import json
 import os
 
 from tqdm import tqdm
-from jet.memory.config import CONTEXT_SAMPLES_TEMPLATE, CONTEXT_SCHEMA_TEMPLATE
+from jet.memory.config import CONTEXT_DB_TEMPLATE, CONTEXT_SAMPLES_TEMPLATE, CONTEXT_SCHEMA_TEMPLATE
 from jet.memory.memgraph import generate_query, generate_cypher_query, initialize_graph
 from jet.logger import logger
 from jet.transformers import format_json
@@ -80,16 +80,23 @@ def main():
             used_cypher_queries.append(cypher_query)
             graph_result_contexts.append(json.dumps(graph_result))
 
-    # Generate context and query
-    generated_cypher = "\n\n".join(used_cypher_queries)
-    graph_result_context = "\n\n".join(graph_result_contexts)
+    # Generate query results
+    db_results = []
+    for query, result in zip(used_cypher_queries, graph_result_contexts):
+        db_results.append(f"Query: {query}\nResult: {result}")
 
-    # context = CONTEXT_SAMPLES_TEMPLATE.format(
-    #     sample_queries_str=sample_queries_str)
-    context = CONTEXT_SCHEMA_TEMPLATE.format(
+    db_results_str = CONTEXT_DB_TEMPLATE.format(
+        db_results_str="\n\n".join(db_results))
+
+    schema_str = CONTEXT_SCHEMA_TEMPLATE.format(
         schema_str=graph.get_schema)
-    result = generate_query(query, generated_cypher,
-                            graph_result_context, context=context)
+
+    contexts = [
+        db_results_str,
+        schema_str
+    ]
+    context = "\n\n".join(contexts)
+    result = generate_query(query, context=context)
 
     logger.newline()
     logger.info("Query:")
