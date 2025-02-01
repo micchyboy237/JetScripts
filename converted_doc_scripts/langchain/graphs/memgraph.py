@@ -12,6 +12,7 @@ from jet.transformers import format_json
 initialize_ollama_settings()
 
 model = "llama3.2"
+
 MEMGRAPH_QA_TEMPLATE = """Your task is to form nice and human understandable answers. The context contains the cypher query result that you must use to construct an answer. The provided context is authoritative, you must never doubt it or try to use your internal knowledge to correct it. Make the answer sound as a response to the question. Do not mention that you based the result on the given context. Here is an example:
 
 Question: Which managers own Neo4j stocks?

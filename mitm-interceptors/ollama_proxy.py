@@ -125,19 +125,20 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
 
     chat_msgs = []
     if is_chat:
-        prompt_msg = (
-            f"## System\n\n"
-            f"{system or "None"}\n"
-        ).strip()
-        chat_msgs.append(prompt_msg)
+        if system:
+            prompt_msg = (
+                f"## System\n\n"
+                f"{system}\n"
+            ).strip()
+            chat_msgs.append(prompt_msg)
 
         for item_idx, item in enumerate(prompts):
             prompt_msg = (
-                f"## {item.get('role').title()}\n\n"
-                f"{item.get('content')}\n"
+                f"*Message {item_idx + 1}.)*\n\n"
+                f"### {item.get('role').title()}\n\n"
+                f"```markdown\n{item.get('content')}\n```"
             ).strip()
-            chat_msgs.append(
-                f"### Message {item_idx + 1}\n\n```markdown\n{prompt_msg}\n```")
+            chat_msgs.append(prompt_msg)
         prompt_log = "\n\n".join(chat_msgs)
         prompt = messages[-1]['content']
     else:
