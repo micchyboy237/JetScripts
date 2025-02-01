@@ -1,0 +1,74 @@
+// 1. Retrieve all companies a person has worked for
+MATCH (p:Person)-[:WORKED_AT]->(c:Company)
+WHERE p.name = "Jethro Reuel A. Estrada"
+RETURN c.name, c.position, c.start_date, c.end_date;
+
+// 2. Get a list of technologies a person is skilled in
+MATCH (p:Person)-[:KNOWS]->(t:Technology)
+WHERE p.name = "Jethro Reuel A. Estrada"
+RETURN t.name;
+
+// 3. Find all projects a person has worked on
+MATCH (p:Person)-[:WORKED_ON]->(proj:Project)
+WHERE p.name = "Jethro Reuel A. Estrada"
+RETURN proj.name, proj.achievements;
+
+// 4. Retrieve all portfolio links associated with a person
+MATCH (p:Person)-[:HAS_PORTFOLIO]->(port:Portfolio_Link)
+WHERE p.name = "Jethro Reuel A. Estrada"
+RETURN port.url, port.platform;
+
+// 5. List the education details of a person
+MATCH (p:Person)-[:STUDIED_AT]->(e:Education)
+WHERE p.name = "Jethro Reuel A. Estrada"
+RETURN e.school, e.degree, e.start_year, e.end_year;
+
+// 6. Get all the languages spoken by a person
+MATCH (p:Person)-[:SPEAKS]->(l:Language)
+WHERE p.name = "Jethro Reuel A. Estrada"
+RETURN l.name;
+
+// 7. Find all contact information associated with a person
+MATCH (p:Person)-[:HAS_CONTACT_INFO]->(c:Contact)
+WHERE p.name = "Jethro Reuel A. Estrada"
+RETURN c.email, c.phone_number, c.whatsapp_link;
+
+// 8. Retrieve all projects owned by a company
+MATCH (c:Company)-[:OWNS]->(proj:Project)
+WHERE c.name = "Built Different LLC"
+RETURN proj.name, proj.achievements;
+
+// 9. Find all technologies used in a particular project
+MATCH (proj:Project)-[:USES]->(t:Technology)
+WHERE proj.name = "JABA AI"
+RETURN t.name;
+
+// 10. Get all portfolio links published for a project
+MATCH (proj:Project)-[:PUBLISHED_AT]->(port:Portfolio_Link)
+WHERE proj.name = "Graduapp"
+RETURN port.url, port.platform;
+
+// 11. Get all companies where a particular technology has been used
+MATCH (c:Company)-[:OWNS]->(proj:Project)-[:USES]->(t:Technology)
+WHERE t.name = "React"
+RETURN c.name, proj.name;
+
+// 12. Find all positions held at a company within a specific date range
+MATCH (p:Person)-[:WORKED_AT]->(c:Company)
+WHERE p.name = "Jethro Reuel A. Estrada" AND c.name = "JulesAI"
+RETURN c.position, c.start_date, c.end_date;
+
+// 13. Retrieve all projects published on a particular platform
+MATCH (proj:Project)-[:PUBLISHED_AT]->(port:Portfolio_Link)
+WHERE port.platform = "Web"
+RETURN proj.name, port.url;
+
+// 14. Get all skills related to a specific project
+MATCH (proj:Project)-[:USES]->(t:Technology)
+WHERE proj.name = "AMDATEX"
+RETURN t.name;
+
+// 15. Find all portfolio links associated with a particular company
+MATCH (c:Company)-[:OWNS]->(proj:Project)-[:PUBLISHED_AT]->(port:Portfolio_Link)
+WHERE c.name = "ADEC Innovations"
+RETURN proj.name, port.url;
