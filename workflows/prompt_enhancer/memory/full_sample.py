@@ -13,11 +13,13 @@ initialize_ollama_settings()
 model = "llama3.2"
 
 
-# Setup variables
+# Setup Memgraph variables
 
 url = os.environ.get("MEMGRAPH_URI", "bolt://localhost:7687")
 username = os.environ.get("MEMGRAPH_USERNAME", "")
 password = os.environ.get("MEMGRAPH_PASSWORD", "")
+
+# Initialize Memgraph
 
 graph = MemgraphGraph(
     url=url, username=username, password=password, refresh_schema=False
