@@ -20,7 +20,7 @@ PASSWORD = os.environ.get("MEMGRAPH_PASSWORD", "")
 def log_result(query: str, result: str):
     logger.newline()
     logger.debug(query)
-    logger.success(format_json(result))
+    logger.success(result)
 
 
 # Main function to execute the process
@@ -55,8 +55,10 @@ def main():
     query = "Who is Jethro?"
 
     # Generate cypher query
-    generated_cypher = generate_cypher_query(
+    generated_cypher_queries = generate_cypher_query(
         query, graph, samples=sample_queries_str)
+    generated_cypher = "\n\n".join(generated_cypher_queries)
+
     log_result(query, generated_cypher)
 
     # Query the graph
