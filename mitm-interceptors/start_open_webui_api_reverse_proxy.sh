@@ -2,7 +2,7 @@
 
 # Default configuration
 LISTEN_PORT="8080"
-TARGET_URL="http://jetairm1:8085"
+TARGET_URL="http://jetairm1:8080"
 PROXY_SCRIPT="open_webui_proxy.py"
 
 

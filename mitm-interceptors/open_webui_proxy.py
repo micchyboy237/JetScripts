@@ -15,4 +15,4 @@ def response(flow: http.HTTPFlow) -> None:
 
 
 # Commands
-# mitmdump -s mitm-interceptors/open_webui_proxy.py --mode reverse:http://jetairm1:8085 -p 8080
+# mitmdump -s mitm-interceptors/open_webui_proxy.py --mode reverse:http://jetairm1:8080 -p 8080

@@ -3,17 +3,29 @@ from jet.llm import VectorSemanticSearch
 from jet.logger import logger
 
 if __name__ == "__main__":
-    # Initialize the VectorSemanticSearch class
+    # module_paths = [
+    #     "numpy.linalg.linalg",
+    #     "numpy.core.multiarray",
+    #     "pandas.core.frame",
+    #     "matplotlib.pyplot",
+    #     "sklearn.linear_model",
+    #     "torch.nn.functional",
+    # ]
+    # query = "import matplotlib.pyplot as plt\nfrom numpy.linalg import inv\nimport torch"
+    # queries = query.splitlines()
     module_paths = [
-        "numpy.linalg.linalg",
-        "numpy.core.multiarray",
-        "pandas.core.frame",
-        "matplotlib.pyplot",
-        "sklearn.linear_model",
-        "torch.nn.functional",
+        "MATCH path1=((person:Person)-[:WORKED_AT]->(company:Company))",
+        "MATCH path2=((company:Company)-[:OWNS]->(project:Project))",
+        "MATCH path3=((project:Project)-[:USES]->(technology:Technology))",
+        "MATCH path4=((person)-[:WORKED_ON]->(project:Project))",
+        "MATCH path5=((person)-[:KNOWS]->(technology:Technology))",
+        "MATCH path6=((person)-[:HAS_PORTFOLIO]->(port:Portfolio_Link))",
+        "MATCH path7=((project:Project)-[:PUBLISHED_AT]->(port:Portfolio_Link))",
+        "MATCH path8=((person)-[:STUDIED_AT]->(education:Education))",
+        "MATCH path9=((person)-[:SPEAKS]->(language:Language))",
+        "MATCH path10=((person)-[:HAS_CONTACT_INFO]->(contact:Contact))",
     ]
-
-    query = "import matplotlib.pyplot as plt\nfrom numpy.linalg import inv\nimport torch"
+    query = "Tell me about yourself."
     queries = query.splitlines()
 
     search = VectorSemanticSearch(module_paths)

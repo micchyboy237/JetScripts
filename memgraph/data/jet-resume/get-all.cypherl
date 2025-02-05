@@ -1,9 +1,29 @@
-MATCH (p:Person {full_name: "Jethro Reuel A. Estrada"})
-OPTIONAL MATCH (p)-[:WORKED_AT]->(c:Company)
-OPTIONAL MATCH (p)-[:KNOWS]->(t:Technology)
-OPTIONAL MATCH (p)-[:WORKED_ON]->(proj:Project)
-OPTIONAL MATCH (p)-[:HAS_PORTFOLIO]->(port:Portfolio)
-OPTIONAL MATCH (p)-[:SPEAKS]->(l:Language)
-OPTIONAL MATCH (p)-[:HAS_EDUCATION]->(e:Education)
-OPTIONAL MATCH (p)-[:HAS_CONTACT]->(cont:Contact)
-RETURN p, collect(c) AS work_history, collect(t) AS skills, collect(proj) AS projects, collect(port) AS portfolio, collect(l) AS languages, collect(e) AS education, collect(cont) AS contact
+// MATCH (jon:Character {name: 'Jon Snow'})-[:KILLED]->(victim:Character)
+// MATCH (jon)-[:KILLER_IN]->(death:Death)<-[victim_to_death:VICTIM_IN]-(victim)
+// MATCH (death)-[death_to_location:HAPPENED_IN]->(location:Location)
+// RETURN victim,victim_to_death,death,death_to_location,location
+
+// MATCH path1=((person:Person)-[:WORKED_AT]->(company:Company)-[:OWNS]->(project:Project)-[:USES]->(technology:Technology))
+// MATCH path2=((person)-[:KNOWS]->(technology:Technology))
+// MATCH path3=((person)-[:WORKED_ON]->(project:Project)-[:USES]->(technology:Technology))
+// MATCH path4=((person)-[:HAS_PORTFOLIO]->(port:Portfolio_Link))
+// MATCH path5=((project:Project)-[:PUBLISHED_AT]->(port:Portfolio_Link))
+// MATCH path6=((person)-[:STUDIED_AT]->(education:Education))
+// MATCH path7=((person)-[:SPEAKS]->(language:Language))
+// MATCH path8=((person)-[:HAS_CONTACT_INFO]->(contact:Contact))
+// WHERE person.name = "Jethro Reuel A. Estrada"
+// RETURN path1, path2, path3, path4, path5, path6, path7, path8
+
+
+MATCH path1=((person:Person)-[:WORKED_AT]->(company:Company))
+MATCH path2=((company:Company)-[:OWNS]->(project:Project))
+MATCH path3=((project:Project)-[:USES]->(technology:Technology))
+MATCH path4=((person)-[:WORKED_ON]->(project:Project))
+MATCH path5=((person)-[:KNOWS]->(technology:Technology))
+MATCH path6=((person)-[:HAS_PORTFOLIO]->(port:Portfolio_Link))
+MATCH path7=((project:Project)-[:PUBLISHED_AT]->(port:Portfolio_Link))
+MATCH path8=((person)-[:STUDIED_AT]->(education:Education))
+MATCH path9=((person)-[:SPEAKS]->(language:Language))
+MATCH path10=((person)-[:HAS_CONTACT_INFO]->(contact:Contact))
+WHERE person.name = "Jethro Reuel A. Estrada"
+RETURN path1, path2, path3, path4, path5, path6, path7, path8, path9, path10

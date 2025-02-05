@@ -28,23 +28,7 @@ def log_result(query: str, result: str):
 
 # Main function to execute the process
 def main():
-    # data_query = """
-    #     MERGE (g:Game {name: "Baldur's Gate 3"})
-    #     WITH g, ["PlayStation 5", "Mac OS", "Windows", "Xbox Series X/S"] AS platforms,
-    #             ["Adventure", "Role-Playing Game", "Strategy"] AS genres
-    #     FOREACH (platform IN platforms |
-    #         MERGE (p:Platform {name: platform})
-    #         MERGE (g)-[:AVAILABLE_ON]->(p)
-    #     )
-    #     FOREACH (genre IN genres |
-    #         MERGE (gn:Genre {name: genre})
-    #         MERGE (g)-[:HAS_GENRE]->(gn)
-    #     )
-    #     MERGE (p:Publisher {name: "Larian Studios"})
-    #     MERGE (g)-[:PUBLISHED_BY]->(p);
-    # """
-
-    cypher_queries_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/memgraph/data/jet-resume/db.cypherl"
+    # cypher_queries_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/memgraph/data/jet-resume/db.cypherl"
     # data_query = load_file(cypher_queries_file)
     data_query = None
 
@@ -98,7 +82,11 @@ def main():
     context = "\n\n".join(contexts)
 
     tone_name = "a professional"
-    result = generate_query(query, tone_name, context=context)
+    response = generate_query(query, tone_name, context=context)
+
+    result = ""
+    for chunk in response:
+        result += chunk
 
     logger.newline()
     logger.info("Query:")

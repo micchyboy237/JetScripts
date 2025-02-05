@@ -1,3 +1,4 @@
+
 CREATE INDEX ON :`Company`(`name`);
 CREATE INDEX ON :`Company`(`position`);
 CREATE INDEX ON :`Company`(`start_date`);
@@ -11,16 +12,23 @@ CREATE INDEX ON :`Contact`(`phone_number`);
 CREATE INDEX ON :`Language`(`name`);
 CREATE INDEX ON :`Education`(`school`);
 CREATE INDEX ON :`Education`(`degree`);
-CREATE INDEX ON :`Portfolio_Link`(`url`);
+CREATE INDEX ON :`Portfolio_Link`(`name`);
+
 
 CREATE (:`Person` {`name`: "Jethro Reuel A. Estrada", `first_name`: "Jethro Reuel", `middle_name`: "Arao", `last_name`: "Estrada", `preferred_name`: "Jethro or Jet", `age`: 34, `gender`: "Male", `country`: "Philippines", `nationality`: "Filipino", `birthday`: "1990-12-01"});
+
 
 CREATE (:`Language` {`name`: "English"});
 CREATE (:`Language` {`name`: "Tagalog"});
 
+
 CREATE (:`Education` {`school`: "De La Salle University - Manila", `degree`: "BS Degree in Computer Engineering", `start_year`: 2007, `end_year`: 2012});
 
-CREATE (:`Contact` {`email`: "jethroestrada237@gmail.com", `whatsapp_link`: "https://wa.me/639101662460", `phone_number`: "+639101662460"});
+
+CREATE (:`Contact` {`name`: "jethroestrada237@gmail.com", `type`: "email"});
+CREATE (:`Contact` {`name`: "https://wa.me/639101662460", `type`: "whtasapp"});
+CREATE (:`Contact` {`name`: "+639101662460", `type`: "phone"});
+
 
 CREATE (:`Company` {`name`: "Busybody", `position`: "Web / Mobile Developer", `start_date`: date("2024-05-01"), `end_date`: null});
 CREATE (:`Company` {`name`: "Built Different LLC", `position`: "Web / Mobile Developer", `start_date`: date("2023-04-01"), `end_date`: date("2024-04-01")});
@@ -31,6 +39,7 @@ CREATE (:`Company` {`name`: "Zakly Inc.", `position`: "Web / Mobile Developer", 
 CREATE (:`Company` {`name`: "ADEC Innovations", `position`: "Web / Mobile Developer", `start_date`: date("2016-11-01"), `end_date`: date("2019-01-01")});
 CREATE (:`Company` {`name`: "Asia Pacific Digital", `position`: "Web / Mobile App Developer", `start_date`: date("2014-11-01"), `end_date`: date("2016-09-01")});
 CREATE (:`Company` {`name`: "Entertainment Gateway Group (now Yondu)", `position`: "Web Developer", `start_date`: date("2012-06-01"), `end_date`: date("2014-11-01")});
+
 
 CREATE (:`Technology` {`name`: "React"});
 CREATE (:`Technology` {`name`: "React Native"});
@@ -59,6 +68,7 @@ CREATE (:`Technology` {`name`: "Fastlane"});
 CREATE (:`Technology` {`name`: "Serverless"});
 CREATE (:`Technology` {`name`: "ChatGPT"});
 
+
 CREATE (:`Project` {`name`: "Busybody", `achievements`: "Developed iOS app from scratch"});
 CREATE (:`Project` {`name`: "JABA AI", `achievements`: "Developed iOS app from scratch, delivered web app for demo"});
 CREATE (:`Project` {`name`: "Graduapp", `achievements`: "Developed social app for students, published on app stores"});
@@ -68,15 +78,17 @@ CREATE (:`Project` {`name`: "Digital Cities PH", `achievements`: "Developed port
 CREATE (:`Project` {`name`: "ADEC Kenya", `achievements`: "Built website from scratch"});
 CREATE (:`Project` {`name`: "AMDATEX", `achievements`: "Built UI components, responsive designs"});
 
-CREATE (:`Portfolio_Link` {`url`: "https://www.julesai.com/#procure", `platform`: "Web"});
-CREATE (:`Portfolio_Link` {`url`: "https://www.digitalcitiesph.com", `platform`: "Web"});
-CREATE (:`Portfolio_Link` {`url`: "https://www.adec-kenya.com", `platform`: "Web"});
-CREATE (:`Portfolio_Link` {`url`: "https://www.amdatex.com", `platform`: "Web"});
-CREATE (:`Portfolio_Link` {`url`: "https://jaba.live", `platform`: "Web"});
-CREATE (:`Portfolio_Link` {`url`: "https://play.google.com/store/apps/details?id=com.ezmyoma", `platform`: "Android"});
-CREATE (:`Portfolio_Link` {`url`: "https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp", `platform`: "Android"});
-CREATE (:`Portfolio_Link` {`url`: "https://apps.apple.com/us/app/graduapp/id1576401944", `platform`: "iOS"});
-CREATE (:`Portfolio_Link` {`url`: "https://apps.apple.com/us/app/jaba-ai/id6451218161", `platform`: "iOS"});
+
+CREATE (:`Portfolio_Link` {`name`: "https://www.julesai.com/#procure", `platform`: "Web"});
+CREATE (:`Portfolio_Link` {`name`: "https://www.digitalcitiesph.com", `platform`: "Web"});
+CREATE (:`Portfolio_Link` {`name`: "https://www.adec-kenya.com", `platform`: "Web"});
+CREATE (:`Portfolio_Link` {`name`: "https://www.amdatex.com", `platform`: "Web"});
+CREATE (:`Portfolio_Link` {`name`: "https://jaba.live", `platform`: "Web"});
+CREATE (:`Portfolio_Link` {`name`: "https://play.google.com/store/apps/details?id=com.ezmyoma", `platform`: "Android"});
+CREATE (:`Portfolio_Link` {`name`: "https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp", `platform`: "Android"});
+CREATE (:`Portfolio_Link` {`name`: "https://apps.apple.com/us/app/graduapp/id1576401944", `platform`: "iOS"});
+CREATE (:`Portfolio_Link` {`name`: "https://apps.apple.com/us/app/jaba-ai/id6451218161", `platform`: "iOS"});
+
 
 MATCH (p:Person), (c:Company) WHERE p.name = "Jethro Reuel A. Estrada" AND c.name = "Busybody" CREATE (p)-[:`WORKED_AT`]->(c);
 MATCH (p:Person), (c:Company) WHERE p.name = "Jethro Reuel A. Estrada" AND c.name = "Built Different LLC" CREATE (p)-[:`WORKED_AT`]->(c);
@@ -88,18 +100,33 @@ MATCH (p:Person), (c:Company) WHERE p.name = "Jethro Reuel A. Estrada" AND c.nam
 MATCH (p:Person), (c:Company) WHERE p.name = "Jethro Reuel A. Estrada" AND c.name = "Asia Pacific Digital" CREATE (p)-[:`WORKED_AT`]->(c);
 MATCH (p:Person), (c:Company) WHERE p.name = "Jethro Reuel A. Estrada" AND c.name = "Entertainment Gateway Group (now Yondu)" CREATE (p)-[:`WORKED_AT`]->(c);
 
+
 MATCH (p:Person), (t:Technology) WHERE p.name = "Jethro Reuel A. Estrada" AND t.name IN ["React", "React Native", "Node.js", "AWS", "Firebase", "MongoDB", "PostgreSQL", "Expo", "GraphQL", "Redux", "Jest", "Cypress", "Selenium", "TypeScript", "AngularJS", "Ionic", "jQuery", "Java", "Photoshop", "Git", "Sentry", "Android Studio", "Xcode", "Fastlane", "Serverless", "ChatGPT"] CREATE (p)-[:`KNOWS`]->(t);
+
+
 MATCH (p:Person), (proj:Project) WHERE p.name = "Jethro Reuel A. Estrada" AND proj.name IN ["JABA AI", "Graduapp", "EZ Myoma", "Jules Procure", "Digital Cities PH", "ADEC Kenya", "AMDATEX"] CREATE (p)-[:`WORKED_ON`]->(proj);
-MATCH (p:Person), (port:Portfolio_Link) WHERE p.name = "Jethro Reuel A. Estrada" AND port.url IN ["https://www.julesai.com/#procure", "https://www.digitalcitiesph.com", "https://www.adec-kenya.com", "https://www.amdatex.com", "https://jaba.live", "https://play.google.com/store/apps/details?id=com.ezmyoma", "https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp", "https://apps.apple.com/us/app/graduapp/id1576401944", "https://apps.apple.com/us/app/jaba-ai/id6451218161"] CREATE (p)-[:`HAS_PORTFOLIO`]->(port);
+
+
+MATCH (p:Person), (port:Portfolio_Link) WHERE p.name = "Jethro Reuel A. Estrada" AND port.name IN ["https://www.julesai.com/#procure", "https://www.digitalcitiesph.com", "https://www.adec-kenya.com", "https://www.amdatex.com", "https://jaba.live", "https://play.google.com/store/apps/details?id=com.ezmyoma", "https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp", "https://apps.apple.com/us/app/graduapp/id1576401944", "https://apps.apple.com/us/app/jaba-ai/id6451218161"] CREATE (p)-[:`HAS_PORTFOLIO`]->(port);
+
+
 MATCH (p:Person), (e:Education) WHERE p.name = "Jethro Reuel A. Estrada" AND e.school = "De La Salle University - Manila" CREATE (p)-[:`STUDIED_AT`]->(e);
+
+
 MATCH (p:Person), (l:Language) WHERE p.name = "Jethro Reuel A. Estrada" AND l.name IN ["English", "Tagalog"] CREATE (p)-[:`SPEAKS`]->(l);
-MATCH (p:Person), (c:Contact) WHERE p.name = "Jethro Reuel A. Estrada" AND c.email = "jethroestrada237@gmail.com" CREATE (p)-[:`HAS_CONTACT_INFO`]->(c);
+
+
+MATCH (p:Person), (contact:Contact) WHERE p.name = "Jethro Reuel A. Estrada" AND contact.type IN ["email", "whtasapp", "phone"] CREATE (p)-[:`HAS_CONTACT_INFO`]->(contact);
+
 
 MATCH (c:Company), (proj:Project) WHERE c.name = "Busybody" AND proj.name IN ["Busybody"] CREATE (c)-[:`OWNS`]->(proj);
 MATCH (c:Company), (proj:Project) WHERE c.name = "Built Different LLC" AND proj.name IN ["JABA AI"] CREATE (c)-[:`OWNS`]->(proj);
 MATCH (c:Company), (proj:Project) WHERE c.name = "8WeekApp" AND proj.name IN ["Graduapp"] CREATE (c)-[:`OWNS`]->(proj);
 MATCH (c:Company), (proj:Project) WHERE c.name = "JulesAI" AND proj.name IN ["Jules Procure"] CREATE (c)-[:`OWNS`]->(proj);
-MATCH (c:Company), (proj:Project) WHERE c.name = "ADEC Innovations" AND proj.name IN ["Digital Cities PH", "ADEC Kenya", "AMDATEX"] CREATE (c)-[:`OWNS`]->(proj);
+MATCH (c:Company), (proj:Project) WHERE c.name = "Total Assurance Solutions Group" AND proj.name IN ["Digital Cities PH"] CREATE (c)-[:`OWNS`]->(proj);
+MATCH (c:Company), (proj:Project) WHERE c.name = "Zakly Inc." AND proj.name IN ["ADEC Kenya"] CREATE (c)-[:`OWNS`]->(proj);
+MATCH (c:Company), (proj:Project) WHERE c.name = "ADEC Innovations" AND proj.name IN ["AMDATEX"] CREATE (c)-[:`OWNS`]->(proj);
+
 
 MATCH (proj:Project), (t:Technology) WHERE proj.name = "Busybody" AND t.name IN ["React Native", "Expo"] CREATE (proj)-[:`USES`]->(t);
 MATCH (proj:Project), (t:Technology) WHERE proj.name = "JABA AI" AND t.name IN ["React", "React Native", "Expo"] CREATE (proj)-[:`USES`]->(t);
@@ -110,12 +137,12 @@ MATCH (proj:Project), (t:Technology) WHERE proj.name = "Digital Cities PH" AND t
 MATCH (proj:Project), (t:Technology) WHERE proj.name = "ADEC Kenya" AND t.name IN ["React", "Wordpress"] CREATE (proj)-[:`USES`]->(t);
 MATCH (proj:Project), (t:Technology) WHERE proj.name = "AMDATEX" AND t.name IN ["React", "Wordpress"] CREATE (proj)-[:`USES`]->(t);
 
-MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "JABA AI" AND port.url = "https://jaba.live" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
-MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "JABA AI" AND port.url = "https://apps.apple.com/us/app/jaba-ai/id6451218161" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
-MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "Jules Procure" AND port.url = "https://www.julesai.com/#procure" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
-MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "Graduapp" AND port.url = "https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
-MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "Graduapp" AND port.url = "https://apps.apple.com/us/app/graduapp/id1576401944" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
-MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "Digital Cities PH" AND port.url = "https://www.digitalcitiesph.com" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
-MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "ADEC Kenya" AND port.url = "https://www.adec-kenya.com" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
-MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "AMDATEX" AND port.url = "https://www.amdatex.com" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
-MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "EZ Myoma" AND port.url = "https://play.google.com/store/apps/details?id=com.ezmyoma" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
+MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "JABA AI" AND port.name = "https://jaba.live" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
+MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "JABA AI" AND port.name = "https://apps.apple.com/us/app/jaba-ai/id6451218161" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
+MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "Jules Procure" AND port.name = "https://www.julesai.com/#procure" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
+MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "Graduapp" AND port.name = "https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
+MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "Graduapp" AND port.name = "https://apps.apple.com/us/app/graduapp/id1576401944" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
+MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "Digital Cities PH" AND port.name = "https://www.digitalcitiesph.com" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
+MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "ADEC Kenya" AND port.name = "https://www.adec-kenya.com" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
+MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "AMDATEX" AND port.name = "https://www.amdatex.com" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
+MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "EZ Myoma" AND port.name = "https://play.google.com/store/apps/details?id=com.ezmyoma" CREATE (proj)-[:`PUBLISHED_AT`]->(port);

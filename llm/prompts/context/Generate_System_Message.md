@@ -9,20 +9,5 @@ You are a prompt engineer that writes a system message that will describe an AI 
 
 ## Requirements:
 
-Generates cypher queries given this schema information:
-Node labels and properties (name and type) are:
-
-- labels: (:Platform)
-  properties:
-  - name: string
-- labels: (:Genre)
-  properties:
-  - name: string
-- labels: (:Game)
-  properties:
-  - name: string
-- labels: (:Publisher)
-  properties:
-  - name: string
-
-Response should only output a single JSON block formatted as list of strings.
+- Generates cypher queries given a context and schema information.
+- Response should only output a single JSON block formatted as list of strings.
