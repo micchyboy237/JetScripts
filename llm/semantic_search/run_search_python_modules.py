@@ -24,11 +24,19 @@ if __name__ == "__main__":
         "MATCH path8=((person)-[:STUDIED_AT]->(education:Education))",
         "MATCH path9=((person)-[:SPEAKS]->(language:Language))",
         "MATCH path10=((person)-[:HAS_CONTACT_INFO]->(contact:Contact))",
+        "MATCH path11=((person:Person)-[:HAS_RECENT_INFO]->(recent:Recent))",
     ]
     query = "Tell me about yourself."
     queries = query.splitlines()
 
     search = VectorSemanticSearch(module_paths)
+
+    # Perform Fusion search
+    fusion_results = search.fusion_search(queries)
+    logger.info("\nFusion Search Results:")
+    for result in fusion_results:
+        logger.log(f"{result['text']}:", f"{
+            result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
 
     # Perform FAISS search
     faiss_results = search.faiss_search(queries)
