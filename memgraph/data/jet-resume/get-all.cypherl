@@ -14,16 +14,17 @@
 // WHERE person.name = "Jethro Reuel A. Estrada"
 // RETURN path1, path2, path3, path4, path5, path6, path7, path8
 
-MATCH path1=((person:Person)-[:WORKED_AT]->(company:Company))
-MATCH path2=((company:Company)-[:OWNS]->(project:Project))
-MATCH path3=((project:Project)-[:USES]->(technology:Technology))
-MATCH path4=((person)-[:WORKED_ON]->(project:Project))
-MATCH path5=((person)-[:KNOWS]->(technology:Technology))
-MATCH path6=((person)-[:HAS_PORTFOLIO]->(port:Portfolio_Link))
-MATCH path7=((project:Project)-[:PUBLISHED_AT]->(port:Portfolio_Link))
-MATCH path8=((person)-[:STUDIED_AT]->(education:Education))
-MATCH path9=((person)-[:SPEAKS]->(language:Language))
-MATCH path10=((person)-[:HAS_CONTACT_INFO]->(contact:Contact))
-MATCH path11=((person:Person)-[:HAS_RECENT_INFO]->(recent:Recent))
-WHERE person.name = "Jethro Reuel A. Estrada"
-RETURN path1, path2, path3, path4, path5, path6, path7, path8, path9, path10, path11
+MATCH path1=((user:User)-[:HAS_PERSONAL_INFO]->(personal:Personal))
+MATCH path2=((personal:Personal)-[:WORKED_AT]->(company:Company))
+MATCH path3=((company:Company)-[:OWNS]->(project:Project))
+MATCH path4=((project:Project)-[:USES]->(technology:Technology))
+MATCH path5=((personal)-[:WORKED_ON]->(project:Project))
+MATCH path6=((personal)-[:KNOWS]->(technology:Technology))
+MATCH path7=((personal)-[:HAS_PORTFOLIO]->(port:Portfolio_Link))
+MATCH path8=((project:Project)-[:PUBLISHED_AT]->(port:Portfolio_Link))
+MATCH path9=((personal)-[:STUDIED_AT]->(education:Education))
+MATCH path10=((personal)-[:SPEAKS]->(language:Language))
+MATCH path11=((personal)-[:HAS_CONTACT_INFO]->(contact:Contact))
+MATCH path12=((personal:Personal)-[:HAS_RECENT_INFO]->(recent:Recent))
+WHERE user.id = "user-1"
+RETURN path1, path2, path3, path4, path5, path6, path7, path8, path9, path10, path11, path12
