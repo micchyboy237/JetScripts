@@ -192,9 +192,9 @@ if __name__ == "__main__":
             targets_str = ", ".join(targets)
 
             item_contexts = [
-                f"Source: {source_str}",
-                f"Action: {action}",
-                f"Targets: [{targets_str}]",
+                f"{source_str}",
+                f"{action}",
+                f"[{targets_str}]",
             ]
             item_contexts_str = " | ".join(item_contexts)
             context_items.append(item_contexts_str)
