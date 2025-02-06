@@ -13,124 +13,110 @@ CREATE INDEX ON :`Language`(`name`);
 CREATE INDEX ON :`Education`(`school`);
 CREATE INDEX ON :`Education`(`degree`);
 CREATE INDEX ON :`Portfolio_Link`(`name`);
+CREATE INDEX ON :__mg__(__mg_id__);
 
 
-CREATE (:User {id: "user-1"});
+CREATE (:__mg__:User {__mg_id__: 1});
 
-CREATE (:Personal {id: "personal-1", `name`: "Jethro Reuel A. Estrada", `first_name`: "Jethro Reuel", `middle_name`: "Arao", `last_name`: "Estrada", `preferred_name`: "Jethro or Jet", `age`: 34, `gender`: "Male", `country`: "Philippines", `nationality`: "Filipino", `birthday`: "1990-12-01"});
+CREATE (:__mg__:Personal {__mg_id__: 2, `name`: "Jethro Reuel A. Estrada", `first_name`: "Jethro Reuel", `middle_name`: "Arao", `last_name`: "Estrada", `preferred_name`: "Jethro or Jet", `age`: 34, `gender`: "Male", `country`: "Philippines", `nationality`: "Filipino", `birthday`: "1990-12-01"});
 
+CREATE (:__mg__:`Language` {`__mg_id__`: 3, `name`: "English"});
+CREATE (:__mg__:`Language` {`__mg_id__`: 4, `name`: "Tagalog"});
 
-CREATE (:`Language` {`name`: "English"});
-CREATE (:`Language` {`name`: "Tagalog"});
+CREATE (:__mg__:`Education` {`__mg_id__`: 5, `school`: "De La Salle University - Manila", `degree`: "BS Degree in Computer Engineering", `start_year`: 2007, `end_year`: 2012});
 
+CREATE (:__mg__:`Contact` {`__mg_id__`: 6, `name`: "jethroestrada237@gmail.com", `type`: "email"});
+CREATE (:__mg__:`Contact` {`__mg_id__`: 7, `name`: "https://wa.me/639101662460", `type`: "whtasapp"});
+CREATE (:__mg__:`Contact` {`__mg_id__`: 8, `name`: "+639101662460", `type`: "phone"});
 
-CREATE (:`Education` {`school`: "De La Salle University - Manila", `degree`: "BS Degree in Computer Engineering", `start_year`: 2007, `end_year`: 2012});
+CREATE (:__mg__:`Company` {`__mg_id__`: 9, `name`: "Busybody", `position`: "Web / Mobile Developer", `start_date`: date("2024-05-01"), `end_date`: null});
+CREATE (:__mg__:`Company` {`__mg_id__`: 10, `name`: "Built Different LLC", `position`: "Web / Mobile Developer", `start_date`: date("2023-04-01"), `end_date`: date("2024-04-01")});
+CREATE (:__mg__:`Company` {`__mg_id__`: 11, `name`: "8WeekApp", `position`: "Web / Mobile Developer", `start_date`: date("2022-06-01"), `end_date`: date("2023-04-01")});
+CREATE (:__mg__:`Company` {`__mg_id__`: 12, `name`: "JulesAI (formerly Macanta Software Ltd.)", `position`: "Web / Mobile Developer", `start_date`: date("2020-07-01"), `end_date`: date("2022-06-01")});
+CREATE (:__mg__:`Company` {`__mg_id__`: 13, `name`: "Total Assurance Solutions Group", `position`: "Web / Mobile Developer", `start_date`: date("2019-12-01"), `end_date`: date("2020-06-01")});
+CREATE (:__mg__:`Company` {`__mg_id__`: 14, `name`: "Zakly Inc.", `position`: "Web / Mobile Developer", `start_date`: date("2019-01-01"), `end_date`: date("2019-12-01")});
+CREATE (:__mg__:`Company` {`__mg_id__`: 15, `name`: "ADEC Innovations", `position`: "Web / Mobile Developer", `start_date`: date("2016-11-01"), `end_date`: date("2019-01-01")});
+CREATE (:__mg__:`Company` {`__mg_id__`: 16, `name`: "Asia Pacific Digital", `position`: "Web / Mobile App Developer", `start_date`: date("2014-11-01"), `end_date`: date("2016-09-01")});
+CREATE (:__mg__:`Company` {`__mg_id__`: 17, `name`: "Entertainment Gateway Group (now Yondu)", `position`: "Web Developer", `start_date`: date("2012-06-01"), `end_date`: date("2014-11-01")});
 
+CREATE (:__mg__:`Technology` {`__mg_id__`: 18, `name`: "React"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 19, `name`: "React Native"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 20, `name`: "Node.js"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 21, `name`: "AWS"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 22, `name`: "Firebase"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 23, `name`: "MongoDB"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 24, `name`: "PostgreSQL"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 25, `name`: "Expo"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 26, `name`: "GraphQL"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 27, `name`: "Redux"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 28, `name`: "Jest"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 29, `name`: "Cypress"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 30, `name`: "Selenium"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 31, `name`: "TypeScript"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 32, `name`: "AngularJS"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 33, `name`: "Ionic"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 34, `name`: "jQuery"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 35, `name`: "Java"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 36, `name`: "Photoshop"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 37, `name`: "Git"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 38, `name`: "Sentry"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 39, `name`: "Android Studio"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 40, `name`: "Xcode"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 41, `name`: "Fastlane"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 42, `name`: "Serverless"});
+CREATE (:__mg__:`Technology` {`__mg_id__`: 43, `name`: "ChatGPT"});
 
-CREATE (:`Contact` {`name`: "jethroestrada237@gmail.com", `type`: "email"});
-CREATE (:`Contact` {`name`: "https://wa.me/639101662460", `type`: "whtasapp"});
-CREATE (:`Contact` {`name`: "+639101662460", `type`: "phone"});
+CREATE (:__mg__:`Project` {`__mg_id__`: 44, `name`: "Busybody", `achievements`: "Developed iOS app from scratch"});
+CREATE (:__mg__:`Project` {`__mg_id__`: 45, `name`: "JABA AI", `achievements`: "Developed iOS app from scratch, delivered web app for demo"});
+CREATE (:__mg__:`Project` {`__mg_id__`: 46, `name`: "Graduapp", `achievements`: "Developed social app for students, published on app stores"});
+CREATE (:__mg__:`Project` {`__mg_id__`: 47, `name`: "EZ Myoma", `achievements`: "Developed healthcare app for tracking uterine fibroids"});
+CREATE (:__mg__:`Project` {`__mg_id__`: 48, `name`: "Jules Procure (formerly Macanta)", `achievements`: "Built CRM app, integrated it into JulesAI workflow"});
+CREATE (:__mg__:`Project` {`__mg_id__`: 49, `name`: "Digital Cities PH", `achievements`: "Developed portal for Philippine cities with interactive map"});
+CREATE (:__mg__:`Project` {`__mg_id__`: 50, `name`: "ADEC Kenya", `achievements`: "Built website from scratch"});
+CREATE (:__mg__:`Project` {`__mg_id__`: 51, `name`: "AMDATEX", `achievements`: "Built UI components, responsive designs"});
 
+CREATE (:__mg__:`Portfolio_Link` {`__mg_id__`: 52, `name`: "https://www.julesai.com/#procure", `platform`: "Web"});
+CREATE (:__mg__:`Portfolio_Link` {`__mg_id__`: 53, `name`: "https://www.digitalcitiesph.com", `platform`: "Web"});
+CREATE (:__mg__:`Portfolio_Link` {`__mg_id__`: 54, `name`: "https://www.adec-kenya.com", `platform`: "Web"});
+CREATE (:__mg__:`Portfolio_Link` {`__mg_id__`: 55, `name`: "https://www.amdatex.com", `platform`: "Web"});
+CREATE (:__mg__:`Portfolio_Link` {`__mg_id__`: 56, `name`: "https://jaba.live", `platform`: "Web"});
+CREATE (:__mg__:`Portfolio_Link` {`__mg_id__`: 57, `name`: "https://play.google.com/store/apps/details?id=com.ezmyoma", `platform`: "Android"});
+CREATE (:__mg__:`Portfolio_Link` {`__mg_id__`: 58, `name`: "https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp", `platform`: "Android"});
+CREATE (:__mg__:`Portfolio_Link` {`__mg_id__`: 59, `name`: "https://apps.apple.com/us/app/graduapp/id1576401944", `platform`: "iOS"});
+CREATE (:__mg__:`Portfolio_Link` {`__mg_id__`: 60, `name`: "https://apps.apple.com/us/app/jaba-ai/id6451218161", `platform`: "iOS"});
 
-CREATE (:`Company` {`name`: "Busybody", `position`: "Web / Mobile Developer", `start_date`: date("2024-05-01"), `end_date`: null});
-CREATE (:`Company` {`name`: "Built Different LLC", `position`: "Web / Mobile Developer", `start_date`: date("2023-04-01"), `end_date`: date("2024-04-01")});
-CREATE (:`Company` {`name`: "8WeekApp", `position`: "Web / Mobile Developer", `start_date`: date("2022-06-01"), `end_date`: date("2023-04-01")});
-CREATE (:`Company` {`name`: "JulesAI (formerly Macanta Software Ltd.)", `position`: "Web / Mobile Developer", `start_date`: date("2020-07-01"), `end_date`: date("2022-06-01")});
-CREATE (:`Company` {`name`: "Total Assurance Solutions Group", `position`: "Web / Mobile Developer", `start_date`: date("2019-12-01"), `end_date`: date("2020-06-01")});
-CREATE (:`Company` {`name`: "Zakly Inc.", `position`: "Web / Mobile Developer", `start_date`: date("2019-01-01"), `end_date`: date("2019-12-01")});
-CREATE (:`Company` {`name`: "ADEC Innovations", `position`: "Web / Mobile Developer", `start_date`: date("2016-11-01"), `end_date`: date("2019-01-01")});
-CREATE (:`Company` {`name`: "Asia Pacific Digital", `position`: "Web / Mobile App Developer", `start_date`: date("2014-11-01"), `end_date`: date("2016-09-01")});
-CREATE (:`Company` {`name`: "Entertainment Gateway Group (now Yondu)", `position`: "Web Developer", `start_date`: date("2012-06-01"), `end_date`: date("2014-11-01")});
-
-
-CREATE (:`Technology` {`name`: "React"});
-CREATE (:`Technology` {`name`: "React Native"});
-CREATE (:`Technology` {`name`: "Node.js"});
-CREATE (:`Technology` {`name`: "AWS"});
-CREATE (:`Technology` {`name`: "Firebase"});
-CREATE (:`Technology` {`name`: "MongoDB"});
-CREATE (:`Technology` {`name`: "PostgreSQL"});
-CREATE (:`Technology` {`name`: "Expo"});
-CREATE (:`Technology` {`name`: "GraphQL"});
-CREATE (:`Technology` {`name`: "Redux"});
-CREATE (:`Technology` {`name`: "Jest"});
-CREATE (:`Technology` {`name`: "Cypress"});
-CREATE (:`Technology` {`name`: "Selenium"});
-CREATE (:`Technology` {`name`: "TypeScript"});
-CREATE (:`Technology` {`name`: "AngularJS"});
-CREATE (:`Technology` {`name`: "Ionic"});
-CREATE (:`Technology` {`name`: "jQuery"});
-CREATE (:`Technology` {`name`: "Java"});
-CREATE (:`Technology` {`name`: "Photoshop"});
-CREATE (:`Technology` {`name`: "Git"});
-CREATE (:`Technology` {`name`: "Sentry"});
-CREATE (:`Technology` {`name`: "Android Studio"});
-CREATE (:`Technology` {`name`: "Xcode"});
-CREATE (:`Technology` {`name`: "Fastlane"});
-CREATE (:`Technology` {`name`: "Serverless"});
-CREATE (:`Technology` {`name`: "ChatGPT"});
-
-
-CREATE (:`Project` {`name`: "Busybody", `achievements`: "Developed iOS app from scratch"});
-CREATE (:`Project` {`name`: "JABA AI", `achievements`: "Developed iOS app from scratch, delivered web app for demo"});
-CREATE (:`Project` {`name`: "Graduapp", `achievements`: "Developed social app for students, published on app stores"});
-CREATE (:`Project` {`name`: "EZ Myoma", `achievements`: "Developed healthcare app for tracking uterine fibroids"});
-CREATE (:`Project` {`name`: "Jules Procure (formerly Macanta)", `achievements`: "Built CRM app, integrated it into JulesAI workflow"});
-CREATE (:`Project` {`name`: "Digital Cities PH", `achievements`: "Developed portal for Philippine cities with interactive map"});
-CREATE (:`Project` {`name`: "ADEC Kenya", `achievements`: "Built website from scratch"});
-CREATE (:`Project` {`name`: "AMDATEX", `achievements`: "Built UI components, responsive designs"});
-
-
-CREATE (:`Portfolio_Link` {`name`: "https://www.julesai.com/#procure", `platform`: "Web"});
-CREATE (:`Portfolio_Link` {`name`: "https://www.digitalcitiesph.com", `platform`: "Web"});
-CREATE (:`Portfolio_Link` {`name`: "https://www.adec-kenya.com", `platform`: "Web"});
-CREATE (:`Portfolio_Link` {`name`: "https://www.amdatex.com", `platform`: "Web"});
-CREATE (:`Portfolio_Link` {`name`: "https://jaba.live", `platform`: "Web"});
-CREATE (:`Portfolio_Link` {`name`: "https://play.google.com/store/apps/details?id=com.ezmyoma", `platform`: "Android"});
-CREATE (:`Portfolio_Link` {`name`: "https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp", `platform`: "Android"});
-CREATE (:`Portfolio_Link` {`name`: "https://apps.apple.com/us/app/graduapp/id1576401944", `platform`: "iOS"});
-CREATE (:`Portfolio_Link` {`name`: "https://apps.apple.com/us/app/jaba-ai/id6451218161", `platform`: "iOS"});
+CREATE (:__mg__:`Recent` {`__mg_id__`: 61, `name`: "I am applying for the position of a Frontend Web / Mobile Developer or Full Stack Developer roles. Aside from React, React Native and Node.js. I also have extensive experience with Firebase, AWS, MongoDB and PostgreSQL.", `type`: "job_pitch"});
+CREATE (:__mg__:`Recent` {`__mg_id__`: 62, `name`: "Develop scalable, performance-oriented, and user-friendly web and mobile applications.", `type`: "goal"});
+CREATE (:__mg__:`Recent` {`__mg_id__`: 63, `name`: "Committed to continuous learning and staying up to date with the latest technologies and trends.", `type`: "goal"});
+CREATE (:__mg__:`Recent` {`__mg_id__`: 64, `name`: "Strive to contribute to the success of your organization and improve existing coding standards.", `type`: "goal"});
 
 
-CREATE (:`Recent` {`name`: "I am applying for the position of a Frontend Web / Mobile Developer or Full Stack Developer roles. Aside from React, React Native and Node.js. I also have extensive experience with Firebase, AWS, MongoDB and PostgreSQL.", `type`: "job_pitch"});
-CREATE (:`Recent` {`name`: "Develop scalable, performance-oriented, and user-friendly web and mobile applications.", `type`: "goal"});
-CREATE (:`Recent` {`name`: "Committed to continuous learning and staying up to date with the latest technologies and trends.", `type`: "goal"});
-CREATE (:`Recent` {`name`: "Strive to contribute to the success of your organization and improve existing coding standards.", `type`: "goal"});
+MATCH (u:User), (personal:Personal) WHERE u.__mg_id__ = 1 AND personal.__mg_id__ = 2 CREATE (u)-[:`HAS_PERSONAL_INFO`]->(personal);
 
+MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "Busybody" CREATE (personal)-[:`WORKED_AT`]->(c);
+MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "Built Different LLC" CREATE (personal)-[:`WORKED_AT`]->(c);
+MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "8WeekApp" CREATE (personal)-[:`WORKED_AT`]->(c);
+MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "JulesAI" CREATE (personal)-[:`WORKED_AT`]->(c);
+MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "Total Assurance Solutions Group" CREATE (personal)-[:`WORKED_AT`]->(c);
+MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "Zakly Inc." CREATE (personal)-[:`WORKED_AT`]->(c);
+MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "ADEC Innovations" CREATE (personal)-[:`WORKED_AT`]->(c);
+MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "Asia Pacific Digital" CREATE (personal)-[:`WORKED_AT`]->(c);
+MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "Entertainment Gateway Group (now Yondu)" CREATE (personal)-[:`WORKED_AT`]->(c);
 
-MATCH (u:User), (personal:Personal) WHERE u.id = "user-1" AND personal.id = "personal-1" CREATE (u)-[:`HAS_PERSONAL_INFO`]->(personal);
+MATCH (personal:Personal), (t:Technology) WHERE personal.__mg_id__ = 2 AND t.name IN ["React", "React Native", "Node.js", "AWS", "Firebase", "MongoDB", "PostgreSQL", "Expo", "GraphQL", "Redux", "Jest", "Cypress", "Selenium", "TypeScript", "AngularJS", "Ionic", "jQuery", "Java", "Photoshop", "Git", "Sentry", "Android Studio", "Xcode", "Fastlane", "Serverless", "ChatGPT"] CREATE (personal)-[:`KNOWS`]->(t);
 
+MATCH (personal:Personal), (proj:Project) WHERE personal.__mg_id__ = 2 AND proj.name IN ["JABA AI", "Graduapp", "EZ Myoma", "Jules Procure", "Digital Cities PH", "ADEC Kenya", "AMDATEX"] CREATE (personal)-[:`WORKED_ON`]->(proj);
 
-MATCH (personal:Personal), (c:Company) WHERE personal.id = "personal-1" AND c.name = "Busybody" CREATE (personal)-[:`WORKED_AT`]->(c);
-MATCH (personal:Personal), (c:Company) WHERE personal.id = "personal-1" AND c.name = "Built Different LLC" CREATE (personal)-[:`WORKED_AT`]->(c);
-MATCH (personal:Personal), (c:Company) WHERE personal.id = "personal-1" AND c.name = "8WeekApp" CREATE (personal)-[:`WORKED_AT`]->(c);
-MATCH (personal:Personal), (c:Company) WHERE personal.id = "personal-1" AND c.name = "JulesAI" CREATE (personal)-[:`WORKED_AT`]->(c);
-MATCH (personal:Personal), (c:Company) WHERE personal.id = "personal-1" AND c.name = "Total Assurance Solutions Group" CREATE (personal)-[:`WORKED_AT`]->(c);
-MATCH (personal:Personal), (c:Company) WHERE personal.id = "personal-1" AND c.name = "Zakly Inc." CREATE (personal)-[:`WORKED_AT`]->(c);
-MATCH (personal:Personal), (c:Company) WHERE personal.id = "personal-1" AND c.name = "ADEC Innovations" CREATE (personal)-[:`WORKED_AT`]->(c);
-MATCH (personal:Personal), (c:Company) WHERE personal.id = "personal-1" AND c.name = "Asia Pacific Digital" CREATE (personal)-[:`WORKED_AT`]->(c);
-MATCH (personal:Personal), (c:Company) WHERE personal.id = "personal-1" AND c.name = "Entertainment Gateway Group (now Yondu)" CREATE (personal)-[:`WORKED_AT`]->(c);
+MATCH (personal:Personal), (port:Portfolio_Link) WHERE personal.__mg_id__ = 2 AND port.name IN ["https://www.julesai.com/#procure", "https://www.digitalcitiesph.com", "https://www.adec-kenya.com", "https://www.amdatex.com", "https://jaba.live", "https://play.google.com/store/apps/details?id=com.ezmyoma", "https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp", "https://apps.apple.com/us/app/graduapp/id1576401944", "https://apps.apple.com/us/app/jaba-ai/id6451218161"] CREATE (personal)-[:`HAS_PORTFOLIO`]->(port);
 
+MATCH (personal:Personal), (e:Education) WHERE personal.__mg_id__ = 2 AND e.school = "De La Salle University - Manila" CREATE (personal)-[:`STUDIED_AT`]->(e);
 
-MATCH (personal:Personal), (t:Technology) WHERE personal.id = "personal-1" AND t.name IN ["React", "React Native", "Node.js", "AWS", "Firebase", "MongoDB", "PostgreSQL", "Expo", "GraphQL", "Redux", "Jest", "Cypress", "Selenium", "TypeScript", "AngularJS", "Ionic", "jQuery", "Java", "Photoshop", "Git", "Sentry", "Android Studio", "Xcode", "Fastlane", "Serverless", "ChatGPT"] CREATE (personal)-[:`KNOWS`]->(t);
+MATCH (personal:Personal), (l:Language) WHERE personal.__mg_id__ = 2 AND l.name IN ["English", "Tagalog"] CREATE (personal)-[:`SPEAKS`]->(l);
 
+MATCH (personal:Personal), (contact:Contact) WHERE personal.__mg_id__ = 2 AND contact.type IN ["email", "whtasapp", "phone"] CREATE (personal)-[:`HAS_CONTACT_INFO`]->(contact);
 
-MATCH (personal:Personal), (proj:Project) WHERE personal.id = "personal-1" AND proj.name IN ["JABA AI", "Graduapp", "EZ Myoma", "Jules Procure", "Digital Cities PH", "ADEC Kenya", "AMDATEX"] CREATE (personal)-[:`WORKED_ON`]->(proj);
-
-
-MATCH (personal:Personal), (port:Portfolio_Link) WHERE personal.id = "personal-1" AND port.name IN ["https://www.julesai.com/#procure", "https://www.digitalcitiesph.com", "https://www.adec-kenya.com", "https://www.amdatex.com", "https://jaba.live", "https://play.google.com/store/apps/details?id=com.ezmyoma", "https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp", "https://apps.apple.com/us/app/graduapp/id1576401944", "https://apps.apple.com/us/app/jaba-ai/id6451218161"] CREATE (personal)-[:`HAS_PORTFOLIO`]->(port);
-
-
-MATCH (personal:Personal), (e:Education) WHERE personal.id = "personal-1" AND e.school = "De La Salle University - Manila" CREATE (personal)-[:`STUDIED_AT`]->(e);
-
-
-MATCH (personal:Personal), (l:Language) WHERE personal.id = "personal-1" AND l.name IN ["English", "Tagalog"] CREATE (personal)-[:`SPEAKS`]->(l);
-
-
-MATCH (personal:Personal), (contact:Contact) WHERE personal.id = "personal-1" AND contact.type IN ["email", "whtasapp", "phone"] CREATE (personal)-[:`HAS_CONTACT_INFO`]->(contact);
-
-MATCH (personal:Personal), (recent:Recent) WHERE personal.id = "personal-1" AND recent.type = "job_pitch" CREATE (personal)-[:`HAS_RECENT_INFO`]->(recent);
-MATCH (personal:Personal), (recent:Recent) WHERE personal.id = "personal-1" AND recent.type = "goal" CREATE (personal)-[:`HAS_RECENT_INFO`]->(recent);
+MATCH (personal:Personal), (recent:Recent) WHERE personal.__mg_id__ = 2 AND recent.type = "job_pitch" CREATE (personal)-[:`HAS_RECENT_INFO`]->(recent);
+MATCH (personal:Personal), (recent:Recent) WHERE personal.__mg_id__ = 2 AND recent.type = "goal" CREATE (personal)-[:`HAS_RECENT_INFO`]->(recent);
 
 MATCH (c:Company), (proj:Project) WHERE c.name = "Busybody" AND proj.name IN ["Busybody"] CREATE (c)-[:`OWNS`]->(proj);
 MATCH (c:Company), (proj:Project) WHERE c.name = "Built Different LLC" AND proj.name IN ["JABA AI"] CREATE (c)-[:`OWNS`]->(proj);
@@ -139,7 +125,6 @@ MATCH (c:Company), (proj:Project) WHERE c.name = "JulesAI" AND proj.name IN ["Ju
 MATCH (c:Company), (proj:Project) WHERE c.name = "Total Assurance Solutions Group" AND proj.name IN ["Digital Cities PH"] CREATE (c)-[:`OWNS`]->(proj);
 MATCH (c:Company), (proj:Project) WHERE c.name = "Zakly Inc." AND proj.name IN ["ADEC Kenya"] CREATE (c)-[:`OWNS`]->(proj);
 MATCH (c:Company), (proj:Project) WHERE c.name = "ADEC Innovations" AND proj.name IN ["AMDATEX"] CREATE (c)-[:`OWNS`]->(proj);
-
 
 MATCH (proj:Project), (t:Technology) WHERE proj.name = "Busybody" AND t.name IN ["React Native", "Expo"] CREATE (proj)-[:`USES`]->(t);
 MATCH (proj:Project), (t:Technology) WHERE proj.name = "JABA AI" AND t.name IN ["React", "React Native", "Expo"] CREATE (proj)-[:`USES`]->(t);

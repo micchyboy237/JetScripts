@@ -1,30 +1,19 @@
-obj1 = {
-    "age": 34,
-    "birthday": "1990-12-01",
-    "country": "Philippines",
-    "first_name": "Jethro Reuel",
-    "gender": "Male",
-    "id": "personal-1",
-    "last_name": "Estrada",
-    "middle_name": "Arao",
-    "name": "Jethro Reuel A. Estrada",
-    "nationality": "Filipino",
-    "preferred_name": "Jethro or Jet"
-}
+import re
 
-obj2 = {
-    "gender": "Male",
-    "first_name": "Jethro Reuel",
-    "last_name": "Estrada",
-    "nationality": "Filipino",
-    "id": "personal-1",
-    "name": "Jethro Reuel A. Estrada",
-    "birthday": "1990-12-01",
-    "age": 34,
-    "country": "Philippines",
-    "preferred_name": "Jethro or Jet",
-    "middle_name": "Arao"
-}
+# Define the query
+query = 'MATCH (user)-[:HAS_PERSONAL_INFO]->(personal:Personal)'
 
-# Direct comparison
-print(obj1 == obj2)  # True
+# Use regex to find the node type inside parentheses
+match = re.search(r'\((\w+)(?::\w+)?\)', query)
+
+# If a match is found, extract the node type
+if match:
+    node_type = match.group(1)  # The first capturing group is the node type
+    assert node_type == "user"
+
+    # Update the query using the extracted node type
+    updated_query = f"GRAPH_TEMPLATE.format(query=query, type={
+        node_type.lower()})"
+    print(updated_query)
+else:
+    print("No node type found in the query")

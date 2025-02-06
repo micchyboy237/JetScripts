@@ -1,0 +1,3 @@
+MATCH (path)
+WHERE path.__mg_id__ = 10
+RETURN path, path.__mg_id__, labels(path) AS path_labels;

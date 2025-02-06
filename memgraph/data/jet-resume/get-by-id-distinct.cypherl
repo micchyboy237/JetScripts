@@ -1,0 +1,4 @@
+MATCH (personal:Personal)-[:WORKED_AT]->(company:Company)
+MATCH (path)
+WHERE path.__mg_id__ = 2
+RETURN DISTINCT path, labels(path) AS labels;
