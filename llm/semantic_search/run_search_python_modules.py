@@ -244,7 +244,7 @@ if __name__ == "__main__":
         }) for value in graph_query_results_by_ids_dict.values()
     ]
 
-    contexts = [*context_values, *llm_contexts]
+    contexts = [*llm_contexts, *context_values]
     response = query_llm(query, contexts)
     logger.newline()
     logger.debug("Fusion query response:")
