@@ -69,7 +69,7 @@ def find_files(base_dir, include, exclude, include_content_patterns, exclude_con
         for file in files:
             file_path = os.path.relpath(os.path.join(root, file), base_dir)
             if file_path in adjusted_include and not any(fnmatch.fnmatch(file_path, pat) for pat in adjusted_exclude):
-                if file_path not in matched_files:
+                if not any(file_path in matched_path for matched_path in matched_files):
                     matched_files.add(file_path)  # Add to the set
                     # print(f"Matched file in current directory: {file_path}")
 
@@ -87,7 +87,7 @@ def find_files(base_dir, include, exclude, include_content_patterns, exclude_con
                         file_path = os.path.relpath(
                             os.path.join(sub_root, file), base_dir)
                         if not any(fnmatch.fnmatch(file_path, pat) for pat in adjusted_exclude):
-                            if file_path not in matched_files:
+                            if not any(file_path in matched_path for matched_path in matched_files):
                                 matched_files.add(file_path)  # Add to the set
                                 # print( f"Matched file in directory: {file_path}")
 
@@ -109,7 +109,7 @@ def find_files(base_dir, include, exclude, include_content_patterns, exclude_con
                 # Check file contents against include_content and exclude_content patterns
                 full_path = os.path.join(root, file)
                 if matches_content(full_path, include_content_patterns, exclude_content_patterns, case_sensitive):
-                    if file_path not in matched_files:
+                    if not any(file_path in matched_path for matched_path in matched_files):
                         matched_files.add(file_path)  # Add to the set
                         # print(f"Matched file: {file_path}")
 
