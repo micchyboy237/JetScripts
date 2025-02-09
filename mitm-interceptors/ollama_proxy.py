@@ -164,8 +164,10 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         final_dict['messages'] = final_dict.pop('messages')
     if final_dict.get("prompt"):
         final_dict['prompt'] = final_dict.pop('prompt')
-    final_dict['tools'] = final_dict.pop('tools')
-    final_dict['response'] = final_dict.pop('response')
+    if final_dict.get('tools'):
+        final_dict['tools'] = final_dict.pop('tools')
+    if final_dict.get('response'):
+        final_dict['response'] = final_dict.pop('response')
 
     response_str = f"## Response\n\n```markdown\n{
         response}\n```\n\n" if response else ""
@@ -181,11 +183,14 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     # logger.debug("response_dict:")
     # logger.info(flow.response.data.__dict__)
 
-    prompt_token_count = int(next(
+    prompt_token_count = next(
         (field[1] for field in request_dict["headers"]
             ["fields"] if field[0].lower() == "tokens"),
         None
-    ))
+    )
+    if not prompt_token_count:
+        prompt_token_count = token_counter(messages, request_content["model"])
+    prompt_token_count = int(prompt_token_count)
     if "/api/chat" in flow.request.path:
         messages_with_response = str({
             "role": "assistant",
@@ -318,11 +323,12 @@ def request(flow: http.HTTPFlow):
              ["fields"] if field[0].lower() == "event-start-time"),
             None
         )
-        header_event_start_time = header_event_start_time.replace("|", "_")
-        header_event_start_time = header_event_start_time.replace(":", "-")
+        if header_event_start_time:
+            header_event_start_time = header_event_start_time.replace("|", "_")
+            header_event_start_time = header_event_start_time.replace(":", "-")
 
         sub_dir_path = flow.request.path.replace("/", "-").strip("-")
-        sub_dir_feature = header_log_filename
+        sub_dir_feature = header_log_filename or "_direct_call"
         sub_dir = os.path.join(sub_dir_path, sub_dir_feature)
         base_dir = header_event_start_time if sub_dir_feature else flow.client_conn.id
         log_base_dir = os.path.join(sub_dir, base_dir)\
@@ -381,7 +387,7 @@ def request(flow: http.HTTPFlow):
         header_event_start_time = header_event_start_time.replace("|", "_")
 
         sub_dir_path = flow.request.path.replace("/", "-").strip("-")
-        sub_dir_feature = header_log_filename
+        sub_dir_feature = header_log_filename or "_direct_call"
         sub_dir = os.path.join(sub_dir_path, sub_dir_feature)
         base_dir = header_event_start_time if sub_dir_feature else flow.client_conn.id
         log_base_dir = os.path.join(sub_dir, base_dir)\
@@ -497,11 +503,15 @@ def response(flow: http.HTTPFlow):
         # response_token_count = response_info['eval_count']
         messages = request_content.get(
             'messages', request_content.get('prompt', None))
-        prompt_token_count = int(next(
+        prompt_token_count = next(
             (field[1] for field in request_dict["headers"]
              ["fields"] if field[0].lower() == "tokens"),
             None
-        ))
+        )
+        if not prompt_token_count:
+            prompt_token_count = token_counter(
+                messages, request_content["model"])
+        prompt_token_count = int(prompt_token_count)
         if "/api/chat" in flow.request.path:
             messages_with_response = str({
                 "role": "assistant",

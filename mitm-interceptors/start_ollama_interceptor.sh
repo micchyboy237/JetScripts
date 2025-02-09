@@ -37,10 +37,10 @@ fi
 # Run mitmdump based on the selected mode
 if [ "$MODE" == "client" ]; then
   echo "Running in client mode..."
-  mitmdump -s $CLIENT_PROXY_SCRIPT --mode reverse:$SERVER_TARGET_URL -p $CLIENT_LISTEN_PORT
+  mitmdump --set validate_inbound_headers=false -s $CLIENT_PROXY_SCRIPT --mode reverse:$SERVER_TARGET_URL -p $CLIENT_LISTEN_PORT
 else
   echo "Running in server mode..."
-  mitmdump -s $SERVER_PROXY_SCRIPT --mode reverse:$SERVER_TARGET_URL -p $SERVER_LISTEN_PORT
+  mitmdump --set validate_inbound_headers=false -s $SERVER_PROXY_SCRIPT --mode reverse:$SERVER_TARGET_URL -p $SERVER_LISTEN_PORT
 fi
 
 # Sample Commands
