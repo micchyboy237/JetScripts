@@ -4,6 +4,8 @@ import re
 from typing import Any, Optional
 import faiss  # To prevent error on multiprocessing
 from jet.llm import VectorSemanticSearch
+from jet.llm.ollama.base import initialize_ollama_settings
+from jet.llm.ollama.constants import OLLAMA_SMALL_EMBED_MODEL
 from jet.llm.query.retrievers import query_llm
 from jet.memory.memgraph import initialize_graph, query_memgraph
 from jet.memory.memgraph_types import GraphQueryMetadata, GraphQueryRequest
@@ -12,6 +14,10 @@ from jet.transformers import format_json
 from jet.logger import logger
 from jet.logger.timer import time_it
 from jet.transformers.object import make_serializable
+
+initialize_ollama_settings({
+    "embedding_model": OLLAMA_SMALL_EMBED_MODEL
+})
 
 # Environment variables for Memgraph connection
 MEMGRAPH_URI = os.environ.get("MEMGRAPH_URI", "bolt://localhost:7687")
@@ -166,10 +172,29 @@ if __name__ == "__main__":
     logger.success(format_json(combined_paths_by_ids))
 
     # Generate llm chat context
+    def filter_context_value(value: dict):
+        filtered_value = {k: v for k,
+                          v in value.items() if not k.startswith("_")}
+        return filtered_value
+
     def generate_query_candidates(graph_results):
         candidates = []
         for item in graph_results:
-            candidates.append(json.dumps(make_serializable(item)))
+            source_str = f"{item["source"]['__mg_id__']}:{
+                item["source"]['_label']}"
+            action = item['action'].replace("_", " ").lower()
+            target_str = [{
+                **filter_context_value(target)
+            } for target in item["targets"]]
+
+            candidate_segments = [
+                # str(source_str),
+                # action,
+                f"{action.capitalize()}:",
+                str(target_str),
+            ]
+            candidate_str = " ".join(candidate_segments)
+            candidates.append(candidate_str)
 
         return candidates
 
@@ -180,7 +205,7 @@ if __name__ == "__main__":
             source_label = item["source"]['_label']
             source_str = f"{str(source_id)}:{source_label}"
 
-            action = item['action'].replace("_", " ").title()
+            action = item['action'].replace("_", " ").lower()
 
             targets = []
             for target in item["targets"]:
@@ -192,63 +217,22 @@ if __name__ == "__main__":
             targets_str = ", ".join(targets)
 
             item_contexts = [
-                f"{source_str}",
-                f"{action}",
+                # f"{source_str}",
+                # f"{action}",
+                f"{action.capitalize()}:",
                 f"[{targets_str}]",
             ]
-            item_contexts_str = " | ".join(item_contexts)
+            item_contexts_str = " ".join(item_contexts)
             context_items.append(item_contexts_str)
 
         return context_items
 
     module_paths = generate_query_candidates(combined_paths)
 
-    query = "Tell me about yourself."
+    query = "List your primary skills and recent achievements."
     queries = query.splitlines()
 
     search = VectorSemanticSearch(module_paths)
-
-    # Perform Fusion search
-    fusion_results = search.fusion_search(queries)
-    logger.info(f"\nFusion Search Results ({len(fusion_results)}):")
-    for result in fusion_results:
-        logger.log(f"{result['text'][:50]}:", f"{
-            result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
-
-    # Query LLM with Fusion contexts
-    fusion_contexts = []
-    for result in fusion_results:
-        try:
-            result_dict = json.loads(result['text'])
-            fusion_contexts.append(result_dict)
-        except:
-            continue
-
-    unique_query_ids = filter_unique_œuery_ids(fusion_contexts)
-    unique_graph_query_results_by_ids = [
-        item['path'] for item in call_graph_queries_by_ids(unique_query_ids)]
-    combined_paths_by_ids = combine_paths(unique_graph_query_results_by_ids)
-    graph_query_results_by_ids_dict = {
-        item['__mg_id__']: item for item in combined_paths_by_ids}
-
-    llm_contexts = generate_query_contexts(fusion_contexts)
-
-    def filter_context_value(value: dict):
-        filtered_value = {k: v for k,
-                          v in value.items() if not k.startswith("_")}
-        return filtered_value
-
-    context_values = [
-        str({
-            '__mg_id__': f"{value['__mg_id__']}:{value['_label']}", **filter_context_value(value)
-        }) for value in graph_query_results_by_ids_dict.values()
-    ]
-
-    contexts = [*llm_contexts, *context_values]
-    response = query_llm(query, contexts)
-    logger.newline()
-    logger.debug("Fusion query response:")
-    logger.success(response)
 
     # Perform FAISS search
     faiss_results = search.faiss_search(queries)
@@ -259,32 +243,14 @@ if __name__ == "__main__":
             logger.log(f"{result['text'][:50]}:", f"{
                        result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
 
-     # Perform Cross-encoder search
-    cross_encoder_results = search.cross_encoder_search(queries)
-    logger.info("\nCross-Encoder Search Results:")
-    for query_line, group in cross_encoder_results.items():
-        logger.info(f"\nQuery line: {query_line}")
-        for result in group:
-            logger.log(f"{result['text'][:50]}:", f"{
-                       result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
+    for query in queries:
+        contexts = [item['text'] for item in faiss_results[query]]
 
-    # Perform Rerank search
-    rerank_results = search.rerank_search(queries)
-    logger.info("\nRerank Search Results:")
-    for query_line, group in rerank_results.items():
-        logger.info(f"\nQuery line: {query_line}")
-        for result in group:
-            logger.log(f"{result['document']}:", f"{
-                       result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
-
-    # Perform Vector-based search
-    vector_results = search.vector_based_search(queries)
-    logger.info("\nVector-Based Search Results:")
-    for query_line, group in vector_results.items():
-        logger.info(f"\nQuery line: {query_line}")
-        for result in group:
-            logger.log(f"{result['text'][:50]}:", f"{
-                       result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
+        response = query_llm(query, contexts)
+        logger.newline()
+        logger.info("Faiss query:")
+        logger.debug(query)
+        logger.success(response)
 
     # Perform Graph-based search
     graph_results = search.graph_based_search(queries)
@@ -294,3 +260,56 @@ if __name__ == "__main__":
         for result in group:
             logger.log(f"{result['text'][:50]}:", f"{
                        result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
+
+    for query in queries:
+        contexts = [item['text'] for item in graph_results[query]]
+
+        response = query_llm(query, contexts)
+        logger.newline()
+        logger.info("Graph based query:")
+        logger.debug(query)
+        logger.success(response)
+
+    # Perform Fusion search
+    fusion_results = search.fusion_search(queries)
+    logger.info(f"\nFusion Search Results ({len(fusion_results)}):")
+    for result in fusion_results:
+        logger.log(f"{result['text'][:50]}:", f"{
+            result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
+
+    # Query LLM with Fusion contexts
+    llm_contexts = [result['text'] for result in fusion_results]
+
+    contexts = llm_contexts
+
+    response = query_llm(query, contexts)
+    logger.newline()
+    logger.debug("Fusion query response:")
+    logger.success(response)
+
+    # # Perform Cross-encoder search
+    # cross_encoder_results = search.cross_encoder_search(queries)
+    # logger.info("\nCross-Encoder Search Results:")
+    # for query_line, group in cross_encoder_results.items():
+    #     logger.info(f"\nQuery line: {query_line}")
+    #     for result in group:
+    #         logger.log(f"{result['text'][:50]}:", f"{
+    #                    result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
+
+    # # Perform Rerank search
+    # rerank_results = search.rerank_search(queries)
+    # logger.info("\nRerank Search Results:")
+    # for query_line, group in rerank_results.items():
+    #     logger.info(f"\nQuery line: {query_line}")
+    #     for result in group:
+    #         logger.log(f"{result['document']}:", f"{
+    #                    result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
+
+    # # Perform Vector-based search
+    # vector_results = search.vector_based_search(queries)
+    # logger.info("\nVector-Based Search Results:")
+    # for query_line, group in vector_results.items():
+    #     logger.info(f"\nQuery line: {query_line}")
+    #     for result in group:
+    #         logger.log(f"{result['text'][:50]}:", f"{
+    #                    result['score']:.4f}", colors=["DEBUG", "SUCCESS"])

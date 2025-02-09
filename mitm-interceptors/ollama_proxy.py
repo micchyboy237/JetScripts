@@ -127,7 +127,7 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     if is_chat:
         if system:
             prompt_msg = (
-                f"## System\n\n"
+                f"### System\n\n"
                 f"{system}\n"
             ).strip()
             chat_msgs.append(prompt_msg)
@@ -170,10 +170,12 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     final_dict['tools'] = final_dict.pop('tools')
     final_dict['response'] = final_dict.pop('response')
 
-    response_str = f"## Response\n\n```{response}```\n\n" if response else ""
-    tools_str = f"## Tools\n\n{format_json(tools)}\n\n" if has_tools else ""
+    response_str = f"## Response\n\n```markdown\n{
+        response}\n```\n\n" if response else ""
+    tools_str = f"## Tools\n\n```json\n{
+        format_json(tools)}\n```\n\n" if has_tools else ""
     prompt_log_str = (
-        f"## Prompts\n\n{prompt_log}\n\n" if is_chat else f"## Prompt\n\n{prompt}\n\n")
+        f"## Prompts\n\n```markdown\n{prompt_log}\n```\n\n" if is_chat else f"## Prompt\n\n```markdown\n{prompt}\n```\n\n")
     logger.newline()
     logger.debug("Prompt Log:")
     logger.info(prompt_log_str)

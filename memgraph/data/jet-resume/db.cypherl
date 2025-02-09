@@ -23,7 +23,7 @@ CREATE (:__mg__:Personal {__mg_id__: 2, `name`: "Jethro Reuel A. Estrada", `firs
 CREATE (:__mg__:`Language` {`__mg_id__`: 3, `name`: "English"});
 CREATE (:__mg__:`Language` {`__mg_id__`: 4, `name`: "Tagalog"});
 
-CREATE (:__mg__:`Education` {`__mg_id__`: 5, `school`: "De La Salle University - Manila", `degree`: "BS Degree in Computer Engineering", `start_year`: 2007, `end_year`: 2012});
+CREATE (:__mg__:`Education` {`__mg_id__`: 5, `school`: "De La Salle University - Manila", `name`: "BS Degree in Computer Engineering", `start_year`: 2007, `end_year`: 2012});
 
 CREATE (:__mg__:`Contact` {`__mg_id__`: 6, `name`: "jethroestrada237@gmail.com", `type`: "email"});
 CREATE (:__mg__:`Contact` {`__mg_id__`: 7, `name`: "https://wa.me/639101662460", `type`: "whtasapp"});
@@ -93,47 +93,47 @@ CREATE (:__mg__:`Recent` {`__mg_id__`: 64, `name`: "Strive to contribute to the 
 
 MATCH (u:User), (personal:Personal) WHERE u.__mg_id__ = 1 AND personal.__mg_id__ = 2 CREATE (u)-[:`HAS_PERSONAL_INFO`]->(personal);
 
-MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "Busybody" CREATE (personal)-[:`WORKED_AT`]->(c);
-MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "Built Different LLC" CREATE (personal)-[:`WORKED_AT`]->(c);
-MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "8WeekApp" CREATE (personal)-[:`WORKED_AT`]->(c);
-MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "JulesAI" CREATE (personal)-[:`WORKED_AT`]->(c);
-MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "Total Assurance Solutions Group" CREATE (personal)-[:`WORKED_AT`]->(c);
-MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "Zakly Inc." CREATE (personal)-[:`WORKED_AT`]->(c);
-MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "ADEC Innovations" CREATE (personal)-[:`WORKED_AT`]->(c);
-MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "Asia Pacific Digital" CREATE (personal)-[:`WORKED_AT`]->(c);
-MATCH (personal:Personal), (c:Company) WHERE personal.__mg_id__ = 2 AND c.name = "Entertainment Gateway Group (now Yondu)" CREATE (personal)-[:`WORKED_AT`]->(c);
+MATCH (u:User), (c:Company) WHERE u.__mg_id__ = 1 AND c.name = "Busybody" CREATE (u)-[:`WORKED_AT`]->(c);
+MATCH (u:User), (c:Company) WHERE u.__mg_id__ = 1 AND c.name = "Built Different LLC" CREATE (u)-[:`WORKED_AT`]->(c);
+MATCH (u:User), (c:Company) WHERE u.__mg_id__ = 1 AND c.name = "8WeekApp" CREATE (u)-[:`WORKED_AT`]->(c);
+MATCH (u:User), (c:Company) WHERE u.__mg_id__ = 1 AND c.name = "JulesAI" CREATE (u)-[:`WORKED_AT`]->(c);
+MATCH (u:User), (c:Company) WHERE u.__mg_id__ = 1 AND c.name = "Total Assurance Solutions Group" CREATE (u)-[:`WORKED_AT`]->(c);
+MATCH (u:User), (c:Company) WHERE u.__mg_id__ = 1 AND c.name = "Zakly Inc." CREATE (u)-[:`WORKED_AT`]->(c);
+MATCH (u:User), (c:Company) WHERE u.__mg_id__ = 1 AND c.name = "ADEC Innovations" CREATE (u)-[:`WORKED_AT`]->(c);
+MATCH (u:User), (c:Company) WHERE u.__mg_id__ = 1 AND c.name = "Asia Pacific Digital" CREATE (u)-[:`WORKED_AT`]->(c);
+MATCH (u:User), (c:Company) WHERE u.__mg_id__ = 1 AND c.name = "Entertainment Gateway Group (now Yondu)" CREATE (u)-[:`WORKED_AT`]->(c);
 
-MATCH (personal:Personal), (t:Technology) WHERE personal.__mg_id__ = 2 AND t.name IN ["React", "React Native", "Node.js", "AWS", "Firebase", "MongoDB", "PostgreSQL", "Expo", "GraphQL", "Redux", "Jest", "Cypress", "Selenium", "TypeScript", "AngularJS", "Ionic", "jQuery", "Java", "Photoshop", "Git", "Sentry", "Android Studio", "Xcode", "Fastlane", "Serverless", "ChatGPT"] CREATE (personal)-[:`KNOWS`]->(t);
+MATCH (u:User), (t:Technology) WHERE u.__mg_id__ = 1 AND t.name IN ["React", "React Native", "Node.js", "AWS", "Firebase", "MongoDB", "PostgreSQL", "Expo", "GraphQL", "Redux", "Jest", "Cypress", "Selenium", "TypeScript", "AngularJS", "Ionic", "jQuery", "Java", "Photoshop", "Git", "Sentry", "Android Studio", "Xcode", "Fastlane", "Serverless", "ChatGPT"] CREATE (u)-[:`KNOWS`]->(t);
 
-MATCH (personal:Personal), (proj:Project) WHERE personal.__mg_id__ = 2 AND proj.name IN ["JABA AI", "Graduapp", "EZ Myoma", "Jules Procure", "Digital Cities PH", "ADEC Kenya", "AMDATEX"] CREATE (personal)-[:`WORKED_ON`]->(proj);
+MATCH (u:User), (proj:Project) WHERE u.__mg_id__ = 1 AND proj.name IN ["JABA AI", "Graduapp", "EZ Myoma", "Jules Procure", "Digital Cities PH", "ADEC Kenya", "AMDATEX"] CREATE (u)-[:`WORKED_ON`]->(proj);
 
-MATCH (personal:Personal), (port:Portfolio_Link) WHERE personal.__mg_id__ = 2 AND port.name IN ["https://www.julesai.com/#procure", "https://www.digitalcitiesph.com", "https://www.adec-kenya.com", "https://www.amdatex.com", "https://jaba.live", "https://play.google.com/store/apps/details?id=com.ezmyoma", "https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp", "https://apps.apple.com/us/app/graduapp/id1576401944", "https://apps.apple.com/us/app/jaba-ai/id6451218161"] CREATE (personal)-[:`HAS_PORTFOLIO`]->(port);
+MATCH (u:User), (port:Portfolio_Link) WHERE u.__mg_id__ = 1 AND port.name IN ["https://www.julesai.com/#procure", "https://www.digitalcitiesph.com", "https://www.adec-kenya.com", "https://www.amdatex.com", "https://jaba.live", "https://play.google.com/store/apps/details?id=com.ezmyoma", "https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp", "https://apps.apple.com/us/app/graduapp/id1576401944", "https://apps.apple.com/us/app/jaba-ai/id6451218161"] CREATE (u)-[:`HAS_PORTFOLIO`]->(port);
 
-MATCH (personal:Personal), (e:Education) WHERE personal.__mg_id__ = 2 AND e.school = "De La Salle University - Manila" CREATE (personal)-[:`STUDIED_AT`]->(e);
+MATCH (u:User), (e:Education) WHERE u.__mg_id__ = 1 AND e.school = "De La Salle University - Manila" CREATE (u)-[:`STUDIED_AT`]->(e);
 
-MATCH (personal:Personal), (l:Language) WHERE personal.__mg_id__ = 2 AND l.name IN ["English", "Tagalog"] CREATE (personal)-[:`SPEAKS`]->(l);
+MATCH (u:User), (l:Language) WHERE u.__mg_id__ = 1 AND l.name IN ["English", "Tagalog"] CREATE (u)-[:`SPEAKS`]->(l);
 
-MATCH (personal:Personal), (contact:Contact) WHERE personal.__mg_id__ = 2 AND contact.type IN ["email", "whtasapp", "phone"] CREATE (personal)-[:`HAS_CONTACT_INFO`]->(contact);
+MATCH (u:User), (contact:Contact) WHERE u.__mg_id__ = 1 AND contact.type IN ["email", "whtasapp", "phone"] CREATE (u)-[:`HAS_CONTACT_INFO`]->(contact);
 
-MATCH (personal:Personal), (recent:Recent) WHERE personal.__mg_id__ = 2 AND recent.type = "job_pitch" CREATE (personal)-[:`HAS_RECENT_INFO`]->(recent);
-MATCH (personal:Personal), (recent:Recent) WHERE personal.__mg_id__ = 2 AND recent.type = "goal" CREATE (personal)-[:`HAS_RECENT_INFO`]->(recent);
+MATCH (u:User), (recent:Recent) WHERE u.__mg_id__ = 1 AND recent.type = "job_pitch" CREATE (u)-[:`HAS_RECENT_INFO`]->(recent);
+MATCH (u:User), (recent:Recent) WHERE u.__mg_id__ = 1 AND recent.type = "goal" CREATE (u)-[:`HAS_RECENT_INFO`]->(recent);
 
-MATCH (c:Company), (proj:Project) WHERE c.name = "Busybody" AND proj.name IN ["Busybody"] CREATE (c)-[:`OWNS`]->(proj);
-MATCH (c:Company), (proj:Project) WHERE c.name = "Built Different LLC" AND proj.name IN ["JABA AI"] CREATE (c)-[:`OWNS`]->(proj);
-MATCH (c:Company), (proj:Project) WHERE c.name = "8WeekApp" AND proj.name IN ["Graduapp"] CREATE (c)-[:`OWNS`]->(proj);
-MATCH (c:Company), (proj:Project) WHERE c.name = "JulesAI" AND proj.name IN ["Jules Procure"] CREATE (c)-[:`OWNS`]->(proj);
-MATCH (c:Company), (proj:Project) WHERE c.name = "Total Assurance Solutions Group" AND proj.name IN ["Digital Cities PH"] CREATE (c)-[:`OWNS`]->(proj);
-MATCH (c:Company), (proj:Project) WHERE c.name = "Zakly Inc." AND proj.name IN ["ADEC Kenya"] CREATE (c)-[:`OWNS`]->(proj);
-MATCH (c:Company), (proj:Project) WHERE c.name = "ADEC Innovations" AND proj.name IN ["AMDATEX"] CREATE (c)-[:`OWNS`]->(proj);
+MATCH (proj:Project), (c:Company) WHERE c.name = "Busybody" AND proj.name IN ["Busybody"] CREATE (proj)-[:`DEVELOPED_AT`]->(c);
+MATCH (proj:Project), (c:Company) WHERE c.name = "Built Different LLC" AND proj.name IN ["JABA AI"] CREATE (proj)-[:`DEVELOPED_AT`]->(c);
+MATCH (proj:Project), (c:Company) WHERE c.name = "8WeekApp" AND proj.name IN ["Graduapp"] CREATE (proj)-[:`DEVELOPED_AT`]->(c);
+MATCH (proj:Project), (c:Company) WHERE c.name = "JulesAI" AND proj.name IN ["Jules Procure"] CREATE (proj)-[:`DEVELOPED_AT`]->(c);
+MATCH (proj:Project), (c:Company) WHERE c.name = "Total Assurance Solutions Group" AND proj.name IN ["Digital Cities PH"] CREATE (proj)-[:`DEVELOPED_AT`]->(c);
+MATCH (proj:Project), (c:Company) WHERE c.name = "Zakly Inc." AND proj.name IN ["ADEC Kenya"] CREATE (proj)-[:`DEVELOPED_AT`]->(c);
+MATCH (proj:Project), (c:Company) WHERE c.name = "ADEC Innovations" AND proj.name IN ["AMDATEX"] CREATE (proj)-[:`DEVELOPED_AT`]->(c);
 
-MATCH (proj:Project), (t:Technology) WHERE proj.name = "Busybody" AND t.name IN ["React Native", "Expo"] CREATE (proj)-[:`USES`]->(t);
-MATCH (proj:Project), (t:Technology) WHERE proj.name = "JABA AI" AND t.name IN ["React", "React Native", "Expo"] CREATE (proj)-[:`USES`]->(t);
-MATCH (proj:Project), (t:Technology) WHERE proj.name = "Graduapp" AND t.name IN ["React", "React Native", "Node.js", "Firebase", "MongoDB", "AWS", "Redux", "Jest"] CREATE (proj)-[:`USES`]->(t);
-MATCH (proj:Project), (t:Technology) WHERE proj.name = "EZ Myoma" AND t.name IN ["React Native", "Redux"] CREATE (proj)-[:`USES`]->(t);
-MATCH (proj:Project), (t:Technology) WHERE proj.name = "Jules Procure" AND t.name IN ["React", "React Native", "AWS", "GraphQL", "Docker", "Serverless", "Jest"] CREATE (proj)-[:`USES`]->(t);
-MATCH (proj:Project), (t:Technology) WHERE proj.name = "Digital Cities PH" AND t.name IN ["React", "GraphQL", "React Static", "Headless CMS"] CREATE (proj)-[:`USES`]->(t);
-MATCH (proj:Project), (t:Technology) WHERE proj.name = "ADEC Kenya" AND t.name IN ["React", "Wordpress"] CREATE (proj)-[:`USES`]->(t);
-MATCH (proj:Project), (t:Technology) WHERE proj.name = "AMDATEX" AND t.name IN ["React", "Wordpress"] CREATE (proj)-[:`USES`]->(t);
+MATCH (proj:Project), (t:Technology) WHERE proj.name = "Busybody" AND t.name IN ["React Native", "Expo"] CREATE (proj)-[:`IMPLEMENTED`]->(t);
+MATCH (proj:Project), (t:Technology) WHERE proj.name = "JABA AI" AND t.name IN ["React", "React Native", "Expo"] CREATE (proj)-[:`IMPLEMENTED`]->(t);
+MATCH (proj:Project), (t:Technology) WHERE proj.name = "Graduapp" AND t.name IN ["React", "React Native", "Node.js", "Firebase", "MongoDB", "AWS", "Redux", "Jest"] CREATE (proj)-[:`IMPLEMENTED`]->(t);
+MATCH (proj:Project), (t:Technology) WHERE proj.name = "EZ Myoma" AND t.name IN ["React Native", "Redux"] CREATE (proj)-[:`IMPLEMENTED`]->(t);
+MATCH (proj:Project), (t:Technology) WHERE proj.name = "Jules Procure" AND t.name IN ["React", "React Native", "AWS", "GraphQL", "Docker", "Serverless", "Jest"] CREATE (proj)-[:`IMPLEMENTED`]->(t);
+MATCH (proj:Project), (t:Technology) WHERE proj.name = "Digital Cities PH" AND t.name IN ["React", "GraphQL", "React Static", "Headless CMS"] CREATE (proj)-[:`IMPLEMENTED`]->(t);
+MATCH (proj:Project), (t:Technology) WHERE proj.name = "ADEC Kenya" AND t.name IN ["React", "Wordpress"] CREATE (proj)-[:`IMPLEMENTED`]->(t);
+MATCH (proj:Project), (t:Technology) WHERE proj.name = "AMDATEX" AND t.name IN ["React", "Wordpress"] CREATE (proj)-[:`IMPLEMENTED`]->(t);
 
 MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "JABA AI" AND port.name = "https://jaba.live" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
 MATCH (proj:Project), (port:Portfolio_Link) WHERE proj.name = "JABA AI" AND port.name = "https://apps.apple.com/us/app/jaba-ai/id6451218161" CREATE (proj)-[:`PUBLISHED_AT`]->(port);
