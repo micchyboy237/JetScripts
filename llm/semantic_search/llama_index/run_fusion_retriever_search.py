@@ -63,7 +63,7 @@ if __name__ == "__main__":
     logger.info(f"RETRIEVED NODES ({len(result["nodes"])})")
     display_jet_source_nodes(sample_query, result["nodes"])
 
-    response = query_llm(sample_query, result['texts'])
+    response = query_llm(sample_query, result['texts'], system=system)
     # logger.info("QUERY RESPONSE:")
     # logger.success(response)
 
@@ -80,7 +80,7 @@ if __name__ == "__main__":
             logger.info(f"RETRIEVED NODES ({len(result["nodes"])})")
             display_jet_source_nodes(query, result["nodes"])
 
-            response = query_llm(query, result["texts"])
+            response = query_llm(query, result["texts"], system=system)
             # logger.info("QUERY RESPONSE:")
             # logger.success(response)
 

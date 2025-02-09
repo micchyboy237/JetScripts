@@ -88,11 +88,6 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
          ["fields"] if field[0].lower() == "content-length"),
         None
     )
-    token_count = next(
-        (field[1] for field in request_dict["headers"]
-         ["fields"] if field[0].lower() == "tokens"),
-        None
-    )
     log_filename = next(
         (field[1] for field in request_dict["headers"]
          ["fields"] if field[0].lower() == "log-filename"),
@@ -106,35 +101,35 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     messages = prompt_log_dict.get(
         'messages', prompt_log_dict.get('prompt', None))
     tools = request_content.get("tools")
+    system = request_content.get("system")
 
     is_chat = isinstance(messages, list)
     has_tools = bool(tools)
 
+    system = system or next(
+        (message.get('content') for message in messages
+            if message.get('role', '').lower() == "system"),
+        None  # Default value to avoid StopIteration
+    )
+
     # Chat history
     if is_chat:
-        system = next(
-            (message.get('content') for message in messages
-             if message.get('role', '').lower() == "system"),
-            None  # Default value to avoid StopIteration
-        )
-
         prompts = [
             message for message in messages
             if message.get('role', '').lower() != "system"
         ]
 
+    system_msg = (
+        f"### System\n\n"
+        f"{system}\n"
+    ).strip()
     chat_msgs = []
     if is_chat:
         if system:
-            prompt_msg = (
-                f"### System\n\n"
-                f"{system}\n"
-            ).strip()
-            chat_msgs.append(prompt_msg)
+            chat_msgs.append(system_msg)
 
         for item_idx, item in enumerate(prompts):
             prompt_msg = (
-                f"*Message {item_idx + 1}.)*\n\n"
                 f"### {item.get('role').title()}\n\n"
                 # f"```markdown\n{item.get('content')}\n```"
                 f"{item.get('content')}"
@@ -144,7 +139,9 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         prompt = messages[-1]['content']
     else:
         prompt_log = messages
-        prompt = messages
+        prompt: list = messages.copy()
+        if system:
+            prompt.insert(0, system_msg)
 
     # Get last assistant response
     final_response_content = "".join(
@@ -176,16 +173,33 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         format_json(tools)}\n```\n\n" if has_tools else ""
     prompt_log_str = (
         f"## Prompts\n\n```markdown\n{prompt_log}\n```\n\n" if is_chat else f"## Prompt\n\n```markdown\n{prompt}\n```\n\n")
-    logger.newline()
-    logger.debug("Prompt Log:")
-    logger.info(prompt_log_str)
+    # logger.newline()
+    # logger.debug("Prompt Log:")
+    # logger.info(prompt_log_str)
 
     # logger.newline()
     # logger.debug("response_dict:")
     # logger.info(flow.response.data.__dict__)
 
+    prompt_token_count = int(next(
+        (field[1] for field in request_dict["headers"]
+            ["fields"] if field[0].lower() == "tokens"),
+        None
+    ))
+    if "/api/chat" in flow.request.path:
+        messages_with_response = str({
+            "role": "assistant",
+            "content": final_response_content
+        })
+    else:
+        messages_with_response = response
+    response_token_count = token_counter(
+        messages_with_response, request_content["model"])
+    total_tokens = prompt_token_count + response_token_count
+
     log_entry = (
         f"## Request Info\n\n"
+        f"- **Log Filename**: {log_filename}\n"
         f"- **Is Chat:**: {"True" if is_chat else "False"}\n"
         f"- **Has Tools:**: {"True" if has_tools else "False"}\n"
         f"- **Stream**: {request_content["stream"]}\n"
@@ -194,8 +208,9 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         f"- **URL**: {url}\n"
         f"- **Model**: {model}\n"
         f"- **Content length**: {content_length}\n"
-        f"- **Tokens**: {token_count}\n"
-        f"- **Log Filename**: {log_filename}\n"
+        f"- **Prompt Tokens**: {prompt_token_count}\n"
+        f"- **Response Tokens**: {response_token_count}\n"
+        f"- **Total Tokens**: {total_tokens}\n"
         f"\n"
         # f"## Messages ({len(messages)})\n\n{prompt_log}\n\n"
         f"{response_str}"
@@ -283,14 +298,13 @@ def request(flow: http.HTTPFlow):
 
     # Store the start time for the request
     start_times[flow.id] = time.time()
+    request_dict = make_serializable(flow.request.data)
 
-    if any(path == flow.request.path for path in ["/api/embed", "/api/embeddings"]):
-        request_dict = make_serializable(flow.request.data)
+    if any(path in flow.request.path for path in ["/api/embed", "/api/embeddings"]):
         logger.debug(f"REQUEST EMBEDDING:")
         logger.info(format_json(request_dict["content"]))
 
     elif any(path == flow.request.path for path in ["/api/chat"]):
-        request_dict = make_serializable(flow.request.data)
         logger.log("\n")
         url = f"{flow.request.scheme}//{flow.request.host}{flow.request.path}"
 
@@ -349,7 +363,7 @@ def request(flow: http.HTTPFlow):
             str(messages)), colors=["GRAY", "INFO"])
         logger.log("PROMPT TOKENS:", token_count, colors=["GRAY", "INFO"])
 
-    elif any(path == flow.request.path for path in ["/api/generate"]):
+    elif any(path in flow.request.path for path in ["/api/generate"]):
         request_dict = make_serializable(flow.request.data)
         logger.log("\n")
         url = f"{flow.request.scheme}//{flow.request.host}{flow.request.path}"
@@ -421,7 +435,7 @@ def response(flow: http.HTTPFlow):
     logger.log("response client_conn.id:",
                flow.client_conn.id, colors=["WHITE", "PURPLE"])
 
-    if any(path == flow.request.path for path in ["/api/chat", "/api/generate"]):
+    if any(path in flow.request.path for path in ["/api/chat", "/api/generate"]):
         logger.log("\n")
         # Get response info
         response_info = chunks.copy().pop()
@@ -479,8 +493,24 @@ def response(flow: http.HTTPFlow):
             logger.log("Tools:",
                        final_response_tool_calls, colors=["DEBUG", "SUCCESS"])
 
-        prompt_token_count = response_info["prompt_eval_count"]
-        response_token_count = response_info['eval_count']
+        # prompt_token_count = response_info["prompt_eval_count"]
+        # response_token_count = response_info['eval_count']
+        messages = request_content.get(
+            'messages', request_content.get('prompt', None))
+        prompt_token_count = int(next(
+            (field[1] for field in request_dict["headers"]
+             ["fields"] if field[0].lower() == "tokens"),
+            None
+        ))
+        if "/api/chat" in flow.request.path:
+            messages_with_response = str({
+                "role": "assistant",
+                "content": final_response_content
+            })
+        else:
+            messages_with_response = response
+        response_token_count = token_counter(
+            messages_with_response, request_content["model"])
         total_tokens = prompt_token_count + response_token_count
         logger.newline()
         logger.log("Path:", flow.request.path, colors=["GRAY", "INFO"])
