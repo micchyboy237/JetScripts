@@ -1,6 +1,7 @@
 import shutil
 import json
 import os
+import threading
 import time
 import traceback
 from collections.abc import Iterable
@@ -21,6 +22,9 @@ log_file_path = None
 # Dictionary to store start times for requests
 start_times: dict[str, float] = {}
 chunks: list[str] = []
+
+# Global stop event
+stop_event = threading.Event()
 
 
 def remove_old_files_by_limit(base_dir: str, limit: int):
@@ -71,6 +75,7 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     Generates a formatted log entry with metadata, prompt, and response.
     """
     global chunks
+
     chunks = chunks.copy()
 
     response_info = chunks.copy().pop()
@@ -260,6 +265,11 @@ def interceptor_callback(data: bytes) -> bytes | Iterable[bytes]:
     and once at the end of the message with an empty bytes argument (b"").
     """
     global chunks
+    global stop_event
+
+    if stop_event.is_set():
+        logger.warning("Streaming stopped:", data)
+        return b""
 
     decoded_data = data.decode('utf-8')
     chunk_dict = {}
@@ -294,6 +304,7 @@ def request(flow: http.HTTPFlow):
     Handle the request, log it, and record the start time.
     """
     global log_file_path
+    global stop_event
 
     limit = 3
 
@@ -305,7 +316,13 @@ def request(flow: http.HTTPFlow):
     start_times[flow.id] = time.time()
     request_dict = make_serializable(flow.request.data)
 
-    if any(path in flow.request.path for path in ["/api/embed", "/api/embeddings"]):
+    if stop_event.is_set():
+        stop_event.clear()
+
+    if flow.request.path == "/api/chat/stop":
+        stop_event.set()
+        flow.response = http.Response.make(400, b"Cancelled stream")
+    elif any(path in flow.request.path for path in ["/api/embed", "/api/embeddings"]):
         logger.debug(f"REQUEST EMBEDDING:")
         logger.info(format_json(request_dict["content"]))
 
@@ -435,13 +452,16 @@ def response(flow: http.HTTPFlow):
     """
     global log_file_path
     global chunks
+    global stop_event
     chunks = chunks.copy()
 
     logger.newline()
     logger.log("response client_conn.id:",
                flow.client_conn.id, colors=["WHITE", "PURPLE"])
 
-    if any(path in flow.request.path for path in ["/api/chat", "/api/generate"]):
+    if stop_event.is_set():
+        logger.warning("Response - Cancelled stream")
+    elif any(path in flow.request.path for path in ["/api/chat", "/api/generate"]):
         logger.log("\n")
         # Get response info
         response_info = chunks.copy().pop()
@@ -549,7 +569,7 @@ def response(flow: http.HTTPFlow):
 
         logger.newline()
 
-        if log_file_path:
+        if not stop_event.is_set() and log_file_path:
             # Log prompt and response with metadata to the log file
             log_entry = generate_log_entry(flow)
             save_file(log_entry, log_file_path)
