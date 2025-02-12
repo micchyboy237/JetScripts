@@ -1,59 +1,41 @@
-import os
-from llama_index.core import SimpleDirectoryReader
-from llama_index.core.response_synthesizers import TreeSummarize
-from jet.vectors import SettingsManager, SettingsDict, QueryProcessor
-from jet.file import save_json
+import json
+
+from jet.llm.summarizer import SummaryResultInfo, summarize_data
+from jet.logger import logger
 
 
-class DataLoader:
-    def __init__(self):
-        self.reader = SimpleDirectoryReader(
-            input_files=["./data/paul_graham/paul_graham_essay.txt"]
-        )
+def main():
+    generated_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/scrapy/generated"
 
-    def load_data(self):
-        """Load data from the downloaded files"""
-        docs = self.reader.load_data(show_progress=True)
-        return docs
+    input_file = f"{generated_dir}/passport/_main_preprocessed.json"
+    summaries_output_file = f"{generated_dir}/_samples/results/_main_tree_summaries.json"
+    final_info_file = f"{generated_dir}/_samples/results/_main_tree_summary_info.json"
+    final_summary_file = f"{generated_dir}/_samples/results/_main_tree_final_summary.md"
 
+    with open(input_file, "r") as f:
+        text_data = json.load(f)
+    content = "\n".join(item['content'] for item in text_data).strip()
 
-class Summarizer:
-    def __init__(self):
-        settings = SettingsDict(
-            llm_model="llama3.1",
-            embedding_model="nomic-embed-text",
-            chunk_size=512,
-            chunk_overlap=50,
-            base_url="http://localhost:11434",
-        )
-        settings_manager = SettingsManager.create(settings)
-        self.summarizer = TreeSummarize(
-            llm=settings_manager.llm,
-            streaming=True,
-            verbose=True,
-        )
+    summaries: list[SummaryResultInfo] = []
 
-    def summarize(self, question: str, text: str) -> str:
-        """Summarize the provided text based on the given question"""
-        response = self.summarizer.get_response(question, [text])
-        return response
+    for result in summarize_data(content):
+        if "final_summary" in result:
+            with open(final_info_file, "w") as f:
+                json.dump(result, f, indent=2)
+            with open(final_summary_file, "w") as f:
+                f.write(result['final_summary']['summary']['response'])
 
+            logger.success(f"Saved final info to {final_info_file}")
+            logger.success(f"Saved final summary to {final_summary_file}")
+        else:
+            summaries.append(result)
 
-def main() -> None:
+            with open(summaries_output_file, "w") as f:
+                json.dump(summaries, f, indent=2)
 
-    loader = DataLoader()
-    docs = loader.load_data()
-    text = docs[0].text
-
-    summarizer = Summarizer()
-    question = "who is Paul Graham?"
-    summary = summarizer.summarize(question, text)
-    print(summary)
+            logger.success(
+                f"Saved summaries ({len(summaries)}) to {summaries_output_file}")
 
 
 if __name__ == "__main__":
     main()
-
-# Installation Instructions
-# If you're using Google Colab, run the following command to install LlamaIndex:
-# `!pip install llama-index`
