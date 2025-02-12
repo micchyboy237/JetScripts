@@ -6,6 +6,7 @@ import time
 import traceback
 from collections.abc import Iterable
 from datetime import datetime
+from jet.llm.ollama.models import OLLAMA_MODEL_EMBEDDING_TOKENS
 from jet.token.token_utils import token_counter
 from jet.transformers.formatters import format_json
 from mitmproxy import http
@@ -200,6 +201,8 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         final_response_content, request_content["model"])
     total_tokens = prompt_token_count + response_token_count
 
+    model_max_length = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
+
     log_entry = (
         f"## Request Info\n\n"
         f"- **Log Filename**: {log_filename}\n"
@@ -213,7 +216,7 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         f"- **Content length**: {content_length}\n"
         f"- **Prompt Tokens**: {prompt_token_count}\n"
         f"- **Response Tokens**: {response_token_count}\n"
-        f"- **Total Tokens**: {total_tokens}\n"
+        f"- **Total Tokens**: {total_tokens} / {model_max_length}\n"
         f"\n"
         # f"## Messages ({len(messages)})\n\n{prompt_log}\n\n"
         f"{response_str}"
@@ -513,6 +516,8 @@ def response(flow: http.HTTPFlow):
             logger.log("Tools:",
                        final_response_tool_calls, colors=["DEBUG", "SUCCESS"])
 
+        model_max_length = OLLAMA_MODEL_EMBEDDING_TOKENS[request_content['model']]
+
         # prompt_token_count = response_info["prompt_eval_count"]
         # response_token_count = response_info['eval_count']
         messages = request_content.get(
@@ -540,7 +545,8 @@ def response(flow: http.HTTPFlow):
             response_token_count,
             colors=["WHITE", "DEBUG"],
         )
-        logger.log("Total Tokens:", total_tokens, colors=["DEBUG", "SUCCESS"])
+        logger.log(
+            "Total Tokens:", f"{total_tokens} / {model_max_length}", colors=["DEBUG", "SUCCESS"])
 
         end_time = time.time()  # Record the end time
 
