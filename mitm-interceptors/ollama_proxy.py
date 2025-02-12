@@ -196,15 +196,8 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     if not prompt_token_count:
         prompt_token_count = token_counter(messages, request_content["model"])
     prompt_token_count = int(prompt_token_count)
-    if "/api/chat" in flow.request.path:
-        messages_with_response = str({
-            "role": "assistant",
-            "content": final_response_content
-        })
-    else:
-        messages_with_response = response
     response_token_count = token_counter(
-        messages_with_response, request_content["model"])
+        final_response_content, request_content["model"])
     total_tokens = prompt_token_count + response_token_count
 
     log_entry = (
@@ -533,15 +526,8 @@ def response(flow: http.HTTPFlow):
             prompt_token_count = token_counter(
                 messages, request_content["model"])
         prompt_token_count = int(prompt_token_count)
-        if "/api/chat" in flow.request.path:
-            messages_with_response = str({
-                "role": "assistant",
-                "content": final_response_content
-            })
-        else:
-            messages_with_response = response
         response_token_count = token_counter(
-            messages_with_response, request_content["model"])
+            final_response_content, request_content["model"])
         total_tokens = prompt_token_count + response_token_count
         logger.newline()
         logger.log("Path:", flow.request.path, colors=["GRAY", "INFO"])
