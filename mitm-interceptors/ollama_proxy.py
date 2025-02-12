@@ -373,8 +373,10 @@ def request(flow: http.HTTPFlow):
         logger.log("REQUEST HEADERS:",
                    json.dumps(request_dict["headers"]), colors=["GRAY", "INFO"])
 
+        logger.newline()
         logger.gray("REQUEST OPTIONS:")
-        logger.debug(format_json(options))
+        for key, value in options.items():
+            logger.log(f"{key}:", value, colors=["GRAY", "DEBUG"])
 
         token_count = token_counter(messages, request_content["model"])
 
