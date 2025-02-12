@@ -150,8 +150,7 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
             prompt.insert(0, system_msg)
 
     # Get last assistant response
-    final_response_content = "".join(
-        [chunk.get("content", "") for chunk in chunks])
+    final_response_content = response_info.get("content", "")
     final_response_tool_calls = "".join(
         [json.dumps(chunk.get("tool_calls", ""), indent=1) for chunk in chunks])
     if final_response_tool_calls:
@@ -483,8 +482,7 @@ def response(flow: http.HTTPFlow):
             "SUCCESS",
         ])
 
-        final_response_content = "".join(
-            [chunk.get("content", "") for chunk in chunks])
+        final_response_content = response_info.get("content", "")
         final_response_tool_calls = "".join(
             [json.dumps(chunk.get("tool_calls", ""), indent=1) for chunk in chunks])
         if final_response_tool_calls:
