@@ -235,7 +235,7 @@ class Action:
             description="key to consume OpenIA interface like LLM for example a litellm key.",
         )
         OPENIA_URL: str = Field(
-            default="http://jetairm1:11434",
+            default="http://localhost:11434",
             description="Host where to consume the OpenAI interface like llm",
         )
         MODEL_NAME: str = Field(

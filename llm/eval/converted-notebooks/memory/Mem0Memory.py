@@ -55,7 +55,7 @@ config = {
     #     "provider": "qdrant",
     #     "config": {
     #         "collection_name": "test_9",
-    #         "host": "jetairm1",
+    #         "host": "localhost",
     #         "port": 6333,
     #         "embedding_model_dims": 1024,  # Change this according to your local model's dimensions
     #     },

@@ -8,7 +8,7 @@ from jet.logger import logger
 
 class ChatLLM:
     class Config(BaseModel):
-        api_url: str = Field(default="http://jetairm1:11434",
+        api_url: str = Field(default="http://localhost:11434",
                              description="OpenAI compatible endpoint")
         model: str = Field(default="llama3.1:latest",
                            description="Model version to use")

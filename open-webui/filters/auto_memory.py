@@ -79,7 +79,7 @@ Response: ["User likes to eat pineapples and oranges","User's favorite dessert i
 class Filter:
     class Valves(BaseModel):
         openai_api_url: str = Field(
-            default="http://jetairm1:11434",
+            default="http://localhost:11434",
             description="openai compatible endpoint",
         )
         model: str = Field(

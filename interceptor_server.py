@@ -19,7 +19,7 @@ async def log_and_forward(request: Request):
 
     # Prepare request data
     method = request.method
-    url = "http://jetairm1:11434/api/generate"  # Target endpoint
+    url = "http://localhost:11434/api/generate"  # Target endpoint
     headers = dict(request.headers)
     params = dict(request.query_params)
     data = await request.body()

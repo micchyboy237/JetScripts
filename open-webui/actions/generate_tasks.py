@@ -9,7 +9,7 @@ from jet.logger import logger
 class Action:
     class Valves(BaseModel):
         openai_api_url: str = Field(
-            default="http://jetairm1:11434",
+            default="http://localhost:11434",
             description="OpenAI-compatible endpoint",
         )
         model: str = Field(

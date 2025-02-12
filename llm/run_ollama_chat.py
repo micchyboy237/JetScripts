@@ -7,7 +7,7 @@ from jet.code import MarkdownCodeExtractor
 
 
 class ChatAPI:
-    def __init__(self, model: str = "llama3.2", base_url: str = "http://jetairm1:11434/api/chat"):
+    def __init__(self, model: str = "llama3.2", base_url: str = "http://localhost:11434/api/chat"):
         self.model = model
         self.base_url = base_url
 
@@ -255,7 +255,7 @@ if __name__ == "__main__":
 
     model = "codellama"
     # model = "qwen2.5-coder"
-    base_url = "http://jetairm1:11434/api/chat"
+    base_url = "http://localhost:11434/api/chat"
     options = {
         "seed": -1,
         "stream": True,

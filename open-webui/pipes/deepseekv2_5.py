@@ -8,7 +8,7 @@ from open_webui.utils.misc import pop_system_message
 
 class Pipe:
     class Valves(BaseModel):
-        OLLAMA_BASE_URL: str = Field(default="http://jetairm1:11434")
+        OLLAMA_BASE_URL: str = Field(default="http://localhost:11434")
 
     def __init__(self):
         self.type = "manifold"

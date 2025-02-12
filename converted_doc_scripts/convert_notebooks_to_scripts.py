@@ -686,7 +686,7 @@ if __name__ == "__main__":
     repo_base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs"
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/integrations/graphs/networkx.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/cookbooks/llama3_cookbook_ollama_replicate.ipynb",
     ]
 
     include_files = [

@@ -382,9 +382,8 @@ def request(flow: http.HTTPFlow):
         logger.log("STREAM:", request_content["stream"], colors=[
                    "GRAY", "INFO"])
         logger.log("MODEL:", request_content["model"], colors=["GRAY", "INFO"])
-        logger.log("PROMPT LENGTH:", len(
-            str(messages)), colors=["GRAY", "INFO"])
         logger.log("PROMPT TOKENS:", token_count, colors=["GRAY", "INFO"])
+        logger.newline()
 
     elif any(path in flow.request.path for path in ["/api/generate"]):
         request_dict = make_serializable(flow.request.data)
@@ -439,8 +438,8 @@ def request(flow: http.HTTPFlow):
         logger.log("STREAM:", request_content["stream"], colors=[
                    "GRAY", "INFO"])
         logger.log("MODEL:", request_content["model"], colors=["GRAY", "INFO"])
-        logger.log("PROMPT LENGTH:", len(prompt), colors=["GRAY", "INFO"])
         logger.log("PROMPT TOKENS:", token_count, colors=["GRAY", "INFO"])
+        logger.newline()
 
     else:
         log_file_path = None
@@ -607,4 +606,4 @@ def error(flow: http.HTTPFlow):
 
 
 # Commands
-# mitmdump -s mitm-interceptors/ollama_interceptor.py --mode reverse:http://jetairm1:11435 -p 11434
+# mitmdump -s mitm-interceptors/ollama_interceptor.py --mode reverse:http://localhost:11435 -p 11434

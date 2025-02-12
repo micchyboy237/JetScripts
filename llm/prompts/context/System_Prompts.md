@@ -2,6 +2,14 @@
 
 ## Example 1
 
+### Prompt
+
+Generate a system message that fits the goal of this code:
+
+<!-- Write code here -->
+
+## Example 2
+
 <!-- Autocompletion prompts generator -->
 
 ### System
