@@ -39,51 +39,69 @@ sample_chat_messages: list[ChatMessage] = [
 ]
 
 if __name__ == "__main__":
-    models = ["llama3.1"]
-    max_tokens = 20
+    models = ["mistral", "llama3.1", "llama3.2"]
+    default_max_tokens = 20
+    max_tokens = default_max_tokens
 
-    logger.log("Max Tokens:", max_tokens, colors=["GRAY", "INFO"])
-    logger.info("Texts:")
-    logger.debug(json.dumps(sample_texts, indent=2))
-
-    logger.info("Count tokens for: str")
+    logger.info("\n\nCount tokens for newlines")
     for model_name in models:
+        logger.newline()
+        logger.log("Model:", model_name, colors=["WHITE", "PURPLE"])
+        count1 = token_counter("\n", model_name)
+        count2 = token_counter("\n\n", model_name)
+        count3 = token_counter("\n\n\n", model_name)
+        logger.log("Tokens:", [count1, count2, count3],
+                   colors=["GRAY", "SUCCESS"])
+
+    logger.info("\n\nCount tokens for: str")
+    for model_name in models:
+        logger.newline()
+        logger.log("Model:", model_name, colors=["WHITE", "PURPLE"])
         count = token_counter(sample_text, model_name)
-        logger.log("Tokens:", count, colors=["DEBUG", "SUCCESS"])
+        logger.log("Tokens:", count, colors=["GRAY", "SUCCESS"])
 
-    logger.info("Count batch tokens for: list[str]")
+    logger.info("\n\nCount batch tokens for: list[str]")
     for model_name in models:
+        logger.newline()
+        logger.log("Model:", model_name, colors=["WHITE", "PURPLE"])
         count = token_counter(sample_texts, model_name)
-        logger.log("Tokens:", count, colors=["DEBUG", "SUCCESS"])
+        logger.log("Tokens:", count, colors=["GRAY", "SUCCESS"])
 
         counts = token_counter(sample_texts, model_name, prevent_total=True)
-        logger.log("List of Tokens:", counts, colors=["DEBUG", "SUCCESS"])
+        logger.log("List of Tokens:", counts, colors=["GRAY", "SUCCESS"])
 
-    logger.info("Filter text count")
+    logger.info("\n\nFilter text count")
     for model_name in models:
+        logger.newline()
+        logger.log("Model:", model_name, colors=["WHITE", "PURPLE"])
         # Whole numbers
         filtered_text = filter_texts(
             sample_text, model_name, max_tokens=max_tokens)
         count = token_counter(filtered_text, model_name)
         orig_count = token_counter(sample_text, model_name)
 
-        logger.log("Orig Tokens:", orig_count, colors=["GRAY", "INFO"])
-        logger.log("New Tokens:", count, colors=["DEBUG", "SUCCESS"])
+        logger.log("Orig Tokens:", orig_count, colors=["GRAY", "DEBUG"])
+        logger.log("New Tokens:", count, colors=["GRAY", "SUCCESS"])
         logger.log("Filtered Text:", filtered_text,
-                   colors=["DEBUG", "SUCCESS"])
+                   colors=["GRAY", "SUCCESS"])
 
-    logger.info("Filter batch of texts for: list[str]")
+    logger.info("\n\nFilter batch of texts for: list[str]")
     for model_name in models:
+        logger.newline()
+        logger.log("Model:", model_name, colors=["WHITE", "PURPLE"])
+
         # Whole numbers
+        max_tokens = default_max_tokens
         filtered_texts = filter_texts(
             sample_texts, model_name, max_tokens=max_tokens)
         count = token_counter(str(filtered_texts), model_name)
         orig_count = token_counter(str(sample_texts), model_name)
 
-        logger.log("Orig Tokens:", orig_count, colors=["GRAY", "INFO"])
-        logger.log("New Tokens:", count, colors=["DEBUG", "SUCCESS"])
-        logger.log("Filtered Texts:", filtered_texts,
-                   colors=["DEBUG", "SUCCESS"])
+        logger.log("Max Tokens:", max_tokens, colors=["GRAY", "DEBUG"])
+        logger.log("Orig Tokens:", orig_count, colors=["GRAY", "DEBUG"])
+        logger.log("New Tokens:", count, colors=["GRAY", "SUCCESS"])
+        logger.log("Filtered Texts:", len(filtered_texts),
+                   colors=["GRAY", "SUCCESS"])
 
         # Percentage
         max_tokens = 0.5
@@ -92,27 +110,17 @@ if __name__ == "__main__":
         count = token_counter(str(filtered_texts), model_name)
         orig_count = token_counter(str(sample_texts), model_name)
 
-        logger.log("Orig Tokens:", orig_count, colors=["GRAY", "INFO"])
-        logger.log("New Tokens:", count, colors=["DEBUG", "SUCCESS"])
-        logger.log("Filtered Texts:", filtered_texts,
-                   colors=["DEBUG", "SUCCESS"])
+        logger.newline()
+        logger.log("Max Tokens:", max_tokens, colors=["GRAY", "DEBUG"])
+        logger.log("Orig Tokens:", orig_count, colors=["GRAY", "DEBUG"])
+        logger.log("New Tokens:", count, colors=["GRAY", "SUCCESS"])
+        logger.log("Filtered Texts:", len(filtered_texts),
+                   colors=["GRAY", "SUCCESS"])
 
-    logger.info("Filter batch of texts for: list[ChatMessage]")
+    logger.info("\n\nFilter batch of texts for: list[ChatMessage]")
     for model_name in models:
-        # Whole numbers
-        filtered_texts = filter_texts(
-            sample_chat_messages, model_name, max_tokens=max_tokens)
-        count = token_counter(str(filtered_texts), model_name)
-        orig_count = token_counter(str(sample_chat_messages), model_name)
-
-        logger.log("Orig Tokens:", orig_count, colors=["GRAY", "INFO"])
-        logger.log("New Tokens:", count, colors=["DEBUG", "SUCCESS"])
-        logger.log("Filtered Texts:", filtered_texts,
-                   colors=["DEBUG", "SUCCESS"])
-
-    logger.info("Filter batch of texts for: list[dict]")
-    sample_chat_messages_list_dict = make_serializable(sample_chat_messages)
-    for model_name in models:
+        logger.newline()
+        logger.log("Model:", model_name, colors=["WHITE", "PURPLE"])
         # Whole numbers
         filtered_texts = filter_texts(
             sample_chat_messages, model_name, max_tokens=max_tokens)
@@ -120,6 +128,22 @@ if __name__ == "__main__":
         orig_count = token_counter(str(sample_chat_messages), model_name)
 
         logger.log("Orig Tokens:", orig_count, colors=["GRAY", "DEBUG"])
-        logger.log("New Tokens:", count, colors=["DEBUG", "SUCCESS"])
-        logger.log("Filtered Texts:", filtered_texts,
-                   colors=["DEBUG", "SUCCESS"])
+        logger.log("New Tokens:", count, colors=["GRAY", "SUCCESS"])
+        logger.log("Filtered Texts:", len(filtered_texts),
+                   colors=["GRAY", "SUCCESS"])
+
+    logger.info("\n\nFilter batch of texts for: list[dict]")
+    sample_chat_messages_list_dict = make_serializable(sample_chat_messages)
+    for model_name in models:
+        logger.newline()
+        logger.log("Model:", model_name, colors=["WHITE", "PURPLE"])
+        # Whole numbers
+        filtered_texts = filter_texts(
+            sample_chat_messages, model_name, max_tokens=max_tokens)
+        count = token_counter(str(filtered_texts), model_name)
+        orig_count = token_counter(str(sample_chat_messages), model_name)
+
+        logger.log("Orig Tokens:", orig_count, colors=["GRAY", "DEBUG"])
+        logger.log("New Tokens:", count, colors=["GRAY", "SUCCESS"])
+        logger.log("Filtered Texts:", len(filtered_texts),
+                   colors=["GRAY", "SUCCESS"])

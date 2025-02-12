@@ -1,30 +1,80 @@
-from jet.code.splitter_markdown_utils import extract_md_header_contents
-from jet.llm.query.splitters import split_markdown_header_nodes
-from jet.logger import logger
-from jet.token.token_utils import get_tokenizer
-from jet.transformers.formatters import format_json
-from llama_index.core.readers.file.base import SimpleDirectoryReader
-from llama_index.core.schema import Document
-import numpy as np
-from jet.file.utils import load_file
+from typing import List, Dict, Any, TypedDict
+
+from jet.token.token_utils import token_counter
 
 
-def main():
-    items = load_file(
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/scrapy/generated/passport/_main_preprocessed.json")
-    # documents = [Document(text=item['content']) for item in items]
-    # all_nodes = split_markdown_header_nodes(documents)
-    # texts = [item.text for item in all_nodes]
-    # markdown_text = "\n\n".join(texts)
-
-    markdown_text = "\n\n".join([item['content'] for item in items])
-
-    tokenizer = get_tokenizer("llama3.2")
-    header_contents = extract_md_header_contents(
-        markdown_text, tokenizer=tokenizer.encode)
-    # logger.success(format_json(all_nodes))
-    logger.success(format_json(header_contents))
+class SummaryTokens(TypedDict):
+    summary: str
+    tokens: int
 
 
+def group_summaries(
+    summaries: list[str],
+    max_tokens_per_group: int,
+    tokenizer_model: str,
+    separator: str = "\n\n\n"
+) -> list[SummaryTokens]:
+    grouped_summaries = []
+    current_group = []
+    current_tokens = 0
+
+    for idx, summary in enumerate(summaries):
+        prefixed_summary = f"Summary {idx + 1}\n\n{summary}"
+        prefixed_summary_tokens: int = token_counter(
+            prefixed_summary, tokenizer_model)
+
+        combined_summary = separator.join(
+            s["summary"] for s in current_group)
+        combined_tokens: int = token_counter(
+            combined_summary, tokenizer_model)
+        next_group_tokens = prefixed_summary_tokens + combined_tokens
+
+        if current_group and next_group_tokens >= max_tokens_per_group:
+            grouped_summaries.append({
+                "summary": combined_summary,
+                "tokens": combined_tokens
+            })
+            current_group = []
+            current_tokens = 0
+
+        current_group.append(
+            {"summary": prefixed_summary, "tokens": prefixed_summary_tokens})
+        current_tokens += prefixed_summary_tokens
+
+    if current_group:
+        combined_summary = separator.join(s["summary"] for s in current_group)
+        combined_tokens: int = token_counter(combined_summary, tokenizer_model)
+        grouped_summaries.append({
+            "summary": combined_summary,
+            "tokens": combined_tokens
+        })
+
+    return grouped_summaries
+
+
+# Example usage
 if __name__ == "__main__":
-    main()
+    summaries = [
+        "Test 1...",
+        "Test 2...",
+        "Test 3...",
+        "Test 4...",
+    ]
+    max_tokens_per_group = 30
+    tokenizer_model = "mistral"
+    separator = "\n\n\n"
+
+    grouped_summaries = group_summaries(
+        summaries, max_tokens_per_group, tokenizer_model, separator)
+
+    assert grouped_summaries == [
+        {
+            "summary": "Summary 1\n\nTest 1...\n\n\nSummary 2\n\nTest 2...",
+            "tokens": 22
+        },
+        {
+            "summary": "Summary 3\n\nTest 3...\n\n\nSummary 4\n\nTest 4...",
+            "tokens": 22
+        }
+    ]
+    print("Test passed.")

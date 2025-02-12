@@ -1,20 +1,26 @@
+from codecs import ignore_errors
 import json
+import os
 
 from jet.llm.summarizer import SummaryResultInfo, summarize_data
 from jet.logger import logger
 
 
 def main():
-    generated_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/scrapy/generated"
+    input_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/scrapy/generated/passport/_main_preprocessed.json"
+    generated_dir = os.path.join(
+        "generated",
+        os.path.basename(__file__).split('.')[0],
+    )
+    os.makedirs(generated_dir, exist_ok=True)
 
-    input_file = f"{generated_dir}/passport/_main_preprocessed.json"
-    summaries_output_file = f"{generated_dir}/_samples/results/_main_tree_summaries.json"
-    final_info_file = f"{generated_dir}/_samples/results/_main_tree_summary_info.json"
-    final_summary_file = f"{generated_dir}/_samples/results/_main_tree_final_summary.md"
+    summaries_output_file = f"{generated_dir}/_main_tree_summaries.json"
+    final_info_file = f"{generated_dir}/_main_tree_summary_info.json"
+    final_summary_file = f"{generated_dir}/_main_tree_final_summary.md"
 
     with open(input_file, "r") as f:
         text_data = json.load(f)
-    content = "\n".join(item['content'] for item in text_data).strip()
+    content = "\n\n".join(item['content'] for item in text_data).strip()
 
     summaries: list[SummaryResultInfo] = []
 

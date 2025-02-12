@@ -79,7 +79,7 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
 
     chunks = chunks.copy()
 
-    response_info = chunks.copy().pop()
+    response_info = chunks.pop()
     if "context" in response_info:
         response_info.pop("context")
 
@@ -150,9 +150,11 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
             prompt.insert(0, system_msg)
 
     # Get last assistant response
-    final_response_content = response_info.get("content", "")
+    final_response_content = "".join(
+        [chunk.get("content", "") for chunk in chunks])
     final_response_tool_calls = "".join(
         [json.dumps(chunk.get("tool_calls", ""), indent=1) for chunk in chunks])
+    final_response_tool_calls = final_response_tool_calls.strip('"')
     if final_response_tool_calls:
         final_response_content += f"\n{final_response_tool_calls}".strip()
     if response_info.get("response"):
@@ -460,7 +462,7 @@ def response(flow: http.HTTPFlow):
     elif any(path in flow.request.path for path in ["/api/chat", "/api/generate"]):
         logger.log("\n")
         # Get response info
-        response_info = chunks.copy().pop()
+        response_info = chunks.pop()
         if "context" in response_info:
             response_info.pop("context")
         response_dict: OllamaChatResponse = make_serializable(
@@ -482,9 +484,11 @@ def response(flow: http.HTTPFlow):
             "SUCCESS",
         ])
 
-        final_response_content = response_info.get("content", "")
+        final_response_content = "".join(
+            [chunk.get("content", "") for chunk in chunks])
         final_response_tool_calls = "".join(
             [json.dumps(chunk.get("tool_calls", ""), indent=1) for chunk in chunks])
+        final_response_tool_calls = final_response_tool_calls.strip('"')
         if final_response_tool_calls:
             final_response_content += f"\n{final_response_tool_calls}".strip()
         if response_info.get("response"):
