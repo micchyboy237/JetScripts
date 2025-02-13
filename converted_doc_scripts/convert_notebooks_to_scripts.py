@@ -336,34 +336,35 @@ def read_markdown_file(file):
     source_groups = []
 
     for code_block in code_blocks:
-        language = code_block["language"]
+        type = code_block["language"]
         lines = code_block["code"].splitlines()
         code_lines = []
         for line in lines:
-            if language != 'text':
+            if type != 'text':
                 # Remove commented lines
                 if line.strip().startswith('#'):
                     continue
 
+                # Add newline at the end if missing
+                if not line.endswith('\n'):
+                    line += '\n'
             else:
                 # Comment out each line for non code block
                 # if not line.strip().startswith('#'):
                 #     line = "# " + line
 
-                # Comment out installation lines
-                # if line.strip().startswith('pip install'):
-                #     if not line.strip().startswith('#'):
-                #         line = "# " + line
-                pass
+                # Add new line at the end
+                if not line.endswith('\n'):
+                    line += '\n'
 
-            # Add newline at the end if missing
-            if not line.endswith('\n'):
-                line += '\n'
+                # Comment out installation lines
+                if line.strip().startswith('pip install'):
+                    if not line.strip().startswith('#'):
+                        line = "# " + line
 
             code_lines.append(line)
-
         source_groups.append({
-            "type": "text" if language != "code" else "code",
+            "type": "code" if type != "text" else "text",
             "code": "".join(code_lines).strip()
         })
 
@@ -686,7 +687,7 @@ if __name__ == "__main__":
     repo_base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs"
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/cookbooks/llama3_cookbook_ollama_replicate.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/agent/openai_agent_context_retrieval.ipynb",
     ]
 
     include_files = [

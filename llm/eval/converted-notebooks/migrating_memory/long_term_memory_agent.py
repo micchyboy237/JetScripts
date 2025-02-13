@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from typing_extensions import TypedDict
 from IPython.display import Image, display
 import uuid
+from jet.token.token_utils import get_tokenizer
 from langgraph.prebuilt import ToolNode
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.checkpoint.memory import MemorySaver
@@ -204,10 +205,10 @@ prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-model = ChatOllama(model="llama3.1")
+model = ChatOllama(model="llama3.2")
 model_with_tools = model.bind_tools(tools)
 
-tokenizer = tiktoken.encoding_for_model("gpt-4o")
+tokenizer = get_tokenizer("llama3.2")
 
 
 def agent(state: State) -> State:
