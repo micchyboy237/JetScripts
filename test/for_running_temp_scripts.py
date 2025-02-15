@@ -1,6 +1,11 @@
+import re
 from typing import List, Dict, Any, TypedDict
 
+from jet.llm.main.vector_semantic_search import VectorSemanticSearch
+from jet.llm.query.retrievers import query_llm
+from jet.logger import logger
 from jet.token.token_utils import token_counter
+from jet.file import load_file
 
 
 class SummaryTokens(TypedDict):
@@ -54,27 +59,42 @@ def group_summaries(
 
 # Example usage
 if __name__ == "__main__":
-    summaries = [
-        "Test 1...",
-        "Test 2...",
-        "Test 3...",
-        "Test 4...",
-    ]
-    max_tokens_per_group = 30
-    tokenizer_model = "mistral"
-    separator = "\n\n\n"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
 
-    grouped_summaries = group_summaries(
-        summaries, max_tokens_per_group, tokenizer_model, separator)
+    data = load_file(data_file)
 
-    assert grouped_summaries == [
-        {
-            "summary": "Summary 1\n\nTest 1...\n\n\nSummary 2\n\nTest 2...",
-            "tokens": 22
-        },
-        {
-            "summary": "Summary 3\n\nTest 3...\n\n\nSummary 4\n\nTest 4...",
-            "tokens": 22
-        }
-    ]
-    print("Test passed.")
+    texts = [item['details'] for item in data]
+
+    search = VectorSemanticSearch(texts)
+
+    query = "I am applying for the position of a Frontend Web / Mobile Developer or Full Stack Developer roles. Aside from React, React Native and Node.js. I also have extensive experience with Firebase, AWS, MongoDB and PostgreSQL."
+    queries = query.splitlines()
+
+    # Perform Fusion search
+    fusion_results = search.fusion_search(queries)
+    logger.info(f"\nFusion Search Results ({len(fusion_results)}):")
+
+    for result in fusion_results:
+        text_cleaned = re.sub(r"\s+", " ", result['text'])
+        logger.log(f"{text_cleaned[:50]}:", f"{
+            result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
+
+    # Perform FAISS search
+    faiss_results = search.faiss_search(queries)
+    logger.info("\nFAISS Search Results:")
+    for query_line, group in faiss_results.items():
+        logger.info(f"\nQuery line: {query_line}")
+        for result in group:
+            text_cleaned = re.sub(r"\s+", " ", result['text'])
+            logger.log(f"{text_cleaned[:50]}:", f"{
+                result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
+
+    # Perform Graph-based search
+    graph_results = search.graph_based_search(queries)
+    logger.info("\nGraph-Based Search Results:")
+    for query_line, group in graph_results.items():
+        logger.info(f"\nQuery line: {query_line}")
+        for result in group:
+            text_cleaned = re.sub(r"\s+", " ", result['text'])
+            logger.log(f"{text_cleaned[:50]}:", f"{
+                result['score']:.4f}", colors=["DEBUG", "SUCCESS"])
