@@ -8,9 +8,10 @@ data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs
 output_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/job-entities.json"
 
 data = load_file(data_file)
-texts = [
-    f"Job Title: {item['title']}\n\n{item['details']}"
-    if item['title'] not in item['details'].split("\n")[0] else item['details']
+items = [
+    {"id": item['id'], "text": f"Job Title: {item['title']}\n\n{item['details']}"}
+    if item['title'] not in item['details'].split("\n")[0]
+    else {"id": item['id'], "text": item['details']}
     for item in data
 ]
 
@@ -20,39 +21,7 @@ file_to_execute = './execute_python_file.py'
 model = "urchade/gliner_small-v2.1"
 # model = "urchade/gliner_medium-v2.1"
 style = "ent"
-
-# text = """
-# Role Overview:
-
-# We are seeking a skilled app developer to build our mobile app from scratch, integrating travel booking, relocation services, and community features. You will lead the design, development, and launch of our travel app.
-
-# Responsibilities:
-
-# Develop and maintain a scalable mobile app for iOS & Android
-
-# Integrate booking systems, payment gateways, and user profiles
-
-# Ensure seamless user experience & mobile responsiveness
-
-# Work with the team to test & refine the app before launch
-
-# Implement security features to protect user data
-
-# Qualifications:
-
-# 3+ years of mobile app development (React Native, Flutter, Swift, or Kotlin)
-
-# Experience with APIs, databases, and cloud-based deployment
-
-# Strong UI/UX skills to create a user-friendly interface
-
-# Previous work on travel, booking, or e-commerce apps (preferred)
-
-# Ability to work independently & meet deadlines
-# """
-
 labels = ["role", "application", "technology stack", "qualifications"]
-
 style = "ent"
 
 
@@ -67,13 +36,9 @@ def determine_chunk_size(length: int) -> int:
         return 500  # Large text, larger chunks
 
 
-max_text_length = max(len(text) for text in texts)
-chunk_size = determine_chunk_size(max_text_length)
-
 # Convert list to JSON string (to handle spaces safely)
-texts = json.dumps(texts)
+formatted_data = json.dumps(items)
 labels = json.dumps(labels)
-chunk_size = str(chunk_size)
 
 # Construct command string
 command_separator = "<sep>"
@@ -82,10 +47,9 @@ command_args = [
     file_to_execute,
     model,
     # text,
-    texts,
+    formatted_data,
     labels,
     style,
-    chunk_size
 ]
 command = command_separator.join(command_args)
 
@@ -98,6 +62,12 @@ debug_lines = []
 success_lines = []
 
 entities = []
+entities_dict = {
+    "model": model,
+    "labels": labels,
+    "results": entities,
+}
+
 
 for line in run_command(command, separator=command_separator):
     if line.startswith('error: '):
@@ -113,7 +83,7 @@ for line in run_command(command, separator=command_separator):
 
         entities.append(result)
 
-        save_file(entities, output_file)
+        save_file(entities_dict, output_file)
 
         # yield make_serializable(message)
     else:

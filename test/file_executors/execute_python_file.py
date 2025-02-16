@@ -38,11 +38,13 @@ def determine_chunk_size(text: str) -> int:
 def main():
     # Read arguments
     model = sys.argv[1]
-    texts = json.loads(sys.argv[2])
+    data = json.loads(sys.argv[2])
     labels = json.loads(sys.argv[3])
     style = sys.argv[4]
 
-    for text in texts:
+    for item in data:
+        id = item['id']
+        text = item['text']
         # Determine chunk size dynamically for each text
         chunk_size = determine_chunk_size(text)
 
@@ -61,6 +63,7 @@ def main():
 
         # Output the result
         print(f"result: {json.dumps({
+            "id": id,
             "text": text,
             "entities": entities
         })}")
