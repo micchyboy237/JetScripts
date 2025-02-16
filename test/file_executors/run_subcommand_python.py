@@ -2,7 +2,7 @@ from jet.executor.command import run_command
 from jet.logger import logger
 import json
 
-file_to_execute = 'file_executors/execute_python_file.py'
+file_to_execute = './execute_python_file.py'
 
 model = "urchade/gliner_small-v2.1"
 # model = "urchade/gliner_medium-v2.1"
@@ -77,8 +77,27 @@ command = command_separator.join(command_args)
 # Use run_command instead of subprocess.run
 logger.newline()
 logger.info("Output:")
+
+error_lines = []
+debug_lines = []
+success_lines = []
+
 for line in run_command(command, separator=command_separator):
-    if line.startswith('error:'):
-        logger.error(line[7:-2])  # Remove 'error: ' prefix and '\n\n' suffix
+    if line.startswith('error: '):
+        message = line[7:-2]
+        error_lines.append(message)
+        # logger.error(message)
+    elif line.startswith('result: '):
+        message = line[8:-2]
+        success_lines.append(message)
+        logger.success(message)
+
+        # yield make_serializable(message)
     else:
-        logger.debug(line[6:-2])  # Remove 'data: ' prefix and '\n\n' suffix
+        message = line[6:-2]
+        debug_lines.append(message)
+        # logger.debug(message)
+
+if not success_lines:
+    logger.debug("\n".join(debug_lines))
+    logger.error("\n".join(error_lines))
