@@ -65,9 +65,6 @@ class PaymentTermEnum(str, Enum):
     MONTHLY = "Monthly"
 
 
-c
-
-
 class Qualifications(BaseModel):
     mandatory: Optional[List[str]] = Field(
         ..., description="Required qualifications, skills, and experience")
