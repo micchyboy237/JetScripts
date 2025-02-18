@@ -107,7 +107,7 @@ class Compensation(BaseModel):
 
 class ApplicationProcess(BaseModel):
     applicationLinks: Optional[List[HttpUrl]] = Field(
-        ..., description="List of URLs for application submission")
+        ..., description="List of URLs for application submission (e.g., \"https://www.samplecompany.com/apply\")")
     contactInfo: Optional[List[str]] = Field(
         ..., description="List of recruiter or HR contact details")
     instructions: Optional[List[str]
@@ -528,7 +528,7 @@ def main():
     search_data_ids = [s_item['metadata']['id'] for s_item in search_data]
 
     # Settings initialization
-    model = "mistral"
+    model = "llama3.1"
     chunk_size = 1024
     chunk_overlap = 128
 
