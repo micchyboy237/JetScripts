@@ -45,12 +45,12 @@ class WorkScheduleEnum(str, Enum):
 
 
 class CurrencyEnum(str, Enum):
-    USD = "USD"
-    PHP = "PHP"
-    EUR = "EUR"
-    GBP = "GBP"
-    INR = "INR"
-    JPY = "JPY"
+    USD = "$"
+    PHP = "₱"
+    EUR = "€"
+    GBP = "£"
+    INR = "₹"
+    JPY = "¥"
 
 
 class CountryEnum(str, Enum):
