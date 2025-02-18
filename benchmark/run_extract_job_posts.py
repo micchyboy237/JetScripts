@@ -62,14 +62,10 @@ class CountryEnum(str, Enum):
 
 
 class Location(BaseModel):
-    city: Optional[str] = Field(...,
-                                description="City where the job is located")
-    state: Optional[str] = Field(...,
-                                 description="State where the job is located")
-    country: Optional[CountryEnum] = Field(...,
-                                           description="Country where the job is located")
-    remote: Optional[bool] = Field(...,
-                                   description="Indicates if remote work is allowed")
+    country: Optional[CountryEnum] = Field(
+        ..., description="Country where the job is located")
+    remote: Optional[bool] = Field(
+        ..., description="Indicates if remote work is allowed")
 
 
 class Qualifications(BaseModel):
@@ -134,14 +130,14 @@ class JobPosting(BaseModel):
                                    description="Name of the hiring company or employer")
     industry: Optional[IndustryEnum] = Field(
         ..., description="Industry related to the job (e.g., Technology, Healthcare, Finance)")
-    location: Optional[Location] = Field(...,
-                                         description="Job location details")
+    compensation: Optional[Compensation] = Field(
+        ..., description="Compensation details")
+    location: Optional[Location] = Field(
+        ..., description="Job location details")
     collaboration: Optional[List[str]] = Field(
         ..., description="Teams or individuals the candidate will work with")
     workArrangement: Optional[WorkArrangement] = Field(
         ..., description="Work arrangement details")
-    compensation: Optional[Compensation] = Field(
-        ..., description="Compensation details")
     applicationProcess: Optional[ApplicationProcess] = Field(
         ..., description="Details about how to apply")
     postedDate: Optional[str] = Field(...,
@@ -532,7 +528,7 @@ def main():
     search_data_ids = [s_item['metadata']['id'] for s_item in search_data]
 
     # Settings initialization
-    model = "llama3.1"
+    model = "mistral"
     chunk_size = 1024
     chunk_overlap = 128
 
