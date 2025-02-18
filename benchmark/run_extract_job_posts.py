@@ -49,6 +49,15 @@ class WorkScheduleEnum(str, Enum):
     SHIFT_BASED = "Shift-based"
 
 
+class CurrencyEnum(str, Enum):
+    USD = "$"
+    PHP = "₱"
+    EUR = "€"
+    GBP = "£"
+    INR = "₹"
+    JPY = "¥"
+
+
 class CountryEnum(str, Enum):
     USA = "United States"
     CANADA = "Canada"
@@ -60,13 +69,13 @@ class CountryEnum(str, Enum):
 class PaymentTermEnum(str, Enum):
     HOURLY = "Hourly"
     WEEKLY = "Weekly"
-    MONTHLY = "Monthly"
     BI_MONTHLY = "Bi-Monthly"  # Twice a month
+    MONTHLY = "Monthly"
 
 
 class Location(BaseModel):
     country: Optional[CountryEnum] = Field(...,
-                                           description="Country where the job is located")
+                                           description="Country where the company is located")
     remote: Optional[bool] = Field(...,
                                    description="Indicates if remote work is allowed")
 
@@ -98,9 +107,7 @@ class SalaryRange(BaseModel):
     min: Optional[int] = Field(..., description="Minimum salary")
     max: Optional[int] = Field(..., description="Maximum salary")
     currency: Optional[str] = Field(
-        ..., description="Currency symbol of the salary (e.g., $, ₱, €, £, etc.)")
-    paymentTerm: Optional[PaymentTermEnum] = Field(
-        ..., description="Payment term (e.g., Hourly, Weekly, Monthly, Bi-Monthly)")
+        ..., description="Currency of the salary (e.g., USD/hour, EUR/month, etc.)")
 
 
 class Compensation(BaseModel):
