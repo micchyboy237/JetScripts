@@ -1,4 +1,4 @@
-from jet.llm import call_ollama_chat
+from jet.actions import call_ollama_chat
 from jet.logger import logger
 
 # Main function to demonstrate sample usage

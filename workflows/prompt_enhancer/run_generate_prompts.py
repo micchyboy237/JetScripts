@@ -1,7 +1,7 @@
 import os
 
 from tqdm import tqdm
-from jet.llm.main.prompts_generator import PromptsGenerator
+from jet.actions.prompts_generator import PromptsGenerator
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 from jet.file.utils import save_file

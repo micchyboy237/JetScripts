@@ -2,7 +2,7 @@ import os
 
 from tqdm import tqdm
 from jet.file.utils import save_file
-from jet.llm.main.sources_generator import SourcesGenerator
+from jet.actions.sources_generator import SourcesGenerator
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 from jet.transformers.object import make_serializable

@@ -10,7 +10,7 @@ from llama_index.core.retrievers.fusion_retriever import FUSION_MODES
 from llama_index.core.schema import Document, NodeWithScore, BaseNode, TextNode, ImageNode
 from jet.llm.utils import display_jet_source_nodes
 from jet.logger import logger
-from jet.llm import call_ollama_chat
+from jet.actions import call_ollama_chat
 from jet.llm.llm_types import OllamaChatOptions
 from jet.llm.query import setup_index, query_llm
 from jet.llm.ollama import initialize_ollama_settings, large_llm_model

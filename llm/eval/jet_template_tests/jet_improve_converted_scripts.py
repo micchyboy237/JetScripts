@@ -1,5 +1,5 @@
 import os
-from jet.llm import call_ollama_chat
+from jet.actions import call_ollama_chat
 from jet.llm.llm_types import OllamaChatOptions
 from jet.logger import logger
 from jet_template_combined import generate_improve_prompt

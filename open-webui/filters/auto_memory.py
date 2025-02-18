@@ -29,7 +29,7 @@ from open_webui.apps.webui.models.users import Users
 import ast
 import json
 import time
-from jet.llm import call_ollama_chat
+from jet.actions import call_ollama_chat
 from jet.llm.llm_types import (
     Message,
     OllamaChatOptions,

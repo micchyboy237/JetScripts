@@ -1,4 +1,4 @@
-from jet.llm.main.intervew_qa_generator import InterviewQAGenerator
+from jet.actions.intervew_qa_generator import InterviewQAGenerator
 from jet.logger import logger
 
 

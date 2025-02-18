@@ -1,7 +1,7 @@
 import os
 
 from tqdm import tqdm
-from jet.llm.main.autocomplete_prompts_generator import AutocompletePromptsGenerator
+from jet.actions.autocomplete_prompts_generator import AutocompletePromptsGenerator
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 from jet.file.utils import save_file
