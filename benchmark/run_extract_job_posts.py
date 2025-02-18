@@ -35,14 +35,6 @@ class JobTypeEnum(str, Enum):
     INTERNSHIP = "Internship"
 
 
-class IndustryEnum(str, Enum):
-    TECHNOLOGY = "Technology"
-    HEALTHCARE = "Healthcare"
-    FINANCE = "Finance"
-    EDUCATION = "Education"
-    MANUFACTURING = "Manufacturing"
-
-
 class WorkScheduleEnum(str, Enum):
     FLEXIBLE = "Flexible"
     FIXED = "Fixed"
@@ -73,11 +65,7 @@ class PaymentTermEnum(str, Enum):
     MONTHLY = "Monthly"
 
 
-class Location(BaseModel):
-    country: Optional[CountryEnum] = Field(...,
-                                           description="Country where the company is located")
-    remote: Optional[bool] = Field(...,
-                                   description="Indicates if remote work is allowed")
+c
 
 
 class Qualifications(BaseModel):
@@ -127,29 +115,28 @@ class ApplicationProcess(BaseModel):
 
 
 class JobPosting(BaseModel):
-    jobTitle: Optional[str] = Field(...,
-                                    description="Title of the job position")
-    jobType: Optional[JobTypeEnum] = Field(...,
-                                           description="Type of employment")
-    description: Optional[str] = Field(..., description="Brief job summary")
+    jobTitle: Optional[str] = Field(
+        ..., description="Title of the job position")
+    jobType: Optional[JobTypeEnum] = Field(
+        ..., description="Type of employment")
+    description: Optional[str] = Field(
+        ..., description="Brief job summary")
     techStack: Optional[TechStack] = Field(
         ..., description="Job technological stack requirements")
-    company: Optional[str] = Field(...,
-                                   description="Name of the hiring company or employer")
-    industry: Optional[IndustryEnum] = Field(...,
-                                             description="Industry related to the job")
+    company: Optional[str] = Field(
+        ..., description="Name of the hiring company or employer")
+    country: Optional[CountryEnum] = Field(
+        ..., description="Country where the job is located")
     compensation: Optional[Compensation] = Field(
         ..., description="Compensation details")
-    location: Optional[Location] = Field(...,
-                                         description="Job location details")
     collaboration: Optional[List[str]] = Field(
         ..., description="Teams or individuals the candidate will work with")
     workArrangement: Optional[WorkArrangement] = Field(
         ..., description="Work arrangement details")
     applicationProcess: Optional[ApplicationProcess] = Field(
         ..., description="Details about how to apply")
-    postedDate: Optional[str] = Field(...,
-                                      description="Date when the job was posted")
+    postedDate: Optional[str] = Field(
+        ..., description="Date when the job was posted")
     qualifications: Optional[Qualifications] = Field(
         ..., description="Job qualifications and requirements")
     responsibilities: Optional[List[str]
