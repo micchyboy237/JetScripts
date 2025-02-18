@@ -23,6 +23,11 @@ from llama_index.core.types import PydanticProgramMode
 from tqdm import tqdm
 
 
+from enum import Enum
+from typing import List, Optional
+from pydantic import BaseModel, Field, HttpUrl
+
+
 class JobTypeEnum(str, Enum):
     FULL_TIME = "Full-Time"
     PART_TIME = "Part-Time"
@@ -44,15 +49,6 @@ class WorkScheduleEnum(str, Enum):
     SHIFT_BASED = "Shift-based"
 
 
-class CurrencyEnum(str, Enum):
-    USD = "$"
-    PHP = "₱"
-    EUR = "€"
-    GBP = "£"
-    INR = "₹"
-    JPY = "¥"
-
-
 class CountryEnum(str, Enum):
     USA = "United States"
     CANADA = "Canada"
@@ -61,11 +57,18 @@ class CountryEnum(str, Enum):
     INDIA = "India"
 
 
+class PaymentTermEnum(str, Enum):
+    HOURLY = "Hourly"
+    WEEKLY = "Weekly"
+    MONTHLY = "Monthly"
+    BI_MONTHLY = "Bi-Monthly"  # Twice a month
+
+
 class Location(BaseModel):
-    country: Optional[CountryEnum] = Field(
-        ..., description="Country where the job is located")
-    remote: Optional[bool] = Field(
-        ..., description="Indicates if remote work is allowed")
+    country: Optional[CountryEnum] = Field(...,
+                                           description="Country where the job is located")
+    remote: Optional[bool] = Field(...,
+                                   description="Indicates if remote work is allowed")
 
 
 class Qualifications(BaseModel):
@@ -94,8 +97,10 @@ class WorkArrangement(BaseModel):
 class SalaryRange(BaseModel):
     min: Optional[int] = Field(..., description="Minimum salary")
     max: Optional[int] = Field(..., description="Maximum salary")
-    currency: Optional[CurrencyEnum] = Field(
-        ..., description="Currency of the salary (e.g., USD, EUR, GBP, etc.)")
+    currency: Optional[str] = Field(
+        ..., description="Currency symbol of the salary (e.g., $, ₱, €, £, etc.)")
+    paymentTerm: Optional[PaymentTermEnum] = Field(
+        ..., description="Payment term (e.g., Hourly, Weekly, Monthly, Bi-Monthly)")
 
 
 class Compensation(BaseModel):
@@ -107,7 +112,7 @@ class Compensation(BaseModel):
 
 class ApplicationProcess(BaseModel):
     applicationLinks: Optional[List[HttpUrl]] = Field(
-        ..., description="List of URLs for application submission (e.g., \"https://www.samplecompany.com/apply\")")
+        ..., description="List of URLs for application submission")
     contactInfo: Optional[List[str]] = Field(
         ..., description="List of recruiter or HR contact details")
     instructions: Optional[List[str]
@@ -117,31 +122,31 @@ class ApplicationProcess(BaseModel):
 class JobPosting(BaseModel):
     jobTitle: Optional[str] = Field(...,
                                     description="Title of the job position")
-    jobType: Optional[JobTypeEnum] = Field(
-        ..., description="Type of employment (e.g., Full-Time, Part-Time, Contract, Internship)")
+    jobType: Optional[JobTypeEnum] = Field(...,
+                                           description="Type of employment")
     description: Optional[str] = Field(..., description="Brief job summary")
     techStack: Optional[TechStack] = Field(
         ..., description="Job technological stack requirements")
     company: Optional[str] = Field(...,
                                    description="Name of the hiring company or employer")
-    industry: Optional[IndustryEnum] = Field(
-        ..., description="Industry related to the job (e.g., Technology, Healthcare, Finance)")
+    industry: Optional[IndustryEnum] = Field(...,
+                                             description="Industry related to the job")
     compensation: Optional[Compensation] = Field(
         ..., description="Compensation details")
-    location: Optional[Location] = Field(
-        ..., description="Job location details")
+    location: Optional[Location] = Field(...,
+                                         description="Job location details")
     collaboration: Optional[List[str]] = Field(
         ..., description="Teams or individuals the candidate will work with")
     workArrangement: Optional[WorkArrangement] = Field(
         ..., description="Work arrangement details")
     applicationProcess: Optional[ApplicationProcess] = Field(
         ..., description="Details about how to apply")
-    postedDate: Optional[str] = Field(
-        ..., description="Date when the job was posted")
+    postedDate: Optional[str] = Field(...,
+                                      description="Date when the job was posted")
     qualifications: Optional[Qualifications] = Field(
         ..., description="Job qualifications and requirements")
-    responsibilities: Optional[List[str]] = Field(
-        ..., description="List of job responsibilities")
+    responsibilities: Optional[List[str]
+                               ] = Field(..., description="List of job responsibilities")
 
 
 output_cls = JobPosting
