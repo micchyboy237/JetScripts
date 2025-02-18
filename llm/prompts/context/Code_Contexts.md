@@ -2,13 +2,13 @@
 
 ## Context 1
 
-Dont use or add to memory.
+Dont use prior knowledge or add to memory.
 
 {prompt}
 
 ## Context 2
 
-Dont use or add to memory.
+Dont use prior knowledge or add to memory.
 
 Show code goals and how to use.
 
@@ -17,7 +17,7 @@ Show code goals and how to use.
 ## Context 3
 
 SYSTEM
-Dont use or add to memory.
+Dont use prior knowledge or add to memory.
 Execute browse or internet search if requested.
 
 INSTRUCTIONS
@@ -39,7 +39,7 @@ QUERY
 
 ## Context 4
 
-Dont use or add to memory.
+Dont use prior knowledge or add to memory.
 
 Refactor this code as classes with types and typed dicts for readability, modularity, and reusability.
 Add main function for usage examples. Use existing params if exists.
@@ -50,7 +50,7 @@ At the end, show installation instructions if dependencies are provided.
 ## Context 5
 
 System:
-Dont use or add to memory.
+Dont use prior knowledge or add to memory.
 
 Instructions:
 
@@ -66,7 +66,7 @@ Query:
 
 <!-- For describing notebook (.ipynb) to python (.py) code -->
 
-Dont use or add to memory.
+Dont use prior knowledge or add to memory.
 
 This python code is exported from .ipynb notebook file. Do the ff:
 
@@ -78,7 +78,7 @@ This python code is exported from .ipynb notebook file. Do the ff:
 
 <!-- For converting notebook (.ipynb) to python (.py) code -->
 
-Dont use or add to memory.
+Dont use prior knowledge or add to memory.
 
 This python code is exported from .ipynb notebook file. Do the ff:
 
@@ -91,7 +91,7 @@ This python code is exported from .ipynb notebook file. Do the ff:
 
 <!-- For existing projects -->
 
-Dont use or add to memory.
+Dont use prior knowledge or add to memory.
 Execute browse or search internet if requested.
 
 Follow these if you are expected to provide code:
@@ -111,7 +111,7 @@ Query:
 
 <!-- For creating projects -->
 
-Dont use or add to memory.
+Dont use prior knowledge or add to memory.
 Execute browse or search internet if requested.
 
 Follow these if you are expected to provide code:
@@ -128,7 +128,7 @@ Query:
 
 ## Context 10
 
-Dont use or add to memory.
+Dont use prior knowledge or add to memory.
 
 Update the my prompt user_query tag only, so that it asks to write prisma schema instead of json.
 Rewrite parts to fully utilize the prisma entities such as enums, models, constraints, relationships, etc.
@@ -139,7 +139,7 @@ PROMPT:
 
 ## Context 11
 
-Dont use or add to memory.
+Dont use prior knowledge or add to memory.
 
 - Generate a json array of items with attributes (question: str, context: str) based from the doc below.
 - This array should completely represent all available data in the doc.
@@ -149,7 +149,7 @@ Doc:
 
 ## Context 12
 
-Dont use or add to memory.
+Dont use prior knowledge or add to memory.
 
 Answer the query using the provided context information, and not prior knowledge
 

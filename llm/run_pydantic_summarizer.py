@@ -69,12 +69,13 @@ class ApplicationProcess(BaseModel):
 
 
 class JobPosting(BaseModel):
-    jobTitle: str = Field(..., description="Title of the job position")
-    jobType: str = Field(
-        ..., description="Type of employment (e.g., Full-Time, Part-Time, Contract, Internship)")
-    description: str = Field(..., description="Brief job summary")
-    qualifications: Qualifications = Field(
-        ..., description="Job qualifications and requirements")
+    jobTitle: Optional[str] = Field(
+        "", description="Title of the job position")
+    jobType: Optional[str] = Field(
+        "", description="Type of employment (e.g., Full-Time, Part-Time, Contract, Internship)")
+    description: Optional[str] = Field("", description="Brief job summary")
+    qualifications: Optional[Qualifications] = Field(
+        None, description="Job qualifications and requirements")
     responsibilities: Optional[List[str]] = Field(
         None, description="List of job responsibilities")
     company: Optional[str] = Field(

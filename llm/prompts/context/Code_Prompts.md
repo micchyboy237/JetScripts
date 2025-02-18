@@ -11,7 +11,7 @@ Render beautiful UI/UX in terms of element positions, color themes and contrasts
 ## Prompt 3
 
 SYSTEM
-Dont use or add to memory.
+Dont use prior knowledge or add to memory.
 Execute browse or internet search if requested.
 
 INSTRUCTIONS
@@ -36,7 +36,7 @@ API for sending and receiving live chat
 ## Prompt 4
 
 SYSTEM
-Dont use or add to memory.
+Dont use prior knowledge or add to memory.
 Execute browse or internet search if requested.
 
 INSTRUCTIONS

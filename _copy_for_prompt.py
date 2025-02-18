@@ -55,7 +55,7 @@ SHORTEN_FUNCTS = False
 INCLUDE_FILE_STRUCTURE = False
 
 DEFAULT_SYSTEM_MESSAGE = """
-Dont use or add to memory.
+Dont use prior knowledge or add to memory.
 Execute browse or internet search if requested.
 """.strip()
 
