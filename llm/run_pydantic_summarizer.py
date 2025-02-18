@@ -209,7 +209,7 @@ def main():
         text_chunks = splitter.split_text(text_content)
         data_chunks.append(text_chunks)
 
-    question = 'Given the job posting details provide the data for a job applicant.'
+    question = 'Extract the data from the job posting.'
     for idx, text_chunks in enumerate(tqdm(data_chunks, total=len(data_chunks), unit="chunk")):
         # Summarize
         summarizer = Summarizer(llm=settings_manager.llm)
