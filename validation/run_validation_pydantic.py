@@ -62,84 +62,89 @@ def main_valid_dict_correct():
 
 class Location(BaseModel):
     city: Optional[str] = Field(
-        None, description="City where the job is located")
+        ..., description="City where the job is located")
     state: Optional[str] = Field(
-        None, description="State where the job is located")
+        ..., description="State where the job is located")
     country: Optional[str] = Field(
-        None, description="Country where the job is located")
+        ..., description="Country where the job is located")
     remote: Optional[bool] = Field(
-        None, description="Indicates if remote work is allowed")
+        ..., description="Indicates if remote work is allowed")
 
 
 class Qualifications(BaseModel):
     mandatory: Optional[List[str]] = Field(
-        None, description="Required qualifications, skills, and experience")
+        ..., description="Required qualifications, skills, and experience")
     preferred: Optional[List[str]] = Field(
-        None, description="Preferred but not mandatory qualifications")
+        ..., description="Preferred but not mandatory qualifications")
+
+
+class TechStack(BaseModel):
+    mandatory: Optional[List[str]] = Field(
+        ..., description="Mandatory tools, software, or platforms")
+    preferred: Optional[List[str]] = Field(
+        ..., description="Preferred but not mandatory tools, software, or platforms")
 
 
 class WorkArrangement(BaseModel):
     schedule: Optional[str] = Field(
-        None, description="Work schedule (e.g., Flexible, Fixed, Shift-based)")
+        ..., description="Work schedule (e.g., Flexible, Fixed, Shift-based)")
     hoursPerWeek: Optional[int] = Field(
-        None, description="Number of work hours per week")
+        ..., description="Number of work hours per week")
     remote: Optional[bool] = Field(
-        None, description="Indicates if remote work is allowed")
+        ..., description="Indicates if remote work is allowed")
 
 
 class SalaryRange(BaseModel):
-    min: Optional[int] = Field(None, description="Minimum salary")
-    max: Optional[int] = Field(None, description="Maximum salary")
+    min: Optional[int] = Field(..., description="Minimum salary")
+    max: Optional[int] = Field(..., description="Maximum salary")
     currency: Optional[str] = Field(
-        None, description="Currency of the salary (e.g., USD, EUR)")
+        ..., description="Currency of the salary (e.g., USD, EUR)")
 
 
 class Compensation(BaseModel):
     salaryRange: Optional[SalaryRange] = Field(
-        None, description="Salary range details")
+        ..., description="Salary range details")
     benefits: Optional[List[str]] = Field(
-        None, description="List of benefits (e.g., Health Insurance, Paid Time Off)")
+        ..., description="List of benefits (e.g., Health Insurance, Paid Time Off)")
 
 
 class ApplicationProcess(BaseModel):
     applicationLinks: Optional[List[HttpUrl]] = Field(
-        None, description="List of URLs for application submission")
+        ..., description="List of URLs for application submission")
     contactInfo: Optional[List[str]] = Field(
-        None, description="List of recruiter or HR contact details")
+        ..., description="List of recruiter or HR contact details")
     instructions: Optional[List[str]] = Field(
-        None, description="List of instructions on how to apply")
+        ..., description="List of instructions on how to apply")
 
 
 class JobPosting(BaseModel):
     jobTitle: Optional[str] = Field(
-        "", description="Title of the job position")
+        ..., description="Title of the job position")
     jobType: Optional[str] = Field(
-        "", description="Type of employment (e.g., Full-Time, Part-Time, Contract, Internship)")
-    description: Optional[str] = Field("", description="Brief job summary")
+        ..., description="Type of employment (e.g., Full-Time, Part-Time, Contract, Internship)")
+    description: Optional[str] = Field(..., description="Brief job summary")
     qualifications: Optional[Qualifications] = Field(
-        None, description="Job qualifications and requirements")
+        ..., description="Job qualifications and requirements")
     responsibilities: Optional[List[str]] = Field(
-        None, description="List of job responsibilities")
+        ..., description="List of job responsibilities")
     company: Optional[str] = Field(
-        None, description="Name of the hiring company or employer")
+        ..., description="Name of the hiring company or employer")
     industry: Optional[str] = Field(
-        None, description="Industry related to the job (e.g., Technology, Healthcare, Finance)")
+        ..., description="Industry related to the job (e.g., Technology, Healthcare, Finance)")
     location: Optional[Location] = Field(
-        None, description="Job location details")
-    skills: Optional[List[str]] = Field(
-        None, description="Required technical and soft skills")
-    tools: Optional[List[str]] = Field(
-        None, description="List of required tools, software, or platforms")
+        ..., description="Job location details")
+    techStack: Optional[TechStack] = Field(
+        ..., description="Job technological stack requirements")
     collaboration: Optional[List[str]] = Field(
-        None, description="Teams or individuals the candidate will work with")
+        ..., description="Teams or individuals the candidate will work with")
     workArrangement: Optional[WorkArrangement] = Field(
-        None, description="Work arrangement details")
+        ..., description="Work arrangement details")
     compensation: Optional[Compensation] = Field(
-        None, description="Compensation details")
+        ..., description="Compensation details")
     applicationProcess: Optional[ApplicationProcess] = Field(
-        None, description="Details about how to apply")
-    postedDate: date = Field(default_factory=date.today,
-                             description="Date when the job was posted")
+        ..., description="Details about how to apply")
+    postedDate: Optional[str] = Field(
+        ..., description="Date when the job was posted")
 
 
 SampleModel = JobPosting
