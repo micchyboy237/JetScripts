@@ -122,10 +122,6 @@ class JobPosting(BaseModel):
     description: Optional[str] = Field(..., description="Brief job summary")
     techStack: Optional[TechStack] = Field(
         ..., description="Job technological stack requirements")
-    qualifications: Optional[Qualifications] = Field(
-        ..., description="Job qualifications and requirements")
-    responsibilities: Optional[List[str]
-                               ] = Field(..., description="List of job responsibilities")
     company: Optional[str] = Field(...,
                                    description="Name of the hiring company or employer")
     industry: Optional[IndustryEnum] = Field(
@@ -140,8 +136,12 @@ class JobPosting(BaseModel):
         ..., description="Work arrangement details")
     applicationProcess: Optional[ApplicationProcess] = Field(
         ..., description="Details about how to apply")
-    postedDate: Optional[str] = Field(...,
-                                      description="Date when the job was posted")
+    postedDate: Optional[str] = Field(
+        ..., description="Date when the job was posted")
+    qualifications: Optional[Qualifications] = Field(
+        ..., description="Job qualifications and requirements")
+    responsibilities: Optional[List[str]] = Field(
+        ..., description="List of job responsibilities")
 
 
 output_cls = JobPosting
