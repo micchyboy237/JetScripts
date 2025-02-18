@@ -176,10 +176,11 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     if final_dict.get('response'):
         final_dict['response'] = final_dict.pop('response')
 
-    response_str = f"## Response\n\n```markdown\n{
-        response}\n```\n\n" if response else ""
-    tools_str = f"## Tools\n\n```json\n{
-        format_json(tools)}\n```\n\n" if has_tools else ""
+    if response:
+        if "```" not in response:
+            response = f"```markdown\n{response}\n```"
+    response_str = f"## Response\n\n{response}\n\n" if response else ""
+    tools_str = f"## Tools\n\n```json\n{format_json(tools)}\n```\n\n" if has_tools else ""
     prompt_log_str = (
         f"## Prompts\n\n```markdown\n{prompt_log}\n```\n\n" if is_chat else f"## Prompt\n\n```markdown\n{prompt}\n```\n\n")
     # logger.newline()
@@ -342,7 +343,7 @@ def request(flow: http.HTTPFlow):
             header_event_start_time = header_event_start_time.replace(":", "-")
 
         sub_dir_path = flow.request.path.replace("/", "-").strip("-")
-        sub_dir_feature = header_log_filename or "_direct_call"
+        sub_dir_feature = header_log_filename or "_manual_call"
         sub_dir = os.path.join(sub_dir_path, sub_dir_feature)
         base_dir = header_event_start_time if sub_dir_feature else flow.client_conn.id
         log_base_dir = os.path.join(sub_dir, base_dir)\
@@ -402,7 +403,7 @@ def request(flow: http.HTTPFlow):
         header_event_start_time = header_event_start_time.replace("|", "_")
 
         sub_dir_path = flow.request.path.replace("/", "-").strip("-")
-        sub_dir_feature = header_log_filename or "_direct_call"
+        sub_dir_feature = header_log_filename or "_manual_call"
         sub_dir = os.path.join(sub_dir_path, sub_dir_feature)
         base_dir = header_event_start_time if sub_dir_feature else flow.client_conn.id
         log_base_dir = os.path.join(sub_dir, base_dir)\

@@ -1,8 +1,12 @@
 from datetime import date
 from decimal import Decimal
-from typing import List, Optional
+import json
+from typing import Any, List, Optional
 
+from jet.llm.ollama.base import Ollama
+from jet.scrapers.utils import clean_text
 from jsonschema.exceptions import ValidationError
+from llama_index.core.utils import set_global_tokenizer
 from pydantic import BaseModel, EmailStr, HttpUrl, Field
 
 from jet.file.utils import save_file, load_file
@@ -18,7 +22,32 @@ from llama_index.core.types import PydanticProgramMode
 from tqdm import tqdm
 
 
-class Location(BaseModel):
+from typing import List, Optional
+from pydantic import BaseModel, Field
+
+
+class JobPosting(BaseModel):
+    jobTitle: Optional[str] = Field(
+        "", description="Title of the job position")
+    jobType: Optional[str] = Field(
+        "", description="Type of employment (e.g., Full-Time, Part-Time, Contract, Internship)")
+    description: Optional[str] = Field("", description="Brief job summary")
+    responsibilities: Optional[List[str]] = Field(
+        None, description="List of job responsibilities")
+    company: Optional[str] = Field(
+        None, description="Name of the hiring company or employer")
+    industry: Optional[str] = Field(
+        None, description="Industry related to the job (e.g., Technology, Healthcare, Finance)")
+    skills: Optional[List[str]] = Field(
+        None, description="Required technical and soft skills")
+    tools: Optional[List[str]] = Field(
+        None, description="List of required tools, software, or platforms")
+    collaboration: Optional[List[str]] = Field(
+        None, description="Teams or individuals the candidate will work with")
+    postedDate: Optional[str] = Field(
+        "", description="Date when the job was posted")
+
+    # Location details
     city: Optional[str] = Field(
         None, description="City where the job is located")
     state: Optional[str] = Field(
@@ -28,39 +57,28 @@ class Location(BaseModel):
     remote: Optional[bool] = Field(
         None, description="Indicates if remote work is allowed")
 
-
-class Qualifications(BaseModel):
-    mandatory: Optional[List[str]] = Field(
+    # Qualifications
+    mandatoryQualifications: Optional[List[str]] = Field(
         None, description="Required qualifications, skills, and experience")
-    preferred: Optional[List[str]] = Field(
+    preferredQualifications: Optional[List[str]] = Field(
         None, description="Preferred but not mandatory qualifications")
 
-
-class WorkArrangement(BaseModel):
+    # Work arrangement
     schedule: Optional[str] = Field(
         None, description="Work schedule (e.g., Flexible, Fixed, Shift-based)")
     hoursPerWeek: Optional[int] = Field(
         None, description="Number of work hours per week")
-    remote: Optional[bool] = Field(
-        None, description="Indicates if remote work is allowed")
 
-
-class SalaryRange(BaseModel):
-    min: Optional[int] = Field(None, description="Minimum salary")
-    max: Optional[int] = Field(None, description="Maximum salary")
+    # Compensation
+    minSalary: Optional[int] = Field(None, description="Minimum salary")
+    maxSalary: Optional[int] = Field(None, description="Maximum salary")
     currency: Optional[str] = Field(
         None, description="Currency of the salary (e.g., USD, EUR)")
-
-
-class Compensation(BaseModel):
-    salaryRange: Optional[SalaryRange] = Field(
-        None, description="Salary range details")
     benefits: Optional[List[str]] = Field(
         None, description="List of benefits (e.g., Health Insurance, Paid Time Off)")
 
-
-class ApplicationProcess(BaseModel):
-    applicationLinks: Optional[List[HttpUrl]] = Field(
+    # Application process
+    applicationLinks: Optional[List[str]] = Field(
         None, description="List of URLs for application submission")
     contactInfo: Optional[List[str]] = Field(
         None, description="List of recruiter or HR contact details")
@@ -68,39 +86,195 @@ class ApplicationProcess(BaseModel):
         None, description="List of instructions on how to apply")
 
 
-class JobPosting(BaseModel):
-    jobTitle: Optional[str] = Field(
-        "", description="Title of the job position")
-    jobType: Optional[str] = Field(
-        "", description="Type of employment (e.g., Full-Time, Part-Time, Contract, Internship)")
-    description: Optional[str] = Field("", description="Brief job summary")
-    qualifications: Optional[Qualifications] = Field(
-        None, description="Job qualifications and requirements")
-    responsibilities: Optional[List[str]] = Field(
-        None, description="List of job responsibilities")
-    company: Optional[str] = Field(
-        None, description="Name of the hiring company or employer")
-    industry: Optional[str] = Field(
-        None, description="Industry related to the job (e.g., Technology, Healthcare, Finance)")
-    location: Optional[Location] = Field(
-        None, description="Job location details")
-    skills: Optional[List[str]] = Field(
-        None, description="Required technical and soft skills")
-    tools: Optional[List[str]] = Field(
-        None, description="List of required tools, software, or platforms")
-    collaboration: Optional[List[str]] = Field(
-        None, description="Teams or individuals the candidate will work with")
-    workArrangement: Optional[WorkArrangement] = Field(
-        None, description="Work arrangement details")
-    compensation: Optional[Compensation] = Field(
-        None, description="Compensation details")
-    applicationProcess: Optional[ApplicationProcess] = Field(
-        None, description="Details about how to apply")
-    postedDate: date = Field(default_factory=date.today,
-                             description="Date when the job was posted")
-
-
 output_cls = JobPosting
+output_sample = {
+    "jobTitle": "Sample Job Title",
+    "jobType": "Sample Job Type",
+    "description": "Sample job description goes here.",
+    "qualifications": {
+        "mandatory": [
+            "Sample mandatory qualification"
+        ],
+        "preferred": [
+            "Sample preferred qualification"
+        ]
+    },
+    "responsibilities": [
+        "Sample responsibility"
+    ],
+    "company": "Sample Company",
+    "industry": "Sample Industry",
+    "location": {
+        "city": "Sample City",
+        "state": "Sample State",
+        "country": "Sample Country",
+        "remote": True
+    },
+    "skills": [
+        "Sample Skill"
+    ],
+    "tools": [
+        "Sample Tool"
+    ],
+    "collaboration": [
+        "Sample Team"
+    ],
+    "workArrangement": {
+        "schedule": "Sample Schedule",
+        "hoursPerWeek": 40,
+        "remote": True
+    },
+    "compensation": {
+        "salaryRange": {
+            "min": 50000,
+            "max": 80000,
+            "currency": "Sample Currency"
+        },
+        "benefits": [
+            "Sample Benefit"
+        ]
+    },
+    "applicationProcess": {
+        "applicationLinks": [
+            "https://www.samplecompany.com/apply"
+        ],
+        "contactInfo": [
+            "hr@samplecompany.com"
+        ],
+        "instructions": [
+            "Sample instructions on how to apply."
+        ]
+    },
+    "postedDate": "2025-02-18"
+}
+
+
+sample_prompt = """
+Job Summary: Link Building Specialist at Get Me Links
+
+Company: Bronwyn Reynolds
+Salary: $550/month
+Job Type: Full-time (Remote)
+Posted Date: February 18, 2025
+
+Job Overview:
+Get Me Links is hiring a Link Building Specialist with SEO experience. The role requires strong attention to detail, effective communication, and teamwork. Candidates must be ambitious, honest, and results-driven.
+
+Requirements:
+Experience: 2+ years as a link builder or SEO specialist
+Skills: Fluent English (spoken & written), proficiency in Google Sheets/Excel, scripting (preferred but not required)
+Work Conditions: Full-time only (no side gigs), remote work, flexible hours
+Benefits:
+Full social benefits after probation (SSS, PhilHealth, PAGIBIG)
+13th-month pay (eligible after trial)
+Paid holidays (national holidays + Christmas to New Year + 2 extra weeks)
+Supportive and relaxed work environment with no micromanagement
+Application Process:
+Send your resume, two references, and a DISC personality test result to bronwyn@getmelinks.com
+Use subject line: “Link Building Specialist for GetMeLinks - I’m [Your Name] and I’m an A player”
+Complete a test task within 24 hours
+If shortlisted, attend 1-2 interviews
+Strict Application Rules: Only applications following instructions will be considered.
+""".strip()
+
+sample_response = """
+{
+  "jobTitle": "Link Building Specialist",
+  "jobType": "Full-Time",
+  "description": "Get Me Links is hiring a Link Building Specialist with SEO experience. The role requires strong attention to detail, effective communication, and teamwork. Candidates must be ambitious, honest, and results-driven.",
+  "qualifications": {
+    "mandatory": [
+      "Fluent spoken and written English",
+      "2+ years experience as a link builder or SEO specialist",
+      "Proficiency in Excel/Google Sheets"
+    ],
+    "preferred": [
+      "Script (Google Sheets) development skills"
+    ]
+  },
+  "responsibilities": [
+    "Capture order details from clients, ensuring clarity and accuracy",
+    "Communicate effectively with the fulfillment team",
+    "Ensure high-quality link-building processes",
+    "Work collaboratively with the team to achieve goals"
+  ],
+  "company": "Get Me Links",
+  "industry": "Digital Marketing",
+  "location": {
+    "remote": true
+  },
+  "skills": [
+    "SEO",
+    "Link Building",
+    "Google Sheets",
+    "Communication",
+    "Attention to Detail"
+  ],
+  "tools": [
+    "Google Sheets",
+    "Excel"
+  ],
+  "collaboration": [
+    "Fulfillment Team",
+    "Clients",
+    "Management"
+  ],
+  "workArrangement": {
+    "schedule": "Flexible",
+    "hoursPerWeek": 40,
+    "remote": true
+  },
+  "compensation": {
+    "salaryRange": {
+      "min": 550,
+      "currency": "USD"
+    },
+    "benefits": [
+      "Full Social Benefits Package after trial period",
+      "13th-month payment",
+      "Paid holidays (national holidays + Christmas to New Year week + 2 weeks per year)"
+    ]
+  },
+  "applicationProcess": {
+    "contactInfo": [
+      "bronwyn@getmelinks.com"
+    ],
+    "instructions": [
+      "Send your resume, two references, and a DISC personality test result",
+      "Use the subject line: 'Link Building Specialist for GetMeLinks - I’m [Your Name] and I’m an A player'",
+      "Complete a test task within 24 hours",
+      "Shortlisted candidates will attend 1-2 interviews"
+    ]
+  },
+  "postedDate": "2025-02-18"
+}
+""".strip()
+
+DEFAULT_SAMPLE_OUTPUT = json.dumps(output_sample, indent=1)
+
+DEFAULT_SAMPLE = f"""
+Example:
+```text
+{sample_prompt}
+```
+Response:
+```json
+{sample_response}
+```
+<end>
+""".strip()
+
+PROMPT_TEMPLATE = """\
+Context information is below.
+---------------------
+{context_str}
+---------------------
+
+Given the context information and not prior knowledge, answer the query.
+
+Query: {query_str}
+Response:
+"""
 
 
 class Summarizer:
@@ -114,7 +288,12 @@ class Summarizer:
             "---------------------\n"
             "{context_str}\n"
             "---------------------\n"
-            "Given the context information, schema and not prior knowledge, "
+            "Sample response:\n"
+            "```json\n"
+            "{sample_str}\n"
+            "```\n"
+            "\n"
+            "Given the context information, sample response, schema and not prior knowledge, "
             "answer the query.\n"
             "The generated JSON must pass the provided schema when validated.\n"
             "Query: {query_str}\n"
@@ -144,23 +323,52 @@ class Summarizer:
             summary_template=self.qa_prompt,
         )
 
-    def summarize(self, question: str, texts: List[str]) -> output_cls:
-        return self.summarizer.get_response(question, texts)
+    # def summarize(self, query: str, texts: List[str], llm_kwargs: Optional[dict[str, Any]] = None) -> output_cls:
+    #     return self.summarizer.get_response(query, texts, sample_str=DEFAULT_SAMPLE_OUTPUT, llm_kwargs=llm_kwargs)
+
+    def summarize(self, query: str, contexts: str | List[str], output_cls: BaseModel, llm: Ollama) -> BaseModel:
+        prompt_tmpl = PromptTemplate(PROMPT_TEMPLATE)
+
+        schema = output_cls.model_json_schema()
+        schema["$schema"] = "http://json-schema.org/draft-07/schema#"
+
+        if isinstance(contexts, str):
+            contexts = [contexts]
+
+        results: list[BaseModel] = []
+        for context in contexts:
+            response = llm.structured_predict(
+                output_cls=output_cls,
+                prompt=prompt_tmpl,
+                context_str=context,
+                # prompt_str=prompt,
+                # schema_str=schema,
+                # sample_str=DEFAULT_SAMPLE_OUTPUT,
+                query_str=query,
+                llm_kwargs={
+                    "options": {"temperature": 0},
+                    "max_prediction_ratio": 0.5
+                },
+            )
+            results.append(response)
+
+        # Temporary single return
+        # Should merge results into one object
+        return results[0]
 
 
 def main():
     # Settings initialization
     model = "llama3.1"
     chunk_size = 1024
-    chunk_overlap = 200
-    # embedding_model = "mxbai-embed-large"
-    settings_manager = SettingsManager.create(settings={
-        "llm_model": model,
-        "chunk_size": chunk_size,
-        "chunk_overlap": chunk_overlap,
-        # "embedding_model": embedding_model,
-    })
-    settings_manager.pydantic_program_mode = PydanticProgramMode.LLM
+    chunk_overlap = 128
+
+    tokenizer = get_ollama_tokenizer(model)
+    set_global_tokenizer(tokenizer)
+
+    llm = Ollama(
+        model=model,
+    )
 
     # Load data
     # reader = SimpleDirectoryReader(
@@ -207,28 +415,31 @@ def main():
                       for attr in json_attributes
                       if attr in item and item[attr]]
         text_content = "\n".join(text_parts) if text_parts else ""
-        text_chunks = splitter.split_text(text_content)
+        cleaned_text_content = clean_text(text_content)
+        text_chunks = splitter.split_text(cleaned_text_content)
         data_chunks.append(text_chunks)
 
-    question = 'Extract the data from the job posting.'
+    query = 'Extract the data from the job posting.'
     for idx, text_chunks in enumerate(tqdm(data_chunks, total=len(data_chunks), unit="chunk")):
         # Summarize
-        summarizer = Summarizer(llm=settings_manager.llm)
+        summarizer = Summarizer(llm=llm)
 
         try:
-            response = summarizer.summarize(question, text_chunks)
+            response = summarizer.summarize(
+                query, text_chunks, output_cls, llm)
         except Exception as e:
             logger.error(e)
             continue
 
         jobId = data[idx]['id']
-        job_postings.append(response.__dict__)
-
-        # Inspect response
-        logger.success(format_json({
+        result = {
             "id": jobId,
             **response.__dict__
-        }))
+        }
+        job_postings.append(result)
+
+        # Inspect response
+        logger.success(format_json(result))
 
         save_file(job_postings, output_file)
 
