@@ -26,86 +26,62 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
-class Location(BaseModel):
-    city: Optional[str] = Field(
-        None, description="City where the job is located")
-    state: Optional[str] = Field(
-        None, description="State where the job is located")
-    country: Optional[str] = Field(
-        None, description="Country where the job is located")
-    remote: Optional[bool] = Field(
-        None, description="Indicates if remote work is allowed")
-
-
-class Qualifications(BaseModel):
-    mandatory: Optional[List[str]] = Field(
-        None, description="Required qualifications, skills, and experience")
-    preferred: Optional[List[str]] = Field(
-        None, description="Preferred but not mandatory qualifications")
-
-
-class WorkArrangement(BaseModel):
-    schedule: Optional[str] = Field(
-        None, description="Work schedule (e.g., Flexible, Fixed, Shift-based)")
-    hoursPerWeek: Optional[int] = Field(
-        None, description="Number of work hours per week")
-    remote: Optional[bool] = Field(
-        None, description="Indicates if remote work is allowed")
-
-
-class SalaryRange(BaseModel):
-    min: Optional[int] = Field(None, description="Minimum salary")
-    max: Optional[int] = Field(None, description="Maximum salary")
-    currency: Optional[str] = Field(
-        None, description="Currency of the salary (e.g., USD, EUR)")
-
-
-class Compensation(BaseModel):
-    salaryRange: Optional[SalaryRange] = Field(
-        None, description="Salary range details")
-    benefits: Optional[List[str]] = Field(
-        None, description="List of benefits (e.g., Health Insurance, Paid Time Off)")
-
-
-class ApplicationProcess(BaseModel):
-    applicationLinks: Optional[List[HttpUrl]] = Field(
-        None, description="List of URLs for application submission")
-    contactInfo: Optional[List[str]] = Field(
-        None, description="List of recruiter or HR contact details")
-    instructions: Optional[List[str]] = Field(
-        None, description="List of instructions on how to apply")
+from typing import List
+from pydantic import BaseModel, Field
 
 
 class JobPosting(BaseModel):
-    jobTitle: Optional[str] = Field(
-        "", description="Title of the job position")
-    jobType: Optional[str] = Field(
-        "", description="Type of employment (e.g., Full-Time, Part-Time, Contract, Internship)")
-    description: Optional[str] = Field("", description="Brief job summary")
-    qualifications: Optional[Qualifications] = Field(
-        None, description="Job qualifications and requirements")
-    responsibilities: Optional[List[str]] = Field(
-        None, description="List of job responsibilities")
-    company: Optional[str] = Field(
-        None, description="Name of the hiring company or employer")
-    industry: Optional[str] = Field(
-        None, description="Industry related to the job (e.g., Technology, Healthcare, Finance)")
-    location: Optional[Location] = Field(
-        None, description="Job location details")
-    skills: Optional[List[str]] = Field(
-        None, description="Required technical and soft skills")
-    tools: Optional[List[str]] = Field(
-        None, description="List of required tools, software, or platforms")
-    collaboration: Optional[List[str]] = Field(
-        None, description="Teams or individuals the candidate will work with")
-    workArrangement: Optional[WorkArrangement] = Field(
-        None, description="Work arrangement details")
-    compensation: Optional[Compensation] = Field(
-        None, description="Compensation details")
-    applicationProcess: Optional[ApplicationProcess] = Field(
-        None, description="Details about how to apply")
-    postedDate: date = Field(default_factory=date.today,
-                             description="Date when the job was posted")
+    jobTitle: str = Field(..., description="Title of the job position")
+    jobType: str = Field(
+        ..., description="Type of employment (e.g., Full-Time, Part-Time, Contract, Internship)")
+    description: str = Field(..., description="Brief job summary")
+    responsibilities: List[str] = Field(...,
+                                        description="List of job responsibilities")
+    company: str = Field(...,
+                         description="Name of the hiring company or employer")
+    industry: str = Field(
+        ..., description="Industry related to the job (e.g., Technology, Healthcare, Finance)")
+    skills: List[str] = Field(...,
+                              description="Required technical and soft skills")
+    tools: List[str] = Field(...,
+                             description="List of required tools, software, or platforms")
+    collaboration: List[str] = Field(
+        ..., description="Teams or individuals the candidate will work with")
+    postedDate: str = Field(..., description="Date when the job was posted")
+
+    # Location details
+    city: str = Field(..., description="City where the job is located")
+    state: str = Field(..., description="State where the job is located")
+    country: str = Field(..., description="Country where the job is located")
+    remote: bool = Field(...,
+                         description="Indicates if remote work is allowed")
+
+    # Qualifications
+    mandatoryQualifications: List[str] = Field(
+        ..., description="Required qualifications, skills, and experience")
+    preferredQualifications: List[str] = Field(
+        ..., description="Preferred but not mandatory qualifications")
+
+    # Work arrangement
+    schedule: str = Field(...,
+                          description="Work schedule (e.g., Flexible, Fixed, Shift-based)")
+    hoursPerWeek: int = Field(..., description="Number of work hours per week")
+
+    # Compensation
+    minSalary: int = Field(..., description="Minimum salary")
+    maxSalary: int = Field(..., description="Maximum salary")
+    currency: str = Field(...,
+                          description="Currency of the salary (e.g., USD, EUR)")
+    benefits: List[str] = Field(
+        ..., description="List of benefits (e.g., Health Insurance, Paid Time Off)")
+
+    # Application process
+    applicationLinks: List[str] = Field(
+        ..., description="List of URLs for application submission")
+    contactInfo: List[str] = Field(...,
+                                   description="List of recruiter or HR contact details")
+    instructions: List[str] = Field(...,
+                                    description="List of instructions on how to apply")
 
 
 output_cls = JobPosting
