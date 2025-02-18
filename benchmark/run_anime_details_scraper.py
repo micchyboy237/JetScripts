@@ -24,9 +24,9 @@ class Summarizer:
             "---------------------\n"
             "{context_str}\n"
             "---------------------\n"
-            "Given the context information and not prior knowledge, "
+            "Given the context information, schema and not prior knowledge, "
             "answer the query.\n"
-            "Please also write the answer as JSON that adheres to the schema.\n"
+            "The generated JSON must pass the provided schema when validated.\n"
             "Query: {query_str}\n"
             "Answer: "
         )
@@ -41,7 +41,7 @@ class Summarizer:
             "------------\n"
             "Given the new context, refine the original answer to better "
             "answer the query. "
-            "Please also write the answer as JSON that adheres to the schema.\n"
+            "The generated JSON must pass the provided schema when validated.\n"
             "If the context isn't useful, return the original answer.\n"
             "Refined Answer: "
         )

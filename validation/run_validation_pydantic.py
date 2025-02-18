@@ -64,15 +64,15 @@ class Location(BaseModel):
         None, description="City where the job is located")
     state: Optional[str] = Field(
         None, description="State where the job is located")
-    country: Optional[str] = Field(...,
-                                   description="Country where the job is located")
+    country: Optional[str] = Field(
+        None, description="Country where the job is located")
     remote: Optional[bool] = Field(
         None, description="Indicates if remote work is allowed")
 
 
 class Qualifications(BaseModel):
     mandatory: Optional[List[str]] = Field(
-        ..., description="Required qualifications, skills, and experience")
+        None, description="Required qualifications, skills, and experience")
     preferred: Optional[List[str]] = Field(
         None, description="Preferred but not mandatory qualifications")
 
@@ -89,8 +89,8 @@ class WorkArrangement(BaseModel):
 class SalaryRange(BaseModel):
     min: Optional[int] = Field(None, description="Minimum salary")
     max: Optional[int] = Field(None, description="Maximum salary")
-    currency: Optional[str] = Field(...,
-                                    description="Currency of the salary (e.g., USD, EUR)")
+    currency: Optional[str] = Field(
+        None, description="Currency of the salary (e.g., USD, EUR)")
 
 
 class Compensation(BaseModel):
@@ -116,14 +116,14 @@ class JobPosting(BaseModel):
     description: str = Field(..., description="Brief job summary")
     qualifications: Qualifications = Field(
         ..., description="Job qualifications and requirements")
-    responsibilities: Optional[List[str]] = Field(...,
-                                                  description="List of job responsibilities")
-    company: Optional[str] = Field(...,
-                                   description="Name of the hiring company or employer")
+    responsibilities: Optional[List[str]] = Field(
+        None, description="List of job responsibilities")
+    company: Optional[str] = Field(
+        None, description="Name of the hiring company or employer")
     industry: Optional[str] = Field(
-        ..., description="Industry related to the job (e.g., Technology, Healthcare, Finance)")
-    location: Optional[Location] = Field(...,
-                                         description="Job location details")
+        None, description="Industry related to the job (e.g., Technology, Healthcare, Finance)")
+    location: Optional[Location] = Field(
+        None, description="Job location details")
     skills: Optional[List[str]] = Field(
         None, description="Required technical and soft skills")
     tools: Optional[List[str]] = Field(
@@ -138,9 +138,6 @@ class JobPosting(BaseModel):
         None, description="Details about how to apply")
     postedDate: date = Field(default_factory=date.today,
                              description="Date when the job was posted")
-
-    # class Config:
-    #     orm_mode = True
 
 
 SampleModel = JobPosting

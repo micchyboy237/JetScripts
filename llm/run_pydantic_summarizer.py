@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 from typing import List, Optional
 
+from jsonschema.exceptions import ValidationError
 from pydantic import BaseModel, EmailStr, HttpUrl, Field
 
 from jet.file.utils import save_file, load_file
@@ -22,15 +23,15 @@ class Location(BaseModel):
         None, description="City where the job is located")
     state: Optional[str] = Field(
         None, description="State where the job is located")
-    country: Optional[str] = Field(...,
-                                   description="Country where the job is located")
+    country: Optional[str] = Field(
+        None, description="Country where the job is located")
     remote: Optional[bool] = Field(
         None, description="Indicates if remote work is allowed")
 
 
 class Qualifications(BaseModel):
     mandatory: Optional[List[str]] = Field(
-        ..., description="Required qualifications, skills, and experience")
+        None, description="Required qualifications, skills, and experience")
     preferred: Optional[List[str]] = Field(
         None, description="Preferred but not mandatory qualifications")
 
@@ -47,8 +48,8 @@ class WorkArrangement(BaseModel):
 class SalaryRange(BaseModel):
     min: Optional[int] = Field(None, description="Minimum salary")
     max: Optional[int] = Field(None, description="Maximum salary")
-    currency: Optional[str] = Field(...,
-                                    description="Currency of the salary (e.g., USD, EUR)")
+    currency: Optional[str] = Field(
+        None, description="Currency of the salary (e.g., USD, EUR)")
 
 
 class Compensation(BaseModel):
@@ -74,14 +75,14 @@ class JobPosting(BaseModel):
     description: str = Field(..., description="Brief job summary")
     qualifications: Qualifications = Field(
         ..., description="Job qualifications and requirements")
-    responsibilities: Optional[List[str]] = Field(...,
-                                                  description="List of job responsibilities")
-    company: Optional[str] = Field(...,
-                                   description="Name of the hiring company or employer")
+    responsibilities: Optional[List[str]] = Field(
+        None, description="List of job responsibilities")
+    company: Optional[str] = Field(
+        None, description="Name of the hiring company or employer")
     industry: Optional[str] = Field(
-        ..., description="Industry related to the job (e.g., Technology, Healthcare, Finance)")
-    location: Optional[Location] = Field(...,
-                                         description="Job location details")
+        None, description="Industry related to the job (e.g., Technology, Healthcare, Finance)")
+    location: Optional[Location] = Field(
+        None, description="Job location details")
     skills: Optional[List[str]] = Field(
         None, description="Required technical and soft skills")
     tools: Optional[List[str]] = Field(
@@ -96,9 +97,6 @@ class JobPosting(BaseModel):
         None, description="Details about how to apply")
     postedDate: date = Field(default_factory=date.today,
                              description="Date when the job was posted")
-
-    # class Config:
-    #     orm_mode = True
 
 
 output_cls = JobPosting
@@ -117,7 +115,7 @@ class Summarizer:
             "---------------------\n"
             "Given the context information, schema and not prior knowledge, "
             "answer the query.\n"
-            "The generated answer must follow the provided schema.\n"
+            "The generated JSON must pass the provided schema when validated.\n"
             "Query: {query_str}\n"
             "Answer: "
         )
@@ -132,7 +130,7 @@ class Summarizer:
             "------------\n"
             "Given the new context, refine the original answer to better "
             "answer the query. "
-            "The generated answer must follow the provided schema.\n"
+            "The generated JSON must pass the provided schema when validated.\n"
             "If the context isn't useful, return the original answer.\n"
             "Refined Answer: "
         )
@@ -174,6 +172,13 @@ def main():
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
     output_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/job-postings.json"
     data = load_file(data_file)
+    results = load_file(output_file)
+
+    # Extracting the set of existing IDs in the results
+    existing_ids = {item['id'] for item in results}
+
+    # Filtering data to include only items whose ID is not already in results
+    data = [item for item in data if item['id'] not in existing_ids]
 
     json_attributes = [
         # "id",
@@ -205,15 +210,24 @@ def main():
         data_chunks.append(text_chunks)
 
     question = 'Given the job posting details provide the data for a job applicant.'
-    for text_chunks in tqdm(data_chunks, total=len(data_chunks), unit="chunk"):
+    for idx, text_chunks in enumerate(tqdm(data_chunks, total=len(data_chunks), unit="chunk")):
         # Summarize
         summarizer = Summarizer(llm=settings_manager.llm)
-        response = summarizer.summarize(question, text_chunks)
 
+        try:
+            response = summarizer.summarize(question, text_chunks)
+        except Exception as e:
+            logger.error(e)
+            continue
+
+        jobId = data[idx]['id']
         job_postings.append(response.__dict__)
 
         # Inspect response
-        logger.success(format_json(response.__dict__))
+        logger.success(format_json({
+            "id": jobId,
+            **response.__dict__
+        }))
 
         save_file(job_postings, output_file)
 
