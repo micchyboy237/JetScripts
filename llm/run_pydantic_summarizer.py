@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 import json
-from typing import Any, List, Optional
+from typing import Any, List, Optional, TypedDict
 
 from jet.llm.ollama.base import Ollama
 from jet.scrapers.utils import clean_text
@@ -357,7 +357,122 @@ class Summarizer:
         return results[0]
 
 
+def run_clean_jobs():
+    from jet.executor.command import run_command
+    from jet.file import load_file
+    from jet.file.utils import save_file
+    from jet.logger import logger
+    import json
+
+    python_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/run_clean_jobs.py"
+    command = f"python {python_file}"
+
+    for line in run_command(command):
+        if line.startswith("error: "):
+            message = line[len("error: "):-2]
+            logger.error(message)
+        else:
+            message = line[len("data: "):-2]
+            logger.success(message)
+
+
+class VectorNode(TypedDict):
+    id: str
+    score: float
+    text: str
+    metadata: Optional[dict]
+
+
+class SearchNodesResponse(TypedDict):
+    count: int
+    data: list[VectorNode]
+
+
+def search_nodes(query: str) -> SearchNodesResponse:
+    from jet.memory.httpx import HttpxClient
+    from fastapi import HTTPException
+    import httpx
+    from jet.logger import logger
+
+    url = "http://0.0.0.0:8002/api/v1/rag/nodes"
+
+    request_data = {
+        "query": query,
+        "rag_dir": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json",
+        "extensions": [
+            ".md",
+            ".mdx",
+            ".rst"
+        ],
+        "json_attributes": [
+            "title",
+            "tags",
+            "details"
+        ],
+        "exclude_json_attributes": [
+            "overview"
+        ],
+        "metadata_attributes": [
+            "title",
+            "link",
+            "company",
+            "posted_date",
+            "salary",
+            "job_type",
+            "domain",
+            "location",
+            "entities"
+        ],
+        "system": "You are a job applicant providing tailored responses during an interview.\n  Always answer questions using the provided context as if it is your resume, \n  and avoid referencing the context directly.\n  Some rules to follow:\n  1. Never directly mention the context or say 'According to my resume' or similar phrases.\n  2. Provide responses as if you are the individual described in the context, focusing on professionalism and relevance.",
+        "chunk_size": 1024,
+        "chunk_overlap": 40,
+        "sub_chunk_sizes": [
+            512,
+            256,
+            128
+        ],
+        "with_hierarchy": False,
+        "top_k": None,
+        "model": "llama3.2",
+        "embed_model": "mxbai-embed-large",
+        "mode": "fusion",
+        "store_path": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_server/.cache/deeplake/store_1",
+        "score_threshold": 0.7,
+        "split_mode": [],
+        "fusion_mode": "simple"
+    }
+
+    try:
+        client = HttpxClient()
+        response = client.post(url, json=request_data)
+        response.raise_for_status()
+        return response.json()
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP error: {
+                     e.response.status_code} - {e.response.text}")
+        raise HTTPException(
+            status_code=e.response.status_code, detail=e.response.text
+        ) from e  # Raising the original error as context
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        raise e  # Re-raise the original exception
+
+
 def main():
+    run_clean_jobs()
+
+    keyword = "React Native"
+    search_result = search_nodes(keyword)
+    data = [
+        {
+            "id": d["id"],
+            "score": d["score"],
+            "description": d["text"],
+            **d['metadata'],
+        }
+        for d in search_result["data"]
+    ]
+
     # Settings initialization
     model = "llama3.1"
     chunk_size = 1024
@@ -380,7 +495,7 @@ def main():
 
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
     output_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/job-postings.json"
-    data = load_file(data_file)
+    # data = load_file(data_file)
     results = load_file(output_file)
 
     # Extracting the set of existing IDs in the results
