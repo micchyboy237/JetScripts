@@ -443,6 +443,7 @@ def error(flow: http.HTTPFlow):
     # from mitmproxy.exceptions import HttpSyntaxException
     # if flow.error is not None and not isinstance(flow.error, HttpSyntaxException):
     #     flow.kill()
+    logger.newline()
     logger.error("Error occurred in mitmproxy:")
 
     if flow.error is not None:

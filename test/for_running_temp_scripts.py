@@ -1,84 +1,102 @@
-from jet.executor.command import run_command
-from jet.logger import logger
-import json
+import spacy
+from sklearn.cluster import KMeans
+from sklearn.metrics.pairwise import cosine_similarity
+from transformers import RobertaTokenizer, RobertaModel
+import torch
+import numpy as np
+import re
 
-file_to_execute = 'file_executors/execute_python_file.py'
-
-model = "urchade/gliner_small-v2.1"
-# model = "urchade/gliner_medium-v2.1"
-style = "ent"
-
-text = """
-Role Overview:
-
-We are seeking a skilled app developer to build our mobile app from scratch, integrating travel booking, relocation services, and community features. You will lead the design, development, and launch of our travel app.
-
-Responsibilities:
-
-Develop and maintain a scalable mobile app for iOS & Android
-
-Integrate booking systems, payment gateways, and user profiles
-
-Ensure seamless user experience & mobile responsiveness
-
-Work with the team to test & refine the app before launch
-
-Implement security features to protect user data
-
-Qualifications:
-
-3+ years of mobile app development (React Native, Flutter, Swift, or Kotlin)
-
-Experience with APIs, databases, and cloud-based deployment
-
-Strong UI/UX skills to create a user-friendly interface
-
-Previous work on travel, booking, or e-commerce apps (preferred)
-
-Ability to work independently & meet deadlines
-"""
-
-labels = ["role", "application", "technology stack", "qualifications"]
-
-style = "ent"
+# Step 1: Preprocess the text (tokenization, lemmatization, and remove stopwords)
 
 
-def determine_chunk_size(text: str) -> int:
-    """Dynamically set chunk size based on text length."""
-    length = len(text)
+def preprocess_text(text: str):
+    # Remove non-alphabetic characters and extra spaces
+    text = re.sub(r'[^a-zA-Z\s]', '', text)
+    # Lowercase the text
+    text = text.lower()
+    return text
 
-    if length < 1000:
-        return 250  # Small text, use smaller chunks
-    elif length < 3000:
-        return 350  # Medium text, moderate chunks
-    else:
-        return 500  # Large text, larger chunks
+# Step 2: Extract meaningful keywords/phrases (noun phrases or other significant terms)
 
 
-chunk_size = determine_chunk_size(text)
+def extract_keywords(text: str, model, tokenizer):
+    # Use spaCy for part-of-speech tagging and extracting noun phrases
+    nlp = spacy.load("en_core_web_sm")
+    doc = nlp(text)
 
-# Convert list to JSON string (to handle spaces safely)
-labels = json.dumps(labels)
-chunk_size = str(chunk_size)
+    # Extract noun phrases (or any other custom keyword extraction logic)
+    keywords = [chunk.text for chunk in doc.noun_chunks if len(
+        chunk.text.split()) > 1]
 
-# Construct command string
-command_separator = "||"
-command_args = [
-    "python",
-    file_to_execute,
-    model,
-    text,
-    labels,
-    style,
-    chunk_size
-]
-command = command_separator.join(command_args)
+    # Get embeddings for these keywords/phrases
+    inputs = tokenizer(keywords, return_tensors='pt',
+                       padding=True, truncation=True, max_length=512)
+    with torch.no_grad():
+        embeddings = model(
+            **inputs).last_hidden_state.mean(dim=1).cpu().numpy()
 
-# Use run_command instead of subprocess.run
-logger.newline()
-logger.info("Output:")
-for line in run_command(command, separator=command_separator):
-    if line.startswith('error:'):
-        logger.error(line[7:-2])  # Remove 'error: ' prefix and '\n\n' suffix
-    else:
-        logger.debug(line[6:-2])  # Remove 'data: ' prefix and '\n\n' suffix
+    return keywords, embeddings
+
+# Step 3: Perform K-means clustering to group similar keywords
+
+
+def cluster_keywords(keywords: list, embeddings: np.ndarray, n_clusters: int = 5):
+    # Calculate cosine similarity matrix
+    similarity_matrix = cosine_similarity(embeddings)
+
+    # Apply KMeans clustering
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    kmeans.fit(similarity_matrix)
+
+    return kmeans.labels_
+
+# Step 4: Main pipeline to process the long text
+
+
+def group_similar_keywords(text: str, n_clusters: int = 5):
+    # Initialize the pre-trained CodeBERT model
+    tokenizer = RobertaTokenizer.from_pretrained('microsoft/codebert-base')
+    model = RobertaModel.from_pretrained('microsoft/codebert-base')
+
+    # Preprocess text
+    processed_text = preprocess_text(text)
+
+    # Extract keywords and their embeddings
+    keywords, embeddings = extract_keywords(processed_text, model, tokenizer)
+
+    # Cluster the keywords
+    clusters = cluster_keywords(keywords, embeddings, n_clusters)
+
+    return keywords, clusters
+
+
+# Example Usage:
+if __name__ == "__main__":
+    text = """Looking for someone to be a part of our agency. Our agency, Vean Global, is a cutting-edge web design and marketing agency specializing in Shopify development, 3D web experiences, and high-performance e-commerce solutions. We’re looking for an experienced Shopify Theme Developer to help us build a fully customizable Shopify theme.
+
+    What You'll Be Doing:
+    - Developing a high-performance, fully customizable Shopify theme from scratch
+    - Writing clean, maintainable, and scalable Liquid, JavaScript (Vanilla/React), HTML, and CSS code
+    - Ensuring theme customization options are user-friendly and intuitive
+    - Optimizing theme performance for fast loading speeds and smooth UX
+    - Implementing dynamic content, animations, and advanced customization features
+    - Troubleshooting and resolving theme-related issues
+    - Working closely with our team to ensure branding, UI/UX, and functionality align with our goals
+
+    What We’re Looking For:
+    - Strong proficiency in Shopify's Liquid templating language
+    - Expertise in HTML, CSS, JavaScript, and Shopify APIs
+    - Experience with Shopify metafields and theme customizations
+    - Strong knowledge of performance optimization best practices
+    - Experience building custom Shopify themes (portfolio required)
+    - Ability to work independently and meet deadlines"""
+
+    # Group keywords into clusters
+    keywords, clusters = group_similar_keywords(text, n_clusters=3)
+
+    # Print grouped keywords
+    print("Grouped Keywords by Clusters:")
+    for i in range(len(set(clusters))):
+        cluster_keywords = [keywords[idx]
+                            for idx, label in enumerate(clusters) if label == i]
+        print(f"Cluster {i+1}: {', '.join(cluster_keywords)}")
