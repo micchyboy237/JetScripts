@@ -106,7 +106,7 @@ class Compensation(BaseModel):
 
 
 class ApplicationProcess(BaseModel):
-    applicationLinks: Optional[List[str]] = Field(
+    applicationLinks: Optional[List[str | HttpUrl]] = Field(
         ..., description="List of URLs for application submission (e.g., \"https://www.samplecompany.com/apply\")")
     contactInfo: Optional[List[str]] = Field(
         ..., description="List of recruiter or HR contact details")
