@@ -8,6 +8,7 @@ from jet.scrapers.utils import clean_text
 from jsonschema.exceptions import ValidationError
 from llama_index.core.utils import set_global_tokenizer
 from pydantic import BaseModel, EmailStr, HttpUrl, Field
+from enum import Enum
 
 from jet.file.utils import save_file, load_file
 from jet.token.token_utils import get_ollama_tokenizer
@@ -22,27 +23,53 @@ from llama_index.core.types import PydanticProgramMode
 from tqdm import tqdm
 
 
-from typing import List, Optional
-from pydantic import BaseModel, Field
+class JobTypeEnum(str, Enum):
+    FULL_TIME = "Full-Time"
+    PART_TIME = "Part-Time"
+    CONTRACT = "Contract"
+    INTERNSHIP = "Internship"
 
 
-from typing import List
-from pydantic import BaseModel, Field
+class IndustryEnum(str, Enum):
+    TECHNOLOGY = "Technology"
+    HEALTHCARE = "Healthcare"
+    FINANCE = "Finance"
+    EDUCATION = "Education"
+    MANUFACTURING = "Manufacturing"
 
 
-from typing import List, Optional
-from pydantic import BaseModel, Field
+class WorkScheduleEnum(str, Enum):
+    FLEXIBLE = "Flexible"
+    FIXED = "Fixed"
+    SHIFT_BASED = "Shift-based"
+
+
+class CurrencyEnum(str, Enum):
+    USD = "USD"
+    PHP = "PHP"
+    EUR = "EUR"
+    GBP = "GBP"
+    INR = "INR"
+    JPY = "JPY"
+
+
+class CountryEnum(str, Enum):
+    USA = "United States"
+    CANADA = "Canada"
+    UK = "United Kingdom"
+    GERMANY = "Germany"
+    INDIA = "India"
 
 
 class Location(BaseModel):
-    city: Optional[str] = Field(
-        ..., description="City where the job is located")
-    state: Optional[str] = Field(
-        ..., description="State where the job is located")
-    country: Optional[str] = Field(
-        ..., description="Country where the job is located")
-    remote: Optional[bool] = Field(
-        ..., description="Indicates if remote work is allowed")
+    city: Optional[str] = Field(...,
+                                description="City where the job is located")
+    state: Optional[str] = Field(...,
+                                 description="State where the job is located")
+    country: Optional[CountryEnum] = Field(...,
+                                           description="Country where the job is located")
+    remote: Optional[bool] = Field(...,
+                                   description="Indicates if remote work is allowed")
 
 
 class Qualifications(BaseModel):
@@ -53,26 +80,26 @@ class Qualifications(BaseModel):
 
 
 class TechStack(BaseModel):
-    mandatory: Optional[List[str]] = Field(
-        ..., description="Mandatory tools, software, or platforms")
+    mandatory: Optional[List[str]
+                        ] = Field(..., description="Mandatory tools, software, or platforms")
     preferred: Optional[List[str]] = Field(
         ..., description="Preferred but not mandatory tools, software, or platforms")
 
 
 class WorkArrangement(BaseModel):
-    schedule: Optional[str] = Field(
+    schedule: Optional[WorkScheduleEnum] = Field(
         ..., description="Work schedule (e.g., Flexible, Fixed, Shift-based)")
-    hoursPerWeek: Optional[int] = Field(
-        ..., description="Number of work hours per week")
-    remote: Optional[bool] = Field(
-        ..., description="Indicates if remote work is allowed")
+    hoursPerWeek: Optional[int] = Field(...,
+                                        description="Number of work hours per week")
+    remote: Optional[bool] = Field(...,
+                                   description="Indicates if remote work is allowed")
 
 
 class SalaryRange(BaseModel):
     min: Optional[int] = Field(..., description="Minimum salary")
     max: Optional[int] = Field(..., description="Maximum salary")
-    currency: Optional[str] = Field(
-        ..., description="Currency of the salary (e.g., USD, EUR)")
+    currency: Optional[CurrencyEnum] = Field(
+        ..., description="Currency of the salary (e.g., USD, EUR, GBP, etc.)")
 
 
 class Compensation(BaseModel):
@@ -87,28 +114,28 @@ class ApplicationProcess(BaseModel):
         ..., description="List of URLs for application submission")
     contactInfo: Optional[List[str]] = Field(
         ..., description="List of recruiter or HR contact details")
-    instructions: Optional[List[str]] = Field(
-        ..., description="List of instructions on how to apply")
+    instructions: Optional[List[str]
+                           ] = Field(..., description="List of instructions on how to apply")
 
 
 class JobPosting(BaseModel):
-    jobTitle: Optional[str] = Field(
-        ..., description="Title of the job position")
-    jobType: Optional[str] = Field(
+    jobTitle: Optional[str] = Field(...,
+                                    description="Title of the job position")
+    jobType: Optional[JobTypeEnum] = Field(
         ..., description="Type of employment (e.g., Full-Time, Part-Time, Contract, Internship)")
     description: Optional[str] = Field(..., description="Brief job summary")
-    qualifications: Optional[Qualifications] = Field(
-        ..., description="Job qualifications and requirements")
-    responsibilities: Optional[List[str]] = Field(
-        ..., description="List of job responsibilities")
-    company: Optional[str] = Field(
-        ..., description="Name of the hiring company or employer")
-    industry: Optional[str] = Field(
-        ..., description="Industry related to the job (e.g., Technology, Healthcare, Finance)")
-    location: Optional[Location] = Field(
-        ..., description="Job location details")
     techStack: Optional[TechStack] = Field(
         ..., description="Job technological stack requirements")
+    qualifications: Optional[Qualifications] = Field(
+        ..., description="Job qualifications and requirements")
+    responsibilities: Optional[List[str]
+                               ] = Field(..., description="List of job responsibilities")
+    company: Optional[str] = Field(...,
+                                   description="Name of the hiring company or employer")
+    industry: Optional[IndustryEnum] = Field(
+        ..., description="Industry related to the job (e.g., Technology, Healthcare, Finance)")
+    location: Optional[Location] = Field(...,
+                                         description="Job location details")
     collaboration: Optional[List[str]] = Field(
         ..., description="Teams or individuals the candidate will work with")
     workArrangement: Optional[WorkArrangement] = Field(
@@ -117,8 +144,8 @@ class JobPosting(BaseModel):
         ..., description="Compensation details")
     applicationProcess: Optional[ApplicationProcess] = Field(
         ..., description="Details about how to apply")
-    postedDate: Optional[str] = Field(
-        ..., description="Date when the job was posted")
+    postedDate: Optional[str] = Field(...,
+                                      description="Date when the job was posted")
 
 
 output_cls = JobPosting
@@ -568,7 +595,7 @@ def main():
         text_chunks = splitter.split_text(cleaned_text_content)
         data_chunks.append(text_chunks)
 
-    query = 'Extract all relevant job post information that matches from the context. Use null if not available.'
+    query = 'Extract complete relevant job post information that can be derived from the context information. Use null if not available in context.'
     for idx, text_chunks in enumerate(tqdm(data_chunks, total=len(data_chunks), unit="chunk")):
         # Summarize
         summarizer = Summarizer(llm=llm)
