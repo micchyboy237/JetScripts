@@ -103,8 +103,6 @@ class Compensation(BaseModel):
 
 
 class ApplicationProcess(BaseModel):
-    applicationLinks: Optional[List[HttpUrl]] = Field(
-        ..., description="List of URLs for application submission")
     contactInfo: Optional[List[str]] = Field(
         ..., description="List of recruiter or HR contact details")
     instructions: Optional[List[str]
@@ -536,13 +534,6 @@ def main():
     # run_extract_jobs()
     # run_clean_jobs()
 
-    keyword = "React Native"
-    search_result = search_nodes(keyword)
-    # Extracting search_data from search_result
-    search_data = search_result["data"]
-    # Creating a set of valid IDs for fast lookup
-    search_data_ids = [s_item['metadata']['id'] for s_item in search_data]
-
     # Settings initialization
     model = "llama3.1"
     chunk_size = 1024
@@ -568,11 +559,17 @@ def main():
     data = load_file(data_file) or []
     results = load_file(output_file) or []
 
+    # keyword = "React Native"
+    # search_result = search_nodes(keyword)
+    # # Extracting search_data from search_result
+    # search_data = search_result["data"]
+    # # Creating a set of valid IDs for fast lookup
+    # search_data_ids = [s_item['metadata']['id'] for s_item in search_data]
+    # # Filtering data to include only items whose 'id' exists in search_data_ids
+    # data = [item for id in search_data_ids for item in data if item['id'] == id]
+
     # Extracting the set of existing IDs in the results
     existing_ids = [item['id'] for item in results]
-
-    # Filtering data to include only items whose 'id' exists in search_data_ids
-    data = [item for id in search_data_ids for item in data if item['id'] == id]
 
     # Filtering data to include only items whose ID is not already in results
     data = [item for item in data if item['id'] not in existing_ids]
