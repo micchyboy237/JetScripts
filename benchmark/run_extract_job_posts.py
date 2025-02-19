@@ -533,8 +533,8 @@ def search_nodes(query: str) -> SearchNodesResponse:
 
 
 def main():
-    run_extract_jobs()
-    run_clean_jobs()
+    # run_extract_jobs()
+    # run_clean_jobs()
 
     keyword = "React Native"
     search_result = search_nodes(keyword)
