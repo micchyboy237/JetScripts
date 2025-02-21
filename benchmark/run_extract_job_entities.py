@@ -95,18 +95,17 @@ for line in run_command(command, separator=command_separator):
 
             # Loop through the result entities
             for entity in result["entities"]:
-                if entity['label'] in ['technology stack', 'role', 'qualifications']:
-                    # Get the label for grouping (assuming it's the 'label' label or another key)
-                    label = entity['label']
-                    label = label.lower().replace(" ", "_")
+                # Get the label for grouping (assuming it's the 'label' label or another key)
+                label = entity['label']
+                label = label.lower().replace(" ", "_")
 
-                    # If the label key does not exist in the dictionary, create it
-                    if label not in data_item["entities"]:
-                        data_item["entities"][label] = []
+                # If the label key does not exist in the dictionary, create it
+                if label not in data_item["entities"]:
+                    data_item["entities"][label] = []
 
-                    # Append the entity to the respective label group
-                    if entity['text'] not in data_item["entities"][label]:
-                        data_item["entities"][label].append(entity['text'])
+                # Append the entity to the respective label group
+                if entity['text'] not in data_item["entities"][label]:
+                    data_item["entities"][label].append(entity['text'])
 
             # Save the updated data to the file
             save_file(data, data_file)
