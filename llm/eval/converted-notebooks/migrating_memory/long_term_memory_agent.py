@@ -136,7 +136,7 @@ def search(query: str, config: RunnableConfig) -> list[str]:
 
     logger.newline()
     result = query_nodes(
-        query, FUSION_MODES.RELATIVE_SCORE, threshold=0.3)
+        query, FUSION_MODES.RELATIVE_SCORE, score_threshold=0.3)
 
     return result['texts']
 

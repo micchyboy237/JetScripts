@@ -137,7 +137,7 @@ if __name__ == "__main__":
     logger.newline()
     logger.info("RELATIVE_SCORE: sample query...")
     result = query_nodes(
-        sample_query, FUSION_MODES.RELATIVE_SCORE, threshold=score_threshold, top_k=top_k)
+        sample_query, FUSION_MODES.RELATIVE_SCORE, score_threshold=score_threshold, top_k=top_k)
     logger.info(f"RETRIEVED NODES ({len(result["nodes"])})")
     display_jet_source_nodes(sample_query, result["nodes"])
 
@@ -174,7 +174,7 @@ if __name__ == "__main__":
                 break
 
             result = query_nodes(
-                query, FUSION_MODES.RELATIVE_SCORE, threshold=score_threshold, top_k=top_k)
+                query, FUSION_MODES.RELATIVE_SCORE, score_threshold=score_threshold, top_k=top_k)
             logger.info(f"RETRIEVED NODES ({len(result["nodes"])})")
             display_jet_source_nodes(query, result["nodes"])
 

@@ -1,15 +1,12 @@
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-
+from typing import Callable, Optional
 from llama_index.core.node_parser.text.sentence import SentenceSplitter
-import spacy
 from jet.llm.ollama.base import OllamaEmbedding
 from jet.logger import logger
-from jet.token.token_utils import get_ollama_tokenizer
 from llama_index.core.indices.vector_store.base import VectorStoreIndex
+from llama_index.core.utils import set_global_tokenizer
 from llama_index.retrievers.bm25 import BM25Retriever
 from llama_index.core.schema import Document
-
+import spacy
 
 # Load spaCy English model
 nlp = spacy.load("en_core_web_sm")
@@ -25,6 +22,10 @@ class SpacyLemmatizer:
         """Lemmatize a list of words using spaCy."""
         return [token.lemma_ for token in self.nlp(" ".join(words))]
 
+    def __call__(self, text: str):
+        """Make instance callable to lemmatize a text input."""
+        return [token.lemma_ for token in self.nlp(text)]
+
 
 def get_bm25_retriever(
     index: VectorStoreIndex,
@@ -32,7 +33,9 @@ def get_bm25_retriever(
     language: str = "en",
     verbose: bool = False,
     skip_stemming: bool = False,
-    token_pattern: str = r"(?u)\b\w\w+\b"
+    # token_pattern: str = r"(?u)\b[\w.]+\b",
+    token_pattern: str = r"(?u)\b\w\w+\b",
+    stemmer: Optional[Callable] = None
 ):
     """
     Initialize a BM25Retriever with specified parameters.
@@ -48,7 +51,7 @@ def get_bm25_retriever(
     Returns:
         BM25Retriever: Configured BM25 retriever instance.
     """
-    stemmer = SpacyLemmatizer() if not skip_stemming else None
+    stemmer = stemmer or SpacyLemmatizer()
     retriever = BM25Retriever.from_defaults(
         index=index,
         similarity_top_k=similarity_k,
@@ -62,76 +65,28 @@ def get_bm25_retriever(
     return retriever
 
 
-class TFIDFRetriever:
-    def __init__(self, documents, similarity_top_k=10):
-        """
-        Initialize a TF-IDF retriever.
-
-        Args:
-            documents (List[str]): List of document texts.
-            similarity_top_k (int): Number of top similar results to return.
-        """
-        self.vectorizer = TfidfVectorizer()
-        self.documents = documents
-        self.similarity_top_k = similarity_top_k
-        self.doc_vectors = self.vectorizer.fit_transform(documents)
-
-    def retrieve(self, query):
-        """
-        Retrieve the most relevant documents based on TF-IDF similarity.
-
-        Args:
-            query (str): The query string.
-
-        Returns:
-            List[Tuple[str, float]]: List of (document, similarity score) tuples.
-        """
-        query_vector = self.vectorizer.transform([query])
-        similarities = cosine_similarity(
-            query_vector, self.doc_vectors).flatten()
-        top_indices = similarities.argsort()[-self.similarity_top_k:][::-1]
-
-        return [(self.documents[i], similarities[i]) for i in top_indices]
-
-
-# Example args
-queries = [
-    "Explains only React.js",
-    "No React.js",
-    "For iOS/Android development"
-]
-candidates = [
-    "React Native is a framework for building mobile apps.",
-    "Flutter and Swift are alternatives to React Native.",
-    "React.js is a JavaScript library for building UIs.",
-    "Node.js is used for backend development."
-]
-
-# # Example usage (TFIDFRetriever)
-# if __name__ == "__main__":
-#     retriever = TFIDFRetriever(candidates)
-
-#     logger.newline()
-#     for query in queries:
-#         results = retriever.retrieve(query)
-#         logger.log("Query:", query, colors=["GRAY", "DEBUG"])
-#         for doc, score in results:
-#             logger.log("  +", f"{doc[:25]}:", f"{score:.4f}",
-#                        colors=["GRAY", "WHITE", "SUCCESS"])
-#         logger.newline()
-
-
-# Example usage (BM25)
+# Example usage
 if __name__ == "__main__":
+    queries = [
+        "Native",
+        "No React.js",
+        "For iOS/Android development"
+    ]
+    candidates = [
+        "React Native is a framework for building mobile apps.",
+        "Flutter and Swift are alternatives to React Native.",
+        "React.js is a JavaScript library for building UIs.",
+        "Node.js is used for backend development."
+    ]
     chunk_size = 256
-    chunk_overlap = 40
+    chunk_overlap = 0
+    top_k = len(candidates)
 
     embed_model = "nomic-embed-text"
-    tokenizer = get_ollama_tokenizer(embed_model).encode
+    stemmer = SpacyLemmatizer()
+    set_global_tokenizer(stemmer)
 
     # Mock data
-    # docstore = SimpleDocumentStore()
-    # index = VectorStoreIndex(docstore=docstore)
     documents = [Document(text=text) for text in candidates]
     splitter = SentenceSplitter(
         chunk_size=chunk_size,
@@ -144,7 +99,8 @@ if __name__ == "__main__":
         show_progress=True,
         embed_model=OllamaEmbedding(model_name=embed_model),
     )
-    retriever = get_bm25_retriever(index, similarity_k=5, verbose=True)
+    retriever = get_bm25_retriever(
+        index, similarity_k=top_k, verbose=True, stemmer=stemmer)
 
     logger.newline()
     for query in queries:

@@ -48,7 +48,7 @@ texts = [doc.text for doc in documents]
 # query_nodes = setup_index(
 #     documents, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 # result = query_nodes(
-#     question, FUSION_MODES.RELATIVE_SCORE, threshold=0.2)
+#     question, FUSION_MODES.RELATIVE_SCORE, score_threshold=0.2)
 # result_nodes = result["nodes"]
 # result_texts = result["texts"]
 # display_jet_source_nodes(question, result_nodes)
