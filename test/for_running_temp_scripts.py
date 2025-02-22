@@ -1,100 +1,101 @@
-import os
-import pandas as pd
-import json
-import more_itertools
+from jet.file.utils import save_file
+from jet.utils.object import extract_values_by_paths
+from jet.file import load_file
+from llama_index.core.schema import Document
 from tqdm import tqdm
-from multiprocessing import Pool
-from transformers import pipeline
+from shared.data_types.job import JobData
+from jet.logger import logger
+from typing import Any, TypedDict
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+from typing import List, TypedDict
 
-pool_count = 7
-batch_limit = 100
+
 data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
-progress_file = "generated/classify_dataset/jobs_classifier_progress_info.json"
-output_file = "generated/classify_dataset/jobs_classified.json"
-
-# Classes for classification
-classes = ["Web Developer", "Mobile Developer", "Full Stack Developer"]
-
-# Classifier for zero-shot classification
-classifier = pipeline("zero-shot-classification",
-                      model="facebook/bart-large-mnli")
+model = 'all-MiniLM-L12-v2'
+WEB_DEV_KEYWORDS = ["React.js", "React",
+                    "Web app", "Web developer", "Web development"]
+MOBILE_DEV_KEYWORDS = ["React Native", "Mobile app",
+                       "Mobile developer", "Mobile development", "iOS", "Android"]
+BACKEND_DEV_KEYWORDS = ["Node.js", "Node", "Firebase", "AWS", "Backend"]
 
 
-def classify(sample):
-    text = f"Job Details: {sample['details']}"
-
-    # Classify the text
-    classification = classifier(text, classes)
-
-    # Add a category to the sample with the top classifier value
-    sample['category'] = classification['labels'][0]
-    return sample
+class ClassificationResponse(TypedDict):
+    results: List[tuple[str, float]]  # List of (label, score) pairs
+    sequence: str
 
 
-def save_resume_info(resume_info):
-    with open(progress_file, 'w') as f:
-        json.dump(resume_info, f)
+# Initialize the sentence transformer model
+model = SentenceTransformer(model)
 
 
-def load_resume_info():
-    if os.path.exists(progress_file):
-        with open(progress_file, 'r') as f:
-            return json.load(f)
-    else:
-        return {"batch_index": 0}
+def validate_dev_type(words: list[str], base_keywords: list[str]) -> list:
+    # Return a list of matching words found in the job description
+    return [word for word in words if any(base_keyword.lower() == word.lower() for base_keyword in base_keywords)]
 
 
-def classify_data(dataframe, batch_limit=batch_limit):
-    # Load resume info
-    resume_info = load_resume_info()
+def classify(job: JobData) -> dict:
+    title = job['title']
+    keywords = job['keywords']
+    entities = job['entities']
+    role = entities.get('role', [])
+    technology_stack = entities.get('technology_stack', [])
+    application = entities.get('application', [])
+    qualifications = entities.get('qualifications', [])
 
-    # All samples
-    samples = dataframe.to_dict('records')
+    classification_dict = {
+        "web": [],
+        "mobile": [],
+        "backend": [],
+        "labels": []  # Add a labels attribute
+    }
 
-    # Initialize a multiprocessing Pool
-    with Pool(pool_count) as p:
-        # Split samples into batches
-        for batch_index, batch in enumerate(more_itertools.chunked(samples, batch_limit)):
-            # If this batch has been processed, skip
-            if batch_index < resume_info['batch_index']:
-                continue
-            print(f'Processing batch {batch_index}...')
+    # words_to_validate = title.split(' ') + keywords + technology_stack + \
+    #     role + application + qualifications
+    words_to_validate = keywords + technology_stack
 
-            # Classify samples in parallel and store in a list
-            classified_samples = list(
-                tqdm(p.imap_unordered(classify, batch), total=len(batch)))
+    # Get matching words for each category
+    web_matches = validate_dev_type(words_to_validate, WEB_DEV_KEYWORDS)
+    mobile_matches = validate_dev_type(words_to_validate, MOBILE_DEV_KEYWORDS)
+    backend_matches = validate_dev_type(
+        words_to_validate, BACKEND_DEV_KEYWORDS)
 
-            # Save the classified samples to a JSON file
-            with open(output_file, 'a') as f:
-                for sample in classified_samples:
-                    json.dump(sample, f)
-                    f.write("\n")
+    # Update classification dictionary with unique matching words
+    if web_matches:
+        classification_dict["web"] = list(
+            set(web_matches))  # Remove duplicates
+        classification_dict["labels"].append("Web developer")
+    if mobile_matches:
+        classification_dict["mobile"] = list(
+            set(mobile_matches))  # Remove duplicates
+        classification_dict["labels"].append("Mobile developer")
+    if backend_matches:
+        classification_dict["backend"] = list(
+            set(backend_matches))  # Remove duplicates
+        classification_dict["labels"].append("Backend developer")
 
-            print(f"Saved classified samples after batch")
-
-            # Update resume info
-            resume_info['batch_index'] = batch_index + 1
-            save_resume_info(resume_info)
-
-
-def convert_jsonl_to_json(jsonl_file_path, json_file_path):
-    # Open the JSONL file for reading
-    with open(jsonl_file_path, 'r') as file:
-        # Read all lines from the JSONL file
-        lines = file.readlines()
-
-    # Create an empty list to store the JSON objects
-    json_objects = [json.loads(line) for line in lines]
-
-    # Open the JSON file for writing
-    with open(json_file_path, 'w') as file:
-        json.dump(json_objects, file, indent=4, ensure_ascii=False)
+    return classification_dict
 
 
 if __name__ == '__main__':
-    # Load the JSON file
-    df = pd.read_json(data_file)
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    output_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/classified_jobs.json"
+    jobs: list[JobData] = load_file(data_file)
 
-    classify_data(df)
-    convert_jsonl_to_json(output_file, output_file)
-    print("Done!")
+    results = []
+    results_dict = {
+        "results": results
+    }
+
+    for job in jobs:
+        classification_labels = classify(job)
+
+        results.append({
+            "id": job['id'],
+            "link": job['link'],
+            "title": job['title'],
+            "classification": classification_labels,
+            "technology_stack": job['entities'].get('technology_stack', [])
+        })
+
+    save_file(results_dict, output_file)
