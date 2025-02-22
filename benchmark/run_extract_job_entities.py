@@ -15,13 +15,12 @@ items = [
     if item['title'] not in item['details'].split("\n")[0]
     else {"id": item['id'], "text": item['details']}
     for item in data
-    # if not item.get('entities')
+    if not item.get('entities')
 ]
 
 
 model = "urchade/gliner_small-v2.1"
 # model = "urchade/gliner_medium-v2.1"
-style = "ent"
 labels = ["role", "application", "technology stack", "qualifications"]
 style = "ent"
 
