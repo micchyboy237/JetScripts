@@ -1,6 +1,6 @@
-from txtai import Agent, Embeddings
-from txtai.pipeline import Textractor
-from txtai.workflow import Workflow, Task
+from jet.libs.txtai import Agent, Embeddings
+from jet.libs.txtai.pipeline import Textractor
+from jet.libs.txtai.workflow import Workflow, Task
 from IPython.display import display, Markdown
 
 

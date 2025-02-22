@@ -1,4 +1,4 @@
-from txtai import Embeddings, RAG, LLM
+from jet.libs.txtai import Embeddings, RAG, LLM
 from jet.logger import logger
 from jet.llm.search import load_local_json
 

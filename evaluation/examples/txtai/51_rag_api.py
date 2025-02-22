@@ -1,5 +1,5 @@
 from fastapi import FastAPI, APIRouter
-from txtai.api import application, Extension
+from jet.libs.txtai.api import application, Extension
 import requests
 from datasets import load_dataset
 

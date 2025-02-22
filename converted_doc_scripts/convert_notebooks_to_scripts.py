@@ -687,7 +687,10 @@ if __name__ == "__main__":
     repo_base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs"
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/integrations/retrievers/tf_idf.ipynb",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/integrations/retrievers/tf_idf.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/txtai/docs/embeddings/configuration/ann.md",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/integrations/vectorstores/scann.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/integrations/vectorstores/annoy.ipynb",
     ]
 
     include_files = [

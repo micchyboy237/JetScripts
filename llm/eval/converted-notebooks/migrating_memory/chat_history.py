@@ -13,7 +13,7 @@ from getpass import getpass
 import os
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
-from shared.events.events import EventSettings
+from shared.setup.events.events import EventSettings
 initialize_ollama_settings()
 
 

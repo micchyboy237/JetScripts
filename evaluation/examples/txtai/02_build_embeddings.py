@@ -1,7 +1,7 @@
 import json
 import os
 from datasets import Dataset
-from txtai.pipeline import Similarity
+from jet.libs.txtai.pipeline import Similarity
 from jet.llm.embeddings import load_or_create_embeddings
 from jet.logger import logger
 

@@ -1,64 +1,100 @@
-import unittest
+import os
+import pandas as pd
+import json
+import more_itertools
+from tqdm import tqdm
+from multiprocessing import Pool
+from transformers import pipeline
+
+pool_count = 7
+batch_limit = 100
+data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+progress_file = "generated/classify_dataset/jobs_classifier_progress_info.json"
+output_file = "generated/classify_dataset/jobs_classified.json"
+
+# Classes for classification
+classes = ["Web Developer", "Mobile Developer", "Full Stack Developer"]
+
+# Classifier for zero-shot classification
+classifier = pipeline("zero-shot-classification",
+                      model="facebook/bart-large-mnli")
 
 
-def merge_dot_prefixed_words(text: str) -> str:
-    """Merge words that start with '.' with the previous word while preserving spaces correctly.
-    Also merges words ending with '.' with the next word."""
-    tokens = text.split()
-    merged_tokens = []
+def classify(sample):
+    text = f"Job Details: {sample['details']}"
 
-    for i, token in enumerate(tokens):
-        if token.startswith(".") and merged_tokens and not merged_tokens[-1].startswith("."):
-            merged_tokens[-1] += token  # Merge with previous word
-        elif merged_tokens and merged_tokens[-1].endswith("."):
-            # Merge when the previous word ends with '.'
-            merged_tokens[-1] += token
-        else:
-            merged_tokens.append(token)
+    # Classify the text
+    classification = classifier(text, classes)
 
-    return " ".join(merged_tokens)
+    # Add a category to the sample with the top classifier value
+    sample['category'] = classification['labels'][0]
+    return sample
 
 
-class TestMergeDotPrefixedWords(unittest.TestCase):
-    def test_basic_merging(self):
-        self.assertEqual(merge_dot_prefixed_words(
-            "hello .world"), "hello.world")
-        self.assertEqual(merge_dot_prefixed_words(
-            'hello. world'), "hello.world")
-        self.assertEqual(merge_dot_prefixed_words(
-            "foo .bar .baz"), "foo.bar.baz")
-        self.assertEqual(merge_dot_prefixed_words(
-            "this is .a test"), "this is.a test")
-
-    def test_no_merge_needed(self):
-        self.assertEqual(merge_dot_prefixed_words(
-            "this is normal"), "this is normal")
-        self.assertEqual(merge_dot_prefixed_words(
-            "another test case"), "another test case")
-
-    def test_multiple_dots(self):
-        self.assertEqual(merge_dot_prefixed_words(
-            "one .two .three .four"), "one.two.three.four")
-        self.assertEqual(merge_dot_prefixed_words("a .b .c d .e"), "a.b.c d.e")
-
-    def test_empty_input(self):
-        self.assertEqual(merge_dot_prefixed_words(""), "")
-
-    def test_only_dot_prefixed_words(self):
-        self.assertEqual(merge_dot_prefixed_words(".a .b .c"),
-                         ".a .b .c")  # No previous word to merge with
-        self.assertEqual(merge_dot_prefixed_words(".alone"), ".alone")
-
-    def test_whitespace_variants(self):
-        self.assertEqual(merge_dot_prefixed_words(
-            "  leading space"), "leading space")
-        self.assertEqual(merge_dot_prefixed_words(
-            "trailing space  "), "trailing space")
-        self.assertEqual(merge_dot_prefixed_words(
-            "  spaces   between words  "), "spaces between words")
-        # Extra spaces should be normalized
-        self.assertEqual(merge_dot_prefixed_words("word  .dot"), "word.dot")
+def save_resume_info(resume_info):
+    with open(progress_file, 'w') as f:
+        json.dump(resume_info, f)
 
 
-if __name__ == "__main__":
-    unittest.main()
+def load_resume_info():
+    if os.path.exists(progress_file):
+        with open(progress_file, 'r') as f:
+            return json.load(f)
+    else:
+        return {"batch_index": 0}
+
+
+def classify_data(dataframe, batch_limit=batch_limit):
+    # Load resume info
+    resume_info = load_resume_info()
+
+    # All samples
+    samples = dataframe.to_dict('records')
+
+    # Initialize a multiprocessing Pool
+    with Pool(pool_count) as p:
+        # Split samples into batches
+        for batch_index, batch in enumerate(more_itertools.chunked(samples, batch_limit)):
+            # If this batch has been processed, skip
+            if batch_index < resume_info['batch_index']:
+                continue
+            print(f'Processing batch {batch_index}...')
+
+            # Classify samples in parallel and store in a list
+            classified_samples = list(
+                tqdm(p.imap_unordered(classify, batch), total=len(batch)))
+
+            # Save the classified samples to a JSON file
+            with open(output_file, 'a') as f:
+                for sample in classified_samples:
+                    json.dump(sample, f)
+                    f.write("\n")
+
+            print(f"Saved classified samples after batch")
+
+            # Update resume info
+            resume_info['batch_index'] = batch_index + 1
+            save_resume_info(resume_info)
+
+
+def convert_jsonl_to_json(jsonl_file_path, json_file_path):
+    # Open the JSONL file for reading
+    with open(jsonl_file_path, 'r') as file:
+        # Read all lines from the JSONL file
+        lines = file.readlines()
+
+    # Create an empty list to store the JSON objects
+    json_objects = [json.loads(line) for line in lines]
+
+    # Open the JSON file for writing
+    with open(json_file_path, 'w') as file:
+        json.dump(json_objects, file, indent=4, ensure_ascii=False)
+
+
+if __name__ == '__main__':
+    # Load the JSON file
+    df = pd.read_json(data_file)
+
+    classify_data(df)
+    convert_jsonl_to_json(output_file, output_file)
+    print("Done!")

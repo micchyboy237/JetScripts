@@ -24,9 +24,9 @@ from elasticsearch.helpers import bulk
 from pytrec_eval import RelevanceEvaluator
 from rank_bm25 import BM25Okapi
 
-from txtai.embeddings import Embeddings
-from txtai.pipeline import LLM, RAG, Tokenizer
-from txtai.scoring import ScoringFactory
+from jet.libs.txtai.embeddings import Embeddings
+from jet.libs.txtai.pipeline import LLM, RAG, Tokenizer
+from jet.libs.txtai.scoring import ScoringFactory
 
 
 class Index:
@@ -73,10 +73,12 @@ class Index:
             for i, r in enumerate(self.search(batch, limit + 1)):
                 # Get result as list of (id, score) tuples
                 r = list(r)
-                r = [(x["id"], x["score"]) for x in r] if r and isinstance(r[0], dict) else r
+                r = [(x["id"], x["score"])
+                     for x in r] if r and isinstance(r[0], dict) else r
 
                 if filterscores:
-                    r = [(uid, score) for uid, score in r if uid != uids[offset + i]][:limit]
+                    r = [(uid, score)
+                         for uid, score in r if uid != uids[offset + i]][:limit]
 
                 results[uids[offset + i]] = dict(r)
 
@@ -114,7 +116,8 @@ class Index:
         with open(f"{self.path}/corpus.jsonl", encoding="utf-8") as f:
             for line in f:
                 row = json.loads(line)
-                text = f'{row["title"]}. {row["text"]}' if row.get("title") else row["text"]
+                text = f'{row["title"]}. {row["text"]}' if row.get(
+                    "title") else row["text"]
                 if text:
                     yield (row["_id"], text, None)
 
@@ -144,7 +147,7 @@ class Index:
             data split into equal size batches
         """
 
-        return [data[x : x + size] for x in range(0, len(data), size)]
+        return [data[x: x + size] for x in range(0, len(data), size)]
 
     def readconfig(self, key, default):
         """
@@ -181,7 +184,8 @@ class Embed(Index):
             embeddings.load(self.output)
         else:
             # Read configuration
-            config = self.readconfig("embeddings", {"batch": 8192, "encodebatch": 128, "faiss": {"quantize": True, "sample": 0.05}})
+            config = self.readconfig("embeddings", {
+                                     "batch": 8192, "encodebatch": 128, "faiss": {"quantize": True, "sample": 0.05}})
 
             # Build index
             embeddings = Embeddings(config)
@@ -316,7 +320,8 @@ class BM25S(Index):
 
     def search(self, queries, limit):
         tokenizer = Tokenizer()
-        results, scores = self.backend.retrieve([tokenizer(x) for x in queries], corpus=self.ids, k=limit)
+        results, scores = self.backend.retrieve(
+            [tokenizer(x) for x in queries], corpus=self.ids, k=limit)
 
         # List of queries => list of matches (id, score)
         x = []
@@ -357,7 +362,8 @@ class SQLiteFTS(Index):
             query = " OR ".join([f'"{q}"' for q in query])
 
             self.backend.execute(
-                f"SELECT id, bm25(textindex) * -1 score FROM textindex WHERE text MATCH ? ORDER BY bm25(textindex) LIMIT {limit}", [query]
+                f"SELECT id, bm25(textindex) * -1 score FROM textindex WHERE text MATCH ? ORDER BY bm25(textindex) LIMIT {limit}", [
+                    query]
             )
 
             results.append(list(self.backend))
@@ -382,7 +388,8 @@ class SQLiteFTS(Index):
                 data.append((uid, " ".join(tokenizer(text))))
 
             # Create table
-            connection.execute("CREATE VIRTUAL TABLE textindex using fts5(id, text)")
+            connection.execute(
+                "CREATE VIRTUAL TABLE textindex using fts5(id, text)")
 
             # Load data and build index
             connection.executemany("INSERT INTO textindex VALUES (?, ?)", data)
@@ -401,7 +408,8 @@ class Elastic(Index):
         # Generate bulk queries
         request = []
         for query in queries:
-            req_head = {"index": "textindex", "search_type": "dfs_query_then_fetch"}
+            req_head = {"index": "textindex",
+                        "search_type": "dfs_query_then_fetch"}
             req_body = {
                 "_source": False,
                 "query": {"multi_match": {"query": query, "type": "best_fields", "fields": ["text"], "tie_breaker": 0.5}},
@@ -430,7 +438,8 @@ class Elastic(Index):
         except:
             pass
 
-        bulk(es, ({"_index": "textindex", "_id": uid, "text": text} for uid, text, _ in self.rows()))
+        bulk(es, ({"_index": "textindex", "_id": uid, "text": text}
+             for uid, text, _ in self.rows()))
         es.indices.refresh(index="textindex")
 
         return es
@@ -538,7 +547,8 @@ def evaluate(methods, path, args):
 
     # Calculate stats for each model type
     topk = args.topk
-    evaluator = RelevanceEvaluator(relevance(path), {f"ndcg_cut.{topk}", f"map_cut.{topk}", f"recall.{topk}", f"P.{topk}"})
+    evaluator = RelevanceEvaluator(relevance(
+        path), {f"ndcg_cut.{topk}", f"map_cut.{topk}", f"recall.{topk}", f"P.{topk}"})
     for method in methods:
         # Stats for this source
         stats = {}
@@ -551,8 +561,10 @@ def evaluate(methods, path, args):
 
         # Add indexing metrics
         stats["index"] = round(time.time() - start, 2)
-        stats["memory"] = int(psutil.Process().memory_info().rss / (1024 * 1024))
-        stats["disk"] = int(sum(d.stat().st_size for d in os.scandir(output) if d.is_file()) / 1024) if os.path.isdir(output) else 0
+        stats["memory"] = int(
+            psutil.Process().memory_info().rss / (1024 * 1024))
+        stats["disk"] = int(sum(d.stat().st_size for d in os.scandir(
+            output) if d.is_file()) / 1024) if os.path.isdir(output) else 0
 
         print("INDEX TIME =", time.time() - start)
         print(f"MEMORY USAGE = {stats['memory']} MB")
@@ -614,7 +626,8 @@ def benchmarks(args):
             "climate-fever",
             "scifact",
         ]
-        methods = ["embed", "hybrid", "rag", "scoring", "rank", "bm25s", "sqlite", "es"]
+        methods = ["embed", "hybrid", "rag",
+                   "scoring", "rank", "bm25s", "sqlite", "es"]
         mode = "w"
 
     # Run and save benchmarks
@@ -636,19 +649,26 @@ def benchmarks(args):
 if __name__ == "__main__":
     # Command line parser
     parser = argparse.ArgumentParser(description="Benchmarks")
-    parser.add_argument("-c", "--config", help="path to config file", metavar="CONFIG")
-    parser.add_argument("-d", "--directory", help="root directory path with datasets", metavar="DIRECTORY")
-    parser.add_argument("-m", "--methods", help="comma separated list of methods", metavar="METHODS")
-    parser.add_argument("-n", "--name", help="name to assign to this run, defaults to method name", metavar="NAME")
-    parser.add_argument("-o", "--output", help="index output directory path", metavar="OUTPUT")
+    parser.add_argument(
+        "-c", "--config", help="path to config file", metavar="CONFIG")
+    parser.add_argument(
+        "-d", "--directory", help="root directory path with datasets", metavar="DIRECTORY")
+    parser.add_argument(
+        "-m", "--methods", help="comma separated list of methods", metavar="METHODS")
+    parser.add_argument(
+        "-n", "--name", help="name to assign to this run, defaults to method name", metavar="NAME")
+    parser.add_argument(
+        "-o", "--output", help="index output directory path", metavar="OUTPUT")
     parser.add_argument(
         "-r",
         "--refresh",
         help="refreshes index if set, otherwise uses existing index if available",
         action="store_true",
     )
-    parser.add_argument("-s", "--sources", help="comma separated list of data sources", metavar="SOURCES")
-    parser.add_argument("-t", "--topk", help="top k results to use for the evaluation", metavar="TOPK", type=int, default=10)
+    parser.add_argument(
+        "-s", "--sources", help="comma separated list of data sources", metavar="SOURCES")
+    parser.add_argument("-t", "--topk", help="top k results to use for the evaluation",
+                        metavar="TOPK", type=int, default=10)
 
     # Calculate benchmarks
     benchmarks(parser.parse_args())

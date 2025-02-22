@@ -1,4 +1,4 @@
-from txtai import LLM
+from jet.libs.txtai import LLM
 from typing import List, Dict
 from pydantic import BaseModel
 import json

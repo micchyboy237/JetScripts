@@ -2,7 +2,7 @@ from typing import get_args
 import json
 import os
 import traceback
-from txtai.vectors import VectorsFactory
+from jet.libs.txtai.vectors import VectorsFactory
 from jet.llm.search import (
     ScoringMethod,
     load_local_json,

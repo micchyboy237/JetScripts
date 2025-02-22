@@ -12,8 +12,8 @@
 import json
 import os
 import traceback
-from txtai.vectors import VectorsFactory
-from txtai import LLM, RAG
+from jet.libs.txtai.vectors import VectorsFactory
+from jet.libs.txtai import LLM, RAG
 from jet.llm.embeddings import Embeddings
 from jet.logger import logger
 # % % capture
@@ -131,7 +131,7 @@ def main():
     # Run RAG pipeline
     # Example setup (you would need to initialize the similarity model, tokenizer, etc.)
     # Assuming you have a similarity model
-    from txtai.pipeline import Tokenizer, Similarity
+    from jet.libs.txtai.pipeline import Tokenizer, Similarity
     similarity_instance = Similarity(path=embedding_model)
     # answer = run_rag_pipeline(question, embeddings, llm, prompt)
     chunks = run_rag_pipeline(
