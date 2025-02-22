@@ -14,7 +14,8 @@ items = [
     {"id": item['id'], "text": f"Job Title: {item['title']}\n\n{item['details']}"}
     if item['title'] not in item['details'].split("\n")[0]
     else {"id": item['id'], "text": item['details']}
-    for item in data if not item.get('entities')
+    for item in data
+    # if not item.get('entities')
 ]
 
 
