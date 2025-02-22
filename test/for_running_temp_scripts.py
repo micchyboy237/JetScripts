@@ -1,158 +1,64 @@
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-
-from llama_index.core.node_parser.text.sentence import SentenceSplitter
-import spacy
-from jet.llm.ollama.base import OllamaEmbedding
-from jet.logger import logger
-from jet.token.token_utils import get_ollama_tokenizer
-from llama_index.core.indices.vector_store.base import VectorStoreIndex
-from llama_index.retrievers.bm25 import BM25Retriever
-from llama_index.core.schema import Document
+import unittest
 
 
-# Load spaCy English model
-nlp = spacy.load("en_core_web_sm")
+def merge_dot_prefixed_words(text: str) -> str:
+    """Merge words that start with '.' with the previous word while preserving spaces correctly.
+    Also merges words ending with '.' with the next word."""
+    tokens = text.split()
+    merged_tokens = []
+
+    for i, token in enumerate(tokens):
+        if token.startswith(".") and merged_tokens and not merged_tokens[-1].startswith("."):
+            merged_tokens[-1] += token  # Merge with previous word
+        elif merged_tokens and merged_tokens[-1].endswith("."):
+            # Merge when the previous word ends with '.'
+            merged_tokens[-1] += token
+        else:
+            merged_tokens.append(token)
+
+    return " ".join(merged_tokens)
 
 
-class SpacyLemmatizer:
-    """A wrapper to use spaCy lemmatization in place of stemming."""
+class TestMergeDotPrefixedWords(unittest.TestCase):
+    def test_basic_merging(self):
+        self.assertEqual(merge_dot_prefixed_words(
+            "hello .world"), "hello.world")
+        self.assertEqual(merge_dot_prefixed_words(
+            'hello. world'), "hello.world")
+        self.assertEqual(merge_dot_prefixed_words(
+            "foo .bar .baz"), "foo.bar.baz")
+        self.assertEqual(merge_dot_prefixed_words(
+            "this is .a test"), "this is.a test")
 
-    def __init__(self):
-        self.nlp = nlp  # Use the globally loaded spaCy model
+    def test_no_merge_needed(self):
+        self.assertEqual(merge_dot_prefixed_words(
+            "this is normal"), "this is normal")
+        self.assertEqual(merge_dot_prefixed_words(
+            "another test case"), "another test case")
 
-    def stemWords(self, words):
-        """Lemmatize a list of words using spaCy."""
-        return [token.lemma_ for token in self.nlp(" ".join(words))]
+    def test_multiple_dots(self):
+        self.assertEqual(merge_dot_prefixed_words(
+            "one .two .three .four"), "one.two.three.four")
+        self.assertEqual(merge_dot_prefixed_words("a .b .c d .e"), "a.b.c d.e")
 
+    def test_empty_input(self):
+        self.assertEqual(merge_dot_prefixed_words(""), "")
 
-def get_bm25_retriever(
-    index: VectorStoreIndex,
-    similarity_k: int = 10,
-    language: str = "en",
-    verbose: bool = False,
-    skip_stemming: bool = False,
-    token_pattern: str = r"(?u)\b\w\w+\b"
-):
-    """
-    Initialize a BM25Retriever with specified parameters.
+    def test_only_dot_prefixed_words(self):
+        self.assertEqual(merge_dot_prefixed_words(".a .b .c"),
+                         ".a .b .c")  # No previous word to merge with
+        self.assertEqual(merge_dot_prefixed_words(".alone"), ".alone")
 
-    Args:
-        index (VectorStoreIndex): The vector store index to retrieve documents from.
-        similarity_k (int): The number of top similar results to return.
-        language (str): The language for stopword removal (default: "en").
-        verbose (bool): Whether to enable verbose mode (default: False).
-        skip_stemming (bool): Whether to skip stemming/lemmatization (default: False).
-        token_pattern (str): Tokenization pattern (default: r"(?u)\b\w\w+\b").
-
-    Returns:
-        BM25Retriever: Configured BM25 retriever instance.
-    """
-    stemmer = SpacyLemmatizer() if not skip_stemming else None
-    retriever = BM25Retriever.from_defaults(
-        index=index,
-        similarity_top_k=similarity_k,
-        language=language,
-        verbose=verbose,
-        skip_stemming=skip_stemming,
-        token_pattern=token_pattern,
-        stemmer=stemmer  # Pass the custom lemmatizer
-    )
-
-    return retriever
+    def test_whitespace_variants(self):
+        self.assertEqual(merge_dot_prefixed_words(
+            "  leading space"), "leading space")
+        self.assertEqual(merge_dot_prefixed_words(
+            "trailing space  "), "trailing space")
+        self.assertEqual(merge_dot_prefixed_words(
+            "  spaces   between words  "), "spaces between words")
+        # Extra spaces should be normalized
+        self.assertEqual(merge_dot_prefixed_words("word  .dot"), "word.dot")
 
 
-class TFIDFRetriever:
-    def __init__(self, documents, similarity_top_k=10):
-        """
-        Initialize a TF-IDF retriever.
-
-        Args:
-            documents (List[str]): List of document texts.
-            similarity_top_k (int): Number of top similar results to return.
-        """
-        self.vectorizer = TfidfVectorizer()
-        self.documents = documents
-        self.similarity_top_k = similarity_top_k
-        self.doc_vectors = self.vectorizer.fit_transform(documents)
-
-    def retrieve(self, query):
-        """
-        Retrieve the most relevant documents based on TF-IDF similarity.
-
-        Args:
-            query (str): The query string.
-
-        Returns:
-            List[Tuple[str, float]]: List of (document, similarity score) tuples.
-        """
-        query_vector = self.vectorizer.transform([query])
-        similarities = cosine_similarity(
-            query_vector, self.doc_vectors).flatten()
-        top_indices = similarities.argsort()[-self.similarity_top_k:][::-1]
-
-        return [(self.documents[i], similarities[i]) for i in top_indices]
-
-
-# Example args
-queries = [
-    "Explains only React.js",
-    "No React.js",
-    "For iOS/Android development"
-]
-candidates = [
-    "React Native is a framework for building mobile apps.",
-    "Flutter and Swift are alternatives to React Native.",
-    "React.js is a JavaScript library for building UIs.",
-    "Node.js is used for backend development."
-]
-
-# # Example usage (TFIDFRetriever)
-# if __name__ == "__main__":
-#     retriever = TFIDFRetriever(candidates)
-
-#     logger.newline()
-#     for query in queries:
-#         results = retriever.retrieve(query)
-#         logger.log("Query:", query, colors=["GRAY", "DEBUG"])
-#         for doc, score in results:
-#             logger.log("  +", f"{doc[:25]}:", f"{score:.4f}",
-#                        colors=["GRAY", "WHITE", "SUCCESS"])
-#         logger.newline()
-
-
-# Example usage (BM25)
 if __name__ == "__main__":
-    chunk_size = 256
-    chunk_overlap = 40
-
-    embed_model = "nomic-embed-text"
-    tokenizer = get_ollama_tokenizer(embed_model).encode
-
-    # Mock data
-    # docstore = SimpleDocumentStore()
-    # index = VectorStoreIndex(docstore=docstore)
-    documents = [Document(text=text) for text in candidates]
-    splitter = SentenceSplitter(
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-    )
-    all_nodes = splitter.get_nodes_from_documents(
-        documents, show_progress=True)
-    index = VectorStoreIndex(
-        all_nodes,
-        show_progress=True,
-        embed_model=OllamaEmbedding(model_name=embed_model),
-    )
-    retriever = get_bm25_retriever(index, similarity_k=5, verbose=True)
-
-    logger.newline()
-    for query in queries:
-        results = retriever.retrieve(query)
-        logger.log("Query:", query, colors=["GRAY", "DEBUG"])
-        for result in results:
-            logger.success(f" - {result.node.get_content()}")
-        logger.newline()
-
-    assert isinstance(
-        retriever, BM25Retriever), "Retriever is not an instance of BM25Retriever"
+    unittest.main()

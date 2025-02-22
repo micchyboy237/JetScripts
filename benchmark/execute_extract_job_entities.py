@@ -35,23 +35,41 @@ def determine_chunk_size(text: str) -> int:
         return 500  # Large text, larger chunks
 
 
+def merge_dot_prefixed_words(text: str) -> str:
+    """Merge words that start with '.' with the previous word while preserving spaces correctly.
+    Also merges words ending with '.' with the next word."""
+    tokens = text.split()
+    merged_tokens = []
+
+    for i, token in enumerate(tokens):
+        if token.startswith(".") and merged_tokens and not merged_tokens[-1].startswith("."):
+            merged_tokens[-1] += token  # Merge with previous word
+        elif merged_tokens and merged_tokens[-1].endswith("."):
+            # Merge when the previous word ends with '.'
+            merged_tokens[-1] += token
+        else:
+            merged_tokens.append(token)
+
+    return " ".join(merged_tokens)
+
+
 def get_unique_entities(entities: List[Dict]) -> List[Dict]:
     """Ensure unique entity texts per label, keeping the highest score."""
     best_entities = {}
 
     for entity in entities:
         text = entity["text"]
-        words = [t.lower().replace(" ", "") for t in text.split(" ") if t]
+        words = [t.replace(" ", "") for t in text.split(" ") if t]
         normalized_text = " ".join(words)
         label = entity["label"]
         score = float(entity["score"])
 
         entity["text"] = normalized_text
-        entity["score"] = score
 
         key = f"{label}-{str(normalized_text)}"
 
         if key not in best_entities or score > float(best_entities[key]["score"]):
+            entity["score"] = score
             best_entities[key] = entity
 
     return list(best_entities.values())
@@ -66,7 +84,8 @@ def main():
 
     for item in data:
         id = item['id']
-        text = item['text']
+        text = item['text']  # Apply merging rule
+
         # Determine chunk size dynamically for each text
         chunk_size = determine_chunk_size(text)
 
@@ -78,7 +97,7 @@ def main():
 
         # Prepare the results with unique entities
         entities = get_unique_entities([{
-            "text": entity.text,
+            "text": merge_dot_prefixed_words(entity.text),
             "label": entity.label_,
             "score": f"{entity._.score:.4f}"
         } for entity in doc.ents])
