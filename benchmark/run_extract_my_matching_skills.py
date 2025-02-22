@@ -559,7 +559,7 @@ def search_nodes(query: str) -> SearchNodesResponse:
 
 def main():
     # run_extract_jobs()
-    run_clean_jobs()
+    # run_clean_jobs()
 
     # Settings initialization
     model = "llama3.1"
@@ -603,10 +603,6 @@ def main():
 
     json_attributes = [
         "title",
-        "entities.role",
-        "entities.application",
-        "entities.technology_stack",
-        "entities.qualifications",
         "details",
     ]
 
