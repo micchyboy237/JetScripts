@@ -643,8 +643,6 @@ def main():
 
         job_id = data[idx]['id']
         job_link = data[idx]['link']
-        job_technology_stack = data[idx]['entities'].get(
-            'technology_stack', [])
 
         matched_skills = [
             skill for skill in response.skills if skill in my_skills]
@@ -653,7 +651,6 @@ def main():
             "link": job_link,
             "text": "\n\n".join(text_chunks),
             "matched_skills": matched_skills,
-            "technology_stack": job_technology_stack
         }
         job_postings.append(result)
 
