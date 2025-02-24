@@ -4,26 +4,28 @@ from jet.logger import logger
 
 
 queries = [
-    "Explains only React.js",
-    "No React.js",
-    "For native iOS development"
+    "Used technologies are: Magento, front-end architecture, HTML, CSS, JavaScript, front-end technologies, jQuery, Git, React, Vue.js"
 ]
 candidates = [
-    "React Native is a framework for building mobile apps.",
-    "Flutter and Swift are alternatives to React Native.",
-    "React.js is a JavaScript library for building UIs.",
-    "Node.js is used for backend development."
+    "React.js",
+    "React Native",
+    "Node.js",
+    "Python",
+    "PostgreSQL",
+    "MongoDB",
+    "Firebase",
+    "AWS",
 ]
 
 
 if __name__ == "__main__":
     search = VectorSemanticSearch(candidates)
 
-    # Perform BM25 search
-    bm25_results = search.bm25_search(queries)
+    # Perform Vector-based search
+    vector_results = search.vector_based_search(queries)
     logger.newline()
-    logger.orange(f"BM25 Search Results ({len(bm25_results)}):")
-    for query_idx, (query_line, group) in enumerate(bm25_results.items()):
+    logger.orange("Vector-Based Search Results:")
+    for query_idx, (query_line, group) in enumerate(vector_results.items()):
         logger.newline()
         logger.log(" -", f"Query {query_idx}:",
                    query_line, colors=["GRAY", "GRAY", "DEBUG"])
@@ -67,6 +69,30 @@ if __name__ == "__main__":
             logger.log("  +", f"{result['text'][:25]}:", f"{
                        result['score']:.4f}", colors=["GRAY", "WHITE", "SUCCESS"])
 
+    # Perform Annoy search
+    annoy_results = search.annoy_search(queries)
+    logger.newline()
+    logger.orange(f"Annoy Search Results ({len(annoy_results)}):")
+    for query_idx, (query_line, group) in enumerate(annoy_results.items()):
+        logger.newline()
+        logger.log(" -", f"Query {query_idx}:",
+                   query_line, colors=["GRAY", "GRAY", "DEBUG"])
+        for result in group:
+            logger.log("  +", f"{result['text'][:25]}:", f"{
+                       result['score']:.4f}", colors=["GRAY", "WHITE", "SUCCESS"])
+
+    # Perform BM25 search
+    bm25_results = search.bm25_search(queries)
+    logger.newline()
+    logger.orange(f"BM25 Search Results ({len(bm25_results)}):")
+    for query_idx, (query_line, group) in enumerate(bm25_results.items()):
+        logger.newline()
+        logger.log(" -", f"Query {query_idx}:",
+                   query_line, colors=["GRAY", "GRAY", "DEBUG"])
+        for result in group:
+            logger.log("  +", f"{result['text'][:25]}:", f"{
+                       result['score']:.4f}", colors=["GRAY", "WHITE", "SUCCESS"])
+
     # Perform Cross-encoder search
     cross_encoder_results = search.cross_encoder_search(queries)
     logger.newline()
@@ -84,18 +110,6 @@ if __name__ == "__main__":
     logger.newline()
     logger.orange("Rerank Search Results:")
     for query_idx, (query_line, group) in enumerate(rerank_results.items()):
-        logger.newline()
-        logger.log(" -", f"Query {query_idx}:",
-                   query_line, colors=["GRAY", "GRAY", "DEBUG"])
-        for result in group:
-            logger.log("  +", f"{result['text'][:25]}:", f"{
-                       result['score']:.4f}", colors=["GRAY", "WHITE", "SUCCESS"])
-
-    # Perform Vector-based search
-    vector_results = search.vector_based_search(queries)
-    logger.newline()
-    logger.orange("Vector-Based Search Results:")
-    for query_idx, (query_line, group) in enumerate(vector_results.items()):
         logger.newline()
         logger.log(" -", f"Query {query_idx}:",
                    query_line, colors=["GRAY", "GRAY", "DEBUG"])
