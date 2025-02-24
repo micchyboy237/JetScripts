@@ -1,11 +1,43 @@
 from jet.llm.ollama.embeddings import get_ollama_embedding_function
+from jet.logger import logger
+from jet.utils.object import extract_values_by_paths
+from tqdm import tqdm
+from jet.file.utils import load_file, save_file
+from shared.data_types.job import JobData, JobEntities
 
 
 if __name__ == '__main__':
-    texts = [
-        'Text 1'
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    jobs: JobData = load_file(data_file)
+
+    texts = []
+
+    json_attributes = [
+        "title",
+        "entities.role",
+        "entities.application",
+        "entities.technology_stack",
+        "entities.qualifications",
+        "details",
     ]
+
+    for item in tqdm(jobs):
+        json_parts_dict = extract_values_by_paths(
+            item, json_attributes, is_flattened=True) if json_attributes else None
+        text_parts = []
+        for key, value in json_parts_dict.items():
+            value_str = str(value)
+            if isinstance(value, list):
+                value_str = ", ".join(value)
+            text_parts.append(
+                f"{key.title().replace('_', ' ')}: {value_str}")
+
+        text_content = "\n".join(text_parts) if text_parts else ""
+        texts.append(text_content)
+
     embedding_function = get_ollama_embedding_function(
         model="nomic-embed-text"
     )
-    embedding_function(texts)
+    embed_results = embedding_function(texts)
+    logger.debug(f"Jobs ({len(jobs)})")
+    logger.success(f"Results ({len(embed_results)})")

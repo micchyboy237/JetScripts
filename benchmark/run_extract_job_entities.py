@@ -2,6 +2,8 @@ from jet.vectors.ner import load_nlp_pipeline, extract_entities_from_text
 from pydantic import BaseModel
 from typing import List
 
+from shared.data_types.job import JobEntity
+
 
 NER_MODEL = "urchade/gliner_small-v2.1"
 NER_STYLE = "ent"
@@ -31,15 +33,9 @@ class SingleTextRequest(BaseModel):
 
 # Response Models
 
-class Entity(BaseModel):
-    text: str
-    label: str
-    score: float
-
-
 class ProcessedTextResponse(BaseModel):
     text: str
-    entities: List[Entity]
+    entities: JobEntity
 
 
 class ProcessResponse(BaseModel):
