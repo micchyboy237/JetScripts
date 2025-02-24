@@ -641,8 +641,8 @@ def main():
         job_link = data[idx]['link']
 
         matched_skills = [
-            skill for skill in response.skills
-            if any(my_skill.lower() in skill.lower() for my_skill in my_skills)
+            my_skill for my_skill in my_skills
+            if any(my_skill in skill for skill in response.skills)
         ]
         result = {
             "id": job_id,
