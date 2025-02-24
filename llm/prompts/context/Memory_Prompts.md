@@ -11,10 +11,10 @@ Conditions when applicable:
 
 If code is generated:
 
-- Code should be refactored for improved readability, modularity, and reusability.
-- Use typing or typed dicts.
+- Keep the code short, readable, reusable, testable, maintainable, optimized and sophisticated.
+- Reuse existing code if possible without breaking anything.
+- Use modern typing approach.
 - Don't remove logs if jet.logger is used.
-- Do not break existing logic.
 
 At the end:
 

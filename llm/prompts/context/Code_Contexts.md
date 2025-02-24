@@ -23,7 +23,7 @@ Execute browse or internet search if requested.
 INSTRUCTIONS
 
 - Provide a step by step process of how you would solve the query.
-- Keep the code short, reusable, testable, maintainable and optimized. Follow best practices and industry design patterns.
+- Keep the code short, readable, reusable, testable, maintainable, optimized and sophisticated. Follow best practices and industry design patterns.
 - Install any libraries required to run the code.
 - You may add files or update the code structure if necessary.
 - Reuse existing code if possible without breaking anything.
