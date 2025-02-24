@@ -1,4 +1,4 @@
-from jet.llm.utils import display_jet_source_node
+from jet.llm.utils.llama_index_utils import display_jet_source_node
 from llama_index.core.retrievers import RouterRetriever
 from llama_index.core.selectors import (
     PydanticMultiSelector,

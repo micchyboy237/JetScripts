@@ -24,7 +24,7 @@ from jet.llm.ollama.base import Ollama
 from llama_index.core import VectorStoreIndex
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.retrievers import RecursiveRetriever
-from jet.llm.utils import display_jet_source_nodes
+from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.llm.ollama.base import OllamaEmbedding
 from jet.cache.joblib import load_from_cache_or_compute
 from jet.logger import logger

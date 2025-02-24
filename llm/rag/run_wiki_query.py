@@ -24,7 +24,7 @@ from jet.llm.ollama.base import OllamaEmbedding
 from jet.llm.ollama.base import Ollama
 from llama_index.core.node_parser import NodeParser, SentenceSplitter
 
-from jet.llm.utils import display_jet_source_node
+from jet.llm.utils.llama_index_utils import display_jet_source_node
 
 import os
 import json

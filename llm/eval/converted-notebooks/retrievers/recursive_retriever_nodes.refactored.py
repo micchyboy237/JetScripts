@@ -8,7 +8,7 @@ from jet.logger import logger
 from llama_index.core.extractors.interface import BaseExtractor
 from llama_index.core.readers.file.base import SimpleDirectoryReader
 from llama_index.readers.file import PDFReader
-from jet.llm.utils import display_jet_source_node
+from jet.llm.utils.llama_index_utils import display_jet_source_node
 from llama_index.core.retrievers import RecursiveRetriever
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core import VectorStoreIndex

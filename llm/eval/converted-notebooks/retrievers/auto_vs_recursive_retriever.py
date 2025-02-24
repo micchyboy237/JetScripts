@@ -23,7 +23,7 @@ from llama_index.core import SimpleDirectoryReader
 import sys
 import logging
 import nest_asyncio
-from jet.llm.utils import display_jet_source_nodes
+from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()

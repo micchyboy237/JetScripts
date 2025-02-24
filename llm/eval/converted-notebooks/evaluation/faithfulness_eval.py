@@ -16,7 +16,7 @@ import nest_asyncio
 import random
 from llama_index.core.prompts.base import PromptTemplate
 from jet.transformers import make_serializable
-from jet.llm.utils import display_jet_source_nodes
+from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()

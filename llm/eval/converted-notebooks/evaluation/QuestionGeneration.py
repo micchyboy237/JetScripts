@@ -8,7 +8,7 @@ from llama_index.core.evaluation import EvaluationResult
 import pandas as pd
 import sys
 import logging
-from jet.llm.utils import display_jet_source_nodes
+from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.transformers import make_serializable
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings

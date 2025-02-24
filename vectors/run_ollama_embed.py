@@ -2,7 +2,6 @@ from jet.llm.ollama.base import OllamaEmbedding
 from jet.llm.utils.embeddings import get_ollama_embedding_function
 from jet.logger import logger, time_it
 from jet.utils.object import extract_values_by_paths
-from llama_index.core.schema import TextNode
 from tqdm import tqdm
 from jet.file.utils import load_file, save_file
 from shared.data_types.job import JobData, JobEntities
@@ -12,14 +11,10 @@ from shared.data_types.job import JobData, JobEntities
 def embed_texts(texts: list[str]):
     embed_model = OllamaEmbedding(model_name="mxbai-embed-large")
     embed_results = embed_model.embed(texts)
-
-    # embed_results = embed_model([TextNode(text=text) for text in texts])
-
     # embedding_function = get_ollama_embedding_function(
     #     model="nomic-embed-text"
     # )
     # embed_results = embedding_function(texts)
-
     return embed_results
 
 

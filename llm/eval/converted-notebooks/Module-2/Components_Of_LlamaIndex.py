@@ -1,4 +1,4 @@
-from jet.llm.utils import display_jet_source_node
+from jet.llm.utils.llama_index_utils import display_jet_source_node
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.response_synthesizers import get_response_synthesizer
 from llama_index.core.retrievers import VectorIndexRetriever

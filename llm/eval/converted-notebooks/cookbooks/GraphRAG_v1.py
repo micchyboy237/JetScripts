@@ -32,7 +32,7 @@ from jet.llm.ollama.base import Ollama
 import os
 from llama_index.core import Document
 import pandas as pd
-from jet.llm.utils import display_jet_source_nodes
+from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()

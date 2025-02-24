@@ -4,7 +4,7 @@ from llama_index.core.llms import LLM
 from llama_index.core.retrievers import BaseRetriever
 import asyncio
 import nest_asyncio
-from jet.llm.utils import display_jet_source_node
+from jet.llm.utils.llama_index_utils import display_jet_source_node
 from llama_index.core import PromptTemplate
 from jet.llm.ollama.base import Ollama
 from llama_index.core import StorageContext

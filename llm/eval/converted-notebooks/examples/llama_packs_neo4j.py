@@ -6,7 +6,7 @@ from llama_index.packs.neo4j_query_engine.base import Neo4jQueryEngineType
 import json
 from llama_index.core.llama_pack import download_llama_pack
 from llama_index.readers.wikipedia import WikipediaReader
-from jet.llm.utils import display_jet_source_nodes
+from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.logger import logger
 from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()

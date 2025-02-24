@@ -3,7 +3,7 @@ from fastapi.routing import APIRouter
 from pydantic import BaseModel
 from typing import List, Dict
 from deeplake.core.vectorstore import VectorStore
-from jet.llm.ollama.embeddings import get_ollama_embedding_function
+from jet.llm.utils.embeddings import get_ollama_embedding_function
 from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.logger import logger
 from jet.transformers.formatters import format_json

@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from jet.llm.ollama.base import OllamaEmbedding
 from jet.llm.ollama.constants import OLLAMA_SMALL_EMBED_MODEL, OLLAMA_LARGE_EMBED_MODEL
-from jet.llm.ollama.embeddings import get_embedding_function
+from jet.llm.utils.embeddings import get_embedding_function
 from jet.llm.ollama.models import OLLAMA_MODEL_EMBEDDING_TOKENS
 from jet.logger import logger
 from jet.token.token_utils import get_ollama_tokenizer

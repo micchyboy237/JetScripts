@@ -2,7 +2,7 @@ from llama_index.core.query_engine import RetrieverQueryEngine
 from typing import Any, List
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core import QueryBundle
-from jet.llm.utils import display_jet_source_node
+from jet.llm.utils.llama_index_utils import display_jet_source_node
 from typing import Optional
 from llama_index.core.schema import NodeWithScore
 from llama_index.core.vector_stores import VectorStoreQuery
