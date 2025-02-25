@@ -160,8 +160,7 @@ def main():
         summarizer = Summarizer(llm=llm)
 
         try:
-            response = summarizer.summarize(
-                query, text_chunks, output_cls, llm)
+            response = summarizer.summarize(query, text_chunks)
         except Exception as e:
             logger.error(e)
             continue
