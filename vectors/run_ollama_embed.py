@@ -32,10 +32,11 @@ if __name__ == '__main__':
 
     json_attributes = [
         "title",
-        "entities.role",
-        "entities.application",
-        "entities.technology_stack",
-        "entities.qualifications",
+        "keywords",
+        # "entities.role",
+        # "entities.application",
+        # "entities.technology_stack",
+        # "entities.qualifications",
         "details",
     ]
 
