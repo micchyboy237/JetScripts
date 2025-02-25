@@ -1,6 +1,9 @@
 from jet.llm.ollama.base import OllamaEmbedding
 from jet.llm.utils.embeddings import get_ollama_embedding_function
 from jet.logger import logger, time_it
+from jet.token.token_utils import get_token_counts_info, token_counter
+from jet.transformers.formatters import format_json
+from jet.utils.commands import copy_to_clipboard
 from jet.utils.object import extract_values_by_paths
 from tqdm import tqdm
 from jet.file.utils import load_file, save_file
@@ -19,6 +22,9 @@ def embed_texts(texts: list[str]):
 
 
 if __name__ == '__main__':
+    model = "mxbai-embed-large"
+    # model = "nomic-embed-text"
+
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
     jobs: JobData = load_file(data_file)
 
@@ -47,6 +53,12 @@ if __name__ == '__main__':
         text_content = "\n".join(text_parts) if text_parts else ""
         texts.append(text_content)
 
-    embed_results = embed_texts(texts)
+    token_counts_info = get_token_counts_info(texts, model)
+    copy_to_clipboard(token_counts_info)
+    # embed_results = embed_texts(texts)
     logger.debug(f"Jobs ({len(jobs)})")
-    logger.success(f"Results ({len(embed_results)})")
+    logger.success(format_json({
+        "largest": token_counts_info["max"]["tokens"],
+        "smallest": token_counts_info["min"]["tokens"],
+        "total": token_counts_info["total"],
+    }))
