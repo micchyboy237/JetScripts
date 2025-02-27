@@ -65,6 +65,9 @@ My primary skills <continue>.
 
 Here is a link to my website with portfolio and latest resume:
 https://jethro-estrada.web.app
+
+Regards,
+Jethro Estrada
 """
 
 DEFAULT_QUERY = f"""
@@ -159,7 +162,7 @@ def main():
     # Filter jobs posted within last 2 days
     from datetime import datetime, timedelta
 
-    days = 2
+    days = 3
     today = datetime.now()
     cutoff_date = today - timedelta(days=days)
 
