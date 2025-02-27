@@ -143,6 +143,12 @@ def find_files(base_dir, include, exclude, include_content_patterns, exclude_con
                             matched_files.add(rel_file_path)
                             # print(f"Matched file in directory: { rel_file_path}")
 
+    # Filter out directories
+    matched_files = {
+        file for file in matched_files
+        if os.path.isfile(file)
+    }
+
     # Convert the set back to a list before returning
     return list(matched_files)
 

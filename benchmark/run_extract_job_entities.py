@@ -1,37 +1,37 @@
-from jet.vectors.ner import load_nlp_pipeline, extract_entities_from_text
+import json
+from jet.logger import logger
+from jet.memory.httpx import HttpxClient
+from jet.scrapers.utils import clean_text
+from llama_index.core.node_parser.text.sentence import SentenceSplitter
 from pydantic import BaseModel
 from typing import List
-
 from shared.data_types.job import JobEntity
+from jet.transformers import format_json
 
+NER_API_BASE_URL = "http://0.0.0.0:8002/api/v1/ner"
 
-NER_MODEL = "urchade/gliner_small-v2.1"
-NER_STYLE = "ent"
+http_client = HttpxClient()
 
-
-# Request Models
 
 class TextRequest(BaseModel):
     text: str
 
 
 class ProcessRequest(BaseModel):
-    model: str = NER_MODEL
+    model: str = "urchade/gliner_small-v2.1"
     labels: List[str]
-    style: str = NER_STYLE
+    style: str = "ent"
     data: List[TextRequest]
     chunk_size: int = 250
 
 
 class SingleTextRequest(BaseModel):
     text: str
-    model: str = NER_MODEL
+    model: str = "urchade/gliner_small-v2.1"
     labels: List[str]
-    style: str = NER_STYLE
+    style: str = "ent"
     chunk_size: int = 250
 
-
-# Response Models
 
 class ProcessedTextResponse(BaseModel):
     text: str
@@ -42,49 +42,64 @@ class ProcessResponse(BaseModel):
     data: List[ProcessedTextResponse]
 
 
-def extract_entity(request: SingleTextRequest):
-    nlp = load_nlp_pipeline(request.model, request.labels,
-                            request.style, request.chunk_size)
-    return extract_entities_from_text(nlp, request.text)
+def extract_entity(body: dict):
+    response = http_client.post(
+        f"{NER_API_BASE_URL}/extract-entity", json=body)
+    response.raise_for_status()
+    return response.json()
 
 
-def extract_entities(request: ProcessRequest):
-    results = []
-    nlp = load_nlp_pipeline(request.model, request.labels,
-                            request.style, request.chunk_size)
+def extract_entities(body: dict):
+    response = http_client.post(
+        f"{NER_API_BASE_URL}/extract-entities", json=body)
+    response.raise_for_status()
 
-    for item in request.data:
-        entities = extract_entities_from_text(nlp, item.text)
-        results.append(ProcessedTextResponse(
-            text=item.text, entities=entities))
+    raw_content = response.text.strip()
+    logger.debug(f"Raw Response: {raw_content}")
 
-    return ProcessResponse(data=results)
+    try:
+        # Split multiple JSON objects and parse them separately
+        json_objects = [json.loads(line)
+                        for line in raw_content.split("\n") if line.strip()]
+        return json_objects  # Returns a list of parsed JSON objects
+    except json.decoder.JSONDecodeError as e:
+        logger.error(f"JSON Decode Error: {e}")
+        logger.error(f"Response Content: {raw_content}")
+        raise
 
 
 def main():
+    labels = ["technology stack"]
+    chunk_size = 1024
+    chunk_overlap = 128
+    sample_text = "Job Title:\n\nFull Stack Web Developer – Data & Analytics Platform (TikTok Shop Integration)\n\n\n\nJob Description:\n\nWe are looking for a skilled Full Stack Web Developer to help us replicate and build a website similar to \nUpgrade to see actual info\n. The ideal candidate should have experience in building data-driven websites, API integration, and user-friendly dashboards.\n\n\n\nThis role requires someone who can work independently and build a functional, scalable platform that collects and presents analytics, particularly related to TikTok Shop performance data.\n\n\n\nResponsibilities:\n\nDevelop a fully functional web platform similar to \nUpgrade to see actual info\n\nFrontend Development: Design & develop a clean, modern UI/UX using React, Vue, or Angular\n\nBackend Development: Build a scalable system using Node.js, Python (Django/Flask), or PHP (Laravel)\n\nDatabase Management: Set up and manage a database (MySQL, PostgreSQL, or MongoDB) for storing user and analytics data\n\nAPI Integration: Connect and integrate with TikTok Shop APIs & third-party analytics APIs\n\nUser Dashboard & Reports: Create a user-friendly dashboard displaying data insights\n\nPerformance Optimization: Ensure website is fast, secure, and scalable\n\n\n\nRequirements:\n\n3+ years of experience in full-stack web development\n\nProficiency in React, Vue, or Angular (Frontend)\n\nStrong backend skills in Node.js, Python, or PHP (Laravel)\n\nExperience with API integration (TikTok, eCommerce, or Analytics APIs preferred)\n\nDatabase management with MySQL, PostgreSQL, or MongoDB\n\nFamiliarity with web scraping (if needed for analytics data collection)\n\nAbility to create visually appealing dashboards & reports\n\nExperience working with analytics tools & data visualization\n\nStrong problem-solving skills & ability to work independently\n\n\n\nBonus Skills (Not Required but Preferred):\n\nExperience with AI/ML for data analytics\n\nKnowledge of Cloud Hosting (AWS, DigitalOcean, or Firebase)\n\nBackground in eCommerce analytics or TikTok Shop data\n\n\n\nMESSAGE ME IF YOU HAVE ANY QUESTIONS OR COMMENTS!"
 
-    sample_text = "Job Title: Join our awesome team! We are in need of a Full-Stack Developer (Full time/Long Term)\n\nTechnical Skillset:\n\n • Has a strong understanding of PHP, CSS and HTML.\n\n • Has experience in building web applications and working with  Javascript frameworks.\n\n • Familiarity with Node.js is a plus, though willingness to self-learn is essential.\n\n • Has experience in creating and consuming REST API endpoints.\n\n • Has strong understanding of API design principles (authentication, validation, error handling).\n\n • Proficiency in backend development with any programming language (Python, Java, Ruby, etc.)\n\n • Has a strong experience with React.\n\n • Has an experience with other modern Javascript frameworks such as Angular, Vue, Svelte or Solid.\n\n • Proficiency in working with PostgreSQL and query optimization.\n\n • Has experience working with N8N or similar workflow automation tools such as Make, Powerautomate or Zapier.\n\n • Has the ability to integrate and automate complex workflows to enhance system functionality.\n\n • Proficiency with cloud systems (AWS, Azure)\n\n • Has a strong understanding of Generative AI and its difference from traditional AI.\n\n • Familiarity with the applications and concepts of generative models in AI systems.\n\n • Has a basic understanding of Retrieval-Augmented Generation (RAG) and its application in AI systems.\n\n • Familiarity with fine tuning of AI models and understanding how it differs from RAG.\n\n • Has basic knowledge of function calling and how it enhances the capabilities of AI Systems.\n\n\n\nMusts:\n\n• Must be working full time\n\n• Must have own laptop, webcam and a fast internet\n\n \n\nPerks:\n\n • Permanent Full-time Work (40hrs/week)\n\n • Flexible Working Hours\n\n • Work from Home Setup\n\n • Paid Overtime Work\n\n • Paid Leaves including Vacation, Sick and Maternal/Paternal Leaves\n\n • HMO\n\n • Follows Philippine Standard Time\n\n • Follows Philippine Holiday Schedule\n\n • Long Term Perspective including Bonuses\n\n • Quarterly Onsite Team Events\n\n\n\nAbout Us:\n\nPerulatus GmBH is a start-up company that focuses on digitally processing care services applications and upgrade for insurance companies in Germany. Our team is looking for a long term support to help us design our website.\n\n\n\nHow to Apply:\n\n1. Change the subject like to “I Want to Work for [Insert the name of the company found on the imprint of this page: \nUpgrade to see actual info\n – Fullstack Developer”\n\n2. Take a screenshot of your internet connection.\n\n3. At the top of your message write 2-3 sentences on why you would like this position, and why you are a good fit.\n\n\n\nDo not write more than that or else your application will be deleted. Make sure you follow the instructions. I will only look for applicants that really want the job. The next step will be a zoom call and video will be required.\n\n\n\nThank you and have a good day.\n\n\n\nQuin"
-    labels = ["role", "application", "technology stack", "qualifications"]
-    chunk_size = 250
+    tokenizer =
+
+    splitter = SentenceSplitter(
+        chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    cleaned_text = clean_text(sample_text)
+    cleaned_text_chunks = splitter.split_text(cleaned_text)
 
     # Calling extract_entity
-    single_request = SingleTextRequest(
-        text=sample_text,
-        labels=labels,
-        chunk_size=chunk_size
-    )
-    entity_result = extract_entity(single_request)
-    print("Extracted Entity:", entity_result)
+    single_request_body = {
+        "labels": labels,
+        "chunk_size": chunk_size,
+        "text": cleaned_text,
+    }
+    entity_result = extract_entity(single_request_body)
+    logger.debug(f"Entity:")
+    logger.success(format_json(entity_result))
 
     # Calling extract_entities
-    batch_request = ProcessRequest(
-        labels=labels,
-        chunk_size=chunk_size,
-        data=[TextRequest(text=sample_text), TextRequest(
-            text="Google acquired DeepMind.")]
-    )
-    entities_result = extract_entities(batch_request)
-    print("Extracted Entities:", entities_result)
+    multi_request_body = {
+        "labels": labels,
+        "chunk_size": chunk_size,
+        "data": [{"text": text} for text in cleaned_text_chunks],
+    }
+    entities_result = extract_entities(multi_request_body)
+    logger.debug(f"Batch Entities ({len(entities_result)}):")
+    logger.success(format_json(entities_result))
 
 
 if __name__ == "__main__":

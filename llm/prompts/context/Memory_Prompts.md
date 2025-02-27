@@ -15,7 +15,7 @@ If code is generated:
 - Reuse existing code if possible without breaking anything.
 - Use modern typing approach.
 - Don't remove logs if jet.logger is used.
-- Write real world unit tests.
+- Write easy-to-visualize real world unit tests using unittest or any standard built in libraries. Provide "result" and "expected" variables for each test.
 
 At the end:
 
