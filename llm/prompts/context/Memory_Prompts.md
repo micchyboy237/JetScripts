@@ -15,6 +15,7 @@ If code is generated:
 - Reuse existing code if possible without breaking anything.
 - Use modern typing approach.
 - Don't remove logs if jet.logger is used.
+- Write real world unit tests.
 
 At the end:
 

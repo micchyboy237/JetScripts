@@ -1,4 +1,4 @@
- The document provides a summary of the job history of an individual, focusing on their roles as a Web/Mobile Developer. The individual has worked for five different companies, starting from Entertainment Gateway Group (now Yondu) in 2012 to the current position at JulesAI (formerly Macanta Software Ltd.) since 2020.
+The document provides a summary of the job history of an individual, focusing on their roles as a Web/Mobile Developer. The individual has worked for five different companies, starting from Entertainment Gateway Group (now Yondu) in 2012 to the current position at JulesAI (formerly Macanta Software Ltd.) since 2020.
 
 At JulesAI, they developed a white label CRM system customizable to specific workflows and requirements using React, React Native, and AWS. They are currently maintaining and improving this system based on client feedback.
 

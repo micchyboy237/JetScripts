@@ -532,7 +532,7 @@ def search_nodes(query: str) -> SearchNodesResponse:
 
 def main():
     # run_extract_jobs()
-    run_clean_jobs()
+    # run_clean_jobs()
 
     # Settings initialization
     model = "llama3.1"
