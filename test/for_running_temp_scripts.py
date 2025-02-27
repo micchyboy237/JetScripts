@@ -6,7 +6,6 @@ from jet.vectors.ner import merge_dot_prefixed_words
 from shared.data_types.job import JobData
 from tqdm import tqdm
 from jet.file.utils import save_file, load_file
-from jet.libs.txtai.pipeline.lemmatizer import lemmatize_text
 
 NER_API_BASE_URL = "http://0.0.0.0:8002/api/v1/ner"
 
@@ -48,8 +47,7 @@ def main():
     exclude_ids = ['1319201']
     data = [d for d in data if d['id'] in exclude_ids]
 
-    # labels = ["role", "application", "technology stack", "qualifications"]
-    labels = ["technology stack"]
+    labels = ["role", "application", "technology stack", "qualifications"]
     chunk_sizes = [250]
 
     my_skills_keywords = [
@@ -69,12 +67,10 @@ def main():
             # item["details"] = clean_text(item["details"])
 
             text = f"{item["title"]}\n\n{item["details"]}"
-            text = merge_dot_prefixed_words(text)
-
-            lemmas = lemmatize_text(text)
+            # text = merge_dot_prefixed_words(text)
 
             my_skills_matches = [
-                skill for skill in my_skills_keywords if skill in lemmas]
+                skill for skill in my_skills_keywords if skill in text]
 
             single_request_body = {
                 "labels": labels,
@@ -84,6 +80,8 @@ def main():
             entity_result = extract_entity(single_request_body)
             technology_stack = list(
                 set(my_skills_matches + entity_result.get('technology_stack', [])))
+            technology_stack = [merge_dot_prefixed_words(
+                text) for text in technology_stack]
             item['entities']['technology_stack'] = technology_stack
 
         save_file(data, data_file)
