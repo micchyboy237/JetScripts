@@ -78,11 +78,11 @@ def main():
                 "text": text,
             }
             entity_result = extract_entity(single_request_body)
-            technology_stack = list(
-                set(my_skills_matches + entity_result.get('technology_stack', [])))
+            technology_stack = my_skills_matches + \
+                entity_result.get('technology_stack', [])
             technology_stack = [merge_dot_prefixed_words(
                 text) for text in technology_stack]
-            item['entities']['technology_stack'] = technology_stack
+            item['entities']['technology_stack'] = list(set(technology_stack))
 
         save_file(data, data_file)
 
