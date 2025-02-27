@@ -1,4 +1,5 @@
 import json
+from jet.libs.txtai.pipeline.segmentation import Segmentation
 from jet.logger import logger
 from jet.memory.httpx import HttpxClient
 from jet.scrapers.utils import clean_text
@@ -73,11 +74,12 @@ def main():
     chunk_size = 1024
     chunk_overlap = 128
     sample_text = "Job Title:\n\nFull Stack Web Developer – Data & Analytics Platform (TikTok Shop Integration)\n\n\n\nJob Description:\n\nWe are looking for a skilled Full Stack Web Developer to help us replicate and build a website similar to \nUpgrade to see actual info\n. The ideal candidate should have experience in building data-driven websites, API integration, and user-friendly dashboards.\n\n\n\nThis role requires someone who can work independently and build a functional, scalable platform that collects and presents analytics, particularly related to TikTok Shop performance data.\n\n\n\nResponsibilities:\n\nDevelop a fully functional web platform similar to \nUpgrade to see actual info\n\nFrontend Development: Design & develop a clean, modern UI/UX using React, Vue, or Angular\n\nBackend Development: Build a scalable system using Node.js, Python (Django/Flask), or PHP (Laravel)\n\nDatabase Management: Set up and manage a database (MySQL, PostgreSQL, or MongoDB) for storing user and analytics data\n\nAPI Integration: Connect and integrate with TikTok Shop APIs & third-party analytics APIs\n\nUser Dashboard & Reports: Create a user-friendly dashboard displaying data insights\n\nPerformance Optimization: Ensure website is fast, secure, and scalable\n\n\n\nRequirements:\n\n3+ years of experience in full-stack web development\n\nProficiency in React, Vue, or Angular (Frontend)\n\nStrong backend skills in Node.js, Python, or PHP (Laravel)\n\nExperience with API integration (TikTok, eCommerce, or Analytics APIs preferred)\n\nDatabase management with MySQL, PostgreSQL, or MongoDB\n\nFamiliarity with web scraping (if needed for analytics data collection)\n\nAbility to create visually appealing dashboards & reports\n\nExperience working with analytics tools & data visualization\n\nStrong problem-solving skills & ability to work independently\n\n\n\nBonus Skills (Not Required but Preferred):\n\nExperience with AI/ML for data analytics\n\nKnowledge of Cloud Hosting (AWS, DigitalOcean, or Firebase)\n\nBackground in eCommerce analytics or TikTok Shop data\n\n\n\nMESSAGE ME IF YOU HAVE ANY QUESTIONS OR COMMENTS!"
+    segmenter = Segmentation(paragraphs=True)
 
     tokenizer =
 
     splitter = SentenceSplitter(
-        chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        chunk_size=chunk_size, chunk_overlap=chunk_overlap, tokenizer=tokenizer)
     cleaned_text = clean_text(sample_text)
     cleaned_text_chunks = splitter.split_text(cleaned_text)
 
