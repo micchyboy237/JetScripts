@@ -1,65 +1,123 @@
 import json
-
 from jet.logger import logger
 from jet.memory.httpx import HttpxClient
-from typing import List, Set
 from jet.scrapers.utils import clean_text
-from shared.data_types.job import JobEntity
-from jet.transformers import format_json
-from llama_index.core.utils import set_global_tokenizer
+from jet.vectors.ner import merge_dot_prefixed_words
 from shared.data_types.job import JobData
 from tqdm import tqdm
 from jet.file.utils import save_file, load_file
+from jet.libs.txtai.pipeline.lemmatizer import lemmatize_text
 
 NER_API_BASE_URL = "http://0.0.0.0:8002/api/v1/ner"
-NER_MODEL = "urchade/gliner_small-v2.1"
 
 http_client = HttpxClient()
 
 
-def extract_entity(body: dict) -> list[str]:
+def extract_entity(body: dict):
     response = http_client.post(
         f"{NER_API_BASE_URL}/extract-entity", json=body)
     response.raise_for_status()
     return response.json()
 
 
+def extract_entities(body: dict):
+    response = http_client.post(
+        f"{NER_API_BASE_URL}/extract-entities", json=body)
+    response.raise_for_status()
+
+    raw_content = response.text.strip()
+    logger.debug(f"Raw Response: {raw_content}")
+
+    try:
+        # Split multiple JSON objects and parse them separately
+        json_objects = [json.loads(line)
+                        for line in raw_content.split("\n") if line.strip()]
+        return json_objects  # Returns a list of parsed JSON objects
+    except json.decoder.JSONDecodeError as e:
+        logger.error(f"JSON Decode Error: {e}")
+        logger.error(f"Response Content: {raw_content}")
+        raise
+
+
 def main():
-    sample_text = "**Job Type:** Full-Time / Project-Based (Remote, PH Applicants Only)\n**Salary:** Competitive (Negotiable Based on Experience)\n---\n### **Job Description:**\nWe seek a skilled developer to build an AI-powered recipe generator, enhancing features beyond DishGen. You will develop the AI backend, intuitive UI/UX, and advanced meal customization options for a premium SaaS platform.\n---\n### **Responsibilities:**\n- Develop an AI-driven recipe generator with personalized meal plans.\n- Build a responsive, mobile-friendly interface.\n- Optimize AI algorithms for speed and accuracy.\n- Implement authentication, payment processing, and database management.\n- Ensure performance, security, and scalability.\n---\n### **Requirements:**\n- Full-stack development (Python, JavaScript, React/Vue, HTML, CSS).\n- Experience with AI/ML (OpenAI API, TensorFlow, NLP).\n- Cloud services (AWS, Firebase) & database management.\n- Strong problem-solving skills & ability to work independently.\n---\n### **Why Join Us?**\n- Work on an exciting AI-driven SaaS project.\n- Competitive salary + performance bonuses.\n- Flexible remote work setup.\n---\n### **How to Apply:**\nSend your resume, portfolio, and a short cover letter. If you've built similar projects, share your work!"
-    sample_text = clean_text(sample_text)
+    # Running entity extraction for all jobs
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    data: list[JobData] = load_file(data_file) or []
+
+    # Filter data by ids
+    exclude_ids = ['1319201']
+    data = [d for d in data if d['id'] in exclude_ids]
+
+    # labels = ["role", "application", "technology stack", "qualifications"]
     labels = ["technology stack"]
-    chunk_sizes = [256, 512, 768, 1024]
+    chunk_sizes = [250]
 
-    entities_all_results: Set[str] = set()
-    entities_size_results = {}
+    my_skills_keywords = [
+        "React",
+        "React Native",
+        "Node",
+        "Python",
+        "PostgreSQL",
+        "MongoDB",
+        "Firebase",
+        "AWS",
+    ]
 
-    progress_bar = tqdm(chunk_sizes, unit="chunk", dynamic_ncols=True)
+    for chunk_size in chunk_sizes:
+        for item in tqdm(data):
+            # item["title"] = clean_text(item["title"])
+            # item["details"] = clean_text(item["details"])
 
-    for chunk_size in progress_bar:
-        progress_bar.set_description(f"Processing chunk (size: {chunk_size})")
+            text = f"{item["title"]}\n\n{item["details"]}"
+            text = merge_dot_prefixed_words(text)
 
-        single_request_body = {
-            "model": NER_MODEL,
-            "labels": labels,
-            "chunk_size": chunk_size,
-            "text": sample_text,
-        }
-        entity_result = extract_entity(single_request_body)
-        technology_stack = entity_result["technology_stack"]
+            lemmas = lemmatize_text(text)
 
-        # Add unique entities to the set
-        extracted_entities = set(technology_stack)
-        entities_all_results.update(extracted_entities)
-        entities_size_results[chunk_size] = list(extracted_entities)
+            my_skills_matches = [
+                skill for skill in my_skills_keywords if skill in lemmas]
 
-        logger.debug(
-            f"Chunk ({chunk_size}) | Entities ({len(extracted_entities)}):")
+            single_request_body = {
+                "labels": labels,
+                "chunk_size": chunk_size,
+                "text": text,
+            }
+            entity_result = extract_entity(single_request_body)
+            technology_stack = list(
+                set(my_skills_matches + entity_result.get('technology_stack', [])))
+            item['entities']['technology_stack'] = technology_stack
 
-    logger.success(format_json(list(entities_all_results)))
-    logger.newline()
-    logger.debug(f"All Entities for chunks {chunk_sizes}:", len(
-        entities_all_results), colors=["DEBUG", "SUCCESS"])
-    logger.success(format_json(entities_size_results))
+        save_file(data, data_file)
+
+    # # Calling extract_entity
+    # labels = ["technology stack"]
+    # chunk_size = 250
+    # sample_text = "Job Title:\n\n???? Full Stack Web Developer – Data & Analytics Platform (TikTok Shop Integration)\n\n\n\nJob Description:\n\nWe are looking for a skilled Full Stack Web Developer to help us replicate and build a website similar to \nUpgrade to see actual info\n. The ideal candidate should have experience in building data-driven websites, API integration, and user-friendly dashboards.\n\n\n\nThis role requires someone who can work independently and build a functional, scalable platform that collects and presents analytics, particularly related to TikTok Shop performance data.\n\n\n\nResponsibilities:\n\n? Develop a fully functional web platform similar to \nUpgrade to see actual info\n\n? Frontend Development: Design & develop a clean, modern UI/UX using React, Vue, or Angular\n\n? Backend Development: Build a scalable system using Node.js, Python (Django/Flask), or PHP (Laravel)\n\n? Database Management: Set up and manage a database (MySQL, PostgreSQL, or MongoDB) for storing user and analytics data\n\n? API Integration: Connect and integrate with TikTok Shop APIs & third-party analytics APIs\n\n? User Dashboard & Reports: Create a user-friendly dashboard displaying data insights\n\n? Performance Optimization: Ensure website is fast, secure, and scalable\n\n\n\nRequirements:\n\n???? 3+ years of experience in full-stack web development\n\n???? Proficiency in React, Vue, or Angular (Frontend)\n\n???? Strong backend skills in Node.js, Python, or PHP (Laravel)\n\n???? Experience with API integration (TikTok, eCommerce, or Analytics APIs preferred)\n\n???? Database management with MySQL, PostgreSQL, or MongoDB\n\n???? Familiarity with web scraping (if needed for analytics data collection)\n\n???? Ability to create visually appealing dashboards & reports\n\n???? Experience working with analytics tools & data visualization\n\n???? Strong problem-solving skills & ability to work independently\n\n\n\nBonus Skills (Not Required but Preferred):\n\n? Experience with AI/ML for data analytics\n\n? Knowledge of Cloud Hosting (AWS, DigitalOcean, or Firebase)\n\n? Background in eCommerce analytics or TikTok Shop data\n\n\n\nMESSAGE ME IF YOU HAVE ANY QUESTIONS OR COMMENTS!"
+    # cleaned_text = clean_text(sample_text)
+    # single_request_body = {
+    #     "labels": labels,
+    #     "chunk_size": chunk_size,
+    #     "text": cleaned_text,
+    # }
+    # entity_result = extract_entity(single_request_body)
+    # logger.debug(f"Entity:")
+    # logger.success(format_json(entity_result))
+
+    # # Calling extract_entities
+    # labels = ["technology stack"]
+    # chunk_size = 512
+    # chunk_overlap = 128
+    # set_global_tokenizer(lemmatize_text)
+    # splitter = SentenceSplitter(
+    #     chunk_size=chunk_size, chunk_overlap=chunk_overlap, tokenizer=lemmatize_text)
+    # cleaned_text_chunks = splitter.split_text(cleaned_text)
+    # multi_request_body = {
+    #     "labels": labels,
+    #     "chunk_size": chunk_size,
+    #     "data": [{"text": text} for text in cleaned_text_chunks],
+    # }
+    # entities_result = extract_entities(multi_request_body)
+    # logger.debug(f"Batch Entities ({len(entities_result)}):")
+    # logger.success(format_json(entities_result))
 
 
 if __name__ == "__main__":
