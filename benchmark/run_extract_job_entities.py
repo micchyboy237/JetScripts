@@ -77,9 +77,9 @@ def main():
                 "text": text,
             }
             entity_result = extract_entity(single_request_body)
-            all_entities = list(
+            technology_stack = list(
                 set(my_skills_matches + entity_result['technology_stack']))
-            item['entities']['technology_stack'] = all_entities
+            item['entities']['technology_stack'] = technology_stack
 
         save_file(data, data_file)
 
