@@ -39,7 +39,7 @@ def extract_entities(body: dict):
 
 
 def main():
-    # Running entity extraction for all jobs
+    # Load job data
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
     data: list[JobData] = load_file(data_file) or []
 
@@ -59,26 +59,27 @@ def main():
 
     for chunk_size in chunk_sizes:
         for item in tqdm(data):
-            # item["title"] = clean_text(item["title"])
-            # item["details"] = clean_text(item["details"])
+            text = f"{item['title']}\n\n{item['details']}"
 
-            text = f"{item["title"]}\n\n{item["details"]}"
-            # text = merge_dot_prefixed_words(text)
+            # Preserve case from my_skills_keywords
+            normalized_tech = {skill.lower(
+            ): skill for skill in my_skills_keywords if skill.lower() in text.lower()}
 
-            my_skills_matches = [
-                skill for skill in my_skills_keywords if skill in text]
-
-            single_request_body = {
+            # Extract technology stack from entities
+            extracted_tech = extract_entity({
                 "labels": labels,
                 "chunk_size": chunk_size,
                 "text": text,
-            }
-            entity_result = extract_entity(single_request_body)
-            technology_stack = my_skills_matches + \
-                entity_result.get('technology_stack', [])
-            technology_stack = [merge_dot_prefixed_words(
-                text) for text in technology_stack]
-            item['entities']['technology_stack'] = list(set(technology_stack))
+            }).get('technology_stack', [])
+
+            # Add extracted technologies while preserving case
+            for tech in extracted_tech:
+                # Keep first occurrence case
+                normalized_tech.setdefault(tech.lower(), tech)
+
+            # Clean & update technology stack
+            item['entities']['technology_stack'] = list(
+                set(map(merge_dot_prefixed_words, normalized_tech.values())))
 
         save_file(data, data_file)
 
