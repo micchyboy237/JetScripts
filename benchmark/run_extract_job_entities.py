@@ -1,14 +1,7 @@
 import json
-from jet.libs.txtai.pipeline.lemmatizer import lemmatize_text
 from jet.logger import logger
 from jet.memory.httpx import HttpxClient
 from jet.scrapers.utils import clean_text
-from llama_index.core.node_parser.text.sentence import SentenceSplitter
-from pydantic import BaseModel
-from typing import List
-from shared.data_types.job import JobEntity
-from jet.transformers import format_json
-from llama_index.core.utils import set_global_tokenizer
 from shared.data_types.job import JobData
 from tqdm import tqdm
 from jet.file.utils import save_file, load_file
@@ -16,35 +9,6 @@ from jet.file.utils import save_file, load_file
 NER_API_BASE_URL = "http://0.0.0.0:8002/api/v1/ner"
 
 http_client = HttpxClient()
-
-
-class TextRequest(BaseModel):
-    text: str
-
-
-class ProcessRequest(BaseModel):
-    model: str = "urchade/gliner_small-v2.1"
-    labels: List[str]
-    style: str = "ent"
-    data: List[TextRequest]
-    chunk_size: int = 250
-
-
-class SingleTextRequest(BaseModel):
-    text: str
-    model: str = "urchade/gliner_small-v2.1"
-    labels: List[str]
-    style: str = "ent"
-    chunk_size: int = 250
-
-
-class ProcessedTextResponse(BaseModel):
-    text: str
-    entities: JobEntity
-
-
-class ProcessResponse(BaseModel):
-    data: List[ProcessedTextResponse]
 
 
 def extract_entity(body: dict):
@@ -79,9 +43,12 @@ def main():
     data: list[JobData] = load_file(data_file) or []
 
     labels = ["technology stack"]
-    chunk_size = 512
+    chunk_size = 768
 
     for item in tqdm(data):
+        item["title"] = clean_text(item["title"])
+        item["details"] = clean_text(item["details"])
+
         text = f"{item["title"]}\n\n{item["details"]}"
 
         single_request_body = {
