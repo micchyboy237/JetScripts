@@ -2,9 +2,11 @@ import json
 from jet.logger import logger
 from jet.memory.httpx import HttpxClient
 from jet.scrapers.utils import clean_text
+from jet.vectors.ner import merge_dot_prefixed_words
 from shared.data_types.job import JobData
 from tqdm import tqdm
 from jet.file.utils import save_file, load_file
+from jet.libs.txtai.pipeline.lemmatizer import lemmatize_text
 
 NER_API_BASE_URL = "http://0.0.0.0:8002/api/v1/ner"
 
@@ -42,22 +44,42 @@ def main():
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
     data: list[JobData] = load_file(data_file) or []
 
-    labels = ["technology stack"]
-    chunk_size = 768
+    labels = ["role", "application", "technology stack", "qualifications"]
+    chunk_sizes = [250]
 
-    for item in tqdm(data):
-        item["title"] = clean_text(item["title"])
-        item["details"] = clean_text(item["details"])
+    my_skills_keywords = [
+        "React",
+        "React Native",
+        "Node",
+        "Python",
+        "PostgreSQL",
+        "MongoDB",
+        "Firebase",
+        "AWS",
+    ]
 
-        text = f"{item["title"]}\n\n{item["details"]}"
+    for chunk_size in chunk_sizes:
+        for item in tqdm(data):
+            # item["title"] = clean_text(item["title"])
+            # item["details"] = clean_text(item["details"])
 
-        single_request_body = {
-            "labels": labels,
-            "chunk_size": chunk_size,
-            "text": text,
-        }
-        entity_result = extract_entity(single_request_body)
-        item['entities']['technology_stack'] = entity_result['technology_stack']
+            text = f"{item["title"]}\n\n{item["details"]}"
+            text = merge_dot_prefixed_words(text)
+
+            lemmas = lemmatize_text(text)
+
+            my_skills_matches = [
+                skill for skill in my_skills_keywords if skill in lemmas]
+
+            single_request_body = {
+                "labels": labels,
+                "chunk_size": chunk_size,
+                "text": text,
+            }
+            entity_result = extract_entity(single_request_body)
+            all_entities = list(
+                set(my_skills_matches + entity_result['technology_stack']))
+            item['entities']['technology_stack'] = all_entities
 
         save_file(data, data_file)
 
