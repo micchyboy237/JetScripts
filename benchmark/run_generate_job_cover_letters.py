@@ -234,10 +234,12 @@ def main():
 
         job_id = data[idx]['id']
         job_link = data[idx]['link']
+        job_posted_date = data[idx]['posted_date']
 
         result = {
             "id": job_id,
             "link": job_link,
+            "posted_date": job_posted_date,
             "text": text_chunk,
             "response": response.__dict__,
         }
