@@ -183,7 +183,7 @@ def main():
     splitter = SentenceSplitter(
         chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
-    job_postings = []
+    job_postings = results
     data_chunks = []
     for item in data:
         json_parts_dict = extract_values_by_paths(
