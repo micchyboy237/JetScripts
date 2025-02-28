@@ -58,7 +58,7 @@ Response:
 MESSAGE_TEMPLATE = """
 Hi <employer name>,
 
-I'm interested in the position <continue>
+I'm interested in the position as it utilizes my primary skills in <continue>
 
 <other relevant info>
 <answer instructions>
@@ -74,7 +74,7 @@ DEFAULT_QUERY = f"""
 Generate a cover letter based on the provided context and job post details.
 A company refers to an organization or employer.
 
-Subject and message should be concise.
+Subject and message should be brief and concise.
 Subject should follow this format "Application for <role>" unless instructed otherwise.
 Use the following message template if applicable:
 ```template
