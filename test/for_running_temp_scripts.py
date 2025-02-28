@@ -44,7 +44,7 @@ def main():
     data: list[JobData] = load_file(data_file) or []
 
     # Filter data by ids
-    exclude_ids = ['1319201']
+    exclude_ids = ['1324241']
     data = [d for d in data if d['id'] in exclude_ids]
 
     labels = ["role", "application", "technology stack", "qualifications"]
