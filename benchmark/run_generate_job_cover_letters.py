@@ -82,7 +82,7 @@ Use the following message template if applicable:
 ```
 
 Avoid expressions of gratitude, such as "Thank you for considering."
-Only include matching skills that are explicitly preferred by the job post and mentioned in the provided resume context information; do not infer or add skills that are not present.
+Only mention skills that contains matches between the prompt and the provided resume context information; do not infer or add skills that are not present.
 """.strip()
 
 
