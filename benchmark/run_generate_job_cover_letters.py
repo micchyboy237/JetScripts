@@ -127,7 +127,7 @@ class VectorNode(TypedDict):
 
 def main():
     # Settings initialization
-    model = "llama3.2"
+    model = "llama3.1"
     chunk_size = 1024
     chunk_overlap = 128
 
