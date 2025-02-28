@@ -154,10 +154,10 @@ def main():
 
     query = DEFAULT_QUERY
 
-    # # Extracting the set of existing IDs in the results
-    # existing_ids = [item['id'] for item in results]
-    # # Filtering data to include only items whose ID is not already in results
-    # data = [item for item in data if item['id'] not in existing_ids]
+    # Extracting the set of existing IDs in the results
+    existing_ids = [item['id'] for item in results]
+    # Filtering data to include only items whose ID is not already in results
+    data = [item for item in data if item['id'] not in existing_ids]
 
     # Filter jobs posted within last 2 days
     from datetime import datetime, timedelta
