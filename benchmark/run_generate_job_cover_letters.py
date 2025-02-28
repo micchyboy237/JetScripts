@@ -56,11 +56,12 @@ Response:
 
 
 MESSAGE_TEMPLATE = """
-Hi <employer_name>,
+Hi <employer name>,
 
-I'm interested in the position as the tech stack mentioned seems to match my skillset <continue>
+I'm interested in the position <continue>
 
-<other_relevant_info>
+<other relevant info>
+<answer instructions>
 
 Here is a link to my website with portfolio and latest resume:
 https://jethro-estrada.web.app
@@ -81,7 +82,7 @@ Use the following message template if applicable:
 ```
 
 Avoid expressions of gratitude, such as "Thank you for considering."
-Only include matching skills that are explicitly mentioned in the provided context resume; do not infer or add skills that are not present.
+Only include matching skills that are explicitly mentioned in the provided resume context information; do not infer or add skills that are not present.
 """.strip()
 
 
