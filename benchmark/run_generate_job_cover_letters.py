@@ -59,7 +59,7 @@ MESSAGE_TEMPLATE = """
 Hi <employer_name>,
 
 I'm interested in the position as the tech stack mentioned seems to be an ideal fit for my skillset.
-My primary skills <continue>.
+<pitch_matching_skills>.
 
 <other_relevant_info>
 
@@ -126,7 +126,7 @@ class VectorNode(TypedDict):
 
 def main():
     # Settings initialization
-    model = "llama3.1"
+    model = "llama3.2"
     chunk_size = 1024
     chunk_overlap = 128
 
