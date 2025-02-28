@@ -58,8 +58,7 @@ Response:
 MESSAGE_TEMPLATE = """
 Hi <employer_name>,
 
-I'm interested in the position as the tech stack mentioned seems to be an ideal fit for my skillset.
-<pitch_matching_skills>.
+I'm interested in the position as the tech stack mentioned seems to match my skillset <continue>
 
 <other_relevant_info>
 
