@@ -110,7 +110,7 @@ class Summarizer:
             prompt_str=prompt,
             llm_kwargs={
                 "system": system,
-                "options": {"temperature": 0},
+                "options": {"temperature": 0.75},
                 # "max_prediction_ratio": 0.5
             },
         )
