@@ -4,7 +4,7 @@ import shutil
 from typing import Generator, Optional, TypedDict
 from urllib.parse import urlparse
 from langchain_text_splitters import MarkdownHeaderTextSplitter
-from jet.scrapers.selenium import UrlScraper
+from jet.scrapers.browser.selenium import UrlScraper
 from jet.scrapers.preprocessor import html_to_markdown, scrape_markdown, get_header_contents
 from jet.scrapers.hrequests import request_url
 from jet.transformers import to_snake_case
