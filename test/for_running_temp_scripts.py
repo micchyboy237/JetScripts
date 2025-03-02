@@ -46,7 +46,7 @@ def main():
     data_with_rn = [
         d for d in data
         if "React Native" in d["keywords"]
-        or "React Native" in d["entities"]["technology_stack"]
+        or "React Native" in d["entities"]["coding_libraries"]
     ]
 
     logger.success(len(data_with_rn))

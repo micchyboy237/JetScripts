@@ -39,7 +39,7 @@ Ability to work independently & meet deadlines
 """
 
 # Labels for entity prediction
-labels = ["role", "app nature", "technology stack", "qualifications"]
+labels = ["role", "app nature", "coding libraries", "qualifications"]
 
 # Perform entity prediction
 entities = model.predict_entities(text, labels, threshold=0.5)

@@ -36,7 +36,7 @@ if __name__ == '__main__':
         "tags",
         "entities.role",
         "entities.application",
-        "entities.technology_stack",
+        "entities.coding_libraries",
         # "entities.qualifications",
         "details",
     ]

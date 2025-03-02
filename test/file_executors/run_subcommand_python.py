@@ -21,7 +21,7 @@ file_to_execute = './execute_python_file.py'
 model = "urchade/gliner_small-v2.1"
 # model = "urchade/gliner_medium-v2.1"
 style = "ent"
-labels = ["role", "application", "technology stack", "qualifications"]
+labels = ["role", "application", "coding libraries", "qualifications"]
 style = "ent"
 
 
@@ -95,7 +95,7 @@ for line in run_command(command, separator=command_separator):
 
             # Loop through the result entities
             for entity in result["entities"]:
-                if entity['label'] in ['technology stack', 'role', 'qualifications']:
+                if entity['label'] in ['coding libraries', 'role', 'qualifications']:
                     # Get the label for grouping (assuming it's the 'label' label or another key)
                     label = entity['label']
 
