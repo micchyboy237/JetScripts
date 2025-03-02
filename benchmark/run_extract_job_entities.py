@@ -43,6 +43,10 @@ def main():
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
     data: list[JobData] = load_file(data_file) or []
 
+    # # Filter data by ids
+    # exclude_ids = ['1324241']
+    # data = [d for d in data if d['id'] in exclude_ids]
+
     labels = ["role", "application", "technology stack", "qualifications"]
     chunk_sizes = [250]
 
