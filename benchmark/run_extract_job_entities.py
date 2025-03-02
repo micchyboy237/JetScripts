@@ -27,6 +27,8 @@ def main():
     labels = ["role", "application", "coding libraries", "qualifications"]
     chunk_sizes = [250]
 
+    base_keywords = ['React.js', 'React Native']
+
     my_skills_keywords = {
         "React Native": "React Native",
         "React": "React.js",
@@ -37,6 +39,8 @@ def main():
         "Firebase": "Firebase",
         "AWS": "AWS",
     }
+
+    results = []
 
     for chunk_size in chunk_sizes:
         for item in tqdm(data):
@@ -75,6 +79,14 @@ def main():
             # Clean & update coding libraries
             item['keywords'] = matched_skill_keywords
             item['entities']['coding_libraries'] = coding_libraries
+
+            active_keywords = [
+                base_keyword for base_keyword in base_keywords
+                if base_keyword in item['keywords']
+            ]
+
+            if active_keywords:
+                results.append(item)
 
         save_file(data, data_file)
 
