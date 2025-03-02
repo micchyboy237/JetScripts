@@ -4,6 +4,7 @@
 
 General instructions:
 
+- Answer all in chat
 - Dont use prior knowledge or add to memory
 - Execute browse or internet search if requested
 
