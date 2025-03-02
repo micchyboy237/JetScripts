@@ -215,7 +215,7 @@ def read_notebook_file(file, with_markdown=False):
 
 # Function to extract Python code blocks from a .md or .mdx file
 def read_markdown_file(file):
-    from jet.code import MarkdownCodeExtractor
+    from jet.code.markdown_code_extractor import MarkdownCodeExtractor
 
     # Check if the file ends correct extension
     if not (file.endswith('.md') or file.endswith('.mdx')):

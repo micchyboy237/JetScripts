@@ -14,7 +14,7 @@ from jet.vectors import SettingsManager, SettingsDict, QueryProcessor
 from jet.actions import call_ollama_chat
 from jet.llm.llm_types import OllamaChatOptions
 from jet.file import save_file
-from jet.code import MarkdownCodeExtractor
+from jet.code.markdown_code_extractor import MarkdownCodeExtractor
 from jet.logger import logger
 
 

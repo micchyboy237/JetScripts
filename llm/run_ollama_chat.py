@@ -3,7 +3,7 @@ import os
 import requests
 from typing import Union, Generator, Optional
 from jet.logger import logger
-from jet.code import MarkdownCodeExtractor
+from jet.code.markdown_code_extractor import MarkdownCodeExtractor
 
 
 class ChatAPI:

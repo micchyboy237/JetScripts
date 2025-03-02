@@ -1,5 +1,5 @@
 import json
-from jet.code import MarkdownCodeExtractor
+from jet.code.markdown_code_extractor import MarkdownCodeExtractor
 
 MARKDOWN = """
 ### File Path: `README.md`

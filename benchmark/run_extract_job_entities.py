@@ -67,7 +67,7 @@ def main():
 
             # Preserve case from my_skills_keywords
             normalized_tech = {skill.lower(
-            ): skill for skill in my_skills_keywords if skill.lower() in text.lower()}
+            ): skill for skill in my_skills_keywords if skill in text}
 
             # Extract technology stack from entities
             extracted_tech = extract_entity({
