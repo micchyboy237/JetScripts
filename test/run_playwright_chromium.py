@@ -6,6 +6,7 @@ from jet.scrapers.browser.playwright import scrape_sync, scrape_async, PageConte
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
+from shared.data_types.job import JobData
 
 GENERATED_DIR = "generated"
 os.makedirs(GENERATED_DIR, exist_ok=True)
@@ -17,45 +18,21 @@ def build_linkedin_url(query: str, days: int, page: int) -> str:
             f"&f_TPR=r{days * 86400}&start={page * 25}")
 
 
-def scrape_linkedin_jobs(query: str, days: int, page: int, async_mode: bool = False, wait_for_css: Optional[List[str]] = None) -> PageContent:
-    url = build_linkedin_url(query, days, page)
-    logger.newline()
-    logger.log("URL:", url, colors=["GRAY", "ORANGE"])
-    return scrape_html(url, wait_for_css=wait_for_css, async_mode=async_mode)
+async def async_scrape_jobs(urls_to_scrape, max_concurrent_tasks):
+    return await scrape_async_limited(urls_to_scrape, max_concurrent_tasks=max_concurrent_tasks)
 
 
-# if __name__ == "__main__":
-#     query = "software developer"
-#     days = 7
-#     page = 0
-#     # wait_for_css = [".results-context-header__job-count"]
-#     wait_for_css = []
+def parse_jobs(job_links: list[str], max_concurrent_tasks: int = 2) -> list[JobData]:
+    if asyncio.get_event_loop().is_running():
+        results = asyncio.create_task(async_scrape_jobs(
+            job_links, max_concurrent_tasks))
+        # Correctly wait for the task
+        jobs_with_details = asyncio.run(results)
+    else:
+        jobs_with_details = asyncio.run(
+            async_scrape_jobs(urls_to_scrape, max_concurrent_tasks))
 
-#     url = build_linkedin_url(query, days, page)
-
-#     # Synchronous Example
-#     browser = setup_sync_browser_session()
-#     result = scrape_sync(url, wait_for_css=wait_for_css, browser=browser)
-#     logger.info("Sync scrape results:")
-#     logger.success({
-#         "dimensions": result['dimensions'],
-#         "screenshot": result['screenshot'],
-#         "html": result['html'][:100],
-#     })
-
-#     # Asynchronous Example
-#     async def amain():
-#         result = await scrape_async(url, wait_for_css=wait_for_css)
-#         return result
-#     result = asyncio.run(amain())
-#     logger.info("Async scrape results:")
-#     logger.success({
-#         "dimensions": result['dimensions'],
-#         "screenshot": result['screenshot'],
-#         "html": result['html'][:100],
-#     })
-
-# Example Usage
+    return jobs_with_details  # Return the processed job details
 
 
 if __name__ == "__main__":
@@ -71,11 +48,13 @@ if __name__ == "__main__":
         url4
     ]
 
-    max_concurrent_tasks = 4
-    max_pages = 2
+    max_concurrent_tasks = 2
+
+    jobs_with_details = parse_jobs(
+        urls_to_scrape, max_concurrent_tasks=max_concurrent_tasks)
 
     results = asyncio.run(scrape_async_limited(
-        urls_to_scrape, max_concurrent_tasks=max_concurrent_tasks, max_pages=max_pages))
+        urls_to_scrape, max_concurrent_tasks=max_concurrent_tasks))
 
     logger.debug(f"Results ({len(results)}):")
     copy_to_clipboard(format_json(results))
