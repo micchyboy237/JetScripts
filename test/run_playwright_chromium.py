@@ -62,16 +62,20 @@ if __name__ == "__main__":
     url1 = build_linkedin_url("React Native", 14, 0)
     url2 = build_linkedin_url("React Native", 14, 1)
     url3 = build_linkedin_url("React", 1, 0)
+    url4 = build_linkedin_url("Node.js", 1, 0)
 
     urls_to_scrape = [
         url1,
         url2,
         url3,
+        url4
     ]
 
-    max_concurrent_tasks = 2
+    max_concurrent_tasks = 4
+    max_pages = 2
+
     results = asyncio.run(scrape_async_limited(
-        urls_to_scrape, max_concurrent_tasks=max_concurrent_tasks))
+        urls_to_scrape, max_concurrent_tasks=max_concurrent_tasks, max_pages=max_pages))
 
     logger.debug(f"Results ({len(results)}):")
     copy_to_clipboard(format_json(results))
