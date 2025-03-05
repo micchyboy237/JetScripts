@@ -5,7 +5,7 @@ from jet.db.pgvector import PgVectorClient
 TABLE_NAME = "embeddings"
 VECTOR_DIM = 3
 
-with PgVectorClient(dbname="jobs_db1", user="jethroestrada", password="", host="localhost", port=5432) as client:
+with PgVectorClient(dbname="vector_db1", user="jethroestrada", password="", host="localhost", port=5432) as client:
     client.create_table(TABLE_NAME, VECTOR_DIM)
 
     try:
