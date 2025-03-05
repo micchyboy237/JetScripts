@@ -1,56 +1,61 @@
-import numpy as np
-
+from typing import TypedDict
 from jet.data.utils import generate_key
 from jet.db.pgvector import PgVectorClient
-from jet.db.pgvector.utils import create_db, delete_db
 from jet.db.pgvector.config import (
     DEFAULT_USER,
     DEFAULT_PASSWORD,
     DEFAULT_HOST,
     DEFAULT_PORT,
 )
+from jet.file.utils import load_file
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
-from jet.llm.ollama.base import OllamaEmbedding
-from jet.llm.utils.embeddings import get_embedding_function, get_ollama_embedding_function
-from jet.logger import logger, time_it
-from jet.token.token_utils import get_token_counts_info, token_counter
-from jet.transformers.formatters import format_json
+from jet.llm.utils.embeddings import get_embedding_function
+from jet.logger import logger
 from jet.utils.commands import copy_to_clipboard
-from jet.utils.object import extract_values_by_paths
-from tqdm import tqdm
-from jet.file.utils import load_file, save_file
-from shared.data_types.job import JobData, JobEntities
+from shared.data_types.job import JobData
 
 
-def embed_texts(texts: list[str]) -> list[list[float]]:
-    # embed_model = OllamaEmbedding(model_name="mxbai-embed-large")
-    # embed_results = embed_model.embed(texts)
-    # embedding_function = get_ollama_embedding_function(
-    #     model="nomic-embed-text"
-    # )
-    # embed_results = embedding_function(texts)
+class VectorsWithId(TypedDict):
+    id: str
+    embedding: list[float]
+    text: str
+
+
+class SearchResult(TypedDict):
+    id: str
+    score: float
+    text: str
+
+
+def embed_text(text: str) -> list[float] | list[list[float]]:
     embed_func = get_embedding_function("mxbai-embed-large")
-    embed_results = embed_func(texts)
-    return embed_results
+    embed_result = embed_func(text)
+    return embed_result
 
 
 if __name__ == '__main__':
-    model = "mxbai-embed-large"
-    # model = "nomic-embed-text"
+    # model = "mxbai-embed-large"
+    model = "nomic-embed-text"
+
     dbname = "jobs_db1"
     tablename = "embeddings"
     vector_dim = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
 
-    vectors_with_ids: dict[str, list[float]] = load_file(
+    query = "React Native,Firebase"
+    top_k = 10
+
+    vectors_with_ids: list[VectorsWithId] = load_file(
         "generated/job-embeddings.json")
 
-    # delete_db(dbname)
-    # logger.debug(f"Dropped DB: {dbname}")
+    vectors_with_ids_text_dict: dict[str, str] = {
+        item["id"]: item["text"] for item in vectors_with_ids
+    }
 
-    # create_db(dbname)
-    # logger.debug(f"Created DB: {dbname}")
+    query_vector = embed_text(query)
 
-    logger.info(f"Saving {len(vectors_with_ids)} embeddings...")
+    logger.newline()
+    logger.info("Searching...")
+    logger.debug(query)
 
     with PgVectorClient(
         dbname=dbname,
@@ -60,15 +65,17 @@ if __name__ == '__main__':
         port=DEFAULT_PORT,
     ) as client:
         try:
-            # Clear data
-            client.delete_all_tables()
+            similar_vectors = client.search_similar(
+                tablename, query_vector, top_k=top_k)
 
-            client.create_table(tablename, vector_dim)
-            # Insert multiple vectors with predefined IDs
-            client.insert_vector_by_ids(tablename, vectors_with_ids)
-
-            all_items = client.get_vectors(tablename)
-            logger.success(f"Done saving {len(all_items)} embeddings!")
+            results: list[SearchResult] = [
+                {**item, "text": vectors_with_ids_text_dict[item["id"]]}
+                for item in similar_vectors
+            ]
+            copy_to_clipboard(results)
+            logger.newline()
+            logger.debug(f"Top {top_k} similar vectors:")
+            logger.success(results)
 
         except Exception as e:
             logger.newline()

@@ -1,3 +1,4 @@
+from typing import TypedDict
 from jet.data.utils import generate_key
 from jet.db.pgvector import PgVectorClient
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
@@ -13,6 +14,12 @@ from jet.file.utils import load_file, save_file
 from shared.data_types.job import JobData, JobEntities
 
 
+class VectorsWithId(TypedDict):
+    id: str
+    embedding: list[float]
+    text: str
+
+
 def embed_texts(texts: list[str]) -> list[list[float]]:
     # embed_model = OllamaEmbedding(model_name="mxbai-embed-large")
     # embed_results = embed_model.embed(texts)
@@ -26,8 +33,8 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
 
 
 if __name__ == '__main__':
-    model = "mxbai-embed-large"
-    # model = "nomic-embed-text"
+    # model = "mxbai-embed-large"
+    model = "nomic-embed-text"
 
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
     jobs: JobData = load_file(data_file)
@@ -65,9 +72,8 @@ if __name__ == '__main__':
 
     logger.debug(f"Jobs ({len(jobs)})")
     logger.success(format_json({
-        "largest": token_counts_info["max"]["tokens"],
-        "smallest": token_counts_info["min"]["tokens"],
-        "total": token_counts_info["total"],
+        "largest": token_counts_info["max"],
+        "smallest": token_counts_info["min"],
     }))
 
     # Embed texts
@@ -76,14 +82,25 @@ if __name__ == '__main__':
     logger.success(f"Embeddings Dim: {len(embed_results[0])}")
 
     # Save embeddings
-    vectors_with_ids = {generate_key(
-        text): embed_results[idx] for idx, text in enumerate(texts)}
+    vectors_with_ids: list[VectorsWithId] = [
+        {
+            "id": generate_key(text),
+            "embedding": embed_results[idx],
+            "text": text,
+        }
+        for idx, text in enumerate(texts)
+    ]
 
     save_file(vectors_with_ids, "generated/job-embeddings.json")
 
     dbname = "jobs_db1"
     tablename = "embeddings"
     vector_dim = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
+
+    logger.newline()
+    logger.info(
+        f"Saving embeddings ({len(vectors_with_ids)})...")
+    logger.debug(f"Vector Dim ({vector_dim})")
 
     with PgVectorClient(
         dbname=dbname,

@@ -1,3 +1,4 @@
+from typing import TypedDict
 import numpy as np
 
 from jet.data.utils import generate_key
@@ -22,14 +23,21 @@ from jet.file.utils import load_file, save_file
 from shared.data_types.job import JobData, JobEntities
 
 
+class VectorsWithId(TypedDict):
+    id: str
+    embedding: list[float]
+    text: str
+
+
 if __name__ == '__main__':
-    model = "mxbai-embed-large"
-    # model = "nomic-embed-text"
+    # model = "mxbai-embed-large"
+    model = "nomic-embed-text"
+
     dbname = "jobs_db1"
     tablename = "embeddings"
     vector_dim = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
 
-    vectors_with_ids: dict[str, list[float]] = load_file(
+    vectors_with_ids: list[VectorsWithId] = load_file(
         "generated/job-embeddings.json")
 
     # delete_db(dbname)
@@ -48,12 +56,16 @@ if __name__ == '__main__':
         port=DEFAULT_PORT,
     ) as client:
         try:
+            vectors_with_ids_dict: dict[str, list[float]] = {
+                item["id"]: item["embedding"] for item in vectors_with_ids
+            }
+
             # Clear data
             client.delete_all_tables()
 
             client.create_table(tablename, vector_dim)
             # Insert multiple vectors with predefined IDs
-            client.insert_vector_by_ids(tablename, vectors_with_ids)
+            client.insert_vector_by_ids(tablename, vectors_with_ids_dict)
 
             all_items = client.get_vectors(tablename)
             logger.success(f"Done saving {len(all_items)} embeddings!")
