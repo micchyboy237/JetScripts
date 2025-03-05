@@ -22,6 +22,18 @@ from jet.file.utils import load_file, save_file
 from shared.data_types.job import JobData, JobEntities
 
 
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    # embed_model = OllamaEmbedding(model_name="mxbai-embed-large")
+    # embed_results = embed_model.embed(texts)
+    # embedding_function = get_ollama_embedding_function(
+    #     model="nomic-embed-text"
+    # )
+    # embed_results = embedding_function(texts)
+    embed_func = get_embedding_function("mxbai-embed-large")
+    embed_results = embed_func(texts)
+    return embed_results
+
+
 if __name__ == '__main__':
     model = "mxbai-embed-large"
     # model = "nomic-embed-text"

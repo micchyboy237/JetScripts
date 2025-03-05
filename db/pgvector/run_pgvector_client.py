@@ -7,9 +7,12 @@ TABLE_NAME = "embeddings"
 VECTOR_DIM = 3
 
 with PgVectorClient(dbname="vector_db1", user="jethroestrada", password="", host="localhost", port=5432) as client:
-    client.create_table(TABLE_NAME, VECTOR_DIM)
-
     try:
+        # Clear data
+        client.delete_all_tables()
+
+        client.create_table(TABLE_NAME, VECTOR_DIM)
+
         # Insert a single vector with a hash ID
         vector = np.random.rand(VECTOR_DIM).tolist()
         vector_id = client.insert_vector(TABLE_NAME, vector)
