@@ -3,7 +3,6 @@ import numpy as np
 
 from jet.data.utils import generate_key
 from jet.db.pgvector import PgVectorClient
-from jet.db.pgvector.utils import create_db, delete_db
 from jet.db.pgvector.config import (
     DEFAULT_USER,
     DEFAULT_PASSWORD,
@@ -29,6 +28,13 @@ class VectorsWithId(TypedDict):
     text: str
 
 
+class LoadedVectors(TypedDict):
+    model: str
+    db_name: str
+    collection_name: str
+    vectors: list[VectorsWithId]
+
+
 if __name__ == '__main__':
     # model = "mxbai-embed-large"
     model = "nomic-embed-text"
@@ -37,14 +43,9 @@ if __name__ == '__main__':
     tablename = "embeddings"
     vector_dim = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
 
-    vectors_with_ids: list[VectorsWithId] = load_file(
-        "generated/job-embeddings.json")
-
-    # delete_db(dbname)
-    # logger.debug(f"Dropped DB: {dbname}")
-
-    # create_db(dbname)
-    # logger.debug(f"Created DB: {dbname}")
+    loaded_vectors: LoadedVectors = load_file(
+        "generated/jobs_db1/job-embeddings.json")
+    vectors_with_ids = loaded_vectors["vectors"]
 
     logger.info(f"Saving {len(vectors_with_ids)} embeddings...")
 
@@ -56,15 +57,14 @@ if __name__ == '__main__':
         port=DEFAULT_PORT,
     ) as client:
         try:
-            vectors_with_ids_dict: dict[str, list[float]] = {
-                item["id"]: item["embedding"] for item in vectors_with_ids
-            }
-
             # Clear data
             client.delete_all_tables()
 
             client.create_table(tablename, vector_dim)
+
             # Insert multiple vectors with predefined IDs
+            vector_data: dict[str, list[float]] = {
+                item["id"]: item["embedding"] for item in vectors_with_ids}
             client.insert_vector_by_ids(tablename, vectors_with_ids_dict)
 
             all_items = client.get_vectors(tablename)
@@ -72,4 +72,5 @@ if __name__ == '__main__':
 
         except Exception as e:
             logger.newline()
-            logger.error(f"Transaction failed:\n{e}")
+            logger.error(f"Load and save failed:")
+            raise e

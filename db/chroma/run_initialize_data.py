@@ -1,6 +1,6 @@
 import json
 from jet.db.chroma import ChromaClient
-from jet.llm.ollama import get_embedding_function, OllamaEmbeddingFunction
+from jet.llm.utils.embeddings import get_embedding_function, OllamaEmbeddingFunction
 from jet.transformers import make_serializable
 from jet.logger import logger
 

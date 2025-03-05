@@ -21,14 +21,21 @@ class VectorsWithId(TypedDict):
     text: str
 
 
+class LoadedVectors(TypedDict):
+    model: str
+    db_name: str
+    collection_name: str
+    vectors: list[VectorsWithId]
+
+
 class SearchResult(TypedDict):
     id: str
     score: float
     text: str
 
 
-def embed_text(text: str) -> list[float] | list[list[float]]:
-    embed_func = get_embedding_function("mxbai-embed-large")
+def embed_text(text: str, model: str) -> list[float] | list[list[float]]:
+    embed_func = get_embedding_function(model)
     embed_result = embed_func(text)
     return embed_result
 
@@ -44,14 +51,15 @@ if __name__ == '__main__':
     query = "React Native,Firebase"
     top_k = 10
 
-    vectors_with_ids: list[VectorsWithId] = load_file(
-        "generated/job-embeddings.json")
+    loaded_vectors: LoadedVectors = load_file(
+        "generated/jobs_db1/job-embeddings.json")
+    vectors_with_ids = loaded_vectors["vectors"]
 
     vectors_with_ids_text_dict: dict[str, str] = {
         item["id"]: item["text"] for item in vectors_with_ids
     }
 
-    query_vector = embed_text(query)
+    query_vector = embed_text(query, model)
 
     logger.newline()
     logger.info("Searching...")
@@ -79,4 +87,5 @@ if __name__ == '__main__':
 
         except Exception as e:
             logger.newline()
-            logger.error(f"Transaction failed:\n{e}")
+            logger.error(f"Search failed:")
+            raise e

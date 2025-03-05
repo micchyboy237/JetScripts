@@ -1,6 +1,7 @@
 from typing import TypedDict
 from jet.data.utils import generate_key
 from jet.db.pgvector import PgVectorClient
+from jet.db.pgvector.utils import create_db, delete_db
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
 from jet.llm.ollama.base import OllamaEmbedding
 from jet.llm.utils.embeddings import get_embedding_function, get_ollama_embedding_function
@@ -14,20 +15,21 @@ from jet.file.utils import load_file, save_file
 from shared.data_types.job import JobData, JobEntities
 
 
-class VectorsWithId(TypedDict):
+class Vectors(TypedDict):
     id: str
     embedding: list[float]
     text: str
 
 
-def embed_texts(texts: list[str]) -> list[list[float]]:
-    # embed_model = OllamaEmbedding(model_name="mxbai-embed-large")
-    # embed_results = embed_model.embed(texts)
-    # embedding_function = get_ollama_embedding_function(
-    #     model="nomic-embed-text"
-    # )
-    # embed_results = embedding_function(texts)
-    embed_func = get_embedding_function("mxbai-embed-large")
+class SavedVectors(TypedDict):
+    model: str
+    db_name: str
+    collection_name: str
+    vectors: list[Vectors]
+
+
+def embed_texts(texts: list[str], model: str) -> list[list[float]]:
+    embed_func = get_embedding_function(model)
     embed_results = embed_func(texts)
     return embed_results
 
@@ -77,12 +79,12 @@ if __name__ == '__main__':
     }))
 
     # Embed texts
-    embed_results = embed_texts(texts)
+    embed_results = embed_texts(texts, model)
     logger.debug(f"Embed Results: {len(embed_results)}")
     logger.success(f"Embeddings Dim: {len(embed_results[0])}")
 
     # Save embeddings
-    vectors_with_ids: list[VectorsWithId] = [
+    vectors_with_ids: list[Vectors] = [
         {
             "id": generate_key(text),
             "embedding": embed_results[idx],
@@ -91,11 +93,23 @@ if __name__ == '__main__':
         for idx, text in enumerate(texts)
     ]
 
-    save_file(vectors_with_ids, "generated/job-embeddings.json")
-
     dbname = "jobs_db1"
     tablename = "embeddings"
     vector_dim = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
+
+    delete_db(dbname)
+    logger.debug(f"Dropped DB: {dbname}")
+
+    create_db(dbname)
+    logger.debug(f"Created DB: {dbname}")
+
+    saved_vectors: SavedVectors = {
+        "model": model,
+        "db_name": dbname,
+        "collection_name": tablename,
+        "vectors": vectors_with_ids
+    }
+    save_file(saved_vectors, "generated/jobs_db1/job-embeddings.json")
 
     logger.newline()
     logger.info(
@@ -113,6 +127,10 @@ if __name__ == '__main__':
             client.create_table(tablename, vector_dim)
 
             # Insert multiple vectors
-            client.insert_vector_by_ids(tablename, vectors_with_ids)
+            vector_data: dict[str, list[float]] = {
+                item["id"]: item["embedding"] for item in vectors_with_ids}
+            client.insert_vector_by_ids(tablename, vector_data)
         except Exception as e:
-            logger.error(f"Transaction failed:\n{e}")
+            logger.newline()
+            logger.error(f"Embed and save failed:")
+            raise e
