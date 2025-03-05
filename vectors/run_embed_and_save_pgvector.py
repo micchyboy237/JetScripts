@@ -93,7 +93,7 @@ if __name__ == '__main__':
         for idx, text in enumerate(texts)
     ]
 
-    dbname = "jobs_db1"
+    dbname = "job_vectors_db1"
     tablename = "embeddings"
     vector_dim = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
 
@@ -109,7 +109,7 @@ if __name__ == '__main__':
         "collection_name": tablename,
         "vectors": vectors_with_ids
     }
-    save_file(saved_vectors, "generated/jobs_db1/job-embeddings.json")
+    save_file(saved_vectors, "generated/job_vectors_db1/job-embeddings.json")
 
     logger.newline()
     logger.info(

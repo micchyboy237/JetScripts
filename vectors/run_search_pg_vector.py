@@ -44,7 +44,7 @@ if __name__ == '__main__':
     # model = "mxbai-embed-large"
     model = "nomic-embed-text"
 
-    dbname = "jobs_db1"
+    dbname = "job_vectors_db1"
     tablename = "embeddings"
     vector_dim = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
 
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     top_k = 10
 
     loaded_vectors: LoadedVectors = load_file(
-        "generated/jobs_db1/job-embeddings.json")
+        "generated/job_vectors_db1/job-embeddings.json")
     vectors_with_ids = loaded_vectors["vectors"]
 
     vectors_with_ids_text_dict: dict[str, str] = {

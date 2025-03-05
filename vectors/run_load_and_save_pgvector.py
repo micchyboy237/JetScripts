@@ -39,12 +39,12 @@ if __name__ == '__main__':
     # model = "mxbai-embed-large"
     model = "nomic-embed-text"
 
-    dbname = "jobs_db1"
+    dbname = "job_vectors_db1"
     tablename = "embeddings"
     vector_dim = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
 
     loaded_vectors: LoadedVectors = load_file(
-        "generated/jobs_db1/job-embeddings.json")
+        "generated/job_vectors_db1/job-embeddings.json")
     vectors_with_ids = loaded_vectors["vectors"]
 
     logger.info(f"Saving {len(vectors_with_ids)} embeddings...")
