@@ -72,14 +72,14 @@ with PgVectorClient(dbname="vector_db1", user="jethroestrada", password="", host
         client.insert_vector_by_ids(TABLE_NAME, specific_vectors)
         logger.newline()
         logger.debug(f"Inserted multiple vectors with specific IDs:")
-        logger.success(f"{list(specific_vectors.keys())}")
+        logger.success(list(specific_vectors.keys()))
 
         # Retrieve the inserted specific vectors
         retrieved_specific_vectors = client.get_vectors_by_ids(
             TABLE_NAME, list(specific_vectors.keys()))
         logger.newline()
         logger.debug(f"Retrieved specific vectors:")
-        logger.success(f"{retrieved_specific_vectors}")
+        logger.success(retrieved_specific_vectors)
 
         # Update a single vector
         new_vector = np.random.rand(VECTOR_DIM).tolist()
@@ -94,7 +94,7 @@ with PgVectorClient(dbname="vector_db1", user="jethroestrada", password="", host
         client.update_vector_by_ids(TABLE_NAME, updates)
         logger.newline()
         logger.debug(f"Updated vectors with IDs:")
-        logger.success(f"{vector_ids}")
+        logger.success(vector_ids)
 
         # Search for top 3 most similar vectors
         query_vector = np.random.rand(VECTOR_DIM).tolist()
@@ -102,7 +102,7 @@ with PgVectorClient(dbname="vector_db1", user="jethroestrada", password="", host
             TABLE_NAME, query_vector, top_k=3)
         logger.newline()
         logger.debug(f"Top 3 similar vectors:")
-        logger.success(f"{similar_vectors}")
+        logger.success(similar_vectors)
 
         # Cleanup: Drop all rows in the table
         client.drop_all_rows(TABLE_NAME)
