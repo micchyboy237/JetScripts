@@ -65,7 +65,7 @@ if __name__ == '__main__':
             # Insert multiple vectors with predefined IDs
             vector_data: dict[str, list[float]] = {
                 item["id"]: item["embedding"] for item in vectors_with_ids}
-            client.insert_vector_by_ids(tablename, vectors_with_ids_dict)
+            client.insert_vector_by_ids(tablename, vector_data)
 
             all_items = client.get_vectors(tablename)
             logger.success(f"Done saving {len(all_items)} embeddings!")
