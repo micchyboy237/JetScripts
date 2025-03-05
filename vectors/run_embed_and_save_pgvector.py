@@ -1,4 +1,6 @@
+from jet.data.utils import generate_key
 from jet.db.pgvector import PgVectorClient
+from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
 from jet.llm.ollama.base import OllamaEmbedding
 from jet.llm.utils.embeddings import get_embedding_function, get_ollama_embedding_function
 from jet.logger import logger, time_it
@@ -11,7 +13,7 @@ from jet.file.utils import load_file, save_file
 from shared.data_types.job import JobData, JobEntities
 
 
-def embed_texts(texts: list[str]):
+def embed_texts(texts: list[str]) -> list[list[float]]:
     # embed_model = OllamaEmbedding(model_name="mxbai-embed-large")
     # embed_results = embed_model.embed(texts)
     # embedding_function = get_ollama_embedding_function(
@@ -21,18 +23,6 @@ def embed_texts(texts: list[str]):
     embed_func = get_embedding_function("mxbai-embed-large")
     embed_results = embed_func(texts)
     return embed_results
-
-
-def setup_db_client():
-    # Initialize the client
-    client = PgVectorClient(
-        dbname='vector_db1',
-        user='jethroestrada',
-        password='',
-        host='localhost',
-        port=5432
-    )
-    return client
 
 
 if __name__ == '__main__':
@@ -86,5 +76,27 @@ if __name__ == '__main__':
     logger.success(f"Embeddings Dim: {len(embed_results[0])}")
 
     # Save embeddings
-    client = setup_db_client()
-    client.
+
+    dbname = "jobs_db1"
+    tablename = "embeddings"
+    vector_dim = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
+
+    vectors_with_ids = {generate_key(
+        text): embed_results[idx] for idx, text in enumerate(texts)}
+
+    save_file(vectors_with_ids, "generated/job-embeddings.json")
+
+    with PgVectorClient(
+        dbname=dbname,
+        user="jethroestrada",
+        password="",
+        host="localhost",
+        port=5432
+    ) as client:
+        try:
+            client.create_table(tablename, vector_dim)
+
+            # Insert multiple vectors
+            client.insert_vector_by_ids(tablename, vectors_with_ids)
+        except Exception as e:
+            logger.error(f"Transaction failed:\n{e}")
