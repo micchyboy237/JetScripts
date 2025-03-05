@@ -48,7 +48,7 @@ if __name__ == '__main__':
     tablename = "embeddings"
     vector_dim = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
 
-    query = "React Native,Firebase"
+    query = "React Native, Firebase"
     top_k = 10
 
     loaded_vectors: LoadedVectors = load_file(

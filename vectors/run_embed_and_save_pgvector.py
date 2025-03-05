@@ -45,13 +45,13 @@ if __name__ == '__main__':
 
     json_attributes = [
         "title",
-        "keywords",
-        "tags",
         # "entities.role",
         # "entities.application",
         # "entities.coding_libraries",
         # "entities.qualifications",
         "details",
+        "keywords",
+        "tags",
     ]
 
     for item in tqdm(jobs):
