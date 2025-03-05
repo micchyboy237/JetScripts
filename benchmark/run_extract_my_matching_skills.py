@@ -148,8 +148,9 @@ def main():
             value_str = str(value)
             if isinstance(value, list):
                 value_str = ", ".join(value)
-            text_parts.append(
-                f"{key.title().replace('_', ' ')}: {value_str}")
+            if value_str.strip():
+                text_parts.append(
+                    f"{key.title().replace('_', ' ')}: {value_str}")
         text_content = "\n".join(text_parts) if text_parts else ""
         cleaned_text_content = clean_text(text_content)
         text_chunks = splitter.split_text(cleaned_text_content)

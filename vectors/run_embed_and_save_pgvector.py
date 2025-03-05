@@ -1,3 +1,4 @@
+from jet.db.pgvector import PgVectorClient
 from jet.llm.ollama.base import OllamaEmbedding
 from jet.llm.utils.embeddings import get_embedding_function, get_ollama_embedding_function
 from jet.logger import logger, time_it
@@ -10,7 +11,6 @@ from jet.file.utils import load_file, save_file
 from shared.data_types.job import JobData, JobEntities
 
 
-@time_it
 def embed_texts(texts: list[str]):
     # embed_model = OllamaEmbedding(model_name="mxbai-embed-large")
     # embed_results = embed_model.embed(texts)
@@ -21,6 +21,18 @@ def embed_texts(texts: list[str]):
     embed_func = get_embedding_function("mxbai-embed-large")
     embed_results = embed_func(texts)
     return embed_results
+
+
+def setup_db_client():
+    # Initialize the client
+    client = PgVectorClient(
+        dbname='vector_db1',
+        user='jethroestrada',
+        password='',
+        host='localhost',
+        port=5432
+    )
+    return client
 
 
 if __name__ == '__main__':
@@ -68,6 +80,11 @@ if __name__ == '__main__':
         "total": token_counts_info["total"],
     }))
 
+    # Embed texts
     embed_results = embed_texts(texts)
     logger.debug(f"Embed Results: {len(embed_results)}")
     logger.success(f"Embeddings Dim: {len(embed_results[0])}")
+
+    # Save embeddings
+    client = setup_db_client()
+    client.
