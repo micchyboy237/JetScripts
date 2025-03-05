@@ -27,6 +27,14 @@ with PgVectorClient(dbname="vector_db1", user="jethroestrada", password="", host
         retrieved_vectors = client.get_vectors_by_ids(TABLE_NAME, vector_ids)
         print(f"Retrieved vectors: {retrieved_vectors}")
 
+        # Retrieve all vectors in the table
+        all_vectors = client.get_vectors(TABLE_NAME)
+        print(f"All vectors in the table: {all_vectors}")
+
+        # Count the total number of vectors in the table
+        vector_count = client.count_vectors(TABLE_NAME)
+        print(f"Total number of vectors: {vector_count}")
+
         # Insert a vector with a specific predefined ID
         specific_id = "custom-123"
         specific_vector = np.random.rand(VECTOR_DIM).tolist()
