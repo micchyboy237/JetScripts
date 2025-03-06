@@ -52,7 +52,7 @@ if __name__ == '__main__':
     vector_dim = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
 
     query = "React Native, Firebase"
-    top_k = 50
+    top_k = 10
 
     vectors_with_ids_text_dict: dict[str, str] = {
         item["id"]: item["text"] for item in vectors_with_ids

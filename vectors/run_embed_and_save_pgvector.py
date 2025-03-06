@@ -53,18 +53,18 @@ if __name__ == '__main__':
         "tags",
     ]
     metadata_attributes = [
-        "entities.role",
-        "entities.application",
-        "entities.coding_libraries",
-        "entities.qualifications",
-        # "keywords",
-        "tags",
-        "company",
-        "posted_date",
-        "domain",
-        "salary",
-        "job_type",
-        "hours_per_week",
+        # "entities.role",
+        # "entities.application",
+        # "entities.coding_libraries",
+        # "entities.qualifications",
+        "keywords",
+        # "tags",
+        # "company",
+        # "posted_date",
+        # "domain",
+        # "salary",
+        # "job_type",
+        # "hours_per_week",
     ]
 
     for item in tqdm(jobs):
