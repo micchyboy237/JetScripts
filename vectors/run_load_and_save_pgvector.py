@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Any, TypedDict
 import numpy as np
 
 from jet.data.utils import generate_key
@@ -26,6 +26,7 @@ class VectorsWithId(TypedDict):
     id: str
     embedding: list[float]
     text: str
+    metadata: Any
 
 
 class LoadedVectors(TypedDict):
@@ -36,16 +37,15 @@ class LoadedVectors(TypedDict):
 
 
 if __name__ == '__main__':
-    # model = "mxbai-embed-large"
-    model = "nomic-embed-text"
 
     dbname = "job_vectors_db1"
     tablename = "embeddings"
-    vector_dim = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
 
     loaded_vectors: LoadedVectors = load_file(
         "generated/job_vectors_db1/job-embeddings.json")
     vectors_with_ids = loaded_vectors["vectors"]
+    model = loaded_vectors["model"]
+    vector_dim = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
 
     logger.info(f"Saving {len(vectors_with_ids)} embeddings...")
 

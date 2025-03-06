@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Any, TypedDict
 from jet.data.utils import generate_key
 from jet.db.pgvector import PgVectorClient
 from jet.db.pgvector.config import (
@@ -19,6 +19,7 @@ class VectorsWithId(TypedDict):
     id: str
     embedding: list[float]
     text: str
+    metadata: Any
 
 
 class LoadedVectors(TypedDict):
@@ -41,19 +42,17 @@ def embed_text(text: str, model: str) -> list[float] | list[list[float]]:
 
 
 if __name__ == '__main__':
-    # model = "mxbai-embed-large"
-    model = "nomic-embed-text"
-
     dbname = "job_vectors_db1"
     tablename = "embeddings"
-    vector_dim = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
-
-    query = "React Native, Firebase"
-    top_k = 10
 
     loaded_vectors: LoadedVectors = load_file(
         "generated/job_vectors_db1/job-embeddings.json")
     vectors_with_ids = loaded_vectors["vectors"]
+    model = loaded_vectors["model"]
+    vector_dim = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
+
+    query = "React Native, Firebase"
+    top_k = 50
 
     vectors_with_ids_text_dict: dict[str, str] = {
         item["id"]: item["text"] for item in vectors_with_ids
@@ -83,7 +82,7 @@ if __name__ == '__main__':
             copy_to_clipboard(results)
             logger.newline()
             logger.debug(f"Top {top_k} similar vectors:")
-            logger.success(results)
+            logger.success(f"Results: {len(results)}")
 
         except Exception as e:
             logger.newline()

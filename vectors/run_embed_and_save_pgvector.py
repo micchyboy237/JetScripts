@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Any, TypedDict
 from jet.data.utils import generate_key
 from jet.db.pgvector import PgVectorClient
 from jet.db.pgvector.utils import create_db, delete_db
@@ -19,6 +19,7 @@ class Vectors(TypedDict):
     id: str
     embedding: list[float]
     text: str
+    metadata: Any
 
 
 class SavedVectors(TypedDict):
@@ -42,16 +43,28 @@ if __name__ == '__main__':
     jobs: JobData = load_file(data_file)
 
     texts = []
+    metadata = []
 
     json_attributes = [
+        "id",
         "title",
-        # "entities.role",
-        # "entities.application",
-        # "entities.coding_libraries",
-        # "entities.qualifications",
+        "entities.coding_libraries",
         "details",
-        "keywords",
         "tags",
+    ]
+    metadata_attributes = [
+        "entities.role",
+        "entities.application",
+        "entities.coding_libraries",
+        "entities.qualifications",
+        # "keywords",
+        "tags",
+        "company",
+        "posted_date",
+        "domain",
+        "salary",
+        "job_type",
+        "hours_per_week",
     ]
 
     for item in tqdm(jobs):
@@ -68,6 +81,19 @@ if __name__ == '__main__':
 
         text_content = "\n".join(text_parts) if text_parts else ""
         texts.append(text_content)
+
+    for item in tqdm(jobs):
+        metadata_parts_dict = extract_values_by_paths(
+            item, metadata_attributes, is_flattened=True) if metadata_attributes else None
+        metadata.append(metadata_parts_dict)
+
+    texts = list(texts)
+    metadata = list(metadata)
+
+    if len(texts) != len(jobs) and len(metadata) != len(jobs):
+        message = f"Text and metadata should match jobs count ({len(jobs)}): {len(texts)} | metadata: {len(metadata)} "
+        logger.error(message)
+        raise message
 
     token_counts_info = get_token_counts_info(texts, model)
     copy_to_clipboard(token_counts_info)
@@ -89,6 +115,7 @@ if __name__ == '__main__':
             "id": generate_key(text),
             "embedding": embed_results[idx],
             "text": text,
+            "metadata": metadata[idx],
         }
         for idx, text in enumerate(texts)
     ]
