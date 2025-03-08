@@ -24,7 +24,7 @@ def main():
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
     data: list[JobData] = load_file(data_file) or []
 
-    labels = ["role", "application", "coding libraries", "qualifications"]
+    labels = ["role", "application", "technology stack", "qualifications"]
     chunk_sizes = [250]
 
     base_keywords = ['React.js', 'React Native']
@@ -46,12 +46,12 @@ def main():
         for item in tqdm(data):
             text = f"{item['title']}\n\n{item['details']}"
 
-            # Extract coding libraries from entities
+            # Extract technology stack from entities
             extracted_tech = extract_entity({
                 "labels": labels,
                 "chunk_size": chunk_size,
                 "text": text,
-            }).get('coding_libraries', [])
+            }).get('technology_stack', [])
 
             # Normalize keywords while preserving mapped values
             normalized_tech = {}
@@ -69,16 +69,16 @@ def main():
                 normalized_tech.setdefault(
                     tech.lower(), my_skills_keywords.get(tech, tech))
             # Get unique values
-            coding_libraries = list(
+            technology_stack = list(
                 set(map(merge_dot_prefixed_words, normalized_tech.values())))
             matched_skill_keywords = list({
-                t for t in coding_libraries
+                t for t in technology_stack
                 if t in list(my_skills_keywords.values())
             })
 
-            # Clean & update coding libraries
+            # Clean & update technology stack
             item['keywords'] = matched_skill_keywords
-            item['entities']['coding_libraries'] = coding_libraries
+            item['entities']['technology_stack'] = technology_stack
 
             active_keywords = [
                 base_keyword for base_keyword in base_keywords

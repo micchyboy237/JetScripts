@@ -35,7 +35,7 @@ Previous work on travel, booking, or e-commerce apps (preferred)
 Ability to work independently & meet deadlines
 """
 
-labels = ["role", "application", "coding libraries", "qualifications"]
+labels = ["role", "application", "technology stack", "qualifications"]
 
 
 def determine_chunk_size(text: str) -> int:

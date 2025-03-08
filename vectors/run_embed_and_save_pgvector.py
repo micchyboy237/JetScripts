@@ -46,25 +46,25 @@ if __name__ == '__main__':
     metadata = []
 
     json_attributes = [
-        "id",
+        # "id",
         "title",
-        "entities.coding_libraries",
+        "entities.technology_stack",
         "details",
         "tags",
     ]
     metadata_attributes = [
         # "entities.role",
         # "entities.application",
-        # "entities.coding_libraries",
+        # "entities.technology_stack",
         # "entities.qualifications",
         "keywords",
         # "tags",
-        # "company",
-        # "posted_date",
-        # "domain",
-        # "salary",
-        # "job_type",
-        # "hours_per_week",
+        "company",
+        "posted_date",
+        "domain",
+        "salary",
+        "job_type",
+        "hours_per_week",
     ]
 
     for item in tqdm(jobs):
@@ -119,6 +119,8 @@ if __name__ == '__main__':
         }
         for idx, text in enumerate(texts)
     ]
+    vectors_with_ids_dict = {item["id"]: item for item in vectors_with_ids}
+    vectors_with_ids = list(vectors_with_ids_dict.values())
 
     dbname = "job_vectors_db1"
     tablename = "embeddings"

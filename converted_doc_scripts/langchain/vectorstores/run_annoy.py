@@ -95,7 +95,7 @@ metadata_attributes = [
     "keywords",
     "entities.role",
     "entities.application",
-    "entities.coding_libraries",
+    "entities.technology_stack",
     "entities.qualifications",
 ]
 

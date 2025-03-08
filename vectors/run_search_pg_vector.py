@@ -51,7 +51,8 @@ if __name__ == '__main__':
     model = loaded_vectors["model"]
     vector_dim = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
 
-    query = "React Native, Firebase"
+    # query = "React Native, Firebase"
+    query = "Firebase"
     top_k = 10
 
     vectors_with_ids_text_dict: dict[str, str] = {

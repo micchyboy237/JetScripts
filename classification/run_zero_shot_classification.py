@@ -71,7 +71,7 @@ if __name__ == '__main__':
         "keywords",
         "entities.role",
         "entities.application",
-        "entities.coding_libraries",
+        "entities.technology_stack",
         "entities.qualifications",
     ]
 
@@ -104,7 +104,7 @@ if __name__ == '__main__':
         tags = doc.metadata['tags']
         role = doc.metadata.get('role')
         application = doc.metadata.get('application')
-        coding_libraries = doc.metadata.get('coding_libraries')
+        technology_stack = doc.metadata.get('technology_stack')
         qualifications = doc.metadata.get('qualifications')
         details = doc.metadata['details']
 
@@ -117,8 +117,8 @@ if __name__ == '__main__':
             texts.append(f"Role: {", ".join(role)}")
         if application:
             texts.append(f"Application: {", ".join(application)}")
-        if coding_libraries:
-            texts.append(f"Technology stack: {", ".join(coding_libraries)}")
+        if technology_stack:
+            texts.append(f"Technology stack: {", ".join(technology_stack)}")
         if qualifications:
             texts.append(f"Qualifications: {", ".join(qualifications)}")
 
