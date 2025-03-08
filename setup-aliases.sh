@@ -1,40 +1,162 @@
 # Set keyboard shortcut aliases / functions
 # alias freeze="pipdeptree -l -d 0 --python .venv/bin/python --freeze | grep -E '^\S' > requirements-frozen.txt"
-deps() {
-    local python_path=".venv/bin/python"
-    local output_path="requirements-deps-tree.json"
-    local default_python="$HOME/.pyenv/shims/python"
 
+deps() {
+    local package=""
+    local verbose=0
+
+    # Parse command-line arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -p) package="$2"; shift 2;;
+            -v) verbose=1; shift;;
+            *) package="$1"; shift;;
+        esac
+    done
+
+    # Ensure package is provided
+    if [[ -z "$package" ]]; then
+        echo -e "Error: Package must be provided\n\nUsage:\n  deps <package>\n  deps -p <package> [-v]\n\nExample:\n  deps numpy\n  deps -p numpy -v"
+        return 1
+    fi
+
+    # Fetch package details, dependents, and dependencies using Python
+    python3 -c "
+import importlib.util
+import pkg_resources
+
+def get_package_location(pkg):
+    spec = importlib.util.find_spec(pkg)
+    return spec.origin if spec else None
+
+def print_dependencies(title, items):
+    if items:
+        print(title)
+        for name, version, location in items:
+            print(f'  - {name} ({version})' + (f': {location}' if $verbose and location else ''))
+    else:
+        print(f'{title} None')
+
+try:
+    target = '$package'
+    verbose = bool($verbose)
+    
+    # Main package details
+    main_dist = pkg_resources.get_distribution(target)
+    main_version = main_dist.version
+    main_location = get_package_location(target) if verbose else None
+    print(f'Package: {target} ({main_version})')
+    if verbose and main_location:
+        print(f'Location: {main_location}')
+    print('')
+    
+    # Dependents (packages that require this package)
+    dependents = [(d.project_name, d.version, get_package_location(d.project_name) if verbose else None)
+                  for d in pkg_resources.working_set if target.lower() in [r.project_name.lower() for r in d.requires()]]
+    print_dependencies('Packages that require ' + target + ':', dependents)
+    print('')
+    
+    # Dependencies (packages required by this package)
+    dependencies = [(r.project_name, pkg_resources.get_distribution(r.project_name).version,
+                     get_package_location(r.project_name) if verbose else None)
+                    for r in main_dist.requires()]
+    print_dependencies('Dependencies:', dependencies)
+    
+except Exception as e:
+    print(f'Error: {e}')
+" 2>/dev/null
+}
+
+deps_tree() {
+    # Default path to the Python executable inside a virtual environment
+    local python_path=".venv/bin/python"
+    # Default output file for dependency tree
+    local output_path="requirements-deps-tree.json"
+    # Default Python path if the specified one is unavailable
+    local default_python="$HOME/.pyenv/shims/python"
+    # Default package (empty means show all dependencies)
+    local package=""
+
+    # Parse command-line arguments
     while [[ $# -gt 0 ]]; do
     case $1 in
-        -f)
+        -f)  # Custom Python interpreter path
         python_path="$2"
         shift 2
         ;;
-        -o)
+        -o)  # Custom output file path (not currently used)
         output_path="$2"
         shift 2
         ;;
-        *)
+        -p)  # Specific package for dependency tree
+        package="$2"
+        shift 2
+        ;;
+        *)  # Handle unknown options
         echo "Unknown option: $1"
         return 1
         ;;
     esac
     done
 
+    # Check if the specified Python executable exists and is executable
     if [[ ! -x "$python_path" ]]; then
-    echo "Specified Python path '$python_path' does not exist or is not executable. Falling back to '$default_python'."
-    python_path="$default_python"
+        echo "Specified Python path '$python_path' does not exist or is not executable. Falling back to '$default_python'."
+        python_path="$default_python"
     fi
 
+    # Check if the default Python executable exists and is executable
     if [[ ! -x "$python_path" ]]; then
-    echo "Error: Default Python path '$default_python' does not exist or is not executable."
-    return 1
+        echo "Error: Default Python path '$default_python' does not exist or is not executable."
+        return 1
     fi
 
+    # Check if pipdeptree is installed
+    if ! "$python_path" -m pipdeptree --version &>/dev/null; then
+        echo "Error: pipdeptree is not installed. Install it using:"
+        echo "  pip install pipdeptree"
+        return 1
+    fi
+
+    # Construct the pipdeptree command
     local command="pipdeptree -l -d 0 --python \"$python_path\" --json-tree"
-    echo "$command"
-    eval "$command"
+
+    # If a package is specified, filter for that package
+    if [[ -n "$package" ]]; then
+        # Check if jq is installed
+        if ! command -v jq &>/dev/null; then
+            echo "Error: 'jq' is required for filtering but is not installed."
+            echo "  Install it using: brew install jq (macOS) or sudo apt-get install jq (Linux)"
+            return 1
+        fi
+
+        command="$command | jq '.[] | select(.package.name == \"$package\")'"
+    fi
+
+    echo "$command"  # Display the command being executed
+    eval "$command" || echo "Error: Command failed. Ensure pipdeptree is installed and working."
+
+    # -------------------------------
+    # How to Use:
+    # 1. Run the function with the default Python interpreter:
+    #    deps
+    #    - Uses `.venv/bin/python` to generate a full dependency tree.
+    #
+    # 2. Specify a different Python interpreter:
+    #    deps -f /path/to/python
+    #    - Allows you to specify a custom Python executable.
+    #
+    # 3. Get dependencies of a specific package:
+    #    deps -p package_name
+    #    - Filters the dependency tree to show only dependencies of `package_name`.
+    #
+    # 4. Specify an output file (not currently used but parsed):
+    #    deps -o output.json
+    #    - Parses the `-o` flag, but output saving is not yet implemented.
+    #
+    # Note: This function relies on `pipdeptree` and `jq`. Install them if not already installed:
+    #       pip install pipdeptree
+    #       brew install jq  # (or use sudo apt-get install jq on Linux)
 }
 
 freeze() {
@@ -212,5 +334,5 @@ pip() {
 
 # Check if the 'deps' function is already defined to prevent echo
 # if ! declare -f deps &>/dev/null; then
-echo "Added deps, freeze, size, sizes, setup_venv, freeze_venv, reinstall_venv, force_reinstall_venv, activate_venv, deactivate_venv, reinstall_python functions, pip"
+echo "Added deps, deps_tree, freeze, size, sizes, setup_venv, freeze_venv, reinstall_venv, force_reinstall_venv, activate_venv, deactivate_venv, reinstall_python functions, pip"
 # fi
