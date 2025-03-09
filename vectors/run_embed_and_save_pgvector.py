@@ -1,5 +1,4 @@
 from typing import Any, TypedDict
-from jet.data.utils import generate_key
 from jet.db.pgvector import PgVectorClient
 from jet.db.pgvector.utils import create_db, delete_db
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
@@ -17,9 +16,10 @@ from shared.data_types.job import JobData, JobEntities
 
 class Vectors(TypedDict):
     id: str
-    embedding: list[float]
+    tokens: int
     text: str
     metadata: Any
+    embedding: list[float]
 
 
 class SavedVectors(TypedDict):
@@ -36,11 +36,11 @@ def embed_texts(texts: list[str], model: str) -> list[list[float]]:
 
 
 if __name__ == '__main__':
-    # model = "mxbai-embed-large"
-    model = "nomic-embed-text"
+    model = "mxbai-embed-large"
+    # model = "nomic-embed-text"
 
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
-    jobs: JobData = load_file(data_file)
+    jobs: list[JobData] = load_file(data_file)
 
     texts = []
     metadata = []
@@ -53,18 +53,21 @@ if __name__ == '__main__':
         "tags",
     ]
     metadata_attributes = [
-        # "entities.role",
-        # "entities.application",
-        # "entities.technology_stack",
-        # "entities.qualifications",
-        "keywords",
-        # "tags",
+        "id",
+        "title",
+        "link",
         "company",
         "posted_date",
-        "domain",
         "salary",
         "job_type",
         "hours_per_week",
+        "domain",
+        "tags",
+        "keywords",
+        "entities.role",
+        "entities.application",
+        "entities.technology_stack",
+        "entities.qualifications",
     ]
 
     for item in tqdm(jobs):
@@ -96,12 +99,14 @@ if __name__ == '__main__':
         raise message
 
     token_counts_info = get_token_counts_info(texts, model)
+    tokenized_data = token_counts_info["results"]
+
     copy_to_clipboard(token_counts_info)
 
     logger.debug(f"Jobs ({len(jobs)})")
     logger.success(format_json({
-        "largest": token_counts_info["max"],
         "smallest": token_counts_info["min"],
+        "largest": token_counts_info["max"],
     }))
 
     # Embed texts
@@ -112,10 +117,11 @@ if __name__ == '__main__':
     # Save embeddings
     vectors_with_ids: list[Vectors] = [
         {
-            "id": generate_key(text),
-            "embedding": embed_results[idx],
+            "id": jobs[idx]["id"],
+            "tokens": tokenized_data[idx]["tokens"],
             "text": text,
             "metadata": metadata[idx],
+            "embedding": embed_results[idx],
         }
         for idx, text in enumerate(texts)
     ]

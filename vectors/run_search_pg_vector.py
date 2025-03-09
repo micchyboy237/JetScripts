@@ -1,5 +1,4 @@
 from typing import Any, TypedDict
-from jet.data.utils import generate_key
 from jet.db.pgvector import PgVectorClient
 from jet.db.pgvector.config import (
     DEFAULT_USER,
@@ -17,9 +16,10 @@ from shared.data_types.job import JobData
 
 class VectorsWithId(TypedDict):
     id: str
-    embedding: list[float]
+    tokens: int
     text: str
     metadata: Any
+    embedding: list[float]
 
 
 class LoadedVectors(TypedDict):
