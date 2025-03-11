@@ -34,6 +34,10 @@ from langchain_core.documents import Document
 embed_model = "snowflake-arctic-embed:137m"
 llm_model = "llama3.1"
 
+title = "I'll Become a Villainess Who Goes Down in History"
+summary_query = f"Data about this anime: \"{title}\""
+query = f"How many seasons and episodes does \"{title}\" anime have?"
+
 model_max_tokens = OLLAMA_MODEL_EMBEDDING_TOKENS[embed_model]
 max_tokens = 0.5
 chunk_size = int(model_max_tokens * max_tokens)
@@ -531,7 +535,9 @@ def embed_cluster_summarize_texts(
             colors=["SUCCESS", "BRIGHT_SUCCESS"]
         )
 
-        template = """Here is a sub-set of an unstructured text from a scraped page that may contain Anime data. 
+        template = """Here is a sub-set of an unstructured text from a scraped page that may contain Anime data related to the user query below.
+
+        User Query: {query}
         
         Give a detailed summary of the documentation provided.
         
@@ -543,7 +549,8 @@ def embed_cluster_summarize_texts(
 
         @time_it
         def summarize_text(text: str):
-            generated_summary = chain.invoke({"context": text})
+            generated_summary = chain.invoke(
+                {"query": summary_query, "context": text})
             yield generated_summary
 
         for i in all_clusters:
@@ -717,7 +724,7 @@ rag_chain = (
     | StrOutputParser()
 )
 
-query = "How many seasons and episodes does ”I’ll Become a Villainess Who Goes Down in History” anime have?"
+
 result = rag_chain.invoke(query)
 logger.newline()
 logger.debug("Result - rag_chain.invoke:")
