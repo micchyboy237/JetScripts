@@ -1,3 +1,5 @@
+import os
+from jet.cache.joblib.utils import load_data, save_data
 from jet.file.utils import save_file
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
 from jet.logger import logger
@@ -22,6 +24,7 @@ from sklearn.mixture import GaussianMixture
 from langchain_chroma import Chroma
 from langchain import hub
 from langchain_core.runnables import RunnablePassthrough
+from langchain_core.documents import Document
 
 # initialize_ollama_settings()
 
@@ -67,27 +70,41 @@ In this case, each `doc` is a unique web page of the LCEL docs.
 The context varies from < 2k tokens on up to > 10k tokens.
 """
 
+docs_path = "generated/RAPTOR/retrieved_docs.pkl"
+docs: list[Document]
 
-url = "https://en.wikipedia.org/wiki/I'll_Become_a_Villainess_Who_Goes_Down_in_History"
-loader = RecursiveUrlLoader(
-    url=url, max_depth=1, extractor=lambda x: Soup(x, "html.parser").text
-)
-docs = loader.load()
+if os.path.exists(docs_path):
+    logger.debug(f"Loading docs from cache: {docs_path}")
+    docs = load_data(docs_path)
+else:
+    logger.info(f"Scraping docs from urls...")
 
-url = "https://www.sportskeeda.com/anime/i-ll-become-villainess-who-goes-down-history-complete-release-schedule"
-loader = RecursiveUrlLoader(
-    url=url, max_depth=1, extractor=lambda x: Soup(x, "html.parser").text
-)
-docs_pydantic = loader.load()
+    url = "https://en.wikipedia.org/wiki/I'll_Become_a_Villainess_Who_Goes_Down_in_History"
+    loader = RecursiveUrlLoader(
+        url=url, max_depth=1, extractor=lambda x: Soup(x, "html.parser").text
+    )
+    docs = loader.load()
 
-url = "https://www.animenewsnetwork.com/encyclopedia/anime.php?id=29354"
-loader = RecursiveUrlLoader(
-    url=url, max_depth=3, extractor=lambda x: Soup(x, "html.parser").text
-)
-docs_sq = loader.load()
+    url = "https://www.sportskeeda.com/anime/i-ll-become-villainess-who-goes-down-history-complete-release-schedule"
+    loader = RecursiveUrlLoader(
+        url=url, max_depth=1, extractor=lambda x: Soup(x, "html.parser").text
+    )
+    docs_pydantic = loader.load()
 
-docs.extend([*docs_pydantic, *docs_sq])
+    url = "https://www.animenewsnetwork.com/encyclopedia/anime.php?id=29354"
+    loader = RecursiveUrlLoader(
+        url=url, max_depth=3, extractor=lambda x: Soup(x, "html.parser").text
+    )
+    docs_sq = loader.load()
+
+    docs.extend([*docs_pydantic, *docs_sq])
+
+    save_data(docs_path, docs)
+
+
 docs_texts = [d.page_content for d in docs]
+docs_texts_path = "generated/RAPTOR/docs_texts.json"
+save_file(docs_texts, docs_texts_path)
 
 # d_sorted = sorted(docs, key=lambda x: x.metadata["source"])
 # d_reversed = list(reversed(d_sorted))
@@ -111,6 +128,9 @@ splitter = SentenceSplitter(
 # )
 # texts_split = text_splitter.split_documents(docs)
 docs_texts = splitter.split_texts(docs_texts)
+
+splitted_docs_texts_path = "generated/RAPTOR/splitted_docs_texts.json"
+save_file(docs_texts, splitted_docs_texts_path)
 
 counts: list[int] = token_counter(docs_texts, embed_model, prevent_total=True)
 # Compute min and max token counts
@@ -604,10 +624,10 @@ logger.debug(query)
 logger.success(result)
 
 query_result_path = "generated/RAPTOR/query_result.json"
-save_file(results, {
+save_file({
     "query": query,
     "result": result
-})
+}, query_result_path)
 
 """
 Trace: 
