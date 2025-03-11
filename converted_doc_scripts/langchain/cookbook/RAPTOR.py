@@ -465,8 +465,8 @@ def embed_cluster_summarize_texts(
     df_clusters_dict = [
         {
             "text": item["text"],
-            "cluster": item["cluster"],
             "tokens": token_counter(item["text"], embed_model, prevent_total=True),
+            "cluster": item["cluster"],
             "embd": item["embd"],
         }
         for item in df_clusters.to_dict()
