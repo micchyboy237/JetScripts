@@ -1,5 +1,6 @@
 import os
 
+from jet.logger.timer import time_it
 from tqdm import tqdm
 from jet.cache.joblib.utils import load_data, save_data
 from jet.file.utils import save_file
@@ -401,6 +402,7 @@ def embed(texts):
     return text_embeddings_np
 
 
+@time_it
 def embed_cluster_texts(texts):
     """
     Embeds a list of texts and clusters them, returning a DataFrame with texts, their embeddings, and cluster labels.
@@ -459,80 +461,134 @@ def embed_cluster_summarize_texts(
          and the cluster identifiers.
     """
 
+    #  Cluster texts
+
     df_clusters = embed_cluster_texts(texts)
 
-    clusters_path = "generated/RAPTOR/clusters.json"
-    df_clusters_dict = [
+    df_clusters_dict = df_clusters.to_dict(orient="records")
+    df_clusters_texts = [item["text"] for item in df_clusters_dict]
+
+    tokens_llm = token_counter(
+        df_clusters_texts, llm_model, prevent_total=True)
+    tokens_embed = token_counter(
+        df_clusters_texts, embed_model, prevent_total=True)
+
+    df_clusters_list = [
         {
             "text": item["text"],
-            "tokens": token_counter(item["text"], embed_model, prevent_total=True),
             "cluster": item["cluster"],
+            "tokens": {
+                "llm": tokens_llm[idx],
+                "embed": tokens_embed[idx],
+            },
             "embd": item["embd"],
         }
-        for item in df_clusters.to_dict()
+        for idx, item in enumerate(df_clusters_dict)
     ]
-    save_file(df_clusters_dict, clusters_path)
+
+    clusters_path = "generated/RAPTOR/clusters.json"
+    save_file(df_clusters_list, clusters_path)
+
+    # Expand clusters
 
     expanded_list = []
 
     for index, row in df_clusters.iterrows():
         for cluster in row["cluster"]:
             expanded_list.append(
-                {
-                    "text": row["text"],
-                    "tokens": token_counter(row["text"], embed_model, prevent_total=True),
-                    "cluster": cluster,
-                    "embd": row["embd"],
-                }
+                {"text": row["text"], "embd": row["embd"], "cluster": cluster}
             )
 
-    expanded_df = pd.DataFrame(expanded_list)
+    expanded_clusters_texts = [item["text"] for item in expanded_list]
 
-    all_clusters = expanded_df["cluster"].unique()
+    tokens_llm = token_counter(
+        expanded_clusters_texts, llm_model, prevent_total=True)
+    tokens_embed = token_counter(
+        expanded_clusters_texts, embed_model, prevent_total=True)
 
-    logger.debug(f"--Generated {len(all_clusters)} clusters--")
-
-    logger.log(
-        "Save clusters to:",
-        clusters_path,
-        colors=["SUCCESS", "BRIGHT_SUCCESS"]
-    )
+    expanded_clusters_list = [
+        {
+            "text": item["text"],
+            "cluster": item["cluster"],
+            "tokens": {
+                "llm": tokens_llm[idx],
+                "embed": tokens_embed[idx],
+            },
+            "embd": item["embd"],
+        }
+        for idx, item in enumerate(expanded_list)
+    ]
 
     expanded_clusters_path = "generated/RAPTOR/expanded_clusters.json"
     save_file(expanded_list, expanded_clusters_path)
 
-    template = """Here is a sub-set of an unstructured text from a scraped page that may contain Anime data. 
-    
-    Give a detailed summary of the documentation provided.
-    
-    Documentation:
-    {context}
-    """
-    prompt = ChatPromptTemplate.from_template(template)
-    chain = prompt | model | StrOutputParser()
+    expanded_df = pd.DataFrame(expanded_list)
+    all_clusters = expanded_df["cluster"].unique()
+
+    all_clusters_path = "generated/RAPTOR/all_clusters.json"
+    save_file(all_clusters, all_clusters_path)
+
+    def run_summarize_clusters():
+        logger.debug(f"--Generated {len(all_clusters)} clusters--")
+
+        logger.log(
+            "Save clusters to:",
+            clusters_path,
+            colors=["SUCCESS", "BRIGHT_SUCCESS"]
+        )
+
+        template = """Here is a sub-set of an unstructured text from a scraped page that may contain Anime data. 
+        
+        Give a detailed summary of the documentation provided.
+        
+        Documentation:
+        {context}
+        """
+        prompt = ChatPromptTemplate.from_template(template)
+        chain = prompt | model | StrOutputParser()
+
+        @time_it
+        def summarize_text(text: str):
+            token_count: int = token_counter(text, llm_model)
+            logger.debug(f"Summarizing text ({token_count})...")
+            generated_summary = chain.invoke({"context": text})
+            yield generated_summary
+
+        for i in all_clusters:
+            df_cluster = expanded_df[expanded_df["cluster"] == i]
+            formatted_txt = fmt_txt(df_cluster)
+
+            # generated_summary = chain.invoke({"context": formatted_txt})
+            # yield generated_summary
+
+            yield from summarize_text(formatted_txt)
 
     summaries = []
-    for i in tqdm(all_clusters, desc="Summarizing cluster", unit="cluster"):
-        df_cluster = expanded_df[expanded_df["cluster"] == i]
-        formatted_txt = fmt_txt(df_cluster)
+    total_steps = len(all_clusters)
+    progress_bar = tqdm(total=total_steps, desc="Summarizing clusters")
+    for summary in run_summarize_clusters():
+        summaries.append(summary)
 
-        generated_summary = chain.invoke({"context": formatted_txt})
-        summaries.append(generated_summary)
+        df_summary = pd.DataFrame(
+            {
+                "summaries": summaries,
+                "level": [level] * len(summaries),
+                "cluster": list(all_clusters[:len(summaries)]),
+            }
+        )
+        summary_clusters_path = "generated/RAPTOR/summary_clusters.json"
+        logger.log(
+            "Save summary clusters to:",
+            summary_clusters_path,
+            colors=["SUCCESS", "BRIGHT_SUCCESS"]
+        )
+        df_summary.to_json(summary_clusters_path, orient="records", indent=2)
 
-    df_summary = pd.DataFrame(
-        {
-            "summaries": summaries,
-            "level": [level] * len(summaries),
-            "cluster": list(all_clusters),
-        }
-    )
-    summary_clusters_path = "generated/RAPTOR/summary_clusters.json"
-    logger.log(
-        "Save summary clusters to:",
-        summary_clusters_path,
-        colors=["SUCCESS", "BRIGHT_SUCCESS"]
-    )
-    df_summary.to_json(summary_clusters_path, orient="records", indent=2)
+        # Manually update progress after summarizing each cluster
+        progress_bar.update(1)
+
+    # Close progress bar after completion
+    progress_bar.close()
 
     return df_clusters, df_summary
 
@@ -578,10 +634,13 @@ logger.info(f"Leaf Texts ({len(leaf_texts)}):")
 leaf_texts_path = "generated/RAPTOR/leaf_texts.json"
 save_file(leaf_texts, leaf_texts_path)
 
+# Summarize clusters
+
+logger.info("Summarizing leaf texts...")
 results = recursive_embed_cluster_summarize(leaf_texts, level=1, n_levels=3)
 
 logger.newline()
-logger.info("Result (recursive_embed_cluster_summarize):")
+logger.debug(f"Result - recursive_embed_cluster_summarize ({results}):")
 
 all_summary_clusters_path = "generated/RAPTOR/all_summary_clusters.json"
 save_file(results, all_summary_clusters_path)
@@ -643,7 +702,7 @@ rag_chain = (
 query = "How many seasons and episodes does ”I’ll Become a Villainess Who Goes Down in History” anime have?"
 result = rag_chain.invoke(query)
 logger.newline()
-logger.info("Result (rag_chain.invoke):")
+logger.debug("Result - rag_chain.invoke:")
 logger.debug(query)
 logger.success(result)
 
