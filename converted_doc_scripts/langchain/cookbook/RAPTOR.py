@@ -575,7 +575,7 @@ rag_chain = (
     | StrOutputParser()
 )
 
-query = "How to define a RAG chain? Give me a specific code example."
+query = "How many seasons and episodes does ”I’ll Become a Villainess Who Goes Down in History” anime have?"
 result = rag_chain.invoke(query)
 logger.newline()
 logger.info("Result (rag_chain.invoke):")
