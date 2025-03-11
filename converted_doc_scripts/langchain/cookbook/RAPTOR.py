@@ -32,11 +32,11 @@ embed_model = "nomic-embed-text"
 llm_model = "llama3.1"
 
 model_max_tokens = OLLAMA_MODEL_EMBEDDING_TOKENS[embed_model]
-max_tokens = 0.6
+max_tokens = 0.5
 chunk_size = int(model_max_tokens * max_tokens)
 chunk_overlap = 40
 
-embed_tokenizer = get_ollama_tokenizer(embed_model)
+embed_tokenizer = get_ollama_tokenizer(llm_model)
 set_global_tokenizer(embed_tokenizer)
 
 # pip install -U langchain umap-learn scikit-learn langchain_community tiktoken langchain-openai langchainhub langchain-chroma langchain-anthropic
