@@ -128,7 +128,7 @@ save_file(docs_texts, docs_texts_path)
 #     length_function=length_function,
 # )
 # texts_split = text_splitter.split_documents(docs)
-docs_texts = split_texts(docs_texts, embed_model, chunk_size, 100)
+docs_texts = split_texts(docs_texts, embed_model, chunk_size, 200)
 
 splitted_docs_texts_path = "generated/RAPTOR/splitted_docs_texts.json"
 save_file(docs_texts, splitted_docs_texts_path)
@@ -565,7 +565,7 @@ def embed_cluster_summarize_texts(
                 warning = f"token_count ({token_count}) must be less than chunk size ({chunk_size}) for model ({model})"
                 logger.warning(warning)
                 splitted_texts = split_texts(
-                    formatted_txt, llm_model, chunk_size, 100)
+                    formatted_txt, llm_model, chunk_size, 200)
             else:
                 splitted_texts = [formatted_txt]
 
