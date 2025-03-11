@@ -565,8 +565,8 @@ def embed_cluster_summarize_texts(
                 logger.warning(warning)
                 splitter = SentenceSplitter(
                     chunk_size=chunk_size,
-                    chunk_overlap=chunk_overlap,
-                    tokenizer=embed_tokenizer.encode,
+                    chunk_overlap=100,
+                    tokenizer=llm_tokenizer.encode,
                 )
                 splitted_texts = splitter.split_texts(formatted_txt)
             else:
