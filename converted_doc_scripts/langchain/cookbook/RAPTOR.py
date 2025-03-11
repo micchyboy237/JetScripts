@@ -29,7 +29,8 @@ embed_model = "nomic-embed-text"
 llm_model = "llama3.1"
 
 model_max_tokens = OLLAMA_MODEL_EMBEDDING_TOKENS[embed_model]
-chunk_size = int(model_max_tokens * 0.4)
+max_tokens = 0.6
+chunk_size = int(model_max_tokens * max_tokens)
 chunk_overlap = 40
 
 embed_tokenizer = get_ollama_tokenizer(embed_model)
@@ -162,7 +163,11 @@ Be sure to set the relevant API keys:
 embd = OllamaEmbeddings(model=embed_model)
 
 
+# Chat with summary context clusters
+
 model = ChatOllama(model=llm_model)
+llm_tokenizer = get_ollama_tokenizer(llm_model)
+set_global_tokenizer(llm_tokenizer)
 
 """
 ### Tree Constrution
@@ -541,6 +546,8 @@ We do simply do this below.
 
 
 all_texts = leaf_texts.copy()
+all_texts_path = "generated/RAPTOR/all_texts.json"
+save_file(results, all_texts_path)
 
 for level in sorted(results.keys()):
     summaries = results[level][1]["summaries"].tolist()
