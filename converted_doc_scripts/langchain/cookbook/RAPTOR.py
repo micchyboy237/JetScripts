@@ -28,15 +28,16 @@ from langchain_core.documents import Document
 
 # initialize_ollama_settings()
 
-embed_model = "nomic-embed-text"
 llm_model = "llama3.1"
+# embed_model = "nomic-embed-text"
+embed_model = llm_model
 
 model_max_tokens = OLLAMA_MODEL_EMBEDDING_TOKENS[embed_model]
 max_tokens = 0.5
 chunk_size = int(model_max_tokens * max_tokens)
 chunk_overlap = 40
 
-embed_tokenizer = get_ollama_tokenizer(llm_model)
+embed_tokenizer = get_ollama_tokenizer(embed_model)
 set_global_tokenizer(embed_tokenizer)
 
 # pip install -U langchain umap-learn scikit-learn langchain_community tiktoken langchain-openai langchainhub langchain-chroma langchain-anthropic
@@ -138,7 +139,6 @@ min_count = min(counts)
 max_count = max(counts)
 
 # Log token statistics
-logger.debug(f"Num tokens in all context: {counts}")
 logger.debug(f"Min tokens in context: {min_count}")
 logger.debug(f"Max tokens in context: {max_count}")
 
@@ -548,10 +548,16 @@ def recursive_embed_cluster_summarize(
 
 
 leaf_texts = docs_texts
+logger.newline()
+logger.info(f"Leaf Texts ({len(leaf_texts)}):")
+
+leaf_texts_path = "generated/RAPTOR/leaf_texts.json"
+save_file(leaf_texts, leaf_texts_path)
+
 results = recursive_embed_cluster_summarize(leaf_texts, level=1, n_levels=3)
+
 logger.newline()
 logger.info("Result (recursive_embed_cluster_summarize):")
-logger.success(results)
 
 all_summary_clusters_path = "generated/RAPTOR/all_summary_clusters.json"
 save_file(results, all_summary_clusters_path)
@@ -566,12 +572,6 @@ We do simply do this below.
 
 
 leaf_texts = leaf_texts.copy()
-
-logger.newline()
-logger.info(f"Leaf Texts ({len(leaf_texts)}):")
-
-leaf_texts_path = "generated/RAPTOR/leaf_texts.json"
-save_file(leaf_texts, leaf_texts_path)
 
 summary_texts = []
 
