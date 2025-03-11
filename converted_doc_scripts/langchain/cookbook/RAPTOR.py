@@ -1,4 +1,6 @@
 import os
+
+from tqdm import tqdm
 from jet.cache.joblib.utils import load_data, save_data
 from jet.file.utils import save_file
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
@@ -459,12 +461,29 @@ def embed_cluster_summarize_texts(
 
     df_clusters = embed_cluster_texts(texts)
 
+    clusters_path = "generated/RAPTOR/clusters.json"
+    df_clusters_dict = [
+        {
+            "text": item["text"],
+            "cluster": item["cluster"],
+            "tokens": token_counter(item["text"], embed_model, prevent_total=True),
+            "embd": item["embd"],
+        }
+        for item in df_clusters.to_dict()
+    ]
+    save_file(df_clusters_dict, clusters_path)
+
     expanded_list = []
 
     for index, row in df_clusters.iterrows():
         for cluster in row["cluster"]:
             expanded_list.append(
-                {"text": row["text"], "embd": row["embd"], "cluster": cluster}
+                {
+                    "text": row["text"],
+                    "tokens": token_counter(row["text"], embed_model, prevent_total=True),
+                    "cluster": cluster,
+                    "embd": row["embd"],
+                }
             )
 
     expanded_df = pd.DataFrame(expanded_list)
@@ -473,16 +492,13 @@ def embed_cluster_summarize_texts(
 
     logger.debug(f"--Generated {len(all_clusters)} clusters--")
 
-    clusters_path = "generated/RAPTOR/clusters.json"
-    expanded_clusters_path = "generated/RAPTOR/expanded_clusters.json"
-
     logger.log(
         "Save clusters to:",
         clusters_path,
         colors=["SUCCESS", "BRIGHT_SUCCESS"]
     )
 
-    df_clusters.to_json(clusters_path, orient="records", indent=2)
+    expanded_clusters_path = "generated/RAPTOR/expanded_clusters.json"
     save_file(expanded_list, expanded_clusters_path)
 
     template = """Here is a sub-set of an unstructured text from a scraped page that may contain Anime data. 
@@ -496,10 +512,12 @@ def embed_cluster_summarize_texts(
     chain = prompt | model | StrOutputParser()
 
     summaries = []
-    for i in all_clusters:
+    for i in tqdm(all_clusters, desc="Summarizing cluster", unit="cluster"):
         df_cluster = expanded_df[expanded_df["cluster"] == i]
         formatted_txt = fmt_txt(df_cluster)
-        summaries.append(chain.invoke({"context": formatted_txt}))
+
+        generated_summary = chain.invoke({"context": formatted_txt})
+        summaries.append(generated_summary)
 
     df_summary = pd.DataFrame(
         {
@@ -508,6 +526,13 @@ def embed_cluster_summarize_texts(
             "cluster": list(all_clusters),
         }
     )
+    summary_clusters_path = "generated/RAPTOR/summary_clusters.json"
+    logger.log(
+        "Save summary clusters to:",
+        summary_clusters_path,
+        colors=["SUCCESS", "BRIGHT_SUCCESS"]
+    )
+    df_summary.to_json(summary_clusters_path, orient="records", indent=2)
 
     return df_clusters, df_summary
 
