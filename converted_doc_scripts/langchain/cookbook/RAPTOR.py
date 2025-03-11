@@ -545,20 +545,34 @@ We do simply do this below.
 """
 
 
-all_texts = leaf_texts.copy()
-all_texts_path = "generated/RAPTOR/all_texts.json"
-save_file(results, all_texts_path)
+leaf_texts = leaf_texts.copy()
+
+logger.newline()
+logger.info(f"Leaf Texts ({len(leaf_texts)}):")
+
+leaf_texts_path = "generated/RAPTOR/leaf_texts.json"
+save_file(leaf_texts, leaf_texts_path)
+
+summary_texts = []
 
 for level in sorted(results.keys()):
     summaries = results[level][1]["summaries"].tolist()
-    all_texts.extend(summaries)
+    summary_texts.extend(summaries)
 
 logger.newline()
-logger.info("All Summaries:")
-logger.success(all_texts)
+logger.info(f"Summary Texts ({len(summary_texts)}):")
 
-all_summaries_path = "generated/RAPTOR/all_summaries.json"
-save_file(results, all_summaries_path)
+summary_texts_path = "generated/RAPTOR/summary_texts.json"
+save_file(summary_texts, summary_texts_path)
+
+all_texts = [*leaf_texts, *summary_texts]
+
+logger.newline()
+logger.info(f"All Texts ({len(all_texts)}):")
+
+all_texts_path = "generated/RAPTOR/all_texts.json"
+save_file(all_texts, all_texts_path)
+
 
 vectorstore = Chroma.from_texts(texts=all_texts, embedding=embd)
 retriever = vectorstore.as_retriever()
