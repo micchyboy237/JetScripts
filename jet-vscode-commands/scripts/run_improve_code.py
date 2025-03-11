@@ -51,7 +51,7 @@ def main():
         model=DEFAULT_MODEL,
         system=SYSTEM_MESSAGE,
         options={
-            "seed": 42,
+            "seed": 0,
             "temperature": 0,
             "num_keep": 0,
             "num_predict": -1,

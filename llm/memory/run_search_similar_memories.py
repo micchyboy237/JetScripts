@@ -1,6 +1,6 @@
 import asyncio
 import json
-from jet.llm.similarity import get_similar_texts
+from jet.wordnet.similarity import get_similar_texts
 from jet.llm.memory import Memory
 from jet.logger import logger
 

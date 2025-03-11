@@ -556,7 +556,7 @@ def scrape_code(
     exclude_files: list[str] = [],
     with_markdown: bool = True,
     with_ollama: bool = True,
-    output_base_dir: Optional[str] = None,
+    output_dir: Optional[str] = None,
     types: list[Literal['text', 'python']] = [],
 ):
 
@@ -595,11 +595,11 @@ def scrape_code(
             merged_source_groups = merge_consecutive_same_type(source_groups)
             source_groups = merged_source_groups
 
-            if output_base_dir:
-                os.makedirs(output_base_dir, exist_ok=True)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
                 subfolders = os.path.dirname(file).replace(input_base_dir, '')
                 joined_dir = os.path.join(
-                    output_base_dir, subfolders.strip('/'))
+                    output_dir, subfolders.strip('/'))
                 os.makedirs(joined_dir, exist_ok=True)
 
                 output_code_path = os.path.join(joined_dir, f"{file_name}.py")
@@ -652,19 +652,34 @@ def scrape_code(
     return results
 
 
-def list_folders(path: str) -> list[str]:
-    return [
-        name for name in os.listdir(path)
-        if os.path.isdir(os.path.join(path, name)) and not name.startswith(".")
-    ]
+def list_folders(paths: str | list[str]) -> list[str]:
+    folders = []
+    if isinstance(paths, str):
+        paths = [paths]
+    for path in paths:
+        if os.path.exists(path) and os.path.isdir(path):
+            folders.extend(
+                name for name in os.listdir(path)
+                if os.path.isdir(os.path.join(path, name)) and not name.startswith(".")
+            )
+    return folders
 
 
-def find_matching_repo_dir(input_base_dir: str, repo_base_dir: str, repo_dirs: list[str]) -> str | None:
+def find_matching_repo_dir(input_base_dir: str, repo_base_dir: str | list[str], repo_dirs: list[str]) -> str | None:
     input_base_dir = os.path.abspath(input_base_dir)
-    for repo_dir in repo_dirs:
-        repo_path = os.path.join(repo_base_dir, repo_dir)
-        if input_base_dir.startswith(repo_path):
-            return repo_dir
+
+    if isinstance(repo_base_dir, str):
+        repo_base_dir = [repo_base_dir]
+
+    # Sort repo_base_dir by length in descending order
+    repo_base_dir = sorted(repo_base_dir, key=len, reverse=True)
+    repo_dirs = sorted(repo_dirs, key=len, reverse=True)
+
+    for base_dir in repo_base_dir:
+        for repo_dir in repo_dirs:
+            repo_path = os.path.join(base_dir, repo_dir)
+            if input_base_dir.startswith(repo_path):
+                return repo_dir
     return None
 
 
@@ -684,13 +699,14 @@ def collect_files_and_dirs(input_base_dirs: list[str]) -> (list[str], list[str])
 
 
 if __name__ == "__main__":
-    repo_base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs"
+    repo_base_dir = [
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot",
+    ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/integrations/retrievers/tf_idf.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/txtai/docs/embeddings/configuration/ann.md",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/integrations/vectorstores/scann.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/integrations/vectorstores/annoy.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/property_graph/Dynamic_KG_Extraction.ipynb",
     ]
 
     include_files = [
@@ -730,7 +746,7 @@ if __name__ == "__main__":
 
         for ext_mapping in extension_mappings:
             extensions = ext_mapping["ext"]
-            output_base_dir = os.path.join(
+            output_dir = os.path.join(
                 output_base_dir,
                 matching_repo_dir,
                 # ext_mapping["output_base_dir"],
@@ -744,7 +760,7 @@ if __name__ == "__main__":
                 exclude_files=exclude_files,
                 with_markdown=True,
                 with_ollama=True,
-                output_base_dir=output_base_dir,
+                output_dir=output_dir,
             )
 
             if files:
@@ -752,6 +768,6 @@ if __name__ == "__main__":
                     "Saved",
                     f"({len(files)})",
                     "files to",
-                    output_base_dir,
+                    output_dir,
                     colors=["WHITE", "SUCCESS", "WHITE", "BRIGHT_SUCCESS"],
                 )

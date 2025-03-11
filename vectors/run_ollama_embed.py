@@ -11,21 +11,22 @@ from shared.data_types.job import JobData, JobEntities
 
 
 @time_it
-def embed_texts(texts: list[str]):
+def embed_texts(texts: list[str], model: str = "mxbai-embed-large"):
     # embed_model = OllamaEmbedding(model_name="mxbai-embed-large")
     # embed_results = embed_model.embed(texts)
     # embedding_function = get_ollama_embedding_function(
     #     model="nomic-embed-text"
     # )
     # embed_results = embedding_function(texts)
-    embed_func = get_embedding_function("mxbai-embed-large")
+    embed_func = get_embedding_function(model)
     embed_results = embed_func(texts)
     return embed_results
 
 
 if __name__ == '__main__':
-    model = "mxbai-embed-large"
+    # model = "mxbai-embed-large"
     # model = "nomic-embed-text"
+    model = "llama3.1"
 
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
     jobs: JobData = load_file(data_file)
@@ -68,6 +69,6 @@ if __name__ == '__main__':
         "total": token_counts_info["total"],
     }))
 
-    embed_results = embed_texts(texts)
+    embed_results = embed_texts(texts, model)
     logger.debug(f"Embed Results: {len(embed_results)}")
     logger.success(f"Embeddings Dim: {len(embed_results[0])}")

@@ -34,7 +34,7 @@ config = RedisConfigParams(
 MODEL = "codellama"
 SYSTEM_MESSAGE = "You are an AI assistant that follows instructions. You can understand and write code of any language, extract code from structured and unstructured content, and provide real-world usage examples. You can write clean, optimized, readable, and modular code. You follow best practices and correct syntax."
 CHAT_OPTIONS: OllamaChatOptions = {
-    "seed": 42,
+    "seed": 0,
     "num_ctx": 4096,
     "num_keep": 0,
     "num_predict": -1,

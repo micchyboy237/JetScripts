@@ -24,4 +24,5 @@ At the end:
 - Display the updated file structure
 - Instructions for running the code
 - Show installation instructions if any
-- Write easy-to-visualize real world unit tests using unittest or any standard built in libraries. Provide "sample", "expected" and "result" variables for each test. Use long samples
+- Write easy-to-visualize real world unit tests using unittest or any standard built in libraries.
+- Provide "sample", "expected" and "result" variables for each test. Use long samples

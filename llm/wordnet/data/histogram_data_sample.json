@@ -1,0 +1,26 @@
+[
+  {
+    "label": "english_to_tagalog|how",
+    "instruction": "English: How does he get home?\nTagalog:",
+    "input": "",
+    "output": "Paano siya umuuwi?"
+  },
+  {
+    "label": "english_to_tagalog|my",
+    "instruction": "English: My feet are big.\nTagalog:",
+    "input": "",
+    "output": "Ang aking paa ay malaki."
+  },
+  {
+    "label": "english_to_tagalog|the",
+    "instruction": "English: The bicycle costs almost ninety dollars.\nTagalog:",
+    "input": "",
+    "output": "Halos siyamnapung dolyar ang halaga ng bisikleta."
+  },
+  {
+    "label": "english_to_tagalog|everybody",
+    "instruction": "English: Everybody wants to kill me.\nTagalog:",
+    "input": "",
+    "output": "Lahat ay gustong patayin ako."
+  }
+]

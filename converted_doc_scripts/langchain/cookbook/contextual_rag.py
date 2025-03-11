@@ -282,7 +282,7 @@ def create_contextual_chunks(chunks_):
 
 contextual_documents = create_contextual_chunks(chunks)
 
-print(contextual_documents[1].page_content, "------------", chunks[1].page_content)
+logger.debug(contextual_documents[1].page_content, "------------", chunks[1].page_content)
 
 contextual_embedding_retriever = create_embedding_retriever(contextual_documents)
 
@@ -411,7 +411,7 @@ def generate_question_context_pairs(
         )
         response = llm.invoke(query).content
         result = re.split(r"\n+", response.strip())
-        print(result)
+        logger.debug(result)
         questions = [
             re.sub(r"^\d+[\).\s]", "", question).strip() for question in result
         ]

@@ -24,7 +24,7 @@ def stream_chat():
         # "tools": tools,
         # "format": str(format) if format else None,
         "options": {
-            "seed": 42,
+            "seed": 0,
             "temperature": 0,
             "num_keep": 0,
             "num_predict": -1,

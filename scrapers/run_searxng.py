@@ -17,12 +17,15 @@ if __name__ == "__main__":
             # "https://easypc.com.ph",
             # "9anime",
             # "zoro"
+            "aniwatch"
         ]
         engines = [
             "google",
-            # "brave",
-            # "duckduckgo",
-            # "bing",
+            "brave",
+            "duckduckgo",
+            "bing",
+            "yahoo",
+            "duckduckgo",
         ]
         results = search_searxng(
             query_url="http://searxng.local:8080/search",
