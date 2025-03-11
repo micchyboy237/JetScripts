@@ -8,7 +8,7 @@ from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
 from jet.logger import logger
 # from jet.llm.ollama import initialize_ollama_settings
 import matplotlib.pyplot as plt
-from jet.token.token_utils import get_ollama_tokenizer, token_counter
+from jet.token.token_utils import get_ollama_tokenizer, split_texts, token_counter
 from llama_index.core.node_parser.text.sentence import SentenceSplitter
 from llama_index.core.utils import set_global_tokenizer
 # import tiktoken
@@ -520,7 +520,7 @@ def embed_cluster_summarize_texts(
     ]
 
     expanded_clusters_path = "generated/RAPTOR/expanded_clusters.json"
-    save_file(expanded_list, expanded_clusters_path)
+    save_file(expanded_clusters_list, expanded_clusters_path)
 
     expanded_df = pd.DataFrame(expanded_list)
     all_clusters = expanded_df["cluster"].unique()
@@ -563,18 +563,24 @@ def embed_cluster_summarize_texts(
             if token_count > chunk_size:
                 warning = f"token_count ({token_count}) must be less than chunk size ({chunk_size}) for model ({model})"
                 logger.warning(warning)
-                splitter = SentenceSplitter(
-                    chunk_size=chunk_size,
-                    chunk_overlap=100,
-                    tokenizer=llm_tokenizer.encode,
-                )
-                splitted_texts = splitter.split_texts(formatted_txt)
+                splitted_texts = split_texts(
+                    formatted_txt, llm_model, chunk_size, 100)
             else:
                 splitted_texts = [formatted_txt]
 
-            for text in splitted_texts:
-                token_count: int = token_counter(text, llm_model)
-                logger.debug(f"Summarizing text ({token_count})...")
+            splitted_token_counts: list[int] = token_counter(
+                splitted_texts, llm_model, prevent_total=True)
+
+            logger.newline()
+            logger.log("splitted_token_counts:",
+                       splitted_token_counts, colors=["GRAY", "ORANGE"])
+
+            for idx, text in enumerate(splitted_texts):
+                token_count: int = splitted_token_counts[idx]
+
+                logger.newline()
+                logger.info(f"Summarizing text {idx + 1} ({token_count}):")
+                logger.debug(text)
 
                 # generated_summary = chain.invoke({"context": text})
                 # yield generated_summary
