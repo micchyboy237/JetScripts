@@ -549,8 +549,6 @@ def embed_cluster_summarize_texts(
 
         @time_it
         def summarize_text(text: str):
-            token_count: int = token_counter(text, llm_model)
-            logger.debug(f"Summarizing text ({token_count})...")
             generated_summary = chain.invoke({"context": text})
             yield generated_summary
 
@@ -558,10 +556,30 @@ def embed_cluster_summarize_texts(
             df_cluster = expanded_df[expanded_df["cluster"] == i]
             formatted_txt = fmt_txt(df_cluster)
 
-            # generated_summary = chain.invoke({"context": formatted_txt})
-            # yield generated_summary
+            token_count: int = token_counter(formatted_txt, llm_model)
+            model_max_length = OLLAMA_MODEL_EMBEDDING_TOKENS[llm_model]
+            chunk_size = int(model_max_length * max_tokens)
 
-            yield from summarize_text(formatted_txt)
+            if token_count > chunk_size:
+                warning = f"token_count ({token_count}) must be less than chunk size ({chunk_size}) for model ({model})"
+                logger.warning(warning)
+                splitter = SentenceSplitter(
+                    chunk_size=chunk_size,
+                    chunk_overlap=chunk_overlap,
+                    tokenizer=embed_tokenizer.encode,
+                )
+                splitted_texts = splitter.split_texts(formatted_txt)
+            else:
+                splitted_texts = [formatted_txt]
+
+            for text in splitted_texts:
+                token_count: int = token_counter(text, llm_model)
+                logger.debug(f"Summarizing text ({token_count})...")
+
+                # generated_summary = chain.invoke({"context": text})
+                # yield generated_summary
+
+                yield from summarize_text(text)
 
     summaries = []
     total_steps = len(all_clusters)
