@@ -28,9 +28,8 @@ from langchain_core.documents import Document
 
 # initialize_ollama_settings()
 
+embed_model = "snowflake-arctic-embed:137m"
 llm_model = "llama3.1"
-# embed_model = "nomic-embed-text"
-embed_model = llm_model
 
 model_max_tokens = OLLAMA_MODEL_EMBEDDING_TOKENS[embed_model]
 max_tokens = 0.5
