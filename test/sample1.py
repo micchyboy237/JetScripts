@@ -1,9 +1,17 @@
+import json
+import random
+import hrequests
+from jet.actions.generation import call_ollama_chat
+from jet.scrapers.preprocessor import extract_header_contents, get_header_contents, scrape_markdown
+from jet.search.searxng import SearchResult, search_searxng
 from jet.utils.class_utils import class_to_string
 from llama_index.core.prompts.base import PromptTemplate
 from pydantic.main import BaseModel
 from pydantic import BaseModel, HttpUrl
-from typing import List, Optional
+from typing import Any, List, Optional
 from datetime import date
+from langchain_community.document_loaders.recursive_url_loader import RecursiveUrlLoader
+from bs4 import BeautifulSoup as Soup
 
 from jet.actions.vector_semantic_search import VectorSemanticSearch
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
@@ -16,7 +24,9 @@ from jet.transformers.object import make_serializable
 from jet.utils.commands import copy_to_clipboard
 from jet.wordnet.similarity import search_similarities
 from jet.llm.ollama.base import Ollama
+from langchain_core.documents import Document
 
+RANDOM_SEED = random.randint(0, 1000)
 
 # class Episode(BaseModel):
 #     episode_number: int
@@ -63,23 +73,78 @@ class Anime(BaseModel):
 
 output_cls = Anime
 
-if __name__ == "__main__":
-    embed_model = "mxbai-embed-large"
-    rerank_model = "all-minilm:33m"
-    llm_model = "llama3.2"
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/langchain/cookbook/generated/RAPTOR/docs_texts.json"
 
-    title = "I'll Become a Villainess Who Goes Down in History"
-    query = f"Anime: \"{title}\"\n\nSchema:\n{class_to_string(output_cls)}"
+def search_data(query) -> list[SearchResult]:
+    filter_sites = [
+        # "https://easypc.com.ph",
+        # "9anime",
+        # "zoro"
+        # "aniwatch"
+    ]
+    engines = [
+        "google",
+        "brave",
+        "duckduckgo",
+        "bing",
+        "yahoo",
+    ]
+    results: list[SearchResult] = search_searxng(
+        query_url="http://searxng.local:8080/search",
+        query=query,
+        min_score=0.2,
+        filter_sites=filter_sites,
+        engines=engines,
+        config={
+            "port": 3101
+        },
+    )
+    return results
+
+
+def html_extractor(html_str):
+    markdown = scrape_markdown(html_str)
+    header_contents = extract_header_contents(markdown["content"])
+    texts = [item["content"] for item in header_contents]
+    text = "\n\n".join(texts)
+    return text
+
+
+def scrape_urls(urls: list[str]) -> list[Document]:
+    all_docs: list[Document] = []
+    for url in urls:
+        loader = RecursiveUrlLoader(
+            url=url, max_depth=2, extractor=lambda x: html_extractor(x)
+        )
+        docs = loader.load()
+        all_docs.extend(docs)
+    return all_docs
+
+
+def generate_browser_query(model: str, data: dict, *, seed: int = RANDOM_SEED) -> str:
+    system = "You are an AI assistant that follows instructions. You read object keys and values to understand the provided data. You analyze all null values in the given data and identify missing information. You then generate a query to search on a browser to fill in the missing values. You ensure that the generated query is specific and relevant to the anime title provided. You provide a clear search query based on the gaps in the data for further research. You focus on completing the data by utilizing accurate and efficient search methods.```"
+
+    prompt = f"Data:\n{json.dumps(data, indent=2)}"
+
+    options = {
+        "seed": seed,
+        "temperature": 0.3,
+    }
+
+    response = ""
+    for chunk in call_ollama_chat(prompt, model, system=system, options=options):
+        response += chunk
+
+    return response
+
+
+def scrape_data(query: str, embed_model: str, docs: list[Document], *, seed: int = RANDOM_SEED):
+    texts = [clean_text(doc.page_content) for doc in docs]
 
     # max_tokens = 0.5
     chunk_size = OLLAMA_MODEL_EMBEDDING_TOKENS[embed_model]
     chunk_overlap = 100
     chunk_buffer: int = token_counter(query, embed_model)
     top_k = 10
-
-    data: list[str] = load_file(data_file)
-    texts = [clean_text(text) for text in data]
 
     splitted_texts = split_texts(
         texts, embed_model, chunk_size, chunk_overlap, buffer=chunk_buffer)
@@ -103,9 +168,11 @@ if __name__ == "__main__":
                    query_line, colors=["GRAY", "GRAY", "DEBUG"])
         for result in group:
             logger.log("  +", f"{result['text'][:25]}:", f"{
-                       result['score']:.4f}", colors=["GRAY", "WHITE", "SUCCESS"])
+                result['score']:.4f}", colors=["GRAY", "WHITE", "SUCCESS"])
     embed_results = embed_results[:top_k]
+
     # Rerank search
+
     chunk_size = get_model_max_tokens(rerank_model)
     chunk_overlap = 0
 
@@ -120,12 +187,8 @@ if __name__ == "__main__":
             result['score']:.4f}", colors=["GRAY", "WHITE", "SUCCESS"])
 
     # LLM Query
-    # class Anime(BaseModel):
-    #     seasons: int
-    #     episodes: int
-    #     additional_info: Optional[str] = None
 
-    max_llm_tokens = 0.7
+    max_llm_tokens = 0.8
     contexts: list[str] = filter_texts(
         rerank_candidates, llm_model, max_llm_tokens)
     context = "\n\n".join(contexts)
@@ -148,10 +211,43 @@ if __name__ == "__main__":
         context_str=context,
         query_str=query,
         llm_kwargs={
-            "options": {"temperature": 0.3},
+            "options": {
+                "seed": seed,
+                "temperature": 0.3
+            },
             # "max_prediction_ratio": 0.5
         },
     )
     response_dict = make_serializable(response)
     copy_to_clipboard(response_dict)
     logger.success(format_json(response_dict))
+
+
+if __name__ == "__main__":
+
+    embed_model = "mxbai-embed-large"
+    rerank_model = "all-minilm:33m"
+    llm_model = "llama3.2"
+
+    output_file = "generated/search_web_data.json"
+
+    title = "I'll Become a Villainess Who Goes Down in History"
+    query = f"Anime: \"{title}\"\n\nSchema:\n{class_to_string(output_cls)}"
+
+    search_results = search_data(query)
+    urls = [item["url"] for item in search_results]
+
+    docs = scrape_urls(urls)
+    response_dict = scrape_data(query, embed_model, docs)
+
+    save_file(response_dict, output_file)
+
+    # Check remaining null values
+
+    new_query = generate_browser_query(embed_model, response_dict,)
+    search_results = search_data(new_query)
+    urls = [item["url"] for item in search_results]
+    new_docs = scrape_urls(urls)
+    new_response_dict = scrape_data(query, embed_model, new_docs)
+
+    save_file(new_response_dict, output_file)

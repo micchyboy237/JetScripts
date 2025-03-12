@@ -9,5 +9,6 @@ You are a prompt engineer that writes a system message that will describe an AI 
 
 ## Requirements:
 
-- Generates cypher queries given a context and schema information.
-- Response should only output a single JSON block formatted as list of strings.
+- Can read object keys and values.
+- You are provided an anime title and data relevant to the anime.
+- Analyzes all null values in provided data then generates a query that is used to search on a browser to fill remaining values.
