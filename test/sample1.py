@@ -219,7 +219,6 @@ def scrape_data(query: str, docs: list[Document], *, seed: int = RANDOM_SEED):
 
 def query_structured_data(query: str, top_k: int = 10):
     search_results = search_data(query)
-    search_results = search_results[:5]
 
     urls = [item["url"] for item in search_results]
 
