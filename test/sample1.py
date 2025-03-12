@@ -1,8 +1,12 @@
 import json
 import random
+
+from tqdm import tqdm
 import hrequests
 from jet.actions.generation import call_ollama_chat
+from jet.scrapers.browser.playwright import PageContent, scrape_sync, setup_sync_browser_page
 from jet.scrapers.preprocessor import extract_header_contents, get_header_contents, scrape_markdown
+from jet.search.scraper import scrape_url
 from jet.search.searxng import SearchResult, search_searxng
 from jet.utils.class_utils import class_to_string
 from llama_index.core.prompts.base import PromptTemplate
@@ -21,7 +25,6 @@ from jet.token.token_utils import filter_texts, get_model_max_tokens, split_text
 from jet.transformers.formatters import format_json
 from jet.file.utils import load_file, save_file
 from jet.transformers.object import make_serializable
-from jet.utils.commands import copy_to_clipboard
 from jet.wordnet.similarity import search_similarities
 from jet.llm.ollama.base import Ollama
 from langchain_core.documents import Document
@@ -98,7 +101,13 @@ def search_data(query) -> list[SearchResult]:
             "port": 3101
         },
     )
-    return results
+    results_dict = {
+        f"URL: {result["url"]}\n{result["title"]}\n{result["content"]}": result for result in results}
+    rerank_candidates = list(results_dict.keys())
+    reranked_results = search_similarities(
+        query, candidates=rerank_candidates, model_name=rerank_model)
+    final_results = [results_dict[item["text"]] for item in reranked_results]
+    return final_results
 
 
 def html_extractor(html_str):
@@ -110,13 +119,36 @@ def html_extractor(html_str):
 
 
 def scrape_urls(urls: list[str]) -> list[Document]:
+    # all_docs: list[Document] = []
+    # for url in urls:
+    #     loader = RecursiveUrlLoader(
+    #         url=url, max_depth=2, extractor=lambda x: html_extractor(x)
+    #     )
+    #     docs = loader.load()
+    #     all_docs.extend(docs)
+    # return all_docs
+
+    rerank_candidates: list[str] = []
+    for url in tqdm(urls, desc="Scraping urls", unit="URL"):
+        html_str = scrape_url(url)
+        markdown = scrape_markdown(html_str)
+        header_contents = extract_header_contents(markdown["content"])
+
+        if not header_contents:
+            continue
+
+        rerank_candidates.extend([result["content"]
+                                 for result in header_contents])
+        # splitted_rerank_candidates = split_texts(rerank_candidates, rerank_model)
+
+    reranked_results = search_similarities(
+        query, candidates=rerank_candidates, model_name=rerank_model)
+    reranked_header_contents = [item["text"] for item in reranked_results]
+
     all_docs: list[Document] = []
-    for url in urls:
-        loader = RecursiveUrlLoader(
-            url=url, max_depth=2, extractor=lambda x: html_extractor(x)
-        )
-        docs = loader.load()
-        all_docs.extend(docs)
+    for content in reranked_header_contents:
+        all_docs.append(Document(page_content=content))
+
     return all_docs
 
 
@@ -137,60 +169,13 @@ def generate_browser_query(model: str, data: dict, *, seed: int = RANDOM_SEED) -
     return response
 
 
-def scrape_data(query: str, embed_model: str, docs: list[Document], *, seed: int = RANDOM_SEED):
+def scrape_data(query: str, docs: list[Document], *, seed: int = RANDOM_SEED):
     texts = [clean_text(doc.page_content) for doc in docs]
-
-    # max_tokens = 0.5
-    chunk_size = OLLAMA_MODEL_EMBEDDING_TOKENS[embed_model]
-    chunk_overlap = 100
-    chunk_buffer: int = token_counter(query, embed_model)
-    top_k = 10
-
-    splitted_texts = split_texts(
-        texts, embed_model, chunk_size, chunk_overlap, buffer=chunk_buffer)
-    logger.log("splitted_texts:", len(
-        splitted_texts), colors=["GRAY", "DEBUG"])
-
-    # Vector search
-
-    search = VectorSemanticSearch(
-        candidates=splitted_texts, embed_model=embed_model)
-    fusion_results = search.fusion_search(query)
-    logger.newline()
-    logger.orange(f"Fusion Search Results ({len(fusion_results)}):")
-
-    embed_results: list[str] = []
-    for query_idx, (query_line, group) in enumerate(fusion_results.items()):
-        embed_results.extend([g["text"] for g in group])
-
-        logger.newline()
-        logger.log(" -", f"Query {query_idx}:",
-                   query_line, colors=["GRAY", "GRAY", "DEBUG"])
-        for result in group:
-            logger.log("  +", f"{result['text'][:25]}:", f"{
-                result['score']:.4f}", colors=["GRAY", "WHITE", "SUCCESS"])
-    embed_results = embed_results[:top_k]
-
-    # Rerank search
-
-    chunk_size = get_model_max_tokens(rerank_model)
-    chunk_overlap = 0
-
-    rerank_candidates = split_texts(
-        embed_results, rerank_model, chunk_size, chunk_overlap, buffer=chunk_buffer)
-    reranked_results = search_similarities(
-        query, candidates=rerank_candidates, model_name=rerank_model)
-    logger.newline()
-    logger.orange(f"Rerank Results ({len(reranked_results)}):")
-    for result in reranked_results:
-        logger.log("  +", f"{result['text'][:25]}:", f"{
-            result['score']:.4f}", colors=["GRAY", "WHITE", "SUCCESS"])
-
     # LLM Query
 
     max_llm_tokens = 0.8
     contexts: list[str] = filter_texts(
-        rerank_candidates, llm_model, max_llm_tokens)
+        texts, llm_model, max_llm_tokens)
     context = "\n\n".join(contexts)
 
     llm = Ollama(model=llm_model)
@@ -219,8 +204,8 @@ def scrape_data(query: str, embed_model: str, docs: list[Document], *, seed: int
         },
     )
     response_dict = make_serializable(response)
-    copy_to_clipboard(response_dict)
     logger.success(format_json(response_dict))
+    return response_dict
 
 
 if __name__ == "__main__":
@@ -235,19 +220,21 @@ if __name__ == "__main__":
     query = f"Anime: \"{title}\"\n\nSchema:\n{class_to_string(output_cls)}"
 
     search_results = search_data(query)
+    search_results = search_results[:5]
+
     urls = [item["url"] for item in search_results]
 
     docs = scrape_urls(urls)
-    response_dict = scrape_data(query, embed_model, docs)
+    response_dict = scrape_data(query, docs)
 
     save_file(response_dict, output_file)
 
     # Check remaining null values
 
-    new_query = generate_browser_query(embed_model, response_dict,)
+    new_query = generate_browser_query(embed_model, response_dict)
     search_results = search_data(new_query)
     urls = [item["url"] for item in search_results]
     new_docs = scrape_urls(urls)
-    new_response_dict = scrape_data(query, embed_model, new_docs)
+    new_response_dict = scrape_data(query, new_docs)
 
     save_file(new_response_dict, output_file)
