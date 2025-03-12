@@ -38,11 +38,10 @@ RANDOM_SEED = 42
 
 class Episode(BaseModel):
     episode_number: int
-    title: str
+    season_number: int
+    title: Optional[str] = None
     synopsis: Optional[str] = None
     air_date: Optional[date] = None
-    duration_minutes: Optional[int] = None
-    thumbnail_url: Optional[HttpUrl] = None
 
 
 class Season(BaseModel):
@@ -55,7 +54,7 @@ class Season(BaseModel):
 
 class AnimeDetails(BaseModel):
     title: str
-    seasons: List[Season] = []
+    episodes: List[Episode] = []
 
 # class Anime(BaseModel):
 #     id: int
@@ -196,7 +195,7 @@ def scrape_data(query: str, docs: list[Document], *, seed: int = RANDOM_SEED):
         "Given the context information, schema and not prior knowledge, "
         "answer the query.\n"
         "The generated JSON must pass the provided schema when validated.\n"
-        "Use null for empty values.\n"
+        "Use null for unavailable values.\n"
         "Query: {query_str}\n"
         "Answer: "
     )
@@ -266,7 +265,7 @@ def fill_null_values(data: dict):
 
     search_keys_str = ", ".join(
         [key.replace('.', ' ').replace('_', ' ') for key in null_keys])
-    query = f"\"{data.get('title', '')}\" anime {search_keys_str}"
+    query = f"Anime \"{title}\" episodes {search_keys_str}"
 
     response_dict = query_structured_data(query)
     original_data = data.copy()
@@ -289,23 +288,28 @@ if __name__ == "__main__":
 
     embed_model = "mxbai-embed-large"
     rerank_model = "all-minilm:33m"
-    llm_model = "llama3.2"
+    llm_model = "mistral"
 
     output_file = "generated/search_web_data.json"
 
     title = "I'll Become a Villainess Who Goes Down in History"
 
+    # query = f"Anime \"{title}\" seasons and episodes"
+    # output_cls = Anime
+    # response_dict = query_structured_data(query)
+    # save_file(response_dict, output_file)
+    # # Check remaining null values
+    # response_dict = fill_null_values(response_dict)
+    # save_file(response_dict, output_file)
+
+    keywords = [
+        "title",
+        "synopsis",
+        "air_date",
+    ]
     search_keys_str = ", ".join(
         [key.replace('.', ' ').replace('_', ' ') for key in keywords])
-    query = f"Anime \"{title}\" seasons and episodes"
-
-    output_cls = Anime
-    response_dict = query_structured_data(query)
-    save_file(response_dict, output_file)
-    # Check remaining null values
-    response_dict = fill_null_values(response_dict)
-    save_file(response_dict, output_file)
-
+    query = f"Anime \"{title}\" season 1 episodes 1-13 {search_keys_str}"
     output_cls = AnimeDetails
     response_dict = query_structured_data(query)
     save_file(response_dict, output_file)
