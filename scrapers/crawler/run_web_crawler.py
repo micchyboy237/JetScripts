@@ -17,29 +17,22 @@ if __name__ == "__main__":
     ]
 
     includes_all = ["*villainess*", "*down*", "*history*"]
-    excludes = ["*login*", "*signup*"]
+    excludes = []
     max_depth = None
 
     for start_url in urls:
         crawler = WebCrawler(start_url,
                              excludes=excludes, includes_all=includes_all, max_depth=max_depth)
 
-        output_file = f"generated/web_crawler/{crawler.host_name}_urls.json"
+        output_file = f"generated/crawl/{crawler.host_name}_urls.json"
         batch_size = 5
         batch_count = 0
 
-        for url in crawler.crawl(crawler.base_url):
-            batch_count += 1
-            if batch_count % batch_size == 0:
-                batch_count = 0
-                logger.info(
-                    f"Saving {len(crawler.passed_urls)} pages to {output_file}")
-                sorted_urls = sort_urls_numerically(crawler.passed_urls)
-                save_data(output_file, sorted_urls, write=True)
-
-        logger.info(
-            f"Final save: {len(crawler.passed_urls)} pages to {output_file}")
-        sorted_urls = sort_urls_numerically(crawler.passed_urls)
-        save_data(output_file, sorted_urls, write=True)
+        results = []
+        for result in crawler.crawl(crawler.base_url):
+            logger.info(
+                f"Saving {len(crawler.passed_urls)} pages to {output_file}")
+            results.append(result)
+            save_data(output_file, results, write=True)
 
         crawler.close()
