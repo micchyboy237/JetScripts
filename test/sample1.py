@@ -1,4 +1,10 @@
-from typing import Optional
+from jet.utils.class_utils import class_to_string
+from llama_index.core.prompts.base import PromptTemplate
+from pydantic.main import BaseModel
+from pydantic import BaseModel, HttpUrl
+from typing import List, Optional
+from datetime import date
+
 from jet.actions.vector_semantic_search import VectorSemanticSearch
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
 from jet.logger import logger
@@ -6,11 +12,56 @@ from jet.scrapers.utils import clean_text
 from jet.token.token_utils import filter_texts, get_model_max_tokens, split_texts, token_counter
 from jet.transformers.formatters import format_json
 from jet.file.utils import load_file, save_file
+from jet.transformers.object import make_serializable
+from jet.utils.commands import copy_to_clipboard
 from jet.wordnet.similarity import search_similarities
 from jet.llm.ollama.base import Ollama
-from llama_index.core.prompts.base import PromptTemplate
-from pydantic.main import BaseModel
 
+
+# class Episode(BaseModel):
+#     episode_number: int
+#     title: str
+#     synopsis: Optional[str] = None
+#     air_date: Optional[date] = None
+#     duration_minutes: Optional[int] = None
+#     thumbnail_url: Optional[HttpUrl] = None
+
+
+# class Season(BaseModel):
+#     season_number: int
+#     title: str
+#     episodes: List[Episode]
+#     release_date: Optional[date] = None
+#     end_date: Optional[date] = None
+
+
+# class Anime(BaseModel):
+#     id: int
+#     title: str
+#     synopsis: str
+#     genre: List[str]
+#     studio: Optional[str] = None
+#     status: str  # Example: "Ongoing", "Completed", "Upcoming"
+#     release_date: Optional[date] = None
+#     end_date: Optional[date] = None
+#     total_episodes: Optional[int] = None
+#     seasons: List[Season] = []
+#     poster_url: Optional[HttpUrl] = None
+#     trailer_url: Optional[HttpUrl] = None
+#     rating: Optional[float] = None  # Example: IMDb/MAL rating
+
+
+class Anime(BaseModel):
+    title: str
+    seasons: int
+    episodes: int
+    synopsis: Optional[str] = None
+    genre: Optional[List[str]] = None
+    release_date: Optional[date] = None
+    end_date: Optional[date] = None
+
+
+output_cls = Anime
 
 if __name__ == "__main__":
     embed_model = "mxbai-embed-large"
@@ -19,7 +70,7 @@ if __name__ == "__main__":
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/langchain/cookbook/generated/RAPTOR/docs_texts.json"
 
     title = "I'll Become a Villainess Who Goes Down in History"
-    query = f"How many seasons and episodes does \"{title}\" anime have?"
+    query = f"Anime: \"{title}\"\n\nSchema:\n{class_to_string(output_cls)}"
 
     # max_tokens = 0.5
     chunk_size = OLLAMA_MODEL_EMBEDDING_TOKENS[embed_model]
@@ -69,14 +120,12 @@ if __name__ == "__main__":
             result['score']:.4f}", colors=["GRAY", "WHITE", "SUCCESS"])
 
     # LLM Query
-    class AnimeDetails(BaseModel):
-        seasons: int
-        episodes: int
-        additional_info: Optional[str] = None
+    # class Anime(BaseModel):
+    #     seasons: int
+    #     episodes: int
+    #     additional_info: Optional[str] = None
 
-    output_cls = AnimeDetails
-
-    max_llm_tokens = 0.5
+    max_llm_tokens = 0.7
     contexts: list[str] = filter_texts(
         rerank_candidates, llm_model, max_llm_tokens)
     context = "\n\n".join(contexts)
@@ -103,6 +152,6 @@ if __name__ == "__main__":
             # "max_prediction_ratio": 0.5
         },
     )
-    logger.success(f"Seasons: {response.seasons}")
-    logger.success(f"Episodes: {response.episodes}")
-    logger.success(f"Additional Info: {response.additional_info}")
+    response_dict = make_serializable(response)
+    copy_to_clipboard(response_dict)
+    logger.success(format_json(response_dict))
