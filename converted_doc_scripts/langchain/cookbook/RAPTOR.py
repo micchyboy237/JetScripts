@@ -31,7 +31,7 @@ from langchain_core.documents import Document
 
 # initialize_ollama_settings()
 
-embed_model = "snowflake-arctic-embed:137m"
+embed_model = "mxbai-embed-large"
 llm_model = "llama3.1"
 
 title = "I'll Become a Villainess Who Goes Down in History"
