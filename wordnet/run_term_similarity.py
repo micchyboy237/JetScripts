@@ -4,9 +4,21 @@ from gensim.models import Word2Vec
 from gensim.similarities import SoftCosineSimilarity, SparseTermSimilarityMatrix, WordEmbeddingSimilarityIndex
 from gensim.models import TfidfModel
 from gensim.similarities.annoy import AnnoyIndexer
+from jet.logger import logger
+from jet.transformers.formatters import format_json
 
 if __name__ == '__main__':
-    model_path = 'generated/gensim_jet_phrase_model.pkl'
+    queries = [
+        "react_native",
+        "react_developer",
+        "react.js",
+        "react",
+        "mobile",
+        "node",
+        "web",
+    ]
+
+    model_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/wordnet/generated/gensim_jet_phrase_model.pkl"
     model = Word2Vec.load(model_path)
 
     dictionary = Dictionary(corpus)
@@ -27,6 +39,7 @@ if __name__ == '__main__':
     docsim_index = SoftCosineSimilarity(
         tfidf_corpus, similarity_matrix, num_best=10)  # index tfidf_corpus
 
-    query = 'graph trees computer'.split()  # make a query
     # find the ten closest documents from tfidf_corpus
-    sims = docsim_index[dictionary.doc2bow(query)]
+    sims = docsim_index[dictionary.doc2bow(queries)]
+
+    logger.success(format_json(sims))
