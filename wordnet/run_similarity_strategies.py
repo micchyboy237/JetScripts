@@ -1,3 +1,4 @@
+from jet.scrapers.utils import clean_newlines
 from jet.search.transformers import clean_string
 import numpy as np
 from gensim.similarities.annoy import AnnoyIndexer
@@ -18,17 +19,26 @@ from jet.search.similarity import get_bm25_similarities, get_cosine_similarities
 from shared.data_types.job import JobData
 
 
+def transform_queries(queries: list[str]):
+    transformed_queries = ["_".join(get_words(query.lower()))
+                           for query in queries]
+    return transformed_queries
+
+
 if __name__ == '__main__':
-    model_path = 'generated/gensim_jet_phrase_model.pkl'
+    model_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/wordnet/generated/gensim_jet_phrase_model.pkl"
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
     output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/wordnet/generated/run_similarity_strategies"
+    reset_cache = False
 
     data: list[JobData] = load_file(data_file)
 
     sentences_dict = {}
+    sentences = []
+    sentences_no_newline = []
 
     for item in data:
-        key = "\n".join([
+        sentence = "\n".join([
             item["title"],
             item["details"],
             "\n".join([
@@ -47,19 +57,14 @@ if __name__ == '__main__':
             ]),
         ])
 
-        cleaned_key = clean_string(key.lower())
-        cleaned_key = " ".join(get_words(key))
-        sentences_dict[cleaned_key] = item
+        cleaned_sentence = clean_string(sentence.lower())
+        cleaned_sentence_no_newlines = clean_newlines(
+            cleaned_sentence, max_newlines=0)
 
-    sentences = list(sentences_dict.keys())
+        sentences.append(cleaned_sentence)
+        sentences_no_newline.append(" ".join(get_words(cleaned_sentence)))
+
     print(f"Number of sentences: {len(sentences)}")
-
-    model_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/wordnet/generated/gensim_jet_phrase_model.pkl"
-
-    # Phrase search
-
-    detector = PhraseDetector(model_path, sentences)
-    phrase_grams = detector.get_phrase_grams()
 
     queries = [
         "React Native",
@@ -69,50 +74,51 @@ if __name__ == '__main__':
         # "React.js",
         # "Node.js",
     ]
+    queries = transform_queries(queries)
 
-    results = detector.detect_phrases(queries)
+    # Phrase search
+
+    detector = PhraseDetector(model_path, sentences, reset_cache=reset_cache)
+
+    results_generator = detector.detect_phrases(sentences)
+    for result in results_generator:
+        multi_gram_phrases = " ".join(result["phrases"])
+        orig_sentence = sentences_no_newline[result["index"]]
+        updated_sentence = orig_sentence + " " + multi_gram_phrases
+
+        orig_data = data[result["index"]]
+        sentences_dict[updated_sentence] = orig_data
+        sentences_no_newline[result["index"]] = updated_sentence
+
     results = detector.query(queries)
-
     save_file({"queries": queries, "results": results},
               f"{output_dir}/query-phrases.json")
 
     # Similarity search strategies
 
     # from gensim.test.utils import common_texts as corpus
-    corpus = [
-        [
-            word.lower()
-            for word in get_words(
-                "\n".join([
-                    item["title"],
-                    item["details"],
-                    "\n".join(item["entities"]["technology_stack"]),
-                    "\n".join(item["tags"]),
-                ])
-            )
-        ]
-        for item in data
-    ]
-
-    similarities = get_bm25_similarities(queries, sentences)
+    similarities = get_bm25_similarities(queries, sentences_no_newline)
     results = [
-        {"score": result["score"], **sentences_dict[result["text"]]}
+        {"score": result["score"], "text": result["text"],
+            "data": sentences_dict[result["text"]]}
         for result in similarities
     ]
     save_file({"queries": queries, "results": results},
               f"{output_dir}/bm25-similarities.json")
 
-    similarities = get_cosine_similarities(queries, sentences)
+    similarities = get_cosine_similarities(queries, sentences_no_newline)
     results = [
-        {"score": result["score"], **sentences_dict[result["text"]]}
+        {"score": result["score"], "text": result["text"],
+            "data": sentences_dict[result["text"]]}
         for result in similarities
     ]
     save_file({"queries": queries, "results": results},
               f"{output_dir}/cosine-similarities.json")
 
-    similarities = get_annoy_similarities(queries, sentences)
+    similarities = get_annoy_similarities(queries, sentences_no_newline)
     results = [
-        {"score": result["score"], **sentences_dict[result["text"]]}
+        {"score": result["score"], "text": result["text"],
+            "data": sentences_dict[result["text"]]}
         for result in similarities
     ]
     save_file({"queries": queries, "results": results},
