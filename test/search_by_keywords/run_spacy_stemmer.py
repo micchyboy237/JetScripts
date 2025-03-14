@@ -1,10 +1,19 @@
-import spacy
+from jet.logger import logger
+from jet.transformers.formatters import format_json
+from jet.wordnet.words import get_spacy_words
 
-# nlp = spacy.load("en_core_web_sm")
-nlp = spacy.load("en_core_web_md")
 
-text = "React.js and JavaScript are used in web development."
-doc = nlp(text)
+if __name__ == "__main__":
+    text = "React.js and JavaScript are used in web development."
+    results = get_spacy_words(text)
 
-for token in doc:
-    print(token.text, "->", token.lemma_)
+    logger.newline()
+    logger.debug(f"Results 1 ({len(results)})")
+    logger.success(format_json(results))
+
+    text = "About the role\nRevitPay is seeking a talented and experienced\nSenior Software Engineer (Back-End Developer)\nto join our innovative technology team.\nThis is a full-time role based in Mandaluyong City\n, with the opportunity to work in a collaborative and fast-paced environment. As a Senior Software Engineer, you will play a crucial role in designing, developing, and maintaining the robust back-end infrastructure that powers our cutting-edge financial technology platform.\nWhat you'll be doing:\nDesign, develop, and maintain robust APIs for internal and external usage, implementing security measures such as API keys and OAuth.\nUtilize strong logical reasoning to apply best practices in application flow, including the use of DTOs (Data Transfer Objects) and fixtures.\nImplement and adhere to RESTful principles in API design.\nCollaborate with front-end developers and other team members to ensure seamless integration and functionality.\nLeverage AWS services including Lambda, SQS, SES, and S3 to enhance application performance and scalability.\nUtilize Docker for containerization and management of applications.\nManage version control using Git/GitHub.\nEmploy AI tools like Copilot to improve coding efficiency and productivity.\nWork with Postgres for database management and operations.\nOptional: Explore AWS Textract, Kysely, Prisma, and React to enhance project capabilities.\nWhat we're looking for:\nStrong English verbal and written communication skills.\nBachelor's degree graduate or equivalent.\nAt least 8 years of experience as a back-end developer, with a preference for 10+ years.\nProven experience in back-end development with\nNode.js\n,\nNestJS\n,\nNext.js\n, and\nTypeScript\n.\nExpertise in creating and consuming APIs, with a focus on security and best practices.\nStrong understanding of GraphQL and RESTful API principles.\nFamiliarity with\nAWS services\n, particularly Lambda, SQS, SES, and S3.\nProficiency with Docker and Git/GitHub.\nExperience with JWT tokens for authentication and authorization.\nKnowledge of Supabase or Firebase is a plus.\nOptional/Beneficial Knowledge:\nFamiliarity with AWS Textract, Kysely, Prisma, and React.\nWhat we offer:\nAt RevitPay, we are committed to fostering a diverse and inclusive work environment that values innovation, collaboration, and growth. We offer competitive compensation, comprehensive health and wellness benefits, and opportunities for career advancement. Our employees enjoy a flexible work arrangement, generous leave policies, and access to cutting-edge technologies and industry-leading training programs. Join our dynamic team and be a part of the future of financial technology.\nSchedule:\n8 hour shift\nDay shift I 7:00 AM-4:00 PM PH Time or\nNight shift l 9:00 PM-6:00 AM PH Time\nMonday to Friday\nApply now to become our next Senior Software Engineer (Back-End Developer) at RevitPay!\n\n## Employer questions\nYour application will include the following questions:\n* What's your expected monthly basic salary?\n* Which of the following types of qualifications do you have?\n* How many years' experience do you have as a Backend Engineer?\n* Which of the following front end development libraries and frameworks are you proficient in?\n* Which of the following Relational Database Management Systems (RDBMS) are you experienced with?\n* Do you have experience working on data migration projects?\n* Which of the following programming languages are you experienced in?\n* Which of the following statements best describes your right to work in the Philippines?"
+    results = get_spacy_words(text)
+
+    logger.newline()
+    logger.debug(f"Results 2 ({len(results)})")
+    logger.success(format_json(results))
