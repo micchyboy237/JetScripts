@@ -5,9 +5,11 @@ from jet.wordnet.words import get_spacy_words
 from shared.data_types.job import JobData
 
 
+spacy_model = "en_core_web_md"
+
 if __name__ == "__main__":
     text = "React.js and JavaScript are used in web development."
-    results = get_spacy_words(text)
+    results = get_spacy_words(text, spacy_model)
 
     logger.newline()
     logger.debug(f"Results 1 ({len(results)})")
@@ -42,7 +44,7 @@ if __name__ == "__main__":
     ]
 
     for idx, sentence in enumerate(sentences):
-        results = get_spacy_words(sentence)
+        results = get_spacy_words(sentence, spacy_model)
 
         logger.newline()
         logger.debug(f"Sentence {idx + 1} ({len(results)})")

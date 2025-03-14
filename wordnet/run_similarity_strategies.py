@@ -9,7 +9,7 @@ from gensim.models import TfidfModel, OkapiBM25Model
 from gensim.similarities import SparseMatrixSimilarity
 from jet.utils.commands import copy_to_clipboard
 from jet.wordnet.gensim_scripts.phrase_detector import PhraseDetector
-from jet.file.utils import load_file
+from jet.file.utils import load_file, save_file
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 from jet.wordnet.words import get_words
@@ -20,6 +20,8 @@ from shared.data_types.job import JobData
 if __name__ == '__main__':
     model_path = 'generated/gensim_jet_phrase_model.pkl'
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/wordnet/generated/run_similarity_strategies"
+
     data: list[JobData] = load_file(data_file)
 
     sentences = [
@@ -47,37 +49,32 @@ if __name__ == '__main__':
 
     model_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/wordnet/generated/gensim_jet_phrase_model.pkl"
 
-    detector = PhraseDetector(model_path)
+    # Phrase search
+
+    detector = PhraseDetector(model_path, sentences)
     phrase_grams = detector.get_phrase_grams()
 
     queries = [
+        "Web development",
+        "React.js",
         # "Mobile development",
-        # "Web development",
         # "React Native",
-        # "React.js",
-        # "Node.js",
-        "react_native",
-        "react_developer",
-        "react.js",
-        "react",
-        "mobile",
-        "node",
-        "web",
+        "Node.js",
+
+        # "react_native",
+        # "react_developer",
+        # "react.js",
+        # "react",
+        # "mobile",
+        # "node",
+        # "web",
     ]
 
-    results_dict = {query: [] for query in queries}
-    for phrase, score in phrase_grams.items():
-        for query in queries:
-            if query in phrase:
-                results_dict[query].append({
-                    "phrase": phrase,
-                    "score": score,
-                })
+    results = detector.query(queries)
 
-    copy_to_clipboard(results_dict)
-    logger.newline()
-    logger.success(format_json(results_dict))
-    logger.debug(f"Phrase grams: {len(phrase_grams)}")
+    save_file(results, f"{output_dir}/query-phrases.json")
+
+    # Similarity search strategies
 
     # from gensim.test.utils import common_texts as corpus
     corpus = [
@@ -96,16 +93,10 @@ if __name__ == '__main__':
     ]
 
     similarities = get_bm25_similarities(queries, corpus)
-    logger.newline()
-    logger.debug("BM25 Similarities:")
-    logger.success(format_json(similarities[:5]))
+    save_file(similarities, f"{output_dir}/bm25-similarities.json")
 
     similarities = get_cosine_similarities(queries, corpus)
-    logger.newline()
-    logger.debug("Cosine Similarities:")
-    logger.success(format_json(similarities[:5]))
+    save_file(similarities, f"{output_dir}/cosine-similarities.json")
 
     similarities = get_annoy_similarities(queries, corpus)
-    logger.newline()
-    logger.debug("Annoy Similarities:")
-    logger.success(format_json(similarities[:5]))
+    save_file(similarities, f"{output_dir}/annoy-similarities.json")
