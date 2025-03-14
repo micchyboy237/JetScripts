@@ -6,7 +6,10 @@ from gensim.models import TfidfModel
 from gensim.similarities.annoy import AnnoyIndexer
 from jet.logger import logger
 from jet.transformers.formatters import format_json
-
+max=1.0
+min=0.0
+shape=(180,)
+size=180
 if __name__ == '__main__':
     queries = [
         "react_native",

@@ -1,3 +1,4 @@
+import numpy as np
 from gensim.similarities.annoy import AnnoyIndexer
 from gensim.models import TfidfModel
 from gensim.similarities import SoftCosineSimilarity, SparseTermSimilarityMatrix, WordEmbeddingSimilarityIndex
@@ -46,18 +47,12 @@ def get_bm25_similarities(queries: list[str], corpus: list[list[str]]) -> list[S
 
 
 def get_annoy_similarities(queries: list[str], corpus: list[list[str]]) -> list[SimilarityResult]:
-    # Train Word2Vec model on the corpus
     model = Word2Vec(sentences=corpus, vector_size=100,
                      window=5, min_count=1, workers=4)
 
     dictionary = Dictionary(corpus)
     tfidf = TfidfModel(dictionary=dictionary)
 
-    # # Extract word vectors for Annoy indexing
-    # word_vectors = {word: model.wv[word]
-    #                 for word in dictionary.token2id if word in model.wv}
-
-    # Use Annoy for fast similarity lookups
     indexer = AnnoyIndexer(model.wv, num_trees=2)
     termsim_index = WordEmbeddingSimilarityIndex(
         model.wv, kwargs={'indexer': indexer})
@@ -70,7 +65,14 @@ def get_annoy_similarities(queries: list[str], corpus: list[list[str]]) -> list[
     results = []
     for query in queries:
         bow_query = dictionary.doc2bow(query.split())
-        sims = docsim_index[bow_query]
+
+        if not bow_query:
+            logger.warning(
+                f"Query '{query}' resulted in an empty BoW representation, skipping.")
+            continue
+
+        # Ensure sims is always an iterable array
+        sims = np.atleast_1d(docsim_index[bow_query])
 
         ranked_results = sorted(
             [{"text": " ".join(corpus[i]), "score": float(score)}
@@ -182,14 +184,14 @@ if __name__ == '__main__':
     similarities = get_bm25_similarities(queries, corpus)
     logger.newline()
     logger.debug("BM25 Similarities:")
-    logger.success(format_json(similarities))
+    logger.success(format_json(similarities[:5]))
 
     similarities = get_cosine_similarities(queries, corpus)
     logger.newline()
     logger.debug("Cosine Similarities:")
-    logger.success(format_json(similarities))
+    logger.success(format_json(similarities[:5]))
 
     similarities = get_annoy_similarities(queries, corpus)
     logger.newline()
     logger.debug("Annoy Similarities:")
-    logger.success(format_json(similarities))
+    logger.success(format_json(similarities[:5]))
