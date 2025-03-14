@@ -1,3 +1,4 @@
+from jet.search.transformers import clean_string
 import numpy as np
 from gensim.similarities.annoy import AnnoyIndexer
 from gensim.models import TfidfModel
@@ -24,8 +25,10 @@ if __name__ == '__main__':
 
     data: list[JobData] = load_file(data_file)
 
-    sentences = [
-        "\n".join([
+    sentences_dict = {}
+
+    for item in data:
+        key = "\n".join([
             item["title"],
             item["details"],
             "\n".join([
@@ -43,8 +46,12 @@ if __name__ == '__main__':
                 )
             ]),
         ])
-        for item in data
-    ]
+
+        cleaned_key = clean_string(key.lower())
+        cleaned_key = " ".join(get_words(key))
+        sentences_dict[cleaned_key] = item
+
+    sentences = list(sentences_dict.keys())
     print(f"Number of sentences: {len(sentences)}")
 
     model_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/wordnet/generated/gensim_jet_phrase_model.pkl"
@@ -55,31 +62,26 @@ if __name__ == '__main__':
     phrase_grams = detector.get_phrase_grams()
 
     queries = [
-        "Web development",
-        "React.js",
-        # "Mobile development",
-        # "React Native",
-        "Node.js",
+        "React Native",
+        "Mobile development",
 
-        # "react_native",
-        # "react_developer",
-        # "react.js",
-        # "react",
-        # "mobile",
-        # "node",
-        # "web",
+        # "Web development",
+        # "React.js",
+        # "Node.js",
     ]
 
+    results = detector.detect_phrases(queries)
     results = detector.query(queries)
 
-    save_file(results, f"{output_dir}/query-phrases.json")
+    save_file({"queries": queries, "results": results},
+              f"{output_dir}/query-phrases.json")
 
     # Similarity search strategies
 
     # from gensim.test.utils import common_texts as corpus
     corpus = [
         [
-            word
+            word.lower()
             for word in get_words(
                 "\n".join([
                     item["title"],
@@ -92,11 +94,26 @@ if __name__ == '__main__':
         for item in data
     ]
 
-    similarities = get_bm25_similarities(queries, corpus)
-    save_file(similarities, f"{output_dir}/bm25-similarities.json")
+    similarities = get_bm25_similarities(queries, sentences)
+    results = [
+        {"score": result["score"], **sentences_dict[result["text"]]}
+        for result in similarities
+    ]
+    save_file({"queries": queries, "results": results},
+              f"{output_dir}/bm25-similarities.json")
 
-    similarities = get_cosine_similarities(queries, corpus)
-    save_file(similarities, f"{output_dir}/cosine-similarities.json")
+    similarities = get_cosine_similarities(queries, sentences)
+    results = [
+        {"score": result["score"], **sentences_dict[result["text"]]}
+        for result in similarities
+    ]
+    save_file({"queries": queries, "results": results},
+              f"{output_dir}/cosine-similarities.json")
 
-    similarities = get_annoy_similarities(queries, corpus)
-    save_file(similarities, f"{output_dir}/annoy-similarities.json")
+    similarities = get_annoy_similarities(queries, sentences)
+    results = [
+        {"score": result["score"], **sentences_dict[result["text"]]}
+        for result in similarities
+    ]
+    save_file({"queries": queries, "results": results},
+              f"{output_dir}/annoy-similarities.json")
