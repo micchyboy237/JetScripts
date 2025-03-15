@@ -19,12 +19,6 @@ from jet.search.similarity import get_bm25_similarities, get_cosine_similarities
 from shared.data_types.job import JobData
 
 
-def transform_queries(queries: list[str]):
-    transformed_queries = ["_".join(get_words(query.lower()))
-                           for query in queries]
-    return transformed_queries
-
-
 if __name__ == '__main__':
     model_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/wordnet/generated/gensim_jet_phrase_model.pkl"
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
@@ -74,7 +68,6 @@ if __name__ == '__main__':
         # "React.js",
         # "Node.js",
     ]
-    queries = transform_queries(queries)
 
     # Phrase search
 
@@ -95,6 +88,9 @@ if __name__ == '__main__':
               f"{output_dir}/query-phrases.json")
 
     # Similarity search strategies
+
+    queries = detector.extract_phrases(queries)
+    # queries = detector.transform_queries(queries)
 
     # from gensim.test.utils import common_texts as corpus
     similarities = get_bm25_similarities(queries, sentences_no_newline)
