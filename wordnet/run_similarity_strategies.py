@@ -81,7 +81,7 @@ if __name__ == '__main__':
         sentences_no_newline[result["index"]] = updated_sentence
 
     results = detector.query(queries)
-    save_file({"queries": queries, "results": results},
+    save_file({"queries": queries, "count": len(results), "results": results},
               f"{output_dir}/query-phrases.json")
 
     # Similarity search strategies
@@ -99,7 +99,7 @@ if __name__ == '__main__':
         }
         for result in similarities
     ]
-    save_file({"queries": queries, "results": results},
+    save_file({"queries": queries, "count": len(results), "results": results},
               f"{output_dir}/bm25-similarities.json")
 
     similarities = get_cosine_similarities(queries, sentences_no_newline)
@@ -111,7 +111,7 @@ if __name__ == '__main__':
         }
         for result in similarities
     ]
-    save_file({"queries": queries, "results": results},
+    save_file({"queries": queries, "count": len(results), "results": results},
               f"{output_dir}/cosine-similarities.json")
 
     similarities = get_annoy_similarities(queries, sentences_no_newline)
@@ -123,5 +123,5 @@ if __name__ == '__main__':
         }
         for result in similarities
     ]
-    save_file({"queries": queries, "results": results},
+    save_file({"queries": queries, "count": len(results), "results": results},
               f"{output_dir}/annoy-similarities.json")
