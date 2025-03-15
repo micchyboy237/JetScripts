@@ -52,9 +52,6 @@ if __name__ == '__main__':
         ])
 
         cleaned_sentence = clean_string(sentence.lower())
-        cleaned_sentence_no_newlines = clean_newlines(
-            cleaned_sentence, max_newlines=0)
-
         sentences.append(cleaned_sentence)
         sentences_no_newline.append(" ".join(get_words(cleaned_sentence)))
 
