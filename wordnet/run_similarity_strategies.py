@@ -92,7 +92,11 @@ if __name__ == '__main__':
     # from gensim.test.utils import common_texts as corpus
     similarities = get_bm25_similarities(queries, sentences_no_newline)
     results = [
-        {**result, "data": sentences_dict[result["text"]]}
+        {
+            **result,
+            "matched": [query for query in queries if query in result["text"]],
+            "data": sentences_dict[result["text"]]
+        }
         for result in similarities
     ]
     save_file({"queries": queries, "results": results},
@@ -100,7 +104,11 @@ if __name__ == '__main__':
 
     similarities = get_cosine_similarities(queries, sentences_no_newline)
     results = [
-        {**result, "data": sentences_dict[result["text"]]}
+        {
+            **result,
+            "matched": [query for query in queries if query in result["text"]],
+            "data": sentences_dict[result["text"]]
+        }
         for result in similarities
     ]
     save_file({"queries": queries, "results": results},
@@ -108,7 +116,11 @@ if __name__ == '__main__':
 
     similarities = get_annoy_similarities(queries, sentences_no_newline)
     results = [
-        {**result, "data": sentences_dict[result["text"]]}
+        {
+            **result,
+            "matched": [query for query in queries if query in result["text"]],
+            "data": sentences_dict[result["text"]]
+        }
         for result in similarities
     ]
     save_file({"queries": queries, "results": results},
