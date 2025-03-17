@@ -1,9 +1,26 @@
 # %pip install llama-index-llms-openai
 # %pip install llama-index-llms-huggingface-api
+from llama_index.core.evaluation import BatchEvalRunner
+from llama_index.core.evaluation import (
+    CorrectnessEvaluator,
+    FaithfulnessEvaluator,
+    RelevancyEvaluator,
+)
+from typing import List, Dict
+from collections import Counter
+from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
+from llama_index.core.llama_dataset import LabelledRagDataset
+import tiktoken
+from llama_index.core.callbacks import CallbackManager, TokenCountingHandler
+import re
+from typing import Tuple
+from llama_index.llms.openai import OpenAI
+import os
+from llama_index.llms.huggingface_api import HuggingFaceInferenceAPI
+from llama_index.core.llama_dataset import download_llama_dataset
 import nest_asyncio
 
 nest_asyncio.apply()
-from llama_index.core.llama_dataset import download_llama_dataset
 
 paul_graham_rag_dataset, paul_graham_documents = download_llama_dataset(
     "PaulGrahamEssayDataset", "./data/paul_graham"
@@ -12,7 +29,6 @@ paul_graham_rag_dataset, paul_graham_documents = download_llama_dataset(
 llama2_rag_dataset, llama2_documents = download_llama_dataset(
     "Llama2PaperDataset", "./data/llama2"
 )
-from llama_index.llms.huggingface_api import HuggingFaceInferenceAPI
 
 HF_TOKEN = "YOUR HF TOKEN"
 HF_ENDPOINT_URL = (
@@ -44,22 +60,8 @@ prometheus_correctness_eval_prompt_template = """###Task Description: An instruc
     		Score 4: If the generated answer is relevant to the user query and has the exact same metrics as the reference answer, but it is not as concise.
             Score 5: If the generated answer is relevant to the user query and fully correct according to the reference answer.
     
-prometheus_correctness_eval_prompt_template = """###Task Description: An instruction (might include an Input inside it), a query, a response to evaluate, a reference answer that gets a score of 5, and a score rubric representing a evaluation criteria are given. 
-			1. Write a detailed feedback that assesses the quality of the response strictly based on the given score rubric, not evaluating in general. 
-			2. After writing a feedback, write a score that is either 1 or 2 or 3 or 4 or 5. You should refer to the score rubric. 
-			3. The output format should look as follows: "Feedback: (write a feedback for criteria) [RESULT] (1 or 2 or 3 or 4 or 5)" 
-			4. Please do not generate any other opening, closing, and explanations. 
-            5. Only evaluate on common things between generated answer and reference answer. Don't evaluate on things which are present in reference answer but not in generated answer.
+prometheus_correctness_eval_prompt_template = """
 
-			
-
-            
-            Score 1: If the generated answer is not relevant to the user query and reference answer.
-            Score 2: If the generated answer is correct according to reference answer but not relevant to user query.
-            Score 3: If the generated answer is relevant to the user query and correct according to reference answer but has some mistakes in facts.
-    		Score 4: If the generated answer is relevant to the user query and has the exact same metrics and correct as the reference answer, but it is not as concise.
-            Score 5: If the generated answer is relevant to the user query and fully correct according to the reference answer.
-    
 prometheus_faithfulness_eval_prompt_template = """###Task Description: An instruction (might include an Input inside it), an information, a context, and a score rubric representing evaluation criteria are given. 
 	        1. You are provided with evaluation task with the help of information, context information to give result based on score rubrics.
             2. Write a detailed feedback based on evaluation task and the given score rubric, not evaluating in general. 
@@ -74,20 +76,8 @@ prometheus_faithfulness_eval_prompt_template = """###Task Description: An instru
         Score NO: If the given piece of information is not supported by context
     
 
-prometheus_faithfulness_refine_prompt_template = """###Task Description: An instruction (might include an Input inside it), a information, a context information, an existing answer, and a score rubric representing a evaluation criteria are given. 
-			1. You are provided with evaluation task with the help of information, context information and an existing answer.
-            2. Write a detailed feedback based on evaluation task and the given score rubric, not evaluating in general.
-			3. After writing a feedback, write a score that is YES or NO. You should refer to the score rubric. 
-			4. The output format should look as follows: "Feedback: (write a feedback for criteria) [RESULT] (YES or NO)" 
-			5. Please do not generate any other opening, closing, and explanations. 
+prometheus_faithfulness_refine_prompt_template = """
 
-
-
-
-            
-            Score YES: If the existing answer is already YES or If the Information is present in the context.
-            Score NO: If the existing answer is NO and If the Information is not present in the context.
-    
 prometheus_relevancy_eval_prompt_template = """###Task Description: An instruction (might include an Input inside it), a query with response, context, and a score rubric representing evaluation criteria are given. 
             1. You are provided with evaluation task with the help of a query with response and context.
             2. Write a detailed feedback based on evaluation task and the given score rubric, not evaluating in general. 
@@ -102,28 +92,13 @@ prometheus_relevancy_eval_prompt_template = """###Task Description: An instructi
         Score NO: If the response for the query is not in line with the context information provided.
     
 
-prometheus_relevancy_refine_prompt_template = """###Task Description: An instruction (might include an Input inside it), a query with response, context, an existing answer, and a score rubric representing a evaluation criteria are given. 
-			1. You are provided with evaluation task with the help of a query with response and context and an existing answer.
-            2. Write a detailed feedback based on evaluation task and the given score rubric, not evaluating in general. 
-			3. After writing a feedback, write a score that is YES or NO. You should refer to the score rubric. 
-			4. The output format should look as follows: "Feedback: (write a feedback for criteria) [RESULT] (YES or NO)" 
-			5. Please do not generate any other opening, closing, and explanations. 
+prometheus_relevancy_refine_prompt_template = """
 
-
-
-            
-            Score YES: If the existing answer is already YES or If the response for the query is in line with the context information provided.
-            Score NO: If the existing answer is NO and If the response for the query is in line with the context information provided.
-    
-import os
 
 os.environ["OPENAI_API_KEY"] = "YOUR OPENAI API KEY"
 
-from llama_index.llms.openai import OpenAI
 
 gpt4_llm = OpenAI("gpt-4")
-from typing import Tuple
-import re
 
 
 def parser_function(output_str: str) -> Tuple[float, str]:
@@ -137,13 +112,6 @@ def parser_function(output_str: str) -> Tuple[float, str]:
         return score, feedback.strip()
     else:
         return None, None
-from llama_index.core.evaluation import (
-    CorrectnessEvaluator,
-    FaithfulnessEvaluator,
-    RelevancyEvaluator,
-)
-from llama_index.core.callbacks import CallbackManager, TokenCountingHandler
-import tiktoken
 
 
 prometheus_correctness_evaluator = CorrectnessEvaluator(
@@ -198,8 +166,6 @@ gpt4_evaluators = {
     "faithfulness": gpt4_faithfulness_evaluator,
     "relevancy": gpt4_relevancy_evaluator,
 }
-from llama_index.core.llama_dataset import LabelledRagDataset
-from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
 
 
 def create_query_engine_rag_dataset(dataset_path):
@@ -214,7 +180,6 @@ def create_query_engine_rag_dataset(dataset_path):
     query_engine = index.as_query_engine()
 
     return query_engine, rag_dataset
-from llama_index.core.evaluation import BatchEvalRunner
 
 
 async def batch_eval_runner(
@@ -229,8 +194,6 @@ async def batch_eval_runner(
     )
 
     return eval_results
-from collections import Counter
-from typing import List, Dict
 
 
 def get_scores_distribution(scores: List[float]) -> Dict[str, float]:
@@ -244,6 +207,8 @@ def get_scores_distribution(scores: List[float]) -> Dict[str, float]:
     }
 
     return percentage_distribution
+
+
 def get_eval_results(key, eval_results):
     results = eval_results[key]
     correct = 0
@@ -253,10 +218,14 @@ def get_eval_results(key, eval_results):
     score = correct / len(results)
     print(f"{key} Score: {round(score, 2)}")
     return score
+
+
 def hamming_distance(list1, list2):
     if len(list1) != len(list2):
         raise ValueError("Lists must be of the same length")
     return sum(el1 != el2 for el1, el2 in zip(list1, list2))
+
+
 query_engine, rag_dataset = create_query_engine_rag_dataset(
     "./data/paul_graham"
 )

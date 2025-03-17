@@ -4,6 +4,7 @@ import fnmatch
 import argparse
 import subprocess
 import re
+import ast
 from jet.logger import logger
 
 exclude_files = [
@@ -65,10 +66,19 @@ def find_files(base_dir, include, exclude, include_content_patterns, exclude_con
         dirs[:] = [d for d in dirs if not any(
             fnmatch.fnmatch(d, pat) or fnmatch.fnmatch(os.path.join(root, d), pat) for pat in adjusted_exclude)]
 
-        # Check for files in the current directory that match the include patterns without wildcard support
+        # Check for files that match the include patterns (including wildcard patterns)
         for file in files:
             file_path = os.path.relpath(os.path.join(root, file), base_dir)
-            if file_path in adjusted_include and not any(fnmatch.fnmatch(file_path, pat) for pat in adjusted_exclude):
+
+            # Use fnmatch to match against wildcard patterns in include list
+            is_wildcard_matched = any(fnmatch.fnmatch(
+                file_path, pat) for pat in include)
+
+            # Absolute path matching when using wildcards
+            absolute_include_matched = any(fnmatch.fnmatch(os.path.abspath(
+                file_path), os.path.abspath(pat)) for pat in include if "*" in pat)
+
+            if (file_path in adjusted_include or is_wildcard_matched or absolute_include_matched) and not any(fnmatch.fnmatch(file_path, pat) for pat in adjusted_exclude):
                 if not any(file_path in matched_path for matched_path in matched_files):
                     matched_files.add(file_path)  # Add to the set
                     # print(f"Matched file in current directory: {file_path}")
@@ -214,12 +224,12 @@ def clean_print(content):
 
 def clean_content(content: str, file_path: str, shorten_funcs: bool = True):
     """Clean the content based on file type and apply various cleaning operations."""
+    if shorten_funcs and file_path.endswith(".py"):
+        content = shorten_functions(content)
     if not file_path.endswith(".md"):
         content = clean_comments(content)
     content = clean_logging(content)
     # content = clean_print(content)
-    if shorten_funcs and file_path.endswith(".py"):
-        content = shorten_functions(content)
     return content
 
 
@@ -228,15 +238,89 @@ def remove_parent_paths(path: str) -> str:
         *(part for part in os.path.normpath(path).split(os.sep) if part != ".."))
 
 
+# def shorten_functions(content):
+#     """Keeps only function and class definitions, including those with return type annotations."""
+#     pattern = re.compile(
+#         r'^\s*(class\s+\w+\s*:|(?:async\s+)?def\s+\w+\s*\((?:[^)(]*|\([^)(]*\))*\)\s*(?:->\s*[\w\[\],\s]+)?\s*:)', re.MULTILINE
+#     )
+#     matches = pattern.findall(content)
+#     cleaned_content = "\n".join(matches)
+#     cleaned_content = re.sub(r'\n+', '\n', cleaned_content)
+#     result = cleaned_content.strip()
+#     return result
+
+
 def shorten_functions(content):
-    """Keeps only function and class definitions, including those with return type annotations."""
-    pattern = re.compile(
-        r'^\s*(class\s+\w+\s*:|(?:async\s+)?def\s+\w+\s*\((?:[^)(]*|\([^)(]*\))*\)\s*(?:->\s*[\w\[\],\s]+)?\s*:)', re.MULTILINE
-    )
-    matches = pattern.findall(content)
-    cleaned_content = "\n".join(matches)
-    cleaned_content = re.sub(r'\n+', '\n', cleaned_content)
-    return cleaned_content.strip()
+    """Extracts function and class definitions from Python code, 
+    including full signatures, return/yield statements, 
+    and unique assignments from class instantiations or method calls."""
+
+    tree = ast.parse(content)
+    content_lines = content.splitlines()
+    definitions = []
+    seen_calls = set()  # Tracks seen obj.method() or ClassName() calls
+    seen_objects = set()  # Tracks seen object names for assignments
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            start_line = node.lineno - 1
+            end_line = node.body[0].lineno - 1
+
+            # Collect function/class signature lines
+            signature_lines = content_lines[start_line:end_line]
+
+            # Track return and yield statements
+            return_yield_lines = []
+
+            for subnode in ast.walk(node):
+                if isinstance(subnode, (ast.Return, ast.Yield, ast.YieldFrom)):
+                    return_start = subnode.lineno - 1
+                    return_end = getattr(
+                        subnode, 'end_lineno', return_start) - 1
+                    return_yield_lines.extend(
+                        content_lines[return_start:return_end + 1])
+
+            full_definition = "\n".join(
+                line.rstrip() for line in signature_lines + return_yield_lines)
+            definitions.append(full_definition)
+
+        elif isinstance(node, ast.Assign):
+            # Ensure assignment is from an object method call OR class instantiation
+            if isinstance(node.value, ast.Call):
+                call_name = None
+
+                # Case 1: Method call on an object (obj.method())
+                if isinstance(node.value.func, ast.Attribute):
+                    if isinstance(node.value.func.value, ast.Name):
+                        call_name = f"{node.value.func.value.id}.{node.value.func.attr}"
+
+                # Case 2: Class instantiation (ClassName())
+                elif isinstance(node.value.func, ast.Name):
+                    call_name = node.value.func.id
+
+                # Check for duplicates based on method name and object
+                if call_name and call_name not in seen_calls:
+                    seen_calls.add(call_name)
+                    start_line = node.lineno - 1
+                    end_line = start_line + 1
+                    signature_lines = content_lines[start_line:end_line]
+                    definitions.append("\n".join(line.rstrip()
+                                       for line in signature_lines))
+
+            # Case: Simple object assignment (e.g., obj1 = MyClass())
+            elif isinstance(node.value, ast.Name):
+                obj_name = node.value.id
+
+                # Only add object assignments if they are unique
+                if obj_name not in seen_objects:
+                    seen_objects.add(obj_name)
+                    start_line = node.lineno - 1
+                    end_line = start_line + 1
+                    signature_lines = content_lines[start_line:end_line]
+                    definitions.append("\n".join(line.rstrip()
+                                       for line in signature_lines))
+
+    return "\n".join(definitions)
 
 
 def get_file_length(file_path, shorten_funcs):

@@ -1,3 +1,19 @@
+from llama_index.core.evaluation import BatchEvalRunner
+from llama_index.core.evaluation import (
+    CorrectnessEvaluator,
+    FaithfulnessEvaluator,
+    RelevancyEvaluator,
+)
+from typing import List, Dict
+from collections import Counter
+from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
+from llama_index.core.llama_dataset import LabelledRagDataset
+import tiktoken
+from llama_index.core.callbacks import CallbackManager, TokenCountingHandler
+import re
+from typing import Tuple
+from jet.llm.ollama.base import Ollama
+import os
 from llama_index.llms.huggingface_api import HuggingFaceInferenceAPI
 from llama_index.core.llama_dataset import download_llama_dataset
 import nest_asyncio
@@ -65,41 +81,23 @@ prometheus_llm = HuggingFaceInferenceAPI(
 #
 # We will use same prompts for Prometheus model and GPT-4 to make consistent performance comparision.
 
-# Correctness Evaluation Prompt
-
-prometheus_correctness_eval_prompt_template = """###Task Description: An instruction (might include an Input inside it), a query, a response to evaluate, a reference answer that gets a score of 5, and a score rubric representing a evaluation criteria are given.
-			1. Write a detailed feedback that assesses the quality of the response strictly based on the given score rubric, not evaluating in general.
-			2. After writing a feedback, write a score that is either 1 or 2 or 3 or 4 or 5. You should refer to the score rubric.
-			3. The output format should look as follows: "Feedback: (write a feedback for criteria) [RESULT] (1 or 2 or 3 or 4 or 5)"
-			4. Please do not generate any other opening, closing, and explanations.
-            5. Only evaluate on common things between generated answer and reference answer. Don't evaluate on things which are present in reference answer but not in generated answer.
-
-
-
-
-            Score 1: If the generated answer is not relevant to the user query and reference answer.
-            Score 2: If the generated answer is according to reference answer but not relevant to user query.
-            Score 3: If the generated answer is relevant to the user query and reference answer but contains mistakes.
-    		Score 4: If the generated answer is relevant to the user query and has the exact same metrics as the reference answer, but it is not as concise.
-            Score 5: If the generated answer is relevant to the user query and fully correct according to the reference answer.
-
-prometheus_correctness_eval_prompt_template = """  # Task Description: An instruction (might include an Input inside it), a query, a response to evaluate, a reference answer that gets a score of 5, and a score rubric representing a evaluation criteria are given.
-			1. Write a detailed feedback that assesses the quality of the response strictly based on the given score rubric, not evaluating in general.
-			2. After writing a feedback, write a score that is either 1 or 2 or 3 or 4 or 5. You should refer to the score rubric.
-			3. The output format should look as follows: "Feedback: (write a feedback for criteria) [RESULT] (1 or 2 or 3 or 4 or 5)"
-			4. Please do not generate any other opening, closing, and explanations.
+prometheus_correctness_eval_prompt_template = """###Task Description: An instruction (might include an Input inside it), a query, a response to evaluate, a reference answer that gets a score of 5, and a score rubric representing a evaluation criteria are given. 
+			1. Write a detailed feedback that assesses the quality of the response strictly based on the given score rubric, not evaluating in general. 
+			2. After writing a feedback, write a score that is either 1 or 2 or 3 or 4 or 5. You should refer to the score rubric. 
+			3. The output format should look as follows: "Feedback: (write a feedback for criteria) [RESULT] (1 or 2 or 3 or 4 or 5)" 
+			4. Please do not generate any other opening, closing, and explanations. 
             5. Only evaluate on common things between generated answer and reference answer. Don't evaluate on things which are present in reference answer but not in generated answer.
 
 			
 
             
             Score 1: If the generated answer is not relevant to the user query and reference answer.
-            Score 2: If the generated answer is correct according to reference answer but not relevant to user query.
-            Score 3: If the generated answer is relevant to the user query and correct according to reference answer but has some mistakes in facts.
-    		Score 4: If the generated answer is relevant to the user query and has the exact same metrics and correct as the reference answer, but it is not as concise.
+            Score 2: If the generated answer is according to reference answer but not relevant to user query.
+            Score 3: If the generated answer is relevant to the user query and reference answer but contains mistakes.
+    		Score 4: If the generated answer is relevant to the user query and has the exact same metrics as the reference answer, but it is not as concise.
             Score 5: If the generated answer is relevant to the user query and fully correct according to the reference answer.
-
-### Faithfulness Evaluation Prompt
+    
+prometheus_correctness_eval_prompt_template = """
 
 prometheus_faithfulness_eval_prompt_template = """###Task Description: An instruction (might include an Input inside it), an information, a context, and a score rubric representing evaluation criteria are given. 
 	        1. You are provided with evaluation task with the help of information, context information to give result based on score rubrics.
@@ -115,21 +113,7 @@ prometheus_faithfulness_eval_prompt_template = """###Task Description: An instru
         Score NO: If the given piece of information is not supported by context
     
 
-prometheus_faithfulness_refine_prompt_template = """###Task Description: An instruction (might include an Input inside it), a information, a context information, an existing answer, and a score rubric representing a evaluation criteria are given. 
-			1. You are provided with evaluation task with the help of information, context information and an existing answer.
-            2. Write a detailed feedback based on evaluation task and the given score rubric, not evaluating in general.
-			3. After writing a feedback, write a score that is YES or NO. You should refer to the score rubric. 
-			4. The output format should look as follows: "Feedback: (write a feedback for criteria) [RESULT] (YES or NO)" 
-			5. Please do not generate any other opening, closing, and explanations. 
-
-
-
-
-            
-            Score YES: If the existing answer is already YES or If the Information is present in the context.
-            Score NO: If the existing answer is NO and If the Information is not present in the context.
-
-### Relevancy Evaluation Prompt
+prometheus_faithfulness_refine_prompt_template = """
 
 prometheus_relevancy_eval_prompt_template = """###Task Description: An instruction (might include an Input inside it), a query with response, context, and a score rubric representing evaluation criteria are given. 
             1. You are provided with evaluation task with the help of a query with response and context.
@@ -145,35 +129,17 @@ prometheus_relevancy_eval_prompt_template = """###Task Description: An instructi
         Score NO: If the response for the query is not in line with the context information provided.
     
 
-prometheus_relevancy_refine_prompt_template = """###Task Description: An instruction (might include an Input inside it), a query with response, context, an existing answer, and a score rubric representing a evaluation criteria are given. 
-			1. You are provided with evaluation task with the help of a query with response and context and an existing answer.
-            2. Write a detailed feedback based on evaluation task and the given score rubric, not evaluating in general. 
-			3. After writing a feedback, write a score that is YES or NO. You should refer to the score rubric. 
-			4. The output format should look as follows: "Feedback: (write a feedback for criteria) [RESULT] (YES or NO)" 
-			5. Please do not generate any other opening, closing, and explanations. 
+prometheus_relevancy_refine_prompt_template = """
 
-
-
-            
-            Score YES: If the existing answer is already YES or If the response for the query is in line with the context information provided.
-            Score NO: If the existing answer is NO and If the response for the query is in line with the context information provided.
-
-# Set Ollama Key for indexing
-
-import os
 
 # os.environ["OPENAI_API_KEY"] = "YOUR OPENAI API KEY"
 
-from jet.llm.ollama.base import Ollama
 
 gpt4_llm = Ollama(model="llama3.1")
 
-## Define parser function 
-# 
+# Define parser function
+#
 # It will be used in correctness evaluator.
-
-from typing import Tuple
-import re
 
 
 def parser_function(output_str: str) -> Tuple[float, str]:
@@ -188,15 +154,7 @@ def parser_function(output_str: str) -> Tuple[float, str]:
     else:
         return None, None
 
-## Define Correctness, FaithFulness, Relevancy Evaluators
-
-from llama_index.core.evaluation import (
-    CorrectnessEvaluator,
-    FaithfulnessEvaluator,
-    RelevancyEvaluator,
-)
-from llama_index.core.callbacks import CallbackManager, TokenCountingHandler
-import tiktoken
+# Define Correctness, FaithFulness, Relevancy Evaluators
 
 
 prometheus_correctness_evaluator = CorrectnessEvaluator(
@@ -252,10 +210,7 @@ gpt4_evaluators = {
     "relevancy": gpt4_relevancy_evaluator,
 }
 
-## Let's create a function to create `query_engine` and `rag_dataset` for different datasets.
-
-from llama_index.core.llama_dataset import LabelledRagDataset
-from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
+# Let's create a function to create `query_engine` and `rag_dataset` for different datasets.
 
 
 def create_query_engine_rag_dataset(dataset_path):
@@ -271,9 +226,7 @@ def create_query_engine_rag_dataset(dataset_path):
 
     return query_engine, rag_dataset
 
-## Function to run batch evaluations on defined evaluators
-
-from llama_index.core.evaluation import BatchEvalRunner
+# Function to run batch evaluations on defined evaluators
 
 
 async def batch_eval_runner(
@@ -289,10 +242,7 @@ async def batch_eval_runner(
 
     return eval_results
 
-## Function to check the distribution of scores
-
-from collections import Counter
-from typing import List, Dict
+# Function to check the distribution of scores
 
 
 def get_scores_distribution(scores: List[float]) -> Dict[str, float]:
@@ -307,7 +257,8 @@ def get_scores_distribution(scores: List[float]) -> Dict[str, float]:
 
     return percentage_distribution
 
-## Function to check correctness, faithfulness and relevancy evaluation score
+# Function to check correctness, faithfulness and relevancy evaluation score
+
 
 def get_eval_results(key, eval_results):
     results = eval_results[key]
@@ -319,14 +270,16 @@ def get_eval_results(key, eval_results):
     print(f"{key} Score: {round(score, 2)}")
     return score
 
-## Function to compute `Hamming Distance`.
+# Function to compute `Hamming Distance`.
+
 
 def hamming_distance(list1, list2):
     if len(list1) != len(list2):
         raise ValueError("Lists must be of the same length")
     return sum(el1 != el2 for el1, el2 in zip(list1, list2))
 
-## Evaluation on PaulGraham Essay text
+# Evaluation on PaulGraham Essay text
+
 
 query_engine, rag_dataset = create_query_engine_rag_dataset(
     "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/retrievers/data"
@@ -336,7 +289,7 @@ questions = [example.query for example in rag_dataset.examples]
 
 reference = [[example.reference_answer] for example in rag_dataset.examples]
 
-### Compute Correctness, Faithfulness and Relevancy Evaluation
+# Compute Correctness, Faithfulness and Relevancy Evaluation
 
 prometheus_eval_results = await batch_eval_runner(
     prometheus_evaluators, query_engine, questions, reference
@@ -346,19 +299,19 @@ gpt4_eval_results = await batch_eval_runner(
     gpt4_evaluators, query_engine, questions, reference
 )
 
-### Correctness Evaluation score distribution with Prometheus Evaluator.
+# Correctness Evaluation score distribution with Prometheus Evaluator.
 
 prometheus_scores = [
     result.score for result in prometheus_eval_results["correctness"]
 ]
 get_scores_distribution(prometheus_scores)
 
-### Correctness Evaluation score distribution with GPT-4 Evaluator.
+# Correctness Evaluation score distribution with GPT-4 Evaluator.
 
 gpt4_scores = [result.score for result in gpt4_eval_results["correctness"]]
 get_scores_distribution(gpt4_scores)
 
-### Feedback comparision between prometheus and gpt-4.
+# Feedback comparision between prometheus and gpt-4.
 
 query = prometheus_eval_results["correctness"][0].query
 response = prometheus_eval_results["correctness"][0].response
@@ -378,24 +331,24 @@ print(
 )
 print(f"GPT-4 Feedback: {gpt4_feedback} \n\n {gpt4_score}")
 
-#### Observation:
-# 
+# Observation:
+#
 # The feedback from Prometheus is more detailed, noting that certain specifics were omitted in the generated response, resulting in a score of `3.0`. Conversely, GPT-4's feedback is broader and less specific, awarding a score of `5.0`, despite the absence of some details.
 
-### Prometheus Faithfulness and Relevancy Evaluation scores.
+# Prometheus Faithfulness and Relevancy Evaluation scores.
 
 _ = get_eval_results("faithfulness", prometheus_eval_results)
 
 _ = get_eval_results("relevancy", prometheus_eval_results)
 
-### GPT-4 Faithfulness and Relevancy Evaluation scores.
+# GPT-4 Faithfulness and Relevancy Evaluation scores.
 
 _ = get_eval_results("faithfulness", gpt4_eval_results)
 
 _ = get_eval_results("relevancy", gpt4_eval_results)
 
-### Hamming Distance comparison between Prometheus and GPT-4
-# 
+# Hamming Distance comparison between Prometheus and GPT-4
+#
 # (Lower the better)
 
 prometheus_faithfulness_scores = [
@@ -422,11 +375,11 @@ relevancy_hamming_distance = hamming_distance(
 print(f"Faithfulness Hamming Distance: {faithfulness_hamming_distance}")
 print(f"Relevancy Hamming Distance: {relevancy_hamming_distance}")
 
-#### Observation:
-# 
+# Observation:
+#
 # The comparison reveals that approximately `77%` and `81%` of the scores are common in case of both `Faithfulness` and `Relevancy` between Prometheus and GPT-4 evaluations respectively. This indicates a decent correlation in terms of faithfulness and relevance scoring between the Prometheus and GPT-4 models.
 
-### GPT-4 Cost analysis
+# GPT-4 Cost analysis
 
 prompt_token_count = token_counter.prompt_llm_token_count
 completion_token_count = token_counter.completion_llm_token_count
@@ -437,7 +390,7 @@ total_cost_paul_graham_essay = (
 
 token_counter.reset_counts()
 
-## Evaluation with Llama2 paper
+# Evaluation with Llama2 paper
 
 query_engine, rag_dataset = create_query_engine_rag_dataset("./data/llama2")
 
@@ -445,7 +398,7 @@ questions = [example.query for example in rag_dataset.examples]
 
 reference = [[example.reference_answer] for example in rag_dataset.examples]
 
-### Compute Correctness, Faithfulness and Relevancy Evaluation
+# Compute Correctness, Faithfulness and Relevancy Evaluation
 
 prometheus_eval_results = await batch_eval_runner(
     prometheus_evaluators, query_engine, questions, reference
@@ -455,19 +408,19 @@ gpt4_eval_results = await batch_eval_runner(
     gpt4_evaluators, query_engine, questions, reference
 )
 
-### Correctness Evaluation score distribution with Prometheus Evaluator.
+# Correctness Evaluation score distribution with Prometheus Evaluator.
 
 prometheus_scores = [
     result.score for result in prometheus_eval_results["correctness"]
 ]
 get_scores_distribution(prometheus_scores)
 
-### Correctness Evaluation score distribution with GPT-4 Evaluator.
+# Correctness Evaluation score distribution with GPT-4 Evaluator.
 
 gpt4_scores = [result.score for result in gpt4_eval_results["correctness"]]
 get_scores_distribution(gpt4_scores)
 
-### Feedback comparison between prometheus and gpt-4 for correctness.
+# Feedback comparison between prometheus and gpt-4 for correctness.
 
 query = prometheus_eval_results["correctness"][0].query
 response = prometheus_eval_results["correctness"][0].response
@@ -487,23 +440,23 @@ print(
 )
 print(f"GPT-4 Feedback: {gpt4_feedback} \n\n {gpt4_score}")
 
-#### Observation:
-# 
+# Observation:
+#
 # The feedback from Prometheus is little more precise compared to GPT-4 and it penalises and gives a score of `3.0` but GPT-4 gives a score of `4.5`.
 
-### Prometheus Faithfulness and Relevancy Evaluation scores.
+# Prometheus Faithfulness and Relevancy Evaluation scores.
 
 _ = get_eval_results("faithfulness", prometheus_eval_results)
 
 _ = get_eval_results("relevancy", prometheus_eval_results)
 
-### GPT-4 Faithfulness and Relevancy Evaluation scores.
+# GPT-4 Faithfulness and Relevancy Evaluation scores.
 
 _ = get_eval_results("faithfulness", gpt4_eval_results)
 
 _ = get_eval_results("relevancy", gpt4_eval_results)
 
-### Hamming Distance comparison between Prometheus and GPT-4
+# Hamming Distance comparison between Prometheus and GPT-4
 
 prometheus_faithfulness_scores = [
     result.score for result in prometheus_eval_results["faithfulness"]
@@ -529,11 +482,11 @@ relevancy_hamming_distance = hamming_distance(
 print(f"Faithfulness Hamming Distance: {faithfulness_hamming_distance}")
 print(f"Relevancy Hamming Distance: {relevancy_hamming_distance}")
 
-#### Observation:
-# 
+# Observation:
+#
 # The comparison reveals that approximately `44%` of the scores in case of `Faithfulness` and `63%` in case of `Relevancy` are common between Prometheus and GPT-4 evaluations. This indicates a decent amount of correlation in terms of faithfulness and relevance scoring between the Prometheus and GPT-4 models.
 
-### Feedback comparison between prometheus and gpt-4 for faithfulness and relevancy
+# Feedback comparison between prometheus and gpt-4 for faithfulness and relevancy
 
 query = questions[0]
 
@@ -572,16 +525,16 @@ print(f"Prometheus Faithfulness Score: {prometheus_faithfulness_score}\n\n")
 print(f"Prometheus Relevancy Feedback: {prometheus_relevancy_feedback}\n\n")
 print(f"Prometheus Relevancy Score: {prometheus_relevancy_score}")
 
-#### If you compare the feedback and contexts, there is mention of range of parameters in the context and response but the feedback says the model could not find such information.
+# If you compare the feedback and contexts, there is mention of range of parameters in the context and response but the feedback says the model could not find such information.
 
 print(f"GPT-4 Faithfulness Feedback: {gpt4_faithfulness_feedback}\n\n")
 print(f"GPT-4 Faithfulness Score: {gpt4_faithfulness_score}\n\n")
 print(f"GPT-4 Relevancy Feedback: {gpt4_relevancy_feedback}\n\n")
 print(f"GPT-4 Relevancy Score: {gpt4_relevancy_score}")
 
-#### GPT-4 Evaluates it correctly, unlike prometheus model.
+# GPT-4 Evaluates it correctly, unlike prometheus model.
 
-### GPT-4 Cost analysis
+# GPT-4 Cost analysis
 
 prompt_token_count = token_counter.prompt_llm_token_count
 completion_token_count = token_counter.completion_llm_token_count
@@ -590,20 +543,20 @@ total_cost_llama2 = (
     prompt_token_count * 0.03 + completion_token_count * 0.06
 ) / 1000
 
-## Total Cost Analysis
+# Total Cost Analysis
 
-### Prometheus Model - `$2.167` for `144` queries (`44` for Paul Graham Essay and `100` for Llama2 paper) which accounts to `$0.015` per query.
+# Prometheus Model - `$2.167` for `144` queries (`44` for Paul Graham Essay and `100` for Llama2 paper) which accounts to `$0.015` per query.
 
-### GPT4 Model - `$22` (total_cost_paul_graham_essay + total_cost_llama2) - which accounts to `$0.15` per query.
+# GPT4 Model - `$22` (total_cost_paul_graham_essay + total_cost_llama2) - which accounts to `$0.15` per query.
 
-## Observation:
-# 
+# Observation:
+#
 # 1. The cost for evaluation (approx.): `$2.167` for Prometheus Model and `$22` for GPT4.
 # 2. The Prometheus model, though offering more detailed feedback than GPT-4, occasionally provides incorrect feedback, necessitating cautious application.
 # 3. If a generated answer lacks certain facts present in the reference answer, the Prometheus model applies stricter penalties to scores than GPT-4.
 # 4. The faithfulness and relevancy feedback of Promethes shows more hallucinations/ wrong interpretations in the feedback compared to GPT-4.
 # 5. The commonality between faithfulness and relevancy scores of Promethes and GPT-4 is different across two datasets and so should be used cautiously in production.
-# 
+#
 # Note: The endpoint on HF is served on AWS Nvidia A100G · 1x GPU · 80 GB which costs $6.5/h. We used [Prometheus model](https://huggingface.co/kaist-ai/prometheus-13b-v1.0) for the analysis here. We also made similar analysis with [GPTQ Quantized version](https://huggingface.co/TheBloke/prometheus-13B-v1.0-GPTQ) of [Prometheus model](https://huggingface.co/kaist-ai/prometheus-13b-v1.0) and observed abit more hallucinations in feedback compared to original unquantized model. Thanks to authors of the paper and [Tom Jobbins](https://twitter.com/TheBlokeAI) for providing the quantized version of the model.
 
 logger.info("\n\n[DONE]", bright=True)

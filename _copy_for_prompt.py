@@ -31,16 +31,7 @@ exclude_files = [
     ".*",
 ]
 include_files = [
-    # Client
-    "/Users/jethroestrada/Desktop/External_Projects/PortfolioBaseTemplates/firebase-resume/src/App.css",
-    "/Users/jethroestrada/Desktop/External_Projects/PortfolioBaseTemplates/firebase-resume/src/App.js",
-    # "/Users/jethroestrada/Desktop/External_Projects/PortfolioBaseTemplates/firebase-resume/src/hooks/vector/useQueryNodes.js",
-    "/Users/jethroestrada/Desktop/External_Projects/PortfolioBaseTemplates/firebase-resume/src/Components/sidebar/*",
-    "/Users/jethroestrada/Desktop/External_Projects/PortfolioBaseTemplates/firebase-resume/src/Components/vectors/*",
-    # Server
-    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/server/routes/rag.py",
-    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/server/helpers/rag.py",
-    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/server/app.py",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/evaluation/*.py",
 ]
 structure_include = [
     # "*.py"
@@ -51,38 +42,17 @@ include_content = []
 exclude_content = []
 
 # Args defaults
-SHORTEN_FUNCTS = False
+SHORTEN_FUNCTS = True
 INCLUDE_FILE_STRUCTURE = False
 
 DEFAULT_SYSTEM_MESSAGE = """
-Dont use prior knowledge or add to memory.
-Execute browse or internet search if requested.
 """.strip()
 
 DEFAULT_QUERY_MESSAGE = """
-Use React with types and CSS for the ff:
-- Create a reusable search component
-- Update useQueryNodes with types then reuse.
+Summarize each file code definitions and provide use cases for each.
 """.strip()
 
-# Project specific
-DEFAULT_QUERY_MESSAGE += (
-    "\n\nApplicable to html and css related code if generated:"
-    "\n- Render beautiful UI/UX in terms of element positions, color themes and contrasts, typography, font sizes, spacing, alignments, animations, and other modern conventions."
-)
-
 DEFAULT_INSTRUCTIONS_MESSAGE = """
-- Provide a step by step process of how you would solve the query.
-- Keep the code short, reusable, modular, testable, maintainable and optimized. Follow best practices and industry design patterns.
-- Install any libraries required to run the code.
-- You may update the code structure if necessary.
-- Reuse existing code if possible without breaking anything.
-- Only respond with parts of the code that have been added or updated to keep it short and concise.
-- Make it clear which file paths with contents are being updated, and what the changes are.
-- Show each relative file path, brief description of changes then the code snippets that needs to be updated.
-- Include real world usage examples if applicable.
-- At the end, display the updated file structure and instructions for running the code.
-- Ignore instructions that are not applicable to the query.
 """.strip()
 
 # For existing projects
