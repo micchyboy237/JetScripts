@@ -240,9 +240,10 @@ def query_structured_data(query: str, top_k: int = 10):
     # logger.newline()
     # logger.orange(f"Fusion Search Results ({len(reranked_header_contents)}):")
 
-    chunk_overlap = 100
+    chunk_size = 200
+    chunk_overlap = 50
     rerank_candidates = split_texts(
-        embed_texts, rerank_model, chunk_overlap=chunk_overlap)
+        embed_texts, rerank_model, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     reranked_texts = []
 
     reranked_results = search_similarities(
@@ -289,7 +290,7 @@ if __name__ == "__main__":
     rerank_model = "all-minilm:33m"
     llm_model = "mistral"
 
-    output_file = "generated/search_web_data.json"
+    output_file = "generated/search_web_data/output.json"
 
     title = "I'll Become a Villainess Who Goes Down in History"
 
