@@ -1,88 +1,99 @@
-import math
-from collections import Counter
-from typing import List, TypedDict
-from nltk.tokenize import word_tokenize
+import string
+import numpy as np
+from rank_bm25 import BM25Okapi
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from annoy import AnnoyIndex
+from sklearn.decomposition import TruncatedSVD
 
 
-class BM25SimilarityResult(TypedDict):
-    id: str
-    score: float
-    similarity: float
-    matched: List[str]
-    text: str
+# Preprocessing function
+def preprocess(text):
+    return text.translate(str.maketrans('', '', string.punctuation)).lower().split()
 
 
-def get_bm25_similarities(queries: List[str], documents: List[str], ids: List[str], *, k1=1.2, b=0.75, delta=1.0) -> List[BM25SimilarityResult]:
-    """
-    Compute BM25+ similarities between queries and a list of documents.
+# BM25 Reranking
+def bm25_rerank(query, documents):
+    corpus = [preprocess(doc) for doc in documents]
+    query_tokens = preprocess(query)
+    bm25 = BM25Okapi(corpus)
+    scores = bm25.get_scores(query_tokens)
+    return sorted(zip(documents, scores), key=lambda x: x[1], reverse=True)
 
-    Args:
-        queries (List[str]): List of query strings.
-        documents (List[str]): List of document strings.
-        ids (List[str]): List of document ids corresponding to the documents.
-        k1 (float): Term frequency scaling factor.
-        b (float): Length normalization parameter.
-        delta (float): BM25+ correction factor to reduce the bias against short documents.
 
-    Returns:
-        List[BM25SimilarityResult]: A list of dictionaries containing scores, similarities, matched queries, ids, and text.
-    """
-    # Tokenize queries & documents
-    tokenized_queries = [word_tokenize(q.lower()) for q in queries]
-    tokenized_docs = [word_tokenize(doc.lower()) for doc in documents]
+# TF-IDF Reranking
+def tfidf_rerank(query, documents):
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(documents + [query])
+    query_vector = tfidf_matrix[-1]
+    document_vectors = tfidf_matrix[:-1]
+    scores = (document_vectors @ query_vector.T).toarray().flatten()
+    return sorted(zip(documents, scores), key=lambda x: x[1], reverse=True)
 
-    doc_lengths = [len(doc) for doc in tokenized_docs]
-    avg_doc_len = sum(doc_lengths) / len(doc_lengths)
 
-    # Compute Document Frequency (DF)
-    df = {}
-    total_docs = len(documents)
+# Cosine Similarity Reranking
+def cosine_similarity_rerank(query, documents):
+    vectorizer = CountVectorizer()
+    vectors = vectorizer.fit_transform(documents + [query])
+    scores = cosine_similarity(vectors[-1], vectors[:-1]).flatten()
+    return sorted(zip(documents, scores), key=lambda x: x[1], reverse=True)
 
-    for doc in tokenized_docs:
-        for term in set(doc):  # Count only unique terms per document
-            df[term] = df.get(term, 0) + 1
 
-    # Precompute IDF values
-    idf = {term: math.log((total_docs - freq + 0.5) / (freq + 0.5) + 1)
-           for term, freq in df.items()}
+# Annoy Reranking
+def annoy_rerank(query, documents, num_trees=10):
+    vector_length = len(query.split())
+    annoy_index = AnnoyIndex(vector_length, 'angular')
 
-    all_scores: List[BM25SimilarityResult] = []
+    def doc_vector(doc):
+        return np.array([doc.count(word) for word in query.split()])
 
-    for idx, doc in enumerate(tokenized_docs):
-        doc_length = doc_lengths[idx]
-        term_frequencies = Counter(doc)
-        score = 0
-        matched_queries = []
+    for idx, doc in enumerate(documents):
+        annoy_index.add_item(idx, doc_vector(doc).tolist())
 
-        for query in tokenized_queries:
-            query_score = 0
+    annoy_index.build(num_trees)
+    query_vector = doc_vector(query)
+    nearest_neighbors = annoy_index.get_nns_by_vector(
+        query_vector.tolist(), len(documents), include_distances=True)
 
-            for term in query:
-                if term in idf:
-                    tf = term_frequencies[term]
-                    numerator = tf * (k1 + 1)
-                    denominator = tf + k1 * \
-                        (1 - b + b * (doc_length / avg_doc_len)) + delta
-                    query_score += idf[term] * (numerator / denominator)
+    return sorted(zip(documents, nearest_neighbors[1]), key=lambda x: x[1])
 
-            if query_score > 0:
-                matched_queries.append(" ".join(query))
 
-            score += query_score
+# Word Movers Distance (WMD) Reranking
+def wmd_rerank(query, documents):
+    vectorizer = CountVectorizer()
+    all_text = documents + [query]
+    vectors = vectorizer.fit_transform(all_text).toarray()
+    query_vector = vectors[-1]
+    document_vectors = vectors[:-1]
+    distances = np.linalg.norm(document_vectors - query_vector, axis=1)
+    return sorted(zip(documents, distances), key=lambda x: x[1])
 
-        if score > 0:
-            all_scores.append({
-                "id": ids[idx],
-                "score": score,
-                "similarity": score,
-                "matched": matched_queries,
-                "text": documents[idx]
-            })
 
-    # Normalize scores
-    if all_scores:
-        max_similarity = max(entry["score"] for entry in all_scores)
-        for entry in all_scores:
-            entry["score"] /= max_similarity if max_similarity > 0 else 1
+# Latent Semantic Analysis (LSA) Reranking
+def lsa_rerank(query, documents, n_components=2):
+    vectorizer = TfidfVectorizer(stop_words='english')
+    tfidf_matrix = vectorizer.fit_transform(documents + [query])
+    svd = TruncatedSVD(n_components=n_components)
+    lsa_matrix = svd.fit_transform(tfidf_matrix)
+    query_lsa = lsa_matrix[-1]
+    document_lsa = lsa_matrix[:-1]
+    scores = (document_lsa @ query_lsa.T).flatten()
+    return sorted(zip(documents, scores), key=lambda x: x[1], reverse=True)
 
-    return sorted(all_scores, key=lambda x: x["score"], reverse=True)
+
+# Example Test
+documents = [
+    "The quick brown fox jumps over the lazy dog",
+    "A fast fox leaps over a sleepy dog",
+    "Quick foxes are speedy animals",
+    "The fox was quick and ran fast",
+    "Lazy dogs sleep all day long"
+]
+query = "quick fox"
+
+print("BM25 Rerank:", bm25_rerank(query, documents))
+print("TF-IDF Rerank:", tfidf_rerank(query, documents))
+print("Cosine Similarity Rerank:", cosine_similarity_rerank(query, documents))
+print("Annoy Rerank:", annoy_rerank(query, documents))
+print("WMD Rerank:", wmd_rerank(query, documents))
+print("LSA Rerank:", lsa_rerank(query, documents))
