@@ -1,99 +1,117 @@
-import string
+from typing import Any, Optional
+from sklearn.feature_extraction.text import TfidfVectorizer
+from bs4 import BeautifulSoup
+from jet.file.utils import load_file
+from jet.logger import logger
+from jet.logger.timer import time_it
+from jet.search.transformers import clean_string
+from jet.token.token_utils import split_texts
+from jet.utils.commands import copy_to_clipboard
+from sentence_transformers import SentenceTransformer
+import faiss
 import numpy as np
-from rank_bm25 import BM25Okapi
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-from annoy import AnnoyIndex
-from sklearn.decomposition import TruncatedSVD
 
 
-# Preprocessing function
-def preprocess(text):
-    return text.translate(str.maketrans('', '', string.punctuation)).lower().split()
+class BertSearch:
+    def __init__(self, model_name="paraphrase-MiniLM-L12-v2"):
+        self.model_name = model_name
+        self.model = SentenceTransformer(model_name)
+        self.index = None
+        self.doc_texts = []
+        self.tfidf_vectorizer = None
+        self.tfidf_matrix = None
+
+    def build_index(self, docs, batch_size=32):
+        # self.doc_texts = split_texts(
+        #     docs, self.model_name, chunk_size=200, chunk_overlap=50)
+        self.doc_texts = docs
+
+        # Generate embeddings
+        embeddings = self.model.encode(
+            self.doc_texts, batch_size=batch_size, convert_to_numpy=True, normalize_embeddings=True
+        )
+
+        # Create FAISS index
+        d = embeddings.shape[1]
+        self.index = faiss.IndexFlatIP(d)
+        self.index.add(embeddings)
+
+        # Build TF-IDF Index
+        self.tfidf_vectorizer = TfidfVectorizer()
+        self.tfidf_matrix = self.tfidf_vectorizer.fit_transform(self.doc_texts)
+
+    def search(self, query: str, top_k: Optional[int] = None, alpha=0.7):
+        if self.index is None:
+            raise ValueError("Index is empty! Call build_index() first.")
+
+        top_k = min(top_k or len(self.doc_texts), len(self.doc_texts))
+
+        # Encode query
+        query_embedding = self.model.encode(
+            [query], convert_to_numpy=True, normalize_embeddings=True
+        )
+
+        # Perform FAISS search
+        scores, indices = self.index.search(query_embedding, top_k)
+
+        # Extract top documents
+        top_texts = [self.doc_texts[idx]
+                     for idx in indices[0] if idx < len(self.doc_texts)]
+
+        # Compute TF-IDF Scores
+        query_tfidf = self.tfidf_vectorizer.transform([query])
+        tfidf_scores = np.array(
+            (query_tfidf @ self.tfidf_matrix.T).toarray()).flatten()
+
+        # Combine FAISS + TF-IDF scores (weighted)
+        combined_scores = alpha * scores[0] + \
+            (1 - alpha) * tfidf_scores[indices[0]]
+
+        # Sort by combined score
+        sorted_indices = np.argsort(combined_scores)[::-1]
+        results = [
+            {"text": top_texts[i], "score": round(
+                float(combined_scores[i]), 4)}
+            for i in sorted_indices
+        ]
+
+        return results
 
 
-# BM25 Reranking
-def bm25_rerank(query, documents):
-    corpus = [preprocess(doc) for doc in documents]
-    query_tokens = preprocess(query)
-    bm25 = BM25Okapi(corpus)
-    scores = bm25.get_scores(query_tokens)
-    return sorted(zip(documents, scores), key=lambda x: x[1], reverse=True)
+if __name__ == "__main__":
+    # data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/generated/search_web_data/scraped_texts.json"
+    data = load_file(data_file)
+    docs = []
+    for item in data:
+        cleaned_sentence = clean_string(item)
+        docs.append(cleaned_sentence)
 
+    # Sample HTML docs
+    # docs = [
+    #     "<html><body><p>AI is transforming the world with deep learning.</p></body></html>",
+    #     "<html><body><p>Quantum computing is the future of high-performance computing.</p></body></html>",
+    #     "<html><body><p>Neural networks are a crucial part of artificial intelligence.</p></body></html>"
+    # ]
 
-# TF-IDF Reranking
-def tfidf_rerank(query, documents):
-    vectorizer = TfidfVectorizer()
-    tfidf_matrix = vectorizer.fit_transform(documents + [query])
-    query_vector = tfidf_matrix[-1]
-    document_vectors = tfidf_matrix[:-1]
-    scores = (document_vectors @ query_vector.T).toarray().flatten()
-    return sorted(zip(documents, scores), key=lambda x: x[1], reverse=True)
+    # Initialize search system
+    search_engine = BertSearch()
 
+    # Index the documents
+    search_engine.build_index(docs)
 
-# Cosine Similarity Reranking
-def cosine_similarity_rerank(query, documents):
-    vectorizer = CountVectorizer()
-    vectors = vectorizer.fit_transform(documents + [query])
-    scores = cosine_similarity(vectors[-1], vectors[:-1]).flatten()
-    return sorted(zip(documents, scores), key=lambda x: x[1], reverse=True)
+    # Perform a search
+    query = "Synopsis of \"I'll Become a Villainess Who Goes Down in History\" anime"
+    top_k = 10
 
+    results = search_engine.search(query, top_k=top_k)
 
-# Annoy Reranking
-def annoy_rerank(query, documents, num_trees=10):
-    vector_length = len(query.split())
-    annoy_index = AnnoyIndex(vector_length, 'angular')
+    copy_to_clipboard({
+        "count": len(results),
+        "data": results[:50]
+    })
 
-    def doc_vector(doc):
-        return np.array([doc.count(word) for word in query.split()])
-
-    for idx, doc in enumerate(documents):
-        annoy_index.add_item(idx, doc_vector(doc).tolist())
-
-    annoy_index.build(num_trees)
-    query_vector = doc_vector(query)
-    nearest_neighbors = annoy_index.get_nns_by_vector(
-        query_vector.tolist(), len(documents), include_distances=True)
-
-    return sorted(zip(documents, nearest_neighbors[1]), key=lambda x: x[1])
-
-
-# Word Movers Distance (WMD) Reranking
-def wmd_rerank(query, documents):
-    vectorizer = CountVectorizer()
-    all_text = documents + [query]
-    vectors = vectorizer.fit_transform(all_text).toarray()
-    query_vector = vectors[-1]
-    document_vectors = vectors[:-1]
-    distances = np.linalg.norm(document_vectors - query_vector, axis=1)
-    return sorted(zip(documents, distances), key=lambda x: x[1])
-
-
-# Latent Semantic Analysis (LSA) Reranking
-def lsa_rerank(query, documents, n_components=2):
-    vectorizer = TfidfVectorizer(stop_words='english')
-    tfidf_matrix = vectorizer.fit_transform(documents + [query])
-    svd = TruncatedSVD(n_components=n_components)
-    lsa_matrix = svd.fit_transform(tfidf_matrix)
-    query_lsa = lsa_matrix[-1]
-    document_lsa = lsa_matrix[:-1]
-    scores = (document_lsa @ query_lsa.T).flatten()
-    return sorted(zip(documents, scores), key=lambda x: x[1], reverse=True)
-
-
-# Example Test
-documents = [
-    "The quick brown fox jumps over the lazy dog",
-    "A fast fox leaps over a sleepy dog",
-    "Quick foxes are speedy animals",
-    "The fox was quick and ran fast",
-    "Lazy dogs sleep all day long"
-]
-query = "quick fox"
-
-print("BM25 Rerank:", bm25_rerank(query, documents))
-print("TF-IDF Rerank:", tfidf_rerank(query, documents))
-print("Cosine Similarity Rerank:", cosine_similarity_rerank(query, documents))
-print("Annoy Rerank:", annoy_rerank(query, documents))
-print("WMD Rerank:", wmd_rerank(query, documents))
-print("LSA Rerank:", lsa_rerank(query, documents))
+    for idx, result in enumerate(results[:10]):
+        logger.log(f"{idx + 1}:", result["text"]
+                   [:30], colors=["WHITE", "DEBUG"])
+        logger.success(f"{result['score']:.2f}")

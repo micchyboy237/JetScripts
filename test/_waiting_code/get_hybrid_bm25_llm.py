@@ -132,7 +132,7 @@ def prepare_inputs(queries: list[str]):
     # Load previous cache data
     cache_data = cache_manager.load_cache()
 
-    if not cache_manager.is_cache_valid(data_file, cache_data):
+    if not cache_manager.is_cache_valid():
         sentences = []
         for item in data:
             sentence = "\n".join([
@@ -152,8 +152,7 @@ def prepare_inputs(queries: list[str]):
         ]
 
         # Update the cache with the new n-grams
-        cache_data = cache_manager.update_cache(
-            data_file, common_texts_ngrams)
+        cache_data = cache_manager.update_cache(common_texts_ngrams)
     else:
         # Use the cached n-grams
         common_texts_ngrams = cache_data["common_texts_ngrams"]

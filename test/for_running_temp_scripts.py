@@ -157,7 +157,7 @@ def prepare_inputs(queries: list[str]):
     # Load previous cache data
     cache_data = cache_manager.load_cache()
 
-    if not cache_manager.is_cache_valid(data_file, cache_data):
+    if not cache_manager.is_cache_valid():
         sentences = []
         for item in data:
             sentence = "\n".join([
