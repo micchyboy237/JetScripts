@@ -222,11 +222,11 @@ def scrape_urls(urls: list[str], output_dir: str = "generated") -> list[str]:
     #         for doc in docs
     #         for header_content in html_extractor(doc.page_content)
     #     ]
-    #     docs_texts.extend(texts)
+    #     doc_texts.extend(texts)
 
     includes_all = []
     excludes = []
-    max_depth = 2
+    max_depth = 0
 
     crawler = WebCrawler(
         excludes=excludes, includes_all=includes_all, max_depth=max_depth)
@@ -234,49 +234,59 @@ def scrape_urls(urls: list[str], output_dir: str = "generated") -> list[str]:
 
     scraped_results = {urlparse(url).hostname: [] for url in urls}
     all_results: list[SearchResult] = []
+    all_texts: list[str] = []
+    all_queries: list[str] = []
 
     for start_url in urls:
         host_name = urlparse(start_url).hostname
-        docs_texts: list[str] = scraped_results[host_name]
 
         for result in crawler.crawl(start_url):
-            texts = [
+            doc_texts = [
                 header_content
                 for header_content in html_extractor(result["html"])
             ]
-            docs_texts.extend(texts)
+            scraped_results[host_name].extend(doc_texts)
+            all_texts.extend(doc_texts)
 
-            hybrid_search.build_index(docs_texts)
+            doc_file = f"{output_dir}/scraped_texts.json"
+            save_file(scraped_results, doc_file)
+
+            hybrid_search.build_index(all_texts)
 
             top_k = 10
             threshold = 0.1
             search_results = hybrid_search.search(
                 query, top_k=top_k, threshold=threshold)
 
-            host_search_results: list[SearchResult] = scraped_results[host_name]
-            host_search_results.extend(search_results["results"])
-
             all_results.extend(search_results["results"])
+            all_queries.extend(
+                [query for query in search_results["queries"] if query not in all_queries])
 
-            output_file = f"{output_dir}/scraped_info.json"
+            # Aggregate all "matched"
+            all_matched = {}
+            for result in all_results:
+                result_matched = result["matched"]
+                for match_query, match in result_matched.items():
+                    if match_query not in all_matched:
+                        all_matched[match_query] = 0
+                    all_matched[match_query] += 1
 
-            logger.info(
-                f"Saving {len(crawler.passed_urls)} pages to {output_file}")
-
-            save_data(output_file, {
-                "queries": search_results["queries"],
+            all_results_file = f"{output_dir}/all_results.json"
+            save_file({
+                "queries": all_queries,
+                "matched": all_matched,
                 "results": all_results,
-            }, write=True)
+            }, all_results_file)
 
             is_complete = validate_matches_complete(
-                all_results, search_results["queries"])
+                all_results, all_queries)
 
             if is_complete:
                 break
 
     crawler.close()
 
-    return docs_texts
+    return all_texts
 
 
 def query_structured_data(query: str, top_k: int = 10, output_dir: str = "generated"):
@@ -284,12 +294,10 @@ def query_structured_data(query: str, top_k: int = 10, output_dir: str = "genera
 
     urls = [item["url"] for item in search_results]
 
-    doc_file = f"{output_dir}/scraped_texts.json"
     # if os.path.isfile(doc_file):
     #     doc_texts = load_file(doc_file)
     # else:
     doc_texts = scrape_urls(urls, output_dir=output_dir)
-    save_file(doc_texts, doc_file)
 
     search = VectorSemanticSearch(
         candidates=doc_texts, embed_model=embed_model)
