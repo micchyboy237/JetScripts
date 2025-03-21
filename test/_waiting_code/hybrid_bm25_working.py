@@ -52,7 +52,8 @@ if __name__ == "__main__":
     # queries = ["Season", "episode", "synopsis"]
     query = "Seasons, episodes and synopsis of \"I'll Become a Villainess Who Goes Down in History\" anime"
     top_k = 10
-    results = hybrid_search.search(query, top_k=top_k)
+    threshold = 0.1
+    results = hybrid_search.search(query, top_k=top_k, threshold=threshold)
 
     copy_to_clipboard(results)
     save_file(results, "generated/hybrid_search/results.json")
