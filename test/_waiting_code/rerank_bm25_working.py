@@ -1,6 +1,7 @@
 from typing import List
 from jet.data.utils import generate_key, generate_unique_hash
 from jet.scrapers.utils import clean_newlines, clean_spaces
+from jet.wordnet.lemmatizer import lemmatize_text
 from llama_index.core import Document
 from jet.file.utils import load_file
 from jet.search.transformers import clean_string
@@ -44,6 +45,7 @@ if __name__ == "__main__":
         text = clean_newlines(text, max_newlines=1)
         text = clean_spaces(text)
         text = clean_string(text)
+        text = " ".join(lemmatize_text(text))
 
         data[idx] = text
 
@@ -92,6 +94,13 @@ if __name__ == "__main__":
         "episode",
         "synopsis",
     ]
+    for idx, text in enumerate(queries):
+        text = clean_newlines(text, max_newlines=1)
+        text = clean_spaces(text)
+        text = clean_string(text)
+        text = " ".join(lemmatize_text(text))
+
+        queries[idx] = text
 
     # ids: List[str] = [doc.node_id for doc in docs]
     ids: List[str] = [str(idx) for idx, doc in enumerate(docs)]
