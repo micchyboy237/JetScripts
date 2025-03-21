@@ -1,9 +1,13 @@
 import json
 import os
 import random
+from urllib.parse import urlparse
 
 from jet.code.splitter_markdown_utils import extract_md_header_contents
+from jet.data.utils import generate_unique_hash
+from jet.scrapers.crawler.web_crawler import WebCrawler
 from jet.utils.object import extract_null_keys
+from jet.vectors.reranker.bm25_helpers import HybridSearch
 from tqdm import tqdm
 import hrequests
 from jet.actions.generation import call_ollama_chat
@@ -13,7 +17,6 @@ from jet.search.scraper import scrape_url
 from jet.search.searxng import SearchResult, search_searxng
 from jet.utils.class_utils import class_to_string
 from llama_index.core.prompts.base import PromptTemplate
-from pydantic.main import BaseModel
 from pydantic import BaseModel, HttpUrl
 from typing import Any, List, Optional
 from datetime import date
@@ -26,7 +29,7 @@ from jet.logger import logger
 from jet.scrapers.utils import clean_text
 from jet.token.token_utils import filter_texts, get_model_max_tokens, get_ollama_tokenizer, split_texts, token_counter
 from jet.transformers.formatters import format_json
-from jet.file.utils import load_file, save_file
+from jet.file.utils import load_file, save_data, save_file
 from jet.transformers.object import make_serializable
 from jet.wordnet.similarity import filter_highest_similarity, search_similarities
 from jet.llm.ollama.base import Ollama
@@ -56,6 +59,11 @@ class AnimeDetails(BaseModel):
     title: str
     episodes: List[Episode] = []
 
+
+episode_fields = list(Episode.model_fields.keys())
+season_fields = list(Season.model_fields.keys())
+anime_details_fields = list(AnimeDetails.model_fields.keys())
+
 # class Anime(BaseModel):
 #     id: int
 #     title: str
@@ -80,6 +88,10 @@ class Anime(BaseModel):
     genre: Optional[List[str]] = None
     release_date: Optional[date] = None
     end_date: Optional[date] = None
+
+
+# Get list of field names
+anime_fields = list(Anime.model_fields.keys())
 
 
 keywords = [
@@ -132,32 +144,6 @@ def html_extractor(html_str):
     header_contents = extract_header_contents(markdown)
     texts = [item["content"] for item in header_contents]
     return texts
-
-
-def scrape_urls(urls: list[str]) -> list[str]:
-    docs_texts: list[str] = []
-
-    all_docs: list[Document] = []
-    for url in tqdm(urls, desc="Scraping urls", unit="URL"):
-        loader = RecursiveUrlLoader(
-            url=url, max_depth=2
-        )
-        docs = loader.load()
-        texts = [
-            header_content
-            for doc in docs
-            for header_content in html_extractor(doc.page_content)
-        ]
-        docs_texts.extend(texts)
-
-    # chunk_overlap = 100
-    # rerank_candidates = split_texts(
-    #     docs_texts, embed_model, chunk_overlap=chunk_overlap)
-    # reranked_results = search_similarities(
-    #     query, candidates=docs_texts, model_name=embed_model)
-    # docs_texts = [item["text"] for item in reranked_results]
-
-    return docs_texts
 
 
 def generate_browser_query(model: str, data: dict, *, seed: int = RANDOM_SEED) -> str:
@@ -217,17 +203,75 @@ def scrape_data(query: str, docs: list[Document], *, seed: int = RANDOM_SEED):
     return response_dict
 
 
+def search_query_contents(search_results: list[SearchResult]):
+    texts = [item["content"] for item in search_results]
+
+    hybrid_search = HybridSearch()
+    hybrid_search.build_index(texts)
+
+
+def scrape_urls(urls: list[str], output_file: str) -> list[str]:
+
+    # for url in tqdm(urls, desc="Scraping urls", unit="URL"):
+    #     loader = RecursiveUrlLoader(
+    #         url=url, max_depth=2
+    #     )
+    #     docs = loader.load()
+    #     texts = [
+    #         header_content
+    #         for doc in docs
+    #         for header_content in html_extractor(doc.page_content)
+    #     ]
+    #     docs_texts.extend(texts)
+
+    includes_all = ["*villainess*", "*down*", "*history*"]
+    excludes = []
+    max_depth = None
+
+    crawler = WebCrawler(
+        excludes=excludes, includes_all=includes_all, max_depth=max_depth)
+    hybrid_search = HybridSearch()
+
+    scraped_results = {urlparse(url).hostname: [] for url in urls}
+    for start_url in urls:
+        host_name = urlparse(start_url).hostname
+        docs_texts: list[str] = scraped_results[host_name]
+
+        for result in crawler.crawl(start_url):
+            texts = [
+                header_content
+                for header_content in html_extractor(result["html"])
+            ]
+            docs_texts.extend(texts)
+
+            hybrid_search.build_index(docs_texts)
+
+            top_k = 10
+            threshold = 0.3
+            results = hybrid_search.search(
+                query, top_k=top_k, threshold=threshold)
+
+            logger.info(
+                f"Saving {len(crawler.passed_urls)} pages to {output_file}")
+
+            save_data(output_file, scraped_results, write=True)
+
+    crawler.close()
+
+    return docs_texts
+
+
 def query_structured_data(query: str, top_k: int = 10):
     search_results = search_data(query)
 
     urls = [item["url"] for item in search_results]
 
     doc_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/generated/search_web_data/scraped_texts.json"
-    if os.path.isfile(doc_file):
-        doc_texts = load_file(doc_file)
-    else:
-        doc_texts = scrape_urls(urls)
-        save_file(doc_texts, doc_file)
+    # if os.path.isfile(doc_file):
+    #     doc_texts = load_file(doc_file)
+    # else:
+    doc_texts = scrape_urls(urls, doc_file)
+    save_file(doc_texts, doc_file)
 
     search = VectorSemanticSearch(
         candidates=doc_texts, embed_model=embed_model)
@@ -294,33 +338,25 @@ if __name__ == "__main__":
 
     title = "I'll Become a Villainess Who Goes Down in History"
 
-    # query = f"Anime \"{title}\" seasons and episodes"
-    # output_cls = Anime
-    # response_dict = query_structured_data(query)
-    # save_file(response_dict, output_file)
-    # # Check remaining null values
+    search_keys_str = ", ".join(
+        [key.replace('.', ' ').replace('_', ' ') for key in anime_fields])
+    query = f"\"{title}\" anime {search_keys_str}"
+    output_cls = Anime
+    response_dict = query_structured_data(query)
+    save_file(response_dict, output_file)
     # response_dict = fill_null_values(response_dict)
     # save_file(response_dict, output_file)
 
-    keywords = [
-        "title",
-        "synopsis",
-        "air_date",
-    ]
-    search_keys_str = ", ".join(
-        [key.replace('.', ' ').replace('_', ' ') for key in keywords])
-    query = f"Anime \"{title}\" season 1 episodes 1-13 {search_keys_str}"
-    output_cls = AnimeDetails
-    response_dict = query_structured_data(query)
-    save_file(response_dict, output_file)
-    # Check remaining null values
-    response_dict = fill_null_values(response_dict)
-    save_file(response_dict, output_file)
-
-    # new_query = generate_browser_query(embed_model, response_dict)
-    # search_results = search_data(new_query)
-    # urls = [item["url"] for item in search_results]
-    # new_docs = scrape_urls(urls)
-    # new_response_dict = scrape_data(query, new_docs)
-
-    # save_file(new_response_dict, output_file)
+    # keywords = [
+    #     "title",
+    #     "synopsis",
+    #     "air_date",
+    # ]
+    # search_keys_str = ", ".join(
+    #     [key.replace('.', ' ').replace('_', ' ') for key in keywords])
+    # query = f"Anime \"{title}\" season 1 episodes 1-13 {search_keys_str}"
+    # output_cls = AnimeDetails
+    # response_dict = query_structured_data(query)
+    # save_file(response_dict, output_file)
+    # response_dict = fill_null_values(response_dict)
+    # save_file(response_dict, output_file)
