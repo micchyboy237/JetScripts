@@ -1,7 +1,7 @@
 from tqdm import tqdm
 from jet.cache.cache_manager import CacheManager
 from shared.data_types.job import JobData
-from jet.wordnet.n_grams import get_most_common_ngrams
+from jet.wordnet.n_grams import count_ngrams
 from jet.search.transformers import clean_string
 from jet.logger import logger, time_it
 from jet.file.utils import load_file
@@ -148,7 +148,7 @@ def prepare_inputs(queries: list[str]):
 
         # Generate n-grams
         common_texts_ngrams = [
-            list(get_most_common_ngrams(sentence, max_words=5).keys()) for sentence in tqdm(sentences)
+            list(count_ngrams(sentence, max_words=5).keys()) for sentence in tqdm(sentences)
         ]
 
         # Update the cache with the new n-grams
@@ -158,7 +158,7 @@ def prepare_inputs(queries: list[str]):
         common_texts_ngrams = cache_data["common_texts_ngrams"]
 
     # Prepare queries and calculate BM25+ similarities
-    query_ngrams = [list(get_most_common_ngrams(
+    query_ngrams = [list(count_ngrams(
         query, min_count=1, max_words=5)) for query in queries]
     data_dict = {item["id"]: item for item in data}
     ids = list(data_dict.keys())
