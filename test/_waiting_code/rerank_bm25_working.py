@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, List, TypedDict
 from jet.data.utils import generate_key, generate_unique_hash
 from jet.scrapers.utils import clean_newlines, clean_spaces
 from jet.utils.text import extract_substrings, find_sentence_indexes
@@ -15,6 +15,21 @@ from jet.wordnet.words import count_words
 from shared.data_types.job import JobData
 
 
+class RerankResult(TypedDict):
+    id: str
+    text: str
+    score: float
+    matched: dict[str, int]
+    metadata: dict[str, Any]
+
+
+class QueryResult(TypedDict):
+    query: str
+    count: int
+    matched: dict[str, int]
+    data: List[RerankResult]
+
+
 def preprocess_texts(texts: list[str]) -> list[str]:
     preprocessed_texts: list[str] = texts.copy()
 
@@ -29,7 +44,7 @@ def preprocess_texts(texts: list[str]) -> list[str]:
     return preprocessed_texts
 
 
-def split_text_by_docs(texts: list[str]) -> list[Document]:
+def split_text_by_docs(texts: list[str], max_tokens: int) -> list[Document]:
     docs: list[Document] = []
 
     for idx, text in enumerate(texts):
@@ -69,38 +84,11 @@ def split_text_by_docs(texts: list[str]) -> list[Document]:
     return docs
 
 
-if __name__ == "__main__":
+def search_and_rerank(texts: List[str], queries: List[str], max_tokens: int = 200) -> QueryResult:
 
-    # data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
-    # data = load_file(data_file)
-    # docs: List[str] = [
-    #     clean_string("\n".join([
-    #         item["title"],
-    #         item["details"],
-    #         "\n".join([f"Tech: {tech}" for tech in sorted(
-    #             item["entities"]["technology_stack"], key=str.lower)]),
-    #         "\n".join([f"Tag: {tech}" for tech in sorted(
-    #             item["tags"], key=str.lower)]),
-    #     ]).lower())
-    #     for item in data
-    # ]
-    # queries = [
-    #     "React.js",
-    #     "Web",
-    #     "Node.js",
-    #     "Firebase",
-    #     "AWS"
-    # ]
+    data = preprocess_texts(texts)
 
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/generated/search_web_data/scraped_texts.json"
-    data: list[str] = load_file(data_file)
-
-    data = preprocess_texts(data)
-
-    # Split texts by max tokens
-    max_tokens = 200
-
-    docs = split_text_by_docs(data)
+    docs = split_text_by_docs(data, max_tokens)
 
     doc_texts = [doc.text for doc in docs]
 
@@ -148,10 +136,29 @@ if __name__ == "__main__":
         "query": " ".join(queries),
         "count": reranked_results["count"],
         "matched": reranked_results["matched"],
-        "results": results
+        "data": results
     })
 
-    for idx, result in enumerate(results[:10]):
+    response = QueryResult(
+        query=" ".join(queries),
+        count=reranked_results["count"],
+        matched=reranked_results["matched"],
+        data=results
+    )
+
+    return response
+
+
+if __name__ == "__main__":
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/generated/search_web_data/scraped_texts.json"
+    texts: list[str] = load_file(data_file)
+    queries = ["Season", "episode", "synopsis"]
+
+    search_results = search_and_rerank(texts, queries)
+
+    copy_to_clipboard(search_results)
+
+    for idx, result in enumerate(search_results["data"][:10]):
         logger.log(f"{idx + 1}:", result["text"]
                    [:30], colors=["WHITE", "DEBUG"])
         logger.success(f"{result['score']:.2f}")
