@@ -1,6 +1,7 @@
 from typing import List
 from jet.data.utils import generate_key, generate_unique_hash
 from jet.scrapers.utils import clean_newlines, clean_spaces
+from jet.utils.text import extract_substrings, find_sentence_indexes
 from jet.wordnet.lemmatizer import lemmatize_text
 from llama_index.core import Document
 from jet.file.utils import load_file
@@ -14,46 +15,24 @@ from jet.wordnet.words import count_words
 from shared.data_types.job import JobData
 
 
-if __name__ == "__main__":
+def preprocess_texts(texts: list[str]) -> list[str]:
+    preprocessed_texts: list[str] = texts.copy()
 
-    # data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
-    # data = load_file(data_file)
-    # docs: List[str] = [
-    #     clean_string("\n".join([
-    #         item["title"],
-    #         item["details"],
-    #         "\n".join([f"Tech: {tech}" for tech in sorted(
-    #             item["entities"]["technology_stack"], key=str.lower)]),
-    #         "\n".join([f"Tag: {tech}" for tech in sorted(
-    #             item["tags"], key=str.lower)]),
-    #     ]).lower())
-    #     for item in data
-    # ]
-    # queries = [
-    #     "React.js",
-    #     "Web",
-    #     "Node.js",
-    #     "Firebase",
-    #     "AWS"
-    # ]
-
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/generated/search_web_data/scraped_texts.json"
-    data: list[str] = load_file(data_file)
-
-    # Clean data
-    for idx, text in enumerate(data):
+    for idx, text in enumerate(preprocessed_texts):
         text = clean_newlines(text, max_newlines=1)
         text = clean_spaces(text)
         text = clean_string(text)
         text = " ".join(lemmatize_text(text))
 
-        data[idx] = text
+        preprocessed_texts[idx] = text
 
-    # Split texts by max tokens
-    max_tokens = 200
+    return preprocessed_texts
+
+
+def split_text_by_docs(texts: list[str]) -> list[Document]:
     docs: list[Document] = []
 
-    for idx, text in enumerate(data):
+    for idx, text in enumerate(texts):
         token_count = count_words(text)
         if token_count > max_tokens:
             grouped_sentences = group_sentences(text, max_tokens)
@@ -87,6 +66,42 @@ if __name__ == "__main__":
                 }
             ))
 
+    return docs
+
+
+if __name__ == "__main__":
+
+    # data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    # data = load_file(data_file)
+    # docs: List[str] = [
+    #     clean_string("\n".join([
+    #         item["title"],
+    #         item["details"],
+    #         "\n".join([f"Tech: {tech}" for tech in sorted(
+    #             item["entities"]["technology_stack"], key=str.lower)]),
+    #         "\n".join([f"Tag: {tech}" for tech in sorted(
+    #             item["tags"], key=str.lower)]),
+    #     ]).lower())
+    #     for item in data
+    # ]
+    # queries = [
+    #     "React.js",
+    #     "Web",
+    #     "Node.js",
+    #     "Firebase",
+    #     "AWS"
+    # ]
+
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/generated/search_web_data/scraped_texts.json"
+    data: list[str] = load_file(data_file)
+
+    data = preprocess_texts(data)
+
+    # Split texts by max tokens
+    max_tokens = 200
+
+    docs = split_text_by_docs(data)
+
     doc_texts = [doc.text for doc in docs]
 
     queries = [
@@ -94,13 +109,8 @@ if __name__ == "__main__":
         "episode",
         "synopsis",
     ]
-    for idx, text in enumerate(queries):
-        text = clean_newlines(text, max_newlines=1)
-        text = clean_spaces(text)
-        text = clean_string(text)
-        text = " ".join(lemmatize_text(text))
 
-        queries[idx] = text
+    queries = preprocess_texts(queries)
 
     # ids: List[str] = [doc.node_id for doc in docs]
     ids: List[str] = [str(idx) for idx, doc in enumerate(docs)]
@@ -111,14 +121,33 @@ if __name__ == "__main__":
     for result in reranked_results["data"]:
         idx = int(result["id"])
         doc = docs[idx]
+        orig_data: str = data[doc.metadata["data_id"]]
+
+        matched = result["matched"]
+        matched_sentences: dict[str, list[str]] = {
+            key.lower(): [] for key in matched.keys()
+        }
+        for ngram, count in matched.items():
+            lowered_ngram = ngram.lower()
+            sentence_indexes = find_sentence_indexes(
+                orig_data.lower(), lowered_ngram)
+            word_sentences = extract_substrings(orig_data, sentence_indexes)
+            matched_sentences[lowered_ngram] = [
+                word_sentence for word_sentence in word_sentences
+                if word_sentence.lower() in result["text"].lower()
+            ]
+
         results.append({
             **result,
             "metadata": doc.metadata,
-            "_data": data[doc.metadata["data_id"]],
+            "_matched_sentences": matched_sentences,
+            "_data": orig_data,
         })
 
     copy_to_clipboard({
         "query": " ".join(queries),
+        "count": reranked_results["count"],
+        "matched": reranked_results["matched"],
         "results": results
     })
 
