@@ -44,14 +44,15 @@ if __name__ == "__main__":
 
 if __name__ == "__main__":
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/generated/search_web_data/scraped_texts.json"
-    texts: list[str] = load_file(data_file)
+    data: dict[str, list[str]] = load_file(data_file)
+    texts = [text for texts in list(data.values()) for text in texts]
 
     hybrid_search = HybridSearch()
     hybrid_search.build_index(texts)
 
-    # queries = ["Season", "episode", "synopsis"]
-    query = "Seasons, episodes and synopsis of \"I'll Become a Villainess Who Goes Down in History\" anime"
-    top_k = 10
+    # query = "Episode 11 of \"I'll Become a Villainess Who Goes Down in History\" anime"
+    query = "\"I'll Become a Villainess Who Goes Down in History\" genre"
+    top_k = None
     threshold = 0.1
     results = hybrid_search.search(query, top_k=top_k, threshold=threshold)
 

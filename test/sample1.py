@@ -7,7 +7,8 @@ from jet.code.splitter_markdown_utils import extract_md_header_contents
 from jet.data.utils import generate_unique_hash
 from jet.scrapers.crawler.web_crawler import WebCrawler
 from jet.utils.object import extract_null_keys
-from jet.vectors.reranker.bm25_helpers import SearchResult, HybridSearch, validate_matches_complete
+from jet.vectors.reranker.bm25_helpers import SearchResult, HybridSearch, SearchResultData, preprocess_texts
+from jet.wordnet.stopwords import StopWords
 from tqdm import tqdm
 import hrequests
 from jet.actions.generation import call_ollama_chat
@@ -18,7 +19,7 @@ from jet.search.searxng import search_searxng
 from jet.utils.class_utils import class_to_string
 from llama_index.core.prompts.base import PromptTemplate
 from pydantic import BaseModel, HttpUrl
-from typing import Any, List, Optional
+from typing import Any, Generator, List, Optional
 from datetime import date
 from langchain_community.document_loaders.recursive_url_loader import RecursiveUrlLoader
 from bs4 import BeautifulSoup as Soup
@@ -94,14 +95,17 @@ class Anime(BaseModel):
 anime_fields = list(Anime.model_fields.keys())
 
 
-keywords = [
-    "seasons",
-    "episodes",
-    "synopsis",
-    "genre",
-    "release_date",
-    "end_date",
-]
+crawler = None
+
+
+def setup_web_crawler(includes: list[str] = [], excludes: list[str] = [], max_depth: int = 0):
+    global crawler
+
+    if not crawler:
+        crawler = WebCrawler(
+            excludes=excludes, includes=includes, max_depth=max_depth)
+
+    return crawler
 
 
 def search_data(query) -> list[SearchResult]:
@@ -210,7 +214,12 @@ def search_query_contents(search_results: list[SearchResult]):
     hybrid_search.build_index(texts)
 
 
-def scrape_urls(urls: list[str], output_dir: str = "generated") -> list[str]:
+def scrape_urls(urls: list[str], queries: str | list[str], output_dir: str = "generated", includes: list[str] = []) -> Generator[Optional[SearchResultData], None, None]:
+
+    if isinstance(queries, str):
+        queries = [queries]
+
+    queries = preprocess_texts(queries)
 
     # for url in tqdm(urls, desc="Scraping urls", unit="URL"):
     #     loader = RecursiveUrlLoader(
@@ -224,12 +233,11 @@ def scrape_urls(urls: list[str], output_dir: str = "generated") -> list[str]:
     #     ]
     #     doc_texts.extend(texts)
 
-    includes_all = []
     excludes = []
     max_depth = 0
 
-    crawler = WebCrawler(
-        excludes=excludes, includes_all=includes_all, max_depth=max_depth)
+    crawler = setup_web_crawler(
+        includes=includes, excludes=excludes, max_depth=max_depth)
     hybrid_search = HybridSearch()
 
     scraped_results = {urlparse(url).hostname: [] for url in urls}
@@ -237,7 +245,14 @@ def scrape_urls(urls: list[str], output_dir: str = "generated") -> list[str]:
     all_texts: list[str] = []
     all_queries: list[str] = []
 
+    search_results: Optional[SearchResultData] = None
+    is_complete = False
+
     for start_url in urls:
+        if is_complete:
+            logger.success(f"Completed data for queries: {queries}")
+            break
+
         host_name = urlparse(start_url).hostname
 
         for result in crawler.crawl(start_url):
@@ -245,18 +260,18 @@ def scrape_urls(urls: list[str], output_dir: str = "generated") -> list[str]:
                 header_content
                 for header_content in html_extractor(result["html"])
             ]
+            if len(doc_texts) < 2:
+                continue
+
             scraped_results[host_name].extend(doc_texts)
             all_texts.extend(doc_texts)
-
-            doc_file = f"{output_dir}/scraped_texts.json"
-            save_file(scraped_results, doc_file)
 
             hybrid_search.build_index(all_texts)
 
             top_k = 10
             threshold = 0.1
             search_results = hybrid_search.search(
-                query, top_k=top_k, threshold=threshold)
+                "\n".join(queries), top_k=top_k, threshold=threshold)
 
             all_results.extend(search_results["results"])
             all_queries.extend(
@@ -271,61 +286,58 @@ def scrape_urls(urls: list[str], output_dir: str = "generated") -> list[str]:
                         all_matched[match_query] = 0
                     all_matched[match_query] += 1
 
-            all_results_file = f"{output_dir}/all_results.json"
-            save_file({
-                "queries": all_queries,
-                "matched": all_matched,
-                "results": all_results,
-            }, all_results_file)
-
-            is_complete = validate_matches_complete(
-                all_results, all_queries)
+            is_complete = all(
+                query in search_results["matched"] for query in queries)
 
             if is_complete:
-                break
-
-    crawler.close()
-
-    return all_texts
+                yield search_results
 
 
-def query_structured_data(query: str, top_k: int = 10, output_dir: str = "generated"):
-    search_results = search_data(query)
+def query_structured_data(query: str, title: str, top_k: Optional[int] = 10, output_dir: str = "generated") -> Generator[Optional[SearchResultData], None, None]:
+    browser_query = f"\"{title}\" {keyword}"
+    search_results = search_data(browser_query)
 
     urls = [item["url"] for item in search_results]
 
     # if os.path.isfile(doc_file):
     #     doc_texts = load_file(doc_file)
     # else:
-    doc_texts = scrape_urls(urls, output_dir=output_dir)
 
-    search = VectorSemanticSearch(
-        candidates=doc_texts, embed_model=embed_model)
+    # stopwords = StopWords()
+    # includes = [t for t in title.lower().split(
+    # ) if t not in stopwords.english_stop_words]
+    includes = []
 
-    fusion_results = search.fusion_search(query)
-    embed_texts: list[str] = []
-    for query_idx, (query_line, group) in enumerate(fusion_results.items()):
-        embed_texts.extend([g["text"] for g in group])
-    embed_texts = embed_texts[:top_k]
-    # logger.newline()
-    # logger.orange(f"Fusion Search Results ({len(reranked_header_contents)}):")
+    yield from scrape_urls(
+        urls, [title, keyword], output_dir=output_dir, includes=includes)
 
-    chunk_size = 200
-    chunk_overlap = 50
-    rerank_candidates = split_texts(
-        embed_texts, rerank_model, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-    reranked_texts = []
+    # search = VectorSemanticSearch(
+    #     candidates=doc_texts, embed_model=embed_model)
 
-    reranked_results = search_similarities(
-        query, candidates=rerank_candidates, model_name=rerank_model)
-    reranked_texts.extend([item["text"] for item in reranked_results])
+    # fusion_results = search.fusion_search(query)
+    # embed_texts: list[str] = []
+    # for query_idx, (query_line, group) in enumerate(fusion_results.items()):
+    #     embed_texts.extend([g["text"] for g in group])
+    # embed_texts = embed_texts[:top_k]
+    # # logger.newline()
+    # # logger.orange(f"Fusion Search Results ({len(reranked_header_contents)}):")
 
-    all_docs: list[Document] = []
-    for content in reranked_texts:
-        all_docs.append(Document(page_content=content))
+    # chunk_size = 200
+    # chunk_overlap = 50
+    # rerank_candidates = split_texts(
+    #     embed_texts, rerank_model, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    # reranked_texts = []
 
-    response_dict = scrape_data(query, all_docs)
-    return response_dict
+    # reranked_results = search_similarities(
+    #     query, candidates=rerank_candidates, model_name=rerank_model)
+    # reranked_texts.extend([item["text"] for item in reranked_results])
+
+    # all_docs: list[Document] = []
+    # for content in reranked_texts:
+    #     all_docs.append(Document(page_content=content))
+
+    # response_dict = scrape_data(query, all_docs)
+    # return response_dict
 
 
 def fill_null_values(data: dict, output_dir: str = "generated"):
@@ -363,15 +375,39 @@ if __name__ == "__main__":
     output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/generated/search_web_data"
 
     title = "I'll Become a Villainess Who Goes Down in History"
+    keywords = anime_fields
+    output_cls = Anime
+    top_k = None
 
     search_keys_str = ", ".join(
         [key.replace('.', ' ').replace('_', ' ') for key in anime_fields])
-    query = f"\"{title}\" anime {search_keys_str}"
-    output_cls = Anime
-    response_dict = query_structured_data(query, output_dir=output_dir)
 
-    output_file = f"{output_dir}/output.json"
-    save_file(response_dict, output_file)
+    scraped_results: dict[str, list[str]] = {}
+    output_results: dict[str, SearchResultData] = {}
+
+    for keyword in keywords:
+        query = keyword
+        search_results_gen = query_structured_data(
+            query, title, top_k=top_k, output_dir=output_dir)
+
+        for search_results in search_results_gen:
+            if search_results:
+                doc_file = f"{output_dir}/scraped_texts.json"
+                search_result_texts = [result["text"]
+                                       for result in search_results["results"]]
+                scraped_results[query] = search_result_texts
+                save_file(scraped_results, doc_file)
+
+                # all_results_file = f"{output_dir}/all_results.json"
+                # save_file({
+                #     "queries": all_queries,
+                #     "matched": all_matched,
+                #     "results": all_results,
+                # }, all_results_file)
+
+                output_file = f"{output_dir}/output.json"
+                output_results[query] = search_results
+                save_file(output_results, output_file)
     # response_dict = fill_null_values(response_dict)
     # save_file(response_dict, output_file)
 
@@ -388,3 +424,6 @@ if __name__ == "__main__":
     # save_file(response_dict, output_file)
     # response_dict = fill_null_values(response_dict)
     # save_file(response_dict, output_file)
+
+    if crawler:
+        crawler.close()
