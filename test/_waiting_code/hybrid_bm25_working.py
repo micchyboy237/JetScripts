@@ -1,4 +1,5 @@
 from datetime import date
+from jet.llm.query.retrievers import query_llm
 from pydantic import BaseModel
 from typing import List, Optional
 from jet.cache.joblib.utils import load_or_save_cache, save_cache
@@ -73,3 +74,18 @@ if __name__ == "__main__":
 
     copy_to_clipboard(results)
     save_file(results, "generated/hybrid_search/results.json")
+
+    # Ask LLM
+    system = None
+    texts = [result["text"] for result in results["results"]]
+    llm_response_stream = query_llm(query, texts, system=system)
+    llm_response = ""
+    for chunk in llm_response_stream:
+        llm_response += chunk
+
+    copy_to_clipboard(llm_response)
+    save_file(llm_response, "generated/hybrid_search/llm_response.md")
+
+    logger.newline()
+    logger.debug("LLM Response:")
+    logger.success(llm_response)
