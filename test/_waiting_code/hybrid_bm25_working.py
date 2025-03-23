@@ -63,16 +63,16 @@ if __name__ == "__main__":
     #     end_date: Optional[date] = None
 
     class Episode(BaseModel):
-        episode_number: int
-        season_number: int
-        title: Optional[str] = None
-        synopsis: Optional[str] = None
+        season: int
+        episode: int
+        title: str
+        summary: Optional[str] = None
         air_date: Optional[date] = None
 
     class Season(BaseModel):
-        season_number: int
-        title: Optional[str] = None
-        episodes: Optional[int] = None
+        season: int
+        episodes: int
+        summary: Optional[str] = None
         air_date: Optional[date] = None
         end_date: Optional[date] = None
 
