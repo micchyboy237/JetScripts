@@ -71,14 +71,19 @@ if __name__ == "__main__":
 
     class Season(BaseModel):
         season_number: int
-        title: str
-        episodes: List[Episode]
-        release_date: Optional[date] = None
+        title: Optional[str] = None
+        episodes: Optional[int] = None
+        air_date: Optional[date] = None
         end_date: Optional[date] = None
 
     class AnimeDetails(BaseModel):
         title: str
-        episodes: List[Episode] = []
+        synopsis: Optional[str] = None
+        genre: Optional[List[str]] = None
+        release_date: Optional[date] = None
+        end_date: Optional[date] = None
+        seasons: Optional[List[Season]] = None
+        episodes: Optional[List[Episode]] = None
 
     output_cls = AnimeDetails
     # Get list of field names
