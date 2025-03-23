@@ -1,5 +1,6 @@
 from datetime import date
-from jet.llm.query.retrievers import query_llm
+from jet.llm.query.retrievers import query_llm, query_llm_structured
+from jet.transformers.formatters import format_json
 from pydantic import BaseModel
 from typing import List, Optional
 from jet.cache.joblib.utils import load_or_save_cache, save_cache
@@ -52,17 +53,36 @@ if __name__ == "__main__":
     hybrid_search = HybridSearch(model_name=embed_model)
     hybrid_search.build_index(texts)
 
-    class Anime(BaseModel):
-        title: str
-        seasons: int
-        episodes: int
+    # class Anime(BaseModel):
+    #     title: str
+    #     seasons: int
+    #     episodes: int
+    #     synopsis: Optional[str] = None
+    #     genre: Optional[List[str]] = None
+    #     release_date: Optional[date] = None
+    #     end_date: Optional[date] = None
+
+    class Episode(BaseModel):
+        episode_number: int
+        season_number: int
+        title: Optional[str] = None
         synopsis: Optional[str] = None
-        genre: Optional[List[str]] = None
+        air_date: Optional[date] = None
+
+    class Season(BaseModel):
+        season_number: int
+        title: str
+        episodes: List[Episode]
         release_date: Optional[date] = None
         end_date: Optional[date] = None
 
+    class AnimeDetails(BaseModel):
+        title: str
+        episodes: List[Episode] = []
+
+    output_cls = AnimeDetails
     # Get list of field names
-    anime_fields = list(Anime.model_fields.keys())
+    anime_fields = list(output_cls.model_fields.keys())
     search_keys_str = ", ".join(
         [key.replace('.', ' ').replace('_', ' ') for key in anime_fields])
     title = "I'll Become a Villainess Who Goes Down in History"
@@ -78,25 +98,20 @@ if __name__ == "__main__":
     semantic_results = results.pop("semantic_results")
     reranked_results = results.pop("results")
 
-    copy_to_clipboard(results)
     save_file(results, "generated/hybrid_search/results_info.json")
-    copy_to_clipboard(results)
     save_file(semantic_results, "generated/hybrid_search/semantic_results.json")
-    copy_to_clipboard(results)
     save_file(reranked_results, "generated/hybrid_search/reranked_results.json")
 
     # Ask LLM
     texts = [result["text"] for result in reranked_results]
-    llm_response_stream = query_llm(
-        query, texts, model=llm_model, system=system)
-    llm_response = ""
-    for chunk in llm_response_stream:
-        llm_response += chunk
-    llm_response = llm_response.strip()
+    llm_response_stream = query_llm_structured(
+        query, texts, model=llm_model, system=system, output_cls=output_cls)
+    structued_llm_results = []
+    for structued_llm_response in llm_response_stream:
+        structued_llm_results.append(structued_llm_response)
 
-    copy_to_clipboard(llm_response)
-    save_file(llm_response, "generated/hybrid_search/llm_response.md")
+        save_file(structued_llm_results,
+                  "generated/hybrid_search/structued_llm_results.json")
 
     logger.newline()
-    logger.debug("LLM Response:")
-    logger.success(llm_response)
+    logger.success(f"Structured LLM Results: {len(structued_llm_results)}")
