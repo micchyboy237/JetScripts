@@ -73,12 +73,20 @@ if __name__ == "__main__":
     top_k = None
     threshold = 0.0
     results = hybrid_search.search(query, top_k=top_k, threshold=threshold)
+    results = results.copy()
+
+    semantic_results = results.pop("semantic_results")
+    reranked_results = results.pop("results")
 
     copy_to_clipboard(results)
-    save_file(results, "generated/hybrid_search/results.json")
+    save_file(results, "generated/hybrid_search/results_info.json")
+    copy_to_clipboard(results)
+    save_file(semantic_results, "generated/hybrid_search/semantic_results.json")
+    copy_to_clipboard(results)
+    save_file(reranked_results, "generated/hybrid_search/reranked_results.json")
 
     # Ask LLM
-    texts = [result["text"] for result in results["results"]]
+    texts = [result["text"] for result in reranked_results]
     llm_response_stream = query_llm(
         query, texts, model=llm_model, system=system)
     llm_response = ""
