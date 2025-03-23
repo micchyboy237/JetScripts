@@ -65,7 +65,7 @@ if __name__ == "__main__":
     class Episode(BaseModel):
         season: int
         episode: int
-        release_date: Optional[date] = None
+        aired_date: Optional[date] = None
         title: Optional[str] = None
         summary: Optional[str] = None
 
