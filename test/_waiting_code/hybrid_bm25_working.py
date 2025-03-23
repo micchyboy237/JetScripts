@@ -92,6 +92,7 @@ if __name__ == "__main__":
     llm_response = ""
     for chunk in llm_response_stream:
         llm_response += chunk
+    llm_response = llm_response.strip()
 
     copy_to_clipboard(llm_response)
     save_file(llm_response, "generated/hybrid_search/llm_response.md")
