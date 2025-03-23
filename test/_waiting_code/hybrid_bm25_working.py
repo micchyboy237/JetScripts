@@ -41,13 +41,15 @@ def build_ngrams(texts: list[str], max_tokens: int):
 
 
 if __name__ == "__main__":
-    model_name = "nomic-embed-text"
+    embed_model = "nomic-embed-text"
+    llm_model = "llama3.1"
+    system = None
 
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/generated/search_web_data/scraped_texts.json"
     data: dict[str, list[str]] = load_file(data_file)
     texts = [text for texts in list(data.values()) for text in texts]
 
-    hybrid_search = HybridSearch(model_name=model_name)
+    hybrid_search = HybridSearch(model_name=embed_model)
     hybrid_search.build_index(texts)
 
     class Anime(BaseModel):
@@ -76,9 +78,9 @@ if __name__ == "__main__":
     save_file(results, "generated/hybrid_search/results.json")
 
     # Ask LLM
-    system = None
     texts = [result["text"] for result in results["results"]]
-    llm_response_stream = query_llm(query, texts, system=system)
+    llm_response_stream = query_llm(
+        query, texts, model=llm_model, system=system)
     llm_response = ""
     for chunk in llm_response_stream:
         llm_response += chunk
