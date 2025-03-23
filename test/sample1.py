@@ -19,7 +19,7 @@ from jet.search.searxng import search_searxng
 from jet.utils.class_utils import class_to_string
 from llama_index.core.prompts.base import PromptTemplate
 from pydantic import BaseModel, HttpUrl
-from typing import Any, Generator, List, Optional
+from typing import Any, Generator, List, Optional, TypedDict
 from datetime import date
 from langchain_community.document_loaders.recursive_url_loader import RecursiveUrlLoader
 from bs4 import BeautifulSoup as Soup
@@ -214,7 +214,14 @@ def search_query_contents(search_results: list[SearchResult]):
     hybrid_search.build_index(texts)
 
 
-def scrape_urls(urls: list[str], queries: str | list[str], output_dir: str = "generated", includes: list[str] = []) -> Generator[Optional[tuple[SearchResultData, bool]], None, None]:
+class ScrapedUrlResult(TypedDict):
+    url: str
+    texts: list[str]
+    data: SearchResultData
+    is_complete: bool
+
+
+def scrape_urls(urls: list[str], queries: str | list[str], output_dir: str = "generated", includes: list[str] = []) -> Generator[ScrapedUrlResult, None, None]:
 
     if isinstance(queries, str):
         queries = [queries]
@@ -268,7 +275,7 @@ def scrape_urls(urls: list[str], queries: str | list[str], output_dir: str = "ge
 
             hybrid_search.build_index(all_texts)
 
-            top_k = 10
+            top_k = None
             threshold = 0.0
             search_results = hybrid_search.search(
                 "\n".join(queries), top_k=top_k, threshold=threshold)
@@ -292,10 +299,15 @@ def scrape_urls(urls: list[str], queries: str | list[str], output_dir: str = "ge
                 #     if query in queries
                 # )
                 is_complete = False
-                yield search_results, is_complete
+                yield {
+                    "url": start_url,
+                    "texts": doc_texts,
+                    "data": search_results,
+                    "is_complete": is_complete,
+                }
 
 
-def query_structured_data(query: str, top_k: Optional[int] = 10, output_dir: str = "generated") -> Generator[Optional[tuple[SearchResultData, bool]], None, None]:
+def query_structured_data(query: str, top_k: Optional[int] = 10, output_dir: str = "generated") -> Generator[ScrapedUrlResult, None, None]:
     search_results = search_data(query)
 
     urls = [item["url"] for item in search_results]
@@ -389,7 +401,10 @@ if __name__ == "__main__":
     search_results_gen = query_structured_data(
         query, top_k=top_k, output_dir=output_dir)
 
-    for search_results, is_complete in search_results_gen:
+    for result in search_results_gen:
+        search_results = result["data"]
+        is_complete = result["is_complete"]
+
         if not search_results:
             continue
 
