@@ -65,8 +65,8 @@ if __name__ == "__main__":
     class Episode(BaseModel):
         season: int
         episode: int
-        release_date: date
-        episode_title: Optional[str] = None
+        release_date: Optional[date] = None
+        title: Optional[str] = None
         summary: Optional[str] = None
 
     # class Season(BaseModel):
@@ -78,7 +78,8 @@ if __name__ == "__main__":
 
     class AnimeDetails(BaseModel):
         title: str
-        seasons: Optional[int] = None
+        seasons_num: Optional[int] = None
+        episodes_num: Optional[int] = None
         synopsis: Optional[str] = None
         genre: Optional[List[str]] = None
         release_date: Optional[date] = None
