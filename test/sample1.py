@@ -214,7 +214,7 @@ def search_query_contents(search_results: list[SearchResult]):
     hybrid_search.build_index(texts)
 
 
-def scrape_urls(urls: list[str], queries: str | list[str], output_dir: str = "generated", includes: list[str] = []) -> Generator[Optional[SearchResultData], None, None]:
+def scrape_urls(urls: list[str], queries: str | list[str], output_dir: str = "generated", includes: list[str] = []) -> Generator[Optional[tuple[SearchResultData, bool]], None, None]:
 
     if isinstance(queries, str):
         queries = [queries]
@@ -269,7 +269,7 @@ def scrape_urls(urls: list[str], queries: str | list[str], output_dir: str = "ge
             hybrid_search.build_index(all_texts)
 
             top_k = 10
-            threshold = 0.1
+            threshold = 0.0
             search_results = hybrid_search.search(
                 "\n".join(queries), top_k=top_k, threshold=threshold)
 
@@ -286,16 +286,17 @@ def scrape_urls(urls: list[str], queries: str | list[str], output_dir: str = "ge
                         all_matched[match_query] = 0
                     all_matched[match_query] += 1
 
-            is_complete = all(
-                query in search_results["matched"] for query in queries)
+            if search_results["matched"]:
+                # is_complete = all(
+                #     count for query, count in search_results["matched"].items()
+                #     if query in queries
+                # )
+                is_complete = False
+                yield search_results, is_complete
 
-            if is_complete:
-                yield search_results
 
-
-def query_structured_data(query: str, title: str, top_k: Optional[int] = 10, output_dir: str = "generated") -> Generator[Optional[SearchResultData], None, None]:
-    browser_query = f"\"{title}\" {keyword}"
-    search_results = search_data(browser_query)
+def query_structured_data(query: str, top_k: Optional[int] = 10, output_dir: str = "generated") -> Generator[Optional[tuple[SearchResultData, bool]], None, None]:
+    search_results = search_data(query)
 
     urls = [item["url"] for item in search_results]
 
@@ -309,7 +310,7 @@ def query_structured_data(query: str, title: str, top_k: Optional[int] = 10, out
     includes = []
 
     yield from scrape_urls(
-        urls, [title, keyword], output_dir=output_dir, includes=includes)
+        urls, query, output_dir=output_dir, includes=includes)
 
     # search = VectorSemanticSearch(
     #     candidates=doc_texts, embed_model=embed_model)
@@ -381,33 +382,39 @@ if __name__ == "__main__":
 
     search_keys_str = ", ".join(
         [key.replace('.', ' ').replace('_', ' ') for key in anime_fields])
-
     scraped_results: dict[str, list[str]] = {}
     output_results: dict[str, SearchResultData] = {}
+    query = f"Anime \"{title}\" {search_keys_str}"
 
-    for keyword in keywords:
-        query = keyword
-        search_results_gen = query_structured_data(
-            query, title, top_k=top_k, output_dir=output_dir)
+    search_results_gen = query_structured_data(
+        query, top_k=top_k, output_dir=output_dir)
 
-        for search_results in search_results_gen:
-            if search_results:
-                doc_file = f"{output_dir}/scraped_texts.json"
-                search_result_texts = [result["text"]
-                                       for result in search_results["results"]]
-                scraped_results[query] = search_result_texts
-                save_file(scraped_results, doc_file)
+    for search_results, is_complete in search_results_gen:
+        if not search_results:
+            continue
 
-                # all_results_file = f"{output_dir}/all_results.json"
-                # save_file({
-                #     "queries": all_queries,
-                #     "matched": all_matched,
-                #     "results": all_results,
-                # }, all_results_file)
+        doc_file = f"{output_dir}/scraped_texts.json"
+        search_result_texts = [result["text"]
+                               for result in search_results["results"]]
+        scraped_results[query] = search_result_texts
+        save_file(scraped_results, doc_file)
 
-                output_file = f"{output_dir}/output.json"
-                output_results[query] = search_results
-                save_file(output_results, output_file)
+        # all_results_file = f"{output_dir}/all_results.json"
+        # save_file({
+        #     "queries": all_queries,
+        #     "matched": all_matched,
+        #     "results": all_results,
+        # }, all_results_file)
+
+        output_file = f"{output_dir}/output.json"
+        output_results[query] = search_results
+        save_file(output_results, output_file)
+
+        if is_complete:
+            # Call LLM chat
+            logger.debug("CALL LLM CHAT!")
+            pass
+
     # response_dict = fill_null_values(response_dict)
     # save_file(response_dict, output_file)
 
