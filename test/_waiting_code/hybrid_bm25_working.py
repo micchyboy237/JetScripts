@@ -65,24 +65,24 @@ if __name__ == "__main__":
     class Episode(BaseModel):
         season: int
         episode: int
-        title: str
+        release_date: date
+        episode_title: Optional[str] = None
         summary: Optional[str] = None
-        air_date: Optional[date] = None
 
-    class Season(BaseModel):
-        season: int
-        episodes: int
-        summary: Optional[str] = None
-        air_date: Optional[date] = None
-        end_date: Optional[date] = None
+    # class Season(BaseModel):
+    #     season: int
+    #     episodes: int
+    #     summary: Optional[str] = None
+    #     release_date: Optional[date] = None
+    #     end_date: Optional[date] = None
 
     class AnimeDetails(BaseModel):
         title: str
+        seasons: Optional[int] = None
         synopsis: Optional[str] = None
         genre: Optional[List[str]] = None
         release_date: Optional[date] = None
         end_date: Optional[date] = None
-        seasons: Optional[List[Season]] = None
         episodes: Optional[List[Episode]] = None
 
     output_cls = AnimeDetails
