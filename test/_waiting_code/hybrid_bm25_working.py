@@ -68,7 +68,7 @@ if __name__ == "__main__":
     # query = "\"I'll Become a Villainess Who Goes Down in History\" genre"
 
     top_k = None
-    threshold = 0.0
+    threshold = 0.4
     results = hybrid_search.search(query, top_k=top_k, threshold=threshold)
 
     copy_to_clipboard(results)
