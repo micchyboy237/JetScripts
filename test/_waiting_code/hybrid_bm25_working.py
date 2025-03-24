@@ -80,6 +80,7 @@ if __name__ == "__main__":
         title: str
         seasons_num: Optional[int] = None
         episodes_num: Optional[int] = None
+        status: Optional[str] = None
         synopsis: Optional[str] = None
         genre: Optional[List[str]] = None
         release_date: Optional[date] = None
