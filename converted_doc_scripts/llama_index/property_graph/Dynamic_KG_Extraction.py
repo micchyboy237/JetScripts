@@ -1,13 +1,15 @@
+from jet.file.utils import load_file
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
+from jet.transformers.formatters import format_json
 from llama_index.core import Document, PropertyGraphIndex
 from llama_index.core.indices.property_graph import (
     SimpleLLMPathExtractor,
     SchemaLLMPathExtractor,
     DynamicLLMPathExtractor,
 )
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import Settings
 import wikipedia
 import os
@@ -63,16 +65,22 @@ def get_wikipedia_content(title):
     return None
 
 
-wiki_title = "Barack Obama"
-content = get_wikipedia_content(wiki_title)
+# wiki_title = "Barack Obama"
+# content = get_wikipedia_content(wiki_title)
 
-if content:
-    document = Document(text=content, metadata={"title": wiki_title})
-    logger.debug(
-        f"Fetched content for '{wiki_title}' (length: {len(content)} characters)"
-    )
-else:
-    logger.debug("Failed to fetch Wikipedia content.")
+data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/generated/search_web_data/scraped_texts.json"
+data: dict[str, list[str]] = load_file(data_file)
+texts = [text for texts in list(data.values()) for text in texts]
+title = "I'll Become a Villainess Who Goes Down in History"
+documents = [Document(text=text, metadata={"title": title}) for text in texts]
+
+# if content:
+#     document = Document(text=content, metadata={"title": wiki_title})
+#     logger.debug(
+#         f"Fetched content for '{wiki_title}' (length: {len(content)} characters)"
+#     )
+# else:
+#     logger.debug("Failed to fetch Wikipedia content.")
 
 """
 ## 1. SimpleLLMPathExtractor
@@ -83,7 +91,8 @@ kg_extractor = SimpleLLMPathExtractor(
 )
 
 simple_index = PropertyGraphIndex.from_documents(
-    [document],
+    # [document],
+    documents,
     llm=llm,
     embed_kg_nodes=False,
     kg_extractors=[kg_extractor],
@@ -93,9 +102,14 @@ simple_index = PropertyGraphIndex.from_documents(
 simple_index.property_graph_store.save_networkx_graph(
     name="./generated/SimpleGraph.html"
 )
-simple_index.property_graph_store.get_triplets(
-    entity_names=["Barack Obama", "Obama"]
-)[:5]
+
+logger.debug("Simple property graph store triplets:")
+logger.orange(format_json(
+    simple_index.property_graph_store.get_triplets(
+        entity_names=["Anime", "Episode"]
+    )[:5]
+))
+
 
 """
 ## 2. DynamicLLMPathExtractor
@@ -108,14 +122,15 @@ kg_extractor = DynamicLLMPathExtractor(
     llm=llm,
     max_triplets_per_chunk=3,
     num_workers=4,
-    allowed_entity_types=None,
-    allowed_relation_types=None,
-    allowed_relation_props=[],
-    allowed_entity_props=[],
+    allowed_entity_types=["Anime", "Episode", "Character", "Season"],
+    allowed_relation_types=["HAS_EPISODE",
+                            "PART_OF_SEASON", "HAS_GENRE", "HAS_TITLE"],
+    allowed_relation_props=["description", "release_date", "synopsis"],
+    allowed_entity_props=["title", "season", "episode", "synopsis"],
 )
 
 dynamic_index = PropertyGraphIndex.from_documents(
-    [document],
+    documents,
     llm=llm,
     embed_kg_nodes=False,
     kg_extractors=[kg_extractor],
@@ -126,9 +141,14 @@ dynamic_index.property_graph_store.save_networkx_graph(
     name="./generated/DynamicGraph.html"
 )
 
-dynamic_index.property_graph_store.get_triplets(
-    entity_names=["Barack Obama", "Obama"]
-)[:5]
+
+logger.debug("Dynamic property graph store triplets:")
+logger.orange(format_json(
+    dynamic_index.property_graph_store.get_triplets(
+        entity_names=["Anime", "Episode"]
+    )[:5]
+))
+
 
 """
 ### With initial ontology for guided KG extraction : 
@@ -139,14 +159,15 @@ kg_extractor = DynamicLLMPathExtractor(
     llm=llm,
     max_triplets_per_chunk=3,
     num_workers=4,
-    allowed_entity_types=["POLITICIAN", "POLITICAL_PARTY"],
-    allowed_relation_types=["PRESIDENT_OF", "MEMBER_OF"],
-    allowed_relation_props=["description"],
-    allowed_entity_props=["description"],
+    allowed_entity_types=["Anime", "Episode", "Genre", "Season"],
+    allowed_relation_types=["HAS_EPISODE",
+                            "PART_OF_SEASON", "HAS_GENRE", "HAS_TITLE"],
+    allowed_relation_props=["description", "release_date", "synopsis"],
+    allowed_entity_props=["title", "season", "episode", "synopsis"],
 )
 
 dynamic_index_2 = PropertyGraphIndex.from_documents(
-    [document],
+    documents,
     llm=llm,
     embed_kg_nodes=False,
     kg_extractors=[kg_extractor],
@@ -154,11 +175,16 @@ dynamic_index_2 = PropertyGraphIndex.from_documents(
 )
 
 dynamic_index_2.property_graph_store.save_networkx_graph(
-    name="./generated/DynamicGraph_2.html"
+    name="./generated/DynamicGraph.html"
 )
-dynamic_index_2.property_graph_store.get_triplets(
-    entity_names=["Barack Obama", "Obama"]
-)[:5]
+
+logger.debug("Dynamic property graph store 2 triplets:")
+logger.orange(format_json(
+    dynamic_index_2.property_graph_store.get_triplets(
+        entity_names=["Anime", "Episode", "Genre", "Season"]
+    )[:5]
+))
+
 
 """
 # 3 - SchemaLLMPathExtractor
@@ -181,7 +207,8 @@ kg_extractor = SchemaLLMPathExtractor(
 )
 
 schema_index = PropertyGraphIndex.from_documents(
-    [document],
+    # [document],
+    documents,
     llm=llm,
     embed_kg_nodes=False,
     kg_extractors=[kg_extractor],
@@ -191,9 +218,13 @@ schema_index = PropertyGraphIndex.from_documents(
 schema_index.property_graph_store.save_networkx_graph(
     name="./generated/SchemaGraph.html"
 )
-schema_index.property_graph_store.get_triplets(
-    entity_names=["Barack Obama", "Obama"]
-)[:5]
+
+logger.debug("Schema property graph store triplets:")
+logger.orange(format_json(
+    schema_index.property_graph_store.get_triplets(
+        entity_names=["Anime", "Episode"]
+    )[:5]
+))
 
 """
 ## Comparison and Analysis

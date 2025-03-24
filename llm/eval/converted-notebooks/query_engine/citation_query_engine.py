@@ -25,7 +25,7 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 
 
 from llama_index.embeddings.ollama import OllamaEmbedding
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import Settings
 Settings.llm = Ollama(
     model="llama3.2", request_timeout=300.0, context_window=4096)

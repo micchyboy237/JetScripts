@@ -1,6 +1,8 @@
+from llama_index.core import Settings
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
+
 
 @collections_router.post("/create")
 async def create_collection(
@@ -32,6 +34,7 @@ async def create_collection(
 
     return await sync_to_async(CollectionModelSchema)(...)
 
+
 @collections_router.post(
     "/query",
     response=CollectionQueryOutput,
@@ -44,6 +47,7 @@ def query_collection_view(
     query_str = query_input.query_str
     response = query_collection(collection_id, query_str)
     return {"response": response}
+
 
 @collections_router.get(
     "/available",
@@ -58,6 +62,7 @@ async def get_my_collections_view(request: HttpRequest):
     collections = Collection.objects.filter(api_key=key)
 
     return [{...} async for collection in collections]
+
 
 @collections_router.post(
     "/{collection_id}/add_file", summary="Add a file to a collection"
@@ -86,6 +91,7 @@ application = ProtocolTypeRouter(
     }
 )
 
+
 async def connect(self):
     try:
         self.collection_id = extract_connection_id(self.scope["path"])
@@ -97,6 +103,7 @@ async def connect(self):
         await self.close(code=4000)
     except Exception as e:
         pass
+
 
 async def receive(self, text_data):
     text_data_json = json.loads(text_data)
@@ -124,8 +131,6 @@ async def receive(self, text_data):
                 {"error": "No index loaded for this connection."}, indent=4
             )
         )
-
-from llama_index.core import Settings
 
 
 async def load_collection_model(collection_id: str | int) -> VectorStoreIndex:
@@ -185,113 +190,113 @@ async def load_collection_model(collection_id: str | int) -> VectorStoreIndex:
 
     return index
 
-const [collections, setCollections] = useState<CollectionModelSchema[]>([]);
-const [loading, setLoading] = useState(true);
+const[collections, setCollections] = useState < CollectionModelSchema[] > ([])
+const[loading, setLoading] = useState(true)
 
 const
 fetchCollections = async () = > {
-try {
-const accessToken = localStorage.getItem("accessToken");
-if (accessToken) {
-const response = await getMyCollections(accessToken);
-setCollections(response.data);
+    try {
+        const accessToken = localStorage.getItem("accessToken")
+        if (accessToken) {
+            const response = await getMyCollections(accessToken)
+            setCollections(response.data)
+        }
+    } catch(error) {
+        console.error(error)
+    } finally {
+        setLoading(false)
+    }
 }
-} catch (error) {
-console.error(error);
-} finally {
-setLoading(false);
-}
-};
 
 < List >
-{collections.map((collection) = > (
+{collections.map((collection)= > (
     < div key={collection.id} >
     < ListItem disablePadding >
     < ListItemButton
     disabled={
-    collection.status != = CollectionStatus.COMPLETE | |
-    !collection.has_model
+        collection.status != = CollectionStatus.COMPLETE | |
+        !collection.has_model
     }
-    onClick={() = > handleCollectionClick(collection)}
-selected = {
-    selectedCollection & &
-    selectedCollection.id == = collection.id
-}
->
-< ListItemText
-primary = {collection.title} / >
-          {collection.status == = CollectionStatus.RUNNING ? (
-    < CircularProgress
-    size={24}
-    style={{position: "absolute", right: 16}}
-    / >
-): null}
-< / ListItemButton >
+    onClick={()= > handleCollectionClick(collection)}
+    selected={
+        selectedCollection & &
+        selectedCollection.id == = collection.id
+    }
+    >
+    < ListItemText
+    primary={collection.title} / >
+    {collection.status == = CollectionStatus.RUNNING ? (
+        < CircularProgress
+        size={24}
+        style={{position: "absolute", right: 16}}
+        / >
+    ): null}
+    < / ListItemButton >
     < / ListItem >
-        < / div >
+    < / div >
 ))}
 < / List >
 
-useEffect(() = > {
+useEffect(()= > {
     let
-interval: NodeJS.Timeout;
-if (
-    collections.some(
-        (collection) = >
-collection.status == = CollectionStatus.RUNNING | |
-collection.status == = CollectionStatus.QUEUED
-)
-) {
-    interval = setInterval(() = > {
-    fetchCollections();
-}, 15000);
-}
-return () = > clearInterval(interval);
+    interval: NodeJS.Timeout
+    if (
+        collections.some(
+            (collection)=>
+            collection.status === CollectionStatus.RUNNING | |
+            collection.status === CollectionStatus.QUEUED
+        )
+    ) {
+        interval = setInterval(() = > {
+            fetchCollections()
+        }, 15000)
+    }
+    return ()= > clearInterval(interval)
 }, [collections]);
 
-const setupWebsocket = () => {
-  setConnecting(true);
-  // Here, a new WebSocket object is created using the specified URL, which includes the
-  // selected collection's ID and the user's authentication token.
+const setupWebsocket = () = > {
+    setConnecting(true)
+    // Here, a new WebSocket object is created using the specified URL, which includes the
+    // selected collection's ID and the user's authentication token.
 
-  websocket.current = new WebSocket(
-    `ws://localhost:8000/ws/collections/${selectedCollection.id}/query/?token=${authToken}`,
-  );
+    websocket.current = new WebSocket(
+        `ws: // localhost: 8000/ws/collections/${selectedCollection.id}/query/?token=${authToken}`,
+    )
 
-  websocket.current.onopen = (event) => {
-    //...
-  };
+    websocket.current.onopen = (event) = > {
+        // ...
+    }
 
-  websocket.current.onmessage = (event) => {
-    //...
-  };
+    websocket.current.onmessage = (event) = > {
+        // ...
+    }
 
-  websocket.current.onclose = (event) => {
-    //...
-  };
+    websocket.current.onclose = (event) = > {
+        // ...
+    }
 
-  websocket.current.onerror = (event) => {
-    //...
-  };
+    websocket.current.onerror = (event) = > {
+        // ...
+    }
 
-  return () => {
-    websocket.current?.close();
-  };
-};
+    return () = > {
+        websocket.current?.close()
+    }
+}
 
-websocket.current.onopen = (event) => {
-  setError(false);
-  setConnecting(false);
-  setAwaitingMessage(false);
+websocket.current.onopen = (event) = > {
+    setError(false)
+    setConnecting(false)
+    setAwaitingMessage(false)
 
-  console.log("WebSocket connected:", event);
-};
+    console.log("WebSocket connected:", event)
+}
 
 # websocket.current.onmessage = (event) => {
 #   const data = JSON.parse(event.data);
 #   console.log("WebSocket message received:", data);
 #   setAwaitingMessage(false);
-# 
+#
 #   if (data.response) {
 #     // Update the messages state with the new message from the server
 #     setMessages((prevMessages) => [
@@ -305,37 +310,37 @@ websocket.current.onopen = (event) => {
 #   }
 # };
 
-websocket.current.onclose = (event) => {
-  if (event.code === 4000) {
-    toast.warning(
-      "Selected collection's model is unavailable. Was it created properly?",
-    );
-    setError(true);
-    setConnecting(false);
-    setAwaitingMessage(false);
-  }
-  console.log("WebSocket closed:", event);
-};
+websocket.current.onclose = (event) = > {
+    if (event.code === 4000) {
+        toast.warning(
+            "Selected collection's model is unavailable. Was it created properly?",
+        )
+        setError(true)
+        setConnecting(false)
+        setAwaitingMessage(false)
+    }
+    console.log("WebSocket closed:", event)
+}
 
-websocket.current.onerror = (event) => {
-  setError(true);
-  setConnecting(false);
-  setAwaitingMessage(false);
+websocket.current.onerror = (event) = > {
+    setError(true)
+    setConnecting(false)
+    setAwaitingMessage(false)
 
-  console.error("WebSocket error:", event);
-};
+    console.error("WebSocket error:", event)
+}
 
-git clone https://github.com/yourusername/delphic.git
+git clone https: // github.com/yourusername/delphic.git
 
 cd delphic
 
-mkdir -p ./.envs/.local/
-cp -a ./docs/sample_envs/local/.frontend ./frontend
-cp -a ./docs/sample_envs/local/.django ./.envs/.local
-cp -a ./docs/sample_envs/local/.postgres ./.envs/.local
+mkdir - p ./.envs/.local/
+cp - a ./docs/sample_envs/local/.frontend ./frontend
+cp - a ./docs/sample_envs/local/.django ./.envs/.local
+cp - a ./docs/sample_envs/local/.postgres ./.envs/.local
 
-sudo docker-compose --profiles fullstack -f local.yml build
+sudo docker-compose - -profiles fullstack - f local.yml build
 
-sudo docker-compose -f local.yml up
+sudo docker-compose - f local.yml up
 
 logger.info("\n\n[DONE]", bright=True)

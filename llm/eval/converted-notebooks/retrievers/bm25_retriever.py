@@ -13,7 +13,7 @@ from llama_index.retrievers.bm25 import BM25Retriever
 from llama_index.core import SimpleDirectoryReader
 from jet.logger import logger
 from jet.code.markdown_code_extractor import MarkdownCodeExtractor
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 
 initialize_ollama_settings()
 

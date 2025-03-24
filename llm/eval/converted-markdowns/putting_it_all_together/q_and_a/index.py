@@ -1,8 +1,14 @@
+from llama_index.core.query_engine import SubQuestionQueryEngine
+from llama_index.core.tools import QueryEngineTool, ToolMetadata
+from llama_index.core.query.query_transform.base import DecomposeQueryTransform
+from llama_index.core.query_engine import RouterQueryEngine
+from llama_index.core.tools import QueryEngineTool
+from llama_index.core import TreeIndex, VectorStoreIndex
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 
 documents = SimpleDirectoryReader("data").load_data()
 index = VectorStoreIndex.from_documents(documents)
@@ -15,8 +21,6 @@ index = SummaryIndex.from_documents(documents)
 query_engine = index.as_query_engine(response_mode="tree_summarize")
 response = query_engine.query("<summarization_query>")
 
-from llama_index.core import TreeIndex, VectorStoreIndex
-from llama_index.core.tools import QueryEngineTool
 
 ...
 
@@ -32,7 +36,6 @@ tool2 = QueryEngineTool.from_defaults(
     description="Use this query engine for something else...",
 )
 
-from llama_index.core.query_engine import RouterQueryEngine
 
 query_engine = RouterQueryEngine.from_defaults(
     query_engine_tools=[tool1, tool2]
@@ -42,13 +45,11 @@ response = query_engine.query(
     "In Notion, give me a summary of the product roadmap."
 )
 
-from llama_index.core.query.query_transform.base import DecomposeQueryTransform
 
 decompose_transform = DecomposeQueryTransform(
     service_context.llm, verbose=True
 )
 
-from llama_index.core.tools import QueryEngineTool, ToolMetadata
 
 query_engine_tools = [
     QueryEngineTool(
@@ -74,7 +75,6 @@ query_engine_tools = [
     ),
 ]
 
-from llama_index.core.query_engine import SubQuestionQueryEngine
 
 query_engine = SubQuestionQueryEngine.from_defaults(
     query_engine_tools=query_engine_tools

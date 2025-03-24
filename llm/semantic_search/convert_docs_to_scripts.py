@@ -80,7 +80,7 @@ def comment_line(line: str):
 
 
 def add_ollama_initialier_code(code: str):
-    initializer_code = "from jet.llm.ollama import initialize_ollama_settings\ninitialize_ollama_settings()"
+    initializer_code = "from jet.llm.ollama.base import initialize_ollama_settings\ninitialize_ollama_settings()"
     return "\n\n".join([
         initializer_code,
         code,

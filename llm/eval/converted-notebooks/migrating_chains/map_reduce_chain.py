@@ -1,62 +1,76 @@
+from langchain.chains.combine_documents.reduce import (
+    acollapse_docs,
+    split_list_of_docs,
+)
+from typing import Literal
+from langchain_community.document_loaders import WebBaseLoader
+from IPython.display import Image
+from langgraph.graph import END, START, StateGraph
+from langgraph.constants import Send
+from langchain_core.output_parsers import StrOutputParser
+from typing import Annotated, List, TypedDict
+import operator
+from langchain_text_splitters import CharacterTextSplitter
+from langchain_core.prompts import ChatPromptTemplate
+from langchain.chains.llm import LLMChain
+from langchain.chains.combine_documents.stuff import StuffDocumentsChain
+from langchain.chains import MapReduceDocumentsChain, ReduceDocumentsChain
+from langchain_core.documents import Document
+from langchain_ollama import ChatOllama
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Migrating from MapReduceDocumentsChain
-# 
+#
 # [MapReduceDocumentsChain](https://python.langchain.com/api_reference/langchain/chains/langchain.chains.combine_documents.map_reduce.MapReduceDocumentsChain.html) implements a map-reduce strategy over (potentially long) texts. The strategy is as follows:
-# 
+#
 # - Split a text into smaller documents;
 # - Map a process onto the smaller documents;
 # - Reduce or consolidate the results of the process into a final result.
-# 
+#
 # Note that the map step is typically parallelized over the input documents.
-# 
+#
 # A common process applied in this context is summarization, in which the map step summarizes individual documents, and the reduce step generates a summary of the summaries.
-# 
+#
 # In the reduce step, `MapReduceDocumentsChain` supports a recursive "collapsing" of the summaries: the inputs would be partitioned based on a token limit, and summaries would be generated of the partitions. This step would be repeated until the total length of the summaries was within a desired limit, allowing for the summarization of arbitrary-length text. This is particularly useful for models with smaller context windows.
-# 
+#
 # LangGraph suports [map-reduce](https://langchain-ai.github.io/langgraph/how-tos/map-reduce/) workflows, and confers a number of advantages for this problem:
-# 
+#
 # - LangGraph allows for individual steps (such as successive summarizations) to be streamed, allowing for greater control of execution;
 # - LangGraph's [checkpointing](https://langchain-ai.github.io/langgraph/how-tos/persistence/) supports error recovery, extending with human-in-the-loop workflows, and easier incorporation into conversational applications.
 # - The LangGraph implementation is easier to extend, as we will see below.
-# 
+#
 # Below we will go through both `MapReduceDocumentsChain` and a corresponding LangGraph implementation, first on a simple example for illustrative purposes, and second on a longer example text to demonstrate the recursive reduce step.
-# 
+#
 # Let's first load a chat model:
-# 
+#
 # import ChatModelTabs from "@theme/ChatModelTabs";
-# 
+#
 # <ChatModelTabs customVarName="llm" />
 
-from langchain_ollama import ChatOllama
 
 llm = ChatOllama(model="llama3.1")
 
-## Basic example (short documents)
-# 
+# Basic example (short documents)
+#
 # Let's use the following 3 documents for illustrative purposes.
 
-from langchain_core.documents import Document
 
 documents = [
     Document(page_content="Apples are red", metadata={"title": "apple_book"}),
-    Document(page_content="Blueberries are blue", metadata={"title": "blueberry_book"}),
-    Document(page_content="Bananas are yelow", metadata={"title": "banana_book"}),
+    Document(page_content="Blueberries are blue",
+             metadata={"title": "blueberry_book"}),
+    Document(page_content="Bananas are yelow",
+             metadata={"title": "banana_book"}),
 ]
 
-### Legacy
-# 
+# Legacy
+#
 # <details open>
-#     
+#
 # Below we show an implementation with `MapReduceDocumentsChain`. We define the prompt templates for the map and reduce steps, instantiate separate chains for these steps, and finally instantiate the `MapReduceDocumentsChain`:
 
-from langchain.chains import MapReduceDocumentsChain, ReduceDocumentsChain
-from langchain.chains.combine_documents.stuff import StuffDocumentsChain
-from langchain.chains.llm import LLMChain
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_text_splitters import CharacterTextSplitter
 
 map_template = "Write a concise summary of the following: {docs}."
 map_prompt = ChatPromptTemplate([("human", map_template)])
@@ -97,24 +111,17 @@ print(result["output_text"])
 # In the [LangSmith trace](https://smith.langchain.com/public/8d88a2c0-5d26-41f6-9176-d06549b17aa6/r) we observe four LLM calls: one summarizing each of the three input documents, and one summarizing the summaries.
 
 # </details>
-# 
-### LangGraph
-# 
+#
+# LangGraph
+#
 # Below we show a LangGraph implementation, using the same prompt templates as above. The graph includes a node for generating summaries which is mapped across a list of input documents. This node then flows to a second node that generates the final summary.
-# 
+#
 # <details open>
-# 
+#
 # We will need to install `langgraph`:
 
 # %pip install -qU langgraph
 
-import operator
-from typing import Annotated, List, TypedDict
-
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from langgraph.constants import Send
-from langgraph.graph import END, START, StateGraph
 
 map_template = "Write a concise summary of the following: {context}."
 
@@ -130,7 +137,6 @@ reduce_prompt = ChatPromptTemplate([("human", reduce_template)])
 
 map_chain = map_prompt | llm | StrOutputParser()
 reduce_chain = reduce_prompt | llm | StrOutputParser()
-
 
 
 class OverallState(TypedDict):
@@ -167,7 +173,6 @@ graph.add_edge("generate_summary", "generate_final_summary")
 graph.add_edge("generate_final_summary", END)
 app = graph.compile()
 
-from IPython.display import Image
 
 Image(app.get_graph().draw_mermaid_png())
 
@@ -179,17 +184,15 @@ for step in app.stream({"contents": [doc.page_content for doc in documents]}):
 # In the [LangSmith trace](https://smith.langchain.com/public/8ecbe9fd-eb02-4c6e-90ae-659952c9360a/r) we recover the same four LLM calls as before.
 
 # </details>
-# 
-## Summarizing long documents
+#
+# Summarizing long documents
 
 # Map-reduce flows are particularly useful when texts are long compared to the context window of a LLM. `MapReduceDocumentsChain` supports a recursive "collapsing" of the summaries: the inputs are partitioned based on a token limit, and summaries are generated of the partitions. This step is repeated until the total length of the summaries is within a desired limit, allowing for the summarization of arbitrary-length text.
-# 
+#
 # This "collapse" step is implemented as a `while` loop within `MapReduceDocumentsChain`. We can demonstrate this step on a longer text, a [LLM Powered Autonomous Agents](https://lilianweng.github.io/posts/2023-06-23-agent/) blog post by Lilian Weng (as featured in the [RAG tutorial](/docs/tutorials/rag) and other documentation).
-# 
+#
 # First we load the post and chunk it into smaller "sub documents":
 
-from langchain_community.document_loaders import WebBaseLoader
-from langchain_text_splitters import CharacterTextSplitter
 
 loader = WebBaseLoader("https://lilianweng.github.io/posts/2023-06-23-agent/")
 documents = loader.load()
@@ -200,8 +203,8 @@ text_splitter = CharacterTextSplitter.from_tiktoken_encoder(
 split_docs = text_splitter.split_documents(documents)
 print(f"Generated {len(split_docs)} documents.")
 
-### Legacy
-# 
+# Legacy
+#
 # <details open>
 # We can invoke `MapReduceDocumentsChain` as before:
 
@@ -210,30 +213,23 @@ result = map_reduce_chain.invoke(split_docs)
 print(result["output_text"])
 
 # Consider the [LangSmith trace](https://smith.langchain.com/public/d8b3311d-2220-487a-8eaf-104ef90678dd/r) for the above invocation. When instantiating our `ReduceDocumentsChain`, we set a `token_max` of 1,000 tokens. This results in a total of 17 LLM calls:
-# 
+#
 # - 14 calls are for summarizing the 14 sub-documents generated by our text splitter.
 # - This generated summaries that totaled about 1,000 - 2,000 tokens. Because we set a `token_max` of 1,000, there are two more calls to summarize (or "collapse") these summaries.
 # - One final call is for generating a final summary of the two "collapsed" summaries.
 
 # </details>
-# 
-### LangGraph
-# 
+#
+# LangGraph
+#
 # <details open>
 # We can extend our original map-reduce implementation in LangGraph to implement the same recursive collapsing step. We make the following changes:
-# 
+#
 # - Add a `collapsed_summaries` key to the state to store the collapsed summaries;
 # - Update the final summarization node to summarize the collapsed summaries;
 # - Add a `collapse_summaries` node that partitions a list of documents based on a token length (1,000 tokens here, as before) and generates summaries of each partition and stores the result in `collapsed_summaries`.
-# 
+#
 # We add a conditional edge from `collapse_summaries` to itself to form a loop: if the collapsed summaries total more than the `token_max`, we re-run the node.
-
-from typing import Literal
-
-from langchain.chains.combine_documents.reduce import (
-    acollapse_docs,
-    split_list_of_docs,
-)
 
 
 def length_function(documents: List[Document]) -> int:
@@ -301,12 +297,11 @@ app = graph.compile()
 
 # LangGraph allows the graph structure to be plotted to help visualize its function:
 
-from IPython.display import Image
 
 Image(app.get_graph().draw_mermaid_png())
 
 # As before, we can stream the graph to observe its sequence of steps. Below, we will simply print out the name of the step.
-# 
+#
 # Note that because we have a loop in the graph, it can be helpful to specify a [recursion_limit](https://langchain-ai.github.io/langgraph/reference/errors/#langgraph.errors.GraphRecursionError) on its execution. This is analogous to [ReduceDocumentsChain.token_max](https://python.langchain.com/api_reference/langchain/chains/langchain.chains.combine_documents.reduce.ReduceDocumentsChain.html#langchain.chains.combine_documents.reduce.ReduceDocumentsChain.token_max) to will raise a specific error when the specified limit is exceeded.
 
 for step in app.stream(
@@ -318,13 +313,13 @@ for step in app.stream(
 print(step)
 
 # In the corresponding [LangSmith trace](https://smith.langchain.com/public/9d7b1d50-e1d6-44c9-9ab2-eabef621c883/r) we can see the same 17 LLM calls as before, this time grouped under their respective nodes.
-# 
+#
 # </details>
-# 
-## Next steps
-# 
+#
+# Next steps
+#
 # Check out the [LangGraph documentation](https://langchain-ai.github.io/langgraph/) for detail on building with LangGraph, including [this guide](https://langchain-ai.github.io/langgraph/how-tos/map-reduce/) on the details of map-reduce in LangGraph.
-# 
+#
 # See [this tutorial](/docs/tutorials/summarization/) for more LLM-based summarization strategies.
 
 

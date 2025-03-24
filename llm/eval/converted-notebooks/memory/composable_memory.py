@@ -12,7 +12,7 @@ from llama_index.core.memory import (
 import json
 from jet.transformers import make_serializable
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings, large_embed_model
+from jet.llm.ollama.base import initialize_ollama_settings, large_embed_model
 initialize_ollama_settings()
 
 # <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/agent/memory/composable_memory.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>

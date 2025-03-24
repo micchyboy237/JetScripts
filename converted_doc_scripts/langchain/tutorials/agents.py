@@ -6,7 +6,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 import asyncio
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 from jet.llm.ollama.base_langchain import ChatOllama
 from jet.transformers.formatters import format_json
 from langchain_community.tools.tavily_search import TavilySearchResults

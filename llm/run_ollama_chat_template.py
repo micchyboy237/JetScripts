@@ -1,4 +1,4 @@
-from jet.llm.ollama import OLLAMA_HF_MODELS, get_chat_template
+from jet.llm.ollama.base import OLLAMA_HF_MODELS, get_chat_template
 from jet.logger import logger
 
 

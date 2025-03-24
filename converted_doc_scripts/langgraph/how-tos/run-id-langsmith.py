@@ -1,5 +1,10 @@
+from langchain_core.tools import tool
+from langgraph.prebuilt import create_react_agent
+from typing import Literal
+from langchain_ollama import ChatOllama
+import os
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 """
@@ -77,15 +82,13 @@ First, let's install the required packages and set our API keys
 # %pip install --quiet -U langgraph langchain_ollama
 
 # import getpass
-import os
 
 
 def _set_env(var: str):
     if not os.environ.get(var):
-#         os.environ[var] = getpass.getpass(f"{var}: ")
+        #         os.environ[var] = getpass.getpass(f"{var}: ")
 
-
-# _set_env("OPENAI_API_KEY")
+        # _set_env("OPENAI_API_KEY")
 _set_env("LANGSMITH_API_KEY")
 
 """
@@ -103,10 +106,6 @@ _set_env("LANGSMITH_API_KEY")
 For this example we will use the [prebuilt ReAct agent](https://langchain-ai.github.io/langgraph/how-tos/create-react-agent/).
 """
 
-from langchain_ollama import ChatOllama
-from typing import Literal
-from langgraph.prebuilt import create_react_agent
-from langchain_core.tools import tool
 
 model = ChatOllama(model="llama3.1")
 
@@ -136,8 +135,6 @@ This assumes that you have set your `LANGSMITH_API_KEY` environment variable.
 
 Note that you can also configure what project to trace to by setting the `LANGCHAIN_PROJECT` environment variable, by default runs will be traced to the `default` project.
 """
-
-import uuid
 
 
 def print_stream(stream):

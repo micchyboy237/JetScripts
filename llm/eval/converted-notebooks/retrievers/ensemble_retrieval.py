@@ -24,7 +24,7 @@ from llama_index.core.schema import IndexNode
 from llama_index.core.tools import RetrieverTool
 from llama_index.core import Document
 from pathlib import Path
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core.response.notebook_utils import display_response
 from llama_index.core import SummaryIndex
 from llama_index.core import (
@@ -39,7 +39,7 @@ from jet.vectors.reranker.bm25_rerank import BM25Rerank
 from jet.llm.ollama.constants import OLLAMA_SMALL_EMBED_MODEL
 from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 from jet.transformers.formatters import format_json
 from jet.vectors.reranker.utils import create_bm25_retriever
 from llama_index.core.node_parser.text.sentence import SentenceSplitter

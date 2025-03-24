@@ -10,7 +10,7 @@ from typing import Dict, Any, List, Optional
 from llama_index.core.query_pipeline import QueryPipeline, InputComponent
 from llama_index.core import SimpleDirectoryReader
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Query Pipeline with Routing

@@ -1,14 +1,14 @@
 from llama_index.core.utils import globals_helper
 from llama_index.core.evaluation import CorrectnessEvaluator
 from llama_index.llms.anthropic import Anthropic
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import SummaryIndex
 from llama_index.core import SimpleDirectoryReader, Document
 import nest_asyncio
 import asyncio
 from jet.transformers.formatters import format_json
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 """

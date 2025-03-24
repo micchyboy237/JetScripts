@@ -1,7 +1,7 @@
 from typing import Union, List
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from jet.db.chroma import ChromaClient, InitialDataEntry
-from jet.llm.ollama import OllamaEmbeddingFunction
+from jet.llm.ollama.base import OllamaEmbeddingFunction
 from jet.llm.helpers.semantic_search import (
     RerankerRetriever
 )

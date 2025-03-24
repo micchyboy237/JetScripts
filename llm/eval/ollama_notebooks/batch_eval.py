@@ -7,7 +7,7 @@ from llama_index.core.evaluation import (
 )
 from jet.llm.ollama.base import Ollama
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Response
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 import os
 import nest_asyncio
 ```python

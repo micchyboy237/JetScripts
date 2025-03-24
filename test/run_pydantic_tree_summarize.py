@@ -13,7 +13,7 @@ from llama_index.core import SimpleDirectoryReader
 from llama_index.core.types import PydanticProgramMode
 from jet.vectors import SettingsManager
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 from pydantic import BaseModel, Field
 
 chunk_size = OLLAMA_LARGE_CHUNK_SIZE

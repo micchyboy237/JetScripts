@@ -4,7 +4,7 @@ from llama_index.core.evaluation import SemanticSimilarityEvaluator
 from llama_index.core.embeddings import resolve_embed_model
 from llama_index.core.base.embeddings.base import SimilarityMode
 
-from jet.llm.ollama import create_embed_model
+from jet.llm.ollama.base import create_embed_model
 from jet.logger import logger
 
 

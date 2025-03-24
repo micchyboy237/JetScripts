@@ -1,5 +1,5 @@
 import re
-from jet.llm.ollama import initialize_ollama_settings, create_llm
+from jet.llm.ollama.base import initialize_ollama_settings, create_llm
 import pandas as pd
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.evaluation import PairwiseComparisonEvaluator
@@ -8,7 +8,7 @@ import sys
 import logging
 import nest_asyncio
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Pairwise Evaluator

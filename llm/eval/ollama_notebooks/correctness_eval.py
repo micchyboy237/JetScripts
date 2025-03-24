@@ -1,9 +1,9 @@
+from jet.vectors import SettingsManager
+from llama_index.core.evaluation import CorrectnessEvaluator
+from jet.llm.ollama.base import initialize_ollama_settings
 ```python
-from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
-from llama_index.core.evaluation import CorrectnessEvaluator
-from jet.vectors import SettingsManager
 settings_manager = SettingsManager.create()
 llm = settings_manager.llm
 evaluator = CorrectnessEvaluator(llm=llm)

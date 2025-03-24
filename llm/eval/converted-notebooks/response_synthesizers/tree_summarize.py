@@ -1,7 +1,9 @@
+from llama_index.core.response_synthesizers import TreeSummarize
+from llama_index.core import SimpleDirectoryReader
 import asyncio
 from jet.transformers.formatters import format_json
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 """
@@ -29,10 +31,10 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 ## Load Data
 """
 
-from llama_index.core import SimpleDirectoryReader
 
 reader = SimpleDirectoryReader(
-    input_files=["/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/paul_graham_essay.txt"]
+    input_files=[
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/paul_graham_essay.txt"]
 )
 
 docs = reader.load_data()
@@ -43,13 +45,13 @@ text = docs[0].text
 ## Summarize
 """
 
-from llama_index.core.response_synthesizers import TreeSummarize
 
 summarizer = TreeSummarize(verbose=True)
 
+
 async def run_async_code_70f1f250():
-  response = summarizer.get_response("who is Paul Graham?", [text])
-  return response
+    response = summarizer.get_response("who is Paul Graham?", [text])
+    return response
 response = asyncio.run(run_async_code_70f1f250())
 logger.success(format_json(response))
 

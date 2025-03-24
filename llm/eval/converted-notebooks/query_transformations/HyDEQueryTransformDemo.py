@@ -1,5 +1,11 @@
+from IPython.display import Markdown, display
+from llama_index.core.query_engine import TransformQueryEngine
+from llama_index.core.indices.query.query_transform import HyDEQueryTransform
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+import sys
+import logging
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 """
@@ -27,18 +33,13 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 #### Load documents, build the VectorStoreIndex
 """
 
-import logging
-import sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
-from llama_index.core.indices.query.query_transform import HyDEQueryTransform
-from llama_index.core.query_engine import TransformQueryEngine
-from IPython.display import Markdown, display
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 
 index = VectorStoreIndex.from_documents(documents)
 

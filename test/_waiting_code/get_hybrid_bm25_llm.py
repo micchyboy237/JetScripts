@@ -2,7 +2,7 @@ from tqdm import tqdm
 from jet.cache.cache_manager import CacheManager
 from shared.data_types.job import JobData
 from jet.wordnet.n_grams import count_ngrams
-from jet.search.transformers import clean_string
+from jet.search.formatters import clean_string
 from jet.logger import logger, time_it
 from jet.file.utils import load_file
 from jet.utils.commands import copy_to_clipboard

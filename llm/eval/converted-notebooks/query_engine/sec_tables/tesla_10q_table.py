@@ -23,7 +23,7 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 # %autoreload 2
 
 
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core.query_engine import SubQuestionQueryEngine
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
 import nest_asyncio

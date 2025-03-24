@@ -1,7 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 import os
 from opentelemetry.sdk import trace as trace_sdk
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
@@ -9,7 +9,7 @@ from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
     OTLPSpanExporter as HTTPSpanExporter,
 )
 from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
-    import asyncio
+import asyncio
 from llama_index.core.llms import ChatMessage
 from llama_index.core.tools import ToolSelection, ToolOutput
 from llama_index.core.workflow import Event
@@ -29,9 +29,9 @@ from llama_index.core.workflow import (
     StopEvent,
     step,
 )
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core.tools import FunctionTool
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 
 initialize_ollama_settings()
 
@@ -57,7 +57,6 @@ Set up tracing to visualize each step in the workflow.
 """
 
 # !pip install "llama-index-core>=0.10.43" "openinference-instrumentation-llama-index>=2" "opentelemetry-proto>=1.12.0" opentelemetry-exporter-otlp opentelemetry-sdk
-
 
 
 PHOENIX_API_KEY = "<YOUR-PHOENIX-API-KEY>"
@@ -108,7 +107,6 @@ In addition to events, we will also use the global context to store the current 
 """
 
 
-
 class PrepEvent(Event):
     pass
 
@@ -124,6 +122,7 @@ class ToolCallEvent(Event):
 class FunctionOutputEvent(Event):
     output: ToolOutput
 
+
 """
 ### The Workflow Itself
 
@@ -131,8 +130,6 @@ With our events defined, we can construct our workflow and steps.
 
 Note that the workflow automatically validates itself using type annotations, so the type annotations on our steps are very helpful!
 """
-
-
 
 
 class ReActAgent(Workflow):
@@ -162,7 +159,6 @@ class ReActAgent(Workflow):
         user_msg = ChatMessage(role="user", content=user_input)
         self.memory.put(user_msg)
 
-
         return PrepEvent()
 
     @step
@@ -180,7 +176,6 @@ class ReActAgent(Workflow):
         self, ctx: Context, ev: InputEvent
     ) -> ToolCallEvent | StopEvent:
         chat_history = ev.input
-
 
         try:
             reasoning_step = self.output_parser.parse(response.message.content)
@@ -255,6 +250,7 @@ class ReActAgent(Workflow):
 
         return PrepEvent()
 
+
 """
 And thats it! Let's explore the workflow we wrote a bit.
 
@@ -278,7 +274,6 @@ Safely calls tools with error handling, adding the tool outputs to the current r
 """
 
 
-
 def add(x: int, y: int) -> int:
     """Useful function to add two numbers."""
     return x + y
@@ -298,18 +293,20 @@ agent = ReActAgent(
     llm=Ollama(model="llama3.1", request_timeout=300.0, context_window=4096), tools=tools, timeout=120, verbose=True
 )
 
+
 async def run_async_code_e75b1b7f():
-  ret = await agent.run(input="Hello!")
-  return ret
+    ret = await agent.run(input="Hello!")
+    return ret
 
 ret = asyncio.run(run_async_code_e75b1b7f())
 logger.success(format_json(ret))
 
 print(ret["response"])
 
+
 async def run_async_code_8783ece2():
-  ret = await agent.run(input="What is (2123 + 2321) * 312?")
-  return ret
+    ret = await agent.run(input="What is (2123 + 2321) * 312?")
+    return ret
 
 ret = asyncio.run(run_async_code_8783ece2())
 logger.success(format_json(ret))

@@ -1,12 +1,12 @@
+from uptrain import Evals, EvalLlamaIndex, Settings as UpTrainSettings
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
+from jet.llm.ollama.base import initialize_ollama_settings
+import pandas as pd
+import openai
+import os
+import httpx
 ```python
 # %pip install -qU uptrain llama-index
-import httpx
-import os
-import openai
-import pandas as pd
-from jet.llm.ollama import initialize_ollama_settings
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
-from uptrain import Evals, EvalLlamaIndex, Settings as UpTrainSettings
 url = "https://uptrain-assets.s3.ap-south-1.amazonaws.com/data/nyc_text.txt"
 if not os.path.exists("nyc_wikipedia"):
     os.makedirs("nyc_wikipedia")
@@ -47,7 +47,8 @@ llamaindex_object = EvalLlamaIndex(
 )
 results = llamaindex_object.evaluate(
     project_name="uptrain-llama-index",
-    evaluation_name="nyc_wikipedia",  # adding project and evaluation names allow you to track the results in the UpTrain dashboard
+    # adding project and evaluation names allow you to track the results in the UpTrain dashboard
+    evaluation_name="nyc_wikipedia",
     data=data,
     checks=[Evals.CONTEXT_RELEVANCE, Evals.RESPONSE_CONCISENESS],
 )
@@ -62,7 +63,8 @@ llamaindex_object = EvalLlamaIndex(
 )
 results = llamaindex_object.evaluate(
     project_name="uptrain-llama-index",
-    evaluation_name="nyc_wikipedia",  # adding project and evaluation names allow you to track the results in the UpTrain dashboard
+    # adding project and evaluation names allow you to track the results in the UpTrain dashboard
+    evaluation_name="nyc_wikipedia",
     data=data,
     checks=[Evals.CONTEXT_RELEVANCE, Evals.RESPONSE_CONCISENESS],
 )

@@ -92,7 +92,7 @@ def comment_line(line: str):
 
 
 def add_ollama_initializer_code(code: str):
-    initializer_code = "from jet.llm.ollama import initialize_ollama_settings\ninitialize_ollama_settings()"
+    initializer_code = "from jet.llm.ollama.base import initialize_ollama_settings\ninitialize_ollama_settings()"
     return "\n\n".join([
         initializer_code,
         code,
@@ -706,7 +706,8 @@ if __name__ == "__main__":
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/integrations/retrievers/tf_idf.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/property_graph/Dynamic_KG_Extraction.ipynb",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/property_graph/Dynamic_KG_Extraction.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/metadata_extraction/MetadataExtractionSEC.ipynb",
     ]
 
     include_files = [

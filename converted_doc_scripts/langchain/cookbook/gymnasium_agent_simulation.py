@@ -1,6 +1,6 @@
 import gymnasium as gym
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 import tenacity
 from langchain.output_parsers import RegexParser
 from langchain.schema import (

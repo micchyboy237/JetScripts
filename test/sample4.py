@@ -3,7 +3,7 @@ from collections import Counter
 from typing import List, Dict, Optional, TypedDict
 from jet.file.utils import load_file
 from jet.logger import logger, time_it
-from jet.search.transformers import clean_string
+from jet.search.formatters import clean_string
 from jet.utils.commands import copy_to_clipboard
 from jet.utils.object import extract_values_by_paths
 from jet.wordnet.n_grams import get_most_common_ngrams

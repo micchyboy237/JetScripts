@@ -1,6 +1,9 @@
+from guidance.llms import Ollama as GuidanceOllama
+from llama_index.question_gen.guidance import GuidanceQuestionGenerator
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
+
 
 class Song(BaseModel):
     title: str
@@ -11,6 +14,7 @@ class Album(BaseModel):
     name: str
     artist: str
     songs: List[Song]
+
 
 program = GuidancePydanticProgram(
     output_cls=Album,
@@ -31,8 +35,6 @@ Album(
     ],
 )
 
-from llama_index.question_gen.guidance import GuidanceQuestionGenerator
-from guidance.llms import Ollama as GuidanceOllama
 
 question_gen = GuidanceQuestionGenerator.from_defaults(
     guidance_llm=GuidanceOllama("text-davinci-003"), verbose=False

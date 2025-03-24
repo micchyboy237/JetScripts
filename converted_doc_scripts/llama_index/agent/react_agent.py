@@ -1,7 +1,7 @@
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 from llama_index.core.agent import ReActAgent
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core.llms import ChatMessage
 from llama_index.core.tools import BaseTool, FunctionTool
 from llama_index.core import PromptTemplate
@@ -37,12 +37,14 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 We setup some trivial `multiply` and `add` tools. Note that you can define arbitrary functions and pass it to the `FunctionTool` (which will process the docstring and parameter signature).
 """
 
+
 def multiply(a: int, b: int) -> int:
     """Multiply two integers and returns the result integer"""
     return a * b
 
 
 multiply_tool = FunctionTool.from_defaults(fn=multiply)
+
 
 def add(a: int, b: int) -> int:
     """Add two integers and returns the result integer"""

@@ -3,7 +3,7 @@ import httpx
 import asyncio
 from llama_index.core.evaluation import DatasetGenerator
 from llama_index.core.evaluation import EvaluationResult
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 import pandas as pd
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.evaluation import FaithfulnessEvaluator

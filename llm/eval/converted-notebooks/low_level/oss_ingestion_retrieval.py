@@ -1,46 +1,60 @@
+from llama_index.core.query_engine import RetrieverQueryEngine
+from typing import Any, List
+from llama_index.core.retrievers import BaseRetriever
+from llama_index.core import QueryBundle
+from typing import Optional
+from llama_index.core.schema import NodeWithScore
+from llama_index.core.vector_stores import VectorStoreQuery
+from llama_index.core.schema import TextNode
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.readers.file import PyMuPDFReader
+from pathlib import Path
+from llama_index.vector_stores.postgres import PGVectorStore
+from sqlalchemy import make_url
+import psycopg2
+from llama_index.llms.llama_cpp import LlamaCPP
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 # <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/low_level/oss_ingestion_retrieval.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# Building RAG from Scratch (Open-source only!) 
-# 
+# Building RAG from Scratch (Open-source only!)
+#
 # In this tutorial, we show you how to build a data ingestion pipeline into a vector database, and then build a retrieval pipeline from that vector database, from scratch.
-# 
+#
 # Notably, we use a fully open-source stack:
-# 
+#
 # - Sentence Transformers as the embedding model
 # - Postgres as the vector store (we support many other [vector stores](https://gpt-index.readthedocs.io/en/stable/module_guides/storing/vector_stores.html) too!)
 # - Llama 2 as the LLM (through [llama.cpp](https://github.com/ggerganov/llama.cpp))
 
-## Setup
-# 
+# Setup
+#
 # We setup our open-source components.
 # 1. Sentence Transformers
 # 2. Llama 2
 # 3. We initialize postgres and wrap it with our wrappers/abstractions.
 
-#### Sentence Transformers
+# Sentence Transformers
 
 # %pip install llama-index-readers-file pymupdf
 # %pip install llama-index-vector-stores-postgres
 # %pip install llama-index-embeddings-huggingface
 # %pip install llama-index-llms-llama-cpp
 
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-en")
 
-#### Llama CPP
-# 
-# In this notebook, we use the [`llama-2-chat-13b-ggml`](https://huggingface.co/TheBloke/Llama-2-13B-chat-GGML) model, along with the proper prompt formatting. 
-# 
+# Llama CPP
+#
+# In this notebook, we use the [`llama-2-chat-13b-ggml`](https://huggingface.co/TheBloke/Llama-2-13B-chat-GGML) model, along with the proper prompt formatting.
+#
 # Check out our [Llama CPP guide](https://gpt-index.readthedocs.io/en/stable/examples/llm/llama_2_llama_cpp.html) for full setup instructions/details.
 
 # !pip install llama-cpp-python
 
-from llama_index.llms.llama_cpp import LlamaCPP
 
 model_url = "https://huggingface.co/TheBloke/Llama-2-13B-chat-GGUF/resolve/main/llama-2-13b-chat.Q4_0.gguf"
 
@@ -55,16 +69,16 @@ llm = LlamaCPP(
     verbose=True,
 )
 
-#### Initialize Postgres
-# 
+# Initialize Postgres
+#
 # Using an existing postgres running at localhost, create the database we'll be using.
-# 
+#
 # **NOTE**: Of course there are plenty of other open-source/self-hosted databases you can use! e.g. Chroma, Qdrant, Weaviate, and many more. Take a look at our [vector store guide](https://gpt-index.readthedocs.io/en/stable/module_guides/storing/vector_stores.html).
-# 
+#
 # **NOTE**: You will need to setup postgres on your local system. Here's an example of how to set it up on OSX: https://www.sqlshack.com/setting-up-a-postgresql-database-on-mac/.
-# 
+#
 # **NOTE**: You will also need to install pgvector (https://github.com/pgvector/pgvector).
-# 
+#
 # You can add a role like the following:
 # ```
 # CREATE ROLE <user> WITH LOGIN PASSWORD '<password>';
@@ -73,7 +87,6 @@ llm = LlamaCPP(
 
 # !pip install psycopg2-binary pgvector asyncpg "sqlalchemy[asyncio]" greenlet
 
-import psycopg2
 
 db_name = "vector_db"
 host = "localhost"
@@ -93,8 +106,6 @@ with conn.cursor() as c:
     c.execute(f"DROP DATABASE IF EXISTS {db_name}")
     c.execute(f"CREATE DATABASE {db_name}")
 
-from sqlalchemy import make_url
-from llama_index.vector_stores.postgres import PGVectorStore
 
 vector_store = PGVectorStore.from_params(
     database=db_name,
@@ -106,26 +117,23 @@ vector_store = PGVectorStore.from_params(
     embed_dim=384,  # openai embedding dimension
 )
 
-## Build an Ingestion Pipeline from Scratch
-# 
+# Build an Ingestion Pipeline from Scratch
+#
 # We show how to build an ingestion pipeline as mentioned in the introduction.
-# 
+#
 # We fast-track the steps here (can skip metadata extraction). More details can be found [in our dedicated ingestion guide](https://gpt-index.readthedocs.io/en/latest/examples/low_level/ingestion.html).
 
-### 1. Load Data
+# 1. Load Data
 
 # !mkdir data
 # !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
-from pathlib import Path
-from llama_index.readers.file import PyMuPDFReader
 
 loader = PyMuPDFReader()
 documents = loader.load(file_path="./data/llama2.pdf")
 
-### 2. Use a Text Splitter to Split Documents
+# 2. Use a Text Splitter to Split Documents
 
-from llama_index.core.node_parser import SentenceSplitter
 
 text_parser = SentenceSplitter(
     chunk_size=1024,
@@ -138,9 +146,8 @@ for doc_idx, doc in enumerate(documents):
     text_chunks.extend(cur_text_chunks)
     doc_idxs.extend([doc_idx] * len(cur_text_chunks))
 
-### 3. Manually Construct Nodes from Text Chunks
+# 3. Manually Construct Nodes from Text Chunks
 
-from llama_index.core.schema import TextNode
 
 nodes = []
 for idx, text_chunk in enumerate(text_chunks):
@@ -151,8 +158,8 @@ for idx, text_chunk in enumerate(text_chunks):
     node.metadata = src_doc.metadata
     nodes.append(node)
 
-### 4. Generate Embeddings for each Node
-# 
+# 4. Generate Embeddings for each Node
+#
 # Here we generate embeddings for each Node using a sentence_transformers model.
 
 for node in nodes:
@@ -161,25 +168,24 @@ for node in nodes:
     )
     node.embedding = node_embedding
 
-### 5. Load Nodes into a Vector Store
-# 
+# 5. Load Nodes into a Vector Store
+#
 # We now insert these nodes into our `PostgresVectorStore`.
 
 vector_store.add(nodes)
 
-## Build Retrieval Pipeline from Scratch
-# 
+# Build Retrieval Pipeline from Scratch
+#
 # We show how to build a retrieval pipeline. Similar to ingestion, we fast-track the steps. Take a look at our [retrieval guide](https://gpt-index.readthedocs.io/en/latest/examples/low_level/retrieval.html) for more details!
 
 query_str = "Can you tell me about the key concepts for safety finetuning"
 
-### 1. Generate a Query Embedding
+# 1. Generate a Query Embedding
 
 query_embedding = embed_model.get_query_embedding(query_str)
 
-### 2. Query the Vector Database
+# 2. Query the Vector Database
 
-from llama_index.core.vector_stores import VectorStoreQuery
 
 query_mode = "default"
 
@@ -190,10 +196,8 @@ vector_store_query = VectorStoreQuery(
 query_result = vector_store.query(vector_store_query)
 print(query_result.nodes[0].get_content())
 
-### 3. Parse Result into a Set of Nodes
+# 3. Parse Result into a Set of Nodes
 
-from llama_index.core.schema import NodeWithScore
-from typing import Optional
 
 nodes_with_scores = []
 for index, node in enumerate(query_result.nodes):
@@ -202,11 +206,7 @@ for index, node in enumerate(query_result.nodes):
         score = query_result.similarities[index]
     nodes_with_scores.append(NodeWithScore(node=node, score=score))
 
-### 4. Put into a Retriever
-
-from llama_index.core import QueryBundle
-from llama_index.core.retrievers import BaseRetriever
-from typing import Any, List
+# 4. Put into a Retriever
 
 
 class VectorDBRetriever(BaseRetriever):
@@ -247,13 +247,13 @@ class VectorDBRetriever(BaseRetriever):
 
         return nodes_with_scores
 
+
 retriever = VectorDBRetriever(
     vector_store, embed_model, query_mode="default", similarity_top_k=2
 )
 
-## Plug this into our RetrieverQueryEngine to synthesize a response
+# Plug this into our RetrieverQueryEngine to synthesize a response
 
-from llama_index.core.query_engine import RetrieverQueryEngine
 
 query_engine = RetrieverQueryEngine.from_args(retriever, llm=llm)
 

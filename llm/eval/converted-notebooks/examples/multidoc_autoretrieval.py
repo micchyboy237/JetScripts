@@ -15,7 +15,7 @@ from llama_index.readers.github import GitHubRepositoryIssuesReader, GitHubIssue
 import os
 import nest_asyncio
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Multidoc Autoretrieval Pack

@@ -33,7 +33,7 @@ Download Data
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
 from llama_index.core import PromptTemplate
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core.response_synthesizers import BaseSynthesizer
 from llama_index.core import get_response_synthesizer
 from llama_index.core.retrievers import BaseRetriever

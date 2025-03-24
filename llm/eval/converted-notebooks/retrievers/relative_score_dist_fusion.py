@@ -3,7 +3,7 @@ from llama_index.core import VectorStoreIndex
 from llama_index.core import SimpleDirectoryReader
 from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 # <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/retrievers/relative_score_dist_fusion.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>

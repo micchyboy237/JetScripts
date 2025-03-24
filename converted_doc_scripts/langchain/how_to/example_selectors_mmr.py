@@ -1,5 +1,5 @@
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 from langchain_community.vectorstores import FAISS
 from langchain_core.example_selectors import (
     MaxMarginalRelevanceExampleSelector,

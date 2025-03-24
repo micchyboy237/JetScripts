@@ -21,7 +21,7 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 
 from llama_index.core.query_engine import FLAREInstructQueryEngine
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import Settings
 Settings.llm = Ollama(
     model="llama3.1", request_timeout=300.0, context_window=4096, temperature=0)

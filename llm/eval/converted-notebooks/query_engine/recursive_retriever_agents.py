@@ -37,7 +37,7 @@ from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core import SummaryIndex
 from llama_index.core.schema import IndexNode
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 wiki_titles = ["Toronto", "Seattle", "Chicago", "Boston", "Houston"]
 
 

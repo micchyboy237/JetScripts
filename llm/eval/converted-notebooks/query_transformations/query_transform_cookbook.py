@@ -6,7 +6,7 @@ from llama_index.core import QueryBundle
 from llama_index.question_gen.openai import OpenAIQuestionGenerator
 from llama_index.core.question_gen import LLMQuestionGenerator
 from llama_index.core.indices.query.query_transform import HyDEQueryTransform
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import PromptTemplate
 from llama_index.core.tools import ToolMetadata
 from llama_index.core.selectors import (
@@ -16,7 +16,7 @@ from llama_index.core.selectors import (
 from llama_index.core.selectors import LLMSingleSelector, LLMMultiSelector
 from IPython.display import Markdown, display
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 """

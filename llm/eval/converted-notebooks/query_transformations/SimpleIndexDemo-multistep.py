@@ -1,5 +1,13 @@
+from llama_index.core.query_engine import MultiStepQueryEngine
+from llama_index.core.indices.query.query_transform.base import (
+    StepDecomposeQueryTransform,
+)
+from IPython.display import Markdown, display
+from jet.llm.ollama.base import Ollama
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+import os
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 """
@@ -32,19 +40,18 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 #### Load documents, build the VectorStoreIndex
 """
 
-import os
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
-from jet.llm.ollama import Ollama
-from IPython.display import Markdown, display
 
-gpt35 = Ollama(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+gpt35 = Ollama(temperature=0, model="llama3.2",
+               request_timeout=300.0, context_window=4096)
 
-gpt4 = Ollama(temperature=0, model="llama3.1", request_timeout=300.0, context_window=4096)
+gpt4 = Ollama(temperature=0, model="llama3.1",
+              request_timeout=300.0, context_window=4096)
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 
 index = VectorStoreIndex.from_documents(documents)
 
@@ -52,9 +59,6 @@ index = VectorStoreIndex.from_documents(documents)
 #### Query Index
 """
 
-from llama_index.core.indices.query.query_transform.base import (
-    StepDecomposeQueryTransform,
-)
 
 step_decompose_transform = StepDecomposeQueryTransform(llm=gpt4, verbose=True)
 
@@ -64,7 +68,6 @@ step_decompose_transform_gpt3 = StepDecomposeQueryTransform(
 
 index_summary = "Used to answer questions about the author"
 
-from llama_index.core.query_engine import MultiStepQueryEngine
 
 query_engine = index.as_query_engine(llm=gpt4)
 query_engine = MultiStepQueryEngine(

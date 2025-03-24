@@ -1,16 +1,19 @@
+from langgraph.graph import START, MessagesState, StateGraph
+from langgraph.checkpoint.memory import MemorySaver
+import uuid
+from langchain_ollama import ChatOllama
+from langchain_core.prompts import ChatPromptTemplate
+from langchain.memory import ConversationBufferMemory
+from langchain.chains import ConversationChain
+import os
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
-import os
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
 # os.environ["OPENAI_API_KEY"] = getpass()
-from langchain.chains import ConversationChain
-from langchain.memory import ConversationBufferMemory
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_ollama import ChatOllama
 
 template = """
 You are a pirate. Answer the following questions as best you can.
@@ -19,11 +22,7 @@ Question: {input}
 """
 
 prompt = ChatPromptTemplate.from_template(template)
-import uuid
 
-from langchain_ollama import ChatOllama
-from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import START, MessagesState, StateGraph
 
 model = ChatOllama(model="llama3.1")
 
@@ -42,7 +41,6 @@ Langgraph's [checkpointing](https://langchain-ai.github.io/langgraph/how-tos/per
 """
 
 # %pip install --upgrade --quiet langchain langchain-openai
-
 
 
 """

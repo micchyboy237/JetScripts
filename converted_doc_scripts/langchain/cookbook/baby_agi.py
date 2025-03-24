@@ -1,5 +1,5 @@
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 from typing import Optional
 from langchain_experimental.autonomous_agents import BabyAGI
 from jet.llm.ollama.base_langchain import Ollama, OllamaEmbeddings
@@ -24,7 +24,6 @@ Although BabyAGI uses specific vectorstores/model providers (Pinecone, Ollama), 
 """
 
 
-
 """
 ## Connect to the Vector Store
 
@@ -36,7 +35,8 @@ embeddings_model = OllamaEmbeddings(model="nomic-embed-text")
 
 embedding_size = 1536
 index = faiss.IndexFlatL2(embedding_size)
-vectorstore = FAISS(embeddings_model.embed_query, index, InMemoryDocstore({}), {})
+vectorstore = FAISS(embeddings_model.embed_query,
+                    index, InMemoryDocstore({}), {})
 
 """
 ### Run the BabyAGI

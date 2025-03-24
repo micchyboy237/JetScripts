@@ -1,13 +1,22 @@
+from llama_index.core.query_engine import RetryGuidelineQueryEngine
+from llama_index.core.indices.query.query_transform.feedback_transform import (
+    FeedbackQueryTransformation,
+)
+from llama_index.core import Response
+from llama_index.core.evaluation.guideline import DEFAULT_GUIDELINES
+from llama_index.core.evaluation import GuidelineEvaluator
+from llama_index.core.query_engine import RetrySourceQueryEngine
+from llama_index.core.evaluation import RelevancyEvaluator
+from llama_index.core.query_engine import RetryQueryEngine
+import nest_asyncio
+from llama_index.core import SimpleDirectoryReader
+from llama_index.core import VectorStoreIndex
+from jet.llm.ollama.base import initialize_ollama_settings
 ```python
 # !pip install llama-index
 
-from jet.llm.ollama import initialize_ollama_settings
 initialize_ollama_settings()
 
-from llama_index.core import VectorStoreIndex
-from llama_index.core import SimpleDirectoryReader
-
-import nest_asyncio
 
 nest_asyncio.apply()
 # !mkdir -p 'data/paul_graham/'
@@ -18,8 +27,6 @@ query = "What did the author do growing up?"
 base_query_engine = index.as_query_engine()
 response = base_query_engine.query(query)
 print(response)
-from llama_index.core.query_engine import RetryQueryEngine
-from llama_index.core.evaluation import RelevancyEvaluator
 
 query_response_evaluator = RelevancyEvaluator()
 retry_query_engine = RetryQueryEngine(
@@ -27,20 +34,12 @@ retry_query_engine = RetryQueryEngine(
 )
 retry_response = retry_query_engine.query(query)
 print(retry_response)
-from llama_index.core.query_engine import RetrySourceQueryEngine
 
 retry_source_query_engine = RetrySourceQueryEngine(
     base_query_engine, query_response_evaluator
 )
 retry_source_response = retry_source_query_engine.query(query)
 print(retry_source_response)
-from llama_index.core.evaluation import GuidelineEvaluator
-from llama_index.core.evaluation.guideline import DEFAULT_GUIDELINES
-from llama_index.core import Response
-from llama_index.core.indices.query.query_transform.feedback_transform import (
-    FeedbackQueryTransformation,
-)
-from llama_index.core.query_engine import RetryGuidelineQueryEngine
 
 guideline_eval = GuidelineEvaluator(
     guidelines=DEFAULT_GUIDELINES

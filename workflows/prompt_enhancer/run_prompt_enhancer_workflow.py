@@ -1,4 +1,4 @@
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.utils.workflow import draw_most_recent_execution
 from llama_index.core.workflow import draw_all_possible_flows
 import random
@@ -14,7 +14,7 @@ import os
 import asyncio
 from jet.transformers.formatters import format_json
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]

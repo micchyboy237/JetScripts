@@ -1,5 +1,5 @@
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import ScaNN
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -72,6 +72,7 @@ logger.debug(qa.run("What did the president say about Michael Phelps?"))
 """
 
 db.save_local("/tmp/db", "state_of_union")
-restored_db = ScaNN.load_local("/tmp/db", embeddings, index_name="state_of_union")
+restored_db = ScaNN.load_local(
+    "/tmp/db", embeddings, index_name="state_of_union")
 
 logger.info("\n\n[DONE]", bright=True)

@@ -1,8 +1,20 @@
+from flask import request
+from flask import Flask, request
+from llama_index.core import SimpleDirectoryReader, VectorStoreIndex, Document
+from multiprocessing.managers import BaseManager
+from multiprocessing import Lock
+from llama_index.core import (
+    SimpleDirectoryReader,
+    VectorStoreIndex,
+    StorageContext,
+    load_index_from_storage,
+)
+import os
+from flask import Flask
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
-from flask import Flask
 
 app = Flask(__name__)
 
@@ -15,13 +27,6 @@ def home():
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5601)
 
-import os
-from llama_index.core import (
-    SimpleDirectoryReader,
-    VectorStoreIndex,
-    StorageContext,
-    load_index_from_storage,
-)
 
 # os.environ["OPENAI_API_KEY"] = "your key here"
 
@@ -41,8 +46,6 @@ def initialize_index():
         )
         storage_context.persist(index_dir)
 
-from flask import request
-
 
 @app.route("/query", methods=["GET"])
 def query_index():
@@ -57,13 +60,8 @@ def query_index():
     response = query_engine.query(query_text)
     return str(response), 200
 
-import os
-from multiprocessing import Lock
-from multiprocessing.managers import BaseManager
-from llama_index.core import SimpleDirectoryReader, VectorStoreIndex, Document
 
 # os.environ["OPENAI_API_KEY"] = "your key here"
-
 index = None
 lock = Lock()
 
@@ -93,8 +91,6 @@ if __name__ == "__main__":
     print("starting server...")
     server.serve_forever()
 
-from multiprocessing.managers import BaseManager
-from flask import Flask, request
 
 manager = BaseManager(("", 5602), b"password")
 manager.register("query_index")
@@ -154,6 +150,7 @@ def upload_file():
 
     return "File inserted!", 200
 
+
 def insert_into_index(doc_text, doc_id=None):
     global index
     document = SimpleDirectoryReader(input_files=[doc_text]).load_data()[0]
@@ -170,67 +167,67 @@ manager.register("insert_into_index", insert_into_index)
 ...
 
 export type Document = {
-  id: string;
-  text: string;
-};
+    id: string
+    text: string
+}
 
-const fetchDocuments = async (): Promise<Document[]> => {
-  const response = await fetch("http://localhost:5601/getDocuments", {
-    mode: "cors",
-  });
+const fetchDocuments = async (): Promise < Document[] > = > {
+    const response = await fetch("http://localhost:5601/getDocuments", {
+        mode: "cors",
+    })
 
-  if (!response.ok) {
-    return [];
-  }
+    if (!response.ok) {
+        return []
+    }
 
-  const documentList = (await response.json()) as Document[];
-  return documentList;
-};
+    const documentList = (await response.json()) as Document[]
+    return documentList
+}
 
 export type ResponseSources = {
-  text: string;
-  doc_id: string;
-  start: number;
-  end: number;
-  similarity: number;
-};
+    text: string
+    doc_id: string
+    start: number
+    end: number
+    similarity: number
+}
 
 export type QueryResponse = {
-  text: string;
-  sources: ResponseSources[];
-};
+    text: string
+    sources: ResponseSources[]
+}
 
-const queryIndex = async (query: string): Promise<QueryResponse> => {
-  const queryURL = new URL("http://localhost:5601/query?text=1");
-  queryURL.searchParams.append("text", query);
+const queryIndex = async (query: string): Promise < QueryResponse > = > {
+    const queryURL = new URL("http://localhost:5601/query?text=1")
+    queryURL.searchParams.append("text", query)
 
-  const response = await fetch(queryURL, { mode: "cors" });
-  if (!response.ok) {
-    return { text: "Error in query", sources: [] };
-  }
+    const response = await fetch(queryURL, {mode: "cors"})
+    if (!response.ok) {
+        return {text: "Error in query", sources: []}
+    }
 
-  const queryResponse = (await response.json()) as QueryResponse;
+    const queryResponse = (await response.json()) as QueryResponse
 
-  return queryResponse;
-};
+    return queryResponse
+}
 
-export default queryIndex;
+export default queryIndex
 
-const insertDocument = async (file: File) => {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("filename_as_doc_id", "true");
+const insertDocument = async (file: File) = > {
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("filename_as_doc_id", "true")
 
-  const response = await fetch("http://localhost:5601/uploadFile", {
-    mode: "cors",
-    method: "POST",
-    body: formData,
-  });
+    const response = await fetch("http://localhost:5601/uploadFile", {
+        mode: "cors",
+        method: "POST",
+        body: formData,
+    })
 
-  const responseText = response.text();
-  return responseText;
-};
+    const responseText = response.text()
+    return responseText
+}
 
-export default insertDocument;
+export default insertDocument
 
 logger.info("\n\n[DONE]", bright=True)

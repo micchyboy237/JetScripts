@@ -1,5 +1,5 @@
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 import os
 from datetime import datetime
 from typing import Callable, Dict, Literal, Optional, Union
@@ -36,11 +36,9 @@ See [LLM Configuration](./llm_configuration) for how to configure LLMs.
 """
 
 
-
-
 config_list = [
-#     {"model": "gpt-4-1106-preview", "api_key": os.environ["OPENAI_API_KEY"]},
-#     {"model": "gpt-3.5-turbo", "api_key": os.environ["OPENAI_API_KEY"]},
+    #     {"model": "gpt-4-1106-preview", "api_key": os.environ["OPENAI_API_KEY"]},
+    #     {"model": "gpt-3.5-turbo", "api_key": os.environ["OPENAI_API_KEY"]},
 ]
 
 """
@@ -78,11 +76,12 @@ planner_user = UserProxyAgent(
 )
 
 
-
 def task_planner(question: Annotated[str, "Question to ask the planner."]) -> str:
     with Cache.disk(cache_seed=4) as cache:
-        planner_user.initiate_chat(planner, message=question, max_turns=1, cache=cache)
+        planner_user.initiate_chat(
+            planner, message=question, max_turns=1, cache=cache)
     return planner_user.last_message()["content"]
+
 
 """
 Next, we create an assistant agent to execute the plan, using the planner agent as a tool.
@@ -183,7 +182,8 @@ groupchat = GroupChat(
     max_round=20,
     speaker_selection_method="auto",
 )
-manager = GroupChatManager(groupchat=groupchat, llm_config={"config_list": config_list, "cache_seed": None})
+manager = GroupChatManager(groupchat=groupchat, llm_config={
+                           "config_list": config_list, "cache_seed": None})
 
 with Cache.disk(cache_seed=41) as cache:
     chat_history = user_proxy.initiate_chat(
@@ -287,7 +287,8 @@ groupchat = GroupChat(
     max_round=20,
     speaker_selection_method=custom_speaker_selection_func,
 )
-manager = GroupChatManager(groupchat=groupchat, llm_config={"config_list": config_list, "cache_seed": None})
+manager = GroupChatManager(groupchat=groupchat, llm_config={
+                           "config_list": config_list, "cache_seed": None})
 
 with Cache.disk(cache_seed=41) as cache:
     groupchat_history_custom = user_proxy.initiate_chat(
@@ -367,13 +368,15 @@ def autobuild_reply(recipient, messages, sender, config):
         agent_model="llama3.1", request_timeout=300.0, context_window=4096,
     )
     agent_list, agent_configs = builder.build(
-        last_msg, default_llm_config={"config_list": config_list, "cache_seed": None}
+        last_msg, default_llm_config={
+            "config_list": config_list, "cache_seed": None}
     )
     nested_group_chat = GroupChat(
         agents=agent_list,
         messages=[],
     )
-    manager = GroupChatManager(groupchat=nested_group_chat, llm_config={"config_list": config_list, "cache_seed": None})
+    manager = GroupChatManager(groupchat=nested_group_chat, llm_config={
+                               "config_list": config_list, "cache_seed": None})
     chat_res = agent_list[0].initiate_chat(
         manager, message=agent_configs.get("building_task", last_msg), summary_method="reflection_with_llm"
     )
@@ -419,13 +422,15 @@ def run_meta_prompting(expert_name: str, expert_identity: str, task: str) -> str
         max_consecutive_auto_reply=1,
     )
     task += "\nYou have access to python code interpreter. Suggest python code block starting with '```python' and the code will be automatically executed. You can use code to solve the task or for result verification. You should always use print statement to get the value of a variable."
-    user_proxy.initiate_chat(expert, message=expert_identity + "\n" + task, silent=True)
+    user_proxy.initiate_chat(
+        expert, message=expert_identity + "\n" + task, silent=True)
 
     expert_reply = user_proxy.chat_messages[expert][1]["content"]
     proxy_reply = user_proxy.chat_messages[expert][2]["content"]
 
     if proxy_reply != "TERMINATE":
-        code_result = proxy_reply[proxy_reply.find("Code output:") + len("Code output:") :].strip()
+        code_result = proxy_reply[proxy_reply.find(
+            "Code output:") + len("Code output:"):].strip()
         expert_reply += f"\nThis is the output of the code blocks when executed:\n{code_result}"
     else:
         expert_reply.replace(
@@ -497,6 +502,7 @@ Upon the completion of all tasks and verifications, you should conclude the resu
         )
         self.update_tool_signature(self.TOOL, is_remove=False)
 
+
 proxy = UserProxyAgent(
     name="proxy",
     human_input_mode="NEVER",
@@ -504,7 +510,8 @@ proxy = UserProxyAgent(
     max_consecutive_auto_reply=1,
     default_auto_reply="Continue. If you think the task is solved, please reply me only with 'TERMINATE'.",
 )
-proxy.register_function(function_map={"meta_prompting": lambda **args: run_meta_prompting(**args)})
+proxy.register_function(
+    function_map={"meta_prompting": lambda **args: run_meta_prompting(**args)})
 
 agent = MetaAgent(
     name="Meta-Expert",

@@ -5,7 +5,7 @@ from llama_index.core.embeddings import resolve_embed_model
 from llama_index.core.base.embeddings.base import SimilarityMode
 
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 llm_settings = initialize_ollama_settings()
 
 

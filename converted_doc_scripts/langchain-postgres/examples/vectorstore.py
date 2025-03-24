@@ -1,6 +1,6 @@
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 from langchain_ollama import OllamaEmbeddings
 from langchain_postgres.vectorstores import PGVector
 from langchain_core.documents import Document

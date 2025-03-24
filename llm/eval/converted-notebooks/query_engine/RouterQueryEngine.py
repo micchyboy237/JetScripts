@@ -30,7 +30,7 @@ from llama_index.core import StorageContext
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import Settings
 from llama_index.embeddings.ollama import OllamaEmbedding
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 import os
 import nest_asyncio
 nest_asyncio.apply()

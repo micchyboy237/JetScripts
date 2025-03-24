@@ -10,7 +10,7 @@ from llama_index.core.node_parser import TokenTextSplitter
 from jet.llm.ollama.base import Ollama
 from llama_index.core import SimpleDirectoryReader
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Metadata Extraction and Augmentation w/ Marvin

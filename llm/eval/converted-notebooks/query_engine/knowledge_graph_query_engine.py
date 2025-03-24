@@ -49,7 +49,7 @@ from llama_index.core import StorageContext
 from llama_index.embeddings.azure_openai import AzureOllamaEmbedding
 from llama_index.llms.azure_openai import AzureOllama
 from llama_index.core import Settings
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 import os
 import logging
 import sys

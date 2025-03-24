@@ -1,5 +1,5 @@
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 import logging
 import os
 from langchain.document_loaders import TextLoader
@@ -151,7 +151,6 @@ s
 """
 
 
-
 def split_text(texts):
     text_splitter = RecursiveCharacterTextSplitter(chunk_overlap=200)
     doc_chunks = text_splitter.create_documents(texts)
@@ -191,6 +190,7 @@ class EmbeddingBM25RerankerRetriever:
 
         reranked_docs = self.reranker.compress_documents(combined_docs, query)
         return reranked_docs
+
 
 """
 #
@@ -267,7 +267,6 @@ s
 """
 
 
-
 def create_contextual_chunks(chunks_):
     contextual_documents = []
     for chunk in tqdm.tqdm(chunks_):
@@ -282,9 +281,11 @@ def create_contextual_chunks(chunks_):
 
 contextual_documents = create_contextual_chunks(chunks)
 
-logger.debug(contextual_documents[1].page_content, "------------", chunks[1].page_content)
+logger.debug(contextual_documents[1].page_content,
+             "------------", chunks[1].page_content)
 
-contextual_embedding_retriever = create_embedding_retriever(contextual_documents)
+contextual_embedding_retriever = create_embedding_retriever(
+    contextual_documents)
 
 contextual_bm25_retriever = create_bm25_retriever(contextual_documents)
 
@@ -330,7 +331,6 @@ i
 r
 s
 """
-
 
 
 DEFAULT_QA_GENERATE_PROMPT_TMPL = """\
@@ -433,7 +433,9 @@ def generate_question_context_pairs(
         queries=queries, corpus=doc_dict, relevant_docs=relevant_docs
     )
 
-qa_pairs = generate_question_context_pairs(chunks, llm, num_questions_per_chunk=2)
+
+qa_pairs = generate_question_context_pairs(
+    chunks, llm, num_questions_per_chunk=2)
 
 """
 #
@@ -448,6 +450,7 @@ a
 t
 e
 """
+
 
 def compute_hit_rate(expected_ids, retrieved_ids):
     """
@@ -501,7 +504,6 @@ def compute_ndcg(expected_ids, retrieved_ids):
     return dcg / idcg
 
 
-
 def extract_queries(dataset):
     values = []
     for value in dataset.queries.values():
@@ -526,11 +528,13 @@ def evaluate(retriever, dataset):
 
         expected_ids = dataset.relevant_docs[list(dataset.queries.keys())[i]]
         retrieved_ids = extract_doc_ids(context)
-        mrr = compute_mrr(expected_ids=expected_ids, retrieved_ids=retrieved_ids)
+        mrr = compute_mrr(expected_ids=expected_ids,
+                          retrieved_ids=retrieved_ids)
         hit_rate = compute_hit_rate(
             expected_ids=expected_ids, retrieved_ids=retrieved_ids
         )
-        ndgc = compute_ndcg(expected_ids=expected_ids, retrieved_ids=retrieved_ids)
+        ndgc = compute_ndcg(expected_ids=expected_ids,
+                            retrieved_ids=retrieved_ids)
         mrr_result.append(mrr)
         hit_rate_result.append(hit_rate)
         ndcg_result.append(ndgc)
@@ -541,7 +545,9 @@ def evaluate(retriever, dataset):
     results_df.index = ["MRR", "Hit Rate", "nDCG"]
     return results_df
 
-embedding_bm25_rerank_results = evaluate(embedding_bm25_retriever_rerank, qa_pairs)
+
+embedding_bm25_rerank_results = evaluate(
+    embedding_bm25_retriever_rerank, qa_pairs)
 
 contextual_embedding_bm25_rerank_results = evaluate(
     contextual_embedding_bm25_retriever_rerank, qa_pairs
@@ -556,6 +562,7 @@ contextual_embedding_retriever_results = evaluate(
 bm25_results = evaluate(bm25_retriever, qa_pairs)
 
 contextual_bm25_results = evaluate(contextual_bm25_retriever, qa_pairs)
+
 
 def display_results(name, eval_results):
     """Display results from evaluate."""

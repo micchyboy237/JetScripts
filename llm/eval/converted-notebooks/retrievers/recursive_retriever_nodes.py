@@ -28,7 +28,7 @@ from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.llm.ollama.base import OllamaEmbedding
 from jet.cache.joblib import load_from_cache_or_compute
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings, large_embed_model
+from jet.llm.ollama.base import initialize_ollama_settings, large_embed_model
 initialize_ollama_settings()
 
 

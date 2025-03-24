@@ -28,7 +28,7 @@ import os
 import llama_index.core
 import phoenix as px
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 # An Introduction to LlamaIndex Query Pipelines

@@ -2,7 +2,7 @@ from datetime import date
 from urllib.parse import quote
 from typing import List, Optional
 from jet.logger import logger
-from jet.search.transformers import clean_string
+from jet.search.formatters import clean_string
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
 from jet.file.utils import load_file

@@ -1,7 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 from llama_index.core import (
     SimpleDirectoryReader,
     VectorStoreIndex,
@@ -10,7 +10,7 @@ from llama_index.core import (
 )
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
 from llama_index.core.agent import ReActAgent
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 
 initialize_ollama_settings()
 
@@ -38,7 +38,6 @@ Note that you can plug in any LLM that exposes a text completion endpoint.
 """
 
 # %pip install llama-index-llms-ollama
-
 
 
 try:
@@ -146,10 +145,11 @@ print(str(response))
 
 # nest_asyncio.apply()
 
+
 async def async_func_4():
     response = agent.chat(
-    "Compare and contrast the risks of Uber and Lyft in 2021, then give an"
-    " analysis"
+        "Compare and contrast the risks of Uber and Lyft in 2021, then give an"
+        " analysis"
     )
     return response
 response = asyncio.run(async_func_4())
@@ -166,7 +166,8 @@ We compare the performance of the two agents in being able to answer some comple
 #### Taking a look at a turbo-instruct agent
 """
 
-llm_instruct = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm_instruct = Ollama(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
 agent_instruct = ReActAgent.from_tools(
     query_engine_tools, llm=llm_instruct, verbose=True
 )

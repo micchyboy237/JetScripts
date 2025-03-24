@@ -1,5 +1,26 @@
+from llama_index.core.selectors import LLMSingleSelector
+from llama_index.core.tools import QueryEngineTool
+from llama_index.core.postprocessor import LLMRerank
+from llama_index.core.evaluation import FaithfulnessEvaluator, DatasetGenerator
+from llama_index.core.selectors import LLMMultiSelector
+from llama_index.core.query_engine import (
+    RouterQueryEngine,
+    FLAREInstructQueryEngine,
+)
+from llama_index.core import PromptTemplate
+from IPython.display import Markdown, display
+from llama_index.core import (
+    VectorStoreIndex,
+    SimpleDirectoryReader,
+    load_index_from_storage,
+    StorageContext,
+)
+import sys
+import logging
+import openai
+import os
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 """
@@ -20,25 +41,14 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 
 # !pip install llama-index
 
-import os
-import openai
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 
-import logging
-import sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
-from llama_index.core import (
-    VectorStoreIndex,
-    SimpleDirectoryReader,
-    load_index_from_storage,
-    StorageContext,
-)
-from IPython.display import Markdown, display
 
 """
 ## Setup: Load Data, Build Index, and Get Query Engine
@@ -55,11 +65,13 @@ Download Data
 # !mkdir -p 'data/paul_graham/'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 
 index = VectorStoreIndex.from_documents(documents)
 
 query_engine = index.as_query_engine(response_mode="tree_summarize")
+
 
 def display_prompt_dict(prompts_dict):
     for k, p in prompts_dict.items():
@@ -67,6 +79,7 @@ def display_prompt_dict(prompts_dict):
         display(Markdown(text_md))
         print(p.get_template())
         display(Markdown("<br><br>"))
+
 
 """
 ## Accessing Prompts
@@ -115,7 +128,6 @@ You can also update/customize the prompts with the `update_prompts` function. Pa
 Here we'll change the summary prompt to use Shakespeare.
 """
 
-from llama_index.core import PromptTemplate
 
 query_engine = index.as_query_engine(response_mode="tree_summarize")
 
@@ -148,19 +160,11 @@ print(str(response))
 Here we take a look at some other modules: query engines, routers/selectors, evaluators, and others.
 """
 
-from llama_index.core.query_engine import (
-    RouterQueryEngine,
-    FLAREInstructQueryEngine,
-)
-from llama_index.core.selectors import LLMMultiSelector
-from llama_index.core.evaluation import FaithfulnessEvaluator, DatasetGenerator
-from llama_index.core.postprocessor import LLMRerank
 
 """
 #### Analyze Prompts: Router Query Engine
 """
 
-from llama_index.core.tools import QueryEngineTool
 
 query_tool = QueryEngineTool.from_defaults(
     query_engine=query_engine, description="test description"
@@ -184,7 +188,6 @@ display_prompt_dict(prompts_dict)
 #### Analyze Prompts: LLMMultiSelector
 """
 
-from llama_index.core.selectors import LLMSingleSelector
 
 selector = LLMSingleSelector.from_defaults()
 

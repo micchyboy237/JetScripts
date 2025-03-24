@@ -37,7 +37,7 @@ from llama_index.readers.file import PDFReader
 from llama_index.core import SimpleDirectoryReader
 from pathlib import Path
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 settings = initialize_ollama_settings()
 
 

@@ -22,7 +22,7 @@ First let's install llama-index.
 
 
 from llama_index.core.query_engine import JSONalyzeQueryEngine
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from IPython.display import Markdown, display
 import openai
 import os

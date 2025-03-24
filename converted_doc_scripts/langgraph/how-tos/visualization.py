@@ -1,5 +1,12 @@
+from langchain_core.runnables.graph import CurveStyle, MermaidDrawMethod, NodeStyles
+from IPython.display import Image, display
+from langgraph.graph.message import add_messages
+from langgraph.graph import StateGraph, START, END
+from typing_extensions import TypedDict
+from typing import Annotated, Literal
+import random
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 """
@@ -20,14 +27,6 @@ First, let's install the required packages
 
 You can visualize any arbitrary [Graph](https://langchain-ai.github.io/langgraph/reference/graphs/), including [StateGraph](https://langchain-ai.github.io/langgraph/reference/graphs/#langgraph.graph.state.StateGraph). Let's have some fun by drawing fractals :).
 """
-
-import random
-from typing import Annotated, Literal
-
-from typing_extensions import TypedDict
-
-from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages
 
 
 class State(TypedDict):
@@ -106,8 +105,6 @@ If preferred, we could render the Graph into a  `.png`. Here we could use three 
 By default, `draw_mermaid_png()` uses Mermaid.Ink's API to generate the diagram.
 """
 
-from IPython.display import Image, display
-from langchain_core.runnables.graph import CurveStyle, MermaidDrawMethod, NodeStyles
 
 display(
     Image(
@@ -133,7 +130,8 @@ display(
     Image(
         app.get_graph().draw_mermaid_png(
             curve_style=CurveStyle.LINEAR,
-            node_colors=NodeStyles(first="#ffdfba", last="#baffc9", default="#fad7de"),
+            node_colors=NodeStyles(
+                first="#ffdfba", last="#baffc9", default="#fad7de"),
             wrap_label_n_words=9,
             output_file_path=None,
             draw_method=MermaidDrawMethod.PYPPETEER,

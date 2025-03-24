@@ -20,7 +20,7 @@ from llama_index.core import (
 )
 import os
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Multi-strategy workflow with reflection
@@ -254,6 +254,8 @@ draw_all_possible_flows(
 # * All 3 RAG steps run and generate different answers to the query
 # * The `judge` step runs 3 times. The first 2 times it produces no event, because it has not collected the requisite 3 `ResponseEvent`s.
 # * On the third time it selects the best response and returns a `StopEvent`
+
+
 async def run_workflow():
     c = ComplicatedWorkflow(timeout=120, verbose=True)
     result = await c.run(

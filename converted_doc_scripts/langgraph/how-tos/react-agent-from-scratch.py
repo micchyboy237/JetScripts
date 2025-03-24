@@ -1,5 +1,20 @@
+from IPython.display import Image, display
+from langgraph.graph import StateGraph, END
+from langchain_core.runnables import RunnableConfig
+from langchain_core.messages import ToolMessage, SystemMessage
+import json
+from langchain_core.tools import tool
+from langchain_ollama import ChatOllama
+from langgraph.graph.message import add_messages
+from langchain_core.messages import BaseMessage
+from typing import (
+    Annotated,
+    Sequence,
+    TypedDict,
+)
+import os
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 """
@@ -46,15 +61,14 @@ First, let's install the required packages and set our API keys:
 # %pip install -U langgraph langchain-openai
 
 # import getpass
-import os
 
 
 def _set_env(var: str):
     if not os.environ.get(var):
-#         os.environ[var] = getpass.getpass(f"{var}: ")
+        #         os.environ[var] = getpass.getpass(f"{var}: ")
 
+        # _set_env("OPENAI_API_KEY")
 
-# _set_env("OPENAI_API_KEY")
 
 """
 <div class="admonition tip">
@@ -77,19 +91,12 @@ We are going to define the most basic ReAct state in this example, which will ju
 For your specific use case, feel free to add any other state keys that you need.
 """
 
-from typing import (
-    Annotated,
-    Sequence,
-    TypedDict,
-)
-from langchain_core.messages import BaseMessage
-from langgraph.graph.message import add_messages
-
 
 class AgentState(TypedDict):
     """The state of the agent."""
 
     messages: Annotated[Sequence[BaseMessage], add_messages]
+
 
 """
 ### Define model and tools
@@ -97,8 +104,6 @@ class AgentState(TypedDict):
 Next, let's define the tools and model we will use for our example.
 """
 
-from langchain_ollama import ChatOllama
-from langchain_core.tools import tool
 
 model = ChatOllama(model="llama3.1")
 
@@ -124,9 +129,6 @@ Next let's define our nodes and edges. In our basic ReAct agent there are only t
 Perhaps you want to add a node for [adding structured output](https://langchain-ai.github.io/langgraph/how-tos/react-agent-structured-output/) or a node for executing some external action (sending an email, adding a calendar event, etc.). Maybe you just want to change the way the `call_model` node works and how `should_continue` decides whether to call tools - the possibilities are endless and LangGraph makes it easy to customize this basic structure for your specific use case.
 """
 
-import json
-from langchain_core.messages import ToolMessage, SystemMessage
-from langchain_core.runnables import RunnableConfig
 
 tools_by_name = {tool.name: tool for tool in tools}
 
@@ -134,7 +136,8 @@ tools_by_name = {tool.name: tool for tool in tools}
 def tool_node(state: AgentState):
     outputs = []
     for tool_call in state["messages"][-1].tool_calls:
-        tool_result = tools_by_name[tool_call["name"]].invoke(tool_call["args"])
+        tool_result = tools_by_name[tool_call["name"]].invoke(
+            tool_call["args"])
         outputs.append(
             ToolMessage(
                 content=json.dumps(tool_result),
@@ -164,13 +167,13 @@ def should_continue(state: AgentState):
     else:
         return "continue"
 
+
 """
 ### Define the graph
 
 Now that we have defined all of our nodes and edges, we can define and compile our graph. Depending on if you have added more nodes or different edges, you will need to edit this to fit your specific use case.
 """
 
-from langgraph.graph import StateGraph, END
 
 workflow = StateGraph(AgentState)
 
@@ -192,7 +195,6 @@ workflow.add_edge("tools", "agent")
 
 graph = workflow.compile()
 
-from IPython.display import Image, display
 
 try:
     display(Image(graph.get_graph().draw_mermaid_png()))
@@ -204,6 +206,7 @@ except Exception:
 
 Now that we have created our react agent, let's actually put it to the test!
 """
+
 
 def print_stream(stream):
     for s in stream:

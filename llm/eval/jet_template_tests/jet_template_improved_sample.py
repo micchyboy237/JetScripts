@@ -2,7 +2,7 @@
 import os
 import json
 from llama_index.core.evaluation import SemanticSimilarityEvaluator
-from jet.llm.ollama import (
+from jet.llm.ollama.base import (
     update_llm_settings,
     large_llm_model,
     large_embed_model,

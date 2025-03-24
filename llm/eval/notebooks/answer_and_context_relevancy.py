@@ -1,8 +1,32 @@
 # %pip install llama-index-llms-openai
+from llama_index.core.llama_dataset import download_llama_dataset
+import json
+import pandas as pd
+from llama_index.core.evaluation.notebook_utils import get_eval_results_df
+from tqdm import tqdm
+from jet.llm.ollama.base import (
+    update_llm_settings,
+    create_embed_model,
+    create_llm,
+    small_llm_model,
+    large_llm_model,
+    large_embed_model,
+)
+from llama_index.core.evaluation import (
+    AnswerRelevancyEvaluator,
+    ContextRelevancyEvaluator,
+)
+from llama_index.core.schema import Document
+from llama_index.core.llama_dataset import BaseLlamaDataset, BaseLlamaPredictionDataset
+import joblib
+from llama_index.core import VectorStoreIndex
+from llama_index.core.llama_pack import download_llama_pack
 import nest_asyncio
 from tqdm.asyncio import tqdm_asyncio
 
 nest_asyncio.apply()
+
+
 def displayify_df(df):
     """For pretty displaying DataFrame in a notebook."""
     display_df = df.style.set_properties(
@@ -12,18 +36,14 @@ def displayify_df(df):
         }
     )
     display(display_df)
-from llama_index.core.llama_dataset import download_llama_dataset
-from llama_index.core.llama_pack import download_llama_pack
-from llama_index.core import VectorStoreIndex
-
-import joblib
-from llama_index.core.llama_dataset import BaseLlamaDataset, BaseLlamaPredictionDataset
-from llama_index.core.schema import Document
 
 
 data_cache_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/improved/cache/answer_and_context_relevancy/data.pkl"
+
+
 def get_cached_dataset() -> tuple[BaseLlamaDataset, list[Document]]:
     return joblib.load(data_cache_path)
+
 
 rag_dataset, documents = get_cached_dataset()
 documents = documents[:1]
@@ -37,19 +57,7 @@ query_engine = index.as_query_engine()
 prediction_dataset: BaseLlamaPredictionDataset = rag_dataset.make_predictions_with(
     predictor=query_engine, batch_size=1, show_progress=True
 )
-from llama_index.core.evaluation import (
-    AnswerRelevancyEvaluator,
-    ContextRelevancyEvaluator,
-)
 
-from jet.llm.ollama import (
-    update_llm_settings,
-    create_embed_model,
-    create_llm,
-    small_llm_model,
-    large_llm_model,
-    large_embed_model,
-)
 
 settings = update_llm_settings({
     "llm_model": large_llm_model,
@@ -65,12 +73,11 @@ judges["answer_relevancy"] = AnswerRelevancyEvaluator(
 judges["context_relevancy"] = ContextRelevancyEvaluator(
     llm=create_llm(large_llm_model),
 )
-from tqdm import tqdm
 
 batch_size = 1
 
 eval_iterator = tqdm(zip(rag_dataset.examples, prediction_dataset.predictions),
-                             total=len(prediction_dataset.predictions) * batch_size)
+                     total=len(prediction_dataset.predictions) * batch_size)
 eval_tasks = []
 for example, prediction in eval_iterator:
     eval_tasks.append(
@@ -96,9 +103,6 @@ evals = {
     "context_relevancy": eval_results[1::2],
 }
 evals
-from llama_index.core.evaluation.notebook_utils import get_eval_results_df
-import pandas as pd
-import json
 
 deep_dfs = {}
 mean_dfs = {}

@@ -1,5 +1,5 @@
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 from typing import Optional
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
@@ -26,7 +26,6 @@ This notebook builds on top of [baby agi](baby_agi.html), but shows how you can 
 """
 
 
-
 """
 ## Connect to the Vector Store
 
@@ -40,7 +39,8 @@ embeddings_model = OllamaEmbeddings(model="nomic-embed-text")
 
 embedding_size = 1536
 index = faiss.IndexFlatL2(embedding_size)
-vectorstore = FAISS(embeddings_model.embed_query, index, InMemoryDocstore({}), {})
+vectorstore = FAISS(embeddings_model.embed_query,
+                    index, InMemoryDocstore({}), {})
 
 """
 ## Define the Chains

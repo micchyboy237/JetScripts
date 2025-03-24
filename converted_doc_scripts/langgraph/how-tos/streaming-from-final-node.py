@@ -1,5 +1,20 @@
+from langchain_core.messages import HumanMessage
+from IPython.display import display, Image
+from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
+from langgraph.graph.message import MessagesState
+from langgraph.graph import END, StateGraph, START
+from typing_extensions import TypedDict
+from typing import Annotated
+from langgraph.prebuilt import ToolNode
+from langgraph.prebuilt import create_react_agent
+from langchain_ollama import ChatOllama
+from langchain_core.tools import tool
+from langchain_core.runnables import ConfigurableField
+from langchain_community.tools.tavily_search import TavilySearchResults
+from typing import Literal
+import os
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 """
@@ -42,15 +57,14 @@ First let's install our required packages and set our API keys
 # %pip install -U langgraph langchain-openai langchain-community
 
 # import getpass
-import os
 
 
 def _set_env(var: str):
     if not os.environ.get(var):
-#         os.environ[var] = getpass.getpass(f"{var}: ")
+        #         os.environ[var] = getpass.getpass(f"{var}: ")
 
+        # _set_env("OPENAI_API_KEY")
 
-# _set_env("OPENAI_API_KEY")
 
 """
 <div class="admonition tip">
@@ -64,14 +78,6 @@ def _set_env(var: str):
 """
 ## Define model and tools
 """
-
-from typing import Literal
-from langchain_community.tools.tavily_search import TavilySearchResults
-from langchain_core.runnables import ConfigurableField
-from langchain_core.tools import tool
-from langchain_ollama import ChatOllama
-from langgraph.prebuilt import create_react_agent
-from langgraph.prebuilt import ToolNode
 
 
 @tool
@@ -96,13 +102,6 @@ tool_node = ToolNode(tools=tools)
 """
 ## Define graph
 """
-
-from typing import Annotated
-from typing_extensions import TypedDict
-
-from langgraph.graph import END, StateGraph, START
-from langgraph.graph.message import MessagesState
-from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 
 
 def should_continue(state: MessagesState) -> Literal["tools", "final"]:
@@ -149,7 +148,6 @@ builder.add_edge("final", END)
 
 graph = builder.compile()
 
-from IPython.display import display, Image
 
 display(Image(graph.get_graph().draw_mermaid_png()))
 
@@ -165,7 +163,6 @@ display(Image(graph.get_graph().draw_mermaid_png()))
 First option to get the LLM events from within a specific node (`final` node in our case) is to filter on the `langgraph_node` field in the event metadata. This will be sufficient in case you need to stream events from ALL LLM calls inside the node. This means that if you have multiple different LLMs invoked inside the node, this filter will include events from all of them.
 """
 
-from langchain_core.messages import HumanMessage
 
 inputs = {"messages": [HumanMessage(content="what is the weather in sf")]}
 for msg, metadata in graph.stream(inputs, stream_mode="messages"):

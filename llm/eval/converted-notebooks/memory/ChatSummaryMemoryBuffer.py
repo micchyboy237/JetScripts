@@ -8,7 +8,7 @@ import os
 from jet.token import tokenizer
 from jet.transformers import make_serializable
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings, OLLAMA_HF_MODELS
+from jet.llm.ollama.base import initialize_ollama_settings, OLLAMA_HF_MODELS
 initialize_ollama_settings()
 
 # Chat Summary Memory Buffer

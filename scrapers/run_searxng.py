@@ -1,7 +1,9 @@
 import os
 import json
+from jet.llm.query.retrievers import SearchResult
+from jet.utils.commands import copy_to_clipboard
 import requests
-from jet.search import search_searxng
+from jet.search.searxng import search_searxng
 from jet.logger import logger
 
 
@@ -11,32 +13,41 @@ os.chdir(file_dir)
 
 
 if __name__ == "__main__":
+    fields = ["seasons", "episodes"]
+    search_keys_str = ", ".join(
+        [key.replace('.', ' ').replace('_', ' ') for key in fields])
+    title = "I'll Become a Villainess Who Goes Down in History"
+    query = f"Anime \"{title}\" {search_keys_str}"
 
     try:
-        filter_sites = [
+        include_sites = [
             # "https://easypc.com.ph",
             # "9anime",
             # "zoro"
-            "aniwatch"
+            # "aniwatch"
+            "myanimelist.net",
+            "reelgood.com",
         ]
+        exclude_sites = ["wikipedia.org"]
         engines = [
             "google",
             "brave",
             "duckduckgo",
             "bing",
             "yahoo",
-            "duckduckgo",
         ]
-        results = search_searxng(
+        results: list[SearchResult] = search_searxng(
             query_url="http://searxng.local:8080/search",
-            query="How many seasons and episodes does ”I’ll Become a Villainess Who Goes Down in History” anime have?",
-            min_score=0,
-            filter_sites=filter_sites,
+            query=query,
+            min_score=0.2,
+            include_sites=include_sites,
+            exclude_sites=exclude_sites,
             engines=engines,
             config={
                 "port": 3101
             },
         )
+        copy_to_clipboard(results)
         logger.success(json.dumps(results, indent=2))
     except requests.exceptions.RequestException as e:
         logger.error(f"Error fetching search results: {e}")

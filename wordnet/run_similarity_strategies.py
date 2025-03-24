@@ -1,5 +1,5 @@
 from jet.scrapers.utils import clean_newlines
-from jet.search.transformers import clean_string
+from jet.search.formatters import clean_string
 import numpy as np
 from gensim.similarities.annoy import AnnoyIndexer
 from gensim.models import TfidfModel

@@ -34,7 +34,7 @@ Load in the Lyft 2021 10k document.
 
 from llama_index.core import Settings
 from llama_index.core.query_engine import PGVectorSQLQueryEngine
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import SQLDatabase
 from llama_index.core import PromptTemplate
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding

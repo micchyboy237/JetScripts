@@ -1,5 +1,11 @@
+from langgraph.errors import GraphRecursionError
+from IPython.display import Image, display
+from langgraph.graph import StateGraph, START, END
+from typing_extensions import TypedDict
+from typing import Annotated, Any
+import operator
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 """
@@ -55,13 +61,6 @@ First, let's install the required packages
 ## Define the graph
 """
 
-import operator
-from typing import Annotated, Any
-
-from typing_extensions import TypedDict
-
-from langgraph.graph import StateGraph, START, END
-
 
 class State(TypedDict):
     aggregate: Annotated[list, operator.add]
@@ -96,7 +95,6 @@ builder.add_edge("c", "d")
 builder.add_edge("d", END)
 graph = builder.compile()
 
-from IPython.display import Image, display
 
 display(Image(graph.get_graph().draw_mermaid_png()))
 
@@ -106,7 +104,6 @@ As we can see, our graph will execute nodes `b` and `c` in parallel (i.e. in a s
 ## Use the graph
 """
 
-from langgraph.errors import GraphRecursionError
 
 try:
     graph.invoke({"aggregate": []}, {"recursion_limit": 3})

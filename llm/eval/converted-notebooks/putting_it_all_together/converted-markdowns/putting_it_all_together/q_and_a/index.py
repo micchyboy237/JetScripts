@@ -1,6 +1,6 @@
 from jet.llm.ollama.base import Ollama
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core import TreeIndex, VectorStoreIndex
 from llama_index.core.indices.list.base import SummaryIndex

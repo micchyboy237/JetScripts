@@ -1,5 +1,5 @@
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 import os
 from jet.llm.ollama.base_langchain import ChatOllama
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -128,7 +128,8 @@ We'll pass the latest input to the conversation here and let LangGraph keep trac
 """
 
 app.invoke(
-    {"messages": [HumanMessage(content="Translate to French: I love programming.")]},
+    {"messages": [HumanMessage(
+        content="Translate to French: I love programming.")]},
     config={"configurable": {"thread_id": "1"}},
 )
 
@@ -239,7 +240,8 @@ def call_model(state: MessagesState):
         "The provided chat history includes a summary of the earlier conversation."
     )
     system_message = SystemMessage(content=system_prompt)
-    message_history = state["messages"][:-1]  # exclude the most recent user input
+    # exclude the most recent user input
+    message_history = state["messages"][:-1]
     if len(message_history) >= 4:
         last_human_message = state["messages"][-1]
         summary_prompt = (
@@ -252,8 +254,10 @@ def call_model(state: MessagesState):
 
         delete_messages = [RemoveMessage(id=m.id) for m in state["messages"]]
         human_message = HumanMessage(content=last_human_message.content)
-        response = model.invoke([system_message, summary_message, human_message])
-        message_updates = [summary_message, human_message, response] + delete_messages
+        response = model.invoke(
+            [system_message, summary_message, human_message])
+        message_updates = [summary_message,
+                           human_message, response] + delete_messages
     else:
         message_updates = model.invoke([system_message] + state["messages"])
 

@@ -1,5 +1,5 @@
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 import dotenv
 from jet.llm.ollama.base_langchain import ChatOllama
 from langchain_community.document_loaders import WebBaseLoader
@@ -70,7 +70,8 @@ Then we embed and store those chunks in a vector database:
 """
 
 
-vectorstore = Chroma.from_documents(documents=all_splits, embedding=OllamaEmbeddings(model="nomic-embed-text"))
+vectorstore = Chroma.from_documents(
+    documents=all_splits, embedding=OllamaEmbeddings(model="nomic-embed-text"))
 
 """
 And finally, let's create a retriever from our initialized vectorstore:
@@ -123,7 +124,8 @@ document_chain.invoke(
     {
         "context": docs,
         "messages": [
-            HumanMessage(content="Can LangSmith help test my LLM applications?")
+            HumanMessage(
+                content="Can LangSmith help test my LLM applications?")
         ],
     }
 )
@@ -136,7 +138,8 @@ document_chain.invoke(
     {
         "context": [],
         "messages": [
-            HumanMessage(content="Can LangSmith help test my LLM applications?")
+            HumanMessage(
+                content="Can LangSmith help test my LLM applications?")
         ],
     }
 )
@@ -148,8 +151,6 @@ We can see that the LLM does not return any results.
 
 Let's combine this document chain with the retriever. Here's one way this can look:
 """
-
-
 
 
 def parse_retriever_input(params: Dict):
@@ -171,7 +172,8 @@ Invoking this chain combines both steps outlined above:
 retrieval_chain.invoke(
     {
         "messages": [
-            HumanMessage(content="Can LangSmith help test my LLM applications?")
+            HumanMessage(
+                content="Can LangSmith help test my LLM applications?")
         ],
     }
 )
@@ -210,7 +212,8 @@ query_transformation_chain = query_transform_prompt | chat
 query_transformation_chain.invoke(
     {
         "messages": [
-            HumanMessage(content="Can LangSmith help test my LLM applications?"),
+            HumanMessage(
+                content="Can LangSmith help test my LLM applications?"),
             AIMessage(
                 content="Yes, LangSmith can help test and evaluate your LLM applications. It allows you to quickly edit examples and add them to datasets to expand the surface area of your evaluation sets or to fine-tune a model for improved quality or reduced costs. Additionally, LangSmith can be used to monitor your application, log all traces, visualize latency and token usage statistics, and troubleshoot specific issues as they arise."
             ),
@@ -272,7 +275,8 @@ Awesome! Let's invoke this new chain with the same inputs as earlier:
 conversational_retrieval_chain.invoke(
     {
         "messages": [
-            HumanMessage(content="Can LangSmith help test my LLM applications?"),
+            HumanMessage(
+                content="Can LangSmith help test my LLM applications?"),
         ]
     }
 )
@@ -280,7 +284,8 @@ conversational_retrieval_chain.invoke(
 conversational_retrieval_chain.invoke(
     {
         "messages": [
-            HumanMessage(content="Can LangSmith help test my LLM applications?"),
+            HumanMessage(
+                content="Can LangSmith help test my LLM applications?"),
             AIMessage(
                 content="Yes, LangSmith can help test and evaluate your LLM applications. It allows you to quickly edit examples and add them to datasets to expand the surface area of your evaluation sets or to fine-tune a model for improved quality or reduced costs. Additionally, LangSmith can be used to monitor your application, log all traces, visualize latency and token usage statistics, and troubleshoot specific issues as they arise."
             ),
@@ -300,7 +305,8 @@ Because this chain is constructed with LCEL, you can use familiar methods like `
 stream = conversational_retrieval_chain.stream(
     {
         "messages": [
-            HumanMessage(content="Can LangSmith help test my LLM applications?"),
+            HumanMessage(
+                content="Can LangSmith help test my LLM applications?"),
             AIMessage(
                 content="Yes, LangSmith can help test and evaluate your LLM applications. It allows you to quickly edit examples and add them to datasets to expand the surface area of your evaluation sets or to fine-tune a model for improved quality or reduced costs. Additionally, LangSmith can be used to monitor your application, log all traces, visualize latency and token usage statistics, and troubleshoot specific issues as they arise."
             ),

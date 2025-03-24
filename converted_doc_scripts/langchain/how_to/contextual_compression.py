@@ -1,5 +1,5 @@
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import FAISS
 from jet.llm.ollama.base_langchain import OllamaEmbeddings

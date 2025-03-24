@@ -1,7 +1,12 @@
-from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
-initialize_ollama_settings()
-
+from llama_index.core.indices.struct_store import SQLTableRetrieverQueryEngine
+from llama_index.core.objects import (
+    SQLTableNodeMapping,
+    ObjectIndex,
+    SQLTableSchema,
+)
+from llama_index.core.query_engine import NLSQLTableQueryEngine
+from llama_index.core import SQLDatabase
+from sqlalchemy import insert
 from sqlalchemy import (
     create_engine,
     MetaData,
@@ -12,6 +17,10 @@ from sqlalchemy import (
     select,
     column,
 )
+from jet.logger import logger
+from jet.llm.ollama.base import initialize_ollama_settings
+initialize_ollama_settings()
+
 
 engine = create_engine("sqlite:///:memory:")
 metadata_obj = MetaData()
@@ -26,7 +35,6 @@ city_stats_table = Table(
 )
 metadata_obj.create_all(engine)
 
-from sqlalchemy import insert
 
 rows = [
     {"city_name": "Toronto", "population": 2731571, "country": "Canada"},
@@ -38,11 +46,9 @@ for row in rows:
     with engine.begin() as connection:
         cursor = connection.execute(stmt)
 
-from llama_index.core import SQLDatabase
 
 sql_database = SQLDatabase(engine, include_tables=["city_stats"])
 
-from llama_index.core.query_engine import NLSQLTableQueryEngine
 
 query_engine = NLSQLTableQueryEngine(
     sql_database=sql_database,
@@ -51,11 +57,6 @@ query_engine = NLSQLTableQueryEngine(
 query_str = "Which city has the highest population?"
 response = query_engine.query(query_str)
 
-from llama_index.core.objects import (
-    SQLTableNodeMapping,
-    ObjectIndex,
-    SQLTableSchema,
-)
 
 table_node_mapping = SQLTableNodeMapping(sql_database)
 table_schema_objs = [
@@ -80,7 +81,6 @@ table_schema_objs = [
     (SQLTableSchema(table_name="city_stats", context_str=city_stats_text))
 ]
 
-from llama_index.core.indices.struct_store import SQLTableRetrieverQueryEngine
 
 query_engine = SQLTableRetrieverQueryEngine(
     sql_database, obj_index.as_retriever(similarity_top_k=1)

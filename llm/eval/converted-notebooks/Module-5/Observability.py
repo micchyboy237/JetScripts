@@ -29,7 +29,7 @@ from getpass import getpass
 import os
 import json
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 # <h1 align="center">Observability with Arize Phoenix - Tracing and Evaluating a LlamaIndex Application</h1>

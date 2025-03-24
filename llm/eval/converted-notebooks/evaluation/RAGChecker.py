@@ -1,57 +1,62 @@
+from ragchecker.metrics import (
+    overall_metrics,
+    retriever_metrics,
+    generator_metrics,
+)
+from ragchecker.metrics import all_metrics
+from ragchecker import RAGResults, RAGChecker
+from ragchecker.integrations.llama_index import response_to_rag_results
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 # <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/evaluation/RAGChecker.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 # RAGChecker: A Fine-grained Evaluation Framework For Diagnosing RAG
-# 
+#
 # RAGChecker is a comprehensive evaluation framework designed for Retrieval-Augmented Generation (RAG) systems. It provides a suite of metrics to assess both the retrieval and generation components of RAG systems, offering detailed insights into their performance.
-# 
+#
 # Key features of RAGChecker include:
 # - Fine-grained analysis using claim-level entailment checking
 # - Comprehensive metrics for overall performance, retriever efficiency, and generator accuracy
 # - Actionable insights for improving RAG systems
-# 
+#
 # For more information, visit the [RAGChecker GitHub repository](https://github.com/amazon-science/RAGChecker).
-# 
-## RAGChecker Metrics
-# 
+#
+# RAGChecker Metrics
+#
 # RAGChecker provides a comprehensive set of metrics to evaluate different aspects of RAG systems:
-# 
+#
 # 1. Overall Metrics:
 #    - Precision: The proportion of correct claims in the model's response.
 #    - Recall: The proportion of ground truth claims covered by the model's response.
 #    - F1 Score: The harmonic mean of precision and recall.
-# 
+#
 # 2. Retriever Metrics:
 #    - Claim Recall: The proportion of ground truth claims covered by the retrieved chunks.
 #    - Context Precision: The proportion of retrieved chunks that are relevant.
-# 
+#
 # 3. Generator Metrics:
 #    - Context Utilization: How well the generator uses relevant information from retrieved chunks.
 #    - Noise Sensitivity: The generator's tendency to include incorrect information from retrieved chunks.
 #    - Hallucination: The proportion of incorrect claims not found in any retrieved chunks.
 #    - Self-knowledge: The proportion of correct claims not found in any retrieved chunks.
 #    - Faithfulness: How closely the generator's response aligns with the retrieved chunks.
-# 
+#
 # These metrics provide a nuanced evaluation of both the retrieval and generation components, allowing for targeted improvements in RAG systems.
 
-## Install Requirements
+# Install Requirements
 
 # %pip install -qU ragchecker llama-index
 
-## Setup and Imports
-# 
+# Setup and Imports
+#
 # First, let's import the necessary libraries:
 
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
-from ragchecker.integrations.llama_index import response_to_rag_results
-from ragchecker import RAGResults, RAGChecker
-from ragchecker.metrics import all_metrics
 
-## Creating a LlamaIndex Query Engine
-# 
+# Creating a LlamaIndex Query Engine
+#
 # Now, let's create a simple LlamaIndex query engine using a sample dataset:
 
 documents = SimpleDirectoryReader("path/to/your/documents").load_data()
@@ -60,8 +65,8 @@ index = VectorStoreIndex.from_documents(documents)
 
 rag_application = index.as_query_engine()
 
-## Using RAGChecker with LlamaIndex
-# 
+# Using RAGChecker with LlamaIndex
+#
 # Now we'll demonstrate how to use the `response_to_rag_results` function to convert LlamaIndex output to the RAGChecker format:
 
 user_query = "What is RAGChecker?"
@@ -79,8 +84,8 @@ rag_result = response_to_rag_results(
 rag_results = RAGResults.from_dict({"results": [rag_result]})
 print(rag_results)
 
-## Evaluating with RAGChecker
-# 
+# Evaluating with RAGChecker
+#
 # Now that we have our results in the correct format, let's evaluate them using RAGChecker:
 
 evaluator = RAGChecker(
@@ -95,7 +100,7 @@ evaluator.evaluate(rag_results, all_metrics)
 print(rag_results)
 
 # The output will look something like this:
-# 
+#
 # ```python
 # RAGResults(
 #   1 RAG results,
@@ -121,46 +126,28 @@ print(rag_results)
 #   }
 # )
 # ```
-# 
+#
 # This output provides a comprehensive view of the RAG system's performance, including overall metrics, retriever metrics, and generator metrics as described in the earlier section.
 
-### Selecting Specific Metric Groups
-# 
+# Selecting Specific Metric Groups
+#
 # Instead of evaluating all the metrics with `all_metrics`, you can choose specific metric groups as follows:
 
-from ragchecker.metrics import (
-    overall_metrics,
-    retriever_metrics,
-    generator_metrics,
-)
 
-### Selecting Individual Metrics
-# 
+# Selecting Individual Metrics
+#
 # For even more granular control, you can choose specific individual metrics for your needs:
 
-from ragchecker.metrics import (
-    precision,
-    recall,
-    f1,
-    claim_recall,
-    context_precision,
-    context_utilization,
-    noise_sensitivity_in_relevant,
-    noise_sensitivity_in_irrelevant,
-    hallucination,
-    self_knowledge,
-    faithfulness,
-)
 
-## Conclusion
-# 
+# Conclusion
+#
 # This notebook has demonstrated how to integrate RAGChecker with LlamaIndex to evaluate the performance of RAG systems. We've covered:
-# 
+#
 # 1. Setting up RAGChecker with LlamaIndex
 # 2. Converting LlamaIndex outputs to RAGChecker format
 # 3. Evaluating RAG results using various metrics
 # 4. Customizing evaluations with specific metric groups or individual metrics
-# 
+#
 # By leveraging RAGChecker's comprehensive metrics, you can gain valuable insights into your RAG system's performance, identify areas for improvement, and optimize both retrieval and generation components. This integration provides a powerful tool for developing and refining more effective RAG applications.
 
 logger.info("\n\n[DONE]", bright=True)

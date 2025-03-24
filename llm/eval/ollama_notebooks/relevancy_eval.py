@@ -13,7 +13,7 @@ from llama_index.core import (
 import logging
 import sys
 
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)

@@ -46,7 +46,7 @@ Download Data
 
 from llama_index.core import VectorStoreIndex,
 from llama_index.llms.anthropic import Anthropic
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import VectorStoreIndex
 from pydantic import BaseModel
 from typing import List

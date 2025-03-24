@@ -8,7 +8,7 @@ from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.token import token_counter
 from jet.llm.query import setup_deeplake_query, query_llm
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings, small_embed_model
+from jet.llm.ollama.base import initialize_ollama_settings, small_embed_model
 initialize_ollama_settings(settings={"embedding_model": small_embed_model})
 
 

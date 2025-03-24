@@ -25,7 +25,7 @@ from llama_index.core.schema import Document as LlamaDocument
 from jet.search import search_searxng
 from jet.llm.query import setup_index, FUSION_MODES
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 # A Long-Term Memory Agent

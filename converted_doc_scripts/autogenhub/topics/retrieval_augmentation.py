@@ -1,5 +1,5 @@
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 import os
 
 initialize_ollama_settings()
@@ -48,7 +48,8 @@ ragproxyagent = RetrieveUserProxyAgent(
         "model": config_list[0]["model"],
         "client": chromadb.PersistentClient(path="/tmp/chromadb"),
         "embedding_model": "all-mpnet-base-v2",
-        "get_or_create": True,  # set to False if you don't want to reuse an existing collection, but you'll need to remove the collection manually
+        # set to False if you don't want to reuse an existing collection, but you'll need to remove the collection manually
+        "get_or_create": True,
     },
     code_execution_config=False,  # set to False if you don't want to execute the code
 )
@@ -98,7 +99,8 @@ ragproxyagent = RetrieveUserProxyAgent(
         "vector_db": "pgvector",
         "collection_name": "autogen_docs",
         "db_config": {
-            "connection_string": "postgresql://testuser:testpwd@localhost:5432/vectordb", # Optional - connect to an external vector database
+            # Optional - connect to an external vector database
+            "connection_string": "postgresql://testuser:testpwd@localhost:5432/vectordb",
         },
         "custom_text_types": ["mdx"],
         "chunk_token_size": 2000,

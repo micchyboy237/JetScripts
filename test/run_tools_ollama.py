@@ -4,7 +4,7 @@ from llama_index.core import QueryBundle
 from llama_index.core.tools import ToolMetadata
 from llama_index.core.question_gen import LLMQuestionGenerator
 from llama_index.question_gen.openai import OpenAIQuestionGenerator
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 initialize_ollama_settings()
 
 llm = Ollama(model="mistral")

@@ -32,7 +32,7 @@ from llama_index.core.node_parser import NodeParser
 from llama_index.core.prompts import BasePromptTemplate, PromptTemplate
 from llama_index.core import Settings
 
-from jet.llm.ollama import (
+from jet.llm.ollama.base import (
     update_llm_settings,
     create_embed_model,
     create_llm,

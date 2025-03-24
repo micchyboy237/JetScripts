@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from jet.file.utils import load_file
 from jet.logger import logger
 from jet.logger.timer import time_it
-from jet.search.transformers import clean_string
+from jet.search.formatters import clean_string
 from jet.token.token_utils import split_texts
 from jet.utils.commands import copy_to_clipboard
 from sentence_transformers import SentenceTransformer

@@ -42,7 +42,7 @@ from llama_index.core.program import LLMTextCompletionProgram
 from pathlib import Path
 import pandas as pd
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Query Pipeline for Advanced Text-to-SQL

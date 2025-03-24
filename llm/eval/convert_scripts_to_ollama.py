@@ -27,7 +27,7 @@ You are given a code that will be updated based on the ff:
 
 1. Refactor with main. Initialize ollama.
 - Add a main function to contain all usage examples.
-- Add this import line at the top `from jet.llm.ollama import initialize_ollama_settings`
+- Add this import line at the top `from jet.llm.ollama.base import initialize_ollama_settings`
 - Call this at the top of main function `initialize_ollama_settings()` before any code.
 
 2. Replace openai llm and embed models with ollama. Use something like fnmatch if needed. Here are some guidelines:

@@ -21,7 +21,7 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 
 
 from llama_index.core.indices.struct_store import JSONQueryEngine
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from IPython.display import Markdown, display
 import openai
 import os

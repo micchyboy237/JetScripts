@@ -1,5 +1,10 @@
+from llama_index.core import SimpleDirectoryReader
+from llama_index.core.node_parser import (
+    SemanticDoubleMergingSplitterNodeParser,
+    LanguageConfig,
+)
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 # Download spacy
@@ -14,11 +19,6 @@ initialize_ollama_settings()
 
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'pg_essay.txt'
 
-from llama_index.core.node_parser import (
-    SemanticDoubleMergingSplitterNodeParser,
-    LanguageConfig,
-)
-from llama_index.core import SimpleDirectoryReader
 
 # Load document and create sample splitter:
 

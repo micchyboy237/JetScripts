@@ -2,7 +2,7 @@ import asyncio
 from jet.llm.ollama.base import OllamaEmbedding
 from jet.transformers.formatters import format_json
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -18,7 +18,7 @@ from llama_index.core import (
 )
 from llama_index.vector_stores.deeplake import DeepLakeVectorStore
 from llama_index.core.node_parser import SimpleNodeParser
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core.evaluation import (
     generate_question_context_pairs,
     EmbeddingQAFinetuneDataset,

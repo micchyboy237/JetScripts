@@ -48,7 +48,7 @@ llm = OpenAI(temperature=0, model="gpt-4")
 embed_model = OpenAIEmbedding(embed_batch_size=batch_size)
 
 Replace with ollama llm and embedding:
-from jet.llm.ollama import (
+from jet.llm.ollama.base import (
     update_llm_settings,
     large_llm_model,
     large_embed_model,

@@ -8,7 +8,7 @@ from llama_index.core.schema import TextNode
 import json
 from llama_index.core.prompts import LangchainPromptTemplate
 from langchain import hub
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.readers.file import PyMuPDFReader
 from pathlib import Path
 from IPython.display import Markdown, display
@@ -19,7 +19,7 @@ import logging
 import openai
 import os
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 from llama_index.core.readers.file.base import SimpleDirectoryReader
 initialize_ollama_settings()
 

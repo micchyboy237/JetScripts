@@ -1,7 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 import os
 from pydantic import BaseModel, Field
 from llama_index.core.workflow import Event
@@ -13,7 +13,7 @@ from llama_index.core.workflow import (
     step,
 )
 from llama_index.core.prompts import PromptTemplate
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_parse import LlamaParse
 from llama_index.core import (
     VectorStoreIndex,
@@ -62,7 +62,6 @@ By predicting events, we are predicting the next step(s) in our workflow to run.
 """
 
 
-
 class QueryPlanItem(Event):
     """A single step in an execution plan for a RAG system."""
 
@@ -79,9 +78,11 @@ class QueryPlan(BaseModel):
         description="A list of the QueryPlanItem objects in the plan."
     )
 
+
 """
 In addition to the query plan, we also need some workflow events to collect the results of the query plan items.
 """
+
 
 class QueryPlanItemResult(Event):
     """The result of a query plan item"""
@@ -95,12 +96,12 @@ class ExecutedPlanEvent(Event):
 
     result: str
 
+
 """
 ### Workflow Definition
 
 Now we can define our workflow. We will use an iterative process where we plan, execute, aggregate, and decide in an loop, until we have a final answer or a new query plan.
 """
-
 
 
 class QueryPlanningWorkflow(Workflow):
@@ -129,7 +130,6 @@ class QueryPlanningWorkflow(Workflow):
 
             tools = ev.get("tools")
 
-
             context_str = "\n".join(
                 [
                     f"{i+1}. {tool.metadata.name}: {tool.metadata.description}"
@@ -139,10 +139,10 @@ class QueryPlanningWorkflow(Workflow):
 
             async def async_func_48():
                 query_plan = await self.llm.astructured_predict(
-                QueryPlan,
-                self.planning_prompt,
-                context=context_str,
-                query=query,
+                    QueryPlan,
+                    self.planning_prompt,
+                    context=context_str,
+                    query=query,
                 )
                 return query_plan
             query_plan = asyncio.run(async_func_48())
@@ -160,9 +160,9 @@ class QueryPlanningWorkflow(Workflow):
 
             async def async_func_67():
                 decision = self.llm.predict(
-                self.decision_prompt,
-                query=query,
-                results=current_results_str,
+                    self.decision_prompt,
+                    query=query,
+                    results=current_results_str,
                 )
                 return decision
             decision = asyncio.run(async_func_67())
@@ -171,10 +171,10 @@ class QueryPlanningWorkflow(Workflow):
             if "PLAN" in decision:
                 async def async_func_75():
                     query_plan = await self.llm.astructured_predict(
-                    QueryPlan,
-                    self.planning_prompt,
-                    context=context_str,
-                    query=query,
+                        QueryPlan,
+                        self.planning_prompt,
+                        context=context_str,
+                        query=query,
                     )
                     return query_plan
                 query_plan = asyncio.run(async_func_75())
@@ -202,7 +202,6 @@ class QueryPlanningWorkflow(Workflow):
             )
         )
 
-
         ctx.write_event_to_stream(
             Event(msg=f"Tool {tool.metadata.name} returned: {result}")
         )
@@ -225,6 +224,7 @@ class QueryPlanningWorkflow(Workflow):
             ]
         )
         return ExecutedPlanEvent(result=aggregated_result)
+
 
 """
 ## Loading Data
@@ -281,9 +281,10 @@ async for event in handler.stream_events():
     if hasattr(event, "msg"):
         logger.debug(event.msg)
 
+
 async def run_async_code_57881a8e():
-  result = await handler
-  return result
+    result = await handler
+    return result
 
 result = asyncio.run(run_async_code_57881a8e())
 logger.success(format_json(result))
@@ -299,9 +300,10 @@ async for event in handler.stream_events():
     if hasattr(event, "msg"):
         logger.debug(event.msg)
 
+
 async def run_async_code_57881a8e():
-  result = await handler
-  return result
+    result = await handler
+    return result
 
 result = asyncio.run(run_async_code_57881a8e())
 logger.success(format_json(result))

@@ -35,7 +35,7 @@ from llama_index.core import VectorStoreIndex
 from llama_index.core.readers.file.base import SimpleDirectoryReader
 from llama_index.experimental.query_engine import PandasQueryEngine
 from llama_index.core.schema import IndexNode
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 
 from llama_index.readers.file import PyMuPDFReader
 from typing import List

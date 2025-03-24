@@ -16,7 +16,7 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 
 
 from llama_index.core.composability import QASummaryQueryEngineBuilder
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import SimpleDirectoryReader
 import sys
 import logging

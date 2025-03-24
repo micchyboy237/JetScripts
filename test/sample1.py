@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 
 from jet.code.splitter_markdown_utils import extract_md_header_contents
 from jet.data.utils import generate_unique_hash
+from jet.llm.query.retrievers import query_llm_structured
 from jet.scrapers.crawler.web_crawler import WebCrawler
 from jet.utils.object import extract_null_keys
 from jet.vectors.reranker.bm25_helpers import SearchResult, HybridSearch, SearchResultData, preprocess_texts
@@ -41,28 +42,25 @@ RANDOM_SEED = 42
 
 
 class Episode(BaseModel):
-    episode_number: int
-    season_number: int
+    season: int
+    episode: int
+    date: date
     title: Optional[str] = None
-    synopsis: Optional[str] = None
-    air_date: Optional[date] = None
-
-
-class Season(BaseModel):
-    season_number: int
-    title: str
-    episodes: List[Episode]
-    release_date: Optional[date] = None
-    end_date: Optional[date] = None
+    summary: Optional[str] = None
 
 
 class AnimeDetails(BaseModel):
     title: str
-    episodes: List[Episode] = []
+    seasons: Optional[int] = None
+    status: Optional[str] = None
+    synopsis: Optional[str] = None
+    genre: Optional[List[str]] = None
+    release_date: Optional[date] = None
+    end_date: Optional[date] = None
+    episodes: Optional[List[Episode]] = None
 
 
 episode_fields = list(Episode.model_fields.keys())
-season_fields = list(Season.model_fields.keys())
 anime_details_fields = list(AnimeDetails.model_fields.keys())
 
 # class Anime(BaseModel):
@@ -109,12 +107,15 @@ def setup_web_crawler(includes: list[str] = [], excludes: list[str] = [], max_de
 
 
 def search_data(query) -> list[SearchResult]:
-    filter_sites = [
+    include_sites = [
         # "https://easypc.com.ph",
         # "9anime",
         # "zoro"
         # "aniwatch"
+        "myanimelist.net",
+        "reelgood.com",
     ]
+    exclude_sites = ["wikipedia.org"]
     engines = [
         "google",
         "brave",
@@ -126,7 +127,8 @@ def search_data(query) -> list[SearchResult]:
         query_url="http://searxng.local:8080/search",
         query=query,
         min_score=0.2,
-        filter_sites=filter_sites,
+        include_sites=include_sites,
+        exclude_sites=exclude_sites,
         engines=engines,
         config={
             "port": 3101
@@ -221,7 +223,7 @@ class ScrapedUrlResult(TypedDict):
     is_complete: bool
 
 
-def scrape_urls(urls: list[str], queries: str | list[str], output_dir: str = "generated", includes: list[str] = []) -> Generator[ScrapedUrlResult, None, None]:
+def scrape_urls(urls: list[str], queries: str | list[str], output_dir: str = "generated", includes: list[str] = [], excludes: list[str] = []) -> Generator[ScrapedUrlResult, None, None]:
 
     if isinstance(queries, str):
         queries = [queries]
@@ -240,7 +242,6 @@ def scrape_urls(urls: list[str], queries: str | list[str], output_dir: str = "ge
     #     ]
     #     doc_texts.extend(texts)
 
-    excludes = []
     max_depth = 0
 
     crawler = setup_web_crawler(
@@ -294,11 +295,11 @@ def scrape_urls(urls: list[str], queries: str | list[str], output_dir: str = "ge
                     all_matched[match_query] += 1
 
             if search_results["matched"]:
-                # is_complete = all(
-                #     count for query, count in search_results["matched"].items()
-                #     if query in queries
-                # )
-                is_complete = False
+                is_complete = all(
+                    count for query, count in search_results["matched"].items()
+                    if query in queries
+                )
+                # is_complete = False
                 yield {
                     "url": start_url,
                     "texts": doc_texts,
@@ -307,7 +308,7 @@ def scrape_urls(urls: list[str], queries: str | list[str], output_dir: str = "ge
                 }
 
 
-def query_structured_data(query: str, top_k: Optional[int] = 10, output_dir: str = "generated") -> Generator[ScrapedUrlResult, None, None]:
+def query_structured_data(query: str, top_k: Optional[int] = 10, output_dir: str = "generated", includes: list[str] = [], excludes: list[str] = []) -> Generator[ScrapedUrlResult, None, None]:
     search_results = search_data(query)
 
     urls = [item["url"] for item in search_results]
@@ -316,13 +317,8 @@ def query_structured_data(query: str, top_k: Optional[int] = 10, output_dir: str
     #     doc_texts = load_file(doc_file)
     # else:
 
-    # stopwords = StopWords()
-    # includes = [t for t in title.lower().split(
-    # ) if t not in stopwords.english_stop_words]
-    includes = []
-
     yield from scrape_urls(
-        urls, query, output_dir=output_dir, includes=includes)
+        urls, query, output_dir=output_dir, includes=includes, excludes=excludes)
 
     # search = VectorSemanticSearch(
     #     candidates=doc_texts, embed_model=embed_model)
@@ -360,7 +356,7 @@ def fill_null_values(data: dict, output_dir: str = "generated"):
 
     search_keys_str = ", ".join(
         [key.replace('.', ' ').replace('_', ' ') for key in null_keys])
-    query = f"Anime \"{title}\" episodes {search_keys_str}"
+    query = f"Anime \"{title}\" {search_keys_str}"
 
     response_dict = query_structured_data(query, output_dir=output_dir)
     original_data = data.copy()
@@ -388,29 +384,54 @@ if __name__ == "__main__":
     output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/generated/search_web_data"
 
     title = "I'll Become a Villainess Who Goes Down in History"
-    keywords = anime_fields
-    output_cls = Anime
+    fields = anime_fields
+    output_cls = AnimeDetails
+    # output_cls = None
     top_k = None
 
     search_keys_str = ", ".join(
-        [key.replace('.', ' ').replace('_', ' ') for key in anime_fields])
+        [key.replace('.', ' ').replace('_', ' ') for key in fields])
     scraped_results: dict[str, list[str]] = {}
     output_results: dict[str, SearchResultData] = {}
     query = f"Anime \"{title}\" {search_keys_str}"
 
-    search_results_gen = query_structured_data(
-        query, top_k=top_k, output_dir=output_dir)
+    # stopwords = StopWords()
+    # includes = [t for t in title.lower().split(
+    # ) if t not in stopwords.english_stop_words]
+    includes = [
+        "myanimelist.net",
+        "reelgood.com",
+    ]
+    excludes = [
+        "wikipedia.org"
+    ]
 
-    for result in search_results_gen:
+    search_results_gen = query_structured_data(
+        query, top_k=top_k, output_dir=output_dir, includes=includes, excludes=excludes)
+
+    base_output_dir = output_dir
+    for idx, result in enumerate(search_results_gen):
         search_results = result["data"]
         is_complete = result["is_complete"]
+        url = result["url"]
 
-        if not search_results:
-            continue
+        output_dir = f"{base_output_dir}/{idx + 1}/{urlparse(url).hostname}"
+
+        search_results = search_results.copy()
+        semantic_results = search_results.pop("semantic_results")
+        reranked_results = search_results.pop("results")
+
+        save_file({
+            "url": url,
+            **search_results,
+        }, f"{output_dir}/results_info.json")
+        save_file(result["texts"], f"{output_dir}/docs.json")
+        save_file(semantic_results, f"{output_dir}/semantic_results.json")
+        save_file(reranked_results, f"{output_dir}/reranked_results.json")
 
         doc_file = f"{output_dir}/scraped_texts.json"
         search_result_texts = [result["text"]
-                               for result in search_results["results"]]
+                               for result in semantic_results]
         scraped_results[query] = search_result_texts
         save_file(scraped_results, doc_file)
 
@@ -426,9 +447,18 @@ if __name__ == "__main__":
         save_file(output_results, output_file)
 
         if is_complete:
-            # Call LLM chat
-            logger.debug("CALL LLM CHAT!")
-            pass
+            # Ask LLM
+            system = None
+            texts = [result["text"] for result in semantic_results]
+            llm_response_stream = query_llm_structured(
+                query, texts, model=llm_model, system=system, output_cls=output_cls)
+            structued_llm_results = []
+            for structued_llm_response in llm_response_stream:
+                structued_llm_results.append(structued_llm_response)
+
+                save_file(structued_llm_results,
+                          f"{output_dir}/structued_llm_results.json")
+                # break
 
     # response_dict = fill_null_values(response_dict)
     # save_file(response_dict, output_file)

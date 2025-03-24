@@ -1,6 +1,6 @@
 from llama_index.core.evaluation import BatchEvalRunner
 from llama_index.core.evaluation import DatasetGenerator
-from jet.llm.ollama import initialize_ollama_settings, create_llm
+from jet.llm.ollama.base import initialize_ollama_settings, create_llm
 import pandas as pd
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.evaluation import (
@@ -13,7 +13,7 @@ from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Response
 import os
 import nest_asyncio
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 initialize_ollama_settings()
 
 # BatchEvalRunner - Running Multiple Evaluations

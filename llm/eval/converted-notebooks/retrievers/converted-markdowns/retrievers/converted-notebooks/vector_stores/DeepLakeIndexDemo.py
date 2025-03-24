@@ -1,7 +1,7 @@
 from jet.llm.ollama.base import OllamaEmbedding
 from jet.llm.ollama.constants import OLLAMA_SMALL_EMBED_MODEL
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 import os
 import textwrap
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Document

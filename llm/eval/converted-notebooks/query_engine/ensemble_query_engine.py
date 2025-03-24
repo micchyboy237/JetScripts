@@ -34,7 +34,7 @@ from llama_index.core import PromptTemplate
 from llama_index.core import SimpleKeywordTableIndex, VectorStoreIndex
 from llama_index.core import StorageContext
 from llama_index.core import Settings
-from jet.llm.ollama import Ollama
+from jet.llm.ollama.base import Ollama
 from llama_index.core import SimpleDirectoryReader
 import nest_asyncio
 nest_asyncio.apply()

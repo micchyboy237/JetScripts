@@ -1,5 +1,5 @@
 from jet.logger import logger
-from jet.llm.ollama import initialize_ollama_settings
+from jet.llm.ollama.base import initialize_ollama_settings
 from typing import List
 from langchain.prompts.chat import (
     HumanMessagePromptTemplate,
@@ -37,10 +37,10 @@ Arxiv paper: https://arxiv.org/abs/2303.17760
 """
 
 
-
 """
 ## Define a CAMEL agent helper class
 """
+
 
 class CAMELAgent:
     def __init__(
@@ -74,6 +74,7 @@ class CAMELAgent:
 
         return output_message
 
+
 """
 ## Setup Ollama API key and roles and task for role-playing
 """
@@ -90,14 +91,16 @@ word_limit = 50  # word limit for task brainstorming
 ## Create a task specify agent for brainstorming and get the specified task
 """
 
-task_specifier_sys_msg = SystemMessage(content="You can make a task more specific.")
+task_specifier_sys_msg = SystemMessage(
+    content="You can make a task more specific.")
 task_specifier_prompt = """Here is a task that {assistant_role_name} will help {user_role_name} to complete: {task}.
 Please make it more specific. Be creative and imaginative.
 Please reply with the specified task in {word_limit} words or less. Do not add anything else."""
 task_specifier_template = HumanMessagePromptTemplate.from_template(
     template=task_specifier_prompt
 )
-task_specify_agent = CAMELAgent(task_specifier_sys_msg, ChatOllama(model="llama3.1"))
+task_specify_agent = CAMELAgent(
+    task_specifier_sys_msg, ChatOllama(model="llama3.1"))
 task_specifier_msg = task_specifier_template.format_messages(
     assistant_role_name=assistant_role_name,
     user_role_name=user_role_name,
@@ -162,6 +165,7 @@ Never say <CAMEL_TASK_DONE> unless my responses have solved your task."""
 ## Create a helper helper to get system messages for AI assistant and AI user from role names and the task
 """
 
+
 def get_sys_msgs(assistant_role_name: str, user_role_name: str, task: str):
     assistant_sys_template = SystemMessagePromptTemplate.from_template(
         template=assistant_inception_prompt
@@ -182,6 +186,7 @@ def get_sys_msgs(assistant_role_name: str, user_role_name: str, task: str):
     )[0]
 
     return assistant_sys_msg, user_sys_msg
+
 
 """
 ## Create AI assistant agent and AI user agent from obtained system messages
@@ -223,7 +228,8 @@ while n < chat_turn_limit:
 
     assistant_ai_msg = assistant_agent.step(user_msg)
     assistant_msg = HumanMessage(content=assistant_ai_msg.content)
-    print(f"AI Assistant ({assistant_role_name}):\n\n{assistant_msg.content}\n\n")
+    print(
+        f"AI Assistant ({assistant_role_name}):\n\n{assistant_msg.content}\n\n")
     if "<CAMEL_TASK_DONE>" in user_msg.content:
         break
 
