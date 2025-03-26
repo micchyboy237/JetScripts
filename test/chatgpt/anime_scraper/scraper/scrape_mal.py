@@ -36,11 +36,12 @@ class ScrapedData(TypedDict):
 class MyAnimeListSpider(scrapy.Spider):
     name = "myanimelist_spider"
     # table_name = "anime"
-    table_name = "top_airing"
+    # table_name = "top_airing"
+    table_name = "top_upcoming"
 
     start_urls = [
-        # "https://myanimelist.net/topanime.php?type=upcoming",
-        "https://myanimelist.net/topanime.php?type=airing",
+        # "https://myanimelist.net/topanime.php?type=airing",
+        "https://myanimelist.net/topanime.php?type=upcoming",
     ]
     results: list[ScrapedData] = []
 

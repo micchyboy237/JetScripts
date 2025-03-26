@@ -30,7 +30,8 @@ class AnimeDetails(TypedDict):
 class MyAnimeDetailsSpider(scrapy.Spider):
     name = "myanimedetails_spider"
     # table_name = "anime"
-    table_name = "top_airing"
+    # table_name = "top_airing"
+    table_name = "top_upcoming"
 
     def start_requests(self):
         conn = sqlite3.connect(f"{DATA_DIR}/anime.db")

@@ -2,10 +2,7 @@ import sqlite3
 import os
 import json
 import re
-
 from urllib.parse import urlparse
-from jet.wordnet.n_grams import group_sentences_by_ngram
-from jet.wordnet.similarity import get_similar_texts
 
 
 def extract_unique_anime_titles(urls):
@@ -35,45 +32,46 @@ def extract_unique_anime_titles(urls):
 
 # Example usage
 if __name__ == "__main__":
-    # Path to Opera history file
     db_path = os.path.expanduser(
         "~/Library/Application Support/com.operasoftware.Opera/Default/History")
+    output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/benchmark/data"
 
-    # Check if the file exists
     if not os.path.exists(db_path):
         print(f"Database file not found at {db_path}")
     else:
+        conn = None
         try:
-            # Connect to the SQLite database
-            conn = sqlite3.connect(db_path)
+            # Connect with timeout and WAL mode
+            # Allow waiting for 10 sec
+            conn = sqlite3.connect(db_path, timeout=10)
+            # Set write-ahead logging mode
+            conn.execute("PRAGMA journal_mode=WAL;")
             cursor = conn.cursor()
 
-            # Query to get all URLs
             query = "SELECT url FROM urls"
             cursor.execute(query)
 
-            # Fetch results
             results = cursor.fetchall()
 
             # Filter results based on domain containing "aniwatch"
             filtered_urls = [row[0]
                              for row in results if "aniwatch" in urlparse(row[0]).netloc]
 
-            # Extract unique anime titles
             unique_titles = extract_unique_anime_titles(filtered_urls)
             print(unique_titles)
 
             # Save results as JSON
-            output_file = os.path.expanduser("data/aniwatch_history.json")
+            output_file = f"{output_dir}/aniwatch_history.json"
             os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
             with open(output_file, "w", encoding="utf-8") as file:
                 json.dump(unique_titles, file, indent=4)
 
-            # Close connection
-            conn.close()
-
             print(f"Extracted URLs saved to {output_file}")
 
         except sqlite3.OperationalError as e:
             print(f"SQLite operational error: {e}")
+
+        finally:
+            if conn:
+                conn.close()  # Ensure connection is always closed
