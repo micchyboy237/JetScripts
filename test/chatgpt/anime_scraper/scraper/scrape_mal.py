@@ -64,7 +64,7 @@ class MyAnimeListSpider(scrapy.Spider):
 
         cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS {self.table_name} (
-            id TEXT PRIMARY KEY,  -- ✅ ID is now stored as TEXT
+            id TEXT PRIMARY KEY,
             rank INTEGER,
             title TEXT,
             url TEXT,
