@@ -27,7 +27,17 @@ class MyAnimDetailsSpider(scrapy.Spider):
     def start_requests(self):
         conn = sqlite3.connect(f"{DATA_DIR}/anime.db")
         cursor = conn.cursor()
-        cursor.execute("SELECT url FROM anime")
+
+        # Select only rows where any of the target columns are NULL
+        cursor.execute("""
+            SELECT url FROM anime
+            WHERE synopsis IS NULL 
+            OR genres IS NULL 
+            OR popularity IS NULL 
+            OR anime_type IS NULL 
+            OR demographic IS NULL
+        """)
+
         urls = [row[0] for row in cursor.fetchall()]
         conn.close()
 
