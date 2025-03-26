@@ -1,6 +1,7 @@
 import scrapy
 import sqlite3
-from jet.scrapers.browser.scrapy import settings, SeleniumRequest
+from urllib.parse import quote
+from jet.scrapers.browser.scrapy import settings, SeleniumRequest, normalize_url
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -92,17 +93,24 @@ class MyAnimeListSpider(scrapy.Spider):
             ) and members_text.split()[0].isdigit() else None
 
             rank = anime.css("span.top-anime-rank-text::text").get()
-            url = anime.css("td.title a.hoverinfo_trigger").attrib["href"]
-            image_url = anime.css("td.title img::attr(data-src)").get()
+            url = quote(
+                anime.css("td.title a.hoverinfo_trigger").attrib["href"], safe=":/")
+            image_url = quote(
+                anime.css("td.title img::attr(data-src)").get(), safe=":/")
             score = anime.css("td.score span.text::text").get()
 
             rank = int(rank) if rank and rank.isdigit() else None
             score = float(score) if score else None
 
+            url = normalize_url(
+                anime.css("td.title a.hoverinfo_trigger").attrib["href"])
+            image_url = normalize_url(
+                anime.css("td.title img::attr(data-src)").get())
+
             anime_data = ScrapedData(
                 rank=rank,
                 title=title.strip() if title else "Unknown",
-                url=url,
+                url=url,  # ✅ Now stores a clean URL
                 image_url=image_url,
                 score=score,
                 episodes=episodes,
@@ -114,20 +122,12 @@ class MyAnimeListSpider(scrapy.Spider):
 
             try:
                 cursor.execute("""
-                INSERT INTO anime (rank, title, url, image_url, score, episodes, start_date, end_date, status, members)
+                INSERT OR IGNORE INTO anime (rank, title, url, image_url, score, episodes, start_date, end_date, status, members)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    anime_data['rank'],
-                    anime_data['title'],
-                    anime_data['url'],
-                    anime_data['image_url'],
-                    anime_data['score'],
-                    anime_data['episodes'],
-                    anime_data['start_date'],
-                    anime_data['end_date'],
-                    anime_data['status'],
-                    anime_data['members']
-                ))
+                """, (anime_data['rank'], anime_data['title'], anime_data['url'],
+                      anime_data['image_url'], anime_data['score'], anime_data['episodes'],
+                      anime_data['start_date'], anime_data['end_date'], anime_data['status'],
+                      anime_data['members']))
             except Exception as e:
                 logger.error("Error on saving to DB")
                 logger.error(e)

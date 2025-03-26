@@ -1,5 +1,9 @@
+import time
+import random
+from jet.scrapers.browser.scrapy.utils import normalize_url
 import scrapy
 import sqlite3
+from urllib.parse import quote
 from jet.scrapers.browser.scrapy import settings, SeleniumRequest
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.by import By
@@ -38,10 +42,16 @@ class MyAnimDetailsSpider(scrapy.Spider):
             OR demographic IS NULL
         """)
 
-        urls = [row[0] for row in cursor.fetchall()]
+        urls = [quote(row[0], safe=":/") for row in cursor.fetchall()]
         conn.close()
 
         for url in urls:
+            # Introduce a random delay between 2 to 5 seconds
+            delay = random.uniform(2, 5)
+            logger.info(
+                f"Waiting for {delay:.2f} seconds before next request...")
+            time.sleep(delay)
+
             yield SeleniumRequest(
                 url=url,
                 callback=self.parse,
@@ -53,7 +63,7 @@ class MyAnimDetailsSpider(scrapy.Spider):
         driver: WebDriver = response.request.meta['driver']
 
         anime_details = AnimeDetails(
-            url=response.url,
+            url=quote(response.url, safe=":/"),
             synopsis=self.extract_synopsis(response),
             genres=self.extract_genres(response),
             popularity=self.extract_popularity(response),
@@ -98,24 +108,38 @@ class MyAnimDetailsSpider(scrapy.Spider):
         conn = sqlite3.connect(f"{DATA_DIR}/anime.db")
         cursor = conn.cursor()
 
-        # Ensure new columns exist, ignoring errors if they already exist
-        for column, col_type in [
-            ("synopsis", "TEXT"),
-            ("genres", "TEXT"),
-            ("popularity", "INTEGER"),
-            ("anime_type", "TEXT"),
-            ("demographic", "TEXT")
-        ]:
-            try:
+        # # Ensure new columns exist, ignoring errors if they already exist
+        # for column, col_type in [
+        #     ("synopsis", "TEXT"),
+        #     ("genres", "TEXT"),
+        #     ("popularity", "INTEGER"),
+        #     ("anime_type", "TEXT"),
+        #     ("demographic", "TEXT")
+        # ]:
+        #     try:
+        #         cursor.execute(
+        #             f"ALTER TABLE anime ADD COLUMN {column} {col_type};")
+        #     except sqlite3.OperationalError:
+        #         pass  # Column already exists
+
+        cursor.execute("PRAGMA table_info(anime);")
+        existing_columns = {row[1] for row in cursor.fetchall()}
+
+        for column, col_type in [("synopsis", "TEXT"), ("genres", "TEXT"),
+                                 ("popularity", "INTEGER"), ("anime_type", "TEXT"),
+                                 ("demographic", "TEXT")]:
+            if column not in existing_columns:
                 cursor.execute(
                     f"ALTER TABLE anime ADD COLUMN {column} {col_type};")
-            except sqlite3.OperationalError:
-                pass  # Column already exists
 
         # Update the existing row with new data
         cursor.execute("""
         UPDATE anime
-        SET synopsis=?, genres=?, popularity=?, anime_type=?, demographic=?
+        SET synopsis=COALESCE(?, synopsis), 
+            genres=COALESCE(?, genres), 
+            popularity=COALESCE(?, popularity), 
+            anime_type=COALESCE(?, anime_type), 
+            demographic=COALESCE(?, demographic)
         WHERE url=?
         """, (
             anime_details['synopsis'],
@@ -123,7 +147,7 @@ class MyAnimDetailsSpider(scrapy.Spider):
             anime_details['popularity'],
             anime_details['anime_type'],
             anime_details['demographic'],
-            anime_details['url']
+            normalize_url(anime_details['url'])
         ))
 
         conn.commit()
