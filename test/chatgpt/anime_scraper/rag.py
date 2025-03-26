@@ -1,26 +1,18 @@
-import sys
-
-from jet.llm.ollama.base import Ollama
-from retriever.retrieve import hybrid_search
-from llama_index.core.base.llms.types import ChatResponse
+from retriever.search import hybrid_search
 
 
-project_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/chatgpt/anime_scraper"
-sys.path.insert(0, project_path)
+def retrieve_anime_info(query):
+    results = hybrid_search(query)
 
+    if results:
+        anime_data = f"Title: {results[0][0]}\nSynopsis: {results[0][1]}\nStatus: {results[0][2]}\nEpisodes: {results[0][3]}\nAiring: {results[0][4]}\nSource: {results[0][5]}"
+    else:
+        anime_data = "No relevant anime found."
 
-def generate_answer(query):
-    documents = hybrid_search(query)
-    context = "\n\n".join([doc[1] for doc in documents])
-
-    prompt = f"Answer the question based on the following context:\n\n{context}\n\nQ: {query}\nA:"
-    llm = Ollama(model="llama3.1", stream=True)
-    response: ChatResponse = llm.chat(prompt)
-
-    return response.message.content
+    return anime_data
 
 
 if __name__ == "__main__":
-    query = input("Enter your query: ")
-    answer = generate_answer(query)
+    query = input("Enter your anime query: ")
+    answer = retrieve_anime_info(query)
     print("\n🔹 AI Response:\n", answer)
