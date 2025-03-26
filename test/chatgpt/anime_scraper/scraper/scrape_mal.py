@@ -23,6 +23,11 @@ class ScrapedData(TypedDict):
     end_date: Optional[str]
     status: str
     members: int
+    synopsis: Optional[str]
+    genres: Optional[List[str]]
+    popularity: Optional[int]
+    anime_type: Optional[str]
+    demographic: Optional[str]
 
 
 class MyAnimeListSpider(scrapy.Spider):
@@ -57,7 +62,12 @@ class MyAnimeListSpider(scrapy.Spider):
             start_date TEXT,
             end_date TEXT,
             status TEXT,
-            members INTEGER
+            members INTEGER,
+            synopsis TEXT,
+            genres TEXT,
+            popularity INTEGER,
+            anime_type TEXT,
+            demographic TEXT
         )
         """)
 
