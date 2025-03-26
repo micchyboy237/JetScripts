@@ -1,5 +1,7 @@
 import time
 import random
+
+from tqdm import tqdm
 from jet.scrapers.browser.scrapy.utils import normalize_url
 import scrapy
 import sqlite3
@@ -27,14 +29,16 @@ class AnimeDetails(TypedDict):
 
 class MyAnimeDetailsSpider(scrapy.Spider):
     name = "myanimedetails_spider"
+    # table_name = "anime"
+    table_name = "top_airing"
 
     def start_requests(self):
-        conn = sqlite3.connect(f"{DATA_DIR}/top_upcoming_anime.db")
+        conn = sqlite3.connect(f"{DATA_DIR}/anime.db")
         cursor = conn.cursor()
 
         # Select only rows where any of the target columns are NULL
-        cursor.execute("""
-            SELECT id, url FROM anime
+        cursor.execute(f"""
+            SELECT id, url FROM {self.table_name}
             WHERE synopsis IS NULL 
             OR genres IS NULL 
             OR popularity IS NULL 
@@ -46,7 +50,7 @@ class MyAnimeDetailsSpider(scrapy.Spider):
                       for row in cursor.fetchall()]
         conn.close()
 
-        for anime_id, url in anime_data:
+        for anime_id, url in tqdm(anime_data, desc="Scraping details..."):
             # Introduce a random delay between 2 to 5 seconds
             delay = random.uniform(2, 5)
             logger.info(
@@ -110,7 +114,7 @@ class MyAnimeDetailsSpider(scrapy.Spider):
 
     def save_to_db(self, anime_details: AnimeDetails):
         """Saves the extracted data to the database."""
-        conn = sqlite3.connect(f"{DATA_DIR}/top_upcoming_anime.db")
+        conn = sqlite3.connect(f"{DATA_DIR}/anime.db")
         cursor = conn.cursor()
 
         # # Ensure new columns exist, ignoring errors if they already exist
@@ -127,7 +131,7 @@ class MyAnimeDetailsSpider(scrapy.Spider):
         #     except sqlite3.OperationalError:
         #         pass  # Column already exists
 
-        cursor.execute("PRAGMA table_info(anime);")
+        cursor.execute(f"PRAGMA table_info({self.table_name});")
         existing_columns = {row[1] for row in cursor.fetchall()}
 
         for column, col_type in [("synopsis", "TEXT"), ("genres", "TEXT"),
@@ -135,11 +139,11 @@ class MyAnimeDetailsSpider(scrapy.Spider):
                                  ("demographic", "TEXT")]:
             if column not in existing_columns:
                 cursor.execute(
-                    f"ALTER TABLE anime ADD COLUMN {column} {col_type};")
+                    f"ALTER TABLE {self.table_name} ADD COLUMN {column} {col_type};")
 
         # Update the existing row with new data
-        cursor.execute("""
-        UPDATE anime
+        cursor.execute(f"""
+        UPDATE {self.table_name}
         SET synopsis=COALESCE(?, synopsis), 
             genres=COALESCE(?, genres), 
             popularity=COALESCE(?, popularity), 

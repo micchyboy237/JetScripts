@@ -35,8 +35,12 @@ class ScrapedData(TypedDict):
 
 class MyAnimeListSpider(scrapy.Spider):
     name = "myanimelist_spider"
+    # table_name = "anime"
+    table_name = "top_airing"
+
     start_urls = [
-        "https://myanimelist.net/topanime.php?type=upcoming",
+        # "https://myanimelist.net/topanime.php?type=upcoming",
+        "https://myanimelist.net/topanime.php?type=airing",
     ]
     results: list[ScrapedData] = []
 
@@ -54,11 +58,11 @@ class MyAnimeListSpider(scrapy.Spider):
     def parse(self, response):
         driver: WebDriver = response.request.meta['driver']
 
-        conn = sqlite3.connect(f"{DATA_DIR}/top_upcoming_anime.db")
+        conn = sqlite3.connect(f"{DATA_DIR}/anime.db")
         cursor = conn.cursor()
 
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS anime (
+        cursor.execute(f"""
+        CREATE TABLE IF NOT EXISTS {self.table_name} (
             id TEXT PRIMARY KEY,  -- ✅ ID is now stored as TEXT
             rank INTEGER,
             title TEXT,
@@ -126,8 +130,8 @@ class MyAnimeListSpider(scrapy.Spider):
             )
 
             try:
-                cursor.execute("""
-                INSERT OR IGNORE INTO anime (id, rank, title, url, image_url, score, episodes, start_date, end_date, status, members)
+                cursor.execute(f"""
+                INSERT OR IGNORE INTO {self.table_name} (id, rank, title, url, image_url, score, episodes, start_date, end_date, status, members)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (anime_data['id'], anime_data['rank'], anime_data['title'], anime_data['url'],
                       anime_data['image_url'], anime_data['score'], anime_data['episodes'],

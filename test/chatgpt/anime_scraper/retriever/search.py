@@ -25,7 +25,7 @@ else:
     faiss.write_index(index, index_path)  # Save the empty index
 
 # Connect to SQLite database
-conn = sqlite3.connect("data/top_upcoming_anime.db")
+conn = sqlite3.connect("data/anime.db")
 cursor = conn.cursor()
 cursor.execute("SELECT title, synopsis FROM anime")
 data = cursor.fetchall()

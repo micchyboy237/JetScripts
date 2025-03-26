@@ -7,7 +7,7 @@ class AniListSpider(scrapy.Spider):
     start_urls = ["https://anilist.co/search/anime/trending"]
 
     def parse(self, response):
-        conn = sqlite3.connect("data/top_upcoming_anime.db")
+        conn = sqlite3.connect("data/anime.db")
         cursor = conn.cursor()
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS anime (

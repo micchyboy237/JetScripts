@@ -2,7 +2,7 @@ from typing import Optional, TypedDict
 from retriever.search import hybrid_search
 import sqlite3
 
-DB_PATH = "data/top_upcoming_anime.db"
+DB_PATH = "data/anime.db"
 
 
 class ScrapedData(TypedDict):
