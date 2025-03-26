@@ -1,3 +1,4 @@
+import re
 import scrapy
 import sqlite3
 from urllib.parse import quote
@@ -14,6 +15,7 @@ DATA_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScrip
 
 
 class ScrapedData(TypedDict):
+    id: str
     rank: int
     title: str
     url: str
@@ -33,7 +35,9 @@ class ScrapedData(TypedDict):
 
 class MyAnimeListSpider(scrapy.Spider):
     name = "myanimelist_spider"
-    start_urls = ["https://myanimelist.net/topanime.php"]
+    start_urls = [
+        "https://myanimelist.net/topanime.php?type=upcoming",
+    ]
     results: list[ScrapedData] = []
 
     def start_requests(self):
@@ -49,11 +53,13 @@ class MyAnimeListSpider(scrapy.Spider):
 
     def parse(self, response):
         driver: WebDriver = response.request.meta['driver']
-        conn = sqlite3.connect(f"{DATA_DIR}/anime.db")
+
+        conn = sqlite3.connect(f"{DATA_DIR}/top_upcoming_anime.db")
         cursor = conn.cursor()
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS anime (
+            id TEXT PRIMARY KEY,  -- ✅ ID is now stored as TEXT
             rank INTEGER,
             title TEXT,
             url TEXT,
@@ -72,14 +78,14 @@ class MyAnimeListSpider(scrapy.Spider):
         )
         """)
 
-        for idx, anime in enumerate(response.css("tr.ranking-list")):
+        for anime in response.css("tr.ranking-list"):
             title_element = anime.css(".anime_ranking_h3 a")
             title = title_element.css("::text").get()
             information = anime.css(".information::text").getall()
 
             episodes_text = information[0].strip() if information else ""
-            episodes = int(episodes_text.split(
-                "(")[-1].split()[0]) if "(" in episodes_text else None
+            match = re.search(r'\((\d+)', episodes_text)
+            episodes = int(match.group(1)) if match else None
             duration_text = information[1].strip() if len(
                 information) > 1 else ""
             dates = duration_text.split("-")
@@ -93,24 +99,23 @@ class MyAnimeListSpider(scrapy.Spider):
             ) and members_text.split()[0].isdigit() else None
 
             rank = anime.css("span.top-anime-rank-text::text").get()
-            url = quote(
-                anime.css("td.title a.hoverinfo_trigger").attrib["href"], safe=":/")
-            image_url = quote(
-                anime.css("td.title img::attr(data-src)").get(), safe=":/")
-            score = anime.css("td.score span.text::text").get()
-
-            rank = int(rank) if rank and rank.isdigit() else None
-            score = float(score) if score else None
-
             url = normalize_url(
                 anime.css("td.title a.hoverinfo_trigger").attrib["href"])
             image_url = normalize_url(
                 anime.css("td.title img::attr(data-src)").get())
+            score = anime.css("td.score span.text::text").get()
+
+            rank = int(rank) if rank and rank.isdigit() else None
+            score = float(score) if score and score != "N/A" else None
+
+            # ✅ Extracted ID will now be a string
+            anime_id = self.extract_anime_id(url)
 
             anime_data = ScrapedData(
+                id=str(anime_id),
                 rank=rank,
                 title=title.strip() if title else "Unknown",
-                url=url,  # ✅ Now stores a clean URL
+                url=url,
                 image_url=image_url,
                 score=score,
                 episodes=episodes,
@@ -122,9 +127,9 @@ class MyAnimeListSpider(scrapy.Spider):
 
             try:
                 cursor.execute("""
-                INSERT OR IGNORE INTO anime (rank, title, url, image_url, score, episodes, start_date, end_date, status, members)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (anime_data['rank'], anime_data['title'], anime_data['url'],
+                INSERT OR IGNORE INTO anime (id, rank, title, url, image_url, score, episodes, start_date, end_date, status, members)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (anime_data['id'], anime_data['rank'], anime_data['title'], anime_data['url'],
                       anime_data['image_url'], anime_data['score'], anime_data['episodes'],
                       anime_data['start_date'], anime_data['end_date'], anime_data['status'],
                       anime_data['members']))
@@ -139,6 +144,11 @@ class MyAnimeListSpider(scrapy.Spider):
 
         for item in self.results:
             yield item
+
+    def extract_anime_id(self, url: str) -> Optional[str]:
+        """Extract anime ID from MyAnimeList URL as a string."""
+        match = re.search(r'myanimelist\.net/anime/(\d+)', url)
+        return match.group(1) if match else None  # ✅ Return as string
 
     def closed(self, reason):
         copy_to_clipboard(self.results)

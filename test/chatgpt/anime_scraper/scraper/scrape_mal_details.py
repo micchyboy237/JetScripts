@@ -25,16 +25,16 @@ class AnimeDetails(TypedDict):
     demographic: str
 
 
-class MyAnimDetailsSpider(scrapy.Spider):
-    name = "myanimdetails_spider"
+class MyAnimeDetailsSpider(scrapy.Spider):
+    name = "myanimedetails_spider"
 
     def start_requests(self):
-        conn = sqlite3.connect(f"{DATA_DIR}/anime.db")
+        conn = sqlite3.connect(f"{DATA_DIR}/top_upcoming_anime.db")
         cursor = conn.cursor()
 
         # Select only rows where any of the target columns are NULL
         cursor.execute("""
-            SELECT url FROM anime
+            SELECT id, url FROM anime
             WHERE synopsis IS NULL 
             OR genres IS NULL 
             OR popularity IS NULL 
@@ -42,10 +42,11 @@ class MyAnimDetailsSpider(scrapy.Spider):
             OR demographic IS NULL
         """)
 
-        urls = [quote(row[0], safe=":/") for row in cursor.fetchall()]
+        anime_data = [(row[0], quote(row[1], safe=":/"))
+                      for row in cursor.fetchall()]
         conn.close()
 
-        for url in urls:
+        for anime_id, url in anime_data:
             # Introduce a random delay between 2 to 5 seconds
             delay = random.uniform(2, 5)
             logger.info(
@@ -57,12 +58,16 @@ class MyAnimDetailsSpider(scrapy.Spider):
                 callback=self.parse,
                 wait_time=3,
                 wait_until=EC.presence_of_element_located((By.TAG_NAME, "h2")),
+                meta={"anime_id": anime_id}  # Pass id to the parse method
             )
 
     def parse(self, response):
         driver: WebDriver = response.request.meta['driver']
 
+        anime_id = response.meta["anime_id"]  # Retrieve id
+
         anime_details = AnimeDetails(
+            id=anime_id,  # Include id
             url=quote(response.url, safe=":/"),
             synopsis=self.extract_synopsis(response),
             genres=self.extract_genres(response),
@@ -105,7 +110,7 @@ class MyAnimDetailsSpider(scrapy.Spider):
 
     def save_to_db(self, anime_details: AnimeDetails):
         """Saves the extracted data to the database."""
-        conn = sqlite3.connect(f"{DATA_DIR}/anime.db")
+        conn = sqlite3.connect(f"{DATA_DIR}/top_upcoming_anime.db")
         cursor = conn.cursor()
 
         # # Ensure new columns exist, ignoring errors if they already exist
@@ -160,5 +165,5 @@ class MyAnimDetailsSpider(scrapy.Spider):
 if __name__ == "__main__":
     from scrapy.crawler import CrawlerProcess
     process = CrawlerProcess(settings)
-    process.crawl(MyAnimDetailsSpider)
+    process.crawl(MyAnimeDetailsSpider)
     process.start()

@@ -5,7 +5,7 @@ import numpy as np
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-conn = sqlite3.connect("data/anime.db")
+conn = sqlite3.connect("data/top_upcoming_anime.db")
 cursor = conn.cursor()
 cursor.execute("SELECT title, synopsis FROM anime")
 data = cursor.fetchall()
