@@ -120,13 +120,13 @@ Here, we let the LLM define the ontology on the fly, giving it full freedom to l
 
 kg_extractor = DynamicLLMPathExtractor(
     llm=llm,
-    max_triplets_per_chunk=3,
+    max_triplets_per_chunk=10,
     num_workers=4,
-    allowed_entity_types=["Anime", "Episode", "Character", "Season"],
-    allowed_relation_types=["HAS_EPISODE",
-                            "PART_OF_SEASON", "HAS_GENRE", "HAS_TITLE"],
-    allowed_relation_props=["description", "release_date", "synopsis"],
-    allowed_entity_props=["title", "season", "episode", "synopsis"],
+    allowed_entity_types=None,
+    allowed_relation_types=None,
+    allowed_relation_props=[],
+    allowed_entity_props=[],
+
 )
 
 dynamic_index = PropertyGraphIndex.from_documents(
@@ -157,13 +157,14 @@ Here, we have partial knowledge of what we want to detect, we know the article i
 
 kg_extractor = DynamicLLMPathExtractor(
     llm=llm,
-    max_triplets_per_chunk=3,
+    max_triplets_per_chunk=10,
     num_workers=4,
-    allowed_entity_types=["Anime", "Episode", "Genre", "Season"],
+    allowed_entity_types=["Episode"],
     allowed_relation_types=["HAS_EPISODE",
                             "PART_OF_SEASON", "HAS_GENRE", "HAS_TITLE"],
-    allowed_relation_props=["description", "release_date", "synopsis"],
-    allowed_entity_props=["title", "season", "episode", "synopsis"],
+    allowed_relation_props=["episodes"],
+    allowed_entity_props=["title", "seasons", "episodes",
+                          "synopsis", "release_date", "end_date", "status"],
 )
 
 dynamic_index_2 = PropertyGraphIndex.from_documents(
@@ -181,7 +182,7 @@ dynamic_index_2.property_graph_store.save_networkx_graph(
 logger.debug("Dynamic property graph store 2 triplets:")
 logger.orange(format_json(
     dynamic_index_2.property_graph_store.get_triplets(
-        entity_names=["Anime", "Episode", "Genre", "Season"]
+        entity_names=["Anime", "Episode"]
     )[:5]
 ))
 
@@ -192,7 +193,7 @@ logger.orange(format_json(
 
 kg_extractor = SchemaLLMPathExtractor(
     llm=llm,
-    max_triplets_per_chunk=3,
+    max_triplets_per_chunk=10,
     strict=False,  # Set to False to showcase why it's not going to be the same as DynamicLLMPathExtractor
     # USE DEFAULT ENTITIES (PERSON, ORGANIZATION... etc)
     possible_entities=None,
