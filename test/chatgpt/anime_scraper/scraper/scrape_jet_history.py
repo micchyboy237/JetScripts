@@ -169,6 +169,12 @@ class JetAnimeHistorySpider(scrapy.Spider):
         return match.group(1) if match else None
 
     def closed(self, reason):
+        with sqlite3.connect(f"{DATA_DIR}/anime.db", timeout=10) as conn:
+            cursor = conn.cursor()
+            # Force merging WAL into anime.db
+            cursor.execute("PRAGMA wal_checkpoint(FULL);")
+            conn.commit()
+
         copy_to_clipboard(self.results)
         logger.newline()
         logger.debug(f"\nFinal Results ({len(self.results)}):")
