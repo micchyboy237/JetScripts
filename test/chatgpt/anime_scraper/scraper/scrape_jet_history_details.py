@@ -35,7 +35,29 @@ class JetAnimeHistoryDetailsSpider(scrapy.Spider):
         conn = sqlite3.connect(f"{DATA_DIR}/anime.db")
         cursor = conn.cursor()
 
-        # Select only rows where any of the target columns are NULL
+        # Fetch existing columns
+        cursor.execute(f"PRAGMA table_info({self.table_name});")
+        existing_columns = {row[1] for row in cursor.fetchall()}
+
+        # Define expected columns
+        expected_columns = {
+            "synopsis": "TEXT",
+            "genres": "TEXT",
+            "popularity": "INTEGER",
+            "anime_type": "TEXT",
+            "demographic": "TEXT"
+        }
+
+        # Add missing columns dynamically
+        for column, col_type in expected_columns.items():
+            if column not in existing_columns:
+                logger.info(f"Adding missing column: {column} ({col_type})")
+                cursor.execute(
+                    f"ALTER TABLE {self.table_name} ADD COLUMN {column} {col_type};")
+
+        conn.commit()  # Save changes
+
+        # Now the table is guaranteed to have the required columns
         cursor.execute(f"""
             SELECT id, url FROM {self.table_name}
             WHERE synopsis IS NULL 
@@ -50,7 +72,6 @@ class JetAnimeHistoryDetailsSpider(scrapy.Spider):
         conn.close()
 
         for anime_id, url in tqdm(anime_data, desc="Scraping details..."):
-            # Introduce a random delay between 2 to 5 seconds
             delay = random.uniform(2, 5)
             logger.info(
                 f"Waiting for {delay:.2f} seconds before next request...")
