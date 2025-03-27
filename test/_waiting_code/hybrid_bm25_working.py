@@ -95,10 +95,12 @@ if __name__ == "__main__":
     results = results.copy()
 
     semantic_results = results.pop("semantic_results")
-    reranked_results = results.pop("results")
+    hybrid_results = results.pop("hybrid_results")
+    reranked_results = results.pop("reranked_results")
 
     save_file(results, "generated/hybrid_search/results_info.json")
     save_file(semantic_results, "generated/hybrid_search/semantic_results.json")
+    save_file(hybrid_results, "generated/hybrid_search/hybrid_results.json")
     save_file(reranked_results, "generated/hybrid_search/reranked_results.json")
 
     # Ask LLM

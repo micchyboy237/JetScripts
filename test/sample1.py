@@ -419,7 +419,8 @@ if __name__ == "__main__":
 
         search_results = search_results.copy()
         semantic_results = search_results.pop("semantic_results")
-        reranked_results = search_results.pop("results")
+        hybrid_results = search_results.pop("hybrid_results")
+        reranked_results = search_results.pop("reranked_results")
 
         save_file({
             "url": url,
@@ -427,6 +428,7 @@ if __name__ == "__main__":
         }, f"{output_dir}/results_info.json")
         save_file(result["texts"], f"{output_dir}/docs.json")
         save_file(semantic_results, f"{output_dir}/semantic_results.json")
+        save_file(hybrid_results, f"{output_dir}/hybrid_results.json")
         save_file(reranked_results, f"{output_dir}/reranked_results.json")
 
         doc_file = f"{output_dir}/scraped_texts.json"
