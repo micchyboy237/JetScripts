@@ -1,25 +1,26 @@
 import os
 from jet.cache.joblib.utils import load_persistent_cache, save_persistent_cache, ttl_cache
 from jet.file.utils import save_file
+from jet.wordnet.words import get_words
+from llama_index.core.node_parser.text.sentence import SentenceSplitter
 from pydantic import BaseModel, Field
 from jet.logger import logger
-from jet.token.token_utils import get_model_max_tokens
+from jet.token.token_utils import get_model_max_tokens, token_counter
 from jet.utils.commands import copy_to_clipboard
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.postprocessor import StructuredLLMRerank
 from jet.llm.ollama.base import Ollama, OllamaEmbedding, VectorStoreIndex
-from IPython.display import Markdown, display
-from llama_index.core import Settings
 from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.core import QueryBundle
 import pandas as pd
-from IPython.display import display, HTML
 from copy import deepcopy
 
-from llama_index.core.schema import NodeWithScore
+from llama_index.core.schema import NodeWithScore, TextNode
 
-model = "llama3.2"
-embed_model = "mxbai-embed-large"
+LLM_MODEL = "llama3.2"
+LLM_MAX_TOKENS = get_model_max_tokens(LLM_MODEL)
+EMBED_MODEL = "nomic-embed-text"
+EMBED_MAX_TOKENS = get_model_max_tokens(EMBED_MODEL)
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/node_postprocessor/Structured-LLMReranker-Lyft-10k.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -55,12 +56,12 @@ This class will make use of the structured output capability of the model instea
 DATA_FILE = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/data/10k/lyft_2021.pdf"
 CACHE_FILE = "nodes_lyft_2021.pkl"
 
-Settings.llm = Ollama(temperature=0, model=model,
-                      request_timeout=300.0, context_window=get_model_max_tokens(model))
-Settings.embed_model = OllamaEmbedding(model_name=embed_model)
+llm = Ollama(temperature=0, model=LLM_MODEL,
+             request_timeout=300.0, context_window=LLM_MAX_TOKENS)
+embed_model = OllamaEmbedding(model_name=EMBED_MODEL)
 
-Settings.chunk_overlap = 0
-Settings.chunk_size = 128
+chunk_overlap = 40
+chunk_size = 512
 
 
 load_persistent_cache(CACHE_FILE)
@@ -77,8 +78,22 @@ else:
 
 documents = [doc for doc in documents if "covid" in doc.text.lower()]
 
-index = VectorStoreIndex.from_documents(
-    documents,
+# index = VectorStoreIndex.from_documents(
+#     documents,
+# )
+
+splitter = SentenceSplitter(
+    chunk_size=chunk_size,
+    chunk_overlap=chunk_overlap,
+    tokenizer=get_words
+)
+all_nodes = splitter.get_nodes_from_documents(documents=documents)
+
+
+index = VectorStoreIndex(
+    all_nodes,
+    show_progress=True,
+    embed_model=embed_model
 )
 
 
@@ -99,7 +114,6 @@ class DocumentWithRelevance(BaseModel):
     )
     feedback: str = Field(
         description="Brief feedback on the document's relevance. Example: 'Highly relevant - directly discusses Lyft's COVID-19 safety protocols and driver support measures'",
-        min_length=1, max_length=100
     )
 
 
@@ -111,8 +125,6 @@ class DocumentRelevanceList(BaseModel):
     )
     feedback: str = Field(
         description="Overall feedback on the relevance of all documents. Example: 'Found 2 relevant documents discussing Lyft's COVID-19 response. Document 1 is highly detailed while Document 2 only has a brief mention.'",
-        min_length=1,
-        max_length=200
     )
 
 
@@ -125,7 +137,7 @@ document_relevance_list_cls = DocumentRelevanceList
 
 
 def get_retrieved_nodes(
-    query_str, vector_top_k=10, reranker_top_n=5, with_reranker=False, choice_batch_size=10
+    query_str, vector_top_k=10, reranker_top_n=5, with_reranker=False,
 ):
     query_bundle = QueryBundle(query_str)
     retriever = VectorIndexRetriever(
@@ -134,9 +146,16 @@ def get_retrieved_nodes(
     )
     retrieved_nodes = retriever.retrieve(query_bundle)
 
+    node_token_counts: list[int] = token_counter(
+        [node.text for node in retrieved_nodes], model=LLM_MODEL, prevent_total=True)
+    max_node_token_count = max(node_token_counts)
+    # Add buffer
+    max_batch_size = int(LLM_MAX_TOKENS * 0.75 / max_node_token_count)
+    choice_batch_size = max_batch_size
+
     if with_reranker:
         reranker = StructuredLLMRerank(
-            llm=Settings.llm,
+            llm=llm,
             choice_batch_size=choice_batch_size,
             top_n=reranker_top_n,
             document_relevance_list_cls=document_relevance_list_cls
@@ -149,7 +168,8 @@ def get_retrieved_nodes(
 
 
 def visualize_retrieved_nodes(nodes: list[NodeWithScore]):
-    results = [{"score": node.score, "text": node.text} for node in nodes]
+    results = [{"score": node.score, "text": node.text,
+                "feedback": node.metadata["feedback"]} for node in nodes]
     copy_to_clipboard(results)
     logger.pretty(results)
     return results

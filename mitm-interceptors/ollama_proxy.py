@@ -162,19 +162,19 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
 
     response = final_response_content
 
-    final_dict = {
+    final_dict_prompt = {
         **prompt_log_dict,
+    }
+    final_dict_response = {
         "response": response,
     }
     # Move 'messages', 'tools' 'response' to the end
-    if final_dict.get("messages"):
-        final_dict['messages'] = final_dict.pop('messages')
-    if final_dict.get("prompt"):
-        final_dict['prompt'] = final_dict.pop('prompt')
-    if final_dict.get('tools'):
-        final_dict['tools'] = final_dict.pop('tools')
-    if final_dict.get('response'):
-        final_dict['response'] = final_dict.pop('response')
+    if final_dict_prompt.get("messages"):
+        final_dict_prompt['messages'] = final_dict_prompt.pop('messages')
+    if final_dict_prompt.get("prompt"):
+        final_dict_prompt['prompt'] = final_dict_prompt.pop('prompt')
+    if final_dict_prompt.get('tools'):
+        final_dict_prompt['tools'] = final_dict_prompt.pop('tools')
 
     if response:
         if "```" not in response:
@@ -224,7 +224,8 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         f"{response_str}"
         f"{tools_str}"
         f"{prompt_log_str}"
-        f"## JSON\n\n```json\n{format_json(final_dict)}\n```\n\n"
+        f"## JSON Request\n\n```json\n{format_json(final_dict_prompt)}\n```\n\n"
+        f"## JSON Response\n\n```json\n{format_json(final_dict_response)}\n```\n\n"
 
     ).strip()
     return log_entry
