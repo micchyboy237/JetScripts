@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from typing import List, TypedDict, Optional
 from jet.utils.commands import copy_to_clipboard
 from jet.transformers.formatters import format_json
@@ -46,6 +47,8 @@ class AnimeDetails(TypedDict):
     english: Optional[str]
     synonyms: Optional[str]
     tags: Optional[str]
+    next_episode: Optional[int]
+    next_date: Optional[str]
 
 
 class AnilistDetailsSpider(scrapy.Spider):
@@ -81,7 +84,9 @@ class AnilistDetailsSpider(scrapy.Spider):
             "japanese": "TEXT",
             "english": "TEXT",
             "synonyms": "TEXT",
-            "tags": "TEXT"
+            "tags": "TEXT",
+            "next_episode": "INTEGER",
+            "next_date": "TEXT",
         }
 
         # Add missing columns dynamically
@@ -109,7 +114,7 @@ class AnilistDetailsSpider(scrapy.Spider):
         # Fetch anime URLs that need updates
         cursor.execute(f"""
             SELECT id, url FROM {self.table_name}
-            WHERE status IS NULL
+            WHERE status is null
         """)
         anime_data = [(row[0], quote(row[1], safe=":/"))
                       for row in cursor.fetchall()]
@@ -151,7 +156,11 @@ class AnilistDetailsSpider(scrapy.Spider):
             japanese=self.extract_japanese(response),
             english=self.extract_english(response),
             synonyms=", ".join(self.extract_synonyms(response)),
-            tags=", ".join(self.extract_tags(response))
+            tags=", ".join(self.extract_tags(response)),
+            next_episode=self.extract_next_episode(
+                response),  # Extracted next episode
+            next_date=self.extract_next_date(
+                response)         # Extracted next date
         )
 
         self.save_to_db(anime_details)
@@ -259,6 +268,44 @@ class AnilistDetailsSpider(scrapy.Spider):
             "//div[contains(@class, 'data-set')][div[contains(text(), 'Synonyms')]]/div[contains(@class, 'value')]/span/text()"
         ).getall()]
 
+    def extract_next_episode(self, response) -> Optional[int]:
+        # Example: Extract the episode number, e.g., "Ep 25"
+        episode_text = response.css(
+            ".airing-countdown .countdown span::text").get()
+        if episode_text:
+            match = re.search(r"Ep (\d+)", episode_text)
+            return int(match.group(1)) if match else None
+        return None
+
+    def extract_next_date(self, response) -> Optional[str]:
+        # Example: Extract the next airing time in the format "6d 17h 21m"
+        date_text = response.css(
+            ".airing-countdown .countdown span::text").getall()
+
+        if date_text:
+            # Join the parts of the time (e.g., '6d', '17h', '21m')
+            time_str = "".join(date_text).strip()
+
+            # Regex pattern to extract days, hours, and minutes
+            match = re.search(r'(\d+)d\s*(\d+)h\s*(\d+)m', time_str)
+
+            if match:
+                days = int(match.group(1))
+                hours = int(match.group(2))
+                minutes = int(match.group(3))
+
+                # Get current time and add the remaining time
+                current_time = datetime.now()
+                next_time = current_time + \
+                    timedelta(days=days, hours=hours, minutes=minutes)
+
+                # Set the seconds to 00 and format the date as "Month Day, Year Hour:Minute:00"
+                next_time = next_time.replace(second=0)
+
+                return next_time.strftime("%B %d, %Y %H:%M:%S")
+
+        return None
+
     def extract_tags(self, response) -> List[str]:
         return [tag.strip() for tag in response.css("div.tags div.tag a::text").getall()]
 
@@ -283,7 +330,9 @@ class AnilistDetailsSpider(scrapy.Spider):
             japanese=COALESCE(%s, japanese),
             english=COALESCE(%s, english),
             synonyms=COALESCE(%s, synonyms),
-            tags=COALESCE(%s, tags)
+            tags=COALESCE(%s, tags),
+            next_episode=COALESCE(%s, next_episode),
+            next_date=%s  -- Directly update next_date even if it has an existing value
         WHERE id=%s
         """, (
             anime_details["synopsis"],
@@ -302,6 +351,8 @@ class AnilistDetailsSpider(scrapy.Spider):
             anime_details["english"],
             anime_details["synonyms"],
             anime_details["tags"],
+            anime_details["next_episode"],    # New field
+            anime_details["next_date"],       # New field
             anime_details["id"]
         ))
 
