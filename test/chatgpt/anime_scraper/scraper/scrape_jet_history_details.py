@@ -60,10 +60,10 @@ class JetAnimeHistoryDetailsSpider(scrapy.Spider):
         # Now the table is guaranteed to have the required columns
         cursor.execute(f"""
             SELECT id, url FROM {self.table_name}
-            WHERE synopsis IS NULL 
-            OR genres IS NULL 
-            OR popularity IS NULL 
-            OR anime_type IS NULL 
+            WHERE end_date IS NULL
+            OR members IS NULL
+            OR synopsis IS NULL
+            OR popularity IS NULL
             OR demographic IS NULL
         """)
 

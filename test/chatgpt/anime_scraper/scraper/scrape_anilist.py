@@ -40,8 +40,6 @@ class ScrapedData(TypedDict):
 
 class AnilistSpider(scrapy.Spider):
     name = "anilist_spider"
-    # table_name = "anime"
-    # table_name = "top_airing"
     table_name = "trending"
 
     start_urls = [
@@ -67,30 +65,30 @@ class AnilistSpider(scrapy.Spider):
         cursor = conn.cursor()
 
         cursor.execute(f"""
-        CREATE TABLE IF NOT EXISTS {self.table_name} (
-            id TEXT PRIMARY KEY,
-            rank INTEGER,
-            title TEXT,
-            url TEXT,
-            image_url TEXT,
-            score REAL,
-            episodes INTEGER,
-            start_date TEXT,
-            next_episode INTEGER,
-            next_date TEXT,
-            end_date TEXT,
-            status TEXT,
-            members INTEGER,
-            synopsis TEXT,
-            genres TEXT,
-            popularity INTEGER,
-            anime_type TEXT,
-            demographic TEXT,
-            studios TEXT
-        )
-        """)
+      CREATE TABLE IF NOT EXISTS {self.table_name} (
+          id TEXT PRIMARY KEY,
+          rank INTEGER,
+          title TEXT,
+          url TEXT,
+          image_url TEXT,
+          score REAL,
+          episodes INTEGER,
+          start_date TEXT,
+          next_episode INTEGER,
+          next_date TEXT,
+          end_date TEXT,
+          status TEXT,
+          members INTEGER,
+          synopsis TEXT,
+          genres TEXT,
+          popularity INTEGER,
+          anime_type TEXT,
+          demographic TEXT,
+          studios TEXT
+      )
+      """)
 
-        for anime in response.css(".results.cover .media-card"):
+        for index, anime in enumerate(response.css(".results.cover .media-card"), start=1):
             title = anime.css(".title::text").get(default="Unknown").strip()
             relative_url = anime.css(".title").attrib.get("href", "")
             url = normalize_url(urljoin(response.url, relative_url))
@@ -98,8 +96,7 @@ class AnilistSpider(scrapy.Spider):
                 anime.css("img.image::attr(src)").get(""))
             start_date = anime.css(".date::text").get(
                 default="Unknown").strip()
-            next_airing_text = anime.css(".date.airing::text").get(
-                default="")  # ✅ Extract raw text
+            next_airing_text = anime.css(".date.airing::text").get(default="")
             score_text = anime.css(".score .percentage::text").get(
                 default="N/A").strip()
             studios = anime.css(".studios::text").get(
@@ -117,22 +114,19 @@ class AnilistSpider(scrapy.Spider):
                            ) if re.search(r"\d+", episodes_text) else None
             anime_id = self.extract_anime_id(url)
 
-            # ✅ Extract next episode number
             next_episode = int(re.search(r"Ep (\d+)", next_airing_text).group(1)
                                ) if re.search(r"Ep (\d+)", next_airing_text) else None
 
-            # ✅ Extract days remaining and compute `next_date`
             next_date = None
             days_match = re.search(r"in (\d+) days", next_airing_text)
             if days_match:
                 days_remaining = int(days_match.group(1))
                 next_airing_date = datetime.date.today() + datetime.timedelta(days=days_remaining)
-                next_date = next_airing_date.strftime(
-                    "%B %d, %Y")  # ✅ Convert to "MMMM D, YYYY"
+                next_date = next_airing_date.strftime("%B %d, %Y")
 
             anime_data = ScrapedData(
                 id=str(anime_id),
-                rank=None,
+                rank=index,  # ✅ Assign correct rank based on order of .media-card
                 title=title,
                 url=url,
                 image_url=image_url,
@@ -153,49 +147,27 @@ class AnilistSpider(scrapy.Spider):
             )
 
             try:
-                # Infer missing columns from anime_data
-                cursor.execute(f"PRAGMA table_info({self.table_name});")
-                existing_columns = {row[1] for row in cursor.fetchall()}
-
-                for column, value in anime_data.items():
-                    if column not in existing_columns:
-                        col_type = (
-                            "INTEGER" if isinstance(value, int) else
-                            "REAL" if isinstance(value, float) else
-                            "TEXT"
-                        )  # Default to TEXT if unknown type
-
-                        logger.info(
-                            f"Adding missing column: {column} ({col_type})")
-                        try:
-                            cursor.execute(
-                                f"ALTER TABLE {self.table_name} ADD COLUMN {column} {col_type};")
-                        except sqlite3.OperationalError as e:
-                            logger.error(f"Failed to add column {column}: {e}")
-
-                # Save data
                 cursor.execute(f"""
-                INSERT OR IGNORE INTO {self.table_name} (
-                    id, rank, title, url, image_url, score, episodes, start_date, 
-                    next_episode, next_date, end_date, status, members, genres, anime_type, studios
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+              INSERT OR REPLACE INTO {self.table_name} (
+                  id, rank, title, url, image_url, score, episodes, start_date, 
+                  next_episode, next_date, end_date, status, members, genres, anime_type, studios
+              )
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              """, (
                     anime_data['id'],
-                    anime_data['rank'],
+                    anime_data['rank'],  # ✅ Now stored in DB
                     anime_data['title'],
                     anime_data['url'],
                     anime_data['image_url'],
                     anime_data['score'],
                     anime_data['episodes'],
                     anime_data['start_date'],
-                    anime_data.get('next_episode', 0),  # ✅ Prevent KeyError
-                    anime_data.get('next_date', None),  # ✅ Prevent KeyError
+                    anime_data.get('next_episode', 0),
+                    anime_data.get('next_date', None),
                     anime_data['end_date'],
                     anime_data['status'],
                     anime_data['members'],
                     ", ".join(anime_data['genres']) if isinstance(
-                        # ✅ Safer genre handling
                         anime_data['genres'], list) else None,
                     anime_data['anime_type'],
                     anime_data['studios']
