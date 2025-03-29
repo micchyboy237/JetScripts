@@ -13,8 +13,8 @@ from jet.utils.file import search_files
 REPLACE_OLLAMA_MAP = {
     "llama-index-llms-openai": "llama-index-llms-ollama",
     "llama-index-embeddings-openai": "llama-index-embeddings-ollama",
-    "llama_index.llms.openai": "jet.llm.ollama",
-    "llama_index.embeddings.openai": "jet.llm.ollama",
+    "llama_index.llms.openai": "jet.llm.ollama.base",
+    "llama_index.embeddings.openai": "jet.llm.ollama.base",
     "langchain_openai": "jet.llm.ollama.base_langchain",
     "langchain_anthropic": "jet.llm.ollama.base_langchain",
     "langchain_ollama": "jet.llm.ollama.base_langchain",
@@ -705,9 +705,15 @@ if __name__ == "__main__":
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/integrations/retrievers/tf_idf.ipynb",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/property_graph/Dynamic_KG_Extraction.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/metadata_extraction/MetadataExtractionSEC.ipynb",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/node_postprocessor/rankLLM.ipynb",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/integrations/document_transformers/rankllm-reranker.ipynb",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/managed/manage_retrieval_benchmark.ipynb",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/workflow/rag.ipynb",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/retrievers/ensemble_retrieval.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/node_postprocessor/Structured-LLMReranker-Lyft-10k.ipynb",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/prompts/prompt_mixin.ipynb",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-packs/llama-index-packs-koda-retriever/examples/alpha_evaluation.ipynb",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-integrations/postprocessor/llama-index-postprocessor-rankllm-rerank/examples/rankLLM.ipynb",
     ]
 
     include_files = [
