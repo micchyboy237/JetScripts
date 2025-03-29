@@ -1,12 +1,14 @@
+import datetime
 import re
 import scrapy
 import sqlite3
-from urllib.parse import quote
+from urllib.parse import quote, urljoin
 from jet.scrapers.browser.scrapy import settings, SeleniumRequest, normalize_url
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from jet.logger import logger
+from selenium.webdriver.support.ui import WebDriverWait
+from jet.logger import logger, sleep_countdown
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
 from typing import List, TypedDict, Optional
@@ -16,21 +18,24 @@ DATA_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScrip
 
 class ScrapedData(TypedDict):
     id: str
-    rank: int
+    rank: Optional[int]  # Rank is not available in the given HTML
     title: str
     url: str
     image_url: str
-    score: float
-    episodes: int
+    score: Optional[float]  # Converted from percentage
+    episodes: Optional[int]
     start_date: str
-    end_date: Optional[str]
-    status: str
-    members: int
-    synopsis: Optional[str]
-    genres: Optional[List[str]]
-    popularity: Optional[int]
-    anime_type: Optional[str]
-    demographic: Optional[str]
+    end_date: Optional[str]  # No end_date found in the given HTML
+    next_episode: Optional[int]  # Extracted episode number
+    next_date: Optional[str]  # Converted to "MMMM D, YYYY"
+    status: str  # Derived from start_date (Upcoming/Ongoing)
+    members: Optional[int]  # No member count in given HTML
+    synopsis: Optional[str]  # No synopsis available
+    genres: Optional[List[str]]  # Extracted from .genres
+    popularity: Optional[int]  # Not available in the provided HTML
+    anime_type: Optional[str]  # Extracted from .info
+    demographic: Optional[str]  # No demographic info in given HTML
+    studios: Optional[str]  # Extracted from .studios
 
 
 class AnilistSpider(scrapy.Spider):
@@ -71,6 +76,8 @@ class AnilistSpider(scrapy.Spider):
             score REAL,
             episodes INTEGER,
             start_date TEXT,
+            next_episode INTEGER,
+            next_date TEXT,
             end_date TEXT,
             status TEXT,
             members INTEGER,
@@ -78,68 +85,124 @@ class AnilistSpider(scrapy.Spider):
             genres TEXT,
             popularity INTEGER,
             anime_type TEXT,
-            demographic TEXT
+            demographic TEXT,
+            studios TEXT
         )
         """)
 
-        for anime in response.css("tr.ranking-list"):
-            title_element = anime.css(".anime_ranking_h3 a")
-            title = title_element.css("::text").get()
-            information = anime.css(".information::text").getall()
-
-            episodes_text = information[0].strip() if information else ""
-            match = re.search(r'\((\d+)', episodes_text)
-            episodes = int(match.group(1)) if match else None
-            duration_text = information[1].strip() if len(
-                information) > 1 else ""
-            dates = duration_text.split("-")
-            start_date = dates[0].strip()
-            end_date = dates[1].strip() if len(dates) > 1 else None
-            status = "Finished" if end_date else "Ongoing"
-
-            members_text = information[2].strip().replace(
-                ",", "") if len(information) > 2 else ""
-            members = int(members_text.split()[0]) if members_text.split(
-            ) and members_text.split()[0].isdigit() else None
-
-            rank = anime.css("span.top-anime-rank-text::text").get()
-            url = normalize_url(
-                anime.css("td.title a.hoverinfo_trigger").attrib["href"])
+        for anime in response.css(".results.cover .media-card"):
+            title = anime.css(".title::text").get(default="Unknown").strip()
+            relative_url = anime.css(".title").attrib.get("href", "")
+            url = normalize_url(urljoin(response.url, relative_url))
             image_url = normalize_url(
-                anime.css("td.title img::attr(data-src)").get())
-            score = anime.css("td.score span.text::text").get()
+                anime.css("img.image::attr(src)").get(""))
+            start_date = anime.css(".date::text").get(
+                default="Unknown").strip()
+            next_airing_text = anime.css(".date.airing::text").get(
+                default="")  # ✅ Extract raw text
+            score_text = anime.css(".score .percentage::text").get(
+                default="N/A").strip()
+            studios = anime.css(".studios::text").get(
+                default="Unknown").strip()
+            anime_type = anime.css(
+                ".info span:first-child::text").get(default="Unknown").strip()
+            episodes_text = anime.css(
+                ".info span:nth-child(3)::text").get(default="0").strip()
+            genres = [genre.get().strip()
+                      for genre in anime.css(".genres .genre::text")]
 
-            rank = int(rank) if rank and rank.isdigit() else None
-            score = float(score) if score and score != "N/A" else None
-
-            # ✅ Extracted ID will now be a string
+            score = float(score_text.replace("%", "")) / \
+                100 if score_text != "N/A" else None
+            episodes = int(re.search(r"\d+", episodes_text).group()
+                           ) if re.search(r"\d+", episodes_text) else None
             anime_id = self.extract_anime_id(url)
+
+            # ✅ Extract next episode number
+            next_episode = int(re.search(r"Ep (\d+)", next_airing_text).group(1)
+                               ) if re.search(r"Ep (\d+)", next_airing_text) else None
+
+            # ✅ Extract days remaining and compute `next_date`
+            next_date = None
+            days_match = re.search(r"in (\d+) days", next_airing_text)
+            if days_match:
+                days_remaining = int(days_match.group(1))
+                next_airing_date = datetime.date.today() + datetime.timedelta(days=days_remaining)
+                next_date = next_airing_date.strftime(
+                    "%B %d, %Y")  # ✅ Convert to "MMMM D, YYYY"
 
             anime_data = ScrapedData(
                 id=str(anime_id),
-                rank=rank,
-                title=title.strip() if title else "Unknown",
+                rank=None,
+                title=title,
                 url=url,
                 image_url=image_url,
                 score=score,
                 episodes=episodes,
                 start_date=start_date,
-                end_date=end_date,
-                status=status,
-                members=members,
+                next_episode=next_episode or 0,
+                next_date=next_date,
+                end_date=None,
+                status="Ongoing" if next_date else "Finished",
+                members=None,
+                synopsis=None,
+                genres=genres if genres else None,
+                popularity=None,
+                anime_type=anime_type,
+                demographic=None,
+                studios=studios,
             )
 
             try:
+                # Infer missing columns from anime_data
+                cursor.execute(f"PRAGMA table_info({self.table_name});")
+                existing_columns = {row[1] for row in cursor.fetchall()}
+
+                for column, value in anime_data.items():
+                    if column not in existing_columns:
+                        col_type = (
+                            "INTEGER" if isinstance(value, int) else
+                            "REAL" if isinstance(value, float) else
+                            "TEXT"
+                        )  # Default to TEXT if unknown type
+
+                        logger.info(
+                            f"Adding missing column: {column} ({col_type})")
+                        try:
+                            cursor.execute(
+                                f"ALTER TABLE {self.table_name} ADD COLUMN {column} {col_type};")
+                        except sqlite3.OperationalError as e:
+                            logger.error(f"Failed to add column {column}: {e}")
+
+                # Save data
                 cursor.execute(f"""
-                INSERT OR IGNORE INTO {self.table_name} (id, rank, title, url, image_url, score, episodes, start_date, end_date, status, members)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (anime_data['id'], anime_data['rank'], anime_data['title'], anime_data['url'],
-                      anime_data['image_url'], anime_data['score'], anime_data['episodes'],
-                      anime_data['start_date'], anime_data['end_date'], anime_data['status'],
-                      anime_data['members']))
+                INSERT OR IGNORE INTO {self.table_name} (
+                    id, rank, title, url, image_url, score, episodes, start_date, 
+                    next_episode, next_date, end_date, status, members, genres, anime_type, studios
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    anime_data['id'],
+                    anime_data['rank'],
+                    anime_data['title'],
+                    anime_data['url'],
+                    anime_data['image_url'],
+                    anime_data['score'],
+                    anime_data['episodes'],
+                    anime_data['start_date'],
+                    anime_data.get('next_episode', 0),  # ✅ Prevent KeyError
+                    anime_data.get('next_date', None),  # ✅ Prevent KeyError
+                    anime_data['end_date'],
+                    anime_data['status'],
+                    anime_data['members'],
+                    ", ".join(anime_data['genres']) if isinstance(
+                        # ✅ Safer genre handling
+                        anime_data['genres'], list) else None,
+                    anime_data['anime_type'],
+                    anime_data['studios']
+                ))
+
             except Exception as e:
-                logger.error("Error on saving to DB")
-                logger.error(e)
+                logger.error("Error saving to DB:", exc_info=True)
 
             self.results.append(anime_data)
 
@@ -150,8 +213,8 @@ class AnilistSpider(scrapy.Spider):
             yield item
 
     def extract_anime_id(self, url: str) -> Optional[str]:
-        """Extract anime ID from Anilist URL as a string."""
-        match = re.search(r'anilist\.net/anime/(\d+)', url)
+        """Extract the first numeric ID from any Anilist anime URL."""
+        match = re.search(r'\/(\d+)', url)  # ✅ Find first numeric segment
         return match.group(1) if match else None  # ✅ Return as string
 
     def closed(self, reason):
