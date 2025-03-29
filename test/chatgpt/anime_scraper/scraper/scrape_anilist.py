@@ -47,7 +47,11 @@ class AnilistSpider(scrapy.Spider):
     table_name = "trending"
 
     start_urls = [
-        "https://anilist.co/search/anime/trending",
+        # "https://anilist.co/search/anime/trending",
+        # "https://anilist.co/search/anime?genres=Romance&year=2025&sort=POPULARITY_DESC",
+        "https://anilist.co/search/anime?year=2026&sort=POPULARITY_DESC",
+        "https://anilist.co/search/anime?year=2025&sort=POPULARITY_DESC",
+        "https://anilist.co/search/anime?year=2024&sort=POPULARITY_DESC",
     ]
     results: list[ScrapedData] = []
 
@@ -156,20 +160,20 @@ class AnilistSpider(scrapy.Spider):
                 )
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO UPDATE SET
-                    rank = EXCLUDED.rank,
-                    title = EXCLUDED.title,
-                    url = EXCLUDED.url,
-                    image_url = EXCLUDED.image_url,
-                    score = EXCLUDED.score,
-                    episodes = EXCLUDED.episodes,
-                    start_date = EXCLUDED.start_date,
-                    next_episode = EXCLUDED.next_episode,
-                    next_date = EXCLUDED.next_date,
-                    end_date = EXCLUDED.end_date,
-                    members = EXCLUDED.members,
-                    genres = EXCLUDED.genres,
-                    anime_type = EXCLUDED.anime_type,
-                    studios = EXCLUDED.studios;
+                    rank = COALESCE(EXCLUDED.rank, {self.table_name}.rank),
+                    title = COALESCE(EXCLUDED.title, {self.table_name}.title),
+                    url = COALESCE(EXCLUDED.url, {self.table_name}.url),
+                    image_url = COALESCE(EXCLUDED.image_url, {self.table_name}.image_url),
+                    score = COALESCE(EXCLUDED.score, {self.table_name}.score),
+                    episodes = COALESCE(EXCLUDED.episodes, {self.table_name}.episodes),
+                    start_date = COALESCE(EXCLUDED.start_date, {self.table_name}.start_date),
+                    next_episode = COALESCE(EXCLUDED.next_episode, {self.table_name}.next_episode),
+                    next_date = COALESCE(EXCLUDED.next_date, {self.table_name}.next_date),
+                    end_date = COALESCE(EXCLUDED.end_date, {self.table_name}.end_date),
+                    members = COALESCE(EXCLUDED.members, {self.table_name}.members),
+                    genres = COALESCE(EXCLUDED.genres, {self.table_name}.genres),
+                    anime_type = COALESCE(EXCLUDED.anime_type, {self.table_name}.anime_type),
+                    studios = COALESCE(EXCLUDED.studios, {self.table_name}.studios);
                 """, (
                     anime_data['id'],
                     anime_data['rank'],

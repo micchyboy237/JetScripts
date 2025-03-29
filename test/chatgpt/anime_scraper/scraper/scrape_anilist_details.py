@@ -109,21 +109,21 @@ class AnilistDetailsSpider(scrapy.Spider):
         # Fetch anime URLs that need updates
         cursor.execute(f"""
             SELECT id, url FROM {self.table_name}
-            WHERE end_date IS NULL
-            OR status IS NULL
-            OR members IS NULL
-            OR synopsis IS NULL
-            OR popularity IS NULL
-            OR demographic IS NULL
-            OR average_score IS NULL
-            OR mean_score IS NULL
-            OR favorites IS NULL
-            OR producers IS NULL
-            OR source IS NULL
-            OR japanese IS NULL
-            OR english IS NULL
-            OR synonyms IS NULL
-            OR tags IS NULL
+            WHERE status IS NULL
+            # OR end_date IS NULL
+            # OR members IS NULL
+            # OR synopsis IS NULL
+            # OR popularity IS NULL
+            # OR demographic IS NULL
+            # OR average_score IS NULL
+            # OR mean_score IS NULL
+            # OR favorites IS NULL
+            # OR producers IS NULL
+            # OR source IS NULL
+            # OR japanese IS NULL
+            # OR english IS NULL
+            # OR synonyms IS NULL
+            # OR tags IS NULL
         """)
         anime_data = [(row[0], quote(row[1], safe=":/"))
                       for row in cursor.fetchall()]
