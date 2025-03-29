@@ -14,6 +14,7 @@ from jet.scrapers.browser.scrapy.utils import normalize_url
 from tqdm import tqdm
 import random
 import time
+import re
 
 
 DATA_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/chatgpt/anime_scraper/data"
@@ -97,7 +98,6 @@ class AnilistDetailsSpider(scrapy.Spider):
             OR synonyms IS NULL
             OR tags IS NULL
         """)
-
         anime_data = [(row[0], quote(row[1], safe=":/"))
                       for row in cursor.fetchall()]
         conn.close()
@@ -112,7 +112,8 @@ class AnilistDetailsSpider(scrapy.Spider):
                 url=url,
                 callback=self.parse,
                 wait_time=3,
-                wait_until=EC.presence_of_element_located((By.TAG_NAME, "h1")),
+                wait_until=EC.presence_of_element_located(
+                    (By.TAG_NAME, ".content .description")),
                 meta={"anime_id": anime_id}
             )
 
@@ -144,7 +145,20 @@ class AnilistDetailsSpider(scrapy.Spider):
         yield anime_details
 
     def extract_synopsis(self, response) -> Optional[str]:
-        return response.css("p.description::text").get().strip()
+        first_synopsis_element = response.css(
+            "p.description, p.description.content-wrap").first()
+
+        if not first_synopsis_element:
+            return None
+
+        synopsis_parts = first_synopsis_element.xpath(".//text()").getall()
+        synopsis = " ".join(part.strip()
+                            for part in synopsis_parts if part.strip())
+
+        # Fix spaces before punctuation
+        synopsis = re.sub(r"\s+([.,!?])", r"\1", synopsis)
+
+        return synopsis if synopsis.strip() else None
 
     def extract_members(self, response) -> Optional[int]:
         return 0
@@ -230,23 +244,40 @@ class AnilistDetailsSpider(scrapy.Spider):
 
         cursor.execute(f"""
         UPDATE {self.table_name}
-        SET synopsis=COALESCE(?, synopsis), 
-            genres=COALESCE(?, genres), 
-            popularity=COALESCE(?, popularity), 
-            anime_type=COALESCE(?, anime_type), 
+        SET synopsis=COALESCE(?, synopsis),
+            start_date=COALESCE(?, start_date),
+            end_date=COALESCE(?, end_date), 
+            members=COALESCE(?, members),
+            popularity=COALESCE(?, popularity),
             demographic=COALESCE(?, demographic),
             average_score=COALESCE(?, average_score),
             mean_score=COALESCE(?, mean_score),
             favorites=COALESCE(?, favorites),
-            studios=COALESCE(?, studios),
             producers=COALESCE(?, producers),
             source=COALESCE(?, source),
             japanese=COALESCE(?, japanese),
             english=COALESCE(?, english),
             synonyms=COALESCE(?, synonyms),
             tags=COALESCE(?, tags)
-        WHERE url=?
-        """, tuple(anime_details.values())[1:])
+        WHERE id=?
+        """, (
+            anime_details["synopsis"],
+            anime_details["start_date"],
+            anime_details["end_date"],
+            anime_details["members"],
+            anime_details["popularity"],
+            anime_details["demographic"],
+            anime_details["average_score"],
+            anime_details["mean_score"],
+            anime_details["favorites"],
+            anime_details["producers"],
+            anime_details["source"],
+            anime_details["japanese"],
+            anime_details["english"],
+            anime_details["synonyms"],
+            anime_details["tags"],
+            anime_details["id"]
+        ))
 
         conn.commit()
         conn.close()
