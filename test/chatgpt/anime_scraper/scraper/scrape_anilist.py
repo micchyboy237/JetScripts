@@ -28,7 +28,6 @@ class ScrapedData(TypedDict):
     end_date: Optional[str]  # No end_date found in the given HTML
     next_episode: Optional[int]  # Extracted episode number
     next_date: Optional[str]  # Converted to "MMMM D, YYYY"
-    status: str  # Derived from start_date (Upcoming/Ongoing)
     members: Optional[int]  # No member count in given HTML
     synopsis: Optional[str]  # No synopsis available
     genres: Optional[List[str]]  # Extracted from .genres
@@ -77,7 +76,6 @@ class AnilistSpider(scrapy.Spider):
           next_episode INTEGER,
           next_date TEXT,
           end_date TEXT,
-          status TEXT,
           members INTEGER,
           synopsis TEXT,
           genres TEXT,
@@ -136,7 +134,6 @@ class AnilistSpider(scrapy.Spider):
                 next_episode=next_episode or 0,
                 next_date=next_date,
                 end_date=None,
-                status="Ongoing" if next_date else "Finished",
                 members=None,
                 synopsis=None,
                 genres=genres if genres else None,
@@ -150,9 +147,9 @@ class AnilistSpider(scrapy.Spider):
                 cursor.execute(f"""
               INSERT OR REPLACE INTO {self.table_name} (
                   id, rank, title, url, image_url, score, episodes, start_date, 
-                  next_episode, next_date, end_date, status, members, genres, anime_type, studios
+                  next_episode, next_date, end_date, members, genres, anime_type, studios
               )
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
               """, (
                     anime_data['id'],
                     anime_data['rank'],  # ✅ Now stored in DB
@@ -165,7 +162,6 @@ class AnilistSpider(scrapy.Spider):
                     anime_data.get('next_episode', 0),
                     anime_data.get('next_date', None),
                     anime_data['end_date'],
-                    anime_data['status'],
                     anime_data['members'],
                     ", ".join(anime_data['genres']) if isinstance(
                         anime_data['genres'], list) else None,

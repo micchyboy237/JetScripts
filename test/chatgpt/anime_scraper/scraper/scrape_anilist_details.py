@@ -25,6 +25,7 @@ class AnimeDetails(TypedDict):
     url: str
     start_date: str
     end_date: Optional[str]
+    status: str
     members: Optional[int]
     synopsis: str
     popularity: int
@@ -56,6 +57,7 @@ class AnilistDetailsSpider(scrapy.Spider):
         expected_columns = {
             "start_date": "TEXT",
             "end_date": "TEXT",
+            "status": "TEXT",
             "members": "INTEGER",
             "synopsis": "TEXT",
             "popularity": "INTEGER",
@@ -84,6 +86,7 @@ class AnilistDetailsSpider(scrapy.Spider):
         cursor.execute(f"""
             SELECT id, url FROM {self.table_name}
             WHERE end_date IS NULL
+            OR status IS NULL
             OR members IS NULL
             OR synopsis IS NULL
             OR popularity IS NULL
@@ -126,6 +129,7 @@ class AnilistDetailsSpider(scrapy.Spider):
             synopsis=self.extract_synopsis(response),
             start_date=self.extract_start_date(response),
             end_date=self.extract_end_date(response),
+            status=self.extract_status(response),
             members=self.extract_members(response),
             popularity=self.extract_popularity(response),
             demographic=self.extract_demographic(response),
@@ -179,6 +183,11 @@ class AnilistDetailsSpider(scrapy.Spider):
     def extract_end_date(self, response) -> Optional[str]:
         return response.css("div.data-set").xpath(
             "div[contains(text(), 'End Date')]/following-sibling::div/text()"
+        ).get()
+
+    def extract_status(self, response) -> Optional[str]:
+        return response.css("div.data-set").xpath(
+            "div[contains(text(), 'Status')]/following-sibling::div/text()"
         ).get()
 
     def extract_average_score(self, response) -> Optional[int]:
@@ -252,6 +261,7 @@ class AnilistDetailsSpider(scrapy.Spider):
         SET synopsis=COALESCE(?, synopsis),
             start_date=COALESCE(?, start_date),
             end_date=COALESCE(?, end_date), 
+            status=COALESCE(?, status), 
             members=COALESCE(?, members),
             popularity=COALESCE(?, popularity),
             demographic=COALESCE(?, demographic),
@@ -269,6 +279,7 @@ class AnilistDetailsSpider(scrapy.Spider):
             anime_details["synopsis"],
             anime_details["start_date"],
             anime_details["end_date"],
+            anime_details["status"],
             anime_details["members"],
             anime_details["popularity"],
             anime_details["demographic"],
