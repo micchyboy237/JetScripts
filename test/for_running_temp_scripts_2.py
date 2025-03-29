@@ -1,117 +1,111 @@
-from typing import Any, Optional
-from sklearn.feature_extraction.text import TfidfVectorizer
-from bs4 import BeautifulSoup
-from jet.file.utils import load_file
-from jet.logger import logger
-from jet.logger.timer import time_it
-from jet.search.formatters import clean_string
-from jet.token.token_utils import split_texts
-from jet.utils.commands import copy_to_clipboard
-from sentence_transformers import SentenceTransformer
-import faiss
-import numpy as np
+import math
+from collections import Counter
+from typing import List, Dict
 
 
-class BertSearch:
-    def __init__(self, model_name="paraphrase-MiniLM-L12-v2"):
-        self.model_name = model_name
-        self.model = SentenceTransformer(model_name)
-        self.index = None
-        self.doc_texts = []
-        self.tfidf_vectorizer = None
-        self.tfidf_matrix = None
+class BM25Reranker:
+    def __init__(self, documents: List[str], k1: float = 1.5, b: float = 0.75):
+        """
+        BM25 Reranker with term saturation and document length normalization.
+        :param documents: List of text documents (corpus)
+        :param k1: Term saturation parameter (default 1.5)
+        :param b: Document length normalization parameter (default 0.75)
+        """
+        self.documents: List[str] = documents
+        self.k1: float = k1
+        self.b: float = b
+        self.doc_lengths: List[int] = [len(doc.split()) for doc in documents]
+        self.avg_doc_length: float = sum(self.doc_lengths) / len(documents)
+        self.inverted_index: Dict[str, List[int]
+                                  ] = self._build_inverted_index()
+        self.idf: Dict[str, float] = self._compute_idf()
 
-    def build_index(self, docs, batch_size=32):
-        # self.doc_texts = split_texts(
-        #     docs, self.model_name, chunk_size=200, chunk_overlap=50)
-        self.doc_texts = docs
+    def _build_inverted_index(self) -> Dict[str, List[int]]:
+        index: Dict[str, List[int]] = {}
+        for doc_id, doc in enumerate(self.documents):
+            for term in set(doc.split()):  # Unique terms only for IDF calculation
+                index.setdefault(term, []).append(doc_id)
+        return index
 
-        # Generate embeddings
-        embeddings = self.model.encode(
-            self.doc_texts, batch_size=batch_size, convert_to_numpy=True, normalize_embeddings=True
-        )
+    def _compute_idf(self) -> Dict[str, float]:
+        """Computes inverse document frequency (IDF) for each term."""
+        total_docs: int = len(self.documents)
+        return {
+            term: math.log((total_docs - len(doc_ids) + 0.5) /
+                           (len(doc_ids) + 0.5) + 1)
+            for term, doc_ids in self.inverted_index.items()
+        }
 
-        # Create FAISS index
-        d = embeddings.shape[1]
-        self.index = faiss.IndexFlatIP(d)
-        self.index.add(embeddings)
+    def _bm25_score(self, query_terms: List[str], doc: str, doc_id: int) -> float:
+        """Computes BM25 score for a given document and query."""
+        term_freqs: Counter = Counter(doc.split())
+        doc_length: int = self.doc_lengths[doc_id]
+        score: float = 0.0
+        for term in query_terms:
+            if term in self.idf:
+                tf: int = term_freqs[term]
+                numerator: float = tf * (self.k1 + 1)
+                denominator: float = tf + self.k1 * \
+                    (1 - self.b + self.b * doc_length / self.avg_doc_length)
+                score += self.idf[term] * (numerator / denominator)
+        return score
 
-        # Build TF-IDF Index
-        self.tfidf_vectorizer = TfidfVectorizer()
-        self.tfidf_matrix = self.tfidf_vectorizer.fit_transform(self.doc_texts)
-
-    def search(self, query: str, top_k: Optional[int] = None, alpha=0.7):
-        if self.index is None:
-            raise ValueError("Index is empty! Call build_index() first.")
-
-        top_k = min(top_k or len(self.doc_texts), len(self.doc_texts))
-
-        # Encode query
-        query_embedding = self.model.encode(
-            [query], convert_to_numpy=True, normalize_embeddings=True
-        )
-
-        # Perform FAISS search
-        scores, indices = self.index.search(query_embedding, top_k)
-
-        # Extract top documents
-        top_texts = [self.doc_texts[idx]
-                     for idx in indices[0] if idx < len(self.doc_texts)]
-
-        # Compute TF-IDF Scores
-        query_tfidf = self.tfidf_vectorizer.transform([query])
-        tfidf_scores = np.array(
-            (query_tfidf @ self.tfidf_matrix.T).toarray()).flatten()
-
-        # Combine FAISS + TF-IDF scores (weighted)
-        combined_scores = alpha * scores[0] + \
-            (1 - alpha) * tfidf_scores[indices[0]]
-
-        # Sort by combined score
-        sorted_indices = np.argsort(combined_scores)[::-1]
-        results = [
-            {"text": top_texts[i], "score": round(
-                float(combined_scores[i]), 4)}
-            for i in sorted_indices
+    def rerank(self, query: str, top_n: int = 5) -> List[Dict[str, float]]:
+        """
+        Rerank documents based on BM25 score for a given query.
+        :param query: The search query
+        :param top_n: Number of top results to return
+        :return: List of dictionaries with "text" and "score"
+        """
+        query_terms: List[str] = query.split()
+        scores: List[Tuple[int, float]] = [
+            (doc_id, self._bm25_score(query_terms, doc, doc_id))
+            for doc_id, doc in enumerate(self.documents)
         ]
+        scores.sort(key=lambda x: x[1], reverse=True)
 
-        return results
+        return [{"text": self.documents[doc_id], "score": score} for doc_id, score in scores[:top_n]]
 
 
+# Functional Tests
 if __name__ == "__main__":
-    # data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/generated/search_web_data/scraped_texts.json"
-    data = load_file(data_file)
-    docs = []
-    for item in data:
-        cleaned_sentence = clean_string(item)
-        docs.append(cleaned_sentence)
+    documents = [
+        "The quick brown fox jumps over the lazy dog",
+        "The fast fox leaped over a sleeping dog",
+        "A fox is a wild animal that is very quick",
+        "Dogs and foxes can sometimes be friends",
+        "The quick brown fox is very cunning and smart"
+    ]
+    reranker = BM25Reranker(documents)
 
-    # Sample HTML docs
-    # docs = [
-    #     "<html><body><p>AI is transforming the world with deep learning.</p></body></html>",
-    #     "<html><body><p>Quantum computing is the future of high-performance computing.</p></body></html>",
-    #     "<html><body><p>Neural networks are a crucial part of artificial intelligence.</p></body></html>"
-    # ]
+    # Test 1: Query with common words
+    query1 = "quick fox"
+    result1 = reranker.rerank(query1, top_n=2)
+    expected1_texts = [
+        "The quick brown fox is very cunning and smart",
+        "The quick brown fox jumps over the lazy dog"
+    ]
+    assert all(
+        item["text"] in expected1_texts for item in result1), f"Test 1 Failed: {result1}"
 
-    # Initialize search system
-    search_engine = BertSearch()
+    # Test 2: Query with rare terms
+    query2 = "sleeping dog"
+    result2 = reranker.rerank(query2, top_n=1)
+    expected2_texts = [
+        "The fast fox leaped over a sleeping dog"
+    ]
+    assert all(
+        item["text"] in expected2_texts for item in result2), f"Test 2 Failed: {result2}"
 
-    # Index the documents
-    search_engine.build_index(docs)
+    # Test 3: Query that matches multiple documents
+    query3 = "fox"
+    result3 = reranker.rerank(query3, top_n=3)
+    expected3_texts = [
+        "The fast fox leaped over a sleeping dog",
+        "The quick brown fox jumps over the lazy dog",
+        "The quick brown fox is very cunning and smart",
+    ]
+    assert all(
+        item["text"] in expected3_texts for item in result3), f"Test 3 Failed: {result3}"
 
-    # Perform a search
-    query = "Synopsis of \"I'll Become a Villainess Who Goes Down in History\" anime"
-    top_k = 10
-
-    results = search_engine.search(query, top_k=top_k)
-
-    copy_to_clipboard({
-        "count": len(results),
-        "data": results[:50]
-    })
-
-    for idx, result in enumerate(results[:10]):
-        logger.log(f"{idx + 1}:", result["text"]
-                   [:30], colors=["WHITE", "DEBUG"])
-        logger.success(f"{result['score']:.2f}")
+    print("All tests passed!")

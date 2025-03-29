@@ -10,7 +10,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from collections import deque
 
-from jet.actions import call_ollama_chat
+from jet.actions.generation import call_ollama_chat
 from jet.logger import colorize_log, COLORS
 from jet.logger import logger
 

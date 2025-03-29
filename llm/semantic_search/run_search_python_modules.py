@@ -3,7 +3,7 @@ import os
 import re
 from typing import Any, Optional
 import faiss  # To prevent error on multiprocessing
-from jet.actions import VectorSemanticSearch
+from jet.actions.vector_semantic_search import VectorSemanticSearch
 from jet.llm.ollama.base import initialize_ollama_settings
 from jet.llm.ollama.constants import OLLAMA_SMALL_EMBED_MODEL
 from jet.llm.query.retrievers import query_llm

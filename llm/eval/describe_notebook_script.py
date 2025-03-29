@@ -1,7 +1,7 @@
 import os
 from llm.eval.convert_notebooks_to_scripts import scrape_notes
 
-from jet.actions import call_ollama_chat
+from jet.actions.generation import call_ollama_chat
 from jet.llm.llm_types import OllamaChatOptions
 from jet.logger import logger
 

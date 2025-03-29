@@ -1,5 +1,5 @@
 import faiss
-from jet.actions import faiss_search
+from jet.actions.faiss_search import faiss_search
 from jet.logger import logger, time_it
 
 

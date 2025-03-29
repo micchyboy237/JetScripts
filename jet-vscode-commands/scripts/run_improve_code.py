@@ -1,5 +1,5 @@
 import sys
-from jet.actions import call_ollama_chat
+from jet.actions.generation import call_ollama_chat
 from jet.logger import logger
 
 DEFAULT_MODEL = "llama3.1"

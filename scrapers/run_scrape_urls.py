@@ -11,7 +11,7 @@ from jet.transformers import to_snake_case
 from jet.search import scrape_url
 from jet.cache.redis import RedisConfigParams, RedisClient
 from jet.vectors import SettingsManager, SettingsDict, QueryProcessor
-from jet.actions import call_ollama_chat
+from jet.actions.generation import call_ollama_chat
 from jet.llm.llm_types import OllamaChatOptions
 from jet.file import save_file
 from jet.code.markdown_code_extractor import MarkdownCodeExtractor
