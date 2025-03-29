@@ -1,40 +1,45 @@
 import datetime
 import re
 import scrapy
-import sqlite3
+import psycopg2
 from urllib.parse import quote, urljoin
 from jet.scrapers.browser.scrapy import settings, SeleniumRequest, normalize_url
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
 from jet.logger import logger, sleep_countdown
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
 from typing import List, TypedDict, Optional
 
-DATA_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/chatgpt/anime_scraper/data"
+DB_CONFIG = {
+    "dbname": "anime_db1",
+    "user": "jethroestrada",
+    "password": "",
+    "host": "jetairm1",
+    "port": "5432"
+}
 
 
 class ScrapedData(TypedDict):
     id: str
-    rank: Optional[int]  # Rank is not available in the given HTML
+    rank: Optional[int]
     title: str
     url: str
     image_url: str
-    score: Optional[float]  # Converted from percentage
+    score: Optional[float]
     episodes: Optional[int]
     start_date: str
-    end_date: Optional[str]  # No end_date found in the given HTML
-    next_episode: Optional[int]  # Extracted episode number
-    next_date: Optional[str]  # Converted to "MMMM D, YYYY"
-    members: Optional[int]  # No member count in given HTML
-    synopsis: Optional[str]  # No synopsis available
-    genres: Optional[List[str]]  # Extracted from .genres
-    popularity: Optional[int]  # Not available in the provided HTML
-    anime_type: Optional[str]  # Extracted from .info
-    demographic: Optional[str]  # No demographic info in given HTML
-    studios: Optional[str]  # Extracted from .studios
+    end_date: Optional[str]
+    next_episode: Optional[int]
+    next_date: Optional[str]
+    members: Optional[int]
+    synopsis: Optional[str]
+    genres: Optional[List[str]]
+    popularity: Optional[int]
+    anime_type: Optional[str]
+    demographic: Optional[str]
+    studios: Optional[str]
 
 
 class AnilistSpider(scrapy.Spider):
@@ -60,31 +65,31 @@ class AnilistSpider(scrapy.Spider):
     def parse(self, response):
         driver: WebDriver = response.request.meta['driver']
 
-        conn = sqlite3.connect(f"{DATA_DIR}/anime.db")
+        conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor()
 
         cursor.execute(f"""
-      CREATE TABLE IF NOT EXISTS {self.table_name} (
-          id TEXT PRIMARY KEY,
-          rank INTEGER,
-          title TEXT,
-          url TEXT,
-          image_url TEXT,
-          score REAL,
-          episodes INTEGER,
-          start_date TEXT,
-          next_episode INTEGER,
-          next_date TEXT,
-          end_date TEXT,
-          members INTEGER,
-          synopsis TEXT,
-          genres TEXT,
-          popularity INTEGER,
-          anime_type TEXT,
-          demographic TEXT,
-          studios TEXT
-      )
-      """)
+        CREATE TABLE IF NOT EXISTS {self.table_name} (
+            id TEXT PRIMARY KEY,
+            rank INTEGER,
+            title TEXT,
+            url TEXT,
+            image_url TEXT,
+            score REAL,
+            episodes INTEGER,
+            start_date TEXT,
+            next_episode INTEGER,
+            next_date TEXT,
+            end_date TEXT,
+            members INTEGER,
+            synopsis TEXT,
+            genres TEXT,
+            popularity INTEGER,
+            anime_type TEXT,
+            demographic TEXT,
+            studios TEXT
+        )
+        """)
 
         for index, anime in enumerate(response.css(".results.cover .media-card"), start=1):
             title = anime.css(".title::text").get(default="Unknown").strip()
@@ -124,7 +129,7 @@ class AnilistSpider(scrapy.Spider):
 
             anime_data = ScrapedData(
                 id=str(anime_id),
-                rank=index,  # ✅ Assign correct rank based on order of .media-card
+                rank=index,
                 title=title,
                 url=url,
                 image_url=image_url,
@@ -145,14 +150,29 @@ class AnilistSpider(scrapy.Spider):
 
             try:
                 cursor.execute(f"""
-              INSERT OR REPLACE INTO {self.table_name} (
-                  id, rank, title, url, image_url, score, episodes, start_date, 
-                  next_episode, next_date, end_date, members, genres, anime_type, studios
-              )
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-              """, (
+                INSERT INTO {self.table_name} (
+                    id, rank, title, url, image_url, score, episodes, start_date, 
+                    next_episode, next_date, end_date, members, genres, anime_type, studios
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO UPDATE SET
+                    rank = EXCLUDED.rank,
+                    title = EXCLUDED.title,
+                    url = EXCLUDED.url,
+                    image_url = EXCLUDED.image_url,
+                    score = EXCLUDED.score,
+                    episodes = EXCLUDED.episodes,
+                    start_date = EXCLUDED.start_date,
+                    next_episode = EXCLUDED.next_episode,
+                    next_date = EXCLUDED.next_date,
+                    end_date = EXCLUDED.end_date,
+                    members = EXCLUDED.members,
+                    genres = EXCLUDED.genres,
+                    anime_type = EXCLUDED.anime_type,
+                    studios = EXCLUDED.studios;
+                """, (
                     anime_data['id'],
-                    anime_data['rank'],  # ✅ Now stored in DB
+                    anime_data['rank'],
                     anime_data['title'],
                     anime_data['url'],
                     anime_data['image_url'],
@@ -175,15 +195,15 @@ class AnilistSpider(scrapy.Spider):
             self.results.append(anime_data)
 
         conn.commit()
+        cursor.close()
         conn.close()
 
         for item in self.results:
             yield item
 
     def extract_anime_id(self, url: str) -> Optional[str]:
-        """Extract the first numeric ID from any Anilist anime URL."""
-        match = re.search(r'\/(\d+)', url)  # ✅ Find first numeric segment
-        return match.group(1) if match else None  # ✅ Return as string
+        match = re.search(r'\/(\d+)', url)
+        return match.group(1) if match else None
 
     def closed(self, reason):
         copy_to_clipboard(self.results)

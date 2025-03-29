@@ -8,7 +8,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 from jet.scrapers.browser.scrapy import settings, SeleniumRequest
 from urllib.parse import quote
-import sqlite3
+import psycopg2
+from psycopg2 import sql
 import scrapy
 from jet.scrapers.browser.scrapy.utils import normalize_url
 from tqdm import tqdm
@@ -17,7 +18,13 @@ import time
 import re
 
 
-DATA_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/chatgpt/anime_scraper/data"
+DB_CONFIG = {
+    "dbname": "anime_db1",
+    "user": "jethroestrada",
+    "password": "",
+    "host": "jetairm1",
+    "port": "5432"
+}
 
 
 class AnimeDetails(TypedDict):
@@ -45,13 +52,17 @@ class AnilistDetailsSpider(scrapy.Spider):
     name = "anilistdetails_spider"
     table_name = "trending"
 
-    def start_requests(self):
-        conn = sqlite3.connect(f"{DATA_DIR}/anime.db")
+    def ensure_columns_exist(self):
+        conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor()
 
-        # Fetch existing columns
-        cursor.execute(f"PRAGMA table_info({self.table_name});")
-        existing_columns = {row[1] for row in cursor.fetchall()}
+        # Fetch existing columns for the table
+        cursor.execute("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = %s
+        """, (self.table_name,))
+        existing_columns = {row[0] for row in cursor.fetchall()}
 
         # Define expected columns
         expected_columns = {
@@ -78,9 +89,22 @@ class AnilistDetailsSpider(scrapy.Spider):
             if column not in existing_columns:
                 logger.info(f"Adding missing column: {column} ({col_type})")
                 cursor.execute(
-                    f"ALTER TABLE {self.table_name} ADD COLUMN {column} {col_type};")
+                    sql.SQL("ALTER TABLE {} ADD COLUMN {} {};").format(
+                        sql.Identifier(self.table_name),
+                        sql.Identifier(column),
+                        sql.SQL(col_type)
+                    )
+                )
 
         conn.commit()
+        cursor.close()
+        conn.close()
+
+    def start_requests(self):
+        self.ensure_columns_exist()
+
+        conn = psycopg2.connect(**DB_CONFIG)
+        cursor = conn.cursor()
 
         # Fetch anime URLs that need updates
         cursor.execute(f"""
@@ -253,28 +277,28 @@ class AnilistDetailsSpider(scrapy.Spider):
         return [tag.strip() for tag in response.css("div.tags div.tag a::text").getall()]
 
     def save_to_db(self, anime_details: AnimeDetails):
-        conn = sqlite3.connect(f"{DATA_DIR}/anime.db")
+        conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor()
 
         cursor.execute(f"""
         UPDATE {self.table_name}
-        SET synopsis=COALESCE(?, synopsis),
-            start_date=COALESCE(?, start_date),
-            end_date=COALESCE(?, end_date), 
-            status=COALESCE(?, status), 
-            members=COALESCE(?, members),
-            popularity=COALESCE(?, popularity),
-            demographic=COALESCE(?, demographic),
-            average_score=COALESCE(?, average_score),
-            mean_score=COALESCE(?, mean_score),
-            favorites=COALESCE(?, favorites),
-            producers=COALESCE(?, producers),
-            source=COALESCE(?, source),
-            japanese=COALESCE(?, japanese),
-            english=COALESCE(?, english),
-            synonyms=COALESCE(?, synonyms),
-            tags=COALESCE(?, tags)
-        WHERE id=?
+        SET synopsis=COALESCE(%s, synopsis),
+            start_date=COALESCE(%s, start_date),
+            end_date=COALESCE(%s, end_date), 
+            status=COALESCE(%s, status), 
+            members=COALESCE(%s, members),
+            popularity=COALESCE(%s, popularity),
+            demographic=COALESCE(%s, demographic),
+            average_score=COALESCE(%s, average_score),
+            mean_score=COALESCE(%s, mean_score),
+            favorites=COALESCE(%s, favorites),
+            producers=COALESCE(%s, producers),
+            source=COALESCE(%s, source),
+            japanese=COALESCE(%s, japanese),
+            english=COALESCE(%s, english),
+            synonyms=COALESCE(%s, synonyms),
+            tags=COALESCE(%s, tags)
+        WHERE id=%s
         """, (
             anime_details["synopsis"],
             anime_details["start_date"],
