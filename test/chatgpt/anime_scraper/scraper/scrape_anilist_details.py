@@ -278,21 +278,28 @@ class AnilistDetailsSpider(scrapy.Spider):
         return None
 
     def extract_next_date(self, response) -> Optional[str]:
-        # Example: Extract the next airing time in the format "6d 17h 21m"
+        # Example: Extract the next airing time in the format "10h 13m"
         date_text = response.css(
             ".airing-countdown .countdown span::text").getall()
 
         if date_text:
-            # Join the parts of the time (e.g., '6d', '17h', '21m')
+            # Join the parts of the time (e.g., '10h', '13m')
             time_str = "".join(date_text).strip()
 
-            # Regex pattern to extract days, hours, and minutes
-            match = re.search(r'(\d+)d\s*(\d+)h\s*(\d+)m', time_str)
+            # Regex pattern to extract optional days, hours, and minutes
+            match = re.search(
+                r'(\d+)d\s*(\d+)h\s*(\d+)m|(\d+)h\s*(\d+)m', time_str)
 
             if match:
-                days = int(match.group(1))
-                hours = int(match.group(2))
-                minutes = int(match.group(3))
+                # Extract days, hours, and minutes with optional days
+                if match.group(1) and match.group(2) and match.group(3):
+                    days = int(match.group(1))
+                    hours = int(match.group(2))
+                    minutes = int(match.group(3))
+                else:
+                    days = 0  # Default to 0 if no days are provided
+                    hours = int(match.group(4))  # Extract the hours
+                    minutes = int(match.group(5))  # Extract the minutes
 
                 # Get current time and add the remaining time
                 current_time = datetime.now()
