@@ -145,20 +145,25 @@ class AnilistDetailsSpider(scrapy.Spider):
         yield anime_details
 
     def extract_synopsis(self, response) -> Optional[str]:
-        first_synopsis_element = response.css(
-            "p.description, p.description.content-wrap").first()
+        synopsis_parts = response.css(
+            "p.description, p.description.content-wrap"
+        ).xpath(".//text()").getall()
 
-        if not first_synopsis_element:
-            return None
+        # Remove leading/trailing spaces and filter out empty strings
+        synopsis_parts = [part.strip()
+                          for part in synopsis_parts if part.strip()]
 
-        synopsis_parts = first_synopsis_element.xpath(".//text()").getall()
-        synopsis = " ".join(part.strip()
-                            for part in synopsis_parts if part.strip())
+        # Use set to remove duplicates while preserving order
+        seen = set()
+        unique_synopsis = [part for part in synopsis_parts if not (
+            part in seen or seen.add(part))]
+
+        synopsis = " ".join(unique_synopsis)
 
         # Fix spaces before punctuation
         synopsis = re.sub(r"\s+([.,!?])", r"\1", synopsis)
 
-        return synopsis if synopsis.strip() else None
+        return synopsis if synopsis else None
 
     def extract_members(self, response) -> Optional[int]:
         return 0
