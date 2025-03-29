@@ -1,8 +1,12 @@
 import datetime
+import json
+import random
 import re
+
+from tqdm import tqdm
 import scrapy
 import psycopg2
-from urllib.parse import quote, urljoin
+from urllib.parse import quote, urlencode, urljoin
 from jet.scrapers.browser.scrapy import settings, SeleniumRequest, normalize_url
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.by import By
@@ -11,6 +15,8 @@ from jet.logger import logger, sleep_countdown
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
 from typing import List, TypedDict, Optional
+
+ANIME_TITLES_PATH = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/benchmark/data/aniwatch_history.json"
 
 DB_CONFIG = {
     "dbname": "anime_db1",
@@ -42,23 +48,44 @@ class ScrapedData(TypedDict):
     studios: Optional[str]
 
 
-class AnilistSpider(scrapy.Spider):
-    name = "anilist_spider"
-    table_name = "trending"
+class AnilistHistorySpider(scrapy.Spider):
+    name = "anilist_history_spider"
+    table_name = "history"
 
-    start_urls = [
-        # "https://anilist.co/search/anime/trending",
-        # "https://anilist.co/search/anime?genres=Romance&year=2025&sort=POPULARITY_DESC",
-        "https://anilist.co/search/anime?year=2026&sort=POPULARITY_DESC",
-        "https://anilist.co/search/anime?year=2025&sort=POPULARITY_DESC",
-        "https://anilist.co/search/anime?year=2024&sort=POPULARITY_DESC",
-    ]
     results: list[ScrapedData] = []
 
     def start_requests(self):
-        for url in self.start_urls:
+        conn = psycopg2.connect(**DB_CONFIG)
+        cursor = conn.cursor()
+
+        # Fetch anime URLs that need updates
+        cursor.execute(f"""
+            SELECT title FROM {self.table_name}
+        """)
+        anime_data = [(row[0].strip())
+                      for row in cursor.fetchall()]
+        conn.close()
+
+        # Load anime titles from the JSON file
+        with open(ANIME_TITLES_PATH, "r", encoding="utf-8") as file:
+            anime_titles = json.load(file)
+
+        anime_titles = [
+            title for title in anime_titles if not any(t.strip().lower().startswith(title.lower().strip()) for t in anime_data)]
+
+        for title in tqdm(anime_titles, desc="Scraping search results..."):
+            # Delay to prevent spam
+            delay = random.uniform(2, 5)
+            sleep_countdown(delay, f"Delaying:")
+
+            # Construct search URL
+            # query_params = {"q": title}
+            # search_url = f"https://myanimelist.net/search/all?{urlencode(query_params)}"
+            query_params = {"search": title}
+            search_url = f"https://anilist.co/search/anime?{urlencode(query_params)}"
+
             yield SeleniumRequest(
-                url=url,
+                url=search_url,
                 callback=self.parse,
                 wait_time=3,
                 wait_until=EC.presence_of_element_located(
@@ -221,5 +248,5 @@ class AnilistSpider(scrapy.Spider):
 if __name__ == "__main__":
     from scrapy.crawler import CrawlerProcess
     process = CrawlerProcess(settings)
-    process.crawl(AnilistSpider)
+    process.crawl(AnilistHistorySpider)
     process.start()
