@@ -19,7 +19,7 @@ from llama_index.core.schema import NodeWithScore, TextNode
 
 LLM_MODEL = "llama3.2"
 LLM_MAX_TOKENS = get_model_max_tokens(LLM_MODEL)
-EMBED_MODEL = "nomic-embed-text"
+EMBED_MODEL = "mxbai-embed-large"
 EMBED_MAX_TOKENS = get_model_max_tokens(EMBED_MODEL)
 
 """
@@ -61,7 +61,7 @@ llm = Ollama(temperature=0, model=LLM_MODEL,
 embed_model = OllamaEmbedding(model_name=EMBED_MODEL)
 
 chunk_overlap = 40
-chunk_size = 512
+chunk_size = 256
 
 
 load_persistent_cache(CACHE_FILE)
