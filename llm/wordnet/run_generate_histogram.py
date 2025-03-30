@@ -1,5 +1,5 @@
 import os
-from jet.utils.text import remove_non_alphanumeric
+from jet.utils.text import fix_and_unidecode, remove_non_alphanumeric
 from jet.wordnet.n_grams import count_ngrams
 from jet.wordnet.words import count_words
 import psycopg
@@ -79,6 +79,7 @@ if __name__ == "__main__":
     formatted_texts_dict = {}
     title_counts = {}
     for d in db_data:
+        key = fix_and_unidecode(d["title"])
         key = remove_non_alphanumeric(d["title"]).lower()
         if key in title_counts:
             title_counts[key] += 1
@@ -120,17 +121,15 @@ if __name__ == "__main__":
                            for value in values]
         final_results[reverted_key] = reverted_values
 
-    # max_word_count = max([count_words(text) for text in texts])
-    # include_keys = ['title']
-    # ta = TextAnalysis(data, include_keys=include_keys)
+    # Items that are not in final results values
+    no_group_results = {
+        formatted_texts_dict[key]["title"]: [
+            formatted_texts_dict[key]["title"]]
+        for key in formatted_texts
+        if formatted_texts_dict[key]["title"] not in [
+            title for titles in final_results.values() for title in titles
+        ]
+    }
 
-    # histogram_results = ta.generate_histogram(
-    #     is_top=True,
-    #     from_start=True,
-    #     ngram_ranges=[(1, max_word_count)],
-    # )
-    # filtered_results = [
-    #     d for d in histogram_results[0]["results"] if d["ngram"] in texts]
-
-    save_file(final_results, os.path.join(
+    save_file({**no_group_results, **final_results}, os.path.join(
         output_dir, 'histogram_results.json'))
