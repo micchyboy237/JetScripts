@@ -88,7 +88,10 @@ if __name__ == "__main__":
     # Group results by starting ngram
     grouped_results = {}
     for result in filtered_results:
-        if result["ngram"] in list(grouped_results.values()):
+        if result["ngram"] in [
+            ngram for ngram_list in list(grouped_results.values())
+            for ngram in ngram_list
+        ]:
             continue
 
         if result["count"] > 1:
