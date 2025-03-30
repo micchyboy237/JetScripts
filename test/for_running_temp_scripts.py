@@ -123,19 +123,19 @@ queries = [d["english"] or d["title"]
 if __name__ == "__main__":
     texts = []
     for d in data:
-        title = f"Title: {d.get('english') or d.get('title')}"
-        synopsis = f"Synopsis: {d.get('synopsis')}"
-        synonyms = f"Synonyms: {d.get('synonyms')}"
+        title = f"Title - {d.get('english') or d.get('title')}"
+        synopsis = f"Synopsis - {d.get('synopsis')}"
+        synonyms = f"Synonyms - {d.get('synonyms')}"
         tags_str = d.get('tags', '')
-        tags = [f"Tag: {tag.strip()}" for tag in tags_str.split(',')
+        tags = [f"Tag - {tag.strip()}" for tag in tags_str.split(',')
                 if tag.strip()] if tags_str else []
         genres_str = d.get('genres', '')
-        genres = [f"Genre: {genre.strip()}" for genre in genres_str.split(
+        genres = [f"Genre - {genre.strip()}" for genre in genres_str.split(
             ',') if genre.strip()] if genres_str else []
 
         text_parts = [title]
-        if d.get('synopsis'):
-            text_parts.append(synopsis)
+        # if d.get('synopsis'):
+        #     text_parts.append(synopsis)
         if d.get('synonyms'):
             text_parts.append(synonyms)
         if tags:
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     threshold = 0.0
 
     for query in tqdm(queries):
-        query = f"Title: {query}"
+        query = f"Title - {query}"
         results = hybrid_search.search(query, top_k=top_k, threshold=threshold)
         semantic_results = results.pop("semantic_results")
         hybrid_results = results.pop("hybrid_results")
