@@ -76,8 +76,16 @@ if __name__ == "__main__":
 
     data = [{"title": d["title"]} for d in db_data]
     texts = [d["title"] for d in db_data]
-    formatted_texts_dict = {remove_non_alphanumeric(
-        d["title"]).lower(): d for d in db_data}
+    formatted_texts_dict = {}
+    title_counts = {}
+    for d in db_data:
+        key = remove_non_alphanumeric(d["title"]).lower()
+        if key in title_counts:
+            title_counts[key] += 1
+            key = key + " " + "i" * title_counts[key]
+        else:
+            title_counts[key] = 0
+        formatted_texts_dict[key] = d
     formatted_texts = list(formatted_texts_dict.keys())
     ngram_count = count_ngrams(formatted_texts, from_start=True)
     filtered_results = [
