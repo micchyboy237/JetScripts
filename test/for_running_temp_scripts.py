@@ -1,3 +1,4 @@
+from jet.wordnet.words import count_words
 import numpy as np
 import psycopg
 from psycopg.rows import dict_row
@@ -16,12 +17,11 @@ from jet.logger import logger
 from jet.vectors.reranker.bm25_helpers import HybridSearch
 
 # File Paths
-queries_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/benchmark/data/aniwatch_history.json"
 db_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/chatgpt/anime_scraper/data/anime.db"
 table_name = "jet_history"
 
-# Load queries
-queries: list[str] = load_file(queries_path)
+embed_model = "nomic-embed-text"
+
 
 DB_CONFIG = {
     "dbname": "anime_db1",
@@ -115,15 +115,93 @@ data_dict: dict[str, ScrapedData] = {d["id"]: d for d in data}
 ids = [d["id"] for d in data]
 
 
-# Initialize Hybrid Search
-embed_model = "nomic-embed-text"
-hybrid_search = HybridSearch(model_name=embed_model)
-hybrid_search.build_index(texts, ids=ids)
+queries = [d["english"] or d["title"]
+           for d in data if count_words(d["english"] or d["title"]) <= 3]
 
-# Search Config
-top_k = None
-threshold = 0.0
 
+# Search sample
+if __name__ == "__main__":
+    texts = []
+    for d in data:
+        title = f"Title: {d.get('english') or d.get('title')}"
+        synopsis = f"Synopsis: {d.get('synopsis')}"
+        synonyms = f"Synonyms: {d.get('synonyms')}"
+        tags_str = d.get('tags', '')
+        tags = [f"Tag: {tag.strip()}" for tag in tags_str.split(',')
+                if tag.strip()] if tags_str else []
+        genres_str = d.get('genres', '')
+        genres = [f"Genre: {genre.strip()}" for genre in genres_str.split(
+            ',') if genre.strip()] if genres_str else []
+
+        text_parts = [title]
+        if d.get('synopsis'):
+            text_parts.append(synopsis)
+        if d.get('synonyms'):
+            text_parts.append(synonyms)
+        if tags:
+            text_parts.extend(tags)
+        if genres:
+            text_parts.extend(genres)
+        text = "\n".join(text_parts)
+
+        texts.append(text)
+
+    # Store results
+    search_results = []
+
+    # Sort queries by length
+    queries = sorted(queries, key=len)
+    queries = queries[:10]
+
+    # Initialize Hybrid Search
+    hybrid_search = HybridSearch(model_name=embed_model)
+    hybrid_search.build_index(texts, ids=ids)
+
+    # Search Config
+    top_k = None
+    threshold = 0.0
+
+    for query in tqdm(queries):
+        query = f"Title: {query}"
+        results = hybrid_search.search(query, top_k=top_k, threshold=threshold)
+        semantic_results = results.pop("semantic_results")
+        hybrid_results = results.pop("hybrid_results")
+        reranked_results = results.pop("reranked_results")
+        result = [{
+            "query": query,
+            "semantic_results": [{
+                "id": result["id"],
+                "score": result["score"],
+                "similarity": result.get("similarity"),
+                "text": result["text"],
+                "matched": result["matched"],
+            } for result in semantic_results],
+            "reranked_results": [{
+                "id": result["id"],
+                "score": result["score"],
+                "similarity": result.get("similarity"),
+                "text": result["text"],
+                "matched": result["matched"],
+            } for result in reranked_results],
+            "hybrid_results": [{
+                "id": result["id"],
+                "score": result["score"],
+                "similarity": result.get("similarity"),
+                "text": result["text"],
+                "matched": result["matched"],
+            } for result in hybrid_results],
+            # "data": [data_dict[result["id"]] for result in reranked_results],
+        }]
+
+        logger.debug(f"Query: {query} | Results: {len(reranked_results)}")
+
+        search_results.append(result)
+
+        save_file(search_results, "generated/hybrid_search/search_results.json")
+
+    logger.info("All queries processed and results saved.")
+
+# Cluster similar texts
 if __name__ == "__main__":
     texts = []
     for d in data:
@@ -155,80 +233,6 @@ if __name__ == "__main__":
 
     save_file(clustered_texts, "generated/anime_clustered_texts.json")
 
-if __name__ == "__main__":
-    texts = []
-    for d in data:
-        title = f"Title: {d.get('english') or d.get('title')}"
-        synopsis = f"Synopsis: {d.get('synopsis')}"
-        synonyms = f"Synonyms: {d.get('synonyms')}"
-        tags_str = d.get('tags', '')
-        tags = [f"Tag: {tag.strip()}" for tag in tags_str.split(',')
-                if tag.strip()] if tags_str else []
-        genres_str = d.get('genres', '')
-        genres = [f"Genre: {genre.strip()}" for genre in genres_str.split(
-            ',') if genre.strip()] if genres_str else []
-
-        text_parts = [title]
-        if d.get('synopsis'):
-            text_parts.append(synopsis)
-        if d.get('synonyms'):
-            text_parts.append(synonyms)
-        if tags:
-            text_parts.extend(tags)
-        if genres:
-            text_parts.extend(genres)
-        text = "\n".join(text_parts)
-
-        texts.append(text)
-
-    # Store results
-    all_results = []
-
-    # Sort queries by length
-    queries = sorted(queries, key=len)
-    queries = queries[:10]
-
-    for query in tqdm(queries):
-        results = hybrid_search.search(query, top_k=top_k, threshold=threshold)
-        semantic_results = results.pop("semantic_results")
-        hybrid_results = results.pop("hybrid_results")
-        reranked_results = results.pop("reranked_results")
-        result = [{
-            "query": query,
-            "semantic_results": [{
-                "id": result["id"],
-                "score": result["score"],
-                "similarity": result["similarity"],
-                "text": result["text"],
-                "matched": result["matched"],
-            } for result in semantic_results],
-            "reranked_results": [{
-                "id": result["id"],
-                "score": result["score"],
-                "similarity": result["similarity"],
-                "text": result["text"],
-                "matched": result["matched"],
-            } for result in reranked_results],
-            "hybrid_results": [{
-                "id": result["id"],
-                "score": result["score"],
-                "similarity": result["similarity"],
-                "text": result["text"],
-                "matched": result["matched"],
-            } for result in hybrid_results],
-            # "data": [data_dict[result["id"]] for result in reranked_results],
-        }]
-
-        logger.debug(f"Query: {query} | Results: {len(reranked_results)}")
-
-        all_results.append(result)
-
-        # Save all results in one JSON file
-        # save_file(semantic_results, "generated/hybrid_search/semantic_results.json")
-        # save_file(reranked_results, "generated/hybrid_search/reranked_results.json")
-        # save_file(hybrid_results, "generated/hybrid_search/hybrid_results.json")
-
-    logger.info("All queries processed and results saved.")
 
 # if __name__ == "__main__":
 #     while True:
