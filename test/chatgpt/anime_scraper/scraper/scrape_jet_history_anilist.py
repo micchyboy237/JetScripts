@@ -75,7 +75,7 @@ class AnilistHistorySpider(scrapy.Spider):
 
         for title in tqdm(anime_titles, desc="Scraping search results..."):
             # Delay to prevent spam
-            delay = random.uniform(2, 5)
+            delay = random.uniform(1, 4)
             sleep_countdown(delay, f"Delaying:")
 
             # Construct search URL

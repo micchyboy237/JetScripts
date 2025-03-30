@@ -53,7 +53,7 @@ class MyAnimeDetailsSpider(scrapy.Spider):
 
         for anime_id, url in tqdm(anime_data, desc="Scraping details..."):
             # Introduce a random delay between 2 to 5 seconds
-            delay = random.uniform(2, 5)
+            delay = random.uniform(1, 4)
             logger.info(
                 f"Waiting for {delay:.2f} seconds before next request...")
             time.sleep(delay)

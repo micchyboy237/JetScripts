@@ -113,15 +113,18 @@ class AnilistHistoryDetailsSpider(scrapy.Spider):
 
         # Fetch anime URLs that need updates
         cursor.execute(f"""
-            SELECT id, url FROM {self.table_name}
-            WHERE status is null
+            SELECT id, url
+            FROM {self.table_name}
+            WHERE NOT start_date ~ '^[A-Za-z]+ [0-9]{{1,2}}, [0-9]{{4}}$' or status is null;
         """)
         anime_data = [(row[0], quote(row[1], safe=":/"))
                       for row in cursor.fetchall()]
         conn.close()
 
+        logger.log("Total data:", len(anime_data), colors=["GRAY", "INFO"])
+
         for anime_id, url in tqdm(anime_data, desc="Scraping details..."):
-            delay = random.uniform(2, 5)
+            delay = random.uniform(1, 4)
             logger.info(
                 f"Waiting for {delay:.2f} seconds before next request...")
             time.sleep(delay)
@@ -136,36 +139,44 @@ class AnilistHistoryDetailsSpider(scrapy.Spider):
             )
 
     def parse(self, response: scrapy.http.Response):
-        anime_id = response.meta["anime_id"]
+        try:
+            anime_id = response.meta["anime_id"]
 
-        anime_details = AnimeDetails(
-            id=anime_id,
-            url=quote(response.url, safe=":/"),
-            synopsis=self.extract_synopsis(response),
-            start_date=self.extract_start_date(response),
-            end_date=self.extract_end_date(response),
-            status=self.extract_status(response),
-            members=self.extract_members(response),
-            popularity=self.extract_popularity(response),
-            demographic=self.extract_demographic(response),
-            average_score=self.extract_average_score(response),
-            mean_score=self.extract_mean_score(response),
-            favorites=self.extract_favorites(response),
-            producers=", ".join(self.extract_producers(response)),
-            source=self.extract_source(response),
-            japanese=self.extract_japanese(response),
-            english=self.extract_english(response),
-            synonyms=", ".join(self.extract_synonyms(response)),
-            tags=", ".join(self.extract_tags(response)),
-            next_episode=self.extract_next_episode(
-                response),  # Extracted next episode
-            next_date=self.extract_next_date(
-                response)         # Extracted next date
-        )
+            anime_details = AnimeDetails(
+                id=anime_id,
+                url=quote(response.url, safe=":/"),
+                synopsis=self.extract_synopsis(response),
+                start_date=self.extract_start_date(response),
+                end_date=self.extract_end_date(response),
+                status=self.extract_status(response),
+                members=self.extract_members(response),
+                popularity=self.extract_popularity(response),
+                demographic=self.extract_demographic(response),
+                average_score=self.extract_average_score(response),
+                mean_score=self.extract_mean_score(response),
+                favorites=self.extract_favorites(response),
+                producers=", ".join(self.extract_producers(response)),
+                source=self.extract_source(response),
+                japanese=self.extract_japanese(response),
+                english=self.extract_english(response),
+                synonyms=", ".join(self.extract_synonyms(response)),
+                tags=", ".join(self.extract_tags(response)),
+                next_episode=self.extract_next_episode(response),
+                next_date=self.extract_next_date(response)
+            )
+        except Exception as e:
+            logger.error("Error in data extraction:")
+            logger.error(e)
+            return
 
-        self.save_to_db(anime_details)
+        try:
+            self.save_to_db(anime_details)
 
-        yield anime_details
+            yield anime_details
+        except Exception as e:
+            logger.error("Error in saving to DB:")
+            logger.error(e)
+            return
 
     def extract_synopsis(self, response) -> Optional[str]:
         synopsis_parts = response.css(
@@ -195,9 +206,11 @@ class AnilistHistoryDetailsSpider(scrapy.Spider):
         return ""
 
     def extract_start_date(self, response) -> Optional[str]:
-        return response.css("div.data-set").xpath(
-            "div[contains(text(), 'Start Date')]/following-sibling::div/text()"
+        # Try 'Start Date' first, then fall back to 'Release Date'
+        date = response.css("div.data-set").xpath(
+            "div[contains(text(), 'Start Date')]/following-sibling::div/text() | div[contains(text(), 'Release Date')]/following-sibling::div/text()"
         ).get()
+        return date
 
     def extract_end_date(self, response) -> Optional[str]:
         return response.css("div.data-set").xpath(
@@ -322,24 +335,24 @@ class AnilistHistoryDetailsSpider(scrapy.Spider):
 
         cursor.execute(f"""
         UPDATE {self.table_name}
-        SET synopsis=COALESCE(%s, synopsis),
-            start_date=COALESCE(%s, start_date),
-            end_date=COALESCE(%s, end_date), 
-            status=COALESCE(%s, status), 
-            members=COALESCE(%s, members),
-            popularity=COALESCE(%s, popularity),
-            demographic=COALESCE(%s, demographic),
-            average_score=COALESCE(%s, average_score),
-            mean_score=COALESCE(%s, mean_score),
-            favorites=COALESCE(%s, favorites),
-            producers=COALESCE(%s, producers),
-            source=COALESCE(%s, source),
-            japanese=COALESCE(%s, japanese),
-            english=COALESCE(%s, english),
-            synonyms=COALESCE(%s, synonyms),
-            tags=COALESCE(%s, tags),
-            next_episode=COALESCE(%s, next_episode),
-            next_date=%s  -- Directly update next_date even if it has an existing value
+        SET synopsis=%s,
+            start_date=%s,
+            end_date=%s,
+            status=%s,
+            members=%s,
+            popularity=%s,
+            demographic=%s,
+            average_score=%s,
+            mean_score=%s,
+            favorites=%s,
+            producers=%s,
+            source=%s,
+            japanese=%s,
+            english=%s,
+            synonyms=%s,
+            tags=%s,
+            next_episode=%s,
+            next_date=%s
         WHERE id=%s
         """, (
             anime_details["synopsis"],

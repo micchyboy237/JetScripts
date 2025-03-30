@@ -47,7 +47,7 @@ class JetAnimeHistorySpider(scrapy.Spider):
 
         for title in tqdm(anime_titles, desc="Scraping list..."):
             # Delay to prevent spam
-            delay = random.uniform(2, 5)
+            delay = random.uniform(1, 4)
             sleep_countdown(delay, f"Delaying:")
 
             # Modify title if it's shorter than 3 characters

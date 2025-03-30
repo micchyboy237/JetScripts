@@ -72,7 +72,7 @@ class JetAnimeHistoryDetailsSpider(scrapy.Spider):
         conn.close()
 
         for anime_id, url in tqdm(anime_data, desc="Scraping details..."):
-            delay = random.uniform(2, 5)
+            delay = random.uniform(1, 4)
             logger.info(
                 f"Waiting for {delay:.2f} seconds before next request...")
             time.sleep(delay)

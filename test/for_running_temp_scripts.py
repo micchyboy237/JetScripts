@@ -1,5 +1,7 @@
-from tqdm import tqdm
 import numpy as np
+import psycopg
+from psycopg.rows import dict_row
+from tqdm import tqdm
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -21,35 +23,94 @@ table_name = "jet_history"
 # Load queries
 queries: list[str] = load_file(queries_path)
 
+DB_CONFIG = {
+    "dbname": "anime_db1",
+    "user": "jethroestrada",
+    "password": "",
+    "host": "jetairm1",
+    "port": "5432"
+}
+TABLE_NAME = "history"
+
 # Load database records
 
 
-def load_all_records(db_path: str, table_name: str):
-    with sqlite3.connect(db_path, timeout=10) as conn:
-        cursor = conn.cursor()
-        cursor.execute(f"SELECT * FROM {table_name}")
-        rows = cursor.fetchall()
-        columns = [col[0] for col in cursor.description]
-    return [dict(zip(columns, row)) for row in rows]
+def load_all_records():
+    # with sqlite3.connect(db_path, timeout=10) as conn:
+    #     cursor = conn.cursor()
+    #     cursor.execute(f"SELECT * FROM {table_name}")
+    #     rows = cursor.fetchall()
+    #     columns = [col[0] for col in cursor.description]
+    # return [dict(zip(columns, row)) for row in rows]
+    conn = psycopg.connect(
+        dbname=DB_CONFIG["dbname"],
+        user=DB_CONFIG["user"],
+        password=DB_CONFIG["password"],
+        host=DB_CONFIG["host"],
+        port=DB_CONFIG["port"],
+        autocommit=False,  # Enable manual transaction control
+        row_factory=dict_row
+    )
+
+    query = f"SELECT * FROM {TABLE_NAME};"
+    with conn.cursor() as cur:
+        cur.execute(query)
+        results = cur.fetchall()
+        return results
 
 
 class ScrapedData(TypedDict):
     id: str
     rank: Optional[int]
-    title: str
-    url: str
-    image_url: str
+    title: Optional[str]
+    url: Optional[str]
+    image_url: Optional[str]
     score: Optional[float]
     episodes: Optional[int]
     start_date: Optional[str]
     end_date: Optional[str]
-    status: str
+    next_date: Optional[str]
+    status: Optional[str]
     members: Optional[int]
     anime_type: Optional[str]
+    average_score: Optional[int]
+    mean_score: Optional[int]
+    favorites: Optional[int]
+    next_episode: Optional[int]
+    popularity: Optional[int]
+    demographic: Optional[str]
+    studios: Optional[str]
+    producers: Optional[str]
+    source: Optional[str]
+    japanese: Optional[str]
+    english: Optional[str]
+    synonyms: Optional[str]
+    tags: Optional[str]
+    synopsis: Optional[str]
+    genres: Optional[str]
 
 
 # Prepare data
-data: list[ScrapedData] = load_all_records(db_path, table_name)
+data: list[ScrapedData] = load_all_records()
+
+# Get all unique genres
+unique_genres = set()
+for d in data:
+    if d["genres"]:
+        # Split genres string and add each genre to set
+        genres = d["genres"].split(",")
+        unique_genres.update(g.strip() for g in genres)
+unique_genres = sorted(list(unique_genres))
+
+# Get all unique tags
+unique_tags = set()
+for d in data:
+    if d["tags"]:
+        # Split tags string and add each tag to set
+        tags = d["tags"].split(",")
+        unique_tags.update(g.strip() for g in tags)
+unique_tags = sorted(list(unique_tags))
+
 data_dict: dict[str, ScrapedData] = {d["id"]: d for d in data}
 ids = [d["id"] for d in data]
 texts = [d["title"] for d in data]
