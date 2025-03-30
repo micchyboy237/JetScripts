@@ -95,10 +95,13 @@ if __name__ == "__main__":
             continue
 
         if result["count"] > 1:
-            matching_ngrams = [item["ngram"] for item in filtered_results
-                               if item["ngram"].startswith(result["ngram"])]
-            matching_ngrams = [matching_ngrams[0]] + [
-                ngram for ngram in matching_ngrams if ngram.startswith(f"{matching_ngrams[0]} ")]
+            matching_ngrams = [result["ngram"]] + \
+                [
+                    item["ngram"]
+                    for item in filtered_results
+                    if item["ngram"].startswith(f"{result["ngram"]} ")
+            ]
+
             grouped_results[matching_ngrams[0]] = matching_ngrams
 
     # Revert to actual ngram values
