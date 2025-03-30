@@ -99,6 +99,14 @@ if __name__ == "__main__":
                                if item["ngram"].startswith(result["ngram"])]
             grouped_results[matching_ngrams[0]] = matching_ngrams
 
+    # Revert to actual ngram values
+    final_results = {}
+    for key, values in grouped_results.items():
+        reverted_key = formatted_texts_dict[key]["title"]
+        reverted_values = [formatted_texts_dict[value]["title"]
+                           for value in values]
+        final_results[reverted_key] = reverted_values
+
     # max_word_count = max([count_words(text) for text in texts])
     # include_keys = ['title']
     # ta = TextAnalysis(data, include_keys=include_keys)
@@ -111,5 +119,5 @@ if __name__ == "__main__":
     # filtered_results = [
     #     d for d in histogram_results[0]["results"] if d["ngram"] in texts]
 
-    save_file(grouped_results, os.path.join(
+    save_file(final_results, os.path.join(
         output_dir, 'histogram_results.json'))
