@@ -20,7 +20,7 @@ from jet.vectors.reranker.bm25_helpers import HybridSearch
 db_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/chatgpt/anime_scraper/data/anime.db"
 table_name = "jet_history"
 
-embed_model = "nomic-embed-text"
+embed_model = "mxbai-embed-large"
 
 
 DB_CONFIG = {
@@ -136,12 +136,12 @@ if __name__ == "__main__":
         text_parts = [title]
         # if d.get('synopsis'):
         #     text_parts.append(synopsis)
-        if d.get('synonyms'):
-            text_parts.append(synonyms)
-        if tags:
-            text_parts.extend(tags)
-        if genres:
-            text_parts.extend(genres)
+        # if d.get('synonyms'):
+        #     text_parts.append(synonyms)
+        # if tags:
+        #     text_parts.extend(tags)
+        # if genres:
+        #     text_parts.extend(genres)
         text = "\n".join(text_parts)
 
         texts.append(text)
@@ -151,7 +151,7 @@ if __name__ == "__main__":
 
     # Sort queries by length
     queries = sorted(queries, key=len)
-    queries = queries[:10]
+    queries = queries[:50]
 
     # Initialize Hybrid Search
     hybrid_search = HybridSearch(model_name=embed_model)
