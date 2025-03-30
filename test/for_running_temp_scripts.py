@@ -122,31 +122,33 @@ queries = [d["english"] or d["title"]
 if __name__ == "__main__":
     texts = []
     for d in data:
-        title = f"Title: {d.get('english') or d.get('title')}"
-        synopsis = f"Synopsis: {d.get('synopsis')}"
-        synonyms = f"Synonyms: {d.get('synonyms')}"
+        title = f"Title:\n{d.get('english') or d.get('title')}"
+        synopsis = f"Synopsis:\n{d.get('synopsis')}"
+        synonyms = f"Synonyms:\n{d.get('synonyms')}"
         tags_str = d.get('tags', '')
-        tags = [f"Tag: {tag.strip()}" for tag in tags_str.split(',')
+        tags = [tag.strip() for tag in tags_str.split(',')
                 if tag.strip()] if tags_str else []
+        tags = f"Tags:\n{", ".join(tags)}"
         genres_str = d.get('genres', '')
-        genres = [f"Genre: {genre.strip()}" for genre in genres_str.split(
+        genres = [genre.strip() for genre in genres_str.split(
             ',') if genre.strip()] if genres_str else []
+        genres = f"Genres:\n{", ".join(genres)}"
 
         text_parts = [title]
-        if d.get('synopsis'):
-            text_parts.append(synopsis)
-        if d.get('synonyms'):
-            text_parts.append(synonyms)
-        if tags:
-            text_parts.extend(tags)
-        if genres:
-            text_parts.extend(genres)
+        # if d.get('synopsis'):
+        #     text_parts.append(synopsis)
+        # if d.get('synonyms'):
+        #     text_parts.append(synonyms)
+        # if tags_str:
+        #     text_parts.append(tags)
+        # if genres_str:
+        #     text_parts.append(genres)
         text = "\n".join(text_parts)
 
         texts.append(text)
 
     embed_func = get_embedding_function(embed_model)
-    clustered_texts = get_text_groups(texts)
+    clustered_texts = get_text_groups(texts, model_name="all-minilm:33m")
 
     save_file(clustered_texts, "generated/anime_clustered_texts.json")
 
