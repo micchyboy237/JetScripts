@@ -113,7 +113,7 @@ unique_tags = sorted(list(unique_tags))
 
 data_dict: dict[str, ScrapedData] = {d["id"]: d for d in data}
 ids = [d["id"] for d in data]
-texts = [d["title"] for d in data]
+
 
 # Initialize Hybrid Search
 embed_model = "nomic-embed-text"
@@ -125,22 +125,98 @@ top_k = None
 threshold = 0.0
 
 if __name__ == "__main__":
+    texts = []
+    for d in data:
+        title = f"Title: {d.get('english') or d.get('title')}"
+        synopsis = f"Synopsis: {d.get('synopsis')}"
+        synonyms = f"Synonyms: {d.get('synonyms')}"
+        tags_str = d.get('tags', '')
+        tags = [f"Tag: {tag.strip()}" for tag in tags_str.split(',')
+                if tag.strip()] if tags_str else []
+        genres_str = d.get('genres', '')
+        genres = [f"Genre: {genre.strip()}" for genre in genres_str.split(
+            ',') if genre.strip()] if genres_str else []
+
+        text_parts = [title]
+        if d.get('synopsis'):
+            text_parts.append(synopsis)
+        if d.get('synonyms'):
+            text_parts.append(synonyms)
+        if tags:
+            text_parts.extend(tags)
+        if genres:
+            text_parts.extend(genres)
+        text = "\n".join(text_parts)
+
+        texts.append(text)
+
+    embed_func = get_embedding_function(embed_model)
+    clustered_texts = cluster_texts(texts, embed_func)
+
+    save_file(clustered_texts, "generated/anime_clustered_texts.json")
+
+if __name__ == "__main__":
+    texts = []
+    for d in data:
+        title = f"Title: {d.get('english') or d.get('title')}"
+        synopsis = f"Synopsis: {d.get('synopsis')}"
+        synonyms = f"Synonyms: {d.get('synonyms')}"
+        tags_str = d.get('tags', '')
+        tags = [f"Tag: {tag.strip()}" for tag in tags_str.split(',')
+                if tag.strip()] if tags_str else []
+        genres_str = d.get('genres', '')
+        genres = [f"Genre: {genre.strip()}" for genre in genres_str.split(
+            ',') if genre.strip()] if genres_str else []
+
+        text_parts = [title]
+        if d.get('synopsis'):
+            text_parts.append(synopsis)
+        if d.get('synonyms'):
+            text_parts.append(synonyms)
+        if tags:
+            text_parts.extend(tags)
+        if genres:
+            text_parts.extend(genres)
+        text = "\n".join(text_parts)
+
+        texts.append(text)
+
     # Store results
     all_results = []
 
+    # Sort queries by length
+    queries = sorted(queries, key=len)
+    queries = queries[:10]
+
     for query in tqdm(queries):
         results = hybrid_search.search(query, top_k=top_k, threshold=threshold)
+        semantic_results = results.pop("semantic_results")
+        hybrid_results = results.pop("hybrid_results")
         reranked_results = results.pop("reranked_results")
         result = [{
             "query": query,
-            "results": [{
+            "semantic_results": [{
+                "id": result["id"],
+                "score": result["score"],
+                "similarity": result["similarity"],
+                "text": result["text"],
+                "matched": result["matched"],
+            } for result in semantic_results],
+            "reranked_results": [{
                 "id": result["id"],
                 "score": result["score"],
                 "similarity": result["similarity"],
                 "text": result["text"],
                 "matched": result["matched"],
             } for result in reranked_results],
-            "data": [data_dict[result["id"]] for result in reranked_results],
+            "hybrid_results": [{
+                "id": result["id"],
+                "score": result["score"],
+                "similarity": result["similarity"],
+                "text": result["text"],
+                "matched": result["matched"],
+            } for result in hybrid_results],
+            # "data": [data_dict[result["id"]] for result in reranked_results],
         }]
 
         logger.debug(f"Query: {query} | Results: {len(reranked_results)}")
@@ -148,7 +224,9 @@ if __name__ == "__main__":
         all_results.append(result)
 
         # Save all results in one JSON file
-        save_file(all_results, "generated/hybrid_search/query_results.json")
+        # save_file(semantic_results, "generated/hybrid_search/semantic_results.json")
+        # save_file(reranked_results, "generated/hybrid_search/reranked_results.json")
+        # save_file(hybrid_results, "generated/hybrid_search/hybrid_results.json")
 
     logger.info("All queries processed and results saved.")
 
