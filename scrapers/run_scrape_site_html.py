@@ -5,6 +5,7 @@ from jet.code.splitter_markdown_utils import extract_md_header_contents
 from jet.data.utils import generate_unique_hash
 from jet.scrapers.crawler.web_crawler import WebCrawler
 from jet.utils.commands import copy_to_clipboard
+from jet.utils.markdown import extract_json_block_content
 from jet.utils.object import extract_null_keys
 from jet.vectors.reranker.bm25_helpers import SearchResult, HybridSearch
 from tqdm import tqdm
@@ -25,7 +26,7 @@ from bs4 import BeautifulSoup as Soup
 from jet.actions.vector_semantic_search import VectorSemanticSearch
 from jet.logger import logger
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
-from jet.scrapers.utils import clean_text, format_html
+from jet.scrapers.utils import clean_text, extract_text_elements
 from jet.token.token_utils import filter_texts, get_model_max_tokens, get_ollama_tokenizer, split_texts, token_counter
 from jet.transformers.formatters import format_json
 from jet.file.utils import load_file, save_data, save_file
@@ -305,7 +306,8 @@ def fill_null_values(data: dict, output_dir: str = "generated"):
 if __name__ == "__main__":
     embed_model = "mxbai-embed-large"
     rerank_model = "all-minilm:33m"
-    llm_model = "mistral"
+    llm_model = "llama3.1"
+    llm_max_tokens = get_model_max_tokens(llm_model)
 
     output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated"
 
@@ -321,14 +323,17 @@ if __name__ == "__main__":
     #     doc_texts = load_file(doc_file)
     # else:
 
-    prompt = "Given the unstructured scraped html below and query, extract all relevant data in a single JSON array of strings format."
+    prompt = "Given the query and scraped html texts, extract all relevant data in a single JSON array format surrounded by ```json."
 
     doc_texts = scrape_urls(urls, output_dir=output_dir)
 
     for url, html in doc_texts:
-        context = format_html(html)
-        message = "{prompt}\n\nHTML:\n{context}!\n\nQuery:\n{query}".format(
-            prompt=prompt, context=context, query=query)
+        context = extract_text_elements(html)
+        md_text = html_to_markdown(html)
+        header_contents = extract_md_header_contents(
+            md_text, llm_max_tokens * 0.4, tokenizer=get_ollama_tokenizer(llm_model).encode)
+        message = "Prompt:\n{prompt}\n\nQuery:\n{query}\n\nHTML Texts:\n{context}".format(
+            prompt=prompt, context="\n".join(context), query=query)
 
         llm = Ollama(model=llm_model)
         options = {
@@ -342,5 +347,11 @@ if __name__ == "__main__":
         parsed_url = urlparse(url)
         host_path = parsed_url.netloc + parsed_url.path.rstrip('/')
         sub_dir = f"{output_dir}/{host_path}"
-        output_file = f"{sub_dir}/chat_data.json"
-        save_file(output, output_file)
+
+        try:
+            output = extract_json_block_content(output)
+            output_file = f"{sub_dir}/chat_data.json"
+            save_file(output, output_file)
+        except:
+            output_file = f"{sub_dir}/chat_md.json"
+            save_file(output, output_file)
