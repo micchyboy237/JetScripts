@@ -154,71 +154,116 @@ if __name__ == "__main__":
 
     output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/valid-ids-scraper"
 
-    topic = "Philippine national ID registration tips 2025"
+    valid_id_topics = [
+        "Philippines National ID Registration Tips 2025",
+        "Philippines Passport Registration Tips 2025",
+        "Philippines Driver’s License Registration Tips 2025",
+        "Philippines SSS ID Registration Tips 2025",
+        "Philippines GSIS eCard Registration Tips 2025",
+        "Philippines PhilHealth ID Registration Tips 2025",
+        "Philippines TIN ID Registration Tips 2025",
+        "Philippines PRC ID Registration Tips 2025",
+        "Philippines Voter’s ID Registration Tips 2025",
+        "Philippines UMID Registration Tips 2025",
+        "Philippines Postal ID Registration Tips 2025",
+        "Philippines Barangay ID Registration Tips 2025",
+        "Philippines Senior Citizen ID Registration Tips 2025",
+        "Philippines PWD ID Registration Tips 2025",
+        "Philippines OFW e-Card Registration Tips 2025",
+        "Philippines Company ID Registration Tips 2025",
+        "Philippines School ID Registration Tips 2025",
+        "Philippines Indigenous Peoples ID Registration Tips 2025",
+        "Philippines Solo Parent ID Registration Tips 2025",
+        "Philippines Police Clearance and NBI Clearance Tips 2025"
+    ]
 
-    search_results = search_data(topic)
+    online_seller_topics = [
+        "Philippines TikTok Seller Tips 2025",
+        "Philippines Shopee Seller Tips 2025",
+        "Philippines Lazada Seller Tips 2025",
+        "Philippines Facebook Marketplace Seller Tips 2025",
+        "Philippines Instagram Shop Seller Tips 2025",
+        "Philippines Carousell Seller Tips 2025",
+        "Philippines Zalora Seller Tips 2025",
+        "Philippines Amazon Seller Tips 2025",
+        "Philippines eBay Seller Tips 2025",
+        "Philippines Shopify Seller Tips 2025",
+        "Philippines Etsy Seller Tips 2025",
+        "Philippines YouTube Shopping Seller Tips 2025",
+        "Philippines Affiliate Marketing Seller Tips 2025",
+        "Philippines Dropshipping Business Tips 2025",
+        "Philippines Print-on-Demand Seller Tips 2025",
+        "Philippines Digital Products Selling Tips 2025",
+        "Philippines Wholesale and Reselling Tips 2025",
+        "Philippines Online Food Selling Tips 2025",
+        "Philippines Live Selling Strategies 2025",
+        "Philippines Online Selling Legal Requirements 2025"
+    ]
 
-    urls = [item["url"] for item in search_results]
+    for topic in online_seller_topics:
+        search_results = search_data(topic)
 
-    # if os.path.isfile(doc_file):
-    #     doc_texts = load_file(doc_file)
-    # else:
+        urls = [item["url"] for item in search_results]
 
-    query = f"Given the context information, extract all texts relevant to the topic.\nOutput as a structured markdown. If previous answer lines is provided, treat the generated answer as continuation.\nTopic: {topic}"
+        # if os.path.isfile(doc_file):
+        #     doc_texts = load_file(doc_file)
+        # else:
 
-    doc_texts = scrape_urls(urls, output_dir=output_dir)
+        query = f"Given the context information, extract all texts relevant to the topic.\nOutput as a structured markdown. If previous answer lines is provided, treat the generated answer as continuation by incrementing the last list number or following the previous format.\nTopic: {topic}"
 
-    chat_llm = Ollama(model=chat_model)
-    eval_llm = Ollama(model=eval_model)
-    relevancy_evaluator = RelevancyEvaluator(
-        llm=eval_llm,
-        eval_template=RELEVANCY_EVAL_TEMPLATE,
-        refine_template=RELEVANCY_REFINE_TEMPLATE,
-    )
+        doc_texts = scrape_urls(urls, output_dir=output_dir)
 
-    for url, html in doc_texts:
-        # context = extract_text_elements(html)
-        md_text = html_to_markdown(html)
-        header_contents = extract_md_header_contents(
-            md_text, min_tokens_per_chunk=256, max_tokens_per_chunk=int(chat_max_tokens * 0.4), tokenizer=get_ollama_tokenizer(chat_model).encode)
+        chat_llm = Ollama(model=chat_model)
+        eval_llm = Ollama(model=eval_model)
+        relevancy_evaluator = RelevancyEvaluator(
+            llm=eval_llm,
+            eval_template=RELEVANCY_EVAL_TEMPLATE,
+            refine_template=RELEVANCY_REFINE_TEMPLATE,
+        )
 
-        outputs = []
-        prev_output = None
-        for item in header_contents:
-            context = item["content"]
-            # message = "HTML Texts:\n{context}\n\nQuery:\n{query}\n\nPrompt:\n{prompt}".
-            # format(prompt=prompt, context="\n".join(context), query=query)
-            if prev_output:
-                prev_paragraphs = extract_paragraphs(prev_output)
-                prev_output = "\n\n".join(prev_paragraphs[-2:])
-                context = context + "\n\n" + \
-                    f"Previous Answer Lines:\n{prev_output}"
-            else:
-                context = context + "\n\n" + \
-                    f"Previous Answer Lines:\nN/A"
-            message = PROMPT_TEMPLATE.format(context=context, query=query)
-
-            response = chat_llm.chat(message, options=LLM_OPTIONS)
-            output: str = response.message.content
-            prev_output = output
-            copy_to_clipboard(output)
-
+        for url, html in doc_texts:
             parsed_url = urlparse(url)
             host_path = parsed_url.netloc + parsed_url.path.rstrip('/')
             host_path = host_path.replace('/', '_')
-            sub_dir = f"{output_dir}/{host_path}"
+            sub_dir = f"{output_dir}/{topic.replace(" ", "_")}/{host_path}".lower()
 
-            outputs.append(output)
+            # context = extract_text_elements(html)
+            md_text = html_to_markdown(html)
+            header_contents = extract_md_header_contents(
+                md_text, min_tokens_per_chunk=256, max_tokens_per_chunk=int(chat_max_tokens * 0.4), tokenizer=get_ollama_tokenizer(chat_model).encode)
 
-            output_file = f"{sub_dir}/chat_data.md"
-            save_file("\n\n\n".join(outputs), output_file)
+            outputs = []
+            prev_output = None
+            for item in header_contents:
+                context = item["content"]
+                # message = "HTML Texts:\n{context}\n\nQuery:\n{query}\n\nPrompt:\n{prompt}".
+                # format(prompt=prompt, context="\n".join(context), query=query)
+                if prev_output:
+                    prev_paragraphs = extract_paragraphs(prev_output)
+                    prev_output = "\n\n".join(prev_paragraphs[-2:])
+                    context = context + "\n\n" + \
+                        f"Previous Answer Lines:\n{prev_output}"
+                else:
+                    context = context + "\n\n" + \
+                        f"Previous Answer Lines:\nN/A"
+                message = PROMPT_TEMPLATE.format(context=context, query=query)
 
-            # Evaluate context relevancy
-            relevancy_eval_result = relevancy_evaluator.evaluate(
-                query=query,
-                response=output,
-                contexts=[context],
-            )
+                response = chat_llm.chat(message, options=LLM_OPTIONS)
+                output: str = response.message.content
+                prev_output = output
+                copy_to_clipboard(output)
 
-            eval_file = f"{sub_dir}/relevancy_eval.json"
-            save_file(relevancy_eval_result, eval_file)
+                outputs.append(output)
+
+                output_file = f"{sub_dir}/chat_data.md"
+                save_file("\n\n\n".join(outputs), output_file)
+
+                # Evaluate context relevancy
+                relevancy_eval_result = relevancy_evaluator.evaluate(
+                    query=query,
+                    response=output,
+                    contexts=[context],
+                )
+
+                eval_file = f"{sub_dir}/relevancy_eval.json"
+                save_file(relevancy_eval_result, eval_file)
