@@ -7,7 +7,7 @@ from pyquery import PyQuery as pq
 # Define the structure of a tree node with TypedDict
 class TreeNode(Dict):
     tag: str
-    text: str
+    text: Optional[str]  # Some nodes may not contain text
     depth: int
     children: List['TreeNode']  # Recursive reference to TreeNode
 
@@ -16,6 +16,7 @@ def find_parents_with_text(html: str) -> Optional[TreeNode]:
     """
     Finds all elements (including <p>, <a>, <h1-h6>) that contain any text, ensuring a natural document order.
     Returns a tree-like structure of parents and their corresponding text, including depth for each node.
+    Only includes text for nodes that directly hold it.
 
     :param html: The HTML string to parse.
     :return: A tree-like structure with parent elements and their corresponding text.
@@ -23,17 +24,30 @@ def find_parents_with_text(html: str) -> Optional[TreeNode]:
     # Helper function to recursively build the tree
     def build_tree(element, current_depth: int) -> Optional[TreeNode]:
         text = pq(element).text().strip()
-        if text:  # If element contains text
-            children = []
-            for child in pq(element).children():  # Recursively process children
-                child_tree = build_tree(child, current_depth + 1)
-                if child_tree:
-                    children.append(child_tree)
 
+        # Include text only for leaf nodes that directly hold text
+        if text and len(pq(element).children()) == 0:  # No children, direct text
             return {
                 # Tag of the element (e.g., div, p, h1)
                 "tag": pq(element)[0].tag,
                 "text": text,               # The text inside this element
+                "depth": current_depth,     # Current depth in the hierarchy
+                "children": []              # No children in this case
+            }
+
+        # Otherwise, process children recursively
+        children = []
+        for child in pq(element).children():
+            child_tree = build_tree(child, current_depth + 1)
+            if child_tree:
+                children.append(child_tree)
+
+        # Return the element if it has children containing text
+        if children:
+            return {
+                # Tag of the element (e.g., div, p, h1)
+                "tag": pq(element)[0].tag,
+                "text": None,               # No text for container elements
                 "depth": current_depth,     # Current depth in the hierarchy
                 "children": children        # Nested children that also contain text
             }
@@ -106,8 +120,9 @@ tree = find_parents_with_text(html_doc)
 
 def print_tree(node: TreeNode, indent=0):
     if node:
-        logger.log(('  ' * indent + f"{node['depth']}:"), "-", node['tag'], "-",
-                   json.dumps(node['text'][:30]), colors=["INFO", "GRAY", "DEBUG", "GRAY", "SUCCESS"])
+        if node['text']:
+            logger.log(('  ' * indent + f"{node['depth']}:"), "-", node['tag'], "-",
+                       json.dumps(node['text'][:30]), colors=["INFO", "GRAY", "DEBUG", "GRAY", "SUCCESS"])
         for child in node['children']:
             print_tree(child, indent + 1)
 
