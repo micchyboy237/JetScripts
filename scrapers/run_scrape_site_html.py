@@ -12,7 +12,7 @@ from llama_index.core.evaluation.base import EvaluationResult
 from llama_index.core.evaluation.batch_runner import BatchEvalRunner
 from llama_index.core.evaluation.correctness import CorrectnessEvaluator
 from llama_index.core.evaluation.faithfulness import FaithfulnessEvaluator
-from jet.llm.evaluators.guideline_evaluator import GuidelineEvaluator
+from jet.llm.evaluators.guideline_evaluator import CONTEXT_EVAL_GUIDELINES, GuidelineContextEvaluator, GuidelineEvaluator
 from llama_index.core.evaluation.relevancy import RelevancyEvaluator
 from llama_index.core.output_parsers.pydantic import PydanticOutputParser
 from llama_index.core.schema import Document
@@ -88,6 +88,7 @@ Otherwise, answer NO.
 
 EVAL_GUIDELINES = [
     "The response should fully answer the query.",
+    "The response should avoid being vague or ambiguous.",
     "The response should be comprehensive, ensuring all relevant information from the context is included and nothing essential is omitted.",
 ]
 
@@ -159,28 +160,45 @@ class GuidelineEvalResult(EvaluationResult):
     guideline: str
 
 
-class GuidelineEvalResultSchema(BaseModel):
-    passing: bool = Field(
-        ..., description="Indicates whether the response meets the evaluation guidelines.")
-    score: float = Field(
-        ...,
-        ge=0.0,
-        le=1.0,
-        description="Evaluation score ranging from 0.0 (lowest) to 1.0 (highest), representing guideline adherence."
-    )
-    feedback: str = Field(
-        ...,
-        description="Detailed feedback on the response, highlighting strengths and areas for improvement."
-    )
-
-
-def run_evaluate_guidelines(model: OLLAMA_MODEL_NAMES, query: str, contexts: list[str], response: str, guidelines: list[str], output_cls: Type[BaseModel] = GuidelineEvalResultSchema) -> list[GuidelineEvalResult]:
-    llm = Ollama(model=model)
-    output_parser = PydanticOutputParser(output_cls=output_cls)
+def run_evaluate_response_guidelines(model: OLLAMA_MODEL_NAMES, query: str, contexts: list[str], response: str, guidelines: list[str], output_cls: Optional[Type[BaseModel]] = None) -> list[GuidelineEvalResult]:
+    llm = Ollama(model=model, temperature=0.75)
+    output_parser = PydanticOutputParser(
+        output_cls=output_cls) if output_cls else None
 
     evaluators = [
         GuidelineEvaluator(llm=llm, guidelines=guideline,
                            output_parser=output_parser)
+        for guideline in guidelines
+    ]
+
+    results = []
+    for guideline, evaluator in zip(guidelines, evaluators):
+        eval_result = evaluator.evaluate(
+            query=query,
+            contexts=contexts,
+            response=response,
+        )
+        print("=====")
+        print(f"Guideline: {guideline}")
+        print(f"Passing: {eval_result.passing}")
+        print(f"Score: {eval_result.score}")
+        print(f"Feedback: {eval_result.feedback}")
+        results.append(GuidelineEvalResult(
+            guideline=guideline, **eval_result.model_dump()))
+    return results
+
+
+def run_evaluate_context_guidelines(model: OLLAMA_MODEL_NAMES, query: str, contexts: list[str], response: str, guidelines: list[str] = CONTEXT_EVAL_GUIDELINES, output_cls: Optional[Type[BaseModel]] = None) -> list[GuidelineEvalResult]:
+    llm = Ollama(model=model, temperature=0.75)
+    output_parser = PydanticOutputParser(
+        output_cls=output_cls) if output_cls else None
+
+    evaluators = [
+        GuidelineContextEvaluator(
+            llm=llm,
+            guidelines=guideline,
+            output_parser=output_parser,
+        )
         for guideline in guidelines
     ]
 
@@ -260,7 +278,7 @@ if __name__ == "__main__":
     all_topics = valid_id_topics + online_seller_topics
 
     chat_llm = Ollama(model=chat_model)
-    eval_llm = Ollama(model=eval_model)
+    eval_llm = Ollama(model=eval_model, temperature=0.75)
     faithfulness_evaluator = FaithfulnessEvaluator(llm=eval_llm)
     relevancy_evaluator = RelevancyEvaluator(
         llm=eval_llm,
@@ -361,12 +379,11 @@ if __name__ == "__main__":
                 # Guidelines
                 logger.newline()
                 logger.orange("Evaluating guidelines...")
-                eval_results = run_evaluate_guidelines(
+                eval_results = run_evaluate_context_guidelines(
                     model=eval_model,
                     query=query,
                     contexts=[context],
                     response=output,
-                    guidelines=EVAL_GUIDELINES
                 )
                 passing_results.extend(
                     [eval_result.passing for eval_result in eval_results])
