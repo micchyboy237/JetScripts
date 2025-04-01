@@ -12,7 +12,7 @@ from pathlib import Path
 import requests
 from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.core import QueryBundle
-from llm_reranker import RankLLMRerank
+from llama_index.postprocessor.rankllm_rerank import RankLLMRerank
 import pandas as pd
 import torch
 from IPython.display import display, HTML
@@ -59,8 +59,7 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 # os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 
-Settings.llm = Ollama(temperature=0, model="llama3.2",
-                      request_timeout=300.0, context_window=4096)
+Settings.llm = Ollama(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
 Settings.chunk_size = 512
 
 """
@@ -108,6 +107,8 @@ index = VectorStoreIndex.from_documents(
 """
 
 
+
+
 def get_retrieved_nodes(
     query_str,
     vector_top_k=10,
@@ -149,7 +150,6 @@ def visualize_retrieved_nodes(nodes) -> None:
         result_dicts.append(result_dict)
 
     pretty_logger.debug(pd.DataFrame(result_dicts))
-
 
 """
 ### Without `RankZephyr` reranking, the correct result is ranked `47`th/50.

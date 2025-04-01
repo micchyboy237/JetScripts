@@ -102,8 +102,10 @@ class GuidelineEvalResult(EvaluationResult):
     guideline: str
 
 
-def run_evaluate_response_guidelines(model: OLLAMA_MODEL_NAMES, query: str, contexts: list[str], response: str, guidelines: list[str], output_cls: Optional[Type[BaseModel]] = None) -> list[GuidelineEvalResult]:
-    llm = Ollama(model=model, temperature=0.75)
+def run_evaluate_response_guidelines(model: Optional[OLLAMA_MODEL_NAMES], query: str, contexts: list[str], response: str, guidelines: list[str], output_cls: Optional[Type[BaseModel]] = None) -> list[GuidelineEvalResult]:
+    if not model:
+        model = "gemma3:4b"
+    llm = Ollama(model=model, temperature=0.3)
     output_parser = PydanticOutputParser(
         output_cls=output_cls) if output_cls else None
 
@@ -132,8 +134,10 @@ def run_evaluate_response_guidelines(model: OLLAMA_MODEL_NAMES, query: str, cont
     return results
 
 
-def run_evaluate_context_guidelines(model: OLLAMA_MODEL_NAMES, query: str, contexts: list[str], response: str, guidelines: list[str] = CONTEXT_EVAL_GUIDELINES, output_cls: Optional[Type[BaseModel]] = None) -> list[GuidelineEvalResult]:
-    llm = Ollama(model=model, temperature=0.75)
+def run_evaluate_context_guidelines(model: Optional[OLLAMA_MODEL_NAMES], query: str, contexts: list[str], response: str, guidelines: list[str] = CONTEXT_EVAL_GUIDELINES, output_cls: Optional[Type[BaseModel]] = None) -> list[GuidelineEvalResult]:
+    if not model:
+        model = "gemma3:4b"
+    llm = Ollama(model=model, temperature=0.3)
     output_parser = PydanticOutputParser(
         output_cls=output_cls) if output_cls else None
 
@@ -166,6 +170,7 @@ def run_evaluate_context_guidelines(model: OLLAMA_MODEL_NAMES, query: str, conte
 
 
 def main():
+    # eval_model = "llama3.2"
     eval_model = "gemma3:4b"
     output_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/semantic_search/eval/generated/run_eval_guidelines/guideline_eval_results.json"
 

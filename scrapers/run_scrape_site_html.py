@@ -1,7 +1,7 @@
 import json
 from urllib.parse import urlparse
 
-from jet.code.splitter_markdown_utils import count_md_header_contents, extract_md_header_contents
+from jet.code.splitter_markdown_utils import count_md_header_contents, extract_md_header_contents, get_md_header_contents
 from jet.data.utils import generate_unique_hash
 from jet.scrapers.crawler.web_crawler import WebCrawler
 from jet.utils.commands import copy_to_clipboard
@@ -86,11 +86,16 @@ If the information is present in the new context, answer YES.
 Otherwise, answer NO.
 """)
 
-EVAL_GUIDELINES = [
+RESPONSE_EVAL_GUIDELINES = [
     "The response should fully answer the query.",
     "The response should avoid being vague or ambiguous.",
     "The response should be comprehensive, ensuring all relevant information from the context is included and nothing essential is omitted.",
 ]
+
+
+class NoResultsFoundError(Exception):
+    """Custom exception to be raised when no results are found."""
+    pass
 
 
 def search_data(query) -> list[SearchResult]:
@@ -107,24 +112,22 @@ def search_data(query) -> list[SearchResult]:
         "bing",
         "yahoo",
     ]
+
+    # Simulating the search function with the placeholder for your search logic
     results: list[SearchResult] = search_searxng(
         query_url="http://searxng.local:8080/search",
         query=query,
-        min_score=0.2,
+        min_score=2.0,
         filter_sites=filter_sites,
         engines=engines,
         config={
             "port": 3101
         },
     )
-    # results_dict = {
-    #     f"URL: {result["url"]}\n{result["title"]}\n{result["content"]}": result for result in results}
-    # rerank_candidates = list(results_dict.keys())
-    # reranked_results = search_similarities(
-    #     query,
-    #     candidates=rerank_candidates,
-    #     model_name=rerank_model)
-    # results = [results_dict[item["text"]] for item in reranked_results]
+
+    if not results:
+        raise NoResultsFoundError(f"No results found for query: '{query}'")
+
     return results
 
 
@@ -160,7 +163,7 @@ class GuidelineEvalResult(EvaluationResult):
     guideline: str
 
 
-def run_evaluate_response_guidelines(model: OLLAMA_MODEL_NAMES, query: str, contexts: list[str], response: str, guidelines: list[str], output_cls: Optional[Type[BaseModel]] = None) -> list[GuidelineEvalResult]:
+def run_evaluate_response_guidelines(model: OLLAMA_MODEL_NAMES, query: str, contexts: list[str], response: str, guidelines: list[str] = RESPONSE_EVAL_GUIDELINES, output_cls: Optional[Type[BaseModel]] = None) -> list[GuidelineEvalResult]:
     llm = Ollama(model=model, temperature=0.75)
     output_parser = PydanticOutputParser(
         output_cls=output_cls) if output_cls else None
@@ -297,6 +300,7 @@ if __name__ == "__main__":
     # )
 
     for topic in all_topics:
+        sub_dir = f"{output_dir}/{topic.replace(" ", "_").lower()}"
         search_results = search_data(topic)
 
         urls = [item["url"] for item in search_results]
@@ -309,101 +313,104 @@ if __name__ == "__main__":
 
         doc_texts = scrape_urls(urls, output_dir=output_dir)
 
+        largest_doc_headers_info = "", "", 0
         for url, html in doc_texts:
-            parsed_url = urlparse(url)
-            host_path = parsed_url.netloc + parsed_url.path.rstrip('/')
-            host_path = host_path.replace('/', '_')
-            sub_dir = f"{output_dir}/{topic.replace(" ", "_").lower()}/{host_path.lower()}"
-
-            # Save scraped html
-            html_file = f"{sub_dir}/scraped_html.html"
-            save_file(html, html_file)
+            prev_html = largest_doc_headers_info[1]
+            prev_header_count = largest_doc_headers_info[2]
 
             md_text = html_to_markdown(html)
             header_count = count_md_header_contents(md_text)
-            if header_count < 3:
-                logger.warning(f"Not enough headers for url: {url}")
-                continue
+            if not prev_header_count or header_count >= prev_header_count:
+                if header_count == prev_header_count:
+                    prev_md_text = html_to_markdown(prev_html)
+                    if len(md_text) > len(prev_md_text):
+                        largest_doc_headers_info = url, html, header_count
+                else:
+                    largest_doc_headers_info = url, html, header_count
 
-            header_contents = extract_md_header_contents(
-                md_text, min_tokens_per_chunk=256, max_tokens_per_chunk=int(chat_max_tokens * 0.75), tokenizer=get_ollama_tokenizer(chat_model).encode)
+        # Save HTML
+        html_file = f"{sub_dir}/scraped_html.html"
+        url, html, _ = largest_doc_headers_info
+        save_file(html, html_file)
 
-            outputs = []
-            eval_outputs: dict[str, EvaluationResult |
-                               list[EvaluationResult]] = {}
-            passing_results = []
-            for header_idx, header in enumerate(header_contents):
-                context: str = header["content"]
-                message = PROMPT_TEMPLATE.format(context=context, query=query)
+        # Save extracted headers
+        md_text = html_to_markdown(html)
+        header_contents = get_md_header_contents(md_text)
 
-                response = chat_llm.chat(message, options=LLM_OPTIONS)
-                output: str = response.message.content
-                output = output.strip()
-                copy_to_clipboard(output)
+        header_texts = [header["content"] for header in header_contents]
+        header_text = "\n\n\n".join(header_texts)
+        headers_file = f"{sub_dir}/headers.md"
+        save_file(header_text, headers_file)
 
-                outputs.append(f"<!-- Answer {header_idx + 1} -->\n\n{output}")
+        header_contents = extract_md_header_contents(
+            md_text, min_tokens_per_chunk=256, max_tokens_per_chunk=int(chat_max_tokens * 0.65), tokenizer=get_ollama_tokenizer(chat_model).encode)
 
-                output_file = f"{sub_dir}/chat_results.md"
-                save_file("\n\n\n".join(outputs), output_file)
+        outputs = []
+        eval_outputs: dict[str, EvaluationResult |
+                           list[EvaluationResult]] = {}
+        # passing_results = []
+        for header_idx, header in enumerate(header_contents):
+            context: str = header["content"]
+            message = PROMPT_TEMPLATE.format(context=context, query=query)
 
-                # Evaluate results
-                logger.newline()
-                logger.info("Evaluate Results")
+            response = chat_llm.chat(message, options=LLM_OPTIONS)
+            output: str = response.message.content
+            output = output.strip()
+            copy_to_clipboard(output)
 
-                eval_file = f"{sub_dir}/eval_results.json"
+            outputs.append(f"<!-- Answer {header_idx + 1} -->\n\n{output}")
 
-                # Faithfulness
-                logger.newline()
-                logger.orange("Evaluating faitfulness...")
-                eval_result = faithfulness_evaluator.evaluate(
-                    query=query,
-                    contexts=[context],
-                    response=output,
-                )
-                passing_results.append(eval_result.passing)
-                eval_outputs["faitfulness"] = eval_result
-                save_file(eval_outputs, eval_file)
+            output_file = f"{sub_dir}/chat_results.md"
+            save_file("\n\n\n".join(outputs), output_file)
 
-                # # Relevancy
-                # logger.newline()
-                # logger.orange("Evaluating relevancy...")
-                # eval_result = relevancy_evaluator.evaluate(
-                #     query=query,
-                #     contexts=[context],
-                #     response=output,
-                # )
-                # passing_results.append(eval_result.passing)
-                # eval_outputs["relevancy"] = eval_result
-                # save_file(eval_outputs, eval_file)
+        #     # Evaluate results
+        #     logger.newline()
+        #     logger.info("Evaluate Results")
 
-                # Guidelines
-                logger.newline()
-                logger.orange("Evaluating guidelines...")
-                eval_results = run_evaluate_context_guidelines(
-                    model=eval_model,
-                    query=query,
-                    contexts=[context],
-                    response=output,
-                )
-                passing_results.extend(
-                    [eval_result.passing for eval_result in eval_results])
-                eval_outputs["guidelines"] = eval_results
-                save_file(eval_outputs, eval_file)
+        #     eval_file = f"{sub_dir}/eval_results.json"
 
-                # # Correctness
-                # eval_result = correctness_evaluator.evaluate(
-                #     query=query,
-                #     response=output,
-                #     contexts=[context],
-                # )
-                # eval_outputs.append(eval_result)
-                # save_file(eval_outputs, eval_file)
-                # if not eval_result.passing:
-                #     break
+        #     # Faithfulness
+        #     logger.newline()
+        #     logger.orange("Evaluating faitfulness...")
+        #     eval_result = faithfulness_evaluator.evaluate(
+        #         query=query,
+        #         contexts=[context],
+        #         response=output,
+        #     )
+        #     passing_results.append(eval_result.passing)
+        #     eval_outputs["faitfulness"] = eval_result
+        #     save_file(eval_outputs, eval_file)
 
-            passed = all(passing_results)
-            if passed:
-                logger.success("All eval results passed!")
-                break
-            else:
-                logger.warning("Some eval results failed!")
+        #     # # Relevancy
+        #     # logger.newline()
+        #     # logger.orange("Evaluating relevancy...")
+        #     # eval_result = relevancy_evaluator.evaluate(
+        #     #     query=query,
+        #     #     contexts=[context],
+        #     #     response=output,
+        #     # )
+        #     # passing_results.append(eval_result.passing)
+        #     # eval_outputs["relevancy"] = eval_result
+        #     # save_file(eval_outputs, eval_file)
+
+        #     # Guidelines
+        #     logger.newline()
+        #     logger.orange("Evaluating guidelines...")
+        #     eval_results = run_evaluate_response_guidelines(
+        #         # eval_results = run_evaluate_context_guidelines(
+        #         model=eval_model,
+        #         query=query,
+        #         contexts=[context],
+        #         response=output,
+        #     )
+        #     passing_results.extend(
+        #         [eval_result.passing for eval_result in eval_results])
+        #     eval_outputs["guidelines"] = eval_results
+        #     save_file(eval_outputs, eval_file)
+
+        # passed = all(passing_results)
+        # if passed:
+        #     logger.success("All eval results passed!")
+        #     break
+        # else:
+        #     logger.warning("Some eval results failed!")
