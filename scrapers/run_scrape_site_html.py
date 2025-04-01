@@ -233,6 +233,7 @@ if __name__ == "__main__":
                 md_text, min_tokens_per_chunk=256, max_tokens_per_chunk=int(chat_max_tokens * 0.4), tokenizer=get_ollama_tokenizer(chat_model).encode)
 
             outputs = []
+            eval_outputs = []
             prev_output = None
             for item in header_contents:
                 context = item["content"]
@@ -258,15 +259,23 @@ if __name__ == "__main__":
                 output_file = f"{sub_dir}/chat_data.md"
                 save_file("\n\n\n".join(outputs), output_file)
 
-            # Evaluate context relevancy
-            relevancy_eval_result = relevancy_evaluator.evaluate(
-                query=query,
-                response="\n\n\n".join(outputs),
-                contexts=[context],
-            )
+                # Evaluate context relevancy
+                relevancy_eval_result = relevancy_evaluator.evaluate(
+                    query=query,
+                    response=output,
+                    contexts=[context],
+                )
+                eval_outputs.append(relevancy_eval_result)
 
-            eval_file = f"{sub_dir}/relevancy_eval.json"
-            save_file(relevancy_eval_result, eval_file)
+                eval_file = f"{sub_dir}/relevancy_eval.json"
+                save_file(eval_outputs, eval_file)
 
-            if relevancy_eval_result.passing:
+                if not relevancy_eval_result.passing:
+                    break
+
+            passed = all(eval_output.passing for eval_output in eval_outputs)
+            if passed:
+                logger.success("All eval results passed!")
                 break
+            else:
+                logger.warning("Some eval results failed!")
