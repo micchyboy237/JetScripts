@@ -205,6 +205,24 @@ if __name__ == "__main__":
 
     all_topics = valid_id_topics + online_seller_topics
 
+    chat_llm = Ollama(model=chat_model)
+    eval_llm = Ollama(model=eval_model)
+    faithfulness_evaluator = FaithfulnessEvaluator(llm=eval_llm)
+    relevancy_evaluator = RelevancyEvaluator(
+        llm=eval_llm,
+        eval_template=RELEVANCY_EVAL_TEMPLATE,
+        refine_template=RELEVANCY_REFINE_TEMPLATE,
+    )
+    correctness_evaluator = CorrectnessEvaluator(llm=eval_llm)
+    # runner = BatchEvalRunner(
+    #     {
+    #         "faithfulness": faithfulness_evaluator,
+    #         "relevancy": relevancy_evaluator,
+    #         "correctness": correctness_evaluator
+    #     },
+    #     workers=4,
+    # )
+
     for topic in all_topics:
         search_results = search_data(topic)
 
@@ -214,27 +232,9 @@ if __name__ == "__main__":
         #     doc_texts = load_file(doc_file)
         # else:
 
-        query = f"Given the context information, extract all texts relevant to the topic.\nOutput as a structured markdown. If previous answer lines is provided, treat the generated answer as continuation by incrementing the last list number or following the previous format.\nTopic: {topic}"
+        query = f"Given the context information, extract all texts relevant to the topic.\nOutput as a structured markdown with # headers.\nTopic: {topic}"
 
         doc_texts = scrape_urls(urls, output_dir=output_dir)
-
-        chat_llm = Ollama(model=chat_model)
-        eval_llm = Ollama(model=eval_model)
-        faithfulness_evaluator = FaithfulnessEvaluator(llm=eval_llm)
-        relevancy_evaluator = RelevancyEvaluator(
-            llm=eval_llm,
-            eval_template=RELEVANCY_EVAL_TEMPLATE,
-            refine_template=RELEVANCY_REFINE_TEMPLATE,
-        )
-        correctness_evaluator = CorrectnessEvaluator(llm=eval_llm)
-        # runner = BatchEvalRunner(
-        #     {
-        #         "faithfulness": faithfulness_evaluator,
-        #         "relevancy": relevancy_evaluator,
-        #         "correctness": correctness_evaluator
-        #     },
-        #     workers=4,
-        # )
 
         for url, html in doc_texts:
             parsed_url = urlparse(url)
@@ -252,15 +252,16 @@ if __name__ == "__main__":
 
             outputs = []
             eval_outputs = []
-            for item in header_contents:
-                context = item["content"]
+            for header_idx, header in enumerate(header_contents):
+                context = header["content"]
                 message = PROMPT_TEMPLATE.format(context=context, query=query)
 
                 response = chat_llm.chat(message, options=LLM_OPTIONS)
                 output: str = response.message.content
+                output = output.strip()
                 copy_to_clipboard(output)
 
-                outputs.append(output)
+                outputs.append(f"<!-- Answer {header_idx + 1} -->\n\n{output}")
 
                 output_file = f"{sub_dir}/chat_data.md"
                 save_file("\n\n\n".join(outputs), output_file)
@@ -290,16 +291,16 @@ if __name__ == "__main__":
                 if not eval_result.passing:
                     break
 
-                # Correctness
-                eval_result = correctness_evaluator.evaluate(
-                    query=query,
-                    response=output,
-                    contexts=[context],
-                )
-                eval_outputs.append(eval_result)
-                save_file(eval_outputs, eval_file)
-                if not eval_result.passing:
-                    break
+                # # Correctness
+                # eval_result = correctness_evaluator.evaluate(
+                #     query=query,
+                #     response=output,
+                #     contexts=[context],
+                # )
+                # eval_outputs.append(eval_result)
+                # save_file(eval_outputs, eval_file)
+                # if not eval_result.passing:
+                #     break
 
             passed = all(eval_output.passing for eval_output in eval_outputs)
             if passed:
