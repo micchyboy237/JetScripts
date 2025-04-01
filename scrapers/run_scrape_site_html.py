@@ -27,7 +27,7 @@ from bs4 import BeautifulSoup as Soup
 from jet.actions.vector_semantic_search import VectorSemanticSearch
 from jet.logger import logger
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
-from jet.scrapers.utils import clean_text, extract_text_elements
+from jet.scrapers.utils import clean_text, extract_paragraphs, extract_text_elements
 from jet.token.token_utils import filter_texts, get_model_max_tokens, get_ollama_tokenizer, split_texts, token_counter
 from jet.transformers.formatters import format_json
 from jet.file.utils import load_file, save_data, save_file
@@ -164,7 +164,7 @@ if __name__ == "__main__":
     #     doc_texts = load_file(doc_file)
     # else:
 
-    query = f"Given the context information, extract all texts relevant to the topic.\nOutput as a structured markdown.\nTopic: {topic}"
+    query = f"Given the context information, extract all texts relevant to the topic.\nOutput as a structured markdown. If previous output is provided, treat the next output as continuation.\nTopic: {topic}"
 
     doc_texts = scrape_urls(urls, output_dir=output_dir)
 
@@ -183,14 +183,24 @@ if __name__ == "__main__":
             md_text, min_tokens_per_chunk=256, max_tokens_per_chunk=int(chat_max_tokens * 0.4), tokenizer=get_ollama_tokenizer(chat_model).encode)
 
         outputs = []
+        prev_output = None
         for item in header_contents:
             context = item["content"]
             # message = "HTML Texts:\n{context}\n\nQuery:\n{query}\n\nPrompt:\n{prompt}".
             # format(prompt=prompt, context="\n".join(context), query=query)
+            if prev_output:
+                prev_paragraphs = extract_paragraphs(prev_output)
+                prev_output = "\n\n".join(prev_paragraphs[-2:])
+                context = context + "\n\n" + \
+                    f"Previous Output:\n{prev_output}"
+            else:
+                context = context + "\n\n" + \
+                    f"Previous Output:\nN/A"
             message = PROMPT_TEMPLATE.format(context=context, query=query)
 
             response = chat_llm.chat(message, options=LLM_OPTIONS)
             output: str = response.message.content
+            prev_output = output
             copy_to_clipboard(output)
 
             parsed_url = urlparse(url)
