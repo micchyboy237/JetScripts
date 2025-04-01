@@ -164,7 +164,7 @@ if __name__ == "__main__":
     #     doc_texts = load_file(doc_file)
     # else:
 
-    query = f"Given the context information, extract all texts relevant to the topic.\nOutput as a structured markdown. If previous output is provided, treat the next output as continuation.\nTopic: {topic}"
+    query = f"Given the context information, extract all texts relevant to the topic.\nOutput as a structured markdown. If previous answer lines is provided, treat the generated answer as continuation.\nTopic: {topic}"
 
     doc_texts = scrape_urls(urls, output_dir=output_dir)
 
@@ -192,10 +192,10 @@ if __name__ == "__main__":
                 prev_paragraphs = extract_paragraphs(prev_output)
                 prev_output = "\n\n".join(prev_paragraphs[-2:])
                 context = context + "\n\n" + \
-                    f"Previous Output:\n{prev_output}"
+                    f"Previous Answer Lines:\n{prev_output}"
             else:
                 context = context + "\n\n" + \
-                    f"Previous Output:\nN/A"
+                    f"Previous Answer Lines:\nN/A"
             message = PROMPT_TEMPLATE.format(context=context, query=query)
 
             response = chat_llm.chat(message, options=LLM_OPTIONS)
