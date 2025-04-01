@@ -323,35 +323,51 @@ if __name__ == "__main__":
     #     doc_texts = load_file(doc_file)
     # else:
 
-    prompt = "Given the query and scraped html texts, extract all relevant data in a single JSON array format surrounded by ```json."
+    prompt = "Given the context information, extract all relevant data in a single JSON array format surrounded by ```json."
 
     doc_texts = scrape_urls(urls, output_dir=output_dir)
 
     for url, html in doc_texts:
-        context = extract_text_elements(html)
+        # context = extract_text_elements(html)
         md_text = html_to_markdown(html)
         header_contents = extract_md_header_contents(
             md_text, llm_max_tokens * 0.4, tokenizer=get_ollama_tokenizer(llm_model).encode)
-        message = "Prompt:\n{prompt}\n\nQuery:\n{query}\n\nHTML Texts:\n{context}".format(
-            prompt=prompt, context="\n".join(context), query=query)
 
-        llm = Ollama(model=llm_model)
-        options = {
-            "seed": RANDOM_SEED,
-            "temperature": 0,
-        }
-        response = llm.chat(message, options=options)
-        output: str = response.message.content
-        copy_to_clipboard(output)
+        outputs = []
+        for item in header_contents:
+            context = item["content"]
+            # message = "HTML Texts:\n{context}\n\nQuery:\n{query}\n\nPrompt:\n{prompt}".
+            # format(prompt=prompt, context="\n".join(context), query=query)
+            message = """Context information is below.
+    ---------------------
+    {context}
+    ---------------------
+    {prompt}
+    Query:
+    {query}
+    Answer:
+    """.format(prompt=prompt, context="\n".join(context), query=query)
 
-        parsed_url = urlparse(url)
-        host_path = parsed_url.netloc + parsed_url.path.rstrip('/')
-        sub_dir = f"{output_dir}/{host_path}"
+            llm = Ollama(model=llm_model)
+            options = {
+                "seed": RANDOM_SEED,
+                "temperature": 0,
+            }
+            response = llm.chat(message, options=options)
+            output: str = response.message.content
+            copy_to_clipboard(output)
 
-        try:
+            parsed_url = urlparse(url)
+            host_path = parsed_url.netloc + parsed_url.path.rstrip('/')
+            host_path = host_path.replace('/', '_')
+            sub_dir = f"{output_dir}/{host_path}"
+
             output = extract_json_block_content(output)
-            output_file = f"{sub_dir}/chat_data.json"
-            save_file(output, output_file)
-        except:
-            output_file = f"{sub_dir}/chat_md.json"
-            save_file(output, output_file)
+            outputs.extend(outputs)
+
+            try:
+                output_file = f"{sub_dir}/chat_data.json"
+                save_file(outputs, output_file)
+            except:
+                output_file = f"{sub_dir}/chat_md.json"
+                save_file(outputs, output_file)
