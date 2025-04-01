@@ -132,7 +132,8 @@ tree = find_parents_with_text(html_doc)
 
 def print_tree(node: TreeNode, indent=0):
     if node:
-        if node['text'] or node['children'][0]['text'] or node['id'] or node['class_names']:
+        # or node['children'][0]['text']:
+        if node['text'] or node['id'] or node['class_names'] or indent != 0:
             tag_text = node['tag']
             if node['id']:
                 tag_text += " " + colorize_log(f"#{node['id']}", "YELLOW")
