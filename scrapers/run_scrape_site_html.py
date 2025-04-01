@@ -8,6 +8,9 @@ from jet.utils.commands import copy_to_clipboard
 from jet.utils.markdown import extract_json_block_content
 from jet.utils.object import extract_null_keys
 from jet.vectors.reranker.bm25_helpers import SearchResult, HybridSearch
+from llama_index.core.evaluation.batch_runner import BatchEvalRunner
+from llama_index.core.evaluation.correctness import CorrectnessEvaluator
+from llama_index.core.evaluation.faithfulness import FaithfulnessEvaluator
 from llama_index.core.evaluation.relevancy import RelevancyEvaluator
 from tqdm import tqdm
 import hrequests
@@ -217,17 +220,27 @@ if __name__ == "__main__":
 
         chat_llm = Ollama(model=chat_model)
         eval_llm = Ollama(model=eval_model)
+        faithfulness_evaluator = FaithfulnessEvaluator(llm=eval_llm)
         relevancy_evaluator = RelevancyEvaluator(
             llm=eval_llm,
             eval_template=RELEVANCY_EVAL_TEMPLATE,
             refine_template=RELEVANCY_REFINE_TEMPLATE,
         )
+        correctness_evaluator = CorrectnessEvaluator(llm=eval_llm)
+        # runner = BatchEvalRunner(
+        #     {
+        #         "faithfulness": faithfulness_evaluator,
+        #         "relevancy": relevancy_evaluator,
+        #         "correctness": correctness_evaluator
+        #     },
+        #     workers=4,
+        # )
 
         for url, html in doc_texts:
             parsed_url = urlparse(url)
             host_path = parsed_url.netloc + parsed_url.path.rstrip('/')
             host_path = host_path.replace('/', '_')
-            sub_dir = f"{output_dir}/{topic.replace(" ", "_")}/{host_path}".lower()
+            sub_dir = f"{output_dir}/{topic.replace(" ", "_").lower()}/{host_path.lower()}"
 
             # Save scraped html
             html_file = f"{sub_dir}/scraped_html.html"
@@ -252,18 +265,40 @@ if __name__ == "__main__":
                 output_file = f"{sub_dir}/chat_data.md"
                 save_file("\n\n\n".join(outputs), output_file)
 
-                # Evaluate context relevancy
-                relevancy_eval_result = relevancy_evaluator.evaluate(
+                # Evaluate results
+                eval_file = f"{sub_dir}/eval_results.json"
+
+                # Faithfulness
+                eval_result = faithfulness_evaluator.evaluate(
                     query=query,
                     response=output,
                     contexts=[context],
                 )
-                eval_outputs.append(relevancy_eval_result)
-
-                eval_file = f"{sub_dir}/relevancy_eval.json"
+                eval_outputs.append(eval_result)
                 save_file(eval_outputs, eval_file)
+                if not eval_result.passing:
+                    break
 
-                if not relevancy_eval_result.passing:
+                # Relevancy
+                eval_result = relevancy_evaluator.evaluate(
+                    query=query,
+                    response=output,
+                    contexts=[context],
+                )
+                eval_outputs.append(eval_result)
+                save_file(eval_outputs, eval_file)
+                if not eval_result.passing:
+                    break
+
+                # Correctness
+                eval_result = correctness_evaluator.evaluate(
+                    query=query,
+                    response=output,
+                    contexts=[context],
+                )
+                eval_outputs.append(eval_result)
+                save_file(eval_outputs, eval_file)
+                if not eval_result.passing:
                     break
 
             passed = all(eval_output.passing for eval_output in eval_outputs)
