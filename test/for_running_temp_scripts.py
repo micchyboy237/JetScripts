@@ -1,6 +1,7 @@
 import json
 from typing import List, Dict, Optional
 from jet.logger import logger
+from jet.logger.config import colorize_log
 from pyquery import PyQuery as pq
 
 
@@ -9,6 +10,8 @@ class TreeNode(Dict):
     tag: str
     text: Optional[str]  # Some nodes may not contain text
     depth: int
+    id: Optional[str]  # ID attribute of the element
+    class_names: List[str]  # List of class names
     children: List['TreeNode']  # Recursive reference to TreeNode
 
 
@@ -25,14 +28,22 @@ def find_parents_with_text(html: str) -> Optional[TreeNode]:
     def build_tree(element, current_depth: int) -> Optional[TreeNode]:
         text = pq(element).text().strip()
 
+        # Extract ID and class name (only if exists)
+        element_id = pq(element).attr('id')
+        element_class = pq(element).attr('class')
+
+        # Split class names into a list if they exist
+        class_names = element_class.split() if element_class else []
+
         # Include text only for leaf nodes that directly hold text
         if text and len(pq(element).children()) == 0:  # No children, direct text
             return {
-                # Tag of the element (e.g., div, p, h1)
                 "tag": pq(element)[0].tag,
-                "text": text,               # The text inside this element
-                "depth": current_depth,     # Current depth in the hierarchy
-                "children": []              # No children in this case
+                "text": text,
+                "depth": current_depth,
+                "id": element_id,
+                "class_names": class_names,  # Store class names as a list
+                "children": []  # No children in this case
             }
 
         # Otherwise, process children recursively
@@ -45,11 +56,12 @@ def find_parents_with_text(html: str) -> Optional[TreeNode]:
         # Return the element if it has children containing text
         if children:
             return {
-                # Tag of the element (e.g., div, p, h1)
                 "tag": pq(element)[0].tag,
-                "text": None,               # No text for container elements
-                "depth": current_depth,     # Current depth in the hierarchy
-                "children": children        # Nested children that also contain text
+                "text": None,  # No text for container elements
+                "depth": current_depth,
+                "id": element_id,
+                "class_names": class_names,  # Store class names as a list
+                "children": children
             }
         return None
 
@@ -68,7 +80,7 @@ html_doc = """
   </head>
   <body>
     <header>
-      <h1>Today's News</h1>
+      <h1 id="headline">Today's News</h1>
       <nav>
         <ul>
           <li><a href="#">Home</a></li>
@@ -120,9 +132,22 @@ tree = find_parents_with_text(html_doc)
 
 def print_tree(node: TreeNode, indent=0):
     if node:
-        if node['text']:
-            logger.log(('  ' * indent + f"{node['depth']}:"), "-", node['tag'], "-",
-                       json.dumps(node['text'][:30]), colors=["INFO", "GRAY", "DEBUG", "GRAY", "SUCCESS"])
+        if node['text'] or node['children'][0]['text'] or node['id'] or node['class_names']:
+            tag_text = node['tag']
+            if node['id']:
+                tag_text += " " + colorize_log(f"#{node['id']}", "YELLOW")
+            if node['class_names']:
+                tag_text += " " + \
+                    colorize_log(
+                        ', '.join([f".{class_name}" for class_name in node['class_names']]), "ORANGE")
+
+            if node['text']:
+                logger.log(('  ' * indent + f"{node['depth']}:"), tag_text, "-",
+                           json.dumps(node['text'][:30]), colors=["INFO", "DEBUG", "GRAY", "SUCCESS"])
+            else:
+                logger.log(
+                    ('  ' * indent + f"{node['depth']}:"), tag_text, colors=["INFO", "DEBUG"])
+
         for child in node['children']:
             print_tree(child, indent + 1)
 
