@@ -283,7 +283,9 @@ if __name__ == "__main__":
             save_file(html, html_file)
 
             md_text = html_to_markdown(html)
-            if count_md_header_contents(md_text) < 3:
+            header_count = count_md_header_contents(md_text)
+            if header_count < 3:
+                logger.warning(f"Not enough headers for url: {url}")
                 continue
 
             header_contents = extract_md_header_contents(
