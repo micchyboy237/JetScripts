@@ -258,12 +258,15 @@ if __name__ == "__main__":
                 output_file = f"{sub_dir}/chat_data.md"
                 save_file("\n\n\n".join(outputs), output_file)
 
-                # Evaluate context relevancy
-                relevancy_eval_result = relevancy_evaluator.evaluate(
-                    query=query,
-                    response=output,
-                    contexts=[context],
-                )
+            # Evaluate context relevancy
+            relevancy_eval_result = relevancy_evaluator.evaluate(
+                query=query,
+                response="\n\n\n".join(outputs),
+                contexts=[context],
+            )
 
-                eval_file = f"{sub_dir}/relevancy_eval.json"
-                save_file(relevancy_eval_result, eval_file)
+            eval_file = f"{sub_dir}/relevancy_eval.json"
+            save_file(relevancy_eval_result, eval_file)
+
+            if relevancy_eval_result.passing:
+                break
