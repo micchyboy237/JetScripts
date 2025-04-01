@@ -102,7 +102,7 @@ if __name__ == "__main__":
         docs.append(item["html"])
 
     # Get the tree-like structure
-    # tree = extract_tree_with_text(html_doc)
-    tree = extract_tree_with_text(docs[0])
+    tree = extract_tree_with_text(html_doc)
+    # tree = extract_tree_with_text(docs[0])
     # Print the tree structure
     print_tree(tree)
