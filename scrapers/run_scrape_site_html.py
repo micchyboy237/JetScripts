@@ -52,6 +52,34 @@ Query:
 Answer:
 """
 
+RELEVANCY_EVAL_TEMPLATE = PromptTemplate("""
+Your task is to evaluate whether the response to the query aligns with the provided context information.
+You have two options to answer: YES or NO.
+Answer YES if the response to the query is in line with the context information; otherwise, answer NO.
+
+Query and Response:
+{query_str}
+
+Context:
+{context_str}
+
+Answer:
+""")
+
+RELEVANCY_REFINE_TEMPLATE = PromptTemplate("""
+We want to understand if the following query and response are in line with the context information:
+{query_str}
+We have provided an existing YES/NO answer:
+{existing_answer}
+We have the opportunity to refine the existing answer (only if needed) with additional context below.
+------------
+{context_msg}
+------------
+If the existing answer was already YES, still answer YES.
+If the information is present in the new context, answer YES.
+Otherwise, answer NO.
+""")
+
 
 def search_data(query) -> list[SearchResult]:
     filter_sites = [
@@ -142,7 +170,11 @@ if __name__ == "__main__":
 
     chat_llm = Ollama(model=chat_model)
     eval_llm = Ollama(model=eval_model)
-    relevancy_evaluator = RelevancyEvaluator(llm=eval_llm)
+    relevancy_evaluator = RelevancyEvaluator(
+        llm=eval_llm,
+        eval_template=RELEVANCY_EVAL_TEMPLATE,
+        refine_template=RELEVANCY_REFINE_TEMPLATE,
+    )
 
     for url, html in doc_texts:
         # context = extract_text_elements(html)
@@ -184,7 +216,8 @@ if __name__ == "__main__":
                 query=query,
                 response=output,
                 contexts=[context],
+
             )
 
-            eval_file = f"{sub_dir}/chat_md.json"
+            eval_file = f"{sub_dir}/relevancy_eval.md"
             save_file(relevancy_eval_result, eval_file)
