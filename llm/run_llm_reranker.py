@@ -1,11 +1,13 @@
 import os
 from jet.cache.joblib.utils import load_persistent_cache, save_persistent_cache, ttl_cache
-from jet.file.utils import save_file
+from jet.code.splitter_markdown_utils import extract_md_header_contents, get_md_header_contents
+from jet.file.utils import load_file, save_file
+from jet.scrapers.preprocessor import html_to_markdown
 from jet.wordnet.words import get_words
 from llama_index.core.node_parser.text.sentence import SentenceSplitter
 from pydantic import BaseModel, Field
 from jet.logger import logger
-from jet.token.token_utils import get_model_max_tokens, token_counter
+from jet.token.token_utils import get_model_max_tokens, get_ollama_tokenizer, token_counter
 from jet.utils.commands import copy_to_clipboard
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.postprocessor import StructuredLLMRerank
@@ -15,7 +17,7 @@ from llama_index.core import QueryBundle
 import pandas as pd
 from copy import deepcopy
 
-from llama_index.core.schema import NodeWithScore, TextNode
+from llama_index.core.schema import Document, NodeWithScore, TextNode
 
 # LLM_MODEL = "llama3.2"
 LLM_MODEL = "gemma3:4b"
@@ -26,8 +28,9 @@ EMBED_MAX_TOKENS = get_model_max_tokens(EMBED_MODEL)
 chunk_overlap = 40
 chunk_size = 256
 
-DATA_FILE = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/data/10k/lyft_2021.pdf"
-CACHE_FILE = "nodes_lyft_2021.pkl"
+# DATA_FILE = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/data/10k/lyft_2021.pdf"
+DATA_FILE = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/valid-ids-scraper/philippines_national_id_registration_tips_2025/scraped_html.html"
+CACHE_FILE = "llm_reranker.pkl"
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/node_postprocessor/Structured-LLMReranker-Lyft-10k.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -66,31 +69,23 @@ llm = Ollama(temperature=0, model=LLM_MODEL,
 embed_model = OllamaEmbedding(model_name=EMBED_MODEL)
 
 
-load_persistent_cache(CACHE_FILE)
-
-if CACHE_FILE in ttl_cache:
-    documents = ttl_cache[CACHE_FILE]
-    logger.success(f"Cache hit: {CACHE_FILE} - Length: {len(documents)}")
-else:
-    documents = SimpleDirectoryReader(
-        input_files=[DATA_FILE]
-    ).load_data()
-    ttl_cache[CACHE_FILE] = documents
-    save_persistent_cache(CACHE_FILE)
+html: str = load_file(DATA_FILE)
 
 # documents = [doc for doc in documents if "covid" in doc.text.lower()]
 
-# index = VectorStoreIndex.from_documents(
-#     documents,
+
+# splitter = SentenceSplitter(
+#     chunk_size=chunk_size,
+#     chunk_overlap=chunk_overlap,
+#     tokenizer=get_words
 # )
+# all_nodes = splitter.get_nodes_from_documents(documents=documents)
 
-splitter = SentenceSplitter(
-    chunk_size=chunk_size,
-    chunk_overlap=chunk_overlap,
-    tokenizer=get_words
-)
-all_nodes = splitter.get_nodes_from_documents(documents=documents)
-
+md_text = html_to_markdown(html)
+header_contents = get_md_header_contents(md_text)
+# header_contents = extract_md_header_contents(
+#             md_text, min_tokens_per_chunk=256, max_tokens_per_chunk=int(chat_max_tokens * 0.65), tokenizer=get_ollama_tokenizer(embed_model).encode)
+all_nodes = [TextNode(text=h["content"]) for h in header_contents]
 
 index = VectorStoreIndex(
     all_nodes,
@@ -200,7 +195,7 @@ def visualize_retrieved_nodes(nodes: list[NodeWithScore]):
 
 # visualize_retrieved_nodes(reranked_nodes)
 
-query = "What initiatives are the company focusing on independently of COVID-19?"
+query = "What are the steps in registering a National ID in the Philippines?"
 reranked_nodes = get_retrieved_nodes(
     query,
     vector_top_k=40,
@@ -211,7 +206,7 @@ reranked_nodes = get_retrieved_nodes(
 
 results = visualize_retrieved_nodes(reranked_nodes)
 
-output_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/llama_index/node_postprocessor/generated/structured_llm_reranker_results.json"
+output_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_llm_reranker/structured_llm_reranker_results.json"
 save_file({
     "query": query,
     "results": results
