@@ -227,31 +227,18 @@ if __name__ == "__main__":
             host_path = host_path.replace('/', '_')
             sub_dir = f"{output_dir}/{topic.replace(" ", "_")}/{host_path}".lower()
 
-            # context = extract_text_elements(html)
             md_text = html_to_markdown(html)
             header_contents = extract_md_header_contents(
                 md_text, min_tokens_per_chunk=256, max_tokens_per_chunk=int(chat_max_tokens * 0.4), tokenizer=get_ollama_tokenizer(chat_model).encode)
 
             outputs = []
             eval_outputs = []
-            prev_output = None
             for item in header_contents:
                 context = item["content"]
-                # message = "HTML Texts:\n{context}\n\nQuery:\n{query}\n\nPrompt:\n{prompt}".
-                # format(prompt=prompt, context="\n".join(context), query=query)
-                if prev_output:
-                    prev_paragraphs = extract_paragraphs(prev_output)
-                    prev_output = "\n\n".join(prev_paragraphs[-2:])
-                    context = context + "\n\n" + \
-                        f"Previous Answer Lines:\n{prev_output}"
-                else:
-                    context = context + "\n\n" + \
-                        f"Previous Answer Lines:\nN/A"
                 message = PROMPT_TEMPLATE.format(context=context, query=query)
 
                 response = chat_llm.chat(message, options=LLM_OPTIONS)
                 output: str = response.message.content
-                prev_output = output
                 copy_to_clipboard(output)
 
                 outputs.append(output)
