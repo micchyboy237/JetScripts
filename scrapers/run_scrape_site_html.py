@@ -12,8 +12,9 @@ from llama_index.core.evaluation.base import EvaluationResult
 from llama_index.core.evaluation.batch_runner import BatchEvalRunner
 from llama_index.core.evaluation.correctness import CorrectnessEvaluator
 from llama_index.core.evaluation.faithfulness import FaithfulnessEvaluator
-from llama_index.core.evaluation.guideline import GuidelineEvaluator
+from jet.llm.evaluators.guideline_evaluator import GuidelineEvaluator
 from llama_index.core.evaluation.relevancy import RelevancyEvaluator
+from llama_index.core.output_parsers.pydantic import PydanticOutputParser
 from llama_index.core.schema import Document
 from tqdm import tqdm
 import hrequests
@@ -24,8 +25,8 @@ from jet.search.scraper import scrape_url
 from jet.search.searxng import search_searxng
 from jet.utils.class_utils import class_to_string
 from llama_index.core.prompts.base import PromptTemplate
-from pydantic import BaseModel, HttpUrl
-from typing import Any, Generator, List, Optional, TypedDict
+from pydantic import BaseModel, Field, HttpUrl
+from typing import Any, Generator, List, Optional, Type, TypedDict
 from datetime import date
 from langchain_community.document_loaders.recursive_url_loader import RecursiveUrlLoader
 from bs4 import BeautifulSoup as Soup
@@ -158,11 +159,28 @@ class GuidelineEvalResult(EvaluationResult):
     guideline: str
 
 
-def run_evaluate_guidelines(model: OLLAMA_MODEL_NAMES, query: str, contexts: list[str], response: str, guidelines: list[str]) -> list[GuidelineEvalResult]:
+class GuidelineEvalResultSchema(BaseModel):
+    passing: bool = Field(
+        ..., description="Indicates whether the response meets the evaluation guidelines.")
+    score: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Evaluation score ranging from 0.0 (lowest) to 1.0 (highest), representing guideline adherence."
+    )
+    feedback: str = Field(
+        ...,
+        description="Detailed feedback on the response, highlighting strengths and areas for improvement."
+    )
+
+
+def run_evaluate_guidelines(model: OLLAMA_MODEL_NAMES, query: str, contexts: list[str], response: str, guidelines: list[str], output_cls: Type[BaseModel] = GuidelineEvalResultSchema) -> list[GuidelineEvalResult]:
     llm = Ollama(model=model)
+    output_parser = PydanticOutputParser(output_cls=output_cls)
 
     evaluators = [
-        GuidelineEvaluator(llm=llm, guidelines=guideline)
+        GuidelineEvaluator(llm=llm, guidelines=guideline,
+                           output_parser=output_parser)
         for guideline in guidelines
     ]
 
@@ -175,7 +193,8 @@ def run_evaluate_guidelines(model: OLLAMA_MODEL_NAMES, query: str, contexts: lis
         )
         print("=====")
         print(f"Guideline: {guideline}")
-        print(f"Pass: {eval_result.passing}")
+        print(f"Passing: {eval_result.passing}")
+        print(f"Score: {eval_result.score}")
         print(f"Feedback: {eval_result.feedback}")
         results.append(GuidelineEvalResult(
             guideline=guideline, **eval_result.model_dump()))
