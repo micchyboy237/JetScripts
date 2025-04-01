@@ -315,7 +315,7 @@ if __name__ == "__main__":
 
                 # Faithfulness
                 logger.newline()
-                logger.debug("Evaluating faitfulness...")
+                logger.orange("Evaluating faitfulness...")
                 eval_result = faithfulness_evaluator.evaluate(
                     query=query,
                     contexts=[context],
@@ -327,7 +327,7 @@ if __name__ == "__main__":
 
                 # # Relevancy
                 # logger.newline()
-                # logger.debug("Evaluating relevancy...")
+                # logger.orange("Evaluating relevancy...")
                 # eval_result = relevancy_evaluator.evaluate(
                 #     query=query,
                 #     contexts=[context],
@@ -339,7 +339,7 @@ if __name__ == "__main__":
 
                 # Guidelines
                 logger.newline()
-                logger.debug("Evaluating guidelines...")
+                logger.orange("Evaluating guidelines...")
                 eval_results = run_evaluate_guidelines(
                     model=eval_model,
                     query=query,
