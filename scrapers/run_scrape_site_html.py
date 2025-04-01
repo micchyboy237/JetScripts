@@ -309,7 +309,7 @@ if __name__ == "__main__":
     llm_model = "llama3.1"
     llm_max_tokens = get_model_max_tokens(llm_model)
 
-    output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated"
+    output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/site-scraper"
 
     query = "Philippine national ID registration tips 2025"
 
@@ -326,6 +326,8 @@ if __name__ == "__main__":
     prompt = "Given the context information, extract all relevant data in a single JSON array format surrounded by ```json."
 
     doc_texts = scrape_urls(urls, output_dir=output_dir)
+
+    llm = Ollama(model=llm_model)
 
     for url, html in doc_texts:
         # context = extract_text_elements(html)
@@ -346,9 +348,8 @@ if __name__ == "__main__":
     Query:
     {query}
     Answer:
-    """.format(prompt=prompt, context="\n".join(context), query=query)
+    """.format(prompt=prompt, context=context, query=query)
 
-            llm = Ollama(model=llm_model)
             options = {
                 "seed": RANDOM_SEED,
                 "temperature": 0,
