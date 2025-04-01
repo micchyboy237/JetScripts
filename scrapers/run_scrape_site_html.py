@@ -201,7 +201,7 @@ if __name__ == "__main__":
             json_outputs = extract_json_block_content(output)
             json_outputs = json_outputs if isinstance(
                 json_outputs, list) else [json_outputs]
-            outputs.append(json_outputs)
+            outputs.extends(json_outputs)
 
             try:
                 output_file = f"{sub_dir}/chat_data.json"
