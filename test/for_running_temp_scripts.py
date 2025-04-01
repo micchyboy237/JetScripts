@@ -1,157 +1,108 @@
-import json
-from typing import List, Dict, Optional
-from jet.logger import logger
-from jet.logger.config import colorize_log
-from pyquery import PyQuery as pq
-
-
-# Define the structure of a tree node with TypedDict
-class TreeNode(Dict):
-    tag: str
-    text: Optional[str]  # Some nodes may not contain text
-    depth: int
-    id: Optional[str]  # ID attribute of the element
-    class_names: List[str]  # List of class names
-    children: List['TreeNode']  # Recursive reference to TreeNode
-
-
-def find_parents_with_text(html: str) -> Optional[TreeNode]:
-    """
-    Finds all elements (including <p>, <a>, <h1-h6>) that contain any text, ensuring a natural document order.
-    Returns a tree-like structure of parents and their corresponding text, including depth for each node.
-    Only includes text for nodes that directly hold it.
-
-    :param html: The HTML string to parse.
-    :return: A tree-like structure with parent elements and their corresponding text.
-    """
-    # Helper function to recursively build the tree
-    def build_tree(element, current_depth: int) -> Optional[TreeNode]:
-        text = pq(element).text().strip()
-
-        # Extract ID and class name (only if exists)
-        element_id = pq(element).attr('id')
-        element_class = pq(element).attr('class')
-
-        # Split class names into a list if they exist
-        class_names = element_class.split() if element_class else []
-
-        # Include text only for leaf nodes that directly hold text
-        if text and len(pq(element).children()) == 0:  # No children, direct text
-            return {
-                "tag": pq(element)[0].tag,
-                "text": text,
-                "depth": current_depth,
-                "id": element_id,
-                "class_names": class_names,  # Store class names as a list
-                "children": []  # No children in this case
-            }
-
-        # Otherwise, process children recursively
-        children = []
-        for child in pq(element).children():
-            child_tree = build_tree(child, current_depth + 1)
-            if child_tree:
-                children.append(child_tree)
-
-        # Return the element if it has children containing text
-        if children:
-            return {
-                "tag": pq(element)[0].tag,
-                "text": None,  # No text for container elements
-                "depth": current_depth,
-                "id": element_id,
-                "class_names": class_names,  # Store class names as a list
-                "children": children
-            }
-        return None
-
-    doc = pq(html)
-    # Start with the root element (<html>) at depth 0
-    root = build_tree(doc[0], 0)
-
-    return root  # Returns tree-like structure starting from <html> element
 
 
 # Example Usage
+from jet.file.utils import load_file
+from jet.scrapers.utils import extract_tree_with_text, print_tree
+from jet.search.formatters import clean_string
+
+
 html_doc = """
 <html>
   <head>
-    <title>News Website</title>
+    <title>Global News Hub</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <header>
-      <h1 id="headline">Today's News</h1>
+      <h1 id="main-heading">Welcome to Global News</h1>
       <nav>
         <ul>
           <li><a href="#">Home</a></li>
           <li><a href="#">World</a></li>
-          <li><a href="#">Politics</a></li>
-          <li><a href="#">Business</a></li>
+          <li><a href="#">Technology</a></li>
+          <li><a href="#">Health</a></li>
+          <li><a href="#">Sports</a></li>
+          <li><a href="#">Entertainment</a></li>
         </ul>
       </nav>
     </header>
     
     <main>
-      <section class="top-stories">
-        <article>
-          <h2>Breaking: Major Event Unfolds</h2>
-          <p>Details are still emerging about a major event happening right now.</p>
+      <section class="featured-stories">
+        <h2>Featured Stories</h2>
+        <article class="featured-article">
+          <h3>Breaking: Earthquake Hits City</h3>
+          <img src="earthquake.jpg" alt="Damaged buildings" />
+          <p>A magnitude 7.8 earthquake has struck a major city causing widespread destruction.</p>
+          <a href="#">Read More</a>
         </article>
       </section>
 
       <section class="latest-updates">
+        <h2>Latest Updates</h2>
         <article>
-          <h3>Economy Sees Growth</h3>
-          <p>The latest reports show an unexpected increase in GDP this quarter.</p>
+          <h3>The Future of AI in Healthcare</h3>
+          <p>AI technology is advancing rapidly, with a potential to revolutionize healthcare systems.</p>
         </article>
-        
+
         <article>
-          <h3>Tech Innovations in 2025</h3>
-          <p>New advancements in AI and automation are set to change industries.</p>
+          <h3>Climate Change: What Can We Do?</h3>
+          <p>Experts discuss the steps needed to address climate change and its impact on the environment.</p>
+        </article>
+
+        <article>
+          <h3>New Mars Rover Images Released</h3>
+          <p>NASA's new rover has sent back stunning images of the Martian landscape.</p>
+          <figure>
+            <img src="mars_rover.jpg" alt="Mars surface" />
+            <figcaption>New photo from Mars Rover</figcaption>
+          </figure>
         </article>
       </section>
+
+      <section class="technology-news">
+        <h2>Tech Innovations</h2>
+        <ul>
+          <li><a href="#">AI Advancements in Robotics</a></li>
+          <li><a href="#">5G Technology: What’s Next?</a></li>
+          <li><a href="#">SpaceX: Launching the Future</a></li>
+        </ul>
+      </section>
+
+      <aside class="advertisements">
+        <h3>Sponsored Content</h3>
+        <div class="ad-banner">
+          <p>Ad: Check out the latest smartphone on sale today!</p>
+        </div>
+        <div class="ad-banner">
+          <p>Ad: New fitness app to track your workouts – get it now!</p>
+        </div>
+      </aside>
     </main>
 
-    <aside>
-      <h3>Sponsored Content</h3>
-      <p>Check out this amazing product that is changing lives.</p>
-    </aside>
-
     <footer>
-      <p>© 2025 News Website. All rights reserved.</p>
+      <p>© 2025 Global News Hub. All rights reserved.</p>
+      <p>Follow us on:
+        <a href="#">Twitter</a> | 
+        <a href="#">Facebook</a> | 
+        <a href="#">Instagram</a>
+      </p>
     </footer>
   </body>
 </html>
 """
 
-# Get the tree-like structure
-tree = find_parents_with_text(html_doc)
+if __name__ == "__main__":
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/scrapers/crawler/generated/crawl/reelgood.com_urls.json"
+    data = load_file(data_file)
+    docs = []
+    for item in data:
+        docs.append(item["html"])
 
-# Function to print the tree-like structure recursively
-
-
-def print_tree(node: TreeNode, indent=0):
-    if node:
-        # or node['children'][0]['text']:
-        if node['text'] or node['id'] or node['class_names'] or indent != 0:
-            tag_text = node['tag']
-            if node['id']:
-                tag_text += " " + colorize_log(f"#{node['id']}", "YELLOW")
-            if node['class_names']:
-                tag_text += " " + \
-                    colorize_log(
-                        ', '.join([f".{class_name}" for class_name in node['class_names']]), "ORANGE")
-
-            if node['text']:
-                logger.log(('  ' * indent + f"{node['depth']}:"), tag_text, "-",
-                           json.dumps(node['text'][:30]), colors=["INFO", "DEBUG", "GRAY", "SUCCESS"])
-            else:
-                logger.log(
-                    ('  ' * indent + f"{node['depth']}:"), tag_text, colors=["INFO", "DEBUG"])
-
-        for child in node['children']:
-            print_tree(child, indent + 1)
-
-
-# Print the tree structure
-print_tree(tree)
+    # Get the tree-like structure
+    # tree = extract_tree_with_text(html_doc)
+    tree = extract_tree_with_text(docs[0])
+    # Print the tree structure
+    print_tree(tree)
