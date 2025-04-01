@@ -215,7 +215,6 @@ if __name__ == "__main__":
                 query=query,
                 response=output,
                 contexts=[context],
-
             )
 
             eval_file = f"{sub_dir}/relevancy_eval.md"
