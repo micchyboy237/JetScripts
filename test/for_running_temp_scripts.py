@@ -1,269 +1,116 @@
-from jet.wordnet.words import count_words
-import numpy as np
-import psycopg
-from psycopg.rows import dict_row
-from tqdm import tqdm
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.decomposition import TruncatedSVD
-from sklearn.feature_extraction.text import TfidfVectorizer
-import sqlite3
-from typing import List, Dict, Optional, TypedDict
-from jet.file.utils import load_file, save_file
-from jet.llm.utils.embeddings import get_embedding_function
-from jet.transformers.formatters import format_json
-from jet.utils.commands import copy_to_clipboard
-from jet.wordnet.similarity import cluster_texts, get_text_groups
+import json
+from typing import List, Dict, Optional
 from jet.logger import logger
-from jet.vectors.reranker.bm25_helpers import HybridSearch
-
-# File Paths
-db_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/chatgpt/anime_scraper/data/anime.db"
-table_name = "jet_history"
-
-embed_model = "mxbai-embed-large"
+from pyquery import PyQuery as pq
 
 
-DB_CONFIG = {
-    "dbname": "anime_db1",
-    "user": "jethroestrada",
-    "password": "",
-    "host": "jetairm1",
-    "port": "5432"
-}
-TABLE_NAME = "history"
-
-# Load database records
+# Define the structure of a tree node with TypedDict
+class TreeNode(Dict):
+    tag: str
+    text: str
+    depth: int
+    children: List['TreeNode']  # Recursive reference to TreeNode
 
 
-def load_all_records():
-    # with sqlite3.connect(db_path, timeout=10) as conn:
-    #     cursor = conn.cursor()
-    #     cursor.execute(f"SELECT * FROM {table_name}")
-    #     rows = cursor.fetchall()
-    #     columns = [col[0] for col in cursor.description]
-    # return [dict(zip(columns, row)) for row in rows]
-    conn = psycopg.connect(
-        dbname=DB_CONFIG["dbname"],
-        user=DB_CONFIG["user"],
-        password=DB_CONFIG["password"],
-        host=DB_CONFIG["host"],
-        port=DB_CONFIG["port"],
-        autocommit=False,  # Enable manual transaction control
-        row_factory=dict_row
-    )
+def find_parents_with_text(html: str) -> Optional[TreeNode]:
+    """
+    Finds all elements (including <p>, <a>, <h1-h6>) that contain any text, ensuring a natural document order.
+    Returns a tree-like structure of parents and their corresponding text, including depth for each node.
 
-    query = f"SELECT * FROM {TABLE_NAME};"
-    with conn.cursor() as cur:
-        cur.execute(query)
-        results = cur.fetchall()
-        return results
+    :param html: The HTML string to parse.
+    :return: A tree-like structure with parent elements and their corresponding text.
+    """
+    # Helper function to recursively build the tree
+    def build_tree(element, current_depth: int) -> Optional[TreeNode]:
+        text = pq(element).text().strip()
+        if text:  # If element contains text
+            children = []
+            for child in pq(element).children():  # Recursively process children
+                child_tree = build_tree(child, current_depth + 1)
+                if child_tree:
+                    children.append(child_tree)
 
+            return {
+                # Tag of the element (e.g., div, p, h1)
+                "tag": pq(element)[0].tag,
+                "text": text,               # The text inside this element
+                "depth": current_depth,     # Current depth in the hierarchy
+                "children": children        # Nested children that also contain text
+            }
+        return None
 
-class ScrapedData(TypedDict):
-    id: str
-    rank: Optional[int]
-    title: Optional[str]
-    url: Optional[str]
-    image_url: Optional[str]
-    score: Optional[float]
-    episodes: Optional[int]
-    start_date: Optional[str]
-    end_date: Optional[str]
-    next_date: Optional[str]
-    status: Optional[str]
-    members: Optional[int]
-    anime_type: Optional[str]
-    average_score: Optional[int]
-    mean_score: Optional[int]
-    favorites: Optional[int]
-    next_episode: Optional[int]
-    popularity: Optional[int]
-    demographic: Optional[str]
-    studios: Optional[str]
-    producers: Optional[str]
-    source: Optional[str]
-    japanese: Optional[str]
-    english: Optional[str]
-    synonyms: Optional[str]
-    tags: Optional[str]
-    synopsis: Optional[str]
-    genres: Optional[str]
+    doc = pq(html)
+    # Start with the root element (<html>) at depth 0
+    root = build_tree(doc[0], 0)
+
+    return root  # Returns tree-like structure starting from <html> element
 
 
-# Prepare data
-data: list[ScrapedData] = load_all_records()
+# Example Usage
+html_doc = """
+<html>
+  <head>
+    <title>News Website</title>
+  </head>
+  <body>
+    <header>
+      <h1>Today's News</h1>
+      <nav>
+        <ul>
+          <li><a href="#">Home</a></li>
+          <li><a href="#">World</a></li>
+          <li><a href="#">Politics</a></li>
+          <li><a href="#">Business</a></li>
+        </ul>
+      </nav>
+    </header>
+    
+    <main>
+      <section class="top-stories">
+        <article>
+          <h2>Breaking: Major Event Unfolds</h2>
+          <p>Details are still emerging about a major event happening right now.</p>
+        </article>
+      </section>
 
-# Get all unique genres
-unique_genres = set()
-for d in data:
-    if d["genres"]:
-        # Split genres string and add each genre to set
-        genres = d["genres"].split(",")
-        unique_genres.update(g.strip() for g in genres)
-unique_genres = sorted(list(unique_genres))
+      <section class="latest-updates">
+        <article>
+          <h3>Economy Sees Growth</h3>
+          <p>The latest reports show an unexpected increase in GDP this quarter.</p>
+        </article>
+        
+        <article>
+          <h3>Tech Innovations in 2025</h3>
+          <p>New advancements in AI and automation are set to change industries.</p>
+        </article>
+      </section>
+    </main>
 
-# Get all unique tags
-unique_tags = set()
-for d in data:
-    if d["tags"]:
-        # Split tags string and add each tag to set
-        tags = d["tags"].split(",")
-        unique_tags.update(g.strip() for g in tags)
-unique_tags = sorted(list(unique_tags))
+    <aside>
+      <h3>Sponsored Content</h3>
+      <p>Check out this amazing product that is changing lives.</p>
+    </aside>
 
-data_dict: dict[str, ScrapedData] = {d["id"]: d for d in data}
-ids = [d["id"] for d in data]
+    <footer>
+      <p>© 2025 News Website. All rights reserved.</p>
+    </footer>
+  </body>
+</html>
+"""
 
+# Get the tree-like structure
+tree = find_parents_with_text(html_doc)
 
-queries = [d["english"] or d["title"]
-           for d in data if count_words(d["english"] or d["title"]) <= 3]
-
-# Cluster similar texts
-if __name__ == "__main__":
-    texts = []
-    for d in data:
-        title = f"Title:\n{d.get('english') or d.get('title')}"
-        synopsis = f"Synopsis:\n{d.get('synopsis')}"
-        synonyms = f"Synonyms:\n{d.get('synonyms')}"
-        tags_str = d.get('tags', '')
-        tags = [tag.strip() for tag in tags_str.split(',')
-                if tag.strip()] if tags_str else []
-        tags = f"Tags:\n{", ".join(tags)}"
-        genres_str = d.get('genres', '')
-        genres = [genre.strip() for genre in genres_str.split(
-            ',') if genre.strip()] if genres_str else []
-        genres = f"Genres:\n{", ".join(genres)}"
-
-        text_parts = [title]
-        # if d.get('synopsis'):
-        #     text_parts.append(synopsis)
-        # if d.get('synonyms'):
-        #     text_parts.append(synonyms)
-        # if tags_str:
-        #     text_parts.append(tags)
-        # if genres_str:
-        #     text_parts.append(genres)
-        text = "\n".join(text_parts)
-
-        texts.append(text)
-
-    embed_func = get_embedding_function(embed_model)
-    clustered_texts = get_text_groups(texts, model_name="all-minilm:33m")
-
-    save_file(clustered_texts, "generated/anime_clustered_texts.json")
-
-# # Search sample
-# if __name__ == "__main__":
-#     texts = []
-#     for d in data:
-#         title = f"Title - {d.get('english') or d.get('title')}"
-#         synopsis = f"Synopsis - {d.get('synopsis')}"
-#         synonyms = f"Synonyms - {d.get('synonyms')}"
-#         tags_str = d.get('tags', '')
-#         tags = [f"Tag - {tag.strip()}" for tag in tags_str.split(',')
-#                 if tag.strip()] if tags_str else []
-#         genres_str = d.get('genres', '')
-#         genres = [f"Genre - {genre.strip()}" for genre in genres_str.split(
-#             ',') if genre.strip()] if genres_str else []
-
-#         text_parts = [title]
-#         # if d.get('synopsis'):
-#         #     text_parts.append(synopsis)
-#         # if d.get('synonyms'):
-#         #     text_parts.append(synonyms)
-#         # if tags:
-#         #     text_parts.extend(tags)
-#         # if genres:
-#         #     text_parts.extend(genres)
-#         text = "\n".join(text_parts)
-
-#         texts.append(text)
-
-#     # Store results
-#     search_results = []
-
-#     # Sort queries by length
-#     queries = sorted(queries, key=len)
-#     queries = queries[:50]
-
-#     # Initialize Hybrid Search
-#     hybrid_search = HybridSearch(model_name=embed_model)
-#     hybrid_search.build_index(texts, ids=ids)
-
-#     # Search Config
-#     top_k = None
-#     threshold = 0.0
-
-#     for query in tqdm(queries):
-#         query = f"Title - {query}"
-#         results = hybrid_search.search(query, top_k=top_k, threshold=threshold)
-#         semantic_results = results.pop("semantic_results")
-#         hybrid_results = results.pop("hybrid_results")
-#         reranked_results = results.pop("reranked_results")
-#         result = [{
-#             "query": query,
-#             "semantic_results": [{
-#                 "id": result["id"],
-#                 "score": result["score"],
-#                 "similarity": result.get("similarity"),
-#                 "text": result["text"],
-#                 "matched": result["matched"],
-#             } for result in semantic_results],
-#             "reranked_results": [{
-#                 "id": result["id"],
-#                 "score": result["score"],
-#                 "similarity": result.get("similarity"),
-#                 "text": result["text"],
-#                 "matched": result["matched"],
-#             } for result in reranked_results],
-#             "hybrid_results": [{
-#                 "id": result["id"],
-#                 "score": result["score"],
-#                 "similarity": result.get("similarity"),
-#                 "text": result["text"],
-#                 "matched": result["matched"],
-#             } for result in hybrid_results],
-#             # "data": [data_dict[result["id"]] for result in reranked_results],
-#         }]
-
-#         logger.debug(f"Query: {query} | Results: {len(reranked_results)}")
-
-#         search_results.append(result)
-
-#         save_file(search_results, "generated/hybrid_search/search_results.json")
-
-#     logger.info("All queries processed and results saved.")
+# Function to print the tree-like structure recursively
 
 
-# if __name__ == "__main__":
-#     while True:
-#         query = input("Enter query (or 'q' to quit): ")
-#         # quit on 'q' or ctrl+c
-#         if query == 'q' or query == KeyboardInterrupt:
-#             logger.info("Exiting...")
-#             break
+def print_tree(node: TreeNode, indent=0):
+    if node:
+        logger.log(('  ' * indent + f"{node['depth']}:"), "-", node['tag'], "-",
+                   json.dumps(node['text'][:30]), colors=["INFO", "GRAY", "DEBUG", "GRAY", "SUCCESS"])
+        for child in node['children']:
+            print_tree(child, indent + 1)
 
-#         results = hybrid_search.search(query, top_k=top_k, threshold=threshold)
-#         results = results.copy()
 
-#         semantic_results = results.pop("semantic_results")
-#         hybrid_results = results.pop("hybrid_results")
-#         reranked_results = results.pop("reranked_results")
-#         reranked_data = [data_dict[result["id"]]
-#                          for result in reranked_results]
-
-#         logger.debug(f"Query: {query} | Results: {len(reranked_results)}")
-#         for idx, result in enumerate(reranked_results):
-#             logger.log(f"[{idx + 1}]", f"{result["score"]:.2f}",
-#                        result["text"][:30], colors=["INFO", "SUCCESS", "WHITE"])
-#             logger.gray(reranked_data[idx]["url"])
-
-#         save_file(results, "generated/hybrid_search/results_info.json")
-#         save_file({"query": query, "results": semantic_results},
-#                   "generated/hybrid_search/semantic_results.json")
-#         save_file({"query": query, "results": hybrid_results},
-#                   "generated/hybrid_search/hybrid_results.json")
-#         save_file({"query": query, "results": reranked_results},
-#                   "generated/hybrid_search/reranked_results.json")
-#         save_file({"query": query, "results": reranked_data},
-#                   "generated/hybrid_search/reranked_data.json")
+# Print the tree structure
+print_tree(tree)
