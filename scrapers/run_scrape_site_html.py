@@ -164,7 +164,7 @@ if __name__ == "__main__":
     #     doc_texts = load_file(doc_file)
     # else:
 
-    query = f"Given the context information, extract all texts relevant to the topic.\nOutput as JSON surrounded by ```json.\nTopic: {topic}"
+    query = f"Given the context information, extract all texts relevant to the topic.\nOutput as a structured markdown.\nTopic: {topic}"
 
     doc_texts = scrape_urls(urls, output_dir=output_dir)
 
@@ -198,18 +198,10 @@ if __name__ == "__main__":
             host_path = host_path.replace('/', '_')
             sub_dir = f"{output_dir}/{host_path}"
 
-            json_response = extract_json_block_content(output)
-            outputs_dict = make_serializable(json_response)
-            outputs_list = outputs_list if isinstance(
-                outputs_dict, list) else [outputs_dict]
-            outputs.extend(outputs_list)
+            outputs.append(output)
 
-            try:
-                output_file = f"{sub_dir}/chat_data.json"
-                save_file(outputs, output_file)
-            except:
-                output_file = f"{sub_dir}/chat_data.md"
-                save_file(outputs, output_file)
+            output_file = f"{sub_dir}/chat_data.md"
+            save_file("\n\n\n".join(outputs), output_file)
 
             # Evaluate context relevancy
             relevancy_eval_result = relevancy_evaluator.evaluate(
