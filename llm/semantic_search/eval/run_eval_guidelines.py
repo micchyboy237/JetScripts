@@ -115,6 +115,8 @@ def run_evaluate_response_guidelines(model: OLLAMA_MODEL_NAMES, query: str, cont
 
     results = []
     for guideline, evaluator in zip(guidelines, evaluators):
+        logger.newline()
+        logger.debug(f"Evaluating guideline: {guideline}...")
         eval_result = evaluator.evaluate(
             query=query,
             contexts=contexts,
@@ -146,6 +148,8 @@ def run_evaluate_context_guidelines(model: OLLAMA_MODEL_NAMES, query: str, conte
 
     results = []
     for guideline, evaluator in zip(guidelines, evaluators):
+        logger.newline()
+        logger.debug(f"Evaluating guideline: {guideline}...")
         eval_result = evaluator.evaluate(
             query=query,
             contexts=contexts,
