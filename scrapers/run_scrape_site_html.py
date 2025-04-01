@@ -152,7 +152,7 @@ if __name__ == "__main__":
     eval_model = "gemma3:4b"
     chat_max_tokens = get_model_max_tokens(chat_model)
 
-    output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/site-scraper"
+    output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/valid-ids-scraper"
 
     topic = "Philippine national ID registration tips 2025"
 
@@ -164,7 +164,7 @@ if __name__ == "__main__":
     #     doc_texts = load_file(doc_file)
     # else:
 
-    query = "Given the context information, extract all data relevant to the topic. Output as a structured JSON object.\nTopic: {query}"
+    query = f"Given the context information, extract all data relevant to the topic. Output as a structured JSON object.\nTopic: {topic}"
 
     doc_texts = scrape_urls(urls, output_dir=output_dir)
 
@@ -189,8 +189,7 @@ if __name__ == "__main__":
             # format(prompt=prompt, context="\n".join(context), query=query)
             message = PROMPT_TEMPLATE.format(context=context, query=query)
 
-            response = chat_llm.chat(
-                message, format="json", options=LLM_OPTIONS)
+            response = chat_llm.chat(message, options=LLM_OPTIONS)
             output: str = response.message.content
             copy_to_clipboard(output)
 
@@ -202,7 +201,7 @@ if __name__ == "__main__":
             json_outputs = extract_json_block_content(output)
             json_outputs = json_outputs if isinstance(
                 json_outputs, list) else [json_outputs]
-            outputs.extend(json_outputs)
+            outputs.append(json_outputs)
 
             try:
                 output_file = f"{sub_dir}/chat_data.json"
