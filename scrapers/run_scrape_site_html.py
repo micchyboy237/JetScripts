@@ -217,5 +217,5 @@ if __name__ == "__main__":
                 contexts=[context],
             )
 
-            eval_file = f"{sub_dir}/relevancy_eval.md"
+            eval_file = f"{sub_dir}/relevancy_eval.json"
             save_file(relevancy_eval_result, eval_file)
