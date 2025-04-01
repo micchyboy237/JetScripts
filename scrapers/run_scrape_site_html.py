@@ -88,10 +88,10 @@ Otherwise, answer NO.
 EVAL_GUIDELINES = [
     "The response should fully answer the query.",
     "The response should avoid being vague or ambiguous.",
-    (
-        "The response should be specific and use statistics or numbers when"
-        " possible."
-    ),
+    # (
+    #     "The response should be specific and use statistics or numbers when"
+    #     " possible."
+    # ),
 ]
 
 
@@ -335,6 +335,8 @@ if __name__ == "__main__":
                 save_file(eval_outputs, eval_file)
 
                 # Guidelines
+                logger.newline()
+                logger.debug("Evaluating guidelines...")
                 eval_results = run_evaluate_guidelines(
                     model=eval_model,
                     query=query,
