@@ -2,8 +2,9 @@
 
 # Example Usage
 from jet.file.utils import load_file
-from jet.scrapers.utils import extract_tree_with_text, print_tree
+from jet.scrapers.utils import extract_tree_with_text, format_html, print_html
 from jet.search.formatters import clean_string
+from jet.utils.commands import copy_to_clipboard
 
 
 html_doc = """
@@ -102,7 +103,7 @@ if __name__ == "__main__":
         docs.append(item["html"])
 
     # Get the tree-like structure
-    tree = extract_tree_with_text(html_doc)
-    # tree = extract_tree_with_text(docs[0])
-    # Print the tree structure
-    print_tree(tree)
+    # print_html(html_doc)
+    formatted_html = format_html(docs[0])
+    copy_to_clipboard(formatted_html)
+    print_html(docs[0])
