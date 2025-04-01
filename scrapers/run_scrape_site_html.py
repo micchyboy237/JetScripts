@@ -164,7 +164,7 @@ if __name__ == "__main__":
     #     doc_texts = load_file(doc_file)
     # else:
 
-    query = f"Given the context information, extract all data relevant to the topic. Output as a structured JSON object surrounded by ```json.\nTopic: {topic}"
+    query = f"Given the context information, extract all texts relevant to the topic.\nOutput as JSON surrounded by ```json.\nTopic: {topic}"
 
     doc_texts = scrape_urls(urls, output_dir=output_dir)
 
