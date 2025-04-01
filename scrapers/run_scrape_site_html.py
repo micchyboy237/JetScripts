@@ -8,10 +8,13 @@ from jet.utils.commands import copy_to_clipboard
 from jet.utils.markdown import extract_json_block_content
 from jet.utils.object import extract_null_keys
 from jet.vectors.reranker.bm25_helpers import SearchResult, HybridSearch
+from llama_index.core.evaluation.base import EvaluationResult
 from llama_index.core.evaluation.batch_runner import BatchEvalRunner
 from llama_index.core.evaluation.correctness import CorrectnessEvaluator
 from llama_index.core.evaluation.faithfulness import FaithfulnessEvaluator
+from llama_index.core.evaluation.guideline import GuidelineEvaluator
 from llama_index.core.evaluation.relevancy import RelevancyEvaluator
+from llama_index.core.schema import Document
 from tqdm import tqdm
 import hrequests
 from jet.actions.generation import call_ollama_chat
@@ -22,22 +25,21 @@ from jet.search.searxng import search_searxng
 from jet.utils.class_utils import class_to_string
 from llama_index.core.prompts.base import PromptTemplate
 from pydantic import BaseModel, HttpUrl
-from typing import Any, Generator, List, Optional
+from typing import Any, Generator, List, Optional, TypedDict
 from datetime import date
 from langchain_community.document_loaders.recursive_url_loader import RecursiveUrlLoader
 from bs4 import BeautifulSoup as Soup
 
 from jet.actions.vector_semantic_search import VectorSemanticSearch
 from jet.logger import logger
-from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
+from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS, OLLAMA_MODEL_NAMES
 from jet.scrapers.utils import clean_text, extract_paragraphs, extract_text_elements
 from jet.token.token_utils import filter_texts, get_model_max_tokens, get_ollama_tokenizer, split_texts, token_counter
 from jet.transformers.formatters import format_json
 from jet.file.utils import load_file, save_data, save_file
 from jet.transformers.object import make_serializable
 from jet.wordnet.similarity import filter_highest_similarity, search_similarities
-from jet.llm.ollama.base import Ollama
-from langchain_core.documents import Document
+from jet.llm.ollama.base import Ollama, VectorStoreIndex
 
 # RANDOM_SEED = random.randint(0, 1000)
 RANDOM_SEED = 42
@@ -82,6 +84,15 @@ If the existing answer was already YES, still answer YES.
 If the information is present in the new context, answer YES.
 Otherwise, answer NO.
 """)
+
+EVAL_GUIDELINES = [
+    "The response should fully answer the query.",
+    "The response should avoid being vague or ambiguous.",
+    (
+        "The response should be specific and use statistics or numbers when"
+        " possible."
+    ),
+]
 
 
 def search_data(query) -> list[SearchResult]:
@@ -145,6 +156,34 @@ def scrape_urls(urls: list[str], output_dir: str = "generated") -> Generator[tup
             yield start_url, result["html"]
 
     crawler.close()
+
+
+class GuidelineEvalResult(EvaluationResult):
+    guideline: str
+
+
+def run_evaluate_guidelines(model: OLLAMA_MODEL_NAMES, query: str, contexts: list[str], response: str, guidelines: list[str]) -> list[GuidelineEvalResult]:
+    llm = Ollama(model=model)
+
+    evaluators = [
+        GuidelineEvaluator(llm=llm, guidelines=guideline)
+        for guideline in guidelines
+    ]
+
+    results = []
+    for guideline, evaluator in zip(guidelines, evaluators):
+        eval_result = evaluator.evaluate(
+            query=query,
+            contexts=contexts,
+            response=response,
+        )
+        print("=====")
+        print(f"Guideline: {guideline}")
+        print(f"Pass: {eval_result.passing}")
+        print(f"Feedback: {eval_result.feedback}")
+        results.append(GuidelineEvalResult(
+            guideline=guideline, **eval_result.model_dump()))
+    return results
 
 
 if __name__ == "__main__":
@@ -213,12 +252,13 @@ if __name__ == "__main__":
         eval_template=RELEVANCY_EVAL_TEMPLATE,
         refine_template=RELEVANCY_REFINE_TEMPLATE,
     )
-    correctness_evaluator = CorrectnessEvaluator(llm=eval_llm)
+
+    # correctness_evaluator = CorrectnessEvaluator(llm=eval_llm)
     # runner = BatchEvalRunner(
     #     {
     #         "faithfulness": faithfulness_evaluator,
     #         "relevancy": relevancy_evaluator,
-    #         "correctness": correctness_evaluator
+    #         # "correctness": correctness_evaluator
     #     },
     #     workers=4,
     # )
@@ -251,9 +291,9 @@ if __name__ == "__main__":
                 md_text, min_tokens_per_chunk=256, max_tokens_per_chunk=int(chat_max_tokens * 0.75), tokenizer=get_ollama_tokenizer(chat_model).encode)
 
             outputs = []
-            eval_outputs = []
+            eval_outputs: list[EvaluationResult] = []
             for header_idx, header in enumerate(header_contents):
-                context = header["content"]
+                context: str = header["content"]
                 message = PROMPT_TEMPLATE.format(context=context, query=query)
 
                 response = chat_llm.chat(message, options=LLM_OPTIONS)
@@ -263,33 +303,47 @@ if __name__ == "__main__":
 
                 outputs.append(f"<!-- Answer {header_idx + 1} -->\n\n{output}")
 
-                output_file = f"{sub_dir}/chat_data.md"
+                output_file = f"{sub_dir}/chat_results.md"
                 save_file("\n\n\n".join(outputs), output_file)
 
                 # Evaluate results
+                logger.newline()
+                logger.info("Evaluate Results")
+
                 eval_file = f"{sub_dir}/eval_results.json"
 
                 # Faithfulness
+                logger.newline()
+                logger.debug("Evaluating faitfulness...")
                 eval_result = faithfulness_evaluator.evaluate(
                     query=query,
-                    response=output,
                     contexts=[context],
+                    response=output,
                 )
                 eval_outputs.append(eval_result)
                 save_file(eval_outputs, eval_file)
-                if not eval_result.passing:
-                    break
 
                 # Relevancy
-                eval_result = relevancy_evaluator.evaluate(
+                logger.newline()
+                logger.debug("Evaluating relevancy...")
+                eval_result = relevancy_evaluator.evaluate_response(
                     query=query,
-                    response=output,
                     contexts=[context],
+                    response=output,
                 )
                 eval_outputs.append(eval_result)
                 save_file(eval_outputs, eval_file)
-                if not eval_result.passing:
-                    break
+
+                # Guidelines
+                eval_results = run_evaluate_guidelines(
+                    model=eval_model,
+                    query=query,
+                    contexts=[context],
+                    response=output,
+                    guidelines=EVAL_GUIDELINES
+                )
+                eval_outputs.extend(eval_results)
+                save_file(eval_outputs, eval_file)
 
                 # # Correctness
                 # eval_result = correctness_evaluator.evaluate(

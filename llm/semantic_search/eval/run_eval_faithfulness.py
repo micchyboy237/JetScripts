@@ -2,64 +2,76 @@ from jet.llm.ollama.base import Ollama
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
+from llama_index.core.evaluation.faithfulness import FaithfulnessEvaluator
 from llama_index.core.evaluation.relevancy import RelevancyEvaluator
 from llama_index.core.prompts.base import PromptTemplate
-
-
-eval_model = "gemma3:4b"
 
 topic = "Philippine national ID registration tips 2025"
 query = f"Given the context information, extract all data relevant to the topic. Output as a structured JSON object.\nTopic: {topic}"
 output = """
-{
-    "Topic": "National ID Registration in the Philippines",
-    "What is the National ID": "The National ID, also known as the PhilSys ID or PhilID, is a single, government-issued identification card that consolidates multiple forms of identification.",
-    "Key Features of the PhilID": [
-        "PhilSys Number (PSN)",
-        "Biometric Data",
-        "Demographic Information",
-        "QR Code"
-    ],
-    "How to Register for the National ID": [
-        "Online Pre-Registration",
-        "Biometrics Capture",
-        "Delivery of PhilID"
-    ],
-    "Online Pre-Registration": [
-        "Visit register.philsys.gov.ph.",
-        "Fill out personal details.",
-        "Save Application Reference Number (ARN) or QR code."
-    ],
-    "Biometrics Capture": [
-        "Visit the registration center on your scheduled appointment date.",
-        "Provide biometric data."
-    ],
-    "Delivery of PhilID": [
-        "After registration, you will receive a transaction slip with a tracking reference number.",
-        "The PhilID will be delivered to your registered address by PHLPost."
-    ],
-    "Where Can You Register?": [
-        "PSA offices",
-        "Local Government Units (LGUs)",
-        "Malls like SM Supermalls",
-        "Mobile units (PhilSys on Wheels or PhilSys on Boat) for remote areas",
-        "Overseas Filipino Workers (OFWs) can register at Philippine embassies or consulates."
-    ],
-    "Requirements for National ID Registration": [
-        "Primary Documents: PSA-issued Birth Certificate, Passport or ePassport, Unified Multi-purpose Identification Card (UMID), Driver's License",
-        "Secondary Documents: School ID, Barangay Certificate, Voter's ID, NBI Clearance"
-    ],
-    "Tracking Your National ID": [
-        "Visit PHLPost Tracking.",
-        "Enter your transaction reference number (TRN) to check delivery status."
-    ],
-    "Benefits of the National ID": [
-        "Simplified Transactions",
-        "Improved Access to Services",
-        "Digital Integration",
-        "Inclusivity"
-    ]
-}
+<!-- Answer 1 -->
+
+# Philippines National ID Registration Tips 2025
+
+The Philippine Identification System (PhilSys) is a government initiative aimed at simplifying identification processes for all Filipino citizens and resident aliens. This guide will walk you through the registration process, requirements, tracking, and benefits of obtaining a National ID in the Philippines in 2025.
+
+## Key Features of the PhilID
+- The PhilID is equipped with essential features such as a unique 12-digit PhilSys Number (PSN), biometric data (fingerprints, iris scan, and photo), and demographic details like name, birthdate, and address.
+- It also includes a QR code for secure and seamless digital identity verification.
+
+## How to Register for the National ID
+Register Now
+
+1. **Online Pre-Registration**
+   - Visit [register.philsys.gov.ph](http://register.philsys.gov.ph).
+   - Fill out your demographic details such as name, birthdate, address, and contact information.
+   - Save your Application Reference Number (ARN) or QR code after completing the form.
+   - Book an appointment at your preferred registration center.
+
+2. **Biometrics Capture**
+   - Visit the registration center on your scheduled appointment date.
+   - Bring your ARN/QR code and required documents (see requirements below).
+   - Provide biometric data (fingerprints, iris scans, and photograph).
+
+3. **Delivery of PhilID**
+   - After registration, you will receive a transaction slip with a tracking reference number.
+   - The PhilID will be delivered to your registered address by PHLPost.
+
+## Where Can You Register?
+- PSA Regional and Provincial Offices
+- Local Government Units (LGUs)
+- Malls like SM Supermalls
+- Mobile units (PhilSys on Wheels or PhilSys on Boat) for remote areas
+- For Overseas Filipino Workers (OFWs), registration is available at Philippine embassies or consulates.
+
+## Requirements for National ID Registration
+### Primary Documents:
+- PSA-issued Birth Certificate
+- Passport or ePassport
+- Unified Multi-purpose Identification Card (UMID)
+- Driver's License
+
+### Secondary Documents (if primary IDs are unavailable):
+- School ID
+- Barangay Certificate
+- Voter's ID
+- NBI Clearance
+
+For children under five years old:
+- Only demographic information and a front-facing photo are required.
+- Their PSN will be linked to their parent or legal guardian's record.
+
+## Tracking Your National ID
+If you've completed registration but haven't received your PhilID:
+- Visit [PHLPost Tracking](https://www.phlpost.gov.ph/tracking).
+- Enter your transaction reference number (TRN) to check delivery status.
+- If there's no result, it means your ID is still being processed.
+
+## Benefits of the National ID
+- Simplified Transactions: Use one card for banking, government services, and private transactions.
+- Improved Access to Services: Easier enrollment in social welfare programs like SSS, GSIS, Pag-IBIG Fund, and PhilHealth.
+- Digital Integration: Enables secure identity verification through QR codes.
+- Inclusivity: Ensures access for marginalized groups across urban and rural areas.
 """.strip()
 context = """
 # National ID Registration in the Philippines
@@ -193,11 +205,11 @@ If the information is present in the new context, answer YES.
 Otherwise, answer NO.
 """)
 
+eval_model = "gemma3:4b"
+
 eval_llm = Ollama(model=eval_model)
-relevancy_evaluator = RelevancyEvaluator(
+relevancy_evaluator = FaithfulnessEvaluator(
     llm=eval_llm,
-    eval_template=RELEVANCY_EVAL_TEMPLATE,
-    refine_template=RELEVANCY_REFINE_TEMPLATE,
 )
 
 # Evaluate context relevancy
