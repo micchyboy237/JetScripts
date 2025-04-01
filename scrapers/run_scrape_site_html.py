@@ -200,7 +200,9 @@ if __name__ == "__main__":
         "Philippines Online Selling Legal Requirements 2025"
     ]
 
-    for topic in online_seller_topics:
+    all_topics = valid_id_topics + online_seller_topics
+
+    for topic in all_topics:
         search_results = search_data(topic)
 
         urls = [item["url"] for item in search_results]
@@ -227,9 +229,13 @@ if __name__ == "__main__":
             host_path = host_path.replace('/', '_')
             sub_dir = f"{output_dir}/{topic.replace(" ", "_")}/{host_path}".lower()
 
+            # Save scraped html
+            html_file = f"{sub_dir}/scraped_html.html"
+            save_file(html, html_file)
+
             md_text = html_to_markdown(html)
             header_contents = extract_md_header_contents(
-                md_text, min_tokens_per_chunk=256, max_tokens_per_chunk=int(chat_max_tokens * 0.4), tokenizer=get_ollama_tokenizer(chat_model).encode)
+                md_text, min_tokens_per_chunk=256, max_tokens_per_chunk=int(chat_max_tokens * 0.75), tokenizer=get_ollama_tokenizer(chat_model).encode)
 
             outputs = []
             eval_outputs = []
