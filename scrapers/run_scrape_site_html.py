@@ -198,10 +198,11 @@ if __name__ == "__main__":
             host_path = host_path.replace('/', '_')
             sub_dir = f"{output_dir}/{host_path}"
 
-            json_outputs = extract_json_block_content(output)
-            json_outputs = json_outputs if isinstance(
-                json_outputs, list) else [json_outputs]
-            outputs.extend(json_outputs)
+            json_response = extract_json_block_content(output)
+            outputs_dict = make_serializable(json_response)
+            outputs_list = outputs_list if isinstance(
+                outputs_dict, list) else [outputs_dict]
+            outputs.extend(outputs_list)
 
             try:
                 output_file = f"{sub_dir}/chat_data.json"
