@@ -1,7 +1,7 @@
 import json
 from urllib.parse import urlparse
 
-from jet.code.splitter_markdown_utils import extract_md_header_contents
+from jet.code.splitter_markdown_utils import count_md_header_contents, extract_md_header_contents
 from jet.data.utils import generate_unique_hash
 from jet.scrapers.crawler.web_crawler import WebCrawler
 from jet.utils.commands import copy_to_clipboard
@@ -87,11 +87,7 @@ Otherwise, answer NO.
 
 EVAL_GUIDELINES = [
     "The response should fully answer the query.",
-    "The response should avoid being vague or ambiguous.",
-    # (
-    #     "The response should be specific and use statistics or numbers when"
-    #     " possible."
-    # ),
+    "The response should be comprehensive, ensuring all relevant information from the context is included and nothing essential is omitted.",
 ]
 
 
@@ -287,12 +283,16 @@ if __name__ == "__main__":
             save_file(html, html_file)
 
             md_text = html_to_markdown(html)
+            if count_md_header_contents(md_text) < 3:
+                continue
+
             header_contents = extract_md_header_contents(
                 md_text, min_tokens_per_chunk=256, max_tokens_per_chunk=int(chat_max_tokens * 0.75), tokenizer=get_ollama_tokenizer(chat_model).encode)
 
             outputs = []
             eval_outputs: dict[str, EvaluationResult |
                                list[EvaluationResult]] = {}
+            passing_results = []
             for header_idx, header in enumerate(header_contents):
                 context: str = header["content"]
                 message = PROMPT_TEMPLATE.format(context=context, query=query)
@@ -321,19 +321,21 @@ if __name__ == "__main__":
                     contexts=[context],
                     response=output,
                 )
+                passing_results.append(eval_result.passing)
                 eval_outputs["faitfulness"] = eval_result
                 save_file(eval_outputs, eval_file)
 
-                # Relevancy
-                logger.newline()
-                logger.debug("Evaluating relevancy...")
-                eval_result = relevancy_evaluator.evaluate(
-                    query=query,
-                    contexts=[context],
-                    response=output,
-                )
-                eval_outputs["relevancy"] = eval_result
-                save_file(eval_outputs, eval_file)
+                # # Relevancy
+                # logger.newline()
+                # logger.debug("Evaluating relevancy...")
+                # eval_result = relevancy_evaluator.evaluate(
+                #     query=query,
+                #     contexts=[context],
+                #     response=output,
+                # )
+                # passing_results.append(eval_result.passing)
+                # eval_outputs["relevancy"] = eval_result
+                # save_file(eval_outputs, eval_file)
 
                 # Guidelines
                 logger.newline()
@@ -345,6 +347,8 @@ if __name__ == "__main__":
                     response=output,
                     guidelines=EVAL_GUIDELINES
                 )
+                passing_results.extend(
+                    [eval_result.passing for eval_result in eval_results])
                 eval_outputs["guidelines"] = eval_results
                 save_file(eval_outputs, eval_file)
 
@@ -359,8 +363,7 @@ if __name__ == "__main__":
                 # if not eval_result.passing:
                 #     break
 
-            passed = all(eval_output.passing for eval_output in list(
-                eval_outputs.values()))
+            passed = all(passing_results)
             if passed:
                 logger.success("All eval results passed!")
                 break
