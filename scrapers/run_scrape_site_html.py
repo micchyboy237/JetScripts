@@ -8,6 +8,7 @@ from jet.utils.commands import copy_to_clipboard
 from jet.utils.markdown import extract_json_block_content
 from jet.utils.object import extract_null_keys
 from jet.vectors.reranker.bm25_helpers import SearchResult, HybridSearch
+from llama_index.core.evaluation.relevancy import RelevancyEvaluator
 from tqdm import tqdm
 import hrequests
 from jet.actions.generation import call_ollama_chat
@@ -37,71 +38,19 @@ from langchain_core.documents import Document
 
 # RANDOM_SEED = random.randint(0, 1000)
 RANDOM_SEED = 42
+LLM_OPTIONS = {
+    "seed": RANDOM_SEED,
+    "temperature": 0,
+}
 
-
-class Episode(BaseModel):
-    episode_number: int
-    season_number: int
-    title: Optional[str] = None
-    synopsis: Optional[str] = None
-    air_date: Optional[date] = None
-
-
-class Season(BaseModel):
-    season_number: int
-    title: str
-    episodes: List[Episode]
-    release_date: Optional[date] = None
-    end_date: Optional[date] = None
-
-
-class AnimeDetails(BaseModel):
-    title: str
-    episodes: List[Episode] = []
-
-
-episode_fields = list(Episode.model_fields.keys())
-season_fields = list(Season.model_fields.keys())
-anime_details_fields = list(AnimeDetails.model_fields.keys())
-
-# class Anime(BaseModel):
-#     id: int
-#     title: str
-#     synopsis: str
-#     genre: List[str]
-#     studio: Optional[str] = None
-#     status: str  # Example: "Ongoing", "Completed", "Upcoming"
-#     release_date: Optional[date] = None
-#     end_date: Optional[date] = None
-#     total_episodes: Optional[int] = None
-#     seasons: List[Season] = []
-#     poster_url: Optional[HttpUrl] = None
-#     trailer_url: Optional[HttpUrl] = None
-#     rating: Optional[float] = None  # Example: IMDb/MAL rating
-
-
-class Anime(BaseModel):
-    title: str
-    seasons: int
-    episodes: int
-    synopsis: Optional[str] = None
-    genre: Optional[List[str]] = None
-    release_date: Optional[date] = None
-    end_date: Optional[date] = None
-
-
-# Get list of field names
-anime_fields = list(Anime.model_fields.keys())
-
-
-keywords = [
-    "seasons",
-    "episodes",
-    "synopsis",
-    "genre",
-    "release_date",
-    "end_date",
-]
+PROMPT_TEMPLATE = """Context information is below.
+---------------------
+{context}
+---------------------
+Query:
+{query}
+Answer:
+"""
 
 
 def search_data(query) -> list[SearchResult]:
@@ -139,77 +88,6 @@ def search_data(query) -> list[SearchResult]:
     return results
 
 
-def html_extractor(html_str):
-    markdown = html_to_markdown(html_str)
-    header_contents = extract_header_contents(markdown)
-    texts = [item["content"] for item in header_contents]
-    return texts
-
-
-def generate_browser_query(model: str, data: dict, *, seed: int = RANDOM_SEED) -> str:
-    system = "You are an AI assistant that follows instructions. You read object keys and values to understand the provided data. You analyze all null values in the given data and identify missing information. You then generate a query to search on a browser to fill in the missing values. You ensure that the generated query is specific and relevant to the anime title provided. You provide a clear search query based on the gaps in the data for further research. You focus on completing the data by utilizing accurate and efficient search methods."
-
-    prompt = f"Data:\n{json.dumps(data, indent=2)}"
-
-    options = {
-        "seed": seed,
-        "temperature": 0.75,
-    }
-
-    response = ""
-    for chunk in call_ollama_chat(prompt, model, system=system, options=options):
-        response += chunk
-
-    return response
-
-
-def scrape_data(query: str, docs: list[Document], *, seed: int = RANDOM_SEED):
-    texts = [clean_text(doc.page_content) for doc in docs]
-    # LLM Query
-
-    max_llm_tokens = 0.8
-    contexts: list[str] = filter_texts(
-        texts, llm_model, max_llm_tokens)
-    context = "\n\n".join(contexts)
-
-    llm = Ollama(model=llm_model)
-    qa_prompt = PromptTemplate(
-        "Context information is below.\n"
-        "---------------------\n"
-        "{context_str}\n"
-        "---------------------\n"
-        "Given the context information, schema and not prior knowledge, "
-        "answer the query.\n"
-        "The generated JSON must pass the provided schema when validated.\n"
-        "Use null for unavailable values.\n"
-        "Query: {query_str}\n"
-        "Answer: "
-    )
-    response = llm.structured_predict(
-        output_cls=output_cls,
-        prompt=qa_prompt,
-        context_str=context,
-        query_str=query,
-        llm_kwargs={
-            "options": {
-                "seed": seed,
-                "temperature": 0
-            },
-            # "max_prediction_ratio": 0.5
-        },
-    )
-    response_dict = make_serializable(response)
-    logger.success(format_json(response_dict))
-    return response_dict
-
-
-def search_query_contents(search_results: list[SearchResult]):
-    texts = [item["content"] for item in search_results]
-
-    hybrid_search = HybridSearch()
-    hybrid_search.build_index(texts)
-
-
 def scrape_urls(urls: list[str], output_dir: str = "generated") -> Generator[tuple[str, str], None, None]:
 
     # for url in tqdm(urls, desc="Scraping urls", unit="URL"):
@@ -238,84 +116,19 @@ def scrape_urls(urls: list[str], output_dir: str = "generated") -> Generator[tup
     crawler.close()
 
 
-def query_structured_data(query: str, top_k: int = 10, output_dir: str = "generated"):
-    search_results = search_data(query)
-
-    urls = [item["url"] for item in search_results]
-
-    # if os.path.isfile(doc_file):
-    #     doc_texts = load_file(doc_file)
-    # else:
-    doc_texts = scrape_urls(urls, output_dir=output_dir)
-
-    search = VectorSemanticSearch(
-        candidates=doc_texts, embed_model=embed_model)
-
-    fusion_results = search.fusion_search(query)
-    embed_texts: list[str] = []
-    for query_idx, (query_line, group) in enumerate(fusion_results.items()):
-        embed_texts.extend([g["text"] for g in group])
-    embed_texts = embed_texts[:top_k]
-    # logger.newline()
-    # logger.orange(f"Fusion Search Results ({len(reranked_header_contents)}):")
-
-    chunk_size = 200
-    chunk_overlap = 50
-    rerank_candidates = split_texts(
-        embed_texts, rerank_model, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-    reranked_texts = []
-
-    reranked_results = search_similarities(
-        query, candidates=rerank_candidates, model_name=rerank_model)
-    reranked_texts.extend([item["text"] for item in reranked_results])
-
-    all_docs: list[Document] = []
-    for content in reranked_texts:
-        all_docs.append(Document(page_content=content))
-
-    response_dict = scrape_data(query, all_docs)
-    return response_dict
-
-
-def fill_null_values(data: dict, output_dir: str = "generated"):
-    null_keys = extract_null_keys(data)
-    if not null_keys:
-        return data
-
-    search_keys_str = ", ".join(
-        [key.replace('.', ' ').replace('_', ' ') for key in null_keys])
-    query = f"Anime \"{title}\" episodes {search_keys_str}"
-
-    response_dict = query_structured_data(query, output_dir=output_dir)
-    original_data = data.copy()
-
-    def merge_dicts(original, updates):
-        """Recursively merge updates into original only if original has null values."""
-        for key, value in updates.items():
-            if key in original:
-                if isinstance(original[key], dict) and isinstance(value, dict):
-                    merge_dicts(original[key], value)
-                elif original[key] is None:
-                    original[key] = value
-        return original
-
-    merged_result = merge_dicts(original_data, response_dict)
-    return fill_null_values(merged_result, output_dir=output_dir)
-
-
 if __name__ == "__main__":
     embed_model = "mxbai-embed-large"
     rerank_model = "all-minilm:33m"
-    llm_model = "llama3.1"
-    llm_max_tokens = get_model_max_tokens(llm_model)
+    chat_model = "mistral"
+    # chat_model = "gemma3:1b"
+    eval_model = "gemma3:4b"
+    chat_max_tokens = get_model_max_tokens(chat_model)
 
     output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/site-scraper"
 
-    query = "Philippine national ID registration tips 2025"
+    topic = "Philippine national ID registration tips 2025"
 
-    search_keys_str = ", ".join(
-        [key.replace('.', ' ').replace('_', ' ') for key in anime_fields])
-    search_results = search_data(query)
+    search_results = search_data(topic)
 
     urls = [item["url"] for item in search_results]
 
@@ -323,38 +136,29 @@ if __name__ == "__main__":
     #     doc_texts = load_file(doc_file)
     # else:
 
-    prompt = "Given the context information, extract all relevant data in a single JSON array format surrounded by ```json."
+    query = "Given the context information, extract all data relevant to the topic. Output as a structured JSON object.\nTopic: {query}"
 
     doc_texts = scrape_urls(urls, output_dir=output_dir)
 
-    llm = Ollama(model=llm_model)
+    chat_llm = Ollama(model=chat_model)
+    eval_llm = Ollama(model=eval_model)
+    relevancy_evaluator = RelevancyEvaluator(llm=eval_llm)
 
     for url, html in doc_texts:
         # context = extract_text_elements(html)
         md_text = html_to_markdown(html)
         header_contents = extract_md_header_contents(
-            md_text, llm_max_tokens * 0.4, tokenizer=get_ollama_tokenizer(llm_model).encode)
+            md_text, min_tokens_per_chunk=256, max_tokens_per_chunk=int(chat_max_tokens * 0.4), tokenizer=get_ollama_tokenizer(chat_model).encode)
 
         outputs = []
         for item in header_contents:
             context = item["content"]
             # message = "HTML Texts:\n{context}\n\nQuery:\n{query}\n\nPrompt:\n{prompt}".
             # format(prompt=prompt, context="\n".join(context), query=query)
-            message = """Context information is below.
-    ---------------------
-    {context}
-    ---------------------
-    {prompt}
-    Query:
-    {query}
-    Answer:
-    """.format(prompt=prompt, context=context, query=query)
+            message = PROMPT_TEMPLATE.format(context=context, query=query)
 
-            options = {
-                "seed": RANDOM_SEED,
-                "temperature": 0,
-            }
-            response = llm.chat(message, options=options)
+            response = chat_llm.chat(
+                message, format="json", options=LLM_OPTIONS)
             output: str = response.message.content
             copy_to_clipboard(output)
 
@@ -363,12 +167,24 @@ if __name__ == "__main__":
             host_path = host_path.replace('/', '_')
             sub_dir = f"{output_dir}/{host_path}"
 
-            output = extract_json_block_content(output)
-            outputs.extend(outputs)
+            json_outputs = extract_json_block_content(output)
+            json_outputs = json_outputs if isinstance(
+                json_outputs, list) else [json_outputs]
+            outputs.extend(json_outputs)
 
             try:
                 output_file = f"{sub_dir}/chat_data.json"
                 save_file(outputs, output_file)
             except:
-                output_file = f"{sub_dir}/chat_md.json"
+                output_file = f"{sub_dir}/chat_data.md"
                 save_file(outputs, output_file)
+
+            # Evaluate context relevancy
+            relevancy_eval_result = relevancy_evaluator.evaluate(
+                query=query,
+                response=output,
+                contexts=[context],
+            )
+
+            eval_file = f"{sub_dir}/chat_md.json"
+            save_file(relevancy_eval_result, eval_file)
