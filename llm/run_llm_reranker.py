@@ -1,8 +1,13 @@
 import os
+
+from llama_index.core.prompts.base import PromptTemplate
+from tqdm import tqdm
 from jet.cache.joblib.utils import load_persistent_cache, save_persistent_cache, ttl_cache
-from jet.code.splitter_markdown_utils import extract_md_header_contents, get_md_header_contents
+from jet.code.splitter_markdown_utils import extract_md_header_contents, get_md_header_contents, merge_md_header_contents
 from jet.file.utils import load_file, save_file
 from jet.scrapers.preprocessor import html_to_markdown
+from jet.vectors.reranker.bm25_helpers import HybridSearch
+from jet.wordnet.similarity import get_query_similarity_scores
 from jet.wordnet.words import get_words
 from llama_index.core.node_parser.text.sentence import SentenceSplitter
 from pydantic import BaseModel, Field
@@ -27,6 +32,10 @@ EMBED_MAX_TOKENS = get_model_max_tokens(EMBED_MODEL)
 
 chunk_overlap = 40
 chunk_size = 256
+
+output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_llm_reranker"
+
+query = "What are the steps in registering a National ID in the Philippines?"
 
 # DATA_FILE = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/data/10k/lyft_2021.pdf"
 DATA_FILE = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/valid-ids-scraper/philippines_national_id_registration_tips_2025/scraped_html.html"
@@ -60,6 +69,36 @@ This class will make use of the structured output capability of the model instea
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/lyft_2021.pdf' -O 'data/10k/lyft_2021.pdf'
 
 """
+## Custom output cls structure
+"""
+
+
+class DocumentWithRelevance(BaseModel):
+    """Document rankings as selected by model."""
+
+    document_number: int = Field(
+        description="The number of the document within the provided list"
+    )
+    relevance: int = Field(
+        description="Relevance score from 1-10 of the document to the given query, based on the document content. The document must contain information that directly answers or provides substantial evidence for the query to be considered relevant.",
+        json_schema_extra={"minimum": 1, "maximum": 10},
+    )
+
+
+class DocumentRelevanceList(BaseModel):
+    """List of documents with relevance scores."""
+
+    documents: list[DocumentWithRelevance] = Field(
+        description="List of documents with relevance scores"
+    )
+    feedback: str = Field(
+        description="Overall feedback on the relevance of documents.",
+    )
+
+
+document_relevance_list_cls = DocumentRelevanceList
+
+"""
 ## Load Data, Build Index
 """
 
@@ -87,123 +126,67 @@ header_contents = get_md_header_contents(md_text)
 #             md_text, min_tokens_per_chunk=256, max_tokens_per_chunk=int(chat_max_tokens * 0.65), tokenizer=get_ollama_tokenizer(embed_model).encode)
 all_nodes = [TextNode(text=h["content"], metadata={
                       "doc_index": idx}) for idx, h in enumerate(header_contents)]
-
-index = VectorStoreIndex(
-    all_nodes,
-    show_progress=True,
-    embed_model=embed_model
-)
+all_texts = [node.text for node in all_nodes]
+all_texts_dict = {node.text: node for node in all_nodes}
 
 
-"""
-## Custom output cls structure
-"""
-
-
-class DocumentWithRelevance(BaseModel):
-    """Document rankings as selected by model."""
-
-    document_number: int = Field(
-        description="The number of the document within the provided list"
+query_similarities = get_query_similarity_scores(
+    query, all_texts, model_name=EMBED_MODEL)
+nodes_with_scores = [
+    NodeWithScore(
+        node=TextNode(text=text,
+                      metadata=all_texts_dict[text].metadata),
+        score=score
     )
-    relevance: int = Field(
-        description="Relevance score from 1-10 of the document to the given query - based on the document content",
-        json_schema_extra={"minimum": 1, "maximum": 10},
-    )
-    feedback: str = Field(
-        description="Brief feedback on the document's relevance. Example: 'Highly relevant - directly discusses Lyft's COVID-19 safety protocols and driver support measures'",
-    )
-
-
-class DocumentRelevanceList(BaseModel):
-    """List of documents with relevance scores."""
-
-    documents: list[DocumentWithRelevance] = Field(
-        description="List of documents with relevance scores"
-    )
-    feedback: str = Field(
-        description="Overall feedback on the relevance of all documents. Example: 'Found 2 relevant documents discussing Lyft's COVID-19 response. Document 1 is highly detailed while Document 2 only has a brief mention.'",
-    )
-
-
-document_relevance_list_cls = DocumentRelevanceList
-
-
-"""
-## Retrieval Comparisons
-"""
-
-
-def get_retrieved_nodes(
-    query_str, vector_top_k=10, reranker_top_n=5, with_reranker=False,
-):
-    query_bundle = QueryBundle(query_str)
-    retriever = VectorIndexRetriever(
-        index=index,
-        similarity_top_k=vector_top_k,
-    )
-    retrieved_nodes = retriever.retrieve(query_bundle)
-
-    # node_token_counts: list[int] = token_counter(
-    #     [node.text for node in retrieved_nodes], model=LLM_MODEL, prevent_total=True)
-    # max_node_token_count = max(node_token_counts)
-    # # Add buffer
-    # max_batch_size = int(LLM_MAX_TOKENS * 0.75 / max_node_token_count)
-    max_batch_size = 10
-    choice_batch_size = max_batch_size
-
-    if with_reranker:
-        reranker = StructuredLLMRerank(
-            llm=llm,
-            choice_batch_size=choice_batch_size,
-            top_n=reranker_top_n,
-            document_relevance_list_cls=document_relevance_list_cls
-        )
-        retrieved_nodes = reranker.postprocess_nodes(
-            retrieved_nodes, query_bundle
-        )
-
-    return retrieved_nodes
-
-
-def visualize_retrieved_nodes(nodes: list[NodeWithScore]):
-    seen_texts = set()
-    unique_results = []
-
-    for node in nodes:
-        text = node.text.strip()
-        if text not in seen_texts:
-            seen_texts.add(text)
-            unique_results.append({
-                "doc_index": node.metadata.get("doc_index"),
-                "score": node.score,
-                "text": text,
-                "feedback": node.metadata.get("feedback", "")
-            })
-
-    # Sort by doc_index
-    sorted_results = sorted(unique_results, key=lambda x: x["doc_index"])
-
-    copy_to_clipboard(sorted_results)
-    logger.pretty(sorted_results)
-    return sorted_results
-
-
-query = "What are the steps in registering a National ID in the Philippines?"
-reranked_nodes = get_retrieved_nodes(
-    query,
-    vector_top_k=40,
-    reranker_top_n=10,
-    with_reranker=True,
-)
-
-
-results = visualize_retrieved_nodes(reranked_nodes)
-
-output_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_llm_reranker/structured_llm_reranker_results.json"
+    for text, score in query_similarities[0]["results"].items()
+]
+nodes_with_scores_file = f"{output_dir}/nodes_with_scores.json"
 save_file({
     "query": query,
-    "results": results
-}, output_file)
+    "results": nodes_with_scores
+}, nodes_with_scores_file)
 
-logger.info("\n\n[DONE]", bright=True)
+header_contents = merge_md_header_contents(
+    [{"content": node.text} for node in nodes_with_scores], max_tokens=1500, tokenizer=get_ollama_tokenizer(LLM_MODEL).encode)
+header_texts = []
+for idx, header in tqdm(enumerate(header_contents), total=len(header_contents), desc="Chat..."):
+    sub_headers = get_md_header_contents(header["content"])
+    header_texts.append(
+        [f"Document number: {node.metadata['doc_index']}\n{node.text}" for node in nodes_with_scores if node.text.splitlines()[0].strip() in [
+            sub['content'].splitlines()[0].strip() for sub in sub_headers]]
+    )
+
+
+merged_token_counts = token_counter(
+    header_texts, LLM_MODEL, prevent_total=True)
+
+PROMPT_TEMPLATE = """
+A list of documents is shown below. Each document has a number next to it along with a summary of the document. A question is also provided. 
+Respond with the numbers of the documents you should consult to answer the question, in order of relevance, as well 
+as the relevance score. The relevance score is a number from 1-10 based on how relevant you think the document is to the question.
+Do not include any documents that are not relevant to the question. 
+Let's try this now: 
+
+{context}
+
+Query: {query}
+Answer:
+""".strip()
+
+results = []
+results_dict = {
+    "query": query,
+    "results": results
+}
+reranker_results_file = f"{output_dir}/structured_llm_reranker_results.json"
+for context in header_texts:
+    prompt_tmpl = PromptTemplate(PROMPT_TEMPLATE)
+
+    response = llm.structured_predict(
+        output_cls=document_relevance_list_cls,
+        prompt=prompt_tmpl,
+        context=context,
+        query=query
+    )
+    results.append(response)
+    save_file(results_dict, reranker_results_file)
