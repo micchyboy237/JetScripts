@@ -8,7 +8,7 @@ from jet.logger import logger
 from jet.token.token_utils import get_model_max_tokens, token_counter
 from jet.utils.commands import copy_to_clipboard
 from llama_index.core import SimpleDirectoryReader
-from llama_index.core.postprocessor import StructuredLLMRerank
+from jet.vectors.reranker.helpers.structured_llm_rerank import StructuredLLMRerank
 from jet.llm.ollama.base import Ollama, OllamaEmbedding, VectorStoreIndex
 from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.core import QueryBundle

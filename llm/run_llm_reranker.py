@@ -10,7 +10,7 @@ from jet.logger import logger
 from jet.token.token_utils import get_model_max_tokens, get_ollama_tokenizer, token_counter
 from jet.utils.commands import copy_to_clipboard
 from llama_index.core import SimpleDirectoryReader
-from llama_index.core.postprocessor import StructuredLLMRerank
+from jet.vectors.reranker.helpers.structured_llm_rerank import StructuredLLMRerank
 from jet.llm.ollama.base import Ollama, OllamaEmbedding, VectorStoreIndex
 from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.core import QueryBundle
@@ -85,7 +85,8 @@ md_text = html_to_markdown(html)
 header_contents = get_md_header_contents(md_text)
 # header_contents = extract_md_header_contents(
 #             md_text, min_tokens_per_chunk=256, max_tokens_per_chunk=int(chat_max_tokens * 0.65), tokenizer=get_ollama_tokenizer(embed_model).encode)
-all_nodes = [TextNode(text=h["content"]) for h in header_contents]
+all_nodes = [TextNode(text=h["content"], metadata={
+                      "doc_index": idx}) for idx, h in enumerate(header_contents)]
 
 index = VectorStoreIndex(
     all_nodes,
@@ -143,11 +144,12 @@ def get_retrieved_nodes(
     )
     retrieved_nodes = retriever.retrieve(query_bundle)
 
-    node_token_counts: list[int] = token_counter(
-        [node.text for node in retrieved_nodes], model=LLM_MODEL, prevent_total=True)
-    max_node_token_count = max(node_token_counts)
-    # Add buffer
-    max_batch_size = int(LLM_MAX_TOKENS * 0.75 / max_node_token_count)
+    # node_token_counts: list[int] = token_counter(
+    #     [node.text for node in retrieved_nodes], model=LLM_MODEL, prevent_total=True)
+    # max_node_token_count = max(node_token_counts)
+    # # Add buffer
+    # max_batch_size = int(LLM_MAX_TOKENS * 0.75 / max_node_token_count)
+    max_batch_size = 10
     choice_batch_size = max_batch_size
 
     if with_reranker:
@@ -165,35 +167,27 @@ def get_retrieved_nodes(
 
 
 def visualize_retrieved_nodes(nodes: list[NodeWithScore]):
-    results = [{"score": node.score, "text": node.text,
-                "feedback": node.metadata["feedback"]} for node in nodes]
-    copy_to_clipboard(results)
-    logger.pretty(results)
-    return results
+    seen_texts = set()
+    unique_results = []
 
+    for node in nodes:
+        text = node.text.strip()
+        if text not in seen_texts:
+            seen_texts.add(text)
+            unique_results.append({
+                "doc_index": node.metadata.get("doc_index"),
+                "score": node.score,
+                "text": text,
+                "feedback": node.metadata.get("feedback", "")
+            })
 
-# reranked_nodes = get_retrieved_nodes(
-#     "What is Lyft's response to COVID-19?", vector_top_k=5, with_reranker=False
-# )
+    # Sort by doc_index
+    sorted_results = sorted(unique_results, key=lambda x: x["doc_index"])
 
-# visualize_retrieved_nodes(reranked_nodes)
+    copy_to_clipboard(sorted_results)
+    logger.pretty(sorted_results)
+    return sorted_results
 
-# reranked_nodes = get_retrieved_nodes(
-#     "What is Lyft's response to COVID-19?",
-#     vector_top_k=20,
-#     reranker_top_n=5,
-#     with_reranker=True,
-# )
-
-# visualize_retrieved_nodes(reranked_nodes)
-
-# reranked_nodes = get_retrieved_nodes(
-#     "What initiatives are the company focusing on independently of COVID-19?",
-#     vector_top_k=5,
-#     with_reranker=False,
-# )
-
-# visualize_retrieved_nodes(reranked_nodes)
 
 query = "What are the steps in registering a National ID in the Philippines?"
 reranked_nodes = get_retrieved_nodes(
