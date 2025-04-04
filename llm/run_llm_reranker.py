@@ -222,8 +222,28 @@ if __name__ == "__main__":
         "query": query,
         "results": all_results
     }
-    reranker_results_file = f"{output_dir}/structured_llm_reranker_results.json"
+    reranker_results_file = f"{output_dir}/llm_reranker_results.json"
 
     for response in run_filter_relevant_documents(node_texts):
         all_results.append(response)
         save_file(results_dict, reranker_results_file)
+
+    # Saving final results
+    final_response = all_results[-1]
+    final_results = []
+    seen_texts = set()  # To track unique texts
+
+    for relevant_doc in final_response.relevant_documents:
+        doc_index = relevant_doc.document_number - 1  # Convert to 0-based index
+        text = all_nodes[doc_index].text
+        if text not in seen_texts:  # Ensure unique by text
+            seen_texts.add(text)
+            final_results.append(
+                {"confidence": relevant_doc.confidence, "text": text}
+            )
+
+    # Sort the final results by confidence in descending order
+    final_results.sort(key=lambda x: x['confidence'], reverse=True)
+
+    final_reranker_results_file = f"{output_dir}/final_llm_reranker_results.json"
+    save_file(final_results, final_reranker_results_file)
