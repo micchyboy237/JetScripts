@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     top_k = 5
     contexts = [
-        node.text
+        node["text"]
         for node in nodes_with_scores[:top_k]
     ]
     # contexts = [
