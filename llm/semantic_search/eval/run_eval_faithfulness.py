@@ -15,7 +15,7 @@ if __name__ == "__main__":
     data = load_file(data_file)
 
     eval_result = evaluate_faithfulness(
-        eval_model, data["query"], data["contexts"], data["response"])
+        eval_model, data["query"], data["context"], data["response"])
 
     logger.success(format_json(eval_result))
     copy_to_clipboard(eval_result)
