@@ -11,7 +11,7 @@ if __name__ == "__main__":
     query = "What are the steps in registering a National ID in the Philippines?"
 
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_ollama_base_chat/llm_chat_history.json"
-    output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/semantic_search/eval/generated/run_eval_faithfulness"
+    output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/semantic_search/eval/generated/run_eval_relevancy"
     data = load_file(data_file)
 
     eval_result = evaluate_relevancy(
