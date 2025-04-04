@@ -1,3 +1,4 @@
+from typing import Optional, List
 import os
 
 from llama_index.core.prompts.base import PromptTemplate
@@ -44,7 +45,7 @@ CACHE_FILE = "llm_reranker.pkl"
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/node_postprocessor/Structured-LLMReranker-Lyft-10k.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# Structured LLM Reranker Demonstration (2021 Lyft 10-k)
+# Structured LLM Reranker Demonstration
 
 This tutorial showcases how to do a two-stage pass for retrieval. Use embedding-based retrieval with a high top-k value
 in order to maximize recall and get a large set of candidate items. Then, use LLM-based retrieval
@@ -73,30 +74,39 @@ This class will make use of the structured output capability of the model instea
 """
 
 
-class DocumentWithRelevance(BaseModel):
-    """Document rankings as selected by model."""
+class RelevantDocument(BaseModel):
+    """Document that directly answers the query with specific, factual content."""
 
     document_number: int = Field(
-        description="The number of the document within the provided list"
+        ...,
+        description="Index of the document that includes direct, actionable, or factual information relevant to the query."
     )
-    relevance: int = Field(
-        description="Relevance score from 1-10 of the document to the given query, based on the document content. The document must contain information that directly answers or provides substantial evidence for the query to be considered relevant.",
-        json_schema_extra={"minimum": 1, "maximum": 10},
+    confidence: int = Field(
+        ...,
+        ge=1,
+        le=10,
+        description="Score from 1 to 10 showing the model's confidence in this document's relevance."
     )
 
 
-class DocumentRelevanceList(BaseModel):
-    """List of documents with relevance scores."""
+class DocumentSelectionResult(BaseModel):
+    """LLM response listing only documents with actual answers, and all that were evaluated."""
 
-    documents: list[DocumentWithRelevance] = Field(
-        description="List of documents with relevance scores"
+    relevant_documents: List[RelevantDocument] = Field(
+        ...,
+        description="List of documents with real, specific answers to the query. May be empty if none qualify."
+    )
+    evaluated_documents: List[int] = Field(
+        ...,
+        description="Document numbers that were evaluated for relevance by the model."
     )
     feedback: str = Field(
-        description="Overall feedback on the relevance of documents.",
+        ...,
+        description="Overall explanation of which documents were selected and why, or why none qualified."
     )
 
 
-document_relevance_list_cls = DocumentRelevanceList
+output_cls = DocumentSelectionResult
 
 """
 ## Load Data, Build Index
@@ -183,7 +193,7 @@ for context in header_texts:
     prompt_tmpl = PromptTemplate(PROMPT_TEMPLATE)
 
     response = llm.structured_predict(
-        output_cls=document_relevance_list_cls,
+        output_cls=output_cls,
         prompt=prompt_tmpl,
         context=context,
         query=query
