@@ -186,7 +186,7 @@ save_file({
 }, nodes_with_scores_file)
 
 top_node_texts = [
-    node.text
+    f"Document number: {node.metadata['doc_index'] + 1}\nIndexes: {node.metadata['start_idx']} - {node.metadata['end_idx']}\n{node.text}"
     for node in nodes_with_scores[:top_k]
 ]
 eval_result = evaluate_context_relevancy(
