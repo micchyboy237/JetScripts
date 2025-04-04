@@ -262,6 +262,17 @@ if __name__ == "__main__":
 
     # Sort the final results by confidence in descending order
     final_results.sort(key=lambda x: x['confidence'], reverse=True)
-
     final_reranker_results_file = f"{output_dir}/final_llm_reranker_results.json"
     save_file(final_results, final_reranker_results_file)
+
+    # Run LLM Chat
+    final_context = "\n\n".join(item["text"] for item in final_results)
+    response = llm.chat(query, context=final_context)
+    llm_chat_history_file = f"{output_dir}/llm_chat_history.md"
+    chat_history_list = [
+        f"## Query\n\n{query}",
+        f"## Context\n\n{final_context}",
+        f"## Response\n\n{response}",
+    ]
+    chat_history = "\n\n".join(chat_history_list)
+    save_file(chat_history, llm_chat_history_file)
