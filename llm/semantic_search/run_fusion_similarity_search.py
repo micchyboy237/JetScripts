@@ -38,13 +38,7 @@ all_texts_dict = {node.text: node for node in all_nodes}
 
 
 query_similarities = get_query_similarity_scores(
-    query, all_texts, model_name=EMBED_MODEL)
-query_similarities_2 = get_query_similarity_scores(
-    query, all_texts, model_name=EMBED_MODEL_2)
-query_similarities_3 = get_query_similarity_scores(
-    query, all_texts, model_name=EMBED_MODEL_3)
-vector_results = fuse_similarity_scores(
-    query_similarities, query_similarities_2, query_similarities_3)
+    query, all_texts, model_name=[EMBED_MODEL, EMBED_MODEL_2, EMBED_MODEL_3])
 # nodes_with_scores = [
 #     NodeWithScore(
 #         node=TextNode(text=text,
@@ -53,5 +47,5 @@ vector_results = fuse_similarity_scores(
 #     )
 #     for text, score in query_similarities[0]["results"].items()
 # ]
-copy_to_clipboard(vector_results)
-logger.success(format_json(vector_results))
+copy_to_clipboard(query_similarities)
+logger.success(format_json(query_similarities))

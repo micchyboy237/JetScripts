@@ -31,7 +31,8 @@ from llama_index.core.schema import Document, NodeWithScore, TextNode
 LLM_MODEL = "gemma3:4b"
 LLM_MAX_TOKENS = get_model_max_tokens(LLM_MODEL)
 EMBED_MODEL = "mxbai-embed-large"
-EMBED_MAX_TOKENS = get_model_max_tokens(EMBED_MODEL)
+EMBED_MODEL_2 = "paraphrase-multilingual"
+EMBED_MODEL_3 = "granite-embedding"
 EVAL_MODEL = "gemma3:4b"
 
 chunk_overlap = 40
@@ -151,7 +152,7 @@ all_texts_dict = {node.text: node for node in all_nodes}
 
 
 query_similarities = get_query_similarity_scores(
-    query, all_texts, model_name=EMBED_MODEL)
+    query, all_texts, model_name=[EMBED_MODEL, EMBED_MODEL_2, EMBED_MODEL_3])
 nodes_with_scores = [
     NodeWithScore(
         node=TextNode(text=text,
