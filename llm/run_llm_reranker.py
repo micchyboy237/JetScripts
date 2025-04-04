@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Generator, Optional, List
 import os
 
 from llama_index.core.prompts.base import PromptTemplate
@@ -156,19 +156,6 @@ save_file({
     "results": nodes_with_scores
 }, nodes_with_scores_file)
 
-header_contents = merge_md_header_contents(
-    [{"content": node.text} for node in nodes_with_scores], max_tokens=1500, tokenizer=get_ollama_tokenizer(LLM_MODEL).encode)
-header_texts = []
-for idx, header in tqdm(enumerate(header_contents), total=len(header_contents), desc="Chat..."):
-    sub_headers = get_md_header_contents(header["content"])
-    header_texts.append(
-        [f"Document number: {node.metadata['doc_index'] + 1}\n{node.text}" for node in nodes_with_scores if node.text.splitlines()[0].strip() in [
-            sub['content'].splitlines()[0].strip() for sub in sub_headers]]
-    )
-
-
-merged_token_counts = token_counter(
-    header_texts, LLM_MODEL, prevent_total=True)
 
 PROMPT_TEMPLATE = """
 A list of documents is shown below. Each document has a number next to it along with a summary of the document. A question is also provided. 
@@ -183,20 +170,60 @@ Query: {query}
 Answer:
 """.strip()
 
-results = []
-results_dict = {
-    "query": query,
-    "results": results
-}
-reranker_results_file = f"{output_dir}/structured_llm_reranker_results.json"
-for context in header_texts:
-    prompt_tmpl = PromptTemplate(PROMPT_TEMPLATE)
 
-    response = llm.structured_predict(
-        output_cls=output_cls,
-        prompt=prompt_tmpl,
-        context=context,
-        query=query
-    )
-    results.append(response)
-    save_file(results_dict, reranker_results_file)
+def filter_relevant_documents(contexts: list[str]) -> Generator[output_cls, None, None]:
+    for context in contexts:
+        prompt_tmpl = PromptTemplate(PROMPT_TEMPLATE)
+
+        response = llm.structured_predict(
+            output_cls=output_cls,
+            prompt=prompt_tmpl,
+            context=context,
+            query=query
+        )
+
+        yield response
+
+
+def run_filter_relevant_documents(node_texts: list[str]) -> Generator[output_cls, None, None]:
+    header_contents = merge_md_header_contents(
+        [{"content": text} for text in node_texts], max_tokens=1500, tokenizer=get_ollama_tokenizer(LLM_MODEL).encode)
+    header_docs = []
+    for idx, header in tqdm(enumerate(header_contents), total=len(header_contents), desc="Chat..."):
+        sub_headers = get_md_header_contents(header["content"])
+        header_docs.append(
+            [f"Document number: {node.metadata['doc_index'] + 1}\n{node.text}" for node in nodes_with_scores if node.text.splitlines()[0].strip() in [
+                sub['content'].splitlines()[0].strip() for sub in sub_headers]]
+        )
+
+    results: list[output_cls] = []
+    for response in tqdm(filter_relevant_documents(header_docs), total=len(header_contents)):
+        results.append(response)
+        yield response
+
+    # Collect all relevant documents from the response
+    if len(header_docs) > 1:
+        # Extract texts from all relevant documents in all responses
+        results_texts = []
+        for response in results:
+            for relevant_doc in response.relevant_documents:
+                doc_index = relevant_doc.document_number - 1  # Convert to 0-based index
+                results_texts.append(all_nodes[doc_index].text)
+
+        # Now continue filtering with the new set of results_texts
+        yield from run_filter_relevant_documents(results_texts)
+
+
+if __name__ == "__main__":
+    node_texts = [node.text for node in nodes_with_scores]
+
+    all_results = []
+    results_dict = {
+        "query": query,
+        "results": all_results
+    }
+    reranker_results_file = f"{output_dir}/structured_llm_reranker_results.json"
+
+    for response in run_filter_relevant_documents(node_texts):
+        all_results.append(response)
+        save_file(results_dict, reranker_results_file)
