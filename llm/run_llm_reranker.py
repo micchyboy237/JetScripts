@@ -103,7 +103,7 @@ document_relevance_list_cls = DocumentRelevanceList
 """
 
 
-llm = Ollama(temperature=0, model=LLM_MODEL,
+llm = Ollama(temperature=0.3, model=LLM_MODEL,
              request_timeout=300.0, context_window=LLM_MAX_TOKENS)
 embed_model = OllamaEmbedding(model_name=EMBED_MODEL)
 
@@ -152,7 +152,7 @@ header_texts = []
 for idx, header in tqdm(enumerate(header_contents), total=len(header_contents), desc="Chat..."):
     sub_headers = get_md_header_contents(header["content"])
     header_texts.append(
-        [f"Document number: {node.metadata['doc_index']}\n{node.text}" for node in nodes_with_scores if node.text.splitlines()[0].strip() in [
+        [f"Document number: {node.metadata['doc_index'] + 1}\n{node.text}" for node in nodes_with_scores if node.text.splitlines()[0].strip() in [
             sub['content'].splitlines()[0].strip() for sub in sub_headers]]
     )
 
