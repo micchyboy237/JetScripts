@@ -17,12 +17,13 @@ def safe_path_from_url(url: str, output_dir: str) -> str:
     host = parsed.hostname or 'unknown_host'
     safe_host = re.sub(r'\W+', '_', host)
 
-    # Get last non-empty segment of path
+    # Get last non-empty segment of path (without extension)
     path_parts = [part for part in parsed.path.split('/') if part]
     last_path = path_parts[-1] if path_parts else 'root'
+    last_path_no_ext = os.path.splitext(last_path)[0]
 
     # Final safe subdir
-    sub_dir = os.path.join(safe_host, last_path, output_dir)
+    sub_dir = os.path.join(safe_host, last_path_no_ext, output_dir)
 
     return sub_dir
 
@@ -50,6 +51,7 @@ if __name__ == "__main__":
 
     scraped_urls_results = scrape_urls(urls)
     for url, html in scraped_urls_results:
+        logger.info(f"Scraping url: {url}")
         sub_dir = safe_path_from_url(url, output_dir)
 
         result = run_scrape_search_chat(
