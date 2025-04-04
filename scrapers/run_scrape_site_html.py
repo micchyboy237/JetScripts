@@ -191,37 +191,6 @@ def run_evaluate_response_guidelines(model: OLLAMA_MODEL_NAMES, query: str, cont
     return results
 
 
-def run_evaluate_context_guidelines(model: OLLAMA_MODEL_NAMES, query: str, contexts: list[str], response: str, guidelines: list[str] = CONTEXT_EVAL_GUIDELINES, output_cls: Optional[Type[BaseModel]] = None) -> list[GuidelineEvalResult]:
-    llm = Ollama(model=model, temperature=0.75)
-    output_parser = PydanticOutputParser(
-        output_cls=output_cls) if output_cls else None
-
-    evaluators = [
-        GuidelineContextEvaluator(
-            llm=llm,
-            guidelines=guideline,
-            output_parser=output_parser,
-        )
-        for guideline in guidelines
-    ]
-
-    results = []
-    for guideline, evaluator in zip(guidelines, evaluators):
-        eval_result = evaluator.evaluate(
-            query=query,
-            contexts=contexts,
-            response=response,
-        )
-        print("=====")
-        print(f"Guideline: {guideline}")
-        print(f"Passing: {eval_result.passing}")
-        print(f"Score: {eval_result.score}")
-        print(f"Feedback: {eval_result.feedback}")
-        results.append(GuidelineEvalResult(
-            guideline=guideline, **eval_result.model_dump()))
-    return results
-
-
 if __name__ == "__main__":
     embed_model = "mxbai-embed-large"
     rerank_model = "all-minilm:33m"
@@ -310,11 +279,16 @@ if __name__ == "__main__":
         # else:
 
         query = f"Given the context information, extract all texts relevant to the topic.\nOutput as a structured markdown with # headers.\nTopic: {topic}"
+        top_search_n = 5
 
         doc_texts = scrape_urls(urls, output_dir=output_dir)
 
         largest_doc_headers_info = "", "", 0
+        search_n_count = 0
         for url, html in doc_texts:
+            if search_n_count >= top_search_n:
+                break
+
             prev_html = largest_doc_headers_info[1]
             prev_header_count = largest_doc_headers_info[2]
 
@@ -327,6 +301,8 @@ if __name__ == "__main__":
                         largest_doc_headers_info = url, html, header_count
                 else:
                     largest_doc_headers_info = url, html, header_count
+
+            search_n_count += 1
 
         # Save HTML
         html_file = f"{sub_dir}/scraped_html.html"
@@ -363,6 +339,8 @@ if __name__ == "__main__":
             output_file = f"{sub_dir}/chat_results.md"
             save_file("\n\n\n".join(outputs), output_file)
 
+            # Evaluate context relevancy to query
+
         #     # Evaluate results
         #     logger.newline()
         #     logger.info("Evaluate Results")
@@ -397,7 +375,6 @@ if __name__ == "__main__":
         #     logger.newline()
         #     logger.orange("Evaluating guidelines...")
         #     eval_results = run_evaluate_response_guidelines(
-        #         # eval_results = run_evaluate_context_guidelines(
         #         model=eval_model,
         #         query=query,
         #         contexts=[context],
