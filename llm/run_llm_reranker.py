@@ -33,6 +33,11 @@ LLM_MAX_TOKENS = get_model_max_tokens(LLM_MODEL)
 EMBED_MODEL = "mxbai-embed-large"
 EMBED_MODEL_2 = "paraphrase-multilingual"
 EMBED_MODEL_3 = "granite-embedding"
+EMBED_MODELS = [
+    EMBED_MODEL,
+    EMBED_MODEL_2,
+    EMBED_MODEL_3,
+]
 EVAL_MODEL = "gemma3:4b"
 
 output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_llm_reranker"
