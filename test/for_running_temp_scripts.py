@@ -42,6 +42,7 @@ header_contents = get_md_header_contents(md_text)
 #                       "doc_index": idx}) for idx, h in enumerate(header_contents)]
 header_docs = [Document(text=h["content"], metadata={
     "doc_index": idx}) for idx, h in enumerate(header_contents)]
+
 chunk_overlap = 40
 chunk_size = min(get_model_max_tokens(embed_model)
                  for embed_model in EMBED_MODELS)
@@ -53,8 +54,7 @@ all_nodes: list[TextNode] = splitter.get_nodes_from_documents(
     documents=header_docs)
 
 # Build lookup of doc_index -> original text
-doc_index_to_text = {doc.metadata["doc_index"]
-    : doc.text for doc in header_docs}
+doc_index_to_text = {doc.metadata["doc_index"]                     : doc.text for doc in header_docs}
 
 # Inject start_idx and end_idx into each node's metadata
 for node in all_nodes:
@@ -75,21 +75,27 @@ all_texts_dict = {node.text: node for node in all_nodes}
 
 query_similarities = get_query_similarity_scores(
     query, all_texts, model_name=[EMBED_MODEL, EMBED_MODEL_2, EMBED_MODEL_3])
-nodes_with_scores = [
-    NodeWithScore(
-        node=TextNode(text=text,
-                      metadata=all_texts_dict[text].metadata),
-        score=score
-    )
-    for text, score in query_similarities[0]["results"].items()
-]
+
+nodes_with_scores = []
+seen_docs = set()  # To track unique texts
+for text, score in query_similarities[0]["results"].items():
+    doc_index = all_texts_dict[text].metadata["doc_index"]
+    if doc_index not in seen_docs:  # Ensure unique by text
+        seen_docs.add(doc_index)
+        nodes_with_scores.append(
+            NodeWithScore(
+                node=TextNode(text=header_docs[doc_index].text,
+                              metadata=all_texts_dict[text].metadata),
+                score=score
+            )
+        )
 copy_to_clipboard(nodes_with_scores)
 display_jet_source_nodes(query, nodes_with_scores[:top_k])
 
 # Run LLM Chat
 
 top_node_texts = [
-    f"Document number: {node.metadata['doc_index'] + 1}\nIndexes: {node.metadata['start_idx']} - {node.metadata['end_idx']}\n{node.text}"
+    node.text
     for node in nodes_with_scores[:top_k]
 ]
 final_context = "\n\n".join(top_node_texts)
