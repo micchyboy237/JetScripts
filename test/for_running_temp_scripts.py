@@ -73,7 +73,6 @@ for node in all_nodes:
 all_texts = [node.text for node in all_nodes]
 all_texts_dict = {node.text: node for node in all_nodes}
 
-
 query_similarities = get_query_similarity_scores(
     query, all_texts, model_name=[EMBED_MODEL, EMBED_MODEL_2, EMBED_MODEL_3])
 nodes_with_scores = [
