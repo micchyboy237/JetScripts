@@ -54,7 +54,7 @@ all_nodes: list[TextNode] = splitter.get_nodes_from_documents(
     documents=header_docs)
 
 # Build lookup of doc_index -> original text
-doc_index_to_text = {doc.metadata["doc_index"]                     : doc.text for doc in header_docs}
+doc_index_to_text = {doc.metadata["doc_index"]: doc.text for doc in header_docs}
 
 # Inject start_idx and end_idx into each node's metadata
 for node in all_nodes:
@@ -101,4 +101,4 @@ top_node_texts = [
 final_context = "\n\n".join(top_node_texts)
 response = llm.chat(query, context=final_context)
 
-copy_to_clipboard(response)
+# copy_to_clipboard(response)
