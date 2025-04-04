@@ -171,14 +171,14 @@ Answer:
 """.strip()
 
 
-def filter_relevant_documents(contexts: list[str]) -> Generator[output_cls, None, None]:
+def filter_relevant_documents(contexts: list[list[str]]) -> Generator[output_cls, None, None]:
     for context in contexts:
         prompt_tmpl = PromptTemplate(PROMPT_TEMPLATE)
 
         response = llm.structured_predict(
             output_cls=output_cls,
             prompt=prompt_tmpl,
-            context=context,
+            context="\n\n".join(context),
             query=query
         )
 
