@@ -1,3 +1,4 @@
+import sys
 from typing import Generator, Optional, List
 import os
 
@@ -176,6 +177,26 @@ eval_result = evaluate_context_relevancy(
 if eval_result.passing:
     logger.success(
         f"Evaluation on context relevancy passed ({len(top_node_texts)})")
+else:
+    logger.error(
+        f"Failed evaluation on context relevancy ({len(top_node_texts)})")
+eval_context_relevancy_file = f"{output_dir}/eval_context_relevancy.json"
+save_file(eval_result, eval_context_relevancy_file)
+
+# Run LLM Chat
+final_context = "\n\n".join(top_node_texts)
+response = llm.chat(query, context=final_context)
+llm_chat_history_file = f"{output_dir}/llm_chat_history.md"
+chat_history_list = [
+    f"## Query\n\n{query}",
+    f"## Context\n\n{final_context}",
+    f"## Response\n\n{response}",
+]
+chat_history = "\n\n".join(chat_history_list)
+save_file(chat_history, llm_chat_history_file)
+
+
+sys.exit()
 
 
 PROMPT_TEMPLATE = """
