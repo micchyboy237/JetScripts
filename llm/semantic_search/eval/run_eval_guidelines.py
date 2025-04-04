@@ -7,7 +7,7 @@ from jet.llm.helpers.qa_dataset_generator import QADatasetGenerator
 from jet.llm.helpers.question_generator import QuestionGenerator
 from jet.llm.models import OLLAMA_MODEL_NAMES
 from jet.llm.ollama.base import Ollama
-from jet.llm.evaluators.guideline_evaluator import CONTEXT_EVAL_GUIDELINES, GuidelineContextEvaluator, GuidelineEvaluator
+from jet.llm.evaluators.helpers.guideline_evaluator import CONTEXT_EVAL_GUIDELINES, GuidelineContextEvaluator, GuidelineEvaluator
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 from jet.transformers.object import make_serializable

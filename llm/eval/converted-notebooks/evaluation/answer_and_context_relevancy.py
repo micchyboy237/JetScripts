@@ -1,7 +1,6 @@
 # %pip install nest_asyncio
 
 import os
-import re
 import joblib
 import nest_asyncio
 import pandas as pd
@@ -36,9 +35,12 @@ from jet.llm.ollama.base import (
     update_llm_settings,
     create_embed_model,
     create_llm,
-    small_llm_model,
-    large_llm_model,
-    large_embed_model,
+
+)
+from jet.llm.ollama.constants import (
+    OLLAMA_SMALL_LLM_MODEL,
+    OLLAMA_LARGE_LLM_MODEL,
+    OLLAMA_LARGE_EMBED_MODEL,
 )
 from jet.transformers import make_serializable
 from jet.logger import logger, time_it
@@ -94,8 +96,8 @@ def load_llm_settings():
     logger.newline()
     logger.debug("Loading LLM settings...")
     settings = update_llm_settings({
-        "llm_model": large_llm_model,
-        "embedding_model": large_embed_model,
+        "llm_model": OLLAMA_LARGE_LLM_MODEL,
+        "embedding_model": OLLAMA_LARGE_EMBED_MODEL,
     })
     return settings
 
@@ -115,7 +117,7 @@ def create_index(nodes: list[BaseNode]):
     logger.debug("Creating index...")
     index = (
         VectorStoreIndex(
-            embed_model=create_embed_model(large_embed_model),
+            embed_model=create_embed_model(OLLAMA_LARGE_EMBED_MODEL),
             nodes=nodes,
             show_progress=True,
         )
@@ -390,18 +392,18 @@ def main():
         index = store_index(index)
     else:
         index = load_index("./storage/llama_dataset")
-    query_engine = create_query_engine(index, large_llm_model)
+    query_engine = create_query_engine(index, OLLAMA_LARGE_LLM_MODEL)
 
     prediction_dataset: BaseLlamaPredictionDataset = make_predictions(
         rag_dataset, query_engine, batch_size=1)
 
     judges = {
         "answer_relevancy": AnswerRelevancyEvaluator(
-            llm=create_llm(small_llm_model),
+            llm=create_llm(OLLAMA_SMALL_LLM_MODEL),
             eval_template=ANSWER_EVAL_TEMPLATE,
         ),
         "context_relevancy": ContextRelevancyEvaluator(
-            llm=create_llm(large_llm_model),
+            llm=create_llm(OLLAMA_LARGE_LLM_MODEL),
             eval_template=CONTEXT_EVAL_TEMPLATE,
         ),
     }

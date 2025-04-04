@@ -132,10 +132,17 @@ html: str = load_file(DATA_FILE)
 
 md_text = html_to_markdown(html)
 header_contents = get_md_header_contents(md_text)
-# header_contents = extract_md_header_contents(
-#             md_text, min_tokens_per_chunk=256, max_tokens_per_chunk=int(chat_max_tokens * 0.65), tokenizer=get_ollama_tokenizer(embed_model).encode)
 all_nodes = [TextNode(text=h["content"], metadata={
                       "doc_index": idx}) for idx, h in enumerate(header_contents)]
+# all_header_docs = [Document(text=h["content"], metadata={
+#     "doc_index": idx}) for idx, h in enumerate(header_contents)]
+# splitter = SentenceSplitter(
+#     chunk_size=chunk_size,
+#     chunk_overlap=chunk_overlap,
+#     tokenizer=get_words
+# )
+# all_nodes: list[TextNode] = splitter.get_nodes_from_documents(
+#     documents=all_header_docs)
 all_texts = [node.text for node in all_nodes]
 all_texts_dict = {node.text: node for node in all_nodes}
 
@@ -229,18 +236,29 @@ if __name__ == "__main__":
         save_file(results_dict, reranker_results_file)
 
     # Saving final results
-    final_response = all_results[-1]
+    # final_response = all_results[-1]
+    # final_results = []
+    # seen_texts = set()  # To track unique texts
+    # for relevant_doc in final_response.relevant_documents:
+    #     doc_index = relevant_doc.document_number - 1  # Convert to 0-based index
+    #     text = all_nodes[doc_index].text
+    #     if text not in seen_texts:  # Ensure unique by text
+    #         seen_texts.add(text)
+    #         final_results.append(
+    #             {"confidence": relevant_doc.confidence, "text": text}
+    #         )
+
     final_results = []
     seen_texts = set()  # To track unique texts
-
-    for relevant_doc in final_response.relevant_documents:
-        doc_index = relevant_doc.document_number - 1  # Convert to 0-based index
-        text = all_nodes[doc_index].text
-        if text not in seen_texts:  # Ensure unique by text
-            seen_texts.add(text)
-            final_results.append(
-                {"confidence": relevant_doc.confidence, "text": text}
-            )
+    for response in all_results:
+        for relevant_doc in response.relevant_documents:
+            doc_index = relevant_doc.document_number - 1  # Convert to 0-based index
+            text = all_nodes[doc_index].text
+            if text not in seen_texts:  # Ensure unique by text
+                seen_texts.add(text)
+                final_results.append(
+                    {"confidence": relevant_doc.confidence, "text": text}
+                )
 
     # Sort the final results by confidence in descending order
     final_results.sort(key=lambda x: x['confidence'], reverse=True)

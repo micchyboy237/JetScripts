@@ -12,7 +12,7 @@ from llama_index.core.evaluation.base import EvaluationResult
 from llama_index.core.evaluation.batch_runner import BatchEvalRunner
 from llama_index.core.evaluation.correctness import CorrectnessEvaluator
 from llama_index.core.evaluation.faithfulness import FaithfulnessEvaluator
-from jet.llm.evaluators.guideline_evaluator import CONTEXT_EVAL_GUIDELINES, GuidelineContextEvaluator, GuidelineEvaluator
+from jet.llm.evaluators.helpers.guideline_evaluator import CONTEXT_EVAL_GUIDELINES, GuidelineContextEvaluator, GuidelineEvaluator
 from llama_index.core.evaluation.relevancy import RelevancyEvaluator
 from llama_index.core.output_parsers.pydantic import PydanticOutputParser
 from llama_index.core.schema import Document
