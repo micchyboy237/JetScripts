@@ -1,6 +1,7 @@
 from typing import Generator, Optional, List
 import os
 
+from jet.llm.evaluators.context_relevancy_evaluator import evaluate_context_relevancy
 from llama_index.core.prompts.base import PromptTemplate
 from tqdm import tqdm
 from jet.cache.joblib.utils import load_persistent_cache, save_persistent_cache, ttl_cache
@@ -30,6 +31,7 @@ LLM_MODEL = "gemma3:4b"
 LLM_MAX_TOKENS = get_model_max_tokens(LLM_MODEL)
 EMBED_MODEL = "mxbai-embed-large"
 EMBED_MAX_TOKENS = get_model_max_tokens(EMBED_MODEL)
+EVAL_MODEL = "gemma3:4b"
 
 chunk_overlap = 40
 chunk_size = 256
@@ -234,6 +236,18 @@ if __name__ == "__main__":
     for response in run_filter_relevant_documents(node_texts):
         all_results.append(response)
         save_file(results_dict, reranker_results_file)
+
+        results_texts = [
+            all_nodes[relevant_doc.document_number - 1].text
+            for response in all_results for relevant_doc in response.relevant_documents
+        ]
+        eval_result = evaluate_context_relevancy(
+            EVAL_MODEL, query, results_texts)
+
+        if eval_result.passing:
+            logger.success(
+                f"Evaluation on context relevancy passed ({len(all_results)})")
+            break
 
     # Saving final results
     # final_response = all_results[-1]
