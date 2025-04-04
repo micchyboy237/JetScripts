@@ -1,50 +1,75 @@
-import re
-from typing import Optional, Tuple
-
+from jet.code.splitter_markdown_utils import get_md_header_contents
+from jet.file.utils import load_file
+from jet.llm.ollama.base import Ollama, OllamaEmbedding
+from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.logger import logger
+from jet.scrapers.preprocessor import html_to_markdown
+from jet.token.token_utils import get_model_max_tokens
 from jet.transformers.formatters import format_json
+from jet.utils.commands import copy_to_clipboard
+from jet.wordnet.similarity import fuse_similarity_scores, get_query_similarity_scores
+from llama_index.core.node_parser.text.sentence import SentenceSplitter
+from llama_index.core.schema import Document, NodeWithScore, TextNode
 
 
-def _default_parser_function(output_str: str) -> Tuple[Optional[float], Optional[str]]:
-    # Pattern to match the feedback and response
-    # This pattern looks for any text ending with '[RESULT]' followed by a number
-    pattern = r"([\s\S]+)(?:\[RESULT\]\s*)([\d.]+)"
+LLM_MODEL = "gemma3:4b"
+LLM_MAX_TOKENS = get_model_max_tokens(LLM_MODEL)
+EMBED_MODEL = "mxbai-embed-large"
+EMBED_MODEL_2 = "paraphrase-multilingual"
+EMBED_MODEL_3 = "granite-embedding"
+EVAL_MODEL = "gemma3:4b"
 
-    # Using regex to find all matches
-    result = re.search(pattern, output_str)
+DATA_FILE = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/valid-ids-scraper/philippines_national_id_registration_tips_2025/scraped_html.html"
+OUTPUT_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_llm_reranker"
 
-    # Check if any match is found
-    if result:
-        # Assuming there's only one match in the text, extract feedback and response
-        feedback, score = result.groups()
-        score = float(score) if score is not None else score
-        return score, feedback.strip()
-    else:
-        return None, None
+query = "What are the steps in registering a National ID in the Philippines?"
+html: str = load_file(DATA_FILE)
+
+llm = Ollama(temperature=0.3, model=LLM_MODEL,
+             request_timeout=300.0, context_window=LLM_MAX_TOKENS)
+embed_model = OllamaEmbedding(model_name=EMBED_MODEL)
 
 
-# Test input text
-input_text = """
-Feedback:
-Okay, let's evaluate the context against the query: "What are the steps in registering a National ID in the Philippines?".
+md_text = html_to_markdown(html)
+header_contents = get_md_header_contents(md_text)
 
-**Question 1: Does the retrieved context match the subject matter of the user's query?**
+# all_nodes = [TextNode(text=h["content"], metadata={
+#                       "doc_index": idx}) for idx, h in enumerate(header_contents)]
+header_docs = [Document(text=h["content"], metadata={
+    "doc_index": idx}) for idx, h in enumerate(header_contents)]
+chunk_overlap = 0
+chunk_size = max(get_model_max_tokens(embed_model)
+                 for embed_model in EMBED_MODEL)
+splitter = SentenceSplitter(
+    chunk_size=chunk_size,
+    chunk_overlap=chunk_overlap,
+)
+all_nodes: list[TextNode] = splitter.get_nodes_from_documents(
+    documents=header_docs)
+all_texts = [node.text for node in all_nodes]
+all_texts_dict = {node.text: node for node in all_nodes}
 
-The context is *highly* relevant. It directly addresses the query by outlining the steps involved in registering for a National ID (PhilID) in the Philippines. The document explicitly provides a numbered list of steps: "1. Prepare the documents required for PhilID, 2. Go to any PhilID Registration Center, 3. Fill out your Philippine National ID Application Form, 4. Have your biometrics information captured, 5. Generate a PSN (PhilSys Number), 6. Receive your National ID Card".
 
-**Score: 2/2**
+query_similarities = get_query_similarity_scores(
+    query, all_texts, model_name=[EMBED_MODEL, EMBED_MODEL_2, EMBED_MODEL_3])
+nodes_with_scores = [
+    NodeWithScore(
+        node=TextNode(text=text,
+                      metadata=all_texts_dict[text].metadata),
+        score=score
+    )
+    for text, score in query_similarities[0]["results"].items()
+]
+copy_to_clipboard(query_similarities)
+display_jet_source_nodes(query, nodes_with_scores)
 
-**Question 2: Can the retrieved context be used exclusively to provide a full answer to the user's query?**
+# Run LLM Chat
+top_k = 5
+top_node_texts = [
+    node.text
+    for node in nodes_with_scores[:top_k]
+]
+final_context = "\n\n".join(top_node_texts)
+response = llm.chat(query, context=final_context)
 
-Yes, the context provides a complete answer to the query. It details *all* the necessary steps for registering a National ID. It also includes relevant information about required documents and the process of generating a PSN (PhilSys Number).  There's no need for additional context to fully answer the question.
-
-**Score: 2/2**
-
-[RESULT] 4.00
-"""
-
-# Apply the function
-result = _default_parser_function(input_text)
-
-logger.newline()
-logger.success(format_json(result))
+copy_to_clipboard(response)
