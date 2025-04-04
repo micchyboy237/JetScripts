@@ -165,6 +165,18 @@ save_file({
     "results": nodes_with_scores
 }, nodes_with_scores_file)
 
+top_k = 5
+top_node_texts = [
+    node.text
+    for node in nodes_with_scores[:top_k]
+]
+eval_result = evaluate_context_relevancy(
+    EVAL_MODEL, query, top_node_texts)
+
+if eval_result.passing:
+    logger.success(
+        f"Evaluation on context relevancy passed ({len(top_node_texts)})")
+
 
 PROMPT_TEMPLATE = """
 A list of documents is shown below. Each document has a number next to it along with a summary of the document. A question is also provided. 
@@ -248,19 +260,6 @@ if __name__ == "__main__":
             logger.success(
                 f"Evaluation on context relevancy passed ({len(all_results)})")
             break
-
-    # Saving final results
-    # final_response = all_results[-1]
-    # final_results = []
-    # seen_texts = set()  # To track unique texts
-    # for relevant_doc in final_response.relevant_documents:
-    #     doc_index = relevant_doc.document_number - 1  # Convert to 0-based index
-    #     text = all_nodes[doc_index].text
-    #     if text not in seen_texts:  # Ensure unique by text
-    #         seen_texts.add(text)
-    #         final_results.append(
-    #             {"confidence": relevant_doc.confidence, "text": text}
-    #         )
 
     final_results = []
     seen_texts = set()  # To track unique texts
