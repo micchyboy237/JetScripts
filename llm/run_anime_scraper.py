@@ -6,26 +6,8 @@ from jet.features.scrape_search_chat import get_docs_from_html, get_nodes_from_d
 from jet.file.utils import load_file, save_file
 from jet.llm.ollama.base import Ollama
 from jet.logger import logger
-from jet.scrapers.utils import scrape_urls, search_data
+from jet.scrapers.utils import safe_path_from_url, scrape_urls, search_data
 from jet.token.token_utils import get_model_max_tokens, token_counter
-
-
-def safe_path_from_url(url: str, output_dir: str) -> str:
-    parsed = urlparse(url)
-
-    # Sanitize host (remove port, replace . with _, remove other unsafe characters)
-    host = parsed.hostname or 'unknown_host'
-    safe_host = re.sub(r'\W+', '_', host)
-
-    # Get last non-empty segment of path (without extension)
-    path_parts = [part for part in parsed.path.split('/') if part]
-    last_path = path_parts[-1] if path_parts else 'root'
-    last_path_no_ext = os.path.splitext(last_path)[0]
-
-    # Final safe subdir
-    sub_dir = os.path.join(safe_host, last_path_no_ext, output_dir)
-
-    return sub_dir
 
 
 if __name__ == "__main__":
@@ -54,6 +36,9 @@ if __name__ == "__main__":
         logger.info(f"Scraping url: {url}")
         sub_dir = safe_path_from_url(url, output_dir)
 
+        html_file = f"{sub_dir}/scraped_html.html"
+        save_file(html, html_file)
+
         result = run_scrape_search_chat(
             html,
             llm_model,
@@ -63,18 +48,25 @@ if __name__ == "__main__":
             query,
         )
 
+        if not result:
+            continue
+
+        save_file(result["docs"], os.path.join(sub_dir, "documents.json"))
+
+        save_file({
+            "query": result["query"],
+            "results": result["search_nodes"]
+        }, os.path.join(sub_dir, "top_nodes.json"))
+
+        save_file(result["search_eval"], os.path.join(
+            sub_dir, "eval_context_relevancy.json"))
+
+        history = "\n\n".join([
+            f"## Query\n\n{result["query"]}",
+            f"## Context\n\n{result["context"]}",
+            f"## Response\n\n{result["response"]}",
+        ])
+        save_file(history, os.path.join(sub_dir, "llm_chat_history.md"))
+
         if result["search_eval"].passing:
-            save_file({
-                "query": result["query"],
-                "results": result["search_nodes"]
-            }, os.path.join(sub_dir, "top_nodes.json"))
-
-            save_file(result["search_eval"], os.path.join(
-                sub_dir, "eval_context_relevancy.json"))
-
-            history = "\n\n".join([
-                f"## Query\n\n{result["query"]}",
-                f"## Context\n\n{result["context"]}",
-                f"## Response\n\n{result["response"]}",
-            ])
-            save_file(history, os.path.join(sub_dir, "llm_chat_history.md"))
+            break

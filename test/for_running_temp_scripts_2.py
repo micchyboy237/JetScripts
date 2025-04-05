@@ -1,111 +1,74 @@
-import math
-from collections import Counter
-from typing import List, Dict
+import json
 
+from jet.llm.ollama.base import Ollama
+from jet.logger import logger
+from jet.transformers.formatters import format_json
+from jet.utils.markdown import extract_json_block_content
 
-class BM25Reranker:
-    def __init__(self, documents: List[str], k1: float = 1.5, b: float = 0.75):
-        """
-        BM25 Reranker with term saturation and document length normalization.
-        :param documents: List of text documents (corpus)
-        :param k1: Term saturation parameter (default 1.5)
-        :param b: Document length normalization parameter (default 0.75)
-        """
-        self.documents: List[str] = documents
-        self.k1: float = k1
-        self.b: float = b
-        self.doc_lengths: List[int] = [len(doc.split()) for doc in documents]
-        self.avg_doc_length: float = sum(self.doc_lengths) / len(documents)
-        self.inverted_index: Dict[str, List[int]
-                                  ] = self._build_inverted_index()
-        self.idf: Dict[str, float] = self._compute_idf()
+header_texts = [
+    "# Top 30 Best Rom-Com Anime Of All Time: The Ultimate Ranking",
+    "### 30. Oh! My Goddess",
+    "### 29. The Tatami Galaxy",
+    "### 28. My Senpai is Annoying",
+    "### 27. Net-juu no Susume",
+    "### 26. His and Her Circumstances",
+    "### 25. Arakawa Under the Bridge",
+    "### 24. Maid Sama!",
+    "### 23. Kamisama Kiss",
+    "### 22. High Score Girl",
+    "### 21. Kimi ni Todoke: From Me to You",
+    "### 20. My Little Monster",
+    "### 19. The Pet Girl of Sakurasou",
+    "### 18. Monthly Girls' Nozaki-kun",
+    "### 17. Ouran High School Host Club",
+    "### 16. The Quintessential Quintuplets",
+    "### 15. Tonikawa: Over the Moon For You",
+    "### 14. Lovely Complex",
+    "### 13. Working!!",
+    "### 12. Tsurezure Children",
+    "### 11. School Rumble",
+    "### 10. Nisekoi: False Love",
+    "### 9. Saekano: How to Raise a Boring Girlfriend",
+    "### 8. Wotakoi: Love is Hard for Otaku",
+    "### 7. My Love Story!!",
+    "### 6. Horimiya",
+    "### 5. My Teen Romantic Comedy SNAFU",
+    "### 4. Toradora!",
+    "### 3. Teasing Master Takagi-san",
+    "### 2. Ikkoku House",
+    "### 1. Kaguya-sama: Love is War",
+    "### R. Romero",
+    "### Keep Browsing",
+    "### Related Posts",
+    "#### Browse Fandoms",
+]
 
-    def _build_inverted_index(self) -> Dict[str, List[int]]:
-        index: Dict[str, List[int]] = {}
-        for doc_id, doc in enumerate(self.documents):
-            for term in set(doc.split()):  # Unique terms only for IDF calculation
-                index.setdefault(term, []).append(doc_id)
-        return index
+prompt_template = """
+Headers:
+{headers}
 
-    def _compute_idf(self) -> Dict[str, float]:
-        """Computes inverse document frequency (IDF) for each term."""
-        total_docs: int = len(self.documents)
-        return {
-            term: math.log((total_docs - len(doc_ids) + 0.5) /
-                           (len(doc_ids) + 0.5) + 1)
-            for term, doc_ids in self.inverted_index.items()
-        }
+Instruction:
+{instruction}
+Query: {query}
+Answer:
+""".strip()
 
-    def _bm25_score(self, query_terms: List[str], doc: str, doc_id: int) -> float:
-        """Computes BM25 score for a given document and query."""
-        term_freqs: Counter = Counter(doc.split())
-        doc_length: int = self.doc_lengths[doc_id]
-        score: float = 0.0
-        for term in query_terms:
-            if term in self.idf:
-                tf: int = term_freqs[term]
-                numerator: float = tf * (self.k1 + 1)
-                denominator: float = tf + self.k1 * \
-                    (1 - self.b + self.b * doc_length / self.avg_doc_length)
-                score += self.idf[term] * (numerator / denominator)
-        return score
-
-    def rerank(self, query: str, top_n: int = 5) -> List[Dict[str, float]]:
-        """
-        Rerank documents based on BM25 score for a given query.
-        :param query: The search query
-        :param top_n: Number of top results to return
-        :return: List of dictionaries with "text" and "score"
-        """
-        query_terms: List[str] = query.split()
-        scores: List[Tuple[int, float]] = [
-            (doc_id, self._bm25_score(query_terms, doc, doc_id))
-            for doc_id, doc in enumerate(self.documents)
-        ]
-        scores.sort(key=lambda x: x[1], reverse=True)
-
-        return [{"text": self.documents[doc_id], "score": score} for doc_id, score in scores[:top_n]]
-
-
-# Functional Tests
 if __name__ == "__main__":
-    documents = [
-        "The quick brown fox jumps over the lazy dog",
-        "The fast fox leaped over a sleeping dog",
-        "A fox is a wild animal that is very quick",
-        "Dogs and foxes can sometimes be friends",
-        "The quick brown fox is very cunning and smart"
-    ]
-    reranker = BM25Reranker(documents)
+    llm_model = "gemma3:4b"
+    llm = Ollama(temperature=0.0, model=llm_model)
 
-    # Test 1: Query with common words
-    query1 = "quick fox"
-    result1 = reranker.rerank(query1, top_n=2)
-    expected1_texts = [
-        "The quick brown fox is very cunning and smart",
-        "The quick brown fox jumps over the lazy dog"
-    ]
-    assert all(
-        item["text"] in expected1_texts for item in result1), f"Test 1 Failed: {result1}"
+    headers = json.dumps(header_texts, indent=2)
+    instruction = "Given the provided headers, select ones that are relevant to the query in JSON format."
+    query = "What are the top 10 rom com anime today?"
 
-    # Test 2: Query with rare terms
-    query2 = "sleeping dog"
-    result2 = reranker.rerank(query2, top_n=1)
-    expected2_texts = [
-        "The fast fox leaped over a sleeping dog"
-    ]
-    assert all(
-        item["text"] in expected2_texts for item in result2), f"Test 2 Failed: {result2}"
+    message = prompt_template.format(
+        headers=headers,
+        query=query,
+        instruction=instruction,
+    )
 
-    # Test 3: Query that matches multiple documents
-    query3 = "fox"
-    result3 = reranker.rerank(query3, top_n=3)
-    expected3_texts = [
-        "The fast fox leaped over a sleeping dog",
-        "The quick brown fox jumps over the lazy dog",
-        "The quick brown fox is very cunning and smart",
-    ]
-    assert all(
-        item["text"] in expected3_texts for item in result3), f"Test 3 Failed: {result3}"
+    response = llm.chat(message, model=llm_model)
+    json_result = extract_json_block_content(str(response))
+    result = json.loads(json_result)
 
-    print("All tests passed!")
+    logger.success(format_json(result))

@@ -4,11 +4,11 @@ import shutil
 from typing import Generator, Optional, TypedDict
 from urllib.parse import urlparse
 from langchain_text_splitters import MarkdownHeaderTextSplitter
-from jet.scrapers.browser.selenium import UrlScraper
+from jet.scrapers.browser.selenium_utils import UrlScraper
 from jet.scrapers.preprocessor import html_to_markdown, scrape_markdown, get_header_contents
 from jet.scrapers.hrequests import request_url
+from jet.search.scraper import scrape_url
 from jet.transformers import to_snake_case
-from jet.search import scrape_url
 from jet.cache.redis import RedisConfigParams, RedisClient
 from jet.vectors import SettingsManager, SettingsDict, QueryProcessor
 from jet.actions.generation import call_ollama_chat
