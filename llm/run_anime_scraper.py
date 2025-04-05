@@ -49,6 +49,12 @@ if __name__ == "__main__":
         html_file = f"{sub_dir}/scraped_html.html"
         save_file(html, html_file)
 
+        header_docs = get_docs_from_html(html)
+        headers_texts = [header.text for header in header_docs]
+        headers_md = "\n\n".join(headers_texts)
+        headers_md_file = f"{sub_dir}/headers.md"
+        save_file(headers_md, headers_md_file)
+
         result = run_scrape_search_chat(
             html,
             llm_model,
