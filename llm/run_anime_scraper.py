@@ -12,7 +12,8 @@ from jet.token.token_utils import get_model_max_tokens, token_counter
 
 if __name__ == "__main__":
     # --- Inputs ---
-    llm_model = "gemma3:4b"
+    # llm_model = "gemma3:4b"
+    llm_model = "mistral"
     embed_models = [
         "mxbai-embed-large",
         "paraphrase-multilingual",
@@ -58,8 +59,8 @@ if __name__ == "__main__":
             "results": result["search_nodes"]
         }, os.path.join(sub_dir, "top_nodes.json"))
 
-        save_file(result["search_eval"], os.path.join(
-            sub_dir, "eval_context_relevancy.json"))
+        # save_file(result["search_eval"], os.path.join(
+        #     sub_dir, "eval_context_relevancy.json"))
 
         history = "\n\n".join([
             f"## Query\n\n{result["query"]}",
@@ -68,5 +69,5 @@ if __name__ == "__main__":
         ])
         save_file(history, os.path.join(sub_dir, "llm_chat_history.md"))
 
-        if result["search_eval"].passing:
-            break
+        # if result["search_eval"].passing:
+        #     break
