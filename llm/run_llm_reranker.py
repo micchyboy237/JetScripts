@@ -1,4 +1,3 @@
-import sys
 from typing import Generator, Optional, List
 import os
 
@@ -40,13 +39,16 @@ EMBED_MODELS = [
 ]
 EVAL_MODEL = "gemma3:4b"
 
+chunk_overlap = 40
+chunk_size = 256
+
 output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_llm_reranker"
 
-query = "What are the steps in registering a National ID in the Philippines?"
-top_k = 5
+query = "What are the top 10 rom com anime today?"
+top_k = 10
 
 # DATA_FILE = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/data/10k/lyft_2021.pdf"
-DATA_FILE = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/valid-ids-scraper/philippines_national_id_registration_tips_2025/scraped_html.html"
+DATA_FILE = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/www_fandomspot_com/scraped_html.html"
 CACHE_FILE = "llm_reranker.pkl"
 
 """
@@ -139,93 +141,47 @@ html: str = load_file(DATA_FILE)
 
 md_text = html_to_markdown(html)
 header_contents = get_md_header_contents(md_text)
+
+headers_file = f"{output_dir}/headers.md"
+save_file("\n\n".join([header["content"]
+          for header in header_contents]), headers_file)
+
 # all_nodes = [TextNode(text=h["content"], metadata={
 #                       "doc_index": idx}) for idx, h in enumerate(header_contents)]
-header_docs = [Document(text=h["content"], metadata={
-    "doc_index": idx}) for idx, h in enumerate(header_contents)]
+all_nodes = [TextNode(text=h["header"], metadata={
+                      "doc_index": idx}) for idx, h in enumerate(header_contents)]
 
-chunk_overlap = 40
-chunk_size = min(get_model_max_tokens(embed_model)
-                 for embed_model in EMBED_MODELS)
-splitter = SentenceSplitter(
-    chunk_size=chunk_size,
-    chunk_overlap=chunk_overlap,
-)
-all_nodes: list[TextNode] = splitter.get_nodes_from_documents(
-    documents=header_docs)
-
-# Build lookup of doc_index -> original text
-doc_index_to_text = {doc.metadata["doc_index"]: doc.text for doc in header_docs}
-
-# Inject start_idx and end_idx into each node's metadata
-for node in all_nodes:
-    doc_index = node.metadata["doc_index"]
-    full_text = doc_index_to_text[doc_index]
-    try:
-        start_idx = full_text.index(node.text)
-        end_idx = start_idx + len(node.text)
-        node.metadata["start_idx"] = start_idx
-        node.metadata["end_idx"] = end_idx
-    except ValueError:
-        logger.warning(
-            f"Text not found in original doc for doc_index={doc_index}")
-        node.metadata["start_idx"] = -1
-        node.metadata["end_idx"] = -1
 all_texts = [node.text for node in all_nodes]
 all_texts_dict = {node.text: node for node in all_nodes}
 
-query_similarities = get_query_similarity_scores(
-    query, all_texts, model_name=[EMBED_MODEL, EMBED_MODEL_2, EMBED_MODEL_3])
 
-nodes_with_scores = []
-seen_docs = set()  # To track unique texts
-for text, score in query_similarities[0]["results"].items():
-    doc_index = all_texts_dict[text].metadata["doc_index"]
-    if doc_index not in seen_docs:  # Ensure unique by text
-        seen_docs.add(doc_index)
-        nodes_with_scores.append(
-            NodeWithScore(
-                node=TextNode(text=header_docs[doc_index].text,
-                              metadata=all_texts_dict[text].metadata),
-                score=score
-            )
-        )
-nodes_with_scores_file = f"{output_dir}/nodes_with_scores.json"
-save_file({
-    "query": query,
-    "results": nodes_with_scores
-}, nodes_with_scores_file)
+# query_similarities = get_query_similarity_scores(
+#     query, all_texts, model_name=EMBED_MODELS)
+# nodes_with_scores = [
+#     NodeWithScore(
+#         node=TextNode(text=text, metadata=all_texts_dict[text].metadata),
+#         score=score
+#     )
+#     for text, score in query_similarities[0]["results"].items()
+# ]
+# nodes_with_scores_file = f"{output_dir}/nodes_with_scores.json"
+# save_file({
+#     "query": query,
+#     "results": nodes_with_scores
+# }, nodes_with_scores_file)
 
-top_node_texts = [
-    node.text
-    for node in nodes_with_scores[:top_k]
-]
-eval_result = evaluate_context_relevancy(
-    EVAL_MODEL, query, top_node_texts)
+nodes_with_scores = all_nodes
 
-if eval_result.passing:
-    logger.success(
-        f"Evaluation on context relevancy passed ({len(top_node_texts)})")
-else:
-    logger.error(
-        f"Failed evaluation on context relevancy ({len(top_node_texts)})")
-eval_context_relevancy_file = f"{output_dir}/eval_context_relevancy.json"
-save_file(eval_result, eval_context_relevancy_file)
+# top_node_texts = [
+#     node.text
+#     for node in nodes_with_scores[:top_k]
+# ]
+# eval_result = evaluate_context_relevancy(
+#     EVAL_MODEL, query, top_node_texts)
 
-# Run LLM Chat
-final_context = "\n\n".join(top_node_texts)
-response = llm.chat(query, context=final_context)
-llm_chat_history_file = f"{output_dir}/llm_chat_history.md"
-chat_history_list = [
-    f"## Query\n\n{query}",
-    f"## Context\n\n{final_context}",
-    f"## Response\n\n{response}",
-]
-chat_history = "\n\n".join(chat_history_list)
-save_file(chat_history, llm_chat_history_file)
-
-
-sys.exit()
+# if eval_result.passing:
+#     logger.success(
+#         f"Evaluation on context relevancy passed ({len(top_node_texts)})")
 
 
 PROMPT_TEMPLATE = """

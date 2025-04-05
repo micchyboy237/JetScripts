@@ -30,18 +30,18 @@ if __name__ == "__main__":
         query,
     )
 
-    if result["search_eval"].passing:
-        save_file({
-            "query": result["query"],
-            "results": result["search_nodes"]
-        }, os.path.join(output_dir, "top_nodes.json"))
+    # if result["search_eval"].passing:
+    save_file({
+        "query": result["query"],
+        "results": result["search_nodes"]
+    }, os.path.join(output_dir, "top_nodes.json"))
 
-        save_file(result["search_eval"], os.path.join(
-            output_dir, "eval_context_relevancy.json"))
+    save_file(result["search_eval"], os.path.join(
+        output_dir, "eval_context_relevancy.json"))
 
-        history = "\n\n".join([
-            f"## Query\n\n{result["query"]}",
-            f"## Context\n\n{result["context"]}",
-            f"## Response\n\n{result["response"]}",
-        ])
-        save_file(history, os.path.join(output_dir, "llm_chat_history.md"))
+    history = "\n\n".join([
+        f"## Query\n\n{result["query"]}",
+        f"## Context\n\n{result["context"]}",
+        f"## Response\n\n{result["response"]}",
+    ])
+    save_file(history, os.path.join(output_dir, "llm_chat_history.md"))

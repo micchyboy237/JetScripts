@@ -1,7 +1,7 @@
 
 
 # Example Usage
-from jet.file.utils import load_file
+from jet.file.utils import load_file, save_file
 from jet.scrapers.utils import extract_tree_with_text, extract_text_elements, format_html, print_html
 from jet.search.formatters import clean_string
 from jet.utils.commands import copy_to_clipboard
@@ -96,15 +96,28 @@ html_doc = """
 """
 
 if __name__ == "__main__":
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/scrapers/crawler/generated/crawl/reelgood.com_urls.json"
-    data = load_file(data_file)
-    docs = []
-    for item in data:
-        docs.append(item["html"])
+    from jet.scrapers.preprocessor import html_to_markdown, scrape_markdown
+
+    output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/run_format_html"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/myotakuworld_com/scraped_html.html"
+    html_doc = load_file(data_file)
+
+    save_file(html_doc, f"{output_dir}/doc.html")
+
+    md_text = html_to_markdown(html_doc)
+    save_file(md_text, f"{output_dir}/md_text.md")
 
     # Get the tree-like structure
+    tree_elements = extract_tree_with_text(html_doc)
+    save_file(tree_elements, f"{output_dir}/tree_elements.json")
+
     text_elements = extract_text_elements(html_doc)
-    copy_to_clipboard(text_elements)
-    formatted_html = format_html(docs[0])
-    copy_to_clipboard(formatted_html)
-    print_html(docs[0])
+    save_file(text_elements, f"{output_dir}/text_elements.json")
+
+    formatted_html = format_html(html_doc)
+    save_file(formatted_html, f"{output_dir}/formatted_html.html")
+
+    formatted_md_text = html_to_markdown(formatted_html)
+    save_file(formatted_md_text, f"{output_dir}/formatted_md_text.md")
+
+    # print_html(html_doc)

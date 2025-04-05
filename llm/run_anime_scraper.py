@@ -6,6 +6,7 @@ from jet.features.scrape_search_chat import get_docs_from_html, get_nodes_from_d
 from jet.file.utils import load_file, save_file
 from jet.llm.ollama.base import Ollama
 from jet.logger import logger
+from jet.scrapers.browser.formatters import construct_browser_query
 from jet.scrapers.utils import safe_path_from_url, scrape_urls, search_data
 from jet.token.token_utils import get_model_max_tokens, token_counter
 
@@ -21,7 +22,15 @@ if __name__ == "__main__":
     ]
     eval_model = llm_model
     output_dir = f"/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/{os.path.splitext(os.path.basename(__file__))[0]}"
-    query = "What are the top 10 rom com anime today?"
+    query = "top 10 romantic anime 2025"
+    # query = construct_browser_query(
+    #     search_terms="top 10 romantic comedy anime",
+    #     include_sites=["myanimelist.net",
+    #                    "anilist.co", "animenewsnetwork.com"],
+    #     exclude_sites=["wikipedia.org", "imdb.com"],
+    #     # after_date="2024-01-01",
+    #     # before_date="2025-04-05"
+    # )
     min_headers = 5
 
     max_model_tokens = get_model_max_tokens(llm_model)
