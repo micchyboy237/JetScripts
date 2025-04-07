@@ -180,10 +180,14 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         final_dict_prompt['tools'] = final_dict_prompt.pop('tools')
 
     if response:
-        response_type = "json" if isinstance(
-            parse_json(response), dict) else "markdown"
+
         if "```" not in response:
+            response_type = "markdown"
+            if isinstance(parse_json(response), dict):
+                response_type = "json"
+                response = format_json(response)
             response = f"```{response_type}\n{response}\n```"
+
     response_str = f"## Response\n\n{response}\n\n" if response else ""
     tools_str = f"## Tools\n\n```json\n{format_json(tools)}\n```\n\n" if has_tools else ""
     prompt_log_str = (
