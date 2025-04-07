@@ -9,7 +9,7 @@ CLIENT_PROXY_SCRIPT="ollama_proxy.py"
 
 SERVER_LISTEN_PORT="11434"
 SERVER_TARGET_URL="http://jetairm1:11435"
-SERVER_PROXY_SCRIPT="ollama_interceptor.py"
+SERVER_PROXY_SCRIPT="ollama_reverse_proxy.py"
 
 # Parse command-line arguments
 while getopts "cs" opt; do
