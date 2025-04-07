@@ -1,74 +1,63 @@
-import json
+import asyncio
+from autogen_ext.models.ollama import OllamaChatCompletionClient
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.teams import RoundRobinGroupChat
+from autogen_agentchat.conditions import TextMentionTermination
+from autogen_agentchat.ui import Console
+from autogen_core.tools import FunctionTool
 
-from jet.llm.ollama.base import Ollama
-from jet.logger import logger
-from jet.transformers.formatters import format_json
-from jet.utils.markdown import extract_json_block_content
 
-header_texts = [
-    "# Top 30 Best Rom-Com Anime Of All Time: The Ultimate Ranking",
-    "### 30. Oh! My Goddess",
-    "### 29. The Tatami Galaxy",
-    "### 28. My Senpai is Annoying",
-    "### 27. Net-juu no Susume",
-    "### 26. His and Her Circumstances",
-    "### 25. Arakawa Under the Bridge",
-    "### 24. Maid Sama!",
-    "### 23. Kamisama Kiss",
-    "### 22. High Score Girl",
-    "### 21. Kimi ni Todoke: From Me to You",
-    "### 20. My Little Monster",
-    "### 19. The Pet Girl of Sakurasou",
-    "### 18. Monthly Girls' Nozaki-kun",
-    "### 17. Ouran High School Host Club",
-    "### 16. The Quintessential Quintuplets",
-    "### 15. Tonikawa: Over the Moon For You",
-    "### 14. Lovely Complex",
-    "### 13. Working!!",
-    "### 12. Tsurezure Children",
-    "### 11. School Rumble",
-    "### 10. Nisekoi: False Love",
-    "### 9. Saekano: How to Raise a Boring Girlfriend",
-    "### 8. Wotakoi: Love is Hard for Otaku",
-    "### 7. My Love Story!!",
-    "### 6. Horimiya",
-    "### 5. My Teen Romantic Comedy SNAFU",
-    "### 4. Toradora!",
-    "### 3. Teasing Master Takagi-san",
-    "### 2. Ikkoku House",
-    "### 1. Kaguya-sama: Love is War",
-    "### R. Romero",
-    "### Keep Browsing",
-    "### Related Posts",
-    "#### Browse Fandoms",
-]
+def calculator(a: float, b: float, operator: str) -> str:
+    try:
+        if operator == "+":
+            return str(a + b)
+        elif operator == "-":
+            return str(a - b)
+        elif operator == "*":
+            return str(a * b)
+        elif operator == "/":
+            if b == 0:
+                return "Error: Division by zero"
+            return str(a / b)
+        else:
+            return "Error: Invalid operator. Please use +, -, *, or /"
+    except Exception as e:
+        return f"Error: {str(e)}"
 
-prompt_template = """
-Headers:
-{headers}
 
-Instruction:
-{instruction}
-Query: {query}
-Answer:
-""".strip()
+# Create calculator tool
+calculator_tool = FunctionTool(
+    name="calculator",
+    description="A simple calculator that performs basic arithmetic operations",
+    func=calculator,
+    global_imports=[],
+)
 
-if __name__ == "__main__":
-    llm_model = "gemma3:4b"
-    llm = Ollama(temperature=0.0, model=llm_model)
 
-    headers = json.dumps(header_texts, indent=2)
-    instruction = "Given the provided headers, select ones that are relevant to the query in JSON format."
-    query = "What are the top 10 rom com anime today?"
+async def main() -> None:
+    # Set up the model client for Ollama
+    model_client = OllamaChatCompletionClient(model="llama3.2")
 
-    message = prompt_template.format(
-        headers=headers,
-        query=query,
-        instruction=instruction,
+    # Initialize the assistant agent with the calculator tool
+    assistant = AssistantAgent(
+        "Assistant",
+        model_client=model_client,
+        tools=[calculator_tool],
     )
 
-    response = llm.chat(message, model=llm_model)
-    json_result = extract_json_block_content(str(response))
-    result = json.loads(json_result)
+    # Define termination condition (based on a specific trigger like "TERMINATE")
+    termination = TextMentionTermination("TERMINATE")
 
-    logger.success(format_json(result))
+    # Set up a team (here only one assistant agent is used)
+    team = RoundRobinGroupChat([assistant], termination_condition=termination)
+
+    # The task is for the assistant to handle multiple user requests
+    # Let's simulate a simple user interaction for calculations
+    task = "Can you calculate 5 + 3 for me?"
+
+    # The assistant will start processing the task
+    await Console(team.run_stream(task=task))
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
