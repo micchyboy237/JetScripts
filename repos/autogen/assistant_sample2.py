@@ -31,7 +31,7 @@ async def resize_image(image_base64: str, width: int, height: int) -> str:
 
 
 async def main():
-    model_client = OllamaChatCompletionClient(model="gemma3:4b")
+    model_client = OllamaChatCompletionClient(model="llama3.2")
 
     agent = AssistantAgent(
         "image_processing_agent",

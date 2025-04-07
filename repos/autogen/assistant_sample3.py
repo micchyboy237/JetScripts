@@ -18,7 +18,7 @@ async def calculate_area_of_circle(radius: float) -> str:
 
 
 async def main():
-    model_client = OllamaChatCompletionClient(model="llama3.1")
+    model_client = OllamaChatCompletionClient(model="llama3.2")
 
     agent = AssistantAgent(
         "calculation_agent",

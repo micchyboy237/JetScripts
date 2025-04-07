@@ -1,8 +1,8 @@
 import json
 from typing import List
+from jet.logger import logger
+from jet.transformers.formatters import format_json
 from pydantic import BaseModel
-
-# Import necessary message classes
 from autogen_agentchat.messages import (
     AgentEvent,
     ChatMessage,
@@ -20,113 +20,73 @@ from autogen_core import FunctionCall
 from autogen_core.models import FunctionExecutionResult
 
 
+# Real-world Example 1: Structured Message Creation
 class TestContent(BaseModel):
     """Test content model."""
+
     field1: str
     field2: int
 
 
-def test_structured_message() -> dict:
-    # Create a structured message with the test content
+def create_structured_message() -> StructuredMessage[TestContent]:
     message = StructuredMessage[TestContent](
         source="test_agent",
-        content=TestContent(field1="test", field2=42),
+        content=TestContent(field1="Welcome", field2=100),
     )
 
-    # Prepare assertions and results
-    result = {
-        "message_type": message.type,
-        "content_type": isinstance(message.content, TestContent),
-        "content_fields": {
-            "field1": message.content.field1,
-            "field2": message.content.field2
-        },
-        "dumped_message": message.model_dump(),
-    }
-
-    return result
+    # Log the result
+    logger.log(
+        f"StructuredMessage created:", format_json(message.model_dump()), colors=["DEBUG", "SUCCESS"])
+    return message
 
 
-def test_message_factory() -> dict:
+# Real-world Example 2: Message Factory Usage
+def create_text_message() -> TextMessage:
     factory = MessageFactory()
-
-    # Text message data
     text_data = {
         "type": "TextMessage",
         "source": "test_agent",
-        "content": "Hello, world!",
+        "content": "Hello, user!",
     }
 
-    # Create a TextMessage instance
+    # Create the TextMessage using the factory
     text_message = factory.create(text_data)
+    logger.log(
+        f"TextMessage created:", format_json(text_message.model_dump()), colors=["DEBUG", "SUCCESS"])
+    return text_message
 
-    # Handoff message data
+
+def create_handoff_message() -> HandoffMessage:
+    factory = MessageFactory()
     handoff_data = {
         "type": "HandoffMessage",
         "source": "test_agent",
-        "content": "handoff to another agent",
-        "target": "target_agent",
+        "content": "handoff to support agent",
+        "target": "support_agent",
     }
 
-    # Create a HandoffMessage instance
+    # Create the HandoffMessage using the factory
     handoff_message = factory.create(handoff_data)
-
-    # Structured message data
-    structured_data = {
-        "type": "StructuredMessage[TestContent]",
-        "source": "test_agent",
-        "content": {
-            "field1": "test",
-            "field2": 42,
-        },
-    }
-
-    # Attempt to create StructuredMessage before registering
-    try:
-        factory.create(structured_data)
-    except ValueError:
-        factory.register(StructuredMessage[TestContent])
-        structured_message = factory.create(structured_data)
-
-    # Return results for verification
-    result = {
-        "text_message": {
-            "type": text_message.type,
-            "source": text_message.source,
-            "content": text_message.content,
-        },
-        "handoff_message": {
-            "type": handoff_message.type,
-            "source": handoff_message.source,
-            "content": handoff_message.content,
-            "target": handoff_message.target,
-        },
-        "structured_message": {
-            "type": structured_message.type,
-            "content_field1": structured_message.content.field1,
-            "content_field2": structured_message.content.field2,
-        },
-    }
-
-    return result
+    logger.log(
+        f"HandoffMessage created:", format_json(handoff_message.model_dump()), colors=["DEBUG", "SUCCESS"])
+    return handoff_message
 
 
+# Real-world Example 3: Union Types with Messages and Events
 class TestContainer(BaseModel):
     chat_messages: List[ChatMessage]
     agent_events: List[AgentEvent]
 
 
-def test_union_types() -> dict:
-    # Create a few messages.
+def create_union_types() -> TestContainer:
     chat_messages: List[ChatMessage] = [
         TextMessage(source="user", content="Hello!"),
         MultiModalMessage(source="user", content=["Hello!", "World!"]),
         HandoffMessage(
-            source="user", content="handoff to another agent", target="target_agent"),
+            source="user", content="handoff to another agent", target="support_agent"),
         StopMessage(source="user", content="stop"),
     ]
 
-    # Create a few agent events.
     agent_events: List[AgentEvent] = [
         ModelClientStreamingChunkEvent(source="user", content="Hello!"),
         ToolCallRequestEvent(
@@ -141,37 +101,56 @@ def test_union_types() -> dict:
         ),
     ]
 
-    # Create a container with the messages.
+    # Create a container with the chat messages and agent events
     container = TestContainer(
         chat_messages=chat_messages, agent_events=agent_events)
-
-    # Dump the container to JSON.
-    data = container.model_dump()
-
-    # Load the container from JSON.
-    loaded_container = TestContainer.model_validate(data)
-
-    # Return results for verification
-    result = {
-        "chat_messages": chat_messages,
-        "agent_events": agent_events,
-        "loaded_chat_messages": loaded_container.chat_messages,
-        "loaded_agent_events": loaded_container.agent_events,
-    }
-
-    return result
+    logger.log(
+        f"TestContainer created:", format_json(container.model_dump()), colors=["DEBUG", "SUCCESS"])
+    return container
 
 
+# Real-world Example 4: Function Calls with Tool Execution
+def create_tool_call_event() -> ToolCallRequestEvent:
+    tool_call_event = ToolCallRequestEvent(
+        content=[
+            FunctionCall(id="1", name="process_order", arguments=json.dumps(
+                {"order_id": "123", "user_id": "456"}))
+        ],
+        source="user",
+    )
+
+    logger.log(
+        f"ToolCallRequestEvent created:", format_json(tool_call_event.model_dump()), colors=["DEBUG", "SUCCESS"])
+    return tool_call_event
+
+
+def execute_tool_call() -> ToolCallExecutionEvent:
+    tool_execution_event = ToolCallExecutionEvent(
+        content=[FunctionExecutionResult(
+            call_id="1", content="Order processed", name="process_order")],
+        source="system",
+    )
+
+    logger.log(
+        f"ToolCallExecutionEvent created:", format_json(tool_execution_event.model_dump()), colors=["DEBUG", "SUCCESS"])
+    return tool_execution_event
+
+
+# Main Function to Run All Examples
 def main():
-    # Run tests and print results
-    structured_message_result = test_structured_message()
-    print("Structured Message Test Result:", structured_message_result)
+    # Example 1: Create Structured Message
+    create_structured_message()
 
-    message_factory_result = test_message_factory()
-    print("Message Factory Test Result:", message_factory_result)
+    # Example 2: Create Text and Handoff Messages using Message Factory
+    create_text_message()
+    create_handoff_message()
 
-    union_types_result = test_union_types()
-    print("Union Types Test Result:", union_types_result)
+    # Example 3: Create TestContainer with Messages and Agent Events
+    create_union_types()
+
+    # Example 4: Create and Execute Tool Call Event
+    create_tool_call_event()
+    execute_tool_call()
 
 
 if __name__ == "__main__":

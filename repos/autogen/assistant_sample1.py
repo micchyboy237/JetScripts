@@ -36,7 +36,7 @@ async def greet_user(user_id: str) -> str:
 
 
 async def main():
-    model_client = OllamaChatCompletionClient(model="llama3.1")
+    model_client = OllamaChatCompletionClient(model="llama3.2")
 
     agent = AssistantAgent(
         "user_data_agent",
