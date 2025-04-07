@@ -67,7 +67,8 @@ def generate_log_file_path(logs_dir, base_dir=None):
     # timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     # log_file_name = f"{timestamp}_{int(time.time())}.md"
     log_file_name = f"{int(time.time())}.md"
-    log_file_path = os.path.realpath(os.path.join(log_dir, log_file_name))
+    log_file_path = os.path.realpath(os.path.join(
+        log_dir, log_file_name).replace(' ', '_'))
 
     return log_file_path
 

@@ -1,18 +1,103 @@
 import asyncio
 import logging
-from typing import List
-from autogen_agentchat.agents import _EchoAgent, _FlakyAgent
+from typing import Any, Mapping, Sequence
 from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
 from autogen_core import AgentRuntime, CancellationToken
-from autogen_core.models import TextMessage
 from autogen_ext.models.replay import ReplayChatCompletionClient
 from autogen_core.tools import FunctionTool
 from autogen_core import SingleThreadedAgentRuntime
+from autogen_agentchat.messages import (
+    BaseAgentEvent,
+    BaseChatMessage,
+    StopMessage,
+    TextMessage,
+)
+from autogen_agentchat.base import Response, TerminationCondition
+from autogen_agentchat.agents import (
+    BaseChatAgent,
+)
+from autogen_core.models import (
+    UserMessage,
+)
 
 
 # Configure logger
 logger = logging.getLogger("real_world_example")
 logger.setLevel(logging.DEBUG)
+
+
+def _pass_function(input: str) -> str:
+    return "pass"
+
+
+class _EchoAgent(BaseChatAgent):
+    def __init__(self, name: str, description: str) -> None:
+        super().__init__(name, description)
+        self._last_message: str | None = None
+        self._total_messages = 0
+
+    @property
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
+        return (TextMessage,)
+
+    @property
+    def total_messages(self) -> int:
+        return self._total_messages
+
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
+        if len(messages) > 0:
+            assert isinstance(messages[0], TextMessage)
+            self._last_message = messages[0].content
+            self._total_messages += 1
+            return Response(chat_message=TextMessage(content=messages[0].content, source=self.name))
+        else:
+            assert self._last_message is not None
+            self._total_messages += 1
+            return Response(chat_message=TextMessage(content=self._last_message, source=self.name))
+
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
+        self._last_message = None
+
+
+class _FlakyAgent(BaseChatAgent):
+    def __init__(self, name: str, description: str) -> None:
+        super().__init__(name, description)
+        self._last_message: str | None = None
+        self._total_messages = 0
+
+    @property
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
+        return (TextMessage,)
+
+    @property
+    def total_messages(self) -> int:
+        return self._total_messages
+
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
+        raise ValueError("I am a flaky agent...")
+
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
+        self._last_message = None
+
+
+class _UnknownMessageType(BaseChatMessage):
+    content: str
+
+    def to_model_message(self) -> UserMessage:
+        raise NotImplementedError("This message type is not supported.")
+
+    def to_model_text(self) -> str:
+        raise NotImplementedError("This message type is not supported.")
+
+    def to_text(self) -> str:
+        raise NotImplementedError("This message type is not supported.")
+
+    def dump(self) -> Mapping[str, Any]:
+        return {}
+
+    @classmethod
+    def load(cls, data: Mapping[str, Any]) -> "_UnknownMessageType":
+        return cls(**data)
 
 
 class RealWorldExample:
