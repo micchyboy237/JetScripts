@@ -77,9 +77,9 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     """
     global chunks
 
-    chunks = chunks.copy()
+    local_chunks = chunks.copy()
 
-    response_info = chunks.pop()
+    response_info = local_chunks.pop()
     if "context" in response_info:
         response_info.pop("context")
 
@@ -151,14 +151,16 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
 
     # Get last assistant response
     final_response_content = "".join(
-        [chunk.get("content", "") for chunk in chunks])
+        [chunk.get("content", "") for chunk in local_chunks])
     final_response_tool_calls = "".join(
-        [json.dumps(chunk.get("tool_calls", ""), indent=1) for chunk in chunks])
+        [json.dumps(chunk.get("tool_calls", ""), indent=1) for chunk in local_chunks])
     final_response_tool_calls = final_response_tool_calls.strip('"')
     if final_response_tool_calls:
         final_response_content += f"\n{final_response_tool_calls}".strip()
     if response_info.get("response"):
         final_response_content = response_info.get("response")
+    if response_info.get("content"):
+        final_response_content = response_info.get("content")
 
     response = final_response_content
 
@@ -453,7 +455,7 @@ def response(flow: http.HTTPFlow):
     global log_file_path
     global chunks
     global stop_event
-    chunks = chunks.copy()
+    local_chunks = chunks.copy()
 
     logger.newline()
     logger.log("response client_conn.id:",
@@ -464,7 +466,7 @@ def response(flow: http.HTTPFlow):
     elif any(path in flow.request.path for path in ["/chat", "/generate"]):
         logger.log("\n")
         # Get response info
-        response_info = chunks.pop()
+        response_info = local_chunks.pop()
         if "context" in response_info:
             response_info.pop("context")
         response_dict: OllamaChatResponse = make_serializable(
@@ -487,14 +489,16 @@ def response(flow: http.HTTPFlow):
         ])
 
         final_response_content = "".join(
-            [chunk.get("content", "") for chunk in chunks])
+            [chunk.get("content", "") for chunk in local_chunks])
         final_response_tool_calls = "".join(
-            [json.dumps(chunk.get("tool_calls", ""), indent=1) for chunk in chunks])
+            [json.dumps(chunk.get("tool_calls", ""), indent=1) for chunk in local_chunks])
         final_response_tool_calls = final_response_tool_calls.strip('"')
         if final_response_tool_calls:
             final_response_content += f"\n{final_response_tool_calls}".strip()
         if response_info.get("response"):
             final_response_content = response_info.get("response")
+        if response_info.get("content"):
+            final_response_content = response_info.get("content")
         if not final_response_content:
             final_response_content = json.dumps(
                 response_dict.get('content', {}), indent=1)
