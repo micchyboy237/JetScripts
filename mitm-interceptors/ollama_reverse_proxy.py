@@ -9,6 +9,7 @@ from datetime import datetime
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
 from jet.token.token_utils import token_counter
 from jet.transformers.formatters import format_json
+from jet.transformers.json_parsers import parse_json
 from mitmproxy import http
 from jet.llm.llm_types import BaseGenerateResponse, OllamaChatResponse
 from jet.transformers import make_serializable
@@ -179,8 +180,10 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         final_dict_prompt['tools'] = final_dict_prompt.pop('tools')
 
     if response:
+        response_type = "json" if isinstance(
+            parse_json(response), dict) else "markdown"
         if "```" not in response:
-            response = f"```markdown\n{response}\n```"
+            response = f"```{response_type}\n{response}\n```"
     response_str = f"## Response\n\n{response}\n\n" if response else ""
     tools_str = f"## Tools\n\n```json\n{format_json(tools)}\n```\n\n" if has_tools else ""
     prompt_log_str = (
