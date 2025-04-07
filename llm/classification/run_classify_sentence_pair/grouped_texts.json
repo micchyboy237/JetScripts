@@ -1,0 +1,23 @@
+How can this be use for splitting text into groups? For ex.
+
+text = """
+PRODUCT OVERVIEW
+Our new model introduces several smart features designed to improve usability and performance.
+It includes advanced AI algorithms and a new camera sensor.
+
+TECHNICAL SPECIFICATIONS
+The processor is a 2.6GHz octa-core chip.
+It supports 5G connectivity and has 12GB of RAM.
+Battery capacity is rated at 4500mAh.
+
+USER FEEDBACK
+Many users praised the battery life and overall speed.
+Some users encountered issues with Bluetooth connectivity.
+""".strip()
+
+results = group_text_with_nli(text)
+expected = [
+  "PRODUCT OVERVIEW\nOur new model introduces several smart features designed to improve usability and performance.\nIt includes advanced AI algorithms and a new camera sensor.",
+  "TECHNICAL SPECIFICATIONS\nThe processor is a 2.6GHz octa-core chip.\nIt supports 5G connectivity and has 12GB of RAM.\nBattery capacity is rated at 4500mAh.",
+  "USER FEEDBACK\nMany users praised the battery life and overall speed.\nSome users encountered issues with Bluetooth connectivity."
+]
