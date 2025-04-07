@@ -203,7 +203,7 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         final_response_content, request_content["model"])
     total_tokens = prompt_token_count + response_token_count
 
-    model_max_length = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
+    model_max_length = OLLAMA_MODEL_EMBEDDING_TOKENS[model.rstrip(":latest")]
 
     log_entry = (
         f"## Request Info\n\n"
