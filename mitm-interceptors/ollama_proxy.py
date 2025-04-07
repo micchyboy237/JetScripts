@@ -305,7 +305,7 @@ def request(flow: http.HTTPFlow):
     global log_file_path
     global stop_event
 
-    limit = 3
+    limit = None
 
     logger.newline()
     logger.log("request client_conn.id:", flow.client_conn.id,
@@ -318,14 +318,14 @@ def request(flow: http.HTTPFlow):
     if stop_event.is_set():
         stop_event.clear()
 
-    if flow.request.path == "/api/chat/stop":
+    if "/stop" in flow.request.path:
         stop_event.set()
         flow.response = http.Response.make(400, b"Cancelled stream")
-    elif any(path in flow.request.path for path in ["/api/embed", "/api/embeddings"]):
+    elif any(path in flow.request.path for path in ["/embed", "/embeddings"]):
         logger.debug(f"REQUEST EMBEDDING:")
         logger.info(format_json(request_dict["content"]))
 
-    elif any(path == flow.request.path for path in ["/api/chat"]):
+    elif any(path in flow.request.path for path in ["/chat"]):
         logger.log("\n")
         url = f"{flow.request.scheme}//{flow.request.host}{flow.request.path}"
 
@@ -386,7 +386,7 @@ def request(flow: http.HTTPFlow):
         logger.log("PROMPT TOKENS:", token_count, colors=["GRAY", "INFO"])
         logger.newline()
 
-    elif any(path in flow.request.path for path in ["/api/generate"]):
+    elif any(path in flow.request.path for path in ["/generate"]):
         request_dict = make_serializable(flow.request.data)
         logger.log("\n")
         url = f"{flow.request.scheme}//{flow.request.host}{flow.request.path}"
@@ -461,7 +461,7 @@ def response(flow: http.HTTPFlow):
 
     if stop_event.is_set():
         logger.warning("Response - Cancelled stream")
-    elif any(path in flow.request.path for path in ["/api/chat", "/api/generate"]):
+    elif any(path in flow.request.path for path in ["/chat", "/generate"]):
         logger.log("\n")
         # Get response info
         response_info = chunks.pop()
