@@ -520,7 +520,8 @@ def response(flow: http.HTTPFlow):
             logger.log("Tools:",
                        final_response_tool_calls, colors=["DEBUG", "SUCCESS"])
 
-        model_max_length = OLLAMA_MODEL_EMBEDDING_TOKENS[request_content['model']]
+        model_max_length = OLLAMA_MODEL_EMBEDDING_TOKENS[request_content['model'].rstrip(
+            ":latest")]
 
         # prompt_token_count = response_info["prompt_eval_count"]
         # response_token_count = response_info['eval_count']
