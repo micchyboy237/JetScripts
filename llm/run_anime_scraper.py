@@ -22,7 +22,7 @@ if __name__ == "__main__":
     ]
     eval_model = llm_model
     output_dir = f"/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/{os.path.splitext(os.path.basename(__file__))[0]}"
-    query = "top otome anime"
+    query = "Top otome villainess anime 2025"
     # query = construct_browser_query(
     #     search_terms="top 10 romantic comedy anime",
     #     include_sites=["myanimelist.net",
