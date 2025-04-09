@@ -99,8 +99,8 @@ if __name__ == "__main__":
     from jet.scrapers.preprocessor import html_to_markdown
 
     output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/run_format_html"
-    # data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/myotakuworld_com/scraped_html.html"
-    # html_doc = load_file(data_file)
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/valid-ids-scraper/philippines_national_id_registration_tips_2025/scraped_html.html"
+    html_doc = load_file(data_file)
 
     print_html(html_doc)
 
