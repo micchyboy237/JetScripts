@@ -96,11 +96,13 @@ html_doc = """
 """
 
 if __name__ == "__main__":
-    from jet.scrapers.preprocessor import html_to_markdown, scrape_markdown
+    from jet.scrapers.preprocessor import html_to_markdown
 
     output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/run_format_html"
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/myotakuworld_com/scraped_html.html"
-    html_doc = load_file(data_file)
+    # data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/myotakuworld_com/scraped_html.html"
+    # html_doc = load_file(data_file)
+
+    print_html(html_doc)
 
     save_file(html_doc, f"{output_dir}/doc.html")
 
@@ -116,8 +118,3 @@ if __name__ == "__main__":
 
     formatted_html = format_html(html_doc)
     save_file(formatted_html, f"{output_dir}/formatted_html.html")
-
-    formatted_md_text = html_to_markdown(formatted_html)
-    save_file(formatted_md_text, f"{output_dir}/formatted_md_text.md")
-
-    # print_html(html_doc)
