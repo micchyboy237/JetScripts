@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     json_schema_context = f"Query:\n{query}"
     json_schema = generate_json_schema(json_schema_context)
-    json_schema_sample = generate_json_schema_sample(json_schema)
+    json_schema_sample = generate_json_schema_sample(json_schema, query)
 
     # Create the dynamic model based on the JSON schema
     DynamicModel = create_dynamic_model(json_schema)

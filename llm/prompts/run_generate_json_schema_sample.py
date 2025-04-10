@@ -30,9 +30,11 @@ def create_dynamic_model(schema: Dict[str, Any]) -> BaseModel:
 
 
 if __name__ == "__main__":
+    query = "Top otome villainess anime 2025"
+
     json_schema_file = ""
     json_schema = load_file(json_schema_file)
-    json_schema_sample = generate_json_schema_sample(json_schema)
+    json_schema_sample = generate_json_schema_sample(json_schema, query)
 
     # Create the dynamic model based on the JSON schema
     DynamicModel = create_dynamic_model(json_schema)
