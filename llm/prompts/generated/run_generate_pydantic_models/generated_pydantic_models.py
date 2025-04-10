@@ -1,4 +1,3 @@
-```python
 from pydantic import BaseModel, Field
 from typing import Optional, List
 
@@ -19,9 +18,5 @@ class Answer(BaseModel):
 class QueryResponse(BaseModel):
     results: List[Answer] = Field(
         default_factory=list,
-        description=\"\"\"
-        List of relevant anime titles extracted from the documents, matching the user's query.
-        Each entry includes the title, source document number, and release year (if known).
-        \"\"\"
+        description="List of relevant anime titles extracted from the documents, matching the user's query.\nEach entry includes the title, source document number, and release year (if known)."
     )
-```
