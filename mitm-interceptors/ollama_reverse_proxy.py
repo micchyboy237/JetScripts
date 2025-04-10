@@ -315,7 +315,7 @@ def request(flow: http.HTTPFlow):
     global log_file_path
     global stop_event
 
-    limit = None
+    limit = 15
 
     logger.newline()
     logger.log("request client_conn.id:", flow.client_conn.id,
