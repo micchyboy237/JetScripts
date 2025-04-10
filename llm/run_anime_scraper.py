@@ -47,12 +47,20 @@ if __name__ == "__main__":
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     query = "Top otome villainess anime 2025"
 
-    # Get the field names and descriptions for the Answer model
-    model_fields = Answer.model_fields
-    # Extract field names and descriptions
-    field_descriptions = [f"{idx + 1}. {field_info.description}" for idx,
-                          (field_name, field_info) in enumerate(model_fields.items())]
-    field_descriptions_str = "\n".join(field_descriptions)
+    def get_field_descriptions(model_fields: dict):
+        # Extract field names and descriptions
+        field_descriptions = [f"{idx + 1}. {field_info.description}" for idx,
+                              (field_name, field_info) in enumerate(model_fields.items())]
+        field_descriptions_str = "\n".join(field_descriptions)
+        return field_descriptions_str
+
+    # Get the field names and descriptions for the QueryResponse and Answer models
+    query_response_descriptions_str = get_field_descriptions(
+        QueryResponse.model_fields)
+    answer_descriptions_str = get_field_descriptions(Answer.model_fields)
+
+    field_descriptions_str = answer_descriptions_str + \
+        "\n\n" + query_response_descriptions_str
 
     json_schema_context = f"Field Descriptions:\n{field_descriptions_str}\n\nQuery:\n{query}"
     generated_json_schema = generate_json_schema(context=json_schema_context)
