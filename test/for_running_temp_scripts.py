@@ -159,6 +159,9 @@ if __name__ == "__main__":
     header_parent_map = get_nodes_parent_mapping(header_nodes, header_docs)
     reranked_header_nodes = rerank_nodes(
         query, header_nodes, embed_models, header_parent_map)
+    # Sort the reranked_header_nodes by metadata['doc_index']
+    reranked_header_nodes = sorted(
+        reranked_header_nodes, key=lambda node: node.metadata['doc_index'])
     reranked_header_texts = [node.text for node in reranked_header_nodes]
 
     save_file(
