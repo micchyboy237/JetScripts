@@ -117,7 +117,7 @@ if __name__ == "__main__":
             results.append(
                 {"group": group, "tokens": response_tokens, "results": response_obj.results})
 
-            contexts.append(f"<!-- Context {group} -->\n\n{context}")
+            contexts.append(f"<!-- Group {group} -->\n\n{context}")
             save_file("\n\n".join(contexts),
                       os.path.join(output_dir, f"context_nodes.md"))
             save_file(context_nodes_dict, os.path.join(
