@@ -3,15 +3,16 @@ import re
 from typing import Optional, TypedDict
 from urllib.parse import urlparse
 
-from jet.features.scrape_search_chat import get_docs_from_html, get_nodes_from_docs, rerank_nodes, run_scrape_search_chat, validate_headers
+from jet.features.scrape_search_chat import get_docs_from_html, get_nodes_from_docs, rerank_nodes, run_scrape_search_chat
 from jet.file.utils import load_file, save_file
 from jet.llm.models import OLLAMA_EMBED_MODELS
 from jet.logger import logger
 from jet.scrapers.browser.formatters import construct_browser_query
-from jet.scrapers.utils import safe_path_from_url, scrape_urls, search_data
+from jet.scrapers.utils import safe_path_from_url, scrape_urls, search_data, validate_headers
 from jet.token.token_utils import get_model_max_tokens
 from llama_index.core.schema import NodeWithScore
 from pydantic import BaseModel, Field
+from tqdm import tqdm
 
 
 if __name__ == "__main__":
@@ -50,13 +51,22 @@ if __name__ == "__main__":
     #     # after_date="2024-01-01",
     #     # before_date="2025-04-05"
     # )
+    min_header_count = 5
 
     # Search urls
     search_results = search_data(query)
     urls = [item["url"] for item in search_results]
 
     scraped_urls_results = scrape_urls(urls)
+    pbar = tqdm(total=len(urls))
     for url, html in scraped_urls_results:
+        pbar.set_description(f"URL: {url}")
+
+        if not validate_headers(html, min_count=min_header_count):
+            logger.warning(
+                f"Skipping url: {url} due to header count < {min_header_count}")
+            continue
+
         logger.info(f"Scraping url: {url}")
         sub_dir = safe_path_from_url(url, output_dir)
 
@@ -73,7 +83,10 @@ if __name__ == "__main__":
 
         class ContextNodes(TypedDict):
             group: int
+            tokens: int
             nodes: list[NodeWithScore]
+
+        contexts: list[str] = []
 
         context_nodes: list[ContextNodes] = []
         context_nodes_dict = {
@@ -83,6 +96,7 @@ if __name__ == "__main__":
 
         class Results(TypedDict):
             group: int
+            tokens: int
             results: list[Answer]
 
         results: list[Results] = []
@@ -92,15 +106,22 @@ if __name__ == "__main__":
         }
         for response in response_generator:
             group = response["group"]
-            response_obj: QueryResponse = response["response"]
-            context_nodes.append(
-                {"group": group, "nodes": response["context_nodes"]})
-            results.append({"group": group, "results": response_obj.results})
 
-            save_file([
-                f"<!-- Context {item['group']} -->\n\n{[node.text for node in item['nodes']]}" for item in context_nodes],
-                os.path.join(output_dir, f"context_nodes.md")
-            )
+            context_tokens = response["context_tokens"]
+            context: str = response["context"]
+            context_nodes.append(
+                {"group": group, "tokens": context_tokens, "nodes": response["context_nodes"]})
+
+            response_obj: QueryResponse = response["response"]
+            response_tokens = response["response_tokens"]
+            results.append(
+                {"group": group, "tokens": response_tokens, "results": response_obj.results})
+
+            contexts.append(f"<!-- Context {group} -->\n\n{context}")
+            save_file("\n\n".join(contexts),
+                      os.path.join(output_dir, f"context_nodes.md"))
             save_file(context_nodes_dict, os.path.join(
                 output_dir, f"context_nodes.json"))
             save_file(results_dict, f"{output_dir}/results.json")
+
+        pbar.update(1)
