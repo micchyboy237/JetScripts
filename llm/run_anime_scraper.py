@@ -25,6 +25,7 @@ if __name__ == "__main__":
         document_number: int = Field(
             ..., description="The number of the document that includes this anime (e.g., 'Document number: 3').")
         release_year: Optional[int] = Field(
+            ...,
             description="The most recent known release year of the anime, if specified in the document.")
 
     class QueryResponse(BaseModel):
