@@ -72,7 +72,7 @@ if __name__ == "__main__":
         )
 
         for response in response_generator:
-            save_file(response["headers"], os.path.join(
+            save_file(response["context"], os.path.join(
                 output_dir, f"context_nodes_{response["group"]}.md"))
             save_file(
-                response, f"{output_dir}/results_{response["group"]}.json")
+                response["response"], f"{output_dir}/results_{response["group"]}.json")
