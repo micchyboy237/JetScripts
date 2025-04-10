@@ -55,12 +55,12 @@ if __name__ == "__main__":
         return field_descriptions_str
 
     # Get the field names and descriptions for the QueryResponse and Answer models
+    answer_descriptions_str = get_field_descriptions(Answer.model_fields)
     query_response_descriptions_str = get_field_descriptions(
         QueryResponse.model_fields)
-    answer_descriptions_str = get_field_descriptions(Answer.model_fields)
 
-    field_descriptions_str = answer_descriptions_str + \
-        "\n\n" + query_response_descriptions_str
+    field_descriptions_str = f"Answer Fields:\n{answer_descriptions_str}" + \
+        "\n\n" + f"Query Response Fields:\n{query_response_descriptions_str}"
 
     json_schema_context = f"Field Descriptions:\n{field_descriptions_str}\n\nQuery:\n{query}"
     generated_json_schema = generate_json_schema(context=json_schema_context)
