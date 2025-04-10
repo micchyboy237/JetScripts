@@ -16,9 +16,8 @@ if __name__ == "__main__":
     # llm_model = "gemma3:4b"
     llm_model = "mistral"
     embed_models = [
-        "mxbai-embed-large",
         "paraphrase-multilingual",
-        "granite-embedding",
+        # "mxbai-embed-large",
     ]
     eval_model = llm_model
     output_dir = f"/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/{os.path.splitext(os.path.basename(__file__))[0]}"
