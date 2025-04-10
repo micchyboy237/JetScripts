@@ -1,5 +1,8 @@
+from jet.utils.class_utils import class_to_string
+from pydantic import BaseModel, Field
 import json
 import os
+from typing import Optional
 
 from jet.features.scrape_search_chat import get_docs_from_html, get_nodes_from_docs, get_nodes_parent_mapping, rerank_nodes
 from jet.file.utils import load_file, save_file
@@ -11,43 +14,6 @@ from jet.utils.markdown import extract_json_block_content
 from jet.wordnet.sentence import split_sentences
 from tqdm import tqdm
 
-header_texts = [
-    "# Top 30 Best Rom-Com Anime Of All Time: The Ultimate Ranking",
-    "### 30. Oh! My Goddess",
-    "### 29. The Tatami Galaxy",
-    "### 28. My Senpai is Annoying",
-    "### 27. Net-juu no Susume",
-    "### 26. His and Her Circumstances",
-    "### 25. Arakawa Under the Bridge",
-    "### 24. Maid Sama!",
-    "### 23. Kamisama Kiss",
-    "### 22. High Score Girl",
-    "### 21. Kimi ni Todoke: From Me to You",
-    "### 20. My Little Monster",
-    "### 19. The Pet Girl of Sakurasou",
-    "### 18. Monthly Girls' Nozaki-kun",
-    "### 17. Ouran High School Host Club",
-    "### 16. The Quintessential Quintuplets",
-    "### 15. Tonikawa: Over the Moon For You",
-    "### 14. Lovely Complex",
-    "### 13. Working!!",
-    "### 12. Tsurezure Children",
-    "### 11. School Rumble",
-    "### 10. Nisekoi: False Love",
-    "### 9. Saekano: How to Raise a Boring Girlfriend",
-    "### 8. Wotakoi: Love is Hard for Otaku",
-    "### 7. My Love Story!!",
-    "### 6. Horimiya",
-    "### 5. My Teen Romantic Comedy SNAFU",
-    "### 4. Toradora!",
-    "### 3. Teasing Master Takagi-san",
-    "### 2. Ikkoku House",
-    "### 1. Kaguya-sama: Love is War",
-    "### R. Romero",
-    "### Keep Browsing",
-    "### Related Posts",
-    "#### Browse Fandoms",
-]
 
 prompt_template = """
 --- Documents ---
@@ -59,6 +25,26 @@ Instruction:
 Query: {query}
 Answer:
 """.strip()
+
+
+class Answer(BaseModel):
+    anime_title: str = Field(
+        ..., description="The anime title as it appears in the provided document.")
+    document: int = Field(
+        ..., description="The document number as indicated in the formatted input (e.g., 'Document number').")
+    year: Optional[int] = Field(
+        description="Latest release year of the anime, if available.")
+
+
+class QueryResponse(BaseModel):
+    results: list[Answer] = Field(
+        [],
+        description="A list of answers extracted only from documents that contain relevant information matching the query."
+    )
+
+
+output_cls = QueryResponse
+
 
 if __name__ == "__main__":
     # llm_model = "gemma3:4b"
@@ -72,11 +58,12 @@ if __name__ == "__main__":
     sub_chunk_size = 128
     sub_chunk_overlap = 40
 
-    instruction = "Given the provided documents, select ones that are relevant to the query in JSON format.\nReturn only the list of documents surrounded by ```json.\nOutput sample:\n```json\n[\n{\"doc\": 20,\n\"feedback\": \"Sample feedback\"}]\n```"
+    instruction = "Given the provided documents, select all that contains answers to the query in JSON format.\n\nDeduplicate answers if possible\nReturn only the generated JSON value without any explanations surrounded by ```json that adheres to the model below:\n{schema_str}```"
+    instruction.format(schema_str=class_to_string(output_cls))
     query = "Top otome villainess anime today"
 
     html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/myanimelist_net/scraped_html.html"
-    output_dir = "generated"
+    output_dir = os.path.join(os.path.dirname(__file__), "generated")
 
     html: str = load_file(html_file)
     header_docs = get_docs_from_html(html)
@@ -98,12 +85,12 @@ if __name__ == "__main__":
         reranked_sub_text = reranked_sub_text.lstrip(
             doc.metadata["header"]).strip()
         header_texts.append(
-            f"Document number: {doc.metadata["doc_index"] + 1}\n{doc.metadata["header"].lstrip("#").strip()}\n```text\n{reranked_sub_text}\n```"
+            f"Document number: {doc.metadata["doc_index"] + 1}\n```text\n{doc.metadata["header"].lstrip("#").strip()}\n{reranked_sub_text}\n```"
         )
 
     header_texts = filter_texts(header_texts, llm_model)
 
-    headers = "\n\n\n".join(header_texts)
+    headers = "\n\n".join(header_texts)
     save_file(headers, os.path.join(
         output_dir, "filter_header_docs/top_nodes.md"))
 
