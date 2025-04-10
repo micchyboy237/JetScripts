@@ -54,18 +54,18 @@ if __name__ == "__main__":
         field_descriptions_str = "\n".join(field_descriptions)
         return field_descriptions_str
 
-    # Get the field names and descriptions for the QueryResponse and Answer models
-    answer_descriptions_str = get_field_descriptions(Answer.model_fields)
-    query_response_descriptions_str = get_field_descriptions(
-        QueryResponse.model_fields)
+    # # Get the field names and descriptions for the QueryResponse and Answer models
+    # answer_descriptions_str = get_field_descriptions(Answer.model_fields)
+    # query_response_descriptions_str = get_field_descriptions(
+    #     QueryResponse.model_fields)
+    # field_descriptions_str = f"Answer Fields:\n{answer_descriptions_str}" + \
+    #     "\n\n" + f"Query Response Fields:\n{query_response_descriptions_str}"
 
-    field_descriptions_str = f"Answer Fields:\n{answer_descriptions_str}" + \
-        "\n\n" + f"Query Response Fields:\n{query_response_descriptions_str}"
+    # json_schema_context = f"Field Descriptions:\n{field_descriptions_str}\n\nQuery:\n{query}"
+    # generated_json_schema = generate_json_schema(context=json_schema_context)
+    # json_schema_file = f"{output_dir}/generated_json_schema.json"
+    # save_file(generated_json_schema, json_schema_file)
 
-    json_schema_context = f"Field Descriptions:\n{field_descriptions_str}\n\nQuery:\n{query}"
-    generated_json_schema = generate_json_schema(context=json_schema_context)
-    json_schema_file = f"{output_dir}/generated_json_schema.json"
-    save_file(generated_json_schema, json_schema_file)
     # query = construct_browser_query(
     #     search_terms="top 10 romantic comedy anime",
     #     include_sites=["myanimelist.net",
@@ -99,8 +99,8 @@ if __name__ == "__main__":
         response_generator = run_scrape_search_chat(
             html=html,
             query=query,
-            # output_cls=output_cls,
-            output_cls=generated_json_schema,
+            output_cls=output_cls,
+            # output_cls=generated_json_schema,
             llm_model=llm_model,
             embed_models=embed_models,
         )
