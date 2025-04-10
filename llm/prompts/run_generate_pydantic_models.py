@@ -17,7 +17,7 @@ pydantic_models_context = f"Field Descriptions:\n{field_descriptions}\n\nQuery:\
 generated_pydantic_models = generate_pydantic_models(
     context=pydantic_models_context)
 
-logger.success(format_json(generated_pydantic_models))
+logger.success(generated_pydantic_models)
 
 pydantic_models_file = f"{output_dir}/generated_pydantic_models.py"
 save_file(generated_pydantic_models, pydantic_models_file)
