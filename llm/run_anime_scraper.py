@@ -119,9 +119,9 @@ if __name__ == "__main__":
 
             contexts.append(f"<!-- Group {group} -->\n\n{context}")
             save_file("\n\n".join(contexts),
-                      os.path.join(output_dir, f"context_nodes.md"))
+                      os.path.join(sub_dir, f"context_nodes.md"))
             save_file(context_nodes_dict, os.path.join(
-                output_dir, f"context_nodes.json"))
-            save_file(results_dict, f"{output_dir}/results.json")
+                sub_dir, f"context_nodes.json"))
+            save_file(results_dict, f"{sub_dir}/results.json")
 
         pbar.update(1)
