@@ -1,3 +1,4 @@
+from llama_index.core import PromptTemplate
 from jet.utils.class_utils import class_to_string
 from pydantic import BaseModel, Field
 import json
@@ -15,38 +16,102 @@ from jet.wordnet.sentence import split_sentences
 from tqdm import tqdm
 
 
-prompt_template = """
---- Documents ---
-{headers}
---- End of Documents ---
-
-Instruction:
-{instruction}
-Query: {query}
-Answer:
-""".strip()
-
-
 class Answer(BaseModel):
-    anime_title: str = Field(
-        ..., description="The anime title as it appears in the provided document.")
-    document: int = Field(
-        ..., description="The document number as indicated in the formatted input (e.g., 'Document number').")
-    year: Optional[int] = Field(
-        description="Latest release year of the anime, if available.")
+    title: str = Field(
+        ..., description="The exact title of the anime, as it appears in the document.")
+    document_number: int = Field(
+        ..., description="The number of the document that includes this anime (e.g., 'Document number: 3').")
+    release_year: Optional[int] = Field(
+        description="The most recent known release year of the anime, if specified in the document.")
 
 
 class QueryResponse(BaseModel):
     results: list[Answer] = Field(
-        [],
-        description="A list of answers extracted only from documents that contain relevant information matching the query."
+        default_factory=list,
+        description="List of relevant anime titles extracted from the documents, matching the user's query. Each entry includes the title, source document number, and release year (if known)."
     )
 
 
 output_cls = QueryResponse
 
 
+instruction = """
+Extract relevant information from the documents that directly answer the query.
+
+- Use only the content from the documents provided.
+- Remove duplicates when found.
+- Return only the generated JSON value without any explanations surrounded by ```json that adheres to the model below:
+
+Schema:
+{schema_str}
+
+Example output:
+```json
+[
+    {{
+        "title": "Anime Title 1",
+        "document_number": 2,
+        "release_year": 2020
+    }},
+    {{
+        "title": "Anime Title 2",
+        "document_number": 3,
+        "release_year": 2023
+    }}
+]
+""".strip()
+instruction = instruction.format(schema_str=class_to_string(output_cls))
+
+prompt_template = PromptTemplate("""
+--- Documents ---
+{headers}
+--- End of Documents ---
+
+Instructions:
+You are given a set of structured documents. Your task is to extract all answers relevant to the query using only the content within the documents.
+
+- Use the schema shown below to return your result.
+- Only return answers found directly in the documents.
+- Remove any duplicates.
+- Return *only* the final JSON enclosed in a ```json block.
+
+Schema:
+{schema}
+
+Query:
+{query}
+
+Answer:
+""")
+
+
+def strip_left_hashes(text: str) -> str:
+    """
+    Removes all leading '#' characters from lines that start with '#'.
+    Also strips surrounding whitespace from those lines.
+
+    Args:
+        text (str): The input multiline string
+
+    Returns:
+        str: Modified string with '#' and extra whitespace removed from matching lines
+    """
+    lines = text.splitlines()
+    cleaned_lines = []
+
+    for line in lines:
+        stripped_line = line.strip()
+        if stripped_line.startswith('#'):
+            cleaned_lines.append(stripped_line.lstrip('#').strip())
+        else:
+            cleaned_lines.append(line)
+
+    return '\n'.join(cleaned_lines)
+
+
 if __name__ == "__main__":
+    query = "Top otome villainess anime today"
+
     # llm_model = "gemma3:4b"
     llm_model = "mistral"
     embed_models = [
@@ -54,13 +119,8 @@ if __name__ == "__main__":
         # "mxbai-embed-large",
     ]
     embed_model = embed_models[0]
-
     sub_chunk_size = 128
     sub_chunk_overlap = 40
-
-    instruction = "Given the provided documents, select all that contains answers to the query in JSON format.\n\nDeduplicate answers if possible\nReturn only the generated JSON value without any explanations surrounded by ```json that adheres to the model below:\n{schema_str}```"
-    instruction.format(schema_str=class_to_string(output_cls))
-    query = "Top otome villainess anime today"
 
     html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/myanimelist_net/scraped_html.html"
     output_dir = os.path.join(os.path.dirname(__file__), "generated")
@@ -84,8 +144,9 @@ if __name__ == "__main__":
         reranked_sub_text = "\n".join([n.text for n in reranked_sub_nodes[:3]])
         reranked_sub_text = reranked_sub_text.lstrip(
             doc.metadata["header"]).strip()
+        reranked_sub_text = strip_left_hashes(reranked_sub_text)
         header_texts.append(
-            f"Document number: {doc.metadata["doc_index"] + 1}\n```text\n{doc.metadata["header"].lstrip("#").strip()}\n{reranked_sub_text}\n```"
+            f"Document number: {doc.metadata["doc_index"] + 1}\n```text\n{doc.metadata["header"]}\n{reranked_sub_text}\n```"
         )
 
     header_texts = filter_texts(header_texts, llm_model)
@@ -94,16 +155,31 @@ if __name__ == "__main__":
     save_file(headers, os.path.join(
         output_dir, "filter_header_docs/top_nodes.md"))
 
-    llm = Ollama(temperature=0.0, model=llm_model)
+    llm = Ollama(temperature=0.3, model=llm_model)
 
-    message = prompt_template.format(
-        headers=headers,
-        query=query,
-        instruction=instruction,
+    # message = prompt_template.format(
+    #     headers=headers,
+    #     query=query,
+    #     instruction=instruction,
+    #     schema=class_to_string(output_cls),
+    # )
+
+    response = llm.chat(
+        prompt_template,
+        model=llm_model,
+        template_vars={
+            "headers": headers,
+            "instruction": instruction,
+            "schema": output_cls.model_json_schema(),
+            "query": query,
+        }
     )
-
-    response = llm.chat(message, model=llm_model)
     json_result = extract_json_block_content(str(response))
-    result = json.loads(json_result)
+    results = json.loads(json_result)
 
-    logger.success(format_json(result))
+    logger.success(format_json(results))
+
+    save_file({
+        "query": query,
+        "results": results
+    }, f"{output_dir}/results.json")
