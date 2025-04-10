@@ -1,21 +1,41 @@
 import os
 import re
+from typing import Optional
 from urllib.parse import urlparse
 
 from jet.features.scrape_search_chat import get_docs_from_html, get_nodes_from_docs, rerank_nodes, run_scrape_search_chat, validate_headers
 from jet.file.utils import load_file, save_file
-from jet.llm.ollama.base import Ollama
+from jet.llm.models import OLLAMA_EMBED_MODELS
 from jet.logger import logger
 from jet.scrapers.browser.formatters import construct_browser_query
 from jet.scrapers.utils import safe_path_from_url, scrape_urls, search_data
-from jet.token.token_utils import get_model_max_tokens, token_counter
+from jet.token.token_utils import get_model_max_tokens
+from pydantic import BaseModel, Field
 
+
+class Answer(BaseModel):
+    title: str = Field(
+        ..., description="The exact title of the anime, as it appears in the document.")
+    document_number: int = Field(
+        ..., description="The number of the document that includes this anime (e.g., 'Document number: 3').")
+    release_year: Optional[int] = Field(
+        description="The most recent known release year of the anime, if specified in the document.")
+
+
+class QueryResponse(BaseModel):
+    results: list[Answer] = Field(
+        default_factory=list,
+        description="List of relevant anime titles extracted from the documents, matching the user's query. Each entry includes the title, source document number, and release year (if known)."
+    )
+
+
+output_cls = QueryResponse
 
 if __name__ == "__main__":
     # --- Inputs ---
     # llm_model = "gemma3:4b"
     llm_model = "mistral"
-    embed_models = [
+    embed_models: list[OLLAMA_EMBED_MODELS] = [
         "paraphrase-multilingual",
         # "mxbai-embed-large",
     ]
@@ -30,11 +50,6 @@ if __name__ == "__main__":
     #     # after_date="2024-01-01",
     #     # before_date="2025-04-05"
     # )
-    min_headers = 5
-
-    max_model_tokens = get_model_max_tokens(llm_model)
-    buffer = max_model_tokens * 0.75
-    max_context_tokens = max_model_tokens - buffer
 
     # Search urls
     search_results = search_data(query)
@@ -48,40 +63,16 @@ if __name__ == "__main__":
         html_file = f"{sub_dir}/scraped_html.html"
         save_file(html, html_file)
 
-        header_docs = get_docs_from_html(html)
-        headers_texts = [header.text for header in header_docs]
-        headers_md = "\n\n".join(headers_texts)
-        headers_md_file = f"{sub_dir}/headers.md"
-        save_file(headers_md, headers_md_file)
-
-        result = run_scrape_search_chat(
-            html,
-            llm_model,
-            embed_models,
-            eval_model,
-            sub_dir,
-            query,
+        response_generator = run_scrape_search_chat(
+            html=html,
+            query=query,
+            output_cls=output_cls,
+            llm_model=llm_model,
+            embed_models=embed_models,
         )
 
-        if not result:
-            continue
-
-        save_file(result["docs"], os.path.join(sub_dir, "documents.json"))
-
-        save_file({
-            "query": result["query"],
-            "results": result["search_nodes"]
-        }, os.path.join(sub_dir, "top_nodes.json"))
-
-        # save_file(result["search_eval"], os.path.join(
-        #     sub_dir, "eval_context_relevancy.json"))
-
-        history = "\n\n".join([
-            f"## Query\n\n{result["query"]}",
-            f"## Context\n\n{result["context"]}",
-            f"## Response\n\n{result["response"]}",
-        ])
-        save_file(history, os.path.join(sub_dir, "llm_chat_history.md"))
-
-        # if result["search_eval"].passing:
-        #     break
+        for response in response_generator:
+            save_file(response["headers"], os.path.join(
+                output_dir, f"context_nodes_{response["group"]}.md"))
+            save_file(
+                response, f"{output_dir}/results_{response["group"]}.json")
