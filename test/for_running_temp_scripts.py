@@ -1,56 +1,75 @@
-import json
-from jet.llm.prompt_templates.base import generate_json_schema
-from pydantic import create_model, BaseModel
-from typing import Any, Dict
+from jet.logger import logger
+from jet.transformers.formatters import format_json
+from jet.validation.json_schema_validator import schema_validate_json
 
-# JSON schema (you can replace this with the schema you're working with)
-json_schema = {
-    "type": "object",
-    "properties": {
-        "name": {"type": "string"},
-        "age": {"type": "integer"}
-    },
-    "required": ["name", "age"]
+
+data = {
+    "browser_query": "watch anime: otome, 2025, new releases, trending",
+    "anime_list": [
+        {
+            "title": "Violet Evergarden",
+            "release_year": 2016,
+            "genre": ["Drama", "Romance", "Music"],
+            "rating": 4.5
+        },
+        {
+            "title": "Mushoku Tensei: Jobless Hero",
+            "release_year": 2023,
+            "genre": ["Fantasy", "Action", "Romance"],
+            "rating": 4.2
+        },
+        {
+            "title": "A Silent Voice",
+            "release_year": 2016,
+            "genre": ["Drama", "Romance", "Music"],
+            "rating": 4.6
+        }
+    ],
+    "required": [
+        "anime_list"
+    ]
 }
 
-# Function to create a dynamic Pydantic model from a JSON schema
+schema = {
+    "type": "object",
+    "properties": {
+        "anime_list": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "The title of the anime."
+                    },
+                    "release_year": {
+                        "type": "integer",
+                        "description": "The release year of the anime."
+                    },
+                    "genre": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Genres associated with the anime."
+                    },
+                    "rating": {
+                        "type": "number",
+                        "description": "Average user rating of the anime."
+                    }
+                }
+            }
+        }
+    },
+    "required": [
+        "anime_list"
+    ]
+}
 
+validation_result = schema_validate_json(data, schema)
 
-def create_dynamic_model(schema: Dict[str, Any]) -> BaseModel:
-    model_fields = {}
+logger.success(format_json(validation_result))
 
-    # Extract properties from the schema
-    properties = schema.get("properties", {})
+assert validation_result["is_valid"] == True, f"Errors:\n{'\n'.join(validation_result['errors'])}"
 
-    for field, field_schema in properties.items():
-        # Map the field types in the schema to Pydantic types
-        field_type = str
-        if field_schema.get("type") == "integer":
-            field_type = int
-        elif field_schema.get("type") == "string":
-            field_type = str
-
-        # '...' indicates required field
-        model_fields[field] = (field_type, ...)
-
-    # Create the Pydantic model dynamically
-    return create_model('DynamicModel', **model_fields)
-
-
-if __name__ == "__main__":
-    query = "Top otome villainess anime 2025"
-
-    json_schema_context = f"Query:\n{query}"
-    json_schema = generate_json_schema(context=json_schema_context)
-
-    # Create the dynamic model based on the JSON schema
-    DynamicModel = create_dynamic_model(json_schema)
-
-    # Example JSON data (simulated as a Python dictionary)
-    json_data = {"name": "John", "age": 30}
-
-    # Create an instance of the dynamically created model
-    model_instance = DynamicModel(**json_data)
-
-    # Output the result
-    print(model_instance)
+logger.info("DONE!")

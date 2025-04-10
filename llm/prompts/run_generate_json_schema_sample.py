@@ -1,6 +1,7 @@
 import os
 from jet.file.utils import load_file
 from jet.llm.prompt_templates.base import generate_json_schema, generate_json_schema_sample
+from jet.validation.json_schema_validator import schema_validate_json
 from pydantic import create_model, BaseModel
 from typing import Any, Dict
 
@@ -15,26 +16,38 @@ def create_dynamic_model(schema: Dict[str, Any]) -> BaseModel:
     properties = schema.get("properties", {})
 
     for field, field_schema in properties.items():
-        # Map the field types in the schema to Pydantic types
-        field_type = str
+        field_type = str  # Default type
+
         if field_schema.get("type") == "integer":
             field_type = int
         elif field_schema.get("type") == "string":
             field_type = str
+        elif field_schema.get("type") == "array":
+            # Handle array type
+            items_schema = field_schema.get("items", {})
+            if items_schema.get("type") == "string":
+                field_type = list[str]
+            elif items_schema.get("type") == "object":
+                # Handle object inside array
+                # Use a dictionary as a placeholder, you might want to create sub-models
+                field_type = list[Dict[str, Any]]
+        elif field_schema.get("type") == "number":
+            field_type = float  # For float or number
 
-        # '...' indicates required field
         model_fields[field] = (field_type, ...)
 
-    # Create the Pydantic model dynamically
+    # Create and return the Pydantic model dynamically
     return create_model('DynamicModel', **model_fields)
 
 
 if __name__ == "__main__":
     query = "Top otome villainess anime 2025"
 
-    json_schema_file = ""
-    json_schema = load_file(json_schema_file)
+    json_schema = generate_json_schema(query)
     json_schema_sample = generate_json_schema_sample(json_schema, query)
+
+    # Validate generated sample with schema
+    validation_result = schema_validate_json(json_schema_sample, json_schema)
 
     # Create the dynamic model based on the JSON schema
     DynamicModel = create_dynamic_model(json_schema)
