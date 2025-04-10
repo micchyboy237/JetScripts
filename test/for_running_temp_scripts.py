@@ -1,226 +1,56 @@
-from llama_index.core.schema import TextNode
-from llama_index.core import PromptTemplate
-from jet.utils.class_utils import class_to_string
-from pydantic import BaseModel, Field
 import json
-import os
-from typing import Optional
+from jet.llm.prompt_templates.base import generate_json_schema
+from pydantic import create_model, BaseModel
+from typing import Any, Dict
 
-from jet.features.scrape_search_chat import get_docs_from_html, get_nodes_from_docs, get_nodes_parent_mapping, rerank_nodes
-from jet.file.utils import load_file, save_file
-from jet.llm.ollama.base import Ollama, OllamaEmbedding
-from jet.logger import logger
-from jet.token.token_utils import filter_texts, group_texts, split_docs
-from jet.transformers.formatters import format_json
-from jet.utils.markdown import extract_json_block_content
-from jet.wordnet.sentence import split_sentences
-from tqdm import tqdm
+# JSON schema (you can replace this with the schema you're working with)
+json_schema = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "string"},
+        "age": {"type": "integer"}
+    },
+    "required": ["name", "age"]
+}
 
-
-class Answer(BaseModel):
-    title: str = Field(
-        ..., description="The exact title of the anime, as it appears in the document.")
-    document_number: int = Field(
-        ..., description="The number of the document that includes this anime (e.g., 'Document number: 3').")
-    release_year: Optional[int] = Field(
-        description="The most recent known release year of the anime, if specified in the document.")
+# Function to create a dynamic Pydantic model from a JSON schema
 
 
-class QueryResponse(BaseModel):
-    results: list[Answer] = Field(
-        default_factory=list,
-        description="List of relevant anime titles extracted from the documents, matching the user's query. Each entry includes the title, source document number, and release year (if known)."
-    )
+def create_dynamic_model(schema: Dict[str, Any]) -> BaseModel:
+    model_fields = {}
 
+    # Extract properties from the schema
+    properties = schema.get("properties", {})
 
-output_cls = QueryResponse
+    for field, field_schema in properties.items():
+        # Map the field types in the schema to Pydantic types
+        field_type = str
+        if field_schema.get("type") == "integer":
+            field_type = int
+        elif field_schema.get("type") == "string":
+            field_type = str
 
+        # '...' indicates required field
+        model_fields[field] = (field_type, ...)
 
-instruction = """
-Extract relevant information from the documents that directly answer the query.
-
-- Use only the content from the documents provided.
-- Remove duplicates when found.
-- Return only the generated JSON value without any explanations surrounded by ```json that adheres to the model below:
-
-Schema:
-{schema_str}
-
-Example output:
-```json
-[
-    {{
-        "title": "Anime Title 1",
-        "document_number": 2,
-        "release_year": 2020
-    }},
-    {{
-        "title": "Anime Title 2",
-        "document_number": 3,
-        "release_year": 2023
-    }}
-]
-""".strip()
-instruction = instruction.format(schema_str=class_to_string(output_cls))
-
-prompt_template = PromptTemplate("""
---- Documents ---
-{headers}
---- End of Documents ---
-
-Instructions:
-You are given a set of structured documents. Your task is to extract all answers relevant to the query using only the content within the documents.
-
-- Use the schema shown below to return your result.
-- Only return answers found directly in the documents.
-- Remove any duplicates.
-- Return *only* the final JSON enclosed in a ```json block.
-
-Schema:
-{schema}
-
-Query:
-{query}
-
-Answer:
-""")
-
-
-def strip_left_hashes(text: str) -> str:
-    """
-    Removes all leading '#' characters from lines that start with '#'.
-    Also strips surrounding whitespace from those lines.
-
-    Args:
-        text (str): The input multiline string
-
-    Returns:
-        str: Modified string with '#' and extra whitespace removed from matching lines
-    """
-    lines = text.splitlines()
-    cleaned_lines = []
-
-    for line in lines:
-        stripped_line = line.strip()
-        if stripped_line.startswith('#'):
-            cleaned_lines.append(stripped_line.lstrip('#').strip())
-        else:
-            cleaned_lines.append(line)
-
-    return '\n'.join(cleaned_lines)
+    # Create the Pydantic model dynamically
+    return create_model('DynamicModel', **model_fields)
 
 
 if __name__ == "__main__":
-    query = "Top otome villainess anime today"
+    query = "Top otome villainess anime 2025"
 
-    # llm_model = "gemma3:4b"
-    llm_model = "mistral"
-    embed_models = [
-        "paraphrase-multilingual",
-        # "mxbai-embed-large",
-    ]
-    embed_model = embed_models[0]
-    sub_chunk_size = 128
-    sub_chunk_overlap = 40
+    json_schema_context = f"Query:\n{query}"
+    json_schema = generate_json_schema(context=json_schema_context)
 
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/myanimelist_net/scraped_html.html"
-    output_dir = os.path.join(os.path.dirname(
-        __file__), "generated", "filter_header_docs")
+    # Create the dynamic model based on the JSON schema
+    DynamicModel = create_dynamic_model(json_schema)
 
-    html: str = load_file(html_file)
-    header_docs = get_docs_from_html(html)
-    embed_model = OllamaEmbedding(model_name=embed_model)
-    header_tokens: list[list[int]] = embed_model.encode(
-        [d.text for d in header_docs])
+    # Example JSON data (simulated as a Python dictionary)
+    json_data = {"name": "John", "age": 30}
 
-    header_nodes: list[TextNode] = []
-    for doc_idx, doc in tqdm(enumerate(header_docs), total=len(header_docs)):
-        sub_nodes = split_docs(
-            doc, llm_model, tokens=header_tokens[doc_idx], chunk_size=sub_chunk_size, chunk_overlap=sub_chunk_overlap)
-        parent_map = get_nodes_parent_mapping(sub_nodes, header_docs)
+    # Create an instance of the dynamically created model
+    model_instance = DynamicModel(**json_data)
 
-        sub_query = f"Query: {query}\n{doc.metadata["header"]}"
-        reranked_sub_nodes = rerank_nodes(
-            sub_query, sub_nodes, embed_models, parent_map)
-
-        reranked_sub_text = "\n".join([n.text for n in reranked_sub_nodes[:3]])
-        reranked_sub_text = reranked_sub_text.lstrip(
-            doc.metadata["header"]).strip()
-        reranked_sub_text = strip_left_hashes(reranked_sub_text)
-
-        top_sub_node = reranked_sub_nodes[0]
-        header_nodes.append(
-            TextNode(
-                text=f"Document number: {top_sub_node.metadata["doc_index"] + 1}\n```text\n{top_sub_node.metadata["header"]}\n{reranked_sub_text}\n```",
-                metadata=top_sub_node.metadata
-            )
-        )
-
-    header_parent_map = get_nodes_parent_mapping(header_nodes, header_docs)
-    reranked_header_nodes = rerank_nodes(
-        query, header_nodes, embed_models, header_parent_map)
-    # Sort the reranked_header_nodes by metadata['doc_index']
-    reranked_header_nodes = sorted(
-        reranked_header_nodes, key=lambda node: node.metadata['doc_index'])
-    reranked_header_texts = [node.text for node in reranked_header_nodes]
-
-    save_file(
-        [
-            {
-                "doc": node.metadata["doc_index"] + 1,
-                "score": node.score,
-                "text": node.text,
-                "metadata": node.metadata,
-            }
-            for node in reranked_header_nodes
-        ],
-        os.path.join(output_dir, f"reranked_nodes.json")
-    )
-
-    grouped_header_texts = group_texts(reranked_header_texts, llm_model)
-
-    for idx, header_texts in enumerate(grouped_header_texts):
-        headers = "\n\n".join(header_texts)
-        save_file(headers, os.path.join(
-            output_dir, f"context_nodes_{idx + 1}.md"))
-
-        llm = Ollama(temperature=0.3, model=llm_model)
-
-        # message = prompt_template.format(
-        #     headers=headers,
-        #     query=query,
-        #     instruction=instruction,
-        #     schema=class_to_string(output_cls),
-        # )
-
-        # response = llm.chat(
-        #     prompt_template,
-        #     model=llm_model,
-        #     template_vars={
-        #         "headers": headers,
-        #         "instruction": instruction,
-        #         "schema": output_cls.model_json_schema(),
-        #         "query": query,
-        #     }
-        # )
-
-        # json_result = extract_json_block_content(str(response))
-        # results = json.loads(json_result)
-
-        response = llm.structured_predict(
-            output_cls,
-            prompt_template,
-            model=llm_model,
-            headers=headers,
-            instruction=instruction,
-            schema=output_cls.model_json_schema(),
-            query=query,
-        )
-
-        logger.success(format_json(response))
-
-        save_file({
-            "query": query,
-            "context": headers,
-            "results": response.results
-        }, f"{output_dir}/results_{idx + 1}.json")
+    # Output the result
+    print(model_instance)

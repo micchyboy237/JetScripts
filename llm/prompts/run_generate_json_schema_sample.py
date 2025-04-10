@@ -1,4 +1,5 @@
 import os
+from jet.file.utils import load_file
 from jet.llm.prompt_templates.base import generate_json_schema, generate_json_schema_sample
 from pydantic import create_model, BaseModel
 from typing import Any, Dict
@@ -29,10 +30,8 @@ def create_dynamic_model(schema: Dict[str, Any]) -> BaseModel:
 
 
 if __name__ == "__main__":
-    query = "Top otome villainess anime 2025"
-
-    json_schema_context = f"Query:\n{query}"
-    json_schema = generate_json_schema(json_schema_context)
+    json_schema_file = ""
+    json_schema = load_file(json_schema_file)
     json_schema_sample = generate_json_schema_sample(json_schema)
 
     # Create the dynamic model based on the JSON schema
