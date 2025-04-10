@@ -32,7 +32,6 @@ generated_python_code = generate_pydantic_models(
 
 schema_str = remove_imports(generated_python_code)
 
-
 output_file = f"{output_dir}/generated_pydantic_models.py"
 save_file(generated_python_code, output_file)
 output_file = f"{output_dir}/generated_pydantic_schema.txt"
