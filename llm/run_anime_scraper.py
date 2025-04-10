@@ -33,8 +33,8 @@ if __name__ == "__main__":
     output_cls = QueryResponse
 
     # --- Inputs ---
-    # llm_model = "gemma3:4b"
-    llm_model = "mistral"
+    llm_model = "gemma3:4b"
+    # llm_model = "mistral"
     embed_models: list[OLLAMA_EMBED_MODELS] = [
         "paraphrase-multilingual",
         # "mxbai-embed-large",
