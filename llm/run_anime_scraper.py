@@ -92,7 +92,7 @@ if __name__ == "__main__":
             html=html,
             query=query,
             # output_cls=output_cls,
-            schema=json.dumps(generated_json_schema, indent=1),
+            output_cls=generated_json_schema,
             llm_model=llm_model,
             embed_models=embed_models,
         )
