@@ -124,7 +124,8 @@ if __name__ == "__main__":
     sub_chunk_overlap = 40
 
     html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/myanimelist_net/scraped_html.html"
-    output_dir = os.path.join(os.path.dirname(__file__), "generated")
+    output_dir = os.path.join(os.path.dirname(
+        __file__), "generated", "filter_header_docs")
 
     html: str = load_file(html_file)
     header_docs = get_docs_from_html(html)
@@ -170,7 +171,7 @@ if __name__ == "__main__":
             }
             for node in reranked_header_nodes
         ],
-        os.path.join(output_dir, f"filter_header_docs/reranked_nodes.json")
+        os.path.join(output_dir, f"reranked_nodes.json")
     )
 
     grouped_header_texts = group_texts(reranked_header_texts, llm_model)
@@ -178,7 +179,7 @@ if __name__ == "__main__":
     for idx, header_texts in enumerate(grouped_header_texts):
         headers = "\n\n".join(header_texts)
         save_file(headers, os.path.join(
-            output_dir, f"filter_header_docs/context_nodes_{idx + 1}.md"))
+            output_dir, f"context_nodes_{idx + 1}.md"))
 
         llm = Ollama(temperature=0.3, model=llm_model)
 
