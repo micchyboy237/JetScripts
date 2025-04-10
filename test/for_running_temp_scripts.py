@@ -1,3 +1,4 @@
+from llama_index.core.schema import TextNode
 from llama_index.core import PromptTemplate
 from jet.utils.class_utils import class_to_string
 from pydantic import BaseModel, Field
@@ -9,7 +10,7 @@ from jet.features.scrape_search_chat import get_docs_from_html, get_nodes_from_d
 from jet.file.utils import load_file, save_file
 from jet.llm.ollama.base import Ollama, OllamaEmbedding
 from jet.logger import logger
-from jet.token.token_utils import filter_texts, split_docs
+from jet.token.token_utils import filter_texts, group_texts, split_docs
 from jet.transformers.formatters import format_json
 from jet.utils.markdown import extract_json_block_content
 from jet.wordnet.sentence import split_sentences
@@ -131,7 +132,7 @@ if __name__ == "__main__":
     header_tokens: list[list[int]] = embed_model.encode(
         [d.text for d in header_docs])
 
-    header_texts = []
+    header_nodes: list[TextNode] = []
     for doc_idx, doc in tqdm(enumerate(header_docs), total=len(header_docs)):
         sub_nodes = split_docs(
             doc, llm_model, tokens=header_tokens[doc_idx], chunk_size=sub_chunk_size, chunk_overlap=sub_chunk_overlap)
@@ -145,41 +146,77 @@ if __name__ == "__main__":
         reranked_sub_text = reranked_sub_text.lstrip(
             doc.metadata["header"]).strip()
         reranked_sub_text = strip_left_hashes(reranked_sub_text)
-        header_texts.append(
-            f"Document number: {doc.metadata["doc_index"] + 1}\n```text\n{doc.metadata["header"]}\n{reranked_sub_text}\n```"
+
+        top_sub_node = reranked_sub_nodes[0]
+        header_nodes.append(
+            TextNode(
+                text=f"Document number: {top_sub_node.metadata["doc_index"] + 1}\n```text\n{top_sub_node.metadata["header"]}\n{reranked_sub_text}\n```",
+                metadata=top_sub_node.metadata
+            )
         )
 
-    header_texts = filter_texts(header_texts, llm_model)
+    header_parent_map = get_nodes_parent_mapping(header_nodes, header_docs)
+    reranked_header_nodes = rerank_nodes(
+        query, header_nodes, embed_models, header_parent_map)
+    reranked_header_texts = [node.text for node in reranked_header_nodes]
 
-    headers = "\n\n".join(header_texts)
-    save_file(headers, os.path.join(
-        output_dir, "filter_header_docs/top_nodes.md"))
-
-    llm = Ollama(temperature=0.3, model=llm_model)
-
-    # message = prompt_template.format(
-    #     headers=headers,
-    #     query=query,
-    #     instruction=instruction,
-    #     schema=class_to_string(output_cls),
-    # )
-
-    response = llm.chat(
-        prompt_template,
-        model=llm_model,
-        template_vars={
-            "headers": headers,
-            "instruction": instruction,
-            "schema": output_cls.model_json_schema(),
-            "query": query,
-        }
+    save_file(
+        [
+            {
+                "doc": node.metadata["doc_index"] + 1,
+                "score": node.score,
+                "text": node.text,
+                "metadata": node.metadata,
+            }
+            for node in reranked_header_nodes
+        ],
+        os.path.join(output_dir, f"filter_header_docs/reranked_nodes.json")
     )
-    json_result = extract_json_block_content(str(response))
-    results = json.loads(json_result)
 
-    logger.success(format_json(results))
+    grouped_header_texts = group_texts(reranked_header_texts, llm_model)
 
-    save_file({
-        "query": query,
-        "results": results
-    }, f"{output_dir}/results.json")
+    for idx, header_texts in enumerate(grouped_header_texts):
+        headers = "\n\n".join(header_texts)
+        save_file(headers, os.path.join(
+            output_dir, f"filter_header_docs/context_nodes_{idx + 1}.md"))
+
+        llm = Ollama(temperature=0.3, model=llm_model)
+
+        # message = prompt_template.format(
+        #     headers=headers,
+        #     query=query,
+        #     instruction=instruction,
+        #     schema=class_to_string(output_cls),
+        # )
+
+        # response = llm.chat(
+        #     prompt_template,
+        #     model=llm_model,
+        #     template_vars={
+        #         "headers": headers,
+        #         "instruction": instruction,
+        #         "schema": output_cls.model_json_schema(),
+        #         "query": query,
+        #     }
+        # )
+
+        # json_result = extract_json_block_content(str(response))
+        # results = json.loads(json_result)
+
+        response = llm.structured_predict(
+            output_cls,
+            prompt_template,
+            model=llm_model,
+            headers=headers,
+            instruction=instruction,
+            schema=output_cls.model_json_schema(),
+            query=query,
+        )
+
+        logger.success(format_json(response))
+
+        save_file({
+            "query": query,
+            "context": headers,
+            "results": response.results
+        }, f"{output_dir}/results_{idx + 1}.json")
