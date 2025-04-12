@@ -46,7 +46,7 @@ if __name__ == "__main__":
     search_results = search_data(query)
     urls = [item["url"] for item in search_results]
 
-    scraped_urls_results = scrape_urls(urls)
+    scraped_urls_results = scrape_urls(urls, max_depth=3, query=query)
     pbar = tqdm(total=len(urls))
     for url, html in scraped_urls_results:
         pbar.set_description(f"URL: {url}")
