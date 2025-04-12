@@ -9,7 +9,7 @@ from jet.code.splitter_markdown_utils import extract_md_header_contents, get_md_
 from jet.file.utils import load_file, save_file
 from jet.scrapers.preprocessor import html_to_markdown
 from jet.vectors.reranker.bm25_helpers import HybridSearch
-from jet.wordnet.similarity import get_query_similarity_scores
+from jet.wordnet.similarity import query_similarity_scores
 from jet.wordnet.words import get_words
 from llama_index.core.node_parser.text.sentence import SentenceSplitter
 from pydantic import BaseModel, Field
@@ -155,7 +155,7 @@ all_texts = [node.text for node in all_nodes]
 all_texts_dict = {node.text: node for node in all_nodes}
 
 
-# query_similarities = get_query_similarity_scores(
+# query_similarities = query_similarity_scores(
 #     query, all_texts, model_name=EMBED_MODELS)
 # nodes_with_scores = [
 #     NodeWithScore(

@@ -29,6 +29,8 @@ if __name__ == "__main__":
     query = "Philippines TikTok online seller for live selling registration steps 2025"
     min_header_count = 5
 
+    max_search_depth = 2
+
     query_dir = "query_" + query.lower().replace(' ', '_')
     output_dir = os.path.join(output_dir, query_dir)
 
@@ -46,7 +48,8 @@ if __name__ == "__main__":
     search_results = search_data(query)
     urls = [item["url"] for item in search_results]
 
-    scraped_urls_results = scrape_urls(urls, max_depth=3, query=query)
+    scraped_urls_results = scrape_urls(
+        urls, max_depth=max_search_depth, query=query)
     pbar = tqdm(total=len(urls))
     for url, html in scraped_urls_results:
         pbar.set_description(f"URL: {url}")
@@ -133,7 +136,7 @@ if __name__ == "__main__":
             save_file(e.eval_result, os.path.join(
                 sub_dir, eval_context_result_file))
             logger.error(
-                f"EvalContextError:\n{e}\n\Evaluation:\n{format_json(e.eval_result)}")
+                f"EvalContextError:\n{e}\n\nEvaluation:\n{format_json(e.eval_result)}")
             continue
 
         pbar.update(1)

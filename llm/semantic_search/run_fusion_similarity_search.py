@@ -7,7 +7,7 @@ from jet.scrapers.preprocessor import html_to_markdown
 from jet.token.token_utils import get_model_max_tokens
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
-from jet.wordnet.similarity import fuse_similarity_scores, get_query_similarity_scores
+from jet.wordnet.similarity import fuse_similarity_scores, query_similarity_scores
 from llama_index.core.node_parser.text.sentence import SentenceSplitter
 from llama_index.core.schema import Document, NodeWithScore, TextNode
 
@@ -73,7 +73,7 @@ for node in all_nodes:
 all_texts = [node.text for node in all_nodes]
 all_texts_dict = {node.text: node for node in all_nodes}
 
-query_similarities = get_query_similarity_scores(
+query_similarities = query_similarity_scores(
     query, all_texts, model_name=[EMBED_MODEL, EMBED_MODEL_2, EMBED_MODEL_3])
 
 nodes_with_scores = []
