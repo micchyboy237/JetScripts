@@ -1,0 +1,57 @@
+{
+  "title": "Philippines TikTok Live Selling Registration Steps Schema",
+  "type": "object",
+  "properties": {
+    "steps": {
+      "type": "array",
+      "description": "Ordered list of registration steps for live selling on TikTok in the Philippines",
+      "items": {
+        "type": "object",
+        "required": [
+          "step_number",
+          "instruction"
+        ],
+        "properties": {
+          "step_number": {
+            "type": "integer",
+            "description": "Step order number"
+          },
+          "instruction": {
+            "type": "string",
+            "description": "What the seller needs to do in this step"
+          },
+          "link": {
+            "type": "string",
+            "format": "uri",
+            "description": "Optional URL to the form or page for this step"
+          }
+        }
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "description": "List of required documents and information for live selling registration",
+      "items": {
+        "type": "object",
+        "required": [
+          "document_name",
+          "instruction"
+        ],
+        "properties": {
+          "document_name": {
+            "type": "string",
+            "description": "Name of the required document"
+          },
+          "instruction": {
+            "type": "string",
+            "description": "What the seller needs to do with this document"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "steps",
+    "requirements"
+  ]
+}

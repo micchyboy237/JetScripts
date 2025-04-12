@@ -5,7 +5,8 @@ from jet.features.scrape_search_chat import DocumentTokensExceedsError, EvalCont
 from jet.file.utils import save_file
 from jet.llm.evaluators.context_relevancy_evaluator import evaluate_context_relevancy
 from jet.llm.models import OLLAMA_EMBED_MODELS
-from jet.llm.prompt_templates.base import create_dynamic_model, generate_browser_query_json_schema
+from jet.data.base import create_dynamic_model
+from jet.llm.prompt_templates.base import generate_browser_query_json_schema
 from jet.logger import logger
 from jet.scrapers.utils import safe_path_from_url, scrape_urls, search_data, validate_headers
 from jet.transformers.formatters import format_json

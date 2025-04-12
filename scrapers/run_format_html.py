@@ -2,7 +2,7 @@
 
 # Example Usage
 from jet.file.utils import load_file, save_file
-from jet.scrapers.utils import extract_tree_with_text, extract_text_elements, format_html, print_html
+from jet.scrapers.utils import extract_by_heading_hierarchy, extract_tree_with_text, extract_text_elements, format_html, print_html
 from jet.search.formatters import clean_string
 from jet.utils.commands import copy_to_clipboard
 
@@ -99,22 +99,26 @@ if __name__ == "__main__":
     from jet.scrapers.preprocessor import html_to_markdown
 
     output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/run_format_html"
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/valid-ids-scraper/philippines_national_id_registration_tips_2025/scraped_html.html"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/query_philippines_tiktok_online_seller_for_live_selling_registration_steps_2025/sitegiant_ph/scraped_html.html"
     html_doc = load_file(data_file)
 
-    print_html(html_doc)
+    # print_html(html_doc)
 
-    save_file(html_doc, f"{output_dir}/doc.html")
+    # save_file(html_doc, f"{output_dir}/doc.html")
 
-    md_text = html_to_markdown(html_doc)
-    save_file(md_text, f"{output_dir}/md_text.md")
+    # md_text = html_to_markdown(html_doc)
+    # save_file(md_text, f"{output_dir}/md_text.md")
+
+    # By headings
+    text_elements = extract_by_heading_hierarchy(html_doc)
+    save_file(text_elements, f"{output_dir}/tree_headings_elements.json")
 
     # Get the tree-like structure
     tree_elements = extract_tree_with_text(html_doc)
     save_file(tree_elements, f"{output_dir}/tree_elements.json")
 
-    text_elements = extract_text_elements(html_doc)
-    save_file(text_elements, f"{output_dir}/text_elements.json")
+    # text_elements = extract_text_elements(html_doc)
+    # save_file(text_elements, f"{output_dir}/text_elements.json")
 
-    formatted_html = format_html(html_doc)
-    save_file(formatted_html, f"{output_dir}/formatted_html.html")
+    # formatted_html = format_html(html_doc)
+    # save_file(formatted_html, f"{output_dir}/formatted_html.html")

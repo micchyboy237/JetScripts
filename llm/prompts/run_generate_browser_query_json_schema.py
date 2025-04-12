@@ -1,4 +1,5 @@
 import json
+from jet.data.base import convert_json_schema_to_model_instance
 from pydantic import BaseModel, create_model
 from typing import Any, Dict, Optional, List, Type, Union
 import os
@@ -7,7 +8,6 @@ from jet.llm.prompt_templates.base import generate_browser_query_json_schema, ge
 from jet.validation.json_schema_validator import schema_validate_json
 from pydantic import create_model, BaseModel
 from typing import Any, Dict
-from jet.llm.prompt_templates.base import convert_json_schema_to_model_instance
 
 output_dir = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

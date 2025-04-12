@@ -1,4 +1,5 @@
 import os
+from jet.data.base import create_dynamic_model
 from jet.file.utils import load_file
 from jet.llm.prompt_templates.base import generate_json_schema, generate_json_schema_sample
 from jet.validation.json_schema_validator import schema_validate_json
@@ -7,37 +8,6 @@ from typing import Any, Dict
 
 output_dir = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-
-
-def create_dynamic_model(schema: Dict[str, Any]) -> BaseModel:
-    model_fields = {}
-
-    # Extract properties from the schema
-    properties = schema.get("properties", {})
-
-    for field, field_schema in properties.items():
-        field_type = str  # Default type
-
-        if field_schema.get("type") == "integer":
-            field_type = int
-        elif field_schema.get("type") == "string":
-            field_type = str
-        elif field_schema.get("type") == "array":
-            # Handle array type
-            items_schema = field_schema.get("items", {})
-            if items_schema.get("type") == "string":
-                field_type = list[str]
-            elif items_schema.get("type") == "object":
-                # Handle object inside array
-                # Use a dictionary as a placeholder, you might want to create sub-models
-                field_type = list[Dict[str, Any]]
-        elif field_schema.get("type") == "number":
-            field_type = float  # For float or number
-
-        model_fields[field] = (field_type, ...)
-
-    # Create and return the Pydantic model dynamically
-    return create_model('DynamicModel', **model_fields)
 
 
 if __name__ == "__main__":

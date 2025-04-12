@@ -16,6 +16,7 @@ from jet.transformers import make_serializable
 from jet.logger import logger
 from jet.file import save_file
 from jet.utils.class_utils import get_class_name
+from jet.utils.markdown import extract_block_content
 
 
 LOGS_DIR = "ollama-logs"
@@ -181,13 +182,14 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         final_dict_prompt['tools'] = final_dict_prompt.pop('tools')
 
     if response:
-
-        if "```" not in response:
+        response = extract_block_content(response)
+        response = parse_json(response)
+        if isinstance(response, str):
             response_type = "markdown"
-            if isinstance(parse_json(response), dict):
-                response_type = "json"
-                response = format_json(response)
-            response = f"```{response_type}\n{response}\n```"
+        else:
+            response_type = "json"
+            response = format_json(response)
+        response = f"```{response_type}\n{response}\n```"
 
     response_str = f"## Response\n\n{response}\n\n" if response else ""
     tools_str = f"## Tools\n\n```json\n{format_json(tools)}\n```\n\n" if has_tools else ""
