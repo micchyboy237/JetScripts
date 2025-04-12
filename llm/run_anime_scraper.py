@@ -48,10 +48,11 @@ if __name__ == "__main__":
             continue
 
         sub_dir = safe_path_from_url(url, output_dir)
+        results_file = f"{sub_dir}/results.json"
 
-        if os.path.exists(sub_dir):
+        if os.path.exists(results_file):
             logger.warning(
-                f"Skipping url: {url} as its results already exist in {sub_dir}")
+                f"Skipping url: {url} as results already exist in {results_file}")
             continue
 
         logger.info(f"Scraping url: {url}")
@@ -109,6 +110,6 @@ if __name__ == "__main__":
                       os.path.join(sub_dir, f"context_nodes.md"))
             save_file(context_nodes_dict, os.path.join(
                 sub_dir, f"context_nodes.json"))
-            save_file(results_dict, f"{sub_dir}/results.json")
+            save_file(results_dict, results_file)
 
         pbar.update(1)
