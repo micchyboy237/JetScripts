@@ -1,18 +1,11 @@
-import json
 import os
-import re
 from typing import Optional, TypedDict
-from urllib.parse import urlparse
 
-from jet.features.scrape_search_chat import get_docs_from_html, get_nodes_from_docs, rerank_nodes, run_scrape_search_chat
-from jet.file.utils import load_file, save_file
+from jet.features.scrape_search_chat import run_scrape_search_chat
+from jet.file.utils import save_file
 from jet.llm.models import OLLAMA_EMBED_MODELS
-from jet.llm.prompt_templates.base import generate_json_schema
 from jet.logger import logger
-from jet.scrapers.browser.formatters import construct_browser_query
 from jet.scrapers.utils import safe_path_from_url, scrape_urls, search_data, validate_headers
-from jet.token.token_utils import get_model_max_tokens
-from jet.utils.class_utils import class_to_string
 from llama_index.core.schema import NodeWithScore
 from pydantic import BaseModel, Field
 from tqdm import tqdm

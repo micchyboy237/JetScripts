@@ -1,0 +1,32 @@
+{
+  "anime_list": [
+    {
+      "title": "Violet Evergarden",
+      "release_year": 2016,
+      "genre": [
+        "Drama",
+        "Romance",
+        "Slice of Life"
+      ],
+      "rating": 4.5
+    },
+    {
+      "title": "Spice and Wolf",
+      "release_year": 2019,
+      "genre": [
+        "Fantasy",
+        "Romance"
+      ],
+      "rating": 4.2
+    },
+    {
+      "title": "Mushishi",
+      "release_year": 2018,
+      "genre": [
+        "Fantasy",
+        "Mystery"
+      ],
+      "rating": 4.0
+    }
+  ]
+}
