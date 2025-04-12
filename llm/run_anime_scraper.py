@@ -1,7 +1,7 @@
 import os
 from typing import Dict, Optional, TypedDict
 
-from jet.features.scrape_search_chat import run_scrape_search_chat
+from jet.features.scrape_search_chat import DocumentTokensExceedsError, run_scrape_search_chat
 from jet.file.utils import save_file
 from jet.llm.models import OLLAMA_EMBED_MODELS
 from jet.llm.prompt_templates.base import create_dynamic_model, generate_browser_query_json_schema
@@ -25,7 +25,7 @@ if __name__ == "__main__":
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     # query = "Top otome villainess anime 2025"
-    query = "Philippines TikTok online seller registration steps 2025"
+    query = "Philippines TikTok online seller for live selling registration steps 2025"
     min_header_count = 5
 
     query_dir = "query_" + query.lower().replace(' ', '_')
@@ -67,14 +67,17 @@ if __name__ == "__main__":
         html_file = f"{sub_dir}/scraped_html.html"
         save_file(html, html_file)
 
-        response_generator = run_scrape_search_chat(
-            html=html,
-            query=query,
-            output_cls=output_cls,
-            # output_cls=generated_json_schema,
-            llm_model=llm_model,
-            embed_models=embed_models,
-        )
+        try:
+            response_generator = run_scrape_search_chat(
+                html=html,
+                query=query,
+                output_cls=output_cls,
+                # output_cls=generated_json_schema,
+                llm_model=llm_model,
+                embed_models=embed_models,
+            )
+        except DocumentTokensExceedsError:
+            continue
 
         class RerankedNodes(TypedDict):
             group: int
