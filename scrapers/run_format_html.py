@@ -102,12 +102,12 @@ if __name__ == "__main__":
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/query_philippines_tiktok_online_seller_for_live_selling_registration_steps_2025/sitegiant_ph/scraped_html.html"
     html_doc = load_file(data_file)
 
-    # print_html(html_doc)
+    print_html(html_doc)
 
-    # save_file(html_doc, f"{output_dir}/doc.html")
+    save_file(html_doc, f"{output_dir}/doc.html")
 
-    # md_text = html_to_markdown(html_doc)
-    # save_file(md_text, f"{output_dir}/md_text.md")
+    md_text = html_to_markdown(html_doc)
+    save_file(md_text, f"{output_dir}/md_text.md")
 
     # By headings
     text_elements = extract_by_heading_hierarchy(html_doc)
@@ -120,5 +120,5 @@ if __name__ == "__main__":
     # text_elements = extract_text_elements(html_doc)
     # save_file(text_elements, f"{output_dir}/text_elements.json")
 
-    # formatted_html = format_html(html_doc)
-    # save_file(formatted_html, f"{output_dir}/formatted_html.html")
+    formatted_html = format_html(html_doc)
+    save_file(formatted_html, f"{output_dir}/formatted_html.html")
