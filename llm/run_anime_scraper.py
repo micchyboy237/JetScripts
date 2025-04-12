@@ -125,18 +125,15 @@ if __name__ == "__main__":
                     sub_dir, f"reranked_nodes.json"))
                 save_file(results_dict, results_file)
                 save_file(eval_result, eval_context_result_file)
-        except DocumentTokensExceedsError:
+        except DocumentTokensExceedsError as e:
+            logger.error(
+                f"DocumentTokensExceedsError:\n{e}\n\nMetadata:\n{format_json(e.metadata)}")
             continue
         except EvalContextError as e:
             save_file(e.eval_result, os.path.join(
                 sub_dir, eval_context_result_file))
-
-            if e.eval_result.passing:
-                logger.success(
-                    f"Context relevancy passed ({len(response["reranked_nodes"])})")
-            else:
-                logger.error(
-                    f"Context relevancy failed ({len(response["reranked_nodes"])})")
-                continue
+            logger.error(
+                f"EvalContextError:\n{e}\n\Evaluation:\n{format_json(e.eval_result)}")
+            continue
 
         pbar.update(1)
