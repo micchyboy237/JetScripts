@@ -1,24 +1,35 @@
 {
-  "title": "TikTok Online Seller Registration Steps",
-  "description": "A detailed guide to the online seller registration process on TikTok.",
-  "date": "2025-03-15",
-  "url": "https://www.tiktok.com/",
-  "keywords": [
-    "TikTok",
-    "online seller",
-    "registration",
-    "business"
+  "steps": [
+    {
+      "step_number": 1,
+      "instruction": "Create a TikTok Business Account.",
+      "link": "https://www.tiktok.com/business/signup"
+    },
+    {
+      "step_number": 2,
+      "instruction": "Verify your business information.",
+      "link": "https://www.tiktok.com/business/verify"
+    },
+    {
+      "step_number": 3,
+      "instruction": "Provide your bank account details for payouts.",
+      "link": "https://www.tiktok.com/business/payments"
+    },
+    {
+      "step_number": 4,
+      "instruction": "Complete your seller profile with product details.",
+      "link": "https://www.tiktok.com/business/seller-profile"
+    },
+    {
+      "step_number": 5,
+      "instruction": "Agree to the TikTok Seller Terms and Conditions.",
+      "link": "https://www.tiktok.com/business/terms"
+    }
   ],
-  "category": "Business",
-  "target_audience": "New TikTok sellers",
-  "domain": "TikTok",
-  "page_type": "registration",
-  "registration_steps": [
-    "Step 1: Create an Account",
-    "Step 2: Verify Your Identity",
-    "Step 3: Provide Business Information",
-    "Step 4: Set Up Payment Methods",
-    "Step 5: Activate Your Account"
+  "requirements": [
+    "Business Registration Certificate",
+    "Bank Statement",
+    "Tax Identification Number (TIN)"
   ],
-  "required": true
+  "support_contact": "seller.support@tiktok.com"
 }

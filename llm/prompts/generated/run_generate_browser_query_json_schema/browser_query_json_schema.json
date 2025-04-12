@@ -1,57 +1,47 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TikTok Seller Registration Steps Schema",
   "type": "object",
-  "properties": {
-    "title": {
-      "type": "string",
-      "description": "The title of the page."
-    },
-    "description": {
-      "type": "string",
-      "description": "A brief description of the page's content."
-    },
-    "date": {
-      "type": "string",
-      "format": "date",
-      "description": "The date the page was created or last updated."
-    },
-    "url": {
-      "type": "string",
-      "description": "The URL of the page."
-    },
-    "keywords": {
-      "type": "array",
-      "description": "Keywords related to the page's content."
-    },
-    "category": {
-      "type": "string",
-      "description": "The category the page belongs to."
-    },
-    "target_audience": {
-      "type": "string",
-      "description": "The intended audience for the page."
-    },
-    "domain": {
-      "type": "string",
-      "description": "The domain of the page (TikTok)."
-    },
-    "page_type": {
-      "type": "string",
-      "description": "The type of page (e.g., registration)."
-    },
-    "registration_steps": {
-      "type": "array",
-      "description": "A list of steps involved in the online seller registration process."
-    },
-    "required": {
-      "type": "boolean",
-      "description": "Indicates if this field is mandatory."
-    }
-  },
   "required": [
-    "url",
-    "title",
-    "date",
-    "category"
+    "steps"
   ],
-  "additionalProperties": false
+  "properties": {
+    "steps": {
+      "type": "array",
+      "description": "Ordered list of registration steps",
+      "items": {
+        "type": "object",
+        "required": [
+          "step_number",
+          "instruction"
+        ],
+        "properties": {
+          "step_number": {
+            "type": "integer",
+            "description": "Step order number"
+          },
+          "instruction": {
+            "type": "string",
+            "description": "What the seller needs to do in this step"
+          },
+          "link": {
+            "type": "string",
+            "format": "uri",
+            "description": "Optional URL to the form or page for this step"
+          }
+        }
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "description": "List of documents or requirements needed for registration",
+      "items": {
+        "type": "string"
+      }
+    },
+    "support_contact": {
+      "type": "string",
+      "description": "Optional support email or contact info"
+    }
+  }
 }
