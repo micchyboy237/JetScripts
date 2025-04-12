@@ -24,7 +24,7 @@ if __name__ == "__main__":
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-    query = "query_top_otome_villainess_anime_2025"
+    query = "Top otome villainess anime 2025"
     min_header_count = 5
 
     query_dir = "query_" + query.lower().replace(' ', '_')
