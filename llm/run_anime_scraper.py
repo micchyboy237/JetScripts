@@ -1,8 +1,9 @@
 import os
 from typing import Dict, Optional, TypedDict
 
-from jet.features.scrape_search_chat import DocumentTokensExceedsError, run_scrape_search_chat
+from jet.features.scrape_search_chat import DocumentTokensExceedsError, EvalContextError, run_scrape_search_chat
 from jet.file.utils import save_file
+from jet.llm.evaluators.context_relevancy_evaluator import evaluate_context_relevancy
 from jet.llm.models import OLLAMA_EMBED_MODELS
 from jet.llm.prompt_templates.base import create_dynamic_model, generate_browser_query_json_schema
 from jet.logger import logger
@@ -58,6 +59,7 @@ if __name__ == "__main__":
 
         sub_dir = safe_path_from_url(url, output_dir)
         results_file = f"{sub_dir}/results.json"
+        eval_context_result_file = f"{sub_dir}/eval_context_result.json"
 
         if os.path.exists(results_file):
             logger.warning(
@@ -78,6 +80,17 @@ if __name__ == "__main__":
             )
         except DocumentTokensExceedsError:
             continue
+        except EvalContextError as e:
+            save_file(e.eval_result, os.path.join(
+                sub_dir, eval_context_result_file))
+
+            if e.eval_result.passing:
+                logger.success(
+                    f"Context relevancy passed ({len(response["reranked_nodes"])})")
+            else:
+                logger.error(
+                    f"Context relevancy failed ({len(response["reranked_nodes"])})")
+                continue
 
         class RerankedNodes(TypedDict):
             group: int
@@ -103,6 +116,7 @@ if __name__ == "__main__":
             "url": url,
             "data": results
         }
+
         for response in response_generator:
             group = response["group"]
 
@@ -113,6 +127,7 @@ if __name__ == "__main__":
 
             response_obj = response["response"]
             response_tokens = response["response_tokens"]
+            eval_result = response["eval_result"]
             results.append(
                 {"group": group, "tokens": response_tokens, "results": response_obj})
 
@@ -122,5 +137,6 @@ if __name__ == "__main__":
             save_file(reranked_nodes_dict, os.path.join(
                 sub_dir, f"reranked_nodes.json"))
             save_file(results_dict, results_file)
+            save_file(eval_result, eval_context_result_file)
 
         pbar.update(1)
