@@ -13,24 +13,6 @@ from tqdm import tqdm
 
 
 if __name__ == "__main__":
-    class Answer(BaseModel):
-        title: str = Field(
-            ..., description="The exact title of the anime, as it appears in the document.")
-        document_number: int = Field(
-            ..., description="The number of the document that includes this anime (e.g., 'Document number: 3').")
-        release_year: Optional[int] = Field(
-            ...,
-            description="The most recent known release year of the anime, if specified in the document.")
-
-    class QueryResponse(BaseModel):
-        results: list[Answer] = Field(
-            default_factory=list,
-            description="List of relevant anime titles extracted from the documents, matching the user's query. Each entry includes the title, source document number, and release year (if known)."
-        )
-
-    # output_cls = QueryResponse
-    output_cls = None  # Generate dynamic model
-
     # --- Inputs ---
     llm_model = "llama3.1"
     embed_models: list[OLLAMA_EMBED_MODELS] = [
@@ -43,11 +25,11 @@ if __name__ == "__main__":
 
     query = "Top otome villainess anime 2025"
 
-    if not output_cls:
-        json_schema = generate_browser_query_json_schema(query)
-        # Create the dynamic model based on the JSON schema
-        DynamicModel = create_dynamic_model(json_schema)
-        output_cls = DynamicModel
+    # Generate output model structure
+    json_schema = generate_browser_query_json_schema(query)
+    # Create the dynamic model based on the JSON schema
+    DynamicModel = create_dynamic_model(json_schema)
+    output_cls = DynamicModel
 
     def get_field_descriptions(model_fields: dict):
         # Extract field names and descriptions
@@ -79,8 +61,9 @@ if __name__ == "__main__":
     min_header_count = 5
 
     # Search urls
-    search_results = search_data(query)
-    urls = [item["url"] for item in search_results]
+    # search_results = search_data(query)
+    # urls = [item["url"] for item in search_results]
+    urls = ["https://www.anime-planet.com/anime/tags/villainess"]
 
     scraped_urls_results = scrape_urls(urls)
     pbar = tqdm(total=len(urls))
