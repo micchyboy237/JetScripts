@@ -24,7 +24,8 @@ if __name__ == "__main__":
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-    query = "Top otome villainess anime 2025"
+    # query = "Top otome villainess anime 2025"
+    query = "Philippines TikTok online seller registration steps 2025"
     min_header_count = 5
 
     query_dir = "query_" + query.lower().replace(' ', '_')
@@ -96,6 +97,7 @@ if __name__ == "__main__":
         results: list[Results] = []
         results_dict = {
             "query": query,
+            "url": url,
             "data": results
         }
         for response in response_generator:
