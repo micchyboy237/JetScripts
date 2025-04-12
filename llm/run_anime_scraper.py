@@ -4,6 +4,7 @@ from typing import Optional, TypedDict
 from jet.features.scrape_search_chat import run_scrape_search_chat
 from jet.file.utils import save_file
 from jet.llm.models import OLLAMA_EMBED_MODELS
+from jet.llm.prompt_templates.base import create_dynamic_model, generate_browser_query_json_schema
 from jet.logger import logger
 from jet.scrapers.utils import safe_path_from_url, scrape_urls, search_data, validate_headers
 from llama_index.core.schema import NodeWithScore
@@ -27,7 +28,8 @@ if __name__ == "__main__":
             description="List of relevant anime titles extracted from the documents, matching the user's query. Each entry includes the title, source document number, and release year (if known)."
         )
 
-    output_cls = QueryResponse
+    # output_cls = QueryResponse
+    output_cls = None  # Generate dynamic model
 
     # --- Inputs ---
     llm_model = "llama3.1"
@@ -38,7 +40,14 @@ if __name__ == "__main__":
     eval_model = llm_model
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+
     query = "Top otome villainess anime 2025"
+
+    if not output_cls:
+        json_schema = generate_browser_query_json_schema(query)
+        # Create the dynamic model based on the JSON schema
+        DynamicModel = create_dynamic_model(json_schema)
+        output_cls = DynamicModel
 
     def get_field_descriptions(model_fields: dict):
         # Extract field names and descriptions
@@ -129,10 +138,10 @@ if __name__ == "__main__":
             context_nodes.append(
                 {"group": group, "tokens": context_tokens, "nodes": response["context_nodes"]})
 
-            response_obj: QueryResponse = response["response"]
+            response_obj = response["response"]
             response_tokens = response["response_tokens"]
             results.append(
-                {"group": group, "tokens": response_tokens, "results": response_obj.results})
+                {"group": group, "tokens": response_tokens, "results": response_obj})
 
             contexts.append(f"<!-- Group {group} -->\n\n{context}")
             save_file("\n\n".join(contexts),
