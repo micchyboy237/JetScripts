@@ -17,7 +17,7 @@ if __name__ == "__main__":
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-    query = "TikTok online seller registration steps 2025"
+    query = "Philippines TikTok online seller registration steps 2025"
 
     json_schema = generate_browser_query_json_schema(query)
     json_schema_sample = generate_json_schema_sample(json_schema, query)

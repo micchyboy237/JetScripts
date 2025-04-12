@@ -1,35 +1,57 @@
 {
   "type": "object",
   "properties": {
-    "anime_list": {
+    "title": {
+      "type": "string",
+      "description": "The title of the page."
+    },
+    "description": {
+      "type": "string",
+      "description": "A brief description of the page's content."
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "The date the page was created or last updated."
+    },
+    "url": {
+      "type": "string",
+      "description": "The URL of the page."
+    },
+    "keywords": {
       "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "description": "The title of the anime."
-          },
-          "release_year": {
-            "type": "integer",
-            "description": "The release year of the anime."
-          },
-          "genre": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Genres associated with the anime."
-          },
-          "rating": {
-            "type": "number",
-            "description": "Average user rating of the anime."
-          }
-        }
-      }
+      "description": "Keywords related to the page's content."
+    },
+    "category": {
+      "type": "string",
+      "description": "The category the page belongs to."
+    },
+    "target_audience": {
+      "type": "string",
+      "description": "The intended audience for the page."
+    },
+    "domain": {
+      "type": "string",
+      "description": "The domain of the page (TikTok)."
+    },
+    "page_type": {
+      "type": "string",
+      "description": "The type of page (e.g., registration)."
+    },
+    "registration_steps": {
+      "type": "array",
+      "description": "A list of steps involved in the online seller registration process."
+    },
+    "required": {
+      "type": "boolean",
+      "description": "Indicates if this field is mandatory."
     }
   },
   "required": [
-    "anime_list"
-  ]
+    "url",
+    "title",
+    "date",
+    "category"
+  ],
+  "additionalProperties": false
 }

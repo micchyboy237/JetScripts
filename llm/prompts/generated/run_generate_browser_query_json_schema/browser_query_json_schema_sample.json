@@ -1,32 +1,24 @@
 {
-  "anime_list": [
-    {
-      "title": "Violet Evergarden",
-      "release_year": 2016,
-      "genre": [
-        "Drama",
-        "Romance",
-        "Slice of Life"
-      ],
-      "rating": 4.5
-    },
-    {
-      "title": "Spice and Wolf",
-      "release_year": 2019,
-      "genre": [
-        "Fantasy",
-        "Romance"
-      ],
-      "rating": 4.2
-    },
-    {
-      "title": "Mushishi",
-      "release_year": 2018,
-      "genre": [
-        "Fantasy",
-        "Mystery"
-      ],
-      "rating": 4.0
-    }
-  ]
+  "title": "TikTok Online Seller Registration Steps",
+  "description": "A detailed guide to the online seller registration process on TikTok.",
+  "date": "2025-03-15",
+  "url": "https://www.tiktok.com/",
+  "keywords": [
+    "TikTok",
+    "online seller",
+    "registration",
+    "business"
+  ],
+  "category": "Business",
+  "target_audience": "New TikTok sellers",
+  "domain": "TikTok",
+  "page_type": "registration",
+  "registration_steps": [
+    "Step 1: Create an Account",
+    "Step 2: Verify Your Identity",
+    "Step 3: Provide Business Information",
+    "Step 4: Set Up Payment Methods",
+    "Step 5: Activate Your Account"
+  ],
+  "required": true
 }
