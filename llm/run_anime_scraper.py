@@ -61,9 +61,8 @@ if __name__ == "__main__":
     min_header_count = 5
 
     # Search urls
-    # search_results = search_data(query)
-    # urls = [item["url"] for item in search_results]
-    urls = ["https://www.anime-planet.com/anime/tags/villainess"]
+    search_results = search_data(query)
+    urls = [item["url"] for item in search_results]
 
     scraped_urls_results = scrape_urls(urls)
     pbar = tqdm(total=len(urls))
@@ -75,8 +74,14 @@ if __name__ == "__main__":
                 f"Skipping url: {url} due to header count < {min_header_count}")
             continue
 
-        logger.info(f"Scraping url: {url}")
         sub_dir = safe_path_from_url(url, output_dir)
+
+        if os.path.exists(sub_dir):
+            logger.warning(
+                f"Skipping url: {url} as its results already exist in {sub_dir}")
+            continue
+
+        logger.info(f"Scraping url: {url}")
 
         html_file = f"{sub_dir}/scraped_html.html"
         save_file(html, html_file)
