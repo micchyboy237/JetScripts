@@ -1,5 +1,5 @@
 import os
-from typing import Optional, TypedDict
+from typing import Dict, Optional, TypedDict
 
 from jet.features.scrape_search_chat import run_scrape_search_chat
 from jet.file.utils import save_file
@@ -111,7 +111,7 @@ if __name__ == "__main__":
         class Results(TypedDict):
             group: int
             tokens: int
-            results: list[Answer]
+            results: Dict
 
         results: list[Results] = []
         results_dict = {
