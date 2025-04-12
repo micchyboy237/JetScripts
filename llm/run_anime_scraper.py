@@ -33,13 +33,6 @@ if __name__ == "__main__":
     DynamicModel = create_dynamic_model(json_schema)
     output_cls = DynamicModel
 
-    def get_field_descriptions(model_fields: dict):
-        # Extract field names and descriptions
-        field_descriptions = [f"{idx + 1}. {field_info.description}" for idx,
-                              (field_name, field_info) in enumerate(model_fields.items())]
-        field_descriptions_str = "\n".join(field_descriptions)
-        return field_descriptions_str
-
     # Search urls
     search_results = search_data(query)
     urls = [item["url"] for item in search_results]
