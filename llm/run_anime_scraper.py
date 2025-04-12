@@ -69,28 +69,14 @@ if __name__ == "__main__":
         html_file = f"{sub_dir}/scraped_html.html"
         save_file(html, html_file)
 
-        try:
-            response_generator = run_scrape_search_chat(
-                html=html,
-                query=query,
-                output_cls=output_cls,
-                # output_cls=generated_json_schema,
-                llm_model=llm_model,
-                embed_models=embed_models,
-            )
-        except DocumentTokensExceedsError:
-            continue
-        except EvalContextError as e:
-            save_file(e.eval_result, os.path.join(
-                sub_dir, eval_context_result_file))
-
-            if e.eval_result.passing:
-                logger.success(
-                    f"Context relevancy passed ({len(response["reranked_nodes"])})")
-            else:
-                logger.error(
-                    f"Context relevancy failed ({len(response["reranked_nodes"])})")
-                continue
+        response_generator = run_scrape_search_chat(
+            html=html,
+            query=query,
+            output_cls=output_cls,
+            # output_cls=generated_json_schema,
+            llm_model=llm_model,
+            embed_models=embed_models,
+        )
 
         class RerankedNodes(TypedDict):
             group: int
@@ -117,26 +103,40 @@ if __name__ == "__main__":
             "data": results
         }
 
-        for response in response_generator:
-            group = response["group"]
+        try:
+            for response in response_generator:
+                group = response["group"]
 
-            context_tokens = response["context_tokens"]
-            context: str = response["context"]
-            reranked_nodes.append(
-                {"group": group, "tokens": context_tokens, "nodes": response["reranked_nodes"]})
+                context_tokens = response["context_tokens"]
+                context: str = response["context"]
+                reranked_nodes.append(
+                    {"group": group, "tokens": context_tokens, "nodes": response["reranked_nodes"]})
 
-            response_obj = response["response"]
-            response_tokens = response["response_tokens"]
-            eval_result = response["eval_result"]
-            results.append(
-                {"group": group, "tokens": response_tokens, "results": response_obj})
+                response_obj = response["response"]
+                response_tokens = response["response_tokens"]
+                eval_result = response["eval_result"]
+                results.append(
+                    {"group": group, "tokens": response_tokens, "results": response_obj})
 
-            contexts.append(f"<!-- Group {group} -->\n\n{context}")
-            save_file("\n\n".join(contexts),
-                      os.path.join(sub_dir, f"context.md"))
-            save_file(reranked_nodes_dict, os.path.join(
-                sub_dir, f"reranked_nodes.json"))
-            save_file(results_dict, results_file)
-            save_file(eval_result, eval_context_result_file)
+                contexts.append(f"<!-- Group {group} -->\n\n{context}")
+                save_file("\n\n".join(contexts),
+                          os.path.join(sub_dir, f"context.md"))
+                save_file(reranked_nodes_dict, os.path.join(
+                    sub_dir, f"reranked_nodes.json"))
+                save_file(results_dict, results_file)
+                save_file(eval_result, eval_context_result_file)
+        except DocumentTokensExceedsError:
+            continue
+        except EvalContextError as e:
+            save_file(e.eval_result, os.path.join(
+                sub_dir, eval_context_result_file))
+
+            if e.eval_result.passing:
+                logger.success(
+                    f"Context relevancy passed ({len(response["reranked_nodes"])})")
+            else:
+                logger.error(
+                    f"Context relevancy failed ({len(response["reranked_nodes"])})")
+                continue
 
         pbar.update(1)
