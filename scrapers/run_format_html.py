@@ -115,10 +115,17 @@ if __name__ == "__main__":
     header_texts = []
     for idx, node in enumerate(header_elements):
         texts = [
-            f"Document {idx + 1} | Tag ({node.tag}) | Depth ({node.depth})",
-            "Text:",
-            node.get_content()
+            f"Document {idx + 1} | Tag ({node.tag}) | Depth ({node.depth})"
         ]
+        if node.parent:
+            texts.append(f"Parent ({node.parent})")
+
+        child_texts = [child_node.text or " " for child_node in node.children]
+
+        texts.extend([
+            "Text:",
+            node.text + "\n" + ''.join(child_texts)
+        ])
         header_texts.append("\n".join(texts))
     save_file("\n\n---\n\n".join(header_texts), f"{output_dir}/headings.md")
 

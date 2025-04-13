@@ -26,12 +26,16 @@ if __name__ == "__main__":
 
     llm_model = "llama3.1"
 
-    data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/prompts/generated/run_generate_browser_query_context_json_schema"
+    query = "Philippines TikTok online seller for live selling registration steps 2025"
 
-    result = extract_by_heading_hierarchy(sample_html)
+    data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/prompts/generated/run_generate_browser_query_json_schema"
 
     # Generate output model structure
-    json_schema = load_file(os.path.join(data_dir, "json_schema.json"))
+    json_schema = generate_browser_query_json_schema(query, llm_model)
+    save_file(json_schema, os.path.join(data_dir, "json_schema.json"))
+
+    # Generate output model structure
+    # json_schema = load_file(os.path.join(data_dir, "json_schema.json"))
     output_cls = convert_json_schema_to_model_type(json_schema)
 
     context = load_file(os.path.join(data_dir, f"context.md"))
@@ -41,7 +45,8 @@ if __name__ == "__main__":
     llm = Ollama(temperature=0.3, model=llm_model)
     response = llm.structured_predict(
         output_cls,
-        prompt=SEARCH_WEB_PROMPT_TEMPLATE,
+        prompt=SEARCH_WEB_PROMPT_TEMPLATE.partial_format(
+            schema=output_cls.model_json_schema()),
         model=llm_model,
         context=context,
         system=SYSTEM_QUERY_SCHEMA_DOCS,
