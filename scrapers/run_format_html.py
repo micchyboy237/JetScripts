@@ -108,14 +108,6 @@ if __name__ == "__main__":
     md_text = html_to_markdown(html_doc)
     save_file(md_text, f"{output_dir}/md_text.md")
 
-    # By headings
-    text_elements = extract_by_heading_hierarchy(html_doc)
-    for idx, node in enumerate(text_elements):
-        logger.debug(
-            f"Node {idx + 1} | Tag ({node.tag}) | Depth ({node.depth})")
-        logger.success(node.get_content())
-    save_file(text_elements, f"{output_dir}/tree_headings_elements.json")
-
     # Get the tree-like structure
     tree_elements = extract_tree_with_text(html_doc)
     save_file(tree_elements, f"{output_dir}/tree_elements.json")
@@ -127,3 +119,17 @@ if __name__ == "__main__":
     save_file(formatted_html, f"{output_dir}/formatted_html.html")
 
     print_html(html_doc)
+
+    # By headings
+    header_elements = extract_by_heading_hierarchy(html_doc)
+    save_file(header_elements, f"{output_dir}/headings_elements.json")
+
+    header_texts = []
+    for idx, node in enumerate(header_elements):
+        texts = [
+            f"Document {idx + 1} | Tag ({node.tag}) | Depth ({node.depth})",
+            "Text:",
+            node.get_content()
+        ]
+        header_texts.append("\n".join(texts))
+    save_file("\n\n---\n\n".join(header_texts), f"{output_dir}/headings.md")
