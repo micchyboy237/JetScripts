@@ -108,18 +108,6 @@ if __name__ == "__main__":
     md_text = html_to_markdown(html_doc)
     save_file(md_text, f"{output_dir}/md_text.md")
 
-    # Get the tree-like structure
-    tree_elements = extract_tree_with_text(html_doc)
-    save_file(tree_elements, f"{output_dir}/tree_elements.json")
-
-    # text_elements = extract_text_elements(html_doc)
-    # save_file(text_elements, f"{output_dir}/text_elements.json")
-
-    formatted_html = format_html(html_doc)
-    save_file(formatted_html, f"{output_dir}/formatted_html.html")
-
-    print_html(html_doc)
-
     # By headings
     header_elements = extract_by_heading_hierarchy(html_doc)
     save_file(header_elements, f"{output_dir}/headings_elements.json")
@@ -133,3 +121,15 @@ if __name__ == "__main__":
         ]
         header_texts.append("\n".join(texts))
     save_file("\n\n---\n\n".join(header_texts), f"{output_dir}/headings.md")
+
+    # Get the tree-like structure
+    tree_elements = extract_tree_with_text(html_doc)
+    save_file(tree_elements, f"{output_dir}/tree_elements.json")
+
+    # text_elements = extract_text_elements(html_doc)
+    # save_file(text_elements, f"{output_dir}/text_elements.json")
+
+    formatted_html = format_html(html_doc)
+    save_file(formatted_html, f"{output_dir}/formatted_html.html")
+
+    print_html(html_doc)
