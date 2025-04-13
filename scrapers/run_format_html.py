@@ -2,6 +2,7 @@
 
 # Example Usage
 from jet.file.utils import load_file, save_file
+from jet.logger import logger
 from jet.scrapers.utils import extract_by_heading_hierarchy, extract_tree_with_text, extract_text_elements, format_html, print_html
 from jet.search.formatters import clean_string
 from jet.utils.commands import copy_to_clipboard
@@ -102,8 +103,6 @@ if __name__ == "__main__":
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/query_philippines_tiktok_online_seller_for_live_selling_registration_steps_2025/sitegiant_ph/scraped_html.html"
     html_doc = load_file(data_file)
 
-    print_html(html_doc)
-
     save_file(html_doc, f"{output_dir}/doc.html")
 
     md_text = html_to_markdown(html_doc)
@@ -111,6 +110,10 @@ if __name__ == "__main__":
 
     # By headings
     text_elements = extract_by_heading_hierarchy(html_doc)
+    for idx, node in enumerate(text_elements):
+        logger.debug(
+            f"Node {idx + 1} | Tag ({node.tag}) | Depth ({node.depth})")
+        logger.success(node.get_content())
     save_file(text_elements, f"{output_dir}/tree_headings_elements.json")
 
     # Get the tree-like structure
@@ -122,3 +125,5 @@ if __name__ == "__main__":
 
     formatted_html = format_html(html_doc)
     save_file(formatted_html, f"{output_dir}/formatted_html.html")
+
+    print_html(html_doc)
