@@ -413,7 +413,8 @@ def request(flow: http.HTTPFlow):
              ["fields"] if field[0].lower() == "event-start-time"),
             None
         )
-        header_event_start_time = header_event_start_time.replace("|", "_")
+        if header_event_start_time:
+            header_event_start_time = header_event_start_time.replace("|", "_")
 
         sub_dir_path = flow.request.path.replace("/", "-").strip("-")
         sub_dir_feature = header_log_filename or "_manual_call"
@@ -430,6 +431,7 @@ def request(flow: http.HTTPFlow):
         # Log the serialized data as a JSON string
         request_content: dict = request_dict["content"].copy()
         prompt = request_content.pop("prompt", None)
+        options = request_content.pop("options", {})
 
         logger.gray("REQUEST PROMPT:")
         logger.info(prompt)

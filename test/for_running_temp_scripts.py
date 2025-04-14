@@ -7,8 +7,10 @@ from jet.llm.models import OLLAMA_EMBED_MODELS, OLLAMA_MODEL_NAMES
 from jet.llm.ollama.base import Ollama
 from jet.logger import logger
 from jet.scrapers.preprocessor import html_to_markdown
+from jet.scrapers.utils import extract_internal_links, extract_title_and_metadata, scrape_links
 from jet.token.token_utils import get_model_max_tokens, group_nodes
 from jet.transformers.formatters import format_json
+from jet.utils.commands import copy_to_clipboard
 from jet.utils.doc_utils import get_recursive_text
 from pydantic import BaseModel, create_model
 from typing import Any, Dict, Optional, List, Type, Union
@@ -25,16 +27,14 @@ output_dir = os.path.join(
 if __name__ == "__main__":
     html: str = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/query_philippines_tiktok_online_seller_for_live_selling_registration_steps_2025/sitegiant_ph/scraped_html.html")
 
-    llm_model = "llama3.1"
-    model_max_tokens = get_model_max_tokens(llm_model)
+    links = scrape_links(html)
+    internal_links = extract_internal_links(html, "https://sitegiant.ph")
+    metadata = extract_title_and_metadata(html)
 
-    llm = Ollama(llm_model)
-
-    docs = get_docs_from_html(html)
-    md_text = "\n\n".join(doc.text for doc in docs)
-    header_contents = extract_md_header_contents(
-        md_text, min_tokens_per_chunk=256, max_tokens_per_chunk=1000)
-
-    content = docs[1].get_recursive_text()
-
-    logger.success(content)
+    result = {
+        "links": links,
+        "internal_links": internal_links,
+        "metadata": metadata,
+    }
+    copy_to_clipboard(result)
+    logger.success(format_json(result))
