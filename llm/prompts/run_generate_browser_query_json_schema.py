@@ -1,7 +1,7 @@
 import json
 import shutil
 from jet.code.splitter_markdown_utils import get_md_header_contents
-from jet.data.base import convert_json_schema_to_model_instance, convert_json_schema_to_model_type
+from jet.data.base import convert_json_schema_to_model_instance, convert_json_schema_to_model_type, create_dynamic_model
 from jet.features.scrape_search_chat import SYSTEM_QUERY_SCHEMA_DOCS, SEARCH_WEB_PROMPT_TEMPLATE, get_all_header_nodes, get_docs_from_html, get_header_tokens_and_update_metadata, get_nodes_parent_mapping, process_document, rerank_nodes
 from jet.llm.models import OLLAMA_EMBED_MODELS, OLLAMA_MODEL_NAMES
 from jet.llm.ollama.base import Ollama
@@ -32,8 +32,6 @@ if __name__ == "__main__":
         "paraphrase-multilingual",
     ]
     embed_model = embed_models[0]
-
-    max_tokens_per_group = 0.5
     embed_model_max_tokens = get_model_max_tokens(embed_model)
 
     sub_chunk_size = 128
@@ -59,8 +57,7 @@ if __name__ == "__main__":
     json_schema = generate_browser_query_json_schema(query)
     save_file(json_schema, f"{output_dir}/json_schema.json")
 
-    DynamicModel = convert_json_schema_to_model_type(json_schema)
-    output_cls = DynamicModel
+    output_cls = create_dynamic_model(json_schema, nested=True)
 
     logger.orange(format_json(output_cls.model_json_schema()))
 
@@ -92,8 +89,7 @@ if __name__ == "__main__":
     sorted_header_nodes = sorted(
         reranked_header_nodes, key=lambda node: node.metadata['doc_index'])
     # Split nodes into groups to prevent LLM max tokens issue
-    grouped_header_nodes = group_nodes(
-        sorted_header_nodes, llm_model, max_tokens=max_tokens_per_group)
+    grouped_header_nodes = group_nodes(sorted_header_nodes, llm_model)
 
     # First group only
     context_nodes = grouped_header_nodes[0]
