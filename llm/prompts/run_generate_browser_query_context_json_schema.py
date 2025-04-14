@@ -5,8 +5,10 @@ from jet.data.base import convert_json_schema_to_model_instance, convert_json_sc
 from jet.features.scrape_search_chat import SYSTEM_QUERY_SCHEMA_DOCS, SEARCH_WEB_PROMPT_TEMPLATE, get_all_header_nodes, get_docs_from_html, get_header_tokens_and_update_metadata, get_nodes_parent_mapping, process_document, rerank_nodes
 from jet.llm.models import OLLAMA_EMBED_MODELS, OLLAMA_MODEL_NAMES
 from jet.llm.ollama.base import Ollama
+from jet.logger import logger
 from jet.scrapers.preprocessor import html_to_markdown
 from jet.token.token_utils import get_model_max_tokens, group_nodes
+from jet.transformers.formatters import format_json
 from pydantic import BaseModel, create_model
 from typing import Any, Dict, Optional, List, Type, Union
 import os
@@ -24,10 +26,10 @@ if __name__ == "__main__":
         shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    llm_model = "llama3.1"
+    llm_model = "mistral"
     embed_models: list[OLLAMA_EMBED_MODELS] = [
+        "mxbai-embed-large",
         "paraphrase-multilingual",
-        # "mxbai-embed-large",
     ]
     embed_model = embed_models[0]
 
@@ -44,10 +46,18 @@ if __name__ == "__main__":
     html: str = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/query_philippines_tiktok_online_seller_for_live_selling_registration_steps_2025/sitegiant_ph/scraped_html.html")
 
     # Generate output model structure
-    output_cls = generate_output_class(query, llm_model)
-    save_file(output_cls.model_json_schema(), f"{output_dir}/json_schema.json")
+    json_schema = generate_browser_query_json_schema(query)
+    save_file(json_schema, f"{output_dir}/json_schema.json")
+
+    DynamicModel = convert_json_schema_to_model_type(json_schema)
+    output_cls = DynamicModel
+
+    logger.orange(format_json(output_cls.model_json_schema()))
 
     header_docs = get_docs_from_html(html)
+    save_file("\n\n".join([doc.text for doc in header_docs]),
+              f"{output_dir}/headers.md")
+
     shared_header_doc = header_docs[0]
 
     header_tokens = get_header_tokens_and_update_metadata(
@@ -84,7 +94,7 @@ if __name__ == "__main__":
     header_texts = [node.text for node in header_nodes]
     # Prepend shared context
     header_texts = [shared_header_doc.text] + header_texts
-    context = "\n\n".join(header_texts)
+    context = "\n\n---\n\n".join(header_texts)
     save_file(context, os.path.join(output_dir, f"context.md"))
 
     group_header_doc_indexes = [
@@ -105,11 +115,12 @@ if __name__ == "__main__":
     reranked_header_nodes = [
         {
             "doc": node.metadata["doc_index"] + 1,
+            "rank": rank_idx + 1,
             "score": node.score,
             "text": node.text,
             "metadata": node.metadata,
         }
-        for node in reranked_header_nodes
+        for rank_idx, node in enumerate(reranked_header_nodes)
         if node.metadata["doc_index"] in group_header_doc_indexes
     ]
     save_file(reranked_header_nodes, os.path.join(
@@ -126,9 +137,10 @@ if __name__ == "__main__":
         output_cls,
         prompt=SEARCH_WEB_PROMPT_TEMPLATE,
         model=llm_model,
-        context=context,
-        system=SYSTEM_QUERY_SCHEMA_DOCS,
+        headers=context,
+        instruction=SYSTEM_QUERY_SCHEMA_DOCS,
         query=query,
+        schema=json.dumps(output_cls.model_json_schema(), indent=2),
     )
     save_file(response, os.path.join(
         output_dir, f"chat_response.json"))
