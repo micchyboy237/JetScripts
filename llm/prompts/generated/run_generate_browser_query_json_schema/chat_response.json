@@ -1,0 +1,16 @@
+{
+  "tips": [
+    {
+      "title": "Keyword Research",
+      "type": "object"
+    },
+    {
+      "title": "On-Page SEO",
+      "type": "object"
+    },
+    {
+      "title": "User Engagement",
+      "type": "object"
+    }
+  ]
+}

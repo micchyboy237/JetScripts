@@ -1,8 +1,8 @@
 import json
 import shutil
 from jet.code.splitter_markdown_utils import extract_md_header_contents, get_md_header_contents
-from jet.data.base import convert_json_schema_to_model_instance, convert_json_schema_to_model_type
-from jet.features.scrape_search_chat import SYSTEM_QUERY_SCHEMA_DOCS, SEARCH_WEB_PROMPT_TEMPLATE, get_all_header_nodes, get_docs_from_html, get_docs_from_html, get_header_tokens_and_update_metadata, get_nodes_parent_mapping, process_document, rerank_nodes
+from jet.data.base import convert_json_schema_to_model_instance, convert_json_schema_to_model_type, extract_titles_descriptions
+from jet.features.scrape_search_chat import SYSTEM_QUERY_SCHEMA_DOCS, SEARCH_WEB_PROMPT_TEMPLATE, Document, get_all_header_nodes, get_docs_from_html, get_docs_from_html, get_header_tokens_and_update_metadata, get_nodes_parent_mapping, process_document, rerank_nodes
 from jet.llm.models import OLLAMA_EMBED_MODELS, OLLAMA_MODEL_NAMES
 from jet.llm.ollama.base import Ollama
 from jet.logger import logger
@@ -12,6 +12,7 @@ from jet.token.token_utils import get_model_max_tokens, group_nodes
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
 from jet.utils.doc_utils import get_recursive_text
+from jet.wordnet.similarity import query_similarity_scores
 from pydantic import BaseModel, create_model
 from typing import Any, Dict, Optional, List, Type, Union
 import os
@@ -25,16 +26,29 @@ output_dir = os.path.join(
 
 
 if __name__ == "__main__":
-    html: str = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/query_philippines_tiktok_online_seller_for_live_selling_registration_steps_2025/sitegiant_ph/scraped_html.html")
+    query = "Philippines tips for online selling 2025"
 
-    links = scrape_links(html)
-    internal_links = extract_internal_links(html, "https://sitegiant.ph")
-    metadata = extract_title_and_metadata(html)
+    llm_model = "llama3.1"
+    embed_models: list[OLLAMA_EMBED_MODELS] = [
+        "mxbai-embed-large",
+        "paraphrase-multilingual",
+    ]
 
-    result = {
-        "links": links,
-        "internal_links": internal_links,
-        "metadata": metadata,
-    }
-    copy_to_clipboard(result)
-    logger.success(format_json(result))
+    html: str = load_file(
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/query_philippines_tips_for_online_selling_2025/hqmanila_com/scraped_html.html")
+    json_schema = load_file(
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/query_philippines_tips_for_online_selling_2025/generated_json_schema.json")
+    schema_results = extract_titles_descriptions(json_schema)
+    schema_contexts = [
+        f"Title: {item["title"]}, Description: {item["description"]}" for item in schema_results]
+
+    header_docs = get_docs_from_html(html)
+
+    queries = [query, *schema_contexts]
+    query_scores = Document.rerank_documents(
+        queries, header_docs, embed_models)
+
+    logger.success(format_json(query_scores))
+
+    save_file({"queries": queries, "results": query_scores}, os.path.join(
+        output_dir, f"reranked_docs.json"))
