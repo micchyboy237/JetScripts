@@ -27,7 +27,8 @@ if __name__ == "__main__":
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     # query = "Top otome villainess anime 2025"
-    query = "Philippines TikTok online seller for live selling registration steps 2025"
+    # query = "Philippines TikTok online seller for live selling registration steps 2025"
+    query = "Philippines tips for online selling 2025"
     min_header_count = 5
 
     max_search_depth = 2

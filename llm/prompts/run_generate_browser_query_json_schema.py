@@ -39,8 +39,9 @@ if __name__ == "__main__":
     sub_chunk_size = 128
     sub_chunk_overlap = 40
 
-    query = "Philippines TikTok online seller for live selling registration steps 2025"
-    html: str = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/query_philippines_tiktok_online_seller_for_live_selling_registration_steps_2025/sitegiant_ph/scraped_html.html")
+    query = "Philippines tips for online selling 2025"
+    html: str = load_file(
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/query_philippines_tips_for_online_selling_2025/hqmanila_com/scraped_html.html")
     save_file(html, f"{output_dir}/doc.html")
 
     output_dir = os.path.join(

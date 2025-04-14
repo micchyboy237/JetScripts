@@ -1,36 +1,35 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Philippines TikTok Live Selling Registration Schema",
+  "title": "Philippines Online Selling Tips Schema",
   "type": "object",
   "properties": {
-    "steps": {
+    "tips": {
       "type": "array",
-      "description": "Ordered list of registration steps for TikTok Live Selling",
+      "description": "List of online selling tips",
       "items": {
         "type": "object",
         "required": [
-          "step_number",
-          "instruction"
+          "tip"
         ],
         "properties": {
-          "step_number": {
-            "type": "integer",
-            "description": "Step order number"
-          },
-          "instruction": {
+          "tip": {
             "type": "string",
-            "description": "What the seller needs to do in this step"
+            "description": "A specific online selling tip"
           },
-          "link": {
+          "category": {
+            "type": "string",
+            "description": "Category of the tip (e.g., marketing, logistics, legal)"
+          },
+          "resource_link": {
             "type": "string",
             "format": "uri",
-            "description": "Optional URL to the form or page for this step"
+            "description": "Optional URL to a relevant resource"
           }
         }
       }
     }
   },
   "required": [
-    "steps"
+    "tips"
   ]
 }

@@ -1,310 +1,387 @@
-# Step-by-Step Guide How to Sell on TikTok Shop Philippines  
-* [ December 10, 2024 ](https://sitegiant.ph/blog/2024/12/10/)
-* [ Posted by Yin Yi  ](https://sitegiant.ph/blog/author/yin-yi/)  
-TikTok Shop is rapidly growing in the Philippines, especially among younger consumers. The integration of TikTok Shop with social media concepts allows users to quickly access product information and reviews through short videos and livestream.  
-This format perfectly aligns with the fast-paced lifestyle of the younger generation. A key advantage of selling on TikTok Shop is the opportunity to gain greater exposure while enjoying a streamlined selling experience.  
-With this eCommerce marketplace, you can be both a content creator and an online seller at the same time. Brands now have direct access to TikTok viewers, who represent 47.3% of internet users in the Philippines, creating an unmatched opportunity to engage with a wide local audience.  
-In this guide, we'll explore a simple guide for how to sell on TikTok Shop Philippines.  
-Step 1: How to Set Up Your Seller Account  
-Step 2: Fill out the Application for Each Business Type  
-Step 3: Set Up Your Shop  
-Step 4: Upload and List Your Product  
-Step 5: Start Selling Your Products  
-Step 6: Shipping and Seller Fee  
-Step 7: Tools for Help Your Operation Store  
-* * *
+# Trending Today  
+[](https://hqmanila.com/the-top-30-richest-filipino-celebrities-of-2024/)
 
-## Step 1: How to Set Up Your Seller Account  
-By all means, visit the TikTok Shop Seller Center to register your account.
+##### [[UPDATE] Philippines Wealthiest Stars: The Top 30 Richest Filipino Celebrities of 2025](https://hqmanila.com/the-top-30-richest-filipino-celebrities-of-2024/)  
+[1 year ago](https://hqmanila.com/the-top-30-richest-filipino-celebrities-of-2024/)  
+[](https://hqmanila.com/10-best-spas-in-manila/)
 
-### Two Options to Sign Up for a Seller Account  
-1. Register with TikTok Account  
-New sellers can sign up a seller account to continue with each social media platform account or select 'Use QR code' to continue with TikTok Account.  
-2. Register with Phone Number or Email  
-Register with a phone number or email and proceed to enter the verification code and set a password.  
-Note:  All email address or mobile phone number was available to be used only 1 time for TikTok Shop account registration.  
-* * *
+##### [10 Best Spas in Manila: Where the Only 'Happy Ending' is You Begging for More!](https://hqmanila.com/10-best-spas-in-manila/)  
+[2 years ago](https://hqmanila.com/10-best-spas-in-manila/)  
+[](https://hqmanila.com/50-tagalog-dad-jokes-that-will-wreck-your-seriousness-in-2025/)
 
-## Step 2: Fill out the Application for Each Business Type  
-Follow the general guidelines provided by TikTok Shop to ensure your documents meet the required format.
+##### [50 Tagalog Dad Jokes That Will Wreck Your Seriousness in 2025](https://hqmanila.com/50-tagalog-dad-jokes-that-will-wreck-your-seriousness-in-2025/)  
+[3 months ago](https://hqmanila.com/50-tagalog-dad-jokes-that-will-wreck-your-seriousness-in-2025/)  
+[](https://hqmanila.com/the-best-filipino-dad-jokes-to-make-your-day/)
 
-### General Document Format Requirements  
-1. Both sides of the ID cards must be government-issued and must show the individual's information clearly.  
-2. Passports must show the entire biodata/personal data page clearly.  
-3. Documents must be in a legible paper orientation.  
-4. Document images must be high quality, colored and unobstructed.  
-5. For multi-page files, please combine two-sided pictures into a one-page file.  
-6. File format: PNG or JPG.
+##### [Laugh Out Loud: 34 Filipino Dad Jokes to Make Your Day](https://hqmanila.com/the-best-filipino-dad-jokes-to-make-your-day/)  
+[2 years ago](https://hqmanila.com/the-best-filipino-dad-jokes-to-make-your-day/)  
+[](https://hqmanila.com/5-must-watch-filipino-movies-in-theaters-in-2025/)
 
-#### The Different Application Criteria for Individual Sellers and Corporate Sellers  
-Criteria | Individual Seller | Corporate Seller
----|---|---
-Description| An individual person offering goods for sale on TikTok Shop. | Seller is a legally incorporated company / business, registered with the Department of Trade & Industry (DTI) or Securities & Exchange Commission (SEC)
-Applicant Eligibility| Must be a citizen of the Philippines| Must be an entity incorporated in the Philippines
-Must be at least 18 years old| Must submit valid business licenses and registrations issued by DTI or SEC
-Cannot be under investigation or enforcement action| Cannot be under investigation or enforcement action
-Seller Verification Requirements| TIN ID| Business registration details & documents
-Passport| Contact details
-PhilSys ID / National ID| Tax registration details & documents
-Driver's License| Government-issued identity documents of company legal representative(s) / director(s) / person(s) with significant control
-Unified Multi-Purpose ID (UMID)| Any other additional relevant information, as required by regulations
-Social Security System (SSS) ID| N/A
-PhilPost ID / Postal ID| N/A
-Voter's ID| N/A
-PhilHealth ID| N/A
-Professional Identification Card (PRC) ID| N/A
-Any other additional relevant information, as required by regulations| N/A
-Identity Document Requirements| Name on the submitted identity document must match the applicant's name on the registered TikTok Shop account| Full pages of all business and tax registration documents must be submitted
-| Identity documents must be government-issued and recognized by the Philippines| Company name on the submitted documents must match the company name on the registered TikTok Shop account
-Must be valid at the time of submission| Must be valid at the time of submission
-N/A| Legal representative's name on business licenses must match the TikTok Shop account
-N/A| Where requested, applicants must also provide us with information evidencing the beneficial ownership of the company  
-Note:  For detailed information, please refer to the official TikTok Shop Academy website.  
-* * *
+##### [5 Must-Watch Filipino Movies in Theaters in 2025](https://hqmanila.com/5-must-watch-filipino-movies-in-theaters-in-2025/)  
+[3 months ago](https://hqmanila.com/5-must-watch-filipino-movies-in-theaters-in-2025/)
 
-## Step 3: Set up Your Store  
-Now, just a few steps to continue to set up your store with TikTok's guidelines.  
-1. Upload the required Application Documents for your seller type.  
-2. Set Your Store Name.  
-3. Select the Product Category you wish to sell in TikTok Shop.  
-4. Complete Your Seller Profile with accurate Contact Information.  
-5. Submit a copy of the first full page of your Bank Account Information.  
-Individual Seller | Corporate Seller
----|---
-The submitted bank account name should be consistent with the name on the identity documents provided upon registration. | The business bank account name must also be consistent with the business entity's name on any submitted business licenses, certificates, or company registrations.  
-TikTok Shop also will require further information according to the specific requirements of the applicant's destination market and periodic verification checks for further information.  
-* * *
+### Top Posts  
+[](https://hqmanila.com/10-best-spas-in-manila/)
 
-## Step 4: Upload and List Your Product  
-New sellers can refer to this picture for the overview below to see overall steps on how to manage your product on TikTok Shop.  
-Note:  For detailed information, please refer to the official TikTok Shop Academy website.  
-Click "Upload Now" button for upload product to your TikTok Shop.  
-Entrance: Seller Center > Product >[ ](https://seller-ph.tiktok.com/product/optimizer)Product Optimizer.  
-To review suggestions to improve product visibility based on the issues that your products have.
+##### [10 Best Spas in Manila: Where the Only 'Happy Ending' is You Begging for More!](https://hqmanila.com/10-best-spas-in-manila/)  
+[2 years ago](https://hqmanila.com/10-best-spas-in-manila/)  
+[](https://hqmanila.com/50-tagalog-dad-jokes-that-will-wreck-your-seriousness-in-2025/)
 
-### Benefits of Optimising Products with Product Optimizer  
-* * *
+##### [50 Tagalog Dad Jokes That Will Wreck Your Seriousness in 2025](https://hqmanila.com/50-tagalog-dad-jokes-that-will-wreck-your-seriousness-in-2025/)  
+[3 months ago](https://hqmanila.com/50-tagalog-dad-jokes-that-will-wreck-your-seriousness-in-2025/)  
+[](https://hqmanila.com/the-top-30-richest-filipino-celebrities-of-2024/)
 
-## Step 5: Start Selling Your Products  
-You can sell your products on TikTok Shop in several ways, including
+##### [[UPDATE] Philippines Wealthiest Stars: The Top 30 Richest Filipino Celebrities of 2025](https://hqmanila.com/the-top-30-richest-filipino-celebrities-of-2024/)  
+[1 year ago](https://hqmanila.com/the-top-30-richest-filipino-celebrities-of-2024/)  
+[](https://hqmanila.com/the-best-filipino-dad-jokes-to-make-your-day/)
 
-### 1. Livestream  
-TikTok Live provides more exclusive deals, giveaways and limited-time offers during festivals and events. By going live, you gain your user's trust, confidence, and enjoyment. Livestream is a great opportunity to show your products. By interacting with the host will increase the buyer's desire to buy the product.
+##### [Laugh Out Loud: 34 Filipino Dad Jokes to Make Your Day](https://hqmanila.com/the-best-filipino-dad-jokes-to-make-your-day/)  
+[2 years ago](https://hqmanila.com/the-best-filipino-dad-jokes-to-make-your-day/)  
+[](https://hqmanila.com/5-must-watch-filipino-movies-in-theaters-in-2025/)
 
-### 2. Short Video  
-Short Videos are a great way to showcase the product's best-selling points and the creator's creativity. When Affiliate Creators upload videos to promote products, they can find products either via product marketplace to earn commission fees.
+##### [5 Must-Watch Filipino Movies in Theaters in 2025](https://hqmanila.com/5-must-watch-filipino-movies-in-theaters-in-2025/)  
+[3 months ago](https://hqmanila.com/5-must-watch-filipino-movies-in-theaters-in-2025/)  
+[](https://hqmanila.com/top-10-small-business-ideas-to-start-in-the-philippines-in-2025/)
 
-### 3. Showcase  
-Users can tap the shopping tab (or bag icon) to access a mini storefront where they can check out in a few taps. Showcase can let creators build relationships with fans, refine operations and select products to earn commission. Additionally, showcase allows you to quickly add your product to video and LIVE sessions.
+##### [Top 10 Small Business Ideas to Start in the Philippines in 2025](https://hqmanila.com/top-10-small-business-ideas-to-start-in-the-philippines-in-2025/)  
+[3 months ago](https://hqmanila.com/top-10-small-business-ideas-to-start-in-the-philippines-in-2025/)  
+[](https://hqmanila.com/30-filipino-dad-jokes-na-swak-sa-tawa-at-kiliti-ng-bawat-pilipino/)
 
-#### Accessing your Showcase via Account Page
+##### [30 Filipino Dad Jokes na Swak sa Tawa at Kiliti ng Bawat Pilipino](https://hqmanila.com/30-filipino-dad-jokes-na-swak-sa-tawa-at-kiliti-ng-bawat-pilipino/)  
+[2 years ago](https://hqmanila.com/30-filipino-dad-jokes-na-swak-sa-tawa-at-kiliti-ng-bawat-pilipino/)  
+[](https://hqmanila.com/top-10-richest-filipinos-in-2025-a-comprehensive-update/)
 
-#### Accessing your Showcase via TikTok Shop
+##### [Top 10 Richest Filipinos in 2025: A Comprehensive Update](https://hqmanila.com/top-10-richest-filipinos-in-2025-a-comprehensive-update/)  
+[3 months ago](https://hqmanila.com/top-10-richest-filipinos-in-2025-a-comprehensive-update/)  
+[](https://hqmanila.com/vaping-among-filipino-youth-a-rising-concern-in-2024/)
 
-### 4. Affiliate Link Sharing  
-Creators will receive a link to promote via sharing on social media posts or video, allowing Buyers to view the Creators' posts that include the link and purchase the products featured. The Creator will earn commission fees on eligible sales from the link only after the order is fulfilled
+##### [Vaping Among Filipino Youth: A Rising Concern in 2024](https://hqmanila.com/vaping-among-filipino-youth-a-rising-concern-in-2024/)  
+[1 year ago](https://hqmanila.com/vaping-among-filipino-youth-a-rising-concern-in-2024/)  
+[](https://hqmanila.com/51-filipino-slang-words-you-need-to-know/)
 
-#### How the Affiliate Link Sharing Works?  
-* * *
+##### [51 Mind-Blowing Filipino Slang Words You Absolutely Need to Know!](https://hqmanila.com/51-filipino-slang-words-you-need-to-know/)  
+[2 years ago](https://hqmanila.com/51-filipino-slang-words-you-need-to-know/)  
+By using our website, you agree to the use of our cookies.  
+Got it!  
+*  
+[ ](https://hqmanila.com/)  
+* [About Us](https://hqmanila.com/about-us/)
+* [Contact Us](https://hqmanila.com/contact-us/)
+* [Services](https://hqmanila.com/services/)  
+[ ](https://www.facebook.com/HQmanila)[ ](https://twitter.com/hq_manila)[ ](https://www.instagram.com/HQ.manila)[ ](https://www.youtube.com/@HQManila)  
+14 Apr 2025  
+* [ ](https://hqmanila.com/)  
+* [Featured](https://hqmanila.com/category/featured/)
+* [Things To Do](https://hqmanila.com/category/things-to-do/)
+* [Food & Drink](https://hqmanila.com/category/food-drink/)
+* [Lifestyle](https://hqmanila.com/category/lifestyle/)
+* [Travel](https://hqmanila.com/category/travel/)
+* [Art & Culture](https://hqmanila.com/category/art-culture/)
+*
 
-## Step 6: Shipping and Seller Fee  
-TikTok Shop offers sellers two primary shipping methods:
+##  
+[Home](https://hqmanila.com/ "Home") > [Lifestyle](https://hqmanila.com/category/lifestyle/) > 11 Popular Online Home-Based Businesses in the Philippines: A 2025 Guide  
+[](https://amzn.to/3T705Cw)  
+[](https://facebook.com/sharer/sharer.php?u=https%3A%2F%2Fhqmanila.com%2F11-popular-online-home-based-businesses-in-the-philippines-a-2025-guide%2F)  
+[](https://web.whatsapp.com/send?text=11%20Popular%20Online%20Home-Based%20Businesses%20in%20the%20Philippines:%20A%202025%20Guide%20%E2%80%A2%20HQ%20Manila%0D%0Ahttps://hqmanila.com/11-popular-online-home-based-businesses-in-the-philippines-a-2025-guide/)  
+[](fb-messenger://share?link=https%3A%2F%2Fhqmanila.com%2F11-popular-online-home-based-businesses-in-the-philippines-a-2025-guide%2F)  
+[Career](https://hqmanila.com/category/lifestyle/career/)  
+11 Popular Online Home-Based Businesses in the Philippines: A 2025 Guide  
+[ ](https://hqmanila.com/author/bercasio/) [Admin](https://hqmanila.com/author/bercasio/), [ January 22, 2025 ](https://hqmanila.com/11-popular-online-home-based-businesses-in-the-philippines-a-2025-guide/) 8 min read 968  
+[](https://i0.wp.com/hqmanila.com/wp-content/uploads/2023/09/e-learning-online-education-concept-asian-woman-a-2022-10-04-22-21-14-utc-jpg.webp?fit=1920%2C1160&ssl=1)  
+[ ](https://play.google.com/store/apps/details?id=co.jxffb.learnbicol)  
+[ ](https://play.google.com/store/apps/details?id=co.jxffb.learnbicol)
 
-### 1. Shipping via Platform
+## Introduction  
+Ready to shake up your work-from-home game, mga kababayan? If you've been daydreaming about making money without leaving your bahay--and let's be real, who hasn't?--this post is for you. The 2025 online market is bigger than ever in the Philippines, and pinoys all over the world are turning their laptops into legit money-makers. Whether you're a corporate warrior itching for freedom or a stay-at-home parent looking to earn a steady income, online businesses offer flexibility, decent pay, and the perfect chance to be your own boss. Today, I'm sharing 11 popular home-based ventures that can help you earn (and learn) without stepping outside. Tara, let's jump right in!
 
-### 2. Shipping by seller  
-Note:  For detailed information, please refer to the official TikTok Shop Academy website.  
-Starting June 1, 2024, TikTok Shop will update its seller fees for every completed order.
+## 1. Freelance Writing (home-based work, Filipino freelancers)  
+Freelance writing is a classic online gig that remains on top in 2025. Why? Brands, websites, and even fellow entrepreneurs always need fresh and engaging content. From blog posts to newsletters, the demand is high if you can whip up snappy prose in English or Tagalog.
 
-### TikTok Shop Seller Fee include:  
-1. Marketplace Commission Fee
-2. Transaction Fee
-3. Affiliate Commission Fee  
-For more detail on how to calculate with step-by-step examples of those seller fees, click [here](https://sitegiant.ph/blog/tiktok-shop-philippines-seller-fees-2024-a-simple-guide-with-examples/) to learn more.  
-* * *
+### Quick Tips:  
+* Keyword Research: When writing for clients, learn their target keywords so your content is easier to find on search engines.
+* On-Page SEO: Make sure titles, meta tags, and headings are on point.
+* User Engagement: Give readers a reason to stay--add bullet points, subheadings, or quick anecdotes.  
+Example: A small travel website needed a 1,500-word article about hidden spots in Luzon. The writer used specific local keywords and personal experiences, making the piece not just informative but personal. Traffic soared, and the website kept coming back for more articles.
 
-## Step 7: Tools for Help Your Operation Store  
-With [SiteGiant ERP](https://sitegiant.ph/erp/), you can now seamlessly integrate your TikTok Shop with SiteGiant and easily manage product listings, inventory, order processing and fulfillment and customer service all within one platform.
+## 2. Virtual Assistance (online assistance, remote tasks)  
+If you're masipag and super organized, Virtual Assistance (VA) work might be your jam. Busy entrepreneurs outsource routine tasks like email management, calendar scheduling, and data entry to reliable VAs in the Philippines. To get started, check out [VirtualStaff.ph](https://www.virtualstaff.ph/), a trusted platform connecting businesses to Filipino virtual assistants.
 
-### The reasons why you need to choose [SiteGiant ERP](https://sitegiant.ph/erp/):  
-* 50% FASTER than the marketplace's standard fulfillment process
-Sellers can add the rack number of the item printed with the pick list to a [custom shipping label](https://sitegiant.ph/custom-shipping-label-shopee-lazada/) to help the picker quickly and easily to locate the items for packing.  
-* Getting more product views
-Sellers can add the custom or special [product watermark](https://sitegiant.ph/product-watermark/) with your store product listing to increase your products' click-through rate and stand out from your competitors.  
-* Simply tracking your payment status
-Sellers can use[ Payment Reconciliation ](https://sitegiant.ph/payment-reconciliation/)to check your marketplace order, paid status, overcharged shipping fee, free shipping fee, success claimed amount, transaction, commission and many more.  
-* * *  
-Congratulations on completing this guide! To dive deeper into maximizing your sales on TikTok Shop, check out our advanced strategies and smarts tools with SiteGiant ERP. Start exploring today!
+### Quick Tips:  
+* High-Quality Content: If you manage a client's blog or newsletter, don't skimp on good writing.
+* Client Communication: Steady updates and quick turnarounds keep clients happy.
+* User Engagement: Offer to respond to comments on behalf of your client and build rapport with their audience.  
+Case Study: Joana from Taguig handled an Australian coach's admin tasks and blog updates. By adding relevant internal links and SEO-friendly meta descriptions to each blog post, traffic (and sign-ups) improved significantly.
 
-### Grow Your eCommerce Business with SiteGiant Today!  
-[Contact us](https://sitegiant.ph/contact-form/)  
-Image Credit and References:TikTok Shop Academy.
+## 3. Online Tutoring and E-Learning (distance education, Pinoy educators)  
+If you're great at explaining complex topics--math, science, language, music--why not teach online? Students worldwide (and locally) look for convenient tutoring in various subjects. To get started, check out [Bahay Turo](https://www.bahayturo.com/), a platform that connects tutors to students in need of learning support.
 
-##### Categories  
-* [Announcement](https://sitegiant.ph/blog/category/announcement/) (152)
-* [Events & Workshop](https://sitegiant.ph/blog/category/events-workshop/) (58)
-* [Features & Updates](https://sitegiant.ph/blog/category/features-updates/) (110)
-* [Success Stories](https://sitegiant.ph/blog/category/success-stories/) (31)
-* [Tips Sharing](https://sitegiant.ph/blog/category/tips-sharing/) (96)
+### Quick Tips:  
+* Keyword Research: Identify specific niches: "Learn Tagalog online" or "Advanced Physics tutoring" to target your ideal students.
+* On-Page SEO: Use clear titles and easy navigation within your teaching website or profile.
+* User Engagement: Provide freebies like short quizzes or recorded lessons to keep learners hooked.  
+Example: A music teacher from Cebu offered guitar lessons via Zoom. He optimized his website with "Filipino guitar lessons" as a main keyword, ranking well on Google. Students from as far as the U.S. booked him regularly.
 
-##### Recent Articles  
-[ ](https://sitegiant.ph/blog/sitegiant-ai-powered-forecasting-eng/)
+## 4. Social Media Management (Facebook marketing, Instagram strategies)  
+Love scrolling through social media and know how to engage an audience? Social Media Management could be your ticket. Businesses need daily posts, memes, and stories to stay relevant. To find clients or gigs, check out platforms like [Fiverr](https://www.fiverr.com/) or [Upwork](https://www.upwork.com/) where businesses actively seek social media managers.
 
-######  [ SiteGiant AI-Powered Forecasting: Streamline Operations & Maximize Stock Accuracy ](https://sitegiant.ph/blog/sitegiant-ai-powered-forecasting-eng/)  
-[ ](https://sitegiant.ph/blog/holiday-announcement-for-hari-raya-aidilfitri-2025/)
+### Quick Tips:  
+* High-Quality Content: Curate or create content that resonates with your client's followers.
+* Hashtags & Captions: Research the top-performing hashtags and craft witty, relatable captions.
+* User Engagement: Reply to comments and DMs promptly. Let the audience know there's a human behind the brand.  
+External Resource: [Facebook for Business](https://www.facebook.com/business) provides guides and tips for better targeting and engagement.
 
-######  [ Holiday Announcement for Hari Raya Aidilfitri 2025 ](https://sitegiant.ph/blog/holiday-announcement-for-hari-raya-aidilfitri-2025/)  
-[ ](https://sitegiant.ph/blog/10-high-demand-products-to-sell-on-lazada-philippines-in-2025/)
+## 5. Graphic Design and Illustration (digital art, creative freelancers)  
+Got mad skills in Photoshop, Illustrator, or Procreate? Graphic design and illustration gigs are aplenty. Clients need logos, packaging designs, social media visuals, and more. You can also sell templates for Canva, Notion, and other platforms on [Raket.ph](https://www.raket.ph/), a marketplace where creative freelancers can showcase and sell their digital products.
 
-######  [ 10 High-Demand Products to Sell on Lazada Philippines in 2025 ](https://sitegiant.ph/blog/10-high-demand-products-to-sell-on-lazada-philippines-in-2025/)  
-[ ](https://sitegiant.ph/blog/jan-feb-2025-new-features-and-enhancements-updates/)
+### Quick Tips:  
+* Keyword Research: Label your online portfolio with terms like "pinoy graphic designer" for localized searches.
+* On-Page SEO: Use alt text with relevant keywords on each design to make it discoverable in image searches.
+* User Engagement: Show behind-the-scenes sketches or time-lapse videos to spark interest.  
+Example: A designer from Davao specialized in minimalist branding for eco-friendly products. They used "eco branding Philippines" in their portfolio tags. Thanks to this strategy, local startups found their services via Google searches.
 
-######  [ January & February 2025: New Features and Enhancement Updates ](https://sitegiant.ph/blog/jan-feb-2025-new-features-and-enhancements-updates/)  
-[ ](https://sitegiant.ph/blog/lazada-api-suspension-during-lazada-birthday-sales-campaign-2025/)
+## 6. Dropshipping (ecommerce trend, online selling)  
+No inventory? No problem. Dropshipping lets you sell products without ever stocking them yourself. You partner with suppliers who ship directly to customers. Your main job is marketing, and you earn from the difference between wholesale and retail prices.
 
-######  [ Lazada API Suspension during Lazada Birthday Sales Campaign 2025 ](https://sitegiant.ph/blog/lazada-api-suspension-during-lazada-birthday-sales-campaign-2025/)  
-[ ](https://sitegiant.ph/blog/10-profitable-niche-products-to-sell-on-shopee-philippines/)
+### Quick Tips:  
+* High-Quality Content: Write compelling product descriptions. Don't just copy-paste from the supplier.
+* On-Page SEO: Make sure your product titles and meta descriptions are keyword-rich.
+* User Engagement: Encourage buyers to leave reviews or tag your brand on social media.  
+Internal Link: Check our earlier post on "5 Ways to Optimize Your Product Listings" for more tips on boosting your store's visibility.
 
-######  [ 10 Profitable Niche Products to Sell on Shopee Philippines ](https://sitegiant.ph/blog/10-profitable-niche-products-to-sell-on-shopee-philippines/)  
-[PrevPreviousAvoid "Out Of Stock": Tips to Keep Shelves Full and Customers Merry](https://sitegiant.ph/blog/avoid-out-of-stock-tips-to-keep-shelves-full-and-customers-merry/)  
-[NextSmart Inventory Management: Turn Dead Stock Into Sales OpportunitiesNext](https://sitegiant.ph/blog/turn-dead-stock-into-sales-opportunities/)
+## 7. Affiliate Marketing (passive income, online commissions)  
+If you love recommending products or services, affiliate marketing might be a low-stress option. You earn commissions whenever someone clicks your unique link and makes a purchase. Did you know that platforms like [Shopee](https://shopee.ph/) also offer affiliate marketing programs? It's a great way to monetize your audience while promoting products you love.
 
-### Our Partners  
-Products  
-* [ Plans & Pricing ](/pricing/)
-* [ SiteGiant Webstore ](/webstore/)
-* [ SiteGiant ERP ](/erp/)
-* [ SiteGiant WMS ](/warehouse-management-system/)
-* [ SiteGiant Fulfillment Center WMS ](/ecommerce-fulfillment-center-wms/)
-* [ SiteGiant Retail ](/pos/)
-* [ SiteGiant OMO ](/omo-solution/)  
-Add-ons  
-* [ SiteGiant ONE ](/mobile-app/)
-* [ SiteGiant Multichat ](/sitegiant-multichat/)
-* [ Accounting Sync ](/accounting-sync/)  
-Features  
-* [ Multichannel Selling ](/multichannel-selling/)
-* [ Product Management ](/product-management/)
-* [ Inventory Management ](/inventory-management/)
-* [ Order Management ](/order-management/)
-* [ Customer Management ](/customer-management/)
-* [ Loyalty Program ](/loyalty-program/)
-* [ Marketing ](/marketing/)
-* [ Payment Reconciliation ](/payment-reconciliation/)
-* [ Payment & Logistics ](/payment-and-logistics/)
-* [ Analytics & Reporting ](/analytics-and-reporting/)  
-* [ Custom Shipping Label ](/custom-shipping-label-shopee-lazada/)
-* [ Bundle Product ](/bundle-product/)
-* [ Product Watermark ](/product-watermark/)
-* [ Carrier Manifest ](/carrier-manifest/)
-* [ Order Fulfillment Assistant ](/order-fulfillment-assistant/)
-* [ Affiliate Program ](/affiliate-program/)  
-Sales Channels  
-* [ Marketplace ](/marketplace-sync/)
-* [ Webstore ](/webstore/)
-* [ Shopify ](/shopify-sync/)
-* [ WooCommerce ](/woocommerce-sync/)
-* [ Facebook Live ](/live-commerce/)
-* [ TikTok Shop ](/tiktok-shop-sync/)
-* [ WhatsApp ](/whatsapp-commerce/)
-* [ Telegram ](/telegram-commerce/)  
-Resources  
-* [ Help Center ](https://support.sitegiant.com/)
-* [ Blog ](/blog/)  
-Company  
-* [ About SiteGiant ](/about/)
-* [ Brand Guideline ](/brand-guidelines/)  
-Customers  
-* [ Overview ](/customers/)
-* [ Customer Showcase ](/ecommerce-customer-showcases-list/)
-* [ Featured Stories ](/stories-and-reviews/)
-* [ Brands and Top Sellers ](/customer-list/)
-* [ Reviews ](/customer-review/)  
-Products  
-* [ Plans & Pricing ](/pricing/)
-* [ SiteGiant Webstore ](/webstore/)
-* [ SiteGiant ERP ](/erp/)
-* [ SiteGiant WMS ](/warehouse-management-system/)
-* [ SiteGiant Fulfillment Center WMS ](/ecommerce-fulfillment-center-wms/)
-* [ SiteGiant POS ](/pos/)
-* [ SiteGiant OMO ](/omo-solution/)  
-Add-ons  
-* [ SiteGiant Mobile App (Smart Scan) ](/mobile-app/)
-* [ SiteGiant Multichat ](/sitegiant-multichat/)
-* [ Accounting Sync ](/accounting-sync/)  
-Company  
-* [ About SiteGiant ](/about/)
-* [ Brand Guideline ](/brand-guidelines/)  
-Features  
-* [ Multichannel Selling ](/multichannel-selling/)
-* [ Product Management ](/product-management/)
-* [ Inventory Management ](/inventory-management/)
-* [ Order Management ](/order-management/)
-* [ Customer Management ](/customer-management/)
-* [ Loyalty Program ](/loyalty-program/)
-* [ Marketing ](/marketing/)
-* [ Payment & Logistics ](/payment-and-logistics/)
-* [ Payment Reconciliation ](/payment-reconciliation/)
-* [ Advanced Reporting ](/advanced-reporting/)
-* [ Custom Shipping Label ](/custom-shipping-label-shopee-lazada/)
-* [ Bundle Product ](/bundle-product/)
-* [ Product Watermark ](/product-watermark/)
-* [ Carrier Manifest ](/carrier-manifest/)
-* [ Order Fulfillment Assistant ](/order-fulfillment-assistant/)
-* [ Affiliate Program ](/affiliate-program/)  
-Sales Channels  
-* [ Marketplace ](/marketplace-sync/)
-* [ Webstore ](/webstore/)
-* [ Shopify ](/shopify-sync/)
-* [ WooCommerce ](/woocommerce-sync/)
-* [ Facebook Live ](/live-commerce/)
-* [ TikTok Shop ](/tiktok-shop-sync/)
-* [ WhatsApp ](/whatsapp-commerce/)
-* [ Telegram ](/telegram-commerce/)  
-Resources  
-* [ Help Center ](https://support.sitegiant.com/)
-* [ Blog ](/blog/)  
-Customers  
-* [ Overview ](/customers/)
-* [ Customer Showcase ](/ecommerce-customer-showcases-list/)
-* [ Featured Stories ](/stories-and-reviews/)
-* [ Brands and Top Sellers ](/customer-list/)
-* [ Reviews ](/customer-review/)  
-Our Recognitions  
-Copyrights (c) 2025 SiteGiant. All rights reserved.  
-[ Facebook Shop ](https://www.facebook.com/sitegiant.ph) [ Youtube ](https://www.youtube.com/channel/UCHKbCLV8zkW9JbU6SPq81wA) [ ](https://www.instagram.com/sitegiant.my/) [ TikTok ](https://www.tiktok.com/@sitegiant)  
-* [ Terms of Service ](/terms-of-service/)
-* [ Privacy Policy ](/privacy-policy/)  
-[ ](/pricing/)
+### Quick Tips:  
+* Keyword Research: Focus on a niche--tech gadgets, kitchen tools, online courses, etc.
+* On-Page SEO: Create detailed blog posts or review pages with your affiliate links.
+* User Engagement: Add real-life experiences or product demos to gain trust.  
+Platforms like [Involve Asia](https://involve.asia/) let you discover local and international brands for your affiliate promotions.
 
-###### Terms and Conditions  
-1. The SiteGiant x Lalamove First Time 10% Top-Up Bonus Campaign (the "Promotion") is provided by LALAMOVE MALAYSIA SDN BHD (COMPANY NO. 1277201-W) ("Lalamove") and SiteGiant Sdn Bhd ("SiteGiant"). By participating in the Promotion by registering via this link: <https://sitegiant.my/lalamove-integration> and/or receiving the Bonus (as defined below), this indicates you understand and agree to be bound by these Terms.  
-2. You are eligible to participate in the Promotion and become an "Eligible Customer" if all of the following requirements are satisfied:  
-a. You have enrolled in the Promotion through the dedicated main landing page for the Promotion via this link: <https://sitegiant.my/lalamove-integration> ("the Form") during the Promotion Period (as defined below);  
-b. You have become a registered corporate (prepaid settlement) account holder of Lalamove;  
-c. You have signed up as a new merchant of SiteGiant and you have been onboarded by SiteGiant following satisfaction of all requirements from SiteGiant during the Promotion Period;  
-d. You are a company incorporated in Malaysia with a valid business registration certificate; and  
-e. SiteGiant and Lalamove reserve the right to refuse any Eligible Customers their participation in the Promotion for any reason and without any prior notice.  
-3. If you are an Eligible Customer, you are eligible to a one-time fixed credit bonus equal to 10% of the amount first topped up, to be credited to your Lalamove corporate e-wallet account (the "Bonus") if you successfully topped up at least RM 100 during at least one single transaction to your Lalamove corporate account (the "Transaction").  
-4. This Promotion commences on 15th July 2022 with the end date to be announced at a later date (the "Promotion Period").  
-5. If the Eligible Customer satisfies the Conditions in clause 3 of these Terms, the Bonus will be credited within 30 days immediately following the registration of your Lalamove corporate account.  
-6. The relevant top-up amounts in the Lalamove account have unlimited validity from the date of the successful top-up. The Bonus is subject to applicable agreements governing your Lalamove corporate account.  
-7. The relevant top-up amounts are not redeemable for cash or cash-out, for resale and no refund or exchange is permitted (except as required by applicable laws).  
-8. During the Promotion Period, in case of any fraud or abuse in respect to how the Bonus is awarded, Lalamove reserves the right to debit the Bonus from the Eligible Customer's Lalamove corporate account without prior notice.  
-9. The Bonus cannot be earned in conjunction with other offers, packages or promotions as may be launched by Lalamove from time to time, unless specified by Lalamove. The Bonus cannot be transferred to third parties or other accounts, or exchanged for any other gifts, returned or exchanged for other products with respect to Lalamove.  
-10. SiteGiant and Lalamove reserve the right to amend, and/or vary any of these Terms and any arrangement of this Promotion, limit, suspend, cancel, and/or terminate the Promotion, without notice and without any liability.  
-11. In addition:  
-a. General terms and conditions of Lalamove would all apply (<https://www.lalamove.com/en-my/terms-and-conditions>).  
-b. Lalamove will process the collected data and personal information in accordance with Lalamove's privacy policy (<https://www.lalamove.com/en-my/privacy-policy>).  
-c. By participating in the Promotion, you expressly consent that any personal information that you provide, may be shared between SiteGiant and Lalamove for purposes of the Promotion and all related administrative actions in connection therewith.  
-12. These Terms are governed by the law of Malaysia. In case of any dispute, SiteGiant and Lalamove reserve the right of final decision.  
-13. For any enquiries:  
-Related to SiteGiant, please contact support@sitegiant.my  
-Related to Lalamove, please contact partner.support@lalamove.com  
-###### Terms and Conditions  
-1. This promotion availability will be based on first come, first served basis.
-2. This promotion is not applicable for renewal usage.
-3. This promotion is valid for new signups only.
-4. Duration of this free subscription offer is 3 + 12* months (*T&C apply).
-5. Free 3 months subscription from SiteGiant and 12 months subscription from Government subsidy campaign (subject to availability).
-6. SiteGiant reserves the right to change these terms and conditions at any time without prior notice.
+## 8. Blogging for Profit (content monetization, personal branding)  
+Got opinions, stories, or tips you want to share? Turn that into cash through blogging. Bloggers earn via ads, sponsored posts, and affiliate links, especially when their content covers trending topics.
+
+### Quick Tips:  
+* High-Quality Content: Invest time in thorough research and personal insights.
+* On-Page SEO: Craft appealing titles, subheadings, and meta descriptions to rank well.
+* User Engagement: Encourage comments, host giveaways, or do Q&As to keep your community active.  
+Case Study: A food blogger from Manila gained a loyal following by writing honest restaurant reviews and including locally relevant keywords like "budget street food in Manila." She attracted sponsors and boosted her monthly earnings significantly.
+
+## 9. YouTube Content Creation (video marketing, digital influencer)  
+YouTube is still huge in 2025, with creators posting everything from daily vlogs to in-depth tutorials. If you enjoy talking on camera or editing videos, this might be your star moment. Check out [YouTube's Creator Academy](https://www.youtube.com/creators/) for resources to help you get started.
+
+### Quick Tips:  
+* Keyword Research: Use tools like YouTube's search suggestions to find relevant keywords.
+* On-Page SEO: Optimize video titles, descriptions, and tags.
+* User Engagement: Be consistent with posting schedules and interact with comments. Loyal subscribers are gold.
+
+## 10. Stock Photography and Video (visual content, passive sales)  
+If you have an eye for photography or can shoot quality clips, stock platforms might offer a decent stream of income. Brands and content creators buy images or footage for their own marketing.
+
+### Quick Tips:  
+* High-Quality Content: Crisp, clean shots with universal appeal sell best.
+* On-Page SEO: Label files with relevant keywords like "Filipino cuisine photos" or "Philippines travel videos."
+* User Engagement: Respond to buyer questions or requests for specific themes. Some clients may return for more of your work.
+
+## 11. Online Coaching and Consultation (expert services, personal brand)  
+Whether you're a fitness pro, career mentor, or digital marketing expert, online coaching can bring in steady income. You schedule sessions via Zoom, provide personalized strategies, and help clients reach their goals.
+
+### Quick Tips:  
+* Keyword Research: Identify a clear niche, e.g., "Filipino weight loss coach" or "Philippine-based career advisor."
+* On-Page SEO: On your website, spotlight success stories and add relevant headings to appear in search results.
+* User Engagement: Host live Q&A sessions or short webinars to pique interest and build your reputation.
+
+## Conclusion  
+Starting a profitable online business from the comfort of your home isn't just a pipe dream--especially in the Philippines, where creativity and resourcefulness run deep. If you want to thrive, combine strong SEO strategies (like picking the right keywords and optimizing your on-page elements) with genuine engagement (replying to comments, customizing your services). Each model--whether it's freelancing, dropshipping, or coaching--demands a sprinkle of your unique personality to stand out. So, pick one (or two!), plan your approach, and go all in. Kayang-kaya mo 'yan!  
+Read next: [Side Hustles for Introverts in 2024: Thrive in Your Comfort Zone](https://hqmanila.com/side-hustles-for-introverts-in-2024/)  
+Total  
+0  
+Shares  
+[ Share 0 ](https://www.facebook.com/sharer.php?u=https://hqmanila.com/11-popular-online-home-based-businesses-in-the-philippines-a-2025-guide/)  
+[ Tweet 0 ](https://twitter.com/share?&text=11%20Popular%20Online%20Home-Based%20Businesses%20in%20the%20Philippines%3A%20A%202025%20Guide&url=https://hqmanila.com/11-popular-online-home-based-businesses-in-the-philippines-a-2025-guide/)  
+[ Pin it 0 ](https://pinterest.com/pin/create/bookmarklet/?url=https://hqmanila.com/11-popular-online-home-based-businesses-in-the-philippines-a-2025-guide/&media=https://i0.wp.com/hqmanila.com/wp-content/uploads/2023/09/e-learning-online-education-concept-asian-woman-a-2022-10-04-22-21-14-utc-jpg.webp?fit=1024%2C619&ssl=1)  
+[ Share 0 ](mailto:?subject=11%20Popular%20Online%20Home-Based%20Businesses%20in%20the%20Philippines%3A%20A%202025%20Guide&body=11%20Popular%20Online%20Home-Based%20Businesses%20in%20the%20Philippines%3A%20A%202025%20Guide%20https://hqmanila.com/11-popular-online-home-based-businesses-in-the-philippines-a-2025-guide/)  
+[](https://facebook.com/sharer/sharer.php?u=https%3A%2F%2Fhqmanila.com%2F11-popular-online-home-based-businesses-in-the-philippines-a-2025-guide%2F)  
+[](https://web.whatsapp.com/send?text=11%20Popular%20Online%20Home-Based%20Businesses%20in%20the%20Philippines:%20A%202025%20Guide%20%E2%80%A2%20HQ%20Manila%0D%0Ahttps://hqmanila.com/11-popular-online-home-based-businesses-in-the-philippines-a-2025-guide/)  
+[](fb-messenger://share?link=https%3A%2F%2Fhqmanila.com%2F11-popular-online-home-based-businesses-in-the-philippines-a-2025-guide%2F)  
+[ Previous A Spectacular Year for Concerts in the Philippines: 2025's Must-See Events  ](https://hqmanila.com/a-spectacular-year-for-concerts-in-the-philippines-2025s-must-see-events/)  
+[ Next Top 10 Luzon Hiking Trails for Unforgettable Adventures in 2025  ](https://hqmanila.com/top-10-luzon-hiking-trails-for-unforgettable-adventures-in-2025/)
+
+##  Related posts  
+[ ](https://hqmanila.com/mrbeasts-youtube-tips-for-beginners/)  
+[Art & Culture](https://hqmanila.com/category/art-culture/)
+
+#### [ MrBeast's YouTube Tips for Beginners: A Guide to Success for 2024  ](https://hqmanila.com/mrbeasts-youtube-tips-for-beginners/)  
+[ ](https://hqmanila.com/visa-free-travel-to-canada-for-filipinos-in-2023/)  
+[Travel](https://hqmanila.com/category/travel/)
+
+#### [ Unlock Your Dream: Ultimate Guide to Hassle-Free, Visa-Free Travel to Canada for Filipinos in 2023  ](https://hqmanila.com/visa-free-travel-to-canada-for-filipinos-in-2023/)  
+[ ](https://hqmanila.com/real-talk-about-making-it-in-manila/)  
+[Adulting](https://hqmanila.com/category/lifestyle/adulting/)
+
+#### [ Real Talk about Making It in Manila in 2024: Conquering the Chaos with Empowering Insights  ](https://hqmanila.com/real-talk-about-making-it-in-manila/)  
+[ ](https://hqmanila.com/samsung-galaxy-s24-ai-pop-up-store-bgc/)  
+[Tech](https://hqmanila.com/category/lifestyle/tech/)
+
+#### [ Samsung Galaxy S24 AI Pop-Up Store Revolutionizes BGC with Cutting-Edge Tech Experience!  ](https://hqmanila.com/samsung-galaxy-s24-ai-pop-up-store-bgc/)  
+[ ](https://hqmanila.com/the-ultimate-guide-to-the-best-tablets-of-2024/)  
+[Tech](https://hqmanila.com/category/lifestyle/tech/)
+
+#### [ Make the Right Choice When Choosing: The Ultimate Guide to the Best Tablets of 2024  ](https://hqmanila.com/the-ultimate-guide-to-the-best-tablets-of-2024/)  
+[ ](https://hqmanila.com/side-hustles-for-introverts-in-2024/)  
+[Adulting](https://hqmanila.com/category/lifestyle/adulting/)
+
+#### [ Side Hustles for Introverts in 2024: Thrive in Your Comfort Zone  ](https://hqmanila.com/side-hustles-for-introverts-in-2024/)  
+[](https://en-media.betrnk-junket.com/)  
+[  
+DOWNLOAD NOW ON GOOGLE PLAY](https://play.google.com/store/apps/details?id=co.jxffb.learnbicol)
+
+### Latest Posts  
+* [ ](https://hqmanila.com/stars-sparkles-the-2025-abs-cbn-ball-brings-back-the-glitz-that-weve-been-missing/)
+
+######  [STARS & SPARKLES: THE 2025 ABS-CBN BALL BRINGS BACK THE GLITZ THAT WE'VE BEEN MISSING](https://hqmanila.com/stars-sparkles-the-2025-abs-cbn-ball-brings-back-the-glitz-that-weve-been-missing/)  
+* [April 4, 2025](https://hqmanila.com/stars-sparkles-the-2025-abs-cbn-ball-brings-back-the-glitz-that-weve-been-missing/)  
+* [ ](https://hqmanila.com/vitalys-philippines-chaos-why-this-streamer-needs-to-be-banned-for-life/)
+
+######  [Vitaly's Philippines Chaos: Why This Streamer Needs to Be Banned for Life](https://hqmanila.com/vitalys-philippines-chaos-why-this-streamer-needs-to-be-banned-for-life/)  
+* [April 2, 2025](https://hqmanila.com/vitalys-philippines-chaos-why-this-streamer-needs-to-be-banned-for-life/)  
+* [ ](https://hqmanila.com/alexandra-ealas-epic-miami-open-journey-how-a-filipina-teen-rocked-the-tennis-world/)
+
+######  [Alexandra Eala's Epic Miami Open Journey: How a Filipina Teen Rocked the Tennis World](https://hqmanila.com/alexandra-ealas-epic-miami-open-journey-how-a-filipina-teen-rocked-the-tennis-world/)  
+* [March 28, 2025](https://hqmanila.com/alexandra-ealas-epic-miami-open-journey-how-a-filipina-teen-rocked-the-tennis-world/)  
+* [ ](https://hqmanila.com/from-manila-to-miami-how-alex-eala-conquered-the-tennis-world/)
+
+######  [From Manila to Miami: How Alex Eala Conquered the Tennis World](https://hqmanila.com/from-manila-to-miami-how-alex-eala-conquered-the-tennis-world/)  
+* [March 24, 2025](https://hqmanila.com/from-manila-to-miami-how-alex-eala-conquered-the-tennis-world/)  
+* [ ](https://hqmanila.com/did-the-government-fall-into-dutertes-trap-the-icc-case-that-could-backfire/)
+
+######  [Did the Government Fall Into Duterte's Trap? The ICC Case That Could Backfire](https://hqmanila.com/did-the-government-fall-into-dutertes-trap-the-icc-case-that-could-backfire/)  
+* [March 12, 2025](https://hqmanila.com/did-the-government-fall-into-dutertes-trap-the-icc-case-that-could-backfire/)  
+* [ ](https://hqmanila.com/rodrigo-duterte-in-custody-what-it-means-for-his-drug-war-legacy/)
+
+######  [Rodrigo Duterte in Custody: What It Means for His Drug War Legacy](https://hqmanila.com/rodrigo-duterte-in-custody-what-it-means-for-his-drug-war-legacy/)  
+* [March 11, 2025](https://hqmanila.com/rodrigo-duterte-in-custody-what-it-means-for-his-drug-war-legacy/)  
+* [ ](https://hqmanila.com/rodrigo-duterte-arrested-icc-targets-ex-philippine-leader-over-drug-war-crimes/)
+
+######  [Rodrigo Duterte Arrested: ICC Targets Ex-Philippine Leader Over Drug War Crimes](https://hqmanila.com/rodrigo-duterte-arrested-icc-targets-ex-philippine-leader-over-drug-war-crimes/)  
+* [March 10, 2025](https://hqmanila.com/rodrigo-duterte-arrested-icc-targets-ex-philippine-leader-over-drug-war-crimes/)  
+* [ ](https://hqmanila.com/marathon-training-plan-for-beginners-a-comprehensive-16-week-guide/)
+
+######  [Marathon Training Plan for Beginners: A Comprehensive 16-Week Guide](https://hqmanila.com/marathon-training-plan-for-beginners-a-comprehensive-16-week-guide/)  
+* [March 10, 2025](https://hqmanila.com/marathon-training-plan-for-beginners-a-comprehensive-16-week-guide/)  
+* [ ](https://hqmanila.com/starting-a-retail-or-restaurant-business-in-the-philippines-2025-the-ultimate-guide-for-first-time-entrepreneurs/)
+
+######  [Starting a Retail or Restaurant Business in the Philippines (2025): The Ultimate Guide for First-Time Entrepreneurs](https://hqmanila.com/starting-a-retail-or-restaurant-business-in-the-philippines-2025-the-ultimate-guide-for-first-time-entrepreneurs/)  
+* [March 6, 2025](https://hqmanila.com/starting-a-retail-or-restaurant-business-in-the-philippines-2025-the-ultimate-guide-for-first-time-entrepreneurs/)  
+* [ ](https://hqmanila.com/the-ultimate-filipino-beauty-pageant-guide-how-to-win-miss-philippines-and-beyond/)
+
+######  [The Ultimate Filipino Beauty Pageant Guide: How to Win Miss Philippines and Beyond](https://hqmanila.com/the-ultimate-filipino-beauty-pageant-guide-how-to-win-miss-philippines-and-beyond/)  
+* [March 6, 2025](https://hqmanila.com/the-ultimate-filipino-beauty-pageant-guide-how-to-win-miss-philippines-and-beyond/)  
+* [ ](https://hqmanila.com/ofw-guide-a-comprehensive-guide-for-filipinos-who-want-to-work-abroad/)
+
+######  [OFW Guide: A Comprehensive Guide for Filipinos Who Want to Work Abroad](https://hqmanila.com/ofw-guide-a-comprehensive-guide-for-filipinos-who-want-to-work-abroad/)  
+* [March 6, 2025](https://hqmanila.com/ofw-guide-a-comprehensive-guide-for-filipinos-who-want-to-work-abroad/)  
+* [ ](https://hqmanila.com/trumps-new-tariffs-of-2025-ignite-a-trade-war-and-its-a-terrible-idea/)
+
+######  [Trump's New Tariffs of 2025 Ignite a Trade War - And It's a Terrible Idea](https://hqmanila.com/trumps-new-tariffs-of-2025-ignite-a-trade-war-and-its-a-terrible-idea/)  
+* [March 4, 2025](https://hqmanila.com/trumps-new-tariffs-of-2025-ignite-a-trade-war-and-its-a-terrible-idea/)  
+[](https://brewedbeginnings.com)  
+[  
+Womens Sexy Lingerie Satin Sleepwear Silk Cami Shorts Set](https://amzn.to/47R824d)
+
+### Quick Cook!  
+[ ](https://hqmanila.com/lahat-food-food-delivery-in-metro-manila/)
+
+##### [ LAHAT FOOD: Revolutionizing Food Delivery in Metro Manila with a Taste of the World  ](https://hqmanila.com/lahat-food-food-delivery-in-metro-manila/)  
+Discover unparalleled food delivery in Metro Manila with LAHAT FOOD, offering the finest Korean and international cuisines straight to your...  
+[ ](https://hqmanila.com/stars-sparkles-the-2025-abs-cbn-ball-brings-back-the-glitz-that-weve-been-missing/)
+
+##### [ STARS & SPARKLES: THE 2025 ABS-CBN BALL BRINGS BACK THE GLITZ THAT WE'VE BEEN MISSING  ](https://hqmanila.com/stars-sparkles-the-2025-abs-cbn-ball-brings-back-the-glitz-that-weve-been-missing/)  
+[ ](https://hqmanila.com/vitalys-philippines-chaos-why-this-streamer-needs-to-be-banned-for-life/)
+
+##### [ Vitaly's Philippines Chaos: Why This Streamer Needs to Be Banned for Life  ](https://hqmanila.com/vitalys-philippines-chaos-why-this-streamer-needs-to-be-banned-for-life/)  
+[ ](https://hqmanila.com/alexandra-ealas-epic-miami-open-journey-how-a-filipina-teen-rocked-the-tennis-world/)
+
+##### [ Alexandra Eala's Epic Miami Open Journey: How a Filipina Teen Rocked the Tennis World  ](https://hqmanila.com/alexandra-ealas-epic-miami-open-journey-how-a-filipina-teen-rocked-the-tennis-world/)  
+Follow Alexandra Eala's sensational run at the 2025 Miami Open, a historic moment that put Philippine tennis firmly on the...  
+[ ](https://hqmanila.com/from-manila-to-miami-how-alex-eala-conquered-the-tennis-world/)
+
+##### [ From Manila to Miami: How Alex Eala Conquered the Tennis World  ](https://hqmanila.com/from-manila-to-miami-how-alex-eala-conquered-the-tennis-world/)  
+[ ](https://hqmanila.com/did-the-government-fall-into-dutertes-trap-the-icc-case-that-could-backfire/)
+
+##### [ Did the Government Fall Into Duterte's Trap? The ICC Case That Could Backfire  ](https://hqmanila.com/did-the-government-fall-into-dutertes-trap-the-icc-case-that-could-backfire/)  
+[ ](https://hqmanila.com/rodrigo-duterte-in-custody-what-it-means-for-his-drug-war-legacy/)
+
+##### [ Rodrigo Duterte in Custody: What It Means for His Drug War Legacy  ](https://hqmanila.com/rodrigo-duterte-in-custody-what-it-means-for-his-drug-war-legacy/)  
+Former Philippine President Rodrigo Duterte has been arrested on an ICC warrant, triggering political turmoil, mixed public reactions, and questions...
+
+## Start Planning Your Trip  
+#### Featured  
+[ ](https://hqmanila.com/pinoy-pride-worn-loud-and-proud-check-out-these-hilarious-and-iconic-filipino-t-shirts/)
+
+##### [ Pinoy Pride, Worn Loud and Proud: Check Out These Hilarious and Iconic Filipino T-Shirts!  ](https://hqmanila.com/pinoy-pride-worn-loud-and-proud-check-out-these-hilarious-and-iconic-filipino-t-shirts/)  
+[ ](https://hqmanila.com/singapores-renowned-tiong-bahru-bakery-debuts-in-the-philippines/)
+
+##### [ Singapore's Renowned Tiong Bahru Bakery Debuts in the Philippines  ](https://hqmanila.com/singapores-renowned-tiong-bahru-bakery-debuts-in-the-philippines/)  
+[ ](https://hqmanila.com/top-6-budget-friendly-restaurants-for-valentines-day-in-manila-2025/)
+
+##### [ Top 6 Budget-Friendly Restaurants for Valentine's Day in Manila 2025  ](https://hqmanila.com/top-6-budget-friendly-restaurants-for-valentines-day-in-manila-2025/)  
+[ ](https://hqmanila.com/drive-smart-top-10-budget-friendly-cars-in-the-philippines-for-2025-revealed/)
+
+##### [ Drive Smart: Top 10 Budget-Friendly Cars in the Philippines for 2025 Revealed!  ](https://hqmanila.com/drive-smart-top-10-budget-friendly-cars-in-the-philippines-for-2025-revealed/)  
+[ ](https://hqmanila.com/support-your-local-everything-these-5-filipino-inspired-shirts-on-amazon-are-the-ultimate-street-cred/)
+
+##### [ Support Your Local Everything: These 5 Filipino-Inspired Shirts on Amazon Are the Ultimate Street Cred  ](https://hqmanila.com/support-your-local-everything-these-5-filipino-inspired-shirts-on-amazon-are-the-ultimate-street-cred/)  
+[ ](https://hqmanila.com/5-must-try-chinese-food-in-manila-a-culinary-journey/)
+
+##### [ 5 Must-Try Chinese Food in Manila: A Culinary Journey  ](https://hqmanila.com/5-must-try-chinese-food-in-manila-a-culinary-journey/)  
+[ ](https://hqmanila.com/5-must-try-korean-food-delivery-in-manila/)
+
+##### [ Best Seoul Flavors at Home: 5 Must-Try Korean Food Delivery in Manila  ](https://hqmanila.com/5-must-try-korean-food-delivery-in-manila/)  
+[ ](https://hqmanila.com/lahat-food-food-delivery-in-metro-manila/)
+
+##### [ LAHAT FOOD: Revolutionizing Food Delivery in Metro Manila with a Taste of the World  ](https://hqmanila.com/lahat-food-food-delivery-in-metro-manila/)  
+[ ](https://hqmanila.com/haulah-cafe/)
+
+##### [ Embracing the Flavours: Haulah Cafe's Culinary Pleasures for Chinese New Year and Valentine's Day  ](https://hqmanila.com/haulah-cafe/)  
+[ ](https://hqmanila.com/best-luxury-staycation-hotels-for-locals-unveiled/)
+
+##### [ Discover Manila's Hidden Luxuries: 11 Best Luxury Staycation Hotels for Locals Unveiled!  ](https://hqmanila.com/best-luxury-staycation-hotels-for-locals-unveiled/)
+
+#### Categories  
+* [Adulting93](https://hqmanila.com/category/lifestyle/adulting/) (93)
+* [Art & Culture100](https://hqmanila.com/category/art-culture/) (100)
+* [Bicol5](https://hqmanila.com/category/travel/bicol/) (5)
+* [Career40](https://hqmanila.com/category/lifestyle/career/) (40)
+* [Destinations42](https://hqmanila.com/category/travel/destinations/) (42)
+* [Dining Out28](https://hqmanila.com/category/food-drink/dining-out/) (28)
+* [Drinks25](https://hqmanila.com/category/food-drink/drinks/) (25)
+* [Entertainment31](https://hqmanila.com/category/art-culture/entertainment/) (31)
+* [Fashion & Beauty18](https://hqmanila.com/category/lifestyle/fashion-beauty/) (18)
+* [Featured34](https://hqmanila.com/category/featured/) (34)
+* [Finance14](https://hqmanila.com/category/lifestyle/finance/) (14)
+* [Food & Drink37](https://hqmanila.com/category/food-drink/) (37)
+* [Gaming9](https://hqmanila.com/category/art-culture/gaming/) (9)
+* [Health & Wellness27](https://hqmanila.com/category/lifestyle/health-wellness/) (27)
+* [Lifestyle108](https://hqmanila.com/category/lifestyle/) (108)
+* [Music37](https://hqmanila.com/category/art-culture/music/) (37)
+* [News10](https://hqmanila.com/category/art-culture/news/) (10)
+* [Real Estate19](https://hqmanila.com/category/real-estate/) (19)
+* [Relationships30](https://hqmanila.com/category/lifestyle/relationships/) (30)
+* [Sports36](https://hqmanila.com/category/art-culture/sports/) (36)
+* [Tech88](https://hqmanila.com/category/lifestyle/tech/) (88)
+* [Things To Do79](https://hqmanila.com/category/things-to-do/) (79)
+* [Travel20](https://hqmanila.com/category/travel/) (20)
+* [Travel Gear & Tech4](https://hqmanila.com/category/travel/trvel-gear-tech/) (4)
+* [Travel Tips15](https://hqmanila.com/category/travel/travel-tips/) (15)
+* [TV & Film30](https://hqmanila.com/category/art-culture/tv-film/) (30)
+* [Uncategorized19](https://hqmanila.com/category/uncategorized/) (19)
+* [World News18](https://hqmanila.com/category/art-culture/world-news/) (18)  
+Show All  
+[ ](https://hqmanila.com/)  
+HQ Manila  
+* [Services](https://hqmanila.com/services/)
+* [About](https://hqmanila.com/about-us/)
+* [Contact](https://hqmanila.com/contact-us/)
+* [Privacy Policy](https://hqmanila.com/privacy-policy/)  
+[ Go to mobile version ](https://hqmanila.com/11-popular-online-home-based-businesses-in-the-philippines-a-2025-guide/?amp=1)
