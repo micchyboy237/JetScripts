@@ -116,9 +116,9 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     has_tools = bool(tools)
 
     system = system or next(
-        (message.get('content') for message in messages
-            if message.get('role', '').lower() == "system"),
-        None  # Default value to avoid StopIteration
+        (field[1] for field in request_dict["headers"]
+         ["fields"] if field[0].lower() == "system"),
+        None
     )
 
     # Chat history
@@ -148,9 +148,7 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         prompt = messages[-1]['content']
     else:
         prompt_log = messages
-        prompt: list = messages.copy()
-        if system:
-            prompt.insert(0, system_msg)
+        prompt = messages
 
     # Get last assistant response
     final_response_content = "".join(
@@ -300,6 +298,10 @@ def interceptor_callback(data: bytes) -> bytes | Iterable[bytes]:
                 content = chunk_dict["message"].get("content", "")
                 chunks.append(chunk_dict["message"])
                 logger.success(content, flush=True)
+        elif isinstance(chunk_dict.get("response"), str):
+            content = chunk_dict.get("response")
+            chunks.append({"role": "assistant", "content": content})
+            logger.success(content, flush=True)
 
         if chunk_dict.get("done"):
             chunks.append(chunk_dict)
