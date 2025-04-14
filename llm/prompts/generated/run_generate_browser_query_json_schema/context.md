@@ -14,12 +14,8 @@ Step 6: Shipping and Seller Fee
 Step 7: Tools for Help Your Operation Store  
 * * *
 
----
-
 ## Step 1: How to Set Up Your Seller Account
 By all means, visit the TikTok Shop Seller Center to register your account.
-
----
 
 ### Two Options to Sign Up for a Seller Account
 1. Register with TikTok Account  
@@ -29,12 +25,8 @@ Register with a phone number or email and proceed to enter the verification code
 Note:  All email address or mobile phone number was available to be used only 1 time for TikTok Shop account registration.  
 * * *
 
----
-
 ## Step 2: Fill out the Application for Each Business Type
 Follow the general guidelines provided by TikTok Shop to ensure your documents meet the required format.
-
----
 
 ### General Document Format Requirements
 1. Both sides of the ID cards must be government-issued and must show the individual's information clearly.  
@@ -43,8 +35,6 @@ Follow the general guidelines provided by TikTok Shop to ensure your documents m
 4. Document images must be high quality, colored and unobstructed.  
 5. For multi-page files, please combine two-sided pictures into a one-page file.  
 6. File format: PNG or JPG.
-
----
 
 #### The Different Application Criteria for Individual Sellers and Corporate Sellers
 Criteria | Individual Seller | Corporate Seller
@@ -72,8 +62,6 @@ N/A| Where requested, applicants must also provide us with information evidencin
 Note:  For detailed information, please refer to the official TikTok Shop Academy website.  
 * * *
 
----
-
 ## Step 3: Set up Your Store
 Now, just a few steps to continue to set up your store with TikTok's guidelines.  
 1. Upload the required Application Documents for your seller type.  
@@ -87,8 +75,6 @@ The submitted bank account name should be consistent with the name on the identi
 TikTok Shop also will require further information according to the specific requirements of the applicant's destination market and periodic verification checks for further information.  
 * * *
 
----
-
 ## Step 4: Upload and List Your Product
 New sellers can refer to this picture for the overview below to see overall steps on how to manage your product on TikTok Shop.  
 Note:  For detailed information, please refer to the official TikTok Shop Academy website.  
@@ -96,68 +82,42 @@ Click "Upload Now" button for upload product to your TikTok Shop.
 Entrance: Seller Center > Product >[ ](https://seller-ph.tiktok.com/product/optimizer)Product Optimizer.  
 To review suggestions to improve product visibility based on the issues that your products have.
 
----
-
 ### Benefits of Optimising Products with Product Optimizer
 * * *
-
----
 
 ## Step 5: Start Selling Your Products
 You can sell your products on TikTok Shop in several ways, including
 
----
-
 ### 1. Livestream
 TikTok Live provides more exclusive deals, giveaways and limited-time offers during festivals and events. By going live, you gain your user's trust, confidence, and enjoyment. Livestream is a great opportunity to show your products. By interacting with the host will increase the buyer's desire to buy the product.
-
----
 
 ### 2. Short Video
 Short Videos are a great way to showcase the product's best-selling points and the creator's creativity. When Affiliate Creators upload videos to promote products, they can find products either via product marketplace to earn commission fees.
 
----
-
 ### 3. Showcase
 Users can tap the shopping tab (or bag icon) to access a mini storefront where they can check out in a few taps. Showcase can let creators build relationships with fans, refine operations and select products to earn commission. Additionally, showcase allows you to quickly add your product to video and LIVE sessions.
-
----
 
 #### Accessing your Showcase via Account Page
 
 
----
-
 #### Accessing your Showcase via TikTok Shop
 
-
----
 
 ### 4. Affiliate Link Sharing
 Creators will receive a link to promote via sharing on social media posts or video, allowing Buyers to view the Creators' posts that include the link and purchase the products featured. The Creator will earn commission fees on eligible sales from the link only after the order is fulfilled
 
----
-
 #### How the Affiliate Link Sharing Works?
 * * *
-
----
 
 ## Step 6: Shipping and Seller Fee
 TikTok Shop offers sellers two primary shipping methods:
 
----
-
 ### 1. Shipping via Platform
 
-
----
 
 ### 2. Shipping by seller
 Note:  For detailed information, please refer to the official TikTok Shop Academy website.  
 Starting June 1, 2024, TikTok Shop will update its seller fees for every completed order.
-
----
 
 ### TikTok Shop Seller Fee include:
 1. Marketplace Commission Fee
@@ -166,12 +126,8 @@ Starting June 1, 2024, TikTok Shop will update its seller fees for every complet
 For more detail on how to calculate with step-by-step examples of those seller fees, click [here](https://sitegiant.ph/blog/tiktok-shop-philippines-seller-fees-2024-a-simple-guide-with-examples/) to learn more.  
 * * *
 
----
-
 ## Step 7: Tools for Help Your Operation Store
 With [SiteGiant ERP](https://sitegiant.ph/erp/), you can now seamlessly integrate your TikTok Shop with SiteGiant and easily manage product listings, inventory, order processing and fulfillment and customer service all within one platform.
-
----
 
 ### The reasons why you need to choose [SiteGiant ERP](https://sitegiant.ph/erp/):
 * 50% FASTER than the marketplace's standard fulfillment process
@@ -183,13 +139,9 @@ Sellers can use[ Payment Reconciliation ](https://sitegiant.ph/payment-reconcili
 * * *  
 Congratulations on completing this guide! To dive deeper into maximizing your sales on TikTok Shop, check out our advanced strategies and smarts tools with SiteGiant ERP. Start exploring today!
 
----
-
 ### Grow Your eCommerce Business with SiteGiant Today!
 [Contact us](https://sitegiant.ph/contact-form/)  
 Image Credit and References:TikTok Shop Academy.
-
----
 
 ##### Categories
 * [Announcement](https://sitegiant.ph/blog/category/announcement/) (152)
@@ -198,12 +150,8 @@ Image Credit and References:TikTok Shop Academy.
 * [Success Stories](https://sitegiant.ph/blog/category/success-stories/) (31)
 * [Tips Sharing](https://sitegiant.ph/blog/category/tips-sharing/) (96)
 
----
-
 ##### Recent Articles
 [ ](https://sitegiant.ph/blog/sitegiant-ai-powered-forecasting-eng/)
-
----
 
 ###### [ SiteGiant AI-Powered Forecasting: Streamline Operations & Maximize Stock Accuracy ](https://sitegiant.ph/blog/sitegiant-ai-powered-forecasting-eng/)
 [ ](https://sitegiant.ph/blog/holiday-announcement-for-hari-raya-aidilfitri-2025/)
