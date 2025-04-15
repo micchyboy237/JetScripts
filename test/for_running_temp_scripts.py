@@ -2,7 +2,7 @@ import json
 import shutil
 from jet.code.splitter_markdown_utils import extract_md_header_contents, get_md_header_contents
 from jet.data.base import convert_json_schema_to_model_instance, convert_json_schema_to_model_type, create_dynamic_model, extract_titles_descriptions
-from jet.features.scrape_search_chat import SYSTEM_QUERY_SCHEMA_DOCS, SEARCH_WEB_PROMPT_TEMPLATE, Document, get_all_header_nodes, get_docs_from_html, get_docs_from_html, get_header_tokens_and_update_metadata, get_nodes_parent_mapping, process_document, rerank_nodes
+from jet.features.search_and_chat import SYSTEM_QUERY_SCHEMA_DOCS, SEARCH_WEB_PROMPT_TEMPLATE, Document, get_all_header_nodes, get_docs_from_html, get_docs_from_html, get_header_tokens_and_update_metadata, get_nodes_parent_mapping, process_document, rerank_nodes
 from jet.llm.models import OLLAMA_EMBED_MODELS, OLLAMA_MODEL_NAMES
 from jet.llm.ollama.base import Ollama
 from jet.logger import logger

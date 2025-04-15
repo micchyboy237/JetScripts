@@ -1,7 +1,7 @@
 import os
 from typing import Dict, Optional, TypedDict
 
-from jet.features.scrape_search_chat import DocumentTokensExceedsError, EvalContextError, run_scrape_search_chat
+from jet.features.search_and_chat import DocumentTokensExceedsError, EvalContextError, run_scrape_search_chat
 from jet.file.utils import save_file
 from jet.llm.evaluators.context_relevancy_evaluator import evaluate_context_relevancy
 from jet.llm.models import OLLAMA_EMBED_MODELS
