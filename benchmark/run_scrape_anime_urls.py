@@ -3,7 +3,7 @@ from typing import Optional, TypedDict
 from jet.code.splitter_markdown_utils import extract_html_header_contents
 from jet.file.utils import load_file
 from jet.logger import logger
-from jet.scrapers.browser.playwright import scrape_async_limited, setup_sync_browser_session
+from jet.scrapers.browser.playwright_helpers import scrape_async_limited, setup_sync_browser_session
 from jet.search.searxng import search_searxng, SearchResult
 import requests
 

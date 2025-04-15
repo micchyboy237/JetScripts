@@ -1,5 +1,3 @@
-import os
-from jet.cache.joblib.utils import load_persistent_cache, save_persistent_cache, ttl_cache
 from jet.file.utils import save_file
 from jet.wordnet.words import get_words
 from llama_index.core.node_parser.text.sentence import SentenceSplitter
@@ -64,17 +62,10 @@ chunk_overlap = 40
 chunk_size = 256
 
 
-load_persistent_cache(CACHE_FILE)
+documents = SimpleDirectoryReader(
+    input_files=[DATA_FILE]
+).load_data()
 
-if CACHE_FILE in ttl_cache:
-    documents = ttl_cache[CACHE_FILE]
-    logger.success(f"Cache hit: {CACHE_FILE} - Length: {len(documents)}")
-else:
-    documents = SimpleDirectoryReader(
-        input_files=[DATA_FILE]
-    ).load_data()
-    ttl_cache[CACHE_FILE] = documents
-    save_persistent_cache(CACHE_FILE)
 
 documents = [doc for doc in documents if "covid" in doc.text.lower()]
 

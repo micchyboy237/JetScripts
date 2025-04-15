@@ -4,7 +4,6 @@ import os
 from jet.llm.evaluators.context_relevancy_evaluator import evaluate_context_relevancy
 from llama_index.core.prompts.base import PromptTemplate
 from tqdm import tqdm
-from jet.cache.joblib.utils import load_persistent_cache, save_persistent_cache, ttl_cache
 from jet.code.splitter_markdown_utils import extract_md_header_contents, get_md_header_contents, merge_md_header_contents
 from jet.file.utils import load_file, save_file
 from jet.scrapers.preprocessor import html_to_markdown

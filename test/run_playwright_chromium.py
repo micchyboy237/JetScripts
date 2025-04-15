@@ -1,8 +1,8 @@
-from jet.scrapers.browser.playwright import scrape_async_limited
+from jet.scrapers.browser.playwright_helpers import scrape_async_limited
 import asyncio
 import os
 from typing import List, Optional
-from jet.scrapers.browser.playwright import scrape_sync, scrape_async, PageContent, setup_sync_browser_session
+from jet.scrapers.browser.playwright_helpers import scrape_sync, scrape_async, PageContent, setup_sync_browser_session
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard

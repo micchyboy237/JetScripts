@@ -5,12 +5,13 @@ from fastapi.responses import StreamingResponse
 from jet.transformers.formatters import format_json
 from jet.transformers.object import make_serializable
 from jet.wordnet.similarity import compute_info
+from jet.wordnet.wordnet_types import SimilarityResult
 from pydantic import BaseModel
 from typing import List, Dict, Any, AsyncGenerator, Optional, Tuple
 import os
 import json
-from llama_index.core.schema import Document as BaseDocument, NodeWithScore
-from jet.features.search_and_chat import search_and_filter_data
+from llama_index.core.schema import Document, NodeWithScore
+from jet.features.search_and_chat import get_nodes_from_docs, search_and_filter_data
 from jet.llm.models import OLLAMA_EMBED_MODELS
 from jet.scrapers.utils import safe_path_from_url
 from jet.llm.ollama.base import Ollama
@@ -115,72 +116,10 @@ async def process_and_compare_htmls(
         return
 
     top_result = comparison_results[0]
-    top_url = top_result["url"]
-    yield (await stream_progress("html_processing", f"Selected top result: {top_url}"), {})
-
-    header_docs, query_scores, reranked_all_nodes = header_docs_for_all[top_url]
-
-    yield (await stream_progress("html_processing", "Grouping nodes for context"), {})
-    sorted_reranked_nodes = sorted(
-        reranked_all_nodes, key=lambda node: node.metadata['doc_index'])
-    grouped_reranked_nodes = group_nodes(sorted_reranked_nodes, "llama3.1")
-    context_nodes = grouped_reranked_nodes[0] if grouped_reranked_nodes else []
-    yield (
-        await stream_progress(
-            "html_processing",
-            "Context nodes grouped",
-            {"context_nodes_count": len(context_nodes)}
-        ),
-        {}
-    )
-
-    # Save context node details
-    group_header_doc_indexes = [
-        node.metadata["doc_index"] for node in context_nodes]
-    save_file({
-        "query": query,
-        "results": [
-            {
-                "doc": node.metadata["doc_index"] + 1,
-                "rank": rank_idx + 1,
-                "score": node.score,
-                "text": node.text,
-                "metadata": node.metadata,
-            }
-            for rank_idx, node in enumerate(context_nodes)
-            if node.metadata["doc_index"] in group_header_doc_indexes
-        ]
-    }, os.path.join(output_dir, "reranked_context_nodes.json"))
-    # Save context markdown
-    context = "\n\n".join([node.text for node in context_nodes])
-    save_file(context, os.path.join(output_dir, "context.md"))
-
-    top_final_result = {
-        "url": url,
-        "header_docs": [doc.text for doc in header_docs],
-        "html_results": [(url, dir_url, "html_content_omitted") for url, dir_url, _ in html_results],
-        "query_scores": query_scores,
-        "context_nodes": [{"text": node.text, "score": node.score} for node in context_nodes],
-        "reranked_all_nodes": {
-            "url": url,
-            "query": query,
-            "info": compute_info(query_scores),
-            "results": [
-                {
-                    "doc": node.metadata["doc_index"] + 1,
-                    "rank": rank_idx + 1,
-                    "score": node.score,
-                    "text": node.text,
-                    "metadata": node.metadata,
-                }
-                for rank_idx, node in enumerate(reranked_all_nodes)
-            ]
-        },
-    }
 
     yield (
-        await stream_progress("html_processing", "Final HTML processing results", top_final_result),
-        top_final_result
+        await stream_progress("html_processing", "Final HTML processing results", top_result),
+        {"header_docs": header_docs, "top_result": top_result}
     )
 
 
@@ -188,10 +127,12 @@ async def main():
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-    query = "Top isekai anime 2025"
+    llm_model = "llama3.1"
     embed_models: List[OLLAMA_EMBED_MODELS] = [
         "mxbai-embed-large", "paraphrase-multilingual"
     ]
+
+    query = "Top isekai anime 2025"
 
     # Await async call
     search_filtered_result = await search_and_filter_data(query)
@@ -206,38 +147,49 @@ async def main():
     header_docs, html_results, query_scores, context_nodes = [], [], [], []
 
     async for sse_message, data in html_generator:
-        if data and "header_docs" in data:
-            url = data["url"]
-            header_docs = [BaseDocument(text=text)
-                           for text in data["header_docs"]]
-            query_scores = data["query_scores"]
-            context_nodes = [NodeWithScore(node=TextNode(
-                text=node["text"]), score=node["score"]) for node in data["context_nodes"]]
-            reranked_all_nodes = data["reranked_all_nodes"]
+        if data and "top_result" in data:
+            header_docs = data["header_docs"]
+            top_result = data["top_result"]
+            url = top_result["url"]
+            query_scores: list[SimilarityResult] = top_result["results"]
 
-    # Raise error if any expected outputs are missing
-    missing_parts = []
-    if not header_docs:
-        missing_parts.append("header_docs")
-    if not query_scores:
-        missing_parts.append("query_scores")
-    if not context_nodes:
-        missing_parts.append("context_nodes")
+    header_docs_dict: dict[str, Document] = {
+        doc.node_id: doc for doc in header_docs}
 
-    if missing_parts:
-        raise RuntimeError(
-            f"❌ Missing data in: {', '.join(missing_parts)} — check upstream processing.")
+    nodes_with_scores = [
+        NodeWithScore(
+            node=TextNode(
+                node_id=result["id"],
+                text=str(result["text"]),
+                metadata=header_docs_dict[result["id"]].metadata
+            ),
+            score=float(result["score"])
+        )
+        for result in query_scores
+    ]
 
     # Save top results
-    save_file("\n\n".join([doc.text for doc in header_docs]),
-              os.path.join(output_dir, "top_docs.md"))
-    save_file(make_serializable({"url": url, "query": query, "info": compute_info(query_scores), "results": query_scores}),
-              os.path.join(output_dir, "top_query_scores.json"))
-    save_file({
-        "url": url,
-        "query": query,
-        "results": reranked_all_nodes,
-    }, os.path.join(output_dir, "top_reranked_nodes.json"))
+    query_scores_texts = "\n\n".join([node["text"] for node in query_scores])
+    save_file(query_scores_texts, os.path.join(
+        output_dir, "query_scores_texts.md"))
+
+    save_file({"url": url, "query": query, "results": query_scores},
+              os.path.join(output_dir, "all_query_scores.json"))
+
+    # Chat LLM
+    grouped_header_nodes = group_nodes(nodes_with_scores, llm_model)
+    context_nodes = grouped_header_nodes[0]
+    context = "\n\n".join([node.text for node in context_nodes])
+
+    save_file(context, os.path.join(output_dir, "context.md"))
+
+    llm = Ollama(temperature=0.3, model=llm_model)
+    response = llm.chat(
+        query,
+        context=context,
+        model=llm_model,
+    )
+    save_file(response, os.path.join(output_dir, "chat_response.md"))
 
 
 if __name__ == "__main__":

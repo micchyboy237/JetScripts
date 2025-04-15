@@ -20,7 +20,7 @@ from llama_index.core.schema import Document
 from tqdm import tqdm
 import hrequests
 from jet.actions.generation import call_ollama_chat
-from jet.scrapers.browser.playwright import PageContent, scrape_sync, setup_sync_browser_page
+from jet.scrapers.browser.playwright_helpers import PageContent, scrape_sync, setup_sync_browser_page
 from jet.scrapers.preprocessor import extract_header_contents, get_header_contents, html_to_markdown, scrape_markdown
 from jet.search.scraper import scrape_url
 from jet.search.searxng import search_searxng
