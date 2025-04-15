@@ -117,7 +117,8 @@ async def process_and_compare_htmls(
             header_docs, query_scores, reranked_all_nodes)
 
     yield (await stream_progress("html_processing", "Comparing HTML results"), {})
-    comparison_results = compare_html_results(query, html_results)
+    comparison_results = compare_html_results(
+        query, html_results, method="top_score")
     save_file(comparison_results, os.path.join(
         output_dir, "comparison_results.json"))
 
