@@ -228,8 +228,8 @@ async def main():
         raise RuntimeError(
             f"❌ Missing data in: {', '.join(missing_parts)} — check upstream processing.")
 
-    # Save final output
-    save_file(make_serializable("\n\n".join([doc.text for doc in header_docs])),
+    # Save top results
+    save_file("\n\n".join([doc.text for doc in header_docs]),
               os.path.join(output_dir, "top_docs.md"))
     save_file(make_serializable({"url": url, "query": query, "info": compute_info(query_scores), "results": query_scores}),
               os.path.join(output_dir, "top_query_scores.json"))
