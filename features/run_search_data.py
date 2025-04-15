@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from jet.transformers.formatters import format_json
 from jet.transformers.object import make_serializable
+from jet.wordnet.similarity import compute_info
 from pydantic import BaseModel
 from typing import List, Dict, Any, AsyncGenerator, Optional, Tuple
 import os
@@ -72,6 +73,7 @@ async def process_and_compare_htmls(
         save_file({
             "url": url,
             "query": query,
+            "info": compute_info(query_scores),
             "results": [
                 {
                     "doc": node.metadata["doc_index"] + 1,
@@ -81,7 +83,8 @@ async def process_and_compare_htmls(
                     "metadata": node.metadata,
                 }
                 for rank_idx, node in enumerate(reranked_all_nodes)
-            ]}, os.path.join(output_dir_url, "reranked_all_nodes.json"))
+            ]
+        }, os.path.join(output_dir_url, "reranked_all_nodes.json"))
 
         yield (
             await stream_progress(
