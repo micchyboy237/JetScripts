@@ -129,7 +129,7 @@ async def process_and_compare_htmls(
 
     yield (
         await stream_progress("html_processing", "Final HTML processing results", top_result),
-        {"top_header_docs": header_docs_for_all[top_result[url]]
+        {"top_header_docs": header_docs_for_all[top_result["url"]]
             [0], "top_result": top_result}
     )
 
