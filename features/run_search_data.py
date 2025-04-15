@@ -58,6 +58,16 @@ async def process_and_compare_htmls(
         header_docs = get_docs_from_html(html)
         save_file("\n\n".join([doc.text for doc in header_docs]), os.path.join(
             output_dir_url, "docs.md"))
+        save_file([
+            {
+                "doc": doc.metadata["doc_index"] + 1,
+                "node_id": doc.node_id,
+                "text": doc.text,
+                "metadata": doc.metadata,
+                "relationships": doc.relationships,
+            }
+            for doc in header_docs
+        ], os.path.join(output_dir_url, "docs.json"))
 
         yield (await stream_progress("html_processing", f"Extracted header docs for {url}", {"header_docs_count": len(header_docs)}), {})
 
@@ -119,7 +129,8 @@ async def process_and_compare_htmls(
 
     yield (
         await stream_progress("html_processing", "Final HTML processing results", top_result),
-        {"header_docs": header_docs, "top_result": top_result}
+        {"top_header_docs": header_docs_for_all[top_result[url]]
+            [0], "top_result": top_result}
     )
 
 
@@ -144,24 +155,24 @@ async def main():
     html_generator = process_and_compare_htmls(
         query, url_html_tuples, embed_models, output_dir)
 
-    header_docs, html_results, query_scores, context_nodes = [], [], [], []
+    top_header_docs, html_results, query_scores, context_nodes = [], [], [], []
 
     async for sse_message, data in html_generator:
         if data and "top_result" in data:
-            header_docs = data["header_docs"]
+            top_header_docs = data["top_header_docs"]
             top_result = data["top_result"]
             url = top_result["url"]
             query_scores: list[SimilarityResult] = top_result["results"]
 
-    header_docs_dict: dict[str, Document] = {
-        doc.node_id: doc for doc in header_docs}
+    top_header_docs_dict: dict[str, Document] = {
+        doc.node_id: doc for doc in top_header_docs}
 
     nodes_with_scores = [
         NodeWithScore(
             node=TextNode(
                 node_id=result["id"],
                 text=str(result["text"]),
-                metadata=header_docs_dict[result["id"]].metadata
+                metadata=top_header_docs_dict[result["id"]].metadata
             ),
             score=float(result["score"])
         )
