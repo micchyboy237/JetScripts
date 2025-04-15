@@ -52,20 +52,21 @@ async def process_and_compare_htmls(
 
         header_docs = get_docs_from_html(html)
         save_file("\n\n".join([doc.text for doc in header_docs]), os.path.join(
-            output_dir, "docs.md"))
+            output_dir_url, "docs.md"))
 
         yield (await stream_progress("html_processing", f"Extracted header docs for {url}", {"header_docs_count": len(header_docs)}), {})
 
         query_scores, reranked_all_nodes = rerank_nodes(
             query, header_docs, embed_models)
-        save_file({"url": url, "query": query, "results": query_scores}, os.path.join(
+        save_file({"url": url, "query": query, "info": compute_info(query_scores), "results": query_scores}, os.path.join(
             output_dir_url, "query_scores.json"))
 
         yield (
             await stream_progress(
                 "html_processing",
                 f"Reranked nodes for {url}",
-                {"url": url, "query": query, "results": query_scores}
+                {"url": url, "query": query, "info": compute_info(
+                    query_scores), "results": query_scores}
             ),
             {}
         )
@@ -73,7 +74,7 @@ async def process_and_compare_htmls(
         save_file({
             "url": url,
             "query": query,
-            "info": compute_info(query_scores),
+
             "results": [
                 {
                     "doc": node.metadata["doc_index"] + 1,
@@ -150,16 +151,32 @@ async def process_and_compare_htmls(
     context = "\n\n".join([node.text for node in context_nodes])
     save_file(context, os.path.join(output_dir, "context.md"))
 
-    final_results = {
+    top_final_result = {
+        "url": url,
         "header_docs": [doc.text for doc in header_docs],
         "html_results": [(url, dir_url, "html_content_omitted") for url, dir_url, _ in html_results],
         "query_scores": query_scores,
-        "context_nodes": [{"text": node.text, "score": node.score} for node in context_nodes]
+        "context_nodes": [{"text": node.text, "score": node.score} for node in context_nodes],
+        "reranked_all_nodes": {
+            "url": url,
+            "query": query,
+            "info": compute_info(query_scores),
+            "results": [
+                {
+                    "doc": node.metadata["doc_index"] + 1,
+                    "rank": rank_idx + 1,
+                    "score": node.score,
+                    "text": node.text,
+                    "metadata": node.metadata,
+                }
+                for rank_idx, node in enumerate(reranked_all_nodes)
+            ]
+        },
     }
 
     yield (
-        await stream_progress("html_processing", "Final HTML processing results", final_results),
-        final_results
+        await stream_progress("html_processing", "Final HTML processing results", top_final_result),
+        top_final_result
     )
 
 
@@ -185,20 +202,18 @@ async def main():
 
     async for sse_message, data in html_generator:
         if data and "header_docs" in data:
+            url = data["url"]
             header_docs = [BaseDocument(text=text)
                            for text in data["header_docs"]]
-            html_results = [(url, dir_url, html)
-                            for url, dir_url, html in data["html_results"]]
             query_scores = data["query_scores"]
             context_nodes = [NodeWithScore(node=TextNode(
                 text=node["text"]), score=node["score"]) for node in data["context_nodes"]]
+            reranked_all_nodes = data["reranked_all_nodes"]
 
     # ❌ Raise error if any expected outputs are missing
     missing_parts = []
     if not header_docs:
         missing_parts.append("header_docs")
-    if not html_results:
-        missing_parts.append("html_results")
     if not query_scores:
         missing_parts.append("query_scores")
     if not context_nodes:
@@ -209,13 +224,15 @@ async def main():
             f"❌ Missing data in: {', '.join(missing_parts)} — check upstream processing.")
 
     # ✅ Save final output
-    save_file(make_serializable(header_docs),
-              os.path.join(output_dir, "header_docs.json"))
-    save_file(html_results, os.path.join(output_dir, "html_results.json"))
-    save_file(make_serializable(query_scores),
-              os.path.join(output_dir, "query_scores.json"))
-    save_file(make_serializable(context_nodes),
-              os.path.join(output_dir, "context_nodes.json"))
+    save_file(make_serializable("\n\n".join([doc.text for doc in header_docs])),
+              os.path.join(output_dir, "top_docs.md"))
+    save_file(make_serializable({"url": url, "query": query, "info": compute_info(query_scores), "results": query_scores}),
+              os.path.join(output_dir, "top_query_scores.json"))
+    save_file({
+        "url": url,
+        "query": query,
+        "results": reranked_all_nodes,
+    }, os.path.join(output_dir, "top_reranked_nodes.json"))
 
 
 if __name__ == "__main__":
