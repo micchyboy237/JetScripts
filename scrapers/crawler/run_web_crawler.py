@@ -20,19 +20,18 @@ if __name__ == "__main__":
     excludes = []
     max_depth = None
 
-    for start_url in urls:
-        crawler = WebCrawler(start_url,
-                             excludes=excludes, includes_all=includes_all, max_depth=max_depth)
+    crawler = WebCrawler(urls=urls, excludes=excludes,
+                         includes_all=includes_all, max_depth=max_depth)
 
-        output_file = f"generated/crawl/{crawler.host_name}_urls.json"
-        batch_size = 5
-        batch_count = 0
+    output_file = f"generated/crawl/crawled_urls.json"
+    batch_size = 5
+    batch_count = 0
 
-        results = []
-        for result in crawler.crawl(crawler.base_url):
-            logger.info(
-                f"Saving {len(crawler.passed_urls)} pages to {output_file}")
-            results.append(result)
-            save_data(output_file, results, write=True)
+    results = []
+    for result in crawler.crawl():
+        logger.info(
+            f"Saving {len(crawler.passed_urls)} pages to {output_file}")
+        results.append(result)
+        save_data(output_file, results, write=True)
 
-        crawler.close()
+    crawler.close()

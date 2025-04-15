@@ -1,4 +1,5 @@
 import asyncio
+import shutil
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from jet.transformers.formatters import format_json
@@ -38,6 +39,9 @@ async def process_and_compare_htmls(
     html_results = []
     header_docs_for_all = {}
     sub_dir = os.path.join(output_dir, "searched_html")
+    # Reset searched html results
+    if os.path.exists(sub_dir):
+        shutil.rmtree(sub_dir)
 
     yield (await stream_progress("html_processing", "Starting HTML processing", {"total_urls": len(url_html_tuples)}), {})
 
@@ -189,7 +193,8 @@ async def main():
         "mxbai-embed-large", "paraphrase-multilingual"
     ]
 
-    search_filtered_result = search_and_filter_data(query)
+    # Await async call
+    search_filtered_result = await search_and_filter_data(query)
     url_html_tuples = search_filtered_result["url_html_tuples"]
     search_results = search_filtered_result["search_results"]
 
@@ -210,7 +215,7 @@ async def main():
                 text=node["text"]), score=node["score"]) for node in data["context_nodes"]]
             reranked_all_nodes = data["reranked_all_nodes"]
 
-    # ❌ Raise error if any expected outputs are missing
+    # Raise error if any expected outputs are missing
     missing_parts = []
     if not header_docs:
         missing_parts.append("header_docs")
@@ -223,7 +228,7 @@ async def main():
         raise RuntimeError(
             f"❌ Missing data in: {', '.join(missing_parts)} — check upstream processing.")
 
-    # ✅ Save final output
+    # Save final output
     save_file(make_serializable("\n\n".join([doc.text for doc in header_docs])),
               os.path.join(output_dir, "top_docs.md"))
     save_file(make_serializable({"url": url, "query": query, "info": compute_info(query_scores), "results": query_scores}),

@@ -30,8 +30,7 @@ if __name__ == "__main__":
     # query = "Philippines TikTok online seller for live selling registration steps 2025"
     query = "Philippines tips for online selling 2025"
     min_header_count = 5
-
-    max_search_depth = 2
+    max_search_depth = 0
 
     query_dir = "query_" + query.lower().replace(' ', '_')
     output_dir = os.path.join(output_dir, query_dir)

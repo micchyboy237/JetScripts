@@ -96,12 +96,12 @@ anime_fields = list(Anime.model_fields.keys())
 crawler = None
 
 
-def setup_web_crawler(includes: list[str] = [], excludes: list[str] = [], max_depth: int = 0):
+def setup_web_crawler(urls: list[str], includes: list[str] = [], excludes: list[str] = [], max_depth: int = 0):
     global crawler
 
     if not crawler:
-        crawler = WebCrawler(
-            excludes=excludes, includes=includes, max_depth=max_depth)
+        crawler = WebCrawler(urls=urls, excludes=excludes,
+                             includes=includes, max_depth=max_depth)
 
     return crawler
 
@@ -245,7 +245,7 @@ def scrape_urls(urls: list[str], queries: str | list[str], output_dir: str = "ge
     max_depth = 0
 
     crawler = setup_web_crawler(
-        includes=includes, excludes=excludes, max_depth=max_depth)
+        urls=urls, includes=includes, excludes=excludes, max_depth=max_depth)
     hybrid_search = HybridSearch()
 
     scraped_results = {urlparse(url).hostname: [] for url in urls}
@@ -256,56 +256,54 @@ def scrape_urls(urls: list[str], queries: str | list[str], output_dir: str = "ge
     search_results: Optional[SearchResultData] = None
     is_complete = False
 
-    for start_url in urls:
-        if is_complete:
-            logger.success(f"Completed data for queries: {queries}")
-            break
+    if is_complete:
+        logger.success(f"Completed data for queries: {queries}")
+        break
 
-        host_name = urlparse(start_url).hostname
+    for result in crawler.crawl():
+        host_name = urlparse(result["url"]).hostname
+        doc_texts = [
+            header_content
+            for header_content in html_extractor(result["html"])
+        ]
+        if len(doc_texts) < 2:
+            continue
 
-        for result in crawler.crawl(start_url):
-            doc_texts = [
-                header_content
-                for header_content in html_extractor(result["html"])
-            ]
-            if len(doc_texts) < 2:
-                continue
+        scraped_results[host_name].extend(doc_texts)
+        all_texts.extend(doc_texts)
 
-            scraped_results[host_name].extend(doc_texts)
-            all_texts.extend(doc_texts)
+        hybrid_search.build_index(all_texts)
 
-            hybrid_search.build_index(all_texts)
+        top_k = None
+        threshold = 0.0
+        search_results = hybrid_search.search(
+            "\n".join(queries), top_k=top_k, threshold=threshold)
 
-            top_k = None
-            threshold = 0.0
-            search_results = hybrid_search.search(
-                "\n".join(queries), top_k=top_k, threshold=threshold)
+        all_results.extend(search_results["results"])
+        all_queries.extend(
+            [query for query in search_results["queries"] if query not in all_queries])
 
-            all_results.extend(search_results["results"])
-            all_queries.extend(
-                [query for query in search_results["queries"] if query not in all_queries])
+        # Aggregate all "matched"
+        all_matched = {}
+        for result in all_results:
+            result_matched = result["matched"]
+            for match_query, match in result_matched.items():
+                if match_query not in all_matched:
+                    all_matched[match_query] = 0
+                all_matched[match_query] += 1
 
-            # Aggregate all "matched"
-            all_matched = {}
-            for result in all_results:
-                result_matched = result["matched"]
-                for match_query, match in result_matched.items():
-                    if match_query not in all_matched:
-                        all_matched[match_query] = 0
-                    all_matched[match_query] += 1
-
-            if search_results["matched"]:
-                is_complete = all(
-                    count for query, count in search_results["matched"].items()
-                    if query in queries
-                )
-                # is_complete = False
-                yield {
-                    "url": start_url,
-                    "texts": doc_texts,
-                    "data": search_results,
-                    "is_complete": is_complete,
-                }
+        if search_results["matched"]:
+            is_complete = all(
+                count for query, count in search_results["matched"].items()
+                if query in queries
+            )
+            # is_complete = False
+            yield {
+                "url": start_url,
+                "texts": doc_texts,
+                "data": search_results,
+                "is_complete": is_complete,
+            }
 
 
 def query_structured_data(query: str, top_k: Optional[int] = 10, output_dir: str = "generated", includes: list[str] = [], excludes: list[str] = []) -> Generator[ScrapedUrlResult, None, None]:

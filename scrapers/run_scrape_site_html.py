@@ -118,11 +118,10 @@ def scrape_urls(urls: list[str], output_dir: str = "generated") -> Generator[tup
     max_depth = 0
 
     crawler = WebCrawler(
-        excludes=excludes, includes_all=includes_all, max_depth=max_depth)
+        urls=urls, excludes=excludes, includes_all=includes_all, max_depth=max_depth)
 
-    for start_url in urls:
-        for result in crawler.crawl(start_url):
-            yield start_url, result["html"]
+    for result in crawler.crawl():
+        yield result["url"], result["html"]
 
     crawler.close()
 
