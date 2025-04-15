@@ -38,21 +38,25 @@ if __name__ == "__main__":
     html: str = load_file(
         "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_anime_scraper/query_philippines_tips_for_online_selling_2025/hqmanila_com/scraped_html.html")
 
+    save_file(html, os.path.join(output_dir, f"docs.html"))
+
     # Get headers with contents
     header_docs = get_docs_from_html(html)
     header_texts = [doc.text for doc in header_docs]
     shared_header_doc = header_docs[0]
 
     headers_text = "\n\n".join(header_texts)
-    save_file(headers_text, os.path.join(output_dir, f"headers.md"))
+    save_file(headers_text, os.path.join(output_dir, f"docs.md"))
 
     # rerank_queries = [query]
     rerank_queries = [query]
 
     # Rerank headers
-    reranked_all_nodes = rerank_nodes(
+    query_scores, reranked_all_nodes = rerank_nodes(
         rerank_queries, header_docs, embed_models)
 
+    save_file({"query": rerank_queries, "results": query_scores},
+              os.path.join(output_dir, "query_scores.json"))
     save_file({
         "query": rerank_queries,
         "results": [
@@ -67,26 +71,21 @@ if __name__ == "__main__":
         ]
     }, os.path.join(output_dir, f"reranked_all_nodes.json"))
 
-    # Generate output model structure
-    json_schema = generate_browser_query_json_schema(query)
-    save_file(json_schema, f"{output_dir}/json_schema.json")
-
-    schema_results = extract_titles_descriptions(json_schema)
-    schema_contexts = [item["description"]
-                       for item in schema_results if item["description"]]
-
-    # Remove first h1
-    filtered_reranked_nodes = [
-        doc for doc in reranked_all_nodes if doc.metadata["doc_index"] != shared_header_doc.metadata["doc_index"]]
+    # # Generate output model structure
+    # json_schema = generate_browser_query_json_schema(query)
+    # save_file(json_schema, f"{output_dir}/json_schema.json")
+    # schema_results = extract_titles_descriptions(json_schema)
+    # schema_contexts = [item["description"]
+    #                    for item in schema_results if item["description"]]
 
     # Sort reranked results by doc index
-    sorted_header_nodes = sorted(
-        filtered_reranked_nodes, key=lambda node: node.metadata['doc_index'])
+    sorted_reranked_nodes = sorted(
+        reranked_all_nodes, key=lambda node: node.metadata['doc_index'])
     # Split nodes into groups to prevent LLM max tokens issue
-    grouped_header_nodes = group_nodes(sorted_header_nodes, llm_model)
+    grouped_reranked_nodes = group_nodes(sorted_reranked_nodes, llm_model)
 
     # First group only
-    context_nodes = grouped_header_nodes[0]
+    context_nodes = grouped_reranked_nodes[0]
 
     context = "\n\n".join([node.text for node in context_nodes])
     save_file(context, os.path.join(output_dir, f"context.md"))
@@ -108,7 +107,7 @@ if __name__ == "__main__":
         ]
     }, os.path.join(output_dir, f"reranked_context_nodes.json"))
 
-    output_cls = create_dynamic_model(json_schema, nested=True)
+    # output_cls = create_dynamic_model(json_schema, nested=True)
     llm = Ollama(temperature=0.3, model=llm_model)
     response = llm.chat(
         query,
@@ -117,7 +116,7 @@ if __name__ == "__main__":
         # headers=context,
         context=context,
         # instruction=SYSTEM_QUERY_SCHEMA_DOCS,
-        format=output_cls.model_json_schema(),
+        # format=output_cls.model_json_schema(),
     )
     save_file({"query": query, "response": response}, os.path.join(
         output_dir, f"chat_response.json"))
