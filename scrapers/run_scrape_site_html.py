@@ -1,4 +1,5 @@
 import json
+import os
 from urllib.parse import urlparse
 
 from jet.code.splitter_markdown_utils import count_md_header_contents, extract_md_header_contents, get_md_header_contents
@@ -34,7 +35,7 @@ from bs4 import BeautifulSoup as Soup
 from jet.actions.vector_semantic_search import VectorSemanticSearch
 from jet.logger import logger
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS, OLLAMA_MODEL_NAMES
-from jet.scrapers.utils import clean_text, extract_paragraphs, extract_text_elements
+from jet.scrapers.utils import clean_text, extract_paragraphs, extract_text_elements, search_data
 from jet.token.token_utils import filter_texts, get_model_max_tokens, get_ollama_tokenizer, split_texts, token_counter
 from jet.transformers.formatters import format_json
 from jet.file.utils import load_file, save_data, save_file
@@ -96,39 +97,6 @@ RESPONSE_EVAL_GUIDELINES = [
 class NoResultsFoundError(Exception):
     """Custom exception to be raised when no results are found."""
     pass
-
-
-def search_data(query) -> list[SearchResult]:
-    filter_sites = [
-        # "https://easypc.com.ph",
-        # "9anime",
-        # "zoro"
-        # "aniwatch"
-    ]
-    engines = [
-        "google",
-        "brave",
-        "duckduckgo",
-        "bing",
-        "yahoo",
-    ]
-
-    # Simulating the search function with the placeholder for your search logic
-    results: list[SearchResult] = search_searxng(
-        query_url="http://searxng.local:8080/search",
-        query=query,
-        min_score=2.0,
-        filter_sites=filter_sites,
-        engines=engines,
-        config={
-            "port": 3101
-        },
-    )
-
-    if not results:
-        raise NoResultsFoundError(f"No results found for query: '{query}'")
-
-    return results
 
 
 def scrape_urls(urls: list[str], output_dir: str = "generated") -> Generator[tuple[str, str], None, None]:
@@ -199,7 +167,8 @@ if __name__ == "__main__":
     eval_model = "gemma3:4b"
     chat_max_tokens = get_model_max_tokens(chat_model)
 
-    output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/valid-ids-scraper"
+    output_dir = os.path.join(
+        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     valid_id_topics = [
         "Philippines National ID Registration Tips 2025",
@@ -268,7 +237,7 @@ if __name__ == "__main__":
     #     workers=4,
     # )
 
-    for topic in all_topics:
+    for topic in tqdm(all_topics, desc="Topic"):
         sub_dir = f"{output_dir}/{topic.replace(" ", "_").lower()}"
         search_results = search_data(topic)
 
