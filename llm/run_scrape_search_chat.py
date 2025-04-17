@@ -1,6 +1,6 @@
 import os
 
-from jet.features.search_and_chat import get_docs_from_html, get_nodes_from_docs, rerank_nodes, run_scrape_search_chat, validate_headers
+from jet.features.search_and_chat import run_scrape_search_chat
 from jet.file.utils import load_file, save_file
 from jet.llm.ollama.base import Ollama
 from jet.logger import logger

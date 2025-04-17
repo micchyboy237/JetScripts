@@ -11,7 +11,7 @@ from typing import List, Dict, Any, AsyncGenerator, Optional, Tuple
 import os
 import json
 from llama_index.core.schema import Document, NodeWithScore
-from jet.features.search_and_chat import get_nodes_from_docs, search_and_filter_data
+from jet.features.search_and_chat import search_and_filter_data
 from jet.llm.models import OLLAMA_EMBED_MODELS
 from jet.scrapers.utils import safe_path_from_url
 from jet.llm.ollama.base import Ollama

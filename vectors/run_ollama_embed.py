@@ -11,7 +11,7 @@ from shared.data_types.job import JobData, JobEntities
 
 
 @time_it
-def embed_texts(texts: list[str], model: str = "mxbai-embed-large"):
+def embed_texts(texts: list[str], model: str = "mxbai-embed-large") -> list[list[float]]:
     # embed_model = OllamaEmbedding(model_name="mxbai-embed-large")
     # embed_results = embed_model.embed(texts)
     # embedding_function = get_ollama_embedding_function(
