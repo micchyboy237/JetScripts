@@ -13,21 +13,13 @@ OUTPUT_DIR = os.path.join(os.path.dirname(
 
 
 def main():
-    output_dir = OUTPUT_DIR
-
     # data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_ollama_base_chat/llm_chat_history.json"
     # data = load_file(data_file)
 
-    query = "What is the capital of France?"
-    response = "The capital of France is Paris."
-    context = "France is a country in Western Europe, and its capital city is Paris."
+    kwargs = {'query': 'What is the capital of France?', 'response': 'The capital of France is Paris.', 'context': 'France is a country in Western Europe, and its capital city is Paris.',
+              'output_dir': '/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/features/generated/eval_tasks', 'embed_model': 'mxbai-embed-large', 'llm_model': 'gemma3:4b'}
 
-    eval_result = evaluate_llm_response(
-        query=query,
-        response=response,
-        context=context,
-        output_dir=output_dir,
-    )
+    eval_result = evaluate_llm_response(**kwargs)
 
     logger.success(format_json(eval_result))
     copy_to_clipboard(eval_result)
