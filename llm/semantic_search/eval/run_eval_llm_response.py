@@ -32,9 +32,6 @@ def main():
     logger.success(format_json(eval_result))
     copy_to_clipboard(eval_result)
 
-    output_file = f"{output_dir}/eval_result.json"
-    save_file(eval_result, output_file)
-
 
 if __name__ == "__main__":
     main()
