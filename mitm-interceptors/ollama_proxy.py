@@ -336,6 +336,40 @@ def request(flow: http.HTTPFlow):
         stop_event.set()
         flow.response = http.Response.make(400, b"Cancelled stream")
     elif any(path in flow.request.path for path in ["/embed", "/embeddings"]):
+        request_content: dict = request_dict["content"].copy()
+
+        if isinstance(request_content["input"], list):
+            input_texts = []
+            char_count = 0
+            truncated = False
+
+            for item in request_content["input"]:
+                if not isinstance(item, str):
+                    continue  # Skip non-string items
+
+                if char_count + len(item) > 100:
+                    remaining = 100 - char_count
+                    if remaining > 0:
+                        input_texts.append(item[:remaining] + "...")
+                        char_count += remaining
+                        truncated = True
+                    break
+                else:
+                    input_texts.append(item)
+                    char_count += len(item)
+
+            # Edge case: exactly 100 chars and not truncated
+            if not truncated and char_count == 100:
+                input_texts[-1] += "..."
+
+        else:
+            input_text = request_content["input"]
+            if len(input_text) > 100:
+                input_texts = input_text[:100] + "..."
+            else:
+                input_texts = input_text
+        request_content["input"] = input_texts
+
         logger.debug(f"REQUEST EMBEDDING:")
         logger.info(format_json(request_dict["content"]))
 
