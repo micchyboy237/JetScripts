@@ -2,7 +2,9 @@ from datetime import date
 import os
 import sys
 from jet.llm.query.retrievers import query_llm, query_llm_structured
+from jet.scrapers.utils import clean_text
 from jet.transformers.formatters import format_json
+from jet.wordnet.sentence import split_sentences
 from pydantic import BaseModel
 from typing import List, Optional
 from jet.cache.joblib.utils import load_or_save_cache, save_cache
@@ -47,15 +49,17 @@ def build_ngrams(texts: list[str], max_tokens: int):
 
 
 if __name__ == "__main__":
-    embed_model = "nomic-embed-text"
+    embed_model = "mxbai-embed-large"
     llm_model = "llama3.1"
     system = None
 
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_server/generated/search/top_anime_romantic_comedy_reddit_2024-2025/top_context_nodes.json"
     data = load_file(data_file)
-    texts = [node['text'] for node in data["results"]]
-
     query = data["query"]
+    texts = [clean_text(node["text"]) for node in data["results"]]
+    # texts = [sentence.strip() for d in data["results"]
+    #          for sentence in clean_text(d["text"]).splitlines()]
+    # texts = [sentence for text in texts for sentence in split_sentences(text)]
 
     hybrid_search = HybridSearch(model_name=embed_model)
     hybrid_search.build_index(texts)

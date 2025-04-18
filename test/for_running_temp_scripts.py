@@ -1,43 +1,69 @@
-import asyncio
-from playwright.async_api import async_playwright
-from typing import List
+import os
+from jet.scrapers.utils import clean_text
+from jet.wordnet.sentence import split_sentences
+import torch
+import numpy as np
+from jet.file.utils import load_file, save_file
+from transformers import AutoModel, AutoTokenizer
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import normalize
+
+# Load the tokenizer and model
+model_name = "microsoft/MiniLM-L12-H384-uncased"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModel.from_pretrained(model_name)
 
 
-async def fetch_page_content(page, url: str) -> str:
-    try:
-        await page.goto(url, timeout=15000)
-        await page.wait_for_load_state("networkidle")
-        content = await page.content()
-        return content
-    except Exception as e:
-        print(f"Failed to load {url}: {e}")
-        return ""
+# Function to get normalized text embeddings using mean pooling
+def get_text_embedding(text):
+    inputs = tokenizer(text, return_tensors="pt",
+                       padding=True, truncation=True, max_length=512)
+    with torch.no_grad():
+        outputs = model(**inputs)
+    last_hidden = outputs.last_hidden_state
+    attention_mask = inputs['attention_mask']
+    input_mask_expanded = attention_mask.unsqueeze(
+        -1).expand(last_hidden.size()).float()
+    summed = (last_hidden * input_mask_expanded).sum(1)
+    counts = input_mask_expanded.sum(1)
+    mean_pooled = summed / counts
+    embedding = mean_pooled.numpy()
+    return normalize(embedding)
 
 
-async def scrape_with_playwright(urls: List[str]) -> List[str]:
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context()
+# Load data
+data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_server/generated/search/top_anime_romantic_comedy_reddit_2024-2025/top_context_nodes.json"
+data = load_file(data_file)
 
-        pages = [await context.new_page() for _ in urls]
-        tasks = [fetch_page_content(page, url)
-                 for page, url in zip(pages, urls)]
-        results = await asyncio.gather(*tasks)
+query = data["query"]
+texts = [sentence.strip() for d in data["results"]
+         for sentence in clean_text(d["text"]).splitlines()]
+texts = [sentence for text in texts for sentence in split_sentences(text)]
 
-        await browser.close()
-        return results
+# Compute normalized embeddings
+query_embedding = get_text_embedding(query)
+text_embeddings = [get_text_embedding(text) for text in texts]
 
+# Calculate cosine similarity
+results = []
+for i, text in enumerate(texts):
+    score = cosine_similarity(query_embedding, text_embeddings[i])[0][0]
+    results.append({"score": score, "text": text})
 
-def scrape_multiple_urls(urls: List[str]) -> List[str]:
-    return asyncio.run(scrape_with_playwright(urls))
+# Sort results by similarity score
+sorted_results = sorted(results, key=lambda x: x["score"], reverse=True)
 
+# Print results
+for result in sorted_results:
+    print(f"Score: {result['score']:.4f}\nText: {result['text']}\n")
 
-if __name__ == "__main__":
-    urls = [
-        "https://example.com",
-        "https://httpbin.org/html",
-        "https://www.python.org"
-    ]
-    html_list = scrape_multiple_urls(urls)
-    for i, html in enumerate(html_list):
-        print(f"--- HTML from {urls[i]} ---\n{html[:300]}...\n")
+# Save results
+output_dir = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+os.makedirs(output_dir, exist_ok=True)
+
+save_file({
+    "query": query,
+    "all_count": len(sorted_results),
+    "all_results": sorted_results,
+}, os.path.join(output_dir, "all_results.json"))
