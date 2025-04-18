@@ -1,4 +1,6 @@
 from datetime import date
+import os
+import sys
 from jet.llm.query.retrievers import query_llm, query_llm_structured
 from jet.transformers.formatters import format_json
 from pydantic import BaseModel
@@ -9,6 +11,9 @@ from jet.logger import logger
 from jet.utils.commands import copy_to_clipboard
 from jet.vectors.reranker.bm25_helpers import HybridSearch, preprocess_texts, split_text_by_docs, transform_queries_to_ngrams
 from jet.wordnet.n_grams import extract_ngrams, count_ngrams
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
 
 def build_ngrams(texts: list[str], max_tokens: int):
@@ -46,12 +51,27 @@ if __name__ == "__main__":
     llm_model = "llama3.1"
     system = None
 
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/generated/search_web_data/scraped_texts.json"
-    data: dict[str, list[str]] = load_file(data_file)
-    texts = [text for texts in list(data.values()) for text in texts]
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_server/generated/search/top_anime_romantic_comedy_reddit_2024-2025/top_context_nodes.json"
+    data = load_file(data_file)
+    texts = [node['text'] for node in data["results"]]
+
+    query = data["query"]
 
     hybrid_search = HybridSearch(model_name=embed_model)
     hybrid_search.build_index(texts)
+    results = hybrid_search.search(query)
+
+    results = results.copy()
+    semantic_results = results.pop("semantic_results")
+    hybrid_results = results.pop("hybrid_results")
+    reranked_results = results.pop("reranked_results")
+
+    save_file(results, f"{OUTPUT_DIR}/results_info.json")
+    save_file(semantic_results, f"{OUTPUT_DIR}/semantic_results.json")
+    save_file(hybrid_results, f"{OUTPUT_DIR}/hybrid_results.json")
+    save_file(reranked_results, f"{OUTPUT_DIR}/reranked_results.json")
+
+    sys.exit()
 
     # class Anime(BaseModel):
     #     title: str
@@ -98,10 +118,10 @@ if __name__ == "__main__":
     hybrid_results = results.pop("hybrid_results")
     reranked_results = results.pop("reranked_results")
 
-    save_file(results, "generated/hybrid_search/results_info.json")
-    save_file(semantic_results, "generated/hybrid_search/semantic_results.json")
-    save_file(hybrid_results, "generated/hybrid_search/hybrid_results.json")
-    save_file(reranked_results, "generated/hybrid_search/reranked_results.json")
+    save_file(results, f"{OUTPUT_DIR}/results_info.json")
+    save_file(semantic_results, f"{OUTPUT_DIR}/semantic_results.json")
+    save_file(hybrid_results, f"{OUTPUT_DIR}/hybrid_results.json")
+    save_file(reranked_results, f"{OUTPUT_DIR}/reranked_results.json")
 
     # Ask LLM
     texts = [result["text"] for result in reranked_results]
@@ -112,7 +132,7 @@ if __name__ == "__main__":
         structued_llm_results.append(structued_llm_response)
 
         save_file(structued_llm_results,
-                  "generated/hybrid_search/structued_llm_results.json")
+                  f"{OUTPUT_DIR}/structued_llm_results.json")
 
     logger.newline()
     logger.success(f"Structured LLM Results: {len(structued_llm_results)}")
