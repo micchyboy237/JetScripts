@@ -420,7 +420,7 @@ def request(flow: http.HTTPFlow):
         if tools:
             logger.newline()
             logger.gray("REQUEST TOOLS:")
-            logger.orange(tools)
+            logger.orange(format_json(tools))
 
         logger.newline()
         logger.log(f"REQUEST KEYS:", list(
