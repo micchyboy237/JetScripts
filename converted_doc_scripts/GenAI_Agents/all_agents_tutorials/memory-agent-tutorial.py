@@ -29,7 +29,7 @@ logger.info(f"Logs: {log_file}")
 initialize_ollama_settings()
 
 
-def render_mermaid_graph(agent, output_filename="graph_output.png", draw_method=None):
+def render_mermaid_graph(agent, output_filename="graph_output.png", draw_method=MermaidDrawMethod.API):
     """
     Generates a Mermaid graph PNG from the agent and opens it using the system's default viewer on macOS.
 

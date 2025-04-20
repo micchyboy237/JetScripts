@@ -239,7 +239,7 @@ def update_code_with_ollama(code: str) -> str:
     # Replace OpenAIEmbedding(...) to OllamaEmbedding(...)
     updated_code = re.sub(
         r'OllamaEmbedding\s*\((.*?)\)',
-        r'OllamaEmbedding(model_name="nomic-embed-text")',
+        r'OllamaEmbedding(model_name="mxbai-embed-large")',
         updated_code
     )
 
@@ -255,7 +255,7 @@ def update_code_with_ollama(code: str) -> str:
 
     updated_code = re.sub(
         r'OllamaEmbeddings\s*\((.*?)\)',
-        r'OllamaEmbeddings(model="nomic-embed-text")',
+        r'OllamaEmbeddings(model="mxbai-embed-large")',
         updated_code
     )
 
@@ -714,7 +714,7 @@ if __name__ == "__main__":
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
         # "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/self_healing_code.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/versions/migrating_memory/chat_history.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/versions/migrating_memory/long_term_memory_agent.ipynb",
     ]
 
     include_files = [

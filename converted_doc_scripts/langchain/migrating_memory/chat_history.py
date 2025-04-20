@@ -10,9 +10,10 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.graph import START, MessagesState, StateGraph
 from langchain_core.messages import AIMessageChunk
 
-    
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -58,7 +59,6 @@ The built-in `InMemoryChatMessageHistory` does not contains such a parameterizat
 """
 
 
-
 chats_by_session_id = {}
 
 
@@ -69,6 +69,7 @@ def get_chat_history(session_id: str) -> InMemoryChatMessageHistory:
         chats_by_session_id[session_id] = chat_history
     return chat_history
 
+
 """
 ## Use with LangGraph
 
@@ -78,7 +79,6 @@ We'll create a [LangGraph node](https://langchain-ai.github.io/langgraph/concept
 
 The conversation ID can be passed as either part of the RunnableConfig (as we'll do here), or as part of the [graph state](https://langchain-ai.github.io/langgraph/concepts/low_level/#state).
 """
-
 
 
 builder = StateGraph(state_schema=MessagesState)
@@ -108,11 +108,11 @@ config = {"configurable": {"session_id": session_id}}
 
 input_message = HumanMessage(content="hi! I'm bob")
 for event in graph.stream({"messages": [input_message]}, config, stream_mode="values"):
-    event["messages"][-1].pretty_logger.debug()
+    logger.debug(event["messages"][-1])
 
 input_message = HumanMessage(content="what was my name?")
 for event in graph.stream({"messages": [input_message]}, config, stream_mode="values"):
-    event["messages"][-1].pretty_logger.debug()
+    logger.debug(event["messages"][-1])
 
 """
 :::tip
