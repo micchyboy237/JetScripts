@@ -1,4 +1,4 @@
-from jet.logger import logger
+from jet.logger import CustomLogger
 from jet.llm.ollama.base import initialize_ollama_settings
 import os
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
@@ -9,6 +9,10 @@ import numpy as np
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
+
+
+logger = CustomLogger(
+    f"{os.path.splitext(os.path.basename(__file__))[0]}.log", overwrite=True)
 
 initialize_ollama_settings()
 
@@ -45,7 +49,6 @@ By making data insights more accessible, this method has the potential to transf
 """
 
 
-
 load_dotenv()
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
@@ -62,7 +65,8 @@ n_rows = 1000
 start_date = datetime(2022, 1, 1)
 dates = [start_date + timedelta(days=i) for i in range(n_rows)]
 
-makes = ['Toyota', 'Honda', 'Ford', 'Chevrolet', 'Nissan', 'BMW', 'Mercedes', 'Audi', 'Hyundai', 'Kia']
+makes = ['Toyota', 'Honda', 'Ford', 'Chevrolet',
+         'Nissan', 'BMW', 'Mercedes', 'Audi', 'Hyundai', 'Kia']
 models = ['Sedan', 'SUV', 'Truck', 'Hatchback', 'Coupe', 'Van']
 colors = ['Red', 'Blue', 'Black', 'White', 'Silver', 'Gray', 'Green']
 
@@ -85,10 +89,10 @@ logger.debug("\nFirst few rows of the generated data:")
 logger.debug(df.head())
 
 logger.debug("\nDataFrame info:")
-df.info()
+logger.info(df.info())
 
 logger.debug("\nSummary statistics:")
-logger.debug(df.describe())
+logger.orange(df.describe())
 
 """
 ## Create Data Analysis Agent
@@ -103,13 +107,15 @@ agent = create_pandas_dataframe_agent(
     allow_dangerous_code=True,
     agent_type=AgentType.OPENAI_FUNCTIONS,
 )
-logger.debug("Data Analysis Agent is ready. You can now ask questions about the data.")
+logger.debug(
+    "Data Analysis Agent is ready. You can now ask questions about the data.")
 
 """
 ## Define Question-Asking Function
 
 This function allows us to easily ask questions to our data analysis agent and display the results.
 """
+
 
 def ask_agent(question):
     """Function to ask questions to the agent and display the response"""
@@ -118,8 +124,9 @@ def ask_agent(question):
         "agent_scratchpad": f"Human: {question}\nAI: To answer this question, I need to use Python to analyze the dataframe. I'll use the python_repl_ast tool.\n\nAction: python_repl_ast\nAction Input: ",
     })
     logger.debug(f"Question: {question}")
-    logger.debug(f"Answer: {response}")
+    logger.success(f"Answer: {response}")
     logger.debug("---")
+
 
 """
 ## Example Questions

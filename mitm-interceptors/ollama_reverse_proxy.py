@@ -391,9 +391,12 @@ def request(flow: http.HTTPFlow):
             header_event_start_time = header_event_start_time.replace("|", "_")
             header_event_start_time = header_event_start_time.replace(":", "-")
 
-        sub_dir_path = flow.request.path.replace("/", "-").strip("-")
+        root_dir_path = flow.request.path.replace("/", "-").strip("-")
+        if limit:
+            remove_old_files_by_limit(
+                os.path.join(LOGS_DIR, root_dir_path), limit)
         sub_dir_feature = header_log_filename or "_manual_call"
-        sub_dir = os.path.join(sub_dir_path, sub_dir_feature)
+        sub_dir = os.path.join(root_dir_path, sub_dir_feature)
         base_dir = header_event_start_time if sub_dir_feature else flow.client_conn.id
         log_base_dir = os.path.join(sub_dir, base_dir)\
             if header_event_start_time else sub_dir
@@ -452,9 +455,12 @@ def request(flow: http.HTTPFlow):
         if header_event_start_time:
             header_event_start_time = header_event_start_time.replace("|", "_")
 
-        sub_dir_path = flow.request.path.replace("/", "-").strip("-")
+        root_dir_path = flow.request.path.replace("/", "-").strip("-")
+        if limit:
+            remove_old_files_by_limit(
+                os.path.join(LOGS_DIR, root_dir_path), limit)
         sub_dir_feature = header_log_filename or "_manual_call"
-        sub_dir = os.path.join(sub_dir_path, sub_dir_feature)
+        sub_dir = os.path.join(root_dir_path, sub_dir_feature)
         base_dir = header_event_start_time if sub_dir_feature else flow.client_conn.id
         log_base_dir = os.path.join(sub_dir, base_dir)\
             if header_event_start_time else sub_dir
