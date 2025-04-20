@@ -1,3 +1,4 @@
+import asyncio
 from langchain_core.runnables.graph import MermaidDrawMethod
 import getpass
 from pathlib import Path
@@ -81,6 +82,7 @@ You can also check out a full implementation of this agent in [this repo](https:
 def _set_env(var: str):
     if not os.environ.get(var):
         os.environ[var] = getpass.getpass(f"{var}: ")
+
 
     # _set_env("OPENAI_API_KEY")
 _set_env("TAVILY_API_KEY")
