@@ -702,20 +702,13 @@ if __name__ == "__main__":
     repo_base_dir = [
         "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs",
         "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/eval_agents",
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/node_postprocessor/Structured-LLMReranker-Lyft-10k.ipynb",
-
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/node_postprocessor/rankLLM.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/node_postprocessor/rankGPT.ipynb",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/integrations/document_transformers/rankllm-reranker.ipynb",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/managed/manage_retrieval_benchmark.ipynb",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/workflow/rag.ipynb",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/retrievers/ensemble_retrieval.ipynb",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/prompts/prompt_mixin.ipynb",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-packs/llama-index-packs-koda-retriever/examples/alpha_evaluation.ipynb",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/llama-index-integrations/postprocessor/llama-index-postprocessor-rankllm-rerank/examples/rankLLM.ipynb",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/self_healing_code.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/simple_data_analysis_agent_notebook.ipynb",
     ]
 
     include_files = [
