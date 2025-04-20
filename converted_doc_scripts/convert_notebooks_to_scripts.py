@@ -173,7 +173,12 @@ def move_all_imports_on_top(code: str) -> str:
 
 
 def add_jet_logger(code: str):
-    import_code = "from jet.logger import CustomLogger\n\nlogger = CustomLogger(f\"{os.path.splitext(os.path.basename(__file__))[0]}.log\", overwrite=True)\n\n"
+    import_code = """
+script_dir = os.path.dirname(os.path.abspath(__file__))
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+logger = CustomLogger(log_file, overwrite=True)
+logger.info(f"Logs: {log_file}")
+    """.strip()
     log_done_code = '\n\nlogger.info("\\n\\n[DONE]", bright=True)'
     return "".join([
         import_code,
@@ -708,8 +713,8 @@ if __name__ == "__main__":
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
         # "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/self_healing_code.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/self_improving_agent.ipynb",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/simple_data_analysis_agent_notebook.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/memory-agent-tutorial.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/mcp-tutorial.ipynb",
     ]
 
     include_files = [

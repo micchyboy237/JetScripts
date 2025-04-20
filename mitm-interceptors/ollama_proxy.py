@@ -409,6 +409,7 @@ def request(flow: http.HTTPFlow):
         # Log the serialized data as a JSON string
         request_content: dict = request_dict["content"].copy()
         messages = request_content.pop("messages", None)
+        tools = request_content.get("tools", None)
         options = request_content.pop("options", {})
 
         logger.newline()
@@ -416,12 +417,18 @@ def request(flow: http.HTTPFlow):
         logger.info(format_json(messages) if not isinstance(
             messages, str) else messages)
 
+        if tools:
+            logger.newline()
+            logger.gray("REQUEST TOOLS:")
+            logger.orange(tools)
+
+        logger.newline()
         logger.log(f"REQUEST KEYS:", list(
-            request_dict.keys()), colors=["GRAY", "INFO"])
+            request_dict.keys()), colors=["GRAY", "TEAL"])
         logger.log(f"REQUEST CONTENT KEYS:", list(
-            request_dict["content"].keys()), colors=["GRAY", "INFO"])
+            request_dict["content"].keys()), colors=["GRAY", "TEAL"])
         logger.log("REQUEST HEADERS:",
-                   json.dumps(request_dict["headers"]), colors=["GRAY", "INFO"])
+                   json.dumps(request_dict["headers"]), colors=["GRAY", "TEAL"])
 
         logger.newline()
         logger.gray("REQUEST OPTIONS:")
