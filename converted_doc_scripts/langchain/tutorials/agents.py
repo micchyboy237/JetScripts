@@ -515,6 +515,11 @@ logger.orange("\n----\nExamples 6\n----\n")
 
 config = {"configurable": {"thread_id": "xyz123"}}
 
+model = ChatOllama(model="llama3.1")
+tools = []
+memory = MemorySaver()
+agent_executor = create_react_agent(model, tools, checkpointer=memory)
+
 logger.info("Query 1 stream response:")
 for chunk in agent_executor.stream(
     {"messages": [HumanMessage(content="whats my name?")]}, config
