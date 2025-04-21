@@ -1,4 +1,4 @@
-from jet.logger import logger
+from jet.logger import CustomLogger
 from jet.llm.ollama.base import initialize_ollama_settings
 import os
 from jet.llm.ollama.base_langchain import ChatOllama
@@ -13,15 +13,19 @@ from langchain_core.messages import HumanMessage, RemoveMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, MessagesState, StateGraph
 
+    
+script_dir = os.path.dirname(os.path.abspath(__file__))
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+logger = CustomLogger(log_file, overwrite=True)
+logger.info(f"Logs: {log_file}")
+
 initialize_ollama_settings()
 
 """
 ---
 sidebar_position: 1
 ---
-"""
 
-"""
 # How to add memory to chatbots
 
 A key feature of chatbots is their ability to use the content of previous conversational turns as context. This state management can take several forms, including:
@@ -95,9 +99,7 @@ logger.debug(ai_msg.content)
 
 """
 We can see that by passing the previous conversation into a chain, it can use it as context to answer questions. This is the basic concept underpinning chatbot memory - the rest of the guide will demonstrate convenient techniques for passing or reformatting messages.
-"""
 
-"""
 ## Automatic history management
 
 The previous examples pass messages to the chain (and model) explicitly. This is a completely acceptable approach, but it does require external management of new messages. LangChain also provides a way to build applications that have memory using LangGraph's [persistence](https://langchain-ai.github.io/langgraph/concepts/persistence/). You can [enable persistence](https://langchain-ai.github.io/langgraph/how-tos/persistence/) in LangGraph applications by providing a `checkpointer` when compiling the graph.
@@ -128,8 +130,7 @@ We'll pass the latest input to the conversation here and let LangGraph keep trac
 """
 
 app.invoke(
-    {"messages": [HumanMessage(
-        content="Translate to French: I love programming.")]},
+    {"messages": [HumanMessage(content="Translate to French: I love programming.")]},
     config={"configurable": {"thread_id": "1"}},
 )
 
@@ -206,13 +207,9 @@ app.invoke(
 
 """
 We can see that `trim_messages` was called and only the two most recent messages will be passed to the model. In this case, this means that the model forgot the name we gave it.
-"""
 
-"""
 Check out our [how to guide on trimming messages](/docs/how_to/trim_messages/) for more.
-"""
 
-"""
 ### Summary memory
 
 We can use this same pattern in other ways too. For example, we could use an additional LLM call to generate a summary of the conversation before calling our app. Let's recreate our chat history:
@@ -240,8 +237,7 @@ def call_model(state: MessagesState):
         "The provided chat history includes a summary of the earlier conversation."
     )
     system_message = SystemMessage(content=system_prompt)
-    # exclude the most recent user input
-    message_history = state["messages"][:-1]
+    message_history = state["messages"][:-1]  # exclude the most recent user input
     if len(message_history) >= 4:
         last_human_message = state["messages"][-1]
         summary_prompt = (
@@ -254,10 +250,8 @@ def call_model(state: MessagesState):
 
         delete_messages = [RemoveMessage(id=m.id) for m in state["messages"]]
         human_message = HumanMessage(content=last_human_message.content)
-        response = model.invoke(
-            [system_message, summary_message, human_message])
-        message_updates = [summary_message,
-                           human_message, response] + delete_messages
+        response = model.invoke([system_message, summary_message, human_message])
+        message_updates = [summary_message, human_message, response] + delete_messages
     else:
         message_updates = model.invoke([system_message] + state["messages"])
 
