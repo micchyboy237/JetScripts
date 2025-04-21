@@ -714,7 +714,7 @@ if __name__ == "__main__":
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
         # "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/self_healing_code.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/versions/migrating_memory/long_term_memory_agent.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/versions/migrating_memory/conversation_buffer_window_memory.ipynb",
     ]
 
     include_files = [

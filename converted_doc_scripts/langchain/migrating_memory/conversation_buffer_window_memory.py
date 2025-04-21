@@ -11,20 +11,9 @@ from langchain_core.prompts.chat import (
     MessagesPlaceholder,
 )
 from jet.llm.ollama.base_langchain import ChatOllama
-from langchain_core.messages import (
-    AIMessage,
-    BaseMessage,
-    HumanMessage,
-    SystemMessage,
-    trim_messages,
-)
-from jet.llm.ollama.base_langchain import ChatOllama
-from langchain_core.messages import trim_messages
-from langchain_core.messages import trim_messages
 import uuid
 from IPython.display import Image, display
 from langchain_core.messages import HumanMessage
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, MessagesState, StateGraph
 import uuid
 from langchain_core.messages import (
@@ -34,17 +23,9 @@ from langchain_core.messages import (
     SystemMessage,
     trim_messages,
 )
-from langchain_core.tools import tool
 from jet.llm.ollama.base_langchain import ChatOllama
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
-from langchain_core.messages import (
-    AIMessage,
-    BaseMessage,
-    HumanMessage,
-    SystemMessage,
-    trim_messages,
-)
 from langchain_core.tools import tool
 from jet.llm.ollama.base_langchain import ChatOllama
 
@@ -110,7 +91,8 @@ how to maintain a running summary of the conversation while discarding older mes
 #     ]
 # )
 
-# memory = ConversationBufferWindowMemory(memory_key="chat_history", return_messages=True)
+# memory = ConversationBufferWindowMemory(
+#     memory_key="chat_history", return_messages=True)
 
 # legacy_chain = LLMChain(
 #     llm=ChatOllama(model="llama3.1"),
@@ -166,7 +148,7 @@ selected_messages = trim_messages(
 )
 
 for msg in selected_messages:
-    logger.debug(msg)
+    logger.debug(msg.content)
 
 """
 ## Reimplementing ConversationTokenBufferMemory logic
@@ -185,7 +167,7 @@ selected_messages = trim_messages(
 )
 
 for msg in selected_messages:
-    logger.debug(msg)
+    logger.debug(msg.content)
 
 """
 ## Modern usage with LangGraph
@@ -240,12 +222,12 @@ config = {"configurable": {"thread_id": thread_id}}
 
 input_message = HumanMessage(content="hi! I'm bob")
 for event in app.stream({"messages": [input_message]}, config, stream_mode="values"):
-    logger.debug(event["messages"][-1])
+    logger.debug(event["messages"][-1].content)
 
 config = {"configurable": {"thread_id": thread_id}}
 input_message = HumanMessage(content="what was my name?")
 for event in app.stream({"messages": [input_message]}, config, stream_mode="values"):
-    logger.debug(event["messages"][-1])
+    logger.debug(event["messages"][-1].content)
 
 """
 </details>
@@ -300,12 +282,12 @@ config = {"configurable": {"thread_id": thread_id}}
 input_message = HumanMessage(content="hi! I'm bob. What is my age?")
 
 for event in app.stream({"messages": [input_message]}, config, stream_mode="values"):
-    logger.debug(event["messages"][-1])
+    logger.debug(event["messages"][-1].content)
 
 input_message = HumanMessage(content="do you remember my name?")
 
 for event in app.stream({"messages": [input_message]}, config, stream_mode="values"):
-    logger.debug(event["messages"][-1])
+    logger.debug(event["messages"][-1].content)
 
 """
 </details>
@@ -371,7 +353,7 @@ full_history = [
 ]
 
 
-logger.debug(model_with_preprocessor.invoke(full_history))
+logger.debug(model_with_preprocessor.invoke(full_history).content)
 
 """
 </details>

@@ -243,10 +243,13 @@ def get_user_age(name: str) -> str:
 
 memory = MemorySaver()
 model = ChatOllama(model="llama3.1")
+system_prompt = SystemMessage(
+    content="You are a helpful assistant. Use the tools available, including memory tools, to assist the user.")
 app = create_react_agent(
     model,
     tools=[get_user_age],
     checkpointer=memory,
+    prompt=system_prompt
 )
 
 thread_id = uuid.uuid4()

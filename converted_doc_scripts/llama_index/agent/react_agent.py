@@ -3,7 +3,7 @@ from jet.llm.ollama.base import initialize_ollama_settings
 from llama_index.core.agent import ReActAgent
 from jet.llm.ollama.base import Ollama
 from llama_index.core.llms import ChatMessage
-from llama_index.core.tools import BaseTool, FunctionTool
+from jet.llm.tools.function_tool import FunctionTool
 from llama_index.core import PromptTemplate
 from llama_index.core.agent import ReActChatFormatter
 from llama_index.core.llms import MessageRole
@@ -59,7 +59,7 @@ add_tool = FunctionTool.from_defaults(fn=add)
 ### gpt-3.5-turbo
 """
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
 agent = ReActAgent.from_tools([multiply_tool, add_tool], llm=llm, verbose=True)
 
 response = agent.chat("What is 20+(2*4)? Calculate step by step ")
