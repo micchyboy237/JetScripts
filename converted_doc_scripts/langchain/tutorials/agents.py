@@ -117,8 +117,7 @@ The code snippet below represents a fully functional agent that uses an LLM to d
 In the rest of the guide, we will walk through the individual components and what each part does - but if you want to just grab some code and get started, feel free to use this!
 """
 
-logger.newline()
-logger.info("Examples 1")
+logger.orange("\n----\nExamples 1\n----\n")
 
 memory = MemorySaver()
 model = ChatOllama(model="llama3.1")
@@ -215,8 +214,7 @@ We first need to create the tools we want to use. Our main tool of choice will b
 # search_results = search.invoke("what is the weather in SF")
 # logger.debug(search_results)
 
-logger.newline()
-logger.info("Examples 2")
+logger.orange("\n----\nExamples 2\n----\n")
 
 tools = [search]
 
@@ -290,8 +288,7 @@ Now, we can initialize the agent with the LLM and the tools.
 Note that we are passing in the `model`, not `model_with_tools`. That is because `create_react_agent` will call `.bind_tools` for us under the hood.
 """
 
-logger.newline()
-logger.info("Examples 3")
+logger.orange("\n----\nExamples 3\n----\n")
 
 agent_executor = create_react_agent(model, tools)
 
@@ -334,8 +331,7 @@ We can check out the [LangSmith trace](https://smith.langchain.com/public/f52083
 We've seen how the agent can be called with `.invoke` to get  a final response. If the agent executes multiple steps, this may take a while. To show intermediate progress, we can stream back messages as they occur.
 """
 
-logger.newline()
-logger.info("Examples 4")
+logger.orange("\n----\nExamples 4\n----\n")
 
 logger.newline()
 logger.info("Query 1 react agent stream response:")
@@ -409,8 +405,7 @@ asyncio.run(run_inline())
 As mentioned earlier, this agent is stateless. This means it does not remember previous interactions. To give it memory we need to pass in a checkpointer. When passing in a checkpointer, we also have to pass in a `thread_id` when invoking the agent (so it knows which thread/conversation to resume from).
 """
 
-logger.newline()
-logger.info("Examples 5")
+logger.orange("\n----\nExamples 5\n----\n")
 
 memory = MemorySaver()
 
@@ -443,8 +438,7 @@ Example [LangSmith trace](https://smith.langchain.com/public/fa73960b-0f7d-4910-
 If you want to start a new conversation, all you have to do is change the `thread_id` used
 """
 
-logger.newline()
-logger.info("Examples 6")
+logger.orange("\n----\nExamples 6\n----\n")
 
 config = {"configurable": {"thread_id": "xyz123"}}
 
