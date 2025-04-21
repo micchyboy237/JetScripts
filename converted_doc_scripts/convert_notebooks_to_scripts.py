@@ -714,13 +714,7 @@ if __name__ == "__main__":
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/self_healing_code.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/simple_conversational_agent.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/simple_conversational_agent-pydanticai.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/langgraph-tutorial.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/project_manager_assistant_agent.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/scientific_paper_agent_langgraph.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/business_meme_generator.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/research_team_autogen.ipynb",
     ]
 
     include_files = [
