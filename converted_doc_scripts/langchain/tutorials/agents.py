@@ -1,15 +1,17 @@
+from jet.features.search_and_chat import compare_html_query_scores, search_and_filter_data
+from jet.llm.models import OLLAMA_EMBED_MODELS
 from jet.llm.ollama.constants import OLLAMA_LARGE_EMBED_MODEL
-from jet.llm.query import setup_index, FUSION_MODES
+from jet.llm.query.retrievers import setup_index
+from jet.search.searxng import search_searxng
+from jet.token.token_utils import filter_texts
+from llama_index.core.retrievers.fusion_retriever import FUSION_MODES
 from llama_index.core.schema import Document as LlamaDocument
-from jet.search import search_searxng
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 import asyncio
-from jet.logger import logger
 from jet.llm.ollama.base import initialize_ollama_settings
 from jet.llm.ollama.base_langchain import ChatOllama
 from jet.transformers.formatters import format_json
-from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
@@ -21,9 +23,49 @@ from jet.llm.ollama.base_langchain import ChatOllama
 from langchain_core.messages import HumanMessage
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
+from jet.logger import CustomLogger
 
+
+def setup_logger():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    log_file = os.path.join(
+        script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+    logger = CustomLogger(log_file, overwrite=True)
+    logger.info(f"Logs: {log_file}")
+    return logger
+
+
+logger = setup_logger()
 initialize_ollama_settings()
 
+
+# @tool
+# def search(query: str, config: RunnableConfig) -> list[str]:
+#     """
+#     A search engine optimized for comprehensive, accurate, and trusted results.
+#     Useful for when you need to answer questions about current events.
+#     Input should be a search query.
+#     """
+
+#     results = search_searxng(
+#         query_url="http://jetairm1:3000/search",
+#         query=query,
+#         min_score=0,
+#         engines=["google"],
+#         config={
+#             "port": 3101
+#         },
+#     )
+
+#     documents = [LlamaDocument(text=result['content']) for result in results]
+
+#     query_nodes = setup_index(documents, embed_model=OLLAMA_LARGE_EMBED_MODEL)
+
+#     logger.newline()
+#     result = query_nodes(query, threshold=0.3,
+#                          fusion_mode=FUSION_MODES.RELATIVE_SCORE)
+
+#     return result['texts']
 
 @tool
 def search(query: str, config: RunnableConfig) -> list[str]:
@@ -33,25 +75,23 @@ def search(query: str, config: RunnableConfig) -> list[str]:
     Input should be a search query.
     """
 
-    results = search_searxng(
-        query_url="http://searxng.local:8080/search",
-        query=query,
-        min_score=0,
-        engines=["google"],
-        config={
-            "port": 3101
-        },
-    )
+    embed_models: list[OLLAMA_EMBED_MODELS] = [
+        "all-minilm:33m", "paraphrase-multilingual"]
 
-    documents = [LlamaDocument(text=result['content']) for result in results]
+    search_rerank_result = asyncio.run(search_and_filter_data(query))
+    search_results = search_rerank_result["search_results"]
+    url_html_tuples = search_rerank_result["url_html_tuples"]
 
-    query_nodes = setup_index(documents, embed_model=OLLAMA_LARGE_EMBED_MODEL)
+    comparison_results = compare_html_query_scores(
+        query, url_html_tuples, embed_models)
 
-    logger.newline()
-    result = query_nodes(
-        query, FUSION_MODES.RELATIVE_SCORE, score_threshold=0.3)
+    top_urls = comparison_results["top_urls"]
+    top_query_scores = comparison_results["top_query_scores"]
+    top_texts = [result["text"] for result in top_query_scores]
+    filtered_top_texts: list[str] = filter_texts(
+        top_texts, model="llama3.1", max_tokens=1000)
 
-    return result['texts']
+    return filtered_top_texts
 
 
 """
@@ -77,10 +117,11 @@ The code snippet below represents a fully functional agent that uses an LLM to d
 In the rest of the guide, we will walk through the individual components and what each part does - but if you want to just grab some code and get started, feel free to use this!
 """
 
+logger.info("Examples 1")
 
 memory = MemorySaver()
 model = ChatOllama(model="llama3.1")
-search = TavilySearchResults(max_results=2)
+# search = TavilySearchResults(max_results=2)
 tools = [search]
 agent_executor = create_react_agent(model, tools, checkpointer=memory)
 
@@ -92,7 +133,7 @@ for chunk in agent_executor.stream(
 ):
     logger.newline()
     logger.success(format_json(chunk))
-    print("----")
+    logger.gray("----")
 
 logger.info("Query 2 stream response:")
 for chunk in agent_executor.stream(
@@ -101,7 +142,7 @@ for chunk in agent_executor.stream(
 ):
     logger.newline()
     logger.success(format_json(chunk))
-    print("----")
+    logger.gray("----")
 
 """
 ## Setup
@@ -172,6 +213,8 @@ We first need to create the tools we want to use. Our main tool of choice will b
 # search = TavilySearchResults(max_results=2)
 # search_results = search.invoke("what is the weather in SF")
 # logger.debug(search_results)
+
+logger.info("Examples 2")
 
 tools = [search]
 
@@ -245,6 +288,7 @@ Now, we can initialize the agent with the LLM and the tools.
 Note that we are passing in the `model`, not `model_with_tools`. That is because `create_react_agent` will call `.bind_tools` for us under the hood.
 """
 
+logger.info("Examples 3")
 
 agent_executor = create_react_agent(model, tools)
 
@@ -260,7 +304,7 @@ response = agent_executor.invoke({"messages": [HumanMessage(content="hi!")]})
 
 # response["messages"]
 logger.newline()
-logger.info("Query 3 tool response:")
+logger.info("Query 1 react agent tool response:")
 logger.success(format_json(response["messages"]))
 
 """
@@ -274,7 +318,7 @@ response = agent_executor.invoke(
 )
 # response["messages"]
 logger.newline()
-logger.info("Query 4 tool response:")
+logger.info("Query 2 react agent tool response:")
 logger.success(format_json(response["messages"]))
 
 """
@@ -287,14 +331,16 @@ We can check out the [LangSmith trace](https://smith.langchain.com/public/f52083
 We've seen how the agent can be called with `.invoke` to get  a final response. If the agent executes multiple steps, this may take a while. To show intermediate progress, we can stream back messages as they occur.
 """
 
+logger.info("Examples 4")
+
 logger.newline()
-logger.info("Query 3 stream response:")
+logger.info("Query 1 react agent stream response:")
 for chunk in agent_executor.stream(
     {"messages": [HumanMessage(content="whats the weather in sf?")]}
 ):
     logger.newline()
     logger.success(format_json(chunk))
-    print("----")
+    logger.gray("----")
 
 """
 ## Streaming tokens
@@ -308,7 +354,7 @@ This `.astream_events` method only works with Python 3.11 or higher.
 """
 
 logger.newline()
-logger.info("Query 4 stream response:")
+logger.info("Query 2 react agent stream response:")
 
 
 async def run_inline():
@@ -359,6 +405,7 @@ asyncio.run(run_inline())
 As mentioned earlier, this agent is stateless. This means it does not remember previous interactions. To give it memory we need to pass in a checkpointer. When passing in a checkpointer, we also have to pass in a `thread_id` when invoking the agent (so it knows which thread/conversation to resume from).
 """
 
+logger.info("Examples 5")
 
 memory = MemorySaver()
 
@@ -367,21 +414,21 @@ agent_executor = create_react_agent(model, tools, checkpointer=memory)
 config = {"configurable": {"thread_id": "abc123"}}
 
 logger.newline()
-logger.info("Query 5 stream response:")
+logger.info("Query 1 stream response:")
 for chunk in agent_executor.stream(
     {"messages": [HumanMessage(content="hi im bob!")]}, config
 ):
     logger.newline()
     logger.success(format_json(chunk))
-    print("----")
+    logger.gray("----")
 
-logger.info("Query 6 stream response:")
+logger.info("Query 2 stream response:")
 for chunk in agent_executor.stream(
     {"messages": [HumanMessage(content="whats my name?")]}, config
 ):
     logger.newline()
     logger.success(format_json(chunk))
-    print("----")
+    logger.gray("----")
 
 """
 Example [LangSmith trace](https://smith.langchain.com/public/fa73960b-0f7d-4910-b73d-757a12f33b2b/r)
@@ -391,15 +438,17 @@ Example [LangSmith trace](https://smith.langchain.com/public/fa73960b-0f7d-4910-
 If you want to start a new conversation, all you have to do is change the `thread_id` used
 """
 
+logger.info("Examples 6")
+
 config = {"configurable": {"thread_id": "xyz123"}}
 
-logger.info("Query 7 stream response:")
+logger.info("Query 1 stream response:")
 for chunk in agent_executor.stream(
     {"messages": [HumanMessage(content="whats my name?")]}, config
 ):
     logger.newline()
     logger.success(format_json(chunk))
-    print("----")
+    logger.gray("----")
 
 """
 ## Conclusion
