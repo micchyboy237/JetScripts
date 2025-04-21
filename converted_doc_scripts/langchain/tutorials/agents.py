@@ -1,9 +1,14 @@
-from jet.features.search_and_chat import compare_html_query_scores, search_and_filter_data
+from jet.code.splitter_markdown_utils import get_md_header_contents
+from jet.features.search_and_chat import compare_html_query_scores
+from jet.file.utils import save_file
 from jet.llm.models import OLLAMA_EMBED_MODELS
 from jet.llm.ollama.constants import OLLAMA_LARGE_EMBED_MODEL
 from jet.llm.query.retrievers import setup_index
+from jet.scrapers.browser.playwright_utils import scrape_multiple_urls, ascrape_multiple_urls
+from jet.scrapers.utils import safe_path_from_url, search_data, validate_headers
 from jet.search.searxng import search_searxng
 from jet.token.token_utils import filter_texts
+from jet.utils.url_utils import normalize_url
 from llama_index.core.retrievers.fusion_retriever import FUSION_MODES
 from llama_index.core.schema import Document as LlamaDocument
 from langchain_core.runnables import RunnableConfig
@@ -24,6 +29,10 @@ from langchain_core.messages import HumanMessage
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
 from jet.logger import CustomLogger
+
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
 
 def setup_logger():
@@ -67,6 +76,52 @@ initialize_ollama_settings()
 
 #     return result['texts']
 
+async def aget_url_html_tuples(urls: list[str], top_n: int = 3, min_header_count: int = 5) -> list[tuple[str, str]]:
+    url_html_tuples = []
+    async for url, html in ascrape_multiple_urls(urls, top_n=top_n, num_parallel=3):
+        if html and validate_headers(html, min_header_count):
+            url_html_tuples.append((url, html))
+            logger.orange(
+                f"Scraped urls count: {len(url_html_tuples)} / {top_n}")
+            if len(url_html_tuples) == top_n:
+                logger.success(
+                    f"Scraped urls ({len(url_html_tuples)}) now match {top_n}")
+                break
+    logger.success(f"Done scraping urls {len(url_html_tuples)}")
+    for url, html in url_html_tuples:
+        sub_dir = os.path.join(OUTPUT_DIR, "searched_html")
+        output_dir_url = safe_path_from_url(url, sub_dir)
+        os.makedirs(output_dir_url, exist_ok=True)
+
+        save_file(html, os.path.join(output_dir_url, "doc.html"))
+        save_file("\n\n".join([header["content"] for header in get_md_header_contents(
+            html)]), os.path.join(output_dir_url, "doc.md"))
+    return url_html_tuples
+
+
+def get_url_html_tuples(urls: list[str], top_n: int = 3, min_header_count: int = 5) -> list[tuple[str, str]]:
+    url_html_tuples = []
+    for url, html in scrape_multiple_urls(urls, top_n=top_n, num_parallel=3):
+        if html and validate_headers(html, min_header_count):
+            url_html_tuples.append((url, html))
+            logger.orange(
+                f"Scraped urls count: {len(url_html_tuples)} / {top_n}")
+            if len(url_html_tuples) == top_n:
+                logger.success(
+                    f"Scraped urls ({len(url_html_tuples)}) now match {top_n}")
+                break
+    logger.success(f"Done scraping urls {len(url_html_tuples)}")
+    for url, html in url_html_tuples:
+        sub_dir = os.path.join(OUTPUT_DIR, "searched_html")
+        output_dir_url = safe_path_from_url(url, sub_dir)
+        os.makedirs(output_dir_url, exist_ok=True)
+
+        save_file(html, os.path.join(output_dir_url, "doc.html"))
+        save_file("\n\n".join([header["content"] for header in get_md_header_contents(
+            html)]), os.path.join(output_dir_url, "doc.md"))
+    return url_html_tuples
+
+
 @tool
 def search(query: str, config: RunnableConfig) -> list[str]:
     """
@@ -74,24 +129,42 @@ def search(query: str, config: RunnableConfig) -> list[str]:
     Useful for when you need to answer questions about current events.
     Input should be a search query.
     """
+    logger.info(f"Starting search for query: {query}")
 
     embed_models: list[OLLAMA_EMBED_MODELS] = [
         "all-minilm:33m", "paraphrase-multilingual"]
 
-    search_rerank_result = asyncio.run(search_and_filter_data(query))
-    search_results = search_rerank_result["search_results"]
-    url_html_tuples = search_rerank_result["url_html_tuples"]
+    try:
+        # Search urls
+        logger.debug("Calling search_data")
+        search_results = search_data(query)
+        logger.debug(f"Search results: {len(search_results)}")
 
-    comparison_results = compare_html_query_scores(
-        query, url_html_tuples, embed_models)
+        logger.debug("Running get_url_html_tuples")
+        urls = [normalize_url(item["url"]) for item in search_results]
+        # url_html_tuples = asyncio.run(aget_url_html_tuples(urls))
+        url_html_tuples = get_url_html_tuples(urls)
+        logger.success(
+            f"Done scraping urls {len(url_html_tuples)} for query: {query}")
 
-    top_urls = comparison_results["top_urls"]
-    top_query_scores = comparison_results["top_query_scores"]
-    top_texts = [result["text"] for result in top_query_scores]
-    filtered_top_texts: list[str] = filter_texts(
-        top_texts, model="llama3.1", max_tokens=1000)
+        logger.debug(
+            f"Retrieved {len(search_results)} search results and {len(url_html_tuples)} URL-HTML tuples")
 
-    return filtered_top_texts
+        comparison_results = compare_html_query_scores(
+            query, url_html_tuples, embed_models)
+
+        top_urls = comparison_results["top_urls"]
+        top_query_scores = comparison_results["top_query_scores"]
+        top_texts = [result["text"] for result in top_query_scores]
+        filtered_top_texts: list[str] = filter_texts(
+            top_texts, model="llama3.1", max_tokens=1000)
+
+        logger.info(f"Returning {len(filtered_top_texts)} filtered texts")
+        return filtered_top_texts
+
+    except Exception as e:
+        logger.error(f"Error in search function: {str(e)}", exc_info=True)
+        raise
 
 
 """
