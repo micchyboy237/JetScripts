@@ -1,4 +1,4 @@
-from jet.logger import logger
+from jet.logger import CustomLogger
 from jet.llm.ollama.base import initialize_ollama_settings
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import StateGraph, END
@@ -13,6 +13,12 @@ import os
 import types
 import inspect
 import sys
+
+    
+script_dir = os.path.dirname(os.path.abspath(__file__))
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+logger = CustomLogger(log_file, overwrite=True)
+logger.info(f"Logs: {log_file}")
 
 initialize_ollama_settings()
 
@@ -173,6 +179,9 @@ Install dependencies and import libraries.
 # !pip install chromadb
 
 
+
+
+
 """
 ## Clients
 Import API keys and instantiate clients.
@@ -189,7 +198,6 @@ collection = chroma_client.create_collection(name='bug-reports')
 We'll define the state that our agent will maintain throughout its operation.
 """
 
-
 class State(BaseModel):
     function: Callable
     function_string: str
@@ -201,12 +209,10 @@ class State(BaseModel):
     memory_search_results: list = []
     memory_ids_to_update: list = []
 
-
 """
 ## Define Code Healing Node Functions
 Now we'll define the code healing node functions that our agent will use: code_execution_node, code_update_node and code_patching_node.
 """
-
 
 def code_execution_node(state: State):
     ''' Run Arbitrary Code '''
@@ -229,7 +235,7 @@ def code_update_node(state: State):
     prompt = ChatPromptTemplate.from_template(
         'You are tasked with fixing a Python function that raised an error.'
         'Function: {function_string}'
-        'Error: {error_description}'
+        'Error: {error_description}' 
         'You must provide a fix for the present error only.'
         'The bug fix should handle the thrown error case gracefully by returning an error message.'
         'Do not raise an error in your bug fix.'
@@ -237,8 +243,7 @@ def code_update_node(state: State):
         'Your response must contain only the function definition with no additional text.'
         'Your response must not contain any additional formatting, such as code delimiters or language declarations.'
     )
-    message = HumanMessage(content=prompt.format(
-        function_string=state.function_string, error_description=state.error_description))
+    message = HumanMessage(content=prompt.format(function_string=state.function_string, error_description=state.error_description))
     new_function_string = llm.invoke([message]).content.strip()
 
     logger.debug('\n🐛 Buggy Function')
@@ -247,7 +252,7 @@ def code_update_node(state: State):
     logger.debug('\n🩹 Proposed Bug Fix')
     logger.debug('-------------------\n')
     logger.debug(new_function_string)
-
+    
     state.new_function_string = new_function_string
     return state
 
@@ -258,22 +263,22 @@ def code_patching_node(state: State):
         logger.debug('\n*******************')
         logger.debug('\n❤️‍🩹 Patching code...')
         new_code = state.new_function_string
-
+        
         namespace = {}
-
+        
         exec(new_code, namespace)
-
+        
         func_name = state.function.__name__
-
+        
         new_function = namespace[func_name]
-
+        
         state.function = new_function
         state.error = False
 
         result = state.function(*state.arguments)
 
         logger.debug('...patch complete 😬\n')
-
+                
     except Exception as e:
         logger.debug(f'...patch failed: {e}')
         logger.debug(f'Error details: {str(e)}')
@@ -281,12 +286,10 @@ def code_patching_node(state: State):
     logger.debug('******************\n')
     return state
 
-
 """
 ## Define Bug Reporting Node Functions
 Now we'll define the bug reporting node functions that our agent will use: bug_report_node, memory_search_node, memory_generation_node and memory_modification_node.
 """
-
 
 def bug_report_node(state: State):
     ''' Generate Bug Report '''
@@ -296,8 +299,7 @@ def bug_report_node(state: State):
         'Error: {error_description}'
         'Your response must be a comprehensive string including only crucial information on the bug report'
     )
-    message = HumanMessage(content=prompt.format(
-        function_string=state.function_string, error_description=state.error_description))
+    message = HumanMessage(content=prompt.format(function_string=state.function_string, error_description=state.error_description))
     bug_report = llm.invoke([message]).content.strip()
 
     logger.debug('\n📝 Generating Bug Report')
@@ -316,11 +318,11 @@ def memory_search_node(state: State):
         'Your response must be a concise string including only crucial information on the bug report for future reference.'
         'Format: # function_name ## error_description ### error_analysis'
     )
-
+    
     message = HumanMessage(content=prompt.format(
         bug_report=state.bug_report,
     ))
-
+    
     response = llm.invoke([message]).content.strip()
 
     results = collection.query(query_texts=[response])
@@ -329,11 +331,10 @@ def memory_search_node(state: State):
     if results['ids'][0]:
         logger.debug(f'...{len(results["ids"][0])} found.\n')
         logger.debug(results)
-        state.memory_search_results = [{'id': results['ids'][0][index], 'memory': results['documents'][0]
-                                        [index], 'distance': results['distances'][0][index]} for index, id in enumerate(results['ids'][0])]
+        state.memory_search_results = [{'id':results['ids'][0][index], 'memory':results['documents'][0][index], 'distance':results['distances'][0][index]} for index, id in enumerate(results['ids'][0])]
     else:
         logger.debug('...none found.\n')
-
+            
     return state
 
 
@@ -342,12 +343,12 @@ def memory_filter_node(state: State):
     for memory in state.memory_search_results:
         if memory['distance'] < 0.3:
             state.memory_ids_to_update.append(memory['id'])
-
+        
     if state.memory_ids_to_update:
         logger.debug(f'...{len(state.memory_ids_to_update)} selected.\n')
     else:
         logger.debug('...none selected.\n')
-
+            
     return state
 
 
@@ -359,11 +360,11 @@ def memory_generation_node(state: State):
         'Your response must be a concise string including only crucial information on the bug report for future reference.'
         'Format: # function_name ## error_description ### error_analysis'
     )
-
+    
     message = HumanMessage(content=prompt.format(
         bug_report=state.bug_report,
     ))
-
+    
     response = llm.invoke([message]).content.strip()
 
     logger.debug('\n💾 Saving Bug Report to Memory')
@@ -374,7 +375,7 @@ def memory_generation_node(state: State):
     collection.add(
         ids=[id],
         documents=[response],
-    )
+    )        
     return state
 
 
@@ -395,36 +396,33 @@ def memory_modification_node(state: State):
         bug_report=state.bug_report,
         memory_to_update=memory_to_update,
     ))
-
+    
     response = llm.invoke([message]).content.strip()
-
+    
     logger.debug('\nCurrent Bug Report')
     logger.debug('------------------\n')
     logger.debug(memory_to_update)
     logger.debug('\nWill be Replaced With')
     logger.debug('---------------------\n')
     logger.debug(response)
-
+    
     collection.update(
         ids=[memory_to_update_id],
         documents=[response],
     )
-
+        
     return state
-
 
 """
 ## Define Edge Functions
 Now we'll define the conditional edge function that our agent will use to control the workflow.
 """
 
-
 def error_router(state: State):
     if state.error:
         return 'bug_report_node'
     else:
         return END
-
 
 def memory_filter_router(state: State):
     if state.memory_search_results:
@@ -445,7 +443,6 @@ def memory_update_router(state: State):
         return 'memory_modification_node'
     else:
         return 'code_update_node'
-
 
 """
 ## Build Workflow
@@ -482,7 +479,6 @@ graph = builder.compile()
 Define the function that runs the instanciates the workflow and its state.
 """
 
-
 def execute_self_healing_code_system(function, arguments):
 
     state = State(
@@ -491,51 +487,46 @@ def execute_self_healing_code_system(function, arguments):
         function_string=inspect.getsource(function),
         arguments=arguments,
     )
-
+    
     return graph.invoke(state)
-
 
 """
 # Run Program
 Instanciate the main function and observe outputs.
 """
 
-
 def process_list(lst, index):
     return lst[index] * 2
-
 
 def parse_date(date_string):
     year, month, day = date_string.split('-')
     return {'year': int(year), 'month': int(month), 'day': int(day)}
 
-
 def divide_two_numbers(a, b):
     return a/b
-
 
 logger.debug("*******************************")
 logger.debug("*******************************")
 logger.debug("** Testing Division Function **")
 logger.debug("*******************************")
 logger.debug("*******************************")
-execute_self_healing_code_system(divide_two_numbers, [10, 0])
-execute_self_healing_code_system(divide_two_numbers, ['a', 0])
+execute_self_healing_code_system(divide_two_numbers, [10, 0]);
+execute_self_healing_code_system(divide_two_numbers, ['a', 0]);
 
 logger.debug("**************************************")
 logger.debug("**************************************")
 logger.debug("** Testing List Processing Function **")
 logger.debug("**************************************")
 logger.debug("**************************************")
-execute_self_healing_code_system(process_list, [[1, 2, 3], 5])
-execute_self_healing_code_system(process_list, [None, 1])
+execute_self_healing_code_system(process_list, [[1, 2, 3], 5]);
+execute_self_healing_code_system(process_list, [None, 1]);
 
 logger.debug("***********************************")
 logger.debug("***********************************")
 logger.debug("** Testing Date Parsing Function **")
 logger.debug("***********************************")
 logger.debug("***********************************")
-execute_self_healing_code_system(parse_date, ["2024/01/01"])
-execute_self_healing_code_system(parse_date, ["abc-def-ghi"])
+execute_self_healing_code_system(parse_date, ["2024/01/01"]);
+execute_self_healing_code_system(parse_date, ["abc-def-ghi"]);
 
 logger.info("\n\n[DONE]", bright=True)

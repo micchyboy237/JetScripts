@@ -6,6 +6,7 @@ import codecs
 import json
 import shutil
 from typing import Literal, Optional
+from jet.code.python_code_extractor import remove_comments
 from jet.code.rst_code_extractor import rst_to_code_blocks
 from jet.logger import logger
 from jet.utils.file import search_files
@@ -713,8 +714,13 @@ if __name__ == "__main__":
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/self_healing_code.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain/docs/docs/how_to/chatbots_memory.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/self_healing_code.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/simple_conversational_agent.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/simple_conversational_agent-pydanticai.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/langgraph-tutorial.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/project_manager_assistant_agent.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/scientific_paper_agent_langgraph.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/business_meme_generator.ipynb",
     ]
 
     include_files = [
@@ -779,3 +785,8 @@ if __name__ == "__main__":
                     output_dir,
                     colors=["WHITE", "SUCCESS", "WHITE", "BRIGHT_SUCCESS"],
                 )
+
+            # Remove all triple double quoted comments
+            # for item in files:
+            #     if item["code_file"].endswith(".py"):
+            #         remove_comments(item["code_file"])

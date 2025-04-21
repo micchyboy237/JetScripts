@@ -13,9 +13,10 @@ from langchain_core.messages import HumanMessage, RemoveMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, MessagesState, StateGraph
 
-    
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -130,7 +131,8 @@ We'll pass the latest input to the conversation here and let LangGraph keep trac
 """
 
 app.invoke(
-    {"messages": [HumanMessage(content="Translate to French: I love programming.")]},
+    {"messages": [HumanMessage(
+        content="Translate to French: I love programming.")]},
     config={"configurable": {"thread_id": "1"}},
 )
 
@@ -190,7 +192,6 @@ def call_model(state: MessagesState):
 workflow.add_node("model", call_model)
 workflow.add_edge(START, "model")
 
-memory = MemorySaver()
 app = workflow.compile(checkpointer=memory)
 
 """
@@ -237,7 +238,8 @@ def call_model(state: MessagesState):
         "The provided chat history includes a summary of the earlier conversation."
     )
     system_message = SystemMessage(content=system_prompt)
-    message_history = state["messages"][:-1]  # exclude the most recent user input
+    # exclude the most recent user input
+    message_history = state["messages"][:-1]
     if len(message_history) >= 4:
         last_human_message = state["messages"][-1]
         summary_prompt = (
@@ -250,8 +252,10 @@ def call_model(state: MessagesState):
 
         delete_messages = [RemoveMessage(id=m.id) for m in state["messages"]]
         human_message = HumanMessage(content=last_human_message.content)
-        response = model.invoke([system_message, summary_message, human_message])
-        message_updates = [summary_message, human_message, response] + delete_messages
+        response = model.invoke(
+            [system_message, summary_message, human_message])
+        message_updates = [summary_message,
+                           human_message, response] + delete_messages
     else:
         message_updates = model.invoke([system_message] + state["messages"])
 
@@ -261,7 +265,7 @@ def call_model(state: MessagesState):
 workflow.add_node("model", call_model)
 workflow.add_edge(START, "model")
 
-memory = MemorySaver()
+
 app = workflow.compile(checkpointer=memory)
 
 """
