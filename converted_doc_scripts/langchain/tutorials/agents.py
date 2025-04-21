@@ -480,11 +480,11 @@ As mentioned earlier, this agent is stateless. This means it does not remember p
 
 logger.orange("\n----\nExamples 5\n----\n")
 
-memory = MemorySaver()
-
-agent_executor = create_react_agent(model, tools, checkpointer=memory)
-
 config = {"configurable": {"thread_id": "abc123"}}
+model = ChatOllama(model="llama3.1")
+tools = []
+memory = MemorySaver()
+agent_executor = create_react_agent(model, tools, checkpointer=memory)
 
 logger.newline()
 logger.info("Query 1 stream response:")
@@ -514,7 +514,6 @@ If you want to start a new conversation, all you have to do is change the `threa
 logger.orange("\n----\nExamples 6\n----\n")
 
 config = {"configurable": {"thread_id": "xyz123"}}
-
 model = ChatOllama(model="llama3.1")
 tools = []
 memory = MemorySaver()
