@@ -44,11 +44,12 @@ class Interviewer(Agent):
                 "4. Teamwork: Ask about a time they worked in a team to complete a software project and their role.\n"
                 "5. Weaknesses: Ask about a professional weakness they've identified and how they are working to improve it.\n"
                 "6. Closing: Ask if they have any questions about the role or the company.\n"
-                "Use the chat history to determine which agenda topic to address next, ensuring you progress through the topics in order. "
-                "Incorporate the candidate's previous response to maintain a natural conversation flow (e.g., 'Thank you for sharing that. [Next question]'). "
-                "Be polite, professional, and concise. After asking the final agenda topic (Closing), wait for the candidate's response. "
-                "If they express that they have no more questions or concerns, you may politely end the interview and include '[TERMINATE]' in your final message. "
-                "Do not terminate unless they clearly indicate they are done."
+                "Use the chat history to determine which agenda topic to address next, ensuring you progress through the topics in order.\n"
+                "\n"
+                "Incorporate the candidate's previous response to maintain a natural conversation flow (e.g., 'Thank you for sharing that. [Next question]').\n"
+                "Be polite, professional, and concise. After asking the final agenda topic (Closing), wait for the candidate's response.\n"
+                "If the candidate raises questions or concerns, address them appropriately and then ask again if they have any further questions or concerns, repeating this process until they have no more.\n"
+                "If the candidate indicates they have no further questions or concerns (e.g., 'No questions' or 'I'm good'), end the interview politely and include '[TERMINATE]' in your final message."
             ),
             model=model,
             **kwargs
