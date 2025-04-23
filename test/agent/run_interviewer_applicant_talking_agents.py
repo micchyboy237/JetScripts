@@ -1,10 +1,11 @@
 import datetime
 import asyncio
 import os
-from typing import Optional
+from typing import Optional, List
 import threading
 import sys
 from gtts import gTTS
+from pydub import AudioSegment
 from jet.data.utils import generate_unique_hash
 from jet.llm.ollama.base import Ollama
 from jet.logger.logger import CustomLogger
@@ -27,39 +28,43 @@ class AdvancedTTSEngine:
         self.lock = threading.Lock()
         pygame.mixer.init()
         self.temp_files = []  # Track temporary audio files
+        self.combined_files = []  # Track combined audio files
         self.output_dir = output_dir if output_dir else script_dir
         os.makedirs(self.output_dir, exist_ok=True)
         self.cache = {}  # In-memory cache for TTS audio
         self.channel = pygame.mixer.Channel(
             0)  # Dedicated channel for playback
 
-    def _get_audio_filename(self, speaker_name: str, text: str) -> str:
+    def _get_audio_filename(self, speaker_name: str, text: str, prefix: str = "tts") -> str:
         timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')
         safe_text = ''.join(c for c in text[:30] if c.isalnum() or c in (
             ' ', '_')).strip().replace(' ', '_')
         filename = os.path.join(
-            self.output_dir, f"tts_{speaker_name}_{timestamp}_{safe_text}.mp3")
-        self.temp_files.append(filename)
+            self.output_dir, f"{prefix}_{speaker_name}_{timestamp}_{safe_text}.mp3")
+        if prefix == "tts":
+            self.temp_files.append(filename)
+        else:
+            self.combined_files.append(filename)
         return filename
 
-    def speak(self, text: str, speaker_name: str = "Agent"):
+    def speak(self, text: str, speaker_name: str = "Agent") -> Optional[str]:
         with self.lock:
             # Skip empty or whitespace-only text
             if not text.strip():
                 logger.warning(f"Skipping empty TTS text for {speaker_name}")
-                return
+                return None
             # Check cache for existing audio
             cache_key = f"{speaker_name}:{text}"
             if cache_key in self.cache:
                 file_path = self.cache[cache_key]
-                logger.info(f"Using cached audio: {file_path}")
+                # logger.info(f"Using cached audio: {file_path}")
             else:
                 file_path = self._get_audio_filename(speaker_name, text)
                 try:
                     tts = gTTS(text=text, lang='en')
                     tts.save(file_path)
                     self.cache[cache_key] = file_path
-                    logger.success(f"TTS audio saved: {file_path}")
+                    # logger.success(f"TTS audio saved: {file_path}")
                 except Exception as e:
                     logger.error(f"Error in TTS generation: {e}")
                     raise
@@ -67,14 +72,43 @@ class AdvancedTTSEngine:
             try:
                 self.channel.play(pygame.mixer.Sound(
                     file_path))  # Non-blocking playback
+                return file_path
             except Exception as e:
                 logger.error(f"Error in audio playback: {e}")
                 raise
 
-    async def speak_async(self, text: str, speaker_name: str = "Agent"):
+    async def speak_async(self, text: str, speaker_name: str = "Agent") -> Optional[str]:
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, self.speak, text, speaker_name)
+        file_path = await loop.run_in_executor(None, self.speak, text, speaker_name)
         await asyncio.sleep(0.01)  # Minimal delay to yield control
+        return file_path
+
+    def combine_audio_files(self, file_paths: List[str], speaker_name: str, text: str) -> Optional[str]:
+        if not file_paths:
+            logger.warning("No audio files to combine")
+            return None
+        with self.lock:
+            try:
+                # Combine audio files using pydub
+                combined = AudioSegment.empty()
+                for file_path in file_paths:
+                    if os.path.exists(file_path):
+                        audio = AudioSegment.from_mp3(file_path)
+                        combined += audio
+                    else:
+                        logger.warning(f"Audio file not found: {file_path}")
+                if not combined:
+                    logger.warning("No valid audio segments to combine")
+                    return None
+                # Save combined audio
+                output_file = self._get_audio_filename(
+                    speaker_name, text, prefix="combined")
+                combined.export(output_file, format="mp3")
+                logger.success(f"Combined audio saved: {output_file}")
+                return output_file
+            except Exception as e:
+                logger.error(f"Error combining audio files: {e}")
+                return None
 
     def cleanup(self):
         """Remove temporary audio files and clear cache."""
@@ -86,7 +120,17 @@ class AdvancedTTSEngine:
                         logger.info(f"Deleted temp file: {file_path}")
                 except Exception as e:
                     logger.error(f"Error deleting temp file {file_path}: {e}")
+            # Optionally keep combined files; comment out to delete them
+            for file_path in self.combined_files:
+                try:
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+                        logger.info(f"Deleted combined file: {file_path}")
+                except Exception as e:
+                    logger.error(
+                        f"Error deleting combined file {file_path}: {e}")
             self.temp_files.clear()
+            self.combined_files.clear()
             self.cache.clear()
 
 
@@ -104,9 +148,10 @@ class Agent:
     async def generate_response(self, external_message: str) -> str:
         content = ""
         chunk_buffer = ""  # Accumulate chunks until boundary
+        audio_files = []  # Track audio files for this response
         async for chunk in self.ollama.stream_chat(query=external_message):
             content += chunk
-            logger.debug(f"Received chunk: '{chunk}'")
+            # logger.debug(f"Received chunk: '{chunk}'")
 
             # Append chunk to buffer
             chunk_buffer += chunk
@@ -114,7 +159,9 @@ class Agent:
             # Check if buffer ends with space or newline
             if chunk_buffer.endswith((' ', '\n')) and chunk_buffer.strip():
                 # Speak the current batch of chunks
-                await self.tts.speak_async(f"{self.name}: {chunk_buffer}", speaker_name=self.name)
+                file_path = await self.tts.speak_async(f"{self.name}: {chunk_buffer}", speaker_name=self.name)
+                if file_path:
+                    audio_files.append(file_path)
                 logger.info(
                     f"Spoke buffer ending with space/newline: '{chunk_buffer}'")
                 chunk_buffer = ""  # Reset buffer
@@ -123,15 +170,26 @@ class Agent:
                 # Speak the previous batch of chunks (before appending current chunk)
                 prev_buffer = chunk_buffer[:-len(chunk)]
                 if prev_buffer.strip():
-                    await self.tts.speak_async(f"{self.name}: {prev_buffer}", speaker_name=self.name)
-                    logger.info(
-                        f"Spoke buffer before space/newline chunk: '{prev_buffer}'")
+                    file_path = await self.tts.speak_async(f"{self.name}: {prev_buffer}", speaker_name=self.name)
+                    if file_path:
+                        audio_files.append(file_path)
+                    # logger.info(
+                    #     f"Spoke buffer before space/newline chunk: '{prev_buffer}'")
                 chunk_buffer = chunk  # Start new buffer with current chunk
 
         # Speak any remaining buffered chunks
         if chunk_buffer.strip():
-            await self.tts.speak_async(f"{self.name}: {chunk_buffer}", speaker_name=self.name)
+            file_path = await self.tts.speak_async(f"{self.name}: {chunk_buffer}", speaker_name=self.name)
+            if file_path:
+                audio_files.append(file_path)
             logger.info(f"Spoke final buffered chunks: '{chunk_buffer}'")
+
+        # Combine and save audio files for this response
+        if audio_files:
+            combined_file = self.tts.combine_audio_files(
+                audio_files, self.name, content)
+            if combined_file:
+                logger.info(f"Combined audio for response: {combined_file}")
 
         return content
 
