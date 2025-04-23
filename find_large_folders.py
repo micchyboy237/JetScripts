@@ -116,6 +116,8 @@ if __name__ == "__main__":
                         default="")
     parser.add_argument("-l", "--limit", type=int, default=None,
                         help="Maximum number of folder paths to yield.")
+    parser.add_argument("-f", "--output-file", type=str, default=None,
+                        help="Optional path to save results as a JSON file.")
     parser.add_argument("--direction", type=str,
                         choices=["forward", "backward", "both"], default="forward",
                         help="Direction of traversal - 'forward' (default), 'backward', or 'both'.")
@@ -154,13 +156,9 @@ if __name__ == "__main__":
         "results": sorted(results, key=lambda x: x["size"], reverse=True),
     }
 
-    output_dir = "generated/find_large_folders"
-    os.makedirs(output_dir, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    file_name = "deleted-folders" if args.delete else "searched-folders"
-    output_file = f"{output_dir}/{file_name}.json"
+    if args.output_file:
+        save_to_json(formatted_data, args.output_file)
 
-    save_to_json(formatted_data, output_file)
     if args.delete:
         print(f"Total Freed Space: {total_size}")
     else:
