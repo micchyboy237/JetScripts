@@ -146,7 +146,7 @@ class Applicant(Agent):
 
 async def main():
     # Example with custom output directory
-    output_dir = os.path.join(script_dir, "audio_output")
+    output_dir = os.path.join(script_dir, "generated", "audio_output")
     interviewer = Interviewer(output_dir=output_dir)
     applicant = Applicant(output_dir=output_dir)
     try:
