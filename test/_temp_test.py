@@ -152,6 +152,9 @@ async def main() -> None:
     applicant_session_id: str = generate_unique_hash()
     max_turns = 20
 
+    logger.success(f"Interviewer session id:\n{interviewer_session_id}\n")
+    logger.success(f"Applicant session id:\n{applicant_session_id}\n")
+
     # Initialize agents with different session IDs
     interviewer: Interviewer = Interviewer(session_id=interviewer_session_id)
     applicant: Applicant = Applicant(session_id=applicant_session_id)
