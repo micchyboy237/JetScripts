@@ -15,7 +15,7 @@ class Agent:
     def __init__(self, name: str, system_prompt: str, model: str = "llama3.1", session_id: str = "") -> None:
         self.name: str = name
         self.ollama: Ollama = Ollama(
-            model=model, system=system_prompt, session_id=session_id)
+            model=model, system=system_prompt, session_id=session_id, temperature=0.75)
         self.chat_history = self.ollama.chat_history
 
     async def generate_response(self, external_message: str) -> str:
@@ -104,7 +104,7 @@ class Conversation:
             # No messages, dynamically generate Interviewer's first question
             logger.info("Turn 1: Interviewer generating initial prompt")
             response = await self.agent1.generate_response("__START__")
-            logger.debug(f"{self.agent1.name}: {response}\n")
+            logger.debug(f"{self.agent1.name}:\n{response}\n")
         else:
             # Resume from the last message
             response = messages[-1]["content"]
@@ -123,7 +123,7 @@ class Conversation:
             if self.current_turn + 1 >= self.max_turns and self.current_agent == self.agent1:
                 response += " [TERMINATE]"
 
-            logger.debug(f"{self.current_agent.name}: {response}\n")
+            logger.debug(f"{self.current_agent.name}:\n{response}\n")
 
             if self.current_agent == self.agent1 and "[TERMINATE]" in response:
                 logger.info("Interview terminated by Interviewer")
