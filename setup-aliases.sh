@@ -359,7 +359,7 @@ large_folders() {
     # large_folders -b . -s 200 -i "**/*" -e "node_modules,.venv"
 }
 
-git_last_updates() {
+last_updates() {
     local base_dir=""
     local extensions=""
 
@@ -378,7 +378,7 @@ git_last_updates() {
     python /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_notes/python_scripts/git_stats.py "${args[@]}"
 
     # Example:
-    # git_last_updates -b . -e ".py,.md"
+    # last_updates -b . -e ".py,.md"
 }
 
 
@@ -387,5 +387,5 @@ git_last_updates() {
 
 # Check if the 'deps' function is already defined to prevent echo
 # if ! declare -f deps &>/dev/null; then
-echo "Added deps, deps_tree, freeze, size, sizes, setup_venv, freeze_venv, reinstall_venv, force_reinstall_venv, activate_venv, deactivate_venv, reinstall_python functions, pip"
+echo "Added deps, deps_tree, freeze, size, sizes, setup_venv, freeze_venv, reinstall_venv, force_reinstall_venv, activate_venv, deactivate_venv, reinstall_python functions, pip, large_folders, last_updates"
 # fi
