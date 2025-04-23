@@ -1,4 +1,5 @@
 import os
+import shutil
 from pydub import AudioSegment
 from faster_whisper import WhisperModel
 from tqdm import tqdm  # For progress bar
@@ -160,8 +161,9 @@ def transcribe_files(path: str, output_dir: str, *, chunk_duration_ms: int = 300
 
 # Run the script
 if __name__ == "__main__":
-    audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/agent/tts_Interviewer_20250423_231046_181704_Interviewer_Lets_begin_the_i.mp3"
+    audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/agent/generated/audio_output/combined_Liam_20250424_030103_037974_Thank_you_Emma_Im_excited_t.mp3"
     output_dir = os.path.join(os.path.dirname(os.path.abspath(
         __file__)), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    shutil.rmtree(output_dir, ignore_errors=True)
     transcribe_files(audio_file, output_dir, chunk_duration_ms=30000,
                      overlap_ms=1000, remove_audio=False)

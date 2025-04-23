@@ -110,7 +110,6 @@ class AdvancedTTSEngine:
                 logger.success(f"Combined audio saved: {output_file}")
                 logger.info(
                     f"Combining audio took {time.time() - start_time:.2f} seconds")
-                self._cleanup_temp_files()
                 return output_file
             except Exception as e:
                 logger.error(f"Error combining audio files: {e}")
