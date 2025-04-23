@@ -117,16 +117,16 @@ async def main(max_rounds: int = 10):
         question_task = asyncio.create_task(
             interviewer.generate_response("Start the interview."))
         question, combine_task = await question_task
-        logger.info(f"\nTurn 0 - Interviewer:")
+        logger.orange(f"\nTurn 0 - Interviewer:")
         logger.success(question)
         if combine_task:
             tasks.append(combine_task)
 
         for current_round in tqdm(range(max_rounds), desc="Interview Rounds", unit="round"):
-            logger.info(f"\nStarting round {current_round + 1}/{max_rounds}")
+            logger.debug(f"\nStarting round {current_round + 1}/{max_rounds}")
 
             await asyncio.sleep(playback_overlap)
-            logger.info(f"\nTurn {current_round + 1} - Applicant:")
+            logger.orange(f"\nTurn {current_round + 1} - Applicant:")
             applicant_task = asyncio.create_task(
                 applicant.generate_response(question))
             response, combine_task = await applicant_task
@@ -135,7 +135,7 @@ async def main(max_rounds: int = 10):
                 tasks.append(combine_task)
 
             await asyncio.sleep(playback_overlap)
-            logger.info(f"\nTurn {current_round + 1} - Interviewer:")
+            logger.orange(f"\nTurn {current_round + 1} - Interviewer:")
             question_task = asyncio.create_task(
                 interviewer.generate_response(response))
             question, combine_task = await question_task
