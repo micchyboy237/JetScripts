@@ -336,6 +336,12 @@ large_folders() {
     local min_size=""
     local includes=""
     local excludes=""
+    local max_depth=""
+    local limit=""
+    local output_file=""
+    local max_backward_depth=""
+    local delete=false
+    local direction=""
 
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -343,6 +349,12 @@ large_folders() {
             -s) min_size="$2"; shift 2;;
             -i) includes="$2"; shift 2;;
             -e) excludes="$2"; shift 2;;
+            -d) max_depth="$2"; shift 2;;
+            -l) limit="$2"; shift 2;;
+            -f) output_file="$2"; shift 2;;
+            --max-backward-depth) max_backward_depth="$2"; shift 2;;
+            --delete) delete=true; shift;;
+            --direction) direction="$2"; shift 2;;
             *) shift;;
         esac
     done
@@ -352,11 +364,17 @@ large_folders() {
     [[ -n "$min_size" ]] && args+=("-s" "$min_size")
     [[ -n "$includes" ]] && args+=("-i" "$includes")
     [[ -n "$excludes" ]] && args+=("-e" "$excludes")
+    [[ -n "$max_depth" ]] && args+=("-d" "$max_depth")
+    [[ -n "$limit" ]] && args+=("-l" "$limit")
+    [[ -n "$output_file" ]] && args+=("-f" "$output_file")
+    [[ -n "$max_backward_depth" ]] && args+=(--max-backward-depth "$max_backward_depth")
+    [[ "$delete" == true ]] && args+=(--delete)
+    [[ -n "$direction" ]] && args+=(--direction "$direction")
 
     python /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/find_large_folders.py "${args[@]}"
 
     # Example:
-    # large_folders -b . -s 200 -i "**/*" -e "node_modules,.venv"
+    # large_folders -b . -s 200 -i "**/*" -e "node_modules,.venv" -d 2 -l 10 -f "out.json" --delete --direction forward --max-backward-depth 3
 }
 
 last_updates() {

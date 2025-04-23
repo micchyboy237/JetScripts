@@ -6,8 +6,17 @@ import argparse
 from datetime import datetime
 import fnmatch
 from jet.file import traverse_directory
+from jet.file.utils import save_file
 from jet.logger import logger
 from jet.transformers.object import make_serializable
+
+"""
+# Commands
+python find_large_folders.py -s 100 -i "aim,.aim"
+python find_large_folders.py -s 0 -i "<folder>/bin/activate"
+python find_large_folders.py -s 0 -i "<folder>/bin/activate" -b "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts"
+python find_large_folders.py -s 100 -b "/path/to/base/dir" -i "<folder>/node_modules" -e "node_modules/**"
+"""
 
 
 def match_patterns(file_path: str, patterns: List[str]) -> bool:
@@ -34,35 +43,35 @@ def get_folder_sizes(folder_path):
     return total_size / (1000 * 1000)  # Convert to MB
 
 
-def find_large_folders(base_dir, includes, excludes, min_size_mb, delete_folders=False, depth=3, **kwargs):
+def find_large_folders(base_dir, includes, excludes, min_size_mb, delete_folders=False, depth: Optional[int] = 2, **kwargs) -> Generator[dict, None, List[dict]]:
     """
-    Find folders matching the criteria and optionally delete them.
+    Find folders matching the criteria and optionally delete them, yielding each match.
     Accepts additional parameters through **kwargs and passes them to traverse_directory.
+    Returns a generator that yields dicts and finally returns the complete results list.
     """
-    matched_folders = []
+    results = []
 
     depth = kwargs.pop(
         "max_forward_depth") if "max_forward_depth" in kwargs else depth
+    output_file = kwargs.pop("output_file", os.path.join(
+        base_dir, "_large_folders.json"))
 
     # Pass **kwargs here
     for folder, current_depth in traverse_directory(base_dir, includes, excludes, max_forward_depth=depth, **kwargs):
         folder_size = get_folder_sizes(folder)
         if folder_size >= min_size_mb:
-            logger.success(f"Folder ({current_depth}): {
-                           folder} | Size: {folder_size:.2f} MB")
-            matched_folders.append({"file": folder, "size": folder_size})
+            logger.success(
+                f"Folder ({current_depth}): {folder} | Size: {folder_size:.2f} MB")
+            folder_data = {"size": folder_size, "file": folder}
+            results.append(folder_data)
+
+            yield folder_data
+
             if delete_folders:
                 logger.warning(f"Deleting folder: {folder}")
                 shutil.rmtree(folder)
 
-    return matched_folders
-
-
-def save_to_json(data, output_file: str):
-    with open(output_file, "w") as f:
-        json.dump(data, f, indent=4)
-
-    print(f"Results saved to '{output_file}'")
+    return results
 
 
 def format_size(size_mb):
@@ -87,7 +96,6 @@ def get_command() -> str:
         try:
             arg_val = int(arg)
         except (TypeError, ValueError) as e:
-            logger.error(e)
             if not (isinstance(arg, str) and arg.startswith("-")):
                 arg_val = f'"{arg}"'
         transformed_args.append(str(arg_val))
@@ -105,26 +113,26 @@ if __name__ == "__main__":
     )
     parser.add_argument("-s", "--min-size", type=int, default=100,
                         help="Minimum size (MB) to consider a folder large.")
-    parser.add_argument("-d", "--delete", action="store_true",
-                        help="Enable deletion of matched folders.",
-                        default=False)
+    parser.add_argument("-d", "--max-depth", type=int, default=1,
+                        help="Maximum depth to traverse forward. Defaults to 1. Set to 0 for infinite.")
     parser.add_argument("-i", "--includes", type=str,
-                        help="Comma-separated list of patterns to include (e.g., '**/*,**/.git'). Defaults to all files.",
-                        default="**/*")
+                        help="Comma-separated list of patterns to include (e.g., '**/*,**/.git'). Defaults to (**/*,**/.git,**/.venv/**/site_packages) files.",
+                        default="**/*,**/.git,**/.venv/**/site_packages")
     parser.add_argument("-e", "--excludes", type=str,
-                        help="Comma-separated list of patterns to exclude (e.g., 'node_modules,.venv,*.env').",
-                        default="")
+                        help="Comma-separated list of patterns to exclude. Defaults to (node_modules,*.env).",
+                        default="node_modules,*.env")
     parser.add_argument("-l", "--limit", type=int, default=None,
                         help="Maximum number of folder paths to yield.")
     parser.add_argument("-f", "--output-file", type=str, default=None,
                         help="Optional path to save results as a JSON file.")
+    parser.add_argument("--max-backward-depth", type=int, default=None,
+                        help="Maximum depth to traverse upwards (for 'backward' or 'both').")
+    parser.add_argument("--delete", action="store_true",
+                        help="Enable deletion of matched folders.",
+                        default=False)
     parser.add_argument("--direction", type=str,
                         choices=["forward", "backward", "both"], default="forward",
                         help="Direction of traversal - 'forward' (default), 'backward', or 'both'.")
-    parser.add_argument("--max-depth", type=int, default=3,
-                        help="Maximum depth to traverse forward.")
-    parser.add_argument("--max-backward-depth", type=int, default=None,
-                        help="Maximum depth to traverse upwards (for 'backward' or 'both').")
 
     args = parser.parse_args()
     command = get_command()
@@ -132,40 +140,31 @@ if __name__ == "__main__":
 
     includes = [item for item in args.includes.split(",") if item]
     excludes = [item for item in args.excludes.split(",") if item]
+    depth = None if args.max_depth == 0 else args.max_depth
 
-    # Pass new arguments to the find_large_folders function using **kwargs
-    results = find_large_folders(
+    output_file = args.output_file or os.path.join(
+        args.base_dir, "_large_folders.json")
+
+    # Process generator output
+    results = []
+    generator = find_large_folders(
         args.base_dir, includes, excludes, args.min_size, args.delete,
-        limit=args.limit, direction=args.direction, depth=args.max_depth, max_backward_depth=args.max_backward_depth)
+        limit=args.limit, direction=args.direction, depth=depth,
+        max_backward_depth=args.max_backward_depth, output_file=output_file
+    )
+
+    logger.info(f"Output file: {output_file}")
+
+    for folder_data in generator:
+        results.append(folder_data)
+        results.sort(key=lambda x: x["size"], reverse=True)
+        save_file(results, output_file, verbose=False)
+    save_file(results, output_file)
 
     total_size = calculate_total_size(results)
     total_size = format_size(total_size)
-
-    formatted_data = {
-        "date": datetime.now().strftime("%b %d, %Y | %I:%M %p"),
-        "command": command,
-        "base_dir": args.base_dir,
-        "includes": includes,
-        "excludes": excludes,
-        "count": len(results),
-        "total_size": total_size,
-        "deleted": args.delete,
-        "limit": args.limit,
-        "min_size": args.min_size,
-        "max_depth": args.max_depth,
-        "results": sorted(results, key=lambda x: x["size"], reverse=True),
-    }
-
-    if args.output_file:
-        save_to_json(formatted_data, args.output_file)
 
     if args.delete:
         print(f"Total Freed Space: {total_size}")
     else:
         print(f"Total Size: {total_size}")
-
-# Commands
-# python find_large_folders.py -s 100 -i "aim,.aim"
-# python find_large_folders.py -s 0 -i "<folder>/bin/activate"
-# python find_large_folders.py -s 0 -i "<folder>/bin/activate" -b "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts"
-# python find_large_folders.py -s 100 -b "/path/to/base/dir" -i "<folder>/node_modules" -e "node_modules/**"
