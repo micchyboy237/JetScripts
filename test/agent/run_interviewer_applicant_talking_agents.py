@@ -191,7 +191,7 @@ class Agent:
                 combined_file = await self.tts.combine_audio_files_async(audio_files, self.name, content)
                 if combined_file:
                     logger.info("Scheduling background transcription")
-                    await transcribe_file_async(combined_file, self.output_dir, chunk_duration_ms=30000, overlap_ms=1000, remove_audio=False)
+                    await transcribe_file_async(combined_file, self.output_dir)
 
             asyncio.create_task(combine_and_transcribe())
 
