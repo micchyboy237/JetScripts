@@ -5,8 +5,9 @@ from typing import Optional
 from jet.data.utils import generate_unique_hash
 from jet.llm.ollama.base import Ollama
 from jet.logger.logger import CustomLogger
-import pyttsx3
-from threading import Thread
+from gtts import gTTS
+import pygame
+import threading
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(
@@ -15,14 +16,10 @@ logger = CustomLogger(log_file, overwrite=True)
 
 
 class TTSEngine:
-    def __init__(self, voice_id: str = None, rate: int = 200):
-        self.engine = pyttsx3.init()
-        self.engine.setProperty('rate', rate)
-        if voice_id:
-            self.engine.setProperty('voice', voice_id)
-        else:
-            voices = self.engine.getProperty('voices')
-            self.engine.setProperty('voice', voices[0].id)
+    def __init__(self, rate: int = 200):
+        self.rate = rate  # Kept for compatibility; gTTS doesn't directly support rate
+        self.lock = threading.Lock()  # Ensure thread-safe audio generation and playback
+        pygame.mixer.init()  # Initialize pygame mixer for audio playback
 
     def _get_audio_filename(self, speaker_name: str, text: str) -> str:
         """Generate a unique filename using timestamp and a hash."""
@@ -32,28 +29,40 @@ class TTSEngine:
         return os.path.join(script_dir, f"tts_{speaker_name}_{timestamp}_{safe_text}.mp3")
 
     def speak(self, text: str, speaker_name: str = "Agent"):
-        """Speak the text and save to audio file."""
-        file_path = self._get_audio_filename(speaker_name, text)
-        self.engine.save_to_file(text, file_path)
-        self.engine.say(text)
-        self.engine.runAndWait()  # Single call to runAndWait
-        logger.success(f"TTS audio saved: {file_path}")
+        """Generate and play audio using gTTS, then save to file."""
+        with self.lock:  # Ensure only one thread generates/plays audio at a time
+            file_path = self._get_audio_filename(speaker_name, text)
+            try:
+                # Generate audio with gTTS
+                tts = gTTS(text=text, lang='en')
+                tts.save(file_path)
+
+                # Play audio with pygame
+                pygame.mixer.music.load(file_path)
+                pygame.mixer.music.play()
+                while pygame.mixer.music.get_busy():  # Wait for playback to finish
+                    pygame.time.Clock().tick(10)
+
+                logger.success(f"TTS audio saved: {file_path}")
+            except Exception as e:
+                logger.error(f"Error in TTS generation/playback: {e}")
+                raise
 
     async def speak_async(self, text: str, speaker_name: str = "Agent"):
-        """Async wrapper."""
+        """Async wrapper for speak method."""
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self.speak, text, speaker_name)
+        await asyncio.sleep(0.1)  # Small delay to ensure smooth transitions
 
 
 class Agent:
-    def __init__(self, name: str, system_prompt: str, model: str = "llama3.1", session_id: str = "", tts_voice: str = None) -> None:
+    def __init__(self, name: str, system_prompt: str, model: str = "llama3.1", session_id: str = "") -> None:
         self.name: str = name
         self.ollama: Ollama = Ollama(
             model=model, system=system_prompt, session_id=session_id, temperature=0.3)
         self.chat_history = self.ollama.chat_history
-        # Initialize TTS engine with a specific voice
-        self.tts = TTSEngine(voice_id=tts_voice,
-                             rate=200 if name == "Interviewer" else 180)
+        # Initialize TTS engine (no voice_id needed for gTTS)
+        self.tts = TTSEngine(rate=200 if name == "Interviewer" else 180)
 
     async def generate_response(self, external_message: str) -> str:
         content = ""
@@ -68,7 +77,7 @@ class Agent:
 
 
 class Interviewer(Agent):
-    def __init__(self, model: str = "llama3.1", tts_voice: str = None, **kwargs) -> None:
+    def __init__(self, model: str = "llama3.1", **kwargs) -> None:
         super().__init__(
             name="Interviewer",
             system_prompt=(
@@ -89,13 +98,12 @@ class Interviewer(Agent):
                 "If the candidate indicates they have no further questions or concerns (e.g., 'No questions' or 'I'm good'), end the interview politely and include '[TERMINATE]' in your final message."
             ),
             model=model,
-            tts_voice=tts_voice,
             **kwargs
         )
 
 
 class Applicant(Agent):
-    def __init__(self, model: str = "llama3.1", tts_voice: str = None, **kwargs) -> None:
+    def __init__(self, model: str = "llama3.1", **kwargs) -> None:
         super().__init__(
             name="Applicant",
             system_prompt=(
@@ -105,7 +113,6 @@ class Applicant(Agent):
                 "If asked about weaknesses, be honest but frame them positively."
             ),
             model=model,
-            tts_voice=tts_voice,
             **kwargs
         )
 
@@ -183,23 +190,15 @@ async def main() -> None:
     logger.success(f"Interviewer session id:\n{interviewer_session_id}\n")
     logger.success(f"Applicant session id:\n{applicant_session_id}\n")
 
-    # Get available voices for macOS
-    engine = pyttsx3.init()
-    voices = engine.getProperty('voices')
-    # Select distinct voices (e.g., first two available voices)
-    interviewer_voice = voices[0].id if len(voices) > 0 else None
-    applicant_voice = voices[1].id if len(voices) > 1 else None
-
-    # Initialize agents with different session IDs and voices
-    interviewer: Interviewer = Interviewer(
-        session_id=interviewer_session_id, tts_voice=interviewer_voice)
-    applicant: Applicant = Applicant(
-        session_id=applicant_session_id, tts_voice=applicant_voice)
+    # Initialize agents with different session IDs (no voice IDs needed for gTTS)
+    interviewer: Interviewer = Interviewer(session_id=interviewer_session_id)
+    applicant: Applicant = Applicant(session_id=applicant_session_id)
 
     # Create and run conversation
     conversation: Conversation = Conversation(
         interviewer, applicant, max_turns=max_turns)
     await conversation.run()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
