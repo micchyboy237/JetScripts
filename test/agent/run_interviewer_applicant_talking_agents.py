@@ -107,7 +107,7 @@ class Applicant(Agent):
                          model=model, output_dir=output_dir, **kwargs)
 
 
-async def main(max_rounds: int = 10):
+async def run_conversation(max_rounds: int = 10):
     output_dir = os.path.join(script_dir, "generated", "audio_output")
     interviewer = Interviewer(output_dir=output_dir)
     applicant = Applicant(output_dir=output_dir)
@@ -143,4 +143,4 @@ async def main(max_rounds: int = 10):
         applicant.cleanup()
 
 if __name__ == "__main__":
-    asyncio.run(main(max_rounds=3))
+    asyncio.run(run_conversation())
