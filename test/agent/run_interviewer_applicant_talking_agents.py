@@ -163,18 +163,18 @@ class Agent:
                 for sentence in sentences[:-1]:
                     clean_sentence = sentence.strip()
                     if clean_sentence:
+                        # Speak buffered sentence
                         file_path = await self.tts.speak_async(f"{self.name}: {clean_sentence}", speaker_name=self.name)
                         if file_path:
                             audio_files.append(file_path)
-                        logger.info(f"[SPOKE] {clean_sentence}")
                 buffer = sentences[-1]
 
         final_sentence = buffer.strip()
         if final_sentence:
+            # Speak final buffered sentence
             file_path = await self.tts.speak_async(f"{self.name}: {final_sentence}", speaker_name=self.name)
             if file_path:
                 audio_files.append(file_path)
-            logger.info(f"Spoke final buffered sentence: '{final_sentence}'")
 
         if audio_files and len(audio_files) > 1:
             combined_file = await self.tts.combine_audio_files_async(audio_files, self.name, content)
