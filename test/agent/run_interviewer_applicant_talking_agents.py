@@ -5,6 +5,7 @@ from typing import Optional, List
 import threading
 import sys
 from gtts import gTTS
+from jet.wordnet.sentence import split_sentences
 from pydub import AudioSegment
 from jet.data.utils import generate_unique_hash
 from jet.llm.ollama.base import Ollama
@@ -157,39 +158,37 @@ class Agent:
 
     async def generate_response(self, external_message: str) -> str:
         content = ""
-        chunk_buffer = ""
+        buffer = ""
         audio_files = []
 
         async for chunk in self.ollama.stream_chat(query=external_message):
             content += chunk
-            # logger.debug(f"Received chunk: '{chunk}'")
-            chunk_buffer += chunk
+            buffer += chunk
 
-            # Check if latest chunk ends with sentence-ending punctuation
-            if (chunk.endswith(('.', '?', '!')) and chunk_buffer.strip()):
-                file_path = await self.tts.speak_async(f"{self.name}: {chunk_buffer}", speaker_name=self.name)
-                if file_path:
-                    audio_files.append(file_path)
-                # logger.orange(f"[PUNC] Spoke: '{chunk_buffer}'")
-                chunk_buffer = ""
-            # Check if chunk starts with space or newline
-            elif chunk.startswith((' ', '\n')) and chunk_buffer.strip():
-                prev_buffer = chunk_buffer[:-len(chunk)]
-                if prev_buffer.strip():
-                    file_path = await self.tts.speak_async(f"{self.name}: {prev_buffer}", speaker_name=self.name)
-                    if file_path:
-                        audio_files.append(file_path)
-                    # logger.orange(f"Spoke: '{prev_buffer}'")
-                chunk_buffer = chunk
+            sentences = split_sentences(buffer)
 
-        # Handle remaining buffer
-        if chunk_buffer.strip():
-            file_path = await self.tts.speak_async(f"{self.name}: {chunk_buffer}", speaker_name=self.name)
+            # Only speak completed sentences (all but the last one, which may be incomplete)
+            if len(sentences) > 1:
+                for sentence in sentences[:-1]:
+                    clean_sentence = sentence.strip()
+                    if clean_sentence:
+                        file_path = await self.tts.speak_async(f"{self.name}: {clean_sentence}", speaker_name=self.name)
+                        if file_path:
+                            audio_files.append(file_path)
+                        logger.info(f"[SPOKE] {clean_sentence}")
+
+                # Keep only the potentially incomplete last sentence in buffer
+                buffer = sentences[-1]
+
+        # Speak any remaining sentence at the end
+        final_sentence = buffer.strip()
+        if final_sentence:
+            file_path = await self.tts.speak_async(f"{self.name}: {final_sentence}", speaker_name=self.name)
             if file_path:
                 audio_files.append(file_path)
-            logger.info(f"Spoke final buffered chunks: '{chunk_buffer}'")
+            logger.info(f"Spoke final buffered sentence: '{final_sentence}'")
 
-        # Combine audio files in background if multiple files exist
+        # Combine audio files if more than one
         if audio_files and len(audio_files) > 1:
             asyncio.create_task(self.tts.combine_audio_files_async(
                 audio_files, self.name, content))
