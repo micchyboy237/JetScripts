@@ -182,7 +182,6 @@ class Agent:
                 if combined_file:
                     logger.info("Scheduling background transcription")
                     await transcribe_file_async(combined_file, self.output_dir, remove_audio=False)
-                self.tts._cleanup_temp_files()
 
             asyncio.create_task(combine_and_transcribe())
 
