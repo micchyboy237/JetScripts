@@ -97,29 +97,27 @@ class Conversation:
 
     async def run(self) -> None:
         """Run the conversation for the specified number of turns."""
-        print("Starting Job Interview Conversation...\n")
+        logger.orange("Starting Job Interview Conversation...\n")
 
         messages = self.agent1.chat_history.get_messages()
         if self.current_turn == 0:
             # No messages, dynamically generate Interviewer's first question
             logger.info("Turn 1: Interviewer generating initial prompt")
             response = await self.agent1.generate_response("__START__")
-            logger.debug(f"{self.agent1.name} response: {response}")
-            print(f"{self.agent1.name}: {response}\n")
         else:
             # Resume from the last message
             response = messages[-1]["content"]
             logger.info(
                 f"Turn {self.current_turn + 1}: {self.current_agent.name}")
-            logger.debug(f"Resuming with last message: {response}")
-            print(f"Resuming conversation...\nLast message: {response}\n")
+            logger.debug(
+                f"Resuming conversation...\nLast message: {response}\n")
 
         # Switch here after first response
         self.switch_agent()
         self.current_turn += 1
 
         if "[TERMINATE]" in response:
-            logger.info("Interview terminated early by Interviewer")
+            logger.orange("Interview terminated early by Interviewer")
             return
 
         while self.current_turn < self.max_turns:
@@ -130,8 +128,7 @@ class Conversation:
             if self.current_turn + 1 >= self.max_turns and self.current_agent == self.agent1:
                 response += " [TERMINATE]"
 
-            logger.debug(f"{self.current_agent.name} response: {response}")
-            print(f"{self.current_agent.name}: {response}\n")
+            logger.debug(f"{self.current_agent.name}: {response}\n")
 
             if self.current_agent == self.agent1 and "[TERMINATE]" in response:
                 logger.info("Interview terminated by Interviewer")
