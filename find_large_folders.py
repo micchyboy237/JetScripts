@@ -98,9 +98,11 @@ def get_command() -> str:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Find and optionally delete large folders.")
-    parser.add_argument("-b", "--base-dir", type=str,
-                        help="Base directory to search for large folders. Defaults to '/Users/jethroestrada/Desktop/External_Projects'.",
-                        default="/Users/jethroestrada/Desktop/External_Projects")
+    parser.add_argument(
+        "-b", "--base-dir", type=str,
+        help="Base directory to search for large folders. Defaults to current working directory.",
+        default=os.getcwd()
+    )
     parser.add_argument("-s", "--min-size", type=int, default=100,
                         help="Minimum size (MB) to consider a folder large.")
     parser.add_argument("-d", "--delete", action="store_true",

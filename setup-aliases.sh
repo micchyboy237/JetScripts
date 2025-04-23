@@ -331,6 +331,59 @@ pip() {
 #     command cd "$@" && activate_venv
 # }
 
+large_folders() {
+    local base_dir=""
+    local min_size=""
+    local includes=""
+    local excludes=""
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -b) base_dir="$2"; shift 2;;
+            -s) min_size="$2"; shift 2;;
+            -i) includes="$2"; shift 2;;
+            -e) excludes="$2"; shift 2;;
+            *) shift;;
+        esac
+    done
+
+    local args=()
+    [[ -n "$base_dir" ]] && args+=("-b" "$base_dir")
+    [[ -n "$min_size" ]] && args+=("-s" "$min_size")
+    [[ -n "$includes" ]] && args+=("-i" "$includes")
+    [[ -n "$excludes" ]] && args+=("-e" "$excludes")
+
+    python /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/find_large_folders.py "${args[@]}"
+
+    # Example:
+    # large_folders -b . -s 200 -i "**/*" -e "node_modules,.venv"
+}
+
+git_last_updates() {
+    local base_dir=""
+    local extensions=""
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -b) base_dir="$2"; shift 2;;
+            -e) extensions="$2"; shift 2;;
+            *) shift;;
+        esac
+    done
+
+    local args=()
+    [[ -n "$base_dir" ]] && args+=("$base_dir")
+    [[ -n "$extensions" ]] && args+=("-e" "$extensions")
+
+    python /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_notes/python_scripts/git_stats.py "${args[@]}"
+
+    # Example:
+    # git_last_updates -b . -e ".py,.md"
+}
+
+
+
+
 
 # Check if the 'deps' function is already defined to prevent echo
 # if ! declare -f deps &>/dev/null; then
