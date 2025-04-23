@@ -1,3 +1,4 @@
+import os
 from jet.logger import CustomLogger
 from jet.llm.ollama.base import initialize_ollama_settings
 from jet.llm.ollama.base_langchain import ChatOllama
@@ -73,6 +74,7 @@ This notebook demonstrates how to create a simple conversational agent using Lan
 
 ### Import required libraries
 """
+logger.info("# Building a Conversational Agent with Context Awareness")
 
 
 
@@ -81,6 +83,7 @@ This notebook demonstrates how to create a simple conversational agent using Lan
 """
 ### Load environment variables and initialize the language model
 """
+logger.info("### Load environment variables and initialize the language model")
 
 load_dotenv()
 llm = ChatOllama(model="llama3.1")
@@ -88,6 +91,7 @@ llm = ChatOllama(model="llama3.1")
 """
 ###  Create a simple in-memory store for chat histories
 """
+logger.info("###  Create a simple in-memory store for chat histories")
 
 store = {}
 
@@ -99,6 +103,7 @@ def get_chat_history(session_id: str):
 """
 ### Create the prompt template
 """
+logger.info("### Create the prompt template")
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", "You are a helpful AI assistant."),
@@ -109,12 +114,14 @@ prompt = ChatPromptTemplate.from_messages([
 """
 ### Combine the prompt and model into a runnable chain
 """
+logger.info("### Combine the prompt and model into a runnable chain")
 
 chain = prompt | llm
 
 """
 ### Wrap the chain with message history
 """
+logger.info("### Wrap the chain with message history")
 
 chain_with_history = RunnableWithMessageHistory(
     chain,
@@ -126,6 +133,7 @@ chain_with_history = RunnableWithMessageHistory(
 """
 ### Example usage
 """
+logger.info("### Example usage")
 
 session_id = "user_123"
 
@@ -145,6 +153,7 @@ logger.debug("AI:", response2.content)
 """
 ### Print the conversation history
 """
+logger.info("### Print the conversation history")
 
 logger.debug("\nConversation History:")
 for message in store[session_id].messages:

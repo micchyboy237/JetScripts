@@ -28,6 +28,11 @@ REPLACE_OLLAMA_MAP = {
     "('gpt-4')": "(model=\"llama3.1\")",
     "(\"gpt-3.5\")": "(model=\"llama3.2\")",
     "(\'gpt-3.5\')": "(model=\"llama3.2\")",
+    "openai:": "ollama:",
+    "anthropic:": "ollama:",
+    "gpt-4o-mini": "llama3.1",
+    "claude-3-5-sonnet-latest": "llama3.1",
+    "text-embedding-3-small": "mxbai-embed-large",
 }
 
 REPLACE_ASYNC_MAP = {
@@ -128,7 +133,7 @@ def move_all_imports_on_top(code: str) -> str:
         r'^\s*(from .+ import .+|import .+)', re.MULTILINE)
 
     lines = code.splitlines()
-    imports = []
+    imports = set()  # Use a set to store unique import lines
     non_import_code = []
     in_import_block = False
     open_parens = 0
@@ -136,12 +141,13 @@ def move_all_imports_on_top(code: str) -> str:
     line_idx = 0
     while line_idx < len(lines):
         line = lines[line_idx]
+        stripped_line = line.strip()
 
         # Check for the start of an import block
         if import_pattern.match(line):
             if not in_import_block:
                 in_import_block = True
-            imports.append(line)
+            current_import = stripped_line
 
             # Handle multi-line imports with parentheses
             if '(' in line:
@@ -153,12 +159,10 @@ def move_all_imports_on_top(code: str) -> str:
             while open_parens > 0 and line_idx + 1 < len(lines):
                 line_idx += 1
                 next_line = lines[line_idx]
-                imports[-1] += f"\n{next_line}"
+                current_import += f"\n{next_line.strip()}"
                 open_parens += next_line.count('(') - next_line.count(')')
 
-            # Ensure imports are separated by new lines
-            # Remove any trailing spaces after concatenating multi-line imports
-            imports[-1] = imports[-1]
+            imports.add(current_import)
 
         else:
             # Collect non-import code
@@ -166,15 +170,19 @@ def move_all_imports_on_top(code: str) -> str:
 
         line_idx += 1
 
+    # Convert the set of unique imports to a sorted list
+    sorted_imports = sorted(list(imports))
+
     # Join imports with a newline for correct separation and return the final code
-    imports_block = '\n'.join(imports)
+    imports_block = '\n'.join(sorted_imports)
     non_import_block = '\n'.join(non_import_code)
 
     return imports_block + '\n\n' + non_import_block
 
 
 def add_jet_logger(code: str):
-    import_code = """from jet.logger import CustomLogger
+    import_code = """import os
+from jet.logger import CustomLogger
     
 script_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
@@ -538,6 +546,49 @@ def wrap_await_code_multiline_args(code: str) -> str:
     return "\n".join(updated_lines)
 
 
+def wrap_triple_double_quoted_comments_in_log(code: str) -> str:
+    # Regex pattern to match triple double-quoted comments
+    pattern = r'"""\n?(.*?)\n?"""'
+
+    # Find all matches
+    matches = list(re.finditer(pattern, code, flags=re.DOTALL))
+
+    # Process each match
+    updated_code = code
+    offset = 0
+    for match in matches:
+        comment_content = match.group(1)
+        # Split the comment into lines
+        lines = comment_content.splitlines()
+        first_text_line = None
+
+        # First, look for a line that starts with '#'
+        for line in lines:
+            if line.strip() and line.strip().startswith('#'):
+                first_text_line = line.strip()
+                break
+
+        # If no line with '#' is found, look for a line that starts with alphanumeric
+        if not first_text_line:
+            for line in lines:
+                if line.strip() and line.strip()[0].isalnum():
+                    first_text_line = line.strip()
+                    break
+
+        if first_text_line:
+            # Create the logger.info for the first qualifying line
+            replacement = f'logger.info("{first_text_line}")'
+            # Adjust the start and end positions with the offset
+            start, end = match.start() + offset, match.end() + offset
+            # Insert the logger.info call after the comment
+            updated_code = updated_code[:end] + \
+                '\n' + replacement + updated_code[end:]
+            # Update the offset based on the length of the inserted text
+            offset += len('\n' + replacement)
+
+    return updated_code
+
+
 def merge_consecutive_same_type(source_groups, separator="\n\n"):
     if not source_groups:
         return []
@@ -615,10 +666,15 @@ def scrape_code(
                         source_group['code'] = f'"""\n{
                             source_group['code']}\n"""'
 
-                    source_group['code'] = wrap_await_code_multiline_args(
-                        source_group['code'])
-                    # source_group['code'] = wrap_await_code_singleline_args(
-                    #     source_group['code'])
+                    if source_group['type'] == 'text':
+                        source_group['code'] = wrap_triple_double_quoted_comments_in_log(
+                            source_group['code'])
+
+                    if source_group['type'] == 'code':
+                        source_group['code'] = wrap_await_code_multiline_args(
+                            source_group['code'])
+                        # source_group['code'] = wrap_await_code_singleline_args(
+                        #     source_group['code'])
 
                 source_code = "\n\n".join(group['code']
                                           for group in source_groups)
@@ -714,7 +770,8 @@ if __name__ == "__main__":
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents/all_agents_tutorials/research_team_autogen.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langgraph/docs/docs/concepts/v0-human-in-the-loop.md",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langgraph/docs/docs/concepts/human_in_the_loop.md",
     ]
 
     include_files = [

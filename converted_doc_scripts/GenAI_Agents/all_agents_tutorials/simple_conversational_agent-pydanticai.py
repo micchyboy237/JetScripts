@@ -1,3 +1,4 @@
+import os
 from jet.logger import CustomLogger
 from jet.llm.ollama.base import initialize_ollama_settings
 import os
@@ -89,6 +90,7 @@ This notebook demonstrates how to create a simple conversational agent using Pyd
 
 ### Import required libraries
 """
+logger.info("# Building a Conversational Agent with Context Awareness with PydanticAI")
 
 
 
@@ -103,13 +105,14 @@ load_dotenv()
 os.environ['LOGFIRE_IGNORE_NO_CONFIG'] = '1'
 
 agent = Agent(
-    model='openai:gpt-4o-mini',
+    model='ollama:llama3.1',
     system_prompt='You are a helpful AI assistant.',
 )
 
 """
 ###  Create a simple in-memory store for chat histories
 """
+logger.info("###  Create a simple in-memory store for chat histories")
 
 store: dict[str, list[bytes]] = {}
 
@@ -141,6 +144,7 @@ def store_messages_in_history(session_id: str, run_result: AgentRunResult[ModelM
 """
 ### Wrap the ask with message history
 """
+logger.info("### Wrap the ask with message history")
 
 def ask_with_history(user_message: str, user_session_id: str) -> AgentRunResult[ModelMessage]:
     """Asks the chatbot the user's question and stores the new messages in the chat history."""
@@ -156,6 +160,7 @@ def ask_with_history(user_message: str, user_session_id: str) -> AgentRunResult[
 """
 ### Example usage
 """
+logger.info("### Example usage")
 
 session_id = 'user_123'
 
@@ -168,6 +173,7 @@ logger.debug('AI:', result2.data)
 """
 ### Print the conversation history
 """
+logger.info("### Print the conversation history")
 
 logger.debug('\nConversation History:')
 tmp = get_chat_history(session_id)
