@@ -35,10 +35,9 @@ class TTSEngine:
         """Speak the text and save to audio file."""
         file_path = self._get_audio_filename(speaker_name, text)
         self.engine.save_to_file(text, file_path)
-        self.engine.runAndWait()
-        logger.success(f"TTS audio saved: {file_path}")
         self.engine.say(text)
-        self.engine.runAndWait()
+        self.engine.runAndWait()  # Single call to runAndWait
+        logger.success(f"TTS audio saved: {file_path}")
 
     async def speak_async(self, text: str, speaker_name: str = "Agent"):
         """Async wrapper."""
