@@ -1,12 +1,11 @@
 import asyncio
 import os
 from typing import Optional
-import pyttsx3
-import cv2
-import numpy as np
 from jet.data.utils import generate_unique_hash
 from jet.llm.ollama.base import Ollama
 from jet.logger.logger import CustomLogger
+import pyttsx3
+from threading import Thread
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(
@@ -14,109 +13,54 @@ log_file = os.path.join(
 logger = CustomLogger(log_file, overwrite=True)
 
 
-class TalkingHead:
-    def __init__(self, face_image_path: str, voice_id: str = None):
-        """Initialize the talking head with a face image and TTS engine."""
-        self.face_image = cv2.imread(face_image_path)
-        if self.face_image is None:
-            raise FileNotFoundError(
-                f"Face image not found at {face_image_path}")
-        self.face_image = cv2.resize(self.face_image, (256, 256))
+class TTSEngine:
+    def __init__(self, voice_id: str = None, rate: int = 200):
         self.engine = pyttsx3.init()
+        self.engine.setProperty('rate', rate)
         if voice_id:
             self.engine.setProperty('voice', voice_id)
-        self.engine.setProperty('rate', 150)  # Speech speed
-        self.lip_sync_points = None  # Placeholder for lip landmarks
-        self._initialize_lip_sync()
+        else:
+            # Use default voice if none specified
+            voices = self.engine.getProperty('voices')
+            self.engine.setProperty('voice', voices[0].id)
 
-    def _initialize_lip_sync(self):
-        """Initialize lip-sync points for animation (simplified)."""
-        # For simplicity, define static lip region (x, y, width, height)
-        # In a real application, use facial landmark detection (e.g., dlib or MediaPipe)
-        lip_x, lip_y = 90, 160
-        lip_w, lip_h = 80, 40
-        self.lip_sync_points = (lip_x, lip_y, lip_w, lip_h)
+    def speak(self, text: str):
+        """Synchronous speech function."""
+        self.engine.say(text)
+        self.engine.runAndWait()
 
-    def animate_lip_sync(self, text: str, window_name: str):
-        """Animate lip-sync while speaking the text."""
-        # Start TTS in a separate thread to avoid blocking
-        def speak():
-            self.engine.say(text)
-            self.engine.runAndWait()
-
-        import threading
-        tts_thread = threading.Thread(target=speak)
-        tts_thread.start()
-
-        # Simple lip animation: oscillate lip height based on a timer
-        lip_x, lip_y, lip_w, lip_h = self.lip_sync_points
-        frame = self.face_image.copy()
-        start_time = cv2.getTickCount()
-
-        while tts_thread.is_alive():
-            # Simulate lip movement by scaling the lip region
-            elapsed = (cv2.getTickCount() - start_time) / \
-                cv2.getTickFrequency()
-            # Oscillate between 0.7 and 1.3
-            lip_scale = 1.0 + 0.3 * np.sin(10 * elapsed)
-            new_lip_h = int(lip_h * lip_scale)
-
-            # Draw the lip region (simplified as a rectangle)
-            frame = self.face_image.copy()
-            cv2.rectangle(
-                frame,
-                (lip_x, lip_y),
-                (lip_x + lip_w, lip_y + new_lip_h),
-                (255, 0, 0),  # Blue for visibility
-                -1
-            )
-
-            # Display the animated frame
-            cv2.imshow(window_name, frame)
-            if cv2.waitKey(30) & 0xFF == 27:  # Exit on ESC
-                break
-
-        cv2.destroyWindow(window_name)
-        tts_thread.join()
-
-    def cleanup(self):
-        """Clean up resources."""
-        self.engine.stop()
-        cv2.destroyAllWindows()
+    async def speak_async(self, text: str):
+        """Asynchronous wrapper for TTS to avoid blocking the event loop."""
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, self.speak, text)
 
 
 class Agent:
-    def __init__(self, name: str, system_prompt: str, model: str = "llama3.1", session_id: str = "",
-                 face_image_path: str = None, voice_id: str = None) -> None:
+    def __init__(self, name: str, system_prompt: str, model: str = "llama3.1", session_id: str = "", tts_voice: str = None) -> None:
         self.name: str = name
         self.ollama: Ollama = Ollama(
             model=model, system=system_prompt, session_id=session_id, temperature=0.3)
         self.chat_history = self.ollama.chat_history
-        self.talking_head = TalkingHead(
-            face_image_path, voice_id) if face_image_path else None
+        # Initialize TTS engine with a specific voice
+        self.tts = TTSEngine(voice_id=tts_voice,
+                             rate=200 if name == "Interviewer" else 180)
 
     async def generate_response(self, external_message: str) -> str:
-        """Generate a response and animate/speak it."""
+        """Generate a response using Ollama's stream_chat and speak it."""
         content = ""
         async for chunk in self.ollama.stream_chat(query=external_message):
             content += chunk
-
-        if self.talking_head:
-            self.talking_head.animate_lip_sync(content, f"{self.name} Talking")
+        # Speak the response asynchronously
+        await self.tts.speak_async(f"{self.name}: {content}")
         return content
 
     def clear_history(self) -> None:
         """Reset the agent's conversation history."""
         self.chat_history.clear()
 
-    def cleanup(self):
-        """Clean up talking head resources."""
-        if self.talking_head:
-            self.talking_head.cleanup()
-
 
 class Interviewer(Agent):
-    def __init__(self, model: str = "llama3.1", face_image_path: str = None, voice_id: str = None, **kwargs) -> None:
+    def __init__(self, model: str = "llama3.1", tts_voice: str = None, **kwargs) -> None:
         super().__init__(
             name="Interviewer",
             system_prompt=(
@@ -137,14 +81,13 @@ class Interviewer(Agent):
                 "If the candidate indicates they have no further questions or concerns (e.g., 'No questions' or 'I'm good'), end the interview politely and include '[TERMINATE]' in your final message."
             ),
             model=model,
-            face_image_path=face_image_path,
-            voice_id=voice_id,
+            tts_voice=tts_voice,
             **kwargs
         )
 
 
 class Applicant(Agent):
-    def __init__(self, model: str = "llama3.1", face_image_path: str = None, voice_id: str = None, **kwargs) -> None:
+    def __init__(self, model: str = "llama3.1", tts_voice: str = None, **kwargs) -> None:
         super().__init__(
             name="Applicant",
             system_prompt=(
@@ -154,20 +97,18 @@ class Applicant(Agent):
                 "If asked about weaknesses, be honest but frame them positively."
             ),
             model=model,
-            face_image_path=face_image_path,
-            voice_id=voice_id,
+            tts_voice=tts_voice,
             **kwargs
         )
 
 
 class Conversation:
     def __init__(self, agent1: Interviewer, agent2: Applicant, max_turns: int = 16) -> None:
-        self.agent1: Interviewer = agent1  # Interviewer
-        self.agent2: Applicant = agent2  # Applicant
+        self.agent1: Interviewer = agent1
+        self.agent2: Applicant = agent2
         self.max_turns: int = max_turns
         self.current_turn: int = agent1.chat_history.get_turn_count()
 
-        # Determine the current agent based on the last message in the chat history
         messages = agent1.chat_history.get_messages()
         if messages and messages[-1]["role"] == "assistant":
             self.current_agent: Agent = self.agent2
@@ -198,7 +139,6 @@ class Conversation:
 
         if "[TERMINATE]" in response:
             logger.orange("Interview terminated early by Interviewer")
-            self.cleanup()
             return
 
         while self.current_turn < self.max_turns:
@@ -218,13 +158,6 @@ class Conversation:
             self.switch_agent()
             self.current_turn += 1
 
-        self.cleanup()
-
-    def cleanup(self):
-        """Clean up resources for both agents."""
-        self.agent1.cleanup()
-        self.agent2.cleanup()
-
     def reset(self) -> None:
         """Reset the conversation by clearing both agents' histories and resetting the agenda."""
         self.agent1.clear_history()
@@ -234,6 +167,7 @@ class Conversation:
 
 
 async def main() -> None:
+    # Generate unique session IDs for each agent
     interviewer_session_id: str = generate_unique_hash()
     applicant_session_id: str = generate_unique_hash()
     max_turns = 20
@@ -241,34 +175,23 @@ async def main() -> None:
     logger.success(f"Interviewer session id:\n{interviewer_session_id}\n")
     logger.success(f"Applicant session id:\n{applicant_session_id}\n")
 
-    # Initialize agents with face images and distinct voices
-    # Replace with actual paths to face images
-    interviewer_face = os.path.join(script_dir, "interviewer_face.jpg")
-    applicant_face = os.path.join(script_dir, "applicant_face.jpg")
-
-    # Get available voices
+    # Get available voices for macOS
     engine = pyttsx3.init()
     voices = engine.getProperty('voices')
-    interviewer_voice = voices[0].id if len(
-        voices) > 0 else None  # Default voice
-    applicant_voice = voices[1].id if len(
-        voices) > 1 else None    # Different voice
+    # Select distinct voices (e.g., first two available voices)
+    interviewer_voice = voices[0].id if len(voices) > 0 else None
+    applicant_voice = voices[1].id if len(voices) > 1 else None
 
+    # Initialize agents with different session IDs and voices
     interviewer: Interviewer = Interviewer(
-        session_id=interviewer_session_id,
-        face_image_path=interviewer_face,
-        voice_id=interviewer_voice
-    )
+        session_id=interviewer_session_id, tts_voice=interviewer_voice)
     applicant: Applicant = Applicant(
-        session_id=applicant_session_id,
-        face_image_path=applicant_face,
-        voice_id=applicant_voice
-    )
+        session_id=applicant_session_id, tts_voice=applicant_voice)
 
+    # Create and run conversation
     conversation: Conversation = Conversation(
         interviewer, applicant, max_turns=max_turns)
     await conversation.run()
-
 
 if __name__ == "__main__":
     asyncio.run(main())
