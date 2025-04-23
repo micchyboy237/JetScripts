@@ -122,19 +122,30 @@ class AdvancedTTSEngine:
         return await loop.run_in_executor(None, self.combine_audio_files, file_paths, speaker_name, text)
 
     def _cleanup_temp_files(self):
-        with self.lock:
-            for file_path in self.temp_files:
+        try:
+            # Attempt to acquire the lock non-blocking
+            if self.lock.acquire(blocking=False):
                 try:
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
-                        logger.info(f"Deleted temp file: {file_path}")
-                except Exception as e:
-                    logger.error(f"Error deleting temp file {file_path}: {e}")
-            self.temp_files.clear()
-            self.cache.clear()
+                    for file_path in self.temp_files:
+                        try:
+                            if os.path.exists(file_path):
+                                os.remove(file_path)
+                                logger.info(f"Deleted temp file: {file_path}")
+                        except Exception as e:
+                            logger.error(
+                                f"Error deleting temp file {file_path}: {e}")
+                    self.temp_files.clear()
+                    self.cache.clear()
+                finally:
+                    self.lock.release()
+            else:
+                logger.warning(
+                    "Could not acquire lock for cleanup; skipping temp file deletion")
+        except Exception as e:
+            logger.error(f"Error during temp file cleanup: {e}")
 
-    # def cleanup(self):
-    #     self._cleanup_temp_files()
+    def cleanup(self):
+        self._cleanup_temp_files()
 
 
 class Agent:
