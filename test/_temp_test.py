@@ -46,7 +46,8 @@ class Interviewer(Agent):
                 "6. Closing: Ask if they have any questions about the role or the company.\n"
                 "Use the chat history to determine which agenda topic to address next, ensuring you progress through the topics in order. "
                 "Incorporate the candidate's previous response to maintain a natural conversation flow (e.g., 'Thank you for sharing that. [Next question]'). "
-                "Be polite, professional, and concise. After the final agenda topic, include '[TERMINATE]' in your response."
+                "Be polite, professional, and concise. After asking the final agenda topic (Closing), wait for the candidate's response. "
+                "If no further follow-up is needed after that response, end the interview politely and include '[TERMINATE]' in your final message."
             ),
             model=model,
             **kwargs
@@ -149,7 +150,7 @@ async def main() -> None:
     # Generate unique session IDs for each agent
     interviewer_session_id: str = generate_unique_hash()
     applicant_session_id: str = generate_unique_hash()
-    max_turns = 16
+    max_turns = 20
 
     # Initialize agents with different session IDs
     interviewer: Interviewer = Interviewer(session_id=interviewer_session_id)
