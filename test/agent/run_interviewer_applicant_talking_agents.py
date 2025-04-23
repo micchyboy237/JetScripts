@@ -6,6 +6,7 @@ from jet.llm.audio.tts_engine import AdvancedTTSEngine
 from jet.wordnet.sentence import split_sentences
 from jet.llm.ollama.base import Ollama
 from jet.logger.logger import CustomLogger
+from tqdm import tqdm
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(
@@ -25,7 +26,7 @@ class Agent:
             rate=200 if name == "Emma" else 180, output_dir=output_dir)
         self.output_dir = output_dir or script_dir
 
-    async def generate_response(self, external_message: str) -> str:
+    async def generate_response(self, external_message: str) -> tuple[str, Optional[asyncio.Task]]:
         content = ""
         buffer = ""
         audio_files = []
@@ -38,14 +39,16 @@ class Agent:
                     clean_sentence = sentence.strip()
                     if clean_sentence:
                         file_path = await self.tts.speak_async(clean_sentence, speaker_name=self.name)
-                        if file_path:
+                        if file_path and os.path.exists(file_path):
                             audio_files.append(file_path)
                 buffer = sentences[-1]
         final_sentence = buffer.strip()
         if final_sentence:
             file_path = await self.tts.speak_async(final_sentence, speaker_name=self.name)
-            if file_path:
+            if file_path and os.path.exists(file_path):
                 audio_files.append(file_path)
+
+        combine_task = None
         if audio_files and len(audio_files) > 1:
             async def combine_and_transcribe():
                 output_file = self.tts._get_audio_filename(
@@ -54,11 +57,11 @@ class Agent:
                 if combined_file:
                     logger.info("Scheduling background transcription")
                     await transcribe_file_async(combined_file, self.output_dir)
-            asyncio.create_task(combine_and_transcribe())
+            combine_task = asyncio.create_task(combine_and_transcribe())
         elif audio_files:
             logger.info(
                 f"Single audio file, skipping combine: {audio_files[0]}")
-        return content
+        return content, combine_task
 
     def clear_history(self) -> None:
         self.chat_history.clear()
@@ -104,27 +107,40 @@ class Applicant(Agent):
                          model=model, output_dir=output_dir, **kwargs)
 
 
-async def main():
+async def main(max_rounds: int = 10):
     output_dir = os.path.join(script_dir, "generated", "audio_output")
     interviewer = Interviewer(output_dir=output_dir)
     applicant = Applicant(output_dir=output_dir)
     playback_overlap = 0.5
+    tasks = []
     try:
         question_task = asyncio.create_task(
             interviewer.generate_response("Start the interview."))
-        question = await question_task
-        for _ in range(3):
+        question, combine_task = await question_task
+        if combine_task:
+            tasks.append(combine_task)
+
+        for current_round in tqdm(range(max_rounds), desc="Interview Rounds", unit="round"):
+            logger.info(f"Starting round {current_round + 1}/{max_rounds}")
             await asyncio.sleep(playback_overlap)
             applicant_task = asyncio.create_task(
                 applicant.generate_response(question))
-            response = await applicant_task
+            response, combine_task = await applicant_task
+            if combine_task:
+                tasks.append(combine_task)
             await asyncio.sleep(playback_overlap)
             question_task = asyncio.create_task(
                 interviewer.generate_response(response))
-            question = await question_task
+            question, combine_task = await question_task
+            if combine_task:
+                tasks.append(combine_task)
+
+        # Await all background tasks
+        if tasks:
+            await asyncio.gather(*tasks)
     finally:
         interviewer.cleanup()
         applicant.cleanup()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main(max_rounds=3))
