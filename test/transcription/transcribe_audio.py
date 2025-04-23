@@ -8,7 +8,20 @@ from tqdm import tqdm  # For progress bar
 last_transcribed_end_time = 0.0
 
 
+def is_audio_file(path: str) -> bool:
+    return os.path.isfile(path) and path.lower().endswith((".mp3", ".wav"))
+
+
+def is_audio_dir(path: str) -> bool:
+    return os.path.isdir(path)
+
+
+def is_audio_file_or_dir(path: str) -> bool:
+    return is_audio_file(path) or is_audio_dir(path)
+
 # Function to transcribe an audio chunk (buffer)
+
+
 def transcribe_chunk(model, audio_chunk, output_file, time_offset=0):
     global last_transcribed_end_time
     segments, info = model.transcribe(audio_chunk, beam_size=5)
@@ -143,18 +156,6 @@ def transcribe_files(path: str, output_dir: str, *, chunk_duration_ms: int = 300
                         chunk_duration_ms=chunk_duration_ms,
                         overlap_ms=overlap_ms,
                         remove_audio=remove_audio)
-
-
-def is_audio_file(path: str) -> bool:
-    return os.path.isfile(path) and path.lower().endswith((".mp3", ".wav"))
-
-
-def is_audio_dir(path: str) -> bool:
-    return os.path.isdir(path)
-
-
-def is_audio_file_or_dir(path: str) -> bool:
-    return is_audio_file(path) or is_audio_dir(path)
 
 
 # Run the script
