@@ -107,7 +107,7 @@ class Applicant(Agent):
                          model=model, output_dir=output_dir, **kwargs)
 
 
-async def run_conversation(max_rounds: int = 10):
+async def main(max_rounds: int = 10):
     output_dir = os.path.join(script_dir, "generated", "audio_output")
     interviewer = Interviewer(output_dir=output_dir)
     applicant = Applicant(output_dir=output_dir)
@@ -117,21 +117,29 @@ async def run_conversation(max_rounds: int = 10):
         question_task = asyncio.create_task(
             interviewer.generate_response("Start the interview."))
         question, combine_task = await question_task
+        logger.info(f"\nTurn 0 - Interviewer:")
+        logger.success(question)
         if combine_task:
             tasks.append(combine_task)
 
         for current_round in tqdm(range(max_rounds), desc="Interview Rounds", unit="round"):
-            logger.info(f"Starting round {current_round + 1}/{max_rounds}")
+            logger.info(f"\nStarting round {current_round + 1}/{max_rounds}")
+
             await asyncio.sleep(playback_overlap)
+            logger.info(f"\nTurn {current_round + 1} - Applicant:")
             applicant_task = asyncio.create_task(
                 applicant.generate_response(question))
             response, combine_task = await applicant_task
+            logger.success(response)
             if combine_task:
                 tasks.append(combine_task)
+
             await asyncio.sleep(playback_overlap)
+            logger.info(f"\nTurn {current_round + 1} - Interviewer:")
             question_task = asyncio.create_task(
                 interviewer.generate_response(response))
             question, combine_task = await question_task
+            logger.success(question)
             if combine_task:
                 tasks.append(combine_task)
 
@@ -143,4 +151,4 @@ async def run_conversation(max_rounds: int = 10):
         applicant.cleanup()
 
 if __name__ == "__main__":
-    asyncio.run(run_conversation())
+    asyncio.run(main())
