@@ -156,25 +156,23 @@ class Agent:
             # Append chunk to buffer
             chunk_buffer += chunk
 
-            # Check if buffer ends with space or newline
-            if chunk_buffer.endswith((' ', '\n')) and chunk_buffer.strip():
-                # Speak the current batch of chunks
+            # Check if latest chunk ends with sentence-ending punctuation
+            if chunk.endswith(('.', '?', '!')) and chunk_buffer.strip():
+                # Speak the current buffer including the latest chunk
                 file_path = await self.tts.speak_async(f"{self.name}: {chunk_buffer}", speaker_name=self.name)
                 if file_path:
                     audio_files.append(file_path)
-                logger.info(
-                    f"Spoke buffer ending with space/newline: '{chunk_buffer}'")
+                # logger.orange(f"[PUNC] Spoke: '{chunk_buffer}'")
                 chunk_buffer = ""  # Reset buffer
             # Check if chunk starts with space or newline
             elif chunk.startswith((' ', '\n')) and chunk_buffer.strip():
-                # Speak the previous batch of chunks (before appending current chunk)
+                # Speak the previous buffer (before appending current chunk)
                 prev_buffer = chunk_buffer[:-len(chunk)]
                 if prev_buffer.strip():
                     file_path = await self.tts.speak_async(f"{self.name}: {prev_buffer}", speaker_name=self.name)
                     if file_path:
                         audio_files.append(file_path)
-                    # logger.info(
-                    #     f"Spoke buffer before space/newline chunk: '{prev_buffer}'")
+                    # logger.orange(f"Spoke: '{prev_buffer}'")
                 chunk_buffer = chunk  # Start new buffer with current chunk
 
         # Speak any remaining buffered chunks
