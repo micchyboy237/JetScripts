@@ -15,7 +15,7 @@ class Agent:
     def __init__(self, name: str, system_prompt: str, model: str = "llama3.1", session_id: str = "") -> None:
         self.name: str = name
         self.ollama: Ollama = Ollama(
-            model=model, system=system_prompt, session_id=session_id, temperature=0.75)
+            model=model, system=system_prompt, session_id=session_id, temperature=0.3)
         self.chat_history = self.ollama.chat_history
 
     async def generate_response(self, external_message: str) -> str:
@@ -149,13 +149,14 @@ class Conversation:
 
 
 async def main() -> None:
-    session_id: str = generate_unique_hash()
-    # session_id: str = "89689a82-5d40-474e-a817-d14ec4a45124"
+    # Generate unique session IDs for each agent
+    interviewer_session_id: str = generate_unique_hash()
+    applicant_session_id: str = generate_unique_hash()
     max_turns = 16
 
-    # Initialize agents
-    interviewer: Interviewer = Interviewer(session_id=session_id)
-    applicant: Applicant = Applicant(session_id=session_id)
+    # Initialize agents with different session IDs
+    interviewer: Interviewer = Interviewer(session_id=interviewer_session_id)
+    applicant: Applicant = Applicant(session_id=applicant_session_id)
 
     # Create and run conversation
     conversation: Conversation = Conversation(
