@@ -116,6 +116,7 @@ class Conversation:
 
         # Switch here after first response
         self.switch_agent()
+        self.current_turn += 1
 
         if "[TERMINATE]" in response:
             logger.info("Interview terminated early by Interviewer")
