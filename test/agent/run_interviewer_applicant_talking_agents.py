@@ -16,7 +16,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(
     script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
-console = Console()  # Rich console for enhanced text display
+console = Console()
 
 
 class AdvancedTTSEngine:
@@ -27,10 +27,11 @@ class AdvancedTTSEngine:
         self.lock = threading.Lock()
         pygame.mixer.init()
         self.temp_files = []  # Track temporary audio files
-        # Set output directory, default to script_dir if None
         self.output_dir = output_dir if output_dir else script_dir
-        # Ensure output directory exists
         os.makedirs(self.output_dir, exist_ok=True)
+        self.cache = {}  # In-memory cache for TTS audio
+        self.channel = pygame.mixer.Channel(
+            0)  # Dedicated channel for playback
 
     def _get_audio_filename(self, speaker_name: str, text: str) -> str:
         timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')
@@ -43,29 +44,40 @@ class AdvancedTTSEngine:
 
     def speak(self, text: str, speaker_name: str = "Agent"):
         with self.lock:
-            file_path = self._get_audio_filename(speaker_name, text)
+            # Skip empty or whitespace-only text
+            if not text.strip():
+                logger.warning(f"Skipping empty TTS text for {speaker_name}")
+                return
+            # Check cache for existing audio
+            cache_key = f"{speaker_name}:{text}"
+            if cache_key in self.cache:
+                file_path = self.cache[cache_key]
+                logger.info(f"Using cached audio: {file_path}")
+            else:
+                file_path = self._get_audio_filename(speaker_name, text)
+                try:
+                    tts = gTTS(text=text, lang='en')
+                    tts.save(file_path)
+                    self.cache[cache_key] = file_path
+                    logger.success(f"TTS audio saved: {file_path}")
+                except Exception as e:
+                    logger.error(f"Error in TTS generation: {e}")
+                    raise
+
             try:
-                # Placeholder for advanced TTS (e.g., ElevenLabs API)
-                tts = gTTS(text=text, lang='en')  # Fallback to gTTS
-                tts.save(file_path)
-
-                pygame.mixer.music.load(file_path)
-                pygame.mixer.music.play()
-                while pygame.mixer.music.get_busy():
-                    pygame.time.Clock().tick(10)
-
-                logger.success(f"TTS audio saved: {file_path}")
+                self.channel.play(pygame.mixer.Sound(
+                    file_path))  # Non-blocking playback
             except Exception as e:
-                logger.error(f"Error in TTS generation/playback: {e}")
+                logger.error(f"Error in audio playback: {e}")
                 raise
 
     async def speak_async(self, text: str, speaker_name: str = "Agent"):
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self.speak, text, speaker_name)
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(0.01)  # Minimal delay to yield control
 
     def cleanup(self):
-        """Remove temporary audio files."""
+        """Remove temporary audio files and clear cache."""
         with self.lock:
             for file_path in self.temp_files:
                 try:
@@ -75,6 +87,7 @@ class AdvancedTTSEngine:
                 except Exception as e:
                     logger.error(f"Error deleting temp file {file_path}: {e}")
             self.temp_files.clear()
+            self.cache.clear()
 
 
 class Agent:
@@ -90,13 +103,36 @@ class Agent:
 
     async def generate_response(self, external_message: str) -> str:
         content = ""
-        console.print(f"[bold blue]{self.name}:[/bold blue] ", end="")
+        chunk_buffer = ""  # Accumulate chunks until boundary
         async for chunk in self.ollama.stream_chat(query=external_message):
             content += chunk
-            console.print(Text(chunk, style="green"), end="", soft_wrap=True)
-            sys.stdout.flush()
-        console.print()
-        await self.tts.speak_async(f"{self.name}: {content}", speaker_name=self.name)
+            logger.debug(f"Received chunk: '{chunk}'")
+
+            # Append chunk to buffer
+            chunk_buffer += chunk
+
+            # Check if buffer ends with space or newline
+            if chunk_buffer.endswith((' ', '\n')) and chunk_buffer.strip():
+                # Speak the current batch of chunks
+                await self.tts.speak_async(f"{self.name}: {chunk_buffer}", speaker_name=self.name)
+                logger.info(
+                    f"Spoke buffer ending with space/newline: '{chunk_buffer}'")
+                chunk_buffer = ""  # Reset buffer
+            # Check if chunk starts with space or newline
+            elif chunk.startswith((' ', '\n')) and chunk_buffer.strip():
+                # Speak the previous batch of chunks (before appending current chunk)
+                prev_buffer = chunk_buffer[:-len(chunk)]
+                if prev_buffer.strip():
+                    await self.tts.speak_async(f"{self.name}: {prev_buffer}", speaker_name=self.name)
+                    logger.info(
+                        f"Spoke buffer before space/newline chunk: '{prev_buffer}'")
+                chunk_buffer = chunk  # Start new buffer with current chunk
+
+        # Speak any remaining buffered chunks
+        if chunk_buffer.strip():
+            await self.tts.speak_async(f"{self.name}: {chunk_buffer}", speaker_name=self.name)
+            logger.info(f"Spoke final buffered chunks: '{chunk_buffer}'")
+
         return content
 
     def clear_history(self) -> None:
@@ -145,15 +181,29 @@ class Applicant(Agent):
 
 
 async def main():
-    # Example with custom output directory
     output_dir = os.path.join(script_dir, "generated", "audio_output")
     interviewer = Interviewer(output_dir=output_dir)
     applicant = Applicant(output_dir=output_dir)
+    playback_overlap = 0.5  # Seconds to overlap playback for natural flow
+
     try:
-        question = await interviewer.generate_response("Start the interview.")
+        # Start the interview
+        question_task = asyncio.create_task(
+            interviewer.generate_response("Start the interview."))
+        question = await question_task
+
         for _ in range(3):
-            response = await applicant.generate_response(question)
-            question = await interviewer.generate_response(response)
+            # Start applicant's response while interviewer's audio is still playing
+            await asyncio.sleep(playback_overlap)  # Allow slight overlap
+            applicant_task = asyncio.create_task(
+                applicant.generate_response(question))
+            response = await applicant_task
+
+            # Start interviewer's next question with overlap
+            await asyncio.sleep(playback_overlap)
+            question_task = asyncio.create_task(
+                interviewer.generate_response(response))
+            question = await question_task
     finally:
         interviewer.cleanup()
         applicant.cleanup()
