@@ -1,151 +1,16 @@
-import datetime
 import asyncio
 import os
-import shutil
-from typing import Optional, List
-import threading
-import sys
-from gtts import gTTS
-from jet.llm.audio.transcribe_utils import transcribe_file_async
+from typing import Optional
+from jet.llm.audio.transcribe_utils import transcribe_file_async, combine_audio_files_async
+from jet.llm.audio.tts_engine import AdvancedTTSEngine
 from jet.wordnet.sentence import split_sentences
-from pydub import AudioSegment
-from jet.data.utils import generate_unique_hash
 from jet.llm.ollama.base import Ollama
 from jet.logger.logger import CustomLogger
-import pygame
-from rich.console import Console
-from rich.text import Text
-import time
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(
     script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
-console = Console()
-
-
-class AdvancedTTSEngine:
-    def __init__(self, rate: int = 200, voice_map: dict = None, output_dir: str = None):
-        self.rate = rate
-        self.voice_map = voice_map or {
-            "Emma": "female_voice_id", "Liam": "male_voice_id"}
-        self.lock = threading.Lock()
-        pygame.mixer.init()
-        self.temp_files = []
-        self.combined_files = []
-        self.output_dir = output_dir if output_dir else script_dir
-        self._reset_output_dir()
-        os.makedirs(self.output_dir, exist_ok=True)
-        self.cache = {}
-        self.channel = pygame.mixer.Channel(0)
-
-    def _reset_output_dir(self):
-        if os.path.exists(self.output_dir):
-            shutil.rmtree(self.output_dir)
-            logger.info(f"Cleared output directory: {self.output_dir}")
-        os.makedirs(self.output_dir, exist_ok=True)
-
-    def _get_audio_filename(self, speaker_name: str, text: str, prefix: str = "tts") -> str:
-        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-        safe_text = ''.join(c for c in text[:30] if c.isalnum() or c in (
-            ' ', '_')).strip().replace(' ', '_')
-        filename = os.path.join(
-            self.output_dir, f"{prefix}_{speaker_name}_{timestamp}_{safe_text}.mp3")
-        if prefix == "tts":
-            self.temp_files.append(filename)
-        else:
-            self.combined_files.append(filename)
-        return filename
-
-    def speak(self, text: str, speaker_name: str = "Agent") -> Optional[str]:
-        with self.lock:
-            if not text.strip():
-                logger.warning(f"Skipping empty TTS text for {speaker_name}")
-                return None
-            cache_key = f"{speaker_name}:{text}"
-            if cache_key in self.cache:
-                file_path = self.cache[cache_key]
-            else:
-                file_path = self._get_audio_filename(speaker_name, text)
-                try:
-                    tts = gTTS(text=text, lang='en')
-                    tts.save(file_path)
-                    self.cache[cache_key] = file_path
-                except Exception as e:
-                    logger.error(f"Error in TTS generation: {e}")
-                    raise
-            try:
-                self.channel.play(pygame.mixer.Sound(file_path))
-                return file_path
-            except Exception as e:
-                logger.error(f"Error in audio playback: {e}")
-                raise
-
-    async def speak_async(self, text: str, speaker_name: str = "Agent") -> Optional[str]:
-        loop = asyncio.get_event_loop()
-        file_path = await loop.run_in_executor(None, self.speak, text, speaker_name)
-        await asyncio.sleep(0.01)
-        return file_path
-
-    def combine_audio_files(self, file_paths: List[str], speaker_name: str, text: str) -> Optional[str]:
-        if not file_paths:
-            logger.warning("No audio files to combine")
-            return None
-        with self.lock:
-            start_time = time.time()
-            try:
-                combined = AudioSegment.empty()
-                for file_path in file_paths:
-                    if os.path.exists(file_path):
-                        audio = AudioSegment.from_mp3(file_path)
-                        combined += audio
-                    else:
-                        logger.warning(f"Audio file not found: {file_path}")
-                if not combined:
-                    logger.warning("No valid audio segments to combine")
-                    return None
-                output_file = self._get_audio_filename(
-                    speaker_name, text, prefix="combined")
-                combined.export(output_file, format="mp3", bitrate="64k")
-                logger.success(f"Combined audio saved: {output_file}")
-                logger.info(
-                    f"Combining audio took {time.time() - start_time:.2f} seconds")
-                return output_file
-            except Exception as e:
-                logger.error(f"Error combining audio files: {e}")
-                logger.info(
-                    f"Combining audio failed after {time.time() - start_time:.2f} seconds")
-                return None
-
-    async def combine_audio_files_async(self, file_paths: List[str], speaker_name: str, text: str) -> Optional[str]:
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self.combine_audio_files, file_paths, speaker_name, text)
-
-    def _cleanup_temp_files(self):
-        try:
-            # Attempt to acquire the lock non-blocking
-            if self.lock.acquire(blocking=False):
-                try:
-                    for file_path in self.temp_files:
-                        try:
-                            if os.path.exists(file_path):
-                                os.remove(file_path)
-                                logger.info(f"Deleted temp file: {file_path}")
-                        except Exception as e:
-                            logger.error(
-                                f"Error deleting temp file {file_path}: {e}")
-                    self.temp_files.clear()
-                    self.cache.clear()
-                finally:
-                    self.lock.release()
-            else:
-                logger.warning(
-                    "Could not acquire lock for cleanup; skipping temp file deletion")
-        except Exception as e:
-            logger.error(f"Error during temp file cleanup: {e}")
-
-    def cleanup(self):
-        self._cleanup_temp_files()
 
 
 class Agent:
@@ -164,7 +29,6 @@ class Agent:
         content = ""
         buffer = ""
         audio_files = []
-
         async for chunk in self.ollama.stream_chat(query=external_message):
             content += chunk
             buffer += chunk
@@ -173,32 +37,27 @@ class Agent:
                 for sentence in sentences[:-1]:
                     clean_sentence = sentence.strip()
                     if clean_sentence:
-                        # Speak buffered sentence
-                        file_path = await self.tts.speak_async(f"{self.name}: {clean_sentence}", speaker_name=self.name)
+                        file_path = await self.tts.speak_async(clean_sentence, speaker_name=self.name)
                         if file_path:
                             audio_files.append(file_path)
                 buffer = sentences[-1]
-
         final_sentence = buffer.strip()
         if final_sentence:
-            # Speak final buffered sentence
-            file_path = await self.tts.speak_async(f"{self.name}: {final_sentence}", speaker_name=self.name)
+            file_path = await self.tts.speak_async(final_sentence, speaker_name=self.name)
             if file_path:
                 audio_files.append(file_path)
-
         if audio_files and len(audio_files) > 1:
             async def combine_and_transcribe():
-                combined_file = await self.tts.combine_audio_files_async(audio_files, self.name, content)
+                output_file = self.tts._get_audio_filename(
+                    self.name, content, prefix="combined")
+                combined_file = await combine_audio_files_async(audio_files, output_file)
                 if combined_file:
                     logger.info("Scheduling background transcription")
                     await transcribe_file_async(combined_file, self.output_dir)
-
             asyncio.create_task(combine_and_transcribe())
-
         elif audio_files:
             logger.info(
                 f"Single audio file, skipping combine: {audio_files[0]}")
-
         return content
 
     def clear_history(self) -> None:
@@ -250,12 +109,10 @@ async def main():
     interviewer = Interviewer(output_dir=output_dir)
     applicant = Applicant(output_dir=output_dir)
     playback_overlap = 0.5
-
     try:
         question_task = asyncio.create_task(
             interviewer.generate_response("Start the interview."))
         question = await question_task
-
         for _ in range(3):
             await asyncio.sleep(playback_overlap)
             applicant_task = asyncio.create_task(
@@ -268,7 +125,6 @@ async def main():
     finally:
         interviewer.cleanup()
         applicant.cleanup()
-
 
 if __name__ == "__main__":
     asyncio.run(main())
