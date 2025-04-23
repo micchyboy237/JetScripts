@@ -20,21 +20,24 @@ console = Console()  # Rich console for enhanced text display
 
 
 class AdvancedTTSEngine:
-    def __init__(self, rate: int = 200, voice_map: dict = None):
+    def __init__(self, rate: int = 200, voice_map: dict = None, output_dir: str = None):
         self.rate = rate
-        # Map agent names to voice IDs
         self.voice_map = voice_map or {
             "Emma": "female_voice_id", "Liam": "male_voice_id"}
         self.lock = threading.Lock()
         pygame.mixer.init()
         self.temp_files = []  # Track temporary audio files
+        # Set output directory, default to script_dir if None
+        self.output_dir = output_dir if output_dir else script_dir
+        # Ensure output directory exists
+        os.makedirs(self.output_dir, exist_ok=True)
 
     def _get_audio_filename(self, speaker_name: str, text: str) -> str:
         timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')
         safe_text = ''.join(c for c in text[:30] if c.isalnum() or c in (
             ' ', '_')).strip().replace(' ', '_')
         filename = os.path.join(
-            script_dir, f"tts_{speaker_name}_{timestamp}_{safe_text}.mp3")
+            self.output_dir, f"tts_{speaker_name}_{timestamp}_{safe_text}.mp3")
         self.temp_files.append(filename)
         return filename
 
@@ -43,9 +46,7 @@ class AdvancedTTSEngine:
             file_path = self._get_audio_filename(speaker_name, text)
             try:
                 # Placeholder for advanced TTS (e.g., ElevenLabs API)
-                # Replace with actual API call, e.g., elevenlabs.generate(text, voice=self.voice_map.get(speaker_name, "default"))
-                # Fallback to gTTS for demonstration
-                tts = gTTS(text=text, lang='en')
+                tts = gTTS(text=text, lang='en')  # Fallback to gTTS
                 tts.save(file_path)
 
                 pygame.mixer.music.load(file_path)
@@ -61,7 +62,7 @@ class AdvancedTTSEngine:
     async def speak_async(self, text: str, speaker_name: str = "Agent"):
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self.speak, text, speaker_name)
-        await asyncio.sleep(0.05)  # Reduced delay for smoother transitions
+        await asyncio.sleep(0.05)
 
     def cleanup(self):
         """Remove temporary audio files."""
@@ -77,26 +78,24 @@ class AdvancedTTSEngine:
 
 
 class Agent:
-    def __init__(self, name: Optional[str], system_prompt: str, model: str = "llama3.1", session_id: str = "") -> None:
+    def __init__(self, name: Optional[str], system_prompt: str, model: str = "llama3.1", session_id: str = "", output_dir: str = None) -> None:
         if name is None:
             raise ValueError("Agent name must be provided or set in subclass")
         self.name: str = name
         self.ollama: Ollama = Ollama(
             model=model, system=system_prompt, session_id=session_id, temperature=0.3)
         self.chat_history = self.ollama.chat_history
-        self.tts = AdvancedTTSEngine(rate=200 if name == "Emma" else 180)
+        self.tts = AdvancedTTSEngine(
+            rate=200 if name == "Emma" else 180, output_dir=output_dir)
 
     async def generate_response(self, external_message: str) -> str:
         content = ""
-        # Display speaker name
         console.print(f"[bold blue]{self.name}:[/bold blue] ", end="")
         async for chunk in self.ollama.stream_chat(query=external_message):
             content += chunk
-            # Display chunk in real-time with rich formatting
             console.print(Text(chunk, style="green"), end="", soft_wrap=True)
             sys.stdout.flush()
-        console.print()  # Newline after response
-        # Speak the full response with speaker prefix
+        console.print()
         await self.tts.speak_async(f"{self.name}: {content}", speaker_name=self.name)
         return content
 
@@ -109,7 +108,7 @@ class Agent:
 
 
 class Interviewer(Agent):
-    def __init__(self, model: str = "llama3.1", name: Optional[str] = None, **kwargs) -> None:
+    def __init__(self, model: str = "llama3.1", name: Optional[str] = None, output_dir: str = None, **kwargs) -> None:
         name = name or "Emma"
         system_prompt = (
             f"You are {name}, a professional job interviewer for a software engineering position. "
@@ -128,11 +127,12 @@ class Interviewer(Agent):
             "If the candidate raises questions or concerns, address them appropriately and then ask again if they have any further questions or concerns, repeating this process until they have no more.\n"
             "If the candidate indicates they have no further questions or concerns (e.g., 'No questions' or 'I'm good'), end the interview politely and include '[TERMINATE]' in your final message."
         )
-        super().__init__(name=name, system_prompt=system_prompt, model=model, **kwargs)
+        super().__init__(name=name, system_prompt=system_prompt,
+                         model=model, output_dir=output_dir, **kwargs)
 
 
 class Applicant(Agent):
-    def __init__(self, model: str = "llama3.1", name: Optional[str] = None, **kwargs) -> None:
+    def __init__(self, model: str = "llama3.1", name: Optional[str] = None, output_dir: str = None, **kwargs) -> None:
         name = name or "Liam"
         system_prompt = (
             f"You are {name}, a job applicant applying for a software engineering position. "
@@ -140,21 +140,21 @@ class Applicant(Agent):
             f"Respond to the interviewer's questions professionally, concisely, and with relevant details. "
             "If asked about weaknesses, be honest but frame them positively."
         )
-        super().__init__(name=name, system_prompt=system_prompt, model=model, **kwargs)
+        super().__init__(name=name, system_prompt=system_prompt,
+                         model=model, output_dir=output_dir, **kwargs)
 
 
-# Example usage (for testing)
 async def main():
-    interviewer = Interviewer()
-    applicant = Applicant()
+    # Example with custom output directory
+    output_dir = os.path.join(script_dir, "audio_output")
+    interviewer = Interviewer(output_dir=output_dir)
+    applicant = Applicant(output_dir=output_dir)
     try:
-        # Simulate a few interview rounds
         question = await interviewer.generate_response("Start the interview.")
-        for _ in range(3):  # Limit to 3 exchanges for brevity
+        for _ in range(3):
             response = await applicant.generate_response(question)
             question = await interviewer.generate_response(response)
     finally:
-        # Cleanup resources
         interviewer.cleanup()
         applicant.cleanup()
 
