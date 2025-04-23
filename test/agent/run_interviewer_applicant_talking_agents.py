@@ -1,3 +1,4 @@
+import datetime
 import asyncio
 import os
 from typing import Optional
@@ -20,19 +21,29 @@ class TTSEngine:
         if voice_id:
             self.engine.setProperty('voice', voice_id)
         else:
-            # Use default voice if none specified
             voices = self.engine.getProperty('voices')
             self.engine.setProperty('voice', voices[0].id)
 
-    def speak(self, text: str):
-        """Synchronous speech function."""
+    def _get_audio_filename(self, speaker_name: str, text: str) -> str:
+        """Generate a unique filename using timestamp and a hash."""
+        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        safe_text = ''.join(c for c in text[:30] if c.isalnum() or c in (
+            ' ', '_')).strip().replace(' ', '_')
+        return os.path.join(script_dir, f"tts_{speaker_name}_{timestamp}_{safe_text}.mp3")
+
+    def speak(self, text: str, speaker_name: str = "Agent"):
+        """Speak the text and save to audio file."""
+        file_path = self._get_audio_filename(speaker_name, text)
+        self.engine.save_to_file(text, file_path)
+        self.engine.runAndWait()
+        logger.success(f"TTS audio saved: {file_path}")
         self.engine.say(text)
         self.engine.runAndWait()
 
-    async def speak_async(self, text: str):
-        """Asynchronous wrapper for TTS to avoid blocking the event loop."""
+    async def speak_async(self, text: str, speaker_name: str = "Agent"):
+        """Async wrapper."""
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, self.speak, text)
+        await loop.run_in_executor(None, self.speak, text, speaker_name)
 
 
 class Agent:
@@ -46,12 +57,10 @@ class Agent:
                              rate=200 if name == "Interviewer" else 180)
 
     async def generate_response(self, external_message: str) -> str:
-        """Generate a response using Ollama's stream_chat and speak it."""
         content = ""
         async for chunk in self.ollama.stream_chat(query=external_message):
             content += chunk
-        # Speak the response asynchronously
-        await self.tts.speak_async(f"{self.name}: {content}")
+        await self.tts.speak_async(f"{self.name}: {content}", speaker_name=self.name)
         return content
 
     def clear_history(self) -> None:
