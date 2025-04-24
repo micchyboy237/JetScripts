@@ -32,14 +32,14 @@ response_stream = llm(
 logger.debug("Generated Response:")
 for chunk in response_stream:
     logger.success(chunk['choices'][0]['text'], end='', flush=True)
-logger.newline()  # Newline after stream ends
+logger.newline()
 
 
 # Chat Completion API
 
 # Set chat_format according to the model you are using
 llm = Llama(model_path=model_path)
-response = llm.create_chat_completion(
+response_stream = llm.create_chat_completion(
     stream=True,
     messages=[
         {"role": "system", "content": "You are a story writing assistant."},
@@ -51,4 +51,5 @@ response = llm.create_chat_completion(
 )
 
 logger.gray("Chat Response:")
-logger.success(format_json(response))
+for chunk in response_stream:
+    logger.success(chunk['choices'][0]['text'], end='', flush=True)
