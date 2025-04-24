@@ -18,7 +18,7 @@ response = generate(
     tokenizer,
     prompt=prompt,
     max_tokens=300,
-    temp=0.7,
+    temperature=0.7,
     verbose=True
 )
 
