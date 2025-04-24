@@ -3,7 +3,7 @@ import os
 from typing import Optional
 from jet.data.utils import generate_unique_hash
 from jet.llm.ollama.base import Ollama
-from jet.logger.logger import CustomLogger
+from jet.logger import CustomLogger
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(

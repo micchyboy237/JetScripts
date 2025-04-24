@@ -24,3 +24,4 @@ response = generate(
 # Print the generated response
 print("\nGenerated Response:\n")
 print(response)
+mlx-community/gemma3_4b_it_4bit

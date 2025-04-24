@@ -5,7 +5,7 @@ from jet.llm.audio.transcribe_utils import transcribe_file_async, combine_audio_
 from jet.llm.audio.tts_engine import AdvancedTTSEngine
 from jet.wordnet.sentence import split_sentences
 from jet.llm.ollama.base import Ollama
-from jet.logger.logger import CustomLogger
+from jet.logger import CustomLogger
 from tqdm import tqdm
 
 script_dir = os.path.dirname(os.path.abspath(__file__))

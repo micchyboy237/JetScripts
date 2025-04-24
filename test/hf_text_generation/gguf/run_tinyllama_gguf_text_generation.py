@@ -1,41 +1,46 @@
+from jet.logger import logger
+from jet.transformers.formatters import format_json
 from llama_cpp import Llama
 
+model_path = "/Users/jethroestrada/.cache/huggingface/hub/models--TheBloke--TinyLlama-1.1B-Chat-v1.0-GGUF/snapshots/52e7645ba7c309695bec7ac98f4f005b139cf465/tinyllama-1.1b-chat-v1.0.Q5_0.gguf"
+# Set gpu_layers to the number of layers to offload to GPU. Set to 0 if no GPU acceleration is available on your system.
+llm = Llama(
+    # Download the model file first
+    model_path=model_path,
+    n_ctx=2048,  # The max sequence length to use - note that longer sequence lengths require much more resources
+    # The number of CPU threads to use, tailor to your system and the resulting performance
+    n_threads=8,
+    # The number of layers to offload to GPU, if you have GPU acceleration available
+    # n_gpu_layers=35
+)
 
-def generate_text_stream(model_path, prompt, max_tokens=200, temperature=0.7):
-    # Initialize the model
-    llm = Llama(model_path=model_path, n_ctx=2048)
+# Simple inference example
+output = llm(
+    # Prompt
+    "<|system|>\n{system_message}</s>\n<|user|>\n{prompt}</s>\n<|assistant|>",
+    max_tokens=512,  # Generate up to 512 tokens
+    # Example stop token - not necessarily correct for this specific model! Please check before using.
+    stop=["</s>"],
+    echo=True        # Whether to echo the prompt
+)
 
-    # Prepare the chat format for TinyLlama
-    formatted_prompt = f"<|USER|> {prompt} <|ASSISTANT|>"
+logger.gray("Generate response:")
+logger.success(format_json(output))
 
-    # Stream response
-    response_stream = llm(
-        formatted_prompt,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        stop=["<|USER|>", "<|ASSISTANT|>"],
-        echo=False,
-        stream=True
-    )
+# Chat Completion API
 
-    print("Generated Response:")
-    for chunk in response_stream:
-        print(chunk['choices'][0]['text'], end='', flush=True)
-    print()  # Newline after stream ends
+# Set chat_format according to the model you are using
+llm = Llama(model_path=model_path,
+            chat_format="llama-2")
+response = llm.create_chat_completion(
+    messages=[
+        {"role": "system", "content": "You are a story writing assistant."},
+        {
+            "role": "user",
+            "content": "Write a story about llamas."
+        }
+    ]
+)
 
-
-def main():
-    # Model path
-    model_path = "/Users/jethroestrada/.cache/huggingface/hub/models--TheBloke--TinyLlama-1.1B-Chat-v1.0-GGUF/snapshots/52e7645ba7c309695bec7ac98f4f005b139cf465/tinyllama-1.1b-chat-v1.0.Q5_0.gguf"
-
-    # New Prompt
-    prompt = """You are a customer support representative for an online retail company. Write a professional, friendly response to a customer who emailed about a delayed order. The customer's name is Alex Johnson, and the order number is #123456. Explain that the delay is due to high demand and provide an estimated delivery date of next Wednesday."""
-
-    try:
-        generate_text_stream(model_path, prompt)
-    except Exception as e:
-        print(f"Error: {str(e)}")
-
-
-if __name__ == "__main__":
-    main()
+logger.gray("Chat response:")
+logger.success(format_json(response))
