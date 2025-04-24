@@ -52,4 +52,4 @@ response_stream = llm.create_chat_completion(
 
 logger.gray("Chat Response:")
 for chunk in response_stream:
-    logger.success(chunk, end='', flush=True)
+    logger.success(chunk['choices'][0]['delta']["content"], end='', flush=True)
