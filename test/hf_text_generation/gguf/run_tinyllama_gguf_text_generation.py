@@ -38,9 +38,9 @@ logger.newline()  # Newline after stream ends
 # Chat Completion API
 
 # Set chat_format according to the model you are using
-llm = Llama(model_path=model_path,
-            chat_format="llama-2")
+llm = Llama(model_path=model_path)
 response = llm.create_chat_completion(
+    stream=True,
     messages=[
         {"role": "system", "content": "You are a story writing assistant."},
         {
