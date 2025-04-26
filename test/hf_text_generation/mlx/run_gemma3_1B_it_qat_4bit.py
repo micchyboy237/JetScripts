@@ -8,7 +8,6 @@ prompt = """
 def calculate_area_of_circle(radius):
     \"\"\"Calculate the area of a circle given its radius.\"\"\"
 """
-max_tokens = -1
 
 
 # Apply chat template if available (for instruction-tuned models)
@@ -27,7 +26,6 @@ response = generate(
     model,
     tokenizer,
     prompt=prompt,
-    max_tokens=max_tokens,
     verbose=True,
 )
 
@@ -41,7 +39,6 @@ response_stream = stream_generate(
     model,
     tokenizer,
     prompt=prompt,
-    max_tokens=max_tokens
 )
 
 for response in response_stream:
