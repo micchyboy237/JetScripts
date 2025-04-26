@@ -5,6 +5,7 @@ import argparse
 import subprocess
 import re
 import ast
+from jet.code.python_code_extractor import strip_comments
 from jet.logger import logger
 
 exclude_files = [
@@ -224,8 +225,10 @@ def clean_print(content):
 
 def clean_content(content: str, file_path: str, shorten_funcs: bool = True):
     """Clean the content based on file type and apply various cleaning operations."""
-    if shorten_funcs and file_path.endswith(".py"):
-        content = shorten_functions(content)
+    if file_path.endswith(".py"):
+        content = strip_comments(content)
+        if shorten_funcs:
+            content = shorten_functions(content)
     if not file_path.endswith(".md"):
         content = clean_comments(content)
     content = clean_logging(content)

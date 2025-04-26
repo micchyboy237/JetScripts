@@ -522,6 +522,23 @@ def response(flow: http.HTTPFlow):
     logger.log("response client_conn.id:",
                flow.client_conn.id, colors=["WHITE", "PURPLE"])
 
+    # Check for error status codes in the response
+    if flow.response and flow.response.status_code >= 400:
+        error_type = "Client Error" if flow.response.status_code < 500 else "Server Error"
+        # Decode reason from bytes to string, handle potential decoding errors
+        try:
+            reason = flow.response.data.reason.decode('utf-8')
+        except (UnicodeDecodeError, AttributeError):
+            reason = str(flow.response)
+        logger.error(
+            f"Response Error: {error_type} - Status Code: {flow.response.status_code} - Reason: {reason}")
+        logger.debug(f"Error Response Content: {flow.response.text}")
+
+        chunks = []  # Clean up chunks to avoid memory issues
+        if flow.id in start_times:
+            del start_times[flow.id]  # Clean up start_times
+        return
+
     if stop_event.is_set():
         logger.warning("Response - Cancelled stream")
     elif any(path in flow.request.path for path in ["/chat", "/generate"]):
@@ -564,12 +581,6 @@ def response(flow: http.HTTPFlow):
             final_response_content = json.dumps(
                 response_dict.get('content', {}), indent=1)
 
-        # logger.log("RESPONSE:")
-        # logger.debug(json.dumps(response_dict, indent=1))
-
-        # logger.log("RESPONSE CONTENT:")
-        # logger.success(final_response_content)
-
         logger.newline()
         logger.log("Response Text Length:", len(final_response_content),
                    colors=["DEBUG", "SUCCESS"])
@@ -587,8 +598,6 @@ def response(flow: http.HTTPFlow):
 
         model_max_length = OLLAMA_MODEL_EMBEDDING_TOKENS[request_content['model']]
 
-        # prompt_token_count = response_info["prompt_eval_count"]
-        # response_token_count = response_info['eval_count']
         messages = request_content.get(
             'messages', request_content.get('prompt', None))
         prompt_token_count = next(
