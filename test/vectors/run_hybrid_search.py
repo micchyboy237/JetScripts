@@ -15,14 +15,13 @@ if __name__ == "__main__":
     engine = HybridSearchEngine()
     engine.fit(docs)
 
-    results = engine.search(query, top_n=5, alpha=0.5)
-
-    print("\n🔎 Hybrid Search Results w/ Diversity:\n")
-    for r in results:
+    print("\n🔎 Hybrid Search Results w/ MMR Diversity:\n")
+    mmr_results = engine.search(
+        query, top_n=5, alpha=0.5, use_mmr=True, lambda_param=0.7)
+    for r in mmr_results:
         print(f"Score: {r['score']:.4f} | Document: {r['document']}")
 
-    results = engine.search(query, top_n=5, alpha=0.5, diversity=False)
-
     print("\n🔎 Hybrid Search Results w/o Diversity:\n")
-    for r in results:
+    simple_results = engine.search(query, top_n=5, alpha=0.5, use_mmr=False)
+    for r in simple_results:
         print(f"Score: {r['score']:.4f} | Document: {r['document']}")
