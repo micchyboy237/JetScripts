@@ -44,8 +44,12 @@ def get_hidden_size(model: 'nn.Module') -> int:
         hidden_size = model.model.args.hidden_size
         return hidden_size
     except AttributeError:
-        raise AttributeError(
-            "Neither hidden_size nor n_embd found in model configuration.")
+        try:
+            hidden_size = model.model.embed_tokens.dims
+            return hidden_size
+        except AttributeError:
+            raise AttributeError(
+                "Neither hidden_size nor n_embd found in model configuration.")
 
 
 def get_prompt_token_count(
