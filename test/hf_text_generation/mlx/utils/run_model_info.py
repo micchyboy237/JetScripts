@@ -18,7 +18,7 @@ def get_max_context_length(model: 'nn.Module', max_kv_size: Optional[int] = None
     """
     # Try to get max context length from model configuration
     try:
-        max_context_length = model.config.max_position_embeddings
+        max_context_length = model.tokenizer.model_max_length
     except AttributeError:
         # Fallback to a default or max_kv_size if config doesn't specify
         max_context_length = max_kv_size if max_kv_size is not None else 2048  # Default fallback
