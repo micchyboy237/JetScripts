@@ -5,25 +5,37 @@ from typing import Union, List, Dict, Optional
 import mlx.core as mx
 
 
-def get_max_context_length(model: 'nn.Module', max_kv_size: Optional[int] = None) -> int:
+def get_max_context_length(
+    tokenizer: Union[PreTrainedTokenizer, TokenizerWrapper],
+    max_kv_size: Optional[int] = None
+) -> int:
     """
-    Retrieve the maximum context length of the model (input + output tokens).
+    Retrieve the maximum context length using the tokenizer's configuration.
 
     Args:
-        model (nn.Module): The MLX model.
+        tokenizer (Union[PreTrainedTokenizer, TokenizerWrapper]): The tokenizer.
         max_kv_size (Optional[int]): The maximum key-value cache size, if specified.
 
     Returns:
         int: The maximum context length (in tokens).
     """
-    # Try to get max context length from model configuration
+    if not isinstance(tokenizer, TokenizerWrapper):
+        tokenizer = TokenizerWrapper(tokenizer)
+
+    # Try to get max context length from tokenizer configuration
+    max_context_length = None
     try:
-        max_context_length = model.tokenizer.model_max_length
+        max_context_length = tokenizer.model_max_length
+        if not isinstance(max_context_length, int) or max_context_length <= 0:
+            max_context_length = None
     except AttributeError:
-        # Fallback to a default or max_kv_size if config doesn't specify
-        max_context_length = max_kv_size if max_kv_size is not None else 2048  # Default fallback
+        pass
+
+    # Fall back to max_kv_size or default if tokenizer doesn't provide a valid value
+    if max_context_length is None:
+        max_context_length = max_kv_size if max_kv_size is not None else 2048
         print(
-            f"Warning: max_position_embeddings not found in model config. Using {max_context_length}.")
+            f"Warning: tokenizer.model_max_length not found. Using default: {max_context_length}.")
 
     # If max_kv_size is specified and smaller, it limits the context length
     if max_kv_size is not None and max_kv_size < max_context_length:
@@ -190,14 +202,14 @@ def main1():
 
     def sample_get_max_context_length():
         # Example 1: Get max context length without max_kv_size
-        max_context = get_max_context_length(model)
+        max_context = get_max_context_length(tokenizer)
         print(
             f"Maximum context length (from model config): {max_context} tokens")
 
         # Example 2: Get max context length with a specified max_kv_size
         max_kv_size = 2048  # Limit KV cache to 2048 tokens
         max_context_limited = get_max_context_length(
-            model, max_kv_size=max_kv_size)
+            tokenizer, max_kv_size=max_kv_size)
         print(
             f"Maximum context length (limited by max_kv_size): {max_context_limited} tokens")
 
@@ -330,7 +342,7 @@ def main2():
         print(f"Response token count: {response_tokens}")
 
         # Validate against max context
-        max_context = get_max_context_length(model)
+        max_context = get_max_context_length(tokenizer)
         total_tokens = prompt_tokens + response_tokens
         print(f"Total tokens used: {total_tokens}/{max_context}")
 
@@ -365,7 +377,7 @@ def main2():
         print(f"Response token count: {response_tokens}")
 
         # Validate against max context
-        max_context = get_max_context_length(model)
+        max_context = get_max_context_length(tokenizer)
         total_tokens = messages_tokens + response_tokens
         print(f"Total tokens used: {total_tokens}/{max_context}")
 
@@ -396,7 +408,7 @@ def main2():
         print(f"Response token count: {response_tokens}")
 
         # Validate against max context
-        max_context = get_max_context_length(model)
+        max_context = get_max_context_length(tokenizer)
         total_tokens = prompt_tokens + response_tokens
         print(f"Total tokens used: {total_tokens}/{max_context}")
 
