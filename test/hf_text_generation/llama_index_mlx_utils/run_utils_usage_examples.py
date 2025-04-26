@@ -2,8 +2,7 @@ import os
 from transformers import AutoTokenizer
 import mlx.core as mx
 import mlx.nn as nn
-from llama_index.llms.mlx.utils import gen_full, gen_stream
-from llama_index.llms.mlx.tokenizer_utils import load_tokenizer
+from jet.llm.mlx.llama_index_mlx.utils import gen_full, gen_stream
 from mlx_lm import load, generate
 
 

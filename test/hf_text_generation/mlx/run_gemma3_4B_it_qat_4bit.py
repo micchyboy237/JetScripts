@@ -1,3 +1,4 @@
+from jet.llm.mlx.utils import get_prompt_token_count
 from mlx_lm import load, generate
 
 # Load the model and tokenizer
@@ -21,6 +22,10 @@ if tokenizer.chat_template is not None:
     # messages = [{"role": "user", "content": prompt}]
     prompt = tokenizer.apply_chat_template(
         messages, add_generation_prompt=True)
+
+prompt_token_count = get_prompt_token_count(tokenizer, prompt)
+
+print(f"Prompt Tokens: {prompt_token_count}")
 
 # Generate the response
 response = generate(
