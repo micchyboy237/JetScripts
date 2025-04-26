@@ -1,57 +1,60 @@
-from jet.logger import logger
-from jet.transformers.formatters import format_json
-from jet.wordnet.sentence import is_last_word_in_sentence, split_sentences
+# hybrid_search.py
+
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sentence_transformers import SentenceTransformer, util
+
+# Sample documents
+documents = [
+    "The cat is on the mat",
+    "The dog is not on the mat",
+    "A cat and a dog are friends",
+    "The mat is clean",
+    "The dog runs fast"
+]
+
+# Initialize models
+dense_model = SentenceTransformer('all-MiniLM-L6-v2')
+sparse_vectorizer = TfidfVectorizer()
+
+# Precompute embeddings
+dense_embeddings = dense_model.encode(documents, normalize_embeddings=True)
+sparse_matrix = sparse_vectorizer.fit_transform(documents)
 
 
-def samples_with_abbreviations_and_acronyms():
-    text = "Dr. Smith is from the U.S. He works at Acme Inc. He's great."
-    sentences = split_sentences(text)
+def hybrid_search(query, top_n=3, alpha=0.5):
+    """
+    alpha = 0.5 -> equally weight dense and sparse
+    alpha closer to 1 -> favor dense (semantic)
+    alpha closer to 0 -> favor sparse (exact)
+    """
+    # Dense embedding
+    query_dense = dense_model.encode([query], normalize_embeddings=True)
 
-    logger.gray(f"Sentences ({len(sentences)}):")
-    logger.success(format_json(sentences))
+    # Sparse vector
+    query_sparse = sparse_vectorizer.transform([query])
 
-    print(f"Dr -> {is_last_word_in_sentence("Dr", text)}")
-    print(f"Dr. -> {is_last_word_in_sentence("Dr.", text)}")
-    print(f"U.S -> {is_last_word_in_sentence("U.S", text)}")
-    print(f"U.S. -> {is_last_word_in_sentence("U.S.", text)}")
-    print(f"Inc -> {is_last_word_in_sentence("Inc", text)}")
-    print(f"Inc. -> {is_last_word_in_sentence("Inc.", text)}")
-    print(f"great -> {is_last_word_in_sentence("great", text)}")
-    print(f"great. -> {is_last_word_in_sentence("great.", text)}")
+    # Dense similarity
+    dense_scores = util.cos_sim(query_dense, dense_embeddings)[0].cpu().numpy()
 
+    # Sparse similarity
+    sparse_scores = (query_sparse @ sparse_matrix.T).toarray()[0]
 
-def samples_with_ordered_list_markers():
-    text = "1. First item 1. 2. Second item. 3. Third item. a) Sub item. b) Another item b."
-    sentences = split_sentences(text)
+    # Hybrid score
+    final_scores = alpha * dense_scores + (1 - alpha) * sparse_scores
 
-    logger.gray(f"Ordered List Sentences ({len(sentences)}):")
-    logger.success(format_json(sentences))
+    # Top N results
+    top_indices = final_scores.argsort()[::-1][:top_n]
+    results = [(documents[idx], final_scores[idx]) for idx in top_indices]
 
-    print(f"First -> {is_last_word_in_sentence('First', text)}")
-    print(f"item. -> {is_last_word_in_sentence('item.', text)}")
-    print(f"1. -> {is_last_word_in_sentence('1.', text)}")
-    print(f"2. -> {is_last_word_in_sentence('2.', text)}")
-    print(f"b. -> {is_last_word_in_sentence('b.', text)}")
+    return results
 
 
-def samples_with_unordered_list_markers():
-    text = "- Bullet one. * Bullet two. + Bullet three."
-    sentences = split_sentences(text)
-
-    logger.gray(f"Unordered List Sentences ({len(sentences)}):")
-    logger.success(format_json(sentences))
-
-    print(f"Bullet -> {is_last_word_in_sentence('Bullet', text)}")
-    print(f"three. -> {is_last_word_in_sentence('three.', text)}")
-
-
+# Sample search
 if __name__ == "__main__":
+    query = "cat on mat"
+    results = hybrid_search(query, top_n=3, alpha=0.5)
 
-    print("\nRunning samples_with_abbreviations_and_acronyms...")
-    samples_with_abbreviations_and_acronyms()
-
-    print("\nRunning samples_with_ordered_list_markers...")
-    samples_with_ordered_list_markers()
-
-    print("\nRunning samples_with_unordered_list_markers...")
-    samples_with_unordered_list_markers()
+    print("\n🔎 Search Results:\n")
+    for doc, score in results:
+        print(f"Score: {score:.4f} | Document: {doc}")
