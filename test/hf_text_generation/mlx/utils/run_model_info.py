@@ -26,16 +26,19 @@ def get_max_context_length(
     max_context_length = None
     try:
         max_context_length = tokenizer.model_max_length
-        if not isinstance(max_context_length, int) or max_context_length <= 0:
+        # Check if the value is realistic (e.g., not a placeholder like 2^60)
+        if not isinstance(max_context_length, int) or max_context_length <= 0 or max_context_length > 1_000_000:
+            print(
+                f"Warning: tokenizer.model_max_length ({max_context_length}) is invalid or too large.")
             max_context_length = None
     except AttributeError:
         pass
 
     # Fall back to max_kv_size or default if tokenizer doesn't provide a valid value
     if max_context_length is None:
-        max_context_length = max_kv_size if max_kv_size is not None else 2048
+        max_context_length = max_kv_size if max_kv_size is not None else 4096
         print(
-            f"Warning: tokenizer.model_max_length not found. Using default: {max_context_length}.")
+            f"Warning: tokenizer.model_max_length not found or invalid. Using default: {max_context_length}.")
 
     # If max_kv_size is specified and smaller, it limits the context length
     if max_kv_size is not None and max_kv_size < max_context_length:
@@ -44,6 +47,31 @@ def get_max_context_length(
             f"Max context length limited by max_kv_size: {max_context_length}")
 
     return max_context_length
+
+
+def get_hidden_size(model: 'nn.Module') -> int:
+    """
+    Retrieve the hidden size (embedding dimension) of the model.
+
+    Args:
+        model (nn.Module): The MLX model.
+
+    Returns:
+        int: The hidden size of the model.
+
+    Raises:
+        AttributeError: If neither hidden_size nor n_embd is found in the model configuration.
+    """
+    try:
+        hidden_size = model.config.hidden_size
+        return hidden_size
+    except AttributeError:
+        try:
+            hidden_size = model.config.n_embd
+            return hidden_size
+        except AttributeError:
+            raise AttributeError(
+                "Neither hidden_size nor n_embd found in model configuration.")
 
 
 def get_prompt_token_count(
@@ -76,42 +104,6 @@ def get_prompt_token_count(
     return tokens.size if isinstance(tokens, mx.array) else len(tokens)
 
 
-def get_response_token_count(
-    model: 'nn.Module',
-    tokenizer: Union[PreTrainedTokenizer, TokenizerWrapper],
-    prompt: Union[str, mx.array, List[int]],
-    max_tokens: int = 100,
-    **kwargs
-) -> tuple[str, int]:
-    """
-    Calculate the token count for the generated response.
-
-    Args:
-        model (nn.Module): The MLX model.
-        tokenizer (Union[PreTrainedTokenizer, TokenizerWrapper]): The tokenizer.
-        prompt (Union[str, mx.array, List[int]]): The input prompt.
-        max_tokens (int): Maximum number of tokens to generate.
-        **kwargs: Additional arguments passed to stream_generate (e.g., sampler, draft_model).
-
-    Returns:
-        tuple[str, int]: The generated text and the number of tokens in the response.
-    """
-    if not isinstance(tokenizer, TokenizerWrapper):
-        tokenizer = TokenizerWrapper(tokenizer)
-
-    text = ""
-    response_token_count = 0
-
-    for response in stream_generate(model, tokenizer, prompt, max_tokens=max_tokens, **kwargs):
-        text += response.text
-        response_token_count = response.generation_tokens
-        # Stop if generation is complete (e.g., EOS or max_tokens reached)
-        if response.finish_reason in ["stop", "length"]:
-            break
-
-    return text, response_token_count
-
-
 def get_messages_token_count(
     tokenizer: Union[PreTrainedTokenizer, TokenizerWrapper],
     messages: List[Dict[str, str]],
@@ -139,7 +131,6 @@ def get_messages_token_count(
 
     chat_template_config = chat_template_config or {}
 
-    # Apply chat template if available
     if tokenizer.chat_template is not None:
         prompt = tokenizer.apply_chat_template(
             messages,
@@ -151,7 +142,6 @@ def get_messages_token_count(
         tokens = tokenizer.encode(
             prompt, add_special_tokens=add_special_tokens)
     else:
-        # Concatenate message contents and encode
         prompt = "".join(message["content"] for message in messages)
         tokens = tokenizer.encode(
             prompt, add_special_tokens=add_special_tokens)
@@ -192,6 +182,41 @@ def get_individual_message_token_counts(
     return result
 
 
+def get_response_token_count(
+    model: 'nn.Module',
+    tokenizer: Union[PreTrainedTokenizer, TokenizerWrapper],
+    prompt: Union[str, mx.array, List[int]],
+    max_tokens: int = 100,
+    **kwargs
+) -> tuple[str, int]:
+    """
+    Calculate the token count for the generated response.
+
+    Args:
+        model (nn.Module): The MLX model.
+        tokenizer (Union[PreTrainedTokenizer, TokenizerWrapper]): The tokenizer.
+        prompt (Union[str, mx.array, List[int]]): The input prompt.
+        max_tokens (int): Maximum number of tokens to generate.
+        **kwargs: Additional arguments passed to stream_generate (e.g., sampler, draft_model).
+
+    Returns:
+        tuple[str, int]: The generated text and the number of tokens in the response.
+    """
+    if not isinstance(tokenizer, TokenizerWrapper):
+        tokenizer = TokenizerWrapper(tokenizer)
+
+    text = ""
+    response_token_count = 0
+
+    for response in stream_generate(model, tokenizer, prompt, max_tokens=max_tokens, **kwargs):
+        text += response.text
+        response_token_count = response.generation_tokens
+        if response.finish_reason in ["stop", "length"]:
+            break
+
+    return text, response_token_count
+
+
 def main1():
     from mlx_lm import load
     from jet.logger import logger
@@ -201,30 +226,88 @@ def main1():
     model, tokenizer = load(model_path)
 
     def sample_get_max_context_length():
-        # Example 1: Get max context length without max_kv_size
+        # Get max context length
         max_context = get_max_context_length(tokenizer)
-        print(
-            f"Maximum context length (from model config): {max_context} tokens")
+        print(f"Maximum context length: {max_context} tokens")
 
-        # Example 2: Get max context length with a specified max_kv_size
-        max_kv_size = 2048  # Limit KV cache to 2048 tokens
+        # Get max context length with a specified max_kv_size
+        max_kv_size = 2048
         max_context_limited = get_max_context_length(
             tokenizer, max_kv_size=max_kv_size)
         print(
             f"Maximum context length (limited by max_kv_size): {max_context_limited} tokens")
 
-        # Example 3: Validate prompt and generation against max context
+        # Validate prompt
         prompt = "Write a detailed summary of the history of artificial intelligence."
-        prompt_tokens = get_prompt_token_count(tokenizer, prompt)
-        max_tokens_to_generate = 500  # Plan to generate 500 tokens
+        prompt_tokens = get_prompt_token_count(
+            tokenizer, prompt, add_special_tokens=True)
+        max_tokens_to_generate = 500
         total_tokens = prompt_tokens + max_tokens_to_generate
 
         if total_tokens > max_context:
-            print(f"Warning: Total tokens ({total_tokens}) exceed max context length ({max_context}). "
-                  f"Reduce prompt or max_tokens.")
+            print(
+                f"Warning: Total tokens ({total_tokens}) exceed max context length ({max_context}).")
         else:
             print(
-                f"Total tokens ({total_tokens}) are within max context length ({max_context}). Safe to proceed.")
+                f"Total tokens ({total_tokens}) are within max context length ({max_context}).")
+
+    def sample_get_hidden_size():
+        # Get hidden size
+        try:
+            hidden_size = get_hidden_size(model)
+            print(f"Model hidden size: {hidden_size}")
+        except AttributeError as e:
+            print(f"Error: {e}")
+
+        # Example use case: Check if hidden size matches expected value for Gemma-3-1B
+        expected_hidden_size = 2048  # Example for Gemma-3-1B
+        if hidden_size == expected_hidden_size:
+            print("Hidden size matches expected value for Gemma-3-1B.")
+        else:
+            print(
+                f"Warning: Hidden size ({hidden_size}) does not match expected value ({expected_hidden_size}).")
+
+    def sample_combined_usage():
+        # Define messages
+        messages = [
+            {"role": "system", "content": "You are a helpful AI assistant specializing in history."},
+            {"role": "user", "content": "Tell me about the Renaissance period."}
+        ]
+
+        # Get hidden size
+        hidden_size = get_hidden_size(model)
+        print(f"Model hidden size: {hidden_size}")
+
+        # Get max context length
+        max_context = get_max_context_length(tokenizer)
+        print(f"Maximum context length: {max_context} tokens")
+
+        # Get messages token count
+        messages_tokens = get_messages_token_count(
+            tokenizer,
+            messages,
+            add_special_tokens=False,
+            add_generation_prompt=True
+        )
+        print(f"Messages token count: {messages_tokens}")
+
+        # Apply chat template to create prompt
+        prompt = tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True)
+
+        # Get response token count
+        text, response_tokens = get_response_token_count(
+            model,
+            tokenizer,
+            prompt,
+            max_tokens=100
+        )
+        print(f"Generated text: {text}")
+        print(f"Response token count: {response_tokens}")
+
+        # Validate total tokens
+        total_tokens = messages_tokens + response_tokens
+        print(f"Total tokens used: {total_tokens}/{max_context}")
 
     def sample_get_prompt_token_count():
         # Example 1: String prompt with special tokens
@@ -303,6 +386,10 @@ def main1():
 
     logger.info("\nRunning sample_get_max_context_length...")
     sample_get_max_context_length()
+    logger.info("\nRunning sample_get_hidden_size...")
+    sample_get_hidden_size()
+    logger.info("\nRunning sample_combined_usage...")
+    sample_combined_usage()
     logger.info("\nRunning sample_get_prompt_token_count...")
     sample_get_prompt_token_count()
     logger.info("\nRunning sample_get_messages_token_count...")
