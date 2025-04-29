@@ -1,3 +1,4 @@
+import glob
 import hashlib
 import re
 import fnmatch
@@ -750,14 +751,14 @@ def collect_files_and_dirs(input_base_dirs: list[str]) -> (list[str], list[str])
     include_files = []
     unique_dirs = set()
 
-    for path in input_base_dirs:
-        if os.path.isfile(path):
-            include_files.append(os.path.basename(path))
-            unique_dirs.add(os.path.dirname(path))
+    for pattern in input_base_dirs:
+        # Expand the wildcard pattern into actual file paths
+        for path in glob.glob(pattern, recursive=True):
+            if os.path.isfile(path):
+                include_files.append(os.path.basename(path))
+                unique_dirs.add(os.path.dirname(path))
 
-    # Convert the set of directories to a sorted list for consistent output
     unique_dirs_list = sorted(unique_dirs)
-
     return include_files, unique_dirs_list
 
 
@@ -767,11 +768,11 @@ if __name__ == "__main__":
         "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot",
         "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents",
         "/Users/jethroestrada/Desktop/External_Projects/AI/eval_agents",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025",
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/all-rag-techniques/4_context_enriched_rag.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/all-rag-techniques/*.ipynb",
     ]
 
     include_files = [

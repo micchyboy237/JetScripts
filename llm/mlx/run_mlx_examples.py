@@ -2,7 +2,6 @@ import json
 import os
 from jet.llm.mlx.client import MLXLMClient
 from jet.logger import CustomLogger
-from jet.transformers.formatters import format_json
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(
@@ -31,32 +30,27 @@ def chatbot_example(client: MLXLMClient):
 
 
 def streaming_chat_example(client: MLXLMClient):
-    """Example of using the .chat method with streaming for real-time responses."""
+    """Example of using the .stream_chat method for streaming chat completions."""
     messages = [
-        {"role": "system", "content": "You are a storytelling AI."},
+        {"role": "system", "content": "You are a helpful AI assistant."},
         {"role": "user", "content": "Tell me a short story about a brave knight."},
     ]
 
-    logger.debug("Streaming Story:")
-    responses = client.chat(
+    logger.debug("Streaming Chat Response:")
+    full_response = ""
+
+    for response in client.stream_chat(
         messages=messages,
         max_tokens=200,
         temperature=0.8,
-        stream=True
-    )
-
-    full_response = ""
-    for response in responses:
-        if "choices" in response and response["choices"]:
-            choice = response["choices"][0]
-            content = choice.get(
+        stop=["\n\n"]
+    ):
+        if response["choices"]:
+            content = response["choices"][0].get(
                 "delta", {}).get("content", "")
-            if not choice["finish_reason"]:
-                logger.success(content, flush=True)
-            else:
-                logger.success(format_json(response))
             full_response += content
-    logger.debug("\n")
+            logger.success(content, end="", flush=True)
+
     return full_response
 
 
@@ -75,6 +69,28 @@ def text_generation_example(client: MLXLMClient):
     logger.debug("Text Generation Response:")
     logger.success(json.dumps(response, indent=2))
     return response
+
+
+def streaming_generate_example(client: MLXLMClient):
+    """Example of using the .stream_generate method for streaming text generation."""
+    prompt = "In a world where magic was real, the greatest wizard"
+
+    logger.debug("Streaming Text Generation Response:")
+    full_response = ""
+
+    for response in client.stream_generate(
+        prompt=prompt,
+        max_tokens=150,
+        temperature=0.9,
+        top_p=0.95,
+        stop=["."]
+    ):
+        if response["choices"]:
+            content = response["choices"][0].get("text", "")
+            full_response += content
+            logger.success(content, end="", flush=True)
+
+    return full_response
 
 
 def model_management_example(client: MLXLMClient):
@@ -99,6 +115,9 @@ def main():
 
     logger.info("\n=== Text Generation Example ===")
     text_generation_example(client)
+
+    logger.info("\n=== Streaming Text Generation Example ===")
+    streaming_generate_example(client)
 
     logger.info("\n=== Model Management Example ===")
     model_management_example(client)
