@@ -43,32 +43,35 @@ class SimpleVectorStore:
         self.documents = []
         self.metadata = []
 
-    def add_documents(self, documents, vectors, metadata=None):
-        if metadata is None:
-            metadata = [{} for _ in range(len(documents))]
-        for doc, vec, meta in zip(documents, vectors, metadata):
-            self.documents.append(doc)
-            self.vectors.append(np.array(vec))
-            self.metadata.append(meta)
+    def add_documents(self, text, embedding, metadata=None):
+        self.vectors.append(np.array(embedding))
+        self.documents.append(text)
+        self.metadata.append(metadata or {})
 
-    def search(self, query_vector, top_k=5):
-        if not self.vectors or not self.documents:
+    def search(self, query_embedding, top_k=5):
+        if not self.vectors:
             return []
-        query_array = np.array(query_vector).flatten()
+        query_vector = np.array(query_embedding).flatten()
         similarities = []
         for i, vector in enumerate(self.vectors):
             vector = vector.flatten()
-            similarity = np.dot(query_array, vector) / (
-                np.linalg.norm(query_array) * np.linalg.norm(vector)
-            )
+            dot_product = np.dot(query_vector, vector)
+            query_norm = np.linalg.norm(query_vector)
+            vector_norm = np.linalg.norm(vector)
+            if query_norm == 0 or vector_norm == 0:
+                similarity = 0.0
+            else:
+                similarity = dot_product / (query_norm * vector_norm)
             similarities.append((i, similarity))
-        similarities.sort(key=lambda x: x[1], reverse=True)
+        similarities.sort(key=lambda x: -float('inf')
+                          if np.isnan(x[1]) else x[1], reverse=True)
         results = []
-        for i, score in similarities[:top_k]:
+        for i in range(min(top_k, len(similarities))):
+            idx, score = similarities[i]
             results.append({
-                "document": self.documents[i],
-                "score": float(score),
-                "metadata": self.metadata[i]
+                "text": self.documents[idx],
+                "metadata": self.metadata[idx],
+                "similarity": score
             })
         return results
 
@@ -102,7 +105,7 @@ def calculate_chunk_values(query, chunks, vector_store, irrelevant_chunk_penalty
     query_embedding = create_embeddings([query])[0]
     num_chunks = len(chunks)
     results = vector_store.search(query_embedding, top_k=num_chunks)
-    relevance_scores = {result["metadata"]["chunk_index"]                        : result["score"] for result in results}
+    relevance_scores = {result["metadata"]["chunk_index"]: result["score"] for result in results}
     chunk_values = []
     for i in range(num_chunks):
         score = relevance_scores.get(i, 0.0)
