@@ -230,8 +230,8 @@ def main():
     text_generation_with_logprobs_example(client)
     logger.info("\n=== Chat with Repetition Penalty Example ===")
     chat_with_repetition_penalty_example(client)
-    # logger.info("\n=== Text Generation with XTC Example ===")
-    # text_generation_with_xtc_example(client)
+    logger.info("\n=== Text Generation with XTC Example ===")
+    text_generation_with_xtc_example(client)
 
 
 if __name__ == "__main__":
