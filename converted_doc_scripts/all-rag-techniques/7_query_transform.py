@@ -143,11 +143,7 @@ class SimpleVectorStore:
 
 
 def create_embeddings(text):
-    input_text = text if isinstance(text, list) else [text]
-    embeddings = embed_func(input_text)
-    if isinstance(text, str):
-        return embeddings[0]
-    return embeddings
+    return embed_func(text)
 
 
 def extract_text_from_pdf(pdf_path):
