@@ -682,7 +682,7 @@ def scrape_code(
                 if with_ollama:
                     source_code = update_code_with_ollama(source_code)
                     source_code = add_general_initializer_code(source_code)
-                    source_code = add_ollama_initializer_code(source_code)
+                    # source_code = add_ollama_initializer_code(source_code)
                     source_code = add_jet_logger(source_code)
                     source_code = move_all_imports_on_top(source_code)
                     source_code = replace_print_with_jet_logger(source_code)
@@ -767,11 +767,11 @@ if __name__ == "__main__":
         "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot",
         "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents",
         "/Users/jethroestrada/Desktop/External_Projects/AI/eval_agents",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025",
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langgraph/docs/docs/concepts/v0-human-in-the-loop.md",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langgraph/docs/docs/concepts/human_in_the_loop.md",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/all-rag-techniques/4_context_enriched_rag.ipynb",
     ]
 
     include_files = [

@@ -1,131 +1,226 @@
+import argparse
+import json
+import lm_eval
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sentence_transformers import SentenceTransformer, util
+from pathlib import Path
+from lm_eval.api.instance import Instance
+from tqdm import tqdm
+from jet.logger import logger
+
+# Assuming MLXLM and other dependencies are available from the provided code
+from mlx_lm.evaluate import MLXLM  # Replace with actual import path
 
 
-class HybridSearchEngine:
-    def __init__(self, model_name="all-MiniLM-L6-v2", diversity_penalty=0.3):
-        self.dense_model = SentenceTransformer(model_name)
-        self.sparse_vectorizer = TfidfVectorizer()
-        self.documents = []
-        self.dense_embeddings = None
-        self.sparse_matrix = None
-        self.diversity_penalty = diversity_penalty
+def evaluate_on_benchmarks(model_path, tasks, batch_size=32, num_shots=5, output_dir="./results"):
+    """
+    Evaluate a language model on standard NLP benchmarks like MMLU or HellaSwag.
+    """
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    def fit(self, documents):
-        """Fit the engine with documents."""
-        self.documents = documents
-        self.dense_embeddings = self.dense_model.encode(
-            documents, normalize_embeddings=True)
-        self.sparse_matrix = self.sparse_vectorizer.fit_transform(documents)
+    model = MLXLM(model_path, batch_size=batch_size, use_chat_template=True)
+    results = lm_eval.simple_evaluate(
+        model=model,
+        tasks=tasks,
+        num_fewshot=num_shots,
+        apply_chat_template=model.use_chat_template,
+        random_seed=123,
+        numpy_random_seed=123,
+        torch_random_seed=123,
+        fewshot_random_seed=123,
+    )
 
-    def search(self, query, top_n=5, alpha=0.5, diversity=True):
-        """Search with a query using hybrid scoring."""
-        if not self.documents:
-            raise ValueError(
-                "You must call `fit(documents)` before searching.")
+    model_name = model_path.replace("/", "_")
+    task_names = "_".join(tasks)
+    filename = f"eval_{model_name}_{task_names}_{num_shots:02d}_v_lm_eval.json"
+    output_path = output_dir / filename
+    with output_path.open("w") as f:
+        json.dump(results["results"], f, indent=4)
+    return results["results"]
 
-        # Encode query
-        query_dense = self.dense_model.encode(
-            [query], normalize_embeddings=True)
-        query_sparse = self.sparse_vectorizer.transform([query])
 
-        # Dense similarity
-        dense_scores = util.cos_sim(query_dense, self.dense_embeddings)[
-            0].cpu().numpy()
+def compute_log_likelihood(model_path, contexts, continuations, batch_size=16):
+    """
+    Compute log-likelihood for text completion tasks, e.g., ranking multiple-choice answers.
+    """
+    model = MLXLM(model_path, batch_size=batch_size)
+    requests = [Instance(args=(ctx, cont))
+                for ctx, cont in zip(contexts, continuations)]
+    results = model.loglikelihood(requests)
 
-        # Sparse similarity
-        sparse_scores = (query_sparse @ self.sparse_matrix.T).toarray()[0]
+    output = []
+    for (logprob, is_greedy), req in zip(results, requests):
+        output.append({
+            "context": req.args[0],
+            "continuation": req.args[1],
+            "logprob": float(logprob),
+            "is_greedy": bool(is_greedy)
+        })
+    return output
 
-        # Final hybrid score
-        final_scores = alpha * dense_scores + (1 - alpha) * sparse_scores
 
-        # Top N results before diversity
-        top_indices = final_scores.argsort()[::-1][:top_n]
+def generate_until_stop(model_path, prompts, until_conditions, max_gen_tokens=100, batch_size=16):
+    """
+    Generate text until a stopping condition is met, e.g., for structured content creation.
+    """
+    model = MLXLM(model_path, batch_size=batch_size)
+    requests = [
+        Instance(
+            args=(prompt, {"until": until, "max_gen_tokens": max_gen_tokens}))
+        for prompt, until in zip(prompts, until_conditions)
+    ]
+    completions = model.generate_until(requests)
+    return completions
 
-        if diversity:
-            # Re-rank with diversity
-            final_scores, top_indices = self.apply_diversity(
-                top_indices, final_scores, top_n)
 
-        # Sort by score in descending order
-        sorted_indices = final_scores.argsort()[::-1]
+def measure_perplexity(model_path, texts, batch_size=16):
+    """
+    Measure perplexity to assess text quality, e.g., for product descriptions.
+    """
+    model = MLXLM(model_path, batch_size=batch_size)
+    requests = [Instance(args=(text,)) for text in texts]
+    scores = model.loglikelihood_rolling(requests)
 
-        return [
-            {
-                "document": self.documents[idx],
-                "score": float(final_scores[idx])
-            }
-            for idx in sorted_indices[:top_n]
-        ]
+    output = []
+    for score, req in zip(scores, requests):
+        token_count = len(model._tokenize([req.args[0]])[0])
+        perplexity = np.exp(-score /
+                            token_count) if token_count > 0 else float("inf")
+        output.append({
+            "text": req.args[0],
+            "perplexity": float(perplexity)
+        })
+    return output
 
-    def apply_diversity(self, top_indices, final_scores, top_n):
-        """Apply diversity penalty to the top N results."""
-        selected_indices = []
-        selected_scores = []
-        selected_embeddings = []
 
-        for idx in top_indices:
-            # Check similarity with already selected results
-            doc_embedding = self.dense_embeddings[idx]
-            if not selected_embeddings:
-                selected_indices.append(idx)
-                selected_scores.append(final_scores[idx])
-                selected_embeddings.append(doc_embedding)
-            else:
-                # Calculate cosine similarity with previous selections
-                similarities = [util.cos_sim(doc_embedding, prev_emb)[
-                    0] for prev_emb in selected_embeddings]
-                min_similarity = min(similarities)
+def few_shot_evaluation(model_path, task, num_shots=3, batch_size=16, output_dir="./results"):
+    """
+    Evaluate a model on a custom task with few-shot learning.
+    """
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-                if min_similarity < self.diversity_penalty:
-                    # This document is sufficiently different, add it
-                    selected_indices.append(idx)
-                    selected_scores.append(final_scores[idx])
-                    selected_embeddings.append(doc_embedding)
+    model = MLXLM(model_path, batch_size=batch_size, use_chat_template=True)
+    results = lm_eval.simple_evaluate(
+        model=model,
+        tasks=[task],
+        num_fewshot=num_shots,
+        fewshot_as_multiturn=True,
+        apply_chat_template=model.use_chat_template,
+        random_seed=123,
+        numpy_random_seed=123,
+        torch_random_seed=123,
+        fewshot_random_seed=123,
+    )
 
-            # Ensure we stop if we have selected enough documents
-            if len(selected_indices) >= top_n:
-                break
+    model_name = model_path.replace("/", "_")
+    filename = f"eval_{model_name}_{task}_{num_shots:02d}_v_lm_eval.json"
+    output_path = output_dir / filename
+    with output_path.open("w") as f:
+        json.dump(results["results"], f, indent=4)
+    return results["results"]
 
-        # If fewer documents are selected due to diversity, fill up with the remaining top ones
-        remaining_indices = list(set(top_indices) - set(selected_indices))
 
-        # Sort remaining indices by the highest final scores
-        remaining_indices.sort(key=lambda idx: final_scores[idx], reverse=True)
+def distributed_evaluation(model_path, task, batch_size=64, limit=10000, output_dir="./results"):
+    """
+    Perform distributed evaluation across multiple GPUs for large datasets.
+    """
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Add remaining documents to meet the top_n requirement
-        while len(selected_indices) < top_n and remaining_indices:
-            selected_indices.append(remaining_indices.pop(0))
+    model = MLXLM(model_path, batch_size=batch_size)
+    results = lm_eval.simple_evaluate(
+        model=model,
+        tasks=[task],
+        limit=limit,
+        apply_chat_template=model.use_chat_template,
+        random_seed=123,
+        numpy_random_seed=123,
+        torch_random_seed=123,
+        fewshot_random_seed=123,
+    )
 
-        # Ensure the final selection is sorted by score in descending order
-        selected_indices_sorted = sorted(
-            selected_indices, key=lambda idx: final_scores[idx], reverse=True)
+    model_name = model_path.replace("/", "_")
+    filename = f"eval_{model_name}_{task}_00_v_lm_eval.json"
+    output_path = output_dir / filename
+    with output_path.open("w") as f:
+        json.dump(results["results"], f, indent=4)
+    return results["results"]
 
-        return np.array(final_scores)[selected_indices_sorted], np.array(selected_indices_sorted)
+
+def main():
+    # Example model path (replace with actual model path or HF repo)
+    model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
+
+    # 1. Evaluate on benchmarks
+    logger.info("Running benchmark evaluation...")
+    benchmark_results = evaluate_on_benchmarks(
+        model_path=model_path,
+        tasks=["mmlu", "hellaswag"],
+        batch_size=32,
+        num_shots=5
+    )
+    logger.log("\nBenchmark Results:", json.dumps(
+        benchmark_results, indent=2), colors=["GRAY", "SUCCESS"])
+
+    # 2. Compute log-likelihood
+    logger.info("\nComputing log-likelihood...")
+    log_likelihood_results = compute_log_likelihood(
+        model_path=model_path,
+        contexts=["What is the capital of France? "] * 2,
+        continuations=["Paris", "Florida"],
+        batch_size=16
+    )
+    logger.log("\nLog-Likelihood Results:",
+               json.dumps(log_likelihood_results, indent=2), colors=["GRAY", "SUCCESS"])
+
+    # 3. Generate until stop
+    logger.info("\nGenerating text until stop...")
+    generated_texts = generate_until_stop(
+        model_path=model_path,
+        prompts=["Write a short story about a cat: "],
+        until_conditions=[["\n\n"]],
+        max_gen_tokens=100,
+        batch_size=16
+    )
+    logger.log("\nGenerated Texts:", generated_texts,
+               colors=["GRAY", "SUCCESS"])
+
+    # 4. Measure perplexity
+    logger.info("\nMeasuring perplexity...")
+    perplexity_results = measure_perplexity(
+        model_path=model_path,
+        texts=[
+            "This is a well-written product description.",
+            "This bad write product descr."
+        ],
+        batch_size=16
+    )
+    logger.log("\nPerplexity Results:", json.dumps(
+        perplexity_results, indent=2), colors=["GRAY", "SUCCESS"])
+
+    # 5. Few-shot evaluation
+    logger.info("\nRunning few-shot evaluation...")
+    few_shot_results = few_shot_evaluation(
+        model_path=model_path,
+        task="custom_task",  # Replace with actual task name
+        num_shots=3,
+        batch_size=16
+    )
+    logger.log("\nFew-Shot Results:", json.dumps(few_shot_results,
+               indent=2), colors=["GRAY", "SUCCESS"])
+
+    # 6. Distributed evaluation
+    logger.info("\nRunning distributed evaluation...")
+    distributed_results = distributed_evaluation(
+        model_path=model_path,
+        task="wikitext",
+        batch_size=64,
+        limit=10000
+    )
+    logger.log("\nDistributed Evaluation Results:", json.dumps(
+        distributed_results, indent=2), colors=["GRAY", "SUCCESS"])
 
 
 if __name__ == "__main__":
-    docs = [
-        "How to cook delicious pasta at home",
-        "The art of boiling noodles perfectly",
-        "Best practices for making pasta",
-        "Top 10 pasta recipes you must try",
-        "Healthy salad recipes with vegetables",
-    ]
-    query = "noodle cooking tips"
-
-    engine = HybridSearchEngine()
-    engine.fit(docs)
-
-    results = engine.search(query, top_n=5, alpha=0.5)
-
-    print("\n🔎 Hybrid Search Results w/ Diversity:\n")
-    for r in results:
-        print(f"Score: {r['score']:.4f} | Document: {r['document']}")
-
-    results = engine.search(query, top_n=5, alpha=0.5, diversity=False)
-
-    print("\n🔎 Hybrid Search Results w/o Diversity:\n")
-    for r in results:
-        print(f"Score: {r['score']:.4f} | Document: {r['document']}")
+    main()
