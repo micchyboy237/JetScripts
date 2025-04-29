@@ -1,0 +1,12 @@
+[Instruction] Answer the following question concisely.
+
+Example 1:
+Q: What is the capital of France?
+A: Paris
+
+Example 2:
+Q: What is 2 + 2?
+A: 4
+
+Q: {}
+A:
