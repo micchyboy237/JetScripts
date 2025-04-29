@@ -1,0 +1,108 @@
+import json
+import os
+from jet.llm.mlx.client import MLXLMClient
+from jet.logger import CustomLogger
+from jet.transformers.formatters import format_json
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+logger = CustomLogger(log_file, overwrite=True)
+logger.orange(f"Logs: {log_file}")
+
+
+def chatbot_example(client: MLXLMClient):
+    """Example of using the .chat method for a conversational AI assistant."""
+    messages = [
+        {"role": "system", "content": "You are a helpful AI assistant."},
+        {"role": "user", "content": "What's the capital of France?"},
+    ]
+
+    response = client.chat(
+        messages=messages,
+        max_tokens=100,
+        temperature=0.7,
+        stop=["\n\n"]
+    )
+
+    logger.debug("Chatbot Response:")
+    logger.success(json.dumps(response, indent=2))
+    return response
+
+
+def streaming_chat_example(client: MLXLMClient):
+    """Example of using the .chat method with streaming for real-time responses."""
+    messages = [
+        {"role": "system", "content": "You are a storytelling AI."},
+        {"role": "user", "content": "Tell me a short story about a brave knight."},
+    ]
+
+    logger.debug("Streaming Story:")
+    responses = client.chat(
+        messages=messages,
+        max_tokens=200,
+        temperature=0.8,
+        stream=True
+    )
+
+    full_response = ""
+    for response in responses:
+        if "choices" in response and response["choices"]:
+            choice = response["choices"][0]
+            content = choice.get(
+                "delta", {}).get("content", "")
+            if not choice["finish_reason"]:
+                logger.success(content, flush=True)
+            else:
+                logger.success(format_json(response))
+            full_response += content
+    logger.debug("\n")
+    return full_response
+
+
+def text_generation_example(client: MLXLMClient):
+    """Example of using the .generate method for creative text generation."""
+    prompt = "Once upon a time, in a distant kingdom, there lived a"
+
+    response = client.generate(
+        prompt=prompt,
+        max_tokens=150,
+        temperature=0.9,
+        top_p=0.95,
+        stop=["."],
+    )
+
+    logger.debug("Text Generation Response:")
+    logger.success(json.dumps(response, indent=2))
+    return response
+
+
+def model_management_example(client: MLXLMClient):
+    """Example of using the .get_models method to list available models."""
+    models = client.get_models()
+
+    logger.debug("Available Models:")
+    logger.success(json.dumps(models, indent=2))
+    return models
+
+
+def main():
+    """Main function to run all examples."""
+    # Initialize the client with default configuration
+    client = MLXLMClient()
+
+    logger.info("\n=== Chatbot Example ===")
+    chatbot_example(client)
+
+    logger.info("\n=== Streaming Chat Example ===")
+    streaming_chat_example(client)
+
+    logger.info("\n=== Text Generation Example ===")
+    text_generation_example(client)
+
+    logger.info("\n=== Model Management Example ===")
+    model_management_example(client)
+
+
+if __name__ == "__main__":
+    main()
