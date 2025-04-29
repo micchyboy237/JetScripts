@@ -1,4 +1,3 @@
-import json
 import os
 from jet.llm.mlx.client import MLXLMClient
 from jet.logger import CustomLogger
@@ -26,7 +25,7 @@ def advanced_chat_with_logprobs_example(client: MLXLMClient):
     )
     logger.debug(
         "Advanced Chat with Logprobs Response (technical report summary):")
-    logger.success(json.dumps(response, indent=2))
+    logger.success(format_json(response))
     return response
 
 
@@ -49,7 +48,7 @@ def chat_with_role_mapping_example(client: MLXLMClient):
     )
     logger.debug(
         "Chat with Role Mapping Response (customer support formatting):")
-    logger.success(json.dumps(response, indent=2))
+    logger.success(format_json(response))
     return response
 
 
@@ -68,7 +67,7 @@ def chat_with_logit_bias_example(client: MLXLMClient):
         logit_bias=logit_bias
     )
     logger.debug("Chat with Logit Bias Response (favoring 'sunny', 'cloudy'):")
-    logger.success(json.dumps(response, indent=2))
+    logger.success(format_json(response))
     return response
 
 
@@ -101,7 +100,7 @@ def chat_with_tools_example(client: MLXLMClient):
         tools=tools
     )
     logger.debug("Chat with Tools Response (structured for weather API):")
-    logger.success(json.dumps(response, indent=2))
+    logger.success(format_json(response))
     return response
 
 
@@ -173,7 +172,7 @@ def text_generation_with_logprobs_example(client: MLXLMClient):
     )
     logger.debug(
         "Text Generation with Logprobs (smartwatch name with token probabilities):")
-    logger.success(json.dumps(response, indent=2))
+    logger.success(format_json(response))
     return response
 
 
@@ -192,7 +191,7 @@ def chat_with_repetition_penalty_example(client: MLXLMClient):
     )
     logger.debug(
         "Chat with Repetition Penalty (non-repetitive mission statement):")
-    logger.success(json.dumps(response, indent=2))
+    logger.success(format_json(response))
     return response
 
 
@@ -203,11 +202,11 @@ def text_generation_with_xtc_example(client: MLXLMClient):
     prompt = "Summarize: A new electric car was unveiled with a 400-mile range and advanced AI."
     response = client.generate(
         prompt=prompt,
-        xtc_probability=0.2,  # Enables token compression with 20% probability
-        xtc_threshold=0.1   # Compresses tokens with similarity above this threshold
+        xtc_probability=0.5,  # Apply XTC more often
+        xtc_threshold=0.4     # Only top tokens with probs > 0.4
     )
     logger.debug("Text Generation with XTC (concise news summary):")
-    logger.success(json.dumps(response, indent=2))
+    logger.success(format_json(response))
     return response
 
 
