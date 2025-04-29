@@ -47,7 +47,20 @@ def generate_step_back_query(original_query, model="mlx-community/Llama-3.2-3B-I
 
 
 def decompose_query(original_query, num_subqueries=4, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
-    system_prompt = "You are an AI assistant specialized in breaking down complex questions. Your task is to decompose complex queries into simpler sub-questions that, when answered together, address the original query."
+    system_prompt = """
+    You are an AI assistant specialized in breaking down complex questions. Your task is to decompose complex queries into simpler sub-questions that, when answered together, address the original query.
+
+    Format your response as a numbered list of exactly {num_subqueries} sub-questions, each on a new line, with the following structure:
+    1. Sub-question text
+    2. Sub-question text
+    ...
+
+    Ensure each sub-question:
+    - Starts with a number followed by a period (e.g., '1.', '2.').
+    - Is a clear, standalone question ending with a question mark.
+    - Contains no additional text, headings, or explanations outside the numbered list.
+    """.format(num_subqueries=num_subqueries)
+
     response = mlx.chat(
         [
             {"role": "system", "content": system_prompt},
@@ -60,11 +73,13 @@ def decompose_query(original_query, num_subqueries=4, model="mlx-community/Llama
     lines = content.split("\n")
     sub_queries = []
     for line in lines:
-        if line.strip() and any(line.strip().startswith(f"{i}.") for i in range(1, 10)):
-            query = line.strip()
-            query = query[query.find(".")+1:].strip()
-            sub_queries.append(query)
-    return sub_queries
+        line = line.strip()
+        if line and any(line.startswith(f"{i}.") for i in range(1, num_subqueries + 1)):
+            query = line[line.find(".") + 1:].strip()
+            if query.endswith("?"):  # Ensure it's a question
+                sub_queries.append(query)
+    # Ensure exactly num_subqueries are returned
+    return sub_queries[:num_subqueries]
 
 
 original_query = "What are the impacts of AI on job automation and employment?"
