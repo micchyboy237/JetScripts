@@ -20,7 +20,7 @@ mlx = MLX()
 embed_func = get_embedding_function("mxbai-embed-large")
 
 
-def rewrite_query(original_query, model="meta-llama/Llama-3.2-3B-Instruct"):
+def rewrite_query(original_query, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
     system_prompt = "You are an AI assistant specialized in improving search queries. Your task is to rewrite user queries to be more specific, detailed, and likely to retrieve relevant information."
     response = mlx.chat(
         [
@@ -30,10 +30,10 @@ def rewrite_query(original_query, model="meta-llama/Llama-3.2-3B-Instruct"):
         model=model,
         temperature=0.0
     )
-    return response.strip()
+    return response["choices"][0]["message"]["content"]
 
 
-def generate_step_back_query(original_query, model="meta-llama/Llama-3.2-3B-Instruct"):
+def generate_step_back_query(original_query, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
     system_prompt = "You are an AI assistant specialized in search strategies. Your task is to generate broader, more general versions of specific queries to retrieve relevant background information."
     response = mlx.chat(
         [
@@ -43,10 +43,10 @@ def generate_step_back_query(original_query, model="meta-llama/Llama-3.2-3B-Inst
         model=model,
         temperature=0.1
     )
-    return response.strip()
+    return response["choices"][0]["message"]["content"]
 
 
-def decompose_query(original_query, num_subqueries=4, model="meta-llama/Llama-3.2-3B-Instruct"):
+def decompose_query(original_query, num_subqueries=4, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
     system_prompt = "You are an AI assistant specialized in breaking down complex questions. Your task is to decompose complex queries into simpler sub-questions that, when answered together, address the original query."
     response = mlx.chat(
         [
@@ -56,7 +56,7 @@ def decompose_query(original_query, num_subqueries=4, model="meta-llama/Llama-3.
         model=model,
         temperature=0.2
     )
-    content = response.strip()
+    content = response["choices"][0]["message"]["content"]
     lines = content.split("\n")
     sub_queries = []
     for line in lines:
@@ -71,17 +71,17 @@ original_query = "What are the impacts of AI on job automation and employment?"
 logger.debug("Original Query:", original_query)
 
 rewritten_query = rewrite_query(original_query)
-logger.debug("\n1. Rewritten Query:")
-logger.debug(rewritten_query)
+logger.info("\n1. Rewritten Query:")
+logger.success(rewritten_query)
 
 step_back_query = generate_step_back_query(original_query)
-logger.debug("\n2. Step-back Query:")
-logger.debug(step_back_query)
+logger.info("\n2. Step-back Query:")
+logger.success(step_back_query)
 
 sub_queries = decompose_query(original_query, num_subqueries=4)
-logger.debug("\n3. Sub-queries:")
+logger.info("\n3. Sub-queries:")
 for i, query in enumerate(sub_queries, 1):
-    logger.debug(f"   {i}. {query}")
+    logger.success(f"   {i}. {query}")
 
 
 class SimpleVectorStore:
@@ -98,13 +98,24 @@ class SimpleVectorStore:
     def similarity_search(self, query_embedding, k=5):
         if not self.vectors:
             return []
-        query_vector = np.array(query_embedding)
+        query_vector = np.array(
+            query_embedding).flatten()  # Ensure query is 1D
         similarities = []
         for i, vector in enumerate(self.vectors):
-            similarity = np.dot(
-                query_vector, vector) / (np.linalg.norm(query_vector) * np.linalg.norm(vector))
+            vector = vector.flatten()  # Ensure stored vector is 1D
+            # Calculate cosine similarity
+            dot_product = np.dot(query_vector, vector)
+            query_norm = np.linalg.norm(query_vector)
+            vector_norm = np.linalg.norm(vector)
+            # Check for zero norms to avoid division by zero
+            if query_norm == 0 or vector_norm == 0:
+                similarity = 0.0
+            else:
+                similarity = dot_product / (query_norm * vector_norm)
             similarities.append((i, similarity))
-        similarities.sort(key=lambda x: x[1], reverse=True)
+        # Sort similarities, handling NaN or invalid values
+        similarities.sort(key=lambda x: -float('inf')
+                          if np.isnan(x[1]) else x[1], reverse=True)
         results = []
         for i in range(min(k, len(similarities))):
             idx, score = similarities[i]
@@ -197,7 +208,7 @@ def transformed_search(query, vector_store, transformation_type, top_k=3):
     return results
 
 
-def generate_response(query, context, model="meta-llama/Llama-3.2-3B-Instruct"):
+def generate_response(query, context, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
     system_prompt = "You are a helpful AI assistant. Answer the user's question based only on the provided context. If you cannot find the answer in the context, state that you don't have enough information."
     response = mlx.chat(
         [
@@ -207,7 +218,7 @@ def generate_response(query, context, model="meta-llama/Llama-3.2-3B-Instruct"):
         model=model,
         temperature=0
     )
-    return response.strip()
+    return response["choices"][0]["message"]["content"]
 
 
 def rag_with_query_transformation(pdf_path, query, transformation_type=None):
@@ -228,7 +239,7 @@ def rag_with_query_transformation(pdf_path, query, transformation_type=None):
     }
 
 
-def compare_responses(results, reference_answer, model="meta-llama/Llama-3.2-3B-Instruct"):
+def compare_responses(results, reference_answer, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
     comparison_text = f"Reference Answer: {reference_answer}\n\n"
     for technique, result in results.items():
         comparison_text += f"{technique.capitalize()} Query Response:\n{result['response']}\n\n"
@@ -241,7 +252,7 @@ def compare_responses(results, reference_answer, model="meta-llama/Llama-3.2-3B-
         temperature=0
     )
     logger.debug("\n===== EVALUATION RESULTS =====")
-    logger.debug(response.strip())
+    logger.debug(response["choices"][0]["message"]["content"])
     logger.debug("=============================")
 
 
