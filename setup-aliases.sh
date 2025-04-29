@@ -399,11 +399,33 @@ last_updates() {
     # last_updates -b . -e ".py,.md"
 }
 
+git_stats() {
+    local base_dir="."
+    local extensions=""
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -e) extensions="$2"; shift 2;;
+            *) base_dir="$1"; shift;;
+        esac
+    done
+
+    local args=()
+    args+=("$base_dir")
+    [[ -n "$extensions" ]] && args+=("-e" "$extensions")
+
+    python /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_notes/python_scripts/git_stats.py "${args[@]}"
+
+    # Example:
+    # git_stats
+    # git_stats -e ".py,.md"
+}
+
 
 
 
 
 # Check if the 'deps' function is already defined to prevent echo
 # if ! declare -f deps &>/dev/null; then
-echo "Added deps, deps_tree, freeze, size, sizes, setup_venv, freeze_venv, reinstall_venv, force_reinstall_venv, activate_venv, deactivate_venv, reinstall_python functions, pip, large_folders, last_updates"
+echo "Added deps, deps_tree, freeze, size, sizes, setup_venv, freeze_venv, reinstall_venv, force_reinstall_venv, activate_venv, deactivate_venv, reinstall_python functions, pip, large_folders, last_updates, git_stats"
 # fi

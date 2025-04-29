@@ -41,10 +41,8 @@ class Attention(nn.Module):
         self.scale = self.args.head_dim**-0.5
 
         self.wq = nn.Linear(args.dim, args.n_heads * args.head_dim, bias=False)
-        self.wk = nn.Linear(args.dim, args.n_kv_heads *
-                            args.head_dim, bias=False)
-        self.wv = nn.Linear(args.dim, args.n_kv_heads *
-                            args.head_dim, bias=False)
+        self.wk = nn.Linear(args.dim, args.n_kv_heads * args.head_dim, bias=False)
+        self.wv = nn.Linear(args.dim, args.n_kv_heads * args.head_dim, bias=False)
         self.wo = nn.Linear(args.n_heads * args.head_dim, args.dim, bias=False)
         self.rope = nn.RoPE(
             args.head_dim, traditional=args.rope_traditional, base=args.rope_theta
@@ -63,8 +61,7 @@ class Attention(nn.Module):
         # Prepare the queries, keys and values for the attention computation
         queries = queries.reshape(B, L, self.n_heads, -1).transpose(0, 2, 1, 3)
         keys = keys.reshape(B, L, self.n_kv_heads, -1).transpose(0, 2, 1, 3)
-        values = values.reshape(
-            B, L, self.n_kv_heads, -1).transpose(0, 2, 1, 3)
+        values = values.reshape(B, L, self.n_kv_heads, -1).transpose(0, 2, 1, 3)
 
         def repeat(a):
             a = mx.concatenate([mx.expand_dims(a, 2)] * self.repeats, axis=2)
@@ -85,8 +82,7 @@ class Attention(nn.Module):
         scores = (queries * self.scale) @ keys.transpose(0, 1, 3, 2)
         if mask is not None:
             scores += mask
-        scores = mx.softmax(scores.astype(mx.float32),
-                            axis=-1).astype(scores.dtype)
+        scores = mx.softmax(scores.astype(mx.float32), axis=-1).astype(scores.dtype)
         output = (scores @ values).transpose(0, 2, 1, 3).reshape(B, L, -1)
         return self.wo(output), (keys, values)
 
@@ -133,8 +129,7 @@ class Llama(nn.Module):
         self.args = args
         self.vocab_size = args.vocab_size
         self.tok_embeddings = nn.Embedding(args.vocab_size, args.dim)
-        self.layers = [TransformerBlock(args=args)
-                       for _ in range(args.n_layers)]
+        self.layers = [TransformerBlock(args=args) for _ in range(args.n_layers)]
         self.norm = nn.RMSNorm(args.dim, eps=args.norm_eps)
         self.output = nn.Linear(args.dim, args.vocab_size, bias=False)
 
@@ -251,7 +246,7 @@ def few_shot_generate(args):
         for i in range(len(word) - 1, 0, -1):
             if s[-i:] == word[:i]:
                 return 0
-        if s[-len(word):] == word:
+        if s[-len(word) :] == word:
             return 1
         return -1
 
@@ -303,56 +298,20 @@ def few_shot_generate(args):
 
 def sanitize_config(config, weights):
     config.pop("model_type", None)
-
-    # Map Hugging Face config keys to MLX expected keys
-    n_heads = config.get("num_attention_heads", config.get("n_heads"))
-    if n_heads is None:
-        raise KeyError(
-            "Neither 'num_attention_heads' nor 'n_heads' found in config")
-
-    config["n_heads"] = n_heads
-    config["dim"] = config.get("hidden_size", config.get("dim"))
-    config["n_layers"] = config.get(
-        "num_hidden_layers", config.get("n_layers"))
-
-    # Handle n_kv_heads
+    n_heads = config["n_heads"]
     if "n_kv_heads" not in config:
-        config["n_kv_heads"] = config.get("num_key_value_heads", n_heads)
-
-    # Set head_dim if not present
+        config["n_kv_heads"] = n_heads
     if "head_dim" not in config:
-        config["head_dim"] = config.get("head_dim", config["dim"] // n_heads)
-
-    # Set hidden_dim from config or weights
+        config["head_dim"] = config["dim"] // n_heads
     if "hidden_dim" not in config:
-        # Prefer intermediate_size from config.json
-        config["hidden_dim"] = config.get("intermediate_size", None)
-        if config["hidden_dim"] is None:
-            # Fallback to weights if intermediate_size is missing
-            try:
-                config["hidden_dim"] = weights["model.layers.0.mlp.gate_proj.weight"].shape[0]
-            except KeyError:
-                raise KeyError(
-                    "Could not find 'model.layers.0.mlp.gate_proj.weight' or 'intermediate_size' to set hidden_dim")
-
-    # Set vocab_size from config or weights
+        config["hidden_dim"] = weights["layers.0.feed_forward.w1.weight"].shape[0]
     if config.get("vocab_size", -1) < 0:
-        try:
-            config["vocab_size"] = weights["model.lm_head.weight"].shape[-1]
-        except KeyError:
-            # For tied embeddings
-            config["vocab_size"] = weights["model.embed_tokens.weight"].shape[-1]
-
-    # Set rope_theta if not present
+        config["vocab_size"] = weights["output.weight"].shape[-1]
     if "rope_theta" not in config:
         config["rope_theta"] = 10000
-
-    # Remove unused keys
-    unused = ["multiple_of", "ffn_dim_multiplier",
-              "transformers_version", "torch_dtype", "quantization_config"]
+    unused = ["multiple_of", "ffn_dim_multiplier"]
     for k in unused:
         config.pop(k, None)
-
     return config
 
 
@@ -369,8 +328,7 @@ def load_model(model_path):
         print("[INFO] Loading model from {}.".format(sharded_weights_glob))
 
         if len(weight_files) == 0:
-            raise FileNotFoundError(
-                "No weights found in {}".format(model_path))
+            raise FileNotFoundError("No weights found in {}".format(model_path))
 
         weights = {}
         for wf in weight_files:
@@ -383,8 +341,7 @@ def load_model(model_path):
     if quantization is not None:
         nn.quantize(model, **quantization)
     model.update(tree_unflatten(list(weights.items())))
-    tokenizer = SentencePieceProcessor(
-        model_file=str(model_path / "tokenizer.model"))
+    tokenizer = SentencePieceProcessor(model_file=str(model_path / "tokenizer.model"))
     return model, tokenizer
 
 
