@@ -1,3 +1,4 @@
+from jet.llm.mlx.base import MLX
 from mpi4py import MPI
 from mlx_lm import load, generate
 import numpy as np
@@ -23,24 +24,32 @@ end_idx = (rank + 1) * prompts_per_process if rank < size - 1 else len(prompts)
 local_prompts = prompts[start_idx:end_idx]
 
 # Load the model and tokenizer (each process loads its own instance)
-model, tokenizer = load("mlx-community/Llama-3.2-1B-Instruct-4bit")
+model_path = "mlx-community/Llama-3.2-1B-Instruct-4bit"
+# model, tokenizer = load(model_path)
+mlx = MLX(model_path)
 
 # Generate text for each local prompt
 local_results = []
 for prompt in local_prompts:
-    if hasattr(tokenizer, "apply_chat_template") and tokenizer.chat_template is not None:
-        messages = [{"role": "user", "content": prompt}]
-        prompt = tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
-    response = generate(
-        model,
-        tokenizer,
-        prompt=prompt,
-        max_tokens=512,
-        verbose=True
+    # if hasattr(tokenizer, "apply_chat_template") and tokenizer.chat_template is not None:
+    #     messages = [{"role": "user", "content": prompt}]
+    #     prompt = tokenizer.apply_chat_template(
+    #         messages, tokenize=False, add_generation_prompt=True
+    #     )
+    # response = generate(
+    #     model,
+    #     tokenizer,
+    #     prompt=prompt,
+    #     max_tokens=512,
+    #     verbose=True
+    # )
+    response = mlx.chat(
+        prompt,
+        model=model_path,
+        temperature=0
     )
-    local_results.append((prompt, response))
+    content = response["choices"][0]["message"]["content"]
+    local_results.append((prompt, content))
 
 # Gather results from all processes
 all_results = comm.gather(local_results, root=0)

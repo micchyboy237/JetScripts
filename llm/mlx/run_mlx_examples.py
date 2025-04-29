@@ -10,6 +10,9 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.orange(f"Logs: {log_file}")
 
 
+model = "mlx-community/Llama-3.2-1B-Instruct-4bit"
+
+
 def chatbot_example(client: MLXLMClient):
     """Example of using the .chat method for a conversational AI assistant."""
     messages = [
@@ -19,6 +22,7 @@ def chatbot_example(client: MLXLMClient):
 
     response = client.chat(
         messages=messages,
+        model=model,
         max_tokens=100,
         temperature=0.7,
         stop=["\n\n"]
@@ -41,6 +45,7 @@ def streaming_chat_example(client: MLXLMClient):
 
     for response in client.stream_chat(
         messages=messages,
+        model=model,
         max_tokens=200,
         temperature=0.8,
         stop=["\n\n"]
@@ -60,6 +65,7 @@ def text_generation_example(client: MLXLMClient):
 
     response = client.generate(
         prompt=prompt,
+        model=model,
         max_tokens=150,
         temperature=0.9,
         top_p=0.95,
@@ -80,6 +86,7 @@ def streaming_generate_example(client: MLXLMClient):
 
     for response in client.stream_generate(
         prompt=prompt,
+        model=model,
         max_tokens=150,
         temperature=0.9,
         top_p=0.95,
