@@ -87,7 +87,7 @@ def decompose_query(original_query, num_subqueries=None, model="mlx-community/Ll
     )
     content = ""
     for chunk in stream_response:
-        chunk_content = chunk["choices"][0]["delta"]["content"]
+        chunk_content = chunk["choices"][0]["message"]["content"]
         logger.success(chunk_content, flush=True)
         content += chunk_content
     logger.newline()
