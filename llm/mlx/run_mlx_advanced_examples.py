@@ -112,24 +112,22 @@ def streaming_chat_with_stop_example(client: MLXLMClient):
         {"role": "system", "content": "You are a marketing assistant for tech products."},
         {"role": "user", "content": "Write a brief description for a new smartphone."},
     ]
-    responses = client.chat(
+    responses = client.stream_chat(
         messages=messages,
-        stream=True,
-        stop=["Features:", "Specifications:"]
+        stop=["\n\n", "Features:", "Specifications:"]
     )
     logger.debug(
-        "Streaming Chat with Stop Tokens (stops at 'Features:' or 'Specifications:'):")
+        "Streaming Chat with Stop Tokens (stops at '\n\n', 'Features:' or 'Specifications:'):")
     full_response = ""
     for response in responses:
         if "choices" in response and response["choices"]:
             choice = response["choices"][0]
-            content = choice.get("delta", {}).get("content", "")
-            if not choice["finish_reason"]:
-                logger.success(content, flush=True)
-            else:
-                logger.success(format_json(response))
+            content = choice.get("message", {}).get("content", "")
             full_response += content
-    logger.debug("\n")
+            logger.success(content, flush=True)
+            if choice["finish_reason"]:
+                logger.newline()
+                logger.orange(format_json(response))
     return full_response
 
 
@@ -141,9 +139,8 @@ def streaming_chat_with_temperature_example(client: MLXLMClient):
         {"role": "system", "content": "You are a creative copywriter for a travel agency."},
         {"role": "user", "content": "Suggest a catchy tagline for our global travel packages."},
     ]
-    responses = client.chat(
+    responses = client.stream_chat(
         messages=messages,
-        stream=True,
         temperature=1.0  # Higher temperature for more creative output
     )
     logger.debug("Streaming Chat with High Temperature (creative tagline):")
@@ -151,13 +148,12 @@ def streaming_chat_with_temperature_example(client: MLXLMClient):
     for response in responses:
         if "choices" in response and response["choices"]:
             choice = response["choices"][0]
-            content = choice.get("delta", {}).get("content", "")
-            if not choice["finish_reason"]:
-                logger.success(content, flush=True)
-            else:
-                logger.success(format_json(response))
+            content = choice.get("message", {}).get("content", "")
             full_response += content
-    logger.debug("\n")
+            if choice["finish_reason"]:
+                logger.newline()
+                logger.orange(format_json(response))
+    logger.newline()
     return full_response
 
 

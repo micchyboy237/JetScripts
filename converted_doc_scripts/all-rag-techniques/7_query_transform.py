@@ -1,3 +1,4 @@
+from datetime import datetime
 from jet.llm.mlx.base import MLX
 from jet.llm.utils.embeddings import get_embedding_function
 from jet.logger import CustomLogger
@@ -46,40 +47,72 @@ def generate_step_back_query(original_query, model="mlx-community/Llama-3.2-3B-I
     return response["choices"][0]["message"]["content"]
 
 
-def decompose_query(original_query, num_subqueries=4, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
-    system_prompt = """
-    You are an AI assistant specialized in breaking down complex questions. Your task is to decompose complex queries into simpler sub-questions that, when answered together, address the original query.
+def decompose_query(original_query, num_subqueries=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+    # Get current date dynamically
+    current_date = datetime.now().strftime("%B %d, %Y")
 
-    Format your response as a numbered list of exactly {num_subqueries} sub-questions, each on a new line, with the following structure:
-    1. Sub-question text
-    2. Sub-question text
-    ...
+    # Define system prompt based on whether num_subqueries is provided
+    if num_subqueries is None:
+        system_prompt = """
+        You are an AI assistant specialized in breaking down complex browser-based queries for web search and information retrieval, as of {current_date}. Your task is to decompose a query into simpler sub-questions that, when answered together, fully and comprehensively address all components of the original query. Each sub-question should target a specific, answerable aspect of the query to guide web searches or scraping efforts, ensuring no part of the original query is overlooked.
 
-    Ensure each sub-question:
-    - Starts with a number followed by a period (e.g., '1.', '2.').
-    - Is a clear, standalone question ending with a question mark.
-    - Contains no additional text, headings, or explanations outside the numbered list.
-    """.format(num_subqueries=num_subqueries)
+        Format your response as a numbered list of sub-questions, with a reasonable number of sub-questions (typically 2 to 4, depending on the query's complexity), each on a new line, with the following structure:
+        1. Sub-question text
+        2. Sub-question text
+        ...
 
-    response = mlx.chat(
+        Ensure each sub-question:
+        - Starts with a number followed by a period (e.g., '1.', '2.').
+        - Is a clear, standalone question ending with a question mark.
+        - Targets a distinct aspect of the original query, collectively covering all its components, including explicit and implicit elements.
+        - Is specific and designed for web search or content analysis, avoiding vague or overly broad questions.
+        - Reflects the current date ({current_date}) when relevant, especially for queries about trends, recent events, or time-sensitive information.
+        - Contains no additional text, headings, or explanations outside the numbered list.
+        """.format(current_date=current_date)
+    else:
+        system_prompt = """
+        You are an AI assistant specialized in breaking down complex browser-based queries for web search and information retrieval, as of {current_date}. Your task is to decompose a query into simpler sub-questions that, when answered together, fully and comprehensively address all components of the original query. Each sub-question should target a specific, answerable aspect of the query to guide web searches or scraping efforts, ensuring no part of the original query is overlooked.
+
+        Format your response as a numbered list of exactly {num_subqueries} sub-questions, each on a new line, with the following structure:
+        1. Sub-question text
+        2. Sub-question text
+        ...
+
+        Ensure each sub-question:
+        - Starts with a number followed by a period (e.g., '1.', '2.').
+        - Is a clear, standalone question ending with a question mark.
+        - Targets a distinct aspect of the original query, collectively covering all its components, including explicit and implicit elements.
+        - Is specific and designed for web search or content analysis, avoiding vague or overly broad questions.
+        - Reflects the current date ({current_date}) when relevant, especially for queries about trends, recent events, or time-sensitive information.
+        - Contains no additional text, headings, or explanations outside the numbered list.
+        """.format(current_date=current_date, num_subqueries=num_subqueries)
+
+    logger.debug(original_query)
+    stream_response = mlx.stream_chat(
         [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Decompose this query into {num_subqueries} sub-questions: {original_query}"}
+            {"role": "user",
+                "content": f"Decompose this query into {'exactly ' + str(num_subqueries) if num_subqueries else 'a reasonable number of'} sub-questions: {original_query}"}
         ],
         model=model,
         temperature=0.2
     )
-    content = response["choices"][0]["message"]["content"]
+    content = ""
+    for chunk in stream_response:
+        chunk_content = chunk["choices"][0]["delta"]["content"]
+        logger.success(chunk_content, flush=True)
+        content += chunk_content
+    logger.newline()
     lines = content.split("\n")
     sub_queries = []
     for line in lines:
         line = line.strip()
-        if line and any(line.startswith(f"{i}.") for i in range(1, num_subqueries + 1)):
+        if line and any(line.startswith(f"{i}.") for i in range(1, (num_subqueries or 4) + 1)):
             query = line[line.find(".") + 1:].strip()
             if query.endswith("?"):  # Ensure it's a question
                 sub_queries.append(query)
-    # Ensure exactly num_subqueries are returned
-    return sub_queries[:num_subqueries]
+    # If num_subqueries is specified, ensure exactly that number are returned
+    return sub_queries[:num_subqueries] if num_subqueries else sub_queries
 
 
 original_query = "What are the impacts of AI on job automation and employment?"

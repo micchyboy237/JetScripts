@@ -52,7 +52,7 @@ def streaming_chat_example(client: MLXLMClient):
     ):
         if response["choices"]:
             content = response["choices"][0].get(
-                "delta", {}).get("content", "")
+                "message", {}).get("content", "")
             full_response += content
             logger.success(content, end="", flush=True)
 
