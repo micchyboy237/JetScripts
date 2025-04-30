@@ -2,6 +2,7 @@ import json
 import os
 from jet.llm.mlx.client import MLXLMClient
 from jet.logger import CustomLogger
+from jet.transformers.formatters import format_json
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(
@@ -54,7 +55,11 @@ def streaming_chat_example(client: MLXLMClient):
             content = response["choices"][0].get(
                 "message", {}).get("content", "")
             full_response += content
-            logger.success(content, end="", flush=True)
+            logger.success(content, flush=True)
+
+            if response["choices"][0]["finish_reason"]:
+                logger.newline()
+                logger.orange(format_json(response))
 
     return full_response
 
@@ -95,7 +100,11 @@ def streaming_generate_example(client: MLXLMClient):
         if response["choices"]:
             content = response["choices"][0].get("text", "")
             full_response += content
-            logger.success(content, end="", flush=True)
+            logger.success(content, flush=True)
+
+            if response["choices"][0]["finish_reason"]:
+                logger.newline()
+                logger.orange(format_json(response))
 
     return full_response
 
