@@ -14,6 +14,15 @@ logger.orange(f"Logs: {log_file}")
 model = "mlx-community/Llama-3.2-1B-Instruct-4bit"
 
 
+def get_models_example(client: MLXLMClient):
+    """Example of using the .get_models method to list available models."""
+    models = client.get_models()
+
+    logger.debug("Available Models:")
+    logger.success(json.dumps(models, indent=2))
+    return models
+
+
 def chatbot_example(client: MLXLMClient):
     """Example of using the .chat method for a conversational AI assistant."""
     messages = [
@@ -109,19 +118,13 @@ def streaming_generate_example(client: MLXLMClient):
     return full_response
 
 
-def model_management_example(client: MLXLMClient):
-    """Example of using the .get_models method to list available models."""
-    models = client.get_models()
-
-    logger.debug("Available Models:")
-    logger.success(json.dumps(models, indent=2))
-    return models
-
-
 def main():
     """Main function to run all examples."""
     # Initialize the client with default configuration
     client = MLXLMClient()
+
+    logger.info("\n=== Get Models Example ===")
+    get_models_example(client)
 
     logger.info("\n=== Chatbot Example ===")
     chatbot_example(client)
@@ -134,9 +137,6 @@ def main():
 
     logger.info("\n=== Streaming Text Generation Example ===")
     streaming_generate_example(client)
-
-    logger.info("\n=== Model Management Example ===")
-    model_management_example(client)
 
 
 if __name__ == "__main__":

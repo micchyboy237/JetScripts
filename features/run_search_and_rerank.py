@@ -1,18 +1,21 @@
-from datetime import datetime
+import asyncio
 import os
 import shutil
 from typing import Generator, Optional
-
-from jet.code.splitter_markdown_utils import Header, get_md_header_contents
+from datetime import datetime
+from tqdm import tqdm
+from jet.code.splitter_markdown_utils import Header, extract_md_header_contents, get_md_header_contents
 from jet.file.utils import save_file
 from jet.llm.mlx.base import MLX
 from jet.logger import logger
 from jet.scrapers.browser.playwright_utils import scrape_multiple_urls
 from jet.scrapers.preprocessor import html_to_markdown
-from jet.scrapers.utils import safe_path_from_url, search_data
+from jet.scrapers.utils import extract_texts_by_hierarchy, safe_path_from_url, scrape_links, scrape_title_and_metadata, search_data
+from jet.scrapers.hrequests_utils import scrape_urls
+from jet.transformers.formatters import format_json
 from jet.utils.url_utils import normalize_url
 from jet.vectors.hybrid_search_engine import HybridSearchEngine
-from jet.wordnet.similarity import query_similarity_scores
+from jet.wordnet.similarity import compute_info, query_similarity_scores
 
 logger.info("Initializing MLX and embedding function")
 mlx = MLX()
@@ -112,7 +115,7 @@ if __name__ == "__main__":
     os.makedirs(output_dir, exist_ok=True)
 
     query = "List trending isekai anime this year."
-    embed_models = ["all-minilm:33m", "paraphrase-multilingual"]
+    embed_models = ["mxbai-embed-large"]
 
     # Search web engine
     search_results = search_data(query)
@@ -133,7 +136,7 @@ if __name__ == "__main__":
     query_scores = query_similarity_scores(
         queries, search_result_docs, model=embed_models)
     save_file({"queries": queries, "results": query_scores},
-              os.path.join(output_dir, "query_scores.json"))
+              os.path.join(output_dir, "search_query_scores.json"))
 
     # Use hybrid search
     # engine = HybridSearchEngine()
@@ -154,56 +157,117 @@ if __name__ == "__main__":
     # save_file(mmr_results, os.path.join(
     #     output_dir, "hybrid_search_with_diversity.json"))
 
-    # Convert html to docs
-    urls = [item["url"] for item in search_results]
-    # url_html_tuples = get_url_html_tuples(urls, output_dir=output_dir)
     sub_dir = os.path.join(output_dir, "searched_html")
     shutil.rmtree(sub_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
+    # Convert html to docs
+    urls = [item["url"] for item in search_results]
+    html_list = asyncio.run(scrape_urls(urls, num_parallel=3))
+    all_url_html_tuples = zip(urls, html_list)
     url_html_tuples = []
-    for item in get_url_html_tuples(urls, top_n=5):
-        url = item["url"]
-        headers = item["headers"]
-        html = item["html"]
+    for url, html_str in tqdm(all_url_html_tuples):
+        if html_str:
+            headers = get_md_header_contents(html_str)
+            logger.debug(
+                f"Scraped {url}, headers length: {len(headers)}")
 
-        url_html_tuples.append((url, html))
+            if len(headers) > 5:
+                output_dir_url = safe_path_from_url(url, sub_dir)
 
-        html_docs = [header["content"] for header in headers]
+                url_html_tuples.append((url, html_str))
 
-        output_dir_url = safe_path_from_url(url, sub_dir)
-        save_file({
-            "url": url,
-            "headers": len(headers),
-        }, os.path.join(output_dir_url, "info.json"))
-        save_file(html, os.path.join(output_dir_url, "doc.html"))
-        save_file("\n\n".join(html_docs),
-                  os.path.join(output_dir_url, "doc.md"))
+                headings = extract_texts_by_hierarchy(html_str)
+                save_file(headings, f"{output_dir_url}/headings.json")
 
-        # Rerank docs
-        query_scores = query_similarity_scores(
-            queries, html_docs, model=embed_models)
-        save_file({"queries": queries, "results": query_scores},
-                  os.path.join(output_dir_url, "query_scores.json"))
+                texts = [item["text"] for item in headings]
+                md_text = "\n\n".join(texts)
+                save_file(md_text, f"{output_dir_url}/md_text.md")
 
-        # Use hybrid search
-        # engine = HybridSearchEngine()
-        # engine.fit(html_docs)
+                all_links = scrape_links(html_str, base_url=url)
+                save_file(all_links, os.path.join(
+                    output_dir_url, "links.json"))
 
-        # print("\n🔎 Docs Hybrid Search Results:\n")
-        # simple_results = engine.search(
-        #     query, top_n=top_n, alpha=0.5, use_mmr=False)
-        # for r in simple_results:
-        #     print(f"Score: {r['score']:.4f} | Document: {r['document'][:100]}")
-        # save_file(simple_results, os.path.join(
-        #     output_dir_url, "hybrid_search.json"))
+                title_and_metadata = scrape_title_and_metadata(html_str)
+                save_file(title_and_metadata, os.path.join(
+                    output_dir_url, "title_and_metadata.json"))
 
-        # print("\n🔎 Docs Hybrid Search Results w/ MMR Diversity:\n")
-        # mmr_results = engine.search(
-        #     query, top_n=top_n, alpha=0.5, use_mmr=True, lambda_param=0.7)
-        # for r in mmr_results:
-        #     print(f"Score: {r['score']:.4f} | Document: {r['document'][:100]}")
-        # save_file(mmr_results, os.path.join(
-        #     output_dir_url, "hybrid_search_with_diversity.json"))
+                logger.gray("Title and Metadata:")
+                logger.debug(format_json(title_and_metadata))
+
+                html_docs = [header["content"] for header in headers]
+
+                save_file(html_str, os.path.join(output_dir_url, "doc.html"))
+                save_file("\n\n".join(html_docs),
+                          os.path.join(output_dir_url, "doc.md"))
+                save_file("\n".join([header["header"] for header in headers]),
+                          os.path.join(output_dir_url, "headings.md"))
+
+                # Rerank docs
+                query_scores = query_similarity_scores(
+                    queries, html_docs, model=embed_models)
+                save_file({"queries": queries, "results": query_scores},
+                          os.path.join(output_dir_url, "query_scores.json"))
+
+                save_file({
+                    "url": url,
+                    "headers": len(headers),
+                    "info": compute_info(query_scores),
+                    "top_header": {
+                        "doc_index": query_scores[0]
+                    }
+                }, os.path.join(output_dir_url, "info.json"))
+            else:
+                logger.warning(
+                    f"Skipping url: {url} due to header count ({len(headers)})")
+        else:
+            logger.error(f"Failed to fetch {url}")
 
     logger.success(f"Done scraping urls {len(url_html_tuples)}")
+
+    # url_html_tuples = []
+    # for item in get_url_html_tuples(urls, top_n=5):
+    #     url = item["url"]
+    #     headers = item["headers"]
+    #     html = item["html"]
+
+    #     url_html_tuples.append((url, html))
+
+    #     html_docs = [header["content"] for header in headers]
+
+    #     output_dir_url = safe_path_from_url(url, sub_dir)
+    #     save_file({
+    #         "url": url,
+    #         "headers": len(headers),
+    #     }, os.path.join(output_dir_url, "info.json"))
+    #     save_file(html, os.path.join(output_dir_url, "doc.html"))
+    #     save_file("\n\n".join(html_docs),
+    #               os.path.join(output_dir_url, "doc.md"))
+
+    #     # Rerank docs
+    #     query_scores = query_similarity_scores(
+    #         queries, html_docs, model=embed_models)
+    #     save_file({"queries": queries, "results": query_scores},
+    #               os.path.join(output_dir_url, "query_scores.json"))
+
+    #     # Use hybrid search
+    #     # engine = HybridSearchEngine()
+    #     # engine.fit(html_docs)
+
+    #     # print("\n🔎 Docs Hybrid Search Results:\n")
+    #     # simple_results = engine.search(
+    #     #     query, top_n=top_n, alpha=0.5, use_mmr=False)
+    #     # for r in simple_results:
+    #     #     print(f"Score: {r['score']:.4f} | Document: {r['document'][:100]}")
+    #     # save_file(simple_results, os.path.join(
+    #     #     output_dir_url, "hybrid_search.json"))
+
+    #     # print("\n🔎 Docs Hybrid Search Results w/ MMR Diversity:\n")
+    #     # mmr_results = engine.search(
+    #     #     query, top_n=top_n, alpha=0.5, use_mmr=True, lambda_param=0.7)
+    #     # for r in mmr_results:
+    #     #     print(f"Score: {r['score']:.4f} | Document: {r['document'][:100]}")
+    #     # save_file(mmr_results, os.path.join(
+    #     #     output_dir_url, "hybrid_search_with_diversity.json"))
+
+    # logger.success(f"Done scraping urls {len(url_html_tuples)}")
