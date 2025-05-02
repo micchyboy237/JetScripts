@@ -3,6 +3,7 @@ import os
 import shutil
 from typing import Generator, Optional
 from datetime import datetime
+from jet.wordnet.analyzers.text_analysis import analyze_text
 from tqdm import tqdm
 from jet.code.splitter_markdown_utils import Header, extract_md_header_contents, get_md_header_contents
 from jet.file.utils import save_file
@@ -106,12 +107,6 @@ def decompose_query(original_query, num_subqueries=None, model="mlx-community/Ll
     return sub_queries[:num_subqueries] if num_subqueries else sub_queries
 
 
-def get_headings(html_str):
-    texts = extract_texts_by_hierarchy(html_str)
-    headings = [item["text"].splitlines()[0].strip() for item in texts]
-    return headings
-
-
 if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
     output_dir = os.path.join(script_dir, "generated",
@@ -197,15 +192,21 @@ if __name__ == "__main__":
 
             save_file(html_str, os.path.join(output_dir_url, "doc.html"))
 
-            headings = get_headings(html_str)
-            save_file("\n".join(headings), os.path.join(
-                output_dir_url, "headings.md"))
+            headings = extract_texts_by_hierarchy(html_str)
+            save_file(headings, f"{output_dir_url}/doc.json")
+
+            headers = [item["text"].splitlines()[0].strip()
+                       for item in headings]
+            save_file("\n".join(headers), os.path.join(
+                output_dir_url, "headers.md"))
 
             html_docs = [item["text"] for item in headings]
-
             md_text = "\n\n".join(html_docs)
-            save_file(headings, f"{output_dir_url}/doc.json")
             save_file(md_text, os.path.join(output_dir_url, "doc.md"))
+
+            # Analyze doc
+            stats = analyze_text(md_text)
+            save_file(stats, f"{output_dir_url}/stats.json")
 
             # Rerank docs
             query_scores = query_similarity_scores(
@@ -221,9 +222,7 @@ if __name__ == "__main__":
                     "doc_index": query_scores[0]
                 }
             }, os.path.join(output_dir_url, "info.json"))
-            else:
-                logger.warning(
-                    f"Skipping url: {url} due to header count ({len(headers)})")
+
         else:
             logger.error(f"Failed to fetch {url}")
 
