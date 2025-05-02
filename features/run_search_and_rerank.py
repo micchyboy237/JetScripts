@@ -192,7 +192,7 @@ if __name__ == "__main__":
             save_file(html_str, os.path.join(output_dir_url, "doc.html"))
 
             headings = extract_texts_by_hierarchy(html_str)
-            save_file(headings, f"{output_dir_url}/headings.json")
+            save_file(headings, f"{output_dir_url}/doc.json")
 
             headers = [item["text"].splitlines()[0].strip()
                        for item in headings]
