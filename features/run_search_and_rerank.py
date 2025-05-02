@@ -169,15 +169,16 @@ if __name__ == "__main__":
 
     html_info = []
     for url, html_str in tqdm(all_url_html_tuples, desc="Scraping links and metadata"):
-        output_dir_url = safe_path_from_url(url, sub_dir)
+        if html_str:
+            output_dir_url = safe_path_from_url(url, sub_dir)
 
-        all_links = scrape_links(html_str, base_url=url)
-        save_file(all_links, os.path.join(
-            output_dir_url, "links.json"))
+            all_links = scrape_links(html_str, base_url=url)
+            save_file(all_links, os.path.join(
+                output_dir_url, "links.json"))
 
-        title_and_metadata = scrape_title_and_metadata(html_str)
-        save_file(title_and_metadata, os.path.join(
-            output_dir_url, "title_and_metadata.json"))
+            title_and_metadata = scrape_title_and_metadata(html_str)
+            save_file(title_and_metadata, os.path.join(
+                output_dir_url, "title_and_metadata.json"))
 
     url_html_tuples = []
     for url, html_str in tqdm(all_url_html_tuples, desc="Reranking"):
@@ -191,7 +192,7 @@ if __name__ == "__main__":
             save_file(html_str, os.path.join(output_dir_url, "doc.html"))
 
             headings = extract_texts_by_hierarchy(html_str)
-            save_file(headings, f"{output_dir_url}/doc.json")
+            save_file(headings, f"{output_dir_url}/headings.json")
 
             headers = [item["text"].splitlines()[0].strip()
                        for item in headings]
