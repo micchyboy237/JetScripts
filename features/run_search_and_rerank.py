@@ -106,6 +106,12 @@ def decompose_query(original_query, num_subqueries=None, model="mlx-community/Ll
     return sub_queries[:num_subqueries] if num_subqueries else sub_queries
 
 
+def get_headings(html_str):
+    texts = extract_texts_by_hierarchy(html_str)
+    headings = [item["text"].splitlines()[0].strip() for item in texts]
+    return headings
+
+
 if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
     output_dir = os.path.join(script_dir, "generated",
@@ -165,6 +171,19 @@ if __name__ == "__main__":
     urls = [item["url"] for item in search_results]
     html_list = asyncio.run(scrape_urls(urls, num_parallel=3))
     all_url_html_tuples = zip(urls, html_list)
+
+    html_info = []
+    for url, html_str in all_url_html_tuples:
+        output_dir_url = safe_path_from_url(url, sub_dir)
+
+        all_links = scrape_links(html_str, base_url=url)
+        save_file(all_links, os.path.join(
+            output_dir_url, "links.json"))
+
+        title_and_metadata = scrape_title_and_metadata(html_str)
+        save_file(title_and_metadata, os.path.join(
+            output_dir_url, "title_and_metadata.json"))
+
     url_html_tuples = []
     for url, html_str in tqdm(all_url_html_tuples):
         if html_str:
@@ -172,51 +191,36 @@ if __name__ == "__main__":
             logger.debug(
                 f"Scraped {url}, headers length: {len(headers)}")
 
-            if len(headers) > 5:
-                output_dir_url = safe_path_from_url(url, sub_dir)
+            output_dir_url = safe_path_from_url(url, sub_dir)
 
-                url_html_tuples.append((url, html_str))
+            url_html_tuples.append((url, html_str))
 
-                headings = extract_texts_by_hierarchy(html_str)
-                save_file(headings, f"{output_dir_url}/headings.json")
+            save_file(html_str, os.path.join(output_dir_url, "doc.html"))
 
-                texts = [item["text"] for item in headings]
-                md_text = "\n\n".join(texts)
-                save_file(md_text, f"{output_dir_url}/md_text.md")
+            headings = get_headings(html_str)
+            save_file("\n".join(headings), os.path.join(
+                output_dir_url, "headings.md"))
 
-                all_links = scrape_links(html_str, base_url=url)
-                save_file(all_links, os.path.join(
-                    output_dir_url, "links.json"))
+            html_docs = [item["text"] for item in headings]
 
-                title_and_metadata = scrape_title_and_metadata(html_str)
-                save_file(title_and_metadata, os.path.join(
-                    output_dir_url, "title_and_metadata.json"))
+            md_text = "\n\n".join(html_docs)
+            save_file(headings, f"{output_dir_url}/doc.json")
+            save_file(md_text, os.path.join(output_dir_url, "doc.md"))
 
-                logger.gray("Title and Metadata:")
-                logger.debug(format_json(title_and_metadata))
+            # Rerank docs
+            query_scores = query_similarity_scores(
+                queries, html_docs, model=embed_models)
+            save_file({"queries": queries, "results": query_scores},
+                      os.path.join(output_dir_url, "query_scores.json"))
 
-                html_docs = [header["content"] for header in headers]
-
-                save_file(html_str, os.path.join(output_dir_url, "doc.html"))
-                save_file("\n\n".join(html_docs),
-                          os.path.join(output_dir_url, "doc.md"))
-                save_file("\n".join([header["header"] for header in headers]),
-                          os.path.join(output_dir_url, "headings.md"))
-
-                # Rerank docs
-                query_scores = query_similarity_scores(
-                    queries, html_docs, model=embed_models)
-                save_file({"queries": queries, "results": query_scores},
-                          os.path.join(output_dir_url, "query_scores.json"))
-
-                save_file({
-                    "url": url,
-                    "headers": len(headers),
-                    "info": compute_info(query_scores),
-                    "top_header": {
-                        "doc_index": query_scores[0]
-                    }
-                }, os.path.join(output_dir_url, "info.json"))
+            save_file({
+                "url": url,
+                "headers": len(headers),
+                "info": compute_info(query_scores),
+                "top_header": {
+                    "doc_index": query_scores[0]
+                }
+            }, os.path.join(output_dir_url, "info.json"))
             else:
                 logger.warning(
                     f"Skipping url: {url} due to header count ({len(headers)})")
