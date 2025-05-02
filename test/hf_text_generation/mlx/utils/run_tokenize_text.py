@@ -1,7 +1,7 @@
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 from mlx_lm import load, generate
-from jet.llm.mlx.token_utils import extract_texts
+from jet.llm.mlx.token_utils import merge_texts
 
 
 # Example usage
@@ -13,6 +13,6 @@ if __name__ == "__main__":
     # Load the model and tokenizer
     model, tokenizer = load(model_path)
 
-    result = extract_texts(prompt, tokenizer, max_length=20)
+    result = merge_texts(prompt, tokenizer, max_length=20)
     logger.gray("\nResults:")
     logger.success(format_json(result))
