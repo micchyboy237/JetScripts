@@ -109,6 +109,17 @@ def decompose_query(original_query, num_subqueries=None, model="mlx-community/Ll
     return sub_queries[:num_subqueries] if num_subqueries else sub_queries
 
 
+def get_header_stats(text: str):
+    analysis = analyze_text(text)
+    stats = {
+        "mltd": analysis["mltd"],
+        "mltd_category": analysis["mltd_category"],
+        "overall_difficulty": analysis["overall_difficulty"],
+        "overall_difficulty_category": analysis["overall_difficulty_category"],
+    }
+    return stats
+
+
 if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
     output_dir = os.path.join(script_dir, "generated",
@@ -179,29 +190,12 @@ if __name__ == "__main__":
 
             output_dir_url = safe_path_from_url(url, sub_dir)
 
-            all_links = scrape_links(html_str, base_url=url)
-            save_file(all_links, os.path.join(
-                output_dir_url, "links.json"))
-
-            title_and_metadata = scrape_title_and_metadata(html_str)
-            save_file(title_and_metadata, os.path.join(
-                output_dir_url, "title_and_metadata.json"))
-
             save_file(format_html(html_str), os.path.join(
                 output_dir_url, "doc.html"))
 
-            headings = extract_texts_by_hierarchy(html_str)
-            save_file(headings, f"{output_dir_url}/doc.json")
-
-            headers = [item["text"].splitlines()[0].strip()
-                       for item in headings]
-            logger.debug(f"Headers length: {len(headers)}")
-            save_file("\n".join(headers), os.path.join(
-                output_dir_url, "headers.md"))
-
-            all_html_docs = [item["text"] for item in headings]
-            md_text = "\n\n".join(all_html_docs)
-            save_file(md_text, os.path.join(output_dir_url, "doc.md"))
+            all_links = scrape_links(html_str, base_url=url)
+            save_file(all_links, os.path.join(
+                output_dir_url, "links.json"))
 
             # Load the model and tokenizer
             model, tokenizer = load(model_path)
@@ -221,24 +215,27 @@ if __name__ == "__main__":
 
             merged_docs = merge_texts_by_hierarchy(
                 html_str, _tokenizer, max_tokens)
-            save_file(merged_docs, f"{output_dir}/merged_docs.json")
+            save_file(merged_docs, f"{output_dir_url}/merged_docs.json")
 
             html_docs = [item["text"] for item in merged_docs]
             md_context = "\n\n".join(html_docs)
             save_file(md_context, os.path.join(output_dir_url, "context.md"))
 
+            title_and_metadata = scrape_title_and_metadata(html_str)
+
             # Analyze doc
             stats = analyze_text(md_context)
             save_file(
-                {"url": url, "title": title_and_metadata["title"], "stats": stats}, f"{output_dir_url}/stats.json")
+                {"url": url, "title": title_and_metadata["title"], "stats": stats}, f"{output_dir}/stats.json")
 
             # Analyze headings
             header_stats = []
-            for item in tqdm(headings, desc="Analyzing headers"):
+            for item in tqdm(merged_docs, desc="Analyzing headers"):
                 text = item["text"]
                 header = text.splitlines()[0].strip()
-                stats = analyze_text(text)
-                header_stats.append({"header": header, "stats": stats})
+                stats = get_header_stats(text)
+                header_stats.append(
+                    {"stats": stats, "header": header, "text": text})
                 save_file(header_stats, f"{output_dir_url}/stats.json")
 
             # Rerank docs
@@ -247,13 +244,27 @@ if __name__ == "__main__":
             save_file({"queries": queries, "results": query_scores},
                       os.path.join(output_dir_url, "query_scores.json"))
 
+            headers = [item["text"].splitlines()[0].strip()
+                       for item in merged_docs]
+            logger.debug(f"Headers length: {len(headers)}")
+            save_file("\n".join(headers), os.path.join(
+                output_dir_url, "headers.md"))
+
+            token_counts = [item["token_count"] for item in merged_docs]
             save_file({
                 "url": url,
+                "title": title_and_metadata["title"],
                 "headers": len(headers),
-                "info": compute_info(query_scores),
+                "tokens": {
+                    "min_tokens": min(token_counts),
+                    "max_tokens": max(token_counts),
+                    "ave_tokens": sum(token_counts) / len(token_counts) if token_counts else 0,
+                },
+                "metadata": title_and_metadata["metadata"],
+                "text_analysis": compute_info(query_scores),
                 "top_header": {
                     "doc_index": query_scores[0]
-                }
+                },
             }, os.path.join(output_dir_url, "info.json"))
 
         else:
