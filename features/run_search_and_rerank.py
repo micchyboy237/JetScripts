@@ -1,17 +1,19 @@
 import asyncio
 import os
 import shutil
-from typing import Generator, Optional
+from typing import Generator, List, Optional, Union
 from datetime import datetime
-from jet.wordnet.analyzers.text_analysis import analyze_text
 from tqdm import tqdm
+from mlx_lm import load
+from jet.wordnet.analyzers.text_analysis import analyze_text
 from jet.code.splitter_markdown_utils import Header, extract_md_header_contents, get_md_header_contents
 from jet.file.utils import save_file
 from jet.llm.mlx.base import MLX
+from jet.llm.mlx.token_utils import merge_texts
 from jet.logger import logger
 from jet.scrapers.browser.playwright_utils import scrape_multiple_urls
 from jet.scrapers.preprocessor import html_to_markdown
-from jet.scrapers.utils import extract_texts_by_hierarchy, safe_path_from_url, scrape_links, scrape_title_and_metadata, search_data
+from jet.scrapers.utils import extract_texts_by_hierarchy, merge_texts_by_hierarchy, safe_path_from_url, scrape_links, scrape_title_and_metadata, search_data
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.transformers.formatters import format_html, format_json
 from jet.utils.url_utils import normalize_url
@@ -116,6 +118,7 @@ if __name__ == "__main__":
     os.makedirs(output_dir, exist_ok=True)
 
     query = "List trending isekai anime this year."
+    model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
     embed_models = ["mxbai-embed-large"]
 
     # Search web engine
@@ -196,12 +199,36 @@ if __name__ == "__main__":
             save_file("\n".join(headers), os.path.join(
                 output_dir_url, "headers.md"))
 
-            html_docs = [item["text"] for item in headings]
-            md_text = "\n\n".join(html_docs)
+            all_html_docs = [item["text"] for item in headings]
+            md_text = "\n\n".join(all_html_docs)
             save_file(md_text, os.path.join(output_dir_url, "doc.md"))
 
+            # Load the model and tokenizer
+            model, tokenizer = load(model_path)
+
+            # Merge docs with max tokens
+            max_tokens = 300
+
+            def _tokenizer(text: Union[str, List[str]]) -> Union[List[str], List[List[str]]]:
+                if isinstance(text, str):
+                    token_ids = tokenizer.encode(
+                        text, add_special_tokens=False)
+                    return tokenizer.convert_ids_to_tokens(token_ids)
+                else:
+                    token_ids_list = tokenizer.batch_encode_plus(
+                        text, add_special_tokens=False)["input_ids"]
+                    return [tokenizer.convert_ids_to_tokens(ids) for ids in token_ids_list]
+
+            merged_docs = merge_texts_by_hierarchy(
+                html_str, _tokenizer, max_tokens)
+            save_file(merged_docs, f"{output_dir}/merged_docs.json")
+
+            html_docs = [item["text"] for item in merged_docs]
+            md_context = "\n\n".join(html_docs)
+            save_file(md_context, os.path.join(output_dir_url, "context.md"))
+
             # Analyze doc
-            stats = analyze_text(md_text)
+            stats = analyze_text(md_context)
             save_file(
                 {"url": url, "title": title_and_metadata["title"], "stats": stats}, f"{output_dir_url}/stats.json")
 

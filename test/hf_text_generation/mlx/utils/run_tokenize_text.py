@@ -1,5 +1,6 @@
 from jet.logger import logger
 from jet.transformers.formatters import format_json
+from jet.wordnet.sentence import split_sentences
 from mlx_lm import load, generate
 from jet.llm.mlx.token_utils import merge_texts
 
@@ -13,6 +14,9 @@ if __name__ == "__main__":
     # Load the model and tokenizer
     model, tokenizer = load(model_path)
 
-    result = merge_texts(prompt, tokenizer, max_length=20)
+    def split_fn(text):
+        splitted_sentences = split_sentences(text, num_sentence=1)
+        return splitted_sentences
+    result = merge_texts(prompt, tokenizer, max_length=20, split_fn=split_fn)
     logger.gray("\nResults:")
     logger.success(format_json(result))
