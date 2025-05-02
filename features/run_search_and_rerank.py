@@ -13,7 +13,7 @@ from jet.scrapers.browser.playwright_utils import scrape_multiple_urls
 from jet.scrapers.preprocessor import html_to_markdown
 from jet.scrapers.utils import extract_texts_by_hierarchy, safe_path_from_url, scrape_links, scrape_title_and_metadata, search_data
 from jet.scrapers.hrequests_utils import scrape_urls
-from jet.transformers.formatters import format_json
+from jet.transformers.formatters import format_html, format_json
 from jet.utils.url_utils import normalize_url
 from jet.vectors.hybrid_search_engine import HybridSearchEngine
 from jet.wordnet.similarity import compute_info, query_similarity_scores
@@ -167,9 +167,13 @@ if __name__ == "__main__":
     html_list = asyncio.run(scrape_urls(urls, num_parallel=3))
     all_url_html_tuples = list(zip(urls, html_list))
 
-    html_info = []
-    for url, html_str in tqdm(all_url_html_tuples, desc="Scraping links and metadata"):
+    url_html_tuples = []
+    for url, html_str in tqdm(all_url_html_tuples, desc="Processing"):
         if html_str:
+            logger.debug(f"Scraped {url}")
+
+            url_html_tuples.append((url, html_str))
+
             output_dir_url = safe_path_from_url(url, sub_dir)
 
             all_links = scrape_links(html_str, base_url=url)
@@ -180,16 +184,8 @@ if __name__ == "__main__":
             save_file(title_and_metadata, os.path.join(
                 output_dir_url, "title_and_metadata.json"))
 
-    url_html_tuples = []
-    for url, html_str in tqdm(all_url_html_tuples, desc="Reranking"):
-        if html_str:
-            logger.debug(f"Scraped {url}")
-
-            output_dir_url = safe_path_from_url(url, sub_dir)
-
-            url_html_tuples.append((url, html_str))
-
-            save_file(html_str, os.path.join(output_dir_url, "doc.html"))
+            save_file(format_html(html_str), os.path.join(
+                output_dir_url, "doc.html"))
 
             headings = extract_texts_by_hierarchy(html_str)
             save_file(headings, f"{output_dir_url}/doc.json")
@@ -206,7 +202,17 @@ if __name__ == "__main__":
 
             # Analyze doc
             stats = analyze_text(md_text)
-            save_file(stats, f"{output_dir_url}/stats.json")
+            save_file(
+                {"url": url, "title": title_and_metadata["title"], "stats": stats}, f"{output_dir_url}/stats.json")
+
+            # Analyze headings
+            header_stats = []
+            for item in tqdm(headings, desc="Analyzing headers"):
+                text = item["text"]
+                header = text.splitlines()[0].strip()
+                stats = analyze_text(text)
+                header_stats.append({"header": header, "stats": stats})
+                save_file(header_stats, f"{output_dir_url}/stats.json")
 
             # Rerank docs
             query_scores = query_similarity_scores(

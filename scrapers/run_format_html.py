@@ -102,7 +102,7 @@ html_doc = """
 if __name__ == "__main__":
     from jet.scrapers.preprocessor import html_to_markdown
 
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/searched_html_screenrant_com_best-popular-isekai-anime-list/doc.html"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/searched_html_myanimelist_net_Isekai/doc.html"
     output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/run_format_html"
 
     shutil.rmtree(output_dir, ignore_errors=True)
@@ -110,10 +110,10 @@ if __name__ == "__main__":
 
     html_doc: str = load_file(data_file)
 
-    save_file(html_doc, f"{output_dir}/doc.html")
+    save_file(format_html(html_doc), f"{output_dir}/doc.html")
 
     # Headings
-    headings = extract_texts_by_hierarchy(html_doc)
+    headings = extract_texts_by_hierarchy(html_doc, ignore_links=True)
     save_file(headings, f"{output_dir}/headings.json")
 
     texts = [item["text"] for item in headings]
