@@ -42,7 +42,8 @@ if __name__ == "__main__":
             result = analyze_readability(text)
             scores = result['scores']
             categories = result['categories']
-            overall_difficulty = result['overall_difficulty_description']
+            overall_difficulty = result['overall_difficulty']
+            overall_difficulty_description = result['overall_difficulty_description']
         except Exception as e:
             print(f"Error computing readability measures: {e}")
             continue
@@ -51,7 +52,7 @@ if __name__ == "__main__":
         print("Readability Metrics:")
         for metric, value in scores.items():
             print(f"  {metric}: {value:.2f} ({categories[metric]})")
-        print(f"Overall Difficulty: {overall_difficulty}")
+        print(f"Overall Difficulty: {overall_difficulty_description}")
 
         # Store results for summary table
         result_entry = {
@@ -61,7 +62,8 @@ if __name__ == "__main__":
         for metric, value in scores.items():
             result_entry[metric] = value
             result_entry[f"{metric}_category"] = categories[metric]
-        result_entry['Overall Difficulty'] = overall_difficulty
+        result_entry['Overall Difficulty'] = str(overall_difficulty)
+        result_entry['Overall Difficulty Description'] = overall_difficulty_description
         results.append(result_entry)
 
     results_file = f"{output_dir}/results.json"
@@ -78,7 +80,7 @@ if __name__ == "__main__":
         'gunning_fog', 'gunning_fog_category',
         'smog_index', 'smog_index_category',
         'automated_readability_index', 'automated_readability_index_category',
-        'Overall Difficulty'
+        'Overall Difficulty Description'
     ]
     print(df[display_columns])
 

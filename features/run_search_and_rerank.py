@@ -165,10 +165,10 @@ if __name__ == "__main__":
     # Convert html to docs
     urls = [item["url"] for item in search_results]
     html_list = asyncio.run(scrape_urls(urls, num_parallel=3))
-    all_url_html_tuples = zip(urls, html_list)
+    all_url_html_tuples = list(zip(urls, html_list))
 
     html_info = []
-    for url, html_str in all_url_html_tuples:
+    for url, html_str in tqdm(all_url_html_tuples, desc="Scraping links and metadata"):
         output_dir_url = safe_path_from_url(url, sub_dir)
 
         all_links = scrape_links(html_str, base_url=url)
@@ -180,11 +180,9 @@ if __name__ == "__main__":
             output_dir_url, "title_and_metadata.json"))
 
     url_html_tuples = []
-    for url, html_str in tqdm(all_url_html_tuples):
+    for url, html_str in tqdm(all_url_html_tuples, desc="Reranking"):
         if html_str:
-            headers = get_md_header_contents(html_str)
-            logger.debug(
-                f"Scraped {url}, headers length: {len(headers)}")
+            logger.debug(f"Scraped {url}")
 
             output_dir_url = safe_path_from_url(url, sub_dir)
 
@@ -197,6 +195,7 @@ if __name__ == "__main__":
 
             headers = [item["text"].splitlines()[0].strip()
                        for item in headings]
+            logger.debug(f"Headers length: {len(headers)}")
             save_file("\n".join(headers), os.path.join(
                 output_dir_url, "headers.md"))
 
