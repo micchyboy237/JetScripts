@@ -42,7 +42,7 @@ if __name__ == "__main__":
             result = analyze_readability(text)
             scores = result['scores']
             categories = result['categories']
-            overall_difficulty = result['overall_difficulty']
+            overall_difficulty = result['overall_difficulty_description']
         except Exception as e:
             print(f"Error computing readability measures: {e}")
             continue
