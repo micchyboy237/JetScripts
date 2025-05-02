@@ -5,8 +5,9 @@ import os
 import shutil
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
-from jet.scrapers.utils import extract_by_heading_hierarchy, extract_texts_by_hierarchy, extract_tree_with_text, extract_text_elements, format_html, print_html
+from jet.scrapers.utils import extract_by_heading_hierarchy, extract_texts_by_hierarchy, extract_tree_with_text, extract_text_elements, print_html
 from jet.search.formatters import clean_string
+from jet.transformers.formatters import format_html
 from jet.utils.commands import copy_to_clipboard
 
 
@@ -101,7 +102,7 @@ html_doc = """
 if __name__ == "__main__":
     from jet.scrapers.preprocessor import html_to_markdown
 
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/searched_html_myanimelist_net_Isekai/doc.html"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/searched_html_screenrant_com_best-popular-isekai-anime-list/doc.html"
     output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/run_format_html"
 
     shutil.rmtree(output_dir, ignore_errors=True)
