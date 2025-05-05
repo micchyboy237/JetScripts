@@ -118,11 +118,9 @@ def preprocess_text(
         if header:
             print(f"Cleaned header length: {len(header)} characters")
 
-    # Step 2: Split into lines for metadata detection
+    # Step 2: Split into lines
     lines: List[str] = content.split('\n')
     processed_texts: List[str] = []
-    metadata_buffer: List[str] = []
-    is_metadata: bool = False
 
     # Step 3: Process lines
     for line in lines:
@@ -135,173 +133,58 @@ def preprocess_text(
         if debug:
             print(f"Processing line: {line[:50]}...")
 
-        # Detect metadata
-        if (len(line.split()) < 5 or
-            any(keyword in line.lower() for keyword in ['studio', 'source', 'theme', 'demographic']) or
-                re.match(r'^\d+\.\d+$|^[0-9K]+$', line)):
-            metadata_buffer.append(line)
-            is_metadata = True
-            if debug:
-                print(f"Classified as metadata: {line}")
-        else:
-            # Process metadata buffer if any
-            if metadata_buffer:
-                metadata_text: str = ' '.join(metadata_buffer)
+        # Process narrative text
+        sentences = sent_tokenize(line)
+        current_segment = ""
+        for sent in sentences:
+            sent = sent.strip()
+            if len(sent) < min_length or re.match(r'^\[.*\]$', sent):
                 if debug:
-                    print(f"Processing metadata: {metadata_text[:50]}...")
-                if len(metadata_text) >= min_length:
-                    sentences: List[str] = sent_tokenize(metadata_text)
-                    current_segment: str = ""
-                    for sent in sentences:
-                        temp_segment = (current_segment + " " +
-                                        sent).strip() if current_segment else sent
-                        segment_with_header = f"{header}\n{temp_segment}".strip(
-                        ) if header else temp_segment
-                        encoded = tokenizer(
-                            segment_with_header, add_special_tokens=True, return_tensors='pt')
-                        token_length = encoded['input_ids'].shape[1]
-                        if token_length <= max_length:
-                            current_segment = temp_segment
-                        else:
-                            if current_segment:
-                                segment_with_header = f"{header}\n{current_segment}".strip(
-                                ) if header else current_segment
-                                encoded = tokenizer(
-                                    segment_with_header, add_special_tokens=True, return_tensors='pt')
-                                if encoded['input_ids'].shape[1] <= max_length:
-                                    processed_texts.append(segment_with_header)
-                                    if debug:
-                                        print(
-                                            f"Added metadata segment: {segment_with_header[:50]}...")
-                                else:
-                                    if debug:
-                                        print(
-                                            f"Discarded metadata segment (too long): {segment_with_header[:50]}...")
-                            current_segment = sent if len(
-                                sent) <= max_length else ""
-                    if current_segment and len(current_segment) >= min_length:
-                        segment_with_header = f"{header}\n{current_segment}".strip(
-                        ) if header else current_segment
-                        encoded = tokenizer(
-                            segment_with_header, add_special_tokens=True, return_tensors='pt')
-                        if encoded['input_ids'].shape[1] <= max_length:
-                            processed_texts.append(segment_with_header)
-                            if debug:
-                                print(
-                                    f"Added metadata segment: {segment_with_header[:50]}...")
-                        else:
-                            if debug:
-                                print(
-                                    f"Discarded metadata segment (too long): {segment_with_header[:50]}...")
-                else:
-                    if debug:
-                        print(
-                            f"Discarded metadata (too short): {metadata_text}")
-                metadata_buffer = []
-                is_metadata = False
+                    print(
+                        f"Discarded sentence (too short or bracketed): {sent}")
+                continue
 
-            # Process narrative text
-            sentences = sent_tokenize(line)
-            current_segment = ""
-            for sent in sentences:
-                sent = sent.strip()
-                if len(sent) < min_length or re.match(r'^\[.*\]$', sent):
-                    if debug:
-                        print(
-                            f"Discarded sentence (too short or bracketed): {sent}")
-                    continue
+            temp_segment = (current_segment + " " +
+                            sent).strip() if current_segment else sent
+            segment_with_header = f"{header}\n{temp_segment}".strip(
+            ) if header else temp_segment
+            encoded = tokenizer(segment_with_header,
+                                add_special_tokens=True, return_tensors='pt')
+            token_length = encoded['input_ids'].shape[1]
+            if token_length <= max_length:
+                current_segment = temp_segment
+            else:
+                if current_segment:
+                    segment_with_header = f"{header}\n{current_segment}".strip(
+                    ) if header else current_segment
+                    encoded = tokenizer(
+                        segment_with_header, add_special_tokens=True, return_tensors='pt')
+                    if encoded['input_ids'].shape[1] <= max_length:
+                        processed_texts.append(segment_with_header)
+                        if debug:
+                            print(
+                                f"Added narrative segment: {segment_with_header[:50]}...")
+                    else:
+                        if debug:
+                            print(
+                                f"Discarded narrative segment (too long): {segment_with_header[:50]}...")
+                    current_segment = ""
+                current_segment = sent if len(sent) <= max_length else ""
 
-                temp_segment = (current_segment + " " +
-                                sent).strip() if current_segment else sent
-                segment_with_header = f"{header}\n{temp_segment}".strip(
-                ) if header else temp_segment
-                encoded = tokenizer(
-                    segment_with_header, add_special_tokens=True, return_tensors='pt')
-                token_length = encoded['input_ids'].shape[1]
-                if token_length <= max_length:
-                    current_segment = temp_segment
-                else:
-                    if current_segment:
-                        segment_with_header = f"{header}\n{current_segment}".strip(
-                        ) if header else current_segment
-                        encoded = tokenizer(
-                            segment_with_header, add_special_tokens=True, return_tensors='pt')
-                        if encoded['input_ids'].shape[1] <= max_length:
-                            processed_texts.append(segment_with_header)
-                            if debug:
-                                print(
-                                    f"Added narrative segment: {segment_with_header[:50]}...")
-                        else:
-                            if debug:
-                                print(
-                                    f"Discarded narrative segment (too long): {segment_with_header[:50]}...")
-                        current_segment = ""
-                    current_segment = sent if len(sent) <= max_length else ""
-
-            if current_segment and len(current_segment) >= min_length:
-                segment_with_header = f"{header}\n{current_segment}".strip(
-                ) if header else current_segment
-                encoded = tokenizer(
-                    segment_with_header, add_special_tokens=True, return_tensors='pt')
-                if encoded['input_ids'].shape[1] <= max_length:
-                    processed_texts.append(segment_with_header)
-                    if debug:
-                        print(
-                            f"Added narrative segment: {segment_with_header[:50]}...")
-                else:
-                    if debug:
-                        print(
-                            f"Discarded narrative segment (too long): {segment_with_header[:50]}...")
-
-    # Process remaining metadata
-    if metadata_buffer:
-        metadata_text = ' '.join(metadata_buffer)
-        if len(metadata_text) >= min_length:
-            sentences = sent_tokenize(metadata_text)
-            current_segment = ""
-            for sent in sentences:
-                temp_segment = (current_segment + " " +
-                                sent).strip() if current_segment else sent
-                segment_with_header = f"{header}\n{temp_segment}".strip(
-                ) if header else temp_segment
-                encoded = tokenizer(
-                    segment_with_header, add_special_tokens=True, return_tensors='pt')
-                token_length = encoded['input_ids'].shape[1]
-                if token_length <= max_length:
-                    current_segment = temp_segment
-                else:
-                    if current_segment:
-                        segment_with_header = f"{header}\n{current_segment}".strip(
-                        ) if header else current_segment
-                        encoded = tokenizer(
-                            segment_with_header, add_special_tokens=True, return_tensors='pt')
-                        if encoded['input_ids'].shape[1] <= max_length:
-                            processed_texts.append(segment_with_header)
-                            if debug:
-                                print(
-                                    f"Added metadata segment: {segment_with_header[:50]}...")
-                        else:
-                            if debug:
-                                print(
-                                    f"Discarded metadata segment (too long): {segment_with_header[:50]}...")
-                    current_segment = sent if len(sent) <= max_length else ""
-            if current_segment and len(current_segment) >= min_length:
-                segment_with_header = f"{header}\n{current_segment}".strip(
-                ) if header else current_segment
-                encoded = tokenizer(
-                    segment_with_header, add_special_tokens=True, return_tensors='pt')
-                if encoded['input_ids'].shape[1] <= max_length:
-                    processed_texts.append(segment_with_header)
-                    if debug:
-                        print(
-                            f"Added metadata segment: {segment_with_header[:50]}...")
-                else:
-                    if debug:
-                        print(
-                            f"Discarded metadata segment (too long): {segment_with_header[:50]}...")
-        else:
-            if debug:
-                print(f"Discarded metadata (too short): {metadata_text}")
+        if current_segment and len(current_segment) >= min_length:
+            segment_with_header = f"{header}\n{current_segment}".strip(
+            ) if header else current_segment
+            encoded = tokenizer(segment_with_header,
+                                add_special_tokens=True, return_tensors='pt')
+            if encoded['input_ids'].shape[1] <= max_length:
+                processed_texts.append(segment_with_header)
+                if debug:
+                    print(
+                        f"Added narrative segment: {segment_with_header[:50]}...")
+            else:
+                if debug:
+                    print(
+                        f"Discarded narrative segment (too long): {segment_with_header[:50]}...")
 
     # Step 4: Deduplicate
     seen: Set[str] = set()
