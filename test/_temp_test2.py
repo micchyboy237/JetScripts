@@ -58,7 +58,7 @@ def get_embeddings(texts, model, tokenizer, use_mean_pooling=True, batch_size=32
 
 def preprocess_text(content, min_length=20, max_length=300, overlap=100, debug=False):
     """
-    Preprocesses raw text for similarity search, enforcing min and max length with overlap.
+    Preprocesses raw text for similarity search, ensuring complete sentences in all segments.
     Args:
         content (str): Raw input text.
         min_length (int): Minimum length for valid text segments.
@@ -66,7 +66,7 @@ def preprocess_text(content, min_length=20, max_length=300, overlap=100, debug=F
         overlap (int): Number of characters to overlap between split segments.
         debug (bool): Whether to print preprocessed texts for debugging.
     Returns:
-        list: List of preprocessed text segments.
+        list: List of preprocessed text segments with complete sentences.
     """
     # Validate input
     if not isinstance(content, str) or not content.strip():
@@ -81,7 +81,6 @@ def preprocess_text(content, min_length=20, max_length=300, overlap=100, debug=F
             print(f"Warning: Invalid overlap {overlap}, setting to 0.")
 
     # Step 1: Clean text
-    # Remove markdown headers
     content = re.sub(r'^#{1,6}\s*', '', content, flags=re.MULTILINE)
     content = re.sub(r'\s+', ' ', content.strip())  # Normalize whitespace
     content = re.sub(r'\n+', '\n', content)  # Normalize newlines
@@ -98,69 +97,150 @@ def preprocess_text(content, min_length=20, max_length=300, overlap=100, debug=F
         if not line:
             continue
 
-        # Detect metadata (short lines, numbers, or specific patterns)
+        # Detect metadata
         if len(line.split()) < 5 or any(keyword in line.lower() for keyword in ['studio', 'source', 'theme', 'demographic']) or re.match(r'^\d+\.\d+$|^[0-9K]+$', line):
             metadata_buffer.append(line)
             is_metadata = True
         else:
-            # If we were collecting metadata, join and process it
+            # Process metadata buffer if any
             if metadata_buffer:
                 metadata_text = ' '.join(metadata_buffer)
                 if len(metadata_text) >= min_length:
-                    # Split metadata if too long
-                    while len(metadata_text) > max_length:
-                        split_point = metadata_text.rfind(' ', 0, max_length)
-                        if split_point == -1:
-                            split_point = max_length
-                        processed_texts.append(
-                            metadata_text[:split_point].strip())
-                        overlap_start = max(0, split_point - overlap)
-                        metadata_text = metadata_text[overlap_start:].strip()
-                    if len(metadata_text) >= min_length:
-                        processed_texts.append(metadata_text)
+                    # Split metadata if too long, but avoid partial sentences
+                    sentences = sent_tokenize(metadata_text)
+                    current_segment = ""
+                    for sent in sentences:
+                        if len(current_segment) + len(sent) + 1 <= max_length:
+                            current_segment += (" " +
+                                                sent) if current_segment else sent
+                        else:
+                            if current_segment:
+                                processed_texts.append(current_segment)
+                            current_segment = sent if len(
+                                sent) <= max_length else ""
+                            # Handle long sentences
+                            while len(current_segment) > max_length:
+                                sub_sentences = sent_tokenize(
+                                    current_segment[:max_length])
+                                if sub_sentences:
+                                    last_sub = sub_sentences[-1]
+                                    split_point = current_segment.find(
+                                        last_sub) + len(last_sub)
+                                    processed_texts.append(
+                                        current_segment[:split_point].strip())
+                                    overlap_start = max(
+                                        0, split_point - overlap)
+                                    current_segment = current_segment[overlap_start:].strip(
+                                    )
+                                else:
+                                    split_point = current_segment.rfind(
+                                        ' ', 0, max_length)
+                                    if split_point == -1:
+                                        split_point = max_length
+                                    processed_texts.append(
+                                        current_segment[:split_point].strip())
+                                    overlap_start = max(
+                                        0, split_point - overlap)
+                                    current_segment = current_segment[overlap_start:].strip(
+                                    )
+                    if current_segment and len(current_segment) >= min_length:
+                        processed_texts.append(current_segment)
                 metadata_buffer = []
                 is_metadata = False
 
-            # Split narrative text into sentences
+            # Process narrative text
             sentences = sent_tokenize(line)
+            current_segment = ""
             for sent in sentences:
                 sent = sent.strip()
                 if len(sent) < min_length or re.match(r'^\[.*\]$', sent):
                     continue
-                # Split sentence if too long
-                while len(sent) > max_length:
-                    sub_sentences = sent_tokenize(sent[:max_length])
-                    if sub_sentences:
-                        last_sub = sub_sentences[-1]
-                        split_point = sent.find(last_sub) + len(last_sub)
-                        processed_texts.append(sent[:split_point].strip())
-                        overlap_start = max(0, split_point - overlap)
-                        sent = sent[overlap_start:].strip()
-                    else:
-                        split_point = sent.rfind(' ', 0, max_length)
-                        if split_point == -1:
-                            split_point = max_length
-                        processed_texts.append(sent[:split_point].strip())
-                        overlap_start = max(0, split_point - overlap)
-                        sent = sent[overlap_start:].strip()
-                if len(sent) >= min_length:
-                    processed_texts.append(sent)
 
-    # Add any remaining metadata
+                # Build segment with complete sentences
+                if len(current_segment) + len(sent) + 1 <= max_length:
+                    current_segment += (" " +
+                                        sent) if current_segment else sent
+                else:
+                    if current_segment:
+                        processed_texts.append(current_segment)
+                        # Start new segment with overlap
+                        sub_sentences = sent_tokenize(current_segment)
+                        if sub_sentences:
+                            last_complete = sub_sentences[-1]
+                            split_point = current_segment.rfind(
+                                last_complete) + len(last_complete)
+                            overlap_start = max(0, split_point - overlap)
+                            overlap_text = current_segment[overlap_start:].strip(
+                            )
+                            current_segment = overlap_text if len(
+                                overlap_text) >= min_length else ""
+                        else:
+                            current_segment = ""
+
+                    # Handle long sentence
+                    while len(sent) > max_length:
+                        sub_sentences = sent_tokenize(sent[:max_length])
+                        if sub_sentences:
+                            last_sub = sub_sentences[-1]
+                            split_point = sent.find(last_sub) + len(last_sub)
+                            processed_texts.append(sent[:split_point].strip())
+                            overlap_start = max(0, split_point - overlap)
+                            sent = sent[overlap_start:].strip()
+                        else:
+                            split_point = sent.rfind(' ', 0, max_length)
+                            if split_point == -1:
+                                split_point = max_length
+                            processed_texts.append(sent[:split_point].strip())
+                            overlap_start = max(0, split_point - overlap)
+                            sent = sent[overlap_start:].strip()
+
+                    if len(sent) >= min_length:
+                        current_segment = sent
+
+            # Add remaining segment
+            if current_segment and len(current_segment) >= min_length:
+                processed_texts.append(current_segment)
+
+    # Process remaining metadata
     if metadata_buffer:
         metadata_text = ' '.join(metadata_buffer)
         if len(metadata_text) >= min_length:
-            while len(metadata_text) > max_length:
-                split_point = metadata_text.rfind(' ', 0, max_length)
-                if split_point == -1:
-                    split_point = max_length
-                processed_texts.append(metadata_text[:split_point].strip())
-                overlap_start = max(0, split_point - overlap)
-                metadata_text = metadata_text[overlap_start:].strip()
-            if len(metadata_text) >= min_length:
-                processed_texts.append(metadata_text)
+            sentences = sent_tokenize(metadata_text)
+            current_segment = ""
+            for sent in sentences:
+                if len(current_segment) + len(sent) + 1 <= max_length:
+                    current_segment += (" " +
+                                        sent) if current_segment else sent
+                else:
+                    if current_segment:
+                        processed_texts.append(current_segment)
+                    current_segment = sent if len(sent) <= max_length else ""
+                    while len(current_segment) > max_length:
+                        sub_sentences = sent_tokenize(
+                            current_segment[:max_length])
+                        if sub_sentences:
+                            last_sub = sub_sentences[-1]
+                            split_point = current_segment.find(
+                                last_sub) + len(last_sub)
+                            processed_texts.append(
+                                current_segment[:split_point].strip())
+                            overlap_start = max(0, split_point - overlap)
+                            current_segment = current_segment[overlap_start:].strip(
+                            )
+                        else:
+                            split_point = current_segment.rfind(
+                                ' ', 0, max_length)
+                            if split_point == -1:
+                                split_point = max_length
+                            processed_texts.append(
+                                current_segment[:split_point].strip())
+                            overlap_start = max(0, split_point - overlap)
+                            current_segment = current_segment[overlap_start:].strip(
+                            )
+            if current_segment and len(current_segment) >= min_length:
+                processed_texts.append(current_segment)
 
-    # Step 4: Deduplicate repeated texts
+    # Step 4: Deduplicate
     seen = set()
     unique_texts = []
     for text in processed_texts:
@@ -175,7 +255,6 @@ def preprocess_text(content, min_length=20, max_length=300, overlap=100, debug=F
             print(f"{i+1}. ({len(text)} chars) {text}")
 
     return unique_texts
-
 # Function to preprocess query
 
 
