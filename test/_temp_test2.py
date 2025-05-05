@@ -1,3 +1,9 @@
+import json
+from jet.logger import logger
+import spacy
+from nltk.corpus import stopwords
+from nltk import word_tokenize, pos_tag, WordNetLemmatizer
+from typing import List, Optional, Set, Tuple
 from transformers import PreTrainedModel, PreTrainedTokenizer
 from torch.nn.functional import cosine_similarity
 from typing import List
@@ -14,14 +20,19 @@ from transformers import PreTrainedTokenizer, PreTrainedModel
 
 # Download NLTK data (run once)
 nltk.download('punkt', quiet=True)
+nltk.download('averaged_perceptron_tagger', quiet=True)
+nltk.download('wordnet', quiet=True)
+nltk.download('stopwords', quiet=True)
 
 # Define typed dictionaries for structured return types
 
 
 class SearchResult(TypedDict):
+    rank: int
     score: float
     doc_index: int
     text: str
+    tokens: int
 
 # Mean Pooling - Take attention mask into account for correct averaging
 
@@ -83,14 +94,22 @@ def preprocess_text(
     tokenizer: PreTrainedTokenizer,
     header: Optional[str] = None,
     min_length: int = 20,
-    max_length: int = 300,
-    overlap: int = 100,
+    max_length: int = 150,  # Adjusted to match error context
+    overlap: int = 20,     # Adjusted to match error context
     debug: bool = False
-) -> List[str]:
+) -> List[Tuple[str, List[str]]]:
     """
     Preprocesses raw text for similarity search, ensuring complete sentences in all segments.
+    Generates tags using NLTK (POS) and SpaCy (NER, noun chunks) to improve vector search context.
+    Returns a list of tuples (segment, tags).
     Uses actual encoded input_ids length for max_length comparison.
     """
+    # Initialize NLP tools
+    lemmatizer = WordNetLemmatizer()
+    stop_words = set(stopwords.words('english'))
+    # Enable parser by removing disable=['parser']
+    nlp = spacy.load('en_core_web_sm')
+
     # Validate input
     if not isinstance(content, str) or not content.strip():
         if debug:
@@ -120,7 +139,33 @@ def preprocess_text(
 
     # Step 2: Split into lines
     lines: List[str] = content.split('\n')
-    processed_texts: List[str] = []
+    processed_segments: List[Tuple[str, List[str]]] = []
+
+    def generate_tags(text: str) -> List[str]:
+        """Generate tags for a text segment using NLTK and SpaCy."""
+        tags = set()
+
+        # NLTK: POS tagging
+        tokens = word_tokenize(text.lower())
+        pos_tags = pos_tag(tokens)
+        for word, pos in pos_tags:
+            if pos.startswith(('NN', 'VB', 'JJ')) and word not in stop_words and len(word) > 2:
+                lemma = lemmatizer.lemmatize(
+                    word, pos='v' if pos.startswith('VB') else 'n')
+                tags.add(lemma)
+
+        # SpaCy: NER and noun chunks
+        doc = nlp(text)
+        for ent in doc.ents:
+            if ent.label_ in ('PERSON', 'ORG', 'GPE', 'PRODUCT'):
+                tags.add(ent.text.lower())
+        for chunk in doc.noun_chunks:
+            chunk_text = chunk.text.lower().strip()
+            if len(chunk_text) > 2 and chunk_text not in stop_words:
+                tags.add(chunk_text)
+
+        # Filter and sort tags
+        return sorted([tag for tag in tags if len(tag) > 2 and tag not in stop_words])
 
     # Step 3: Process lines
     for line in lines:
@@ -160,14 +205,15 @@ def preprocess_text(
                     encoded = tokenizer(
                         segment_with_header, add_special_tokens=True, return_tensors='pt')
                     if encoded['input_ids'].shape[1] <= max_length:
-                        processed_texts.append(segment_with_header)
+                        tags = generate_tags(segment_with_header)
+                        processed_segments.append((segment_with_header, tags))
                         if debug:
                             print(
-                                f"Added narrative segment: {segment_with_header[:50]}...")
+                                f"Added segment: {segment_with_header[:50]}... with tags: {tags}")
                     else:
                         if debug:
                             print(
-                                f"Discarded narrative segment (too long): {segment_with_header[:50]}...")
+                                f"Discarded segment (too long): {segment_with_header[:50]}...")
                     current_segment = ""
                 current_segment = sent if len(sent) <= max_length else ""
 
@@ -177,36 +223,38 @@ def preprocess_text(
             encoded = tokenizer(segment_with_header,
                                 add_special_tokens=True, return_tensors='pt')
             if encoded['input_ids'].shape[1] <= max_length:
-                processed_texts.append(segment_with_header)
+                tags = generate_tags(segment_with_header)
+                processed_segments.append((segment_with_header, tags))
                 if debug:
                     print(
-                        f"Added narrative segment: {segment_with_header[:50]}...")
+                        f"Added segment: {segment_with_header[:50]}... with tags: {tags}")
             else:
                 if debug:
                     print(
-                        f"Discarded narrative segment (too long): {segment_with_header[:50]}...")
+                        f"Discarded segment (too long): {segment_with_header[:50]}...")
 
     # Step 4: Deduplicate
     seen: Set[str] = set()
-    unique_texts: List[str] = []
-    for text in processed_texts:
-        if text not in seen:
-            unique_texts.append(text)
-            seen.add(text)
+    unique_segments: List[Tuple[str, List[str]]] = []
+    for segment, tags in processed_segments:
+        if segment not in seen:
+            unique_segments.append((segment, tags))
+            seen.add(segment)
 
     # Step 5: Debug output
     if debug:
-        print("Final Preprocessed Texts:")
-        for i, text in enumerate(unique_texts):
+        print("Final Preprocessed Segments with Tags:")
+        for i, (segment, tags) in enumerate(unique_segments):
             encoded = tokenizer(
-                text, add_special_tokens=True, return_tensors='pt')
+                segment, add_special_tokens=True, return_tensors='pt')
             token_count = encoded['input_ids'].shape[1]
-            print(f"{i+1}. ({len(text)} chars, {token_count} tokens) {text}")
+            print(f"{i+1}. ({len(segment)} chars, {token_count} tokens) {segment}")
+            print(f"   Tags: {tags}")
 
-    if not unique_texts and debug:
+    if not unique_segments and debug:
         print("Warning: No valid segments produced after preprocessing.")
 
-    return unique_texts
+    return unique_segments
 
 # Function to preprocess query
 
@@ -266,7 +314,7 @@ def similarity_search(
         threshold: Minimum similarity score for results to be included.
         debug: Whether to print top results for debugging.
     Returns:
-        List of dictionaries containing score, doc_index, and text.
+        List of SearchResult dictionaries containing rank, score, doc_index, text, and tokens.
     """
     # Validate inputs
     if not query or not texts:
@@ -297,22 +345,24 @@ def similarity_search(
 
     # Debug output: Print top results regardless of threshold
     if debug:
-        print("Top Similarity Search Results:")
-        for i, (idx, score) in enumerate(zip(top_k_indices[:5], top_k_scores[:5]), 1):
-            print(
-                f"{i}. Score: {score:.4f}\n"
-                f"Index: {idx}\n"
-                f"Text: {texts[idx]}\n"
+        logger.gray(f"[DEBUG] Top {top_k} Similarity Search Results:")
+        for i, (idx, score) in enumerate(zip(top_k_indices[:top_k], top_k_scores[:top_k]), 1):
+            logger.log(
+                f"Rank {i}:",
+                f"Doc: {idx}, Tokens: {len(tokenizer.encode(texts[idx], add_special_tokens=True))}",
+                f"\nScore: {score:.3f}",
+                f"\n{texts[idx]}",
+                colors=["ORANGE", "DEBUG", "SUCCESS", "WHITE"],
             )
-        if not top_k_scores.size:
-            print("No results available.")
 
     # Build results list: Apply threshold for returned results
-    results: List[dict] = [
+    results: List[SearchResult] = [
         {
+            'rank': i + 1,
             'score': float(top_k_scores[i]),
             'doc_index': int(idx),
-            'text': texts[idx]
+            'text': texts[idx],
+            'tokens': len(tokenizer.encode(texts[idx], add_special_tokens=True))
         }
         for i, idx in enumerate(top_k_indices)
         if top_k_scores[i] >= threshold
@@ -365,29 +415,42 @@ Add to My List"""
     content = '\n'.join(content.split('\n')[1:])  # Remove header from content
 
     # Preprocess content with debug mode
-    texts: List[str] = preprocess_text(
+    text_keywords_tuples: List[Tuple[str, List[str]]] = preprocess_text(
         content, tokenizer, header=header, min_length=min_length, max_length=max_length, overlap=overlap, debug=True
     )
 
+    # Extract just the text segments from the tuples
+    texts: List[str] = [segment for segment, _ in text_keywords_tuples]
+
     # Test with mean pooling
-    print("\n=== Similarity Search with Mean Pooling ===\n")
+    logger.info("\n=== Similarity Search with Mean Pooling ===\n")
     results_mean: List[SearchResult] = similarity_search(
         query, texts, model, tokenizer, use_mean_pooling=True,
         top_k=top_k, threshold=threshold, debug=True
     )
     for i, result in enumerate(results_mean, 1):
-        print(
-            f"{i}. Score: {result['score']:.4f}\nIndex: {result['doc_index']}\nText: {result['text']}\n")
+        logger.log(
+            f"Rank {result['rank']}:",
+            f"Doc: {result['doc_index']}, Tokens: {result['tokens']}",
+            f"\nScore: {result['score']:.3f}",
+            f"\n{json.dumps(result['text'])[:100]}...",
+            colors=["ORANGE", "DEBUG", "SUCCESS", "WHITE"],
+        )
 
     # Test with CLS token
-    print("\n=== Similarity Search with CLS Token ===\n")
+    logger.info("\n=== Similarity Search with CLS Token ===\n")
     results_cls: List[SearchResult] = similarity_search(
         query, texts, model, tokenizer, use_mean_pooling=False,
         top_k=top_k, threshold=threshold, debug=True
     )
     for i, result in enumerate(results_cls, 1):
-        print(
-            f"{i}. Score: {result['score']:.4f}\nIndex: {result['doc_index']}\nText: {result['text']}\n")
+        logger.log(
+            f"Rank {result['rank']}:",
+            f"Doc: {result['doc_index']}, Tokens: {result['tokens']}",
+            f"\nScore: {result['score']:.3f}",
+            f"\n{json.dumps(result['text'])[:100]}...",
+            colors=["ORANGE", "DEBUG", "SUCCESS", "WHITE"],
+        )
 
 
 if __name__ == "__main__":
