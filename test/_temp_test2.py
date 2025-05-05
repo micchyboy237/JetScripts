@@ -4,49 +4,66 @@ from nltk.tokenize import sent_tokenize
 from transformers import AutoTokenizer, AutoModel
 import torch
 import torch.nn.functional as F
+from typing import List, Dict, Optional, Tuple, TypedDict, Set, Union
+from transformers import PreTrainedTokenizer, PreTrainedModel
 
 # Download NLTK data (run once)
 nltk.download('punkt', quiet=True)
 
+# Define typed dictionaries for structured return types
+
+
+class SearchResult(TypedDict):
+    score: float
+    doc_index: int
+    text: str
+
 # Mean Pooling - Take attention mask into account for correct averaging
 
 
-def mean_pooling(model_output, attention_mask):
-    token_embeddings = model_output[0]
-    input_mask_expanded = attention_mask.unsqueeze(
+def mean_pooling(model_output: Tuple[torch.Tensor, ...], attention_mask: torch.Tensor) -> torch.Tensor:
+    token_embeddings: torch.Tensor = model_output[0]
+    input_mask_expanded: torch.Tensor = attention_mask.unsqueeze(
         -1).expand(token_embeddings.size()).float()
     return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 
 # Cosine similarity function
 
 
-def cosine_similarity(embeddings1, embeddings2):
+def cosine_similarity(embeddings1: torch.Tensor, embeddings2: torch.Tensor) -> torch.Tensor:
     return F.cosine_similarity(embeddings1, embeddings2, dim=1)
 
 # Function to compute embeddings with batching
 
 
-def get_embeddings(texts, model, tokenizer, use_mean_pooling=True, batch_size=32):
+def get_embeddings(
+    texts: List[str],
+    model: PreTrainedModel,
+    tokenizer: PreTrainedTokenizer,
+    use_mean_pooling: bool = True,
+    batch_size: int = 32
+) -> torch.Tensor:
     """
     Compute embeddings for texts in batches.
     Args:
-        texts (list): List of text strings.
+        texts: List of text strings.
         model: Transformer model.
         tokenizer: Tokenizer for the model.
-        use_mean_pooling (bool): Whether to use mean pooling or CLS token.
-        batch_size (int): Number of texts per batch.
+        use_mean_pooling: Whether to use mean pooling or CLS token.
+        batch_size: Number of texts per batch.
     Returns:
-        torch.Tensor: Embeddings for all texts.
+        Embeddings for all texts.
     """
-    embeddings = []
+    embeddings: List[torch.Tensor] = []
     for i in range(0, len(texts), batch_size):
-        batch_texts = texts[i:i + batch_size]
+        batch_texts: List[str] = texts[i:i + batch_size]
         encoded_input = tokenizer(
-            batch_texts, padding=True, truncation=True, return_tensors='pt', max_length=512)
+            batch_texts, padding=True, truncation=True, return_tensors='pt', max_length=512
+        )
         with torch.no_grad():
             model_output = model(**encoded_input)
         if use_mean_pooling:
-            batch_embeddings = mean_pooling(
+            batch_embeddings: torch.Tensor = mean_pooling(
                 model_output, encoded_input['attention_mask'])
         else:
             batch_embeddings = model_output[0][:, 0, :]  # CLS token embedding
@@ -56,17 +73,23 @@ def get_embeddings(texts, model, tokenizer, use_mean_pooling=True, batch_size=32
 # Preprocessing function
 
 
-def preprocess_text(content, min_length=20, max_length=300, overlap=100, debug=False):
+def preprocess_text(
+    content: str,
+    min_length: int = 20,
+    max_length: int = 300,
+    overlap: int = 100,
+    debug: bool = False
+) -> List[str]:
     """
     Preprocesses raw text for similarity search, ensuring complete sentences in all segments.
     Args:
-        content (str): Raw input text.
-        min_length (int): Minimum length for valid text segments.
-        max_length (int): Maximum length for text segments.
-        overlap (int): Number of characters to overlap between split segments.
-        debug (bool): Whether to print preprocessed texts for debugging.
+        content: Raw input text.
+        min_length: Minimum length for valid text segments.
+        max_length: Maximum length for text segments.
+        overlap: Number of characters to overlap between split segments.
+        debug: Whether to print preprocessed texts for debugging.
     Returns:
-        list: List of preprocessed text segments with complete sentences.
+        List of preprocessed text segments with complete sentences.
     """
     # Validate input
     if not isinstance(content, str) or not content.strip():
@@ -86,10 +109,10 @@ def preprocess_text(content, min_length=20, max_length=300, overlap=100, debug=F
     content = re.sub(r'\n+', '\n', content)  # Normalize newlines
 
     # Step 2: Split into lines for metadata detection
-    lines = content.split('\n')
-    processed_texts = []
-    metadata_buffer = []
-    is_metadata = False
+    lines: List[str] = content.split('\n')
+    processed_texts: List[str] = []
+    metadata_buffer: List[str] = []
+    is_metadata: bool = False
 
     # Step 3: Process lines
     for line in lines:
@@ -98,17 +121,19 @@ def preprocess_text(content, min_length=20, max_length=300, overlap=100, debug=F
             continue
 
         # Detect metadata
-        if len(line.split()) < 5 or any(keyword in line.lower() for keyword in ['studio', 'source', 'theme', 'demographic']) or re.match(r'^\d+\.\d+$|^[0-9K]+$', line):
+        if (len(line.split()) < 5 or
+            any(keyword in line.lower() for keyword in ['studio', 'source', 'theme', 'demographic']) or
+                re.match(r'^\d+\.\d+$|^[0-9K]+$', line)):
             metadata_buffer.append(line)
             is_metadata = True
         else:
             # Process metadata buffer if any
             if metadata_buffer:
-                metadata_text = ' '.join(metadata_buffer)
+                metadata_text: str = ' '.join(metadata_buffer)
                 if len(metadata_text) >= min_length:
                     # Split metadata if too long, but avoid partial sentences
-                    sentences = sent_tokenize(metadata_text)
-                    current_segment = ""
+                    sentences: List[str] = sent_tokenize(metadata_text)
+                    current_segment: str = ""
                     for sent in sentences:
                         if len(current_segment) + len(sent) + 1 <= max_length:
                             current_segment += (" " +
@@ -120,15 +145,15 @@ def preprocess_text(content, min_length=20, max_length=300, overlap=100, debug=F
                                 sent) <= max_length else ""
                             # Handle long sentences
                             while len(current_segment) > max_length:
-                                sub_sentences = sent_tokenize(
+                                sub_sentences: List[str] = sent_tokenize(
                                     current_segment[:max_length])
                                 if sub_sentences:
-                                    last_sub = sub_sentences[-1]
-                                    split_point = current_segment.find(
+                                    last_sub: str = sub_sentences[-1]
+                                    split_point: int = current_segment.find(
                                         last_sub) + len(last_sub)
                                     processed_texts.append(
                                         current_segment[:split_point].strip())
-                                    overlap_start = max(
+                                    overlap_start: int = max(
                                         0, split_point - overlap)
                                     current_segment = current_segment[overlap_start:].strip(
                                     )
@@ -166,11 +191,11 @@ def preprocess_text(content, min_length=20, max_length=300, overlap=100, debug=F
                         # Start new segment with overlap
                         sub_sentences = sent_tokenize(current_segment)
                         if sub_sentences:
-                            last_complete = sub_sentences[-1]
+                            last_complete: str = sub_sentences[-1]
                             split_point = current_segment.rfind(
                                 last_complete) + len(last_complete)
                             overlap_start = max(0, split_point - overlap)
-                            overlap_text = current_segment[overlap_start:].strip(
+                            overlap_text: str = current_segment[overlap_start:].strip(
                             )
                             current_segment = overlap_text if len(
                                 overlap_text) >= min_length else ""
@@ -241,8 +266,8 @@ def preprocess_text(content, min_length=20, max_length=300, overlap=100, debug=F
                 processed_texts.append(current_segment)
 
     # Step 4: Deduplicate
-    seen = set()
-    unique_texts = []
+    seen: Set[str] = set()
+    unique_texts: List[str] = []
     for text in processed_texts:
         if text not in seen:
             unique_texts.append(text)
@@ -255,24 +280,25 @@ def preprocess_text(content, min_length=20, max_length=300, overlap=100, debug=F
             print(f"{i+1}. ({len(text)} chars) {text}")
 
     return unique_texts
+
 # Function to preprocess query
 
 
-def preprocess_query(query, max_length=300):
+def preprocess_query(query: str, max_length: int = 300) -> str:
     """
     Preprocesses the query to match corpus preprocessing.
     Args:
-        query (str): Raw query text.
-        max_length (int): Maximum length for the query.
+        query: Raw query text.
+        max_length: Maximum length for the query.
     Returns:
-        str: Preprocessed query.
+        Preprocessed query.
     """
     if not isinstance(query, str) or not query.strip():
         return ""
     query = re.sub(r'\s+', ' ', query.strip())  # Normalize whitespace
     query = re.sub(r'[^\w\s.,!?]', '', query)  # Remove special characters
     if len(query) > max_length:
-        split_point = query.rfind(' ', 0, max_length)
+        split_point: int = query.rfind(' ', 0, max_length)
         if split_point == -1:
             split_point = max_length
         query = query[:split_point].strip()
@@ -281,32 +307,60 @@ def preprocess_query(query, max_length=300):
 # Function to perform similarity search
 
 
-def similarity_search(query, texts, model, tokenizer, use_mean_pooling=True, top_k=5):
-    query_embedding = get_embeddings(
+def similarity_search(
+    query: str,
+    texts: List[str],
+    model: PreTrainedModel,
+    tokenizer: PreTrainedTokenizer,
+    use_mean_pooling: bool = True,
+    top_k: int = 5
+) -> List[SearchResult]:
+    """
+    Performs similarity search on texts using transformer embeddings.
+    Args:
+        query: Query text.
+        texts: List of text segments to search.
+        model: Transformer model.
+        tokenizer: Tokenizer for the model.
+        use_mean_pooling: Whether to use mean pooling or CLS token.
+        top_k: Number of top results to return.
+    Returns:
+        List of dictionaries containing score, doc_index, and text.
+    """
+    query_embedding: torch.Tensor = get_embeddings(
         [query], model, tokenizer, use_mean_pooling)
-    text_embeddings = get_embeddings(texts, model, tokenizer, use_mean_pooling)
-    similarities = cosine_similarity(query_embedding, text_embeddings)
-    similarities = similarities.cpu().numpy()
-    top_k_indices = similarities.argsort()[-top_k:][::-1]
-    top_k_scores = similarities[top_k_indices]
-    results = [(texts[idx], top_k_scores[i])
-               for i, idx in enumerate(top_k_indices)]
+    text_embeddings: torch.Tensor = get_embeddings(
+        texts, model, tokenizer, use_mean_pooling)
+    similarities: torch.Tensor = cosine_similarity(
+        query_embedding, text_embeddings)
+    similarities_np = similarities.cpu().numpy()
+    top_k_indices = similarities_np.argsort()[-top_k:][::-1]
+    top_k_scores = similarities_np[top_k_indices]
+    results: List[SearchResult] = [
+        {
+            'score': float(top_k_scores[i]),
+            'doc_index': int(idx),
+            'text': texts[idx]
+        }
+        for i, idx in enumerate(top_k_indices)
+    ]
     return results
 
 
-def main():
+def main() -> None:
     # Load model and tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(
+    tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
         'sentence-transformers/all-MiniLM-L6-v2')
-    model = AutoModel.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
+    model: PreTrainedModel = AutoModel.from_pretrained(
+        'sentence-transformers/all-MiniLM-L6-v2')
 
     # Preprocessing parameters
-    min_length = 20
-    max_length = 300
-    overlap = 100
+    min_length: int = 20
+    max_length: int = 300
+    overlap: int = 100
 
     # Example content
-    content = """## Naruto: Shippuuden Movie 6 - Road to Ninja
+    content: str = """## Naruto: Shippuuden Movie 6 - Road to Ninja
 Movie, 2012 Finished 1 ep, 109 min
 Action Adventure Fantasy
 Naruto: Shippuuden Movie 6 - Road to Ninja
@@ -320,11 +374,12 @@ Demographic Shounen
 Add to My List"""
 
     # Preprocess content with debug mode
-    texts = preprocess_text(content, min_length=min_length,
-                            max_length=max_length, overlap=overlap, debug=True)
+    texts: List[str] = preprocess_text(
+        content, min_length=min_length, max_length=max_length, overlap=overlap, debug=True
+    )
 
     # Example query
-    query = "Naruto and Sakura in an alternate world"
+    query: str = "Naruto and Sakura in an alternate world"
     query = preprocess_query(query, max_length=max_length)
 
     # Test with mean pooling
@@ -334,22 +389,26 @@ Add to My List"""
     print(f"Max Length: {max_length}")
     print(f"Overlap: {overlap}")
     print()
-    results_mean = similarity_search(
-        query, texts, model, tokenizer, use_mean_pooling=True, top_k=3)
-    for i, (text, score) in enumerate(results_mean, 1):
-        print(f"{i}. Score: {score:.4f}\nText: {text}\n")
+    results_mean: List[SearchResult] = similarity_search(
+        query, texts, model, tokenizer, use_mean_pooling=True, top_k=3
+    )
+    for i, result in enumerate(results_mean, 1):
+        print(
+            f"{i}. Score: {result['score']:.4f}\nIndex: {result['doc_index']}\nText: {result['text']}\n")
 
-    # Test with CLS token (no mean pooling) - Note: CLS token is less reliable for this model
+    # Test with CLS token
     print("\n=== Similarity Search with CLS Token ===")
     print(f"Query: {query}")
     print(f"Min Length: {min_length}")
     print(f"Max Length: {max_length}")
     print(f"Overlap: {overlap}")
     print()
-    results_cls = similarity_search(
-        query, texts, model, tokenizer, use_mean_pooling=False, top_k=3)
-    for i, (text, score) in enumerate(results_cls, 1):
-        print(f"{i}. Score: {score:.4f}\nText: {text}\n")
+    results_cls: List[SearchResult] = similarity_search(
+        query, texts, model, tokenizer, use_mean_pooling=False, top_k=3
+    )
+    for i, result in enumerate(results_cls, 1):
+        print(
+            f"{i}. Score: {result['score']:.4f}\nIndex: {result['doc_index']}\nText: {result['text']}\n")
 
 
 if __name__ == "__main__":
