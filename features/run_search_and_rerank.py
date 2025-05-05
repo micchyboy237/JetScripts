@@ -226,7 +226,7 @@ if __name__ == "__main__":
             # Analyze doc
             stats = analyze_text(md_context)
             save_file(
-                {"url": url, "title": title_and_metadata["title"], "stats": stats}, f"{output_dir}/stats.json")
+                {"url": url, "title": title_and_metadata["title"], "stats": stats}, f"{output_dir_url}/overall_stats.json")
 
             # Analyze headings
             header_stats = []
@@ -236,7 +236,7 @@ if __name__ == "__main__":
                 stats = get_header_stats(text)
                 header_stats.append(
                     {"stats": stats, "header": header, "text": text})
-                save_file(header_stats, f"{output_dir_url}/stats.json")
+                save_file(header_stats, f"{output_dir_url}/header_stats.json")
 
             # Rerank docs
             query_scores = query_similarity_scores(
