@@ -62,7 +62,7 @@ def get_embeddings(
         batch_texts: List[str] = combined_texts[i:i + batch_size]
         try:
             encoded_input = tokenizer(
-                batch_texts, padding=True, truncation=True, return_tensors='pt',     max_length=512
+                batch_texts, padding=True, truncation=True, return_tensors='pt', max_length=512
             )
             with torch.no_grad():
                 model_output = model(**encoded_input)
@@ -82,6 +82,7 @@ def get_embeddings(
 def preprocess_text(
     content: str,
     tokenizer: PreTrainedTokenizer,
+    model: Optional[PreTrainedModel] = None,  # Added for semantic filtering
     header: Optional[str] = None,
     min_length: int = 50,
     max_length: int = 150,
@@ -90,7 +91,7 @@ def preprocess_text(
 ) -> List[Tuple[str, List[str]]]:
     """
     Preprocesses raw text for similarity search, ensuring complete sentences in segments.
-    Generates tags using NLTK and SpaCy with frequency-based filtering.
+    Generates tags using NLTK and SpaCy with frequency-based and semantic filtering.
     """
     # Initialize NLP tools
     lemmatizer = WordNetLemmatizer()
@@ -139,7 +140,7 @@ def preprocess_text(
     processed_segments: List[Tuple[str, List[str]]] = []
 
     def generate_tags(texts: List[str]) -> List[List[str]]:
-        """Generate tags for multiple texts with frequency-based filtering."""
+        """Generate tags with frequency-based and semantic filtering."""
         all_tags: List[Set[str]] = []
         for text in texts:
             tags = set()
@@ -165,12 +166,38 @@ def preprocess_text(
 
         # Frequency-based filtering
         tag_counts = Counter(tag for tags in all_tags for tag in tags)
+        # Must appear in 2+ segments
+        candidate_tags = {tag for tag in tag_counts if tag_counts[tag] >= 2}
+
+        # Semantic filtering (if model provided)
         filtered_tags = []
-        for tags in all_tags:
-            sorted_tags = sorted(
-                [tag for tag in tags if tag_counts[tag] >= 1 and len(tag) > 2])
-            # Limit to top 10 tags per segment
-            filtered_tags.append(sorted_tags[:10])
+        if model and candidate_tags:
+            for i, (text, tags) in enumerate(zip(texts, all_tags)):
+                valid_tags = [tag for tag in tags if tag in candidate_tags]
+                if not valid_tags:
+                    filtered_tags.append([])
+                    continue
+                # Compute embeddings for text and tags
+                text_embedding = get_embeddings(
+                    [(text, [])], model, tokenizer, use_mean_pooling=True)
+                tag_embeddings = get_embeddings(
+                    [(tag, []) for tag in valid_tags], model, tokenizer, use_mean_pooling=True)
+                similarities = cosine_similarity(
+                    text_embedding, tag_embeddings).cpu().numpy()
+                # Sort tags by similarity score, limit to top 8
+                tag_scores = sorted(
+                    zip(valid_tags, similarities), key=lambda x: x[1], reverse=True)[:8]
+                sorted_tags = [tag for tag, _ in tag_scores]
+                if debug:
+                    logger.debug(
+                        f"Segment {i+1} tag scores: {[(tag, float(score)) for tag, score in tag_scores]}")
+                filtered_tags.append(sorted_tags)
+        else:
+            for tags in all_tags:
+                sorted_tags = sorted(
+                    [tag for tag in tags if tag in candidate_tags])[:8]
+                filtered_tags.append(sorted_tags)
+
         return filtered_tags
 
     def get_tokens(text: str) -> List[int]:
@@ -183,9 +210,10 @@ def preprocess_text(
             return []
 
     def decode_tokens(tokens: List[int]) -> str:
-        """Decode tokens back to text."""
+        """Decode tokens back to text, stripping punctuation."""
         try:
-            return tokenizer.decode(tokens, skip_special_tokens=True).strip()
+            text = tokenizer.decode(tokens, skip_special_tokens=True).strip()
+            return re.sub(r'^\W+|\W+$', '', text)
         except Exception as e:
             if debug:
                 logger.error(f"Decoding error: {e}")
@@ -194,6 +222,8 @@ def preprocess_text(
     def get_sentence_aligned_overlap(tokens: List[int], sentences: List[str], sent_index: int) -> Tuple[str, List[int]]:
         """Get overlap text starting from the last complete sentence within overlap tokens."""
         if not tokens or overlap == 0:
+            if debug:
+                logger.debug("No overlap: empty tokens or overlap=0")
             return "", []
         for i in range(len(tokens) - 1, max(0, len(tokens) - overlap - 1), -1):
             partial_tokens = tokens[i:]
@@ -202,6 +232,8 @@ def preprocess_text(
                 if debug:
                     logger.debug(f"Overlap text: {text[:50]}...")
                 return text, partial_tokens
+        if debug:
+            logger.debug("No valid overlap sentence found")
         return "", []
 
     # Step 3: Process sentences into overlapping segments
@@ -485,7 +517,7 @@ Add to My List"""
     content = '\n'.join(content.split('\n')[1:])
 
     text_keywords_tuples: List[Tuple[str, List[str]]] = preprocess_text(
-        content, tokenizer, header=header, min_length=min_length, max_length=max_length, overlap=overlap, debug=True
+        content, tokenizer, model=model, header=header, min_length=min_length, max_length=max_length, overlap=overlap, debug=True
     )
 
     logger.info("\n=== Similarity Search with Mean Pooling ===\n")
