@@ -20,6 +20,13 @@ nltk.download('wordnet', quiet=True)
 nltk.download('stopwords', quiet=True)
 
 
+class TokenBreakdown(TypedDict):
+    header_tokens: int
+    text_tokens: int
+    tags_tokens: int
+    overlapped_tokens: int
+
+
 class SearchResult(TypedDict):
     rank: int
     score: float
@@ -27,7 +34,8 @@ class SearchResult(TypedDict):
     text: str
     header: Optional[str]
     tags: List[str]
-    tokens: int
+    tokens: TokenBreakdown
+    overlapped_text: Optional[str]
 
 
 class TextProcessor:
@@ -139,37 +147,72 @@ class TextProcessor:
 
         return filtered_tags
 
-    def get_sentence_aligned_overlap(self, sentences: List[str], start_index: int) -> Tuple[str, List[int]]:
-        """Get overlap text starting from the first complete sentence within the overlap range."""
-        if self.overlap == 0 or start_index >= len(sentences):
+    def get_sentence_aligned_overlap(self, sentences: List[str], start_index: int, prev_segment_text: str) -> Tuple[str, List[int]]:
+        """Get overlap text from the last n tokens of the previous segment, ensuring whole tokens and sentences."""
+        if self.overlap == 0 or not prev_segment_text:
             if self.debug:
-                logger.debug("No overlap: overlap=0 or no sentences")
+                logger.debug("No overlap: overlap=0 or no previous segment")
             return "", []
 
+        # Get the last n tokens from the previous segment
+        prev_tokens = self.get_tokens(prev_segment_text)
+        if len(prev_tokens) <= self.overlap:
+            overlap_tokens = prev_tokens
+            overlap_text = self.decode_tokens(overlap_tokens)
+        else:
+            overlap_tokens = prev_tokens[-self.overlap:]
+            overlap_text = self.decode_tokens(overlap_tokens)
+
+            # Check if the decoded text starts with a partial token
+            if overlap_text and overlap_text[0] != ' ':
+                first_space = overlap_text.find(' ')
+                if first_space != -1:
+                    overlap_text = overlap_text[first_space:].strip()
+                    overlap_tokens = self.get_tokens(overlap_text)
+                else:
+                    overlap_text = ""
+                    overlap_tokens = []
+
+        if not overlap_text:
+            if self.debug:
+                logger.debug(
+                    "No valid overlap text after partial token removal")
+            return "", []
+
+        # Ensure overlap text consists of whole sentences
+        overlap_sentences = sent_tokenize(overlap_text)
+        if not overlap_sentences:
+            if self.debug:
+                logger.debug("No valid sentences in overlap text")
+            return "", []
+
+        # Rebuild overlap text with whole sentences, respecting token limit
         overlap_text = ""
-        for i in range(start_index, min(start_index + self.overlap, len(sentences))):
-            if len(overlap_text) + len(sentences[i]) <= self.max_length:
-                overlap_text += sentences[i] + " "
+        overlap_tokens = []
+        current_token_count = 0
+
+        for sentence in overlap_sentences:
+            temp_text = (overlap_text + " " +
+                         sentence).strip() if overlap_text else sentence
+            temp_tokens = self.get_tokens(temp_text)
+            if len(temp_tokens) <= self.overlap:
+                overlap_text = temp_text
+                overlap_tokens = temp_tokens
+                current_token_count = len(temp_tokens)
             else:
                 break
 
-        overlap_text = overlap_text.strip()
         if not overlap_text:
             if self.debug:
-                logger.debug("No valid overlap sentence found")
+                logger.debug("No valid overlap sentences within token limit")
             return "", []
 
-        overlap_tokens = self.get_tokens(overlap_text)
-        if len(overlap_tokens) > self.max_length:
-            # Truncate to max_length
-            overlap_text = self.decode_tokens(overlap_tokens[:self.max_length])
-            overlap_tokens = self.get_tokens(overlap_text)
-
         if self.debug:
-            logger.debug(f"Overlap text: {overlap_text[:50]}...")
+            logger.debug(
+                f"Overlap text ({current_token_count} tokens): {overlap_text[:50]}...")
         return overlap_text, overlap_tokens
 
-    def preprocess_text(self, content: str, header: Optional[str] = None) -> List[Tuple[str, List[str]]]:
+    def preprocess_text(self, content: str, header: Optional[str] = None) -> List[Tuple[str, List[str], Optional[str]]]:
         if not isinstance(content, str) or not content.strip():
             if self.debug:
                 logger.warning("Empty or invalid content provided.")
@@ -184,13 +227,14 @@ class TextProcessor:
             header = self.truncate_header(header)
 
         sentences = sent_tokenize(content)
-        processed_segments: List[Tuple[str, List[str]]] = []
+        processed_segments: List[Tuple[str, List[str], Optional[str]]] = []
         current_sentences: List[str] = []
         sentence_index = 0
+        prev_segment_text = ""
 
         while sentence_index < len(sentences):
             sent = sentences[sentence_index].strip()
-            if len(sent) < self.min_length and len(current_sentences) == 0:
+            if len(sent) < self.min_length and not current_sentences:
                 if self.debug:
                     logger.debug(
                         f"Discarded sentence (too short): {sent[:50]}...")
@@ -204,33 +248,56 @@ class TextProcessor:
 
             if len(current_tokens) <= self.max_length:
                 if len(current_tokens) >= self.min_length:
-                    processed_segments.append((segment_with_header, []))
+                    # For the first segment, no overlap; for others, use last overlap tokens from prev_segment_text
+                    overlap_text, overlap_tokens = ("", []) if not prev_segment_text else self.get_sentence_aligned_overlap(
+                        sentences, 0, prev_segment_text=prev_segment_text)
+                    processed_segments.append(
+                        (segment_with_header, [], overlap_text if overlap_text else None))
                     if self.debug:
                         logger.debug(
-                            f"Added segment: {segment_with_header[:50]}...")
-                sentence_index += 1
+                            f"Adding segment: {segment_with_header[:50]}...")
+                        logger.debug(
+                            f"Previous segment text: {prev_segment_text[:50] if prev_segment_text else 'None'}...")
+                        logger.debug(
+                            f"Computed overlap: {overlap_text[:50] if overlap_text else 'None'}...")
+                    prev_segment_text = segment_with_header
+                    sentence_index += 1
+                else:
+                    sentence_index += 1
             else:
-                # Segment is too long, try to split
+                # Segment is too long, finalize the current segment
                 if len(current_sentences) > 1:
-                    # Save the current segment without the last sentence
+                    # Save the segment without the last sentence if it fits
                     current_sentences.pop()
                     segment_with_header = f"{header}\n{' '.join(current_sentences)}".strip(
                     ) if header else ' '.join(current_sentences)
-                    if len(self.get_tokens(segment_with_header)) >= self.min_length:
-                        processed_segments.append((segment_with_header, []))
+                    segment_tokens = self.get_tokens(segment_with_header)
+                    if len(segment_tokens) >= self.min_length:
+                        # Use overlap from prev_segment_text (if any)
+                        overlap_text, overlap_tokens = ("", []) if not prev_segment_text else self.get_sentence_aligned_overlap(
+                            sentences, 0, prev_segment_text=prev_segment_text)
+                        processed_segments.append(
+                            (segment_with_header, [], overlap_text if overlap_text else None))
                         if self.debug:
                             logger.debug(
-                                f"Added segment: {segment_with_header[:50]}...")
-                    # Prepare overlap
+                                f"Adding segment: {segment_with_header[:50]}...")
+                            logger.debug(
+                                f"Previous segment text: {prev_segment_text[:50] if prev_segment_text else 'None'}...")
+                            logger.debug(
+                                f"Computed overlap: {overlap_text[:50] if overlap_text else 'None'}...")
+                        prev_segment_text = segment_with_header
+                    # Start new segment, compute overlap from the just-added segment
                     overlap_text, overlap_tokens = self.get_sentence_aligned_overlap(
-                        sentences, sentence_index - len(current_sentences))
-                    current_sentences = sent_tokenize(
+                        sentences, 0, prev_segment_text=prev_segment_text)
+                    overlap_sentences = sent_tokenize(
                         overlap_text) if overlap_text else []
+                    current_sentences = overlap_sentences + \
+                        [sent] if overlap_text else [sent]
+                    sentence_index += 1
                 else:
-                    # Single sentence too long
+                    # Single sentence too long, split by words
                     words = sent.split()
                     partial_segment = ""
-                    partial_sentences: List[str] = []
                     for word in words:
                         temp_partial = (partial_segment + " " +
                                         word).strip() if partial_segment else word
@@ -239,27 +306,24 @@ class TextProcessor:
                         temp_tokens = self.get_tokens(temp_with_header)
                         if len(temp_tokens) <= self.max_length:
                             partial_segment = temp_partial
-                            if word.endswith(('.', '!', '?')):
-                                partial_sentences.append(partial_segment)
-                                partial_segment = ""
                         else:
                             if partial_segment and len(self.get_tokens(f"{header}\n{partial_segment}".strip() if header else partial_segment)) >= self.min_length:
                                 partial_with_header = f"{header}\n{partial_segment}".strip(
                                 ) if header else partial_segment
+                                overlap_text, overlap_tokens = ("", []) if not prev_segment_text else self.get_sentence_aligned_overlap(
+                                    sentences, 0, prev_segment_text=prev_segment_text)
                                 processed_segments.append(
-                                    (partial_with_header, []))
+                                    (partial_with_header, [], overlap_text if overlap_text else None))
                                 if self.debug:
                                     logger.debug(
-                                        f"Added partial segment: {partial_with_header[:50]}...")
+                                        f"Adding partial segment: {partial_with_header[:50]}...")
+                                    logger.debug(
+                                        f"Previous segment text: {prev_segment_text[:50] if prev_segment_text else 'None'}...")
+                                    logger.debug(
+                                        f"Computed overlap: {overlap_text[:50] if overlap_text else 'None'}...")
+                                prev_segment_text = partial_with_header
                             partial_segment = ""
-                            partial_sentences = []
-                    if partial_segment and len(self.get_tokens(f"{header}\n{partial_segment}".strip() if header else partial_segment)) >= self.min_length:
-                        partial_with_header = f"{header}\n{partial_segment}".strip(
-                        ) if header else partial_segment
-                        processed_segments.append((partial_with_header, []))
-                        if self.debug:
-                            logger.debug(
-                                f"Added partial segment: {üssepartial_with_header[:50]}...")
+                            break
                     sentence_index += 1
                     current_sentences = []
 
@@ -268,29 +332,54 @@ class TextProcessor:
             segment_with_header = f"{header}\n{' '.join(current_sentences)}".strip(
             ) if header else ' '.join(current_sentences)
             if len(self.get_tokens(segment_with_header)) >= self.min_length:
-                processed_segments.append((segment_with_header, []))
+                overlap_text, overlap_tokens = ("", []) if not prev_segment_text else self.get_sentence_aligned_overlap(
+                    sentences, 0, prev_segment_text=prev_segment_text)
+                processed_segments.append(
+                    (segment_with_header, [], overlap_text if overlap_text else None))
                 if self.debug:
                     logger.debug(
-                        f"Added segment: {segment_with_header[:50]}...")
+                        f"Adding segment: {segment_with_header[:50]}...")
+                    logger.debug(
+                        f"Previous segment text: {prev_segment_text[:50] if prev_segment_text else 'None'}...")
+                    logger.debug(
+                        f"Computed overlap: {overlap_text[:50] if overlap_text else 'None'}...")
+                prev_segment_text = segment_with_header
 
         # Generate tags
-        segment_texts = [segment for segment, _ in processed_segments]
+        segment_texts = [segment for segment, _, _ in processed_segments]
         if segment_texts:
             tags_list = self.generate_tags(segment_texts)
-            processed_segments = [(segment, tags) for (
-                segment, _), tags in zip(processed_segments, tags_list)]
+            processed_segments = [(segment, tags, overlap_text) for (
+                segment, _, overlap_text), tags in zip(processed_segments, tags_list)]
 
-        # Deduplicate and compute token counts including tags
+        # Deduplicate segments based on similarity
+        unique_segments: List[Tuple[str, List[str], Optional[str]]] = []
         seen: Set[str] = set()
-        unique_segments: List[Tuple[str, List[str]]] = []
-        for segment, tags in processed_segments:
-            if segment not in seen:
-                unique_segments.append((segment, tags))
-                seen.add(segment)
+        for i, (segment, tags, overlap_text) in enumerate(processed_segments):
+            segment_content = '\n'.join(segment.split(
+                '\n')[1:]).strip() if '\n' in segment else segment
+            if segment_content in seen:
+                continue
+            is_unique = True
+            for j, (unique_segment, _, _) in enumerate(unique_segments):
+                unique_content = '\n'.join(unique_segment.split('\n')[1:]).strip(
+                ) if '\n' in unique_segment else unique_segment
+                similarity = self.compute_text_similarity(
+                    segment_content, unique_content)
+                if similarity > 0.95:
+                    is_unique = False
+                    if self.debug:
+                        logger.debug(
+                            f"Discarded near-duplicate segment {i+1} (similarity {similarity:.3f}): {segment[:50]}...")
+                    break
+            if is_unique:
+                unique_segments.append((segment, tags, overlap_text))
+                seen.add(segment_content)
 
         if self.debug:
-            logger.debug("\nFinal Preprocessed Segments with Tags:")
-            for i, (segment, tags) in enumerate(unique_segments):
+            logger.debug(
+                "\nFinal Preprocessed Segments with Tags and Overlap:")
+            for i, (segment, tags, overlap_text) in enumerate(unique_segments):
                 combined_text = f"{segment} {' '.join(tags)}"
                 encoded = self.tokenizer(
                     combined_text, add_special_tokens=True, return_tensors='pt')
@@ -298,6 +387,7 @@ class TextProcessor:
                 logger.debug(
                     f"{i+1}. ({len(segment)} chars, {token_count} tokens) {segment}")
                 logger.debug(f"   Tags: {tags}")
+                logger.debug(f"   Overlap Text: {overlap_text or 'None'}")
 
         if not unique_segments and self.debug:
             logger.warning("No valid segments produced after preprocessing.")
@@ -320,6 +410,18 @@ class TextProcessor:
             if split_point != -1:
                 query = query[:split_point].strip()
         return query
+
+    def compute_text_similarity(self, text1: str, text2: str) -> float:
+        """Compute cosine similarity between two texts using embeddings."""
+        if not self.model:
+            return 0.0
+        embeddings = self.get_embeddings(
+            [(text1, []), (text2, [])], use_mean_pooling=True)
+        if embeddings.shape[0] < 2:
+            return 0.0
+        similarity = F.cosine_similarity(
+            embeddings[0:1], embeddings[1:2]).item()
+        return similarity
 
     def get_embeddings(self, texts: List[Tuple[str, List[str]]], batch_size: int = 32, use_mean_pooling: bool = True) -> torch.Tensor:
         if not self.model:
@@ -355,12 +457,22 @@ class SimilaritySearch:
         self.tokenizer = tokenizer
         self.processor = TextProcessor(tokenizer, model)
 
+    def compute_text_similarity(self, text1: str, text2: str, use_mean_pooling: bool = True) -> float:
+        """Compute cosine similarity between two texts using embeddings."""
+        embeddings = self.processor.get_embeddings(
+            [(text1, []), (text2, [])], use_mean_pooling=use_mean_pooling)
+        if embeddings.shape[0] < 2:
+            return 0.0
+        similarity = F.cosine_similarity(
+            embeddings[0:1], embeddings[1:2]).item()
+        return similarity
+
     def search(
         self,
         query: str,
-        text_tuples: List[Tuple[str, List[str]]],
+        text_tuples: List[Tuple[str, List[str], Optional[str]]],
         use_mean_pooling: bool = True,
-        top_k: int = 5,
+        top_k: Optional[int] = 5,
         threshold: float = 0.5,
         debug: bool = False
     ) -> List[SearchResult]:
@@ -372,7 +484,7 @@ class SimilaritySearch:
         query_embedding = self.processor.get_embeddings(
             [(query, [])], use_mean_pooling=use_mean_pooling)
         text_embeddings = self.processor.get_embeddings(
-            text_tuples, use_mean_pooling=use_mean_pooling)
+            [(text, tags) for text, tags, _ in text_tuples], use_mean_pooling=use_mean_pooling)
 
         if query_embedding.numel() == 0 or text_embeddings.numel() == 0:
             if debug:
@@ -382,49 +494,98 @@ class SimilaritySearch:
         similarities = F.cosine_similarity(query_embedding, text_embeddings)
         similarities_np = similarities.cpu().numpy()
 
+        if not top_k:
+            top_k = len(text_tuples)
+
         top_k_indices = similarities_np.argsort()[-top_k:][::-1]
         top_k_scores = similarities_np[top_k_indices]
 
         if debug:
             logger.gray(f"[DEBUG] Top {top_k} Similarity Search Results:")
-            for i, (idx, score) in enumerate(zip(top_k_indices[:top_k], top_k_scores[:top_k]), 1):
-                text, tags = text_tuples[idx]
+            # Create a list of tuples with rank, index, and score
+            ranked_results = list(
+                zip(range(1, top_k + 1), top_k_indices[:top_k], top_k_scores[:top_k]))
+            # Sort by doc index while preserving rank
+            ranked_results.sort(key=lambda x: x[1])
+
+            for rank, idx, score in ranked_results:
+                text, tags, overlapped_text = text_tuples[idx]
                 header = text.split('\n')[0] if '\n' in text else None
                 content = '\n'.join(text.split(
                     '\n')[1:]).strip() if header else text
-                combined_text = f"{content} {' '.join(tags)}"
-                token_count = len(self.tokenizer.encode(
-                    combined_text, add_special_tokens=True))
+                header_tokens = len(self.tokenizer.encode(
+                    header, add_special_tokens=True)) if header else 0
+                content_tokens = len(self.tokenizer.encode(
+                    content, add_special_tokens=True))
+                tags_tokens = len(self.tokenizer.encode(
+                    ' '.join(tags), add_special_tokens=True)) if tags else 0
+                overlapped_tokens = len(self.tokenizer.encode(
+                    overlapped_text, add_special_tokens=True)) if overlapped_text else 0
+                token_breakdown = {
+                    'header_tokens': header_tokens,
+                    'text_tokens': content_tokens,
+                    'tags_tokens': tags_tokens,
+                    'overlapped_tokens': overlapped_tokens
+                }
                 logger.log(
-                    f"Rank {i}:",
-                    f"Doc: {idx}, Tokens: {token_count}",
+                    f"Rank {rank}:",
+                    f"Doc: {idx}, Tokens: {sum(token_breakdown.values())} (Header: {header_tokens}, Text: {content_tokens}, Tags: {tags_tokens}, Overlap: {overlapped_tokens})",
                     f"\nScore: {score:.3f}",
                     f"\nHeader: {header or 'None'}",
                     f"\nText: {content}",
                     f"\nTags: {tags}",
+                    f"\nOverlapped Text: {overlapped_text or 'None'}",
                     colors=["ORANGE", "DEBUG", "SUCCESS",
-                            "WHITE", "WHITE", "DEBUG"],
+                            "WHITE", "WHITE", "DEBUG", "WHITE"],
                 )
 
         results: List[SearchResult] = []
+        seen_texts: Set[str] = set()
         for i, idx in enumerate(top_k_indices):
-            if top_k_scores[i] >= threshold:
-                text, tags = text_tuples[idx]
-                header = text.split('\n')[0] if '\n' in text and text.split(
-                    '\n')[0].startswith("Naruto: Shippuuden Movie 6 - Road to Ninja") else None
-                content = '\n'.join(text.split(
-                    '\n')[1:]).strip() if header else text
-                content_tokens = len(self.tokenizer.encode(
-                    content, add_special_tokens=True))
-                results.append({
-                    'rank': i + 1,
-                    'score': float(top_k_scores[i]),
-                    'doc_index': int(idx),
-                    'text': content,
-                    'header': header,
-                    'tags': tags,
-                    'tokens': content_tokens
-                })
+            if top_k_scores[i] < threshold:
+                continue
+            text, tags, overlapped_text = text_tuples[idx]
+            header = text.split('\n')[0] if '\n' in text else None
+            content = '\n'.join(text.split(
+                '\n')[1:]).strip() if header else text
+            # Check for near-duplicate results
+            is_unique = True
+            for seen_text in seen_texts:
+                similarity = self.compute_text_similarity(
+                    content, seen_text, use_mean_pooling=use_mean_pooling)
+                if similarity > 0.95:
+                    is_unique = False
+                    if debug:
+                        logger.debug(
+                            f"Discarded near-duplicate result (Doc {idx}, similarity {similarity:.3f}): {content[:50]}...")
+                    break
+            if not is_unique:
+                continue
+            header_tokens = len(self.tokenizer.encode(
+                header, add_special_tokens=True)) if header else 0
+            content_tokens = len(self.tokenizer.encode(
+                content, add_special_tokens=True))
+            tags_tokens = len(self.tokenizer.encode(
+                ' '.join(tags), add_special_tokens=True)) if tags else 0
+            overlapped_tokens = len(self.tokenizer.encode(
+                overlapped_text, add_special_tokens=True)) if overlapped_text else 0
+            token_breakdown = {
+                'header_tokens': header_tokens,
+                'text_tokens': content_tokens,
+                'tags_tokens': tags_tokens,
+                'overlapped_tokens': overlapped_tokens
+            }
+            results.append({
+                'rank': i + 1,
+                'score': float(top_k_scores[i]),
+                'doc_index': int(idx),
+                'text': content,
+                'header': header,
+                'tags': tags,
+                'tokens': token_breakdown,
+                'overlapped_text': overlapped_text
+            })
+            seen_texts.add(content)
 
         return results
 
@@ -436,10 +597,26 @@ def main() -> None:
     search = SimilaritySearch(model, tokenizer)
     processor = search.processor
 
+    sample_text = "Movie, 2012 Finished 1 ep, 109 min Action Adventure Fantasy Naruto: Shippuuden Movie 6 - Road to Ninja Returning home to Konohagakure, the young ninja celebrate defeating a group of supposed Akatsuki members."
+    encoded_text = tokenizer.encode(sample_text, add_special_tokens=False)
+    last_20_tokens = encoded_text[-20:]
+    decoded_last_20 = tokenizer.decode(last_20_tokens)
+
+    # Check if the decoded text starts with a partial token
+    if decoded_last_20 and decoded_last_20[0] != ' ':
+        # Find the first space in the decoded text
+        first_space = decoded_last_20.find(' ')
+        if first_space != -1:
+            # Remove the partial token at the start
+            decoded_last_20 = decoded_last_20[first_space:].strip()
+
+    logger.orange(
+        f"[DEBUG] Sample text tokens count: {len(encoded_text)}\nDecoded last 20: {decoded_last_20}")
+
     min_length = 50
     max_length = 150
     overlap = 20
-    top_k = 3
+    top_k = None
     threshold = 0.2
     max_result_tokens = 300
 
@@ -485,8 +662,7 @@ Add to My List"""
         for result in results_mean:
             # Tokenize the text to be added
             text_to_add = f"{result['text']}\n"
-            tokens_to_add = len(tokenizer.encode(
-                text_to_add, add_special_tokens=True))
+            tokens_to_add = result['tokens']['text_tokens']
             # Check if adding this text would exceed max_result_tokens
             if current_tokens + tokens_to_add <= max_result_tokens:
                 mean_result_text += text_to_add
@@ -525,8 +701,7 @@ Add to My List"""
         for result in results_cls:
             # Tokenize the text to be added
             text_to_add = f"{result['text']}\n"
-            tokens_to_add = len(tokenizer.encode(
-                text_to_add, add_special_tokens=True))
+            tokens_to_add = result['tokens']['text_tokens']
             # Check if adding this text would exceed max_result_tokens
             if current_tokens + tokens_to_add <= max_result_tokens:
                 cls_result_text += text_to_add
