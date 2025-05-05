@@ -25,6 +25,8 @@ class SearchResult(TypedDict):
     score: float
     doc_index: int
     text: str
+    header: Optional[str]
+    tags: List[str]
     tokens: int
 
 
@@ -257,7 +259,7 @@ class TextProcessor:
                         processed_segments.append((partial_with_header, []))
                         if self.debug:
                             logger.debug(
-                                f"Added partial segment: {partial_with_header[:50]}...")
+                                f"Added partial segment: {üssepartial_with_header[:50]}...")
                     sentence_index += 1
                     current_sentences = []
 
@@ -387,29 +389,42 @@ class SimilaritySearch:
             logger.gray(f"[DEBUG] Top {top_k} Similarity Search Results:")
             for i, (idx, score) in enumerate(zip(top_k_indices[:top_k], top_k_scores[:top_k]), 1):
                 text, tags = text_tuples[idx]
-                combined_text = f"{text} {' '.join(tags)}"
+                header = text.split('\n')[0] if '\n' in text else None
+                content = '\n'.join(text.split(
+                    '\n')[1:]).strip() if header else text
+                combined_text = f"{content} {' '.join(tags)}"
                 token_count = len(self.tokenizer.encode(
                     combined_text, add_special_tokens=True))
                 logger.log(
                     f"Rank {i}:",
                     f"Doc: {idx}, Tokens: {token_count}",
                     f"\nScore: {score:.3f}",
-                    f"\n{text[:100]}...",
+                    f"\nHeader: {header or 'None'}",
+                    f"\nText: {content}",
                     f"\nTags: {tags}",
-                    colors=["ORANGE", "DEBUG", "SUCCESS", "WHITE", "DEBUG"],
+                    colors=["ORANGE", "DEBUG", "SUCCESS",
+                            "WHITE", "WHITE", "DEBUG"],
                 )
 
-        results: List[SearchResult] = [
-            {
-                'rank': i + 1,
-                'score': float(top_k_scores[i]),
-                'doc_index': int(idx),
-                'text': text_tuples[idx][0],
-                'tokens': len(self.tokenizer.encode(f"{text_tuples[idx][0]} {' '.join(text_tuples[idx][1])}", add_special_tokens=True))
-            }
-            for i, idx in enumerate(top_k_indices)
-            if top_k_scores[i] >= threshold
-        ]
+        results: List[SearchResult] = []
+        for i, idx in enumerate(top_k_indices):
+            if top_k_scores[i] >= threshold:
+                text, tags = text_tuples[idx]
+                header = text.split('\n')[0] if '\n' in text and text.split(
+                    '\n')[0].startswith("Naruto: Shippuuden Movie 6 - Road to Ninja") else None
+                content = '\n'.join(text.split(
+                    '\n')[1:]).strip() if header else text
+                content_tokens = len(self.tokenizer.encode(
+                    content, add_special_tokens=True))
+                results.append({
+                    'rank': i + 1,
+                    'score': float(top_k_scores[i]),
+                    'doc_index': int(idx),
+                    'text': content,
+                    'header': header,
+                    'tags': tags,
+                    'tokens': content_tokens
+                })
 
         return results
 
@@ -425,7 +440,8 @@ def main() -> None:
     max_length = 150
     overlap = 20
     top_k = 3
-    threshold = 0.7
+    threshold = 0.2
+    max_result_tokens = 300
 
     query = 'List upcoming isekai anime this year (2024-2025).'
     query = processor.preprocess_query(query, max_length=max_length)
@@ -437,6 +453,7 @@ def main() -> None:
     print(f"Overlap: {overlap}")
     print(f"Top K: {top_k}")
     print(f"Threshold: {threshold}")
+    print(f"Max Result Tokens: {max_result_tokens}")
     print()
 
     content = """## Naruto: Shippuuden Movie 6 - Road to Ninja
@@ -464,45 +481,77 @@ Add to My List"""
         # Post-process results_mean: sort by doc_index
         results_mean.sort(key=lambda x: x['doc_index'])
         mean_result_text = ""
+        current_tokens = 0
         for result in results_mean:
-            mean_result_text += f"Document {result['doc_index'] + 1}\n"
-            mean_result_text += f"Rank: {result['rank']}\n"
-            mean_result_text += f"Score: {result['score']:.3f}\n"
-            mean_result_text += f"Tokens: {result['tokens']}\n"
-            mean_result_text += f"Text: {json.dumps(result['text'])[:200]}...\n"
-            mean_result_text += "\n"
-        logger.info(
-            "\n=== Mean Pooling Search Results (Sorted by Doc Index) ===\n")
-        logger.log(mean_result_text, colors=["WHITE"])
+            # Tokenize the text to be added
+            text_to_add = f"{result['text']}\n"
+            tokens_to_add = len(tokenizer.encode(
+                text_to_add, add_special_tokens=True))
+            # Check if adding this text would exceed max_result_tokens
+            if current_tokens + tokens_to_add <= max_result_tokens:
+                mean_result_text += text_to_add
+                current_tokens += tokens_to_add
+            else:
+                logger.warning(
+                    f"Stopped adding results for Mean Pooling at {current_tokens} tokens to respect max_result_tokens={max_result_tokens}."
+                )
+                break
+        mean_result_text = mean_result_text.strip()
+        if mean_result_text:
+            logger.info(
+                "\n=== Mean Pooling Search Results (Sorted by Doc Index) ===\n")
+            logger.success(mean_result_text, colors=["WHITE"])
+            logger.teal(f"Total tokens in results (mean): {current_tokens}")
+        else:
+            logger.info(
+                "\n=== Mean Pooling Search Results (Sorted by Doc Index) ===\n")
+            logger.warning(
+                "No results could be included within max_result_tokens for Mean Pooling search.")
     else:
         logger.info(
             "\n=== Mean Pooling Search Results (Sorted by Doc Index) ===\n")
         logger.warning(
-            f"No results passed the threshold ({threshold}) for Mean Pooling search.")
+            "No results passed the threshold for Mean Pooling search.")
 
     logger.info("\n=== Similarity Search with CLS Token ===\n")
-    results_cls = search.search(query, text_keywords_tuples,
-                                use_mean_pooling=False, top_k=top_k, threshold=threshold, debug=True)
+    results_cls = search.search(
+        query, text_keywords_tuples, use_mean_pooling=False, top_k=top_k, threshold=threshold, debug=True)
 
     if results_cls:
         # Post-process results_cls: sort by doc_index
         results_cls.sort(key=lambda x: x['doc_index'])
         cls_result_text = ""
+        current_tokens = 0
         for result in results_cls:
-            cls_result_text += f"Document {result['doc_index'] + 1}\n"
-            cls_result_text += f"Rank: {result['rank']}\n"
-            cls_result_text += f"Score: {result['score']:.3f}\n"
-            cls_result_text += f"Tokens: {result['tokens']}\n"
-            cls_result_text += f"Text: {json.dumps(result['text'])[:200]}...\n"
-            cls_result_text += "\n"
-        logger.info(
-            "\n=== CLS Token Search Results (Sorted by Doc Index) ===\n")
-        logger.log(cls_result_text, colors=["WHITE"])
+            # Tokenize the text to be added
+            text_to_add = f"{result['text']}\n"
+            tokens_to_add = len(tokenizer.encode(
+                text_to_add, add_special_tokens=True))
+            # Check if adding this text would exceed max_result_tokens
+            if current_tokens + tokens_to_add <= max_result_tokens:
+                cls_result_text += text_to_add
+                current_tokens += tokens_to_add
+            else:
+                logger.warning(
+                    f"Stopped adding results for CLS Token at {current_tokens} tokens to respect max_result_tokens={max_result_tokens}."
+                )
+                break
+        cls_result_text = cls_result_text.strip()
+        if cls_result_text:
+            logger.info(
+                "\n=== CLS Token Search Results (Sorted by Doc Index) ===\n")
+            logger.success(cls_result_text, colors=["WHITE"])
+            logger.teal(f"Total tokens in results (cls): {current_tokens}")
+        else:
+            logger.info(
+                "\n=== CLS Token Search Results (Sorted by Doc Index) ===\n")
+            logger.warning(
+                "No results could be included within max_result_tokens for CLS Token search.")
     else:
         logger.info(
             "\n=== CLS Token Search Results (Sorted by Doc Index) ===\n")
         logger.warning(
-            f"No results passed the threshold ({threshold}) for CLS Token search.")
+            "No results passed the threshold for CLS Token search.")
 
 
 if __name__ == "__main__":
