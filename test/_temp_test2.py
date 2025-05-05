@@ -76,6 +76,7 @@ def get_embeddings(
 def preprocess_text(
     content: str,
     tokenizer: PreTrainedTokenizer,
+    header: Optional[str] = None,
     min_length: int = 20,
     max_length: int = 300,
     overlap: int = 100,
@@ -85,8 +86,9 @@ def preprocess_text(
     Preprocesses raw text for similarity search, ensuring complete sentences in all segments.
     Uses actual encoded input_ids length for max_length comparison.
     Args:
-        content: Raw input text.
+        content: Raw input text to be processed.
         tokenizer: Tokenizer for the model to compute token length.
+        header: Optional header text to be prepended to each processed segment.
         min_length: Minimum length for valid text segments (in characters).
         max_length: Maximum length for text segments (in tokens).
         overlap: Number of characters to overlap between split segments.
@@ -444,10 +446,12 @@ Demographic Shounen
 7.68
 366K
 Add to My List"""
+    header = content.split('\n')[0]  # Get first line as header
+    content = '\n'.join(content.split('\n')[1:])  # Remove header from content
 
     # Preprocess content with debug mode
     texts: List[str] = preprocess_text(
-        content, tokenizer, min_length=min_length, max_length=max_length, overlap=overlap, debug=True
+        content, tokenizer, header=header, min_length=min_length, max_length=max_length, overlap=overlap, debug=True
     )
 
     # Test with mean pooling
