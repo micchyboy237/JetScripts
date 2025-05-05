@@ -1,11 +1,12 @@
+from jet.wordnet.sentence import split_sentences
 from transformers import AutoTokenizer, AutoModel
 import torch
 import torch.nn.functional as F
 
-
 # Mean Pooling - Take attention mask into account for correct averaging
+
+
 def mean_pooling(model_output, attention_mask):
-    # First element contains all token embeddings
     token_embeddings = model_output[0]
     input_mask_expanded = attention_mask.unsqueeze(
         -1).expand(token_embeddings.size()).float()
@@ -19,68 +20,30 @@ def cosine_similarity(embeddings1, embeddings2):
 
 # Function to compute embeddings
 def get_embeddings(texts, model, tokenizer, use_mean_pooling=True):
-    # Tokenize
     encoded_input = tokenizer(
         texts, padding=True, truncation=True, return_tensors='pt', max_length=512)
-    # Compute token embeddings
     with torch.no_grad():
         model_output = model(**encoded_input)
-    # Return embeddings
     if use_mean_pooling:
         return mean_pooling(model_output, encoded_input['attention_mask'])
     else:
         return model_output[0][:, 0, :]  # CLS token embedding
 
 
-# Example 1: Product Description vs. Customer Review
-def example_product_review(model, tokenizer):
-    print("\nExample 1: Product Description vs. Customer Review")
-    texts = [
-        "The EcoSmart Wireless Speaker is a premium audio device featuring Bluetooth 5.0 connectivity, 20W stereo sound, and a 12-hour battery life. Designed with a sleek, portable aluminum body, it’s perfect for outdoor adventures or home use. It supports voice assistants and has an IPX6 water resistance rating, making it ideal for all environments.",
-        "I bought the EcoSmart Speaker for a camping trip, and it was fantastic! The sound quality is crisp, and it lasted the whole weekend without needing a recharge. The Bluetooth connected easily, and I love the sturdy design. Only downside is the voice assistant sometimes lags, but it’s great for music."
-    ]
-
-    # Compute embeddings with mean pooling
-    embeddings_mean = get_embeddings(
-        texts, model, tokenizer, use_mean_pooling=True)
-    sim_mean = cosine_similarity(
-        embeddings_mean[0:1], embeddings_mean[1:2]).item()
-
-    # Compute embeddings without mean pooling (CLS token)
-    embeddings_cls = get_embeddings(
-        texts, model, tokenizer, use_mean_pooling=False)
-    sim_cls = cosine_similarity(
-        embeddings_cls[0:1], embeddings_cls[1:2]).item()
-
-    print(f"Cosine Similarity (Mean Pooling): {sim_mean:.4f}")
-    print(f"Cosine Similarity (CLS Token): {sim_cls:.4f}")
+# Function to perform similarity search
+def similarity_search(query, texts, model, tokenizer, use_mean_pooling=True, top_k=5):
+    query_embedding = get_embeddings(
+        [query], model, tokenizer, use_mean_pooling)
+    text_embeddings = get_embeddings(texts, model, tokenizer, use_mean_pooling)
+    similarities = cosine_similarity(query_embedding, text_embeddings)
+    similarities = similarities.cpu().numpy()
+    top_k_indices = similarities.argsort()[-top_k:][::-1]
+    top_k_scores = similarities[top_k_indices]
+    results = [(texts[idx], top_k_scores[i])
+               for i, idx in enumerate(top_k_indices)]
+    return results
 
 
-# Example 2: News Article vs. Summary
-def example_news_summary(model, tokenizer):
-    print("\nExample 2: News Article vs. Summary")
-    texts = [
-        "In a groundbreaking discovery, scientists at the European Space Agency have identified a new exoplanet, dubbed Proxima Centauri d, orbiting the star Proxima Centauri, the closest known star to our solar system. The planet, roughly half the mass of Earth, completes an orbit every 5.1 days and lies in the star’s habitable zone, raising hopes for potential life. The discovery was made using the Very Large Telescope in Chile, which detected subtle wobbles in the star’s motion caused by the planet’s gravitational pull. This finding adds to the growing list of exoplanets and fuels excitement for future missions to study their atmospheres.",
-        "Scientists from the European Space Agency discovered Proxima Centauri d, a small exoplanet orbiting the nearest star to our solar system. The planet, located in the habitable zone, was detected using the Very Large Telescope, marking a significant step in the search for extraterrestrial life."
-    ]
-
-    # Compute embeddings with mean pooling
-    embeddings_mean = get_embeddings(
-        texts, model, tokenizer, use_mean_pooling=True)
-    sim_mean = cosine_similarity(
-        embeddings_mean[0:1], embeddings_mean[1:2]).item()
-
-    # Compute embeddings without mean pooling (CLS token)
-    embeddings_cls = get_embeddings(
-        texts, model, tokenizer, use_mean_pooling=False)
-    sim_cls = cosine_similarity(
-        embeddings_cls[0:1], embeddings_cls[1:2]).item()
-
-    print(f"Cosine Similarity (Mean Pooling): {sim_mean:.4f}")
-    print(f"Cosine Similarity (CLS Token): {sim_cls:.4f}")
-
-
-# Main function
 def main():
     # Load model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained(
@@ -88,9 +51,41 @@ def main():
     model = AutoModel.from_pretrained(
         'sentence-transformers/distilbert-base-nli-stsb-mean-tokens')
 
-    # Run examples
-    example_product_review(model, tokenizer)
-    example_news_summary(model, tokenizer)
+    # Example content
+    content = """## Naruto: Shippuuden Movie 6 - Road to Ninja
+Movie, 2012 Finished 1 ep, 109 min
+Action Adventure Fantasy
+Naruto: Shippuuden Movie 6 - Road to Ninja
+Returning home to Konohagakure, the young ninja celebrate defeating a group of supposed Akatsuki members. Naruto Uzumaki and Sakura Haruno, however, feel differently. Naruto is jealous of his comrades' congratulatory families, wishing for the presence of his own parents. Sakura, on the other hand, is angry at her embarrassing parents, and wishes for no parents at all. The two clash over their opposing ideals, but are faced with a more pressing matter when the masked Madara Uchiha suddenly appears and transports them to an alternate world. In this world, Sakura's parents are considered heroes--for they gave their lives to protect Konohagakure from the Nine-Tailed Fox attack 10 years ago. Consequently, Naruto's parents, Minato Namikaze and Kushina Uzumaki, are alive and well. Unable to return home or find the masked Madara, Naruto and Sakura stay in this new world and enjoy the changes they have always longed for. All seems well for the two ninja, until an unexpected threat emerges that pushes Naruto and Sakura to not only fight for the Konohagakure of the alternate world, but also to find a way back to their own. [Written by MAL Rewrite]
+Studio Pierrot
+Source Manga
+Theme Isekai
+Demographic Shounen
+7.68
+366K
+Add to My List"""
+
+    # Split content into sentences
+    texts = split_sentences(content)
+
+    # Example query
+    query = "Naruto and Sakura in an alternate world"
+
+    # Test with mean pooling
+    print("=== Similarity Search with Mean Pooling ===")
+    print(f"Query: {query}\n")
+    results_mean = similarity_search(
+        query, texts, model, tokenizer, use_mean_pooling=True, top_k=3)
+    for i, (text, score) in enumerate(results_mean, 1):
+        print(f"{i}. Score: {score:.4f}\nText: {text}\n")
+
+    # Test with CLS token (no mean pooling)
+    print("=== Similarity Search with CLS Token ===")
+    print(f"Query: {query}\n")
+    results_cls = similarity_search(
+        query, texts, model, tokenizer, use_mean_pooling=False, top_k=3)
+    for i, (text, score) in enumerate(results_cls, 1):
+        print(f"{i}. Score: {score:.4f}\nText: {text}\n")
 
 
 if __name__ == "__main__":
