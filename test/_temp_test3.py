@@ -1,4 +1,6 @@
-from typing import Any, Union, List, Dict, Optional, Literal, TypedDict, DefaultDict
+import json
+from typing import Any, Callable, Union, List, Dict, Optional, Literal, TypedDict, DefaultDict
+from jet.file.utils import load_file, save_file
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 import numpy as np
@@ -14,6 +16,7 @@ import trafilatura
 import re
 # from fast_langdetect import detect
 from rank_bm25 import BM25Okapi
+from nltk.tokenize import sent_tokenize, word_tokenize
 
 
 class SimilarityResult(TypedDict):
@@ -53,14 +56,22 @@ def get_embedding_function(model_name: str) -> callable:
     return SentenceTransformer(model_name).encode
 
 
-def preprocess_text(text: str, domain: Optional[str] = None, max_length: int = 512) -> List[str]:
+def preprocess_text(
+    text: str,
+    domain: Optional[str] = None,
+    chunk_size: int = 150,
+    overlap: int = 50,
+    split_fn: Callable[[str], List[str]] = sent_tokenize
+) -> List[str]:
     """
     Preprocesses web-scraped text, returning chunks for long texts.
 
     Args:
         text: Raw web-scraped text.
         domain: Optional domain (e.g., 'news', 'ecommerce') for specialized preprocessing.
-        max_length: Maximum token length per chunk (approximate).
+        chunk_size: Maximum token length per chunk (approximate).
+        overlap: Number of tokens to overlap between chunks.
+        split_fn: Function to split text into logical units (default: NLTK sentence tokenizer).
 
     Returns:
         List of preprocessed text chunks.
@@ -114,8 +125,8 @@ def preprocess_text(text: str, domain: Optional[str] = None, max_length: int = 5
     elif domain == "forum":
         text = re.sub(r'posted by [a-zA-Z0-9\s]+|re: ', '', text)
 
-    # Chunk long texts into paragraphs or max_length segments
-    words = text.split()
+    # First attempt: chunk by word_tokenize on whole text
+    words = word_tokenize(text)
     chunks = []
     current_chunk = []
     current_length = 0
@@ -123,12 +134,43 @@ def preprocess_text(text: str, domain: Optional[str] = None, max_length: int = 5
     for word in words:
         current_chunk.append(word)
         current_length += 1
-        if current_length >= max_length:
+        if current_length >= chunk_size:
             chunks.append(' '.join(current_chunk))
-            current_chunk = []
-            current_length = 0
+            # Add overlap for the next chunk
+            overlap_words = current_chunk[-overlap:] if overlap > 0 else []
+            current_chunk = overlap_words
+            current_length = len(overlap_words)
+
+    # Append the last chunk if non-empty
     if current_chunk:
         chunks.append(' '.join(current_chunk))
+
+    # Fallback to split_fn if no chunks or text is too short
+    if not chunks or len(words) < chunk_size:
+        chunks = []
+        units = split_fn(text)
+        current_chunk = []
+        current_length = 0
+
+        for unit in units:
+            unit_words = word_tokenize(unit)
+            if current_length + len(unit_words) <= chunk_size:
+                current_chunk.append(unit)
+                current_length += len(unit_words)
+            else:
+                if current_chunk:
+                    chunks.append(' '.join(current_chunk))
+                # Start new chunk with overlap
+                overlap_words = word_tokenize(
+                    ' '.join(current_chunk))[-overlap:] if overlap > 0 else []
+                current_chunk = [
+                    ' '.join(overlap_words)] if overlap_words else []
+                current_chunk.append(unit)
+                current_length = len(overlap_words) + len(unit_words)
+
+        # Append the last chunk if non-empty
+        if current_chunk:
+            chunks.append(' '.join(current_chunk))
 
     # If no chunks (e.g., empty after filtering), return single empty chunk
     return chunks if chunks else [""]
@@ -351,7 +393,7 @@ def query_similarity_scores(
             "percent_difference": None,
             "text": data["text"],
             "relevance": None,
-            "word_count": len(data["text"].split())
+            "word_count": len(word_tokenize(data["text"]))
         })
 
     # Sort and assign ranks
@@ -758,5 +800,61 @@ def main():
         logger.newline()
 
 
+def main2():
+    import os
+    import shutil
+
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/searched_html_myanimelist_net_Isekai/headers.json"
+    output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/run_format_html"
+
+    shutil.rmtree(output_dir, ignore_errors=True)
+    os.makedirs(output_dir, exist_ok=True)
+
+    model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
+    query = [
+        "List upcoming isekai anime this year (2024-2025).",
+    ]
+    threshold = 0.0
+    top_k = 10
+    use_bm25 = True
+
+    data: list[dict] = load_file(data_file)
+    texts = [item["content"] for item in data]
+
+    logger.info(
+        f"Reranking {len(texts)} web scraped contents for query: {query}")
+    results = query_similarity_scores(
+        query=query,
+        texts=texts,
+        # ids=article_ids,
+        threshold=threshold,
+        model=["all-MiniLM-L12-v2", "distilbert-base-nli-stsb-mean-tokens"],
+        fuse_method="average",
+        metrics="cosine",
+        domain=None,
+        use_index=len(texts) > 1000,
+        top_k=top_k,
+        use_bm25=use_bm25,
+        bm25_k=100
+    )
+
+    logger.gray("Query:")
+    logger.debug(query)
+    for result in results[:5]:
+        logger.log(
+            f"Rank {result['rank']}:",
+            f"Doc: {result['doc_index']}, Words: {result['word_count']}",
+            f"\nScore: {result['score']:.3f}",
+            f"\n{json.dumps(result['text'])[:100]}...",
+            colors=["ORANGE", "DEBUG", "SUCCESS", "WHITE"],
+        )
+
+    save_file({
+        "query": query,
+        "results": results
+    }, f"{output_dir}/query_scores.json")
+
+
 if __name__ == "__main__":
-    main()
+    # main()
+    main2()

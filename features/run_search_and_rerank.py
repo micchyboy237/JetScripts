@@ -193,6 +193,15 @@ if __name__ == "__main__":
             save_file(format_html(html_str), os.path.join(
                 output_dir_url, "doc.html"))
 
+            # docs = extract_texts_by_hierarchy(html_str)
+            docs = get_md_header_contents(html_str)
+            save_file(docs, f"{output_dir_url}/headers.json")
+
+            headers = [item["header"] for item in docs]
+            logger.debug(f"Headers (all) length: {len(headers)}")
+            save_file("\n".join(headers), os.path.join(
+                output_dir_url, "headers.md"))
+
             all_links = scrape_links(html_str, base_url=url)
             save_file(all_links, os.path.join(
                 output_dir_url, "links.json"))
@@ -215,7 +224,7 @@ if __name__ == "__main__":
 
             merged_docs = merge_texts_by_hierarchy(
                 html_str, _tokenizer, max_tokens)
-            save_file(merged_docs, f"{output_dir_url}/merged_docs.json")
+            save_file(merged_docs, f"{output_dir_url}/context.json")
 
             html_docs = [item["text"] for item in merged_docs]
             md_context = "\n\n".join(html_docs)
@@ -246,9 +255,9 @@ if __name__ == "__main__":
 
             headers = [item["text"].splitlines()[0].strip()
                        for item in merged_docs]
-            logger.debug(f"Headers length: {len(headers)}")
+            logger.debug(f"Headers (context) length: {len(headers)}")
             save_file("\n".join(headers), os.path.join(
-                output_dir_url, "headers.md"))
+                output_dir_url, "context_headers.md"))
 
             token_counts = [item["token_count"] for item in merged_docs]
             save_file({
@@ -265,7 +274,7 @@ if __name__ == "__main__":
                 "top_header": {
                     "doc_index": query_scores[0]
                 },
-            }, os.path.join(output_dir_url, "info.json"))
+            }, os.path.join(output_dir_url, "context_info.json"))
 
         else:
             logger.error(f"Failed to fetch {url}")
