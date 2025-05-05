@@ -1,3 +1,8 @@
+from transformers import PreTrainedModel, PreTrainedTokenizer
+from torch.nn.functional import cosine_similarity
+from typing import List
+from transformers import PreTrainedTokenizer
+from typing import List, Optional
 import re
 import nltk
 from nltk.tokenize import sent_tokenize
@@ -85,22 +90,15 @@ def preprocess_text(
     """
     Preprocesses raw text for similarity search, ensuring complete sentences in all segments.
     Uses actual encoded input_ids length for max_length comparison.
-    Args:
-        content: Raw input text to be processed.
-        tokenizer: Tokenizer for the model to compute token length.
-        header: Optional header text to be prepended to each processed segment.
-        min_length: Minimum length for valid text segments (in characters).
-        max_length: Maximum length for text segments (in tokens).
-        overlap: Number of characters to overlap between split segments.
-        debug: Whether to print preprocessed texts for debugging.
-    Returns:
-        List of preprocessed text segments with complete sentences.
     """
     # Validate input
     if not isinstance(content, str) or not content.strip():
         if debug:
             print("Warning: Empty or invalid content provided.")
         return []
+
+    if debug:
+        print(f"Input content length: {len(content)} characters")
 
     # Validate overlap
     if overlap >= max_length or overlap < 0:
@@ -112,6 +110,13 @@ def preprocess_text(
     content = re.sub(r'^#{1,6}\s*', '', content, flags=re.MULTILINE)
     content = re.sub(r'\s+', ' ', content.strip())  # Normalize whitespace
     content = re.sub(r'\n+', '\n', content)  # Normalize newlines
+    if header:
+        header = re.sub(r'^#{1,6}\s*', '', header, flags=re.MULTILINE)
+
+    if debug:
+        print(f"Cleaned content length: {len(content)} characters")
+        if header:
+            print(f"Cleaned header length: {len(header)} characters")
 
     # Step 2: Split into lines for metadata detection
     lines: List[str] = content.split('\n')
@@ -123,7 +128,12 @@ def preprocess_text(
     for line in lines:
         line = line.strip()
         if not line:
+            if debug:
+                print("Skipping empty line")
             continue
+
+        if debug:
+            print(f"Processing line: {line[:50]}...")
 
         # Detect metadata
         if (len(line.split()) < 5 or
@@ -131,62 +141,62 @@ def preprocess_text(
                 re.match(r'^\d+\.\d+$|^[0-9K]+$', line)):
             metadata_buffer.append(line)
             is_metadata = True
+            if debug:
+                print(f"Classified as metadata: {line}")
         else:
             # Process metadata buffer if any
             if metadata_buffer:
                 metadata_text: str = ' '.join(metadata_buffer)
+                if debug:
+                    print(f"Processing metadata: {metadata_text[:50]}...")
                 if len(metadata_text) >= min_length:
-                    # Split metadata if too long, but avoid partial sentences
                     sentences: List[str] = sent_tokenize(metadata_text)
                     current_segment: str = ""
                     for sent in sentences:
                         temp_segment = (current_segment + " " +
                                         sent).strip() if current_segment else sent
+                        segment_with_header = f"{header}\n{temp_segment}".strip(
+                        ) if header else temp_segment
                         encoded = tokenizer(
-                            temp_segment, add_special_tokens=True, return_tensors='pt')
+                            segment_with_header, add_special_tokens=True, return_tensors='pt')
                         token_length = encoded['input_ids'].shape[1]
                         if token_length <= max_length:
                             current_segment = temp_segment
                         else:
                             if current_segment:
-                                processed_texts.append(current_segment)
+                                segment_with_header = f"{header}\n{current_segment}".strip(
+                                ) if header else current_segment
+                                encoded = tokenizer(
+                                    segment_with_header, add_special_tokens=True, return_tensors='pt')
+                                if encoded['input_ids'].shape[1] <= max_length:
+                                    processed_texts.append(segment_with_header)
+                                    if debug:
+                                        print(
+                                            f"Added metadata segment: {segment_with_header[:50]}...")
+                                else:
+                                    if debug:
+                                        print(
+                                            f"Discarded metadata segment (too long): {segment_with_header[:50]}...")
                             current_segment = sent if len(
                                 sent) <= max_length else ""
-                            # Handle long sentences
-                            while current_segment:
-                                encoded = tokenizer(
-                                    current_segment, add_special_tokens=True, return_tensors='pt')
-                                token_length = encoded['input_ids'].shape[1]
-                                if token_length <= max_length:
-                                    break
-                                sub_sentences: List[str] = sent_tokenize(
-                                    current_segment)
-                                if sub_sentences:
-                                    last_sub: str = sub_sentences[-1]
-                                    split_point: int = current_segment.find(
-                                        last_sub) + len(last_sub)
-                                    processed_texts.append(
-                                        current_segment[:split_point].strip())
-                                    overlap_start: int = max(
-                                        0, split_point - overlap)
-                                    current_segment = current_segment[overlap_start:].strip(
-                                    )
-                                else:
-                                    split_point = current_segment.rfind(
-                                        ' ', 0, len(current_segment))
-                                    if split_point == -1:
-                                        split_point = len(current_segment)
-                                    processed_texts.append(
-                                        current_segment[:split_point].strip())
-                                    overlap_start = max(
-                                        0, split_point - overlap)
-                                    current_segment = current_segment[overlap_start:].strip(
-                                    )
                     if current_segment and len(current_segment) >= min_length:
+                        segment_with_header = f"{header}\n{current_segment}".strip(
+                        ) if header else current_segment
                         encoded = tokenizer(
-                            current_segment, add_special_tokens=True, return_tensors='pt')
+                            segment_with_header, add_special_tokens=True, return_tensors='pt')
                         if encoded['input_ids'].shape[1] <= max_length:
-                            processed_texts.append(current_segment)
+                            processed_texts.append(segment_with_header)
+                            if debug:
+                                print(
+                                    f"Added metadata segment: {segment_with_header[:50]}...")
+                        else:
+                            if debug:
+                                print(
+                                    f"Discarded metadata segment (too long): {segment_with_header[:50]}...")
+                else:
+                    if debug:
+                        print(
+                            f"Discarded metadata (too short): {metadata_text}")
                 metadata_buffer = []
                 is_metadata = False
 
@@ -196,67 +206,52 @@ def preprocess_text(
             for sent in sentences:
                 sent = sent.strip()
                 if len(sent) < min_length or re.match(r'^\[.*\]$', sent):
+                    if debug:
+                        print(
+                            f"Discarded sentence (too short or bracketed): {sent}")
                     continue
 
-                # Build segment with complete sentences
                 temp_segment = (current_segment + " " +
                                 sent).strip() if current_segment else sent
+                segment_with_header = f"{header}\n{temp_segment}".strip(
+                ) if header else temp_segment
                 encoded = tokenizer(
-                    temp_segment, add_special_tokens=True, return_tensors='pt')
+                    segment_with_header, add_special_tokens=True, return_tensors='pt')
                 token_length = encoded['input_ids'].shape[1]
                 if token_length <= max_length:
                     current_segment = temp_segment
                 else:
                     if current_segment:
-                        processed_texts.append(current_segment)
-                        # Start new segment with overlap
-                        sub_sentences = sent_tokenize(current_segment)
-                        if sub_sentences:
-                            last_complete: str = sub_sentences[-1]
-                            split_point = current_segment.rfind(
-                                last_complete) + len(last_complete)
-                            overlap_start = max(0, split_point - overlap)
-                            overlap_text: str = current_segment[overlap_start:].strip(
-                            )
-                            current_segment = overlap_text if len(
-                                overlap_text) >= min_length else ""
-                        else:
-                            current_segment = ""
-
-                    # Handle long sentence
-                    current_sent = sent
-                    while current_sent:
+                        segment_with_header = f"{header}\n{current_segment}".strip(
+                        ) if header else current_segment
                         encoded = tokenizer(
-                            current_sent, add_special_tokens=True, return_tensors='pt')
-                        token_length = encoded['input_ids'].shape[1]
-                        if token_length <= max_length:
-                            current_segment = current_sent
-                            break
-                        sub_sentences = sent_tokenize(current_sent)
-                        if sub_sentences:
-                            last_sub = sub_sentences[-1]
-                            split_point = current_sent.find(
-                                last_sub) + len(last_sub)
-                            processed_texts.append(
-                                current_sent[:split_point].strip())
-                            overlap_start = max(0, split_point - overlap)
-                            current_sent = current_sent[overlap_start:].strip()
+                            segment_with_header, add_special_tokens=True, return_tensors='pt')
+                        if encoded['input_ids'].shape[1] <= max_length:
+                            processed_texts.append(segment_with_header)
+                            if debug:
+                                print(
+                                    f"Added narrative segment: {segment_with_header[:50]}...")
                         else:
-                            split_point = current_sent.rfind(
-                                ' ', 0, len(current_sent))
-                            if split_point == -1:
-                                split_point = len(current_sent)
-                            processed_texts.append(
-                                current_sent[:split_point].strip())
-                            overlap_start = max(0, split_point - overlap)
-                            current_sent = current_sent[overlap_start:].strip()
+                            if debug:
+                                print(
+                                    f"Discarded narrative segment (too long): {segment_with_header[:50]}...")
+                        current_segment = ""
+                    current_segment = sent if len(sent) <= max_length else ""
 
-            # Add remaining segment
             if current_segment and len(current_segment) >= min_length:
+                segment_with_header = f"{header}\n{current_segment}".strip(
+                ) if header else current_segment
                 encoded = tokenizer(
-                    current_segment, add_special_tokens=True, return_tensors='pt')
+                    segment_with_header, add_special_tokens=True, return_tensors='pt')
                 if encoded['input_ids'].shape[1] <= max_length:
-                    processed_texts.append(current_segment)
+                    processed_texts.append(segment_with_header)
+                    if debug:
+                        print(
+                            f"Added narrative segment: {segment_with_header[:50]}...")
+                else:
+                    if debug:
+                        print(
+                            f"Discarded narrative segment (too long): {segment_with_header[:50]}...")
 
     # Process remaining metadata
     if metadata_buffer:
@@ -267,46 +262,46 @@ def preprocess_text(
             for sent in sentences:
                 temp_segment = (current_segment + " " +
                                 sent).strip() if current_segment else sent
+                segment_with_header = f"{header}\n{temp_segment}".strip(
+                ) if header else temp_segment
                 encoded = tokenizer(
-                    temp_segment, add_special_tokens=True, return_tensors='pt')
+                    segment_with_header, add_special_tokens=True, return_tensors='pt')
                 token_length = encoded['input_ids'].shape[1]
                 if token_length <= max_length:
                     current_segment = temp_segment
                 else:
                     if current_segment:
-                        processed_texts.append(current_segment)
-                    current_segment = sent if len(sent) <= max_length else ""
-                    while current_segment:
+                        segment_with_header = f"{header}\n{current_segment}".strip(
+                        ) if header else current_segment
                         encoded = tokenizer(
-                            current_segment, add_special_tokens=True, return_tensors='pt')
-                        token_length = encoded['input_ids'].shape[1]
-                        if token_length <= max_length:
-                            break
-                        sub_sentences = sent_tokenize(current_segment)
-                        if sub_sentences:
-                            last_sub = sub_sentences[-1]
-                            split_point = current_segment.find(
-                                last_sub) + len(last_sub)
-                            processed_texts.append(
-                                current_segment[:split_point].strip())
-                            overlap_start = max(0, split_point - overlap)
-                            current_segment = current_segment[overlap_start:].strip(
-                            )
+                            segment_with_header, add_special_tokens=True, return_tensors='pt')
+                        if encoded['input_ids'].shape[1] <= max_length:
+                            processed_texts.append(segment_with_header)
+                            if debug:
+                                print(
+                                    f"Added metadata segment: {segment_with_header[:50]}...")
                         else:
-                            split_point = current_segment.rfind(
-                                ' ', 0, len(current_segment))
-                            if split_point == -1:
-                                split_point = len(current_segment)
-                            processed_texts.append(
-                                current_segment[:split_point].strip())
-                            overlap_start = max(0, split_point - overlap)
-                            current_segment = current_segment[overlap_start:].strip(
-                            )
+                            if debug:
+                                print(
+                                    f"Discarded metadata segment (too long): {segment_with_header[:50]}...")
+                    current_segment = sent if len(sent) <= max_length else ""
             if current_segment and len(current_segment) >= min_length:
+                segment_with_header = f"{header}\n{current_segment}".strip(
+                ) if header else current_segment
                 encoded = tokenizer(
-                    current_segment, add_special_tokens=True, return_tensors='pt')
+                    segment_with_header, add_special_tokens=True, return_tensors='pt')
                 if encoded['input_ids'].shape[1] <= max_length:
-                    processed_texts.append(current_segment)
+                    processed_texts.append(segment_with_header)
+                    if debug:
+                        print(
+                            f"Added metadata segment: {segment_with_header[:50]}...")
+                else:
+                    if debug:
+                        print(
+                            f"Discarded metadata segment (too long): {segment_with_header[:50]}...")
+        else:
+            if debug:
+                print(f"Discarded metadata (too short): {metadata_text}")
 
     # Step 4: Deduplicate
     seen: Set[str] = set()
@@ -318,12 +313,15 @@ def preprocess_text(
 
     # Step 5: Debug output
     if debug:
-        print("Preprocessed Texts:")
+        print("Final Preprocessed Texts:")
         for i, text in enumerate(unique_texts):
             encoded = tokenizer(
                 text, add_special_tokens=True, return_tensors='pt')
             token_count = encoded['input_ids'].shape[1]
             print(f"{i+1}. ({len(text)} chars, {token_count} tokens) {text}")
+
+    if not unique_texts and debug:
+        print("Warning: No valid segments produced after preprocessing.")
 
     return unique_texts
 
@@ -370,7 +368,8 @@ def similarity_search(
     tokenizer: PreTrainedTokenizer,
     use_mean_pooling: bool = True,
     top_k: int = 5,
-    threshold: float = 0.5
+    threshold: float = 0.5,
+    debug: bool = False
 ) -> List[SearchResult]:
     """
     Performs similarity search on texts using transformer embeddings.
@@ -382,19 +381,51 @@ def similarity_search(
         use_mean_pooling: Whether to use mean pooling or CLS token.
         top_k: Number of top results to return.
         threshold: Minimum similarity score for results to be included.
+        debug: Whether to print top results for debugging.
     Returns:
         List of dictionaries containing score, doc_index, and text.
     """
+    # Validate inputs
+    if not query or not texts:
+        if debug:
+            print("Warning: Empty query or texts provided.")
+        return []
+
+    # Get embeddings
     query_embedding: torch.Tensor = get_embeddings(
         [query], model, tokenizer, use_mean_pooling)
     text_embeddings: torch.Tensor = get_embeddings(
         texts, model, tokenizer, use_mean_pooling)
+
+    # Check if embeddings are empty
+    if query_embedding.numel() == 0 or text_embeddings.numel() == 0:
+        if debug:
+            print("Warning: No valid embeddings generated.")
+        return []
+
+    # Compute similarities
     similarities: torch.Tensor = cosine_similarity(
         query_embedding, text_embeddings)
     similarities_np = similarities.cpu().numpy()
+
+    # Get top-k results
     top_k_indices = similarities_np.argsort()[-top_k:][::-1]
     top_k_scores = similarities_np[top_k_indices]
-    results: List[SearchResult] = [
+
+    # Debug output: Print top results regardless of threshold
+    if debug:
+        print("Top Similarity Search Results:")
+        for i, (idx, score) in enumerate(zip(top_k_indices[:5], top_k_scores[:5]), 1):
+            print(
+                f"{i}. Score: {score:.4f}\n"
+                f"Index: {idx}\n"
+                f"Text: {texts[idx]}\n"
+            )
+        if not top_k_scores.size:
+            print("No results available.")
+
+    # Build results list: Apply threshold for returned results
+    results: List[dict] = [
         {
             'score': float(top_k_scores[i]),
             'doc_index': int(idx),
@@ -403,6 +434,7 @@ def similarity_search(
         for i, idx in enumerate(top_k_indices)
         if top_k_scores[i] >= threshold
     ]
+
     return results
 
 
@@ -457,7 +489,8 @@ Add to My List"""
     # Test with mean pooling
     print("\n=== Similarity Search with Mean Pooling ===\n")
     results_mean: List[SearchResult] = similarity_search(
-        query, texts, model, tokenizer, use_mean_pooling=True, top_k=top_k, threshold=threshold
+        query, texts, model, tokenizer, use_mean_pooling=True,
+        top_k=top_k, threshold=threshold, debug=True
     )
     for i, result in enumerate(results_mean, 1):
         print(
@@ -466,7 +499,8 @@ Add to My List"""
     # Test with CLS token
     print("\n=== Similarity Search with CLS Token ===\n")
     results_cls: List[SearchResult] = similarity_search(
-        query, texts, model, tokenizer, use_mean_pooling=False, top_k=top_k, threshold=threshold
+        query, texts, model, tokenizer, use_mean_pooling=False,
+        top_k=top_k, threshold=threshold, debug=True
     )
     for i, result in enumerate(results_cls, 1):
         print(
