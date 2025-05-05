@@ -459,26 +459,50 @@ Add to My List"""
     logger.info("\n=== Similarity Search with Mean Pooling ===\n")
     results_mean = search.search(
         query, text_keywords_tuples, use_mean_pooling=True, top_k=top_k, threshold=threshold, debug=True)
-    for i, result in enumerate(results_mean, 1):
-        logger.log(
-            f"Rank {result['rank']}:",
-            f"Doc: {result['doc_index']}, Tokens: {result['tokens']}",
-            f"\nScore: {result['score']:.3f}",
-            f"\n{json.dumps(result['text'])[:100]}...",
-            colors=["ORANGE", "DEBUG", "SUCCESS", "WHITE"],
-        )
+
+    if results_mean:
+        # Post-process results_mean: sort by doc_index
+        results_mean.sort(key=lambda x: x['doc_index'])
+        mean_result_text = ""
+        for result in results_mean:
+            mean_result_text += f"Document {result['doc_index'] + 1}\n"
+            mean_result_text += f"Rank: {result['rank']}\n"
+            mean_result_text += f"Score: {result['score']:.3f}\n"
+            mean_result_text += f"Tokens: {result['tokens']}\n"
+            mean_result_text += f"Text: {json.dumps(result['text'])[:200]}...\n"
+            mean_result_text += "\n"
+        logger.info(
+            "\n=== Mean Pooling Search Results (Sorted by Doc Index) ===\n")
+        logger.log(mean_result_text, colors=["WHITE"])
+    else:
+        logger.info(
+            "\n=== Mean Pooling Search Results (Sorted by Doc Index) ===\n")
+        logger.warning(
+            f"No results passed the threshold ({threshold}) for Mean Pooling search.")
 
     logger.info("\n=== Similarity Search with CLS Token ===\n")
     results_cls = search.search(query, text_keywords_tuples,
                                 use_mean_pooling=False, top_k=top_k, threshold=threshold, debug=True)
-    for i, result in enumerate(results_cls, 1):
-        logger.log(
-            f"Rank {result['rank']}:",
-            f"Doc: {result['doc_index']}, Tokens: {result['tokens']}",
-            f"\nScore: {result['score']:.3f}",
-            f"\n{json.dumps(result['text'])[:100]}...",
-            colors=["ORANGE", "DEBUG", "SUCCESS", "WHITE"],
-        )
+
+    if results_cls:
+        # Post-process results_cls: sort by doc_index
+        results_cls.sort(key=lambda x: x['doc_index'])
+        cls_result_text = ""
+        for result in results_cls:
+            cls_result_text += f"Document {result['doc_index'] + 1}\n"
+            cls_result_text += f"Rank: {result['rank']}\n"
+            cls_result_text += f"Score: {result['score']:.3f}\n"
+            cls_result_text += f"Tokens: {result['tokens']}\n"
+            cls_result_text += f"Text: {json.dumps(result['text'])[:200]}...\n"
+            cls_result_text += "\n"
+        logger.info(
+            "\n=== CLS Token Search Results (Sorted by Doc Index) ===\n")
+        logger.log(cls_result_text, colors=["WHITE"])
+    else:
+        logger.info(
+            "\n=== CLS Token Search Results (Sorted by Doc Index) ===\n")
+        logger.warning(
+            f"No results passed the threshold ({threshold}) for CLS Token search.")
 
 
 if __name__ == "__main__":
