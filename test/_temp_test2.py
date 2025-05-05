@@ -313,7 +313,8 @@ def similarity_search(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizer,
     use_mean_pooling: bool = True,
-    top_k: int = 5
+    top_k: int = 5,
+    threshold: float = 0.5
 ) -> List[SearchResult]:
     """
     Performs similarity search on texts using transformer embeddings.
@@ -324,6 +325,7 @@ def similarity_search(
         tokenizer: Tokenizer for the model.
         use_mean_pooling: Whether to use mean pooling or CLS token.
         top_k: Number of top results to return.
+        threshold: Minimum similarity score for results to be included.
     Returns:
         List of dictionaries containing score, doc_index, and text.
     """
@@ -343,6 +345,7 @@ def similarity_search(
             'text': texts[idx]
         }
         for i, idx in enumerate(top_k_indices)
+        if top_k_scores[i] >= threshold
     ]
     return results
 
@@ -360,9 +363,10 @@ def main() -> None:
     max_length: int = 300
     overlap: int = 100
     top_k: int = 3
+    threshold: float = 0.7
 
     # Example query
-    query: str = "Naruto and Sakura in an alternate world"
+    query: str = 'List upcoming isekai anime this year (2024-2025).'
     query = preprocess_query(query, max_length=max_length)
 
     print(f"Query: {query}")
@@ -371,6 +375,7 @@ def main() -> None:
     print(f"Max Length: {max_length}")
     print(f"Overlap: {overlap}")
     print(f"Top K: {top_k}")
+    print(f"Threshold: {threshold}")
     print()
 
     # Example content
@@ -395,7 +400,7 @@ Add to My List"""
     # Test with mean pooling
     print("\n=== Similarity Search with Mean Pooling ===\n")
     results_mean: List[SearchResult] = similarity_search(
-        query, texts, model, tokenizer, use_mean_pooling=True, top_k=top_k
+        query, texts, model, tokenizer, use_mean_pooling=True, top_k=top_k, threshold=threshold
     )
     for i, result in enumerate(results_mean, 1):
         print(
@@ -404,7 +409,7 @@ Add to My List"""
     # Test with CLS token
     print("\n=== Similarity Search with CLS Token ===\n")
     results_cls: List[SearchResult] = similarity_search(
-        query, texts, model, tokenizer, use_mean_pooling=False, top_k=top_k
+        query, texts, model, tokenizer, use_mean_pooling=False, top_k=top_k, threshold=threshold
     )
     for i, result in enumerate(results_cls, 1):
         print(
