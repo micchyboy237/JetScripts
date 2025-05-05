@@ -348,16 +348,30 @@ def similarity_search(
 
 
 def main() -> None:
+    # model_path = 'sentence-transformers/distilbert-base-nli-stsb-mean-tokens'
+    model_path = 'sentence-transformers/all-MiniLM-L12-v2'
+
     # Load model and tokenizer
-    tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
-        'sentence-transformers/all-MiniLM-L6-v2')
-    model: PreTrainedModel = AutoModel.from_pretrained(
-        'sentence-transformers/all-MiniLM-L6-v2')
+    tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(model_path)
+    model: PreTrainedTokenizer = AutoModel.from_pretrained(model_path)
 
     # Preprocessing parameters
     min_length: int = 20
     max_length: int = 300
     overlap: int = 100
+    top_k: int = 3
+
+    # Example query
+    query: str = "Naruto and Sakura in an alternate world"
+    query = preprocess_query(query, max_length=max_length)
+
+    print(f"Query: {query}")
+    print(f"Model: {model_path}")
+    print(f"Min Length: {min_length}")
+    print(f"Max Length: {max_length}")
+    print(f"Overlap: {overlap}")
+    print(f"Top K: {top_k}")
+    print()
 
     # Example content
     content: str = """## Naruto: Shippuuden Movie 6 - Road to Ninja
@@ -378,33 +392,19 @@ Add to My List"""
         content, min_length=min_length, max_length=max_length, overlap=overlap, debug=True
     )
 
-    # Example query
-    query: str = "Naruto and Sakura in an alternate world"
-    query = preprocess_query(query, max_length=max_length)
-
     # Test with mean pooling
-    print("\n=== Similarity Search with Mean Pooling ===")
-    print(f"Query: {query}")
-    print(f"Min Length: {min_length}")
-    print(f"Max Length: {max_length}")
-    print(f"Overlap: {overlap}")
-    print()
+    print("\n=== Similarity Search with Mean Pooling ===\n")
     results_mean: List[SearchResult] = similarity_search(
-        query, texts, model, tokenizer, use_mean_pooling=True, top_k=3
+        query, texts, model, tokenizer, use_mean_pooling=True, top_k=top_k
     )
     for i, result in enumerate(results_mean, 1):
         print(
             f"{i}. Score: {result['score']:.4f}\nIndex: {result['doc_index']}\nText: {result['text']}\n")
 
     # Test with CLS token
-    print("\n=== Similarity Search with CLS Token ===")
-    print(f"Query: {query}")
-    print(f"Min Length: {min_length}")
-    print(f"Max Length: {max_length}")
-    print(f"Overlap: {overlap}")
-    print()
+    print("\n=== Similarity Search with CLS Token ===\n")
     results_cls: List[SearchResult] = similarity_search(
-        query, texts, model, tokenizer, use_mean_pooling=False, top_k=3
+        query, texts, model, tokenizer, use_mean_pooling=False, top_k=top_k
     )
     for i, result in enumerate(results_cls, 1):
         print(
