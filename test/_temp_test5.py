@@ -24,46 +24,6 @@ You are an expert tag extractor for web-scraped content. Analyze the text to gen
 3. **Flexibility**:
    - Handle structured, narrative, or incomplete content.
    - Skip uncertain tags.
-
-**Few-Shot Examples**:
-
-**Example 1: Movie**
-Input:
-```
-## Naruto: Shippuuden Movie 6 - Road to Ninja
-Movie, 2012, 109 min
-Action Adventure Fantasy
-Returning home to Konohagakure, Naruto Uzumaki and Sakura Haruno...
-Studio Pierrot
-Source Manga
-Theme Isekai
-Demographic Shounen
-7.68
-```
-Output:
-```json
-{
-  "tags": ["Action", "Adventure", "Fantasy", "Isekai", "Shounen"]
-}
-```
-
-**Example 2: Article**
-Input:
-```
-# The Rise of Quantum Computing
-Published: 2023
-By Dr. Alice Thompson
-Quantum computing will revolutionize technology. IBM and Google lead...
-Categories: Technology, Science
-```
-Output:
-```json
-{
-  "tags": ["Technology", "Science", "Quantum Computing"]
-}
-```
-
-Analyze the text and return tags as valid JSON.
 """.strip()
 
 user_prompt = """
@@ -80,6 +40,57 @@ Demographic Shounen
 366K
 Add to My List
 """.strip()
+
+few_shot_examples = [
+    {
+        "role": "user",
+        "content": """
+Input:
+```
+## Naruto: Shippuuden Movie 6 - Road to Ninja
+Movie, 2012, 109 min
+Action Adventure Fantasy
+Returning home to Konohagakure, Naruto Uzumaki and Sakura Haruno...
+Studio Pierrot
+Source Manga
+Theme Isekai
+Demographic Shounen
+7.68
+```
+""".strip()
+    },
+    {
+        "role": "assistant",
+        "content": """
+```json
+{
+  "tags": ["Action", "Adventure", "Fantasy", "Isekai", "Shounen"]
+}
+```""".strip()
+    },
+    {
+        "role": "user",
+        "content": """
+Input:
+```
+# The Rise of Quantum Computing
+Published: 2023
+By Dr. Alice Thompson
+Quantum computing will revolutionize technology. IBM and Google lead...
+Categories: Technology, Science
+```
+""".strip()
+    },
+    {
+        "role": "assistant",
+        "content": """
+```json
+{
+  "tags": ["Technology", "Science", "Quantum Computing"]
+}
+```""".strip()
+    }
+]
 
 
 def parse_response(response: str) -> Optional[Dict]:
@@ -117,10 +128,20 @@ def parse_response(response: str) -> Optional[Dict]:
         return None
 
 
+prompt_template = """
+Input:
+```
+{user_prompt}
+```
+""".strip()
+
 if tokenizer.chat_template is not None:
+    user_input = prompt_template.format(user_prompt=user_prompt)
+
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt}
+        *few_shot_examples,
+        {"role": "user", "content": user_input}
     ]
     prompt = tokenizer.apply_chat_template(
         messages, add_generation_prompt=True
