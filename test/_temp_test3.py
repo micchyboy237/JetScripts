@@ -14,10 +14,9 @@ from functools import lru_cache
 from bs4 import BeautifulSoup
 import trafilatura
 import re
+# from fast_langdetect import detect
 from rank_bm25 import BM25Okapi
 from nltk.tokenize import sent_tokenize, word_tokenize
-import torch
-import torch.nn.functional as F
 
 
 class SimilarityResult(TypedDict):
@@ -54,63 +53,7 @@ def generate_key(text: str, query: str = None) -> str:
 def get_embedding_function(model_name: str) -> callable:
     """Load and cache a SentenceTransformer model."""
     logger.info(f"Loading model: {model_name}")
-    model = SentenceTransformer(model_name)
-    return lambda texts, use_mean_pooling=True: get_embeddings(texts, model, use_mean_pooling)
-
-
-def mean_pooling(token_embeddings: torch.Tensor, attention_mask: torch.Tensor) -> np.ndarray:
-    """
-    Applies mean pooling to token embeddings, accounting for attention mask.
-
-    Args:
-        token_embeddings: Token embeddings from the model (batch_size, seq_len, hidden_size).
-        attention_mask: Attention mask (batch_size, seq_len).
-
-    Returns:
-        Pooled embeddings (batch_size, hidden_size) as a NumPy array.
-    """
-    input_mask_expanded = attention_mask.unsqueeze(
-        -1).expand(token_embeddings.size()).float()
-    sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
-    sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-    return (sum_embeddings / sum_mask).cpu().numpy()
-
-
-def get_embeddings(texts: List[str], model: SentenceTransformer, use_mean_pooling: bool = True) -> np.ndarray:
-    """
-    Computes embeddings for a list of texts using a SentenceTransformer model.
-
-    Args:
-        texts: List of input texts.
-        model: SentenceTransformer model.
-        use_mean_pooling: Whether to apply mean pooling (default: True).
-
-    Returns:
-        Embeddings as a NumPy array.
-    """
-    # Encode inputs using the SentenceTransformer
-    encoded_input = model.encode(
-        texts,
-        convert_to_tensor=True,
-        device=model.device,
-        batch_size=32,
-        show_progress_bar=False
-    )
-
-    if use_mean_pooling:
-        # If you need custom mean pooling, you can implement it
-        # Assuming encoded_input is already properly pooled
-        return encoded_input.cpu().numpy()
-    else:
-        # Check the shape of encoded_input
-        if encoded_input.dim() == 2:
-            # Already a 2D tensor (batch_size, hidden_size), return as is
-            return encoded_input.cpu().numpy()
-        elif encoded_input.dim() == 3:
-            # 3D tensor (batch_size, seq_len, hidden_size), extract CLS token
-            return encoded_input[:, 0, :].cpu().numpy()
-        else:
-            raise ValueError(f"Unexpected tensor shape: {encoded_input.shape}")
+    return SentenceTransformer(model_name).encode
 
 
 def preprocess_text(
@@ -133,20 +76,23 @@ def preprocess_text(
     Returns:
         List of preprocessed text chunks.
     """
+    # Try extracting main content with trafilatura
     extracted = None
     try:
         extracted = trafilatura.extract(
             text,
             include_comments=False,
             include_tables=False,
-            no_fallback=False
+            no_fallback=False  # Allow fallback to simpler parsing
         )
     except Exception as e:
         logger.warning(f"Trafilatura failed to extract content: {e}")
 
+    # Fallback to BeautifulSoup if trafilatura fails or returns None
     if not extracted:
         try:
             soup = BeautifulSoup(text, 'html.parser')
+            # Remove script and style elements
             for element in soup(['nav', 'footer', 'script', 'style']):
                 element.decompose()
             extracted = soup.get_text(separator=' ', strip=True)
@@ -154,13 +100,23 @@ def preprocess_text(
         except Exception as e:
             logger.warning(
                 f"BeautifulSoup fallback failed: {e}, using raw text")
-            extracted = text
+            extracted = text  # Use raw text as last resort
 
-    text = re.sub(r'\s+', ' ', extracted.strip())
+    # Remove boilerplate and normalize
+    text = re.sub(r'\s+', ' ', extracted.strip())  # Collapse whitespace
     text = re.sub(r'(click here|read more|sign up|log in|subscribe now)',
                   '', text, flags=re.IGNORECASE)
     text = text.lower()
 
+    # Language filtering (keep English for simplicity)
+    # try:
+    #     if detect(text) != 'en':
+    #         logger.warning("Non-English text detected, returning empty list")
+    #         return []
+    # except Exception as e:
+    #     logger.warning(f"Language detection failed: {e}, proceeding with text")
+
+    # Domain-specific preprocessing
     if domain == "news":
         text = re.sub(
             r'published on \d{4}-\d{2}-\d{2}|by [a-zA-Z\s]+', '', text)
@@ -169,6 +125,7 @@ def preprocess_text(
     elif domain == "forum":
         text = re.sub(r'posted by [a-zA-Z0-9\s]+|re: ', '', text)
 
+    # First attempt: chunk by word_tokenize on whole text
     words = word_tokenize(text)
     chunks = []
     current_chunk = []
@@ -179,13 +136,16 @@ def preprocess_text(
         current_length += 1
         if current_length >= chunk_size:
             chunks.append(' '.join(current_chunk))
+            # Add overlap for the next chunk
             overlap_words = current_chunk[-overlap:] if overlap > 0 else []
             current_chunk = overlap_words
             current_length = len(overlap_words)
 
+    # Append the last chunk if non-empty
     if current_chunk:
         chunks.append(' '.join(current_chunk))
 
+    # Fallback to split_fn if no chunks or text is too short
     if not chunks or len(words) < chunk_size:
         chunks = []
         units = split_fn(text)
@@ -200,6 +160,7 @@ def preprocess_text(
             else:
                 if current_chunk:
                     chunks.append(' '.join(current_chunk))
+                # Start new chunk with overlap
                 overlap_words = word_tokenize(
                     ' '.join(current_chunk))[-overlap:] if overlap > 0 else []
                 current_chunk = [
@@ -207,9 +168,11 @@ def preprocess_text(
                 current_chunk.append(unit)
                 current_length = len(overlap_words) + len(unit_words)
 
+        # Append the last chunk if non-empty
         if current_chunk:
             chunks.append(' '.join(current_chunk))
 
+    # If no chunks (e.g., empty after filtering), return single empty chunk
     return chunks if chunks else [""]
 
 
@@ -217,12 +180,13 @@ class VectorIndex:
     """Manages a FAISS index for efficient similarity search."""
 
     def __init__(self, dimension: int):
-        self.index = faiss.IndexFlatIP()
+        self.index = faiss.IndexFlatIP()  # Inner product for cosine similarity
         self.texts = []
         self.ids = []
 
     def add(self, embeddings: np.ndarray, texts: List[str], ids: List[str]):
         """Add embeddings to the index."""
+        # Normalize embeddings for cosine similarity
         norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
         embeddings = embeddings / np.where(norms != 0, norms, 1)
         self.index.add(embeddings)
@@ -231,6 +195,7 @@ class VectorIndex:
 
     def search(self, query_embedding: np.ndarray, k: int) -> tuple:
         """Search for top-k similar texts."""
+        # Normalize query embedding
         norm = np.linalg.norm(query_embedding, axis=1, keepdims=True)
         query_embedding = query_embedding / np.where(norm != 0, norm, 1)
         distances, indices = self.index.search(query_embedding, k)
@@ -250,8 +215,7 @@ def query_similarity_scores(
     use_index: bool = True,
     top_k: int = 100,
     use_bm25: bool = False,
-    bm25_k: int = 1000,
-    use_mean_pooling: bool = False
+    bm25_k: int = 1000
 ) -> List[SimilarityResult]:
     """
     Computes similarity scores for queries against texts with scalable vector indexing and hybrid search.
@@ -270,15 +234,16 @@ def query_similarity_scores(
         top_k: Number of top results to retrieve.
         use_bm25: Whether to use BM25 for initial candidate selection.
         bm25_k: Number of BM25 candidates to retrieve.
-        use_mean_pooling: Whether to apply mean pooling to embeddings (default: False).
 
     Returns:
         List of SimilarityResult, sorted by score with ranks and metadata.
     """
+    # Input normalization
     query = [query] if isinstance(query, str) else query
     texts = [texts] if isinstance(texts, str) else texts
     model = [model] if isinstance(model, str) else model
 
+    # Validation
     if not query or not texts:
         raise ValueError("Query and texts must be non-empty.")
     if not model:
@@ -296,9 +261,12 @@ def query_similarity_scores(
 
     text_ids = ids if ids else [generate_key(text, query[0]) for text in texts]
 
+    # Preprocess texts and queries (returns chunks for long texts)
     preprocessed_texts = [preprocess_text(text, domain) for text in texts]
+    # Take first chunk for queries
     preprocessed_queries = [preprocess_text(q, domain)[0] for q in query]
 
+    # Flatten chunks for embedding (track original document index)
     flat_texts = []
     flat_ids = []
     doc_indices = []
@@ -308,6 +276,7 @@ def query_similarity_scores(
             flat_ids.append(text_ids[doc_idx])
             doc_indices.append(doc_idx)
 
+    # BM25 candidate selection (optional)
     candidate_texts = flat_texts
     candidate_ids = flat_ids
     candidate_doc_indices = doc_indices
@@ -315,22 +284,20 @@ def query_similarity_scores(
         tokenized_texts = [text.split() for text in flat_texts]
         bm25 = BM25Okapi(tokenized_texts)
         bm25_scores = bm25.get_scores(query[0].split())
-        top_indices = np.argsort(bm25_scores)[
-            ::-1][:min(bm25_k, len(flat_texts))]
+        top_indices = np.argsort(bm25_scores)[::-1][:bm25_k]
         candidate_texts = [flat_texts[i] for i in top_indices]
         candidate_ids = [flat_ids[i] for i in top_indices]
         candidate_doc_indices = [doc_indices[i] for i in top_indices]
 
     all_results = []
 
+    # Initialize vector index if enabled
     vector_index = None
     if use_index and candidate_texts:
         embed_func = get_embedding_function(model[0])
-        sample_embedding = embed_func(
-            [candidate_texts[0]], use_mean_pooling=use_mean_pooling)[0]
+        sample_embedding = embed_func([candidate_texts[0]])[0]
         vector_index = VectorIndex(dimension=len(sample_embedding))
-        text_embeddings = embed_func(
-            candidate_texts, use_mean_pooling=use_mean_pooling)
+        text_embeddings = embed_func(candidate_texts)
         vector_index.add(text_embeddings, candidate_texts, candidate_ids)
 
     def process_model(model_name: str):
@@ -338,11 +305,10 @@ def query_similarity_scores(
         embed_func = get_embedding_function(model_name)
 
         if use_index and vector_index:
-            query_embeddings = embed_func(
-                preprocessed_queries, use_mean_pooling=use_mean_pooling)
+            query_embeddings = embed_func(preprocessed_queries)
             for i, q_emb in enumerate(query_embeddings):
                 distances, indices = vector_index.search(
-                    q_emb[np.newaxis, :], min(top_k, len(candidate_texts)))
+                    q_emb[np.newaxis, :], top_k)
                 scores = distances[0] if metrics == "cosine" else 1 / \
                     (1 + distances[0])
                 for j, idx in enumerate(indices[0]):
@@ -355,20 +321,16 @@ def query_similarity_scores(
                             "score": float(scores[j])
                         })
         else:
-            query_embeddings = embed_func(
-                preprocessed_queries, use_mean_pooling=use_mean_pooling)
-            text_embeddings = embed_func(
-                candidate_texts, use_mean_pooling=use_mean_pooling)
+            query_embeddings = embed_func(preprocessed_queries)
+            text_embeddings = embed_func(candidate_texts)
 
             if metrics == "cosine":
                 query_norms = np.linalg.norm(
                     query_embeddings, axis=1, keepdims=True)
                 text_norms = np.linalg.norm(
                     text_embeddings, axis=1, keepdims=True)
-                query_embeddings = query_embeddings / \
-                    np.where(query_norms != 0, query_norms, 1)
-                text_embeddings = text_embeddings / \
-                    np.where(text_norms != 0, text_norms, 1)
+                query_embeddings /= np.where(query_norms != 0, query_norms, 1)
+                text_embeddings /= np.where(text_norms != 0, text_norms, 1)
                 similarity_matrix = np.dot(query_embeddings, text_embeddings.T)
             elif metrics == "dot":
                 similarity_matrix = np.dot(query_embeddings, text_embeddings.T)
@@ -383,36 +345,40 @@ def query_similarity_scores(
 
             for i, q in enumerate(query):
                 scores = similarity_matrix[i]
-                valid_indices = np.where(scores >= threshold)[0]
-                sorted_indices = valid_indices[np.argsort(
-                    scores[valid_indices])[::-1]]
-                for j in sorted_indices[:min(top_k, len(valid_indices))]:
+                mask = scores >= threshold
+                filtered_indices = np.arange(len(candidate_texts))[mask]
+                filtered_scores = scores[mask]
+                sorted_indices = np.argsort(filtered_scores)[::-1]
+                for idx, j in enumerate(sorted_indices):
                     results.append({
-                        "id": candidate_ids[j],
-                        "doc_index": candidate_doc_indices[j],
+                        "id": candidate_ids[filtered_indices[j]],
+                        "doc_index": candidate_doc_indices[filtered_indices[j]],
                         "query": q,
-                        "text": candidate_texts[j],
-                        "score": float(scores[j])
+                        "text": candidate_texts[filtered_indices[j]],
+                        "score": float(filtered_scores[j])
                     })
         return results
 
+    # Parallelize model processing
     with ThreadPoolExecutor() as executor:
         model_results = list(executor.map(process_model, model))
         for results in model_results:
             all_results.extend(results)
 
+    # Fuse results (aggregate chunk scores by document)
     fused_results = fuse_all_results(
         all_results,
         method=fuse_method,
         model_weights=model_weights if fuse_method == "weighted" else None
     )
 
+    # Aggregate by original document
     doc_results = defaultdict(
         lambda: {"scores": [], "text": "", "doc_index": None})
     for result in fused_results:
         doc_idx = result["doc_index"]
         doc_results[doc_idx]["scores"].append(result["score"])
-        doc_results[doc_idx]["text"] = texts[doc_idx]
+        doc_results[doc_idx]["text"] = texts[doc_idx]  # Store original text
         doc_results[doc_idx]["doc_index"] = doc_idx
 
     final_results = []
@@ -430,10 +396,12 @@ def query_similarity_scores(
             "word_count": len(word_tokenize(data["text"]))
         })
 
+    # Sort and assign ranks
     final_results.sort(key=lambda x: x["score"], reverse=True)
     for idx, result in enumerate(final_results):
         result["rank"] = idx + 1
 
+    # Calculate percent_difference
     if final_results:
         max_score = final_results[0]["score"]
         for result in final_results:
@@ -460,6 +428,7 @@ def fuse_all_results(
     Returns:
         List of SimilarityResult, sorted by score.
     """
+    # Aggregate scores by (id, query, text)
     query_text_data = defaultdict(
         lambda: {"scores": [], "text": None, "doc_index": None})
     for result in results:
@@ -468,6 +437,7 @@ def fuse_all_results(
         query_text_data[key]["text"] = result["text"]
         query_text_data[key]["doc_index"] = result["doc_index"]
 
+    # Average scores across models
     query_text_averages = {
         key: {
             "text": data["text"],
@@ -477,6 +447,7 @@ def fuse_all_results(
         for key, data in query_text_data.items()
     }
 
+    # Fuse query-specific scores for each text
     text_data = defaultdict(
         lambda: {"scores": [], "text": None, "doc_index": None})
     for (id_, query, text), data in query_text_averages.items():
@@ -485,6 +456,7 @@ def fuse_all_results(
         text_data[text_key]["text"] = text
         text_data[text_key]["doc_index"] = data["doc_index"]
 
+    # Apply fusion method
     fused_scores = []
     for key, data in text_data.items():
         scores = data["scores"]
@@ -503,7 +475,6 @@ def fuse_all_results(
             "id": key[0],
             "rank": None,
             "doc_index": data["doc_index"],
-            "scores": scores,
             "score": score,
             "percent_difference": None,
             "text": key[1]
@@ -864,8 +835,7 @@ def main2():
         use_index=len(texts) > 1000,
         top_k=top_k,
         use_bm25=use_bm25,
-        bm25_k=100,
-        use_mean_pooling=True
+        bm25_k=100
     )
 
     logger.gray("Query:")
