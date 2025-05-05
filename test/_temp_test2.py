@@ -75,6 +75,7 @@ def get_embeddings(
 
 def preprocess_text(
     content: str,
+    tokenizer: PreTrainedTokenizer,
     min_length: int = 20,
     max_length: int = 300,
     overlap: int = 100,
@@ -82,10 +83,12 @@ def preprocess_text(
 ) -> List[str]:
     """
     Preprocesses raw text for similarity search, ensuring complete sentences in all segments.
+    Uses actual encoded input_ids length for max_length comparison.
     Args:
         content: Raw input text.
-        min_length: Minimum length for valid text segments.
-        max_length: Maximum length for text segments.
+        tokenizer: Tokenizer for the model to compute token length.
+        min_length: Minimum length for valid text segments (in characters).
+        max_length: Maximum length for text segments (in tokens).
         overlap: Number of characters to overlap between split segments.
         debug: Whether to print preprocessed texts for debugging.
     Returns:
@@ -135,18 +138,27 @@ def preprocess_text(
                     sentences: List[str] = sent_tokenize(metadata_text)
                     current_segment: str = ""
                     for sent in sentences:
-                        if len(current_segment) + len(sent) + 1 <= max_length:
-                            current_segment += (" " +
-                                                sent) if current_segment else sent
+                        temp_segment = (current_segment + " " +
+                                        sent).strip() if current_segment else sent
+                        encoded = tokenizer(
+                            temp_segment, add_special_tokens=True, return_tensors='pt')
+                        token_length = encoded['input_ids'].shape[1]
+                        if token_length <= max_length:
+                            current_segment = temp_segment
                         else:
                             if current_segment:
                                 processed_texts.append(current_segment)
                             current_segment = sent if len(
                                 sent) <= max_length else ""
                             # Handle long sentences
-                            while len(current_segment) > max_length:
+                            while current_segment:
+                                encoded = tokenizer(
+                                    current_segment, add_special_tokens=True, return_tensors='pt')
+                                token_length = encoded['input_ids'].shape[1]
+                                if token_length <= max_length:
+                                    break
                                 sub_sentences: List[str] = sent_tokenize(
-                                    current_segment[:max_length])
+                                    current_segment)
                                 if sub_sentences:
                                     last_sub: str = sub_sentences[-1]
                                     split_point: int = current_segment.find(
@@ -159,9 +171,9 @@ def preprocess_text(
                                     )
                                 else:
                                     split_point = current_segment.rfind(
-                                        ' ', 0, max_length)
+                                        ' ', 0, len(current_segment))
                                     if split_point == -1:
-                                        split_point = max_length
+                                        split_point = len(current_segment)
                                     processed_texts.append(
                                         current_segment[:split_point].strip())
                                     overlap_start = max(
@@ -169,7 +181,10 @@ def preprocess_text(
                                     current_segment = current_segment[overlap_start:].strip(
                                     )
                     if current_segment and len(current_segment) >= min_length:
-                        processed_texts.append(current_segment)
+                        encoded = tokenizer(
+                            current_segment, add_special_tokens=True, return_tensors='pt')
+                        if encoded['input_ids'].shape[1] <= max_length:
+                            processed_texts.append(current_segment)
                 metadata_buffer = []
                 is_metadata = False
 
@@ -182,9 +197,13 @@ def preprocess_text(
                     continue
 
                 # Build segment with complete sentences
-                if len(current_segment) + len(sent) + 1 <= max_length:
-                    current_segment += (" " +
-                                        sent) if current_segment else sent
+                temp_segment = (current_segment + " " +
+                                sent).strip() if current_segment else sent
+                encoded = tokenizer(
+                    temp_segment, add_special_tokens=True, return_tensors='pt')
+                token_length = encoded['input_ids'].shape[1]
+                if token_length <= max_length:
+                    current_segment = temp_segment
                 else:
                     if current_segment:
                         processed_texts.append(current_segment)
@@ -203,28 +222,39 @@ def preprocess_text(
                             current_segment = ""
 
                     # Handle long sentence
-                    while len(sent) > max_length:
-                        sub_sentences = sent_tokenize(sent[:max_length])
+                    current_sent = sent
+                    while current_sent:
+                        encoded = tokenizer(
+                            current_sent, add_special_tokens=True, return_tensors='pt')
+                        token_length = encoded['input_ids'].shape[1]
+                        if token_length <= max_length:
+                            current_segment = current_sent
+                            break
+                        sub_sentences = sent_tokenize(current_sent)
                         if sub_sentences:
                             last_sub = sub_sentences[-1]
-                            split_point = sent.find(last_sub) + len(last_sub)
-                            processed_texts.append(sent[:split_point].strip())
+                            split_point = current_sent.find(
+                                last_sub) + len(last_sub)
+                            processed_texts.append(
+                                current_sent[:split_point].strip())
                             overlap_start = max(0, split_point - overlap)
-                            sent = sent[overlap_start:].strip()
+                            current_sent = current_sent[overlap_start:].strip()
                         else:
-                            split_point = sent.rfind(' ', 0, max_length)
+                            split_point = current_sent.rfind(
+                                ' ', 0, len(current_sent))
                             if split_point == -1:
-                                split_point = max_length
-                            processed_texts.append(sent[:split_point].strip())
+                                split_point = len(current_sent)
+                            processed_texts.append(
+                                current_sent[:split_point].strip())
                             overlap_start = max(0, split_point - overlap)
-                            sent = sent[overlap_start:].strip()
-
-                    if len(sent) >= min_length:
-                        current_segment = sent
+                            current_sent = current_sent[overlap_start:].strip()
 
             # Add remaining segment
             if current_segment and len(current_segment) >= min_length:
-                processed_texts.append(current_segment)
+                encoded = tokenizer(
+                    current_segment, add_special_tokens=True, return_tensors='pt')
+                if encoded['input_ids'].shape[1] <= max_length:
+                    processed_texts.append(current_segment)
 
     # Process remaining metadata
     if metadata_buffer:
@@ -233,16 +263,24 @@ def preprocess_text(
             sentences = sent_tokenize(metadata_text)
             current_segment = ""
             for sent in sentences:
-                if len(current_segment) + len(sent) + 1 <= max_length:
-                    current_segment += (" " +
-                                        sent) if current_segment else sent
+                temp_segment = (current_segment + " " +
+                                sent).strip() if current_segment else sent
+                encoded = tokenizer(
+                    temp_segment, add_special_tokens=True, return_tensors='pt')
+                token_length = encoded['input_ids'].shape[1]
+                if token_length <= max_length:
+                    current_segment = temp_segment
                 else:
                     if current_segment:
                         processed_texts.append(current_segment)
                     current_segment = sent if len(sent) <= max_length else ""
-                    while len(current_segment) > max_length:
-                        sub_sentences = sent_tokenize(
-                            current_segment[:max_length])
+                    while current_segment:
+                        encoded = tokenizer(
+                            current_segment, add_special_tokens=True, return_tensors='pt')
+                        token_length = encoded['input_ids'].shape[1]
+                        if token_length <= max_length:
+                            break
+                        sub_sentences = sent_tokenize(current_segment)
                         if sub_sentences:
                             last_sub = sub_sentences[-1]
                             split_point = current_segment.find(
@@ -254,16 +292,19 @@ def preprocess_text(
                             )
                         else:
                             split_point = current_segment.rfind(
-                                ' ', 0, max_length)
+                                ' ', 0, len(current_segment))
                             if split_point == -1:
-                                split_point = max_length
+                                split_point = len(current_segment)
                             processed_texts.append(
                                 current_segment[:split_point].strip())
                             overlap_start = max(0, split_point - overlap)
                             current_segment = current_segment[overlap_start:].strip(
                             )
             if current_segment and len(current_segment) >= min_length:
-                processed_texts.append(current_segment)
+                encoded = tokenizer(
+                    current_segment, add_special_tokens=True, return_tensors='pt')
+                if encoded['input_ids'].shape[1] <= max_length:
+                    processed_texts.append(current_segment)
 
     # Step 4: Deduplicate
     seen: Set[str] = set()
@@ -277,19 +318,28 @@ def preprocess_text(
     if debug:
         print("Preprocessed Texts:")
         for i, text in enumerate(unique_texts):
-            print(f"{i+1}. ({len(text)} chars) {text}")
+            encoded = tokenizer(
+                text, add_special_tokens=True, return_tensors='pt')
+            token_count = encoded['input_ids'].shape[1]
+            print(f"{i+1}. ({len(text)} chars, {token_count} tokens) {text}")
 
     return unique_texts
 
 # Function to preprocess query
 
 
-def preprocess_query(query: str, max_length: int = 300) -> str:
+def preprocess_query(
+    query: str,
+    tokenizer: PreTrainedTokenizer,
+    max_length: int = 300
+) -> str:
     """
     Preprocesses the query to match corpus preprocessing.
+    Uses actual encoded input_ids length for max_length comparison.
     Args:
         query: Raw query text.
-        max_length: Maximum length for the query.
+        tokenizer: Tokenizer for the model to compute token length.
+        max_length: Maximum length for the query (in tokens).
     Returns:
         Preprocessed query.
     """
@@ -297,11 +347,15 @@ def preprocess_query(query: str, max_length: int = 300) -> str:
         return ""
     query = re.sub(r'\s+', ' ', query.strip())  # Normalize whitespace
     query = re.sub(r'[^\w\s.,!?]', '', query)  # Remove special characters
-    if len(query) > max_length:
-        split_point: int = query.rfind(' ', 0, max_length)
-        if split_point == -1:
-            split_point = max_length
-        query = query[:split_point].strip()
+    encoded = tokenizer(query, add_special_tokens=True, return_tensors='pt')
+    if encoded['input_ids'].shape[1] > max_length:
+        # Truncate to max_length tokens
+        truncated_ids = encoded['input_ids'][0, :max_length]
+        query = tokenizer.decode(truncated_ids, skip_special_tokens=True)
+        # Ensure we don't cut off in the middle of a word
+        split_point = query.rfind(' ')
+        if split_point != -1:
+            query = query[:split_point].strip()
     return query
 
 # Function to perform similarity search
@@ -351,28 +405,27 @@ def similarity_search(
 
 
 def main() -> None:
-    # model_path = 'sentence-transformers/distilbert-base-nli-stsb-mean-tokens'
     model_path = 'sentence-transformers/all-MiniLM-L12-v2'
 
     # Load model and tokenizer
     tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(model_path)
-    model: PreTrainedTokenizer = AutoModel.from_pretrained(model_path)
+    model: PreTrainedModel = AutoModel.from_pretrained(model_path)
 
     # Preprocessing parameters
     min_length: int = 20
-    max_length: int = 300
-    overlap: int = 100
+    max_length: int = 150
+    overlap: int = 20
     top_k: int = 3
     threshold: float = 0.7
 
     # Example query
     query: str = 'List upcoming isekai anime this year (2024-2025).'
-    query = preprocess_query(query, max_length=max_length)
+    query = preprocess_query(query, tokenizer, max_length=max_length)
 
     print(f"Query: {query}")
     print(f"Model: {model_path}")
     print(f"Min Length: {min_length}")
-    print(f"Max Length: {max_length}")
+    print(f"Max Length: {max_length} tokens")
     print(f"Overlap: {overlap}")
     print(f"Top K: {top_k}")
     print(f"Threshold: {threshold}")
@@ -394,7 +447,7 @@ Add to My List"""
 
     # Preprocess content with debug mode
     texts: List[str] = preprocess_text(
-        content, min_length=min_length, max_length=max_length, overlap=overlap, debug=True
+        content, tokenizer, min_length=min_length, max_length=max_length, overlap=overlap, debug=True
     )
 
     # Test with mean pooling
