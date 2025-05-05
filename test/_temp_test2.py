@@ -1,30 +1,24 @@
 import json
-from jet.logger import logger
-import spacy
-from nltk.corpus import stopwords
-from nltk import word_tokenize, pos_tag, WordNetLemmatizer
-from typing import List, Optional, Set, Tuple
-from transformers import PreTrainedModel, PreTrainedTokenizer
-from torch.nn.functional import cosine_similarity
-from typing import List
-from transformers import PreTrainedTokenizer
-from typing import List, Optional
 import re
 import nltk
-from nltk.tokenize import sent_tokenize
-from transformers import AutoTokenizer, AutoModel
+import spacy
+from nltk.corpus import stopwords
+from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk import pos_tag, WordNetLemmatizer
+from typing import List, Optional, Set, Tuple, TypedDict
+from transformers import PreTrainedTokenizer, PreTrainedModel, AutoTokenizer, AutoModel
 import torch
 import torch.nn.functional as F
-from typing import List, Dict, Optional, Tuple, TypedDict, Set, Union
-from transformers import PreTrainedTokenizer, PreTrainedModel
+from jet.logger import logger
+from collections import Counter
 
-# Download NLTK data (run once)
+# Download NLTK data
 nltk.download('punkt', quiet=True)
 nltk.download('averaged_perceptron_tagger', quiet=True)
 nltk.download('wordnet', quiet=True)
 nltk.download('stopwords', quiet=True)
 
-# Define typed dictionaries for structured return types
+# Define typed dictionaries
 
 
 class SearchResult(TypedDict):
@@ -34,7 +28,7 @@ class SearchResult(TypedDict):
     text: str
     tokens: int
 
-# Mean Pooling - Take attention mask into account for correct averaging
+# Mean Pooling
 
 
 def mean_pooling(model_output: Tuple[torch.Tensor, ...], attention_mask: torch.Tensor) -> torch.Tensor:
@@ -43,48 +37,44 @@ def mean_pooling(model_output: Tuple[torch.Tensor, ...], attention_mask: torch.T
         -1).expand(token_embeddings.size()).float()
     return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 
-# Cosine similarity function
+# Cosine similarity
 
 
 def cosine_similarity(embeddings1: torch.Tensor, embeddings2: torch.Tensor) -> torch.Tensor:
     return F.cosine_similarity(embeddings1, embeddings2, dim=1)
 
-# Function to compute embeddings with batching
+# Compute embeddings with batching
 
 
 def get_embeddings(
-    texts: List[str],
+    texts: List[Tuple[str, List[str]]],  # Accept (text, tags) tuples
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizer,
     use_mean_pooling: bool = True,
     batch_size: int = 32
 ) -> torch.Tensor:
     """
-    Compute embeddings for texts in batches.
-    Args:
-        texts: List of text strings.
-        model: Transformer model.
-        tokenizer: Tokenizer for the model.
-        use_mean_pooling: Whether to use mean pooling or CLS token.
-        batch_size: Number of texts per batch.
-    Returns:
-        Embeddings for all texts.
+    Compute embeddings for texts with tags in batches.
     """
+    combined_texts = [f"{text} {' '.join(tags)}" for text, tags in texts]
     embeddings: List[torch.Tensor] = []
-    for i in range(0, len(texts), batch_size):
-        batch_texts: List[str] = texts[i:i + batch_size]
-        encoded_input = tokenizer(
-            batch_texts, padding=True, truncation=True, return_tensors='pt', max_length=512
-        )
-        with torch.no_grad():
-            model_output = model(**encoded_input)
-        if use_mean_pooling:
-            batch_embeddings: torch.Tensor = mean_pooling(
-                model_output, encoded_input['attention_mask'])
-        else:
-            batch_embeddings = model_output[0][:, 0, :]  # CLS token embedding
-        embeddings.append(batch_embeddings)
-    return torch.cat(embeddings, dim=0)
+    for i in range(0, len(combined_texts), batch_size):
+        batch_texts: List[str] = combined_texts[i:i + batch_size]
+        try:
+            encoded_input = tokenizer(
+                batch_texts, padding=True, truncation=True, return_tensors='pt',     max_length=512
+            )
+            with torch.no_grad():
+                model_output = model(**encoded_input)
+            if use_mean_pooling:
+                batch_embeddings: torch.Tensor = mean_pooling(
+                    model_output, encoded_input['attention_mask'])
+            else:
+                batch_embeddings = model_output[0][:, 0, :]  # CLS token
+            embeddings.append(batch_embeddings)
+        except Exception as e:
+            logger.error(f"Embedding error in batch {i//batch_size + 1}: {e}")
+    return torch.cat(embeddings, dim=0) if embeddings else torch.tensor([])
 
 # Preprocessing function
 
@@ -93,147 +83,255 @@ def preprocess_text(
     content: str,
     tokenizer: PreTrainedTokenizer,
     header: Optional[str] = None,
-    min_length: int = 20,
-    max_length: int = 150,  # Adjusted to match error context
-    overlap: int = 20,     # Adjusted to match error context
+    min_length: int = 50,
+    max_length: int = 150,
+    overlap: int = 20,
     debug: bool = False
 ) -> List[Tuple[str, List[str]]]:
     """
-    Preprocesses raw text for similarity search, ensuring complete sentences in all segments.
-    Generates tags using NLTK (POS) and SpaCy (NER, noun chunks) to improve vector search context.
-    Returns a list of tuples (segment, tags).
-    Uses actual encoded input_ids length for max_length comparison.
+    Preprocesses raw text for similarity search, ensuring complete sentences in segments.
+    Generates tags using NLTK and SpaCy with frequency-based filtering.
     """
     # Initialize NLP tools
     lemmatizer = WordNetLemmatizer()
     stop_words = set(stopwords.words('english'))
-    # Enable parser by removing disable=['parser']
     nlp = spacy.load('en_core_web_sm')
 
     # Validate input
     if not isinstance(content, str) or not content.strip():
         if debug:
-            print("Warning: Empty or invalid content provided.")
+            logger.warning("Empty or invalid content provided.")
         return []
 
     if debug:
-        print(f"Input content length: {len(content)} characters")
+        logger.debug(f"Input content length: {len(content)} characters")
 
     # Validate overlap
     if overlap >= max_length or overlap < 0:
         overlap = 0
         if debug:
-            print(f"Warning: Invalid overlap {overlap}, setting to 0.")
+            logger.warning(f"Invalid overlap {overlap}, setting to 0.")
 
     # Step 1: Clean text
+    content = re.sub(r'\[.*?\]', '', content)  # Remove bracketed text
     content = re.sub(r'^#{1,6}\s*', '', content, flags=re.MULTILINE)
-    content = re.sub(r'\s+', ' ', content.strip())  # Normalize whitespace
-    content = re.sub(r'\n+', '\n', content)  # Normalize newlines
+    content = re.sub(r'\s+', ' ', content.strip())
+    content = re.sub(r'\n+', '\n', content)
     if header:
         header = re.sub(r'^#{1,6}\s*', '', header, flags=re.MULTILINE)
+        header = re.sub(r'\[.*?\]', '', header)
+        # Limit header length
+        header_tokens = tokenizer(header, add_special_tokens=True, return_tensors='pt')[
+            'input_ids'][0]
+        if len(header_tokens) > max_length // 2:
+            header = tokenizer.decode(
+                header_tokens[:max_length // 2], skip_special_tokens=True)
+            if debug:
+                logger.debug(f"Truncated header to {len(header)} characters")
 
     if debug:
-        print(f"Cleaned content length: {len(content)} characters")
+        logger.debug(f"Cleaned content length: {len(content)} characters")
         if header:
-            print(f"Cleaned header length: {len(header)} characters")
+            logger.debug(f"Cleaned header length: {len(header)} characters")
 
-    # Step 2: Split into lines
-    lines: List[str] = content.split('\n')
+    # Step 2: Split into sentences
+    sentences = sent_tokenize(content)
     processed_segments: List[Tuple[str, List[str]]] = []
 
-    def generate_tags(text: str) -> List[str]:
-        """Generate tags for a text segment using NLTK and SpaCy."""
-        tags = set()
+    def generate_tags(texts: List[str]) -> List[List[str]]:
+        """Generate tags for multiple texts with frequency-based filtering."""
+        all_tags: List[Set[str]] = []
+        for text in texts:
+            tags = set()
+            tokens = word_tokenize(text.lower())
+            pos_tags = pos_tag(tokens)
+            for word, pos in pos_tags:
+                if pos.startswith(('NN', 'VB', 'JJ')) and word not in stop_words and len(word) > 2:
+                    lemma = lemmatizer.lemmatize(
+                        word, pos='v' if pos.startswith('VB') else 'n')
+                    tags.add(lemma)
+            doc = nlp(text)
+            for ent in doc.ents:
+                if ent.label_ in ('PERSON', 'ORG', 'GPE', 'PRODUCT'):
+                    tags.add(ent.text.lower())
+            for chunk in doc.noun_chunks:
+                chunk_text = chunk.text.lower().strip()
+                if (len(chunk_text.split()) <= 2 and
+                    len(chunk_text) > 2 and
+                    not any(w in stop_words for w in chunk_text.split()) and
+                        chunk_text not in stop_words):
+                    tags.add(chunk_text)
+            all_tags.append(tags)
 
-        # NLTK: POS tagging
-        tokens = word_tokenize(text.lower())
-        pos_tags = pos_tag(tokens)
-        for word, pos in pos_tags:
-            if pos.startswith(('NN', 'VB', 'JJ')) and word not in stop_words and len(word) > 2:
-                lemma = lemmatizer.lemmatize(
-                    word, pos='v' if pos.startswith('VB') else 'n')
-                tags.add(lemma)
+        # Frequency-based filtering
+        tag_counts = Counter(tag for tags in all_tags for tag in tags)
+        filtered_tags = []
+        for tags in all_tags:
+            sorted_tags = sorted(
+                [tag for tag in tags if tag_counts[tag] >= 1 and len(tag) > 2])
+            # Limit to top 10 tags per segment
+            filtered_tags.append(sorted_tags[:10])
+        return filtered_tags
 
-        # SpaCy: NER and noun chunks
-        doc = nlp(text)
-        for ent in doc.ents:
-            if ent.label_ in ('PERSON', 'ORG', 'GPE', 'PRODUCT'):
-                tags.add(ent.text.lower())
-        for chunk in doc.noun_chunks:
-            chunk_text = chunk.text.lower().strip()
-            if len(chunk_text) > 2 and chunk_text not in stop_words:
-                tags.add(chunk_text)
-
-        # Filter and sort tags
-        return sorted([tag for tag in tags if len(tag) > 2 and tag not in stop_words])
-
-    # Step 3: Process lines
-    for line in lines:
-        line = line.strip()
-        if not line:
+    def get_tokens(text: str) -> List[int]:
+        """Encode text to tokens."""
+        try:
+            return tokenizer(text, add_special_tokens=True, return_tensors='pt')['input_ids'][0].tolist()
+        except Exception as e:
             if debug:
-                print("Skipping empty line")
+                logger.error(f"Tokenization error: {e}")
+            return []
+
+    def decode_tokens(tokens: List[int]) -> str:
+        """Decode tokens back to text."""
+        try:
+            return tokenizer.decode(tokens, skip_special_tokens=True).strip()
+        except Exception as e:
+            if debug:
+                logger.error(f"Decoding error: {e}")
+            return ""
+
+    def get_sentence_aligned_overlap(tokens: List[int], sentences: List[str], sent_index: int) -> Tuple[str, List[int]]:
+        """Get overlap text starting from the last complete sentence within overlap tokens."""
+        if not tokens or overlap == 0:
+            return "", []
+        for i in range(len(tokens) - 1, max(0, len(tokens) - overlap - 1), -1):
+            partial_tokens = tokens[i:]
+            text = decode_tokens(partial_tokens)
+            if text and sent_tokenize(text):
+                if debug:
+                    logger.debug(f"Overlap text: {text[:50]}...")
+                return text, partial_tokens
+        return "", []
+
+    # Step 3: Process sentences into overlapping segments
+    current_segment = ""
+    current_tokens: List[int] = []
+    sentence_index = 0
+
+    while sentence_index < len(sentences):
+        sent = sentences[sentence_index].strip()
+        if len(sent) < min_length:
+            if debug:
+                logger.debug(f"Discarded sentence (too short): {sent[:50]}...")
+            sentence_index += 1
             continue
 
-        if debug:
-            print(f"Processing line: {line[:50]}...")
+        # Try adding the sentence to the current segment
+        temp_segment = (current_segment + " " +
+                        sent).strip() if current_segment else sent
+        segment_with_header = f"{header}\n{temp_segment}".strip(
+        ) if header else temp_segment
+        temp_tokens = get_tokens(segment_with_header)
 
-        # Process narrative text
-        sentences = sent_tokenize(line)
-        current_segment = ""
-        for sent in sentences:
-            sent = sent.strip()
-            if len(sent) < min_length or re.match(r'^\[.*\]$', sent):
+        if len(temp_tokens) <= max_length:
+            current_segment = temp_segment
+            current_tokens = temp_tokens
+            # Save segment if it forms a complete unit (1–2 sentences)
+            if len(sent_tokenize(current_segment)) >= 1:
+                segment_with_header = f"{header}\n{current_segment}".strip(
+                ) if header else current_segment
+                if len(current_tokens) >= min_length:
+                    processed_segments.append(
+                        (segment_with_header, []))  # Tags added later
+                    if debug:
+                        logger.debug(
+                            f"Added segment: {segment_with_header[:50]}...")
+                    overlap_text, overlap_tokens = get_sentence_aligned_overlap(
+                        current_tokens, sentences, sentence_index)
+                    current_segment = overlap_text
+                    current_tokens = overlap_tokens
+            sentence_index += 1
+        else:
+            # Save current segment if it fits
+            if current_segment and len(current_tokens) >= min_length:
+                segment_with_header = f"{header}\n{current_segment}".strip(
+                ) if header else current_segment
+                processed_segments.append(
+                    (segment_with_header, []))  # Tags added later
                 if debug:
-                    print(
-                        f"Discarded sentence (too short or bracketed): {sent}")
-                continue
-
-            temp_segment = (current_segment + " " +
-                            sent).strip() if current_segment else sent
-            segment_with_header = f"{header}\n{temp_segment}".strip(
-            ) if header else temp_segment
-            encoded = tokenizer(segment_with_header,
-                                add_special_tokens=True, return_tensors='pt')
-            token_length = encoded['input_ids'].shape[1]
-            if token_length <= max_length:
-                current_segment = temp_segment
+                    logger.debug(
+                        f"Added segment: {segment_with_header[:50]}...")
+                overlap_text, overlap_tokens = get_sentence_aligned_overlap(
+                    current_tokens, sentences, sentence_index)
+                current_segment = overlap_text
+                current_tokens = overlap_tokens
             else:
-                if current_segment:
-                    segment_with_header = f"{header}\n{current_segment}".strip(
-                    ) if header else current_segment
-                    encoded = tokenizer(
-                        segment_with_header, add_special_tokens=True, return_tensors='pt')
-                    if encoded['input_ids'].shape[1] <= max_length:
-                        tags = generate_tags(segment_with_header)
-                        processed_segments.append((segment_with_header, tags))
+                # Try the sentence alone
+                segment_with_header = f"{header}\n{sent}".strip(
+                ) if header else sent
+                temp_tokens = get_tokens(segment_with_header)
+                if len(temp_tokens) <= max_length and len(sent) >= min_length:
+                    processed_segments.append(
+                        (segment_with_header, []))  # Tags added later
+                    if debug:
+                        logger.debug(
+                            f"Added segment: {segment_with_header[:50]}...")
+                    overlap_text, overlap_tokens = get_sentence_aligned_overlap(
+                        temp_tokens, sentences, sentence_index)
+                    current_segment = overlap_text
+                    current_tokens = overlap_tokens
+                    sentence_index += 1
+                else:
+                    # Split long sentence
+                    words = sent.split()
+                    partial_segment = ""
+                    partial_tokens: List[int] = []
+                    for word in words:
+                        temp_partial = (partial_segment + " " +
+                                        word).strip() if partial_segment else word
+                        temp_with_header = f"{header}\n{temp_partial}".strip(
+                        ) if header else temp_partial
+                        temp_partial_tokens = get_tokens(temp_with_header)
+                        if len(temp_partial_tokens) <= max_length:
+                            partial_segment = temp_partial
+                            partial_tokens = temp_partial_tokens
+                        else:
+                            if len(partial_tokens) >= min_length:
+                                partial_with_header = f"{header}\n{partial_segment}".strip(
+                                ) if header else partial_segment
+                                processed_segments.append(
+                                    # Tags added later
+                                    (partial_with_header, []))
+                                if debug:
+                                    logger.debug(
+                                        f"Added partial segment: {partial_with_header[:50]}...")
+                                overlap_text, overlap_tokens = get_sentence_aligned_overlap(
+                                    partial_tokens, [partial_segment], 0)
+                                partial_segment = overlap_text
+                                partial_tokens = overlap_tokens
+                            else:
+                                partial_segment = ""
+                                partial_tokens = []
+                    if partial_segment and len(partial_tokens) >= min_length and len(partial_tokens) <= max_length:
+                        partial_with_header = f"{header}\n{partial_segment}".strip(
+                        ) if header else partial_segment
+                        processed_segments.append(
+                            (partial_with_header, []))  # Tags added later
                         if debug:
-                            print(
-                                f"Added segment: {segment_with_header[:50]}... with tags: {tags}")
-                    else:
-                        if debug:
-                            print(
-                                f"Discarded segment (too long): {segment_with_header[:50]}...")
+                            logger.debug(
+                                f"Added partial segment: {partial_with_header[:50]}...")
+                    sentence_index += 1
                     current_segment = ""
-                current_segment = sent if len(sent) <= max_length else ""
+                    current_tokens = []
 
-        if current_segment and len(current_segment) >= min_length:
-            segment_with_header = f"{header}\n{current_segment}".strip(
-            ) if header else current_segment
-            encoded = tokenizer(segment_with_header,
-                                add_special_tokens=True, return_tensors='pt')
-            if encoded['input_ids'].shape[1] <= max_length:
-                tags = generate_tags(segment_with_header)
-                processed_segments.append((segment_with_header, tags))
-                if debug:
-                    print(
-                        f"Added segment: {segment_with_header[:50]}... with tags: {tags}")
-            else:
-                if debug:
-                    print(
-                        f"Discarded segment (too long): {segment_with_header[:50]}...")
+    # Save the last segment
+    if current_segment and len(current_tokens) >= min_length and len(current_tokens) <= max_length:
+        segment_with_header = f"{header}\n{current_segment}".strip(
+        ) if header else current_segment
+        processed_segments.append(
+            (segment_with_header, []))  # Tags added later
+        if debug:
+            logger.debug(f"Added segment: {segment_with_header[:50]}...")
 
-    # Step 4: Deduplicate
+    # Step 4: Generate tags for all segments
+    segment_texts = [segment for segment, _ in processed_segments]
+    if segment_texts:
+        tags_list = generate_tags(segment_texts)
+        processed_segments = [(segment, tags) for (
+            segment, _), tags in zip(processed_segments, tags_list)]
+
+    # Step 5: Deduplicate
     seen: Set[str] = set()
     unique_segments: List[Tuple[str, List[str]]] = []
     for segment, tags in processed_segments:
@@ -241,22 +339,23 @@ def preprocess_text(
             unique_segments.append((segment, tags))
             seen.add(segment)
 
-    # Step 5: Debug output
+    # Step 6: Debug output
     if debug:
-        print("Final Preprocessed Segments with Tags:")
+        logger.debug("\nFinal Preprocessed Segments with Tags:")
         for i, (segment, tags) in enumerate(unique_segments):
             encoded = tokenizer(
                 segment, add_special_tokens=True, return_tensors='pt')
             token_count = encoded['input_ids'].shape[1]
-            print(f"{i+1}. ({len(segment)} chars, {token_count} tokens) {segment}")
-            print(f"   Tags: {tags}")
+            logger.debug(
+                f"{i+1}. ({len(segment)} chars, {token_count} tokens) {segment}")
+            logger.debug(f"   Tags: {tags}")
 
     if not unique_segments and debug:
-        print("Warning: No valid segments produced after preprocessing.")
+        logger.warning("No valid segments produced after preprocessing.")
 
     return unique_segments
 
-# Function to preprocess query
+# Query preprocessing
 
 
 def preprocess_query(
@@ -266,35 +365,27 @@ def preprocess_query(
 ) -> str:
     """
     Preprocesses the query to match corpus preprocessing.
-    Uses actual encoded input_ids length for max_length comparison.
-    Args:
-        query: Raw query text.
-        tokenizer: Tokenizer for the model to compute token length.
-        max_length: Maximum length for the query (in tokens).
-    Returns:
-        Preprocessed query.
     """
     if not isinstance(query, str) or not query.strip():
         return ""
-    query = re.sub(r'\s+', ' ', query.strip())  # Normalize whitespace
-    query = re.sub(r'[^\w\s.,!?]', '', query)  # Remove special characters
+    query = re.sub(r'\[.*?\]', '', query)  # Remove bracketed text
+    query = re.sub(r'\s+', ' ', query.strip())
+    query = re.sub(r'[^\w\s.,!?]', '', query)
     encoded = tokenizer(query, add_special_tokens=True, return_tensors='pt')
     if encoded['input_ids'].shape[1] > max_length:
-        # Truncate to max_length tokens
         truncated_ids = encoded['input_ids'][0, :max_length]
         query = tokenizer.decode(truncated_ids, skip_special_tokens=True)
-        # Ensure we don't cut off in the middle of a word
         split_point = query.rfind(' ')
         if split_point != -1:
             query = query[:split_point].strip()
     return query
 
-# Function to perform similarity search
+# Similarity search
 
 
 def similarity_search(
     query: str,
-    texts: List[str],
+    text_tuples: List[Tuple[str, List[str]]],
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizer,
     use_mean_pooling: bool = True,
@@ -303,66 +394,50 @@ def similarity_search(
     debug: bool = False
 ) -> List[SearchResult]:
     """
-    Performs similarity search on texts using transformer embeddings.
-    Args:
-        query: Query text.
-        texts: List of text segments to search.
-        model: Transformer model.
-        tokenizer: Tokenizer for the model.
-        use_mean_pooling: Whether to use mean pooling or CLS token.
-        top_k: Number of top results to return.
-        threshold: Minimum similarity score for results to be included.
-        debug: Whether to print top results for debugging.
-    Returns:
-        List of SearchResult dictionaries containing rank, score, doc_index, text, and tokens.
+    Performs similarity search using transformer embeddings with tags.
     """
-    # Validate inputs
-    if not query or not texts:
+    if not query or not text_tuples:
         if debug:
-            print("Warning: Empty query or texts provided.")
+            logger.warning("Empty query or texts provided.")
         return []
 
-    # Get embeddings
     query_embedding: torch.Tensor = get_embeddings(
-        [query], model, tokenizer, use_mean_pooling)
+        [(query, [])], model, tokenizer, use_mean_pooling)
     text_embeddings: torch.Tensor = get_embeddings(
-        texts, model, tokenizer, use_mean_pooling)
+        text_tuples, model, tokenizer, use_mean_pooling)
 
-    # Check if embeddings are empty
     if query_embedding.numel() == 0 or text_embeddings.numel() == 0:
         if debug:
-            print("Warning: No valid embeddings generated.")
+            logger.warning("No valid embeddings generated.")
         return []
 
-    # Compute similarities
     similarities: torch.Tensor = cosine_similarity(
         query_embedding, text_embeddings)
     similarities_np = similarities.cpu().numpy()
 
-    # Get top-k results
     top_k_indices = similarities_np.argsort()[-top_k:][::-1]
     top_k_scores = similarities_np[top_k_indices]
 
-    # Debug output: Print top results regardless of threshold
     if debug:
         logger.gray(f"[DEBUG] Top {top_k} Similarity Search Results:")
         for i, (idx, score) in enumerate(zip(top_k_indices[:top_k], top_k_scores[:top_k]), 1):
+            text, tags = text_tuples[idx]
             logger.log(
                 f"Rank {i}:",
-                f"Doc: {idx}, Tokens: {len(tokenizer.encode(texts[idx], add_special_tokens=True))}",
+                f"Doc: {idx}, Tokens: {len(tokenizer.encode(text, add_special_tokens=True))}",
                 f"\nScore: {score:.3f}",
-                f"\n{texts[idx]}",
-                colors=["ORANGE", "DEBUG", "SUCCESS", "WHITE"],
+                f"\n{text[:100]}...",
+                f"\nTags: {tags}",
+                colors=["ORANGE", "DEBUG", "SUCCESS", "WHITE", "DEBUG"],
             )
 
-    # Build results list: Apply threshold for returned results
     results: List[SearchResult] = [
         {
             'rank': i + 1,
             'score': float(top_k_scores[i]),
             'doc_index': int(idx),
-            'text': texts[idx],
-            'tokens': len(tokenizer.encode(texts[idx], add_special_tokens=True))
+            'text': text_tuples[idx][0],
+            'tokens': len(tokenizer.encode(text_tuples[idx][0], add_special_tokens=True))
         }
         for i, idx in enumerate(top_k_indices)
         if top_k_scores[i] >= threshold
@@ -373,19 +448,15 @@ def similarity_search(
 
 def main() -> None:
     model_path = 'sentence-transformers/all-MiniLM-L12-v2'
-
-    # Load model and tokenizer
     tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(model_path)
     model: PreTrainedModel = AutoModel.from_pretrained(model_path)
 
-    # Preprocessing parameters
-    min_length: int = 20
+    min_length: int = 50
     max_length: int = 150
     overlap: int = 20
     top_k: int = 3
     threshold: float = 0.7
 
-    # Example query
     query: str = 'List upcoming isekai anime this year (2024-2025).'
     query = preprocess_query(query, tokenizer, max_length=max_length)
 
@@ -398,7 +469,6 @@ def main() -> None:
     print(f"Threshold: {threshold}")
     print()
 
-    # Example content
     content: str = """## Naruto: Shippuuden Movie 6 - Road to Ninja
 Movie, 2012 Finished 1 ep, 109 min
 Action Adventure Fantasy
@@ -411,21 +481,16 @@ Demographic Shounen
 7.68
 366K
 Add to My List"""
-    header = content.split('\n')[0]  # Get first line as header
-    content = '\n'.join(content.split('\n')[1:])  # Remove header from content
+    header = content.split('\n')[0]
+    content = '\n'.join(content.split('\n')[1:])
 
-    # Preprocess content with debug mode
     text_keywords_tuples: List[Tuple[str, List[str]]] = preprocess_text(
         content, tokenizer, header=header, min_length=min_length, max_length=max_length, overlap=overlap, debug=True
     )
 
-    # Extract just the text segments from the tuples
-    texts: List[str] = [segment for segment, _ in text_keywords_tuples]
-
-    # Test with mean pooling
     logger.info("\n=== Similarity Search with Mean Pooling ===\n")
     results_mean: List[SearchResult] = similarity_search(
-        query, texts, model, tokenizer, use_mean_pooling=True,
+        query, text_keywords_tuples, model, tokenizer, use_mean_pooling=True,
         top_k=top_k, threshold=threshold, debug=True
     )
     for i, result in enumerate(results_mean, 1):
@@ -437,10 +502,9 @@ Add to My List"""
             colors=["ORANGE", "DEBUG", "SUCCESS", "WHITE"],
         )
 
-    # Test with CLS token
     logger.info("\n=== Similarity Search with CLS Token ===\n")
     results_cls: List[SearchResult] = similarity_search(
-        query, texts, model, tokenizer, use_mean_pooling=False,
+        query, text_keywords_tuples, model, tokenizer, use_mean_pooling=False,
         top_k=top_k, threshold=threshold, debug=True
     )
     for i, result in enumerate(results_cls, 1):
