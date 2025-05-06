@@ -7,7 +7,7 @@ from pathlib import Path
 from jet.file.utils import save_file
 
 
-def extract_text_from_ipynb(notebook_path, include_outputs=True):
+def extract_text_from_ipynb(notebook_path, include_outputs=True, include_code=False):
     """Extract text content from a Jupyter notebook and return as markdown."""
     try:
         with open(notebook_path, 'r', encoding='utf-8') as f:
@@ -17,22 +17,29 @@ def extract_text_from_ipynb(notebook_path, include_outputs=True):
 
         for cell in notebook.get('cells', []):
             if cell['cell_type'] == 'markdown':
-                # Add markdown cell content directly
                 markdown_content.extend(cell['source'])
                 markdown_content.append('')  # Newline separator
-            elif cell['cell_type'] == 'code' and include_outputs:
-                # Add code cell outputs if they exist, but not the code itself
-                for output in cell.get('outputs', []):
-                    if 'text' in output:
-                        markdown_content.append('```output')
-                        markdown_content.extend(output['text'])
-                        markdown_content.append('```')
-                        markdown_content.append('')  # Newline separator
-                    elif 'data' in output and 'text/plain' in output['data']:
-                        markdown_content.append('```output')
-                        markdown_content.extend(output['data']['text/plain'])
-                        markdown_content.append('```')
-                        markdown_content.append('')  # Newline separator
+
+            elif cell['cell_type'] == 'code':
+                if include_code:
+                    markdown_content.append('```python')
+                    markdown_content.extend(cell['source'])
+                    markdown_content.append('```')
+                    markdown_content.append('')  # Newline separator
+
+                if include_outputs:
+                    for output in cell.get('outputs', []):
+                        if 'text' in output:
+                            markdown_content.append('```output')
+                            markdown_content.extend(output['text'])
+                            markdown_content.append('```')
+                            markdown_content.append('')
+                        elif 'data' in output and 'text/plain' in output['data']:
+                            markdown_content.append('```output')
+                            markdown_content.extend(
+                                output['data']['text/plain'])
+                            markdown_content.append('```')
+                            markdown_content.append('')
 
         return '\n'.join(line.rstrip() for line in markdown_content)
 
@@ -41,7 +48,7 @@ def extract_text_from_ipynb(notebook_path, include_outputs=True):
         return None
 
 
-def process_notebook(input_path, output_dir=None, include_outputs=True):
+def process_notebook(input_path, output_dir=None, include_outputs=True, include_code=False):
     """Process a single notebook file and save as markdown."""
     input_path = Path(input_path)
 
@@ -54,7 +61,10 @@ def process_notebook(input_path, output_dir=None, include_outputs=True):
     output_path = output_dir / f"{input_path.stem}.md"
 
     content = extract_text_from_ipynb(
-        input_path, include_outputs=include_outputs)
+        input_path,
+        include_outputs=include_outputs,
+        include_code=include_code
+    )
     if content:
         save_file(content, str(output_path))
 
@@ -67,14 +77,16 @@ def main():
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    include_outputs = False  # <-- Toggle this to True/False as needed
+    include_outputs = False
+    include_code = False
 
     if os.path.isdir(notebook_path):
         for file in Path(notebook_path).glob('*.ipynb'):
-            process_notebook(file, output_dir, include_outputs=include_outputs)
+            process_notebook(
+                file, output_dir, include_outputs=include_outputs, include_code=include_code)
     else:
         process_notebook(notebook_path, output_dir,
-                         include_outputs=include_outputs)
+                         include_outputs=include_outputs, include_code=include_code)
 
 
 if __name__ == "__main__":
