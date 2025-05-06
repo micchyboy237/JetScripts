@@ -2,9 +2,13 @@ import random
 import json
 import os
 import shutil
+from typing import Dict, Union, List, Optional
 from jet.file.utils import load_file, save_file
+from jet.wordnet.n_grams import get_most_common_ngrams, group_sentences_by_ngram
 from jet.wordnet.pos_tagger import POSTagger
 from tqdm import tqdm
+from jet.wordnet.n_grams import count_ngrams, get_words
+from jet.wordnet.stopwords import StopWords
 
 
 class BatchSaver:
@@ -46,7 +50,7 @@ def tag_json_files(data, tagger, output_file):
     batch_saver = BatchSaver(output_file)
     existing_texts = batch_saver.load_existing()
 
-    for text_value in tqdm(data, desc="Processing..."):
+    for text_value in data:
         if text_value and text_value not in existing_texts:
             pos_results = tagger.process_and_tag(text_value)
             tagged_results_dict = {
@@ -67,7 +71,7 @@ def tag_json_files_pos_word_counts(data, tagger, output_file):
     batch_size = 200
     batch_count = 0
 
-    for idx, text_value in enumerate(tqdm(data, desc="Processing counts...")):
+    for idx, text_value in enumerate(data):
         batch_count += 1
         if text_value:
             pos_results = tagger.process_and_tag(text_value)
@@ -93,20 +97,39 @@ def tag_json_files_pos_word_counts(data, tagger, output_file):
 
 
 def main():
-    print("Loading dataset...")
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/searched_html_myanimelist_net_Isekai/headers.json"
-    data: list[dict] = load_file(data_file)
-    data: list[str] = [d["content"] for d in data]
-    tagger = POSTagger()
-
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    output_file = f"{output_dir}/tagged_data.json"
+    data: List[Dict] = load_file(data_file)
+    texts: List[str] = [d["content"] for d in data]
+    tagger = POSTagger()
 
-    tag_json_files(data, tagger, output_file)
+    print("\nMost Common n-grams:")
+    most_common_ngrams = get_most_common_ngrams(
+        [text.lower() for text in texts])
+    # Sort n-grams by count in descending order
+    sorted_ngrams = dict(
+        sorted(most_common_ngrams.items(),
+               key=lambda item: item[1], reverse=True)
+    )
+    save_file(sorted_ngrams, f"{output_dir}/most_common_ngrams.json")
+
+    grouped_sentences = group_sentences_by_ngram([text.lower()
+                                                  for text in texts], is_start_ngrams=False)
+    # Save to ngrams_text_mapping.json
+    save_file(grouped_sentences, f"{output_dir}/ngram_texts_mapping.json")
+
+    # Save most_common_ngrams as before (if needed)
+    save_file(
+        {item['ngram']: item['count'] for item in sorted_ngrams},
+        f"{output_dir}/most_common_ngrams.json"
+    )
+
+    tag_json_files(texts, tagger, f"{output_dir}/tagged_data.json")
 
 
 if __name__ == "__main__":
