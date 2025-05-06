@@ -102,7 +102,7 @@ def extract_concepts(text, model="llama-3.2-1b-instruct-4bit"):
         ],
         model=model,
         temperature=0.0,
-        response_format={"type": "json_object"}
+        # response_format={"type": "json_object"}
     )
     try:
         concepts_json = json.loads(
