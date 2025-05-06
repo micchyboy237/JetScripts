@@ -181,7 +181,7 @@ def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
     return chunks, vector_store, bm25_index
 
 
-def generate_response(query, context, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_response(query, context, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "You are a helpful AI assistant. Answer the question based on the provided context. If the context is insufficient, acknowledge the limitation."
     user_prompt = f"Context:\n{context}\n\nQuestion: {query}"
     response = mlx.chat(
@@ -195,7 +195,7 @@ def generate_response(query, context, model="mlx-community/Llama-3.2-3B-Instruct
     return response["choices"][0]["message"]["content"]
 
 
-def answer_with_fusion_rag(query, chunks, vector_store, bm25_index, k=5, alpha=0.5, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def answer_with_fusion_rag(query, chunks, vector_store, bm25_index, k=5, alpha=0.5, model="llama-3.2-1b-instruct-4bit"):
     retrieved_docs = fusion_retrieval(
         query, chunks, vector_store, bm25_index, k=k, alpha=alpha)
     context = "\n\n---\n\n".join([doc["text"] for doc in retrieved_docs])
@@ -207,7 +207,7 @@ def answer_with_fusion_rag(query, chunks, vector_store, bm25_index, k=5, alpha=0
     }
 
 
-def vector_only_rag(query, vector_store, k=5, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def vector_only_rag(query, vector_store, k=5, model="llama-3.2-1b-instruct-4bit"):
     query_embedding = create_embeddings(query)
     retrieved_docs = vector_store.similarity_search_with_scores(
         query_embedding, k=k)
@@ -220,7 +220,7 @@ def vector_only_rag(query, vector_store, k=5, model="mlx-community/Llama-3.2-3B-
     }
 
 
-def bm25_only_rag(query, chunks, bm25_index, k=5, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def bm25_only_rag(query, chunks, bm25_index, k=5, model="llama-3.2-1b-instruct-4bit"):
     retrieved_docs = bm25_search(bm25_index, chunks, query, k=k)
     context = "\n\n---\n\n".join([doc["text"] for doc in retrieved_docs])
     response = generate_response(query, context, model)
@@ -231,7 +231,7 @@ def bm25_only_rag(query, chunks, bm25_index, k=5, model="mlx-community/Llama-3.2
     }
 
 
-def compare_retrieval_methods(query, chunks, vector_store, bm25_index, k=5, alpha=0.5, reference_answer=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def compare_retrieval_methods(query, chunks, vector_store, bm25_index, k=5, alpha=0.5, reference_answer=None, model="llama-3.2-1b-instruct-4bit"):
     logger.debug(f"\n=== Comparing retrieval methods for query: {query} ===\n")
     logger.debug("\nRunning vector-only RAG...")
     vector_result = vector_only_rag(query, vector_store, k, model)
@@ -258,7 +258,7 @@ def compare_retrieval_methods(query, chunks, vector_store, bm25_index, k=5, alph
     }
 
 
-def evaluate_responses(query, vector_response, bm25_response, fusion_response, reference_answer=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def evaluate_responses(query, vector_response, bm25_response, fusion_response, reference_answer=None, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "You are an objective evaluator. Compare the three responses to the query and provide a concise evaluation. If a reference answer is provided, use it to assess accuracy and completeness."
     user_prompt = f"Query: {query}\n\nVector-only Response:\n{vector_response}\n\nBM25 Response:\n{bm25_response}\n\nFusion Response:\n{fusion_response}"
     if reference_answer:
@@ -274,7 +274,7 @@ def evaluate_responses(query, vector_response, bm25_response, fusion_response, r
     return response["choices"][0]["message"]["content"]
 
 
-def evaluate_fusion_retrieval(pdf_path, test_queries, reference_answers=None, k=5, alpha=0.5, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def evaluate_fusion_retrieval(pdf_path, test_queries, reference_answers=None, k=5, alpha=0.5, model="llama-3.2-1b-instruct-4bit"):
     logger.debug("=== EVALUATING FUSION RETRIEVAL ===\n")
     chunks, vector_store, bm25_index = process_document(pdf_path)
     results = []
@@ -310,7 +310,7 @@ def evaluate_fusion_retrieval(pdf_path, test_queries, reference_answers=None, k=
     }
 
 
-def generate_overall_analysis(results, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_overall_analysis(results, model="llama-3.2-1b-instruct-4bit"):
     evaluations_summary = ""
     for i, result in enumerate(results):
         evaluations_summary += f"Query {i+1}: {result['query']}\n"

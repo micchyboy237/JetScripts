@@ -30,8 +30,8 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 logger.debug("Libraries imported successfully!")
 
 EMBEDDING_MODEL = "mxbai-embed-large"
-GENERATION_MODEL = "mlx-community/Llama-3.2-3B-Instruct-4bit"
-EVALUATION_MODEL = "mlx-community/Llama-3.2-3B-Instruct-4bit"
+GENERATION_MODEL = "llama-3.2-1b-instruct-4bit"
+EVALUATION_MODEL = "llama-3.2-1b-instruct-4bit"
 GENERATION_TEMPERATURE = 0.1
 GENERATION_MAX_TOKENS = 400
 GENERATION_TOP_P = 0.9

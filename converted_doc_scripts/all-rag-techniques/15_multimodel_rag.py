@@ -233,7 +233,7 @@ def process_document(pdf_path, chunk_size=1000, chunk_overlap=200, model="llava-
     return vector_store, doc_info
 
 
-def query_multimodal_rag(query, vector_store, k=5, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def query_multimodal_rag(query, vector_store, k=5, model="llama-3.2-1b-instruct-4bit"):
     logger.debug(f"\n=== Processing query: {query} ===\n")
     query_embedding = create_embeddings(query)
     results = vector_store.similarity_search(query_embedding, k=k)
@@ -252,7 +252,7 @@ def query_multimodal_rag(query, vector_store, k=5, model="mlx-community/Llama-3.
     }
 
 
-def generate_response(query, results, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_response(query, results, model="llama-3.2-1b-instruct-4bit"):
     context = ""
     for i, result in enumerate(results):
         content_type = "Text" if result["metadata"].get(
@@ -287,7 +287,7 @@ def build_text_only_store(pdf_path, chunk_size=1000, chunk_overlap=200):
     return vector_store
 
 
-def evaluate_multimodal_vs_textonly(pdf_path, test_queries, reference_answers=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def evaluate_multimodal_vs_textonly(pdf_path, test_queries, reference_answers=None, model="llama-3.2-1b-instruct-4bit"):
     logger.debug("=== EVALUATING MULTI-MODAL RAG VS TEXT-ONLY RAG ===\n")
     logger.debug("\nProcessing document for multi-modal RAG...")
     mm_vector_store, mm_doc_info = process_document(pdf_path, model=model)
@@ -325,7 +325,7 @@ def evaluate_multimodal_vs_textonly(pdf_path, test_queries, reference_answers=No
     }
 
 
-def compare_responses(query, mm_response, text_response, reference=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def compare_responses(query, mm_response, text_response, reference=None, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "You are an objective evaluator. Compare the two responses to the query and provide a concise evaluation. If a reference answer is provided, use it to assess accuracy and completeness."
     user_prompt = f"Query: {query}\n\nMulti-modal Response:\n{mm_response}\n\nText-only Response:\n{text_response}"
     if reference:
@@ -341,7 +341,7 @@ def compare_responses(query, mm_response, text_response, reference=None, model="
     return response["choices"][0]["message"]["content"]
 
 
-def generate_overall_analysis(results, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_overall_analysis(results, model="llama-3.2-1b-instruct-4bit"):
     evaluations_summary = ""
     for i, result in enumerate(results):
         evaluations_summary += f"Query {i+1}: {result['query']}\n"

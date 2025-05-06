@@ -93,7 +93,7 @@ def create_embeddings(texts):
     return embed_func(texts)
 
 
-def generate_propositions(chunk, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_propositions(chunk, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "Convert the provided text into concise propositions, each representing a single fact or idea. List each proposition on a new line."
     user_prompt = f"Text to convert into propositions:\n\n{chunk['text']}"
     response = mlx.chat(
@@ -114,7 +114,7 @@ def generate_propositions(chunk, model="mlx-community/Llama-3.2-3B-Instruct-4bit
     return clean_propositions
 
 
-def evaluate_proposition(proposition, original_text, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def evaluate_proposition(proposition, original_text, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = """Evaluate the proposition based on the original text. Provide a JSON object with scores (0-10) for:
 - accuracy: How factually correct is the proposition?
 - clarity: How clear and understandable is the proposition?
@@ -143,7 +143,7 @@ def evaluate_proposition(proposition, original_text, model="mlx-community/Llama-
 
 
 def process_document_into_propositions(pdf_path, chunk_size=800, chunk_overlap=100,
-                                       quality_thresholds=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+                                       quality_thresholds=None, model="llama-3.2-1b-instruct-4bit"):
     if quality_thresholds is None:
         quality_thresholds = {
             "accuracy": 7,
@@ -242,7 +242,7 @@ def compare_retrieval_approaches(query, chunk_store, prop_store, k=5):
     }
 
 
-def generate_response(query, results, result_type="proposition", model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_response(query, results, result_type="proposition", model="llama-3.2-1b-instruct-4bit"):
     context = "\n\n".join([result["text"] for result in results])
     system_prompt = "You are a helpful AI assistant. Answer the question based on the provided context. If the context is insufficient, acknowledge the limitation."
     user_prompt = f"Context:\n{context}\n\nQuestion: {query}"
@@ -257,7 +257,7 @@ def generate_response(query, results, result_type="proposition", model="mlx-comm
     return response["choices"][0]["message"]["content"]
 
 
-def evaluate_responses(query, prop_response, chunk_response, reference_answer=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def evaluate_responses(query, prop_response, chunk_response, reference_answer=None, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "You are an objective evaluator. Compare the two responses to the query and provide a concise evaluation. If a reference answer is provided, use it to assess accuracy and completeness."
     user_prompt = f"Query: {query}\n\nProposition-Based Response:\n{prop_response}\n\nChunk-Based Response:\n{chunk_response}"
     if reference_answer:
@@ -273,7 +273,7 @@ def evaluate_responses(query, prop_response, chunk_response, reference_answer=No
     return response["choices"][0]["message"]["content"]
 
 
-def run_proposition_chunking_evaluation(pdf_path, test_queries, reference_answers=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def run_proposition_chunking_evaluation(pdf_path, test_queries, reference_answers=None, model="llama-3.2-1b-instruct-4bit"):
     logger.debug("=== Starting Proposition Chunking Evaluation ===\n")
     chunks, propositions = process_document_into_propositions(
         pdf_path, model=model)
@@ -331,7 +331,7 @@ def run_proposition_chunking_evaluation(pdf_path, test_queries, reference_answer
     }
 
 
-def generate_overall_analysis(results, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_overall_analysis(results, model="llama-3.2-1b-instruct-4bit"):
     evaluations_summary = ""
     for i, result in enumerate(results):
         evaluations_summary += f"Query {i+1}: {result['query']}\n"

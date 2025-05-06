@@ -118,7 +118,7 @@ def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
     return vector_store
 
 
-def evaluate_document_relevance(query, document, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def evaluate_document_relevance(query, document, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "You are an objective evaluator. Rate the relevance of the document to the query on a scale from 0 to 1, where 0 is irrelevant and 1 is highly relevant. Return only the numerical score."
     user_prompt = f"Query: {query}\n\nDocument: {document}"
     try:
@@ -170,7 +170,7 @@ def duck_duck_go_search(query, num_results=3):
         return "Failed to retrieve search results.", []
 
 
-def rewrite_search_query(query, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def rewrite_search_query(query, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "You are a helpful assistant. Rewrite the query to optimize it for a web search, making it more specific and concise."
     try:
         response = mlx.chat(
@@ -188,14 +188,14 @@ def rewrite_search_query(query, model="mlx-community/Llama-3.2-3B-Instruct-4bit"
         return query
 
 
-def perform_web_search(query, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def perform_web_search(query, model="llama-3.2-1b-instruct-4bit"):
     rewritten_query = rewrite_search_query(query, model)
     logger.debug(f"Rewritten search query: {rewritten_query}")
     results_text, sources = duck_duck_go_search(rewritten_query)
     return results_text, sources
 
 
-def refine_knowledge(text, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def refine_knowledge(text, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "You are a helpful assistant. Refine the provided text to make it concise, clear, and relevant, removing any redundant or irrelevant information."
     try:
         response = mlx.chat(
@@ -212,7 +212,7 @@ def refine_knowledge(text, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
         return text
 
 
-def crag_process(query, vector_store, k=3, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def crag_process(query, vector_store, k=3, model="llama-3.2-1b-instruct-4bit"):
     logger.debug(f"\n=== Processing query with CRAG: {query} ===\n")
     logger.debug("Retrieving initial documents...")
     query_embedding = create_embeddings(query)
@@ -270,7 +270,7 @@ def crag_process(query, vector_store, k=3, model="mlx-community/Llama-3.2-3B-Ins
     }
 
 
-def generate_response(query, knowledge, sources, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_response(query, knowledge, sources, model="llama-3.2-1b-instruct-4bit"):
     sources_text = ""
     for source in sources:
         title = source.get("title", "Unknown Source")
@@ -296,7 +296,7 @@ def generate_response(query, knowledge, sources, model="mlx-community/Llama-3.2-
         return f"I apologize, but I encountered an error while generating a response to your query: '{query}'. The error was: {str(e)}"
 
 
-def evaluate_crag_response(query, response, reference_answer=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def evaluate_crag_response(query, response, reference_answer=None, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = """You are an objective evaluator. Evaluate the response to the query based on accuracy, completeness, and relevance. If a reference answer is provided, use it to assess correctness. Return a JSON object with:
 - overall_score (0-1): Overall quality of the response
 - accuracy (0-1): Correctness of information
@@ -327,7 +327,7 @@ def evaluate_crag_response(query, response, reference_answer=None, model="mlx-co
         }
 
 
-def compare_crag_vs_standard_rag(query, vector_store, reference_answer=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def compare_crag_vs_standard_rag(query, vector_store, reference_answer=None, model="llama-3.2-1b-instruct-4bit"):
     logger.debug("\n=== Running CRAG ===")
     crag_result = crag_process(query, vector_store, model=model)
     crag_response = crag_result["response"]
@@ -358,7 +358,7 @@ def compare_crag_vs_standard_rag(query, vector_store, reference_answer=None, mod
     }
 
 
-def compare_responses(query, crag_response, standard_response, reference_answer=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def compare_responses(query, crag_response, standard_response, reference_answer=None, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "You are an objective evaluator. Compare the CRAG and standard RAG responses to the query, assessing their accuracy, completeness, and relevance. If a reference answer is provided, use it to evaluate correctness. Provide a concise comparison."
     user_prompt = f"Query: {query}\n\nCRAG Response: {crag_response}\n\nStandard RAG Response: {standard_response}"
     if reference_answer:
@@ -378,7 +378,7 @@ def compare_responses(query, crag_response, standard_response, reference_answer=
         return f"Error comparing responses: {str(e)}"
 
 
-def run_crag_evaluation(pdf_path, test_queries, reference_answers=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def run_crag_evaluation(pdf_path, test_queries, reference_answers=None, model="llama-3.2-1b-instruct-4bit"):
     vector_store = process_document(pdf_path)
     results = []
     for i, query in enumerate(test_queries):
@@ -400,7 +400,7 @@ def run_crag_evaluation(pdf_path, test_queries, reference_answers=None, model="m
     }
 
 
-def generate_overall_analysis(results, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_overall_analysis(results, model="llama-3.2-1b-instruct-4bit"):
     evaluations_summary = ""
     for i, result in enumerate(results):
         evaluations_summary += f"Query {i+1}: {result['query']}\n"

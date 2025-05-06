@@ -106,7 +106,7 @@ def create_embeddings(texts):
     return embed_func(texts)
 
 
-def generate_page_summary(page_text, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_page_summary(page_text, model="llama-3.2-1b-instruct-4bit"):
     max_tokens = 6000
     truncated_text = page_text[:max_tokens] if len(
         page_text) > max_tokens else page_text
@@ -122,7 +122,7 @@ def generate_page_summary(page_text, model="mlx-community/Llama-3.2-3B-Instruct-
     return response["choices"][0]["message"]["content"]
 
 
-def process_document_hierarchically(pdf_path, chunk_size=1000, chunk_overlap=200, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def process_document_hierarchically(pdf_path, chunk_size=1000, chunk_overlap=200, model="llama-3.2-1b-instruct-4bit"):
     pages = extract_text_from_pdf(pdf_path)
     logger.debug("Generating page summaries...")
     summaries = []
@@ -198,7 +198,7 @@ def retrieve_hierarchically(query, summary_store, detailed_store, k_summaries=3,
     return detailed_results
 
 
-def generate_response(query, retrieved_chunks, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_response(query, retrieved_chunks, model="llama-3.2-1b-instruct-4bit"):
     context_parts = []
     for i, chunk in enumerate(retrieved_chunks):
         page_num = chunk["metadata"]["page"]
@@ -218,7 +218,7 @@ def generate_response(query, retrieved_chunks, model="mlx-community/Llama-3.2-3B
 
 
 def hierarchical_rag(query, pdf_path, chunk_size=1000, chunk_overlap=200,
-                     k_summaries=3, k_chunks=5, regenerate=False, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+                     k_summaries=3, k_chunks=5, regenerate=False, model="llama-3.2-1b-instruct-4bit"):
     summary_store_file = os.path.join(
         DATA_DIR, f"{os.path.basename(pdf_path)}_summary_store.pkl")
     detailed_store_file = os.path.join(
@@ -251,7 +251,7 @@ def hierarchical_rag(query, pdf_path, chunk_size=1000, chunk_overlap=200,
     }
 
 
-def standard_rag(query, pdf_path, chunk_size=1000, chunk_overlap=200, k=15, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def standard_rag(query, pdf_path, chunk_size=1000, chunk_overlap=200, k=15, model="llama-3.2-1b-instruct-4bit"):
     pages = extract_text_from_pdf(pdf_path)
     chunks = []
     for page in pages:
@@ -284,7 +284,7 @@ def standard_rag(query, pdf_path, chunk_size=1000, chunk_overlap=200, k=15, mode
     }
 
 
-def compare_approaches(query, pdf_path, reference_answer=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def compare_approaches(query, pdf_path, reference_answer=None, model="llama-3.2-1b-instruct-4bit"):
     logger.debug(f"\n=== Comparing RAG approaches for query: {query} ===")
     logger.debug("\nRunning hierarchical RAG...")
     hierarchical_result = hierarchical_rag(query, pdf_path, model=model)
@@ -305,7 +305,7 @@ def compare_approaches(query, pdf_path, reference_answer=None, model="mlx-commun
     }
 
 
-def compare_responses(query, hierarchical_response, standard_response, reference=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def compare_responses(query, hierarchical_response, standard_response, reference=None, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "You are an objective evaluator. Compare the two responses to the query and provide a concise evaluation. If a reference answer is provided, use it to assess accuracy and completeness."
     user_prompt = f"Query: {query}\n\nHierarchical RAG Response:\n{hierarchical_response}\n\nStandard RAG Response:\n{standard_response}"
     if reference:
@@ -321,7 +321,7 @@ def compare_responses(query, hierarchical_response, standard_response, reference
     return response["choices"][0]["message"]["content"]
 
 
-def run_evaluation(pdf_path, test_queries, reference_answers=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def run_evaluation(pdf_path, test_queries, reference_answers=None, model="llama-3.2-1b-instruct-4bit"):
     results = []
     for i, query in enumerate(test_queries):
         logger.debug(f"Query: {query}")
@@ -337,7 +337,7 @@ def run_evaluation(pdf_path, test_queries, reference_answers=None, model="mlx-co
     }
 
 
-def generate_overall_analysis(results, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_overall_analysis(results, model="llama-3.2-1b-instruct-4bit"):
     evaluations_summary = ""
     for i, result in enumerate(results):
         evaluations_summary += f"Query {i+1}: {result['query']}\n"

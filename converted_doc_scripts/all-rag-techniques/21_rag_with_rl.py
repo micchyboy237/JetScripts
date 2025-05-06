@@ -107,7 +107,7 @@ def construct_prompt(query: str, context_chunks: List[str]) -> str:
 
 def generate_response(
     prompt: str,
-    model: str = "mlx-community/Llama-3.2-3B-Instruct-4bit",
+    model: str = "llama-3.2-1b-instruct-4bit",
     max_tokens: int = 512,
     temperature: float = 1.0
 ) -> str:
@@ -162,7 +162,7 @@ def calculate_reward(response: str, ground_truth: str) -> float:
 def rewrite_query(
     query: str,
     context_chunks: List[str],
-    model: str = "mlx-community/Llama-3.2-3B-Instruct-4bit",
+    model: str = "llama-3.2-1b-instruct-4bit",
     max_tokens: int = 100,
     temperature: float = 0.3
 ) -> str:

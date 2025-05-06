@@ -98,7 +98,7 @@ def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
     return store
 
 
-def determine_if_retrieval_needed(query, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def determine_if_retrieval_needed(query, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "Determine if retrieval from a document is necessary to answer this query accurately. Respond with 'yes' or 'no'."
     user_prompt = f"Query: {query}"
     response = mlx.chat(
@@ -112,7 +112,7 @@ def determine_if_retrieval_needed(query, model="mlx-community/Llama-3.2-3B-Instr
     return response["choices"][0]["message"]["content"].strip().lower() == "yes"
 
 
-def evaluate_relevance(query, context, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def evaluate_relevance(query, context, model="llama-3.2-1b-instruct-4bit"):
     max_context_length = 2000
     if len(context) > max_context_length:
         context = context[:max_context_length] + "... [truncated]"
@@ -129,7 +129,7 @@ def evaluate_relevance(query, context, model="mlx-community/Llama-3.2-3B-Instruc
     return response["choices"][0]["message"]["content"].strip().lower()
 
 
-def assess_support(response, context, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def assess_support(response, context, model="llama-3.2-1b-instruct-4bit"):
     max_context_length = 2000
     if len(context) > max_context_length:
         context = context[:max_context_length] + "... [truncated]"
@@ -146,7 +146,7 @@ def assess_support(response, context, model="mlx-community/Llama-3.2-3B-Instruct
     return response["choices"][0]["message"]["content"].strip().lower()
 
 
-def rate_utility(query, response, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def rate_utility(query, response, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "Rate the utility of the response to the query on a scale of 1 to 5, where 5 is highly useful. Provide only the number."
     user_prompt = f"Query: {query}\nResponse: {response}"
     response = mlx.chat(
@@ -162,7 +162,7 @@ def rate_utility(query, response, model="mlx-community/Llama-3.2-3B-Instruct-4bi
     return int(rating_match.group()) if rating_match else 3
 
 
-def generate_response(query, context=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_response(query, context=None, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "You are a helpful AI assistant. Provide a clear, accurate, and informative response to the query."
     if context:
         user_prompt = f"Context:\n{context}\n\nQuestion: {query}"
@@ -179,7 +179,7 @@ def generate_response(query, context=None, model="mlx-community/Llama-3.2-3B-Ins
     return response["choices"][0]["message"]["content"].strip()
 
 
-def self_rag(query, vector_store, top_k=3, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def self_rag(query, vector_store, top_k=3, model="llama-3.2-1b-instruct-4bit"):
     logger.debug(f"\n=== Starting Self-RAG for query: {query} ===\n")
     logger.debug("Step 1: Determining if retrieval is necessary...")
     retrieval_needed = determine_if_retrieval_needed(query, model)
@@ -252,7 +252,7 @@ def self_rag(query, vector_store, top_k=3, model="mlx-community/Llama-3.2-3B-Ins
     }
 
 
-def run_self_rag_example(model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def run_self_rag_example(model="llama-3.2-1b-instruct-4bit"):
     pdf_path = os.path.join(DATA_DIR, "AI_Information.pdf")
     logger.debug(f"Processing document: {pdf_path}")
     vector_store = process_document(pdf_path)
@@ -287,7 +287,7 @@ def run_self_rag_example(model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
     }
 
 
-def traditional_rag(query, vector_store, top_k=3, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def traditional_rag(query, vector_store, top_k=3, model="llama-3.2-1b-instruct-4bit"):
     logger.debug(f"\n=== Running traditional RAG for query: {query} ===\n")
     logger.debug("Retrieving documents...")
     query_embedding = create_embeddings(query)
@@ -300,7 +300,7 @@ def traditional_rag(query, vector_store, top_k=3, model="mlx-community/Llama-3.2
     return response
 
 
-def evaluate_rag_approaches(pdf_path, test_queries, reference_answers=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def evaluate_rag_approaches(pdf_path, test_queries, reference_answers=None, model="llama-3.2-1b-instruct-4bit"):
     logger.debug("=== Evaluating RAG Approaches ===")
     vector_store = process_document(pdf_path)
     results = []
@@ -328,7 +328,7 @@ def evaluate_rag_approaches(pdf_path, test_queries, reference_answers=None, mode
     }
 
 
-def compare_responses(query, self_rag_response, trad_rag_response, reference=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def compare_responses(query, self_rag_response, trad_rag_response, reference=None, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "You are an objective evaluator. Compare the two responses to the query and provide a concise evaluation. If a reference answer is provided, use it to assess accuracy and completeness."
     user_prompt = f"Query: {query}\n\nSelf-RAG Response:\n{self_rag_response}\n\nTraditional RAG Response:\n{trad_rag_response}"
     if reference:
@@ -344,7 +344,7 @@ def compare_responses(query, self_rag_response, trad_rag_response, reference=Non
     return response["choices"][0]["message"]["content"]
 
 
-def generate_overall_analysis(results, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_overall_analysis(results, model="llama-3.2-1b-instruct-4bit"):
     comparisons_summary = ""
     for i, result in enumerate(results):
         comparisons_summary += f"Query {i+1}: {result['query']}\n"

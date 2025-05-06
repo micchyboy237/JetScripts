@@ -166,7 +166,7 @@ def format_segments_for_context(segments):
     return "\n\n".join(context)
 
 
-def generate_response(query, context, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_response(query, context, model="llama-3.2-1b-instruct-4bit"):
     logger.debug("Generating response using relevant segments as context...")
     system_prompt = "You are a helpful AI assistant. Answer the user's question based only on the provided context. If you cannot find the answer in the context, state that you don't have enough information."
     response = mlx.chat(
@@ -249,7 +249,7 @@ def evaluate_methods(pdf_path, query, reference_answer=None):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": evaluation_prompt}
             ],
-            model="mlx-community/Llama-3.2-3B-Instruct-4bit",
+            model="llama-3.2-1b-instruct-4bit",
             temperature=0
         )
         logger.debug("\n=== EVALUATION RESULTS ===")

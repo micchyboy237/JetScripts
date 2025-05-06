@@ -125,7 +125,7 @@ def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
     return vector_store
 
 
-def generate_hypothetical_document(query, desired_length=1000, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_hypothetical_document(query, desired_length=1000, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "You are a helpful AI assistant. Generate a detailed document that answers the given question comprehensively."
     user_prompt = f"Question: {query}\n\nGenerate a document that fully answers this question:"
     response = mlx.chat(
@@ -139,7 +139,7 @@ def generate_hypothetical_document(query, desired_length=1000, model="mlx-commun
     return response["choices"][0]["message"]["content"]
 
 
-def hyde_rag(query, vector_store, k=5, should_generate_response=True, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def hyde_rag(query, vector_store, k=5, should_generate_response=True, model="llama-3.2-1b-instruct-4bit"):
     logger.debug(f"\n=== Processing query with HyDE: {query} ===\n")
     logger.debug("Generating hypothetical document...")
     hypothetical_doc = generate_hypothetical_document(query, model=model)
@@ -162,7 +162,7 @@ def hyde_rag(query, vector_store, k=5, should_generate_response=True, model="mlx
     return results
 
 
-def standard_rag(query, vector_store, k=5, should_generate_response=True, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def standard_rag(query, vector_store, k=5, should_generate_response=True, model="llama-3.2-1b-instruct-4bit"):
     logger.debug(f"\n=== Processing query with Standard RAG: {query} ===\n")
     logger.debug("Creating embedding for query...")
     query_embedding = create_embeddings([query])[0]
@@ -179,7 +179,7 @@ def standard_rag(query, vector_store, k=5, should_generate_response=True, model=
     return results
 
 
-def generate_response(query, relevant_chunks, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_response(query, relevant_chunks, model="llama-3.2-1b-instruct-4bit"):
     context = "\n\n".join([chunk["text"] for chunk in relevant_chunks])
     system_prompt = "You are a helpful AI assistant. Answer the question based on the provided context. If the context is insufficient, acknowledge the limitation."
     user_prompt = f"Context:\n{context}\n\nQuestion: {query}"
@@ -195,7 +195,7 @@ def generate_response(query, relevant_chunks, model="mlx-community/Llama-3.2-3B-
     return response["choices"][0]["message"]["content"]
 
 
-def compare_approaches(query, vector_store, reference_answer=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def compare_approaches(query, vector_store, reference_answer=None, model="llama-3.2-1b-instruct-4bit"):
     hyde_result = hyde_rag(query, vector_store, model=model)
     hyde_response = hyde_result["response"]
     standard_result = standard_rag(query, vector_store, model=model)
@@ -212,7 +212,7 @@ def compare_approaches(query, vector_store, reference_answer=None, model="mlx-co
     }
 
 
-def compare_responses(query, hyde_response, standard_response, reference=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def compare_responses(query, hyde_response, standard_response, reference=None, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "You are an objective evaluator. Compare the two responses to the query and provide a concise evaluation. If a reference answer is provided, use it to assess accuracy and completeness."
     user_prompt = f"Query: {query}\n\nHyDE Response:\n{hyde_response}\n\nStandard RAG Response:\n{standard_response}"
     if reference:
@@ -228,7 +228,7 @@ def compare_responses(query, hyde_response, standard_response, reference=None, m
     return response["choices"][0]["message"]["content"]
 
 
-def run_evaluation(pdf_path, test_queries, reference_answers=None, chunk_size=1000, chunk_overlap=200, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def run_evaluation(pdf_path, test_queries, reference_answers=None, chunk_size=1000, chunk_overlap=200, model="llama-3.2-1b-instruct-4bit"):
     vector_store = process_document(pdf_path, chunk_size, chunk_overlap)
     results = []
     for i, query in enumerate(test_queries):
@@ -247,7 +247,7 @@ def run_evaluation(pdf_path, test_queries, reference_answers=None, chunk_size=10
     }
 
 
-def generate_overall_analysis(results, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_overall_analysis(results, model="llama-3.2-1b-instruct-4bit"):
     evaluations_summary = ""
     for i, result in enumerate(results):
         evaluations_summary += f"Query {i+1}: {result['query']}\n"

@@ -21,7 +21,7 @@ mlx = MLX()
 embed_func = get_embedding_function("mxbai-embed-large")
 
 
-def rewrite_query(original_query, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def rewrite_query(original_query, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "You are an AI assistant specialized in improving search queries. Your task is to rewrite user queries to be more specific, detailed, and likely to retrieve relevant information."
     response = mlx.chat(
         [
@@ -34,7 +34,7 @@ def rewrite_query(original_query, model="mlx-community/Llama-3.2-3B-Instruct-4bi
     return response["choices"][0]["message"]["content"]
 
 
-def generate_step_back_query(original_query, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_step_back_query(original_query, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "You are an AI assistant specialized in search strategies. Your task is to generate broader, more general versions of specific queries to retrieve relevant background information."
     response = mlx.chat(
         [
@@ -47,7 +47,7 @@ def generate_step_back_query(original_query, model="mlx-community/Llama-3.2-3B-I
     return response["choices"][0]["message"]["content"]
 
 
-def decompose_query(original_query, num_subqueries=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def decompose_query(original_query, num_subqueries=None, model="llama-3.2-1b-instruct-4bit"):
     # Get current date dynamically
     current_date = datetime.now().strftime("%B %d, %Y")
 
@@ -252,7 +252,7 @@ def transformed_search(query, vector_store, transformation_type, top_k=3):
     return results
 
 
-def generate_response(query, context, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_response(query, context, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "You are a helpful AI assistant. Answer the user's question based only on the provided context. If you cannot find the answer in the context, state that you don't have enough information."
     response = mlx.chat(
         [
@@ -283,7 +283,7 @@ def rag_with_query_transformation(pdf_path, query, transformation_type=None):
     }
 
 
-def compare_responses(results, reference_answer, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def compare_responses(results, reference_answer, model="llama-3.2-1b-instruct-4bit"):
     comparison_text = f"Reference Answer: {reference_answer}\n\n"
     for technique, result in results.items():
         comparison_text += f"{technique.capitalize()} Query Response:\n{result['response']}\n\n"
