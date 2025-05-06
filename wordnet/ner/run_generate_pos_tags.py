@@ -118,16 +118,16 @@ def main():
     )
     save_file(sorted_ngrams, f"{output_dir}/most_common_ngrams.json")
 
-    grouped_sentences = group_sentences_by_ngram([text.lower()
-                                                  for text in texts], is_start_ngrams=False)
+    grouped_sentences = group_sentences_by_ngram(
+        [
+            text.lower()
+            for text in texts
+        ],
+        is_start_ngrams=False,
+        includes_pos=["NOUN", "ADJ", "VERB", "ADV"],
+    )
     # Save to ngrams_text_mapping.json
     save_file(grouped_sentences, f"{output_dir}/ngram_texts_mapping.json")
-
-    # Save most_common_ngrams as before (if needed)
-    save_file(
-        {item['ngram']: item['count'] for item in sorted_ngrams},
-        f"{output_dir}/most_common_ngrams.json"
-    )
 
     tag_json_files(texts, tagger, f"{output_dir}/tagged_data.json")
 
