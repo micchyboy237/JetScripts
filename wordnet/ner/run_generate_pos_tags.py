@@ -48,7 +48,7 @@ def tag_json_files(data, tagger, output_file):
 
     for text_value in tqdm(data, desc="Processing..."):
         if text_value and text_value not in existing_texts:
-            pos_results = tagger.process_and_tag(text_value, lang='en')
+            pos_results = tagger.process_and_tag(text_value)
             tagged_results_dict = {
                 'text': text_value,
                 'lang': 'en',
