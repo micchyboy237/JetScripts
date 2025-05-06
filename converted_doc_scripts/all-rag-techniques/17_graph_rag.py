@@ -1,16 +1,12 @@
-from PIL import Image
-from collections import defaultdict
 from jet.llm.mlx.base import MLX
 from jet.llm.utils.embeddings import get_embedding_function
 from jet.logger import CustomLogger
-from typing import List, Dict, Tuple, Any
-import io
+import pypdf
 import json
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import os
-import pypdf
 import re
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -18,17 +14,14 @@ log_file = os.path.join(
     script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-file_name = os.path.splitext(os.path.basename(__file__))[0]
 DATA_DIR = os.path.join(script_dir, "data")
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
+os.makedirs(DATA_DIR, exist_ok=True)
 logger.info("Initializing MLX and embedding function")
 mlx = MLX()
 embed_func = get_embedding_function("mxbai-embed-large")
 
 
 def extract_text_from_pdf(pdf_path):
-    logger.debug(f"Extracting text from {pdf_path}...")
     all_text = ""
     with open(pdf_path, "rb") as file:
         reader = pypdf.PdfReader(file)
@@ -60,7 +53,46 @@ def create_embeddings(texts):
     return embeddings
 
 
-def extract_concepts(text, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+class SimpleVectorStore:
+    def __init__(self):
+        self.vectors = []
+        self.texts = []
+        self.metadata = []
+
+    def add_item(self, text, embedding, metadata=None):
+        self.vectors.append(np.array(embedding))
+        self.texts.append(text)
+        self.metadata.append(metadata or {})
+
+    def similarity_search(self, query_embedding, k=5):
+        if not self.vectors:
+            return []
+        query_vector = np.array(query_embedding).flatten()
+        similarities = []
+        for i, vector in enumerate(self.vectors):
+            vector = vector.flatten()
+            dot_product = np.dot(query_vector, vector)
+            query_norm = np.linalg.norm(query_vector)
+            vector_norm = np.linalg.norm(vector)
+            if query_norm == 0 or vector_norm == 0:
+                similarity = 0.0
+            else:
+                similarity = dot_product / (query_norm * vector_norm)
+            similarities.append((i, similarity))
+        similarities.sort(key=lambda x: -float('inf')
+                          if np.isnan(x[1]) else x[1], reverse=True)
+        results = []
+        for i in range(min(k, len(similarities))):
+            idx, score = similarities[i]
+            results.append({
+                "text": self.texts[idx],
+                "metadata": self.metadata[idx],
+                "similarity": score
+            })
+        return results
+
+
+def extract_concepts(text, model="llama-3.2-1b-instruct-4bit"):
     system_message = "You are an expert in knowledge extraction. Extract key concepts from the provided text. Return a JSON object with a 'concepts' key containing a list of strings."
     response = mlx.chat(
         [
@@ -91,21 +123,25 @@ def extract_concepts(text, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
         return []
 
 
-def build_knowledge_graph(chunks):
+def build_knowledge_graph(chunks, pdf_path):
     logger.debug("Building knowledge graph...")
     graph = nx.Graph()
     texts = [chunk["text"] for chunk in chunks]
     logger.debug("Creating embeddings for chunks...")
     embeddings = create_embeddings(texts)
     logger.debug("Adding nodes to the graph...")
+    store = SimpleVectorStore()
     for i, chunk in enumerate(chunks):
         logger.debug(f"Extracting concepts for chunk {i+1}/{len(chunks)}...")
         concepts = extract_concepts(chunk["text"])
-        graph.add_node(i,
-                       text=chunk["text"],
-                       concepts=concepts,
-                       embedding=embeddings[i])
-    logger.debug("Creating edges between nodes...")
+        graph.add_node(i, text=chunk["text"],
+                       concepts=concepts, embedding=embeddings[i])
+        store.add_item(
+            text=chunk["text"],
+            embedding=embeddings[i],
+            metadata={"index": i, "source": pdf_path}
+        )
+    logger.debug("Creating Edges between nodes...")
     for i in range(len(chunks)):
         node_concepts = set(graph.nodes[i]["concepts"])
         for j in range(i + 1, len(chunks)):
@@ -118,34 +154,30 @@ def build_knowledge_graph(chunks):
                     min(len(node_concepts), len(other_concepts))
                 edge_weight = 0.7 * similarity + 0.3 * concept_score
                 if edge_weight > 0.6:
-                    graph.add_edge(i, j,
-                                   weight=edge_weight,
-                                   similarity=similarity,
+                    graph.add_edge(i, j, weight=edge_weight, similarity=similarity,
                                    shared_concepts=list(shared_concepts))
     logger.debug(
         f"Knowledge graph built with {graph.number_of_nodes()} nodes and {graph.number_of_edges()} edges")
-    return graph, embeddings
+    return graph, embeddings, store
 
 
-def traverse_graph(query, graph, embeddings, top_k=5, max_depth=3):
+def traverse_graph(query, graph, store, top_k=5, max_depth=3):
     logger.debug(f"Traversing graph for query: {query}")
     query_embedding = create_embeddings([query])[0]
-    similarities = []
-    for i, node_embedding in enumerate(embeddings):
-        similarity = np.dot(query_embedding, node_embedding) / \
-            (np.linalg.norm(query_embedding) * np.linalg.norm(node_embedding))
-        similarities.append((i, similarity))
-    similarities.sort(key=lambda x: x[1], reverse=True)
-    starting_nodes = [node for node, _ in similarities[:top_k]]
+    initial_results = store.similarity_search(query_embedding, k=top_k)
+    starting_nodes = [result["metadata"]["index"]
+                      for result in initial_results]
     logger.debug(f"Starting traversal from {len(starting_nodes)} nodes")
     visited = set()
     traversal_path = []
     results = []
     queue = []
     for node in starting_nodes:
-        heapq.heappush(queue, (-similarities[node][1], node))
+        similarity = next(
+            (r["similarity"] for r in initial_results if r["metadata"]["index"] == node), 0.0)
+        queue.append((-similarity, node))
     while queue and len(results) < (top_k * 3):
-        _, node = heapq.heappop(queue)
+        _, node = queue.pop(0)
         if node in visited:
             continue
         visited.add(node)
@@ -160,12 +192,12 @@ def traverse_graph(query, graph, embeddings, top_k=5, max_depth=3):
                          for neighbor in graph.neighbors(node)
                          if neighbor not in visited]
             for neighbor, weight in sorted(neighbors, key=lambda x: x[1], reverse=True):
-                heapq.heappush(queue, (-weight, neighbor))
+                queue.append((-weight, neighbor))
     logger.debug(f"Graph traversal found {len(results)} relevant chunks")
     return results, traversal_path
 
 
-def generate_response(query, context_chunks, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_response(query, context_chunks, model="llama-3.2-1b-instruct-4bit"):
     context_texts = [chunk["text"] for chunk in context_chunks]
     combined_context = "\n\n---\n\n".join(context_texts)
     max_context = 14000
@@ -196,13 +228,12 @@ def visualize_graph_traversal(graph, traversal_path):
         graph, pos, node_color=node_color, node_size=500, alpha=0.8)
     for u, v, data in graph.edges(data=True):
         weight = data.get('weight', 1.0)
-        nx.draw_networkx_edges(graph, pos, edgelist=[
+        nx.draw_networkx_edges(graph, pos, edlist=[
                                (u, v)], width=weight*2, alpha=0.6)
     traversal_edges = [(traversal_path[i], traversal_path[i+1])
                        for i in range(len(traversal_path)-1)]
-    nx.draw_networkx_edges(graph, pos, edgelist=traversal_edges,
-                           width=3, alpha=0.8, edge_color='red',
-                           style='dashed', arrows=True)
+    nx.draw_networkx_edges(graph, pos, edlist=traversal_edges, width=3,
+                           alpha=0.8, edge_color='red', style='dashed', arrows=True)
     labels = {}
     for node in graph.nodes():
         concepts = graph.nodes[node]['concepts']
@@ -212,15 +243,15 @@ def visualize_graph_traversal(graph, traversal_path):
     plt.title("Knowledge Graph with Traversal Path")
     plt.axis('off')
     plt.tight_layout()
-    plt.savefig(os.path.join(GENERATED_DIR, 'graph_traversal.png'))
+    plt.savefig(os.path.join(DATA_DIR, 'graph_traversal.png'))
 
 
 def graph_rag_pipeline(pdf_path, query, chunk_size=1000, chunk_overlap=200, top_k=3):
     text = extract_text_from_pdf(pdf_path)
     chunks = chunk_text(text, chunk_size, chunk_overlap)
-    graph, embeddings = build_knowledge_graph(chunks)
+    graph, embeddings, store = build_knowledge_graph(chunks, pdf_path)
     relevant_chunks, traversal_path = traverse_graph(
-        query, graph, embeddings, top_k)
+        query, graph, store, top_k)
     response = generate_response(query, relevant_chunks)
     visualize_graph_traversal(graph, traversal_path)
     return {
@@ -235,13 +266,12 @@ def graph_rag_pipeline(pdf_path, query, chunk_size=1000, chunk_overlap=200, top_
 def evaluate_graph_rag(pdf_path, test_queries, reference_answers=None):
     text = extract_text_from_pdf(pdf_path)
     chunks = chunk_text(text)
-    graph, embeddings = build_knowledge_graph(chunks)
+    graph, embeddings, store = build_knowledge_graph(chunks, pdf_path)
     results = []
     for i, query in enumerate(test_queries):
         logger.debug(f"\n\n=== Evaluating Query {i+1}/{len(test_queries)} ===")
         logger.debug(f"Query: {query}")
-        relevant_chunks, traversal_path = traverse_graph(
-            query, graph, embeddings)
+        relevant_chunks, traversal_path = traverse_graph(query, graph, store)
         response = generate_response(query, relevant_chunks)
         reference = None
         comparison = None
@@ -269,7 +299,7 @@ def evaluate_graph_rag(pdf_path, test_queries, reference_answers=None):
     }
 
 
-def compare_with_reference(response, reference, query, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def compare_with_reference(response, reference, query, model="llama-3.2-1b-instruct-4bit"):
     system_message = "You are an evaluator. Compare the response to the reference answer, assessing accuracy and completeness for the query. Provide a concise comparison."
     prompt = f"Query: {query}\n\nResponse: {response}\n\nReference Answer: {reference}"
     comparison = mlx.chat(
