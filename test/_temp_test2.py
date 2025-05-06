@@ -224,10 +224,10 @@ class TextProcessor:
 
 
 class SimilaritySearch:
-    def __init__(self, model: PreTrainedModel, tokenizer: PreTrainedTokenizer):
+    def __init__(self, model: PreTrainedModel, tokenizer: PreTrainedTokenizer, max_length: int = 150):
         self.model = model
         self.tokenizer = tokenizer
-        self.processor = TextProcessor(tokenizer, model)
+        self.processor = TextProcessor(tokenizer, model, max_length=max_length)
 
     def search(
         self,
@@ -329,18 +329,19 @@ class SimilaritySearch:
 
 def main() -> None:
     model_path = 'sentence-transformers/all-MiniLM-L12-v2'
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
-    model = AutoModel.from_pretrained(model_path)
-    search = SimilaritySearch(model, tokenizer)
-    processor = search.processor
-
     min_length = 50
-    max_length = 150
+    max_length = 100
     top_k = None
     threshold = 0.2
-    max_result_tokens = 300
+    max_result_tokens = max_length * 3
 
     query = 'List upcoming isekai anime this year (2024-2025).'
+
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    model = AutoModel.from_pretrained(model_path)
+    search = SimilaritySearch(model, tokenizer, max_length=max_length)
+    processor = search.processor
+
     query = processor.preprocess_query(query, max_length=max_length)
 
     print(f"Query: {query}")
