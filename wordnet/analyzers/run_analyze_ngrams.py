@@ -1,11 +1,11 @@
-import shutil
-import os
-from jet.file.utils import load_file, save_file
 from jet.wordnet.analyzers.analyze_ngrams import analyze_ngrams
+from jet.file.utils import load_file, save_file
+import os
+import shutil
 
 
 def main_analyze_ngrams(texts, texts_dict, output_dir):
-    filtered_data = analyze_ngrams(texts, texts_dict, min_tfidf=0.03)
+    filtered_data = analyze_ngrams(texts, texts_dict, min_tfidf=0.05)
     if not filtered_data:
         print("No texts selected. Saving empty output.")
         filtered_data = []
@@ -27,12 +27,14 @@ if __name__ == '__main__':
         "The camera struggles in low light, and the processor lags during heavy apps. Very frustrating.",
         "The battery lasts all day, and the camera is crystal clear. Great phone!",
         "Software glitches make this phone frustrating despite a good processor.",
-        "The display is gorgeous, but the battery life is mediocre at best."
+        "The display is gorgeous, but the battery life is mediocre at best.",
+        "The camera is top-notch, but the battery life could improve.",
+        "Smooth performance and a vibrant display make this phone a winner."
     ]
 
     texts_dict = {
-        texts[i]: {"id": i+1, "rating": [5, 4, 5, 3, 5, 3, 4,
-                                         3, 4, 2, 4, 3, 3][i], "category": "smartphone"}
+        texts[i]: {"id": i+1, "rating": [5, 4, 5, 3, 5, 3, 4, 3,
+                                         4, 2, 4, 3, 3, 4, 4][i], "category": "smartphone"}
         for i in range(len(texts))
     }
 
