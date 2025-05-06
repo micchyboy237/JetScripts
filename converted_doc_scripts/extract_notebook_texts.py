@@ -1,7 +1,10 @@
 import json
 import os
+import shutil
 import sys
 from pathlib import Path
+
+from jet.file.utils import save_file
 
 
 def extract_text_from_ipynb(notebook_path):
@@ -16,21 +19,20 @@ def extract_text_from_ipynb(notebook_path):
             if cell['cell_type'] == 'markdown':
                 # Add markdown cell content directly
                 markdown_content.extend(cell['source'])
+                markdown_content.append('')  # Newline separator
             elif cell['cell_type'] == 'code':
-                # Add code cell content wrapped in triple backticks
-                markdown_content.append('```python')
-                markdown_content.extend(cell['source'])
-                markdown_content.append('```')
-                # Add code cell outputs if they exist
+                # Add code cell outputs if they exist, but not the code itself
                 for output in cell.get('outputs', []):
                     if 'text' in output:
                         markdown_content.append('```output')
                         markdown_content.extend(output['text'])
                         markdown_content.append('```')
+                        markdown_content.append('')  # Newline separator
                     elif 'data' in output and 'text/plain' in output['data']:
                         markdown_content.append('```output')
                         markdown_content.extend(output['data']['text/plain'])
                         markdown_content.append('```')
+                        markdown_content.append('')  # Newline separator
 
         # Join lines and ensure proper newline handling
         return '\n'.join(line.rstrip() for line in markdown_content)
@@ -38,16 +40,6 @@ def extract_text_from_ipynb(notebook_path):
     except Exception as e:
         print(f"Error processing {notebook_path}: {str(e)}")
         return None
-
-
-def save_to_markdown(content, output_path):
-    """Save content to a markdown file."""
-    try:
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(content)
-        print(f"Successfully saved markdown to {output_path}")
-    except Exception as e:
-        print(f"Error saving markdown to {output_path}: {str(e)}")
 
 
 def process_notebook(input_path, output_dir=None):
@@ -66,18 +58,23 @@ def process_notebook(input_path, output_dir=None):
     # Extract content and save
     content = extract_text_from_ipynb(input_path)
     if content:
-        save_to_markdown(content, output_path)
+        save_file(content, str(output_path))
 
 
 def main():
     """Main function to process notebook files."""
-    if len(sys.argv) < 2:
-        print(
-            "Usage: python ipynb_to_markdown.py <notebook_path> [output_dir]")
-        sys.exit(1)
+    # if len(sys.argv) < 2:
+    #     print(
+    #         "Usage: python ipynb_to_markdown.py <notebook_path> [output_dir]")
+    #     sys.exit(1)
+    # notebook_path = sys.argv[1]
+    # output_dir = sys.argv[2] if len(sys.argv) > 2 else None
 
-    notebook_path = sys.argv[1]
-    output_dir = sys.argv[2] if len(sys.argv) > 2 else None
+    notebook_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/all-rag-techniques/notebooks"
+    output_dir = os.path.join(
+        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    shutil.rmtree(output_dir, ignore_errors=True)
+    os.makedirs(output_dir, exist_ok=True)
 
     # Check if input is a directory or single file
     if os.path.isdir(notebook_path):
