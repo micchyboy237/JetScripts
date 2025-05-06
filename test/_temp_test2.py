@@ -327,15 +327,18 @@ class SimilaritySearch:
         return results
 
 
-def main() -> None:
-    model_path = 'sentence-transformers/all-MiniLM-L12-v2'
-    min_length = 50
-    max_length = 100
-    top_k = None
-    threshold = 0.2
-    max_result_tokens = max_length * 3
-
-    query = 'List upcoming isekai anime this year (2024-2025).'
+def search_content(
+    query: str,
+    content: str,
+    model_path: str = 'sentence-transformers/all-MiniLM-L12-v2',
+    top_k: Optional[int] = 3,
+    threshold: float = 0.7,
+    min_length: int = 25,
+    max_length: int = 75,
+    max_result_tokens: Optional[int] = 225,
+) -> None:
+    if max_result_tokens is None:
+        max_result_tokens = max_length * 3
 
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     model = AutoModel.from_pretrained(model_path)
@@ -353,18 +356,6 @@ def main() -> None:
     print(f"Max Result Tokens: {max_result_tokens}")
     print()
 
-    content = """## Naruto: Shippuuden Movie 6 - Road to Ninja
-Movie, 2012 Finished 1 ep, 109 min
-Action Adventure Fantasy
-Naruto: Shippuuden Movie 6 - Road to Ninja
-Returning home to Konohagakure, the young ninja celebrate defeating a group of supposed Akatsuki members. Naruto Uzumaki and Sakura Haruno, however, feel differently. Naruto is jealous of his comrades' congratulatory families, wishing for the presence of his own parents. Sakura, on the other hand, is angry at her embarrassing parents, and wishes for no parents at all. The two clash over their opposing ideals, but are faced with a more pressing matter when the masked Madara Uchiha suddenly appears and transports them to an alternate world. In this world, Sakura's parents are considered heroes--for they gave their lives to protect Konohagakure from the Nine-Tailed Fox attack 10 years ago. Consequently, Naruto's parents, Minato Namikaze and Kushina Uzumaki, are alive and well. Unable to return home or find the masked Madara, Naruto and Sakura stay in this new world and enjoy the changes they have always longed for. All seems well for the two ninja, until an unexpected threat emerges that pushes Naruto and Sakura to not only fight for the Konohagakure of the alternate world, but also to find a way back to their own. [Written by MAL Rewrite]
-Studio Pierrot
-Source Manga
-Theme Isekai
-Demographic Shounen
-7.68
-366K
-Add to My List"""
     header = content.split('\n')[0]
     content = '\n'.join(content.split('\n')[1:])
 
@@ -444,4 +435,22 @@ Add to My List"""
 
 
 if __name__ == "__main__":
-    main()
+    query = 'List upcoming isekai anime this year (2024-2025).'
+    content = """## Naruto: Shippuuden Movie 6 - Road to Ninja
+Movie, 2012 Finished 1 ep, 109 min
+Action Adventure Fantasy
+Naruto: Shippuuden Movie 6 - Road to Ninja
+Returning home to Konohagakure, the young ninja celebrate defeating a group of supposed Akatsuki members. Naruto Uzumaki and Sakura Haruno, however, feel differently. Naruto is jealous of his comrades' congratulatory families, wishing for the presence of his own parents. Sakura, on the other hand, is angry at her embarrassing parents, and wishes for no parents at all. The two clash over their opposing ideals, but are faced with a more pressing matter when the masked Madara Uchiha suddenly appears and transports them to an alternate world. In this world, Sakura's parents are considered heroes--for they gave their lives to protect Konohagakure from the Nine-Tailed Fox attack 10 years ago. Consequently, Naruto's parents, Minato Namikaze and Kushina Uzumaki, are alive and well. Unable to return home or find the masked Madara, Naruto and Sakura stay in this new world and enjoy the changes they have always longed for. All seems well for the two ninja, until an unexpected threat emerges that pushes Naruto and Sakura to not only fight for the Konohagakure of the alternate world, but also to find a way back to their own. [Written by MAL Rewrite]
+Studio Pierrot
+Source Manga
+Theme Isekai
+Demographic Shounen
+7.68
+366K
+Add to My List"""
+
+    search_content(
+        threshold=0.2,
+        query=query,
+        content=content,
+    )
