@@ -19,6 +19,7 @@ log_file = os.path.join(
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 file_name = os.path.splitext(os.path.basename(__file__))[0]
+DATA_DIR = os.path.join(script_dir, "data")
 GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
 logger.info("Initializing MLX and embedding function")
@@ -282,7 +283,7 @@ def compare_with_reference(response, reference, query, model="mlx-community/Llam
     return comparison["choices"][0]["message"]["content"]
 
 
-pdf_path = os.path.join(GENERATED_DIR, "AI_Information.pdf")
+pdf_path = os.path.join(DATA_DIR, "AI_Information.pdf")
 query = "What are the key applications of transformers in natural language processing?"
 results = graph_rag_pipeline(pdf_path, query)
 logger.debug("\n=== ANSWER ===")
