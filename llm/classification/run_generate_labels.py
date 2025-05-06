@@ -1,3 +1,5 @@
+from jet.llm.mlx.base import MLX
+from jet.llm.mlx.mlx_types import ModelKey
 from jet.llm.ollama.base import Ollama
 from jet.logger import logger
 from jet.transformers.formatters import format_json
@@ -11,7 +13,14 @@ Generate 1 to 3 short, high-level labels that best describe the main topics or i
 Return them as a comma-separated list.
 Labels:"""
 
-llm = Ollama(model="gemma3:1b")
-response = llm.chat(prompt)
+model: ModelKey = "llama-3.2-1b-instruct-4bit"
+
+mlx = MLX(model)
+response_stream = mlx.stream_chat(prompt)
+response = ""
+for chunk in response_stream:
+    content = chunk["choices"][0]["message"]["content"]
+    response += content
+    logger.success(content, flush=True)
 
 logger.success(format_json(response))

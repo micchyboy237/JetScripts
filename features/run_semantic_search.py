@@ -20,10 +20,10 @@ Add to My List"""
         query=query,
         content=content,
         threshold=0.2,
-        top_k=3,
+        top_k=None,
         min_length=25,
-        max_length=75,
-        max_result_tokens=225
+        max_length=300,
+        max_result_tokens=300
     )
 
     print("\n=== Search Output Summary ===")

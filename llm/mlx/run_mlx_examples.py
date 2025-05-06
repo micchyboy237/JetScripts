@@ -1,6 +1,7 @@
 import json
 import os
 from jet.llm.mlx.client import MLXLMClient
+from jet.llm.mlx.mlx_types import ModelKey
 from jet.logger import CustomLogger
 from jet.transformers.formatters import format_json
 
@@ -11,7 +12,7 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.orange(f"Logs: {log_file}")
 
 
-model = "mlx-community/Llama-3.2-1B-Instruct-4bit"
+model: ModelKey = "llama-3.2-1b-instruct-4bit"
 
 
 def get_models_example(client: MLXLMClient):

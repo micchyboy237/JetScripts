@@ -1,47 +1,34 @@
-from jet.logger import logger
+import sys
+import json
+from jet.file.utils import load_file
+from jet.llm.mlx.templates.generate_labels import generate_labels
 import spacy
+from typing import List, Dict
 
-model = "urchade/gliner_small-v2.1"
-# model = "urchade/gliner_medium-v2.1"
-style = "ent"
+# Global cache for storing the loaded pipeline
+nlp_cache = None
 
-text = """
-Role Overview:
 
-We are seeking a skilled app developer to build our mobile app from scratch, integrating travel booking, relocation services, and community features. You will lead the design, development, and launch of our travel app.
+def load_nlp_pipeline(model: str, labels: List[str], style: str, chunk_size: int):
+    global nlp_cache
 
-Responsibilities:
+    if nlp_cache is None:  # Only load the model once
+        custom_spacy_config = {
+            "gliner_model": model,
+            "chunk_size": chunk_size,
+            "labels": labels,
+            "style": style
+        }
 
-Develop and maintain a scalable mobile app for iOS & Android
+        nlp_cache = spacy.blank("en")
+        nlp_cache.add_pipe("gliner_spacy", config=custom_spacy_config)
 
-Integrate booking systems, payment gateways, and user profiles
-
-Ensure seamless user experience & mobile responsiveness
-
-Work with the team to test & refine the app before launch
-
-Implement security features to protect user data
-
-Qualifications:
-
-3+ years of mobile app development (React Native, Flutter, Swift, or Kotlin)
-
-Experience with APIs, databases, and cloud-based deployment
-
-Strong UI/UX skills to create a user-friendly interface
-
-Previous work on travel, booking, or e-commerce apps (preferred)
-
-Ability to work independently & meet deadlines
-"""
-
-labels = ["role", "application", "technology stack", "qualifications"]
+    return nlp_cache
 
 
 def determine_chunk_size(text: str) -> int:
     """Dynamically set chunk size based on text length."""
     length = len(text)
-
     if length < 1000:
         return 250  # Small text, use smaller chunks
     elif length < 3000:
@@ -50,29 +37,41 @@ def determine_chunk_size(text: str) -> int:
         return 500  # Large text, larger chunks
 
 
-# Determine best chunk size based on text length
-chunk_size = determine_chunk_size(text)
-logger.info(f"Dynamic chunk size set to: {chunk_size}")
+def main():
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/searched_html_myanimelist_net_Isekai/headers.json"
+    data: list[dict] = load_file(data_file)
+    data: list[str] = [d["text"] for d in data]
+    # Read arguments
+    labels = generate_labels(data, max_labels=10)
+    model = "urchade/gliner_small-v2.1"
+    style = "ent"
 
-# Configure SpaCy with dynamic chunk size
-custom_spacy_config = {
-    "gliner_model": model,
-    "chunk_size": chunk_size,
-    "labels": labels,
-    "style": style
-}
+    for item in data:
+        id = item['id']
+        text = item['text']
+        # Determine chunk size dynamically for each text
+        chunk_size = determine_chunk_size(text)
 
-nlp = spacy.blank("en")
-nlp.add_pipe("gliner_spacy", config=custom_spacy_config)
+        # Load SpaCy pipeline with the determined chunk size
+        nlp = load_nlp_pipeline(model, labels, style, chunk_size)
+
+        # Process the text
+        doc = nlp(text)
+
+        # Prepare the results
+        entities = [{
+            "text": entity.text,
+            "label": entity.label_,
+            "score": f"{entity._.score:.4f}"
+        } for entity in doc.ents]
+
+        # Output the result
+        print(f"result: {json.dumps({
+            "id": id,
+            "text": text,
+            "entities": entities
+        })}")
 
 
-doc = nlp(text)
-
-logger.newline()
-logger.debug("Extracted Entities:")
-for entity in doc.ents:
-    logger.newline()
-    logger.log("Text:", entity.text, colors=["WHITE", "INFO"])
-    logger.log("Label:", entity.label_, colors=["WHITE", "SUCCESS"])
-    logger.log("Score:", f"{entity._.score:.4f}", colors=["WHITE", "SUCCESS"])
-    logger.log("---")
+if __name__ == "__main__":
+    main()

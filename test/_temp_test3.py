@@ -96,7 +96,6 @@ def preprocess_text(
             for element in soup(['nav', 'footer', 'script', 'style']):
                 element.decompose()
             extracted = soup.get_text(separator=' ', strip=True)
-            logger.info("Fallback to BeautifulSoup successful")
         except Exception as e:
             logger.warning(
                 f"BeautifulSoup fallback failed: {e}, using raw text")
@@ -810,7 +809,7 @@ def main2():
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
+    model_path = "mlx-community/Llama-3.2-1B-Instruct-4bit"
     query = [
         "List upcoming isekai anime this year (2024-2025).",
     ]
