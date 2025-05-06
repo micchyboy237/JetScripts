@@ -98,7 +98,7 @@ def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
     return store
 
 
-def rerank_with_llm(query, results, top_n=3, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def rerank_with_llm(query, results, top_n=3, model="llama-3.2-1b-instruct-4bit"):
     logger.debug(f"Reranking {len(results)} documents...")
     system_prompt = "You are an AI assistant. Score the relevance of the document to the query from 0 to 10, where 10 is highly relevant. Provide only the score."
     scored_results = []
@@ -160,7 +160,7 @@ def rerank_with_keywords(query, results, top_n=3):
     return reranked_results[:top_n]
 
 
-def generate_response(query, context, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def generate_response(query, context, model="llama-3.2-1b-instruct-4bit"):
     system_prompt = "You are a helpful AI assistant. Answer the user's question based only on the provided context. If you cannot find the answer in the context, state that you don't have enough information."
     response = mlx.chat(
         [
@@ -173,7 +173,7 @@ def generate_response(query, context, model="mlx-community/Llama-3.2-3B-Instruct
     return response["choices"][0]["message"]["content"]
 
 
-def rag_with_reranking(query, vector_store, reranking_method="llm", top_n=3, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def rag_with_reranking(query, vector_store, reranking_method="llm", top_n=3, model="llama-3.2-1b-instruct-4bit"):
     query_embedding = create_embeddings(query)
     initial_results = vector_store.similarity_search(query_embedding, k=10)
     if reranking_method == "llm":
@@ -197,7 +197,7 @@ def rag_with_reranking(query, vector_store, reranking_method="llm", top_n=3, mod
     }
 
 
-def evaluate_reranking(query, standard_results, reranked_results, reference_answer=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
+def evaluate_reranking(query, standard_results, reranked_results, reference_answer=None, model="llama-3.2-1b-instruct-4bit"):
     if reference_answer:
         system_prompt = "You are an objective evaluator. Compare the responses and provide a concise evaluation."
         user_prompt = f"Reference Answer: {reference_answer}\n\nStandard Response:\n{standard_results['response']}\n\nReranked Response:\n{reranked_results['response']}"
