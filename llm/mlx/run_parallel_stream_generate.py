@@ -1,10 +1,16 @@
 from jet.llm.mlx.base import MLX
+from jet.llm.mlx.mlx_types import ModelKey
 import mlx.core as mx
 import numpy as np
 from mpi4py import MPI
 from mlx_lm import load
 from mlx_lm.generate import generate_step
 from jet.logger import logger
+
+"""
+Sample Commands:
+mpirun -np 4 python run_parallel_stream_generate.py
+"""
 
 # Initialize MPI
 comm = MPI.COMM_WORLD
@@ -27,7 +33,7 @@ end_idx = (rank + 1) * prompts_per_process if rank < size - 1 else len(prompts)
 local_prompts = prompts[start_idx:end_idx]
 
 # Load the model and tokenizer (each process loads its own instance)
-model_path = "mlx-community/Llama-3.2-1B-Instruct-4bit"
+model_path: ModelKey = "llama-3.2-1b-instruct-4bit"
 # model, tokenizer = load(model_path)
 mlx = MLX(model_path)
 
@@ -63,7 +69,7 @@ for prompt in local_prompts:
         temperature=0
     )
     for chunk in stream_response:
-        content = chunk["choices"][0]["delta"]["content"]
+        content = chunk["choices"][0]["message"]["content"]
         logger.success(content, flush=True)
         response += content
 
