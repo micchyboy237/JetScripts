@@ -10,10 +10,7 @@ from fastapi import FastAPI, HTTPException
 from jet.executor.command import run_command
 from jet.logger import logger
 import shlex
-import os
-
-# In _temp_test2.py, before running the command
-os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+import re
 
 app = FastAPI(title="Parallel MLX Stream Generation Server")
 semaphore = asyncio.Semaphore(4)
@@ -26,6 +23,7 @@ class GenerateRequest(BaseModel):
     max_tokens: int = 100
     temp: float = 0.7
     verbose: bool = False
+    task_id: Optional[str] = None
 
 
 class StreamingError(Exception):
@@ -38,10 +36,11 @@ async def run_mpi_process(
     model: ModelType = "llama-3.2-1b-instruct-4bit",
     max_tokens: Optional[int] = None,
     temp: Optional[float] = None,
-    verbose: Optional[bool] = None
+    verbose: Optional[bool] = None,
+    task_id: Optional[str] = None
 ):
     """Run the MPI script as a subprocess and stream its output."""
-    task_id = str(uuid.uuid4())
+    task_id = task_id or str(uuid.uuid4())
     input_data = {
         "model": model,
         "prompts": prompts,
@@ -51,37 +50,67 @@ async def run_mpi_process(
         "task_id": task_id
     }
     input_json = json.dumps(input_data)
-    # Use shlex.quote to properly escape the JSON string
     command = f"mpirun -np 4 python {MPIRUN_GENERATE_FILE} {shlex.quote(input_json)}"
 
     async def stream_output():
         error_messages = []
         try:
             for line in run_command(command, separator=" "):
+                line = line.strip()
                 if line.startswith("error: "):
                     error_messages.append(line[7:].strip())
-                    yield line
-                elif line.startswith(("result: ", "data: ")):
-                    yield line
-                # else:
-                #     yield f"other: {line.strip()}\n\n"
+                    yield json.dumps({"type": "error", "message": line[7:].strip()}) + "\n"
+                elif line.startswith("data: "):
+                    content = line[6:].strip()
+                    # Parse data lines for token updates
+                    token_match = re.match(
+                        r"Process \d+ \(Prompt ID: ([^)]+)\): (.+)", content)
+                    if token_match:
+                        prompt_id, token = token_match.groups()
+                        yield json.dumps({
+                            "type": "token",
+                            "prompt_id": prompt_id,
+                            "task_id": task_id,
+                            "token": token
+                        }) + "\n"
+                    # Parse result lines
+                    result_match = re.match(r"Result \d+: (.+)", content)
+                    if result_match:
+                        result_json = json.loads(result_match.group(1))
+                        yield json.dumps({
+                            "type": "result",
+                            "prompt": result_json["prompt"],
+                            "response": result_json["response"],
+                            "prompt_id": result_json["prompt_id"],
+                            "task_id": result_json["task_id"]
+                        }) + "\n"
+                elif line.startswith("result: "):
+                    # Parse result lines directly
+                    result_json = json.loads(
+                        line[8:].replace("Result ", "")[2:])
+                    yield json.dumps({
+                        "type": "result",
+                        "prompt": result_json["prompt"],
+                        "response": result_json["response"],
+                        "prompt_id": result_json["prompt_id"],
+                        "task_id": result_json["task_id"]
+                    }) + "\n"
             if error_messages:
                 raise StreamingError(
                     f"Streaming errors: {'\n'.join(error_messages)}")
         except StreamingError as e:
             error_message = str(e)
             logger.error(f"Streaming failed:\n{error_message}")
-            yield f"error: {error_message}\n\n"
+            yield json.dumps({"type": "error", "message": error_message}) + "\n"
             raise
         except Exception as e:
             error_message = str(e)
-            # Only append error_messages that are not duplicates of the current exception
             unique_errors = [
                 err for err in error_messages if err not in error_message]
             if unique_errors:
                 error_message += f"; Other errors encountered: {'; '.join(unique_errors)}"
             logger.error(f"Unexpected error during streaming: {error_message}")
-            yield f"error: {error_message}\n\n"
+            yield json.dumps({"type": "error", "message": error_message}) + "\n"
             raise RuntimeError(error_message)
         finally:
             pass
@@ -99,11 +128,12 @@ async def generate(request: GenerateRequest):
                 prompts=request.prompts,
                 max_tokens=request.max_tokens,
                 temp=request.temp,
-                verbose=request.verbose
+                verbose=request.verbose,
+                task_id=request.task_id
             )
             return StreamingResponse(
                 stream_gen(),
-                media_type="text/event-stream"
+                media_type="application/json"
             )
         except StreamingError as e:
             raise HTTPException(
