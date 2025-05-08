@@ -14,7 +14,7 @@ from langchain_community.document_loaders.generic import GenericLoader
 from langchain_community.document_loaders.parsers import LanguageParser
 from jet.logger import logger
 from jet.file import save_json
-from jet.transformers import make_serializable
+from jet.transformers.object import make_serializable
 
 
 def main():

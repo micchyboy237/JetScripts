@@ -7,7 +7,7 @@ from jet.llm.ollama.base import (
     large_llm_model,
     large_embed_model,
 )
-from jet.transformers import make_serializable
+from jet.transformers.object import make_serializable
 from jet.logger import logger
 
 

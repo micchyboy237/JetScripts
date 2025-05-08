@@ -1,7 +1,7 @@
 import json
 from mitmproxy import http
 import time
-from jet.transformers import make_serializable
+from jet.transformers.object import make_serializable
 from jet.logger import logger
 
 # Dictionary to store start times for requests

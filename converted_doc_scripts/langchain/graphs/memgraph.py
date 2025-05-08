@@ -7,7 +7,7 @@ from langchain_core.prompts import PromptTemplate
 from jet.llm.ollama.base_langchain import ChatOllama
 from langchain_core.documents import Document
 from langchain_experimental.graph_transformers import LLMGraphTransformer
-from jet.transformers import format_json
+from jet.transformers.formatters import format_json
 
 initialize_ollama_settings()
 

@@ -42,7 +42,7 @@ from jet.llm.ollama.constants import (
     OLLAMA_LARGE_LLM_MODEL,
     OLLAMA_LARGE_EMBED_MODEL,
 )
-from jet.transformers import make_serializable
+from jet.transformers.object import make_serializable
 from jet.logger import logger, time_it
 
 nest_asyncio.apply()

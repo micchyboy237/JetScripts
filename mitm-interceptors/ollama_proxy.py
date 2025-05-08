@@ -12,7 +12,7 @@ from jet.transformers.formatters import format_json
 from jet.transformers.json_parsers import parse_json
 from mitmproxy import http
 from jet.llm.llm_types import BaseGenerateResponse, OllamaChatResponse
-from jet.transformers import make_serializable
+from jet.transformers.object import make_serializable
 from jet.logger import logger
 from jet.file import save_file
 from jet.utils.class_utils import get_class_name

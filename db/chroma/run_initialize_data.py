@@ -1,7 +1,7 @@
 import json
 from jet.db.chroma import ChromaClient
 from jet.llm.utils.embeddings import get_embedding_function, OllamaEmbeddingFunction
-from jet.transformers import make_serializable
+from jet.transformers.object import make_serializable
 from jet.logger import logger
 
 if __name__ == "__main__":

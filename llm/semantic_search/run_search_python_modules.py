@@ -10,7 +10,7 @@ from jet.llm.query.retrievers import query_llm
 from jet.memory.memgraph import initialize_graph, query_memgraph
 from jet.memory.memgraph_types import GraphQueryMetadata, GraphQueryRequest
 from jet.memory.utils import combine_paths
-from jet.transformers import format_json
+from jet.transformers.formatters import format_json
 from jet.logger import logger
 from jet.logger.timer import time_it
 from jet.transformers.object import make_serializable

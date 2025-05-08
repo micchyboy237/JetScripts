@@ -4,7 +4,7 @@ import json
 import os
 from mitmproxy import http
 import time
-from jet.transformers import make_serializable, prettify_value
+from jet.transformers.object import make_serializable, prettify_value
 from jet.logger import logger
 
 file_dir = os.path.dirname(os.path.realpath(__file__))

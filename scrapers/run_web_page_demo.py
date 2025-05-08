@@ -125,7 +125,7 @@ def main():
     import json
     from jet.logger import logger
     from jet.file import save_json
-    from jet.transformers import make_serializable
+    from jet.transformers.object import make_serializable
     from jet.vectors import SettingsDict, SettingsManager
 
     settings = SettingsDict(

@@ -15,7 +15,7 @@ from jet.vectors import SettingsManager
 from jet.validation import validate_json
 from jet.logger import logger
 from jet.llm.ollama.base import initialize_ollama_settings
-from jet.transformers import make_serializable
+from jet.transformers.object import make_serializable
 initialize_ollama_settings()
 llm = Ollama(
     temperature=0,

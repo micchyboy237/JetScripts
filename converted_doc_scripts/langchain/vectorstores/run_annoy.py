@@ -1,7 +1,7 @@
 from typing import Callable, Union
 from shared.data_types.job import JobData
 from jet.file import load_file
-from jet.transformers import format_json
+from jet.transformers.formatters import format_json
 from jet.logger import logger
 from jet.utils.object import extract_values_by_paths
 from langchain_community.vectorstores import Annoy

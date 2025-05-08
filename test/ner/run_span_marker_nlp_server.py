@@ -2,7 +2,7 @@ import json
 import spacy
 from spacy import displacy
 from jet.logger import logger
-from jet.transformers import make_serializable
+from jet.transformers.object import make_serializable
 
 
 def main():

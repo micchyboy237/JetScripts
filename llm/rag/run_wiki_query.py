@@ -30,7 +30,7 @@ import os
 import json
 from jet.logger import logger
 from jet.file import save_json
-from jet.transformers import make_serializable
+from jet.transformers.object import make_serializable
 
 os.environ["OPENAI_API_KEY"] = "YOUR_OPENAI_API_KEY"
 

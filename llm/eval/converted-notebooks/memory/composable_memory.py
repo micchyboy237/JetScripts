@@ -10,7 +10,7 @@ from llama_index.core.memory import (
     ChatMemoryBuffer,
 )
 import json
-from jet.transformers import make_serializable
+from jet.transformers.object import make_serializable
 from jet.logger import logger
 from jet.llm.ollama.base import initialize_ollama_settings, large_embed_model
 initialize_ollama_settings()

@@ -1,6 +1,6 @@
 import json
 from jet.validation import validate_json
-from jet.transformers import make_serializable
+from jet.transformers.object import make_serializable
 from jet.logger import logger
 
 

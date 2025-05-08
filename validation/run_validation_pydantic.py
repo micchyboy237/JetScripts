@@ -3,7 +3,7 @@ import json
 from typing import Optional
 from pydantic import BaseModel
 from jet.validation import validate_json_pydantic
-from jet.transformers import make_serializable
+from jet.transformers.object import make_serializable
 from jet.logger import logger
 
 from typing import List, Optional

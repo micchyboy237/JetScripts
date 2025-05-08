@@ -6,7 +6,7 @@ from tqdm import tqdm
 from jet.memory.config import CONTEXT_DB_TEMPLATE, CONTEXT_SAMPLES_TEMPLATE, CONTEXT_SCHEMA_TEMPLATE
 from jet.memory.memgraph import generate_query, generate_cypher_query, initialize_graph
 from jet.logger import logger
-from jet.transformers import format_json
+from jet.transformers.formatters import format_json
 from jet.file import load_file
 
 
