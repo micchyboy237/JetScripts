@@ -52,19 +52,16 @@ logger.debug("Configuration ready.")
 logger.debug("-" * 25)
 
 
-def extract_text_from_pdf(pdf_path: str) -> str:
-    logger.debug(f"Extracting text from {pdf_path}...")
-    all_text = ""
-    with open(pdf_path, "rb") as file:
-        reader = pypdf.PdfReader(file)
-        for page in reader.pages:
-            text = page.extract_text() or ""
-            all_text += text
-    return all_text
-
-
-pdf_path = os.path.join(DATA_DIR, "Energy_Information.pdf")
-corpus_texts = [extract_text_from_pdf(pdf_path)]
+# Our knowledge base: A list of text documents about renewable energy
+corpus_texts = [
+    # Doc 0
+    "Solar power uses PV panels or CSP systems. PV converts sunlight directly to electricity. CSP uses mirrors to heat fluid driving a turbine. It's clean but varies with weather/time. Storage (batteries) is key for consistency.",
+    # Doc 1
+    "Wind energy uses turbines in wind farms. It's sustainable with low operating costs. Wind speed varies, siting can be challenging (visual/noise). Offshore wind is stronger and more consistent.",
+    "Hydropower uses moving water, often via dams spinning turbines. Reliable, large-scale power with flood control/water storage benefits. Big dams harm ecosystems and displace communities. Run-of-river is smaller, less disruptive.",  # Doc 2
+    "Geothermal energy uses Earth's heat via steam/hot water for turbines. Consistent 24/7 power, small footprint. High initial drilling costs, sites are geographically limited.",  # Doc 3
+    "Biomass energy from organic matter (wood, crops, waste). Burned directly or converted to biofuels. Uses waste, provides dispatchable power. Requires sustainable sourcing. Combustion releases emissions (carbon-neutral if balanced by regrowth)."  # Doc 4
+]
 test_query = "Compare the consistency and environmental impact of solar power versus hydropower."
 true_answer_for_query = "Solar power's consistency varies with weather and time of day, requiring storage like batteries. Hydropower is generally reliable, but large dams have significant environmental impacts on ecosystems and communities, unlike solar power's primary impact being land use for panels."
 logger.debug(f"Loaded {len(corpus_texts)} document into our corpus.")
