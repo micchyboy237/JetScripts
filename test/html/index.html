@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stream Chunks with React</title>
+    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.20.15/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+
+      const StreamApp = () => {
+        const [prompts, setPrompts] = useState([
+          "Tell a joke.",
+          "What is machine learning?",
+        ]);
+        const [taskId] = useState(crypto.randomUUID());
+        const [responses, setResponses] = useState({});
+        const [error, setError] = useState(null);
+        const [isStreaming, setIsStreaming] = useState(false);
+
+        const streamChunks = async () => {
+          setIsStreaming(true);
+          setError(null);
+          setResponses({});
+
+          const payload = {
+            model: "llama-3.2-1b-instruct-4bit",
+            prompts,
+            max_tokens: 50,
+            temp: 0.7,
+            verbose: true,
+            task_id: taskId,
+          };
+
+          try {
+            const response = await fetch("http://localhost:9000/generate", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+              },
+              body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split("\n");
+              buffer = lines.pop(); // Keep incomplete line in buffer
+
+              for (const line of lines) {
+                console.log(`Line: ${line}`);
+                if (line.trim()) {
+                  try {
+                    const data = JSON.parse(line);
+                    setResponses((prev) => {
+                      const newResponses = { ...prev };
+
+                      if (data.type === "token") {
+                        console.log(`Token: ${token}`);
+                        const { prompt_id, prompt, token } = data;
+                        if (!newResponses[prompt_id]) {
+                          newResponses[prompt_id] = {
+                            prompt,
+                            tokens: [],
+                            response: "",
+                          };
+                        }
+                        newResponses[prompt_id].tokens.push(token);
+                        newResponses[prompt_id].response += token;
+                      } else if (data.type === "result") {
+                        const { prompt_id, prompt, response } = data;
+                        console.log(`Result:\n${response}`);
+                        newResponses[prompt_id] = {
+                          prompt,
+                          tokens: [],
+                          response,
+                        };
+                      } else if (data.type === "error") {
+                        console.log(`Error: ${data.message}`);
+                        setError(data.message);
+                      }
+
+                      return newResponses;
+                    });
+                  } catch (e) {
+                    setError(`Invalid JSON chunk: ${line}`);
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            setError(`Streaming error: ${e.message}`);
+          } finally {
+            setIsStreaming(false);
+          }
+        };
+
+        useEffect(() => {
+          if (prompts.length > 0) {
+            streamChunks();
+          }
+        }, [prompts]);
+
+        const handlePromptChange = (index, value) => {
+          const newPrompts = [...prompts];
+          newPrompts[index] = value;
+          setPrompts(newPrompts);
+        };
+
+        const addPrompt = () => {
+          setPrompts([...prompts, ""]);
+        };
+
+        return (
+          <div className="container mx-auto p-4">
+            <h1 className="text-2xl font-bold mb-4">
+              Stream Chunks with React
+            </h1>
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold">Task ID: {taskId}</h2>
+              <h3 className="text-md font-medium">Prompts:</h3>
+              {prompts.map((prompt, index) => (
+                <div key={index} className="flex mb-2">
+                  <input
+                    type="text"
+                    value={prompt}
+                    onChange={(e) => handlePromptChange(index, e.target.value)}
+                    className="border p-2 rounded w-full"
+                    placeholder="Enter a prompt"
+                    disabled={isStreaming}
+                  />
+                </div>
+              ))}
+              <button
+                onClick={addPrompt}
+                className="bg-blue-500 text-white p-2 rounded mt-2"
+                disabled={isStreaming}
+              >
+                Add Prompt
+              </button>
+              <button
+                onClick={streamChunks}
+                className="bg-green-500 text-white p-2 rounded mt-2 ml-2"
+                disabled={isStreaming || prompts.some((p) => !p)}
+              >
+                {isStreaming ? "Streaming..." : "Start Streaming"}
+              </button>
+            </div>
+            {error && (
+              <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
+                Error: {error}
+              </div>
+            )}
+            <div>
+              <h2 className="text-lg font-semibold mb-2">Responses:</h2>
+              {Object.entries(responses).map(
+                ([promptId, { prompt, response }]) => (
+                  <div key={promptId} className="border p-4 rounded mb-4">
+                    <h3 className="font-medium">Prompt ID: {promptId}</h3>
+                    <p>
+                      <strong>Prompt:</strong> {prompt}
+                    </p>
+                    <p>
+                      <strong>Response:</strong> {response}
+                    </p>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        );
+      };
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<StreamApp />);
+    </script>
+  </body>
+</html>

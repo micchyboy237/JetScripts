@@ -18,10 +18,10 @@ app = FastAPI(title="Parallel MLX Stream Generation Server")
 # Add CORS middleware to allow all origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["POST"],  # Allow POST requests
-    allow_headers=["Content-Type", "Accept"],  # Allow required headers
+    allow_methods=["POST"],
+    allow_headers=["Content-Type", "Accept"],
 )
 
 semaphore = asyncio.Semaphore(4)
@@ -78,10 +78,14 @@ async def run_mpi_process(
                         r"Process \d+ \(Prompt ID: ([^)]+)\): (.+)", content)
                     if token_match:
                         prompt_id, token = token_match.groups()
+                        # Find the prompt associated with this prompt_id from input_data
+                        prompt = next((p for i, p in enumerate(
+                            prompts) if i % 4 == int(content.split()[1])), prompts[0])
                         yield json.dumps({
                             "type": "token",
                             "prompt_id": prompt_id,
                             "task_id": task_id,
+                            "prompt": prompt,
                             "token": token
                         }) + "\n"
                     # Parse result lines
