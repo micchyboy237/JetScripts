@@ -1,6 +1,6 @@
 from typing import Any, TypedDict
-from jet.db.pgvector import PgVectorClient
-from jet.db.pgvector.utils import create_db, delete_db
+from jet.db.postgres.pgvector import PgVectorClient
+from jet.db.postgres.pgvector.utils import create_db, delete_db
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
 from jet.llm.ollama.base import OllamaEmbedding
 from jet.llm.utils.embeddings import get_embedding_function, get_ollama_embedding_function

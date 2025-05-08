@@ -1,12 +1,14 @@
 from jet.logger import logger
 import numpy as np
-from jet.db.pgvector import PgVectorClient
+from jet.db.postgres.pgvector import PgVectorClient
 
 # Database configuration
 TABLE_NAME = "embeddings"
 VECTOR_DIM = 3
 
-with PgVectorClient(dbname="vector_db1", user="jethroestrada", password="", host="localhost", port=5432) as client:
+with PgVectorClient(
+    dbname="vector_db1"
+) as client:
     try:
         # Clear data
         client.delete_all_tables()

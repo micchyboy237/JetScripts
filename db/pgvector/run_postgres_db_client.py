@@ -1,4 +1,4 @@
-from jet.db.pgvector.db import PostgresDB
+from jet.db.postgres import PostgresDB
 from psycopg import OperationalError
 
 

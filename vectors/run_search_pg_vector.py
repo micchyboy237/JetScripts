@@ -1,6 +1,6 @@
 from typing import Any, TypedDict
-from jet.db.pgvector import PgVectorClient
-from jet.db.pgvector.config import (
+from jet.db.postgres.pgvector import PgVectorClient
+from jet.db.postgres.pgvector.config import (
     DEFAULT_USER,
     DEFAULT_PASSWORD,
     DEFAULT_HOST,
