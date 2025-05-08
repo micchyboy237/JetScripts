@@ -7,6 +7,8 @@
     <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.20.15/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.0.12/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.3.6/dist/purify.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       body {
@@ -40,9 +42,31 @@
       .dark .bg-green-500:hover {
         background-color: #16a34a;
       }
+      .dark .bg-gray-500:hover {
+        background-color: #4b5563;
+      }
+      pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        background-color: #f3f4f6;
+        padding: 1rem;
+        border-radius: 0.5rem;
+      }
+      .dark pre {
+        background-color: #374151;
+      }
+      .markdown-content {
+        prose prose-sm dark:prose-invert;
+      }
+      .markdown-content p {
+        margin-bottom: 1rem;
+      }
+      .markdown-content strong {
+        font-weight: 700;
+      }
     </style>
   </head>
-  <body className="min-h-screen bg-gray-100 dark:bg-gray-900 font-sans">
+  <body class="min-h-screen bg-gray-100 dark:bg-gray-900 font-sans">
     <div id="root"></div>
     <script type="text/babel">
       const { useState, useEffect } = React;
@@ -65,6 +89,11 @@
           document.documentElement.classList.toggle("dark");
         };
 
+        const clearResponses = () => {
+          setResponses({});
+          setError(null);
+        };
+
         const streamChunks = async () => {
           setIsStreaming(true);
           setError(null);
@@ -72,9 +101,10 @@
           const payload = {
             model: "llama-3.2-1b-instruct-4bit",
             prompts,
-            max_tokens: 50,
+            max_tokens: 100,
             temp: 0.7,
             verbose: true,
+            worker_verbose: false,
             task_id: taskId,
           };
           try {
@@ -119,36 +149,50 @@
             console.log(`Received: ${line}`);
             try {
               const data = JSON.parse(line);
-              if (data.type === "token") {
-                console.log(`Token [${data.prompt_id}]: ${data.token}`);
+              if (data.type === "chunk") {
+                console.log(`Chunk [${data.prompt_id}]: ${data.content}`);
                 setResponses((prev) => {
                   const newResponses = { ...prev };
                   if (!newResponses[data.prompt_id]) {
                     newResponses[data.prompt_id] = {
                       prompt: data.prompt,
-                      tokens: [],
-                      response: "",
+                      content: "",
+                      rawContent: "",
+                      truncated: false,
                     };
                   }
-                  newResponses[data.prompt_id].tokens.push(data.token);
-                  newResponses[data.prompt_id].response += data.token;
+                  const prevContent = newResponses[data.prompt_id].rawContent;
+                  const newContent = data.content;
+                  // Add space only if previous content doesn't end with space/punctuation
+                  // and new content doesn't start with space/punctuation
+                  const needsSpace =
+                    prevContent &&
+                    !prevContent.match(/[\s.,!?]$/) &&
+                    !newContent.match(/^[\s.,!?]/);
+                  newResponses[data.prompt_id].rawContent +=
+                    (needsSpace ? " " : "") + newContent;
+                  newResponses[data.prompt_id].content = marked.parse(
+                    newResponses[data.prompt_id].rawContent,
+                    { breaks: true }
+                  );
                   return newResponses;
                 });
               } else if (data.type === "result") {
-                console.log(`Result [${data.prompt_id}]: ${data.response}`);
+                console.log(
+                  `Result [${data.prompt_id}]: Truncated=${data.truncated}`
+                );
                 setResponses((prev) => ({
                   ...prev,
                   [data.prompt_id]: {
-                    prompt: data.prompt,
-                    tokens: [],
-                    response: data.response,
+                    ...prev[data.prompt_id],
+                    truncated: data.truncated,
                   },
                 }));
               } else if (data.type === "error") {
-                console.log(`Error: ${data.message}`);
-                setError(data.message);
-              } else if (data.type === "info") {
-                console.log(`Info: ${data.message}`);
+                console.error(`Error [${data.prompt_id}]: ${data.message}`);
+                setError(`Server error: ${data.message}`);
+              } else {
+                console.warn(`Unknown message type: ${data.type}`);
               }
             } catch (e) {
               console.error(`Invalid JSON chunk: ${line}`);
@@ -158,15 +202,12 @@
         };
 
         useEffect(() => {
-          if (prompts.length > 0) {
-            streamChunks();
-          }
           if (isDarkMode) {
             document.documentElement.classList.add("dark");
           } else {
             document.documentElement.classList.remove("dark");
           }
-        }, [prompts, isDarkMode]);
+        }, [isDarkMode]);
 
         const handlePromptChange = (index, value) => {
           const newPrompts = [...prompts];
@@ -236,6 +277,7 @@
                       className="flex-1 p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition"
                       placeholder="Enter a prompt"
                       disabled={isStreaming}
+                      aria-label={`Prompt ${index + 1}`}
                     />
                   </div>
                 ))}
@@ -244,6 +286,7 @@
                     onClick={addPrompt}
                     className="bg-blue-500 dark:bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={isStreaming}
+                    aria-label="Add new prompt"
                   >
                     Add Prompt
                   </button>
@@ -251,8 +294,19 @@
                     onClick={streamChunks}
                     className="bg-green-500 dark:bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={isStreaming || prompts.some((p) => !p)}
+                    aria-label="Start streaming"
                   >
                     {isStreaming ? "Streaming..." : "Start Streaming"}
+                  </button>
+                  <button
+                    onClick={clearResponses}
+                    className="bg-gray-500 dark:bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-600 dark:hover:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={
+                      isStreaming || Object.keys(responses).length === 0
+                    }
+                    aria-label="Clear responses"
+                  >
+                    Clear Responses
                   </button>
                 </div>
               </div>
@@ -266,8 +320,13 @@
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                 Responses
               </h2>
+              {isStreaming && Object.keys(responses).length === 0 && (
+                <div className="text-gray-700 dark:text-gray-300 p-4">
+                  Loading responses...
+                </div>
+              )}
               {Object.entries(responses).map(
-                ([promptId, { prompt, response }]) => (
+                ([promptId, { prompt, content, rawContent, truncated }]) => (
                   <div
                     key={promptId}
                     className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-4"
@@ -279,8 +338,22 @@
                       <strong>Prompt:</strong> {prompt}
                     </p>
                     <p className="text-gray-700 dark:text-gray-300">
-                      <strong>Response:</strong> {response}
+                      <strong>Response:</strong>
+                      <div
+                        className="markdown-content mt-2 text-gray-700 dark:text-gray-300"
+                        dangerouslySetInnerHTML={{
+                          __html: DOMPurify.sanitize(content),
+                        }}
+                      />
+                      {content === rawContent && (
+                        <pre className="mt-2">{rawContent}</pre>
+                      )}
                     </p>
+                    {truncated && (
+                      <p className="text-yellow-600 dark:text-yellow-400 mt-2">
+                        Warning: Response was truncated due to max_tokens limit.
+                      </p>
+                    )}
                   </div>
                 )
               )}
