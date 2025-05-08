@@ -83,6 +83,8 @@
         const [isDarkMode, setIsDarkMode] = useState(
           window.matchMedia("(prefers-color-scheme: dark)").matches
         );
+        const [tasks, setTasks] = useState({});
+        const [tasksError, setTasksError] = useState(null);
 
         const toggleDarkMode = () => {
           setIsDarkMode(!isDarkMode);
@@ -117,7 +119,9 @@
               body: JSON.stringify(payload),
             });
             if (!response.ok) {
-              throw new Error(`HTTP error! Status: ${response.status}`);
+              throw new NederlandError(
+                `HTTP error! Status: ${response.status}`
+              );
             }
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
@@ -163,8 +167,6 @@
                   }
                   const prevContent = newResponses[data.prompt_id].rawContent;
                   const newContent = data.content;
-                  // Add space only if previous content doesn't end with space/punctuation
-                  // and new content doesn't start with space/punctuation
                   const needsSpace =
                     prevContent &&
                     !prevContent.match(/[\s.,!?]$/) &&
@@ -201,6 +203,26 @@
           }
         };
 
+        const fetchTasks = async () => {
+          try {
+            const response = await fetch("http://localhost:9000/tasks", {
+              method: "GET",
+              headers: {
+                Accept: "application/json",
+              },
+            });
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            const data = await response.json();
+            setTasks(data.tasks);
+            setTasksError(null);
+          } catch (e) {
+            setTasksError(`Failed to fetch tasks: ${e.message}`);
+            console.error(`Failed to fetch tasks: ${e.message}`);
+          }
+        };
+
         useEffect(() => {
           if (isDarkMode) {
             document.documentElement.classList.add("dark");
@@ -208,6 +230,12 @@
             document.documentElement.classList.remove("dark");
           }
         }, [isDarkMode]);
+
+        useEffect(() => {
+          fetchTasks(); // Initial fetch
+          const interval = setInterval(fetchTasks, 2000); // Poll every 2 seconds
+          return () => clearInterval(interval); // Cleanup on unmount
+        }, []);
 
         const handlePromptChange = (index, value) => {
           const newPrompts = [...prompts];
@@ -217,6 +245,21 @@
 
         const addPrompt = () => {
           setPrompts([...prompts, ""]);
+        };
+
+        const getStatusColor = (status) => {
+          switch (status) {
+            case "pending":
+              return "text-yellow-600 dark:text-yellow-400";
+            case "processing":
+              return "text-blue-600 dark:text-blue-400";
+            case "completed":
+              return "text-green-600 dark:text-green-400";
+            case "failed":
+              return "text-red-600 dark:text-red-400";
+            default:
+              return "text-gray-600 dark:text-gray-400";
+          }
         };
 
         return (
@@ -316,6 +359,79 @@
                 Error: {error}
               </div>
             )}
+            <section className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Current Tasks
+              </h2>
+              {tasksError && (
+                <div className="bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 p-4 rounded-lg mb-4">
+                  Error: {tasksError}
+                </div>
+              )}
+              {Object.keys(tasks).length === 0 && !tasksError && (
+                <div className="text-gray-700 dark:text-gray-300 p-4">
+                  No tasks currently running.
+                </div>
+              )}
+              {Object.entries(tasks).map(([taskId, task]) => (
+                <div
+                  key={taskId}
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-4"
+                >
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                    Task ID: {taskId}
+                  </h3>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>Model:</strong> {task.model}
+                  </p>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>Type:</strong> {task.is_chat ? "Chat" : "Generate"}{" "}
+                    {task.stream ? "(Streaming)" : "(Non-Streaming)"}
+                  </p>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>Status:</strong>{" "}
+                    <span className={getStatusColor(task.status)}>
+                      {task.status}
+                    </span>
+                  </p>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>Created At:</strong>{" "}
+                    {new Date(task.created_at * 1000).toLocaleString()}
+                  </p>
+                  <h4 className="text-md font-semibold text-gray-900 dark:text-white mt-4">
+                    Prompts
+                  </h4>
+                  <div className="mt-2 space-y-2">
+                    {Object.entries(task.prompts).map(
+                      ([promptId, promptData]) => (
+                        <div
+                          key={promptId}
+                          className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                        >
+                          <p className="text-gray-700 dark:text-gray-300">
+                            <strong>Prompt ID:</strong> {promptId}
+                          </p>
+                          <p className="text-gray-700 dark:text-gray-300">
+                            <strong>Prompt:</strong> {promptData.prompt}
+                          </p>
+                          <p className="text-gray-700 dark:text-gray-300">
+                            <strong>Status:</strong>{" "}
+                            <span className={getStatusColor(promptData.status)}>
+                              {promptData.status}
+                            </span>
+                          </p>
+                          {promptData.error && (
+                            <p className="text-red-600 dark:text-red-400">
+                              <strong>Error:</strong> {promptData.error}
+                            </p>
+                          )}
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              ))}
+            </section>
             <section>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                 Responses
