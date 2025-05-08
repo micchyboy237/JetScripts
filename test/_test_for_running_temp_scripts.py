@@ -83,7 +83,7 @@ def parallel_stream_generate(
                     "prompt_id": prompt_id,
                     "task_id": task_id
                 })
-                print(f"result: Result {i+1}: {result}", flush=True)
+                print(f"result: {result}", flush=True)
             return flattened_results
         except Exception as e:
             print(f"error: Failed to process results: {str(e)}", flush=True)
