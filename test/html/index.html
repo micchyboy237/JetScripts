@@ -45,6 +45,9 @@
       .dark .bg-gray-500:hover {
         background-color: #4b5563;
       }
+      .dark .bg-yellow-500:hover {
+        background-color: #d97706;
+      }
       pre {
         white-space: pre-wrap;
         word-wrap: break-word;
@@ -85,6 +88,10 @@
         );
         const [tasks, setTasks] = useState({});
         const [tasksError, setTasksError] = useState(null);
+        const [rerunMessage, setRerunMessage] = useState(null);
+        const [taskFilter, setTaskFilter] = useState("all");
+        const [isRerunningPending, setIsRerunningPending] = useState(false);
+        const [rerunningFailedTasks, setRerunningFailedTasks] = useState({});
 
         const toggleDarkMode = () => {
           setIsDarkMode(!isDarkMode);
@@ -119,9 +126,7 @@
               body: JSON.stringify(payload),
             });
             if (!response.ok) {
-              throw new NederlandError(
-                `HTTP error! Status: ${response.status}`
-              );
+              throw new Error(`HTTP error! Status: ${response.status}`);
             }
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
@@ -223,6 +228,123 @@
           }
         };
 
+        const rerunFailedTask = async (taskId) => {
+          setRerunMessage(null);
+          setRerunningFailedTasks((prev) => ({ ...prev, [taskId]: true }));
+          try {
+            const response = await fetch(
+              `http://localhost:9000/rerun_failed/${taskId}`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Accept: "application/json",
+                },
+              }
+            );
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            const data = await response.json();
+            setRerunMessage(data.message);
+            await fetchTasks();
+          } catch (e) {
+            setRerunMessage(
+              `Failed to rerun failed task ${taskId}: ${e.message}`
+            );
+            console.error(
+              `Failed to rerun failed task ${taskId}: ${e.message}`
+            );
+          } finally {
+            setRerunningFailedTasks((prev) => ({ ...prev, [taskId]: false }));
+          }
+        };
+
+        const rerunPendingTasks = async (taskId) => {
+          setRerunMessage(null);
+          setIsRerunningPending(true);
+          try {
+            const response = await fetch(
+              `http://localhost:9000/rerun_pending/${taskId}`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Accept: "application/json",
+                },
+              }
+            );
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            const data = await response.json();
+            setRerunMessage(data.message);
+            await fetchTasks();
+          } catch (e) {
+            setRerunMessage(`Failed to rerun pending tasks: ${e.message}`);
+            console.error(`Failed to rerun pending tasks: ${e.message}`);
+          } finally {
+            setIsRerunningPending(false);
+          }
+        };
+
+        const rerunAllPendingTasks = async () => {
+          try {
+            // Step 1: Fetch all tasks from the /tasks endpoint
+            const response = await fetch("http://localhost:9000/tasks", {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+              },
+            });
+
+            // Step 2: Check if the response is successful
+            if (!response.ok) {
+              throw new Error("Failed to fetch tasks");
+            }
+
+            const data = await response.json();
+
+            // Step 3: Extract tasks from the response data
+            const tasks = data.tasks;
+
+            // Step 4: Iterate over the tasks to find the ones that have pending prompts
+            for (const [taskId, task] of Object.entries(tasks)) {
+              // Get the list of prompts for the current task
+              const pendingPrompts = Object.entries(task.prompts).filter(
+                ([promptId, promptData]) => promptData.status === "pending"
+              );
+
+              console.log(`pendingPrompts: (${pendingPrompts.length})`);
+
+              // If there are pending prompts, rerun the task
+              if (pendingPrompts.length > 0) {
+                try {
+                  // Rerun the task by calling the rerun endpoint for the task
+                  await fetch(`http://localhost:9000/rerun_pending/${taskId}`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Accept: "application/json",
+                    },
+                  });
+                  console.log(`Successfully reran task ${taskId}`);
+                } catch (e) {
+                  console.error(`Failed to rerun task ${taskId}: ${e.message}`);
+                }
+              }
+            }
+
+            // Step 5: Optionally re-fetch tasks or update the state as needed
+            await fetchTasks(); // Re-fetch tasks after rerunning
+          } catch (error) {
+            console.error(
+              `Error rerunning all pending tasks: ${error.message}`
+            );
+          }
+        };
+
         useEffect(() => {
           if (isDarkMode) {
             document.documentElement.classList.add("dark");
@@ -232,9 +354,9 @@
         }, [isDarkMode]);
 
         useEffect(() => {
-          fetchTasks(); // Initial fetch
-          const interval = setInterval(fetchTasks, 2000); // Poll every 2 seconds
-          return () => clearInterval(interval); // Cleanup on unmount
+          fetchTasks();
+          const interval = setInterval(fetchTasks, 2000);
+          return () => clearInterval(interval);
         }, []);
 
         const handlePromptChange = (index, value) => {
@@ -261,6 +383,12 @@
               return "text-gray-600 dark:text-gray-400";
           }
         };
+
+        const filteredTasks = Object.entries(tasks).filter(([_, task]) => {
+          if (taskFilter === "stream") return task.stream;
+          if (taskFilter === "non-stream") return !task.stream;
+          return true;
+        });
 
         return (
           <div className="container mx-auto px-4 py-8 max-w-3xl">
@@ -343,7 +471,7 @@
                   </button>
                   <button
                     onClick={clearResponses}
-                    className="bg-gray-500 dark:bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-600 dark:hover:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-gray-500 dark:bg-gray-600 text-white nghĩpx-4 py-2 rounded-lg hover:bg-gray-600 dark:hover:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={
                       isStreaming || Object.keys(responses).length === 0
                     }
@@ -359,28 +487,75 @@
                 Error: {error}
               </div>
             )}
+            {rerunMessage && (
+              <div
+                className={`p-4 rounded-lg mb-6 ${
+                  rerunMessage.includes("Failed")
+                    ? "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300"
+                    : "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
+                }`}
+              >
+                {rerunMessage}
+              </div>
+            )}
             <section className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Current Tasks
-              </h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Current Tasks
+                </h2>
+                <select
+                  value={taskFilter}
+                  onChange={(e) => setTaskFilter(e.target.value)}
+                  className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  aria-label="Filter tasks by type"
+                >
+                  <option value="all">All Tasks</option>
+                  <option value="stream">Streaming Tasks</option>
+                  <option value="non-stream">Non-Streaming Tasks</option>
+                </select>
+              </div>
+              <div className="mb-4">
+                <button
+                  onClick={rerunAllPendingTasks}
+                  className="bg-yellow-500 dark:bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 dark:hover:bg-yellow-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isRerunningPending}
+                  aria-label="Rerun pending tasks"
+                >
+                  {isRerunningPending
+                    ? "Rerunning Pending..."
+                    : "Rerun Pending Tasks"}
+                </button>
+              </div>
               {tasksError && (
                 <div className="bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 p-4 rounded-lg mb-4">
                   Error: {tasksError}
                 </div>
               )}
-              {Object.keys(tasks).length === 0 && !tasksError && (
+              {filteredTasks.length === 0 && !tasksError && (
                 <div className="text-gray-700 dark:text-gray-300 p-4">
-                  No tasks currently running.
+                  No tasks match the current filter.
                 </div>
               )}
-              {Object.entries(tasks).map(([taskId, task]) => (
+              {filteredTasks.map(([taskId, task]) => (
                 <div
                   key={taskId}
                   className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-4"
                 >
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                    Task ID: {taskId}
-                  </h3>
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                      Task ID: {taskId}
+                    </h3>
+                    <button
+                      onClick={() => rerunFailedTask(taskId)}
+                      className="bg-red-500 dark:bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-600 dark:hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={rerunningFailedTasks[taskId]}
+                      aria-label={`Rerun failed prompts for task ${taskId}`}
+                    >
+                      {rerunningFailedTasks[taskId]
+                        ? "Rerunning Failed..."
+                        : "Rerun Failed"}
+                    </button>
+                  </div>
                   <p className="text-gray-700 dark:text-gray-300">
                     <strong>Model:</strong> {task.model}
                   </p>
