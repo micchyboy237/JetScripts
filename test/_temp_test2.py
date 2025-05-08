@@ -7,12 +7,23 @@ from jet.llm.mlx.mlx_types import ModelType
 from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from jet.executor.command import run_command
 from jet.logger import logger
 import shlex
 import re
 
 app = FastAPI(title="Parallel MLX Stream Generation Server")
+
+# Add CORS middleware to allow all origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=True,
+    allow_methods=["POST"],  # Allow POST requests
+    allow_headers=["Content-Type", "Accept"],  # Allow required headers
+)
+
 semaphore = asyncio.Semaphore(4)
 MPIRUN_GENERATE_FILE = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/_test_for_running_temp_scripts.py"
 

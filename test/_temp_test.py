@@ -62,15 +62,28 @@ async def streaming_request():
                         if decoded_line:
                             try:
                                 data = json.loads(decoded_line)
-                                if data.get("type") == "result":
+                                print("\n--- New Chunk ---")
+                                print(f"Type: {data['type']}")
+                                if "task_id" in data:
                                     print(f"Task ID: {data['task_id']}")
+                                if "prompt_id" in data:
                                     print(f"Prompt ID: {data['prompt_id']}")
+                                if "prompt" in data:
                                     print(f"Prompt: {data['prompt']}")
+                                if data['type'] == "token":
+                                    print(f"Token: {data['token']}")
+                                elif data['type'] == "result":
                                     print(f"Response: {data['response']}")
-                                    print("-" * 50)
+                                elif data['type'] == "error":
+                                    print(f"Error Message: {data['message']}")
+                                print("-----------------")
                             except json.JSONDecodeError:
                                 logger.error(
                                     f"Invalid JSON in stream: {decoded_line}")
+                                print(f"\n--- New Chunk ---")
+                                print(f"Type: invalid")
+                                print(f"Raw Data: {decoded_line}")
+                                print("-----------------")
         except aiohttp.ClientError as e:
             print(f"Error in streaming request: {e}")
 
@@ -78,5 +91,5 @@ if __name__ == "__main__":
     print("\nRunning streaming example...")
     asyncio.run(streaming_request())
 
-    print("Running non-streaming example...")
-    non_streaming_request()
+    # print("Running non-streaming example...")
+    # non_streaming_request()
