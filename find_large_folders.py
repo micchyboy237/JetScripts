@@ -116,11 +116,11 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--max-depth", type=int, default=1,
                         help="Maximum depth to traverse forward. Defaults to 1. Set to 0 for infinite.")
     parser.add_argument("-i", "--includes", type=str,
-                        help="Comma-separated list of patterns to include (e.g., '**/*,**/.git'). Defaults to (**/*,**/.git,**/.venv/**/site_packages) files.",
-                        default="**/*,**/.git,**/.venv/**/site_packages")
+                        help="Comma-separated list of patterns to include (e.g. 'node_modules,**/*,**/.git,**/.venv/**/site_packages').",
+                        default="")
     parser.add_argument("-e", "--excludes", type=str,
-                        help="Comma-separated list of patterns to exclude. Defaults to (node_modules,*.env).",
-                        default="node_modules,*.env")
+                        help="Comma-separated list of patterns to exclude (e.g. node_modules,*.env).",
+                        default="")
     parser.add_argument("-l", "--limit", type=int, default=None,
                         help="Maximum number of folder paths to yield.")
     parser.add_argument("-f", "--output-file", type=str, default=None,
