@@ -1,4 +1,3 @@
-import glob
 import os
 import fnmatch
 import argparse
@@ -29,9 +28,26 @@ exclude_files = [
     "dream",
     "jupyter",
     ".*",
+    "_*",
+    # Custom
 ]
 include_files = [
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/eval/converted-notebooks/evaluation/*.py",
+    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/_temp_test.py",
+    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/models.py",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/server/app.py",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/server/task_manager.py",
+    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/executor/command.py",
+    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/mlx_types.py",
+    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/base.py",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/html/index.html",
+
+    # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx-lm/mlx_lm/LORA.md",
+    # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx-lm/mlx_lm/lora.py",
+    # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx-lm/mlx_lm/tuner/trainer.py",
+    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/train/fine_tune_llama_3_2_1b.sh",
+
+    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/train/data/sample_chat",
+    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data",
 ]
 structure_include = [
     # "*.py"
@@ -42,14 +58,14 @@ include_content = []
 exclude_content = []
 
 # Args defaults
-SHORTEN_FUNCTS = True
+SHORTEN_FUNCTS = False
 INCLUDE_FILE_STRUCTURE = False
 
-DEFAULT_SYSTEM_MESSAGE = """
+DEFAULT_QUERY_MESSAGE = """
+Update rerun_pending to rerun the appropriate task ID with the same args. Make sure it updates the responses as well in index.html (for stream or non-stream).
 """.strip()
 
-DEFAULT_QUERY_MESSAGE = """
-Summarize each file code definitions and provide use cases for each.
+DEFAULT_SYSTEM_MESSAGE = """
 """.strip()
 
 DEFAULT_INSTRUCTIONS_MESSAGE = """
