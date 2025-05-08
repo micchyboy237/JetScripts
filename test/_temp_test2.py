@@ -8,14 +8,12 @@ from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from jet.executor.command import run_command
+from jet.executor.command import arun_command
 from jet.logger import logger
 import shlex
 import re
 
 app = FastAPI(title="Parallel MLX Stream Generation Server")
-
-# Add CORS middleware to allow all origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,7 +21,6 @@ app.add_middleware(
     allow_methods=["POST"],
     allow_headers=["Content-Type", "Accept"],
 )
-
 semaphore = asyncio.Semaphore(4)
 MPIRUN_GENERATE_FILE = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/_test_for_running_temp_scripts.py"
 
@@ -66,21 +63,22 @@ async def run_mpi_process(
     async def stream_output():
         error_messages = []
         try:
-            for line in run_command(command, separator=" "):
+            async for line in arun_command(command, separator=" "):
                 line = line.strip()
+                if not line:
+                    continue
                 if line.startswith("error: "):
-                    error_messages.append(line[7:].strip())
-                    yield json.dumps({"type": "error", "message": line[7:].strip()}) + "\n"
+                    error_message = line[7:].strip()
+                    error_messages.append(error_message)
+                    yield json.dumps({"type": "error", "message": error_message}) + "\n"
                 elif line.startswith("data: "):
                     content = line[6:].strip()
-                    # Parse data lines for token updates
                     token_match = re.match(
                         r"Process \d+ \(Prompt ID: ([^)]+)\): (.+)", content)
                     if token_match:
                         prompt_id, token = token_match.groups()
-                        # Find the prompt associated with this prompt_id from input_data
-                        prompt = next((p for i, p in enumerate(
-                            prompts) if i % 4 == int(content.split()[1])), prompts[0])
+                        prompt_index = int(content.split()[1]) % len(prompts)
+                        prompt = prompts[prompt_index]
                         yield json.dumps({
                             "type": "token",
                             "prompt_id": prompt_id,
@@ -88,21 +86,13 @@ async def run_mpi_process(
                             "prompt": prompt,
                             "token": token
                         }) + "\n"
-                    # Parse result lines
-                    result_match = re.match(r"Result \d+: (.+)", content)
-                    if result_match:
-                        result_json = json.loads(result_match.group(1))
+                    else:
                         yield json.dumps({
-                            "type": "result",
-                            "prompt": result_json["prompt"],
-                            "response": result_json["response"],
-                            "prompt_id": result_json["prompt_id"],
-                            "task_id": result_json["task_id"]
+                            "type": "info",
+                            "message": content
                         }) + "\n"
                 elif line.startswith("result: "):
-                    # Parse result lines directly
-                    result_json = json.loads(
-                        line[8:].replace("Result ", "")[2:])
+                    result_json = json.loads(line[8:].strip())
                     yield json.dumps({
                         "type": "result",
                         "prompt": result_json["prompt"],
@@ -127,8 +117,6 @@ async def run_mpi_process(
             logger.error(f"Unexpected error during streaming: {error_message}")
             yield json.dumps({"type": "error", "message": error_message}) + "\n"
             raise RuntimeError(error_message)
-        finally:
-            pass
 
     return stream_output
 
