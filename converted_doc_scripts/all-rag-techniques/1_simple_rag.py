@@ -12,10 +12,6 @@ log_file = os.path.join(
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
 DATA_DIR = os.path.join(script_dir, "data")
 
 """
