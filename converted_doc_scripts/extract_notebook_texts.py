@@ -82,9 +82,9 @@ def main():
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    include_outputs = True
+    include_outputs = False
     include_code = True
-    include_comments = False
+    include_comments = True
 
     if os.path.isdir(notebook_path):
         for file in Path(notebook_path).glob('*.ipynb'):

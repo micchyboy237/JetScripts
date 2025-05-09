@@ -39,27 +39,27 @@ def extract_text_from_pdf(pdf_path):
     Returns:
     str: Extracted text from the PDF.
     """
-
+    # Open the PDF file
     mypdf = fitz.open(pdf_path)
-    all_text = ""
+    all_text = ""  # Initialize an empty string to store the extracted text
 
-
+    # Iterate through each page in the PDF
     for page_num in range(mypdf.page_count):
-        page = mypdf[page_num]
-        text = page.get_text("text")
-        all_text += text
+        page = mypdf[page_num]  # Get the page
+        text = page.get_text("text")  # Extract text from the page
+        all_text += text  # Append the extracted text to the all_text string
 
-    return all_text
+    return all_text  # Return the extracted text
 ```
 
 ## Setting Up the OpenAI API Client
 We initialize the OpenAI client to generate embeddings and responses.
 
 ```python
-
+# Initialize the OpenAI client with the base URL and API key
 client = OpenAI(
     base_url="https://api.studio.nebius.com/v1/",
-    api_key=os.getenv("OPENAI_API_KEY")
+    api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
 )
 ```
 
@@ -78,10 +78,10 @@ def generate_chunk_header(chunk, model="meta-llama/Llama-3.2-3B-Instruct"):
     Returns:
     str: Generated header/title.
     """
-
+    # Define the system prompt to guide the AI's behavior
     system_prompt = "Generate a concise and informative title for the given text."
-
-
+    
+    # Generate a response from the AI model based on the system prompt and text chunk
     response = client.chat.completions.create(
         model=model,
         temperature=0,
@@ -91,7 +91,7 @@ def generate_chunk_header(chunk, model="meta-llama/Llama-3.2-3B-Instruct"):
         ]
     )
 
-
+    # Return the generated header/title, stripping any leading/trailing whitespace
     return response.choices[0].message.content.strip()
 ```
 
@@ -108,53 +108,35 @@ def chunk_text_with_headers(text, n, overlap):
     Returns:
     List[dict]: A list of dictionaries with 'header' and 'text' keys.
     """
-    chunks = []
+    chunks = []  # Initialize an empty list to store chunks
 
-
+    # Iterate through the text with the specified chunk size and overlap
     for i in range(0, len(text), n - overlap):
-        chunk = text[i:i + n]
-        header = generate_chunk_header(chunk)
-        chunks.append({"header": header, "text": chunk})
+        chunk = text[i:i + n]  # Extract a chunk of text
+        header = generate_chunk_header(chunk)  # Generate a header for the chunk using LLM
+        chunks.append({"header": header, "text": chunk})  # Append the header and chunk to the list
 
-    return chunks
+    return chunks  # Return the list of chunks with headers
 ```
 
 ## Extracting and Chunking Text from a PDF File
 Now, we load the PDF, extract text, and split it into chunks.
 
 ```python
-
+# Define the PDF file path
 pdf_path = "data/AI_Information.pdf"
 
-
+# Extract text from the PDF file
 extracted_text = extract_text_from_pdf(pdf_path)
 
-
-
+# Chunk the extracted text with headers
+# We use a chunk size of 1000 characters and an overlap of 200 characters
 text_chunks = chunk_text_with_headers(extracted_text, 1000, 200)
 
-
+# Print a sample chunk with its generated header
 print("Sample Chunk:")
 print("Header:", text_chunks[0]['header'])
 print("Content:", text_chunks[0]['text'])
-```
-
-```output
-Sample Chunk:
-Header: "Introduction to Artificial Intelligence: Understanding the Foundations and Evolution"
-Content: Understanding Artificial Intelligence
-Chapter 1: Introduction to Artificial Intelligence
-Artificial intelligence (AI) refers to the ability of a digital computer or computer-controlled robot
-to perform tasks commonly associated with intelligent beings. The term is frequently applied to
-the project of developing systems endowed with the intellectual processes characteristic of
-humans, such as the ability to reason, discover meaning, generalize, or learn from past
-experience. Over the past few decades, advancements in computing power and data availability
-have significantly accelerated the development and deployment of AI.
-Historical Context
-The idea of artificial intelligence has existed for centuries, often depicted in myths and fiction.
-However, the formal field of AI research began in the mid-20th century. The Dartmouth Workshop
-in 1956 is widely considered the birthplace of AI. Early AI research focused on problem-solving
-and symbolic methods. The 1980s saw a rise in exp
 ```
 
 ## Creating Embeddings for Headers and Text
@@ -172,31 +154,27 @@ def create_embeddings(text, model="BAAI/bge-en-icl"):
     Returns:
     dict: The response containing the embedding for the input text.
     """
-
+    # Create embeddings using the specified model and input text
     response = client.embeddings.create(
         model=model,
         input=text
     )
-
+    # Return the embedding from the response
     return response.data[0].embedding
 ```
 
 ```python
+# Generate embeddings for each chunk
+embeddings = []  # Initialize an empty list to store embeddings
 
-embeddings = []
-
-
+# Iterate through each text chunk with a progress bar
 for chunk in tqdm(text_chunks, desc="Generating embeddings"):
-
+    # Create an embedding for the chunk's text
     text_embedding = create_embeddings(chunk["text"])
-
+    # Create an embedding for the chunk's header
     header_embedding = create_embeddings(chunk["header"])
-
+    # Append the chunk's header, text, and their embeddings to the list
     embeddings.append({"header": chunk["header"], "text": chunk["text"], "embedding": text_embedding, "header_embedding": header_embedding})
-```
-
-```output
-Generating embeddings: 100%|██████████| 42/42 [02:56<00:00,  4.21s/it]
 ```
 
 ## Performing Semantic Search
@@ -230,96 +208,51 @@ def semantic_search(query, chunks, k=5):
     Returns:
     List[dict]: Top-k most relevant chunks.
     """
-
+    # Create an embedding for the query
     query_embedding = create_embeddings(query)
 
-    similarities = []
-
-
+    similarities = []  # Initialize a list to store similarity scores
+    
+    # Iterate through each chunk to calculate similarity scores
     for chunk in chunks:
-
+        # Compute cosine similarity between query embedding and chunk text embedding
         sim_text = cosine_similarity(np.array(query_embedding), np.array(chunk["embedding"]))
-
+        # Compute cosine similarity between query embedding and chunk header embedding
         sim_header = cosine_similarity(np.array(query_embedding), np.array(chunk["header_embedding"]))
-
+        # Calculate the average similarity score
         avg_similarity = (sim_text + sim_header) / 2
-
+        # Append the chunk and its average similarity score to the list
         similarities.append((chunk, avg_similarity))
 
-
+    # Sort the chunks based on similarity scores in descending order
     similarities.sort(key=lambda x: x[1], reverse=True)
-
+    # Return the top-k most relevant chunks
     return [x[0] for x in similarities[:k]]
 ```
 
 ## Running a Query on Extracted Chunks
 
 ```python
-
+# Load validation data
 with open('data/val.json') as f:
     data = json.load(f)
 
 query = data[0]['question']
 
-
+# Retrieve the top 2 most relevant text chunks
 top_chunks = semantic_search(query, embeddings, k=2)
 
-
+# Print the results
 print("Query:", query)
 for i, chunk in enumerate(top_chunks):
     print(f"Header {i+1}: {chunk['header']}")
     print(f"Content:\n{chunk['text']}\n")
 ```
 
-```output
-Query: What is 'Explainable AI' and why is it considered important?
-Header 1: "Building Trust in AI: Addressing Transparency, Explainability, and Accountability"
-Content:
-systems. Explainable AI (XAI)
-techniques aim to make AI decisions more understandable, enabling users to assess their
-fairness and accuracy.
-Privacy and Data Protection
-AI systems often rely on large amounts of data, raising concerns about privacy and data
-protection. Ensuring responsible data handling, implementing privacy-preserving techniques,
-and complying with data protection regulations are crucial.
-Accountability and Responsibility
-Establishing accountability and responsibility for AI systems is essential for addressing potential
-harms and ensuring ethical behavior. This includes defining roles and responsibilities for
-developers, deployers, and users of AI systems.
-Chapter 20: Building Trust in AI
-Transparency and Explainability
-Transparency and explainability are key to building trust in AI. Making AI systems understandable
-and providing insights into their decision-making processes helps users assess their reliability
-and fairness.
-Robustness and Reliability
-
-
-Header 2: "Building Trust in AI: Essential Factors for Reliability and Fairness"
-Content:
-to building trust in AI. Making AI systems understandable
-and providing insights into their decision-making processes helps users assess their reliability
-and fairness.
-Robustness and Reliability
-Ensuring that AI systems are robust and reliable is essential for building trust. This includes
-testing and validating AI models, monitoring their performance, and addressing potential
-vulnerabilities.
-User Control and Agency
-Empowering users with control over AI systems and providing them with agency in their
-interactions with AI enhances trust. This includes allowing users to customize AI settings,
-understand how their data is used, and opt out of AI-driven features.
-Ethical Design and Development
-Incorporating ethical considerations into the design and development of AI systems is crucial for
-building trust. This includes conducting ethical impact assessments, engaging stakeholders, and
-adhering to ethical guidelines and standards.
-Public Engagement and Education
-Engaging th
-
-```
-
 ## Generating a Response Based on Retrieved Chunks
 
 ```python
-
+# Define the system prompt for the AI assistant
 system_prompt = "You are an AI assistant that strictly answers based on the given context. If the answer cannot be derived directly from the provided context, respond with: 'I do not have enough information to answer that.'"
 
 def generate_response(system_prompt, user_message, model="meta-llama/Llama-3.2-3B-Instruct"):
@@ -344,11 +277,11 @@ def generate_response(system_prompt, user_message, model="meta-llama/Llama-3.2-3
     )
     return response
 
-
+# Create the user prompt based on the top chunks
 user_prompt = "\n".join([f"Header: {chunk['header']}\nContent:\n{chunk['text']}" for chunk in top_chunks])
 user_prompt = f"{user_prompt}\nQuestion: {query}"
 
-
+# Generate AI response
 ai_response = generate_response(system_prompt, user_prompt)
 ```
 
@@ -356,18 +289,18 @@ ai_response = generate_response(system_prompt, user_prompt)
 We compare the AI response with the expected answer and assign a score.
 
 ```python
-
-evaluate_system_prompt = """You are an intelligent evaluation system.
-Assess the AI assistant's response based on the provided context.
-- Assign a score of 1 if the response is very close to the true answer.
-- Assign a score of 0.5 if the response is partially correct.
+# Define evaluation system prompt
+evaluate_system_prompt = """You are an intelligent evaluation system. 
+Assess the AI assistant's response based on the provided context. 
+- Assign a score of 1 if the response is very close to the true answer. 
+- Assign a score of 0.5 if the response is partially correct. 
 - Assign a score of 0 if the response is incorrect.
 Return only the score (0, 0.5, or 1)."""
 
-
+# Extract the ground truth answer from validation data
 true_answer = data[0]['ideal_answer']
 
-
+# Construct evaluation prompt
 evaluation_prompt = f"""
 User Query: {query}
 AI Response: {ai_response}
@@ -375,13 +308,9 @@ True Answer: {true_answer}
 {evaluate_system_prompt}
 """
 
-
+# Generate evaluation score
 evaluation_response = generate_response(evaluate_system_prompt, evaluation_prompt)
 
-
+# Print the evaluation score
 print("Evaluation Score:", evaluation_response.choices[0].message.content)
-```
-
-```output
-Evaluation Score: 0.5
 ```

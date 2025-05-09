@@ -40,17 +40,17 @@ def extract_text_from_pdf(pdf_path):
     Returns:
     str: Extracted text from the PDF.
     """
-
+    # Open the PDF file
     mypdf = fitz.open(pdf_path)
-    all_text = ""
+    all_text = ""  # Initialize an empty string to store the extracted text
 
-
+    # Iterate through each page in the PDF
     for page_num in range(mypdf.page_count):
-        page = mypdf[page_num]
-        text = page.get_text("text")
-        all_text += text
+        page = mypdf[page_num]  # Get the page
+        text = page.get_text("text")  # Extract text from the page
+        all_text += text  # Append the extracted text to the all_text string
 
-    return all_text
+    return all_text  # Return the extracted text
 ```
 
 ## Chunking the Extracted Text
@@ -69,24 +69,24 @@ def chunk_text(text, n, overlap):
     Returns:
     List[str]: A list of text chunks.
     """
-    chunks = []
-
-
+    chunks = []  # Initialize an empty list to store the chunks
+    
+    # Loop through the text with a step size of (n - overlap)
     for i in range(0, len(text), n - overlap):
-
+        # Append a chunk of text from index i to i + n to the chunks list
         chunks.append(text[i:i + n])
 
-    return chunks
+    return chunks  # Return the list of text chunks
 ```
 
 ## Setting Up the OpenAI API Client
 We initialize the OpenAI client to generate embeddings and responses.
 
 ```python
-
+# Initialize the OpenAI client with the base URL and API key
 client = OpenAI(
     base_url="https://api.studio.nebius.com/v1/",
-    api_key=os.getenv("OPENAI_API_KEY")
+    api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
 )
 ```
 
@@ -106,19 +106,19 @@ def generate_questions(text_chunk, num_questions=5, model="meta-llama/Llama-3.2-
     Returns:
     List[str]: List of generated questions.
     """
-
+    # Define the system prompt to guide the AI's behavior
     system_prompt = "You are an expert at generating relevant questions from text. Create concise questions that can be answered using only the provided text. Focus on key information and concepts."
-
-
+    
+    # Define the user prompt with the text chunk and the number of questions to generate
     user_prompt = f"""
     Based on the following text, generate {num_questions} different questions that can be answered using only this text:
 
     {text_chunk}
-
+    
     Format your response as a numbered list of questions only, with no additional text.
     """
-
-
+    
+    # Generate questions using the OpenAI API
     response = client.chat.completions.create(
         model=model,
         temperature=0.7,
@@ -127,18 +127,18 @@ def generate_questions(text_chunk, num_questions=5, model="meta-llama/Llama-3.2-
             {"role": "user", "content": user_prompt}
         ]
     )
-
-
+    
+    # Extract and clean questions from the response
     questions_text = response.choices[0].message.content.strip()
     questions = []
-
-
+    
+    # Extract questions using regex pattern matching
     for line in questions_text.split('\n'):
-
+        # Remove numbering and clean up whitespace
         cleaned_line = re.sub(r'^\d+\.\s*', '', line.strip())
         if cleaned_line and cleaned_line.endswith('?'):
             questions.append(cleaned_line)
-
+    
     return questions
 ```
 
@@ -157,13 +157,13 @@ def create_embeddings(text, model="BAAI/bge-en-icl"):
     Returns:
     dict: The response from the OpenAI API containing the embeddings.
     """
-
+    # Create embeddings for the input text using the specified model
     response = client.embeddings.create(
         model=model,
         input=text
     )
 
-    return response
+    return response  # Return the response containing the embeddings
 ```
 
 ## Building a Simple Vector Store
@@ -181,7 +181,7 @@ class SimpleVectorStore:
         self.vectors = []
         self.texts = []
         self.metadata = []
-
+    
     def add_item(self, text, embedding, metadata=None):
         """
         Add an item to the vector store.
@@ -194,7 +194,7 @@ class SimpleVectorStore:
         self.vectors.append(np.array(embedding))
         self.texts.append(text)
         self.metadata.append(metadata or {})
-
+    
     def similarity_search(self, query_embedding, k=5):
         """
         Find the most similar items to a query embedding.
@@ -208,20 +208,20 @@ class SimpleVectorStore:
         """
         if not self.vectors:
             return []
-
-
+        
+        # Convert query embedding to numpy array
         query_vector = np.array(query_embedding)
-
-
+        
+        # Calculate similarities using cosine similarity
         similarities = []
         for i, vector in enumerate(self.vectors):
             similarity = np.dot(query_vector, vector) / (np.linalg.norm(query_vector) * np.linalg.norm(vector))
             similarities.append((i, similarity))
-
-
+        
+        # Sort by similarity (descending)
         similarities.sort(key=lambda x: x[1], reverse=True)
-
-
+        
+        # Return top k results
         results = []
         for i in range(min(k, len(similarities))):
             idx, score = similarities[i]
@@ -230,7 +230,7 @@ class SimpleVectorStore:
                 "metadata": self.metadata[idx],
                 "similarity": score
             })
-
+        
         return results
 ```
 
@@ -253,78 +253,59 @@ def process_document(pdf_path, chunk_size=1000, chunk_overlap=200, questions_per
     """
     print("Extracting text from PDF...")
     extracted_text = extract_text_from_pdf(pdf_path)
-
+    
     print("Chunking text...")
     text_chunks = chunk_text(extracted_text, chunk_size, chunk_overlap)
     print(f"Created {len(text_chunks)} text chunks")
-
+    
     vector_store = SimpleVectorStore()
-
+    
     print("Processing chunks and generating questions...")
     for i, chunk in enumerate(tqdm(text_chunks, desc="Processing Chunks")):
-
+        # Create embedding for the chunk itself
         chunk_embedding_response = create_embeddings(chunk)
         chunk_embedding = chunk_embedding_response.data[0].embedding
-
-
+        
+        # Add the chunk to the vector store
         vector_store.add_item(
             text=chunk,
             embedding=chunk_embedding,
             metadata={"type": "chunk", "index": i}
         )
-
-
+        
+        # Generate questions for this chunk
         questions = generate_questions(chunk, num_questions=questions_per_chunk)
-
-
+        
+        # Create embeddings for each question and add to vector store
         for j, question in enumerate(questions):
             question_embedding_response = create_embeddings(question)
             question_embedding = question_embedding_response.data[0].embedding
-
-
+            
+            # Add the question to the vector store
             vector_store.add_item(
                 text=question,
                 embedding=question_embedding,
                 metadata={"type": "question", "chunk_index": i, "original_chunk": chunk}
             )
-
+    
     return text_chunks, vector_store
 ```
 
 ## Extracting and Processing the Document
 
 ```python
-
+# Define the path to the PDF file
 pdf_path = "data/AI_Information.pdf"
 
-
+# Process the document (extract text, create chunks, generate questions, build vector store)
 text_chunks, vector_store = process_document(
-    pdf_path,
-    chunk_size=1000,
-    chunk_overlap=200,
+    pdf_path, 
+    chunk_size=1000, 
+    chunk_overlap=200, 
     questions_per_chunk=3
 )
 
 print(f"Vector store contains {len(vector_store.texts)} items")
-```
-
-```output
-Extracting text from PDF...
-Chunking text...
-Created 42 text chunks
-Processing chunks and generating questions...
-```
-
-```output
-Processing Chunks: 100%|██████████| 42/42 [01:30<00:00,  2.15s/it]
-```
-
-```output
-Vector store contains 165 items
-```
-
-```output
-
 ```
 
 ## Performing Semantic Search
@@ -343,33 +324,33 @@ def semantic_search(query, vector_store, k=5):
     Returns:
     List[Dict]: Top k most relevant items.
     """
-
+    # Create embedding for the query
     query_embedding_response = create_embeddings(query)
     query_embedding = query_embedding_response.data[0].embedding
-
-
+    
+    # Search the vector store
     results = vector_store.similarity_search(query_embedding, k=k)
-
+    
     return results
 ```
 
 ## Running a Query on the Augmented Vector Store
 
 ```python
-
+# Load the validation data from a JSON file
 with open('data/val.json') as f:
     data = json.load(f)
 
-
+# Extract the first query from the validation data
 query = data[0]['question']
 
-
+# Perform semantic search to find relevant content
 search_results = semantic_search(query, vector_store, k=5)
 
 print("Query:", query)
 print("\nSearch Results:")
 
-
+# Organize results by type
 chunk_results = []
 question_results = []
 
@@ -379,14 +360,14 @@ for result in search_results:
     else:
         question_results.append(result)
 
-
+# Print chunk results first
 print("\nRelevant Document Chunks:")
 for i, result in enumerate(chunk_results):
     print(f"Context {i + 1} (similarity: {result['similarity']:.4f}):")
     print(result["text"][:300] + "...")
     print("=====================================")
 
-
+# Then print question matches
 print("\nMatched Questions:")
 for i, result in enumerate(question_results):
     print(f"Question {i + 1} (similarity: {result['similarity']:.4f}):")
@@ -394,36 +375,6 @@ for i, result in enumerate(question_results):
     chunk_idx = result["metadata"]["chunk_index"]
     print(f"From chunk {chunk_idx}")
     print("=====================================")
-```
-
-```output
-Query: What is 'Explainable AI' and why is it considered important?
-
-Search Results:
-
-Relevant Document Chunks:
-
-Matched Questions:
-Question 1 (similarity: 0.8629):
-What is the main goal of Explainable AI (XAI)?
-From chunk 10
-=====================================
-Question 2 (similarity: 0.8488):
-What is the primary goal of Explainable AI (XAI) techniques?
-From chunk 37
-=====================================
-Question 3 (similarity: 0.8414):
-What is the focus of research on Explainable AI (XAI)?
-From chunk 29
-=====================================
-Question 4 (similarity: 0.7995):
-Why are transparency and explainability essential for building trust in AI systems?
-From chunk 36
-=====================================
-Question 5 (similarity: 0.7841):
-Why is transparency and explainability essential in building trust and accountability with AI systems?
-From chunk 9
-=====================================
 ```
 
 ## Generating Context for Response
@@ -440,25 +391,25 @@ def prepare_context(search_results):
     Returns:
     str: Combined context string.
     """
-
+    # Extract unique chunks referenced in the results
     chunk_indices = set()
     context_chunks = []
-
-
+    
+    # First add direct chunk matches
     for result in search_results:
         if result["metadata"]["type"] == "chunk":
             chunk_indices.add(result["metadata"]["index"])
             context_chunks.append(f"Chunk {result['metadata']['index']}:\n{result['text']}")
-
-
+    
+    # Then add chunks referenced by questions
     for result in search_results:
         if result["metadata"]["type"] == "question":
             chunk_idx = result["metadata"]["chunk_index"]
             if chunk_idx not in chunk_indices:
                 chunk_indices.add(chunk_idx)
                 context_chunks.append(f"Chunk {chunk_idx} (referenced by question '{result['text']}'):\n{result['metadata']['original_chunk']}")
-
-
+    
+    # Combine all context chunks
     full_context = "\n\n".join(context_chunks)
     return full_context
 ```
@@ -479,7 +430,7 @@ def generate_response(query, context, model="meta-llama/Llama-3.2-3B-Instruct"):
     str: Generated response.
     """
     system_prompt = "You are an AI assistant that strictly answers based on the given context. If the answer cannot be derived directly from the provided context, respond with: 'I do not have enough information to answer that.'"
-
+    
     user_prompt = f"""
         Context:
         {context}
@@ -488,7 +439,7 @@ def generate_response(query, context, model="meta-llama/Llama-3.2-3B-Instruct"):
 
         Please answer the question based only on the context provided above. Be concise and accurate.
     """
-
+    
     response = client.chat.completions.create(
         model=model,
         temperature=0,
@@ -497,30 +448,22 @@ def generate_response(query, context, model="meta-llama/Llama-3.2-3B-Instruct"):
             {"role": "user", "content": user_prompt}
         ]
     )
-
+    
     return response.choices[0].message.content
 ```
 
 ## Generating and Displaying the Response
 
 ```python
-
+# Prepare context from search results
 context = prepare_context(search_results)
 
-
+# Generate response
 response_text = generate_response(query, context)
 
 print("\nQuery:", query)
 print("\nResponse:")
 print(response_text)
-```
-
-```output
-
-Query: What is 'Explainable AI' and why is it considered important?
-
-Response:
-Explainable AI (XAI) is a field that aims to make AI systems more transparent and understandable by providing insights into how AI models make decisions. This is essential for building trust and accountability in AI systems, as it enables users to assess their fairness and accuracy. XAI techniques are crucial for addressing potential harms, ensuring ethical behavior, and establishing clear guidelines and ethical frameworks for AI development and deployment.
 ```
 
 ## Evaluating the AI Response
@@ -530,19 +473,19 @@ We compare the AI response with the expected answer and assign a score.
 def evaluate_response(query, response, reference_answer, model="meta-llama/Llama-3.2-3B-Instruct"):
     """
     Evaluates the AI response against a reference answer.
-
+    
     Args:
     query (str): The user's question.
     response (str): The AI-generated response.
     reference_answer (str): The reference/ideal answer.
     model (str): Model to use for evaluation.
-
+    
     Returns:
     str: Evaluation feedback.
     """
-
+    # Define the system prompt for the evaluation system
     evaluate_system_prompt = """You are an intelligent evaluation system tasked with assessing AI responses.
-
+            
         Compare the AI assistant's response to the true/reference answer, and evaluate based on:
         1. Factual correctness - Does the response contain accurate information?
         2. Completeness - Does it cover all important aspects from the reference?
@@ -558,8 +501,8 @@ def evaluate_response(query, response, reference_answer, model="meta-llama/Llama
 
         Provide your score with justification.
     """
-
-
+            
+    # Create the evaluation prompt
     evaluation_prompt = f"""
         User Query: {query}
 
@@ -571,8 +514,8 @@ def evaluate_response(query, response, reference_answer, model="meta-llama/Llama
 
         Please evaluate the AI response against the reference answer.
     """
-
-
+    
+    # Generate evaluation
     eval_response = client.chat.completions.create(
         model=model,
         temperature=0,
@@ -581,75 +524,42 @@ def evaluate_response(query, response, reference_answer, model="meta-llama/Llama
             {"role": "user", "content": evaluation_prompt}
         ]
     )
-
+    
     return eval_response.choices[0].message.content
 ```
 
 ## Running the Evaluation
 
 ```python
-
+# Get reference answer from validation data
 reference_answer = data[0]['ideal_answer']
 
-
+# Evaluate the response
 evaluation = evaluate_response(query, response_text, reference_answer)
 
 print("\nEvaluation:")
 print(evaluation)
 ```
 
-```output
-
-Evaluation:
-Based on the evaluation criteria, I will assess the AI response as follows:
-
-1. Factual correctness: The AI response contains accurate information about Explainable AI (XAI) and its importance. It correctly states that XAI aims to make AI systems more transparent and understandable, providing insights into how they make decisions.
-
-2. Completeness: The AI response covers the main points of XAI, including its importance for building trust, accountability, and ensuring fairness in AI systems. However, it misses some details, such as the potential harms that XAI can address and the need for clear guidelines and ethical frameworks for AI development and deployment.
-
-3. Relevance: The AI response directly addresses the question, providing a clear and concise explanation of XAI and its significance.
-
-Based on the evaluation, I would assign a score of 0.8 to the AI response. The response is very good, with minor omissions and differences from the reference answer. It covers the main points of XAI and its importance, but misses some details that are present in the reference answer.
-```
-
 ## Extracting and Chunking Text from a PDF File
 Now, we load the PDF, extract text, and split it into chunks.
 
 ```python
-
+# Define the path to the PDF file
 pdf_path = "data/AI_Information.pdf"
 
-
+# Extract text from the PDF file
 extracted_text = extract_text_from_pdf(pdf_path)
 
-
+# Chunk the extracted text into segments of 1000 characters with an overlap of 200 characters
 text_chunks = chunk_text(extracted_text, 1000, 200)
 
-
+# Print the number of text chunks created
 print("Number of text chunks:", len(text_chunks))
 
-
+# Print the first text chunk
 print("\nFirst text chunk:")
 print(text_chunks[0])
-```
-
-```output
-Number of text chunks: 42
-
-First text chunk:
-Understanding Artificial Intelligence
-Chapter 1: Introduction to Artificial Intelligence
-Artificial intelligence (AI) refers to the ability of a digital computer or computer-controlled robot
-to perform tasks commonly associated with intelligent beings. The term is frequently applied to
-the project of developing systems endowed with the intellectual processes characteristic of
-humans, such as the ability to reason, discover meaning, generalize, or learn from past
-experience. Over the past few decades, advancements in computing power and data availability
-have significantly accelerated the development and deployment of AI.
-Historical Context
-The idea of artificial intelligence has existed for centuries, often depicted in myths and fiction.
-However, the formal field of AI research began in the mid-20th century. The Dartmouth Workshop
-in 1956 is widely considered the birthplace of AI. Early AI research focused on problem-solving
-and symbolic methods. The 1980s saw a rise in exp
 ```
 
 ## Creating Embeddings for Text Chunks
@@ -667,15 +577,15 @@ def create_embeddings(text, model="BAAI/bge-en-icl"):
     Returns:
     dict: The response from the OpenAI API containing the embeddings.
     """
-
+    # Create embeddings for the input text using the specified model
     response = client.embeddings.create(
         model=model,
         input=text
     )
 
-    return response
+    return response  # Return the response containing the embeddings
 
-
+# Create embeddings for the text chunks
 response = create_embeddings(text_chunks)
 ```
 
@@ -694,7 +604,7 @@ def cosine_similarity(vec1, vec2):
     Returns:
     float: The cosine similarity between the two vectors.
     """
-
+    # Compute the dot product of the two vectors and divide by the product of their norms
     return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
 ```
 
@@ -712,91 +622,48 @@ def semantic_search(query, text_chunks, embeddings, k=5):
     Returns:
     List[str]: A list of the top k most relevant text chunks based on the query.
     """
-
+    # Create an embedding for the query
     query_embedding = create_embeddings(query).data[0].embedding
-    similarity_scores = []
+    similarity_scores = []  # Initialize a list to store similarity scores
 
-
+    # Calculate similarity scores between the query embedding and each text chunk embedding
     for i, chunk_embedding in enumerate(embeddings):
         similarity_score = cosine_similarity(np.array(query_embedding), np.array(chunk_embedding.embedding))
-        similarity_scores.append((i, similarity_score))
+        similarity_scores.append((i, similarity_score))  # Append the index and similarity score
 
-
+    # Sort the similarity scores in descending order
     similarity_scores.sort(key=lambda x: x[1], reverse=True)
-
+    # Get the indices of the top k most similar text chunks
     top_indices = [index for index, _ in similarity_scores[:k]]
-
+    # Return the top k most relevant text chunks
     return [text_chunks[index] for index in top_indices]
 ```
 
 ## Running a Query on Extracted Chunks
 
 ```python
-
+# Load the validation data from a JSON file
 with open('data/val.json') as f:
     data = json.load(f)
 
-
+# Extract the first query from the validation data
 query = data[0]['question']
 
-
+# Perform semantic search to find the top 2 most relevant text chunks for the query
 top_chunks = semantic_search(query, text_chunks, response.data, k=2)
 
-
+# Print the query
 print("Query:", query)
 
-
+# Print the top 2 most relevant text chunks
 for i, chunk in enumerate(top_chunks):
     print(f"Context {i + 1}:\n{chunk}\n=====================================")
-```
-
-```output
-Query: What is 'Explainable AI' and why is it considered important?
-Context 1:
-systems. Explainable AI (XAI)
-techniques aim to make AI decisions more understandable, enabling users to assess their
-fairness and accuracy.
-Privacy and Data Protection
-AI systems often rely on large amounts of data, raising concerns about privacy and data
-protection. Ensuring responsible data handling, implementing privacy-preserving techniques,
-and complying with data protection regulations are crucial.
-Accountability and Responsibility
-Establishing accountability and responsibility for AI systems is essential for addressing potential
-harms and ensuring ethical behavior. This includes defining roles and responsibilities for
-developers, deployers, and users of AI systems.
-Chapter 20: Building Trust in AI
-Transparency and Explainability
-Transparency and explainability are key to building trust in AI. Making AI systems understandable
-and providing insights into their decision-making processes helps users assess their reliability
-and fairness.
-Robustness and Reliability
-
-=====================================
-Context 2:
- incidents.
-Environmental Monitoring
-AI-powered environmental monitoring systems track air and water quality, detect pollution, and
-support environmental protection efforts. These systems provide real-time data, identify
-pollution sources, and inform environmental policies.
-Chapter 15: The Future of AI Research
-Advancements in Deep Learning
-Continued advancements in deep learning are expected to drive further breakthroughs in AI.
-Research is focused on developing more efficient and interpretable deep learning models, as well
-as exploring new architectures and training techniques.
-Explainable AI (XAI)
-Explainable AI (XAI) aims to make AI systems more transparent and understandable. Research in
-XAI focuses on developing methods for explaining AI decisions, enhancing trust, and improving
-accountability.
-AI and Neuroscience
-The intersection of AI and neuroscience is a promising area of research. Understanding the
-human brain can inspire new AI algorithms and architectures,
-=====================================
 ```
 
 ## Generating a Response Based on Retrieved Chunks
 
 ```python
-
+# Define the system prompt for the AI assistant
 system_prompt = "You are an AI assistant that strictly answers based on the given context. If the answer cannot be derived directly from the provided context, respond with: 'I do not have enough information to answer that.'"
 
 def generate_response(system_prompt, user_message, model="meta-llama/Llama-3.2-3B-Instruct"):
@@ -821,11 +688,11 @@ def generate_response(system_prompt, user_message, model="meta-llama/Llama-3.2-3
     )
     return response
 
-
+# Create the user prompt based on the top chunks
 user_prompt = "\n".join([f"Context {i + 1}:\n{chunk}\n=====================================\n" for i, chunk in enumerate(top_chunks)])
 user_prompt = f"{user_prompt}\nQuestion: {query}"
 
-
+# Generate AI response
 ai_response = generate_response(system_prompt, user_prompt)
 ```
 
@@ -833,25 +700,15 @@ ai_response = generate_response(system_prompt, user_prompt)
 We compare the AI response with the expected answer and assign a score.
 
 ```python
-
+# Define the system prompt for the evaluation system
 evaluate_system_prompt = "You are an intelligent evaluation system tasked with assessing the AI assistant's responses. If the AI assistant's response is very close to the true response, assign a score of 1. If the response is incorrect or unsatisfactory in relation to the true response, assign a score of 0. If the response is partially aligned with the true response, assign a score of 0.5."
 
-
+# Create the evaluation prompt by combining the user query, AI response, true response, and evaluation system prompt
 evaluation_prompt = f"User Query: {query}\nAI Response:\n{ai_response.choices[0].message.content}\nTrue Response: {data[0]['ideal_answer']}\n{evaluate_system_prompt}"
 
-
+# Generate the evaluation response using the evaluation system prompt and evaluation prompt
 evaluation_response = generate_response(evaluate_system_prompt, evaluation_prompt)
 
-
+# Print the evaluation response
 print(evaluation_response.choices[0].message.content)
-```
-
-```output
-Based on the evaluation criteria, I would assign a score of 0.8 to the AI assistant's response.
-
-The response is very close to the true response, and it correctly conveys the main idea of Explainable AI (XAI) and its importance. The AI assistant has successfully identified the primary goal of XAI, its significance in building trust and accountability, and its relevance to areas such as privacy and data protection.
-
-However, the response could be improved by providing more specific details and examples to support the claims made. For instance, the AI assistant could have elaborated on the techniques used in XAI, such as model interpretability, feature attribution, and explainability metrics. Additionally, the response could have provided more concrete examples of how XAI is being applied in various fields, such as healthcare and finance.
-
-Overall, the response is a good start, but it could benefit from more depth and specificity to make it more accurate and informative.
 ```
