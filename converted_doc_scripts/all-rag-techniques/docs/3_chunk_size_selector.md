@@ -27,10 +27,10 @@ from openai import OpenAI
 We initialize the OpenAI client to generate embeddings and responses.
 
 ```python
-# Initialize the OpenAI client with the base URL and API key
+
 client = OpenAI(
     base_url="https://api.studio.nebius.com/v1/",
-    api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
+    api_key=os.getenv("OPENAI_API_KEY")
 )
 ```
 
@@ -48,25 +48,25 @@ def extract_text_from_pdf(pdf_path):
     Returns:
     str: Extracted text from the PDF.
     """
-    # Open the PDF file
-    mypdf = fitz.open(pdf_path)
-    all_text = ""  # Initialize an empty string to store the extracted text
 
-    # Iterate through each page in the PDF
+    mypdf = fitz.open(pdf_path)
+    all_text = ""
+
+
     for page in mypdf:
-        # Extract text from the current page and add spacing
+
         all_text += page.get_text("text") + " "
 
-    # Return the extracted text, stripped of leading/trailing whitespace
+
     return all_text.strip()
 
-# Define the path to the PDF file
+
 pdf_path = "data/AI_Information.pdf"
 
-# Extract text from the PDF file
+
 extracted_text = extract_text_from_pdf(pdf_path)
 
-# Print the first 500 characters of the extracted text
+
 print(extracted_text[:500])
 ```
 
@@ -96,20 +96,20 @@ def chunk_text(text, n, overlap):
     Returns:
     List[str]: A list of text chunks.
     """
-    chunks = []  # Initialize an empty list to store the chunks
+    chunks = []
     for i in range(0, len(text), n - overlap):
-        # Append a chunk of text from the current index to the index + chunk size
+
         chunks.append(text[i:i + n])
 
-    return chunks  # Return the list of text chunks
+    return chunks
 
-# Define different chunk sizes to evaluate
+
 chunk_sizes = [128, 256, 512]
 
-# Create a dictionary to store text chunks for each chunk size
+
 text_chunks_dict = {size: chunk_text(extracted_text, size, size // 5) for size in chunk_sizes}
 
-# Print the number of chunks created for each chunk size
+
 for size, chunks in text_chunks_dict.items():
     print(f"Chunk Size: {size}, Number of Chunks: {len(chunks)}")
 ```
@@ -137,13 +137,13 @@ def create_embeddings(texts, model="BAAI/bge-en-icl"):
     Returns:
     List[np.ndarray]: List of numerical embeddings.
     """
-    # Create embeddings using the specified model
+
     response = client.embeddings.create(model=model, input=texts)
-    # Convert the response to a list of numpy arrays and return
+
     return [np.array(embedding.embedding) for embedding in response.data]
 
-# Generate embeddings for each chunk size
-# Iterate over each chunk size and its corresponding chunks in the text_chunks_dict
+
+
 chunk_embeddings_dict = {size: create_embeddings(chunks) for size, chunks in tqdm(text_chunks_dict.items(), desc="Generating Embeddings")}
 ```
 
@@ -167,7 +167,7 @@ def cosine_similarity(vec1, vec2):
     float: Cosine similarity score.
     """
 
-    # Compute the dot product of the two vectors
+
     return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
 ```
 
@@ -185,31 +185,31 @@ def retrieve_relevant_chunks(query, text_chunks, chunk_embeddings, k=5):
     Returns:
     List[str]: Most relevant text chunks.
     """
-    # Generate an embedding for the query - pass query as a list and get first item
+
     query_embedding = create_embeddings([query])[0]
 
-    # Calculate cosine similarity between the query embedding and each chunk embedding
+
     similarities = [cosine_similarity(query_embedding, emb) for emb in chunk_embeddings]
 
-    # Get the indices of the top-k most similar chunks
+
     top_indices = np.argsort(similarities)[-k:][::-1]
 
-    # Return the top-k most relevant text chunks
+
     return [text_chunks[i] for i in top_indices]
 ```
 
 ```python
-# Load the validation data from a JSON file
+
 with open('data/val.json') as f:
     data = json.load(f)
 
-# Extract the first query from the validation data
+
 query = data[3]['question']
 
-# Retrieve relevant chunks for each chunk size
+
 retrieved_chunks_dict = {size: retrieve_relevant_chunks(query, text_chunks_dict[size], chunk_embeddings_dict[size]) for size in chunk_sizes}
 
-# Print retrieved chunks for chunk size 256
+
 print(retrieved_chunks_dict[256])
 ```
 
@@ -221,7 +221,7 @@ print(retrieved_chunks_dict[256])
 Let's  generate a response based on the retrieved text for chunk size `256`.
 
 ```python
-# Define the system prompt for the AI assistant
+
 system_prompt = "You are an AI assistant that strictly answers based on the given context. If the answer cannot be derived directly from the provided context, respond with: 'I do not have enough information to answer that.'"
 
 def generate_response(query, system_prompt, retrieved_chunks, model="meta-llama/Llama-3.2-3B-Instruct"):
@@ -236,13 +236,13 @@ def generate_response(query, system_prompt, retrieved_chunks, model="meta-llama/
     Returns:
     str: AI-generated response.
     """
-    # Combine retrieved chunks into a single context string
+
     context = "\n".join([f"Context {i+1}:\n{chunk}" for i, chunk in enumerate(retrieved_chunks)])
 
-    # Create the user prompt by combining the context and the query
+
     user_prompt = f"{context}\n\nQuestion: {query}"
 
-    # Generate the AI response using the specified model
+
     response = client.chat.completions.create(
         model=model,
         temperature=0,
@@ -252,13 +252,13 @@ def generate_response(query, system_prompt, retrieved_chunks, model="meta-llama/
         ]
     )
 
-    # Return the content of the AI response
+
     return response.choices[0].message.content
 
-# Generate AI responses for each chunk size
+
 ai_responses_dict = {size: generate_response(query, system_prompt, retrieved_chunks_dict[size]) for size in chunk_sizes}
 
-# Print the response for chunk size 256
+
 print(ai_responses_dict[256])
 ```
 
@@ -270,14 +270,14 @@ AI contributes to personalized medicine by analyzing individual patient data, pr
 We score responses based on faithfulness and relevancy using powerfull llm
 
 ```python
-# Define evaluation scoring system constants
-SCORE_FULL = 1.0     # Complete match or fully satisfactory
-SCORE_PARTIAL = 0.5  # Partial match or somewhat satisfactory
-SCORE_NONE = 0.0     # No match or unsatisfactory
+
+SCORE_FULL = 1.0
+SCORE_PARTIAL = 0.5
+SCORE_NONE = 0.0
 ```
 
 ```python
-# Define strict evaluation prompt templates
+
 FAITHFULNESS_PROMPT_TEMPLATE = """
 Evaluate the faithfulness of the AI response compared to the true answer.
 User Query: {question}
@@ -326,7 +326,7 @@ def evaluate_response(question, response, true_answer):
         Tuple[float, float]: A tuple containing (faithfulness_score, relevancy_score).
                                                 Each score is one of: 1.0 (full), 0.5 (partial), or 0.0 (none).
         """
-        # Format the evaluation prompts
+
         faithfulness_prompt = FAITHFULNESS_PROMPT_TEMPLATE.format(
                 question=question,
                 response=response,
@@ -344,7 +344,7 @@ def evaluate_response(question, response, true_answer):
                 none=SCORE_NONE
         )
 
-        # Request faithfulness evaluation from the model
+
         faithfulness_response = client.chat.completions.create(
                model="meta-llama/Llama-3.2-3B-Instruct",
                 temperature=0,
@@ -354,7 +354,7 @@ def evaluate_response(question, response, true_answer):
                 ]
         )
 
-        # Request relevancy evaluation from the model
+
         relevancy_response = client.chat.completions.create(
                 model="meta-llama/Llama-3.2-3B-Instruct",
                 temperature=0,
@@ -364,7 +364,7 @@ def evaluate_response(question, response, true_answer):
                 ]
         )
 
-        # Extract scores and handle potential parsing errors
+
         try:
                 faithfulness_score = float(faithfulness_response.choices[0].message.content.strip())
         except ValueError:
@@ -379,14 +379,14 @@ def evaluate_response(question, response, true_answer):
 
         return faithfulness_score, relevancy_score
 
-# True answer for the first validation data
+
 true_answer = data[3]['ideal_answer']
 
-# Evaluate response for chunk size 256 and 128
+
 faithfulness, relevancy = evaluate_response(query, ai_responses_dict[256], true_answer)
 faithfulness2, relevancy2 = evaluate_response(query, ai_responses_dict[128], true_answer)
 
-# print the evaluation scores
+
 print(f"Faithfulness Score (Chunk Size 256): {faithfulness}")
 print(f"Relevancy Score (Chunk Size 256): {relevancy}")
 

@@ -35,17 +35,17 @@ def extract_text_from_pdf(pdf_path):
     Returns:
     str: Extracted text from the PDF.
     """
-    # Open the PDF file
+
     mypdf = fitz.open(pdf_path)
-    all_text = ""  # Initialize an empty string to store the extracted text
+    all_text = ""
 
-    # Iterate through each page in the PDF
+
     for page_num in range(mypdf.page_count):
-        page = mypdf[page_num]  # Get the page
-        text = page.get_text("text")  # Extract text from the page
-        all_text += text  # Append the extracted text to the all_text string
+        page = mypdf[page_num]
+        text = page.get_text("text")
+        all_text += text
 
-    return all_text  # Return the extracted text
+    return all_text
 ```
 
 ## Chunking the Extracted Text
@@ -64,24 +64,24 @@ def chunk_text(text, n, overlap):
     Returns:
     List[str]: A list of text chunks.
     """
-    chunks = []  # Initialize an empty list to store the chunks
+    chunks = []
 
-    # Loop through the text with a step size of (n - overlap)
+
     for i in range(0, len(text), n - overlap):
-        # Append a chunk of text from index i to i + n to the chunks list
+
         chunks.append(text[i:i + n])
 
-    return chunks  # Return the list of text chunks
+    return chunks
 ```
 
 ## Setting Up the OpenAI API Client
 We initialize the OpenAI client to generate embeddings and responses.
 
 ```python
-# Initialize the OpenAI client with the base URL and API key
+
 client = OpenAI(
     base_url="https://api.studio.nebius.com/v1/",
-    api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
+    api_key=os.getenv("OPENAI_API_KEY")
 )
 ```
 
@@ -97,9 +97,9 @@ class SimpleVectorStore:
         """
         Initialize the vector store.
         """
-        self.vectors = []  # List to store embedding vectors
-        self.texts = []  # List to store original texts
-        self.metadata = []  # List to store metadata for each text
+        self.vectors = []
+        self.texts = []
+        self.metadata = []
 
     def add_item(self, text, embedding, metadata=None):
         """
@@ -110,9 +110,9 @@ class SimpleVectorStore:
         embedding (List[float]): The embedding vector.
         metadata (dict, optional): Additional metadata.
         """
-        self.vectors.append(np.array(embedding))  # Convert embedding to numpy array and add to vectors list
-        self.texts.append(text)  # Add the original text to texts list
-        self.metadata.append(metadata or {})  # Add metadata to metadata list, use empty dict if None
+        self.vectors.append(np.array(embedding))
+        self.texts.append(text)
+        self.metadata.append(metadata or {})
 
     def similarity_search(self, query_embedding, k=5):
         """
@@ -126,32 +126,32 @@ class SimpleVectorStore:
         List[Dict]: Top k most similar items with their texts and metadata.
         """
         if not self.vectors:
-            return []  # Return empty list if no vectors are stored
+            return []
 
-        # Convert query embedding to numpy array
+
         query_vector = np.array(query_embedding)
 
-        # Calculate similarities using cosine similarity
+
         similarities = []
         for i, vector in enumerate(self.vectors):
-            # Compute cosine similarity between query vector and stored vector
-            similarity = np.dot(query_vector, vector) / (np.linalg.norm(query_vector) * np.linalg.norm(vector))
-            similarities.append((i, similarity))  # Append index and similarity score
 
-        # Sort by similarity (descending)
+            similarity = np.dot(query_vector, vector) / (np.linalg.norm(query_vector) * np.linalg.norm(vector))
+            similarities.append((i, similarity))
+
+
         similarities.sort(key=lambda x: x[1], reverse=True)
 
-        # Return top k results
+
         results = []
         for i in range(min(k, len(similarities))):
             idx, score = similarities[i]
             results.append({
-                "text": self.texts[idx],  # Add the corresponding text
-                "metadata": self.metadata[idx],  # Add the corresponding metadata
-                "similarity": score  # Add the similarity score
+                "text": self.texts[idx],
+                "metadata": self.metadata[idx],
+                "similarity": score
             })
 
-        return results  # Return the list of top k similar items
+        return results
 ```
 
 ## Creating Embeddings
@@ -168,20 +168,20 @@ def create_embeddings(text, model="BAAI/bge-en-icl"):
     Returns:
     List[float]: The embedding vector.
     """
-    # Handle both string and list inputs by converting string input to a list
+
     input_text = text if isinstance(text, list) else [text]
 
-    # Create embeddings for the input text using the specified model
+
     response = client.embeddings.create(
         model=model,
         input=input_text
     )
 
-    # If input was a string, return just the first embedding
+
     if isinstance(text, str):
         return response.data[0].embedding
 
-    # Otherwise, return all embeddings as a list of vectors
+
     return [item.embedding for item in response.data]
 ```
 
@@ -201,23 +201,23 @@ def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
     Returns:
     SimpleVectorStore: A vector store containing document chunks and their embeddings.
     """
-    # Extract text from the PDF file
+
     print("Extracting text from PDF...")
     extracted_text = extract_text_from_pdf(pdf_path)
 
-    # Chunk the extracted text
+
     print("Chunking text...")
     chunks = chunk_text(extracted_text, chunk_size, chunk_overlap)
     print(f"Created {len(chunks)} text chunks")
 
-    # Create embeddings for the text chunks
+
     print("Creating embeddings for chunks...")
     chunk_embeddings = create_embeddings(chunks)
 
-    # Initialize a simple vector store
+
     store = SimpleVectorStore()
 
-    # Add each chunk and its embedding to the vector store
+
     for i, (chunk, embedding) in enumerate(zip(chunks, chunk_embeddings)):
         store.add_item(
             text=chunk,
@@ -246,11 +246,11 @@ def rerank_with_llm(query, results, top_n=3, model="meta-llama/Llama-3.2-3B-Inst
     Returns:
         List[Dict]: Reranked results
     """
-    print(f"Reranking {len(results)} documents...")  # Print the number of documents to be reranked
+    print(f"Reranking {len(results)} documents...")
 
-    scored_results = []  # Initialize an empty list to store scored results
+    scored_results = []
 
-    # Define the system prompt for the LLM
+
     system_prompt = """You are an expert at evaluating document relevance for search queries.
 Your task is to rate documents on a scale from 0 to 10 based on how well they answer the given query.
 
@@ -262,13 +262,13 @@ Guidelines:
 
 You MUST respond with ONLY a single integer score between 0 and 10. Do not include ANY other text."""
 
-    # Iterate through each result
+
     for i, result in enumerate(results):
-        # Show progress every 5 documents
+
         if i % 5 == 0:
             print(f"Scoring document {i+1}/{len(results)}...")
 
-        # Define the user prompt for the LLM
+
         user_prompt = f"""Query: {query}
 
 Document:
@@ -276,7 +276,7 @@ Document:
 
 Rate this document's relevance to the query on a scale from 0 to 10:"""
 
-        # Get the LLM response
+
         response = client.chat.completions.create(
             model=model,
             temperature=0,
@@ -286,19 +286,19 @@ Rate this document's relevance to the query on a scale from 0 to 10:"""
             ]
         )
 
-        # Extract the score from the LLM response
+
         score_text = response.choices[0].message.content.strip()
 
-        # Use regex to extract the numerical score
+
         score_match = re.search(r'\b(10|[0-9])\b', score_text)
         if score_match:
             score = float(score_match.group(1))
         else:
-            # If score extraction fails, use similarity score as fallback
+
             print(f"Warning: Could not extract score from response: '{score_text}', using similarity score instead")
             score = result["similarity"] * 10
 
-        # Append the scored result to the list
+
         scored_results.append({
             "text": result["text"],
             "metadata": result["metadata"],
@@ -306,10 +306,10 @@ Rate this document's relevance to the query on a scale from 0 to 10:"""
             "relevance_score": score
         })
 
-    # Sort results by relevance score in descending order
+
     reranked_results = sorted(scored_results, key=lambda x: x["relevance_score"], reverse=True)
 
-    # Return the top_n results
+
     return reranked_results[:top_n]
 ```
 
@@ -328,37 +328,37 @@ def rerank_with_keywords(query, results, top_n=3):
     Returns:
         List[Dict]: Reranked results
     """
-    # Extract important keywords from the query
+
     keywords = [word.lower() for word in query.split() if len(word) > 3]
 
-    scored_results = []  # Initialize a list to store scored results
+    scored_results = []
 
     for result in results:
-        document_text = result["text"].lower()  # Convert document text to lowercase
+        document_text = result["text"].lower()
 
-        # Base score starts with vector similarity
+
         base_score = result["similarity"] * 0.5
 
-        # Initialize keyword score
+
         keyword_score = 0
         for keyword in keywords:
             if keyword in document_text:
-                # Add points for each keyword found
+
                 keyword_score += 0.1
 
-                # Add more points if keyword appears near the beginning
+
                 first_position = document_text.find(keyword)
-                if first_position < len(document_text) / 4:  # In the first quarter of the text
+                if first_position < len(document_text) / 4:
                     keyword_score += 0.1
 
-                # Add points for keyword frequency
-                frequency = document_text.count(keyword)
-                keyword_score += min(0.05 * frequency, 0.2)  # Cap at 0.2
 
-        # Calculate the final score by combining base score and keyword score
+                frequency = document_text.count(keyword)
+                keyword_score += min(0.05 * frequency, 0.2)
+
+
         final_score = base_score + keyword_score
 
-        # Append the scored result to the list
+
         scored_results.append({
             "text": result["text"],
             "metadata": result["metadata"],
@@ -366,10 +366,10 @@ def rerank_with_keywords(query, results, top_n=3):
             "relevance_score": final_score
         })
 
-    # Sort results by final relevance score in descending order
+
     reranked_results = sorted(scored_results, key=lambda x: x["relevance_score"], reverse=True)
 
-    # Return the top_n results
+
     return reranked_results[:top_n]
 ```
 
@@ -388,10 +388,10 @@ def generate_response(query, context, model="meta-llama/Llama-3.2-3B-Instruct"):
     Returns:
         str: Generated response
     """
-    # Define the system prompt to guide the AI's behavior
+
     system_prompt = "You are a helpful AI assistant. Answer the user's question based only on the provided context. If you cannot find the answer in the context, state that you don't have enough information."
 
-    # Create the user prompt by combining the context and query
+
     user_prompt = f"""
         Context:
         {context}
@@ -401,7 +401,7 @@ def generate_response(query, context, model="meta-llama/Llama-3.2-3B-Instruct"):
         Please provide a comprehensive answer based only on the context above.
     """
 
-    # Generate the response using the specified model
+
     response = client.chat.completions.create(
         model=model,
         temperature=0,
@@ -411,7 +411,7 @@ def generate_response(query, context, model="meta-llama/Llama-3.2-3B-Instruct"):
         ]
     )
 
-    # Return the generated response content
+
     return response.choices[0].message.content
 ```
 
@@ -433,25 +433,25 @@ def rag_with_reranking(query, vector_store, reranking_method="llm", top_n=3, mod
     Returns:
         Dict: Results including query, context, and response
     """
-    # Create query embedding
+
     query_embedding = create_embeddings(query)
 
-    # Initial retrieval (get more than we need for reranking)
+
     initial_results = vector_store.similarity_search(query_embedding, k=10)
 
-    # Apply reranking
+
     if reranking_method == "llm":
         reranked_results = rerank_with_llm(query, initial_results, top_n=top_n)
     elif reranking_method == "keywords":
         reranked_results = rerank_with_keywords(query, initial_results, top_n=top_n)
     else:
-        # No reranking, just use top results from initial retrieval
+
         reranked_results = initial_results[:top_n]
 
-    # Combine context from reranked results
+
     context = "\n\n===\n\n".join([result["text"] for result in reranked_results])
 
-    # Generate response based on context
+
     response = generate_response(query, context, model)
 
     return {
@@ -467,43 +467,43 @@ def rag_with_reranking(query, vector_store, reranking_method="llm", top_n=3, mod
 ## Evaluating Reranking Quality
 
 ```python
-# Load the validation data from a JSON file
+
 with open('data/val.json') as f:
     data = json.load(f)
 
-# Extract the first query from the validation data
+
 query = data[0]['question']
 
-# Extract the reference answer from the validation data
+
 reference_answer = data[0]['ideal_answer']
 
-# pdf_path
+
 pdf_path = "data/AI_Information.pdf"
 ```
 
 ```python
-# Process document
+
 vector_store = process_document(pdf_path)
 
-# Example query
+
 query = "Does AI have the potential to transform the way we live and work?"
 
-# Compare different methods
+
 print("Comparing retrieval methods...")
 
-# 1. Standard retrieval (no reranking)
+
 print("\n=== STANDARD RETRIEVAL ===")
 standard_results = rag_with_reranking(query, vector_store, reranking_method="none")
 print(f"\nQuery: {query}")
 print(f"\nResponse:\n{standard_results['response']}")
 
-# 2. LLM-based reranking
+
 print("\n=== LLM-BASED RERANKING ===")
 llm_results = rag_with_reranking(query, vector_store, reranking_method="llm")
 print(f"\nQuery: {query}")
 print(f"\nResponse:\n{llm_results['response']}")
 
-# 3. Keyword-based reranking
+
 print("\n=== KEYWORD-BASED RERANKING ===")
 keyword_results = rag_with_reranking(query, vector_store, reranking_method="keywords")
 print(f"\nQuery: {query}")
@@ -589,12 +589,12 @@ def evaluate_reranking(query, standard_results, reranked_results, reference_answ
     Returns:
         str: Evaluation output
     """
-    # Define the system prompt for the AI evaluator
+
     system_prompt = """You are an expert evaluator of RAG systems.
     Compare the retrieved contexts and responses from two different retrieval methods.
     Assess which one provides better context and a more accurate, comprehensive answer."""
 
-    # Prepare the comparison text with truncated contexts and responses
+
     comparison_text = f"""Query: {query}
 
 Standard Retrieval Context:
@@ -609,14 +609,14 @@ Reranked Retrieval Context:
 Reranked Retrieval Answer:
 {reranked_results['response']}"""
 
-    # If a reference answer is provided, include it in the comparison text
+
     if reference_answer:
         comparison_text += f"""
 
 Reference Answer:
 {reference_answer}"""
 
-    # Create the user prompt for the AI evaluator
+
     user_prompt = f"""
 {comparison_text}
 
@@ -629,7 +629,7 @@ Please evaluate which retrieval method provided:
 Provide a detailed analysis with specific examples.
 """
 
-    # Generate the evaluation response using the specified model
+
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.2-3B-Instruct",
         temperature=0,
@@ -639,20 +639,20 @@ Provide a detailed analysis with specific examples.
         ]
     )
 
-    # Return the evaluation output
+
     return response.choices[0].message.content
 ```
 
 ```python
-# Evaluate the quality of reranked results compared to standard results
+
 evaluation = evaluate_reranking(
-    query=query,  # The user query
-    standard_results=standard_results,  # Results from standard retrieval
-    reranked_results=llm_results,  # Results from LLM-based reranking
-    reference_answer=reference_answer  # Reference answer for comparison
+    query=query,
+    standard_results=standard_results,
+    reranked_results=llm_results,
+    reference_answer=reference_answer
 )
 
-# Print the evaluation results
+
 print("\n=== EVALUATION RESULTS ===")
 print(evaluation)
 ```

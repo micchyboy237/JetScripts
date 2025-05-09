@@ -26,10 +26,10 @@ import matplotlib.pyplot as plt
 We initialize the OpenAI client to generate embeddings and responses.
 
 ```python
-# Initialize the OpenAI client with the base URL and API key
+
 client = OpenAI(
     base_url="https://api.studio.nebius.com/v1/",
-    api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
+    api_key=os.getenv("OPENAI_API_KEY")
 )
 ```
 
@@ -46,28 +46,28 @@ def extract_text_from_pdf(pdf_path):
     Returns:
         List[Dict]: List of pages with text content and metadata
     """
-    print(f"Extracting text from {pdf_path}...")  # Print the path of the PDF being processed
-    pdf = fitz.open(pdf_path)  # Open the PDF file using PyMuPDF
-    pages = []  # Initialize an empty list to store the pages with text content
+    print(f"Extracting text from {pdf_path}...")
+    pdf = fitz.open(pdf_path)
+    pages = []
 
-    # Iterate over each page in the PDF
+
     for page_num in range(len(pdf)):
-        page = pdf[page_num]  # Get the current page
-        text = page.get_text()  # Extract text from the current page
+        page = pdf[page_num]
+        text = page.get_text()
 
-        # Skip pages with very little text (less than 50 characters)
+
         if len(text.strip()) > 50:
-            # Append the page text and metadata to the list
+
             pages.append({
                 "text": text,
                 "metadata": {
-                    "source": pdf_path,  # Source file path
-                    "page": page_num + 1  # Page number (1-based index)
+                    "source": pdf_path,
+                    "page": page_num + 1
                 }
             })
 
-    print(f"Extracted {len(pages)} pages with content")  # Print the number of pages extracted
-    return pages  # Return the list of pages with text content and metadata
+    print(f"Extracted {len(pages)} pages with content")
+    return pages
 ```
 
 ```python
@@ -83,22 +83,22 @@ def chunk_text(text, chunk_size=1000, overlap=200):
     Returns:
         List[Dict]: List of chunks with metadata
     """
-    chunks = []  # Initialize an empty list to store the chunks
+    chunks = []
 
-    # Iterate over the text in steps of (chunk_size - overlap)
+
     for i in range(0, len(text), chunk_size - overlap):
-        chunk_text = text[i:i + chunk_size]  # Extract the chunk of text
-        if chunk_text:  # Ensure we don't add empty chunks
+        chunk_text = text[i:i + chunk_size]
+        if chunk_text:
             chunks.append({
-                "text": chunk_text,  # Add the chunk text
+                "text": chunk_text,
                 "metadata": {
-                    "start_pos": i,  # Start position of the chunk in the original text
-                    "end_pos": i + len(chunk_text)  # End position of the chunk in the original text
+                    "start_pos": i,
+                    "end_pos": i + len(chunk_text)
                 }
             })
 
-    print(f"Created {len(chunks)} text chunks")  # Print the number of chunks created
-    return chunks  # Return the list of chunks with metadata
+    print(f"Created {len(chunks)} text chunks")
+    return chunks
 ```
 
 ## Simple Vector Store Implementation
@@ -109,9 +109,9 @@ class SimpleVectorStore:
     A simple vector store implementation using NumPy.
     """
     def __init__(self):
-        self.vectors = []  # List to store vector embeddings
-        self.texts = []  # List to store text content
-        self.metadata = []  # List to store metadata
+        self.vectors = []
+        self.texts = []
+        self.metadata = []
 
     def add_item(self, text, embedding, metadata=None):
         """
@@ -122,9 +122,9 @@ class SimpleVectorStore:
             embedding (List[float]): Vector embedding
             metadata (Dict, optional): Additional metadata
         """
-        self.vectors.append(np.array(embedding))  # Append the embedding as a numpy array
-        self.texts.append(text)  # Append the text content
-        self.metadata.append(metadata or {})  # Append the metadata or an empty dict if None
+        self.vectors.append(np.array(embedding))
+        self.texts.append(text)
+        self.metadata.append(metadata or {})
 
     def similarity_search(self, query_embedding, k=5, filter_func=None):
         """
@@ -139,36 +139,36 @@ class SimpleVectorStore:
             List[Dict]: Top k most similar items
         """
         if not self.vectors:
-            return []  # Return an empty list if there are no vectors
+            return []
 
-        # Convert query embedding to numpy array
+
         query_vector = np.array(query_embedding)
 
-        # Calculate similarities using cosine similarity
+
         similarities = []
         for i, vector in enumerate(self.vectors):
-            # Skip if doesn't pass the filter
+
             if filter_func and not filter_func(self.metadata[i]):
                 continue
 
-            # Calculate cosine similarity
-            similarity = np.dot(query_vector, vector) / (np.linalg.norm(query_vector) * np.linalg.norm(vector))
-            similarities.append((i, similarity))  # Append index and similarity score
 
-        # Sort by similarity (descending)
+            similarity = np.dot(query_vector, vector) / (np.linalg.norm(query_vector) * np.linalg.norm(vector))
+            similarities.append((i, similarity))
+
+
         similarities.sort(key=lambda x: x[1], reverse=True)
 
-        # Return top k results
+
         results = []
         for i in range(min(k, len(similarities))):
             idx, score = similarities[i]
             results.append({
-                "text": self.texts[idx],  # Add the text content
-                "metadata": self.metadata[idx],  # Add the metadata
-                "similarity": float(score)  # Add the similarity score
+                "text": self.texts[idx],
+                "metadata": self.metadata[idx],
+                "similarity": float(score)
             })
 
-        return results  # Return the list of top k results
+        return results
 ```
 
 ## Creating Embeddings
@@ -185,29 +185,29 @@ def create_embeddings(texts, model="BAAI/bge-en-icl"):
     Returns:
         List[List[float]]: Embedding vectors
     """
-    # Handle empty input
+
     if not texts:
         return []
 
-    # Process in batches if needed (OpenAI API limits)
+
     batch_size = 100
     all_embeddings = []
 
-    # Iterate over the input texts in batches
-    for i in range(0, len(texts), batch_size):
-        batch = texts[i:i + batch_size]  # Get the current batch of texts
 
-        # Create embeddings for the current batch
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i + batch_size]
+
+
         response = client.embeddings.create(
             model=model,
             input=batch
         )
 
-        # Extract embeddings from the response
-        batch_embeddings = [item.embedding for item in response.data]
-        all_embeddings.extend(batch_embeddings)  # Add the batch embeddings to the list
 
-    return all_embeddings  # Return all embeddings
+        batch_embeddings = [item.embedding for item in response.data]
+        all_embeddings.extend(batch_embeddings)
+
+    return all_embeddings
 ```
 
 ## Document Processing Pipeline
@@ -225,27 +225,27 @@ def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
     Returns:
         SimpleVectorStore: Vector store containing document chunks
     """
-    # Extract text from the PDF file
+
     pages = extract_text_from_pdf(pdf_path)
 
-    # Process each page and create chunks
+
     all_chunks = []
     for page in pages:
-        # Pass the text content (string) to chunk_text, not the dictionary
+
         page_chunks = chunk_text(page["text"], chunk_size, chunk_overlap)
 
-        # Update metadata for each chunk with the page's metadata
+
         for chunk in page_chunks:
             chunk["metadata"].update(page["metadata"])
 
         all_chunks.extend(page_chunks)
 
-    # Create embeddings for the text chunks
+
     print("Creating embeddings for chunks...")
     chunk_texts = [chunk["text"] for chunk in all_chunks]
     chunk_embeddings = create_embeddings(chunk_texts)
 
-    # Create a vector store to hold the chunks and their embeddings
+
     vector_store = SimpleVectorStore()
     for i, chunk in enumerate(all_chunks):
         vector_store.add_item(
@@ -272,7 +272,7 @@ def generate_hypothetical_document(query, desired_length=1000):
     Returns:
         str: Generated hypothetical document
     """
-    # Define the system prompt to instruct the model on how to generate the document
+
     system_prompt = f"""You are an expert document creator.
     Given a question, generate a detailed document that would directly answer this question.
     The document should be approximately {desired_length} characters long and provide an in-depth,
@@ -280,20 +280,20 @@ def generate_hypothetical_document(query, desired_length=1000):
     on the subject. Include specific details, facts, and explanations.
     Do not mention that this is a hypothetical document - just write the content directly."""
 
-    # Define the user prompt with the query
+
     user_prompt = f"Question: {query}\n\nGenerate a document that fully answers this question:"
 
-    # Make a request to the OpenAI API to generate the hypothetical document
+
     response = client.chat.completions.create(
-        model="meta-llama/Llama-3.2-3B-Instruct",  # Specify the model to use
+        model="meta-llama/Llama-3.2-3B-Instruct",
         messages=[
-            {"role": "system", "content": system_prompt},  # System message to guide the assistant
-            {"role": "user", "content": user_prompt}  # User message with the query
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
         ],
-        temperature=0.1  # Set the temperature for response generation
+        temperature=0.1
     )
 
-    # Return the generated document content
+
     return response.choices[0].message.content
 ```
 
@@ -315,27 +315,27 @@ def hyde_rag(query, vector_store, k=5, should_generate_response=True):
     """
     print(f"\n=== Processing query with HyDE: {query} ===\n")
 
-    # Step 1: Generate a hypothetical document that answers the query
+
     print("Generating hypothetical document...")
     hypothetical_doc = generate_hypothetical_document(query)
     print(f"Generated hypothetical document of {len(hypothetical_doc)} characters")
 
-    # Step 2: Create embedding for the hypothetical document
+
     print("Creating embedding for hypothetical document...")
     hypothetical_embedding = create_embeddings([hypothetical_doc])[0]
 
-    # Step 3: Retrieve similar chunks based on the hypothetical document
+
     print(f"Retrieving {k} most similar chunks...")
     retrieved_chunks = vector_store.similarity_search(hypothetical_embedding, k=k)
 
-    # Prepare the results dictionary
+
     results = {
         "query": query,
         "hypothetical_document": hypothetical_doc,
         "retrieved_chunks": retrieved_chunks
     }
 
-    # Step 4: Generate a response if requested
+
     if should_generate_response:
         print("Generating final response...")
         response = generate_response(query, retrieved_chunks)
@@ -362,21 +362,21 @@ def standard_rag(query, vector_store, k=5, should_generate_response=True):
     """
     print(f"\n=== Processing query with Standard RAG: {query} ===\n")
 
-    # Step 1: Create embedding for the query
+
     print("Creating embedding for query...")
     query_embedding = create_embeddings([query])[0]
 
-    # Step 2: Retrieve similar chunks based on the query embedding
+
     print(f"Retrieving {k} most similar chunks...")
     retrieved_chunks = vector_store.similarity_search(query_embedding, k=k)
 
-    # Prepare the results dictionary
+
     results = {
         "query": query,
         "retrieved_chunks": retrieved_chunks
     }
 
-    # Step 3: Generate a response if requested
+
     if should_generate_response:
         print("Generating final response...")
         response = generate_response(query, retrieved_chunks)
@@ -399,10 +399,10 @@ def generate_response(query, relevant_chunks):
     Returns:
         str: Generated response
     """
-    # Concatenate the text from the chunks to create context
+
     context = "\n\n".join([chunk["text"] for chunk in relevant_chunks])
 
-    # Generate response using OpenAI API
+
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.2-3B-Instruct",
         messages=[
@@ -431,15 +431,15 @@ def compare_approaches(query, vector_store, reference_answer=None):
     Returns:
         Dict: Comparison results
     """
-    # Run HyDE RAG
+
     hyde_result = hyde_rag(query, vector_store)
     hyde_response = hyde_result["response"]
 
-    # Run standard RAG
+
     standard_result = standard_rag(query, vector_store)
     standard_response = standard_result["response"]
 
-    # Compare results
+
     comparison = compare_responses(query, hyde_response, standard_response, reference_answer)
 
     return {
@@ -524,7 +524,7 @@ def run_evaluation(pdf_path, test_queries, reference_answers=None, chunk_size=10
     Returns:
         Dict: Evaluation results
     """
-    # Process document and create vector store
+
     vector_store = process_document(pdf_path, chunk_size, chunk_overlap)
 
     results = []
@@ -533,16 +533,16 @@ def run_evaluation(pdf_path, test_queries, reference_answers=None, chunk_size=10
         print(f"\n\n===== Evaluating Query {i+1}/{len(test_queries)} =====")
         print(f"Query: {query}")
 
-        # Get reference answer if available
+
         reference = None
         if reference_answers and i < len(reference_answers):
             reference = reference_answers[i]
 
-        # Compare approaches
+
         result = compare_approaches(query, vector_store, reference)
         results.append(result)
 
-    # Generate overall analysis
+
     overall_analysis = generate_overall_analysis(results)
 
     return {
@@ -573,7 +573,7 @@ Focus on:
 4. The overall strengths and weaknesses of each approach
 5. Recommendations for when to use each approach"""
 
-    # Create summary of evaluations
+
     evaluations_summary = ""
     for i, result in enumerate(results):
         evaluations_summary += f"Query {i+1}: {result['query']}\n"
@@ -611,30 +611,30 @@ def visualize_results(query, hyde_result, standard_result):
         hyde_result (Dict): Results from HyDE RAG
         standard_result (Dict): Results from standard RAG
     """
-    # Create a figure with 3 subplots
+
     fig, axs = plt.subplots(1, 3, figsize=(20, 6))
 
-    # Plot the query in the first subplot
+
     axs[0].text(0.5, 0.5, f"Query:\n\n{query}",
                 horizontalalignment='center', verticalalignment='center',
                 fontsize=12, wrap=True)
-    axs[0].axis('off')  # Hide the axis for the query plot
+    axs[0].axis('off')
 
-    # Plot the hypothetical document in the second subplot
+
     hypothetical_doc = hyde_result["hypothetical_document"]
-    # Shorten the hypothetical document if it's too long
+
     shortened_doc = hypothetical_doc[:500] + "..." if len(hypothetical_doc) > 500 else hypothetical_doc
     axs[1].text(0.5, 0.5, f"Hypothetical Document:\n\n{shortened_doc}",
                 horizontalalignment='center', verticalalignment='center',
                 fontsize=10, wrap=True)
-    axs[1].axis('off')  # Hide the axis for the hypothetical document plot
+    axs[1].axis('off')
 
-    # Plot comparison of retrieved chunks in the third subplot
-    # Shorten each chunk text for better visualization
+
+
     hyde_chunks = [chunk["text"][:100] + "..." for chunk in hyde_result["retrieved_chunks"]]
     std_chunks = [chunk["text"][:100] + "..." for chunk in standard_result["retrieved_chunks"]]
 
-    # Prepare the comparison text
+
     comparison_text = "Retrieved by HyDE:\n\n"
     for i, chunk in enumerate(hyde_chunks):
         comparison_text += f"{i+1}. {chunk}\n\n"
@@ -643,66 +643,66 @@ def visualize_results(query, hyde_result, standard_result):
     for i, chunk in enumerate(std_chunks):
         comparison_text += f"{i+1}. {chunk}\n\n"
 
-    # Plot the comparison text in the third subplot
+
     axs[2].text(0.5, 0.5, comparison_text,
                 horizontalalignment='center', verticalalignment='center',
                 fontsize=8, wrap=True)
-    axs[2].axis('off')  # Hide the axis for the comparison plot
+    axs[2].axis('off')
 
-    # Adjust layout to prevent overlap
+
     plt.tight_layout()
-    # Display the plot
+
     plt.show()
 ```
 
 ## Evaluation of Hypothetical Document Embedding (HyDE) vs. Standard RAG
 
 ```python
-# Path to the AI information document
+
 pdf_path = "data/AI_Information.pdf"
 
-# Process document and create vector store
-# This loads the document, extracts text, chunks it, and creates embeddings
+
+
 vector_store = process_document(pdf_path)
 
-# Example 1: Direct comparison for a single query related to AI
+
 query = "What are the main ethical considerations in artificial intelligence development?"
 
-# Run HyDE RAG approach
-# This generates a hypothetical document answering the query, embeds it,
-# and uses that embedding to retrieve relevant chunks
+
+
+
 hyde_result = hyde_rag(query, vector_store)
 print("\n=== HyDE Response ===")
 print(hyde_result["response"])
 
-# Run standard RAG approach for comparison
-# This directly embeds the query and uses it to retrieve relevant chunks
+
+
 standard_result = standard_rag(query, vector_store)
 print("\n=== Standard RAG Response ===")
 print(standard_result["response"])
 
-# Visualize the differences between HyDE and standard RAG approaches
-# Shows the query, hypothetical document, and retrieved chunks side by side
+
+
 visualize_results(query, hyde_result, standard_result)
 
-# Example 2: Run full evaluation with multiple AI-related queries
+
 test_queries = [
     "How does neural network architecture impact AI performance?"
 ]
 
-# Optional reference answers for better evaluation
+
 reference_answers = [
     "Neural network architecture significantly impacts AI performance through factors like depth (number of layers), width (neurons per layer), connectivity patterns, and activation functions. Different architectures like CNNs, RNNs, and Transformers are optimized for specific tasks such as image recognition, sequence processing, and natural language understanding respectively.",
 ]
 
-# Run comprehensive evaluation comparing HyDE and standard RAG approaches
+
 evaluation_results = run_evaluation(
     pdf_path=pdf_path,
     test_queries=test_queries,
     reference_answers=reference_answers
 )
 
-# Print the overall analysis of which approach performs better across queries
+
 print("\n=== OVERALL ANALYSIS ===")
 print(evaluation_results["overall_analysis"])
 ```

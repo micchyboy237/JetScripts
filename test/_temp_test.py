@@ -1,95 +1,63 @@
-import requests
-import json
-import aiohttp
-import asyncio
+
+
+import os
+from pathlib import Path
+
+from jet.code.utils import ProcessedResult, preprocess_notebooks_to_markdowns
+from jet.file.utils import load_file
+from jet.llm.mlx.base import MLX
+from jet.llm.mlx.mlx_types import ModelKey
+from jet.llm.mlx.token_utils import chunk_text
+from jet.llm.mlx.utils import get_model_max_tokens
 from jet.logger import logger
-import uuid
 
-BASE_URL = "http://localhost:9000"
+MODEL: ModelKey = "llama-3.2-1b-instruct-4bit"
 
+SYSTEM_PROMPT = """
+"""
 
-def non_streaming_request():
-    """Example of a non-streaming POST request to the /generate endpoint."""
-    task_id = str(uuid.uuid4())
-    payload = {
-        "model": "llama-3.2-1b-instruct-4bit",
-        "prompts": ["Write a short story.", "Explain AI in simple terms."],
-        "max_tokens": 50,
-        "temp": 0.8,
-        "verbose": True,
-        "task_id": task_id
-    }
-    try:
-        response = requests.post(f"{BASE_URL}/generate", json=payload)
-        response.raise_for_status()
-        results = []
-        for line in response.iter_lines(decode_unicode=True):
-            if line:
-                print(f"Received: {line}")
-                if line.startswith("data: ") and "Result" in line:
-                    result_json = json.loads(line.replace("data: ", ""))
-                    results.append(result_json)
-        print("\nNon-streaming results:")
-        for result in results:
-            print(f"Task ID: {result['task_id']}")
-            print(f"Prompt ID: {result['prompt_id']}")
-            print(f"Prompt: {result['prompt']}")
-            print(f"Response: {result['response']}\n")
-    except requests.exceptions.RequestException as e:
-        print(f"Error in non-streaming request: {e}")
+PROMPT_TEMPLATE = """
+"""
+
+mlx = MLX(MODEL)
 
 
-async def streaming_request():
-    """Example of a streaming POST request to the /generate endpoint using aiohttp."""
-    task_id = str(uuid.uuid4())
-    payload = {
-        "model": "llama-3.2-1b-instruct-4bit",
-        "prompts": ["Tell a joke.", "What is machine learning?"],
-        "max_tokens": 50,
-        "temp": 0.7,
-        "verbose": True,
-        "task_id": task_id
-    }
-    headers = {"Accept": "application/json"}
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.post(f"{BASE_URL}/generate", json=payload, headers=headers) as response:
-                response.raise_for_status()
-                print("\nStreaming response:")
-                async for line in response.content:
-                    if line:
-                        decoded_line = line.decode('utf-8').strip()
-                        if decoded_line:
-                            try:
-                                data = json.loads(decoded_line)
-                                print("\n--- New Chunk ---")
-                                print(f"Type: {data['type']}")
-                                if "task_id" in data:
-                                    print(f"Task ID: {data['task_id']}")
-                                if "prompt_id" in data:
-                                    print(f"Prompt ID: {data['prompt_id']}")
-                                if "prompt" in data:
-                                    print(f"Prompt: {data['prompt']}")
-                                if data['type'] == "token":
-                                    print(f"Token: {data['token']}")
-                                elif data['type'] == "result":
-                                    print(f"Response: {data['response']}")
-                                elif data['type'] == "error":
-                                    print(f"Error Message: {data['message']}")
-                                print("-----------------")
-                            except json.JSONDecodeError:
-                                logger.error(
-                                    f"Invalid JSON in stream: {decoded_line}")
-                                print(f"\n--- New Chunk ---")
-                                print(f"Type: invalid")
-                                print(f"Raw Data: {decoded_line}")
-                                print("-----------------")
-        except aiohttp.ClientError as e:
-            print(f"Error in streaming request: {e}")
+def call_llm_generation(context: str) -> str:
+    response = ""
+    for chunk in mlx.stream_chat(context, max_tokens=-1):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    return response
+
+
+def preprocess_data(data: list[ProcessedResult]) -> str:
+    model_max_tokens = get_model_max_tokens(MODEL)
+    texts = [d["text"] for d in data]
+    chunk_size = 300
+    chunks: list[str] = chunk_text(texts, chunk_size)
+    context = "\n\n".join(chunks)
+    return context
+
+
+def run_generate_chunker_class(json_file_or_dir):
+    # Process the markdown file
+    if os.path.isdir(json_file_or_dir):
+        for file in Path(json_file_or_dir).glob('*.json'):
+            data: list[ProcessedResult] = load_file(str(file))
+            preprocessed_data = preprocess_data(data)
+            call_llm_generation(preprocessed_data)
+    else:
+        data: list[ProcessedResult] = load_file(json_file_or_dir)
+        preprocessed_data = preprocess_data(data)
+        call_llm_generation(preprocessed_data)
+
 
 if __name__ == "__main__":
-    print("\nRunning streaming example...")
-    asyncio.run(streaming_request())
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_dir = os.path.join(script_dir, "generated", "markdown_processing")
 
-    # print("Running non-streaming example...")
-    # non_streaming_request()
+    md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/all-rag-techniques/docs"
+    preprocess_notebooks_to_markdowns(md_file, output_dir)
+
+    run_generate_chunker_class(output_dir)

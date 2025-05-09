@@ -37,17 +37,17 @@ def extract_text_from_pdf(pdf_path):
     Returns:
     str: Extracted text from the PDF.
     """
-    # Open the PDF file
+
     mypdf = fitz.open(pdf_path)
-    all_text = ""  # Initialize an empty string to store the extracted text
+    all_text = ""
 
-    # Iterate through each page in the PDF
+
     for page_num in range(mypdf.page_count):
-        page = mypdf[page_num]  # Get the page
-        text = page.get_text("text")  # Extract text from the page
-        all_text += text  # Append the extracted text to the all_text string
+        page = mypdf[page_num]
+        text = page.get_text("text")
+        all_text += text
 
-    return all_text  # Return the extracted text
+    return all_text
 ```
 
 ## Chunking the Extracted Text
@@ -66,24 +66,24 @@ def chunk_text(text, n, overlap):
     Returns:
     List[str]: A list of text chunks.
     """
-    chunks = []  # Initialize an empty list to store the chunks
+    chunks = []
 
-    # Loop through the text with a step size of (n - overlap)
+
     for i in range(0, len(text), n - overlap):
-        # Append a chunk of text from index i to i + n to the chunks list
+
         chunks.append(text[i:i + n])
 
-    return chunks  # Return the list of text chunks
+    return chunks
 ```
 
 ## Setting Up the OpenAI API Client
 We initialize the OpenAI client to generate embeddings and responses.
 
 ```python
-# Initialize the OpenAI client with the base URL and API key
+
 client = OpenAI(
     base_url="https://api.studio.nebius.com/v1/",
-    api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
+    api_key=os.getenv("OPENAI_API_KEY")
 )
 ```
 
@@ -99,9 +99,9 @@ class SimpleVectorStore:
         """
         Initialize the vector store.
         """
-        self.vectors = []  # List to store embedding vectors
-        self.texts = []  # List to store original texts
-        self.metadata = []  # List to store metadata for each text
+        self.vectors = []
+        self.texts = []
+        self.metadata = []
 
     def add_item(self, text, embedding, metadata=None):
         """
@@ -112,9 +112,9 @@ class SimpleVectorStore:
         embedding (List[float]): The embedding vector.
         metadata (dict, optional): Additional metadata.
         """
-        self.vectors.append(np.array(embedding))  # Convert embedding to numpy array and add to vectors list
-        self.texts.append(text)  # Add the original text to texts list
-        self.metadata.append(metadata or {})  # Add metadata to metadata list, default to empty dict if None
+        self.vectors.append(np.array(embedding))
+        self.texts.append(text)
+        self.metadata.append(metadata or {})
 
     def similarity_search(self, query_embedding, k=5, filter_func=None):
         """
@@ -129,36 +129,36 @@ class SimpleVectorStore:
         List[Dict]: Top k most similar items with their texts and metadata.
         """
         if not self.vectors:
-            return []  # Return empty list if no vectors are stored
+            return []
 
-        # Convert query embedding to numpy array
+
         query_vector = np.array(query_embedding)
 
-        # Calculate similarities using cosine similarity
+
         similarities = []
         for i, vector in enumerate(self.vectors):
-            # Apply filter if provided
+
             if filter_func and not filter_func(self.metadata[i]):
                 continue
 
-            # Calculate cosine similarity
-            similarity = np.dot(query_vector, vector) / (np.linalg.norm(query_vector) * np.linalg.norm(vector))
-            similarities.append((i, similarity))  # Append index and similarity score
 
-        # Sort by similarity (descending)
+            similarity = np.dot(query_vector, vector) / (np.linalg.norm(query_vector) * np.linalg.norm(vector))
+            similarities.append((i, similarity))
+
+
         similarities.sort(key=lambda x: x[1], reverse=True)
 
-        # Return top k results
+
         results = []
         for i in range(min(k, len(similarities))):
             idx, score = similarities[i]
             results.append({
-                "text": self.texts[idx],  # Add the text
-                "metadata": self.metadata[idx],  # Add the metadata
-                "similarity": score  # Add the similarity score
+                "text": self.texts[idx],
+                "metadata": self.metadata[idx],
+                "similarity": score
             })
 
-        return results  # Return the list of top k results
+        return results
 ```
 
 ## Creating Embeddings
@@ -175,20 +175,20 @@ def create_embeddings(text, model="BAAI/bge-en-icl"):
     Returns:
     List[float] or List[List[float]]: The embedding vector(s).
     """
-    # Handle both string and list inputs by converting string input to a list
+
     input_text = text if isinstance(text, list) else [text]
 
-    # Create embeddings for the input text using the specified model
+
     response = client.embeddings.create(
         model=model,
         input=input_text
     )
 
-    # If the input was a single string, return just the first embedding
+
     if isinstance(text, str):
         return response.data[0].embedding
 
-    # Otherwise, return all embeddings for the list of texts
+
     return [item.embedding for item in response.data]
 ```
 
@@ -207,23 +207,23 @@ def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
     Returns:
         SimpleVectorStore: A vector store containing document chunks and their embeddings.
     """
-    # Extract text from the PDF file
+
     print("Extracting text from PDF...")
     extracted_text = extract_text_from_pdf(pdf_path)
 
-    # Chunk the extracted text
+
     print("Chunking text...")
     chunks = chunk_text(extracted_text, chunk_size, chunk_overlap)
     print(f"Created {len(chunks)} text chunks")
 
-    # Create embeddings for each chunk
+
     print("Creating embeddings for chunks...")
     chunk_embeddings = create_embeddings(chunks)
 
-    # Initialize the vector store
+
     store = SimpleVectorStore()
 
-    # Add each chunk and its embedding to the vector store
+
     for i, (chunk, embedding) in enumerate(zip(chunks, chunk_embeddings)):
         store.add_item(
             text=chunk,
@@ -249,16 +249,16 @@ def determine_if_retrieval_needed(query):
     Returns:
         bool: True if retrieval is needed, False otherwise
     """
-    # System prompt to instruct the AI on how to determine if retrieval is necessary
+
     system_prompt = """You are an AI assistant that determines if retrieval is necessary to answer a query.
     For factual questions, specific information requests, or questions about events, people, or concepts, answer "Yes".
     For opinions, hypothetical scenarios, or simple queries with common knowledge, answer "No".
     Answer with ONLY "Yes" or "No"."""
 
-    # User prompt containing the query
+
     user_prompt = f"Query: {query}\n\nIs retrieval necessary to answer this query accurately?"
 
-    # Generate response from the model
+
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.2-3B-Instruct",
         messages=[
@@ -268,10 +268,10 @@ def determine_if_retrieval_needed(query):
         temperature=0
     )
 
-    # Extract the answer from the model's response and convert to lowercase
+
     answer = response.choices[0].message.content.strip().lower()
 
-    # Return True if the answer contains "yes", otherwise return False
+
     return "yes" in answer
 ```
 
@@ -289,17 +289,17 @@ def evaluate_relevance(query, context):
     Returns:
         str: 'relevant' or 'irrelevant'
     """
-    # System prompt to instruct the AI on how to determine document relevance
+
     system_prompt = """You are an AI assistant that determines if a document is relevant to a query.
     Consider whether the document contains information that would be helpful in answering the query.
     Answer with ONLY "Relevant" or "Irrelevant"."""
 
-    # Truncate context if it is too long to avoid exceeding token limits
+
     max_context_length = 2000
     if len(context) > max_context_length:
         context = context[:max_context_length] + "... [truncated]"
 
-    # User prompt containing the query and the document content
+
     user_prompt = f"""Query: {query}
     Document content:
     {context}
@@ -307,7 +307,7 @@ def evaluate_relevance(query, context):
     Is this document relevant to the query? Answer with ONLY "Relevant" or "Irrelevant".
     """
 
-    # Generate response from the model
+
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.2-3B-Instruct",
         messages=[
@@ -317,10 +317,10 @@ def evaluate_relevance(query, context):
         temperature=0
     )
 
-    # Extract the answer from the model's response and convert to lowercase
+
     answer = response.choices[0].message.content.strip().lower()
 
-    return answer  # Return the relevance evaluation
+    return answer
 ```
 
 ### 3. Support Assessment
@@ -337,7 +337,7 @@ def assess_support(response, context):
     Returns:
         str: 'fully supported', 'partially supported', or 'no support'
     """
-    # System prompt to instruct the AI on how to evaluate support
+
     system_prompt = """You are an AI assistant that determines if a response is supported by the given context.
     Evaluate if the facts, claims, and information in the response are backed by the context.
     Answer with ONLY one of these three options:
@@ -346,12 +346,12 @@ def assess_support(response, context):
     - "No support": The response contains significant information not found in or contradicting the context.
     """
 
-    # Truncate context if it is too long to avoid exceeding token limits
+
     max_context_length = 2000
     if len(context) > max_context_length:
         context = context[:max_context_length] + "... [truncated]"
 
-    # User prompt containing the context and the response to be evaluated
+
     user_prompt = f"""Context:
     {context}
 
@@ -361,7 +361,7 @@ def assess_support(response, context):
     How well is this response supported by the context? Answer with ONLY "Fully supported", "Partially supported", or "No support".
     """
 
-    # Generate response from the model
+
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.2-3B-Instruct",
         messages=[
@@ -371,10 +371,10 @@ def assess_support(response, context):
         temperature=0
     )
 
-    # Extract the answer from the model's response and convert to lowercase
+
     answer = response.choices[0].message.content.strip().lower()
 
-    return answer  # Return the support assessment
+    return answer
 ```
 
 ### 4. Utility Evaluation
@@ -391,7 +391,7 @@ def rate_utility(query, response):
     Returns:
         int: Utility rating from 1 to 5
     """
-    # System prompt to instruct the AI on how to rate the utility of the response
+
     system_prompt = """You are an AI assistant that rates the utility of a response to a query.
     Consider how well the response answers the query, its completeness, correctness, and helpfulness.
     Rate the utility on a scale from 1 to 5, where:
@@ -402,14 +402,14 @@ def rate_utility(query, response):
     - 5: Exceptionally useful
     Answer with ONLY a single number from 1 to 5."""
 
-    # User prompt containing the query and the response to be rated
+
     user_prompt = f"""Query: {query}
     Response:
     {response}
 
     Rate the utility of this response on a scale from 1 to 5:"""
 
-    # Generate the utility rating using the OpenAI client
+
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.2-3B-Instruct",
         messages=[
@@ -419,15 +419,15 @@ def rate_utility(query, response):
         temperature=0
     )
 
-    # Extract the rating from the model's response
+
     rating = response.choices[0].message.content.strip()
 
-    # Extract just the number from the rating
+
     rating_match = re.search(r'[1-5]', rating)
     if rating_match:
-        return int(rating_match.group())  # Return the extracted rating as an integer
+        return int(rating_match.group())
 
-    return 3  # Default to middle rating if parsing fails
+    return 3
 ```
 
 ## Response Generation
@@ -444,10 +444,10 @@ def generate_response(query, context=None):
     Returns:
         str: Generated response
     """
-    # System prompt to instruct the AI on how to generate a helpful response
+
     system_prompt = """You are a helpful AI assistant. Provide a clear, accurate, and informative response to the query."""
 
-    # Create the user prompt based on whether context is provided
+
     if context:
         user_prompt = f"""Context:
         {context}
@@ -461,7 +461,7 @@ def generate_response(query, context=None):
 
         Please answer the query to the best of your ability."""
 
-    # Generate the response using the OpenAI client
+
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.2-3B-Instruct",
         messages=[
@@ -471,7 +471,7 @@ def generate_response(query, context=None):
         temperature=0.2
     )
 
-    # Return the generated response text
+
     return response.choices[0].message.content.strip()
 ```
 
@@ -492,12 +492,12 @@ def self_rag(query, vector_store, top_k=3):
     """
     print(f"\n=== Starting Self-RAG for query: {query} ===\n")
 
-    # Step 1: Determine if retrieval is necessary
+
     print("Step 1: Determining if retrieval is necessary...")
     retrieval_needed = determine_if_retrieval_needed(query)
     print(f"Retrieval needed: {retrieval_needed}")
 
-    # Initialize metrics to track the Self-RAG process
+
     metrics = {
         "retrieval_needed": retrieval_needed,
         "documents_retrieved": 0,
@@ -510,14 +510,14 @@ def self_rag(query, vector_store, top_k=3):
     best_score = -1
 
     if retrieval_needed:
-        # Step 2: Retrieve documents
+
         print("\nStep 2: Retrieving relevant documents...")
         query_embedding = create_embeddings(query)
         results = vector_store.similarity_search(query_embedding, k=top_k)
         metrics["documents_retrieved"] = len(results)
         print(f"Retrieved {len(results)} documents")
 
-        # Step 3: Evaluate relevance of each document
+
         print("\nStep 3: Evaluating document relevance...")
         relevant_contexts = []
 
@@ -533,28 +533,28 @@ def self_rag(query, vector_store, top_k=3):
         print(f"Found {len(relevant_contexts)} relevant documents")
 
         if relevant_contexts:
-            # Step 4: Process each relevant context
+
             print("\nStep 4: Processing relevant contexts...")
             for i, context in enumerate(relevant_contexts):
                 print(f"\nProcessing context {i+1}/{len(relevant_contexts)}...")
 
-                # Generate response based on the context
+
                 print("Generating response...")
                 response = generate_response(query, context)
 
-                # Assess how well the response is supported by the context
+
                 print("Assessing support...")
                 support_rating = assess_support(response, context)
                 print(f"Support rating: {support_rating}")
                 metrics["response_support_ratings"].append(support_rating)
 
-                # Rate the utility of the response
+
                 print("Rating utility...")
                 utility_rating = rate_utility(query, response)
                 print(f"Utility rating: {utility_rating}/5")
                 metrics["utility_ratings"].append(utility_rating)
 
-                # Calculate overall score (higher for better support and utility)
+
                 support_score = {
                     "fully supported": 3,
                     "partially supported": 1,
@@ -564,22 +564,22 @@ def self_rag(query, vector_store, top_k=3):
                 overall_score = support_score * 5 + utility_rating
                 print(f"Overall score: {overall_score}")
 
-                # Keep track of the best response
+
                 if overall_score > best_score:
                     best_response = response
                     best_score = overall_score
                     print("New best response found!")
 
-        # If no relevant contexts were found or all responses scored poorly
+
         if not relevant_contexts or best_score <= 0:
             print("\nNo suitable context found or poor responses, generating without retrieval...")
             best_response = generate_response(query)
     else:
-        # No retrieval needed, generate directly
+
         print("\nNo retrieval needed, generating response directly...")
         best_response = generate_response(query)
 
-    # Final metrics
+
     metrics["best_score"] = best_score
     metrics["used_retrieval"] = retrieval_needed and best_score > 0
 
@@ -599,40 +599,40 @@ def run_self_rag_example():
     """
     Demonstrates the complete Self-RAG system with examples.
     """
-    # Process document
-    pdf_path = "data/AI_Information.pdf"  # Path to the PDF document
-    print(f"Processing document: {pdf_path}")
-    vector_store = process_document(pdf_path)  # Process the document and create a vector store
 
-    # Example 1: Query likely needing retrieval
+    pdf_path = "data/AI_Information.pdf"
+    print(f"Processing document: {pdf_path}")
+    vector_store = process_document(pdf_path)
+
+
     query1 = "What are the main ethical concerns in AI development?"
     print("\n" + "="*80)
     print(f"EXAMPLE 1: {query1}")
-    result1 = self_rag(query1, vector_store)  # Run Self-RAG for the first query
+    result1 = self_rag(query1, vector_store)
     print("\nFinal response:")
-    print(result1["response"])  # Print the final response for the first query
+    print(result1["response"])
     print("\nMetrics:")
-    print(json.dumps(result1["metrics"], indent=2))  # Print the metrics for the first query
+    print(json.dumps(result1["metrics"], indent=2))
 
-    # Example 2: Query likely not needing retrieval
+
     query2 = "Can you write a short poem about artificial intelligence?"
     print("\n" + "="*80)
     print(f"EXAMPLE 2: {query2}")
-    result2 = self_rag(query2, vector_store)  # Run Self-RAG for the second query
+    result2 = self_rag(query2, vector_store)
     print("\nFinal response:")
-    print(result2["response"])  # Print the final response for the second query
+    print(result2["response"])
     print("\nMetrics:")
-    print(json.dumps(result2["metrics"], indent=2))  # Print the metrics for the second query
+    print(json.dumps(result2["metrics"], indent=2))
 
-    # Example 3: Query with some relevance to document but requiring additional knowledge
+
     query3 = "How might AI impact economic growth in developing countries?"
     print("\n" + "="*80)
     print(f"EXAMPLE 3: {query3}")
-    result3 = self_rag(query3, vector_store)  # Run Self-RAG for the third query
+    result3 = self_rag(query3, vector_store)
     print("\nFinal response:")
-    print(result3["response"])  # Print the final response for the third query
+    print(result3["response"])
     print("\nMetrics:")
-    print(json.dumps(result3["metrics"], indent=2))  # Print the metrics for the third query
+    print(json.dumps(result3["metrics"], indent=2))
 
     return {
         "example1": result1,
@@ -658,19 +658,19 @@ def traditional_rag(query, vector_store, top_k=3):
     """
     print(f"\n=== Running traditional RAG for query: {query} ===\n")
 
-    # Retrieve documents
+
     print("Retrieving documents...")
-    query_embedding = create_embeddings(query)  # Create embeddings for the query
-    results = vector_store.similarity_search(query_embedding, k=top_k)  # Search for similar documents
+    query_embedding = create_embeddings(query)
+    results = vector_store.similarity_search(query_embedding, k=top_k)
     print(f"Retrieved {len(results)} documents")
 
-    # Combine contexts from retrieved documents
-    contexts = [result["text"] for result in results]  # Extract text from results
-    combined_context = "\n\n".join(contexts)  # Combine texts into a single context
 
-    # Generate response using the combined context
+    contexts = [result["text"] for result in results]
+    combined_context = "\n\n".join(contexts)
+
+
     print("Generating response...")
-    response = generate_response(query, combined_context)  # Generate response based on the combined context
+    response = generate_response(query, combined_context)
 
     return response
 ```
@@ -690,7 +690,7 @@ def evaluate_rag_approaches(pdf_path, test_queries, reference_answers=None):
     """
     print("=== Evaluating RAG Approaches ===")
 
-    # Process document to create a vector store
+
     vector_store = process_document(pdf_path)
 
     results = []
@@ -698,16 +698,16 @@ def evaluate_rag_approaches(pdf_path, test_queries, reference_answers=None):
     for i, query in enumerate(test_queries):
         print(f"\nProcessing query {i+1}: {query}")
 
-        # Run Self-RAG
-        self_rag_result = self_rag(query, vector_store)  # Get response from Self-RAG
+
+        self_rag_result = self_rag(query, vector_store)
         self_rag_response = self_rag_result["response"]
 
-        # Run traditional RAG
-        trad_rag_response = traditional_rag(query, vector_store)  # Get response from traditional RAG
 
-        # Compare results if reference answer is available
+        trad_rag_response = traditional_rag(query, vector_store)
+
+
         reference = reference_answers[i] if reference_answers and i < len(reference_answers) else None
-        comparison = compare_responses(query, self_rag_response, trad_rag_response, reference)  # Compare responses
+        comparison = compare_responses(query, self_rag_response, trad_rag_response, reference)
 
         results.append({
             "query": query,
@@ -718,7 +718,7 @@ def evaluate_rag_approaches(pdf_path, test_queries, reference_answers=None):
             "self_rag_metrics": self_rag_result["metrics"]
         })
 
-    # Generate overall analysis
+
     overall_analysis = generate_overall_analysis(results)
 
     return {
@@ -772,7 +772,7 @@ Focus on accuracy, relevance, completeness, and quality.
 """
 
     response = client.chat.completions.create(
-        model="meta-llama/Llama-3.2-3B-Instruct",  # Using a stronger model for evaluation
+        model="meta-llama/Llama-3.2-3B-Instruct",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
@@ -804,7 +804,7 @@ def generate_overall_analysis(results):
     4. The value of relevance and support evaluation in Self-RAG
     5. Overall recommendations on which approach to use for different types of queries"""
 
-    # Prepare a summary of the individual comparisons
+
     comparisons_summary = ""
     for i, result in enumerate(results):
         comparisons_summary += f"Query {i+1}: {result['query']}\n"
@@ -837,33 +837,33 @@ def generate_overall_analysis(results):
 The final step is to evaluate the Self-RAG system against traditional RAG approaches. We'll compare the quality of responses generated by both systems and analyze the performance of Self-RAG in different scenarios.
 
 ```python
-# Path to the AI information document
+
 pdf_path = "data/AI_Information.pdf"
 
-# Define test queries covering different query types to test Self-RAG's adaptive retrieval
+
 test_queries = [
-    "What are the main ethical concerns in AI development?",        # Document-focused query
-    # "How does explainable AI improve trust in AI systems?",         # Document-focused query
-    # "Write a poem about artificial intelligence",                   # Creative query, doesn't need retrieval
-    # "Will superintelligent AI lead to human obsolescence?"          # Speculative query, partial retrieval needed
+    "What are the main ethical concerns in AI development?",
+
+
+
 ]
 
-# Reference answers for more objective evaluation
+
 reference_answers = [
     "The main ethical concerns in AI development include bias and fairness, privacy, transparency, accountability, safety, and the potential for misuse or harmful applications.",
-    # "Explainable AI improves trust by making AI decision-making processes transparent and understandable to users, helping them verify fairness, identify potential biases, and better understand AI limitations.",
-    # "A quality poem about artificial intelligence should creatively explore themes of AI's capabilities, limitations, relationship with humanity, potential futures, or philosophical questions about consciousness and intelligence.",
-    # "Views on superintelligent AI's impact on human relevance vary widely. Some experts warn of potential risks if AI surpasses human capabilities across domains, possibly leading to economic displacement or loss of human agency. Others argue humans will remain relevant through complementary skills, emotional intelligence, and by defining AI's purpose. Most experts agree that thoughtful governance and human-centered design are essential regardless of the outcome."
+
+
+
 ]
 
-# Run the evaluation comparing Self-RAG with traditional RAG approaches
+
 evaluation_results = evaluate_rag_approaches(
-    pdf_path=pdf_path,                  # Source document containing AI information
-    test_queries=test_queries,          # List of AI-related test queries
-    reference_answers=reference_answers  # Ground truth answers for evaluation
+    pdf_path=pdf_path,
+    test_queries=test_queries,
+    reference_answers=reference_answers
 )
 
-# Print the overall comparative analysis
+
 print("\n=== OVERALL ANALYSIS ===\n")
 print(evaluation_results["overall_analysis"])
 ```

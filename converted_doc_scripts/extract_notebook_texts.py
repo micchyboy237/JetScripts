@@ -5,9 +5,10 @@ import sys
 from pathlib import Path
 
 from jet.file.utils import save_file
+from jet.code.utils import remove_single_line_comments_preserving_triple_quotes
 
 
-def extract_text_from_ipynb(notebook_path, include_outputs=True, include_code=False):
+def extract_text_from_ipynb(notebook_path, include_outputs=True, include_code=False, include_comments=False):
     """Extract text content from a Jupyter notebook and return as markdown."""
     try:
         with open(notebook_path, 'r', encoding='utf-8') as f:
@@ -22,8 +23,12 @@ def extract_text_from_ipynb(notebook_path, include_outputs=True, include_code=Fa
 
             elif cell['cell_type'] == 'code':
                 if include_code:
+                    code_content = ''.join(cell['source'])
+                    if not include_comments:
+                        code_content = remove_single_line_comments_preserving_triple_quotes(
+                            code_content)
                     markdown_content.append('```python')
-                    markdown_content.extend(cell['source'])
+                    markdown_content.append(code_content)
                     markdown_content.append('```')
                     markdown_content.append('')  # Newline separator
 
@@ -48,7 +53,7 @@ def extract_text_from_ipynb(notebook_path, include_outputs=True, include_code=Fa
         return None
 
 
-def process_notebook(input_path, output_dir=None, include_outputs=True, include_code=False):
+def process_notebook(input_path, output_dir=None, include_outputs=True, include_code=False, include_comments=False):
     """Process a single notebook file and save as markdown."""
     input_path = Path(input_path)
 
@@ -63,7 +68,8 @@ def process_notebook(input_path, output_dir=None, include_outputs=True, include_
     content = extract_text_from_ipynb(
         input_path,
         include_outputs=include_outputs,
-        include_code=include_code
+        include_code=include_code,
+        include_comments=include_comments
     )
     if content:
         save_file(content, str(output_path))
@@ -78,14 +84,15 @@ def main():
 
     include_outputs = True
     include_code = True
+    include_comments = False
 
     if os.path.isdir(notebook_path):
         for file in Path(notebook_path).glob('*.ipynb'):
             process_notebook(
-                file, output_dir, include_outputs=include_outputs, include_code=include_code)
+                file, output_dir, include_outputs=include_outputs, include_code=include_code, include_comments=include_comments)
     else:
         process_notebook(notebook_path, output_dir,
-                         include_outputs=include_outputs, include_code=include_code)
+                         include_outputs=include_outputs, include_code=include_code, include_comments=include_comments)
 
 
 if __name__ == "__main__":

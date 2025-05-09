@@ -36,17 +36,17 @@ def extract_text_from_pdf(pdf_path):
     Returns:
     str: Extracted text from the PDF.
     """
-    # Open the PDF file
+
     mypdf = fitz.open(pdf_path)
-    all_text = ""  # Initialize an empty string to store the extracted text
+    all_text = ""
 
-    # Iterate through each page in the PDF
+
     for page_num in range(mypdf.page_count):
-        page = mypdf[page_num]  # Get the page
-        text = page.get_text("text")  # Extract text from the page
-        all_text += text  # Append the extracted text to the all_text string
+        page = mypdf[page_num]
+        text = page.get_text("text")
+        all_text += text
 
-    return all_text  # Return the extracted text
+    return all_text
 ```
 
 ## Chunking the Extracted Text
@@ -65,24 +65,24 @@ def chunk_text(text, n, overlap):
     Returns:
     List[str]: A list of text chunks.
     """
-    chunks = []  # Initialize an empty list to store the chunks
+    chunks = []
 
-    # Loop through the text with a step size of (n - overlap)
+
     for i in range(0, len(text), n - overlap):
-        # Append a chunk of text from index i to i + n to the chunks list
+
         chunks.append(text[i:i + n])
 
-    return chunks  # Return the list of text chunks
+    return chunks
 ```
 
 ## Setting Up the OpenAI API Client
 We initialize the OpenAI client to generate embeddings and responses.
 
 ```python
-# Initialize the OpenAI client with the base URL and API key
+
 client = OpenAI(
     base_url="https://api.studio.nebius.com/v1/",
-    api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
+    api_key=os.getenv("OPENAI_API_KEY")
 )
 ```
 
@@ -90,19 +90,19 @@ client = OpenAI(
 Now, we load the PDF, extract text, and split it into chunks.
 
 ```python
-# Define the path to the PDF file
+
 pdf_path = "data/AI_Information.pdf"
 
-# Extract text from the PDF file
+
 extracted_text = extract_text_from_pdf(pdf_path)
 
-# Chunk the extracted text into segments of 1000 characters with an overlap of 200 characters
+
 text_chunks = chunk_text(extracted_text, 1000, 200)
 
-# Print the number of text chunks created
+
 print("Number of text chunks:", len(text_chunks))
 
-# Print the first text chunk
+
 print("\nFirst text chunk:")
 print(text_chunks[0])
 ```
@@ -141,15 +141,15 @@ def create_embeddings(text, model="BAAI/bge-en-icl"):
     Returns:
     dict: The response from the OpenAI API containing the embeddings.
     """
-    # Create embeddings for the input text using the specified model
+
     response = client.embeddings.create(
         model=model,
         input=text
     )
 
-    return response  # Return the response containing the embeddings
+    return response
 
-# Create embeddings for the text chunks
+
 response = create_embeddings(text_chunks)
 ```
 
@@ -168,7 +168,7 @@ def cosine_similarity(vec1, vec2):
     Returns:
     float: The cosine similarity between the two vectors.
     """
-    # Compute the dot product of the two vectors and divide by the product of their norms
+
     return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
 ```
 
@@ -187,29 +187,29 @@ def context_enriched_search(query, text_chunks, embeddings, k=1, context_size=1)
     Returns:
     List[str]: Relevant text chunks with contextual information.
     """
-    # Convert the query into an embedding vector
+
     query_embedding = create_embeddings(query).data[0].embedding
     similarity_scores = []
 
-    # Compute similarity scores between query and each text chunk embedding
+
     for i, chunk_embedding in enumerate(embeddings):
-        # Calculate cosine similarity between the query embedding and current chunk embedding
+
         similarity_score = cosine_similarity(np.array(query_embedding), np.array(chunk_embedding.embedding))
-        # Store the index and similarity score as a tuple
+
         similarity_scores.append((i, similarity_score))
 
-    # Sort chunks by similarity score in descending order (highest similarity first)
+
     similarity_scores.sort(key=lambda x: x[1], reverse=True)
 
-    # Get the index of the most relevant chunk
+
     top_index = similarity_scores[0][0]
 
-    # Define the range for context inclusion
-    # Ensure we don't go below 0 or beyond the length of text_chunks
+
+
     start = max(0, top_index - context_size)
     end = min(len(text_chunks), top_index + context_size + 1)
 
-    # Return the relevant chunk along with its neighboring context chunks
+
     return [text_chunks[i] for i in range(start, end)]
 ```
 
@@ -217,25 +217,25 @@ def context_enriched_search(query, text_chunks, embeddings, k=1, context_size=1)
 We now test the context-enriched retrieval.
 
 ```python
-# Load the validation dataset from a JSON file
+
 with open('data/val.json') as f:
     data = json.load(f)
 
-# Extract the first question from the dataset to use as our query
+
 query = data[0]['question']
 
-# Retrieve the most relevant chunk and its neighboring chunks for context
-# Parameters:
-# - query: The question we're searching for
-# - text_chunks: Our text chunks extracted from the PDF
-# - response.data: The embeddings of our text chunks
-# - k=1: Return the top match
-# - context_size=1: Include 1 chunk before and after the top match for context
+
+
+
+
+
+
+
 top_chunks = context_enriched_search(query, text_chunks, response.data, k=1, context_size=1)
 
-# Print the query for reference
+
 print("Query:", query)
-# Print each retrieved chunk with a heading and separator
+
 for i, chunk in enumerate(top_chunks):
     print(f"Context {i + 1}:\n{chunk}\n=====================================")
 ```
@@ -308,7 +308,7 @@ Engaging th
 We now generate a response using LLM.
 
 ```python
-# Define the system prompt for the AI assistant
+
 system_prompt = "You are an AI assistant that strictly answers based on the given context. If the answer cannot be derived directly from the provided context, respond with: 'I do not have enough information to answer that.'"
 
 def generate_response(system_prompt, user_message, model="meta-llama/Llama-3.2-3B-Instruct"):
@@ -333,11 +333,11 @@ def generate_response(system_prompt, user_message, model="meta-llama/Llama-3.2-3
     )
     return response
 
-# Create the user prompt based on the top chunks
+
 user_prompt = "\n".join([f"Context {i + 1}:\n{chunk}\n=====================================\n" for i, chunk in enumerate(top_chunks)])
 user_prompt = f"{user_prompt}\nQuestion: {query}"
 
-# Generate AI response
+
 ai_response = generate_response(system_prompt, user_prompt)
 ```
 
@@ -345,16 +345,16 @@ ai_response = generate_response(system_prompt, user_prompt)
 We compare the AI response with the expected answer and assign a score.
 
 ```python
-# Define the system prompt for the evaluation system
+
 evaluate_system_prompt = "You are an intelligent evaluation system tasked with assessing the AI assistant's responses. If the AI assistant's response is very close to the true response, assign a score of 1. If the response is incorrect or unsatisfactory in relation to the true response, assign a score of 0. If the response is partially aligned with the true response, assign a score of 0.5."
 
-# Create the evaluation prompt by combining the user query, AI response, true response, and evaluation system prompt
+
 evaluation_prompt = f"User Query: {query}\nAI Response:\n{ai_response.choices[0].message.content}\nTrue Response: {data[0]['ideal_answer']}\n{evaluate_system_prompt}"
 
-# Generate the evaluation response using the evaluation system prompt and evaluation prompt
+
 evaluation_response = generate_response(evaluate_system_prompt, evaluation_prompt)
 
-# Print the evaluation response
+
 print(evaluation_response.choices[0].message.content)
 ```
 

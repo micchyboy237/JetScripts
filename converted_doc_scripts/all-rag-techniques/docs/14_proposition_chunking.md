@@ -37,17 +37,17 @@ def extract_text_from_pdf(pdf_path):
     Returns:
     str: Extracted text from the PDF.
     """
-    # Open the PDF file
+
     mypdf = fitz.open(pdf_path)
-    all_text = ""  # Initialize an empty string to store the extracted text
+    all_text = ""
 
-    # Iterate through each page in the PDF
+
     for page_num in range(mypdf.page_count):
-        page = mypdf[page_num]  # Get the page
-        text = page.get_text("text")  # Extract text from the page
-        all_text += text  # Append the extracted text to the all_text string
+        page = mypdf[page_num]
+        text = page.get_text("text")
+        all_text += text
 
-    return all_text  # Return the extracted text
+    return all_text
 ```
 
 ## Chunking the Extracted Text
@@ -66,31 +66,31 @@ def chunk_text(text, chunk_size=800, overlap=100):
     Returns:
         List[Dict]: List of chunk dictionaries with text and metadata
     """
-    chunks = []  # Initialize an empty list to store the chunks
+    chunks = []
 
-    # Iterate over the text with the specified chunk size and overlap
+
     for i in range(0, len(text), chunk_size - overlap):
-        chunk = text[i:i + chunk_size]  # Extract a chunk of the specified size
-        if chunk:  # Ensure we don't add empty chunks
+        chunk = text[i:i + chunk_size]
+        if chunk:
             chunks.append({
-                "text": chunk,  # The chunk text
-                "chunk_id": len(chunks) + 1,  # Unique ID for the chunk
-                "start_char": i,  # Starting character index of the chunk
-                "end_char": i + len(chunk)  # Ending character index of the chunk
+                "text": chunk,
+                "chunk_id": len(chunks) + 1,
+                "start_char": i,
+                "end_char": i + len(chunk)
             })
 
-    print(f"Created {len(chunks)} text chunks")  # Print the number of created chunks
-    return chunks  # Return the list of chunks
+    print(f"Created {len(chunks)} text chunks")
+    return chunks
 ```
 
 ## Setting Up the OpenAI API Client
 We initialize the OpenAI client to generate embeddings and responses.
 
 ```python
-# Initialize the OpenAI client with the base URL and API key
+
 client = OpenAI(
     base_url="https://api.studio.nebius.com/v1/",
-    api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
+    api_key=os.getenv("OPENAI_API_KEY")
 )
 ```
 
@@ -103,7 +103,7 @@ class SimpleVectorStore:
     A simple vector store implementation using NumPy.
     """
     def __init__(self):
-        # Initialize lists to store vectors, texts, and metadata
+
         self.vectors = []
         self.texts = []
         self.metadata = []
@@ -117,7 +117,7 @@ class SimpleVectorStore:
             embedding (List[float]): The embedding vector
             metadata (Dict, optional): Additional metadata
         """
-        # Append the embedding, text, and metadata to their respective lists
+
         self.vectors.append(np.array(embedding))
         self.texts.append(text)
         self.metadata.append(metadata or {})
@@ -131,11 +131,11 @@ class SimpleVectorStore:
             embeddings (List[List[float]]): List of embedding vectors
             metadata_list (List[Dict], optional): List of metadata dictionaries
         """
-        # If no metadata list is provided, create an empty dictionary for each text
+
         if metadata_list is None:
             metadata_list = [{} for _ in range(len(texts))]
 
-        # Add each text, embedding, and metadata to the store
+
         for text, embedding, metadata in zip(texts, embeddings, metadata_list):
             self.add_item(text, embedding, metadata)
 
@@ -150,30 +150,30 @@ class SimpleVectorStore:
         Returns:
             List[Dict]: Top k most similar items
         """
-        # Return an empty list if there are no vectors in the store
+
         if not self.vectors:
             return []
 
-        # Convert query embedding to a numpy array
+
         query_vector = np.array(query_embedding)
 
-        # Calculate similarities using cosine similarity
+
         similarities = []
         for i, vector in enumerate(self.vectors):
             similarity = np.dot(query_vector, vector) / (np.linalg.norm(query_vector) * np.linalg.norm(vector))
             similarities.append((i, similarity))
 
-        # Sort by similarity in descending order
+
         similarities.sort(key=lambda x: x[1], reverse=True)
 
-        # Collect the top k results
+
         results = []
         for i in range(min(k, len(similarities))):
             idx, score = similarities[i]
             results.append({
                 "text": self.texts[idx],
                 "metadata": self.metadata[idx],
-                "similarity": float(score)  # Convert to float for JSON serialization
+                "similarity": float(score)
             })
 
         return results
@@ -193,32 +193,32 @@ def create_embeddings(texts, model="BAAI/bge-en-icl"):
     Returns:
         List[List[float]]: Embedding vector(s)
     """
-    # Handle both string and list inputs
+
     input_texts = texts if isinstance(texts, list) else [texts]
 
-    # Process in batches if needed (OpenAI API limits)
+
     batch_size = 100
     all_embeddings = []
 
-    # Iterate over the input texts in batches
-    for i in range(0, len(input_texts), batch_size):
-        batch = input_texts[i:i + batch_size]  # Get the current batch of texts
 
-        # Create embeddings for the current batch
+    for i in range(0, len(input_texts), batch_size):
+        batch = input_texts[i:i + batch_size]
+
+
         response = client.embeddings.create(
             model=model,
             input=batch
         )
 
-        # Extract embeddings from the response
-        batch_embeddings = [item.embedding for item in response.data]
-        all_embeddings.extend(batch_embeddings)  # Add the batch embeddings to the list
 
-    # If input was a single string, return just the first embedding
+        batch_embeddings = [item.embedding for item in response.data]
+        all_embeddings.extend(batch_embeddings)
+
+
     if isinstance(texts, str):
         return all_embeddings[0]
 
-    # Otherwise, return all embeddings
+
     return all_embeddings
 ```
 
@@ -235,7 +235,7 @@ def generate_propositions(chunk):
     Returns:
         List[str]: List of generated propositions
     """
-    # System prompt to instruct the AI on how to generate propositions
+
     system_prompt = """Please break down the following text into simple, self-contained propositions.
     Ensure that each proposition meets the following criteria:
 
@@ -247,12 +247,12 @@ def generate_propositions(chunk):
 
     Output ONLY the list of propositions without any additional text or explanations."""
 
-    # User prompt containing the text chunk to be converted into propositions
+
     user_prompt = f"Text to convert into propositions:\n\n{chunk['text']}"
 
-    # Generate response from the model
+
     response = client.chat.completions.create(
-        model="meta-llama/Llama-3.2-3B-Instruct",  # Using a stronger model for accurate proposition generation
+        model="meta-llama/Llama-3.2-3B-Instruct",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
@@ -260,15 +260,15 @@ def generate_propositions(chunk):
         temperature=0
     )
 
-    # Extract propositions from the response
+
     raw_propositions = response.choices[0].message.content.strip().split('\n')
 
-    # Clean up propositions (remove numbering, bullets, etc.)
+
     clean_propositions = []
     for prop in raw_propositions:
-        # Remove numbering (1., 2., etc.) and bullet points
+
         cleaned = re.sub(r'^\s*(\d+\.|\-|\*)\s*', '', prop).strip()
-        if cleaned and len(cleaned) > 10:  # Simple filter for empty or very short propositions
+        if cleaned and len(cleaned) > 10:
             clean_propositions.append(cleaned)
 
     return clean_propositions
@@ -288,7 +288,7 @@ def evaluate_proposition(proposition, original_text):
     Returns:
         Dict: Scores for each evaluation dimension
     """
-    # System prompt to instruct the AI on how to evaluate the proposition
+
     system_prompt = """You are an expert at evaluating the quality of propositions extracted from text.
     Rate the given proposition on the following criteria (scale 1-10):
 
@@ -301,14 +301,14 @@ def evaluate_proposition(proposition, original_text):
     {"accuracy": X, "clarity": X, "completeness": X, "conciseness": X}
     """
 
-    # User prompt containing the proposition and the original text
+
     user_prompt = f"""Proposition: {proposition}
 
     Original Text: {original_text}
 
     Please provide your evaluation scores in JSON format."""
 
-    # Generate response from the model
+
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.2-3B-Instruct",
         messages=[
@@ -319,12 +319,12 @@ def evaluate_proposition(proposition, original_text):
         temperature=0
     )
 
-    # Parse the JSON response
+
     try:
         scores = json.loads(response.choices[0].message.content.strip())
         return scores
     except json.JSONDecodeError:
-        # Fallback if JSON parsing fails
+
         return {
             "accuracy": 5,
             "clarity": 5,
@@ -350,7 +350,7 @@ def process_document_into_propositions(pdf_path, chunk_size=800, chunk_overlap=1
     Returns:
         Tuple[List[Dict], List[Dict]]: Original chunks and proposition chunks
     """
-    # Set default quality thresholds if not provided
+
     if quality_thresholds is None:
         quality_thresholds = {
             "accuracy": 7,
@@ -359,24 +359,24 @@ def process_document_into_propositions(pdf_path, chunk_size=800, chunk_overlap=1
             "conciseness": 7
         }
 
-    # Extract text from the PDF file
+
     text = extract_text_from_pdf(pdf_path)
 
-    # Create chunks from the extracted text
+
     chunks = chunk_text(text, chunk_size, chunk_overlap)
 
-    # Initialize a list to store all propositions
+
     all_propositions = []
 
     print("Generating propositions from chunks...")
     for i, chunk in enumerate(chunks):
         print(f"Processing chunk {i+1}/{len(chunks)}...")
 
-        # Generate propositions for the current chunk
+
         chunk_propositions = generate_propositions(chunk)
         print(f"Generated {len(chunk_propositions)} propositions")
 
-        # Process each generated proposition
+
         for prop in chunk_propositions:
             proposition_data = {
                 "text": prop,
@@ -385,19 +385,19 @@ def process_document_into_propositions(pdf_path, chunk_size=800, chunk_overlap=1
             }
             all_propositions.append(proposition_data)
 
-    # Evaluate the quality of the generated propositions
+
     print("\nEvaluating proposition quality...")
     quality_propositions = []
 
     for i, prop in enumerate(all_propositions):
-        if i % 10 == 0:  # Status update every 10 propositions
+        if i % 10 == 0:
             print(f"Evaluating proposition {i+1}/{len(all_propositions)}...")
 
-        # Evaluate the quality of the current proposition
+
         scores = evaluate_proposition(prop["text"], prop["source_text"])
         prop["quality_scores"] = scores
 
-        # Check if the proposition passes the quality thresholds
+
         passes_quality = True
         for metric, threshold in quality_thresholds.items():
             if scores.get(metric, 0) < threshold:
@@ -428,27 +428,27 @@ def build_vector_stores(chunks, propositions):
     Returns:
         Tuple[SimpleVectorStore, SimpleVectorStore]: Chunk and proposition vector stores
     """
-    # Create vector store for chunks
+
     chunk_store = SimpleVectorStore()
 
-    # Extract chunk texts and create embeddings
+
     chunk_texts = [chunk["text"] for chunk in chunks]
     print(f"Creating embeddings for {len(chunk_texts)} chunks...")
     chunk_embeddings = create_embeddings(chunk_texts)
 
-    # Add chunks to vector store with metadata
+
     chunk_metadata = [{"chunk_id": chunk["chunk_id"], "type": "chunk"} for chunk in chunks]
     chunk_store.add_items(chunk_texts, chunk_embeddings, chunk_metadata)
 
-    # Create vector store for propositions
+
     prop_store = SimpleVectorStore()
 
-    # Extract proposition texts and create embeddings
+
     prop_texts = [prop["text"] for prop in propositions]
     print(f"Creating embeddings for {len(prop_texts)} propositions...")
     prop_embeddings = create_embeddings(prop_texts)
 
-    # Add propositions to vector store with metadata
+
     prop_metadata = [
         {
             "type": "proposition",
@@ -477,10 +477,10 @@ def retrieve_from_store(query, vector_store, k=5):
     Returns:
         List[Dict]: Retrieved items with scores and metadata
     """
-    # Create query embedding
+
     query_embedding = create_embeddings(query)
 
-    # Search vector store for the top k most similar items
+
     results = vector_store.similarity_search(query_embedding, k=k)
 
     return results
@@ -502,27 +502,27 @@ def compare_retrieval_approaches(query, chunk_store, prop_store, k=5):
     """
     print(f"\n=== Query: {query} ===")
 
-    # Retrieve results from the proposition-based vector store
+
     print("\nRetrieving with proposition-based approach...")
     prop_results = retrieve_from_store(query, prop_store, k)
 
-    # Retrieve results from the chunk-based vector store
+
     print("Retrieving with chunk-based approach...")
     chunk_results = retrieve_from_store(query, chunk_store, k)
 
-    # Display proposition-based results
+
     print("\n=== Proposition-Based Results ===")
     for i, result in enumerate(prop_results):
         print(f"{i+1}) {result['text']} (Score: {result['similarity']:.4f})")
 
-    # Display chunk-based results
+
     print("\n=== Chunk-Based Results ===")
     for i, result in enumerate(chunk_results):
-        # Truncate text to keep the output manageable
+
         truncated_text = result['text'][:150] + "..." if len(result['text']) > 150 else result['text']
         print(f"{i+1}) {truncated_text} (Score: {result['similarity']:.4f})")
 
-    # Return the comparison results
+
     return {
         "query": query,
         "proposition_results": prop_results,
@@ -545,15 +545,15 @@ def generate_response(query, results, result_type="proposition"):
     Returns:
         str: Generated response
     """
-    # Combine retrieved texts into a single context string
+
     context = "\n\n".join([result["text"] for result in results])
 
-    # System prompt to instruct the AI on how to generate the response
+
     system_prompt = f"""You are an AI assistant answering questions based on retrieved information.
 Your answer should be based on the following {result_type}s that were retrieved from a knowledge base.
 If the retrieved information doesn't answer the question, acknowledge this limitation."""
 
-    # User prompt containing the query and the retrieved context
+
     user_prompt = f"""Query: {query}
 
 Retrieved {result_type}s:
@@ -561,7 +561,7 @@ Retrieved {result_type}s:
 
 Please answer the query based on the retrieved information."""
 
-    # Generate the response using the OpenAI client
+
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.2-3B-Instruct",
         messages=[
@@ -571,7 +571,7 @@ Please answer the query based on the retrieved information."""
         temperature=0.2
     )
 
-    # Return the generated response text
+
     return response.choices[0].message.content
 ```
 
@@ -589,7 +589,7 @@ def evaluate_responses(query, prop_response, chunk_response, reference_answer=No
     Returns:
         str: Evaluation analysis
     """
-    # System prompt to instruct the AI on how to evaluate the responses
+
     system_prompt = """You are an expert evaluator of information retrieval systems.
     Compare the two responses to the same query, one generated from proposition-based retrieval
     and the other from chunk-based retrieval.
@@ -602,7 +602,7 @@ def evaluate_responses(query, prop_response, chunk_response, reference_answer=No
 
     Be specific about the strengths and weaknesses of each approach."""
 
-    # User prompt containing the query and the responses to be compared
+
     user_prompt = f"""Query: {query}
 
     Response from Proposition-Based Retrieval:
@@ -611,18 +611,18 @@ def evaluate_responses(query, prop_response, chunk_response, reference_answer=No
     Response from Chunk-Based Retrieval:
     {chunk_response}"""
 
-    # If a reference answer is provided, include it in the user prompt for factual checking
+
     if reference_answer:
         user_prompt += f"""
 
     Reference Answer (for factual checking):
     {reference_answer}"""
 
-    # Add the final instruction to the user prompt
+
     user_prompt += """
     Please provide a detailed comparison of these two responses, highlighting which approach performed better and why."""
 
-    # Generate the evaluation analysis using the OpenAI client
+
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.2-3B-Instruct",
         messages=[
@@ -632,7 +632,7 @@ def evaluate_responses(query, prop_response, chunk_response, reference_answer=No
         temperature=0
     )
 
-    # Return the generated evaluation analysis
+
     return response.choices[0].message.content
 ```
 
@@ -653,24 +653,24 @@ def run_proposition_chunking_evaluation(pdf_path, test_queries, reference_answer
     """
     print("=== Starting Proposition Chunking Evaluation ===\n")
 
-    # Process document into propositions and chunks
+
     chunks, propositions = process_document_into_propositions(pdf_path)
 
-    # Build vector stores for chunks and propositions
+
     chunk_store, prop_store = build_vector_stores(chunks, propositions)
 
-    # Initialize a list to store results for each query
+
     results = []
 
-    # Run tests for each query
+
     for i, query in enumerate(test_queries):
         print(f"\n\n=== Testing Query {i+1}/{len(test_queries)} ===")
         print(f"Query: {query}")
 
-        # Get retrieval results from both chunk-based and proposition-based approaches
+
         retrieval_results = compare_retrieval_approaches(query, chunk_store, prop_store)
 
-        # Generate responses based on the retrieved proposition-based results
+
         print("\nGenerating response from proposition-based results...")
         prop_response = generate_response(
             query,
@@ -678,7 +678,7 @@ def run_proposition_chunking_evaluation(pdf_path, test_queries, reference_answer
             "proposition"
         )
 
-        # Generate responses based on the retrieved chunk-based results
+
         print("Generating response from chunk-based results...")
         chunk_response = generate_response(
             query,
@@ -686,16 +686,16 @@ def run_proposition_chunking_evaluation(pdf_path, test_queries, reference_answer
             "chunk"
         )
 
-        # Get reference answer if available
+
         reference = None
         if reference_answers and i < len(reference_answers):
             reference = reference_answers[i]
 
-        # Evaluate the generated responses
+
         print("\nEvaluating responses...")
         evaluation = evaluate_responses(query, prop_response, chunk_response, reference)
 
-        # Compile results for the current query
+
         query_result = {
             "query": query,
             "proposition_results": retrieval_results["proposition_results"],
@@ -706,10 +706,10 @@ def run_proposition_chunking_evaluation(pdf_path, test_queries, reference_answer
             "evaluation": evaluation
         }
 
-        # Append the results to the overall results list
+
         results.append(query_result)
 
-        # Print the responses and evaluation for the current query
+
         print("\n=== Proposition-Based Response ===")
         print(prop_response)
 
@@ -719,12 +719,12 @@ def run_proposition_chunking_evaluation(pdf_path, test_queries, reference_answer
         print("\n=== Evaluation ===")
         print(evaluation)
 
-    # Generate overall analysis of the evaluation
+
     print("\n\n=== Generating Overall Analysis ===")
     overall_analysis = generate_overall_analysis(results)
     print("\n" + overall_analysis)
 
-    # Return the evaluation results, overall analysis, and counts of propositions and chunks
+
     return {
         "results": results,
         "overall_analysis": overall_analysis,
@@ -744,7 +744,7 @@ def generate_overall_analysis(results):
     Returns:
         str: Overall analysis
     """
-    # System prompt to instruct the AI on how to generate the overall analysis
+
     system_prompt = """You are an expert at evaluating information retrieval systems.
     Based on multiple test queries, provide an overall analysis comparing proposition-based retrieval
     to chunk-based retrieval for RAG (Retrieval-Augmented Generation) systems.
@@ -755,13 +755,13 @@ def generate_overall_analysis(results):
     3. The overall strengths and weaknesses of each approach
     4. Recommendations for when to use each approach"""
 
-    # Create a summary of evaluations for each query
+
     evaluations_summary = ""
     for i, result in enumerate(results):
         evaluations_summary += f"Query {i+1}: {result['query']}\n"
         evaluations_summary += f"Evaluation Summary: {result['evaluation'][:200]}...\n\n"
 
-    # User prompt containing the summary of evaluations
+
     user_prompt = f"""Based on the following evaluations of proposition-based vs chunk-based retrieval across {len(results)} queries,
     provide an overall analysis comparing these two approaches:
 
@@ -770,7 +770,7 @@ def generate_overall_analysis(results):
     Please provide a comprehensive analysis on the relative strengths and weaknesses of proposition-based
     and chunk-based retrieval for RAG systems."""
 
-    # Generate the overall analysis using the OpenAI client
+
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.2-3B-Instruct",
         messages=[
@@ -780,41 +780,41 @@ def generate_overall_analysis(results):
         temperature=0
     )
 
-    # Return the generated analysis text
+
     return response.choices[0].message.content
 ```
 
 ## Evaluation of Proposition Chunking
 
 ```python
-# Path to the AI information document that will be processed
+
 pdf_path = "data/AI_Information.pdf"
 
-# Define test queries covering different aspects of AI to evaluate proposition chunking
+
 test_queries = [
     "What are the main ethical concerns in AI development?",
-    # "How does explainable AI improve trust in AI systems?",
-    # "What are the key challenges in developing fair AI systems?",
-    # "What role does human oversight play in AI safety?"
+
+
+
 ]
 
-# Reference answers for more thorough evaluation and comparison of results
-# These provide a ground truth to measure the quality of generated responses
+
+
 reference_answers = [
     "The main ethical concerns in AI development include bias and fairness, privacy, transparency, accountability, safety, and the potential for misuse or harmful applications.",
-    # "Explainable AI improves trust by making AI decision-making processes transparent and understandable to users, helping them verify fairness, identify potential biases, and better understand AI limitations.",
-    # "Key challenges in developing fair AI systems include addressing data bias, ensuring diverse representation in training data, creating transparent algorithms, defining fairness across different contexts, and balancing competing fairness criteria.",
-    # "Human oversight plays a critical role in AI safety by monitoring system behavior, verifying outputs, intervening when necessary, setting ethical boundaries, and ensuring AI systems remain aligned with human values and intentions throughout their operation."
+
+
+
 ]
 
-# Run the evaluation
+
 evaluation_results = run_proposition_chunking_evaluation(
     pdf_path=pdf_path,
     test_queries=test_queries,
     reference_answers=reference_answers
 )
 
-# Print the overall analysis
+
 print("\n\n=== Overall Analysis ===")
 print(evaluation_results["overall_analysis"])
 ```

@@ -35,17 +35,17 @@ def extract_text_from_pdf(pdf_path):
     Returns:
     str: Extracted text from the PDF.
     """
-    # Open the PDF file
+
     mypdf = fitz.open(pdf_path)
-    all_text = ""  # Initialize an empty string to store the extracted text
+    all_text = ""
 
-    # Iterate through each page in the PDF
+
     for page_num in range(mypdf.page_count):
-        page = mypdf[page_num]  # Get the page
-        text = page.get_text("text")  # Extract text from the page
-        all_text += text  # Append the extracted text to the all_text string
+        page = mypdf[page_num]
+        text = page.get_text("text")
+        all_text += text
 
-    return all_text  # Return the extracted text
+    return all_text
 ```
 
 ## Chunking the Extracted Text
@@ -64,24 +64,24 @@ def chunk_text(text, n, overlap):
     Returns:
     List[str]: A list of text chunks.
     """
-    chunks = []  # Initialize an empty list to store the chunks
+    chunks = []
 
-    # Loop through the text with a step size of (n - overlap)
+
     for i in range(0, len(text), n - overlap):
-        # Append a chunk of text from index i to i + n to the chunks list
+
         chunks.append(text[i:i + n])
 
-    return chunks  # Return the list of text chunks
+    return chunks
 ```
 
 ## Setting Up the OpenAI API Client
 We initialize the OpenAI client to generate embeddings and responses.
 
 ```python
-# Initialize the OpenAI client with the base URL and API key
+
 client = OpenAI(
     base_url="https://api.studio.nebius.com/v1/",
-    api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
+    api_key=os.getenv("OPENAI_API_KEY")
 )
 ```
 
@@ -97,9 +97,9 @@ class SimpleVectorStore:
         """
         Initialize the vector store.
         """
-        self.vectors = []  # List to store embedding vectors
-        self.texts = []  # List to store original texts
-        self.metadata = []  # List to store metadata for each text
+        self.vectors = []
+        self.texts = []
+        self.metadata = []
 
     def add_item(self, text, embedding, metadata=None):
         """
@@ -110,9 +110,9 @@ class SimpleVectorStore:
         embedding (List[float]): The embedding vector.
         metadata (dict, optional): Additional metadata.
         """
-        self.vectors.append(np.array(embedding))  # Convert embedding to numpy array and add to vectors list
-        self.texts.append(text)  # Add the original text to texts list
-        self.metadata.append(metadata or {})  # Add metadata to metadata list, default to empty dict if None
+        self.vectors.append(np.array(embedding))
+        self.texts.append(text)
+        self.metadata.append(metadata or {})
 
     def similarity_search(self, query_embedding, k=5, filter_func=None):
         """
@@ -127,36 +127,36 @@ class SimpleVectorStore:
         List[Dict]: Top k most similar items with their texts and metadata.
         """
         if not self.vectors:
-            return []  # Return empty list if no vectors are stored
+            return []
 
-        # Convert query embedding to numpy array
+
         query_vector = np.array(query_embedding)
 
-        # Calculate similarities using cosine similarity
+
         similarities = []
         for i, vector in enumerate(self.vectors):
-            # Apply filter if provided
+
             if filter_func and not filter_func(self.metadata[i]):
                 continue
 
-            # Calculate cosine similarity
-            similarity = np.dot(query_vector, vector) / (np.linalg.norm(query_vector) * np.linalg.norm(vector))
-            similarities.append((i, similarity))  # Append index and similarity score
 
-        # Sort by similarity (descending)
+            similarity = np.dot(query_vector, vector) / (np.linalg.norm(query_vector) * np.linalg.norm(vector))
+            similarities.append((i, similarity))
+
+
         similarities.sort(key=lambda x: x[1], reverse=True)
 
-        # Return top k results
+
         results = []
         for i in range(min(k, len(similarities))):
             idx, score = similarities[i]
             results.append({
-                "text": self.texts[idx],  # Add the text
-                "metadata": self.metadata[idx],  # Add the metadata
-                "similarity": score  # Add the similarity score
+                "text": self.texts[idx],
+                "metadata": self.metadata[idx],
+                "similarity": score
             })
 
-        return results  # Return the list of top k results
+        return results
 ```
 
 ## Creating Embeddings
@@ -173,20 +173,20 @@ def create_embeddings(text, model="BAAI/bge-en-icl"):
     Returns:
     List[float] or List[List[float]]: The embedding vector(s).
     """
-    # Handle both string and list inputs by converting string input to a list
+
     input_text = text if isinstance(text, list) else [text]
 
-    # Create embeddings for the input text using the specified model
+
     response = client.embeddings.create(
         model=model,
         input=input_text
     )
 
-    # If the input was a single string, return just the first embedding
+
     if isinstance(text, str):
         return response.data[0].embedding
 
-    # Otherwise, return all embeddings for the list of texts
+
     return [item.embedding for item in response.data]
 ```
 
@@ -205,23 +205,23 @@ def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
     Returns:
     Tuple[List[str], SimpleVectorStore]: Document chunks and vector store.
     """
-    # Extract text from the PDF file
+
     print("Extracting text from PDF...")
     extracted_text = extract_text_from_pdf(pdf_path)
 
-    # Chunk the extracted text
+
     print("Chunking text...")
     chunks = chunk_text(extracted_text, chunk_size, chunk_overlap)
     print(f"Created {len(chunks)} text chunks")
 
-    # Create embeddings for the text chunks
+
     print("Creating embeddings for chunks...")
     chunk_embeddings = create_embeddings(chunks)
 
-    # Initialize the vector store
+
     store = SimpleVectorStore()
 
-    # Add each chunk and its embedding to the vector store with metadata
+
     for i, (chunk, embedding) in enumerate(zip(chunks, chunk_embeddings)):
         store.add_item(
             text=chunk,
@@ -231,7 +231,7 @@ def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
 
     print(f"Added {len(chunks)} chunks to the vector store")
 
-    # Return the chunks and the vector store
+
     return chunks, store
 ```
 
@@ -249,7 +249,7 @@ def classify_query(query, model="meta-llama/Llama-3.2-3B-Instruct"):
     Returns:
         str: Query category
     """
-    # Define the system prompt to guide the AI's classification
+
     system_prompt = """You are an expert at classifying questions.
         Classify the given query into exactly one of these categories:
         - Factual: Queries seeking specific, verifiable information.
@@ -260,10 +260,10 @@ def classify_query(query, model="meta-llama/Llama-3.2-3B-Instruct"):
         Return ONLY the category name, without any explanation or additional text.
     """
 
-    # Create the user prompt with the query to be classified
+
     user_prompt = f"Classify this query: {query}"
 
-    # Generate the classification response from the AI model
+
     response = client.chat.completions.create(
         model=model,
         messages=[
@@ -273,18 +273,18 @@ def classify_query(query, model="meta-llama/Llama-3.2-3B-Instruct"):
         temperature=0
     )
 
-    # Extract and strip the category from the response
+
     category = response.choices[0].message.content.strip()
 
-    # Define the list of valid categories
+
     valid_categories = ["Factual", "Analytical", "Opinion", "Contextual"]
 
-    # Ensure the returned category is valid
+
     for valid in valid_categories:
         if valid in category:
             return valid
 
-    # Default to "Factual" if classification fails
+
     return "Factual"
 ```
 
@@ -306,7 +306,7 @@ def factual_retrieval_strategy(query, vector_store, k=4):
     """
     print(f"Executing Factual retrieval strategy for: '{query}'")
 
-    # Use LLM to enhance the query for better precision
+
     system_prompt = """You are an expert at enhancing search queries.
         Your task is to reformulate the given factual query to make it more precise and
         specific for information retrieval. Focus on key entities and their relationships.
@@ -316,7 +316,7 @@ def factual_retrieval_strategy(query, vector_store, k=4):
 
     user_prompt = f"Enhance this factual query: {query}"
 
-    # Generate the enhanced query using the LLM
+
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.2-3B-Instruct",
         messages=[
@@ -326,20 +326,20 @@ def factual_retrieval_strategy(query, vector_store, k=4):
         temperature=0
     )
 
-    # Extract and print the enhanced query
+
     enhanced_query = response.choices[0].message.content.strip()
     print(f"Enhanced query: {enhanced_query}")
 
-    # Create embeddings for the enhanced query
+
     query_embedding = create_embeddings(enhanced_query)
 
-    # Perform initial similarity search to retrieve documents
+
     initial_results = vector_store.similarity_search(query_embedding, k=k*2)
 
-    # Initialize a list to store ranked results
+
     ranked_results = []
 
-    # Score and rank documents by relevance using LLM
+
     for doc in initial_results:
         relevance_score = score_document_relevance(enhanced_query, doc["text"])
         ranked_results.append({
@@ -349,10 +349,10 @@ def factual_retrieval_strategy(query, vector_store, k=4):
             "relevance_score": relevance_score
         })
 
-    # Sort the results by relevance score in descending order
+
     ranked_results.sort(key=lambda x: x["relevance_score"], reverse=True)
 
-    # Return the top k results
+
     return ranked_results[:k]
 ```
 
@@ -373,7 +373,7 @@ def analytical_retrieval_strategy(query, vector_store, k=4):
     """
     print(f"Executing Analytical retrieval strategy for: '{query}'")
 
-    # Define the system prompt to guide the AI in generating sub-questions
+
     system_prompt = """You are an expert at breaking down complex questions.
     Generate sub-questions that explore different aspects of the main analytical query.
     These sub-questions should cover the breadth of the topic and help retrieve
@@ -382,10 +382,10 @@ def analytical_retrieval_strategy(query, vector_store, k=4):
     Return a list of exactly 3 sub-questions, one per line.
     """
 
-    # Create the user prompt with the main query
+
     user_prompt = f"Generate sub-questions for this analytical query: {query}"
 
-    # Generate the sub-questions using the LLM
+
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.2-3B-Instruct",
         messages=[
@@ -395,22 +395,22 @@ def analytical_retrieval_strategy(query, vector_store, k=4):
         temperature=0.3
     )
 
-    # Extract and clean the sub-questions
+
     sub_queries = response.choices[0].message.content.strip().split('\n')
     sub_queries = [q.strip() for q in sub_queries if q.strip()]
     print(f"Generated sub-queries: {sub_queries}")
 
-    # Retrieve documents for each sub-query
+
     all_results = []
     for sub_query in sub_queries:
-        # Create embeddings for the sub-query
+
         sub_query_embedding = create_embeddings(sub_query)
-        # Perform similarity search for the sub-query
+
         results = vector_store.similarity_search(sub_query_embedding, k=2)
         all_results.extend(results)
 
-    # Ensure diversity by selecting from different sub-query results
-    # Remove duplicates (same text content)
+
+
     unique_texts = set()
     diverse_results = []
 
@@ -419,9 +419,9 @@ def analytical_retrieval_strategy(query, vector_store, k=4):
             unique_texts.add(result["text"])
             diverse_results.append(result)
 
-    # If we need more results to reach k, add more from initial results
+
     if len(diverse_results) < k:
-        # Direct retrieval for the main query
+
         main_query_embedding = create_embeddings(query)
         main_results = vector_store.similarity_search(main_query_embedding, k=k)
 
@@ -430,7 +430,7 @@ def analytical_retrieval_strategy(query, vector_store, k=4):
                 unique_texts.add(result["text"])
                 diverse_results.append(result)
 
-    # Return the top k diverse results
+
     return diverse_results[:k]
 ```
 
@@ -451,7 +451,7 @@ def opinion_retrieval_strategy(query, vector_store, k=4):
     """
     print(f"Executing Opinion retrieval strategy for: '{query}'")
 
-    # Define the system prompt to guide the AI in identifying different perspectives
+
     system_prompt = """You are an expert at identifying different perspectives on a topic.
         For the given query about opinions or viewpoints, identify different perspectives
         that people might have on this topic.
@@ -459,10 +459,10 @@ def opinion_retrieval_strategy(query, vector_store, k=4):
         Return a list of exactly 3 different viewpoint angles, one per line.
     """
 
-    # Create the user prompt with the main query
+
     user_prompt = f"Identify different perspectives on: {query}"
 
-    # Generate the different perspectives using the LLM
+
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.2-3B-Instruct",
         messages=[
@@ -472,46 +472,46 @@ def opinion_retrieval_strategy(query, vector_store, k=4):
         temperature=0.3
     )
 
-    # Extract and clean the viewpoints
+
     viewpoints = response.choices[0].message.content.strip().split('\n')
     viewpoints = [v.strip() for v in viewpoints if v.strip()]
     print(f"Identified viewpoints: {viewpoints}")
 
-    # Retrieve documents representing each viewpoint
+
     all_results = []
     for viewpoint in viewpoints:
-        # Combine the main query with the viewpoint
+
         combined_query = f"{query} {viewpoint}"
-        # Create embeddings for the combined query
+
         viewpoint_embedding = create_embeddings(combined_query)
-        # Perform similarity search for the combined query
+
         results = vector_store.similarity_search(viewpoint_embedding, k=2)
 
-        # Mark results with the viewpoint they represent
+
         for result in results:
             result["viewpoint"] = viewpoint
 
-        # Add the results to the list of all results
+
         all_results.extend(results)
 
-    # Select a diverse range of opinions
-    # Ensure we get at least one document from each viewpoint if possible
+
+
     selected_results = []
     for viewpoint in viewpoints:
-        # Filter documents by viewpoint
+
         viewpoint_docs = [r for r in all_results if r.get("viewpoint") == viewpoint]
         if viewpoint_docs:
             selected_results.append(viewpoint_docs[0])
 
-    # Fill remaining slots with highest similarity docs
+
     remaining_slots = k - len(selected_results)
     if remaining_slots > 0:
-        # Sort remaining docs by similarity
+
         remaining_docs = [r for r in all_results if r not in selected_results]
         remaining_docs.sort(key=lambda x: x["similarity"], reverse=True)
         selected_results.extend(remaining_docs[:remaining_slots])
 
-    # Return the top k results
+
     return selected_results[:k]
 ```
 
@@ -533,7 +533,7 @@ def contextual_retrieval_strategy(query, vector_store, k=4, user_context=None):
     """
     print(f"Executing Contextual retrieval strategy for: '{query}'")
 
-    # If no user context provided, try to infer it from the query
+
     if not user_context:
         system_prompt = """You are an expert at understanding implied context in questions.
 For the given query, infer what contextual information might be relevant or implied
@@ -543,7 +543,7 @@ Return a brief description of the implied context."""
 
         user_prompt = f"Infer the implied context in this query: {query}"
 
-        # Generate the inferred context using the LLM
+
         response = client.chat.completions.create(
             model="meta-llama/Llama-3.2-3B-Instruct",
             messages=[
@@ -553,11 +553,11 @@ Return a brief description of the implied context."""
             temperature=0.1
         )
 
-        # Extract and print the inferred context
+
         user_context = response.choices[0].message.content.strip()
         print(f"Inferred context: {user_context}")
 
-    # Reformulate the query to incorporate context
+
     system_prompt = """You are an expert at reformulating questions with context.
     Given a query and some contextual information, create a more specific query that
     incorporates the context to get more relevant information.
@@ -570,7 +570,7 @@ Return a brief description of the implied context."""
 
     Reformulate the query to incorporate this context:"""
 
-    # Generate the contextualized query using the LLM
+
     response = client.chat.completions.create(
         model="meta-llama/Llama-3.2-3B-Instruct",
         messages=[
@@ -580,19 +580,19 @@ Return a brief description of the implied context."""
         temperature=0
     )
 
-    # Extract and print the contextualized query
+
     contextualized_query = response.choices[0].message.content.strip()
     print(f"Contextualized query: {contextualized_query}")
 
-    # Retrieve documents based on the contextualized query
+
     query_embedding = create_embeddings(contextualized_query)
     initial_results = vector_store.similarity_search(query_embedding, k=k*2)
 
-    # Rank documents considering both relevance and user context
+
     ranked_results = []
 
     for doc in initial_results:
-        # Score document relevance considering the context
+
         context_relevance = score_document_context_relevance(query, user_context, doc["text"])
         ranked_results.append({
             "text": doc["text"],
@@ -601,7 +601,7 @@ Return a brief description of the implied context."""
             "context_relevance": context_relevance
         })
 
-    # Sort by context relevance and return top k results
+
     ranked_results.sort(key=lambda x: x["context_relevance"], reverse=True)
     return ranked_results[:k]
 ```
@@ -621,7 +621,7 @@ def score_document_relevance(query, document, model="meta-llama/Llama-3.2-3B-Ins
     Returns:
         float: Relevance score from 0-10
     """
-    # System prompt to instruct the model on how to rate relevance
+
     system_prompt = """You are an expert at evaluating document relevance.
         Rate the relevance of a document to a query on a scale from 0 to 10, where:
         0 = Completely irrelevant
@@ -630,10 +630,10 @@ def score_document_relevance(query, document, model="meta-llama/Llama-3.2-3B-Ins
         Return ONLY a numerical score between 0 and 10, nothing else.
     """
 
-    # Truncate document if it's too long
+
     doc_preview = document[:1500] + "..." if len(document) > 1500 else document
 
-    # User prompt containing the query and document preview
+
     user_prompt = f"""
         Query: {query}
 
@@ -642,7 +642,7 @@ def score_document_relevance(query, document, model="meta-llama/Llama-3.2-3B-Ins
         Relevance score (0-10):
     """
 
-    # Generate response from the model
+
     response = client.chat.completions.create(
         model=model,
         messages=[
@@ -652,16 +652,16 @@ def score_document_relevance(query, document, model="meta-llama/Llama-3.2-3B-Ins
         temperature=0
     )
 
-    # Extract the score from the model's response
+
     score_text = response.choices[0].message.content.strip()
 
-    # Extract numeric score using regex
+
     match = re.search(r'(\d+(\.\d+)?)', score_text)
     if match:
         score = float(match.group(1))
-        return min(10, max(0, score))  # Ensure score is within 0-10
+        return min(10, max(0, score))
     else:
-        # Default score if extraction fails
+
         return 5.0
 ```
 
@@ -679,7 +679,7 @@ def score_document_context_relevance(query, context, document, model="meta-llama
     Returns:
         float: Relevance score from 0-10
     """
-    # System prompt to instruct the model on how to rate relevance considering context
+
     system_prompt = """You are an expert at evaluating document relevance considering context.
         Rate the document on a scale from 0 to 10 based on how well it addresses the query
         when considering the provided context, where:
@@ -689,10 +689,10 @@ def score_document_context_relevance(query, context, document, model="meta-llama
         Return ONLY a numerical score between 0 and 10, nothing else.
     """
 
-    # Truncate document if it's too long
+
     doc_preview = document[:1500] + "..." if len(document) > 1500 else document
 
-    # User prompt containing the query, context, and document preview
+
     user_prompt = f"""
     Query: {query}
     Context: {context}
@@ -702,7 +702,7 @@ def score_document_context_relevance(query, context, document, model="meta-llama
     Relevance score considering context (0-10):
     """
 
-    # Generate response from the model
+
     response = client.chat.completions.create(
         model=model,
         messages=[
@@ -712,16 +712,16 @@ def score_document_context_relevance(query, context, document, model="meta-llama
         temperature=0
     )
 
-    # Extract the score from the model's response
+
     score_text = response.choices[0].message.content.strip()
 
-    # Extract numeric score using regex
+
     match = re.search(r'(\d+(\.\d+)?)', score_text)
     if match:
         score = float(match.group(1))
-        return min(10, max(0, score))  # Ensure score is within 0-10
+        return min(10, max(0, score))
     else:
-        # Default score if extraction fails
+
         return 5.0
 ```
 
@@ -741,28 +741,28 @@ def adaptive_retrieval(query, vector_store, k=4, user_context=None):
     Returns:
         List[Dict]: Retrieved documents
     """
-    # Classify the query to determine its type
+
     query_type = classify_query(query)
     print(f"Query classified as: {query_type}")
 
-    # Select and execute the appropriate retrieval strategy based on the query type
+
     if query_type == "Factual":
-        # Use the factual retrieval strategy for precise information
+
         results = factual_retrieval_strategy(query, vector_store, k)
     elif query_type == "Analytical":
-        # Use the analytical retrieval strategy for comprehensive coverage
+
         results = analytical_retrieval_strategy(query, vector_store, k)
     elif query_type == "Opinion":
-        # Use the opinion retrieval strategy for diverse perspectives
+
         results = opinion_retrieval_strategy(query, vector_store, k)
     elif query_type == "Contextual":
-        # Use the contextual retrieval strategy, incorporating user context
+
         results = contextual_retrieval_strategy(query, vector_store, k, user_context)
     else:
-        # Default to factual retrieval strategy if classification fails
+
         results = factual_retrieval_strategy(query, vector_store, k)
 
-    return results  # Return the retrieved documents
+    return results
 ```
 
 ## Response Generation
@@ -781,10 +781,10 @@ def generate_response(query, results, query_type, model="meta-llama/Llama-3.2-3B
     Returns:
         str: Generated response
     """
-    # Prepare context from retrieved documents by joining their texts with separators
+
     context = "\n\n---\n\n".join([r["text"] for r in results])
 
-    # Create custom system prompt based on query type
+
     if query_type == "Factual":
         system_prompt = """You are a helpful assistant providing factual information.
     Answer the question based on the provided context. Focus on accuracy and precision.
@@ -811,7 +811,7 @@ def generate_response(query, results, query_type, model="meta-llama/Llama-3.2-3B
     else:
         system_prompt = """You are a helpful assistant. Answer the question based on the provided context. If you cannot answer from the context, acknowledge the limitations."""
 
-    # Create user prompt by combining the context and the query
+
     user_prompt = f"""
     Context:
     {context}
@@ -821,7 +821,7 @@ def generate_response(query, results, query_type, model="meta-llama/Llama-3.2-3B
     Please provide a helpful response based on the context.
     """
 
-    # Generate response using the OpenAI client
+
     response = client.chat.completions.create(
         model=model,
         messages=[
@@ -831,7 +831,7 @@ def generate_response(query, results, query_type, model="meta-llama/Llama-3.2-3B
         temperature=0.2
     )
 
-    # Return the generated response content
+
     return response.choices[0].message.content
 ```
 
@@ -854,20 +854,20 @@ def rag_with_adaptive_retrieval(pdf_path, query, k=4, user_context=None):
     print("\n=== RAG WITH ADAPTIVE RETRIEVAL ===")
     print(f"Query: {query}")
 
-    # Process the document to extract text, chunk it, and create embeddings
+
     chunks, vector_store = process_document(pdf_path)
 
-    # Classify the query to determine its type
+
     query_type = classify_query(query)
     print(f"Query classified as: {query_type}")
 
-    # Retrieve documents using the adaptive retrieval strategy based on the query type
+
     retrieved_docs = adaptive_retrieval(query, vector_store, k, user_context)
 
-    # Generate a response based on the query, retrieved documents, and query type
+
     response = generate_response(query, retrieved_docs, query_type)
 
-    # Compile the results into a dictionary
+
     result = {
         "query": query,
         "query_type": query_type,
@@ -902,35 +902,35 @@ def evaluate_adaptive_vs_standard(pdf_path, test_queries, reference_answers=None
     """
     print("=== EVALUATING ADAPTIVE VS. STANDARD RETRIEVAL ===")
 
-    # Process document to extract text, create chunks and build the vector store
+
     chunks, vector_store = process_document(pdf_path)
 
-    # Initialize collection for storing comparison results
+
     results = []
 
-    # Process each test query with both retrieval methods
+
     for i, query in enumerate(test_queries):
         print(f"\n\nQuery {i+1}: {query}")
 
-        # --- Standard retrieval approach ---
+
         print("\n--- Standard Retrieval ---")
-        # Create embedding for the query
+
         query_embedding = create_embeddings(query)
-        # Retrieve documents using simple vector similarity
+
         standard_docs = vector_store.similarity_search(query_embedding, k=4)
-        # Generate response using a generic approach
+
         standard_response = generate_response(query, standard_docs, "General")
 
-        # --- Adaptive retrieval approach ---
+
         print("\n--- Adaptive Retrieval ---")
-        # Classify the query to determine its type (Factual, Analytical, Opinion, Contextual)
+
         query_type = classify_query(query)
-        # Retrieve documents using the strategy appropriate for this query type
+
         adaptive_docs = adaptive_retrieval(query, vector_store, k=4)
-        # Generate a response tailored to the query type
+
         adaptive_response = generate_response(query, adaptive_docs, query_type)
 
-        # Store complete results for this query
+
         result = {
             "query": query,
             "query_type": query_type,
@@ -944,24 +944,24 @@ def evaluate_adaptive_vs_standard(pdf_path, test_queries, reference_answers=None
             }
         }
 
-        # Add reference answer if available for this query
+
         if reference_answers and i < len(reference_answers):
             result["reference_answer"] = reference_answers[i]
 
         results.append(result)
 
-        # Display preview of both responses for quick comparison
+
         print("\n--- Responses ---")
         print(f"Standard: {standard_response[:200]}...")
         print(f"Adaptive: {adaptive_response[:200]}...")
 
-    # Calculate comparative metrics if reference answers are available
+
     if reference_answers:
         comparison = compare_responses(results)
         print("\n=== EVALUATION RESULTS ===")
         print(comparison)
 
-    # Return the complete evaluation results
+
     return {
         "results": results,
         "comparison": comparison if reference_answers else "No reference answers provided for evaluation"
@@ -979,33 +979,33 @@ def compare_responses(results):
     Returns:
         str: Comparison analysis
     """
-    # Define the system prompt to guide the AI in comparing responses
+
     comparison_prompt = """You are an expert evaluator of information retrieval systems.
     Compare the standard retrieval and adaptive retrieval responses for each query.
     Consider factors like accuracy, relevance, comprehensiveness, and alignment with the reference answer.
     Provide a detailed analysis of the strengths and weaknesses of each approach."""
 
-    # Initialize the comparison text with a header
+
     comparison_text = "# Evaluation of Standard vs. Adaptive Retrieval\n\n"
 
-    # Iterate through each result to compare responses
+
     for i, result in enumerate(results):
-        # Skip if there is no reference answer for the query
+
         if "reference_answer" not in result:
             continue
 
-        # Add query details to the comparison text
+
         comparison_text += f"## Query {i+1}: {result['query']}\n"
         comparison_text += f"*Query Type: {result['query_type']}*\n\n"
         comparison_text += f"**Reference Answer:**\n{result['reference_answer']}\n\n"
 
-        # Add standard retrieval response to the comparison text
+
         comparison_text += f"**Standard Retrieval Response:**\n{result['standard_retrieval']['response']}\n\n"
 
-        # Add adaptive retrieval response to the comparison text
+
         comparison_text += f"**Adaptive Retrieval Response:**\n{result['adaptive_retrieval']['response']}\n\n"
 
-        # Create the user prompt for the AI to compare the responses
+
         user_prompt = f"""
         Reference Answer: {result['reference_answer']}
 
@@ -1016,7 +1016,7 @@ def compare_responses(results):
         Provide a detailed comparison of the two responses.
         """
 
-        # Generate the comparison analysis using the OpenAI client
+
         response = client.chat.completions.create(
             model="meta-llama/Llama-3.2-3B-Instruct",
             messages=[
@@ -1026,10 +1026,10 @@ def compare_responses(results):
             temperature=0.2
         )
 
-        # Add the AI's comparison analysis to the comparison text
+
         comparison_text += f"**Comparison Analysis:**\n{response.choices[0].message.content}\n\n"
 
-    return comparison_text  # Return the complete comparison analysis
+    return comparison_text
 ```
 
 ## Evaluating the Adaptive Retrieval System (Customized Queries)
@@ -1037,41 +1037,41 @@ def compare_responses(results):
 The final step to use the adaptive RAG evaluation system is to call the evaluate_adaptive_vs_standard() function with your PDF document and test queries:
 
 ```python
-# Path to your knowledge source document
-# This PDF file contains the information that the RAG system will use
+
+
 pdf_path = "data/AI_Information.pdf"
 
-# Define test queries covering different query types to demonstrate
-# how adaptive retrieval handles various query intentions
+
+
 test_queries = [
-    "What is Explainable AI (XAI)?",                                              # Factual query - seeking definition/specific information
-    # "How do AI ethics and governance frameworks address potential societal impacts?",  # Analytical query - requiring comprehensive analysis
-    # "Is AI development moving too fast for proper regulation?",                   # Opinion query - seeking diverse perspectives
-    # "How might explainable AI help in healthcare decisions?",                     # Contextual query - benefits from context-awareness
+    "What is Explainable AI (XAI)?",
+
+
+
 ]
 
-# Reference answers for more thorough evaluation
-# These can be used to objectively assess response quality against a known standard
+
+
 reference_answers = [
     "Explainable AI (XAI) aims to make AI systems transparent and understandable by providing clear explanations of how decisions are made. This helps users trust and effectively manage AI technologies.",
-    # "AI ethics and governance frameworks address potential societal impacts by establishing guidelines and principles to ensure AI systems are developed and used responsibly. These frameworks focus on fairness, accountability, transparency, and the protection of human rights to mitigate risks and promote beneficial output.5.",
-    # "Opinions on whether AI development is moving too fast for proper regulation vary. Some argue that rapid advancements outpace regulatory efforts, leading to potential risks and ethical concerns. Others believe that innovation should continue at its current pace, with regulations evolving alongside to address emerging challenges.",
-    # "Explainable AI can significantly aid healthcare decisions by providing transparent and understandable insights into AI-driven recommendations. This transparency helps healthcare professionals trust AI systems, make informed decisions, and improve patient output by understanding the rationale behind AI suggestions."
+
+
+
 ]
 ```
 
 ```python
-# Run the evaluation comparing adaptive vs standard retrieval
-# This will process each query using both methods and compare the results
+
+
 evaluation_results = evaluate_adaptive_vs_standard(
-    pdf_path=pdf_path,                  # Source document for knowledge extraction
-    test_queries=test_queries,          # List of test queries to evaluate
-    reference_answers=reference_answers  # Optional ground truth for comparison
+    pdf_path=pdf_path,
+    test_queries=test_queries,
+    reference_answers=reference_answers
 )
 
-# The results will show a detailed comparison between standard retrieval and
-# adaptive retrieval performance across different query types, highlighting
-# where adaptive strategies provide improved outcomes
+
+
+
 print(evaluation_results["comparison"])
 ```
 
