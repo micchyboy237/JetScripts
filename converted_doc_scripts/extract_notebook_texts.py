@@ -72,13 +72,12 @@ def process_notebook(input_path, output_dir=None, include_outputs=True, include_
 def main():
     """Main function to process notebook files."""
     notebook_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/all-rag-techniques/notebooks"
-    output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/all-rag-techniques/docs"
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    include_outputs = False
-    include_code = False
+    include_outputs = True
+    include_code = True
 
     if os.path.isdir(notebook_path):
         for file in Path(notebook_path).glob('*.ipynb'):
