@@ -1,5 +1,6 @@
 import json
 from typing import Any, Callable, Union, List, Dict, Optional, Literal, TypedDict, DefaultDict
+from jet.code.utils import ProcessedResult, process_markdown_file
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
 from jet.transformers.formatters import format_json
@@ -803,7 +804,7 @@ def main2():
     import os
     import shutil
 
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/searched_html_myanimelist_net_Isekai/headers.json"
+    md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/all-rag-techniques/docs/5_contextual_chunk_headers_rag.md"
     output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/run_format_html"
 
     shutil.rmtree(output_dir, ignore_errors=True)
@@ -817,8 +818,9 @@ def main2():
     top_k = 10
     use_bm25 = True
 
-    data: list[dict] = load_file(data_file)
-    texts = [item["content"] for item in data]
+    # data: list[dict] = load_file(data_file)
+    data: list[ProcessedResult] = process_markdown_file(md_file)
+    texts = [item["text"] for item in data]
 
     logger.info(
         f"Reranking {len(texts)} web scraped contents for query: {query}")

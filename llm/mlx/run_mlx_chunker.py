@@ -25,28 +25,23 @@ PROMPT_TEMPLATE = """
 mlx = MLX(MODEL)
 
 
-def call_llm_generation(contexts: list[str]) -> str:
-    context = "\n\n".join(contexts)  # Filter by model max tokens
-    model_max_tokens = get_model_max_tokens(mlx.model_path)
-    max_tokens = model_max_tokens - 640
-    merged_texts = merge_texts(
-        context, mlx.tokenizer, max_length=max_tokens)
+class GenerationResult(TypedDict):
+    context: str
+    response: str
 
-    current_text = ""
-    current_token_count = 0
 
-    for text, token_count in zip(merged_texts["texts"], merged_texts["token_counts"]):
-        if current_token_count + token_count > max_tokens:
-            break
-        current_text += text
-        current_token_count += token_count
+def call_llm_generation(texts: list[str]) -> GenerationResult:
+    context = mlx.filter_docs(texts)
 
     response = ""
-    for chunk in mlx.stream_chat(current_text, max_tokens=-1, system_prompt=SYSTEM_PROMPT):
+    for chunk in mlx.stream_chat(context, max_tokens=-1, system_prompt=SYSTEM_PROMPT):
         content = chunk["choices"][0]["message"]["content"]
         response += content
         logger.success(content, flush=True)
-    return response
+    return {
+        "context": context,
+        "response": response,
+    }
 
 
 def preprocess_data(data: list[ProcessedResult]) -> list[str]:
@@ -56,33 +51,36 @@ def preprocess_data(data: list[ProcessedResult]) -> list[str]:
     return chunks
 
 
-class GenerationResult(TypedDict):
+class GeneratorGenerationResult(TypedDict):
     source: Union[str, Path]
     code: str
+    data: list[str]
 
 
-def run_generate_chunker_class(json_file_or_dir) -> Generator[GenerationResult, None, None]:
+def run_generate_chunker_class(json_file_or_dir) -> Generator[GeneratorGenerationResult, None, None]:
     # Process the markdown file
     if os.path.isdir(json_file_or_dir):
         for file in Path(json_file_or_dir).glob('*.json'):
+            logger.info(f"\nProcessing {file}")
             data: list[ProcessedResult] = load_file(str(file))
             preprocessed_data = preprocess_data(data)
-            response = call_llm_generation(preprocessed_data)
-            yield {"source": file, "code": response}
+            result = call_llm_generation(preprocessed_data)
+            yield {"source": file, "code": result["response"], "data": preprocessed_data}
     else:
+        logger.info(f"\nProcessing {json_file_or_dir}")
         data: list[ProcessedResult] = load_file(json_file_or_dir)
         preprocessed_data = preprocess_data(data)
-        response = call_llm_generation(preprocessed_data)
-        yield {"source": json_file_or_dir, "code": response}
+        result = call_llm_generation(preprocessed_data)
+        yield {"source": json_file_or_dir, "code": result["response"], "data": preprocessed_data}
 
 
 if __name__ == "__main__":
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0], "markdown_processing")
 
-    md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/all-rag-techniques/docs"
+    md_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/all-rag-techniques/docs"
 
-    preprocess_notebooks_to_markdowns(md_file, output_dir)
+    preprocess_notebooks_to_markdowns(md_dir, output_dir)
 
     results = run_generate_chunker_class(output_dir)
 
@@ -91,5 +89,7 @@ if __name__ == "__main__":
 
     for result in results:
         file_no_ext = os.path.splitext(os.path.basename(result['source']))[0]
-        file = f"{file_no_ext}.py"
-        save_file(result["code"], f"{chunker_classes_output_dir}/{file}")
+        sub_dir = f"{chunker_classes_output_dir}/{file_no_ext}"
+        logger.newline()
+        save_file(result["code"], f"{sub_dir}/chunker.py")
+        save_file(result["data"], f"{sub_dir}/data.json")
