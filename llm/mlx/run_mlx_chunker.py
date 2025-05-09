@@ -17,7 +17,7 @@ from jet.scrapers.utils import MergedTextsResult, merge_texts_by_hierarchy
 MODEL: ModelKey = "llama-3.2-3b-instruct-4bit"
 
 SYSTEM_PROMPT = """
-You are a code generation assistant. Given relevant chunking logic in context, generate a Python class named Chunker. Focus on clean, efficient, and well-documented code. Output only the python code block (```python) any other additional text.
+You are a code generation assistant. Given relevant chunking logic in context, generate a Python class named Chunker. Focus on clean, efficient, and well-documented code. Output only the python code block (```python) without any other additional text.
 """
 
 
@@ -70,7 +70,14 @@ def run_generate_chunker_class(query: str, json_file_or_dir: str) -> Generator[G
         for file in Path(json_file_or_dir).glob('*.json'):
             logger.info(f"\nProcessing {file}")
             data: list[ProcessedResult] = load_file(str(file))
-            texts = [d["text"] for d in data]
+            texts = []
+            for d in data:
+                if d["content"].strip():
+                    texts.append(f"{d['header']}\n{d["content"]}")
+                if d["code"]:
+                    texts.append(
+                        f"{d['header']}\nCode:\n{d["code"]['content']}")
+            # texts = [d["text"] for d in data]
             reranked_data = rerank_llm(query, texts)
             reranked_texts = [doc["text"] for doc in reranked_data]
             preprocessed_data = preprocess_data(reranked_texts, chunk_size)
@@ -82,7 +89,13 @@ def run_generate_chunker_class(query: str, json_file_or_dir: str) -> Generator[G
     else:
         logger.info(f"\nProcessing {json_file_or_dir}")
         data: list[ProcessedResult] = load_file(str(file))
-        texts = [d["text"] for d in data]
+        texts = []
+        for d in data:
+            if d["content"].strip():
+                texts.append(f"{d['header']}\n{d["content"]}")
+            if d["code"]:
+                texts.append(f"{d['header']}\nCode:\n{d["code"]['content']}")
+        # texts = [d["text"] for d in data]
         reranked_data = rerank_llm(query, texts)
         reranked_texts = [doc["text"] for doc in reranked_data]
         preprocessed_data = preprocess_data(reranked_texts, chunk_size)
