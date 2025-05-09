@@ -2,6 +2,8 @@ import json
 from typing import Any, Callable, Union, List, Dict, Optional, Literal, TypedDict, DefaultDict
 from jet.code.utils import ProcessedResult, process_markdown_file
 from jet.file.utils import load_file, save_file
+from jet.llm.mlx.base import MLX
+from jet.llm.mlx.mlx_types import ModelKey, ModelType
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 import numpy as np
@@ -18,6 +20,8 @@ import re
 # from fast_langdetect import detect
 from rank_bm25 import BM25Okapi
 from nltk.tokenize import sent_tokenize, word_tokenize
+
+mlx = MLX("llama-3.2-1b-instruct-4bit")
 
 
 class SimilarityResult(TypedDict):
@@ -800,20 +804,63 @@ def main():
         logger.newline()
 
 
+def write_query(contexts: list[str], model: ModelType = "llama-3.2-1b-instruct-4bit") -> str:
+    system_prompt = (
+        "You are an AI assistant specialized in generating search queries for vector search. "
+        "Your task is to create a concise and precise search query in the form of a natural, grammatically correct question. "
+        "The question should incorporate specific, descriptive, and contextually relevant keywords from the provided contexts, "
+        "capturing their essence while being optimized for vector search. "
+        "Output only the question wrapped in a ```text code block, with no additional text."
+    )
+    # Combine contexts into a single string for the user message
+    context = mlx.filter_docs(contexts)
+    user_message = f"Contexts:\n{context}"
+
+    response = ""
+    for chunk in mlx.stream_chat(
+        [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message}
+        ],
+        model=model,
+        temperature=0.0
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    return response
+
+
+def rewrite_query(original_query: str, model: ModelType = "llama-3.2-1b-instruct-4bit") -> str:
+    system_prompt = "You are an AI assistant specialized in improving search queries. Your task is to rewrite user queries to be more specific, detailed, and likely to retrieve relevant information."
+    response = ""
+    for chunk in mlx.stream_chat(
+        [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Rewrite this query: {original_query}"}
+        ],
+        model=model,
+        temperature=0.0
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    return response
+
+
 def main2():
     import os
     import shutil
 
     md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/all-rag-techniques/docs/5_contextual_chunk_headers_rag.md"
-    output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/run_format_html"
+    output_dir = os.path.join(
+        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    model_path = "mlx-community/Llama-3.2-1B-Instruct-4bit"
-    query = [
-        "List upcoming isekai anime this year (2024-2025).",
-    ]
+    model: ModelKey = "llama-3.2-1b-instruct-4bit"
+
     threshold = 0.0
     top_k = 10
     use_bm25 = True
@@ -821,6 +868,8 @@ def main2():
     # data: list[dict] = load_file(data_file)
     data: list[ProcessedResult] = process_markdown_file(md_file)
     texts = [item["text"] for item in data]
+
+    query = write_query(texts, model)
 
     logger.info(
         f"Reranking {len(texts)} web scraped contents for query: {query}")

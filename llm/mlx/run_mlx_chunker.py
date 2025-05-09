@@ -12,7 +12,7 @@ from jet.llm.mlx.token_utils import chunk_text, merge_texts
 from jet.llm.mlx.utils import get_model_max_tokens
 from jet.logger import logger
 
-MODEL: ModelKey = "llama-3.2-3b-instruct-4bit"
+MODEL: ModelKey = "qwen3-8b-3bit"
 
 SYSTEM_PROMPT = """
 You are a code generation assistant. Given relevant code context, generate a Python class named Chunker that splits input data into logical chunks. Focus on clean, efficient, and well-documented code. Output only the class definition.
