@@ -109,7 +109,7 @@ if __name__ == "__main__":
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0], "markdown_processing")
 
-    md_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/all-rag-techniques/docs"
+    md_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/all-rag-techniques/docs/5_contextual_chunk_headers_rag.md"
 
     preprocess_notebooks_to_markdowns(md_dir, output_dir)
 
