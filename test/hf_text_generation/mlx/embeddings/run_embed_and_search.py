@@ -1,4 +1,5 @@
 import json
+import time
 from jet.file.utils import save_file
 from jet.llm.mlx.mlx_types import EmbedModelKey
 from jet.llm.mlx.models import AVAILABLE_EMBED_MODELS, resolve_model
@@ -70,8 +71,7 @@ def main():
     # Iterate through all available models
     results_dict = {}
     for model_key in AVAILABLE_EMBED_MODELS.keys():
-        results_dict[model_key] = []
-        results = results_dict[model_key]
+        results_dict[model_key] = {"duration": 0.0, "results": []}
 
         logger.newline()
 
@@ -79,20 +79,26 @@ def main():
         logger.log(f"Testing model:", model_key, colors=["GRAY", "ORANGE"])
         model, tokenizer = load_model(model_key)
 
-        # Perform search
+        # Perform search with timing
+        start_time = time.time()
         search_results = search(query, corpus, model, tokenizer, top_k=top_k)
+        duration = time.time() - start_time
+
+        # Update results dictionary
+        results_dict[model_key]["duration"] = f"{duration:.2f}s"
+        results_dict[model_key]["results"] = search_results
 
         # Print search results
         logger.log("Query:", query, colors=["GRAY", "INFO"])
-        logger.gray(f"Top matching texts (model: {model_key}):")
+        logger.gray(
+            f"Top matching texts (model: {model_key}, duration: {duration:.2f}s):")
         for i, result in enumerate(search_results, 1):
             score = result['score'] * 100
             logger.log(f"{i}.", f"{score:.2f}%", json.dumps(result['text'])[:100], colors=[
                        "DEBUG", "SUCCESS", "WHITE"])
 
-            results.append(result)
-            save_file(
-                results_dict, f"{output_dir}/mlx_embed_and_search_results.json")
+        save_file(
+            results_dict, f"{output_dir}/mlx_embed_and_search_results.json")
 
 
 if __name__ == "__main__":
