@@ -4,11 +4,11 @@ import re
 from typing import Dict, List, TypedDict, Optional
 from uuid import uuid4
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.mlx_types import ModelKey
+from jet.llm.mlx.mlx_types import Message, ModelKey
 from jet.logger import logger
 from jet.file.utils import load_file, save_file
 
-MODEL: ModelKey = "llama-3.2-3b-instruct-4bit"
+MODEL: ModelKey = "qwen3-8b-3bit"
 mlx = MLX(MODEL)
 
 
@@ -22,6 +22,8 @@ class PromptSample(TypedDict):
 
 class GeneratedCodeResult(TypedDict):
     structure: str
+    system: str
+    query: str
     code: str
     error: Optional[str]
 
@@ -59,7 +61,7 @@ def load_prompt_samples(file_path: str) -> List[PromptSample]:
         return []
 
 
-def create_system_prompt_for_code_generation(sample: PromptSample) -> str:
+def create_system_prompt_for_code_generation() -> str:
     """Creates an optimized system prompt for generating Python code based on the sample."""
     base_prompt = (
         "You are an expert Python developer tasked with generating complete, functional, and well-documented Python code. "
@@ -70,28 +72,27 @@ def create_system_prompt_for_code_generation(sample: PromptSample) -> str:
         "- Include docstrings and comments for clarity.\n"
         "- Be compatible with the existing MLX framework (e.g., use jet.llm.mlx modules).\n"
         "- Produce output matching the example structure exactly.\n\n"
-        "Example provided:\n"
-        f"Structure: {sample['structure']}\n"
-        f"Category: {sample['category']}\n"
-        f"System Message: {sample['system_message']}\n"
-        f"Input: {sample['input']}\n"
-        f"Output: {sample['output']}\n\n"
-        "Generate a complete Python script that implements this structure. Do not include markdown code fences or any non-Python content. "
+        "Generate a complete Python script that implements the provided info. Do not include markdown code fences or any non-Python content. "
         "Ensure the script can be saved and run directly."
     )
     return base_prompt
 
 
-def generate_code_for_sample(sample: PromptSample) -> GeneratedCodeResult:
+def generate_code_for_sample(sample: PromptSample, few_shot_examples: list[Message] = []) -> GeneratedCodeResult:
     """Generates Python code for a single prompt sample using the MLX model."""
     try:
-        system_prompt = create_system_prompt_for_code_generation(sample)
-        context = f"Generate a Python script for the {sample['structure']} structure."
+        system_prompt = create_system_prompt_for_code_generation()
+        query = f"Generate a Python script for the {sample['structure']} structure."
         response = ""
+
+        messages: list[Message] = [
+            {"role": "system", "content": system_prompt},
+            *few_shot_examples,
+            {"role": "user", "content": query},
+        ]
         for chunk in mlx.stream_chat(
-            context,
+            messages,
             max_tokens=-1,
-            system_prompt=system_prompt,
             temperature=0.3,
         ):
             content = chunk["choices"][0]["message"]["content"]
@@ -103,7 +104,9 @@ def generate_code_for_sample(sample: PromptSample) -> GeneratedCodeResult:
         if response.endswith('```'):
             response = response[:-3]
         return {
-            "structure Kinetics": sample["structure"],
+            "structure": sample["structure"],
+            "system": system_prompt,
+            "query": query,
             "code": response.strip(),
             "error": None
         }
@@ -111,6 +114,8 @@ def generate_code_for_sample(sample: PromptSample) -> GeneratedCodeResult:
         logger.error(f"Error generating code for {sample['structure']}: {e}")
         return {
             "structure": sample["structure"],
+            "system": system_prompt,
+            "query": query,
             "code": "",
             "error": str(e)
         }
@@ -126,10 +131,61 @@ def create_helpers(output_dir: str, prompt_samples_file: str = "Dataset_Prompt_S
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
+    sample_yes_no_answer_code = load_file(
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/helpers/yes_no_answer.py")
+    sample_answer_multiple_choice_code = load_file(
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/helpers/answer_multiple_choice.py")
+    sample_yes_no_answer = {
+        "category": "Classification",
+        "structure": "Yes/No",
+        "system_message": "Answer the question with 'Yes' or 'No' only.",
+        "input": "Is Python a programming language?",
+        "output": "Yes",
+    }
+    sample_answer_multiple_choice = {
+        "category": "Selection",
+        "structure": "Multiple Choice",
+        "system_message": "Answer the following question by choosing one of the options provided without any additional text.\nOptions:\nMars\nEarth\nJupiter\nSaturn",
+        "input": "Which planet is known as the Red Planet?",
+        "output": "Mars"
+    }
+    few_shot_examples: list[Message] = [
+        {
+            "role": "user",
+            "content": (
+                f"Structure: {sample_yes_no_answer['structure']}\n"
+                f"Category: {sample_yes_no_answer['category']}\n"
+                f"System Message: {sample_yes_no_answer['system_message']}\n"
+                f"Input: {sample_yes_no_answer['input']}\n"
+                f"Output: {sample_yes_no_answer['output']}\n"
+                "Response:"
+            ),
+        },
+        {
+            "role": "assistant",
+            "content": f"```python\n{sample_yes_no_answer_code}\n```"
+        },
+        {
+            "role": "user",
+            "content": (
+                f"Structure: {sample_answer_multiple_choice['structure']}\n"
+                f"Category: {sample_answer_multiple_choice['category']}\n"
+                f"System Message: {sample_answer_multiple_choice['system_message']}\n"
+                f"Input: {sample_answer_multiple_choice['input']}\n"
+                f"Output: {sample_answer_multiple_choice['output']}\n"
+                "Response:"
+            ),
+        },
+        {
+            "role": "assistant",
+            "content": f"```python\n{sample_answer_multiple_choice_code}\n```"
+        },
+    ]
+
     for sample in samples:
         logger.info(
             f"Generating code for {sample['structure']} structure (Category: {sample['category']})")
-        result = generate_code_for_sample(sample)
+        result = generate_code_for_sample(sample, few_shot_examples)
 
         if result["error"]:
             logger.error(
@@ -141,21 +197,27 @@ def create_helpers(output_dir: str, prompt_samples_file: str = "Dataset_Prompt_S
             '/', '_').replace(' ', '_')
         safe_category = sample['category'].lower().replace(
             ' ', '_').replace('/', '_')
-        file_name = f"{safe_category}_{safe_structure}_{uuid4().hex[:8]}.py"
-        file_path = output_path / file_name
+        file_name = f"{safe_category}_{safe_structure}.py"
 
-        try:
-            save_file(result["code"], str(file_path))
-            logger.success(f"Saved generated code to {file_path}")
-        except Exception as e:
-            logger.error(f"Error saving file {file_path}: {e}")
+        code_file_path = output_path / "code" / file_name
+        save_file(result["code"], str(code_file_path))
+
+        file_name = f"{safe_category}_{safe_structure}.json"
+        info_file_path = output_path / "info" / file_name
+        save_file(result, str(info_file_path))
 
 
 if __name__ == "__main__":
     import os
+    import shutil
+
     prompt_samples_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/helpers/Dataset_Prompt_Samples.md"
     output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", "helpers"
+        os.path.dirname(__file__), "generated", os.path.splitext(
+            os.path.basename(__file__))[0]
     )
+
+    shutil.rmtree(output_dir, ignore_errors=True)
+    os.makedirs(output_dir, exist_ok=True)
 
     create_helpers(output_dir, prompt_samples_file)
