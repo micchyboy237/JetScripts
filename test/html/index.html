@@ -110,7 +110,7 @@
         const streamChunks = async () => {
           setIsStreaming(true);
           setError(null);
-          setResponses({});
+          setResponses({}); // Reset responses before streaming
           const payload = {
             model: "llama-3.2-1b-instruct-4bit",
             prompt: prompts,
@@ -156,6 +156,7 @@
           } finally {
             setIsStreaming(false);
           }
+
           function processLine(line) {
             if (!line.trim()) return;
             console.log(`Received: ${line}`);
@@ -171,6 +172,7 @@
                       content: "",
                       rawContent: "",
                       truncated: false,
+                      status: "streaming",
                     };
                   }
                   const prevContent = newResponses[data.prompt_id].rawContent;
@@ -196,10 +198,19 @@
                   [data.prompt_id]: {
                     ...prev[data.prompt_id],
                     truncated: data.truncated,
+                    status: "completed",
                   },
                 }));
               } else if (data.type === "error") {
                 console.error(`Error [${data.prompt_id}]: ${data.message}`);
+                setResponses((prev) => ({
+                  ...prev,
+                  [data.prompt_id]: {
+                    ...prev[data.prompt_id],
+                    status: "error",
+                    error: data.message,
+                  },
+                }));
                 setError(`Server error: ${data.message}`);
               } else {
                 console.warn(`Unknown message type: ${data.type}`);
@@ -415,10 +426,12 @@
             case "pending":
               return "text-yellow-600 dark:text-yellow-400";
             case "processing":
+            case "streaming":
               return "text-blue-600 dark:text-blue-400";
             case "completed":
               return "text-green-600 dark:text-green-400";
             case "failed":
+            case "error":
               return "text-red-600 dark:text-red-400";
             default:
               return "text-gray-600 dark:text-gray-400";
@@ -659,6 +672,21 @@
                               <strong>Error:</strong> {promptData.error}
                             </p>
                           )}
+                          {promptData.response && (
+                            <p className="text-gray-700 dark:text-gray-300">
+                              <strong>Response:</strong>
+                              <div
+                                className="markdown-content mt-2 text-gray-700 dark:text-gray-300"
+                                dangerouslySetInnerHTML={{
+                                  __html: DOMPurify.sanitize(
+                                    marked.parse(promptData.response, {
+                                      breaks: true,
+                                    })
+                                  ),
+                                }}
+                              />
+                            </p>
+                          )}
                         </div>
                       )
                     )}
@@ -668,45 +696,70 @@
             </section>
             <section>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Responses
+                Streaming Responses
               </h2>
               {isStreaming && Object.keys(responses).length === 0 && (
                 <div className="text-gray-700 dark:text-gray-300 p-4">
-                  Loading responses...
+                  Waiting for responses...
                 </div>
               )}
-              {Object.entries(responses).map(
-                ([promptId, { prompt, content, rawContent, truncated }]) => (
+              {prompts.map((prompt, index) => {
+                const promptId = Object.keys(responses).find(
+                  (id) => responses[id].prompt === prompt
+                );
+                const responseData = promptId ? responses[promptId] : null;
+                return (
                   <div
-                    key={promptId}
+                    key={index}
                     className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-4"
                   >
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                      Prompt ID: {promptId}
+                      Prompt {index + 1}
                     </h3>
                     <p className="text-gray-700 dark:text-gray-300">
                       <strong>Prompt:</strong> {prompt}
                     </p>
-                    <p className="text-gray-700 dark:text-gray-300">
-                      <strong>Response:</strong>
-                      <div
-                        className="markdown-content mt-2 text-gray-700 dark:text-gray-300"
-                        dangerouslySetInnerHTML={{
-                          __html: DOMPurify.sanitize(content),
-                        }}
-                      />
-                      {content === rawContent && (
-                        <pre className="mt-2">{rawContent}</pre>
-                      )}
-                    </p>
-                    {truncated && (
-                      <p className="text-yellow-600 dark:text-yellow-400 mt-2">
-                        Warning: Response was truncated due to max_tokens limit.
+                    {responseData ? (
+                      <>
+                        <p className="text-gray-700 dark:text-gray-300">
+                          <strong>Status:</strong>{" "}
+                          <span className={getStatusColor(responseData.status)}>
+                            {responseData.status}
+                          </span>
+                        </p>
+                        <p className="text-gray-700 dark:text-gray-300">
+                          <strong>Response:</strong>
+                          <div
+                            className="markdown-content mt-2 text-gray-700 dark:text-gray-300"
+                            dangerouslySetInnerHTML={{
+                              __html: DOMPurify.sanitize(responseData.content),
+                            }}
+                          />
+                        </p>
+                        {responseData.error && (
+                          <p className="text-red-600 dark:text-red-400">
+                            <strong>Error:</strong> {responseData.error}
+                          </p>
+                        )}
+                        {responseData.truncated && (
+                          <p className="text-yellow-600 dark:text-yellow-400 mt-2">
+                            Warning: Response was truncated due to max_tokens
+                            limit.
+                          </p>
+                        )}
+                      </>
+                    ) : isStreaming ? (
+                      <p className="text-gray-700 dark:text-gray-300 mt-2">
+                        Waiting for response...
+                      </p>
+                    ) : (
+                      <p className="text-gray-700 dark:text-gray-300 mt-2">
+                        No response yet.
                       </p>
                     )}
                   </div>
-                )
-              )}
+                );
+              })}
             </section>
           </div>
         );
