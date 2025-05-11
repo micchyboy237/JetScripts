@@ -377,7 +377,7 @@ if __name__ == "__main__":
     prompt_samples_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/helpers/Dataset_Prompt_Samples.md"
     output_dir = os.path.join(
         os.path.dirname(__file__),
-        "genrated",
+        "generated",
         os.path.splitext(os.path.basename(__file__))[0]
     )
 
