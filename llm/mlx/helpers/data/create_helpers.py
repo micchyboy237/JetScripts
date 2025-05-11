@@ -9,8 +9,9 @@ from jet.llm.mlx.utils import get_model_max_tokens
 from jet.logger import logger
 from jet.file.utils import load_file, save_file
 
+seed = 42
 MODEL: ModelKey = "qwen3-8b-3bit"
-mlx = MLX(MODEL)
+mlx = MLX(MODEL, seed=seed)
 
 
 class PromptSample(TypedDict):
@@ -220,7 +221,6 @@ if __name__ == "__main__":
             os.path.basename(__file__))[0]
     )
 
-    shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
     create_helpers(output_dir, prompt_samples_file)
