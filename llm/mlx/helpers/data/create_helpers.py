@@ -5,6 +5,7 @@ from typing import Dict, List, TypedDict, Optional
 from uuid import uuid4
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.mlx_types import Message, ModelKey
+from jet.llm.mlx.utils import get_model_max_tokens
 from jet.logger import logger
 from jet.file.utils import load_file, save_file
 
@@ -90,10 +91,12 @@ def generate_code_for_sample(sample: PromptSample, few_shot_examples: list[Messa
             *few_shot_examples,
             {"role": "user", "content": query},
         ]
+        max_tokens = get_model_max_tokens(MODEL)
         for chunk in mlx.stream_chat(
             messages,
-            max_tokens=-1,
+            max_tokens=max_tokens * 2,
             temperature=0.3,
+            stop=["\n```"]
         ):
             content = chunk["choices"][0]["message"]["content"]
             response += content
