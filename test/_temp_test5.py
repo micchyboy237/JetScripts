@@ -2,7 +2,7 @@ import os
 from typing import List, Dict
 from jet.file.utils import load_file
 from jet.llm.mlx.templates.generate_labels import generate_labels
-from jet.logger.logger import CustomLogger
+from jet.logger import CustomLogger
 
 # Initialize logger
 script_dir = os.path.dirname(os.path.abspath(__file__))

@@ -15,17 +15,17 @@
         transition: background-color 0.3s, color 0.3s;
       }
       .dark body {
-        background-color: #1a1a1a;
-        color: #e5e7eb;
+        background-color: #1f2937;
+        color: #f3f4f6;
       }
       .dark .bg-gray-100 {
-        background-color: #2d2d2d;
+        background-color: #374151;
       }
       .dark .bg-white {
-        background-color: #2d2d2d;
+        background-color: #1f2937;
       }
       .dark .text-gray-900 {
-        color: #e5e7eb;
+        color: #f3f4f6;
       }
       .dark .border-gray-300 {
         border-color: #4b5563;
@@ -47,6 +47,9 @@
       }
       .dark .bg-yellow-500:hover {
         background-color: #d97706;
+      }
+      .dark .bg-orange-500:hover {
+        background-color: #ea580c;
       }
       pre {
         white-space: pre-wrap;
@@ -73,7 +76,6 @@
     <div id="root"></div>
     <script type="text/babel">
       const { useState, useEffect } = React;
-
       const StreamApp = () => {
         const [prompts, setPrompts] = useState([
           "Tell a joke.",
@@ -92,6 +94,8 @@
         const [taskFilter, setTaskFilter] = useState("all");
         const [isRerunningPending, setIsRerunningPending] = useState(false);
         const [rerunningFailedTasks, setRerunningFailedTasks] = useState({});
+        const [isClearingTasks, setIsClearingTasks] = useState(false);
+        const [clearingTasks, setClearingTasks] = useState({});
 
         const toggleDarkMode = () => {
           setIsDarkMode(!isDarkMode);
@@ -152,7 +156,6 @@
           } finally {
             setIsStreaming(false);
           }
-
           function processLine(line) {
             if (!line.trim()) return;
             console.log(`Received: ${line}`);
@@ -290,7 +293,6 @@
 
         const rerunAllPendingTasks = async () => {
           try {
-            // Step 1: Fetch all tasks from the /tasks endpoint
             const response = await fetch("http://localhost:9000/tasks", {
               method: "GET",
               headers: {
@@ -298,30 +300,18 @@
                 Accept: "application/json",
               },
             });
-
-            // Step 2: Check if the response is successful
             if (!response.ok) {
               throw new Error("Failed to fetch tasks");
             }
-
             const data = await response.json();
-
-            // Step 3: Extract tasks from the response data
             const tasks = data.tasks;
-
-            // Step 4: Iterate over the tasks to find the ones that have pending prompts
             for (const [taskId, task] of Object.entries(tasks)) {
-              // Get the list of prompts for the current task
               const pendingPrompts = Object.entries(task.prompts).filter(
                 ([promptId, promptData]) => promptData.status === "pending"
               );
-
               console.log(`pendingPrompts: (${pendingPrompts.length})`);
-
-              // If there are pending prompts, rerun the task
               if (pendingPrompts.length > 0) {
                 try {
-                  // Rerun the task by calling the rerun endpoint for the task
                   await fetch(`http://localhost:9000/rerun_pending/${taskId}`, {
                     method: "POST",
                     headers: {
@@ -335,13 +325,64 @@
                 }
               }
             }
-
-            // Step 5: Optionally re-fetch tasks or update the state as needed
-            await fetchTasks(); // Re-fetch tasks after rerunning
+            await fetchTasks();
           } catch (error) {
             console.error(
               `Error rerunning all pending tasks: ${error.message}`
             );
+          }
+        };
+
+        const clearAllTasks = async () => {
+          setIsClearingTasks(true);
+          setRerunMessage(null);
+          try {
+            const response = await fetch("http://localhost:9000/tasks", {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+              },
+            });
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            const data = await response.json();
+            setRerunMessage(data.message);
+            await fetchTasks();
+          } catch (e) {
+            setRerunMessage(`Failed to clear all tasks: ${e.message}`);
+            console.error(`Failed to clear all tasks: ${e.message}`);
+          } finally {
+            setIsClearingTasks(false);
+          }
+        };
+
+        const clearTask = async (taskId) => {
+          setClearingTasks((prev) => ({ ...prev, [taskId]: true }));
+          setRerunMessage(null);
+          try {
+            const response = await fetch(
+              `http://localhost:9000/task/${taskId}`,
+              {
+                method: "DELETE",
+                headers: {
+                  "Content-Type": "application/json",
+                  Accept: "application/json",
+                },
+              }
+            );
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            const data = await response.json();
+            setRerunMessage(data.message);
+            await fetchTasks();
+          } catch (e) {
+            setRerunMessage(`Failed to clear task ${taskId}: ${e.message}`);
+            console.error(`Failed to clear task ${taskId}: ${e.message}`);
+          } finally {
+            setClearingTasks((prev) => ({ ...prev, [taskId]: false }));
           }
         };
 
@@ -355,7 +396,7 @@
 
         useEffect(() => {
           fetchTasks();
-          const interval = setInterval(fetchTasks, 2000);
+          const interval = setInterval(fetchTasks, 30000);
           return () => clearInterval(interval);
         }, []);
 
@@ -471,7 +512,7 @@
                   </button>
                   <button
                     onClick={clearResponses}
-                    className="bg-gray-500 dark:bg-gray-600 text-white nghĩpx-4 py-2 rounded-lg hover:bg-gray-600 dark:hover:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-gray-500 dark:bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-600 dark:hover:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={
                       isStreaming || Object.keys(responses).length === 0
                     }
@@ -514,7 +555,7 @@
                   <option value="non-stream">Non-Streaming Tasks</option>
                 </select>
               </div>
-              <div className="mb-4">
+              <div className="flex space-x-2 mb-4">
                 <button
                   onClick={rerunAllPendingTasks}
                   className="bg-yellow-500 dark:bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 dark:hover:bg-yellow-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -524,6 +565,14 @@
                   {isRerunningPending
                     ? "Rerunning Pending..."
                     : "Rerun Pending Tasks"}
+                </button>
+                <button
+                  onClick={clearAllTasks}
+                  className="bg-orange-500 dark:bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-600 dark:hover:bg-orange-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isClearingTasks}
+                  aria-label="Clear all tasks"
+                >
+                  {isClearingTasks ? "Clearing All..." : "Clear All Tasks"}
                 </button>
               </div>
               {tasksError && (
@@ -545,16 +594,26 @@
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white">
                       Task ID: {taskId}
                     </h3>
-                    <button
-                      onClick={() => rerunFailedTask(taskId)}
-                      className="bg-red-500 dark:bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-600 dark:hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={rerunningFailedTasks[taskId]}
-                      aria-label={`Rerun failed prompts for task ${taskId}`}
-                    >
-                      {rerunningFailedTasks[taskId]
-                        ? "Rerunning Failed..."
-                        : "Rerun Failed"}
-                    </button>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => rerunFailedTask(taskId)}
+                        className="bg-red-500 dark:bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-600 dark:hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={rerunningFailedTasks[taskId]}
+                        aria-label={`Rerun failed prompts for task ${taskId}`}
+                      >
+                        {rerunningFailedTasks[taskId]
+                          ? "Rerunning Failed..."
+                          : "Rerun Failed"}
+                      </button>
+                      <button
+                        onClick={() => clearTask(taskId)}
+                        className="bg-orange-500 dark:bg-orange-600 text-white px-3 py-1 rounded-lg hover:bg-orange-600 dark:hover:bg-orange-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={clearingTasks[taskId]}
+                        aria-label={`Clear task ${taskId}`}
+                      >
+                        {clearingTasks[taskId] ? "Clearing..." : "Clear Task"}
+                      </button>
+                    </div>
                   </div>
                   <p className="text-gray-700 dark:text-gray-300">
                     <strong>Model:</strong> {task.model}
@@ -652,7 +711,6 @@
           </div>
         );
       };
-
       const root = ReactDOM.createRoot(document.getElementById("root"));
       root.render(<StreamApp />);
     </script>
