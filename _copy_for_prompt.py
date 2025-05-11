@@ -32,6 +32,8 @@ exclude_files = [
     # Custom
 ]
 include_files = [
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/helpers/yes_no_answer.py",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/helpers/run_yes_no_answer.py",
     "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/helpers/answer_multiple_choice.py",
     "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/helpers/run_answer_multiple_choice.py",
 ]
@@ -48,7 +50,7 @@ SHORTEN_FUNCTS = False
 INCLUDE_FILE_STRUCTURE = False
 
 DEFAULT_QUERY_MESSAGE = """
-Write unit tests without mocking.
+Given these tasks, create a new one for "Translation Pairs" and "Paraphrasing"
 """.strip()
 
 DEFAULT_SYSTEM_MESSAGE = """

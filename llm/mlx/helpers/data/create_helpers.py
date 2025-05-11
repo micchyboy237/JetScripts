@@ -28,6 +28,7 @@ class GeneratedCodeResult(TypedDict):
     structure: str
     system: str
     query: str
+    messages: List[Message]
     code: str
     error: Optional[str]
     duration: Optional[str]
@@ -115,7 +116,7 @@ def generate_code_for_sample(sample: PromptSample, few_shot_examples: list[Messa
         for chunk in mlx.stream_chat(
             messages,
             max_tokens=max_tokens * 2,
-            temperature=0.3,
+            temperature=0.5,
             repetition_penalty=1.0,
             stop=["TERMINATE"],
         ):
@@ -135,6 +136,7 @@ def generate_code_for_sample(sample: PromptSample, few_shot_examples: list[Messa
             "system": system_prompt,
             "query": query,
             "code": code,
+            "messages": messages,
             "error": None,
             "duration": None,
             "test_code": None,
@@ -146,6 +148,7 @@ def generate_code_for_sample(sample: PromptSample, few_shot_examples: list[Messa
             "structure": sample["structure"],
             "system": system_prompt,
             "query": query,
+            "messages": messages,
             "code": "",
             "error": str(e),
             "duration": None,
@@ -174,7 +177,7 @@ def generate_tests_for_code(code: str, sample: PromptSample, few_shot_examples: 
         for chunk in mlx.stream_chat(
             messages,
             max_tokens=max_tokens * 2,
-            temperature=0.3,
+            temperature=0.5,
             repetition_penalty=1.0,
             stop=["TERMINATE"],
         ):
@@ -357,9 +360,14 @@ def create_helpers(output_dir: str, samples: List[PromptSample]) -> None:
         #     test_file_path = output_path / "tests" / test_file_name
         #     save_file(test_code, str(test_file_path))
 
+        messages = result.pop("messages")
         file_name = f"{safe_category}_{safe_structure}.json"
         info_file_path = output_path / "info" / file_name
         save_file(json.dumps(result, indent=2), str(info_file_path))
+
+        file_name = f"{safe_category}_{safe_structure}.json"
+        info_file_path = output_path / "messages" / file_name
+        save_file(json.dumps(messages, indent=2), str(info_file_path))
 
 
 if __name__ == "__main__":
