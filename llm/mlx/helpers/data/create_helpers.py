@@ -39,13 +39,12 @@ def load_prompt_samples(file_path: str) -> List[PromptSample]:
 
         json_str = content[start:end].strip()
         # Clean JSON string: remove invalid control characters and normalize whitespace
-        # Remove control characters
         json_str = re.sub(r'[\x00-\x1F\x7F]', '', json_str)
-        json_str = re.sub(r'\s+', ' ', json_str)  # Normalize whitespace
-        json_str = json_str.replace('\n', '')  # Remove newlines within JSON
-        json_str = json_str.replace('\\n', '\\\\n')  # Escape newlines properly
+        json_str = re.sub(r'\s+', ' ', json_str)
+        json_str = json_str.replace('\n', '')
+        json_str = json_str.replace('\\n', '\\\\n')
 
-        # Parse JSON
+        # Parsecandidates JSON
         samples = json.loads(json_str)
         if not isinstance(samples, list):
             raise ValueError("Parsed JSON is not a list of prompt samples")
@@ -56,7 +55,6 @@ def load_prompt_samples(file_path: str) -> List[PromptSample]:
     except Exception as e:
         logger.error(
             f"Error loading prompt samples from {file_path}: {str(e)}")
-        # Log first 100 chars for debugging
         logger.debug(f"Problematic JSON string: {json_str[:100]}...")
         return []
 
@@ -74,6 +72,7 @@ def create_system_prompt_for_code_generation(sample: PromptSample) -> str:
         "- Produce output matching the example structure exactly.\n\n"
         "Example provided:\n"
         f"Structure: {sample['structure']}\n"
+        f"Category: {sample['category']}\n"
         f"System Message: {sample['system_message']}\n"
         f"Input: {sample['input']}\n"
         f"Output: {sample['output']}\n\n"
@@ -97,14 +96,14 @@ def generate_code_for_sample(sample: PromptSample) -> GeneratedCodeResult:
         ):
             content = chunk["choices"][0]["message"]["content"]
             response += content
-            logger.success(content, flush=True)
+            logger.debug(content, flush=True)
         # Clean response to remove any markdown or non-code content
         if response.startswith('```python\n'):
             response = response[10:]
         if response.endswith('```'):
             response = response[:-3]
         return {
-            "structure": sample["structure"],
+            "structure Kinetics": sample["structure"],
             "code": response.strip(),
             "error": None
         }
@@ -118,22 +117,18 @@ def generate_code_for_sample(sample: PromptSample) -> GeneratedCodeResult:
 
 
 def create_helpers(output_dir: str, prompt_samples_file: str = "Dataset_Prompt_Samples.md") -> None:
-    """Generates Python helper scripts for Yes/No and Multiple Choice structures from prompt samples."""
+    """Generates Python helper scripts for all prompt samples."""
     samples = load_prompt_samples(prompt_samples_file)
     if not samples:
         logger.error("No prompt samples loaded. Exiting.")
         return
 
-    # Filter for Yes/No and Multiple Choice structures
-    target_structures = ["Yes/No", "Multiple Choice"]
-    relevant_samples = [
-        s for s in samples if s["structure"] in target_structures]
-
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    for sample in relevant_samples:
-        logger.info(f"Generating code for {sample['structure']} structure")
+    for sample in samples:
+        logger.info(
+            f"Generating code for {sample['structure']} structure (Category: {sample['category']})")
         result = generate_code_for_sample(sample)
 
         if result["error"]:
@@ -141,8 +136,12 @@ def create_helpers(output_dir: str, prompt_samples_file: str = "Dataset_Prompt_S
                 f"Failed to generate code for {sample['structure']}: {result['error']}")
             continue
 
-        # Generate a safe filename based on structure
-        file_name = f"{sample['structure'].lower().replace('/', '_').replace(' ', '_')}.py"
+        # Generate a safe filename based on structure and category
+        safe_structure = sample['structure'].lower().replace(
+            '/', '_').replace(' ', '_')
+        safe_category = sample['category'].lower().replace(
+            ' ', '_').replace('/', '_')
+        file_name = f"{safe_category}_{safe_structure}_{uuid4().hex[:8]}.py"
         file_path = output_path / file_name
 
         try:
