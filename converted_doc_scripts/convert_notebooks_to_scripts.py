@@ -534,11 +534,12 @@ def wrap_await_code_multiline_args(code: str) -> str:
             while line_idx < len(lines):
                 next_line = lines[line_idx]
                 next_leading_spaces = len(next_line) - len(next_line.lstrip())
-                # Stop if indentation decreases (end of block)
-                if next_leading_spaces <= leading_spaces and next_line.strip():
+                # Stop if indentation decreases (end of block) or line is empty
+                if (next_leading_spaces <= leading_spaces and next_line.strip()) or not next_line.strip():
                     break
+                # Preserve the relative indentation of the block
                 async_block.append(
-                    f"{' ' * (leading_spaces + 4)}{next_line.strip()}")
+                    f"{' ' * (leading_spaces + 4 + (next_leading_spaces - leading_spaces - 4))}{next_line.strip()}")
                 line_idx += 1
 
             # Add return statement if variable is assigned
@@ -585,6 +586,7 @@ def wrap_await_code_multiline_args(code: str) -> str:
             line_idx += 1
 
     return "\n".join(updated_lines)
+
 
 def wrap_triple_double_quoted_comments_in_log(code: str) -> str:
     # Regex pattern to match triple double-quoted comments
