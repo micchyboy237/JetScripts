@@ -11,7 +11,7 @@ from jet.logger import logger
 from jet.file.utils import load_file, save_file
 import time
 
-MODEL: ModelKey = "qwen2.5-coder-14b-instruct-4bit"
+MODEL: ModelKey = "qwen3-8b-3bit"
 seed = 42
 mlx = MLX(MODEL, seed=seed)
 
@@ -65,37 +65,48 @@ def load_prompt_samples(file_path: str) -> List[PromptSample]:
         return []
 
 
+def create_base_system_prompt() -> str:
+    """Creates a base system prompt with common instructions for Python script generation."""
+    return (
+        "You are an expert Python developer tasked with generating a complete, functional Python script. "
+        "The script must:\n"
+        "- Be syntactically correct and follow PEP 8 style guidelines.\n"
+        "- Include docstrings and comments for clarity.\n"
+        "- Avoid markdown code fences or non-Python content.\n"
+        "- Be executable directly when saved as a .py file.\n"
+        "After completing the Python code, write 'TERMINATE' on a new line to signal completion.\n"
+        "If the provided input is missing or ambiguous, include a comment in the script explaining assumptions made."
+    )
+
+
 def create_system_prompt_for_code_generation() -> str:
     """Creates an optimized system prompt for generating Python code."""
-    base_prompt = (
-        "You are an expert Python developer tasked with generating complete, functional, and well-documented Python code. "
-        "Based on the provided example, create a Python script that implements the specified structure. The code should:\n"
-        "- Be syntactically correct and follow PEP 8 style guidelines.\n"
+    base_prompt = create_base_system_prompt()
+    specific_prompt = (
+        "Generate a Python script based on the provided example or description. The script should:\n"
         "- Include necessary imports and type hints where applicable.\n"
         "- Handle errors gracefully with try-except blocks.\n"
-        "- Include docstrings and comments for clarity.\n"
-        "- Be compatible with the existing MLX framework (e.g., use jet.llm.mlx modules).\n"
-        "- Produce output matching the example structure exactly.\n\n"
-        "Generate a complete Python script that implements the provided info. Do not include markdown code fences or any non-Python content. "
-        "Ensure the script can be saved and run directly. After completing the Python code, write 'TERMINATE' on a new line."
+        "- Be compatible with the MLX framework (e.g., use jet.llm.mlx modules) if specified in the input.\n"
+        "- Match the provided structure or functionality as closely as possible.\n"
+        "If no example is provided, generate a minimal working script based on the description, with comments explaining the implementation."
     )
-    return base_prompt
+    return f"{base_prompt}\n{specific_prompt}"
 
 
 def create_system_prompt_for_test_generation() -> str:
     """Creates a system prompt for generating unit tests."""
-    return (
-        "You are an expert Python developer tasked with generating comprehensive unit tests for a Python script using the unittest framework. "
-        "Based on the provided Python code, create a test file that:\n"
-        "- Uses Python's unittest.TestCase class.\n"
-        "- Includes tests for main functionality, edge cases, and error handling.\n"
-        "- Follows PEP 8 style guidelines.\n"
-        "- Includes descriptive test names and docstrings.\n"
-        "- Mocks external dependencies (e.g., jet.llm.mlx modules) using unittest.mock.\n"
-        "- Ensures 100% code coverage for the provided script.\n"
-        "Generate a complete Python test script. Do not include markdown code fences or non-Python content. "
-        "Ensure the script can be saved and run directly with `unittest`. After completing the Python code, write 'TERMINATE' on a new line."
+    base_prompt = create_base_system_prompt()
+    specific_prompt = (
+        "Generate a Python test script using the unittest framework for the provided Python code. The test script should:\n"
+        "- Use unittest.TestCase class.\n"
+        "- Include tests for main functionality, edge cases, and error handling.\n"
+        "- Use descriptive test names and docstrings.\n"
+        "- Mock external dependencies (e.g., jet.llm.mlx modules) using unittest.mock if present in the code.\n"
+        "- Aim for comprehensive code coverage, prioritizing critical functionality.\n"
+        "If the provided code does not use MLX or other dependencies, adapt the tests accordingly. "
+        "If no code is provided, include a comment explaining the assumption of a minimal testable function."
     )
+    return f"{base_prompt}\n{specific_prompt}"
 
 
 def generate_code_for_sample(sample: PromptSample, few_shot_examples: list[Message] = []) -> GeneratedCodeResult:
@@ -169,7 +180,8 @@ def generate_tests_for_code(code: str, sample: PromptSample, few_shot_examples: 
             messages,
             max_tokens=max_tokens * 2,
             temperature=0.3,
-            stop=["\n```"]
+            repetition_penalty=1.2,
+            stop=["TERMINATE"],
         ):
             content = chunk["choices"][0]["message"]["content"]
             response += content
