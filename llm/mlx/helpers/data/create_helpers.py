@@ -312,52 +312,50 @@ def create_helpers(output_dir: str, samples: List[PromptSample]) -> None:
         code_file_path = output_path / "code" / file_name
         save_file(result["code"], str(code_file_path))
 
-        logger.info(
-            f"Generating tests for {sample['structure']} structure (Category: {sample['category']})")
-        few_shot_test_examples: list[Message] = [
-            {
-                "role": "user",
-                "content": (
-                    f"Generate a unit test script for the following Python code:\n\n"
-                    f"{sample_yes_no_answer_code}\n\n"
-                    f"The code implements the {sample_yes_no_answer['structure']} structure (Category: {sample_yes_no_answer['category']})."
-                ),
-            },
-            {
-                "role": "assistant",
-                "content": sample_yes_no_test_code
-            },
-            {
-                "role": "user",
-                "content": (
-                    f"Generate a unit test script for the following Python code:\n\n"
-                    f"{sample_answer_multiple_choice_code}\n\n"
-                    f"The code implements the {sample_answer_multiple_choice['structure']} structure (Category: {sample_answer_multiple_choice['category']})."
-                ),
-            },
-            {
-                "role": "assistant",
-                "content": sample_multiple_choice_test_code
-            },
-        ]
-        start_time = time.time()
-        test_code, test_error = generate_tests_for_code(
-            result["code"], sample, few_shot_test_examples)
-        end_time = time.time()
-        test_duration_seconds = end_time - start_time
-        result["test_code"] = test_code
-        result["test_duration"] = format_duration(test_duration_seconds)
-
-        if test_error:
-            logger.error(
-                f"Failed to generate tests for {sample['structure']}: {test_error}")
-            result["error"] = test_error if not result[
-                "error"] else f"{result['error']}; Test error: {test_error}"
-
-        if test_code:
-            test_file_name = f"test_{safe_category}_{safe_structure}.py"
-            test_file_path = output_path / "tests" / test_file_name
-            save_file(test_code, str(test_file_path))
+        # logger.info(
+        #     f"Generating tests for {sample['structure']} structure (Category: {sample['category']})")
+        # few_shot_test_examples: list[Message] = [
+        #     {
+        #         "role": "user",
+        #         "content": (
+        #             f"Generate a unit test script for the following Python code:\n\n"
+        #             f"{sample_yes_no_answer_code}\n\n"
+        #             f"The code implements the {sample_yes_no_answer['structure']} structure (Category: {sample_yes_no_answer['category']})."
+        #         ),
+        #     },
+        #     {
+        #         "role": "assistant",
+        #         "content": sample_yes_no_test_code
+        #     },
+        #     {
+        #         "role": "user",
+        #         "content": (
+        #             f"Generate a unit test script for the following Python code:\n\n"
+        #             f"{sample_answer_multiple_choice_code}\n\n"
+        #             f"The code implements the {sample_answer_multiple_choice['structure']} structure (Category: {sample_answer_multiple_choice['category']})."
+        #         ),
+        #     },
+        #     {
+        #         "role": "assistant",
+        #         "content": sample_multiple_choice_test_code
+        #     },
+        # ]
+        # start_time = time.time()
+        # test_code, test_error = generate_tests_for_code(
+        #     result["code"], sample, few_shot_test_examples)
+        # end_time = time.time()
+        # test_duration_seconds = end_time - start_time
+        # result["test_code"] = test_code
+        # result["test_duration"] = format_duration(test_duration_seconds)
+        # if test_error:
+        #     logger.error(
+        #         f"Failed to generate tests for {sample['structure']}: {test_error}")
+        #     result["error"] = test_error if not result[
+        #         "error"] else f"{result['error']}; Test error: {test_error}"
+        # if test_code:
+        #     test_file_name = f"test_{safe_category}_{safe_structure}.py"
+        #     test_file_path = output_path / "tests" / test_file_name
+        #     save_file(test_code, str(test_file_path))
 
         file_name = f"{safe_category}_{safe_structure}.json"
         info_file_path = output_path / "info" / file_name
