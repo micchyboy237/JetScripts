@@ -470,7 +470,7 @@ def wrap_await_code_singleline_args(code: str) -> str:
 
 
 def wrap_await_code_multiline_args(code: str) -> str:
-    """Wrap lines containing 'await' in standalone async functions, handling multiline calls."""
+    """Wrap lines containing 'await' or 'async with' in standalone async functions, handling multiline calls."""
     lines = code.splitlines()
     updated_lines = []
     line_idx = 0
@@ -478,6 +478,7 @@ def wrap_await_code_multiline_args(code: str) -> str:
     while line_idx < len(lines):
         line = lines[line_idx]
 
+        # Handle 'await' with multiline arguments
         if "await" in line and line.strip().endswith("("):
             match = re.match(r'(.*?)\s*=\s*await', line)
             if match:
@@ -497,8 +498,7 @@ def wrap_await_code_multiline_args(code: str) -> str:
                     next_line = lines[line_idx]
                     async_block.append(
                         f"{' ' * (leading_spaces + 4)}{next_line.strip()}")
-                    open_parens += next_line.count("(") - \
-                        next_line.count(")")
+                    open_parens += next_line.count("(") - next_line.count(")")
                     line_idx += 1
 
                 async_block.append(
@@ -512,40 +512,79 @@ def wrap_await_code_multiline_args(code: str) -> str:
             else:
                 updated_lines.append(line)
                 line_idx += 1
-        elif "await" in line:
-            # Use regex to capture everything before "= await"
-            match = re.match(r'(.*?)(?=\s*= await)', line)
 
+        # Handle 'async with' statements
+        elif "async with" in line:
+            match = re.match(r'(.*?)\s*=\s*async with', line)
+            variable = None
+            if match:
+                variable = match.group(1).strip()
+
+            leading_spaces = len(line) - len(line.lstrip())
+            async_fn_name = f"async_with_func_{line_idx}"
+
+            # Start async function
+            async_block = [
+                f"{' ' * leading_spaces}async def {async_fn_name}():"]
+            async_block.append(
+                f"{' ' * (leading_spaces + 4)}{line.strip()}")
+
+            # Collect the block under async with, respecting indentation
+            line_idx += 1
+            while line_idx < len(lines):
+                next_line = lines[line_idx]
+                next_leading_spaces = len(next_line) - len(next_line.lstrip())
+                # Stop if indentation decreases (end of block)
+                if next_leading_spaces <= leading_spaces and next_line.strip():
+                    break
+                async_block.append(
+                    f"{' ' * (leading_spaces + 4)}{next_line.strip()}")
+                line_idx += 1
+
+            # Add return statement if variable is assigned
+            if variable:
+                async_block.append(
+                    f"{' ' * (leading_spaces + 4)}return {variable}")
+            async_block.append(
+                f"{' ' * leading_spaces}{variable or 'result'} = asyncio.run({async_fn_name}())")
+            if variable:
+                async_block.append(
+                    f"{' ' * leading_spaces}logger.success(format_json({variable}))")
+
+            updated_lines.extend(async_block)
+
+        # Handle single-line 'await'
+        elif "await" in line:
+            match = re.match(r'(.*?)(?=\s*= await)', line)
             text_before_await = ""
             if match:
-                text_before_await = match.group(1)
-                print(f"Line {line_idx}: {text_before_await}")
+                text_before_await = match.group(1).strip()
 
-            await_leading_spaces = len(
-                line) - len(line.lstrip())
-            if not await_leading_spaces:
-                function_name = generate_unique_function_name(line)
+            await_leading_spaces = len(line) - len(line.lstrip())
+            function_name = generate_unique_function_name(line)
 
-                # Create the wrapped async code with a unique function name
-                async_wrapped_code = "\n".join([
-                    f"async def {function_name}():",
-                    f"  {line}",
-                    f"  return {text_before_await}",
-                    f"\n{text_before_await} = asyncio.run({
-                        function_name}())",
-                    f"logger.success(format_json({
-                        text_before_await}))",
-                ])
+            # Create the wrapped async code with a unique function name
+            async_wrapped_code = [
+                f"{' ' * await_leading_spaces}async def {function_name}():",
+                f"{' ' * (await_leading_spaces + 4)}{line.strip()}",
+            ]
+            if text_before_await:
+                async_wrapped_code.append(
+                    f"{' ' * (await_leading_spaces + 4)}return {text_before_await}")
+            async_wrapped_code.append(
+                f"{' ' * await_leading_spaces}{text_before_await or 'result'} = asyncio.run({function_name}())")
+            if text_before_await:
+                async_wrapped_code.append(
+                    f"{' ' * await_leading_spaces}logger.success(format_json({text_before_await}))")
 
-                updated_lines.append(async_wrapped_code)
-
+            updated_lines.extend(async_wrapped_code)
             line_idx += 1
+
         else:
             updated_lines.append(line)
             line_idx += 1
 
     return "\n".join(updated_lines)
-
 
 def wrap_triple_double_quoted_comments_in_log(code: str) -> str:
     # Regex pattern to match triple double-quoted comments
