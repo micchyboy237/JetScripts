@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import re
 from typing import Dict, List, TypedDict, Optional
 from uuid import uuid4
 from jet.llm.mlx.base import MLX
@@ -32,11 +33,31 @@ def load_prompt_samples(file_path: str) -> List[PromptSample]:
         # Extract JSON from markdown code block
         start = content.find('```json\n') + 8
         end = content.rfind('```')
+        if start < 8 or end == -1:
+            raise ValueError(
+                "Invalid markdown format: JSON code block not found")
+
         json_str = content[start:end].strip()
+        # Clean JSON string: remove invalid control characters and normalize whitespace
+        # Remove control characters
+        json_str = re.sub(r'[\x00-\x1F\x7F]', '', json_str)
+        json_str = re.sub(r'\s+', ' ', json_str)  # Normalize whitespace
+        json_str = json_str.replace('\n', '')  # Remove newlines within JSON
+        json_str = json_str.replace('\\n', '\\\\n')  # Escape newlines properly
+
+        # Parse JSON
         samples = json.loads(json_str)
+        if not isinstance(samples, list):
+            raise ValueError("Parsed JSON is not a list of prompt samples")
+
+        logger.success(
+            f"Loaded {len(samples)} prompt samples from {file_path}")
         return samples
     except Exception as e:
-        logger.error(f"Error loading prompt samples: {e}")
+        logger.error(
+            f"Error loading prompt samples from {file_path}: {str(e)}")
+        # Log first 100 chars for debugging
+        logger.debug(f"Problematic JSON string: {json_str[:100]}...")
         return []
 
 
