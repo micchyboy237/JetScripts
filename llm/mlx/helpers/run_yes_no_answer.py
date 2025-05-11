@@ -5,10 +5,11 @@ from jet.logger import logger
 
 
 if __name__ == "__main__":
-    model: ModelType = "llama-3.2-1b-instruct-4bit"
+    model: ModelType = "llama-3.2-3b-instruct-4bit"
 
     # Define question
-    question: str = "Did Albert Einstein develop the theory of relativity?"
+    # question: str = "Did Albert Einstein develop the theory of relativity?"
+    question: str = "Is 1 + 1 equal to 2?"
 
     # Test both methods
     for method in ["stream_generate", "generate_step"]:
@@ -16,7 +17,7 @@ if __name__ == "__main__":
         result: AnswerResult = answer_yes_no(
             question, model, method=method)
         logger.log("Question:", question, colors=["GRAY", "DEBUG"])
-        logger.log("Answer:", method, colors=["GRAY", "SUCCESS"])
+        logger.log("Answer:", result["answer"], colors=["GRAY", "SUCCESS"])
         logger.log("Token ID:", result['token_id'], colors=["GRAY", "DEBUG"])
         logger.log("Valid:", result['is_valid'], colors=[
                    "GRAY", "SUCCESS" if result['is_valid'] else "ERROR"])

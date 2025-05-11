@@ -1,4 +1,4 @@
-from jet.llm.mlx.models import get_model_info, resolve_model
+from jet.llm.mlx.models import get_model_info
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 

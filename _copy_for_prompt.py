@@ -32,22 +32,8 @@ exclude_files = [
     # Custom
 ]
 include_files = [
-    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/_temp_test.py",
-    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/models.py",
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/server/app.py",
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/server/task_manager.py",
-    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/executor/command.py",
-    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/mlx_types.py",
-    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/base.py",
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/html/index.html",
-
-    # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx-lm/mlx_lm/LORA.md",
-    # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx-lm/mlx_lm/lora.py",
-    # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx-lm/mlx_lm/tuner/trainer.py",
-    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/train/fine_tune_llama_3_2_1b.sh",
-
-    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/train/data/sample_chat",
-    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/helpers/answer_multiple_choice.py",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/helpers/run_answer_multiple_choice.py",
 ]
 structure_include = [
     # "*.py"
@@ -62,7 +48,7 @@ SHORTEN_FUNCTS = False
 INCLUDE_FILE_STRUCTURE = False
 
 DEFAULT_QUERY_MESSAGE = """
-Update rerun_pending to rerun the appropriate task ID with the same args. Make sure it updates the responses as well in index.html (for stream or non-stream).
+Write unit tests without mocking.
 """.strip()
 
 DEFAULT_SYSTEM_MESSAGE = """
