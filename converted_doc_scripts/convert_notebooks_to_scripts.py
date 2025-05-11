@@ -435,38 +435,55 @@ def read_rst_file(file):
 
 def wrap_await_code_singleline_args(code: str) -> str:
     lines = code.splitlines()
+    result_lines = []
+    paren_depth = 0
+    skip_until_closing_paren = False
 
     for line_idx, line in enumerate(lines):
-        if "await" in line and line.strip().endswith("("):
+        stripped_line = line.strip()
+
+        # Track parenthesis depth
+        paren_depth += stripped_line.count("(") - stripped_line.count(")")
+
+        # If we're inside a parenthesized block with an await, skip processing until the block closes
+        if skip_until_closing_paren:
+            result_lines.append(line)
+            if paren_depth == 0:
+                skip_until_closing_paren = False
             continue
 
-        # Use regex to capture everything before "= await"
+        # Check if the line contains "await" and an opening parenthesis
+        if "await" in line and "(" in stripped_line and paren_depth > 0:
+            skip_until_closing_paren = True
+            result_lines.append(line)
+            continue
+
+        # Process lines with "= await" that are not inside parentheses
         match = re.match(r'(.*?)(?=\s*= await)', line)
+        if match and "await" in line and paren_depth == 0:
+            text_before_await = match.group(1).strip()
+            await_leading_spaces = len(line) - len(line.lstrip())
 
-        text_before_await = ""
-        if match:
-            text_before_await = match.group(1)
-            print(f"Line {line_idx}: {text_before_await}")
+            if text_before_await:
+                function_name = generate_unique_function_name(line)
 
-        await_leading_spaces = len(
-            line) - len(line.lstrip())
-        if not await_leading_spaces:
-            function_name = generate_unique_function_name(line)
+                # Create the wrapped async code with proper indentation
+                indent = " " * await_leading_spaces
+                async_wrapped_code = "\n".join([
+                    f"{indent}async def {function_name}():",
+                    f"{indent}    {line.strip()}",
+                    f"{indent}    return {text_before_await}",
+                    f"{indent}{text_before_await} = asyncio.run({function_name}())",
+                    f"{indent}logger.success(format_json({text_before_await}))",
+                ])
 
-            # Create the wrapped async code with a unique function name
-            async_wrapped_code = "\n".join([
-                f"async def {function_name}():",
-                f"  {line}",
-                f"  return {text_before_await}",
-                f"\n{text_before_await} = asyncio.run({
-                    function_name}())",
-                f"logger.success(format_json({
-                    text_before_await}))",
-            ])
+                result_lines.append(async_wrapped_code)
+            else:
+                result_lines.append(line)
+        else:
+            result_lines.append(line)
 
-            lines[line_idx] = async_wrapped_code
-            logger.debug(async_wrapped_code)
-    return "\n".join(lines)
+    return "\n".join(result_lines)
 
 
 def wrap_await_code_multiline_args(code: str) -> str:
@@ -476,9 +493,49 @@ def wrap_await_code_multiline_args(code: str) -> str:
     line_idx = 0
 
     while line_idx < len(lines):
-        line = lines[line_idx]
+        line = lines[line_idx].rstrip()
 
-        # Handle 'await' with multiline arguments
+        # Handle 'async with' statements
+        if line.strip().startswith("async with"):
+            leading_spaces = len(line) - len(line.lstrip())
+            async_fn_name = f"async_func_{line_idx}"
+            variable = "result"  # Use 'result' to match the variable inside the block
+
+            # Collect the async with block
+            async_block = [
+                f"{' ' * leading_spaces}async def {async_fn_name}():"]
+            async_block.append(f"{' ' * (leading_spaces + 4)}{line.strip()}")
+
+            # Collect indented block under async with
+            line_idx += 1
+            while line_idx < len(lines):
+                next_line = lines[line_idx].rstrip()
+                next_leading_spaces = len(next_line) - len(next_line.lstrip())
+                if next_leading_spaces <= leading_spaces and next_line.strip():
+                    break
+                # Calculate relative indentation within the async with block
+                relative_indent = next_leading_spaces - \
+                    (leading_spaces + 4)  # Relative to async with
+                if relative_indent < 0:
+                    relative_indent = 0  # Ensure no negative indentation
+                # Base indentation: 4 (async def) + 4 (async with) + relative_indent
+                adjusted_indent = ' ' * (leading_spaces + 8 + relative_indent)
+                async_block.append(f"{adjusted_indent}{next_line.lstrip()}")
+                line_idx += 1
+
+            # Add return statement at function level (4 spaces from async def)
+            async_block.append(
+                f"{' ' * (leading_spaces + 4)}return {variable}")
+            async_block.append("")  # Empty line for readability
+            async_block.append(
+                f"{' ' * leading_spaces}{variable} = asyncio.run({async_fn_name}())")
+            async_block.append(
+                f"{' ' * leading_spaces}logger.success(format_json({variable}))")
+
+            updated_lines.extend(async_block)
+            continue
+
+        # Handle 'await' statements with multiline calls
         if "await" in line and line.strip().endswith("("):
             match = re.match(r'(.*?)\s*=\s*await', line)
             if match:
@@ -495,9 +552,16 @@ def wrap_await_code_multiline_args(code: str) -> str:
                 open_parens = 1
                 line_idx += 1
                 while line_idx < len(lines) and open_parens > 0:
-                    next_line = lines[line_idx]
+                    next_line = lines[line_idx].rstrip()
+                    next_leading_spaces = len(
+                        next_line) - len(next_line.lstrip())
+                    relative_indent = next_leading_spaces - leading_spaces
+                    if relative_indent < 0:
+                        relative_indent = 0
+                    adjusted_indent = ' ' * \
+                        (leading_spaces + 4 + relative_indent)
                     async_block.append(
-                        f"{' ' * (leading_spaces + 4)}{next_line.strip()}")
+                        f"{adjusted_indent}{next_line.lstrip()}")
                     open_parens += next_line.count("(") - next_line.count(")")
                     line_idx += 1
 
@@ -512,78 +576,30 @@ def wrap_await_code_multiline_args(code: str) -> str:
             else:
                 updated_lines.append(line)
                 line_idx += 1
+            continue
 
-        # Handle 'async with' statements
-        elif "async with" in line:
-            match = re.match(r'(.*?)\s*=\s*async with', line)
-            variable = None
-            if match:
-                variable = match.group(1).strip()
-
+        # Handle single-line 'await' statements
+        if "await" in line:
+            match = re.match(r'(.*?)(?=\s*= await)', line)
+            text_before_await = match.group(1).strip() if match else ""
             leading_spaces = len(line) - len(line.lstrip())
-            async_fn_name = f"async_with_func_{line_idx}"
+            async_fn_name = generate_unique_function_name(line)
 
-            # Start async function
             async_block = [
-                f"{' ' * leading_spaces}async def {async_fn_name}():"]
-            async_block.append(
-                f"{' ' * (leading_spaces + 4)}{line.strip()}")
-
-            # Collect the block under async with, respecting indentation
-            line_idx += 1
-            while line_idx < len(lines):
-                next_line = lines[line_idx]
-                next_leading_spaces = len(next_line) - len(next_line.lstrip())
-                # Stop if indentation decreases (end of block) or line is empty
-                if (next_leading_spaces <= leading_spaces and next_line.strip()) or not next_line.strip():
-                    break
-                # Preserve the relative indentation of the block
-                async_block.append(
-                    f"{' ' * (leading_spaces + 4 + (next_leading_spaces - leading_spaces - 4))}{next_line.strip()}")
-                line_idx += 1
-
-            # Add return statement if variable is assigned
-            if variable:
-                async_block.append(
-                    f"{' ' * (leading_spaces + 4)}return {variable}")
-            async_block.append(
-                f"{' ' * leading_spaces}{variable or 'result'} = asyncio.run({async_fn_name}())")
-            if variable:
-                async_block.append(
-                    f"{' ' * leading_spaces}logger.success(format_json({variable}))")
+                f"{' ' * leading_spaces}async def {async_fn_name}():",
+                f"{' ' * (leading_spaces + 4)}{line.strip()}",
+                f"{' ' * (leading_spaces + 4)}return {text_before_await}",
+                f"{' ' * leading_spaces}{text_before_await} = asyncio.run({async_fn_name}())",
+                f"{' ' * leading_spaces}logger.success(format_json({text_before_await}))",
+            ]
 
             updated_lines.extend(async_block)
-
-        # Handle single-line 'await'
-        elif "await" in line:
-            match = re.match(r'(.*?)(?=\s*= await)', line)
-            text_before_await = ""
-            if match:
-                text_before_await = match.group(1).strip()
-
-            await_leading_spaces = len(line) - len(line.lstrip())
-            function_name = generate_unique_function_name(line)
-
-            # Create the wrapped async code with a unique function name
-            async_wrapped_code = [
-                f"{' ' * await_leading_spaces}async def {function_name}():",
-                f"{' ' * (await_leading_spaces + 4)}{line.strip()}",
-            ]
-            if text_before_await:
-                async_wrapped_code.append(
-                    f"{' ' * (await_leading_spaces + 4)}return {text_before_await}")
-            async_wrapped_code.append(
-                f"{' ' * await_leading_spaces}{text_before_await or 'result'} = asyncio.run({function_name}())")
-            if text_before_await:
-                async_wrapped_code.append(
-                    f"{' ' * await_leading_spaces}logger.success(format_json({text_before_await}))")
-
-            updated_lines.extend(async_wrapped_code)
             line_idx += 1
+            continue
 
-        else:
-            updated_lines.append(line)
-            line_idx += 1
+        # Non-await lines
+        updated_lines.append(line)
+        line_idx += 1
 
     return "\n".join(updated_lines)
 
@@ -715,8 +731,8 @@ def scrape_code(
                     if source_group['type'] == 'code':
                         source_group['code'] = wrap_await_code_multiline_args(
                             source_group['code'])
-                        # source_group['code'] = wrap_await_code_singleline_args(
-                        #     source_group['code'])
+                        source_group['code'] = wrap_await_code_singleline_args(
+                            source_group['code'])
 
                 source_code = "\n\n".join(group['code']
                                           for group in source_groups)
