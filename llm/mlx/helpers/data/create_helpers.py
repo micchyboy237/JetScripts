@@ -9,8 +9,8 @@ from jet.llm.mlx.utils import get_model_max_tokens
 from jet.logger import logger
 from jet.file.utils import load_file, save_file
 
-seed = 42
 MODEL: ModelKey = "qwen3-8b-3bit"
+seed = 42
 mlx = MLX(MODEL, seed=seed)
 
 
