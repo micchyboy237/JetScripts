@@ -11,7 +11,7 @@ from jet.logger import logger
 from jet.file.utils import load_file, save_file
 import time
 
-MODEL: ModelKey = "qwen3-8b-3bit"
+MODEL: ModelKey = "qwen2.5-coder-14b-instruct-4bit"
 seed = 42
 mlx = MLX(MODEL, seed=seed)
 
