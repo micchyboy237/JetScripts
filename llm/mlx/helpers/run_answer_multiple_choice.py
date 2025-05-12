@@ -1,11 +1,13 @@
 from jet.llm.mlx.helpers.answer_multiple_choice import answer_multiple_choice
+from jet.llm.mlx.mlx_types import ModelType
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 
 
-question = "Which planet is known as the Red Planet?"
-choices = ["Mars", "Earth", "Jupiter", "Saturn"]
-result = answer_multiple_choice(question, choices)
+question = "Which element is known as the building block of life?"
+choices = ["Oxygen", "Carbon", "Nitrogen", "Hydrogen"]
+model: ModelType = "llama-3.2-3b-instruct-4bit"
+result = answer_multiple_choice(question, choices, model, max_tokens=10)
 
 logger.gray("Result:")
 logger.success(format_json(result))

@@ -10,12 +10,22 @@ from jet.logger import CustomLogger
 def find_python_scripts(base_dir: str, exclude_self: bool = True) -> List[Path]:
     base_path = Path(base_dir).resolve()
     all_scripts = [
-        p for p in base_path.rglob("*.py")
+        p for p in base_path.glob("*.py")
         if p.name != "__init__.py"
     ]
     if exclude_self:
         self_path = Path(__file__).resolve()
         all_scripts = [p for p in all_scripts if p != self_path]
+
+    # Filter out scripts with existing log files
+    all_scripts = [
+        p for p in all_scripts
+        if not (p.with_suffix(".log")).exists()
+    ]
+
+    # Sort scripts alphabetically by file name
+    all_scripts.sort(key=lambda p: p.name.lower())
+
     return all_scripts
 
 
@@ -33,8 +43,7 @@ def run_script(script_path: Path) -> subprocess.CompletedProcess:
     )
     logger.debug(f"Output ({script_path}):\n{result.stdout}")
     if result.stderr:
-        logger.error(
-            f"Error ({script_path}):\n{result.stderr}", file=sys.stderr)
+        logger.error(f"Error ({script_path}):\n{result.stderr}")
     return result
 
 
