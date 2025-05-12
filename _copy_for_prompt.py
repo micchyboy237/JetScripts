@@ -33,9 +33,8 @@ exclude_files = [
 ]
 include_files = [
     "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/helpers/answer_multiple_choice.py",
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/helpers/answer_multiple_choice_with_confidence.py",
     "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/helpers/run_answer_multiple_choice.py",
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/helpers/run_answer_multiple_choice_with_confidence.py",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/generate/run_generate_with_probs.py",
 ]
 structure_include = [
     # "*.py"
@@ -50,52 +49,21 @@ SHORTEN_FUNCTS = False
 INCLUDE_FILE_STRUCTURE = False
 
 DEFAULT_QUERY_MESSAGE = """
-I dont get it, why is answer_multiple_choice result wrong and different from answer_multiple_choice_with_confidence? Even though both temperature=0.0.
+Explain to me how come run_generate_with_probs answering hydrogen when run_answer_multiple_choice correctly answers Carbon!
 
-Current logs:
+jethroestrada@Jethros-Mac-mini jet_notes % python /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/generate/run_generate_with_probs.py
+Custom Generate Output:
+Token: The, Confidence: 0.9116
+Token:  best, Confidence: 0.9990
+Token:  answer, Confidence: 1.0000
+Token:  is, Confidence: 1.0000
+Token:  Hydro, Confidence: 0.5664
+Token: gen, Confidence: 1.0000
+Token: ., Confidence: 1.0000
+Token: <|eot_id|>, Confidence: 0.8457
+
 
 jethroestrada@Jethros-Mac-mini ~ % python /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/helpers/run_answer_multiple_choice.py
-System:
-Answer the following question by choosing one of the options provided without any additional text.
-Options:
-Oxygen
-Carbon
-Nitrogen
-Hydrogen
-Tokenized System:
-['Answer', 'Gthe', 'Gfollowing', 'Gquestion', 'Gby', 'Gchoosing', 'Gone', 'Gof', 'Gthe', 'Goptions', 'Gprovided', 'Gwithout', 'Gany', 'Gadditional', 'Gtext', '.C', 'Options', ':C', 'O', 'xygen', 'C', 'Carbon', 'C', 'Nit', 'rogen', 'C', 'Hy', 'dro', 'gen']
-User:
-Which element is known as the building block of life?
-
-Tokens for 'Oxygen': [46, 19472]
-Tokens for 'Carbon': [37707]
-Tokens for 'Nitrogen': [98547, 26252]
-Tokens for 'Hydrogen': [31916, 11513, 4469]
-Result:
-{
-  "answer": "Hydrogen",
-  "token_id": 4469,
-  "is_valid": true,
-  "method": "stream_generate",
-  "error": null
-}
-jethroestrada@Jethros-Mac-mini ~ % python /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/helpers/run_answer_multiple_choice_with_confidence.py
-System:
-Answer the following question by choosing one of the options provided without any additional text.
-Options:
-Oxygen
-Carbon
-Nitrogen
-Hydrogen
-Tokenized System:
-['Answer', 'Gthe', 'Gfollowing', 'Gquestion', 'Gby', 'Gchoosing', 'Gone', 'Gof', 'Gthe', 'Goptions', 'Gprovided', 'Gwithout', 'Gany', 'Gadditional', 'Gtext', '.C', 'Options', ':C', 'O', 'xygen', 'C', 'Carbon', 'C', 'Nit', 'rogen', 'C', 'Hy', 'dro', 'gen']
-User:
-Which element is known as the building block of life?
-
-Tokens for 'Oxygen': [46, 19472]
-Tokens for 'Carbon': [37707]
-Tokens for 'Nitrogen': [98547, 26252]
-Tokens for 'Hydrogen': [31916, 11513, 4469]
 Input IDs shape: (1, 76)
 Model output shape: (1, 76, 128256)
 Softmax probabilities (min, max): (0.0, 0.459716796875)
@@ -103,6 +71,7 @@ Choice: Oxygen, Token IDs: [46, 19472], Prob: 0.08593866229057312
 Choice: Carbon, Token IDs: [37707], Prob: 0.459716796875
 Choice: Nitrogen, Token IDs: [98547, 26252], Prob: 0.007274627685546875
 Choice: Hydrogen, Token IDs: [31916, 11513, 4469], Prob: 0.11564127604166667
+Confidence scores: {'Oxygen': 0.08593866229057312, 'Carbon': 0.459716796875, 'Nitrogen': 0.007274627685546875, 'Hydrogen': 0.11564127604166667}
 Most confident choice: Carbon (0.459716796875)
 Generated answer 'Hydrogen' differs from most confident choice 'Carbon'. Overriding.
 Result:
@@ -110,16 +79,9 @@ Result:
   "answer": "Carbon",
   "token_id": 37707,
   "is_valid": true,
-  "method": "stream_generate",
-  "error": null,
-  "confidence_scores": {
-    "Oxygen": 0.08593866229057312,
-    "Carbon": 0.459716796875,
-    "Nitrogen": 0.007274627685546875,
-    "Hydrogen": 0.11564127604166667
-  }
+  "method": "generate_step",
+  "error": null
 }
-jethroestrada@Jethros-Mac-mini ~ %
 """.strip()
 
 DEFAULT_SYSTEM_MESSAGE = """
