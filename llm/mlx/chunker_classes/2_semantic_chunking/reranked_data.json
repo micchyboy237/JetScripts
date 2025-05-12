@@ -1,0 +1,222 @@
+[
+  {
+    "id": "b2a547427df90009637542c274c67daf",
+    "rank": 1,
+    "doc_index": 0,
+    "score": 0.600166916847229,
+    "percent_difference": 0.0,
+    "text": "## Introduction to Semantic Chunking\nText chunking is an essential step in Retrieval-Augmented Generation (RAG), where large text bodies are divided into meaningful segments to improve retrieval accuracy.\nUnlike fixed-length chunking, semantic chunking splits text based on the content similarity between sentences.",
+    "relevance": null,
+    "word_count": 49
+  },
+  {
+    "id": "741d77d4126f47bae3104ce2a7ff0262",
+    "rank": 2,
+    "doc_index": 1,
+    "score": 0.5588459968566895,
+    "percent_difference": 6.88,
+    "text": "### Breakpoint Methods:\n- **Percentile**: Finds the Xth percentile of all similarity differences and splits chunks where the drop is greater than this value.\n- **Standard Deviation**: Splits where similarity drops more than X standard deviations below the mean.\n- **Interquartile Range (IQR)**: Uses the interquartile distance (Q3 - Q1) to determine split points.\nThis notebook implements semantic chunking **using the percentile method** and evaluates its performance on a sample text.",
+    "relevance": null,
+    "word_count": 101
+  },
+  {
+    "id": "bc28ef12c09929d73c80e9c1b8e24f83",
+    "rank": 3,
+    "doc_index": 14,
+    "score": 0.5546364784240723,
+    "percent_difference": 7.59,
+    "text": "## Splitting Text into Semantic Chunks\nWe split the text based on computed breakpoints.",
+    "relevance": null,
+    "word_count": 16
+  },
+  {
+    "id": "729da59a6be643302aa2ef480a5a7d38",
+    "rank": 4,
+    "doc_index": 12,
+    "score": 0.5115975141525269,
+    "percent_difference": 14.76,
+    "text": "## Implementing Semantic Chunking\nWe implement three different methods for finding breakpoints.",
+    "relevance": null,
+    "word_count": 14
+  },
+  {
+    "id": "6ad47639d62586443df193171ddc5e9c",
+    "rank": 5,
+    "doc_index": 15,
+    "score": 0.49843524396419525,
+    "percent_difference": 16.95,
+    "text": "## Splitting Text into Semantic Chunks\nCode:\ndef split_into_chunks(sentences, breakpoints):\n\"\"\"\nSplits sentences into semantic chunks.\nArgs:\nsentences (List[str]): List of sentences.\nbreakpoints (List[int]): Indices where chunking should occur.\nReturns:\nList[str]: List of text chunks.\n\"\"\"\nchunks = []  # Initialize an empty list to store the chunks\nstart = 0  # Initialize the start index\n# Iterate through each breakpoint to create chunks\nfor bp in breakpoints:\n# Append the chunk of sentences from start to the current breakpoint\nchunks.append(\". \".join(sentences[start:bp + 1]) + \".\")\nstart = bp + 1  # Update the start index to the next sentence after the breakpoint\n# Append the remaining sentences as the last chunk\nchunks.append(\". \".join(sentences[start:]))\nreturn chunks  # Return the list of chunks\n# Create chunks using the split_into_chunks function\ntext_chunks = split_into_chunks(sentences, breakpoints)\n# Print the number of chunks created\nprint(f\"Number of semantic chunks: {len(text_chunks)}\")\n# Print the first chunk to verify the result\nprint(\"nFirst text chunk:\")\nprint(text_chunks[0])",
+    "relevance": null,
+    "word_count": 247
+  },
+  {
+    "id": "df8f786799933c5d8a5c6920a2b0c3da",
+    "rank": 6,
+    "doc_index": 17,
+    "score": 0.464942067861557,
+    "percent_difference": 22.53,
+    "text": "## Creating Embeddings for Semantic Chunks\nCode:\ndef create_embeddings(text_chunks):\n\"\"\"\nCreates embeddings for each text chunk.\nArgs:\ntext_chunks (List[str]): List of text chunks.\nReturns:\nList[np.ndarray]: List of embedding vectors.\n\"\"\"\n# Generate embeddings for each text chunk using the get_embedding function\nreturn [get_embedding(chunk) for chunk in text_chunks]\n# Create chunk embeddings using the create_embeddings function\nchunk_embeddings = create_embeddings(text_chunks)",
+    "relevance": null,
+    "word_count": 90
+  },
+  {
+    "id": "92475657d18a1e8cc17c3c1ac83451e5",
+    "rank": 7,
+    "doc_index": 16,
+    "score": 0.4309875965118408,
+    "percent_difference": 28.19,
+    "text": "## Creating Embeddings for Semantic Chunks\nWe create embeddings for each chunk for later retrieval.",
+    "relevance": null,
+    "word_count": 17
+  },
+  {
+    "id": "92bf8041fe1b9f6979b1911565a3b4a2",
+    "rank": 8,
+    "doc_index": 18,
+    "score": 0.38341110944747925,
+    "percent_difference": 36.12,
+    "text": "## Performing Semantic Search\nWe implement cosine similarity to retrieve the most relevant chunks.",
+    "relevance": null,
+    "word_count": 16
+  },
+  {
+    "id": "e9ed4388220947559f0c50ef5099faf5",
+    "rank": 9,
+    "doc_index": 19,
+    "score": 0.3448505401611328,
+    "percent_difference": 42.54,
+    "text": "## Performing Semantic Search\nCode:\ndef semantic_search(query, text_chunks, chunk_embeddings, k=5):\n\"\"\"\nFinds the most relevant text chunks for a query.\nArgs:\nquery (str): Search query.\ntext_chunks (List[str]): List of text chunks.\nchunk_embeddings (List[np.ndarray]): List of chunk embeddings.\nk (int): Number of top results to return.\nReturns:\nList[str]: Top-k relevant chunks.\n\"\"\"\n# Generate an embedding for the query\nquery_embedding = get_embedding(query)\n# Calculate cosine similarity between the query embedding and each chunk embedding\nsimilarities = [cosine_similarity(query_embedding, emb) for emb in chunk_embeddings]\n# Get the indices of the top-k most similar chunks\ntop_indices = np.argsort(similarities)[-k:][::-1]\n# Return the top-k most relevant text chunks\nreturn [text_chunks[i] for i in top_indices]",
+    "relevance": null,
+    "word_count": 175
+  },
+  {
+    "id": "c38b9ad7fb3aca124e414ea8cb30ee11",
+    "rank": 10,
+    "doc_index": 8,
+    "score": 0.2842760682106018,
+    "percent_difference": 52.63,
+    "text": "## Creating Sentence-Level Embeddings\nWe split text into sentences and generate embeddings.",
+    "relevance": null,
+    "word_count": 14
+  },
+  {
+    "id": "ba473f0472e1ba29da861ad3e205e798",
+    "rank": 11,
+    "doc_index": 20,
+    "score": 0.2660173363983631,
+    "percent_difference": 55.68,
+    "text": "## Generating a Response Based on Retrieved Chunks\nCode:\n# Define the system prompt for the AI assistant\nsystem_prompt = \"You are an AI assistant that strictly answers based on the given context. If the answer cannot be derived directly from the provided context, respond with: 'I do not have enough information to answer that.'\"\ndef generate_response(system_prompt, user_message, model=\"meta-llama/Llama-3.2-3B-Instruct\"):\n\"\"\"\nGenerates a response from the AI model based on the system prompt and user message.\nArgs:\nsystem_prompt (str): The system prompt to guide the AI's behavior.\nuser_message (str): The user's message or query.\nmodel (str): The model to be used for generating the response. Default is \"meta-llama/Llama-2-7B-chat-hf\".\nReturns:\ndict: The response from the AI model.\n\"\"\"\nresponse = client.chat.completions.create(\nmodel=model,\ntemperature=0,\nmessages=[\n{\"role\": \"system\", \"content\": system_prompt},\n{\"role\": \"user\", \"content\": user_message}\n]\n)\nreturn response\n# Create the user prompt based on the top chunks\nuser_prompt = \"n\".join([f\"Context {i + 1}:n{chunk}n=====================================n\" for i, chunk in enumerate(top_chunks)])\nuser_prompt = f\"{user_prompt}nQuestion: {query}\"\n# Generate AI response\nai_response = generate_response(system_prompt, user_prompt)",
+    "relevance": null,
+    "word_count": 275
+  },
+  {
+    "id": "ddc12ca461fde46206b59ce349e18085",
+    "rank": 12,
+    "doc_index": 4,
+    "score": 0.2566831111907959,
+    "percent_difference": 57.23,
+    "text": "## Extracting Text from a PDF File\nTo implement RAG, we first need a source of textual data. In this case, we extract text from a PDF file using the PyMuPDF library.",
+    "relevance": null,
+    "word_count": 37
+  },
+  {
+    "id": "d6438982e50d97a42cddd14dcea778e8",
+    "rank": 13,
+    "doc_index": 13,
+    "score": 0.2266992231210073,
+    "percent_difference": 62.23,
+    "text": "## Implementing Semantic Chunking\nCode:\ndef compute_breakpoints(similarities, method=\"percentile\", threshold=90):\n\"\"\"\nComputes chunking breakpoints based on similarity drops.\nArgs:\nsimilarities (List[float]): List of similarity scores between sentences.\nmethod (str): 'percentile', 'standard_deviation', or 'interquartile'.\nthreshold (float): Threshold value (percentile for 'percentile', std devs for 'standard_deviation').\nReturns:\nList[int]: Indices where chunk splits should occur.\n\"\"\"\n# Determine the threshold value based on the selected method\nif method == \"percentile\":\n# Calculate the Xth percentile of the similarity scores\nthreshold_value = np.percentile(similarities, threshold)\nelif method == \"standard_deviation\":\n# Calculate the mean and standard deviation of the similarity scores\nmean = np.mean(similarities)\nstd_dev = np.std(similarities)\n# Set the threshold value to mean minus X standard deviations\nthreshold_value = mean - (threshold * std_dev)\nelif method == \"interquartile\":\n# Calculate the first and third quartiles (Q1 and Q3)\nq1, q3 = np.percentile(similarities, [25, 75])\n# Set the threshold value using the IQR rule for outliers\nthreshold_value = q1 - 1.5 * (q3 - q1)\nelse:\n# Raise an error if an invalid method is provided\nraise ValueError(\"Invalid method. Choose 'percentile', 'standard_deviation', or 'interquartile'.\")\n# Identify indices where similarity drops below the threshold value\nreturn [i for i, sim in enumerate(similarities) if sim < threshold_value]\n# Compute breakpoints using the percentile method with a threshold of 90\nbreakpoints = compute_breakpoints(similarities, method=\"percentile\", threshold=90)",
+    "relevance": null,
+    "word_count": 322
+  },
+  {
+    "id": "a5d36e194af18491ce572b674a39e5ce",
+    "rank": 14,
+    "doc_index": 5,
+    "score": 0.22237716615200043,
+    "percent_difference": 62.95,
+    "text": "## Extracting Text from a PDF File\nCode:\ndef extract_text_from_pdf(pdf_path):\n\"\"\"\nExtracts text from a PDF file.\nArgs:\npdf_path (str): Path to the PDF file.\nReturns:\nstr: Extracted text from the PDF.\n\"\"\"\n# Open the PDF file\nmypdf = fitz.open(pdf_path)\nall_text = \"\"  # Initialize an empty string to store the extracted text\n# Iterate through each page in the PDF\nfor page in mypdf:\n# Extract text from the current page and add spacing\nall_text += page.get_text(\"text\") + \" \"\n# Return the extracted text, stripped of leading/trailing whitespace\nreturn all_text.strip()\n# Define the path to the PDF file\npdf_path = \"data/AI_Information.pdf\"\n# Extract text from the PDF file\nextracted_text = extract_text_from_pdf(pdf_path)\n# Print the first 500 characters of the extracted text\nprint(extracted_text[:500])",
+    "relevance": null,
+    "word_count": 167
+  },
+  {
+    "id": "601d5a19fa064d11937ef70d56b50235",
+    "rank": 15,
+    "doc_index": 10,
+    "score": 0.18152529001235962,
+    "percent_difference": 69.75,
+    "text": "## Calculating Similarity Differences\nWe compute cosine similarity between consecutive sentences.",
+    "relevance": null,
+    "word_count": 13
+  },
+  {
+    "id": "ed2e27394ae42bafdbd374d6ae4ecfd7",
+    "rank": 16,
+    "doc_index": 11,
+    "score": 0.13969631493091583,
+    "percent_difference": 76.72,
+    "text": "## Calculating Similarity Differences\nCode:\ndef cosine_similarity(vec1, vec2):\n\"\"\"\nComputes cosine similarity between two vectors.\nArgs:\nvec1 (np.ndarray): First vector.\nvec2 (np.ndarray): Second vector.\nReturns:\nfloat: Cosine similarity.\n\"\"\"\nreturn np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))\n# Compute similarity between consecutive sentences\nsimilarities = [cosine_similarity(embeddings[i], embeddings[i + 1]) for i in range(len(embeddings) - 1)]",
+    "relevance": null,
+    "word_count": 107
+  },
+  {
+    "id": "14d5cb18ee759a23a7a0cc113e81c336",
+    "rank": 17,
+    "doc_index": 9,
+    "score": 0.12314309179782867,
+    "percent_difference": 79.48,
+    "text": "## Creating Sentence-Level Embeddings\nCode:\ndef get_embedding(text, model=\"BAAI/bge-en-icl\"):\n\"\"\"\nCreates an embedding for the given text using OpenAI.\nArgs:\ntext (str): Input text.\nmodel (str): Embedding model name.\nReturns:\nnp.ndarray: The embedding vector.\n\"\"\"\nresponse = client.embeddings.create(model=model, input=text)\nreturn np.array(response.data[0].embedding)\n# Splitting text into sentences (basic split)\nsentences = extracted_text.split(\". \")\n# Generate embeddings for each sentence\nembeddings = [get_embedding(sentence) for sentence in sentences]\nprint(f\"Generated {len(embeddings)} sentence embeddings.\")",
+    "relevance": null,
+    "word_count": 128
+  },
+  {
+    "id": "a6030ec345f66aaba95320f7e51e8156",
+    "rank": 18,
+    "doc_index": 22,
+    "score": 0.09838847070932388,
+    "percent_difference": 83.61,
+    "text": "## Evaluating the AI Response\nCode:\n# Define the system prompt for the evaluation system\nevaluate_system_prompt = \"You are an intelligent evaluation system tasked with assessing the AI assistant's responses. If the AI assistant's response is very close to the true response, assign a score of 1. If the response is incorrect or unsatisfactory in relation to the true response, assign a score of 0. If the response is partially aligned with the true response, assign a score of 0.5.\"\n# Create the evaluation prompt by combining the user query, AI response, true response, and evaluation system prompt\nevaluation_prompt = f\"User Query: {query}nAI Response:n{ai_response.choices[0].message.content}nTrue Response: {data[0]['ideal_answer']}n{evaluate_system_prompt}\"\n# Generate the evaluation response using the evaluation system prompt and evaluation prompt\nevaluation_response = generate_response(evaluate_system_prompt, evaluation_prompt)\n# Print the evaluation response\nprint(evaluation_response.choices[0].message.content)",
+    "relevance": null,
+    "word_count": 187
+  },
+  {
+    "id": "0430b10c43379bd27f0a6b6f3d3f3ae2",
+    "rank": 19,
+    "doc_index": 21,
+    "score": 0.09619999676942825,
+    "percent_difference": 83.97,
+    "text": "## Evaluating the AI Response\nWe compare the AI response with the expected answer and assign a score.",
+    "relevance": null,
+    "word_count": 20
+  },
+  {
+    "id": "94052a55d4f2f654a85c9cc659c6f18e",
+    "rank": 20,
+    "doc_index": 3,
+    "score": 0.048928402364254,
+    "percent_difference": 91.85,
+    "text": "## Setting Up the Environment\nCode:\nimport fitz\nimport os\nimport numpy as np\nimport json\nfrom openai import OpenAI",
+    "relevance": null,
+    "word_count": 22
+  },
+  {
+    "id": "ec06847c02eaf5195ff95315d2a8295a",
+    "rank": 21,
+    "doc_index": 6,
+    "score": 0.03732878342270851,
+    "percent_difference": 93.78,
+    "text": "## Setting Up the OpenAI API Client\nWe initialize the OpenAI client to generate embeddings and responses.",
+    "relevance": null,
+    "word_count": 19
+  },
+  {
+    "id": "53b6e66239969bc2f4e5a8dd71ab2cf1",
+    "rank": 22,
+    "doc_index": 2,
+    "score": 0.027201073244214058,
+    "percent_difference": 95.47,
+    "text": "## Setting Up the Environment\nWe begin by importing necessary libraries.",
+    "relevance": null,
+    "word_count": 13
+  }
+]

@@ -1,0 +1,242 @@
+[
+  {
+    "id": "944f25eb13eebbf8771cfd0f23c3a04f",
+    "rank": 1,
+    "doc_index": 5,
+    "score": 0.6079847812652588,
+    "percent_difference": 0.0,
+    "text": "## Chunking the Extracted Text\nOnce we have the extracted text, we divide it into smaller, overlapping chunks to improve retrieval accuracy.",
+    "relevance": null,
+    "word_count": 26
+  },
+  {
+    "id": "3918dab1174338397c365bac0391774a",
+    "rank": 2,
+    "doc_index": 6,
+    "score": 0.49463438987731934,
+    "percent_difference": 18.64,
+    "text": "## Chunking the Extracted Text\nCode:\ndef chunk_text(text, n=1000, overlap=200):\n\"\"\"\nChunks the given text into segments of n characters with overlap.\nArgs:\ntext (str): The text to be chunked.\nn (int): The number of characters in each chunk.\noverlap (int): The number of overlapping characters between chunks.\nReturns:\nList[str]: A list of text chunks.\n\"\"\"\nchunks = []  # Initialize an empty list to store the chunks\n# Loop through the text with a step size of (n - overlap)\nfor i in range(0, len(text), n - overlap):\n# Append a chunk of text from index i to i + n to the chunks list\nchunks.append(text[i:i + n])\nreturn chunks  # Return the list of text chunks",
+    "relevance": null,
+    "word_count": 169
+  },
+  {
+    "id": "d9b5e59249ec71a759f619f7e668aa06",
+    "rank": 3,
+    "doc_index": 16,
+    "score": 0.4654979507128398,
+    "percent_difference": 23.44,
+    "text": "## Implementing Batch Compression\nCode:\ndef batch_compress_chunks(chunks, query, compression_type=\"selective\", model=\"meta-llama/Llama-3.2-3B-Instruct\"):\n\"\"\"\nCompress multiple chunks individually.\nArgs:\nchunks (List[str]): List of text chunks to compress\nquery (str): User query\ncompression_type (str): Type of compression (\"selective\", \"summary\", or \"extraction\")\nmodel (str): LLM model to use\nReturns:\nList[Tuple[str, float]]: List of compressed chunks with compression ratios\n\"\"\"\nprint(f\"Compressing {len(chunks)} chunks...\")  # Print the number of chunks to be compressed\nresults = []  # Initialize an empty list to store the results\ntotal_original_length = 0  # Initialize a variable to store the total original length of chunks\ntotal_compressed_length = 0  # Initialize a variable to store the total compressed length of chunks\n# Iterate over each chunk\nfor i, chunk in enumerate(chunks):\nprint(f\"Compressing chunk {i+1}/{len(chunks)}...\")  # Print the progress of compression\n# Compress the chunk and get the compressed chunk and compression ratio\ncompressed_chunk, compression_ratio = compress_chunk(chunk, query, compression_type, model)\nresults.append((compressed_chunk, compression_ratio))  # Append the result to the results list\ntotal_original_length += len(chunk)  # Add the length of the original chunk to the total original length\ntotal_compressed_length += len(compressed_chunk)  # Add the length of the compressed chunk to the total compressed length\n# Calculate the overall compression ratio\noverall_ratio = (total_original_length - total_compressed_length) / total_original_length * 100\nprint(f\"Overall compression ratio: {overall_ratio:.2f}%\")  # Print the overall compression ratio\nreturn results  # Return the list of compressed chunks with compression ratios",
+    "relevance": null,
+    "word_count": 347
+  },
+  {
+    "id": "549ca97f2d5b8327fe050667ff2b938d",
+    "rank": 4,
+    "doc_index": 15,
+    "score": 0.4291844666004181,
+    "percent_difference": 29.41,
+    "text": "## Implementing Batch Compression\nFor efficiency, we'll compress multiple chunks in one go when possible.",
+    "relevance": null,
+    "word_count": 19
+  },
+  {
+    "id": "3bd5fc7470c13b055318358393bba7d0",
+    "rank": 5,
+    "doc_index": 12,
+    "score": 0.4260244468847911,
+    "percent_difference": 29.93,
+    "text": "## Building Our Document Processing Pipeline\nCode:\ndef process_document(pdf_path, chunk_size=1000, chunk_overlap=200):\n\"\"\"\nProcess a document for RAG.\nArgs:\npdf_path (str): Path to the PDF file.\nchunk_size (int): Size of each chunk in characters.\nchunk_overlap (int): Overlap between chunks in characters.\nReturns:\nSimpleVectorStore: A vector store containing document chunks and their embeddings.\n\"\"\"\n# Extract text from the PDF file\nprint(\"Extracting text from PDF...\")\nextracted_text = extract_text_from_pdf(pdf_path)\n# Chunk the extracted text into smaller segments\nprint(\"Chunking text...\")\nchunks = chunk_text(extracted_text, chunk_size, chunk_overlap)\nprint(f\"Created {len(chunks)} text chunks\")\n# Create embeddings for each text chunk\nprint(\"Creating embeddings for chunks...\")\nchunk_embeddings = create_embeddings(chunks)\n# Initialize a simple vector store to store the chunks and their embeddings\nstore = SimpleVectorStore()\n# Add each chunk and its corresponding embedding to the vector store\nfor i, (chunk, embedding) in enumerate(zip(chunks, chunk_embeddings)):\nstore.add_item(\ntext=chunk,\nembedding=embedding,\nmetadata={\"index\": i, \"source\": pdf_path}\n)\nprint(f\"Added {len(chunks)} chunks to the vector store\")\nreturn store",
+    "relevance": null,
+    "word_count": 257
+  },
+  {
+    "id": "1e177307fa9b4a71b9eb6d7e6e60671e",
+    "rank": 6,
+    "doc_index": 18,
+    "score": 0.37702420353889465,
+    "percent_difference": 37.99,
+    "text": "## The Complete RAG Pipeline with Contextual Compression\nCode:\ndef rag_with_compression(pdf_path, query, k=10, compression_type=\"selective\", model=\"meta-llama/Llama-3.2-3B-Instruct\"):\n\"\"\"\nComplete RAG pipeline with contextual compression.\nArgs:\npdf_path (str): Path to PDF document\nquery (str): User query\nk (int): Number of chunks to retrieve initially\ncompression_type (str): Type of compression\nmodel (str): LLM model to use\nReturns:\ndict: Results including query, compressed chunks, and response\n\"\"\"\nprint(\"n=== RAG WITH CONTEXTUAL COMPRESSION ===\")\nprint(f\"Query: {query}\")\nprint(f\"Compression type: {compression_type}\")\n# Process the document to extract text, chunk it, and create embeddings\nvector_store = process_document(pdf_path)\n# Create an embedding for the query\nquery_embedding = create_embeddings(query)\n# Retrieve the top k most similar chunks based on the query embedding\nprint(f\"Retrieving top {k} chunks...\")\nresults = vector_store.similarity_search(query_embedding, k=k)\nretrieved_chunks = [result[\"text\"] for result in results]\n# Apply compression to the retrieved chunks\ncompressed_results = batch_compress_chunks(retrieved_chunks, query, compression_type, model)\ncompressed_chunks = [result[0] for result in compressed_results]\ncompression_ratios = [result[1] for result in compressed_results]\n# Filter out any empty compressed chunks\nfiltered_chunks = [(chunk, ratio) for chunk, ratio in zip(compressed_chunks, compression_ratios) if chunk.strip()]\nif not filtered_chunks:\n# If all chunks are compressed to empty strings, use the original chunks\nprint(\"Warning: All chunks were compressed to empty strings. Using original chunks.\")\nfiltered_chunks = [(chunk, 0.0) for chunk in retrieved_chunks]\nelse:\ncompressed_chunks, compression_ratios = zip(*filtered_chunks)\n# Generate context from the compressed chunks\ncontext = \"nn---nn\".join(compressed_chunks)\n# Generate a response based on the compressed chunks\nprint(\"Generating response based on compressed chunks...\")\nresponse = generate_response(query, context, model)\n# Prepare the result dictionary\nresult = {\n\"query\": query,\n\"original_chunks\": retrieved_chunks,\n\"compressed_chunks\": compressed_chunks,\n\"compression_ratios\": compression_ratios,\n\"context_length_reduction\": f\"{sum(compression_ratios)/len(compression_ratios):.2f}%\",\n\"response\": response\n}\nprint(\"n=== RESPONSE ===\")\nprint(response)\nreturn result",
+    "relevance": null,
+    "word_count": 475
+  },
+  {
+    "id": "b3cc73b52c3c363dea646eaa7df6a549",
+    "rank": 7,
+    "doc_index": 20,
+    "score": 0.37178834279378253,
+    "percent_difference": 38.85,
+    "text": "## Comparing RAG With and Without Compression\nCode:\ndef standard_rag(pdf_path, query, k=10, model=\"meta-llama/Llama-3.2-3B-Instruct\"):\n\"\"\"\nStandard RAG without compression.\nArgs:\npdf_path (str): Path to PDF document\nquery (str): User query\nk (int): Number of chunks to retrieve\nmodel (str): LLM model to use\nReturns:\ndict: Results including query, chunks, and response\n\"\"\"\nprint(\"n=== STANDARD RAG ===\")\nprint(f\"Query: {query}\")\n# Process the document to extract text, chunk it, and create embeddings\nvector_store = process_document(pdf_path)\n# Create an embedding for the query\nquery_embedding = create_embeddings(query)\n# Retrieve the top k most similar chunks based on the query embedding\nprint(f\"Retrieving top {k} chunks...\")\nresults = vector_store.similarity_search(query_embedding, k=k)\nretrieved_chunks = [result[\"text\"] for result in results]\n# Generate context from the retrieved chunks\ncontext = \"nn---nn\".join(retrieved_chunks)\n# Generate a response based on the retrieved chunks\nprint(\"Generating response...\")\nresponse = generate_response(query, context, model)\n# Prepare the result dictionary\nresult = {\n\"query\": query,\n\"chunks\": retrieved_chunks,\n\"response\": response\n}\nprint(\"n=== RESPONSE ===\")\nprint(response)\nreturn result",
+    "relevance": null,
+    "word_count": 271
+  },
+  {
+    "id": "3b733c48bea12787b18c40b131713664",
+    "rank": 8,
+    "doc_index": 0,
+    "score": 0.3530634641647339,
+    "percent_difference": 41.93,
+    "text": "# Contextual Compression for Enhanced RAG Systems\nIn this notebook, I implement a contextual compression technique to improve our RAG system's efficiency. We'll filter and compress retrieved text chunks to keep only the most relevant parts, reducing noise and improving response quality.\nWhen retrieving documents for RAG, we often get chunks containing both relevant and irrelevant information. Contextual compression helps us:\n- Remove irrelevant sentences and paragraphs\n- Focus only on query-relevant information\n- Maximize the useful signal in our context window\nLet's implement this approach from scratch!",
+    "relevance": null,
+    "word_count": 99
+  },
+  {
+    "id": "d1bb92569715416204681dc848dbca83",
+    "rank": 9,
+    "doc_index": 24,
+    "score": 0.35075197617212933,
+    "percent_difference": 42.31,
+    "text": "## Visualizing Compression Results\nCode:\ndef visualize_compression_results(evaluation_results):\n\"\"\"\nVisualize the results of different compression techniques.\nArgs:\nevaluation_results (Dict): Results from evaluate_compression function\n\"\"\"\n# Extract the query and standard chunks from the evaluation results\nquery = evaluation_results[\"query\"]\nstandard_chunks = evaluation_results[\"standard_result\"][\"chunks\"]\n# Print the query\nprint(f\"Query: {query}\")\nprint(\"n\" + \"=\"*80 + \"n\")\n# Get a sample chunk to visualize (using the first chunk)\noriginal_chunk = standard_chunks[0]\n# Iterate over each compression type and show a comparison\nfor comp_type in evaluation_results[\"compression_results\"].keys():\ncompressed_chunks = evaluation_results[\"compression_results\"][comp_type][\"compressed_chunks\"]\ncompression_ratios = evaluation_results[\"compression_results\"][comp_type][\"compression_ratios\"]\n# Get the corresponding compressed chunk and its compression ratio\ncompressed_chunk = compressed_chunks[0]\ncompression_ratio = compression_ratios[0]\nprint(f\"n=== {comp_type.upper()} COMPRESSION EXAMPLE ===n\")\n# Show the original chunk (truncated if too long)\nprint(\"ORIGINAL CHUNK:\")\nprint(\"-\" * 40)\nif len(original_chunk) > 800:\nprint(original_chunk[:800] + \"... [truncated]\")\nelse:\nprint(original_chunk)\nprint(\"-\" * 40)\nprint(f\"Length: {len(original_chunk)} charactersn\")\n# Show the compressed chunk\nprint(\"COMPRESSED CHUNK:\")\nprint(\"-\" * 40)\nprint(compressed_chunk)\nprint(\"-\" * 40)\nprint(f\"Length: {len(compressed_chunk)} characters\")\nprint(f\"Compression ratio: {compression_ratio:.2f}%n\")\n# Show overall statistics for this compression type\navg_ratio = sum(compression_ratios) / len(compression_ratios)\nprint(f\"Average compression across all chunks: {avg_ratio:.2f}%\")\nprint(f\"Total context length reduction: {evaluation_results['metrics'][comp_type]['avg_compression_ratio']}\")\nprint(\"=\" * 80)\n# Show a summary table of compression techniques\nprint(\"n=== COMPRESSION SUMMARY ===n\")\nprint(f\"{'Technique':<15} {'Avg Ratio':<15} {'Context Length':<15} {'Original Length':<15}\")\nprint(\"-\" * 60)\n# Print the metrics for each compression type\nfor comp_type, metrics in evaluation_results[\"metrics\"].items():\nprint(f\"{comp_type:<15} {metrics['avg_compression_ratio']:<15} {metrics['total_context_length']:<15} {metrics['original_context_length']:<15}\")",
+    "relevance": null,
+    "word_count": 551
+  },
+  {
+    "id": "dfe029a2c94dfdb1ce47f6f18167e9a4",
+    "rank": 10,
+    "doc_index": 14,
+    "score": 0.3448498745759328,
+    "percent_difference": 43.28,
+    "text": "## Implementing Contextual Compression\nCode:\ndef compress_chunk(chunk, query, compression_type=\"selective\", model=\"meta-llama/Llama-3.2-3B-Instruct\"):\n\"\"\"\nCompress a retrieved chunk by keeping only the parts relevant to the query.\nArgs:\nchunk (str): Text chunk to compress\nquery (str): User query\ncompression_type (str): Type of compression (\"selective\", \"summary\", or \"extraction\")\nmodel (str): LLM model to use\nReturns:\nstr: Compressed chunk\n\"\"\"\n# Define system prompts for different compression approaches\nif compression_type == \"selective\":\nsystem_prompt = \"\"\"You are an expert at information filtering.\nYour task is to analyze a document chunk and extract ONLY the sentences or paragraphs that are directly\nrelevant to the user's query. Remove all irrelevant content.\nYour output should:\n1. ONLY include text that helps answer the query\n2. Preserve the exact wording of relevant sentences (do not paraphrase)\n3. Maintain the original order of the text\n4. Include ALL relevant content, even if it seems redundant\n5. EXCLUDE any text that isn't relevant to the query\nFormat your response as plain text with no additional comments.\"\"\"\nelif compression_type == \"summary\":\nsystem_prompt = \"\"\"You are an expert at summarization.\nYour task is to create a concise summary of the provided chunk that focuses ONLY on\ninformation relevant to the user's query.\nYour output should:\n1. Be brief but comprehensive regarding query-relevant information\n2. Focus exclusively on information related to the query\n3. Omit irrelevant details\n4. Be written in a neutral, factual tone\nFormat your response as plain text with no additional comments.\"\"\"\nelse:  # extraction\nsystem_prompt = \"\"\"You are an expert at information extraction.\nYour task is to extract ONLY the exact sentences from the document chunk that contain information relevant\nto answering the user's query.\nYour output should:\n1. Include ONLY direct quotes of relevant sentences from the original text\n2. Preserve the original wording (do not modify the text)\n3. Include ONLY sentences that directly relate to the query\n4. Separate extracted sentences with newlines\n5. Do not add any commentary or additional text\nFormat your response as plain text with no additional comments.\"\"\"\n# Define the user prompt with the query and document chunk\nuser_prompt = f\"\"\"\nQuery: {query}\nDocument Chunk:\n{chunk}\nExtract only the content relevant to answering this query.\n\"\"\"\n# Generate a response using the OpenAI API\nresponse = client.chat.completions.create(\nmodel=model,\nmessages=[\n{\"role\": \"system\", \"content\": system_prompt},\n{\"role\": \"user\", \"content\": user_prompt}\n],\ntemperature=0\n)\n# Extract the compressed chunk from the response\ncompressed_chunk = response.choices[0].message.content.strip()\n# Calculate compression ratio\noriginal_length = len(chunk)\ncompressed_length = len(compressed_chunk)\ncompression_ratio = (original_length - compressed_length) / original_length * 100\nreturn compressed_chunk, compression_ratio",
+    "relevance": null,
+    "word_count": 580
+  },
+  {
+    "id": "516a0acaa6b471c473dc85936459ce28",
+    "rank": 11,
+    "doc_index": 13,
+    "score": 0.2971004545688629,
+    "percent_difference": 51.13,
+    "text": "## Implementing Contextual Compression\nThis is the core of our approach - we'll use an LLM to filter and compress retrieved content.",
+    "relevance": null,
+    "word_count": 25
+  },
+  {
+    "id": "ddc12ca461fde46206b59ce349e18085",
+    "rank": 12,
+    "doc_index": 3,
+    "score": 0.2566831111907959,
+    "percent_difference": 57.78,
+    "text": "## Extracting Text from a PDF File\nTo implement RAG, we first need a source of textual data. In this case, we extract text from a PDF file using the PyMuPDF library.",
+    "relevance": null,
+    "word_count": 37
+  },
+  {
+    "id": "3ae1a7bb459d6242a78145ec398b5837",
+    "rank": 13,
+    "doc_index": 19,
+    "score": 0.19565196335315704,
+    "percent_difference": 67.82,
+    "text": "## Comparing RAG With and Without Compression\nLet's create a function to compare standard RAG with our compression-enhanced version:",
+    "relevance": null,
+    "word_count": 22
+  },
+  {
+    "id": "9eedf73b166ccdc909218eba6e69dd72",
+    "rank": 14,
+    "doc_index": 4,
+    "score": 0.18455010652542114,
+    "percent_difference": 69.65,
+    "text": "## Extracting Text from a PDF File\nCode:\ndef extract_text_from_pdf(pdf_path):\n\"\"\"\nExtracts text from a PDF file and prints the first `num_chars` characters.\nArgs:\npdf_path (str): Path to the PDF file.\nReturns:\nstr: Extracted text from the PDF.\n\"\"\"\n# Open the PDF file\nmypdf = fitz.open(pdf_path)\nall_text = \"\"  # Initialize an empty string to store the extracted text\n# Iterate through each page in the PDF\nfor page_num in range(mypdf.page_count):\npage = mypdf[page_num]  # Get the page\ntext = page.get_text(\"text\")  # Extract text from the page\nall_text += text  # Append the extracted text to the all_text string\nreturn all_text  # Return the extracted text",
+    "relevance": null,
+    "word_count": 143
+  },
+  {
+    "id": "85b8eb5448ce10bebc84e386245f6a6e",
+    "rank": 15,
+    "doc_index": 9,
+    "score": 0.160992830991745,
+    "percent_difference": 73.52,
+    "text": "## Building a Simple Vector Store\nlet's implement a simple vector store since we cannot use FAISS.",
+    "relevance": null,
+    "word_count": 21
+  },
+  {
+    "id": "4320fac6f0749f40bc660304ddd726bf",
+    "rank": 16,
+    "doc_index": 23,
+    "score": 0.15469778825839361,
+    "percent_difference": 74.56,
+    "text": "## Running Our Complete System (Custom Query)\nCode:\n# Path to the PDF document containing information on AI ethics\npdf_path = \"data/AI_Information.pdf\"\n# Query to extract relevant information from the document\nquery = \"What are the ethical concerns surrounding the use of AI in decision-making?\"\n# Optional reference answer for evaluation\nreference_answer = \"\"\"\nThe use of AI in decision-making raises several ethical concerns.\n- Bias in AI models can lead to unfair or discriminatory outcomes, especially in critical areas like hiring, lending, and law enforcement.\n- Lack of transparency and explainability in AI-driven decisions makes it difficult for individuals to challenge unfair outcomes.\n- Privacy risks arise as AI systems process vast amounts of personal data, often without explicit consent.\n- The potential for job displacement due to automation raises social and economic concerns.\n- AI decision-making may also concentrate power in the hands of a few large tech companies, leading to accountability challenges.\n- Ensuring fairness, accountability, and transparency in AI systems is essential for ethical deployment.\n\"\"\"\n# Run evaluation with different compression techniques\n# Compression types:\n# - \"selective\": Retains key details while omitting less relevant parts\n# - \"summary\": Provides a concise version of the information\n# - \"extraction\": Extracts relevant sentences verbatim from the document\nresults = evaluate_compression(\npdf_path=pdf_path,\nquery=query,\nreference_answer=reference_answer,\ncompression_types=[\"selective\", \"summary\", \"extraction\"]\n)",
+    "relevance": null,
+    "word_count": 272
+  },
+  {
+    "id": "b2f24fa1c2d5958066612d162e0bcf3a",
+    "rank": 17,
+    "doc_index": 11,
+    "score": 0.14437880367040634,
+    "percent_difference": 76.25,
+    "text": "## Embedding Generation\nCode:\ndef create_embeddings(text,  model=\"BAAI/bge-en-icl\"):\n\"\"\"\nCreates embeddings for the given text.\nArgs:\ntext (str or List[str]): The input text(s) for which embeddings are to be created.\nmodel (str): The model to be used for creating embeddings.\nReturns:\nList[float] or List[List[float]]: The embedding vector(s).\n\"\"\"\n# Handle both string and list inputs by ensuring input_text is always a list\ninput_text = text if isinstance(text, list) else [text]\n# Create embeddings for the input text using the specified model\nresponse = client.embeddings.create(\nmodel=model,\ninput=input_text\n)\n# If the input was a single string, return just the first embedding\nif isinstance(text, str):\nreturn response.data[0].embedding\n# Otherwise, return all embeddings for the list of input texts\nreturn [item.embedding for item in response.data]",
+    "relevance": null,
+    "word_count": 187
+  },
+  {
+    "id": "8756c652118595f9b27d79f35fc68ec6",
+    "rank": 18,
+    "doc_index": 10,
+    "score": 0.1372674461454153,
+    "percent_difference": 77.42,
+    "text": "## Building a Simple Vector Store\nCode:\nclass SimpleVectorStore:\n\"\"\"\nA simple vector store implementation using NumPy.\n\"\"\"\ndef __init__(self):\n\"\"\"\nInitialize the vector store.\n\"\"\"\nself.vectors = []  # List to store embedding vectors\nself.texts = []  # List to store original texts\nself.metadata = []  # List to store metadata for each text\ndef add_item(self, text, embedding, metadata=None):\n\"\"\"\nAdd an item to the vector store.\nArgs:\ntext (str): The original text.\nembedding (List[float]): The embedding vector.\nmetadata (dict, optional): Additional metadata.\n\"\"\"\nself.vectors.append(np.array(embedding))  # Convert embedding to numpy array and add to vectors list\nself.texts.append(text)  # Add the original text to texts list\nself.metadata.append(metadata or {})  # Add metadata to metadata list, use empty dict if None\ndef similarity_search(self, query_embedding, k=5):\n\"\"\"\nFind the most similar items to a query embedding.\nArgs:\nquery_embedding (List[float]): Query embedding vector.\nk (int): Number of results to return.\nReturns:\nList[Dict]: Top k most similar items with their texts and metadata.\n\"\"\"\nif not self.vectors:\nreturn []  # Return empty list if no vectors are stored\n# Convert query embedding to numpy array\nquery_vector = np.array(query_embedding)\n# Calculate similarities using cosine similarity\nsimilarities = []\nfor i, vector in enumerate(self.vectors):\nsimilarity = np.dot(query_vector, vector) / (np.linalg.norm(query_vector) * np.linalg.norm(vector))\nsimilarities.append((i, similarity))  # Append index and similarity score\n# Sort by similarity (descending)\nsimilarities.sort(key=lambda x: x[1], reverse=True)\n# Return top k results\nresults = []\nfor i in range(min(k, len(similarities))):\nidx, score = similarities[i]\nresults.append({\n\"text\": self.texts[idx],  # Add the text corresponding to the index\n\"metadata\": self.metadata[idx],  # Add the metadata corresponding to the index\n\"similarity\": score  # Add the similarity score\n})\nreturn results  # Return the list of top k results",
+    "relevance": null,
+    "word_count": 442
+  },
+  {
+    "id": "c7449846ceb197e9a1fe590f2323f8e8",
+    "rank": 19,
+    "doc_index": 21,
+    "score": 0.11813966929912567,
+    "percent_difference": 80.57,
+    "text": "## Evaluating Our Approach\nNow, let's implement a function to evaluate and compare the responses:",
+    "relevance": null,
+    "word_count": 19
+  },
+  {
+    "id": "8b78317b921cb9cfb7e81dd9a021ac6f",
+    "rank": 20,
+    "doc_index": 22,
+    "score": 0.09899868319431941,
+    "percent_difference": 83.72,
+    "text": "## Evaluating Our Approach\nCode:\ndef evaluate_responses(query, responses, reference_answer):\n\"\"\"\nEvaluate multiple responses against a reference answer.\nArgs:\nquery (str): User query\nresponses (Dict[str, str]): Dictionary of responses by method\nreference_answer (str): Reference answer\nReturns:\nstr: Evaluation text\n\"\"\"\n# Define the system prompt to guide the AI's behavior for evaluation\nsystem_prompt = \"\"\"You are an objective evaluator of RAG responses. Compare different responses to the same query\nand determine which is most accurate, comprehensive, and relevant to the query.\"\"\"\n# Create the user prompt by combining the query and reference answer\nuser_prompt = f\"\"\"\nQuery: {query}\nReference Answer: {reference_answer}\n\"\"\"\n# Add each response to the prompt\nfor method, response in responses.items():\nuser_prompt += f\"n{method.capitalize()} Response:n{response}n\"\n# Add the evaluation criteria to the user prompt\nuser_prompt += \"\"\"\nPlease evaluate these responses based on:\n1. Factual accuracy compared to the reference\n2. Comprehensiveness - how completely they answer the query\n3. Conciseness - whether they avoid irrelevant information\n4. Overall quality\nRank the responses from best to worst with detailed explanations.\n\"\"\"\n# Generate an evaluation response using the OpenAI API\nevaluation_response = client.chat.completions.create(\nmodel=\"meta-llama/Llama-3.2-3B-Instruct\",\nmessages=[\n{\"role\": \"system\", \"content\": system_prompt},\n{\"role\": \"user\", \"content\": user_prompt}\n],\ntemperature=0\n)\n# Return the evaluation text from the response\nreturn evaluation_response.choices[0].message.content",
+    "relevance": null,
+    "word_count": 320
+  },
+  {
+    "id": "652db0b289d39f9475f736a91354f950",
+    "rank": 21,
+    "doc_index": 17,
+    "score": 0.09160581231117249,
+    "percent_difference": 84.93,
+    "text": "## Response Generation Function\nCode:\ndef generate_response(query, context, model=\"meta-llama/Llama-3.2-3B-Instruct\"):\n\"\"\"\nGenerate a response based on the query and context.\nArgs:\nquery (str): User query\ncontext (str): Context text from compressed chunks\nmodel (str): LLM model to use\nReturns:\nstr: Generated response\n\"\"\"\n# Define the system prompt to guide the AI's behavior\nsystem_prompt = \"\"\"You are a helpful AI assistant. Answer the user's question based only on the provided context.\nIf you cannot find the answer in the context, state that you don't have enough information.\"\"\"\n# Create the user prompt by combining the context and the query\nuser_prompt = f\"\"\"\nContext:\n{context}\nQuestion: {query}\nPlease provide a comprehensive answer based only on the context above.\n\"\"\"\n# Generate a response using the OpenAI API\nresponse = client.chat.completions.create(\nmodel=model,\nmessages=[\n{\"role\": \"system\", \"content\": system_prompt},\n{\"role\": \"user\", \"content\": user_prompt}\n],\ntemperature=0\n)\n# Return the generated response content\nreturn response.choices[0].message.content",
+    "relevance": null,
+    "word_count": 233
+  },
+  {
+    "id": "94052a55d4f2f654a85c9cc659c6f18e",
+    "rank": 22,
+    "doc_index": 2,
+    "score": 0.048928402364254,
+    "percent_difference": 91.95,
+    "text": "## Setting Up the Environment\nCode:\nimport fitz\nimport os\nimport numpy as np\nimport json\nfrom openai import OpenAI",
+    "relevance": null,
+    "word_count": 22
+  },
+  {
+    "id": "ec06847c02eaf5195ff95315d2a8295a",
+    "rank": 23,
+    "doc_index": 7,
+    "score": 0.03732878342270851,
+    "percent_difference": 93.86,
+    "text": "## Setting Up the OpenAI API Client\nWe initialize the OpenAI client to generate embeddings and responses.",
+    "relevance": null,
+    "word_count": 19
+  },
+  {
+    "id": "53b6e66239969bc2f4e5a8dd71ab2cf1",
+    "rank": 24,
+    "doc_index": 1,
+    "score": 0.027201073244214058,
+    "percent_difference": 95.53,
+    "text": "## Setting Up the Environment\nWe begin by importing necessary libraries.",
+    "relevance": null,
+    "word_count": 13
+  }
+]

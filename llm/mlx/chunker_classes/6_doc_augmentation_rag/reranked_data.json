@@ -1,0 +1,362 @@
+[
+  {
+    "id": "944f25eb13eebbf8771cfd0f23c3a04f",
+    "rank": 1,
+    "doc_index": 5,
+    "score": 0.6079847812652588,
+    "percent_difference": 0.0,
+    "text": "## Chunking the Extracted Text\nOnce we have the extracted text, we divide it into smaller, overlapping chunks to improve retrieval accuracy.",
+    "relevance": null,
+    "word_count": 26
+  },
+  {
+    "id": "d20123565d5fa6f9dce11a5e541cf11d",
+    "rank": 2,
+    "doc_index": 28,
+    "score": 0.529926061630249,
+    "percent_difference": 12.84,
+    "text": "## Extracting and Chunking Text from a PDF File\nNow, we load the PDF, extract text, and split it into chunks.",
+    "relevance": null,
+    "word_count": 26
+  },
+  {
+    "id": "9b27730e7633bcc4e44da8b067ac906d",
+    "rank": 3,
+    "doc_index": 29,
+    "score": 0.5252268314361572,
+    "percent_difference": 13.61,
+    "text": "## Extracting and Chunking Text from a PDF File\nCode:\n# Define the path to the PDF file\npdf_path = \"data/AI_Information.pdf\"\n# Extract text from the PDF file\nextracted_text = extract_text_from_pdf(pdf_path)\n# Chunk the extracted text into segments of 1000 characters with an overlap of 200 characters\ntext_chunks = chunk_text(extracted_text, 1000, 200)\n# Print the number of text chunks created\nprint(\"Number of text chunks:\", len(text_chunks))\n# Print the first text chunk\nprint(\"nFirst text chunk:\")\nprint(text_chunks[0])",
+    "relevance": null,
+    "word_count": 109
+  },
+  {
+    "id": "fc525f4d8d7a82a57f0948613616fe75",
+    "rank": 4,
+    "doc_index": 6,
+    "score": 0.4944360554218292,
+    "percent_difference": 18.68,
+    "text": "## Chunking the Extracted Text\nCode:\ndef chunk_text(text, n, overlap):\n\"\"\"\nChunks the given text into segments of n characters with overlap.\nArgs:\ntext (str): The text to be chunked.\nn (int): The number of characters in each chunk.\noverlap (int): The number of overlapping characters between chunks.\nReturns:\nList[str]: A list of text chunks.\n\"\"\"\nchunks = []  # Initialize an empty list to store the chunks\n# Loop through the text with a step size of (n - overlap)\nfor i in range(0, len(text), n - overlap):\n# Append a chunk of text from index i to i + n to the chunks list\nchunks.append(text[i:i + n])\nreturn chunks  # Return the list of text chunks",
+    "relevance": null,
+    "word_count": 169
+  },
+  {
+    "id": "bf1908f40821643368b5d66d527ece34",
+    "rank": 5,
+    "doc_index": 34,
+    "score": 0.44358089566230774,
+    "percent_difference": 27.04,
+    "text": "## Running a Query on Extracted Chunks\nCode:\n# Load the validation data from a JSON file\nwith open('data/val.json') as f:\ndata = json.load(f)\n# Extract the first query from the validation data\nquery = data[0]['question']\n# Perform semantic search to find the top 2 most relevant text chunks for the query\ntop_chunks = semantic_search(query, text_chunks, response.data, k=2)\n# Print the query\nprint(\"Query:\", query)\n# Print the top 2 most relevant text chunks\nfor i, chunk in enumerate(top_chunks):\nprint(f\"Context {i + 1}:n{chunk}n=====================================\")",
+    "relevance": null,
+    "word_count": 131
+  },
+  {
+    "id": "d9cdea86cc3822c5e3ac1b315f8102b2",
+    "rank": 6,
+    "doc_index": 30,
+    "score": 0.4374611973762512,
+    "percent_difference": 28.05,
+    "text": "## Creating Embeddings for Text Chunks\nEmbeddings transform text into numerical vectors, which allow for efficient similarity search.",
+    "relevance": null,
+    "word_count": 21
+  },
+  {
+    "id": "965dd13fcc2d7b3f7e280cd9a7994a9e",
+    "rank": 7,
+    "doc_index": 17,
+    "score": 0.41420507431030273,
+    "percent_difference": 31.87,
+    "text": "## Extracting and Processing the Document\nCode:\n# Define the path to the PDF file\npdf_path = \"data/AI_Information.pdf\"\n# Process the document (extract text, create chunks, generate questions, build vector store)\ntext_chunks, vector_store = process_document(\npdf_path,\nchunk_size=1000,\nchunk_overlap=200,\nquestions_per_chunk=3\n)\nprint(f\"Vector store contains {len(vector_store.texts)} items\")",
+    "relevance": null,
+    "word_count": 70
+  },
+  {
+    "id": "896004befd6e7053dfc99918850ab795",
+    "rank": 8,
+    "doc_index": 16,
+    "score": 0.3886806170145671,
+    "percent_difference": 36.07,
+    "text": "## Processing Documents with Question Augmentation\nCode:\ndef process_document(pdf_path, chunk_size=1000, chunk_overlap=200, questions_per_chunk=5):\n\"\"\"\nProcess a document with question augmentation.\nArgs:\npdf_path (str): Path to the PDF file.\nchunk_size (int): Size of each text chunk in characters.\nchunk_overlap (int): Overlap between chunks in characters.\nquestions_per_chunk (int): Number of questions to generate per chunk.\nReturns:\nTuple[List[str], SimpleVectorStore]: Text chunks and vector store.\n\"\"\"\nprint(\"Extracting text from PDF...\")\nextracted_text = extract_text_from_pdf(pdf_path)\nprint(\"Chunking text...\")\ntext_chunks = chunk_text(extracted_text, chunk_size, chunk_overlap)\nprint(f\"Created {len(text_chunks)} text chunks\")\nvector_store = SimpleVectorStore()\nprint(\"Processing chunks and generating questions...\")\nfor i, chunk in enumerate(tqdm(text_chunks, desc=\"Processing Chunks\")):\n# Create embedding for the chunk itself\nchunk_embedding_response = create_embeddings(chunk)\nchunk_embedding = chunk_embedding_response.data[0].embedding\n# Add the chunk to the vector store\nvector_store.add_item(\ntext=chunk,\nembedding=chunk_embedding,\nmetadata={\"type\": \"chunk\", \"index\": i}\n)\n# Generate questions for this chunk\nquestions = generate_questions(chunk, num_questions=questions_per_chunk)\n# Create embeddings for each question and add to vector store\nfor j, question in enumerate(questions):\nquestion_embedding_response = create_embeddings(question)\nquestion_embedding = question_embedding_response.data[0].embedding\n# Add the question to the vector store\nvector_store.add_item(\ntext=question,\nembedding=question_embedding,\nmetadata={\"type\": \"question\", \"chunk_index\": i, \"original_chunk\": chunk}\n)\nreturn text_chunks, vector_store",
+    "relevance": null,
+    "word_count": 325
+  },
+  {
+    "id": "e9d9087f58d21f5dc0124d1fede6425f",
+    "rank": 9,
+    "doc_index": 31,
+    "score": 0.3754081726074219,
+    "percent_difference": 38.25,
+    "text": "## Creating Embeddings for Text Chunks\nCode:\ndef create_embeddings(text, model=\"BAAI/bge-en-icl\"):\n\"\"\"\nCreates embeddings for the given text using the specified OpenAI model.\nArgs:\ntext (str): The input text for which embeddings are to be created.\nmodel (str): The model to be used for creating embeddings. Default is \"BAAI/bge-en-icl\".\nReturns:\ndict: The response from the OpenAI API containing the embeddings.\n\"\"\"\n# Create embeddings for the input text using the specified model\nresponse = client.embeddings.create(\nmodel=model,\ninput=text\n)\nreturn response  # Return the response containing the embeddings\n# Create embeddings for the text chunks\nresponse = create_embeddings(text_chunks)",
+    "relevance": null,
+    "word_count": 130
+  },
+  {
+    "id": "d307f093f49ce3dee894804d87647c50",
+    "rank": 10,
+    "doc_index": 9,
+    "score": 0.3713662624359131,
+    "percent_difference": 38.92,
+    "text": "## Generating Questions for Text Chunks\nThis is the key enhancement over simple RAG. We generate questions that could be answered by each text chunk.",
+    "relevance": null,
+    "word_count": 28
+  },
+  {
+    "id": "2fe2e4a3bf5b8495c5e9b327be2caa35",
+    "rank": 11,
+    "doc_index": 22,
+    "score": 0.3620801270008087,
+    "percent_difference": 40.45,
+    "text": "## Generating Context for Response\nCode:\ndef prepare_context(search_results):\n\"\"\"\nPrepares a unified context from search results for response generation.\nArgs:\nsearch_results (List[Dict]): Results from semantic search.\nReturns:\nstr: Combined context string.\n\"\"\"\n# Extract unique chunks referenced in the results\nchunk_indices = set()\ncontext_chunks = []\n# First add direct chunk matches\nfor result in search_results:\nif result[\"metadata\"][\"type\"] == \"chunk\":\nchunk_indices.add(result[\"metadata\"][\"index\"])\ncontext_chunks.append(f\"Chunk {result['metadata']['index']}:n{result['text']}\")\n# Then add chunks referenced by questions\nfor result in search_results:\nif result[\"metadata\"][\"type\"] == \"question\":\nchunk_idx = result[\"metadata\"][\"chunk_index\"]\nif chunk_idx not in chunk_indices:\nchunk_indices.add(chunk_idx)\ncontext_chunks.append(f\"Chunk {chunk_idx} (referenced by question '{result['text']}'):n{result['metadata']['original_chunk']}\")\n# Combine all context chunks\nfull_context = \"nn\".join(context_chunks)\nreturn full_context",
+    "relevance": null,
+    "word_count": 244
+  },
+  {
+    "id": "8554438c02e2093b2a7b3719348ae5a9",
+    "rank": 12,
+    "doc_index": 32,
+    "score": 0.31285378336906433,
+    "percent_difference": 48.54,
+    "text": "## Performing Semantic Search\nWe implement cosine similarity to find the most relevant text chunks for a user query.",
+    "relevance": null,
+    "word_count": 21
+  },
+  {
+    "id": "dee45755c4fa165314c6a6f431f80091",
+    "rank": 13,
+    "doc_index": 20,
+    "score": 0.3104336659113566,
+    "percent_difference": 48.94,
+    "text": "## Running a Query on the Augmented Vector Store\nCode:\n# Load the validation data from a JSON file\nwith open('data/val.json') as f:\ndata = json.load(f)\n# Extract the first query from the validation data\nquery = data[0]['question']\n# Perform semantic search to find relevant content\nsearch_results = semantic_search(query, vector_store, k=5)\nprint(\"Query:\", query)\nprint(\"nSearch Results:\")\n# Organize results by type\nchunk_results = []\nquestion_results = []\nfor result in search_results:\nif result[\"metadata\"][\"type\"] == \"chunk\":\nchunk_results.append(result)\nelse:\nquestion_results.append(result)\n# Print chunk results first\nprint(\"nRelevant Document Chunks:\")\nfor i, result in enumerate(chunk_results):\nprint(f\"Context {i + 1} (similarity: {result['similarity']:.4f}):\")\nprint(result[\"text\"][:300] + \"...\")\nprint(\"=====================================\")\n# Then print question matches\nprint(\"nMatched Questions:\")\nfor i, result in enumerate(question_results):\nprint(f\"Question {i + 1} (similarity: {result['similarity']:.4f}):\")\nprint(result[\"text\"])\nchunk_idx = result[\"metadata\"][\"chunk_index\"]\nprint(f\"From chunk {chunk_idx}\")\nprint(\"=====================================\")",
+    "relevance": null,
+    "word_count": 295
+  },
+  {
+    "id": "e0e061ad29b4fe3e8462b5b99361c0c1",
+    "rank": 14,
+    "doc_index": 21,
+    "score": 0.30736517906188965,
+    "percent_difference": 49.45,
+    "text": "## Generating Context for Response\nNow we prepare the context by combining information from relevant chunks and questions.",
+    "relevance": null,
+    "word_count": 20
+  },
+  {
+    "id": "00c3462454663117a86d6c1fd93f20b3",
+    "rank": 15,
+    "doc_index": 0,
+    "score": 0.2833373546600342,
+    "percent_difference": 53.4,
+    "text": "# Document Augmentation RAG with Question Generation\nThis notebook implements an enhanced RAG approach using document augmentation through question generation. By generating relevant questions for each text chunk, we improve the retrieval process, leading to better responses from the language model.\nIn this implementation, we follow these steps:\n1. **Data Ingestion**: Extract text from a PDF file.\n2. **Chunking**: Split the text into manageable chunks.\n3. **Question Generation**: Generate relevant questions for each chunk.\n4. **Embedding Creation**: Create embeddings for both chunks and generated questions.\n5. **Vector Store Creation**: Build a simple vector store using NumPy.\n6. **Semantic Search**: Retrieve relevant chunks and questions for user queries.\n7. **Response Generation**: Generate answers based on retrieved content.\n8. **Evaluation**: Assess the quality of the generated responses.",
+    "relevance": null,
+    "word_count": 187
+  },
+  {
+    "id": "7ddd0127b452bed3f333c6e6cc6ef729",
+    "rank": 16,
+    "doc_index": 11,
+    "score": 0.2822904586791992,
+    "percent_difference": 53.57,
+    "text": "## Creating Embeddings for Text\nWe generate embeddings for both text chunks and generated questions.",
+    "relevance": null,
+    "word_count": 17
+  },
+  {
+    "id": "ba473f0472e1ba29da861ad3e205e798",
+    "rank": 17,
+    "doc_index": 35,
+    "score": 0.2660173363983631,
+    "percent_difference": 56.25,
+    "text": "## Generating a Response Based on Retrieved Chunks\nCode:\n# Define the system prompt for the AI assistant\nsystem_prompt = \"You are an AI assistant that strictly answers based on the given context. If the answer cannot be derived directly from the provided context, respond with: 'I do not have enough information to answer that.'\"\ndef generate_response(system_prompt, user_message, model=\"meta-llama/Llama-3.2-3B-Instruct\"):\n\"\"\"\nGenerates a response from the AI model based on the system prompt and user message.\nArgs:\nsystem_prompt (str): The system prompt to guide the AI's behavior.\nuser_message (str): The user's message or query.\nmodel (str): The model to be used for generating the response. Default is \"meta-llama/Llama-2-7B-chat-hf\".\nReturns:\ndict: The response from the AI model.\n\"\"\"\nresponse = client.chat.completions.create(\nmodel=model,\ntemperature=0,\nmessages=[\n{\"role\": \"system\", \"content\": system_prompt},\n{\"role\": \"user\", \"content\": user_message}\n]\n)\nreturn response\n# Create the user prompt based on the top chunks\nuser_prompt = \"n\".join([f\"Context {i + 1}:n{chunk}n=====================================n\" for i, chunk in enumerate(top_chunks)])\nuser_prompt = f\"{user_prompt}nQuestion: {query}\"\n# Generate AI response\nai_response = generate_response(system_prompt, user_prompt)",
+    "relevance": null,
+    "word_count": 275
+  },
+  {
+    "id": "ddc12ca461fde46206b59ce349e18085",
+    "rank": 18,
+    "doc_index": 3,
+    "score": 0.2566831111907959,
+    "percent_difference": 57.78,
+    "text": "## Extracting Text from a PDF File\nTo implement RAG, we first need a source of textual data. In this case, we extract text from a PDF file using the PyMuPDF library.",
+    "relevance": null,
+    "word_count": 37
+  },
+  {
+    "id": "47e5bfa12c94b5d2ed61c66560d75db5",
+    "rank": 19,
+    "doc_index": 23,
+    "score": 0.224345613270998,
+    "percent_difference": 63.1,
+    "text": "## Generating a Response Based on Retrieved Chunks\nCode:\ndef generate_response(query, context, model=\"meta-llama/Llama-3.2-3B-Instruct\"):\n\"\"\"\nGenerates a response based on the query and context.\nArgs:\nquery (str): User's question.\ncontext (str): Context information retrieved from the vector store.\nmodel (str): Model to use for response generation.\nReturns:\nstr: Generated response.\n\"\"\"\nsystem_prompt = \"You are an AI assistant that strictly answers based on the given context. If the answer cannot be derived directly from the provided context, respond with: 'I do not have enough information to answer that.'\"\nuser_prompt = f\"\"\"\nContext:\n{context}\nQuestion: {query}\nPlease answer the question based only on the context provided above. Be concise and accurate.\n\"\"\"\nresponse = client.chat.completions.create(\nmodel=model,\ntemperature=0,\nmessages=[\n{\"role\": \"system\", \"content\": system_prompt},\n{\"role\": \"user\", \"content\": user_prompt}\n]\n)\nreturn response.choices[0].message.content",
+    "relevance": null,
+    "word_count": 212
+  },
+  {
+    "id": "6246b626a9c35c7132fe68f4d557d23e",
+    "rank": 20,
+    "doc_index": 10,
+    "score": 0.21621674795945486,
+    "percent_difference": 64.44,
+    "text": "## Generating Questions for Text Chunks\nCode:\ndef generate_questions(text_chunk, num_questions=5, model=\"meta-llama/Llama-3.2-3B-Instruct\"):\n\"\"\"\nGenerates relevant questions that can be answered from the given text chunk.\nArgs:\ntext_chunk (str): The text chunk to generate questions from.\nnum_questions (int): Number of questions to generate.\nmodel (str): The model to use for question generation.\nReturns:\nList[str]: List of generated questions.\n\"\"\"\n# Define the system prompt to guide the AI's behavior\nsystem_prompt = \"You are an expert at generating relevant questions from text. Create concise questions that can be answered using only the provided text. Focus on key information and concepts.\"\n# Define the user prompt with the text chunk and the number of questions to generate\nuser_prompt = f\"\"\"\nBased on the following text, generate {num_questions} different questions that can be answered using only this text:\n{text_chunk}\nFormat your response as a numbered list of questions only, with no additional text.\n\"\"\"\n# Generate questions using the OpenAI API\nresponse = client.chat.completions.create(\nmodel=model,\ntemperature=0.7,\nmessages=[\n{\"role\": \"system\", \"content\": system_prompt},\n{\"role\": \"user\", \"content\": user_prompt}\n]\n)\n# Extract and clean questions from the response\nquestions_text = response.choices[0].message.content.strip()\nquestions = []\n# Extract questions using regex pattern matching\nfor line in questions_text.split('n'):\n# Remove numbering and clean up whitespace\ncleaned_line = re.sub(r'^d+.s*', '', line.strip())\nif cleaned_line and cleaned_line.endswith('?'):\nquestions.append(cleaned_line)\nreturn questions",
+    "relevance": null,
+    "word_count": 325
+  },
+  {
+    "id": "18a61f5cf83bf6296f8f5b166ca35c4e",
+    "rank": 21,
+    "doc_index": 13,
+    "score": 0.2128436267375946,
+    "percent_difference": 64.99,
+    "text": "## Building a Simple Vector Store\nWe'll implement a simple vector store using NumPy.",
+    "relevance": null,
+    "word_count": 17
+  },
+  {
+    "id": "5bbd82f468b32c17250d3a0d8551fb17",
+    "rank": 22,
+    "doc_index": 18,
+    "score": 0.1861020028591156,
+    "percent_difference": 69.39,
+    "text": "## Performing Semantic Search\nWe implement a semantic search function similar to the simple RAG implementation but adapted to our augmented vector store.",
+    "relevance": null,
+    "word_count": 25
+  },
+  {
+    "id": "9eedf73b166ccdc909218eba6e69dd72",
+    "rank": 23,
+    "doc_index": 4,
+    "score": 0.18455010652542114,
+    "percent_difference": 69.65,
+    "text": "## Extracting Text from a PDF File\nCode:\ndef extract_text_from_pdf(pdf_path):\n\"\"\"\nExtracts text from a PDF file and prints the first `num_chars` characters.\nArgs:\npdf_path (str): Path to the PDF file.\nReturns:\nstr: Extracted text from the PDF.\n\"\"\"\n# Open the PDF file\nmypdf = fitz.open(pdf_path)\nall_text = \"\"  # Initialize an empty string to store the extracted text\n# Iterate through each page in the PDF\nfor page_num in range(mypdf.page_count):\npage = mypdf[page_num]  # Get the page\ntext = page.get_text(\"text\")  # Extract text from the page\nall_text += text  # Append the extracted text to the all_text string\nreturn all_text  # Return the extracted text",
+    "relevance": null,
+    "word_count": 143
+  },
+  {
+    "id": "54c2fddabb06388953d56167154e39aa",
+    "rank": 24,
+    "doc_index": 15,
+    "score": 0.1665143221616745,
+    "percent_difference": 72.61,
+    "text": "## Processing Documents with Question Augmentation\nNow we'll put everything together to process documents, generate questions, and build our augmented vector store.",
+    "relevance": null,
+    "word_count": 27
+  },
+  {
+    "id": "458b53d4e81624859a3ef08b26e26352",
+    "rank": 25,
+    "doc_index": 14,
+    "score": 0.10877503206332524,
+    "percent_difference": 82.11,
+    "text": "## Building a Simple Vector Store\nCode:\nclass SimpleVectorStore:\n\"\"\"\nA simple vector store implementation using NumPy.\n\"\"\"\ndef __init__(self):\n\"\"\"\nInitialize the vector store.\n\"\"\"\nself.vectors = []\nself.texts = []\nself.metadata = []\ndef add_item(self, text, embedding, metadata=None):\n\"\"\"\nAdd an item to the vector store.\nArgs:\ntext (str): The original text.\nembedding (List[float]): The embedding vector.\nmetadata (dict, optional): Additional metadata.\n\"\"\"\nself.vectors.append(np.array(embedding))\nself.texts.append(text)\nself.metadata.append(metadata or {})\ndef similarity_search(self, query_embedding, k=5):\n\"\"\"\nFind the most similar items to a query embedding.\nArgs:\nquery_embedding (List[float]): Query embedding vector.\nk (int): Number of results to return.\nReturns:\nList[Dict]: Top k most similar items with their texts and metadata.\n\"\"\"\nif not self.vectors:\nreturn []\n# Convert query embedding to numpy array\nquery_vector = np.array(query_embedding)\n# Calculate similarities using cosine similarity\nsimilarities = []\nfor i, vector in enumerate(self.vectors):\nsimilarity = np.dot(query_vector, vector) / (np.linalg.norm(query_vector) * np.linalg.norm(vector))\nsimilarities.append((i, similarity))\n# Sort by similarity (descending)\nsimilarities.sort(key=lambda x: x[1], reverse=True)\n# Return top k results\nresults = []\nfor i in range(min(k, len(similarities))):\nidx, score = similarities[i]\nresults.append({\n\"text\": self.texts[idx],\n\"metadata\": self.metadata[idx],\n\"similarity\": score\n})\nreturn results",
+    "relevance": null,
+    "word_count": 347
+  },
+  {
+    "id": "a6030ec345f66aaba95320f7e51e8156",
+    "rank": 26,
+    "doc_index": 37,
+    "score": 0.09838847070932388,
+    "percent_difference": 83.82,
+    "text": "## Evaluating the AI Response\nCode:\n# Define the system prompt for the evaluation system\nevaluate_system_prompt = \"You are an intelligent evaluation system tasked with assessing the AI assistant's responses. If the AI assistant's response is very close to the true response, assign a score of 1. If the response is incorrect or unsatisfactory in relation to the true response, assign a score of 0. If the response is partially aligned with the true response, assign a score of 0.5.\"\n# Create the evaluation prompt by combining the user query, AI response, true response, and evaluation system prompt\nevaluation_prompt = f\"User Query: {query}nAI Response:n{ai_response.choices[0].message.content}nTrue Response: {data[0]['ideal_answer']}n{evaluate_system_prompt}\"\n# Generate the evaluation response using the evaluation system prompt and evaluation prompt\nevaluation_response = generate_response(evaluate_system_prompt, evaluation_prompt)\n# Print the evaluation response\nprint(evaluation_response.choices[0].message.content)",
+    "relevance": null,
+    "word_count": 187
+  },
+  {
+    "id": "0430b10c43379bd27f0a6b6f3d3f3ae2",
+    "rank": 27,
+    "doc_index": 25,
+    "score": 0.09619999676942825,
+    "percent_difference": 84.18,
+    "text": "## Evaluating the AI Response\nWe compare the AI response with the expected answer and assign a score.",
+    "relevance": null,
+    "word_count": 20
+  },
+  {
+    "id": "dd23faf13bac8c2b06f2e100efafcf9f",
+    "rank": 28,
+    "doc_index": 12,
+    "score": 0.08407410979270935,
+    "percent_difference": 86.17,
+    "text": "## Creating Embeddings for Text\nCode:\ndef create_embeddings(text, model=\"BAAI/bge-en-icl\"):\n\"\"\"\nCreates embeddings for the given text using the specified OpenAI model.\nArgs:\ntext (str): The input text for which embeddings are to be created.\nmodel (str): The model to be used for creating embeddings.\nReturns:\ndict: The response from the OpenAI API containing the embeddings.\n\"\"\"\n# Create embeddings for the input text using the specified model\nresponse = client.embeddings.create(\nmodel=model,\ninput=text\n)\nreturn response  # Return the response containing the embeddings",
+    "relevance": null,
+    "word_count": 110
+  },
+  {
+    "id": "29a11da651c85ec97534c61f9bf4ebb1",
+    "rank": 29,
+    "doc_index": 26,
+    "score": 0.07918765147527058,
+    "percent_difference": 86.98,
+    "text": "## Evaluating the AI Response\nCode:\ndef evaluate_response(query, response, reference_answer, model=\"meta-llama/Llama-3.2-3B-Instruct\"):\n\"\"\"\nEvaluates the AI response against a reference answer.\nArgs:\nquery (str): The user's question.\nresponse (str): The AI-generated response.\nreference_answer (str): The reference/ideal answer.\nmodel (str): Model to use for evaluation.\nReturns:\nstr: Evaluation feedback.\n\"\"\"\n# Define the system prompt for the evaluation system\nevaluate_system_prompt = \"\"\"You are an intelligent evaluation system tasked with assessing AI responses.\nCompare the AI assistant's response to the true/reference answer, and evaluate based on:\n1. Factual correctness - Does the response contain accurate information?\n2. Completeness - Does it cover all important aspects from the reference?\n3. Relevance - Does it directly address the question?\nAssign a score from 0 to 1:\n- 1.0: Perfect match in content and meaning\n- 0.8: Very good, with minor omissions/differences\n- 0.6: Good, covers main points but misses some details\n- 0.4: Partial answer with significant omissions\n- 0.2: Minimal relevant information\n- 0.0: Incorrect or irrelevant\nProvide your score with justification.\n\"\"\"\n# Create the evaluation prompt\nevaluation_prompt = f\"\"\"\nUser Query: {query}\nAI Response:\n{response}\nReference Answer:\n{reference_answer}\nPlease evaluate the AI response against the reference answer.\n\"\"\"\n# Generate evaluation\neval_response = client.chat.completions.create(\nmodel=model,\ntemperature=0,\nmessages=[\n{\"role\": \"system\", \"content\": evaluate_system_prompt},\n{\"role\": \"user\", \"content\": evaluation_prompt}\n]\n)\nreturn eval_response.choices[0].message.content",
+    "relevance": null,
+    "word_count": 323
+  },
+  {
+    "id": "77e7be8e1af2c370b6fe2cf9bfffe043",
+    "rank": 30,
+    "doc_index": 2,
+    "score": 0.07546569406986237,
+    "percent_difference": 87.59,
+    "text": "## Setting Up the Environment\nCode:\nimport fitz\nimport os\nimport numpy as np\nimport json\nfrom openai import OpenAI\nimport re\nfrom tqdm import tqdm",
+    "relevance": null,
+    "word_count": 28
+  },
+  {
+    "id": "93aff886a1d069502b1d21c08a90def2",
+    "rank": 31,
+    "doc_index": 19,
+    "score": 0.06816760450601578,
+    "percent_difference": 88.79,
+    "text": "## Performing Semantic Search\nCode:\ndef semantic_search(query, vector_store, k=5):\n\"\"\"\nPerforms semantic search using the query and vector store.\nArgs:\nquery (str): The search query.\nvector_store (SimpleVectorStore): The vector store to search in.\nk (int): Number of results to return.\nReturns:\nList[Dict]: Top k most relevant items.\n\"\"\"\n# Create embedding for the query\nquery_embedding_response = create_embeddings(query)\nquery_embedding = query_embedding_response.data[0].embedding\n# Search the vector store\nresults = vector_store.similarity_search(query_embedding, k=k)\nreturn results",
+    "relevance": null,
+    "word_count": 113
+  },
+  {
+    "id": "50822a0b1eeeef1cbd3e588d0d8d434f",
+    "rank": 32,
+    "doc_index": 27,
+    "score": 0.05671525001525879,
+    "percent_difference": 90.67,
+    "text": "## Running the Evaluation\nCode:\n# Get reference answer from validation data\nreference_answer = data[0]['ideal_answer']\n# Evaluate the response\nevaluation = evaluate_response(query, response_text, reference_answer)\nprint(\"nEvaluation:\")\nprint(evaluation)",
+    "relevance": null,
+    "word_count": 49
+  },
+  {
+    "id": "ec06847c02eaf5195ff95315d2a8295a",
+    "rank": 33,
+    "doc_index": 7,
+    "score": 0.03732878342270851,
+    "percent_difference": 93.86,
+    "text": "## Setting Up the OpenAI API Client\nWe initialize the OpenAI client to generate embeddings and responses.",
+    "relevance": null,
+    "word_count": 19
+  },
+  {
+    "id": "12e3588927d9168a999d086e7bebb507",
+    "rank": 34,
+    "doc_index": 24,
+    "score": 0.027340400964021683,
+    "percent_difference": 95.5,
+    "text": "## Generating and Displaying the Response\nCode:\n# Prepare context from search results\ncontext = prepare_context(search_results)\n# Generate response\nresponse_text = generate_response(query, context)\nprint(\"nQuery:\", query)\nprint(\"nResponse:\")\nprint(response_text)",
+    "relevance": null,
+    "word_count": 52
+  },
+  {
+    "id": "53b6e66239969bc2f4e5a8dd71ab2cf1",
+    "rank": 35,
+    "doc_index": 1,
+    "score": 0.027201073244214058,
+    "percent_difference": 95.53,
+    "text": "## Setting Up the Environment\nWe begin by importing necessary libraries.",
+    "relevance": null,
+    "word_count": 13
+  },
+  {
+    "id": "d6037fd3d4c82ec472616906e7c3c09f",
+    "rank": 36,
+    "doc_index": 33,
+    "score": 0.006242861971259117,
+    "percent_difference": 98.97,
+    "text": "## Performing Semantic Search\nCode:\ndef cosine_similarity(vec1, vec2):\n\"\"\"\nCalculates the cosine similarity between two vectors.\nArgs:\nvec1 (np.ndarray): The first vector.\nvec2 (np.ndarray): The second vector.\nReturns:\nfloat: The cosine similarity between the two vectors.\n\"\"\"\n# Compute the dot product of the two vectors and divide by the product of their norms\nreturn np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))",
+    "relevance": null,
+    "word_count": 96
+  }
+]

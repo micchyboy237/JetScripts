@@ -1,0 +1,222 @@
+[
+  {
+    "id": "944f25eb13eebbf8771cfd0f23c3a04f",
+    "rank": 1,
+    "doc_index": 5,
+    "score": 0.6079847812652588,
+    "percent_difference": 0.0,
+    "text": "## Chunking the Extracted Text\nOnce we have the extracted text, we divide it into smaller, overlapping chunks to improve retrieval accuracy.",
+    "relevance": null,
+    "word_count": 26
+  },
+  {
+    "id": "fc525f4d8d7a82a57f0948613616fe75",
+    "rank": 2,
+    "doc_index": 6,
+    "score": 0.4944360554218292,
+    "percent_difference": 18.68,
+    "text": "## Chunking the Extracted Text\nCode:\ndef chunk_text(text, n, overlap):\n\"\"\"\nChunks the given text into segments of n characters with overlap.\nArgs:\ntext (str): The text to be chunked.\nn (int): The number of characters in each chunk.\noverlap (int): The number of overlapping characters between chunks.\nReturns:\nList[str]: A list of text chunks.\n\"\"\"\nchunks = []  # Initialize an empty list to store the chunks\n# Loop through the text with a step size of (n - overlap)\nfor i in range(0, len(text), n - overlap):\n# Append a chunk of text from index i to i + n to the chunks list\nchunks.append(text[i:i + n])\nreturn chunks  # Return the list of text chunks",
+    "relevance": null,
+    "word_count": 169
+  },
+  {
+    "id": "839c6724449a608ae7e6358e69e9b246",
+    "rank": 3,
+    "doc_index": 14,
+    "score": 0.4323243275284767,
+    "percent_difference": 28.89,
+    "text": "## Document Processing with Feedback Awareness\nCode:\ndef process_document(pdf_path, chunk_size=1000, chunk_overlap=200):\n\"\"\"\nProcess a document for RAG (Retrieval Augmented Generation) with feedback loop.\nThis function handles the complete document processing pipeline:\n1. Text extraction from PDF\n2. Text chunking with overlap\n3. Embedding creation for chunks\n4. Storage in vector database with metadata\nArgs:\npdf_path (str): Path to the PDF file to process.\nchunk_size (int): Size of each text chunk in characters.\nchunk_overlap (int): Number of overlapping characters between consecutive chunks.\nReturns:\nTuple[List[str], SimpleVectorStore]: A tuple containing:\n- List of document chunks\n- Populated vector store with embeddings and metadata\n\"\"\"\n# Step 1: Extract raw text content from the PDF document\nprint(\"Extracting text from PDF...\")\nextracted_text = extract_text_from_pdf(pdf_path)\n# Step 2: Split text into manageable, overlapping chunks for better context preservation\nprint(\"Chunking text...\")\nchunks = chunk_text(extracted_text, chunk_size, chunk_overlap)\nprint(f\"Created {len(chunks)} text chunks\")\n# Step 3: Generate vector embeddings for each text chunk\nprint(\"Creating embeddings for chunks...\")\nchunk_embeddings = create_embeddings(chunks)\n# Step 4: Initialize the vector database to store chunks and their embeddings\nstore = SimpleVectorStore()\n# Step 5: Add each chunk with its embedding to the vector store\n# Include metadata for feedback-based improvements\nfor i, (chunk, embedding) in enumerate(zip(chunks, chunk_embeddings)):\nstore.add_item(\ntext=chunk,\nembedding=embedding,\nmetadata={\n\"index\": i,                # Position in original document\n\"source\": pdf_path,        # Source document path\n\"relevance_score\": 1.0,    # Initial relevance score (will be updated with feedback)\n\"feedback_count\": 0        # Counter for feedback received on this chunk\n}\n)\nprint(f\"Added {len(chunks)} chunks to the vector store\")\nreturn chunks, store",
+    "relevance": null,
+    "word_count": 388
+  },
+  {
+    "id": "24c1dfb8777ca12fcdb93c880aa64101",
+    "rank": 4,
+    "doc_index": 9,
+    "score": 0.36182302236557007,
+    "percent_difference": 40.49,
+    "text": "## Simple Vector Store Implementation\nWe'll create a basic vector store to manage document chunks and their embeddings.",
+    "relevance": null,
+    "word_count": 21
+  },
+  {
+    "id": "ddc12ca461fde46206b59ce349e18085",
+    "rank": 5,
+    "doc_index": 3,
+    "score": 0.2566831111907959,
+    "percent_difference": 57.78,
+    "text": "## Extracting Text from a PDF File\nTo implement RAG, we first need a source of textual data. In this case, we extract text from a PDF file using the PyMuPDF library.",
+    "relevance": null,
+    "word_count": 37
+  },
+  {
+    "id": "b05edf0b988043199e015362f396d046",
+    "rank": 6,
+    "doc_index": 16,
+    "score": 0.191716767847538,
+    "percent_difference": 68.47,
+    "text": "## Fine-tuning Our Index with Feedback\nCode:\ndef fine_tune_index(current_store, chunks, feedback_data):\n\"\"\"\nEnhance vector store with high-quality feedback to improve retrieval quality over time.\nThis function implements a continuous learning process by:\n1. Identifying high-quality feedback (highly rated Q&A pairs)\n2. Creating new retrieval items from successful interactions\n3. Adding these to the vector store with boosted relevance weights\nArgs:\ncurrent_store (SimpleVectorStore): Current vector store containing original document chunks\nchunks (List[str]): Original document text chunks\nfeedback_data (List[Dict]): Historical user feedback with relevance and quality ratings\nReturns:\nSimpleVectorStore: Enhanced vector store containing both original chunks and feedback-derived content\n\"\"\"\nprint(\"Fine-tuning index with high-quality feedback...\")\n# Filter for only high-quality responses (both relevance and quality rated 4 or 5)\n# This ensures we only learn from the most successful interactions\ngood_feedback = [f for f in feedback_data if f['relevance'] >= 4 and f['quality'] >= 4]\nif not good_feedback:\nprint(\"No high-quality feedback found for fine-tuning.\")\nreturn current_store  # Return original store unchanged if no good feedback exists\n# Initialize new store that will contain both original and enhanced content\nnew_store = SimpleVectorStore()\n# First transfer all original document chunks with their existing metadata\nfor i in range(len(current_store.texts)):\nnew_store.add_item(\ntext=current_store.texts[i],\nembedding=current_store.vectors[i],\nmetadata=current_store.metadata[i].copy()  # Use copy to prevent reference issues\n)\n# Create and add enhanced content from good feedback\nfor feedback in good_feedback:\n# Format a new document that combines the question and its high-quality answer\n# This creates retrievable content that directly addresses user queries\nenhanced_text = f\"Question: {feedback['query']}nAnswer: {feedback['response']}\"\n# Generate embedding vector for this new synthetic document\nembedding = create_embeddings(enhanced_text)\n# Add to vector store with special metadata that identifies its origin and importance\nnew_store.add_item(\ntext=enhanced_text,\nembedding=embedding,\nmetadata={\n\"type\": \"feedback_enhanced\",  # Mark as derived from feedback\n\"query\": feedback[\"query\"],   # Store original query for reference\n\"relevance_score\": 1.2,       # Boost initial relevance to prioritize these items\n\"feedback_count\": 1,          # Track feedback incorporation\n\"original_feedback\": feedback # Preserve complete feedback record\n}\n)\nprint(f\"Added enhanced content from feedback: {feedback['query'][:50]}...\")\n# Log summary statistics about the enhancement\nprint(f\"Fine-tuned index now has {len(new_store.texts)} items (original: {len(chunks)})\")\nreturn new_store",
+    "relevance": null,
+    "word_count": 519
+  },
+  {
+    "id": "9eedf73b166ccdc909218eba6e69dd72",
+    "rank": 7,
+    "doc_index": 4,
+    "score": 0.18455010652542114,
+    "percent_difference": 69.65,
+    "text": "## Extracting Text from a PDF File\nCode:\ndef extract_text_from_pdf(pdf_path):\n\"\"\"\nExtracts text from a PDF file and prints the first `num_chars` characters.\nArgs:\npdf_path (str): Path to the PDF file.\nReturns:\nstr: Extracted text from the PDF.\n\"\"\"\n# Open the PDF file\nmypdf = fitz.open(pdf_path)\nall_text = \"\"  # Initialize an empty string to store the extracted text\n# Iterate through each page in the PDF\nfor page_num in range(mypdf.page_count):\npage = mypdf[page_num]  # Get the page\ntext = page.get_text(\"text\")  # Extract text from the page\nall_text += text  # Append the extracted text to the all_text string\nreturn all_text  # Return the extracted text",
+    "relevance": null,
+    "word_count": 143
+  },
+  {
+    "id": "a808f88c317723afbcc5ce728b741e6a",
+    "rank": 8,
+    "doc_index": 18,
+    "score": 0.1824101522564888,
+    "percent_difference": 70.0,
+    "text": "## Complete Workflow: From Initial Setup to Feedback Collection\nCode:\ndef full_rag_workflow(pdf_path, query, feedback_data=None, feedback_file=\"feedback_data.json\", fine_tune=False):\n\"\"\"\nExecute a complete RAG workflow with feedback integration for continuous improvement.\nThis function orchestrates the entire Retrieval-Augmented Generation process:\n1. Load historical feedback data\n2. Process and chunk the document\n3. Optionally fine-tune the vector index with prior feedback\n4. Perform retrieval and generation with feedback-adjusted relevance scores\n5. Collect new user feedback for future improvement\n6. Store feedback to enable system learning over time\nArgs:\npdf_path (str): Path to the PDF document to be processed\nquery (str): User's natural language query\nfeedback_data (List[Dict], optional): Pre-loaded feedback data, loads from file if None\nfeedback_file (str): Path to the JSON file storing feedback history\nfine_tune (bool): Whether to enhance the index with successful past Q&A pairs\nReturns:\nDict: Results containing the response and retrieval metadata\n\"\"\"\n# Step 1: Load historical feedback for relevance adjustment if not explicitly provided\nif feedback_data is None:\nfeedback_data = load_feedback_data(feedback_file)\nprint(f\"Loaded {len(feedback_data)} feedback entries from {feedback_file}\")\n# Step 2: Process document through extraction, chunking and embedding pipeline\nchunks, vector_store = process_document(pdf_path)\n# Step 3: Fine-tune the vector index by incorporating high-quality past interactions\n# This creates enhanced retrievable content from successful Q&A pairs\nif fine_tune and feedback_data:\nvector_store = fine_tune_index(vector_store, chunks, feedback_data)\n# Step 4: Execute core RAG with feedback-aware retrieval\n# Note: This depends on the rag_with_feedback_loop function which should be defined elsewhere\nresult = rag_with_feedback_loop(query, vector_store, feedback_data)\n# Step 5: Collect user feedback to improve future performance\nprint(\"n=== Would you like to provide feedback on this response? ===\")\nprint(\"Rate relevance (1-5, with 5 being most relevant):\")\nrelevance = input()\nprint(\"Rate quality (1-5, with 5 being highest quality):\")\nquality = input()\nprint(\"Any comments? (optional, press Enter to skip)\")\ncomments = input()\n# Step 6: Format feedback into structured data\nfeedback = get_user_feedback(\nquery=query,\nresponse=result[\"response\"],\nrelevance=int(relevance),\nquality=int(quality),\ncomments=comments\n)\n# Step 7: Persist feedback to enable continuous system learning\nstore_feedback(feedback, feedback_file)\nprint(\"Feedback recorded. Thank you!\")\nreturn result",
+    "relevance": null,
+    "word_count": 490
+  },
+  {
+    "id": "8559d687de001fb1e1ea19edc93e9ae3",
+    "rank": 9,
+    "doc_index": 22,
+    "score": 0.1761950800816218,
+    "percent_difference": 71.02,
+    "text": "## Visualizing Feedback Impact\nCode:\n# Extract the comparison data which contains the analysis of feedback impact\ncomparisons = evaluation_results['comparison']\n# Print out the analysis results to visualize feedback impact\nprint(\"n=== FEEDBACK IMPACT ANALYSIS ===n\")\nfor i, comparison in enumerate(comparisons):\nprint(f\"Query {i+1}: {comparison['query']}\")\nprint(f\"nAnalysis of feedback impact:\")\nprint(comparison['analysis'])\nprint(\"n\" + \"-\"*50 + \"n\")\n# Additionally, we can compare some metrics between rounds\nround_responses = [evaluation_results[f'round{round_num}_results'] for round_num in range(1, len(evaluation_results) - 1)]\nresponse_lengths = [[len(r[\"response\"]) for r in round] for round in round_responses]\nprint(\"nResponse length comparison (proxy for completeness):\")\navg_lengths = [sum(lengths) / len(lengths) for lengths in response_lengths]\nfor round_num, avg_len in enumerate(avg_lengths, start=1):\nprint(f\"Round {round_num}: {avg_len:.1f} chars\")\nif len(avg_lengths) > 1:\nchanges = [(avg_lengths[i] - avg_lengths[i-1]) / avg_lengths[i-1] * 100 for i in range(1, len(avg_lengths))]\nfor round_num, change in enumerate(changes, start=2):\nprint(f\"Change from Round {round_num-1} to Round {round_num}: {change:.1f}%\")",
+    "relevance": null,
+    "word_count": 307
+  },
+  {
+    "id": "59ae8ef30ec61e7b36e1d2e3611ac1ec",
+    "rank": 10,
+    "doc_index": 10,
+    "score": 0.15189024593148912,
+    "percent_difference": 75.02,
+    "text": "## Simple Vector Store Implementation\nCode:\nclass SimpleVectorStore:\n\"\"\"\nA simple vector store implementation using NumPy.\nThis class provides an in-memory storage and retrieval system for\nembedding vectors and their corresponding text chunks and metadata.\nIt supports basic similarity search functionality using cosine similarity.\n\"\"\"\ndef __init__(self):\n\"\"\"\nInitialize the vector store with empty lists for vectors, texts, and metadata.\nThe vector store maintains three parallel lists:\n- vectors: NumPy arrays of embedding vectors\n- texts: Original text chunks corresponding to each vector\n- metadata: Optional metadata dictionaries for each item\n\"\"\"\nself.vectors = []  # List to store embedding vectors\nself.texts = []    # List to store original text chunks\nself.metadata = [] # List to store metadata for each text chunk\ndef add_item(self, text, embedding, metadata=None):\n\"\"\"\nAdd an item to the vector store.\nArgs:\ntext (str): The original text chunk to store.\nembedding (List[float]): The embedding vector representing the text.\nmetadata (dict, optional): Additional metadata for the text chunk,\nsuch as source, timestamp, or relevance scores.\n\"\"\"\nself.vectors.append(np.array(embedding))  # Convert and store the embedding\nself.texts.append(text)                   # Store the original text\nself.metadata.append(metadata or {})      # Store metadata (empty dict if None)\ndef similarity_search(self, query_embedding, k=5, filter_func=None):\n\"\"\"\nFind the most similar items to a query embedding using cosine similarity.\nArgs:\nquery_embedding (List[float]): Query embedding vector to compare against stored vectors.\nk (int): Number of most similar results to return.\nfilter_func (callable, optional): Function to filter results based on metadata.\nTakes metadata dict as input and returns boolean.\nReturns:\nList[Dict]: Top k most similar items, each containing:\n- text: The original text\n- metadata: Associated metadata\n- similarity: Raw cosine similarity score\n- relevance_score: Either metadata-based relevance or calculated similarity\nNote: Returns empty list if no vectors are stored or none pass the filter.\n\"\"\"\nif not self.vectors:\nreturn []  # Return empty list if vector store is empty\n# Convert query embedding to numpy array for vector operations\nquery_vector = np.array(query_embedding)\n# Calculate cosine similarity between query and each stored vector\nsimilarities = []\nfor i, vector in enumerate(self.vectors):\n# Skip items that don't pass the filter criteria\nif filter_func and not filter_func(self.metadata[i]):\ncontinue\n# Calculate cosine similarity: dot product / (norm1 * norm2)\nsimilarity = np.dot(query_vector, vector) / (np.linalg.norm(query_vector) * np.linalg.norm(vector))\nsimilarities.append((i, similarity))  # Store index and similarity score\n# Sort results by similarity score in descending order\nsimilarities.sort(key=lambda x: x[1], reverse=True)\n# Construct result dictionaries for the top k matches\nresults = []\nfor i in range(min(k, len(similarities))):\nidx, score = similarities[i]\nresults.append({\n\"text\": self.texts[idx],\n\"metadata\": self.metadata[idx],\n\"similarity\": score,\n# Use pre-existing relevance score from metadata if available, otherwise use similarity\n\"relevance_score\": self.metadata[idx].get(\"relevance_score\", score)\n})\nreturn results",
+    "relevance": null,
+    "word_count": 655
+  },
+  {
+    "id": "9135d384d167e61634248a3e7c4f18cf",
+    "rank": 11,
+    "doc_index": 11,
+    "score": 0.15139785408973694,
+    "percent_difference": 75.1,
+    "text": "## Creating Embeddings\nCode:\ndef create_embeddings(text, model=\"BAAI/bge-en-icl\"):\n\"\"\"\nCreates embeddings for the given text.\nArgs:\ntext (str or List[str]): The input text(s) for which embeddings are to be created.\nmodel (str): The model to be used for creating embeddings.\nReturns:\nList[float] or List[List[float]]: The embedding vector(s).\n\"\"\"\n# Convert single string to list for uniform processing\ninput_text = text if isinstance(text, list) else [text]\n# Call the OpenAI API to generate embeddings for all input texts\nresponse = client.embeddings.create(\nmodel=model,\ninput=input_text\n)\n# For single string input, return just the first embedding vector\nif isinstance(text, str):\nreturn response.data[0].embedding\n# For list input, return a list of all embedding vectors\nreturn [item.embedding for item in response.data]",
+    "relevance": null,
+    "word_count": 181
+  },
+  {
+    "id": "d3e1cba8fdc51a39dd727c65b10edd20",
+    "rank": 12,
+    "doc_index": 0,
+    "score": 0.13826346397399902,
+    "percent_difference": 77.26,
+    "text": "# Feedback Loop in RAG\nIn this notebook, I implement a RAG system with a feedback loop mechanism that continuously improves over time. By collecting and incorporating user feedback, our system learns to provide more relevant and higher-quality responses with each interaction.\nTraditional RAG systems are static - they retrieve information based solely on embedding similarity. With a feedback loop, we create a dynamic system that:\n- Remembers what worked (and what didn't)\n- Adjusts document relevance scores over time\n- Incorporates successful Q&A pairs into its knowledge base\n- Gets smarter with each user interaction",
+    "relevance": null,
+    "word_count": 108
+  },
+  {
+    "id": "7f72d1324f12193e846a1cae311f0daf",
+    "rank": 13,
+    "doc_index": 19,
+    "score": 0.13456882110663823,
+    "percent_difference": 77.87,
+    "text": "## Evaluating Our Feedback Loop\nCode:\ndef evaluate_feedback_loop(pdf_path, test_queries, reference_answers=None):\n\"\"\"\nEvaluate the impact of feedback loop on RAG quality by comparing performance before and after feedback integration.\nThis function runs a controlled experiment to measure how incorporating feedback affects retrieval and generation:\n1. First round: Run all test queries with no feedback\n2. Generate synthetic feedback based on reference answers (if provided)\n3. Second round: Run the same queries with feedback-enhanced retrieval\n4. Compare results between rounds to quantify feedback impact\nArgs:\npdf_path (str): Path to the PDF document used as the knowledge base\ntest_queries (List[str]): List of test queries to evaluate system performance\nreference_answers (List[str], optional): Reference/gold standard answers for evaluation\nand synthetic feedback generation\nReturns:\nDict: Evaluation results containing:\n- round1_results: Results without feedback\n- round2_results: Results with feedback\n- comparison: Quantitative comparison metrics between rounds\n\"\"\"\nprint(\"=== Evaluating Feedback Loop Impact ===\")\n# Create a temporary feedback file for this evaluation session only\ntemp_feedback_file = \"temp_evaluation_feedback.json\"\n# Initialize feedback collection (empty at the start)\nfeedback_data = []\n# ----------------------- FIRST EVALUATION ROUND -----------------------\n# Run all queries without any feedback influence to establish baseline performance\nprint(\"n=== ROUND 1: NO FEEDBACK ===\")\nround1_results = []\nfor i, query in enumerate(test_queries):\nprint(f\"nQuery {i+1}: {query}\")\n# Process document to create initial vector store\nchunks, vector_store = process_document(pdf_path)\n# Execute RAG without feedback influence (empty feedback list)\nresult = rag_with_feedback_loop(query, vector_store, [])\nround1_results.append(result)\n# Generate synthetic feedback if reference answers are available\n# This simulates user feedback for training the system\nif reference_answers and i < len(reference_answers):\n# Calculate synthetic feedback scores based on similarity to reference answer\nsimilarity_to_ref = calculate_similarity(result[\"response\"], reference_answers[i])\n# Convert similarity (0-1) to rating scale (1-5)\nrelevance = max(1, min(5, int(similarity_to_ref * 5)))\nquality = max(1, min(5, int(similarity_to_ref * 5)))\n# Create structured feedback entry\nfeedback = get_user_feedback(\nquery=query,\nresponse=result[\"response\"],\nrelevance=relevance,\nquality=quality,\ncomments=f\"Synthetic feedback based on reference similarity: {similarity_to_ref:.2f}\"\n)\n# Add to in-memory collection and persist to temporary file\nfeedback_data.append(feedback)\nstore_feedback(feedback, temp_feedback_file)\n# ----------------------- SECOND EVALUATION ROUND -----------------------\n# Run the same queries with feedback incorporation to measure improvement\nprint(\"n=== ROUND 2: WITH FEEDBACK ===\")\nround2_results = []\n# Process document and enhance with feedback-derived content\nchunks, vector_store = process_document(pdf_path)\nvector_store = fine_tune_index(vector_store, chunks, feedback_data)\nfor i, query in enumerate(test_queries):\nprint(f\"nQuery {i+1}: {query}\")\n# Execute RAG with feedback influence\nresult = rag_with_feedback_loop(query, vector_store, feedback_data)\nround2_results.append(result)\n# ----------------------- RESULTS ANALYSIS -----------------------\n# Compare performance metrics between the two rounds\ncomparison = compare_results(test_queries, round1_results, round2_results, reference_answers)\n# Clean up temporary evaluation artifacts\nif os.path.exists(temp_feedback_file):\nos.remove(temp_feedback_file)\nreturn {\n\"round1_results\": round1_results,\n\"round2_results\": round2_results,\n\"comparison\": comparison\n}",
+    "relevance": null,
+    "word_count": 717
+  },
+  {
+    "id": "87a2535c1603cb1c2876076fd8cf664b",
+    "rank": 14,
+    "doc_index": 21,
+    "score": 0.1011861227452755,
+    "percent_difference": 83.36,
+    "text": "## Evaluation of the feedback loop (Custom Validation Queries)\nCode:\n# AI Document Path\npdf_path = \"data/AI_Information.pdf\"\n# Define test queries\ntest_queries = [\n\"What is a neural network and how does it function?\",\n#################################################################################\n### Commented out queries to reduce the number of queries for testing purposes ###\n# \"Describe the process and applications of reinforcement learning.\",\n# \"What are the main applications of natural language processing in today's technology?\",\n# \"Explain the impact of overfitting in machine learning models and how it can be mitigated.\"\n]\n# Define reference answers for evaluation\nreference_answers = [\n\"A neural network is a series of algorithms that attempt to recognize underlying relationships in a set of data through a process that mimics the way the human brain operates. It consists of layers of nodes, with each node representing a neuron. Neural networks function by adjusting the weights of connections between nodes based on the error of the output compared to the expected result.\",\n############################################################################################\n#### Commented out reference answers to reduce the number of queries for testing purposes ###\n#     \"Reinforcement learning is a type of machine learning where an agent learns to make decisions by performing actions in an environment to maximize cumulative reward. It involves exploration, exploitation, and learning from the consequences of actions. Applications include robotics, game playing, and autonomous vehicles.\",\n#     \"The main applications of natural language processing in today's technology include machine translation, sentiment analysis, chatbots, information retrieval, text summarization, and speech recognition. NLP enables machines to understand and generate human language, facilitating human-computer interaction.\",\n#     \"Overfitting in machine learning models occurs when a model learns the training data too well, capturing noise and outliers. This results in poor generalization to new data, as the model performs well on training data but poorly on unseen data. Mitigation techniques include cross-validation, regularization, pruning, and using more training data.\"\n]\n# Run the evaluation\nevaluation_results = evaluate_feedback_loop(\npdf_path=pdf_path,\ntest_queries=test_queries,\nreference_answers=reference_answers\n)",
+    "relevance": null,
+    "word_count": 567
+  },
+  {
+    "id": "360daacca2d6cc7dd6c0ccad322044bf",
+    "rank": 15,
+    "doc_index": 17,
+    "score": 0.07900578280289967,
+    "percent_difference": 87.01,
+    "text": "## Complete RAG Pipeline with Feedback Loop\nCode:\ndef generate_response(query, context, model=\"meta-llama/Llama-3.2-3B-Instruct\"):\n\"\"\"\nGenerate a response based on the query and context.\nArgs:\nquery (str): User query\ncontext (str): Context text from retrieved documents\nmodel (str): LLM model to use\nReturns:\nstr: Generated response\n\"\"\"\n# Define the system prompt to guide the AI's behavior\nsystem_prompt = \"\"\"You are a helpful AI assistant. Answer the user's question based only on the provided context. If you cannot find the answer in the context, state that you don't have enough information.\"\"\"\n# Create the user prompt by combining the context and the query\nuser_prompt = f\"\"\"\nContext:\n{context}\nQuestion: {query}\nPlease provide a comprehensive answer based only on the context above.\n\"\"\"\n# Call the OpenAI API to generate a response based on the system and user prompts\nresponse = client.chat.completions.create(\nmodel=model,\nmessages=[\n{\"role\": \"system\", \"content\": system_prompt},\n{\"role\": \"user\", \"content\": user_prompt}\n],\ntemperature=0  # Use temperature=0 for consistent, deterministic responses\n)\n# Return the generated response content\nreturn response.choices[0].message.content",
+    "relevance": null,
+    "word_count": 252
+  },
+  {
+    "id": "bd340fad31e372331eb8aea94e3d58c3",
+    "rank": 16,
+    "doc_index": 15,
+    "score": 0.07815661933273077,
+    "percent_difference": 87.14,
+    "text": "## Relevance Adjustment Based on Feedback\nCode:\ndef assess_feedback_relevance(query, doc_text, feedback):\n\"\"\"\nUse LLM to assess if a past feedback entry is relevant to the current query and document.\nThis function helps determine which past feedback should influence the current retrieval\nby sending the current query, past query+feedback, and document content to an LLM\nfor relevance assessment.\nArgs:\nquery (str): Current user query that needs information retrieval\ndoc_text (str): Text content of the document being evaluated\nfeedback (Dict): Previous feedback data containing 'query' and 'response' keys\nReturns:\nbool: True if the feedback is deemed relevant to current query/document, False otherwise\n\"\"\"\n# Define system prompt instructing the LLM to make binary relevance judgments only\nsystem_prompt = \"\"\"You are an AI system that determines if a past feedback is relevant to a current query and document.\nAnswer with ONLY 'yes' or 'no'. Your job is strictly to determine relevance, not to provide explanations.\"\"\"\n# Construct user prompt with current query, past feedback data, and truncated document content\nuser_prompt = f\"\"\"\nCurrent query: {query}\nPast query that received feedback: {feedback['query']}\nDocument content: {doc_text[:500]}... [truncated]\nPast response that received feedback: {feedback['response'][:500]}... [truncated]\nIs this past feedback relevant to the current query and document? (yes/no)\n\"\"\"\n# Call the LLM API with zero temperature for deterministic output\nresponse = client.chat.completions.create(\nmodel=\"meta-llama/Llama-3.2-3B-Instruct\",\nmessages=[\n{\"role\": \"system\", \"content\": system_prompt},\n{\"role\": \"user\", \"content\": user_prompt}\n],\ntemperature=0  # Use temperature=0 for consistent, deterministic responses\n)\n# Extract and normalize the response to determine relevance\nanswer = response.choices[0].message.content.strip().lower()\nreturn 'yes' in answer  # Return True if the answer contains 'yes'",
+    "relevance": null,
+    "word_count": 387
+  },
+  {
+    "id": "af4f01e8e03797813ebef4d67ee9b733",
+    "rank": 17,
+    "doc_index": 20,
+    "score": 0.07014771550893784,
+    "percent_difference": 88.46,
+    "text": "## Helper Functions for Evaluation\nCode:\ndef calculate_similarity(text1, text2):\n\"\"\"\nCalculate semantic similarity between two texts using embeddings.\nArgs:\ntext1 (str): First text\ntext2 (str): Second text\nReturns:\nfloat: Similarity score between 0 and 1\n\"\"\"\n# Generate embeddings for both texts\nembedding1 = create_embeddings(text1)\nembedding2 = create_embeddings(text2)\n# Convert embeddings to numpy arrays\nvec1 = np.array(embedding1)\nvec2 = np.array(embedding2)\n# Calculate cosine similarity between the two vectors\nsimilarity = np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))\nreturn similarity",
+    "relevance": null,
+    "word_count": 123
+  },
+  {
+    "id": "528a4dda6adfecf501f8e658faed3215",
+    "rank": 18,
+    "doc_index": 13,
+    "score": 0.06127947196364403,
+    "percent_difference": 89.92,
+    "text": "## Feedback System Functions\nCode:\ndef get_user_feedback(query, response, relevance, quality, comments=\"\"):\n\"\"\"\nFormat user feedback in a dictionary.\nArgs:\nquery (str): User's query\nresponse (str): System's response\nrelevance (int): Relevance score (1-5)\nquality (int): Quality score (1-5)\ncomments (str): Optional feedback comments\nReturns:\nDict: Formatted feedback\n\"\"\"\nreturn {\n\"query\": query,\n\"response\": response,\n\"relevance\": int(relevance),\n\"quality\": int(quality),\n\"comments\": comments,\n\"timestamp\": datetime.now().isoformat()\n}",
+    "relevance": null,
+    "word_count": 137
+  },
+  {
+    "id": "c84577226b7fb2fd751ca1a526e5d398",
+    "rank": 19,
+    "doc_index": 2,
+    "score": 0.059773437678813934,
+    "percent_difference": 90.17,
+    "text": "## Setting Up the Environment\nCode:\nimport fitz\nimport os\nimport numpy as np\nimport json\nfrom openai import OpenAI\nfrom datetime import datetime",
+    "relevance": null,
+    "word_count": 26
+  },
+  {
+    "id": "ec06847c02eaf5195ff95315d2a8295a",
+    "rank": 20,
+    "doc_index": 7,
+    "score": 0.03732878342270851,
+    "percent_difference": 93.86,
+    "text": "## Setting Up the OpenAI API Client\nWe initialize the OpenAI client to generate embeddings and responses.",
+    "relevance": null,
+    "word_count": 19
+  },
+  {
+    "id": "53b6e66239969bc2f4e5a8dd71ab2cf1",
+    "rank": 21,
+    "doc_index": 1,
+    "score": 0.027201073244214058,
+    "percent_difference": 95.53,
+    "text": "## Setting Up the Environment\nWe begin by importing necessary libraries.",
+    "relevance": null,
+    "word_count": 13
+  },
+  {
+    "id": "f0f68782800e9c037e70be6404ee3d85",
+    "rank": 22,
+    "doc_index": 12,
+    "score": 0.007058615796267986,
+    "percent_difference": 98.84,
+    "text": "## Feedback System Functions\nNow we'll implement the core feedback system components.",
+    "relevance": null,
+    "word_count": 15
+  }
+]

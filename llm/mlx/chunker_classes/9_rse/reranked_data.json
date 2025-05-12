@@ -1,0 +1,232 @@
+[
+  {
+    "id": "944f25eb13eebbf8771cfd0f23c3a04f",
+    "rank": 1,
+    "doc_index": 6,
+    "score": 0.6079848408699036,
+    "percent_difference": 0.0,
+    "text": "## Chunking the Extracted Text\nOnce we have the extracted text, we divide it into smaller, overlapping chunks to improve retrieval accuracy.",
+    "relevance": null,
+    "word_count": 26
+  },
+  {
+    "id": "c58dad92f09b9fb08a7687a5121a484e",
+    "rank": 2,
+    "doc_index": 16,
+    "score": 0.49197229743003845,
+    "percent_difference": 19.08,
+    "text": "## RSE Core Algorithm: Computing Chunk Values and Finding Best Segments\nNow that we have the necessary functions to process a document and generate embeddings for its chunks, we can implement the core algorithm for RSE.",
+    "relevance": null,
+    "word_count": 40
+  },
+  {
+    "id": "eba4e261798c4701aed03744ab4eca4f",
+    "rank": 3,
+    "doc_index": 18,
+    "score": 0.48592956364154816,
+    "percent_difference": 20.08,
+    "text": "## Reconstructing and Using Segments for RAG\nCode:\ndef reconstruct_segments(chunks, best_segments):\n\"\"\"\nReconstruct text segments based on chunk indices.\nArgs:\nchunks (List[str]): List of all document chunks\nbest_segments (List[Tuple[int, int]]): List of (start, end) indices for segments\nReturns:\nList[str]: List of reconstructed text segments\n\"\"\"\nreconstructed_segments = []  # Initialize an empty list to store the reconstructed segments\nfor start, end in best_segments:\n# Join the chunks in this segment to form the complete segment text\nsegment_text = \" \".join(chunks[start:end])\n# Append the segment text and its range to the reconstructed_segments list\nreconstructed_segments.append({\n\"text\": segment_text,\n\"segment_range\": (start, end),\n})\nreturn reconstructed_segments  # Return the list of reconstructed text segments",
+    "relevance": null,
+    "word_count": 172
+  },
+  {
+    "id": "73e684f10207862395d370cb2f51f72b",
+    "rank": 4,
+    "doc_index": 7,
+    "score": 0.45562705397605896,
+    "percent_difference": 25.06,
+    "text": "## Chunking the Extracted Text\nCode:\ndef chunk_text(text, chunk_size=800, overlap=0):\n\"\"\"\nSplit text into non-overlapping chunks.\nFor RSE, we typically want non-overlapping chunks so we can reconstruct segments properly.\nArgs:\ntext (str): Input text to chunk\nchunk_size (int): Size of each chunk in characters\noverlap (int): Overlap between chunks in characters\nReturns:\nList[str]: List of text chunks\n\"\"\"\nchunks = []\n# Simple character-based chunking\nfor i in range(0, len(text), chunk_size - overlap):\nchunk = text[i:i + chunk_size]\nif chunk:  # Ensure we don't add empty chunks\nchunks.append(chunk)\nreturn chunks",
+    "relevance": null,
+    "word_count": 140
+  },
+  {
+    "id": "d9cdea86cc3822c5e3ac1b315f8102b2",
+    "rank": 5,
+    "doc_index": 12,
+    "score": 0.4374612271785736,
+    "percent_difference": 28.05,
+    "text": "## Creating Embeddings for Text Chunks\nEmbeddings transform text into numerical vectors, which allow for efficient similarity search.",
+    "relevance": null,
+    "word_count": 21
+  },
+  {
+    "id": "0526f08f4b4eb1bcf0af6e2bcf75b734",
+    "rank": 6,
+    "doc_index": 20,
+    "score": 0.4348980486392975,
+    "percent_difference": 28.47,
+    "text": "## Complete RSE Pipeline Function\nCode:\ndef rag_with_rse(pdf_path, query, chunk_size=800, irrelevant_chunk_penalty=0.2):\n\"\"\"\nComplete RAG pipeline with Relevant Segment Extraction.\nArgs:\npdf_path (str): Path to the document\nquery (str): User query\nchunk_size (int): Size of chunks\nirrelevant_chunk_penalty (float): Penalty for irrelevant chunks\nReturns:\nDict: Result with query, segments, and response\n\"\"\"\nprint(\"n=== STARTING RAG WITH RELEVANT SEGMENT EXTRACTION ===\")\nprint(f\"Query: {query}\")\n# Process the document to extract text, chunk it, and create embeddings\nchunks, vector_store, doc_info = process_document(pdf_path, chunk_size)\n# Calculate relevance scores and chunk values based on the query\nprint(\"nCalculating relevance scores and chunk values...\")\nchunk_values = calculate_chunk_values(query, chunks, vector_store, irrelevant_chunk_penalty)\n# Find the best segments of text based on chunk values\nbest_segments, scores = find_best_segments(\nchunk_values,\nmax_segment_length=20,\ntotal_max_length=30,\nmin_segment_value=0.2\n)\n# Reconstruct text segments from the best chunks\nprint(\"nReconstructing text segments from chunks...\")\nsegments = reconstruct_segments(chunks, best_segments)\n# Format the segments into a context string for the language model\ncontext = format_segments_for_context(segments)\n# Generate a response from the language model using the context\nresponse = generate_response(query, context)\n# Compile the result into a dictionary\nresult = {\n\"query\": query,\n\"segments\": segments,\n\"response\": response\n}\nprint(\"n=== FINAL RESPONSE ===\")\nprint(response)\nreturn result",
+    "relevance": null,
+    "word_count": 298
+  },
+  {
+    "id": "7b490120f0f39dddc8ee002699e019be",
+    "rank": 7,
+    "doc_index": 15,
+    "score": 0.4250027934710185,
+    "percent_difference": 30.1,
+    "text": "## Processing Documents with RSE\nCode:\ndef process_document(pdf_path, chunk_size=800):\n\"\"\"\nProcess a document for use with RSE.\nArgs:\npdf_path (str): Path to the PDF document\nchunk_size (int): Size of each chunk in characters\nReturns:\nTuple[List[str], SimpleVectorStore, Dict]: Chunks, vector store, and document info\n\"\"\"\nprint(\"Extracting text from document...\")\n# Extract text from the PDF file\ntext = extract_text_from_pdf(pdf_path)\nprint(\"Chunking text into non-overlapping segments...\")\n# Chunk the extracted text into non-overlapping segments\nchunks = chunk_text(text, chunk_size=chunk_size, overlap=0)\nprint(f\"Created {len(chunks)} chunks\")\nprint(\"Generating embeddings for chunks...\")\n# Generate embeddings for the text chunks\nchunk_embeddings = create_embeddings(chunks)\n# Create an instance of the SimpleVectorStore\nvector_store = SimpleVectorStore()\n# Add documents with metadata (including chunk index for later reconstruction)\nmetadata = [{\"chunk_index\": i, \"source\": pdf_path} for i in range(len(chunks))]\nvector_store.add_documents(chunks, chunk_embeddings, metadata)\n# Track original document structure for segment reconstruction\ndoc_info = {\n\"chunks\": chunks,\n\"source\": pdf_path,\n}\nreturn chunks, vector_store, doc_info",
+    "relevance": null,
+    "word_count": 254
+  },
+  {
+    "id": "d16a83847248b79be81aa7c72ae42afa",
+    "rank": 8,
+    "doc_index": 17,
+    "score": 0.418177530169487,
+    "percent_difference": 31.22,
+    "text": "## RSE Core Algorithm: Computing Chunk Values and Finding Best Segments\nCode:\ndef calculate_chunk_values(query, chunks, vector_store, irrelevant_chunk_penalty=0.2):\n\"\"\"\nCalculate chunk values by combining relevance and position.\nArgs:\nquery (str): Query text\nchunks (List[str]): List of document chunks\nvector_store (SimpleVectorStore): Vector store containing the chunks\nirrelevant_chunk_penalty (float): Penalty for irrelevant chunks\nReturns:\nList[float]: List of chunk values\n\"\"\"\n# Create query embedding\nquery_embedding = create_embeddings([query])[0]\n# Get all chunks with similarity scores\nnum_chunks = len(chunks)\nresults = vector_store.search(query_embedding, top_k=num_chunks)\n# Create a mapping of chunk_index to relevance score\nrelevance_scores = {result[\"metadata\"][\"chunk_index\"]: result[\"score\"] for result in results}\n# Calculate chunk values (relevance score minus penalty)\nchunk_values = []\nfor i in range(num_chunks):\n# Get relevance score or default to 0 if not in results\nscore = relevance_scores.get(i, 0.0)\n# Apply penalty to convert to a value where irrelevant chunks have negative value\nvalue = score - irrelevant_chunk_penalty\nchunk_values.append(value)\nreturn chunk_values",
+    "relevance": null,
+    "word_count": 231
+  },
+  {
+    "id": "3c20499f59af061c5c4b653bd7450da2",
+    "rank": 9,
+    "doc_index": 22,
+    "score": 0.3736509382724762,
+    "percent_difference": 38.54,
+    "text": "## Comparing with Standard Retrieval\nCode:\ndef standard_top_k_retrieval(pdf_path, query, k=10, chunk_size=800):\n\"\"\"\nStandard RAG with top-k retrieval.\nArgs:\npdf_path (str): Path to the document\nquery (str): User query\nk (int): Number of chunks to retrieve\nchunk_size (int): Size of chunks\nReturns:\nDict: Result with query, chunks, and response\n\"\"\"\nprint(\"n=== STARTING STANDARD TOP-K RETRIEVAL ===\")\nprint(f\"Query: {query}\")\n# Process the document to extract text, chunk it, and create embeddings\nchunks, vector_store, doc_info = process_document(pdf_path, chunk_size)\n# Create an embedding for the query\nprint(\"Creating query embedding and retrieving chunks...\")\nquery_embedding = create_embeddings([query])[0]\n# Retrieve the top-k most relevant chunks based on the query embedding\nresults = vector_store.search(query_embedding, top_k=k)\nretrieved_chunks = [result[\"document\"] for result in results]\n# Format the retrieved chunks into a context string\ncontext = \"nn\".join([\nf\"CHUNK {i+1}:n{chunk}\"\nfor i, chunk in enumerate(retrieved_chunks)\n])\n# Generate a response from the language model using the context\nresponse = generate_response(query, context)\n# Compile the result into a dictionary\nresult = {\n\"query\": query,\n\"chunks\": retrieved_chunks,\n\"response\": response\n}\nprint(\"n=== FINAL RESPONSE ===\")\nprint(response)\nreturn result",
+    "relevance": null,
+    "word_count": 294
+  },
+  {
+    "id": "8e9f58ea2ebada028866b06f444ed57f",
+    "rank": 10,
+    "doc_index": 0,
+    "score": 0.3537234961986542,
+    "percent_difference": 41.82,
+    "text": "# Relevant Segment Extraction (RSE) for Enhanced RAG\nIn this notebook, we implement a Relevant Segment Extraction (RSE) technique to improve the context quality in our RAG system. Rather than simply retrieving a collection of isolated chunks, we identify and reconstruct continuous segments of text that provide better context to our language model.",
+    "relevance": null,
+    "word_count": 61
+  },
+  {
+    "id": "4ac013f6f675bdb8806be3b74a1b9872",
+    "rank": 11,
+    "doc_index": 1,
+    "score": 0.32234829664230347,
+    "percent_difference": 46.98,
+    "text": "## Key Concept\nRelevant chunks tend to be clustered together within documents. By identifying these clusters and preserving their continuity, we provide more coherent context for the LLM to work with.",
+    "relevance": null,
+    "word_count": 35
+  },
+  {
+    "id": "741d68bd833dc239380757f6d57e357e",
+    "rank": 12,
+    "doc_index": 13,
+    "score": 0.3106568083167076,
+    "percent_difference": 48.9,
+    "text": "## Creating Embeddings for Text Chunks\nCode:\ndef create_embeddings(texts, model=\"BAAI/bge-en-icl\"):\n\"\"\"\nGenerate embeddings for texts.\nArgs:\ntexts (List[str]): List of texts to embed\nmodel (str): Embedding model to use\nReturns:\nList[List[float]]: List of embedding vectors\n\"\"\"\nif not texts:\nreturn []  # Return an empty list if no texts are provided\n# Process in batches if the list is long\nbatch_size = 100  # Adjust based on your API limits\nall_embeddings = []  # Initialize a list to store all embeddings\nfor i in range(0, len(texts), batch_size):\nbatch = texts[i:i + batch_size]  # Get the current batch of texts\n# Create embeddings for the current batch using the specified model\nresponse = client.embeddings.create(\ninput=batch,\nmodel=model\n)\n# Extract embeddings from the response\nbatch_embeddings = [item.embedding for item in response.data]\nall_embeddings.extend(batch_embeddings)  # Add the batch embeddings to the list\nreturn all_embeddings  # Return the list of all embeddings",
+    "relevance": null,
+    "word_count": 204
+  },
+  {
+    "id": "ddc12ca461fde46206b59ce349e18085",
+    "rank": 13,
+    "doc_index": 4,
+    "score": 0.2566831111907959,
+    "percent_difference": 57.78,
+    "text": "## Extracting Text from a PDF File\nTo implement RAG, we first need a source of textual data. In this case, we extract text from a PDF file using the PyMuPDF library.",
+    "relevance": null,
+    "word_count": 37
+  },
+  {
+    "id": "5151244f81bba4b79371295795c5b82c",
+    "rank": 14,
+    "doc_index": 10,
+    "score": 0.20518912374973297,
+    "percent_difference": 66.25,
+    "text": "## Building a Simple Vector Store\nlet's implement a simple vector store.",
+    "relevance": null,
+    "word_count": 15
+  },
+  {
+    "id": "9eedf73b166ccdc909218eba6e69dd72",
+    "rank": 15,
+    "doc_index": 5,
+    "score": 0.18455010652542114,
+    "percent_difference": 69.65,
+    "text": "## Extracting Text from a PDF File\nCode:\ndef extract_text_from_pdf(pdf_path):\n\"\"\"\nExtracts text from a PDF file and prints the first `num_chars` characters.\nArgs:\npdf_path (str): Path to the PDF file.\nReturns:\nstr: Extracted text from the PDF.\n\"\"\"\n# Open the PDF file\nmypdf = fitz.open(pdf_path)\nall_text = \"\"  # Initialize an empty string to store the extracted text\n# Iterate through each page in the PDF\nfor page_num in range(mypdf.page_count):\npage = mypdf[page_num]  # Get the page\ntext = page.get_text(\"text\")  # Extract text from the page\nall_text += text  # Append the extracted text to the all_text string\nreturn all_text  # Return the extracted text",
+    "relevance": null,
+    "word_count": 143
+  },
+  {
+    "id": "178f404681c1b5345e30463364dbadf5",
+    "rank": 16,
+    "doc_index": 14,
+    "score": 0.17221787571907043,
+    "percent_difference": 71.67,
+    "text": "## Processing Documents with RSE\nNow let's implement the core RSE functionality.",
+    "relevance": null,
+    "word_count": 15
+  },
+  {
+    "id": "50668b4d40f2912f84f0ce98625f13a0",
+    "rank": 17,
+    "doc_index": 11,
+    "score": 0.15530496090650558,
+    "percent_difference": 74.46,
+    "text": "## Building a Simple Vector Store\nCode:\nclass SimpleVectorStore:\n\"\"\"\nA lightweight vector store implementation using NumPy.\n\"\"\"\ndef __init__(self, dimension=1536):\n\"\"\"\nInitialize the vector store.\nArgs:\ndimension (int): Dimension of embeddings\n\"\"\"\nself.dimension = dimension\nself.vectors = []\nself.documents = []\nself.metadata = []\ndef add_documents(self, documents, vectors=None, metadata=None):\n\"\"\"\nAdd documents to the vector store.\nArgs:\ndocuments (List[str]): List of document chunks\nvectors (List[List[float]], optional): List of embedding vectors\nmetadata (List[Dict], optional): List of metadata dictionaries\n\"\"\"\nif vectors is None:\nvectors = [None] * len(documents)\nif metadata is None:\nmetadata = [{} for _ in range(len(documents))]\nfor doc, vec, meta in zip(documents, vectors, metadata):\nself.documents.append(doc)\nself.vectors.append(vec)\nself.metadata.append(meta)\ndef search(self, query_vector, top_k=5):\n\"\"\"\nSearch for most similar documents.\nArgs:\nquery_vector (List[float]): Query embedding vector\ntop_k (int): Number of results to return\nReturns:\nList[Dict]: List of results with documents, scores, and metadata\n\"\"\"\nif not self.vectors or not self.documents:\nreturn []\n# Convert query vector to numpy array\nquery_array = np.array(query_vector)\n# Calculate similarities\nsimilarities = []\nfor i, vector in enumerate(self.vectors):\nif vector is not None:\n# Compute cosine similarity\nsimilarity = np.dot(query_array, vector) / (\nnp.linalg.norm(query_array) * np.linalg.norm(vector)\n)\nsimilarities.append((i, similarity))\n# Sort by similarity (descending)\nsimilarities.sort(key=lambda x: x[1], reverse=True)\n# Get top-k results\nresults = []\nfor i, score in similarities[:top_k]:\nresults.append({\n\"document\": self.documents[i],\n\"score\": float(score),\n\"metadata\": self.metadata[i]\n})\nreturn results",
+    "relevance": null,
+    "word_count": 414
+  },
+  {
+    "id": "80f2703e5041e4587a2ff69fdd809a12",
+    "rank": 18,
+    "doc_index": 21,
+    "score": 0.15079841017723083,
+    "percent_difference": 75.2,
+    "text": "## Comparing with Standard Retrieval\nLet's implement a standard retrieval approach to compare with RSE:",
+    "relevance": null,
+    "word_count": 18
+  },
+  {
+    "id": "1ab9609fd5c1c63419c753214c8d22a0",
+    "rank": 19,
+    "doc_index": 23,
+    "score": 0.14405538886785507,
+    "percent_difference": 76.31,
+    "text": "## Evaluation of RSE\nCode:\ndef evaluate_methods(pdf_path, query, reference_answer=None):\n\"\"\"\nCompare RSE with standard top-k retrieval.\nArgs:\npdf_path (str): Path to the document\nquery (str): User query\nreference_answer (str, optional): Reference answer for evaluation\n\"\"\"\nprint(\"n========= EVALUATION =========n\")\n# Run the RAG with Relevant Segment Extraction (RSE) method\nrse_result = rag_with_rse(pdf_path, query)\n# Run the standard top-k retrieval method\nstandard_result = standard_top_k_retrieval(pdf_path, query)\n# If a reference answer is provided, evaluate the responses\nif reference_answer:\nprint(\"n=== COMPARING RESULTS ===\")\n# Create an evaluation prompt to compare the responses against the reference answer\nevaluation_prompt = f\"\"\"\nQuery: {query}\nReference Answer:\n{reference_answer}\nResponse from Standard Retrieval:\n{standard_result[\"response\"]}\nResponse from Relevant Segment Extraction:\n{rse_result[\"response\"]}\nCompare these two responses against the reference answer. Which one is:\n1. More accurate and comprehensive\n2. Better at addressing the user's query\n3. Less likely to include irrelevant information\nExplain your reasoning for each point.\n\"\"\"\nprint(\"Evaluating responses against reference answer...\")\n# Generate the evaluation using the specified model\nevaluation = client.chat.completions.create(\nmodel=\"meta-llama/Llama-3.2-3B-Instruct\",\nmessages=[\n{\"role\": \"system\", \"content\": \"You are an objective evaluator of RAG system responses.\"},\n{\"role\": \"user\", \"content\": evaluation_prompt}\n]\n)\n# Print the evaluation results\nprint(\"n=== EVALUATION RESULTS ===\")\nprint(evaluation.choices[0].message.content)\n# Return the results of both methods\nreturn {\n\"rse_result\": rse_result,\n\"standard_result\": standard_result\n}",
+    "relevance": null,
+    "word_count": 344
+  },
+  {
+    "id": "f1ff4cd3da66d20a3f125b37f3f41388",
+    "rank": 20,
+    "doc_index": 19,
+    "score": 0.08002373514076074,
+    "percent_difference": 86.84,
+    "text": "## Generating Responses with RSE Context\nCode:\ndef generate_response(query, context, model=\"meta-llama/Llama-3.2-3B-Instruct\"):\n\"\"\"\nGenerate a response based on the query and context.\nArgs:\nquery (str): User query\ncontext (str): Context text from relevant segments\nmodel (str): LLM model to use\nReturns:\nstr: Generated response\n\"\"\"\nprint(\"Generating response using relevant segments as context...\")\n# Define the system prompt to guide the AI's behavior\nsystem_prompt = \"\"\"You are a helpful assistant that answers questions based on the provided context.\nThe context consists of document segments that have been retrieved as relevant to the user's query.\nUse the information from these segments to provide a comprehensive and accurate answer.\nIf the context doesn't contain relevant information to answer the question, say so clearly.\"\"\"\n# Create the user prompt by combining the context and the query\nuser_prompt = f\"\"\"\nContext:\n{context}\nQuestion: {query}\nPlease provide a helpful answer based on the context provided.\n\"\"\"\n# Generate the response using the specified model\nresponse = client.chat.completions.create(\nmodel=model,\nmessages=[\n{\"role\": \"system\", \"content\": system_prompt},\n{\"role\": \"user\", \"content\": user_prompt}\n],\ntemperature=0\n)\n# Return the generated response content\nreturn response.choices[0].message.content",
+    "relevance": null,
+    "word_count": 271
+  },
+  {
+    "id": "30ece93c1d1d5c79fce689c7cb131fc6",
+    "rank": 21,
+    "doc_index": 3,
+    "score": 0.05662446469068527,
+    "percent_difference": 90.69,
+    "text": "## Setting Up the Environment\nCode:\nimport fitz\nimport os\nimport numpy as np\nimport json\nfrom openai import OpenAI\nimport re",
+    "relevance": null,
+    "word_count": 24
+  },
+  {
+    "id": "ec06847c02eaf5195ff95315d2a8295a",
+    "rank": 22,
+    "doc_index": 8,
+    "score": 0.0373288057744503,
+    "percent_difference": 93.86,
+    "text": "## Setting Up the OpenAI API Client\nWe initialize the OpenAI client to generate embeddings and responses.",
+    "relevance": null,
+    "word_count": 19
+  },
+  {
+    "id": "53b6e66239969bc2f4e5a8dd71ab2cf1",
+    "rank": 23,
+    "doc_index": 2,
+    "score": 0.027201130986213684,
+    "percent_difference": 95.53,
+    "text": "## Setting Up the Environment\nWe begin by importing necessary libraries.",
+    "relevance": null,
+    "word_count": 13
+  }
+]

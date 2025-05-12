@@ -1,0 +1,152 @@
+[
+  {
+    "id": "ef62f2b1fcf588dcae73343d539e1c59",
+    "rank": 1,
+    "doc_index": 8,
+    "score": 0.44186436136563617,
+    "percent_difference": 0.0,
+    "text": "## Document Processing Pipeline\nCode:\ndef process_document(pdf_path, chunk_size=1000, chunk_overlap=200):\n\"\"\"\nProcess a document for RAG.\nArgs:\npdf_path (str): Path to the PDF file\nchunk_size (int): Size of each chunk in characters\nchunk_overlap (int): Overlap between chunks in characters\nReturns:\nSimpleVectorStore: Vector store containing document chunks\n\"\"\"\n# Extract text from the PDF file\npages = extract_text_from_pdf(pdf_path)\n# Process each page and create chunks\nall_chunks = []\nfor page in pages:\n# Pass the text content (string) to chunk_text, not the dictionary\npage_chunks = chunk_text(page[\"text\"], chunk_size, chunk_overlap)\n# Update metadata for each chunk with the page's metadata\nfor chunk in page_chunks:\nchunk[\"metadata\"].update(page[\"metadata\"])\nall_chunks.extend(page_chunks)\n# Create embeddings for the text chunks\nprint(\"Creating embeddings for chunks...\")\nchunk_texts = [chunk[\"text\"] for chunk in all_chunks]\nchunk_embeddings = create_embeddings(chunk_texts)\n# Create a vector store to hold the chunks and their embeddings\nvector_store = SimpleVectorStore()\nfor i, chunk in enumerate(all_chunks):\nvector_store.add_item(\ntext=chunk[\"text\"],\nembedding=chunk_embeddings[i],\nmetadata=chunk[\"metadata\"]\n)\nprint(f\"Vector store created with {len(all_chunks)} chunks\")\nreturn vector_store",
+    "relevance": null,
+    "word_count": 268
+  },
+  {
+    "id": "9893d18796b43817f03cc02d68093a7a",
+    "rank": 2,
+    "doc_index": 10,
+    "score": 0.353909969329834,
+    "percent_difference": 19.91,
+    "text": "## Complete HyDE RAG Implementation\nCode:\ndef hyde_rag(query, vector_store, k=5, should_generate_response=True):\n\"\"\"\nPerform RAG using Hypothetical Document Embedding.\nArgs:\nquery (str): User query\nvector_store (SimpleVectorStore): Vector store with document chunks\nk (int): Number of chunks to retrieve\ngenerate_response (bool): Whether to generate a final response\nReturns:\nDict: Results including hypothetical document and retrieved chunks\n\"\"\"\nprint(f\"n=== Processing query with HyDE: {query} ===n\")\n# Step 1: Generate a hypothetical document that answers the query\nprint(\"Generating hypothetical document...\")\nhypothetical_doc = generate_hypothetical_document(query)\nprint(f\"Generated hypothetical document of {len(hypothetical_doc)} characters\")\n# Step 2: Create embedding for the hypothetical document\nprint(\"Creating embedding for hypothetical document...\")\nhypothetical_embedding = create_embeddings([hypothetical_doc])[0]\n# Step 3: Retrieve similar chunks based on the hypothetical document\nprint(f\"Retrieving {k} most similar chunks...\")\nretrieved_chunks = vector_store.similarity_search(hypothetical_embedding, k=k)\n# Prepare the results dictionary\nresults = {\n\"query\": query,\n\"hypothetical_document\": hypothetical_doc,\n\"retrieved_chunks\": retrieved_chunks\n}\n# Step 4: Generate a response if requested\nif should_generate_response:\nprint(\"Generating final response...\")\nresponse = generate_response(query, retrieved_chunks)\nresults[\"response\"] = response\nreturn results",
+    "relevance": null,
+    "word_count": 275
+  },
+  {
+    "id": "c46580a3a993aec077cf6b95518c0861",
+    "rank": 3,
+    "doc_index": 11,
+    "score": 0.3414946347475052,
+    "percent_difference": 22.72,
+    "text": "## Standard (Direct) RAG Implementation for Comparison\nCode:\ndef standard_rag(query, vector_store, k=5, should_generate_response=True):\n\"\"\"\nPerform standard RAG using direct query embedding.\nArgs:\nquery (str): User query\nvector_store (SimpleVectorStore): Vector store with document chunks\nk (int): Number of chunks to retrieve\ngenerate_response (bool): Whether to generate a final response\nReturns:\nDict: Results including retrieved chunks\n\"\"\"\nprint(f\"n=== Processing query with Standard RAG: {query} ===n\")\n# Step 1: Create embedding for the query\nprint(\"Creating embedding for query...\")\nquery_embedding = create_embeddings([query])[0]\n# Step 2: Retrieve similar chunks based on the query embedding\nprint(f\"Retrieving {k} most similar chunks...\")\nretrieved_chunks = vector_store.similarity_search(query_embedding, k=k)\n# Prepare the results dictionary\nresults = {\n\"query\": query,\n\"retrieved_chunks\": retrieved_chunks\n}\n# Step 3: Generate a response if requested\nif should_generate_response:\nprint(\"Generating final response...\")\nresponse = generate_response(query, retrieved_chunks)\nresults[\"response\"] = response\nreturn results",
+    "relevance": null,
+    "word_count": 226
+  },
+  {
+    "id": "d62124e6907c3cb773b92160d19007f1",
+    "rank": 4,
+    "doc_index": 14,
+    "score": 0.2552023623138666,
+    "percent_difference": 42.24,
+    "text": "## Visualization Functions\nCode:\ndef visualize_results(query, hyde_result, standard_result):\n\"\"\"\nVisualize the results of HyDE and standard RAG approaches.\nArgs:\nquery (str): User query\nhyde_result (Dict): Results from HyDE RAG\nstandard_result (Dict): Results from standard RAG\n\"\"\"\n# Create a figure with 3 subplots\nfig, axs = plt.subplots(1, 3, figsize=(20, 6))\n# Plot the query in the first subplot\naxs[0].text(0.5, 0.5, f\"Query:nn{query}\",\nhorizontalalignment='center', verticalalignment='center',\nfontsize=12, wrap=True)\naxs[0].axis('off')  # Hide the axis for the query plot\n# Plot the hypothetical document in the second subplot\nhypothetical_doc = hyde_result[\"hypothetical_document\"]\n# Shorten the hypothetical document if it's too long\nshortened_doc = hypothetical_doc[:500] + \"...\" if len(hypothetical_doc) > 500 else hypothetical_doc\naxs[1].text(0.5, 0.5, f\"Hypothetical Document:nn{shortened_doc}\",\nhorizontalalignment='center', verticalalignment='center',\nfontsize=10, wrap=True)\naxs[1].axis('off')  # Hide the axis for the hypothetical document plot\n# Plot comparison of retrieved chunks in the third subplot\n# Shorten each chunk text for better visualization\nhyde_chunks = [chunk[\"text\"][:100] + \"...\" for chunk in hyde_result[\"retrieved_chunks\"]]\nstd_chunks = [chunk[\"text\"][:100] + \"...\" for chunk in standard_result[\"retrieved_chunks\"]]\n# Prepare the comparison text\ncomparison_text = \"Retrieved by HyDE:nn\"\nfor i, chunk in enumerate(hyde_chunks):\ncomparison_text += f\"{i+1}. {chunk}nn\"\ncomparison_text += \"nRetrieved by Standard RAG:nn\"\nfor i, chunk in enumerate(std_chunks):\ncomparison_text += f\"{i+1}. {chunk}nn\"\n# Plot the comparison text in the third subplot\naxs[2].text(0.5, 0.5, comparison_text,\nhorizontalalignment='center', verticalalignment='center',\nfontsize=8, wrap=True)\naxs[2].axis('off')  # Hide the axis for the comparison plot\n# Adjust layout to prevent overlap\nplt.tight_layout()\n# Display the plot\nplt.show()",
+    "relevance": null,
+    "word_count": 437
+  },
+  {
+    "id": "2e46cc4362824c2d6d799b346f36ce91",
+    "rank": 5,
+    "doc_index": 15,
+    "score": 0.24243784323334694,
+    "percent_difference": 45.13,
+    "text": "## Evaluation of Hypothetical Document Embedding (HyDE) vs. Standard RAG\nCode:\n# Path to the AI information document\npdf_path = \"data/AI_Information.pdf\"\n# Process document and create vector store\n# This loads the document, extracts text, chunks it, and creates embeddings\nvector_store = process_document(pdf_path)\n# Example 1: Direct comparison for a single query related to AI\nquery = \"What are the main ethical considerations in artificial intelligence development?\"\n# Run HyDE RAG approach\n# This generates a hypothetical document answering the query, embeds it,\n# and uses that embedding to retrieve relevant chunks\nhyde_result = hyde_rag(query, vector_store)\nprint(\"n=== HyDE Response ===\")\nprint(hyde_result[\"response\"])\n# Run standard RAG approach for comparison\n# This directly embeds the query and uses it to retrieve relevant chunks\nstandard_result = standard_rag(query, vector_store)\nprint(\"n=== Standard RAG Response ===\")\nprint(standard_result[\"response\"])\n# Visualize the differences between HyDE and standard RAG approaches\n# Shows the query, hypothetical document, and retrieved chunks side by side\nvisualize_results(query, hyde_result, standard_result)\n# Example 2: Run full evaluation with multiple AI-related queries\ntest_queries = [\n\"How does neural network architecture impact AI performance?\"\n]\n# Optional reference answers for better evaluation\nreference_answers = [\n\"Neural network architecture significantly impacts AI performance through factors like depth (number of layers), width (neurons per layer), connectivity patterns, and activation functions. Different architectures like CNNs, RNNs, and Transformers are optimized for specific tasks such as image recognition, sequence processing, and natural language understanding respectively.\",\n]\n# Run comprehensive evaluation comparing HyDE and standard RAG approaches\nevaluation_results = run_evaluation(\npdf_path=pdf_path,\ntest_queries=test_queries,\nreference_answers=reference_answers\n)\n# Print the overall analysis of which approach performs better across queries\nprint(\"n=== OVERALL ANALYSIS ===\")\nprint(evaluation_results[\"overall_analysis\"])",
+    "relevance": null,
+    "word_count": 364
+  },
+  {
+    "id": "2d3c5be01221d594b8d106660fd99bdb",
+    "rank": 6,
+    "doc_index": 7,
+    "score": 0.2339474782347679,
+    "percent_difference": 47.05,
+    "text": "## Creating Embeddings\nCode:\ndef create_embeddings(texts, model=\"BAAI/bge-en-icl\"):\n\"\"\"\nCreate embeddings for the given texts.\nArgs:\ntexts (List[str]): Input texts\nmodel (str): Embedding model name\nReturns:\nList[List[float]]: Embedding vectors\n\"\"\"\n# Handle empty input\nif not texts:\nreturn []\n# Process in batches if needed (OpenAI API limits)\nbatch_size = 100\nall_embeddings = []\n# Iterate over the input texts in batches\nfor i in range(0, len(texts), batch_size):\nbatch = texts[i:i + batch_size]  # Get the current batch of texts\n# Create embeddings for the current batch\nresponse = client.embeddings.create(\nmodel=model,\ninput=batch\n)\n# Extract embeddings from the response\nbatch_embeddings = [item.embedding for item in response.data]\nall_embeddings.extend(batch_embeddings)  # Add the batch embeddings to the list\nreturn all_embeddings  # Return all embeddings",
+    "relevance": null,
+    "word_count": 179
+  },
+  {
+    "id": "dd6934df87c260bc84764b3c4d33bec1",
+    "rank": 7,
+    "doc_index": 12,
+    "score": 0.2002845797687769,
+    "percent_difference": 54.67,
+    "text": "## Response Generation\nCode:\ndef generate_response(query, relevant_chunks):\n\"\"\"\nGenerate a final response based on the query and relevant chunks.\nArgs:\nquery (str): User query\nrelevant_chunks (List[Dict]): Retrieved relevant chunks\nReturns:\nstr: Generated response\n\"\"\"\n# Concatenate the text from the chunks to create context\ncontext = \"nn\".join([chunk[\"text\"] for chunk in relevant_chunks])\n# Generate response using OpenAI API\nresponse = client.chat.completions.create(\nmodel=\"meta-llama/Llama-3.2-3B-Instruct\",\nmessages=[\n{\"role\": \"system\", \"content\": \"You are a helpful assistant. Answer the question based on the provided context.\"},\n{\"role\": \"user\", \"content\": f\"Context:n{context}nnQuestion: {query}\"}\n],\ntemperature=0.5,\nmax_tokens=500\n)\nreturn response.choices[0].message.content",
+    "relevance": null,
+    "word_count": 177
+  },
+  {
+    "id": "4d9cafa74f02774adf3751ab6e3239cd",
+    "rank": 8,
+    "doc_index": 0,
+    "score": 0.1972791999578476,
+    "percent_difference": 55.35,
+    "text": "# Hypothetical Document Embedding (HyDE) for RAG\nIn this notebook, I implement HyDE (Hypothetical Document Embedding) - an innovative retrieval technique that transforms user queries into hypothetical answer documents before performing retrieval. This approach bridges the semantic gap between short queries and lengthy documents.\nTraditional RAG systems embed the user's short query directly, but this often fails to capture the semantic richness needed for optimal retrieval. HyDE solves this by:\n- Generating a hypothetical document that answers the query\n- Embedding this expanded document instead of the original query\n- Retrieving documents similar to this hypothetical document\n- Creating more contextually relevant answers",
+    "relevance": null,
+    "word_count": 114
+  },
+  {
+    "id": "3944866fdeba0f36dc55bbaa72ba7ee5",
+    "rank": 9,
+    "doc_index": 5,
+    "score": 0.15155471613009772,
+    "percent_difference": 65.7,
+    "text": "## Document Processing Functions\nCode:\ndef extract_text_from_pdf(pdf_path):\n\"\"\"\nExtract text content from a PDF file with page separation.\nArgs:\npdf_path (str): Path to the PDF file\nReturns:\nList[Dict]: List of pages with text content and metadata\n\"\"\"\nprint(f\"Extracting text from {pdf_path}...\")  # Print the path of the PDF being processed\npdf = fitz.open(pdf_path)  # Open the PDF file using PyMuPDF\npages = []  # Initialize an empty list to store the pages with text content\n# Iterate over each page in the PDF\nfor page_num in range(len(pdf)):\npage = pdf[page_num]  # Get the current page\ntext = page.get_text()  # Extract text from the current page\n# Skip pages with very little text (less than 50 characters)\nif len(text.strip()) > 50:\n# Append the page text and metadata to the list\npages.append({\n\"text\": text,\n\"metadata\": {\n\"source\": pdf_path,  # Source file path\n\"page\": page_num + 1  # Page number (1-based index)\n}\n})\nprint(f\"Extracted {len(pages)} pages with content\")  # Print the number of pages extracted\nreturn pages  # Return the list of pages with text content and metadata",
+    "relevance": null,
+    "word_count": 260
+  },
+  {
+    "id": "3f568be4aba5c9df40b7407fed0f9fab",
+    "rank": 10,
+    "doc_index": 9,
+    "score": 0.11860513687133789,
+    "percent_difference": 73.16,
+    "text": "## Hypothetical Document Generation\nCode:\ndef generate_hypothetical_document(query, desired_length=1000):\n\"\"\"\nGenerate a hypothetical document that answers the query.\nArgs:\nquery (str): User query\ndesired_length (int): Target length of the hypothetical document\nReturns:\nstr: Generated hypothetical document\n\"\"\"\n# Define the system prompt to instruct the model on how to generate the document\nsystem_prompt = f\"\"\"You are an expert document creator.\nGiven a question, generate a detailed document that would directly answer this question.\nThe document should be approximately {desired_length} characters long and provide an in-depth,\ninformative answer to the question. Write as if this document is from an authoritative source\non the subject. Include specific details, facts, and explanations.\nDo not mention that this is a hypothetical document - just write the content directly.\"\"\"\n# Define the user prompt with the query\nuser_prompt = f\"Question: {query}nnGenerate a document that fully answers this question:\"\n# Make a request to the OpenAI API to generate the hypothetical document\nresponse = client.chat.completions.create(\nmodel=\"meta-llama/Llama-3.2-3B-Instruct\",  # Specify the model to use\nmessages=[\n{\"role\": \"system\", \"content\": system_prompt},  # System message to guide the assistant\n{\"role\": \"user\", \"content\": user_prompt}  # User message with the query\n],\ntemperature=0.1  # Set the temperature for response generation\n)\n# Return the generated document content\nreturn response.choices[0].message.content",
+    "relevance": null,
+    "word_count": 287
+  },
+  {
+    "id": "0b7e15077482ec761097adb28b5efe90",
+    "rank": 11,
+    "doc_index": 13,
+    "score": 0.09167573228478432,
+    "percent_difference": 79.25,
+    "text": "## Evaluation Functions\nCode:\ndef compare_approaches(query, vector_store, reference_answer=None):\n\"\"\"\nCompare HyDE and standard RAG approaches for a query.\nArgs:\nquery (str): User query\nvector_store (SimpleVectorStore): Vector store with document chunks\nreference_answer (str, optional): Reference answer for evaluation\nReturns:\nDict: Comparison results\n\"\"\"\n# Run HyDE RAG\nhyde_result = hyde_rag(query, vector_store)\nhyde_response = hyde_result[\"response\"]\n# Run standard RAG\nstandard_result = standard_rag(query, vector_store)\nstandard_response = standard_result[\"response\"]\n# Compare results\ncomparison = compare_responses(query, hyde_response, standard_response, reference_answer)\nreturn {\n\"query\": query,\n\"hyde_response\": hyde_response,\n\"hyde_hypothetical_doc\": hyde_result[\"hypothetical_document\"],\n\"standard_response\": standard_response,\n\"reference_answer\": reference_answer,\n\"comparison\": comparison\n}",
+    "relevance": null,
+    "word_count": 166
+  },
+  {
+    "id": "e124a5d53b6c1162699c4154cb70ad99",
+    "rank": 12,
+    "doc_index": 6,
+    "score": 0.0767959700897336,
+    "percent_difference": 82.62,
+    "text": "## Simple Vector Store Implementation\nCode:\nclass SimpleVectorStore:\n\"\"\"\nA simple vector store implementation using NumPy.\n\"\"\"\ndef __init__(self):\nself.vectors = []  # List to store vector embeddings\nself.texts = []  # List to store text content\nself.metadata = []  # List to store metadata\ndef add_item(self, text, embedding, metadata=None):\n\"\"\"\nAdd an item to the vector store.\nArgs:\ntext (str): Text content\nembedding (List[float]): Vector embedding\nmetadata (Dict, optional): Additional metadata\n\"\"\"\nself.vectors.append(np.array(embedding))  # Append the embedding as a numpy array\nself.texts.append(text)  # Append the text content\nself.metadata.append(metadata or {})  # Append the metadata or an empty dict if None\ndef similarity_search(self, query_embedding, k=5, filter_func=None):\n\"\"\"\nFind the most similar items to a query embedding.\nArgs:\nquery_embedding (List[float]): Query embedding vector\nk (int): Number of results to return\nfilter_func (callable, optional): Function to filter results\nReturns:\nList[Dict]: Top k most similar items\n\"\"\"\nif not self.vectors:\nreturn []  # Return an empty list if there are no vectors\n# Convert query embedding to numpy array\nquery_vector = np.array(query_embedding)\n# Calculate similarities using cosine similarity\nsimilarities = []\nfor i, vector in enumerate(self.vectors):\n# Skip if doesn't pass the filter\nif filter_func and not filter_func(self.metadata[i]):\ncontinue\n# Calculate cosine similarity\nsimilarity = np.dot(query_vector, vector) / (np.linalg.norm(query_vector) * np.linalg.norm(vector))\nsimilarities.append((i, similarity))  # Append index and similarity score\n# Sort by similarity (descending)\nsimilarities.sort(key=lambda x: x[1], reverse=True)\n# Return top k results\nresults = []\nfor i in range(min(k, len(similarities))):\nidx, score = similarities[i]\nresults.append({\n\"text\": self.texts[idx],  # Add the text content\n\"metadata\": self.metadata[idx],  # Add the metadata\n\"similarity\": float(score)  # Add the similarity score\n})\nreturn results  # Return the list of top k results",
+    "relevance": null,
+    "word_count": 444
+  },
+  {
+    "id": "ec06847c02eaf5195ff95315d2a8295a",
+    "rank": 13,
+    "doc_index": 3,
+    "score": 0.037328802049160004,
+    "percent_difference": 91.55,
+    "text": "## Setting Up the OpenAI API Client\nWe initialize the OpenAI client to generate embeddings and responses.",
+    "relevance": null,
+    "word_count": 19
+  },
+  {
+    "id": "53b6e66239969bc2f4e5a8dd71ab2cf1",
+    "rank": 14,
+    "doc_index": 1,
+    "score": 0.027201073244214058,
+    "percent_difference": 93.84,
+    "text": "## Setting Up the Environment\nWe begin by importing necessary libraries.",
+    "relevance": null,
+    "word_count": 13
+  },
+  {
+    "id": "b5fb164e494cda242f3f5e9e0d13d9e7",
+    "rank": 15,
+    "doc_index": 2,
+    "score": 0.008014580234885216,
+    "percent_difference": 98.19,
+    "text": "## Setting Up the Environment\nCode:\nimport os\nimport numpy as np\nimport json\nimport fitz\nfrom openai import OpenAI\nimport re\nimport matplotlib.pyplot as plt",
+    "relevance": null,
+    "word_count": 28
+  }
+]
