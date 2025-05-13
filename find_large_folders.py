@@ -174,7 +174,7 @@ if __name__ == "__main__":
 
     # Save the file only if --save is True
     if args.save:
-        save_file(final_results, output_file, verbose=False)
+        save_file(final_results, output_file)
 
     total_size = format_size(total_size)
 
