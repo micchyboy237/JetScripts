@@ -342,6 +342,7 @@ large_folders() {
     local max_backward_depth=""
     local delete=false
     local direction=""
+    local save=false
 
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -355,6 +356,7 @@ large_folders() {
             --max-backward-depth) max_backward_depth="$2"; shift 2;;
             --delete) delete=true; shift;;
             --direction) direction="$2"; shift 2;;
+            --save) save=true; shift;;  # Add condition for --save
             *) shift;;
         esac
     done
@@ -370,12 +372,14 @@ large_folders() {
     [[ -n "$max_backward_depth" ]] && args+=(--max-backward-depth "$max_backward_depth")
     [[ "$delete" == true ]] && args+=(--delete)
     [[ -n "$direction" ]] && args+=(--direction "$direction")
+    [[ "$save" == true ]] && args+=(--save)  # Add --save to arguments if specified
 
     python /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/find_large_folders.py "${args[@]}"
 
     # Example:
-    # large_folders -b . -s 200 -i "**/*" -e "node_modules,.venv" -d 2 -l 10 -f "out.json" --delete --direction forward --max-backward-depth 3
+    # large_folders -b . -s 200 -i "**/*" -e "node_modules,.venv" -d 2 -l 10 -f "out.json" --delete --direction forward --max-backward-depth 3 --save
 }
+
 
 last_updates() {
     local base_dir=""

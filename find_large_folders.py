@@ -133,6 +133,9 @@ if __name__ == "__main__":
     parser.add_argument("--direction", type=str,
                         choices=["forward", "backward", "both"], default="forward",
                         help="Direction of traversal - 'forward' (default), 'backward', or 'both'.")
+    parser.add_argument("--save", action="store_true",
+                        help="Enable saving the results to the output file.",
+                        default=False)
 
     args = parser.parse_args()
     command = get_command()
@@ -158,10 +161,21 @@ if __name__ == "__main__":
     for folder_data in generator:
         results.append(folder_data)
         results.sort(key=lambda x: x["size"], reverse=True)
-        save_file(results, output_file, verbose=False)
-    save_file(results, output_file)
 
+    # Calculate total size and add it to the results list
     total_size = calculate_total_size(results)
+
+    # Organize the final results as a dictionary
+    final_results = {
+        "file": output_file,
+        "size": total_size,
+        "results": results
+    }
+
+    # Save the file only if --save is True
+    if args.save:
+        save_file(final_results, output_file, verbose=False)
+
     total_size = format_size(total_size)
 
     if args.delete:
