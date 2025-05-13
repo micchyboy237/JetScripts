@@ -1,59 +1,86 @@
-import subprocess
-from pathlib import Path
-from typing import List
-import sys
-import os
-
-from jet.logger import CustomLogger
+from sentence_transformers import SentenceTransformer, CrossEncoder
+import faiss
+import numpy as np
+import torch
 
 
-def find_python_scripts(base_dir: str, exclude_self: bool = True) -> List[Path]:
-    base_path = Path(base_dir).resolve()
-    all_scripts = [
-        p for p in base_path.glob("*.py")
-        if p.name != "__init__.py"
+def load_models():
+    """Load sentence transformer and cross-encoder models."""
+    # Sentence Transformer for initial retrieval
+    embedder = SentenceTransformer('all-MiniLM-L6-v2')
+    # Cross-Encoder for reranking
+    cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-12-v2')
+    return embedder, cross_encoder
+
+
+def create_index(embedder, documents):
+    """Create FAISS index with document embeddings."""
+    # Encode documents
+    doc_embeddings = embedder.encode(documents, convert_to_tensor=False)
+    # Initialize FAISS index (L2 distance)
+    index = faiss.IndexFlatL2(doc_embeddings.shape[1])
+    # Add embeddings to index
+    index.add(doc_embeddings)
+    return index, doc_embeddings
+
+
+def retrieve_candidates(embedder, index, query, k=10):
+    """Retrieve top-k candidates using sentence transformer embeddings."""
+    # Encode query
+    query_embedding = embedder.encode([query], convert_to_tensor=False)
+    # Search index
+    distances, indices = index.search(query_embedding, k)
+    return indices[0], distances[0]
+
+
+def rerank_candidates(cross_encoder, query, documents, candidate_indices):
+    """Rerank candidates using cross-encoder."""
+    # Prepare query-document pairs
+    pairs = [[query, documents[idx]] for idx in candidate_indices]
+    # Score pairs with cross-encoder
+    scores = cross_encoder.predict(pairs)
+    # Sort by score (descending)
+    sorted_indices = np.argsort(scores)[::-1]
+    return candidate_indices[sorted_indices], scores[sorted_indices]
+
+
+def main():
+    # Sample documents
+    documents = [
+        "The quick brown fox jumps over the lazy dog.",
+        "A fox fled from danger in the forest.",
+        "Dogs are loyal and friendly pets.",
+        "The cat sleeps on the windowsill.",
+        "Foxes are known for their cunning behavior."
     ]
-    if exclude_self:
-        self_path = Path(__file__).resolve()
-        all_scripts = [p for p in all_scripts if p != self_path]
 
-    # Filter out scripts with existing log files
-    all_scripts = [
-        p for p in all_scripts
-        if not (p.with_suffix(".log")).exists()
-    ]
+    # Sample query
+    query = "Tell me about foxes."
 
-    # Sort scripts alphabetically by file name
-    all_scripts.sort(key=lambda p: p.name.lower())
+    # Load models
+    print("Loading models...")
+    embedder, cross_encoder = load_models()
 
-    return all_scripts
+    # Create FAISS index
+    print("Creating FAISS index...")
+    index, doc_embeddings = create_index(embedder, documents)
 
+    # Step 1: Retrieve candidates
+    print(f"\nRetrieving candidates for query: '{query}'")
+    candidate_indices, candidate_distances = retrieve_candidates(
+        embedder, index, query, k=3)
+    print("Initial retrieval results:")
+    for idx, dist in zip(candidate_indices, candidate_distances):
+        print(f"Doc {idx}: {documents[idx]} (Distance: {dist:.4f})")
 
-def run_script(script_path: Path) -> subprocess.CompletedProcess:
-    script_dir = os.path.dirname(script_path)
-    log_file = os.path.join(
-        script_dir, f"{os.path.splitext(os.path.basename(script_path))[0]}.log")
-    logger = CustomLogger(log_file, overwrite=True)
-
-    logger.info(f"Running: {script_path}")
-    result = subprocess.run(
-        [sys.executable, str(script_path)],
-        capture_output=True,
-        text=True
-    )
-    logger.debug(f"Output ({script_path}):\n{result.stdout}")
-    if result.stderr:
-        logger.error(f"Error ({script_path}):\n{result.stderr}")
-    return result
-
-
-def run_all_scripts(base_dir: str):
-    scripts = find_python_scripts(base_dir)
-    for script in scripts:
-        run_script(script)
+    # Step 2: Rerank candidates
+    print("\nReranking candidates...")
+    reranked_indices, reranked_scores = rerank_candidates(
+        cross_encoder, query, documents, candidate_indices)
+    print("Reranked results:")
+    for idx, score in zip(reranked_indices, reranked_scores):
+        print(f"Doc {idx}: {documents[idx]} (Score: {score:.4f})")
 
 
 if __name__ == "__main__":
-    # base_directory = sys.argv[1] if len(sys.argv) > 1 else "."
-    base_directory = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/helpers"
-    run_all_scripts(base_directory)
+    main()
