@@ -125,8 +125,8 @@ if __name__ == "__main__":
     output_dir = os.path.join(script_dir, "generated",
                               os.path.splitext(os.path.basename(__file__))[0])
 
-    shutil.rmtree(output_dir, ignore_errors=True)
-    os.makedirs(output_dir, exist_ok=True)
+    # shutil.rmtree(output_dir, ignore_errors=True)
+    # os.makedirs(output_dir, exist_ok=True)
 
     query = "List trending isekai anime this year."
     model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
@@ -178,7 +178,7 @@ if __name__ == "__main__":
 
     # Convert html to docs
     urls = [item["url"] for item in search_results]
-    html_list = asyncio.run(scrape_urls(urls, num_parallel=3))
+    html_list = asyncio.run(scrape_urls(urls, num_parallel=5))
     all_url_html_tuples = list(zip(urls, html_list))
 
     url_html_tuples = []
