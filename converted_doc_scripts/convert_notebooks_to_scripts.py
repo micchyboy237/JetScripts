@@ -1,12 +1,12 @@
-import glob
+import os
 import hashlib
 import re
-import fnmatch
-import os
+from pathlib import Path
+from typing import Literal, Optional
 import codecs
 import json
 import shutil
-from typing import Literal, Optional
+
 from jet.code.python_code_extractor import remove_comments
 from jet.code.rst_code_extractor import rst_to_code_blocks
 from jet.logger import logger
@@ -61,8 +61,6 @@ COMMENT_LINE_KEYWORDS = [
 
 
 def generate_unique_function_name(line):
-    # Generate a unique hash based on the line content
-    # Taking the first 8 characters for brevity
     unique_hash = hashlib.md5(line.encode('utf-8')).hexdigest()[:8]
     return f"run_async_code_{unique_hash}"
 
@@ -78,7 +76,6 @@ def replace_code_line(line: str):
 def replace_async_calls(line: str):
     if not "await" in line and not "async for" in line:
         return line
-
     updated_line = line
     for old_line, new_line in REPLACE_ASYNC_MAP.items():
         if old_line in line:
@@ -89,28 +86,20 @@ def replace_async_calls(line: str):
 
 
 def comment_line(line: str):
-    has_keyword = any(
-        keyword in line for keyword in COMMENT_LINE_KEYWORDS)
+    has_keyword = any(keyword in line for keyword in COMMENT_LINE_KEYWORDS)
     updated_line = line
-    if has_keyword:
-        if not line.strip().startswith('#'):
-            updated_line = "# " + line
+    if has_keyword and not line.strip().startswith('#'):
+        updated_line = "# " + line
     return updated_line
 
 
 def add_ollama_initializer_code(code: str):
     initializer_code = "from jet.llm.ollama.base import initialize_ollama_settings\ninitialize_ollama_settings()"
-    return "\n\n".join([
-        initializer_code,
-        code,
-    ])
+    return "\n\n".join([initializer_code, code])
 
 
 def add_general_initializer_code(code: str):
-    all_code = [
-        code,
-    ]
-
+    all_code = [code]
     setup_generated_dir_code = (
         "file_name = os.path.splitext(os.path.basename(__file__))[0]\n"
         "GENERATED_DIR = os.path.join(\"results\", file_name)\n"
@@ -118,84 +107,57 @@ def add_general_initializer_code(code: str):
     ).strip()
     if "GENERATED_DIR" in code:
         all_code.insert(0, setup_generated_dir_code)
-        code = "\n\n".join(all_code)
-
     import_code = "import os"
     if "import os" not in code and "os." in code:
         all_code.insert(0, import_code)
-        code = "\n\n".join(all_code)
-
-    return code
+    return "\n\n".join(all_code)
 
 
 def move_all_imports_on_top(code: str) -> str:
-    # Regex pattern to identify import statements, including multi-line imports
     import_pattern = re.compile(
         r'^\s*(from .+ import .+|import .+)', re.MULTILINE)
-
     lines = code.splitlines()
-    imports = set()  # Use a set to store unique import lines
+    imports = set()
     non_import_code = []
     in_import_block = False
     open_parens = 0
-
     line_idx = 0
     while line_idx < len(lines):
         line = lines[line_idx]
         stripped_line = line.strip()
-
-        # Check for the start of an import block
         if import_pattern.match(line):
             if not in_import_block:
                 in_import_block = True
             current_import = stripped_line
-
-            # Handle multi-line imports with parentheses
             if '(' in line:
                 open_parens += line.count('(')
             if ')' in line:
                 open_parens -= line.count(')')
-
-            # Continue adding lines until we are out of the parentheses block
             while open_parens > 0 and line_idx + 1 < len(lines):
                 line_idx += 1
                 next_line = lines[line_idx]
                 current_import += f"\n{next_line.strip()}"
                 open_parens += next_line.count('(') - next_line.count(')')
-
             imports.add(current_import)
-
         else:
-            # Collect non-import code
             non_import_code.append(line)
-
         line_idx += 1
-
-    # Convert the set of unique imports to a sorted list
     sorted_imports = sorted(list(imports))
-
-    # Join imports with a newline for correct separation and return the final code
     imports_block = '\n'.join(sorted_imports)
     non_import_block = '\n'.join(non_import_code)
-
     return imports_block + '\n\n' + non_import_block
 
 
 def add_jet_logger(code: str):
     import_code = """import os
 from jet.logger import CustomLogger
-    
 script_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
     """.strip()
     log_done_code = 'logger.info("\\n\\n[DONE]", bright=True)'
-    return "\n\n".join([
-        import_code,
-        code,
-        log_done_code,
-    ])
+    return "\n\n".join([import_code, code, log_done_code])
 
 
 def replace_print_with_jet_logger(code: str):
@@ -203,38 +165,20 @@ def replace_print_with_jet_logger(code: str):
 
 
 def update_code_with_ollama(code: str) -> str:
-    updated_code = code
-
-    # Replace with mapping
     code_lines = code.splitlines()
     updated_lines = []
     for line in code_lines:
-        updated_line = line
-        updated_line = replace_code_line(updated_line)
+        updated_line = replace_code_line(line)
         updated_line = replace_async_calls(updated_line)
         updated_line = comment_line(updated_line)
         updated_lines.append(updated_line)
     updated_code = "\n".join(updated_lines)
-
-    """
-    For llama-index
-    """
-
-    # Replace imports
     updated_code = re.sub(
         r'from llama_index\.llms\.openai import OpenAI',
         'from jet.llm.ollama.base import Ollama',
         updated_code
     )
-
-    # Replace OpenAI(...) calls with Ollama(...)
-    updated_code = re.sub(
-        r'Ollama\s*\((.*?)\)',
-        r'Ollama(\1)',
-        updated_code
-    )
-
-    # Replace model="gpt-*" patterns correctly
+    updated_code = re.sub(r'Ollama\s*\((.*?)\)', r'Ollama(\1)', updated_code)
     updated_code = re.sub(
         r'model=["\']gpt-4[^"\']*["\']',
         'model="llama3.1", request_timeout=300.0, context_window=4096',
@@ -245,85 +189,51 @@ def update_code_with_ollama(code: str) -> str:
         'model="llama3.2", request_timeout=300.0, context_window=4096',
         updated_code
     )
-
-    # Replace OpenAIEmbedding(...) to OllamaEmbedding(...)
     updated_code = re.sub(
         r'OllamaEmbedding\s*\((.*?)\)',
         r'OllamaEmbedding(model_name="mxbai-embed-large")',
         updated_code
     )
-
-    """
-    For langchain-core
-    """
-
     updated_code = re.sub(
         r'ChatOllama\s*\((.*?)\)',
         r'ChatOllama(model="llama3.1")',
         updated_code
     )
-
     updated_code = re.sub(
         r'OllamaEmbeddings\s*\((.*?)\)',
         r'OllamaEmbeddings(model="mxbai-embed-large")',
         updated_code
     )
-
-    # Replace the line that loads data using `loader.load_data` with the updated implementation
-    # that uses `SimpleDirectoryReader` and adds the appropriate import statement.
     updated_code = re.sub(
         r'docs0\s*=\s*loader\.load_data\(file=Path\(".*?/llama2\.pdf"\)\)',
         'from llama_index.core.readers.file.base import SimpleDirectoryReader\n'
         'docs0 = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()',
         updated_code
     )
-
-    # Replace all occurrences of "data/ with f"{GENERATED_DIR}/" to use the dynamic directory variable.
-    updated_code = re.sub(
-        r'"data/',  # Matches the literal string "data/
-        # Replaces it with the formatted string f"{GENERATED_DIR}/
-        r'f"{GENERATED_DIR}/',
-        updated_code
-    )
-
+    updated_code = re.sub(r'"data/', r'f"{GENERATED_DIR}/', updated_code)
     return updated_code
 
 
-# Function to extract Python code cells from a .ipynb file
 def read_notebook_file(file, with_markdown=False):
-    # Check if the file ends correct extension
     if not file.endswith('.ipynb'):
         raise ValueError("File must have .ipynb extension")
-
     with codecs.open(file, 'r', encoding='utf-8') as f:
         source = f.read()
-
     source_dict = json.loads(source)
     cells = source_dict.get('cells', [])
     source_groups = []
-
     for cell in cells:
         code_lines = []
         for line in cell.get('source', []):
             if cell.get('cell_type') == 'code':
-                # Remove commented lines
                 if line.strip().startswith('#'):
                     continue
-
-                # Add newline at the end if missing
                 if not line.endswith('\n'):
                     line += '\n'
-
-                # Comment out installation lines
-                if line.strip().startswith('%') or line.strip().startswith('!'):
-                    if not line.strip().startswith('#'):
-                        line = "# " + line
-
+                if line.strip().startswith(('%', '!')) and not line.strip().startswith('#'):
+                    line = "# " + line
                 code_lines.append(line)
-
             elif with_markdown:
-                # if not line.strip().startswith('#'):
-                #     line = "# " + line
                 if not line.endswith('\n'):
                     line += '\n'
                 code_lines.append(line)
@@ -331,105 +241,66 @@ def read_notebook_file(file, with_markdown=False):
             "type": "text" if cell.get('cell_type') != "code" else "code",
             "code": "".join(code_lines).strip()
         })
-
     return source_groups
 
 
-# Function to extract Python code blocks from a .md or .mdx file
 def read_markdown_file(file):
     from jet.code.markdown_code_extractor import MarkdownCodeExtractor
-
-    # Check if the file ends correct extension
     if not (file.endswith('.md') or file.endswith('.mdx')):
         raise ValueError("File must have .md or .mdx extension")
-
-    with open(file, 'r') as f:
+    with open(file, 'r', encoding='utf-8') as f:
         source = f.read()
-
     extractor = MarkdownCodeExtractor()
     code_blocks = extractor.extract_code_blocks(source, with_text=True)
-
     source_groups = []
-
     for code_block in code_blocks:
         type = code_block["language"]
         lines = code_block["code"].splitlines()
         code_lines = []
         for line in lines:
             if type != 'text':
-                # Remove commented lines
                 if line.strip().startswith('#'):
                     continue
-
-                # Add newline at the end if missing
                 if not line.endswith('\n'):
                     line += '\n'
             else:
-                # Comment out each line for non code block
-                # if not line.strip().startswith('#'):
-                #     line = "# " + line
-
-                # Add new line at the end
                 if not line.endswith('\n'):
                     line += '\n'
-
-                # Comment out installation lines
-                if line.strip().startswith('pip install'):
-                    if not line.strip().startswith('#'):
-                        line = "# " + line
-
+                if line.strip().startswith('pip install') and not line.strip().startswith('#'):
+                    line = "# " + line
             code_lines.append(line)
         source_groups.append({
             "type": "code" if type != "text" else "text",
             "code": "".join(code_lines).strip()
         })
-
     return source_groups
 
 
-# Function to extract Python code blocks from a .rst file
 def read_rst_file(file):
-    # Check if the file ends correct extension
-    if not (file.endswith('.rst')):
-        raise ValueError("File must have .md or .mdx extension")
-
+    if not file.endswith('.rst'):
+        raise ValueError("File must have .rst extension")
     code_blocks = rst_to_code_blocks(file)
-
     source_groups = []
-
     for code_block in code_blocks:
         type = code_block["type"]
         lines = code_block["code"].splitlines()
         code_lines = []
         for line in lines:
             if type == 'python':
-                # Remove commented lines
                 if line.strip().startswith('#'):
                     continue
-
-                # Add newline at the end if missing
                 if not line.endswith('\n'):
                     line += '\n'
             else:
-                # Comment out each line for non code block
-                # if not line.strip().startswith('#'):
-                #     line = "# " + line
-
-                # Add new line at the end
                 if not line.endswith('\n'):
                     line += '\n'
-
-                # Comment out installation lines
-                if line.strip().startswith('pip install'):
-                    if not line.strip().startswith('#'):
-                        line = "# " + line
-
+                if line.strip().startswith('pip install') and not line.strip().startswith('#'):
+                    line = "# " + line
             code_lines.append(line)
         source_groups.append({
             "type": "text" if type != "code" else "code",
             "code": "".join(code_lines).strip()
         })
-
     return source_groups
 
 
@@ -438,36 +309,24 @@ def wrap_await_code_singleline_args(code: str) -> str:
     result_lines = []
     paren_depth = 0
     skip_until_closing_paren = False
-
     for line_idx, line in enumerate(lines):
         stripped_line = line.strip()
-
-        # Track parenthesis depth
         paren_depth += stripped_line.count("(") - stripped_line.count(")")
-
-        # If we're inside a parenthesized block with an await, skip processing until the block closes
         if skip_until_closing_paren:
             result_lines.append(line)
             if paren_depth == 0:
                 skip_until_closing_paren = False
             continue
-
-        # Check if the line contains "await" and an opening parenthesis
         if "await" in line and "(" in stripped_line and paren_depth > 0:
             skip_until_closing_paren = True
             result_lines.append(line)
             continue
-
-        # Process lines with "= await" that are not inside parentheses
         match = re.match(r'(.*?)(?=\s*= await)', line)
         if match and "await" in line and paren_depth == 0:
             text_before_await = match.group(1).strip()
             await_leading_spaces = len(line) - len(line.lstrip())
-
             if text_before_await:
                 function_name = generate_unique_function_name(line)
-
-                # Create the wrapped async code with proper indentation
                 indent = " " * await_leading_spaces
                 async_wrapped_code = "\n".join([
                     f"{indent}async def {function_name}():",
@@ -476,79 +335,58 @@ def wrap_await_code_singleline_args(code: str) -> str:
                     f"{indent}{text_before_await} = asyncio.run({function_name}())",
                     f"{indent}logger.success(format_json({text_before_await}))",
                 ])
-
                 result_lines.append(async_wrapped_code)
             else:
                 result_lines.append(line)
         else:
             result_lines.append(line)
-
     return "\n".join(result_lines)
 
 
 def wrap_await_code_multiline_args(code: str) -> str:
-    """Wrap lines containing 'await' or 'async with' in standalone async functions, handling multiline calls."""
     lines = code.splitlines()
     updated_lines = []
     line_idx = 0
-
     while line_idx < len(lines):
         line = lines[line_idx].rstrip()
-
-        # Handle 'async with' statements
         if line.strip().startswith("async with"):
             leading_spaces = len(line) - len(line.lstrip())
             async_fn_name = f"async_func_{line_idx}"
-            variable = "result"  # Use 'result' to match the variable inside the block
-
-            # Collect the async with block
+            variable = "result"
             async_block = [
                 f"{' ' * leading_spaces}async def {async_fn_name}():"]
             async_block.append(f"{' ' * (leading_spaces + 4)}{line.strip()}")
-
-            # Collect indented block under async with
             line_idx += 1
             while line_idx < len(lines):
                 next_line = lines[line_idx].rstrip()
                 next_leading_spaces = len(next_line) - len(next_line.lstrip())
                 if next_leading_spaces <= leading_spaces and next_line.strip():
                     break
-                # Calculate relative indentation within the async with block
-                relative_indent = next_leading_spaces - \
-                    (leading_spaces + 4)  # Relative to async with
+                relative_indent = next_leading_spaces - (leading_spaces + 4)
                 if relative_indent < 0:
-                    relative_indent = 0  # Ensure no negative indentation
-                # Base indentation: 4 (async def) + 4 (async with) + relative_indent
+                    relative_indent = 0
                 adjusted_indent = ' ' * (leading_spaces + 8 + relative_indent)
                 async_block.append(f"{adjusted_indent}{next_line.lstrip()}")
                 line_idx += 1
-
-            # Add return statement at function level (4 spaces from async def)
             async_block.append(
                 f"{' ' * (leading_spaces + 4)}return {variable}")
-            async_block.append("")  # Empty line for readability
+            async_block.append("")
             async_block.append(
                 f"{' ' * leading_spaces}{variable} = asyncio.run({async_fn_name}())")
             async_block.append(
                 f"{' ' * leading_spaces}logger.success(format_json({variable}))")
-
             updated_lines.extend(async_block)
             continue
-
-        # Handle 'await' statements with multiline calls
         if "await" in line and line.strip().endswith("("):
             match = re.match(r'(.*?)\s*=\s*await', line)
             if match:
                 variable = match.group(1).strip()
                 leading_spaces = len(line) - len(line.lstrip())
                 async_fn_name = f"async_func_{line_idx}"
-
-                # Collect multiline call
                 async_block = [
                     f"{' ' * leading_spaces}async def {async_fn_name}():"]
                 async_block.append(
                     f"{' ' * (leading_spaces + 4)}{line.strip()}")
-
                 open_parens = 1
                 line_idx += 1
                 while line_idx < len(lines) and open_parens > 0:
@@ -564,27 +402,22 @@ def wrap_await_code_multiline_args(code: str) -> str:
                         f"{adjusted_indent}{next_line.lstrip()}")
                     open_parens += next_line.count("(") - next_line.count(")")
                     line_idx += 1
-
                 async_block.append(
                     f"{' ' * (leading_spaces + 4)}return {variable}")
                 async_block.append(
                     f"{' ' * leading_spaces}{variable} = asyncio.run({async_fn_name}())")
                 async_block.append(
                     f"{' ' * leading_spaces}logger.success(format_json({variable}))")
-
                 updated_lines.extend(async_block)
             else:
                 updated_lines.append(line)
                 line_idx += 1
             continue
-
-        # Handle single-line 'await' statements
         if "await" in line:
             match = re.match(r'(.*?)(?=\s*= await)', line)
             text_before_await = match.group(1).strip() if match else ""
             leading_spaces = len(line) - len(line.lstrip())
             async_fn_name = generate_unique_function_name(line)
-
             async_block = [
                 f"{' ' * leading_spaces}async def {async_fn_name}():",
                 f"{' ' * (leading_spaces + 4)}{line.strip()}",
@@ -592,76 +425,52 @@ def wrap_await_code_multiline_args(code: str) -> str:
                 f"{' ' * leading_spaces}{text_before_await} = asyncio.run({async_fn_name}())",
                 f"{' ' * leading_spaces}logger.success(format_json({text_before_await}))",
             ]
-
             updated_lines.extend(async_block)
             line_idx += 1
             continue
-
-        # Non-await lines
         updated_lines.append(line)
         line_idx += 1
-
     return "\n".join(updated_lines)
 
 
 def wrap_triple_double_quoted_comments_in_log(code: str) -> str:
-    # Regex pattern to match triple double-quoted comments
     pattern = r'"""\n?(.*?)\n?"""'
-
-    # Find all matches
     matches = list(re.finditer(pattern, code, flags=re.DOTALL))
-
-    # Process each match
     updated_code = code
     offset = 0
     for match in matches:
         comment_content = match.group(1)
-        # Split the comment into lines
         lines = comment_content.splitlines()
         first_text_line = None
-
-        # First, look for a line that starts with '#'
         for line in lines:
             if line.strip() and line.strip().startswith('#'):
                 first_text_line = line.strip()
                 break
-
-        # If no line with '#' is found, look for a line that starts with alphanumeric
         if not first_text_line:
             for line in lines:
                 if line.strip() and line.strip()[0].isalnum():
                     first_text_line = line.strip()
                     break
-
         if first_text_line:
-            # Create the logger.info for the first qualifying line
             replacement = f'logger.info("{first_text_line}")'
-            # Adjust the start and end positions with the offset
             start, end = match.start() + offset, match.end() + offset
-            # Insert the logger.info call after the comment
             updated_code = updated_code[:end] + \
                 '\n' + replacement + updated_code[end:]
-            # Update the offset based on the length of the inserted text
             offset += len('\n' + replacement)
-
     return updated_code
 
 
 def merge_consecutive_same_type(source_groups, separator="\n\n"):
     if not source_groups:
         return []
-
     source_groups = source_groups.copy()
     merged_groups = [source_groups[0]]
-
     for current in source_groups[1:]:
         last = merged_groups[-1]
-
         if last["type"] == current["type"]:
             last["code"] += separator + current["code"]
         else:
             merged_groups.append(current)
-
     return merged_groups
 
 
@@ -675,24 +484,18 @@ def scrape_code(
     output_dir: Optional[str] = None,
     types: list[Literal['text', 'python']] = [],
 ):
-
     files = search_files(input_base_dir, extensions,
                          include_files, exclude_files)
-
     if include_files:
         files = [file for file in files if any(
-            include.lower() in file.lower() for include in include_files)]
-
+            include.lower() in os.path.basename(file).lower() for include in include_files)]
     if exclude_files:
         files = [file for file in files if not any(
-            exclude.lower() in file.lower() for exclude in exclude_files)]
-
+            exclude.lower() in os.path.basename(file).lower() for exclude in exclude_files)]
     logger.info(f"Found {len(files)} {extensions} files")
     results = []
-
     for file in files:
         file_name = os.path.splitext(os.path.basename(file))[0]
-
         try:
             if file.endswith('.ipynb'):
                 source_groups = read_notebook_file(
@@ -703,73 +506,54 @@ def scrape_code(
                 source_groups = read_rst_file(file)
             else:
                 continue
-
             if types:
                 source_groups = [
                     group for group in source_groups if group['type'] in types]
-
             merged_source_groups = merge_consecutive_same_type(source_groups)
             source_groups = merged_source_groups
-
             if output_dir:
                 os.makedirs(output_dir, exist_ok=True)
-                subfolders = os.path.dirname(file).replace(input_base_dir, '')
-                joined_dir = os.path.join(
-                    output_dir, subfolders.strip('/'))
+                subfolders = os.path.dirname(file).replace(
+                    input_base_dir, '').strip('/')
+                joined_dir = os.path.join(output_dir, subfolders)
                 os.makedirs(joined_dir, exist_ok=True)
-
                 output_code_path = os.path.join(joined_dir, f"{file_name}.py")
                 for source_group in source_groups:
                     if source_group['type'] == 'text':
-                        source_group['code'] = f'"""\n{
-                            source_group['code']}\n"""'
-
+                        source_group['code'] = f'"""\n{source_group['code']}\n"""'
                     if source_group['type'] == 'text':
                         source_group['code'] = wrap_triple_double_quoted_comments_in_log(
                             source_group['code'])
-
                     if source_group['type'] == 'code':
                         source_group['code'] = wrap_await_code_multiline_args(
                             source_group['code'])
                         source_group['code'] = wrap_await_code_singleline_args(
                             source_group['code'])
-
                 source_code = "\n\n".join(group['code']
                                           for group in source_groups)
-
                 if with_ollama:
                     source_code = update_code_with_ollama(source_code)
                     source_code = add_general_initializer_code(source_code)
-                    # source_code = add_ollama_initializer_code(source_code)
                     source_code = add_jet_logger(source_code)
                     source_code = move_all_imports_on_top(source_code)
                     source_code = replace_print_with_jet_logger(source_code)
-
                 if "format_json(" in source_code:
                     source_code = "from jet.transformers.formatters import format_json\n" + source_code
-
                 if "asyncio.run" in source_code:
                     source_code = "import asyncio\n" + source_code
-
-                with open(output_code_path, "w") as f:
+                with open(output_code_path, "w", encoding='utf-8') as f:
                     f.write(source_code)
-
                 logger.log(
-                    "Saved code:",
-                    output_code_path,
-                    colors=["GRAY", "BRIGHT_DEBUG"],
+                    "Saved code:", output_code_path, colors=["GRAY", "BRIGHT_DEBUG"],
                 )
-
                 result = {
                     "data_file": file,
                     "code_file": output_code_path,
                     "code": source_code,
                 }
                 results.append(result)
-
         except Exception as e:
             logger.error(f"Failed to process file {file_name}: {e}")
-
     return results
 
 
@@ -788,14 +572,10 @@ def list_folders(paths: str | list[str]) -> list[str]:
 
 def find_matching_repo_dir(input_base_dir: str, repo_base_dir: str | list[str], repo_dirs: list[str]) -> str | None:
     input_base_dir = os.path.abspath(input_base_dir)
-
     if isinstance(repo_base_dir, str):
         repo_base_dir = [repo_base_dir]
-
-    # Sort repo_base_dir by length in descending order
     repo_base_dir = sorted(repo_base_dir, key=len, reverse=True)
     repo_dirs = sorted(repo_dirs, key=len, reverse=True)
-
     for base_dir in repo_base_dir:
         for repo_dir in repo_dirs:
             repo_path = os.path.join(base_dir, repo_dir)
@@ -804,19 +584,22 @@ def find_matching_repo_dir(input_base_dir: str, repo_base_dir: str | list[str], 
     return None
 
 
-def collect_files_and_dirs(input_base_dirs: list[str]) -> (list[str], list[str]):
-    include_files = []
+def collect_files_and_dirs(input_base_dirs: list[str], extensions: list[str]) -> list[str]:
+    """Collect all directories containing files with specified extensions recursively."""
     unique_dirs = set()
-
-    for pattern in input_base_dirs:
-        # Expand the wildcard pattern into actual file paths
-        for path in glob.glob(pattern, recursive=True):
-            if os.path.isfile(path):
-                include_files.append(os.path.basename(path))
-                unique_dirs.add(os.path.dirname(path))
-
-    unique_dirs_list = sorted(unique_dirs)
-    return include_files, unique_dirs_list
+    for base_dir in input_base_dirs:
+        base_path = Path(base_dir).resolve()
+        if not base_path.exists():
+            logger.warning(f"Directory does not exist: {base_dir}")
+            continue
+        if base_path.is_file():
+            if any(base_path.suffix.lower() in ext.lower() for ext in extensions):
+                unique_dirs.add(str(base_path.parent))
+        elif base_path.is_dir():
+            for ext in extensions:
+                for file_path in base_path.rglob(f'*{ext}'):
+                    unique_dirs.add(str(file_path.parent))
+    return sorted(unique_dirs)
 
 
 if __name__ == "__main__":
@@ -826,56 +609,45 @@ if __name__ == "__main__":
         "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents",
         "/Users/jethroestrada/Desktop/External_Projects/AI/eval_agents",
         "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025",
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/all-rag-techniques/*.ipynb",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/RAG_Techniques/all_rag_techniques",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/RAG_Techniques/evaluation",
     ]
-
     include_files = [
         # "memgraph.ipynb",
     ]
     exclude_files = [
         # "migrating_memory/",
     ]
-
-    collected_results = collect_files_and_dirs(input_base_dirs)
-    include_files.extend(collected_results[0])
-
-    input_base_dirs = collected_results[1]
-
-    print("Included Files:", include_files)
-    print("Unique Containing Directories:", input_base_dirs)
-
     extension_mappings = [
         {"ext": [".ipynb"], "output_base_dir": "converted-notebooks"},
         {"ext": [".md", ".mdx"], "output_base_dir": "converted-markdowns"},
     ]
-
+    all_extensions = [
+        ext for mapping in extension_mappings for ext in mapping["ext"]]
+    input_base_dirs = collect_files_and_dirs(input_base_dirs, all_extensions)
+    print("Unique Containing Directories:", input_base_dirs)
     output_base_dir = os.path.dirname(__file__)
-
     for input_base_dir in input_base_dirs:
         logger.newline()
         logger.info(f"Processing: {input_base_dir}")
-
         matching_repo_dir = find_matching_repo_dir(
             input_base_dir, repo_base_dir, repo_dirs)
-        logger.log("matching_repo_dir:", matching_repo_dir, colors=[
-                   "GRAY", "INFO"])  # Output: "repo1" if found, else None
-
+        logger.log("matching_repo_dir:", matching_repo_dir,
+                   colors=["GRAY", "INFO"])
         if not matching_repo_dir:
             logger.error(f"No matching repo dir: \"{matching_repo_dir}\"")
             continue
-
         for ext_mapping in extension_mappings:
             extensions = ext_mapping["ext"]
             output_dir = os.path.join(
                 output_base_dir,
                 matching_repo_dir,
-                # ext_mapping["output_base_dir"],
                 os.path.basename(input_base_dir),
             )
-
             files = scrape_code(
                 input_base_dir,
                 extensions,
@@ -885,17 +657,10 @@ if __name__ == "__main__":
                 with_ollama=True,
                 output_dir=output_dir,
             )
-
             if files:
                 logger.log(
-                    "Saved",
-                    f"({len(files)})",
-                    "files to",
-                    output_dir,
+                    "Saved", f"({len(files)})", "files to", output_dir,
                     colors=["WHITE", "SUCCESS", "WHITE", "BRIGHT_SUCCESS"],
                 )
-
-            # Remove all triple double quoted comments
-            # for item in files:
-            #     if item["code_file"].endswith(".py"):
-            #         remove_comments(item["code_file"])
+            else:
+                logger.warning(f"No files processed in {input_base_dir}")
