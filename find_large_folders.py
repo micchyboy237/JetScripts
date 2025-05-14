@@ -169,6 +169,9 @@ if __name__ == "__main__":
     final_results = {
         "file": output_file,
         "size": total_size,
+        "min_size_mb": args.min_size,
+        "depth": depth,
+        "max_backward_depth": args.max_backward_depth,
         "results": results
     }
 

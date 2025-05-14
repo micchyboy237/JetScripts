@@ -1,86 +1,51 @@
-from sentence_transformers import SentenceTransformer, CrossEncoder
-import faiss
-import numpy as np
+from transformers import AutoTokenizer, AutoModel
 import torch
+import torch.nn.functional as F
 
 
-def load_models():
-    """Load sentence transformer and cross-encoder models."""
-    # Sentence Transformer for initial retrieval
-    embedder = SentenceTransformer('all-MiniLM-L6-v2')
-    # Cross-Encoder for reranking
-    cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-12-v2')
-    return embedder, cross_encoder
+class E5Embedder:
+    def __init__(self, model_name="intfloat/e5-base-v2"):
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.model = AutoModel.from_pretrained(model_name)
 
+    def embed(self, texts: list[str], is_query=False) -> torch.Tensor:
+        prefix = "query: " if is_query else "passage: "
+        prefixed_texts = [prefix + t for t in texts]
+        encoded = self.tokenizer(
+            prefixed_texts, padding=True, truncation=True, return_tensors="pt")
+        with torch.no_grad():
+            model_output = self.model(**encoded)
+        embeddings = self.mean_pooling(model_output, encoded['attention_mask'])
+        return F.normalize(embeddings, p=2, dim=1)
 
-def create_index(embedder, documents):
-    """Create FAISS index with document embeddings."""
-    # Encode documents
-    doc_embeddings = embedder.encode(documents, convert_to_tensor=False)
-    # Initialize FAISS index (L2 distance)
-    index = faiss.IndexFlatL2(doc_embeddings.shape[1])
-    # Add embeddings to index
-    index.add(doc_embeddings)
-    return index, doc_embeddings
-
-
-def retrieve_candidates(embedder, index, query, k=10):
-    """Retrieve top-k candidates using sentence transformer embeddings."""
-    # Encode query
-    query_embedding = embedder.encode([query], convert_to_tensor=False)
-    # Search index
-    distances, indices = index.search(query_embedding, k)
-    return indices[0], distances[0]
-
-
-def rerank_candidates(cross_encoder, query, documents, candidate_indices):
-    """Rerank candidates using cross-encoder."""
-    # Prepare query-document pairs
-    pairs = [[query, documents[idx]] for idx in candidate_indices]
-    # Score pairs with cross-encoder
-    scores = cross_encoder.predict(pairs)
-    # Sort by score (descending)
-    sorted_indices = np.argsort(scores)[::-1]
-    return candidate_indices[sorted_indices], scores[sorted_indices]
-
-
-def main():
-    # Sample documents
-    documents = [
-        "The quick brown fox jumps over the lazy dog.",
-        "A fox fled from danger in the forest.",
-        "Dogs are loyal and friendly pets.",
-        "The cat sleeps on the windowsill.",
-        "Foxes are known for their cunning behavior."
-    ]
-
-    # Sample query
-    query = "Tell me about foxes."
-
-    # Load models
-    print("Loading models...")
-    embedder, cross_encoder = load_models()
-
-    # Create FAISS index
-    print("Creating FAISS index...")
-    index, doc_embeddings = create_index(embedder, documents)
-
-    # Step 1: Retrieve candidates
-    print(f"\nRetrieving candidates for query: '{query}'")
-    candidate_indices, candidate_distances = retrieve_candidates(
-        embedder, index, query, k=3)
-    print("Initial retrieval results:")
-    for idx, dist in zip(candidate_indices, candidate_distances):
-        print(f"Doc {idx}: {documents[idx]} (Distance: {dist:.4f})")
-
-    # Step 2: Rerank candidates
-    print("\nReranking candidates...")
-    reranked_indices, reranked_scores = rerank_candidates(
-        cross_encoder, query, documents, candidate_indices)
-    print("Reranked results:")
-    for idx, score in zip(reranked_indices, reranked_scores):
-        print(f"Doc {idx}: {documents[idx]} (Score: {score:.4f})")
+    def mean_pooling(self, model_output, attention_mask):
+        token_embeddings = model_output.last_hidden_state
+        input_mask_expanded = attention_mask.unsqueeze(
+            -1).expand(token_embeddings.size())
+        return torch.sum(token_embeddings * input_mask_expanded, 1) / input_mask_expanded.sum(1)
 
 
 if __name__ == "__main__":
-    main()
+    embedder = E5Embedder()
+
+    # Sample passages and query
+    passages = [
+        "The Eiffel Tower is located in Paris.",
+        "Python is a popular programming language.",
+        "Transformers are used for NLP tasks."
+    ]
+    query = ["Where is the Eiffel Tower?"]
+
+    # Embed
+    passage_embeddings = embedder.embed(passages)
+    query_embedding = embedder.embed(query, is_query=True)
+
+    # Cosine similarity
+    scores = torch.matmul(query_embedding, passage_embeddings.T)
+    print("Similarity scores:", scores.tolist()[0])
+
+    # Ranking
+    top_idx = scores.squeeze().argsort(descending=True)
+    print("Top results:")
+    for idx in top_idx:
+        print(f"{passages[idx]} - Score: {scores[0, idx].item():.4f}")

@@ -121,6 +121,16 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         None
     )
 
+    # Apply update_system_roles if messages is a list
+    if is_chat:
+        # Convert messages to list of tuples for update_system_roles
+        messages_tuples = [(msg.get('role', ''), msg.get('content', ''))
+                           for msg in messages]
+        updated_messages_tuples = update_system_roles(messages_tuples)
+        # Convert back to list of dictionaries
+        messages = [{'role': role, 'content': content}
+                    for role, content in updated_messages_tuples]
+
     # Chat history
     if is_chat:
         prompts = [
@@ -140,7 +150,6 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         for item_idx, item in enumerate(prompts):
             prompt_msg = (
                 f"### {item.get('role').title()}\n\n"
-                # f"```markdown\n{item.get('content')}\n```"
                 f"{item.get('content')}"
             ).strip()
             chat_msgs.append(prompt_msg)
@@ -167,6 +176,8 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
 
     final_dict_prompt = {
         **prompt_log_dict,
+        'messages': messages if is_chat else None,  # Update with modified messages
+        'prompt': prompt if not is_chat else None,
     }
     final_dict_response = {
         "response": response,
@@ -193,13 +204,6 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     tools_str = f"## Tools\n\n```json\n{format_json(tools)}\n```\n\n" if has_tools else ""
     prompt_log_str = (
         f"## Prompts\n\n```markdown\n{prompt_log}\n```\n\n" if is_chat else f"## Prompt\n\n```markdown\n{prompt}\n```\n\n")
-    # logger.newline()
-    # logger.debug("Prompt Log:")
-    # logger.info(prompt_log_str)
-
-    # logger.newline()
-    # logger.debug("response_dict:")
-    # logger.info(flow.response.data.__dict__)
 
     prompt_token_count = next(
         (field[1] for field in request_dict["headers"]
@@ -207,10 +211,11 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         None
     )
     if not prompt_token_count:
-        prompt_token_count = token_counter(messages, request_content["model"])
+        prompt_token_count = token_counter(messages, request_content.get(
+            "model", request_dict.get("model", None)))
     prompt_token_count = int(prompt_token_count)
     response_token_count = token_counter(
-        final_response_content, request_content["model"])
+        final_response_content, request_content.get("model", request_dict.get("model", None)))
     total_tokens = prompt_token_count + response_token_count
 
     model_max_length = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
@@ -220,7 +225,7 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         f"- **Log Filename**: {log_filename}\n"
         f"- **Is Chat:**: {"True" if is_chat else "False"}\n"
         f"- **Has Tools:**: {"True" if has_tools else "False"}\n"
-        f"- **Stream**: {request_content["stream"]}\n"
+        f"- **Stream**: {request_content.get("stream", request_dict.get("stream", False))}\n"
         f"- **Timestamp**: {timestamp}\n"
         f"- **Flow ID**: {flow.id}\n"
         f"- **URL**: {url}\n"
@@ -230,15 +235,50 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         f"- **Response Tokens**: {response_token_count}\n"
         f"- **Total Tokens**: {total_tokens} / {model_max_length}\n"
         f"\n"
-        # f"## Messages ({len(messages)})\n\n{prompt_log}\n\n"
         f"{response_str}"
         f"{tools_str}"
         f"{prompt_log_str}"
         f"## JSON Request\n\n```json\n{format_json(final_dict_prompt)}\n```\n\n"
         f"## JSON Response\n\n```json\n{format_json(final_dict_response)}\n```\n\n"
-
     ).strip()
     return log_entry
+
+
+def update_system_roles(messages):
+    """
+    Checks for multiple system roles in a list of Message (role, content) tuples.
+    If more than one system role exists, updates all system roles except the first to assistant.
+
+    Args:
+        messages: List of tuples, each containing (role, content) where role is a string.
+
+    Returns:
+        Updated list of Message tuples with excess system roles changed to assistant.
+    """
+    # Count system roles
+    system_count = sum(1 for role, _ in messages if role.lower() == "system")
+
+    if system_count <= 1:
+        return messages
+
+    # Track if first system role has been encountered
+    first_system_found = False
+    updated_messages = []
+
+    for role, content in messages:
+        if role.lower() == "system":
+            if not first_system_found:
+                # Keep first system role
+                updated_messages.append((role, content))
+                first_system_found = True
+            else:
+                # Change subsequent system roles to assistant
+                updated_messages.append(("assistant", content))
+        else:
+            # Keep non-system roles unchanged
+            updated_messages.append((role, content))
+
+    return updated_messages
 
 
 def format_duration(nanoseconds: int) -> str:
@@ -435,12 +475,14 @@ def request(flow: http.HTTPFlow):
         for key, value in options.items():
             logger.log(f"{key}:", value, colors=["GRAY", "DEBUG"])
 
-        token_count = token_counter(messages, request_content["model"])
+        token_count = token_counter(messages, request_content.get(
+            "model", request_dict.get("model", None)))
 
         logger.newline()
-        logger.log("STREAM:", request_content["stream"], colors=[
+        logger.log("STREAM:", request_content.get("stream", request_dict.get("stream", False)), colors=[
                    "GRAY", "INFO"])
-        logger.log("MODEL:", request_content["model"], colors=["GRAY", "INFO"])
+        logger.log("MODEL:", request_content.get(
+            "model", request_dict.get("model", None)), colors=["GRAY", "INFO"])
         logger.log("PROMPT TOKENS:", token_count, colors=["GRAY", "INFO"])
         logger.newline()
 
@@ -495,13 +537,15 @@ def request(flow: http.HTTPFlow):
         logger.gray("REQUEST OPTIONS:")
         logger.debug(format_json(options))
 
-        token_count = token_counter(prompt, request_content["model"])
+        token_count = token_counter(prompt, request_content.get(
+            "model", request_dict.get("model", None)))
 
         logger.newline()
         logger.log("PATH:", flow.request.path, colors=["GRAY", "INFO"])
-        logger.log("STREAM:", request_content["stream"], colors=[
+        logger.log("STREAM:", request_content.get("stream", request_dict.get("stream", False)), colors=[
                    "GRAY", "INFO"])
-        logger.log("MODEL:", request_content["model"], colors=["GRAY", "INFO"])
+        logger.log("MODEL:", request_content.get(
+            "model", request_dict.get("model", None)), colors=["GRAY", "INFO"])
         logger.log("PROMPT TOKENS:", token_count, colors=["GRAY", "INFO"])
         logger.newline()
 
@@ -588,7 +632,7 @@ def response(flow: http.HTTPFlow):
         request_dict = make_serializable(flow.request.data)
         request_content: dict = request_dict["content"].copy()
         content_messages_key = "messages" if "/chat" in flow.request.path else "prompt"
-        if not request_content["stream"]:
+        if not request_content.get("stream", request_dict.get("stream", False)):
             logger.log("Response:",
                        final_response_content, colors=["DEBUG", "SUCCESS"])
 
@@ -607,14 +651,14 @@ def response(flow: http.HTTPFlow):
         )
         if not prompt_token_count:
             prompt_token_count = token_counter(
-                messages, request_content["model"])
+                messages, request_content.get("model", request_dict.get("model", None)))
         prompt_token_count = int(prompt_token_count)
         response_token_count = token_counter(
-            final_response_content, request_content["model"])
+            final_response_content, request_content.get("model", request_dict.get("model", None)))
         total_tokens = prompt_token_count + response_token_count
         logger.newline()
         logger.log("Path:", flow.request.path, colors=["GRAY", "INFO"])
-        logger.log("Stream:", request_content["stream"], colors=[
+        logger.log("Stream:", request_content.get("stream", request_dict.get("stream", False)), colors=[
                    "GRAY", "INFO"])
         logger.log("Prompt Tokens:", prompt_token_count, colors=[
                    "WHITE", "DEBUG"])
