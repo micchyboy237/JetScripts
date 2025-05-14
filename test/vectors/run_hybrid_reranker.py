@@ -1,3 +1,4 @@
+import json
 from typing import List
 from jet.file.utils import load_file
 from jet.vectors.hybrid_reranker import SearchResults, load_models, search_documents
@@ -19,8 +20,10 @@ if __name__ == "__main__":
 
     print("\nInitial retrieval results:")
     for idx, dist in zip(results["candidate_indices"], results["candidate_distances"]):
-        print(f"Doc {idx}: {documents[idx]} (Distance: {dist:.4f})")
+        print(
+            f"Doc {idx} | Distance: {dist:.4f} | {json.dumps(documents[idx])[:100]}")
 
     print("\nReranked results:")
     for idx, score in zip(results["reranked_indices"], results["reranked_scores"]):
-        print(f"Doc {idx}: {documents[idx]} (Score: {score:.4f})")
+        print(
+            f"Doc {idx} | Score: {score:.4f} | {json.dumps(documents[idx])[:100]}")
