@@ -51,6 +51,8 @@ if __name__ == "__main__":
 
     selected_docs = [top_doc]
 
+    tokenizer = get_tokenizer_fn(model)
+
     for item in selected_docs:
         file = item["file"]
         content = item["content"]
@@ -71,10 +73,13 @@ if __name__ == "__main__":
             )
             for i, header in enumerate(headers)
         ]
-        header_token_counts: list[int] = count_tokens(
-            model, [doc.text for doc in header_docs], prevent_total=True)
-        headers_with_tokens = [{"tokens": tokens, "text": doc.text, "metadata": doc.metadata}
-                               for doc, tokens in zip(splitted_docs, header_token_counts)]
+        header_tokens = tokenizer([doc.text for doc in header_docs])
+        header_token_counts = [
+            len(tokens) for tokens in header_tokens]
+        headers_with_tokens = [
+            {"tokens": len(header_tokens), "text": doc.text,
+             "metadata": doc.metadata}
+            for doc, tokens in zip(header_docs, header_token_counts)]
         save_file({
             "file": file,
             "header_count": header_count,
@@ -83,10 +88,14 @@ if __name__ == "__main__":
             "headers": headers_with_tokens
         }, f"{output_dir}/headers.json")
 
-        tokenizer = get_tokenizer_fn(model)
-
         splitted_docs = split_docs(
-            header_docs, model, chunk_size=chunk_size, chunk_overlap=chunk_overlap, tokenizer=tokenizer)
+            header_docs,
+            model,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            tokens=header_tokens,
+            # tokenizer=tokenizer
+        )
         splitted_token_counts: list[int] = count_tokens(
             model, [doc.text for doc in splitted_docs], prevent_total=True)
 
