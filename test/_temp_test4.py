@@ -8,7 +8,7 @@ from jet.vectors.document_types import HeaderDocument
 from jet.file.utils import load_file, save_file
 from jet.llm.mlx.mlx_types import ModelType
 from jet.llm.mlx.token_utils import get_tokenizer_fn, count_tokens
-from jet.token.token_utils import split_docs
+from jet.token.token_utils import split_headers
 from jet.utils.file import find_files_recursively
 
 
@@ -88,7 +88,7 @@ if __name__ == "__main__":
             "headers": headers_with_tokens
         }, f"{output_dir}/headers.json")
 
-        splitted_docs = split_docs(
+        splitted_docs = split_headers(
             header_docs,
             model,
             chunk_size=chunk_size,
