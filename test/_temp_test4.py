@@ -71,24 +71,39 @@ if __name__ == "__main__":
             )
             for i, header in enumerate(headers)
         ]
+        header_token_counts: list[int] = count_tokens(
+            model, [doc.text for doc in header_docs], prevent_total=True)
+        headers_with_tokens = [{"tokens": tokens, "text": doc.text, "metadata": doc.metadata}
+                               for doc, tokens in zip(splitted_docs, header_token_counts)]
+        save_file({
+            "file": file,
+            "header_count": header_count,
+            "min_tokens": min(header_token_counts),
+            "max_tokens": max(header_token_counts),
+            "headers": headers_with_tokens
+        }, f"{output_dir}/headers.json")
 
         tokenizer = get_tokenizer_fn(model)
 
         splitted_docs = split_docs(
             header_docs, model, chunk_size=chunk_size, chunk_overlap=chunk_overlap, tokenizer=tokenizer)
-        token_counts: list[int] = count_tokens(
+        splitted_token_counts: list[int] = count_tokens(
             model, [doc.text for doc in splitted_docs], prevent_total=True)
 
-        chunks = [{"tokens": tokens, "text": doc.text, "metadata": doc.metadata}
-                  for doc, tokens in zip(splitted_docs, token_counts)]
+        chunks_with_tokens = [{"tokens": tokens, "text": doc.text, "metadata": doc.metadata}
+                              for doc, tokens in zip(splitted_docs, splitted_token_counts)]
 
         save_file({
             "file": file,
             "header_count": header_count,
-            "min_tokens": min(token_counts),
-            "max_tokens": max(token_counts),
-            "chunks": chunks
+            "min_tokens": min(splitted_token_counts),
+            "max_tokens": max(splitted_token_counts),
+            "chunks": chunks_with_tokens
         }, f"{output_dir}/chunks.json")
+
+        contexts = [doc.get_content() for doc in splitted_docs]
+        context = "\n\n".join(contexts)
+        save_file(context, f"{output_dir}/context.md")
 
 # if __name__ == "__main__":
 #     import sys
