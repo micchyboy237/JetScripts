@@ -111,7 +111,7 @@ if __name__ == "__main__":
         }, f"{output_dir}/chunks.json")
 
         contexts = [doc.get_content() for doc in splitted_docs]
-        context = "\n\n".join(contexts)
+        context = "\n\n\n".join(contexts)
         save_file(context, f"{output_dir}/context.md")
 
 # if __name__ == "__main__":
