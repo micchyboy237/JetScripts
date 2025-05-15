@@ -54,7 +54,7 @@ def chunk_text(text, n, overlap):
     return chunks
 
 
-text_chunks = chunk_text(extracted_text, 1000, 200)
+text_chunks = chunk_text(extracted_text, 500, 100)
 logger.debug(f"Number of text chunks: {len(text_chunks)}")
 logger.debug("\nFirst text chunk:")
 logger.debug(text_chunks[0])
