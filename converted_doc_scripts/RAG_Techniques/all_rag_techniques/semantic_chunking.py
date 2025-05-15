@@ -8,12 +8,13 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
+GENERATED_DIR = os.path.join(script_dir, "generated", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
@@ -104,8 +105,6 @@ logger.info("# Semantic Chunking for Document Processing")
 sys.path.append('RAG_TECHNIQUES')
 
 
-
-
 load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
@@ -137,7 +136,9 @@ content = read_pdf_to_string(path)
 """
 logger.info("### Breakpoint types:")
 
-text_splitter = SemanticChunker(OllamaEmbeddings(model="mxbai-embed-large"), breakpoint_threshold_type='percentile', breakpoint_threshold_amount=90) # chose which embeddings and breakpoint type and threshold to use
+text_splitter = SemanticChunker(OllamaEmbeddings(model="mxbai-embed-large"), breakpoint_threshold_type='percentile',
+                                # chose which embeddings and breakpoint type and threshold to use
+                                breakpoint_threshold_amount=90)
 
 """
 ### Split original text to semantic chunks

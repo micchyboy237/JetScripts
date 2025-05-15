@@ -8,7 +8,7 @@ from jet.vectors.hybrid_reranker import Models, ScoreResults, SearchResults, cal
 
 if __name__ == "__main__":
     documents: List[str] = load_file(
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_split_header_docs/contexts.json")
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_split_header_docs/searched_html_myanimelist_net_Isekai/contexts.json")
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 

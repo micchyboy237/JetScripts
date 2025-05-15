@@ -3,6 +3,7 @@ from jet.llm.utils.embeddings import get_embedding_function
 from jet.logger import CustomLogger
 from typing import List, Dict, Tuple, Any
 from urllib.parse import quote_plus
+from helper_functions import extract_text_from_pdf
 import pypdf
 import json
 import numpy as np
@@ -21,17 +22,6 @@ os.makedirs(DATA_DIR, exist_ok=True)
 logger.info("Initializing MLX and embedding function")
 mlx = MLX()
 embed_func = get_embedding_function("mxbai-embed-large")
-
-
-def extract_text_from_pdf(pdf_path):
-    logger.debug(f"Extracting text from {pdf_path}...")
-    all_text = ""
-    with open(pdf_path, "rb") as file:
-        reader = pypdf.PdfReader(file)
-        for page in reader.pages:
-            text = page.extract_text() or ""
-            all_text += text
-    return all_text
 
 
 def chunk_text(text, chunk_size=1000, overlap=200):
@@ -313,10 +303,10 @@ def evaluate_crag_response(query, response, reference_answer=None, model="llama-
                 {"role": "user", "content": user_prompt}
             ],
             model=model,
-            response_format={"type": "json_object"},
+            # response_format={"type": "json_object"},
             temperature=0
         )
-        evaluation = json.loads(response["choices"][0]["message"]["content"])
+        evaluation = response["choices"][0]["message"]["content"]
         return evaluation
     except Exception as e:
         logger.debug(f"Error evaluating response: {e}")

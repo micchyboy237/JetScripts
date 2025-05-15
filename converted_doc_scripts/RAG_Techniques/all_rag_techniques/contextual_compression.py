@@ -9,12 +9,13 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
+GENERATED_DIR = os.path.join(script_dir, "generated", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
@@ -85,8 +86,6 @@ logger.info("# Contextual Compression in Document Retrieval")
 
 # !git clone https://github.com/N7/RAG_TECHNIQUES.git
 sys.path.append('RAG_TECHNIQUES')
-
-
 
 
 load_dotenv()

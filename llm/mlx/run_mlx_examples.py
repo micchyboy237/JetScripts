@@ -1,6 +1,6 @@
 import json
 import os
-from jet.llm.mlx.client import MLXLMClient
+from jet.llm.mlx.base import MLX
 from jet.llm.mlx.mlx_types import ModelKey
 from jet.logger import CustomLogger
 from jet.transformers.formatters import format_json
@@ -14,8 +14,10 @@ logger.orange(f"Logs: {log_file}")
 
 model: ModelKey = "llama-3.2-1b-instruct-4bit"
 
+MLX_LOG_DIR = f"{script_dir}/generated/run_mlx_examples"
 
-def get_models_example(client: MLXLMClient):
+
+def get_models_example(client: MLX):
     """Example of using the .get_models method to list available models."""
     models = client.get_models()
 
@@ -24,7 +26,7 @@ def get_models_example(client: MLXLMClient):
     return models
 
 
-def chatbot_example(client: MLXLMClient):
+def chatbot_example(client: MLX):
     """Example of using the .chat method for a conversational AI assistant."""
     messages = [
         {"role": "system", "content": "You are a helpful AI assistant."},
@@ -36,7 +38,8 @@ def chatbot_example(client: MLXLMClient):
         model=model,
         max_tokens=100,
         temperature=0.7,
-        stop=["\n\n"]
+        stop=["\n\n"],
+        log_dir=MLX_LOG_DIR
     )
 
     logger.debug("Chatbot Response:")
@@ -44,7 +47,7 @@ def chatbot_example(client: MLXLMClient):
     return response
 
 
-def streaming_chat_example(client: MLXLMClient):
+def streaming_chat_example(client: MLX):
     """Example of using the .stream_chat method for streaming chat completions."""
     messages = [
         {"role": "system", "content": "You are a helpful AI assistant."},
@@ -59,7 +62,8 @@ def streaming_chat_example(client: MLXLMClient):
         model=model,
         max_tokens=200,
         temperature=0.8,
-        stop=["\n\n"]
+        stop=["\n\n"],
+        log_dir=MLX_LOG_DIR
     ):
         if response["choices"]:
             content = response["choices"][0].get(
@@ -74,7 +78,7 @@ def streaming_chat_example(client: MLXLMClient):
     return full_response
 
 
-def text_generation_example(client: MLXLMClient):
+def text_generation_example(client: MLX):
     """Example of using the .generate method for creative text generation."""
     prompt = "Once upon a time, in a distant kingdom, there lived a"
 
@@ -85,6 +89,7 @@ def text_generation_example(client: MLXLMClient):
         temperature=0.9,
         top_p=0.95,
         stop=["."],
+        log_dir=MLX_LOG_DIR
     )
 
     logger.debug("Text Generation Response:")
@@ -92,7 +97,7 @@ def text_generation_example(client: MLXLMClient):
     return response
 
 
-def streaming_generate_example(client: MLXLMClient):
+def streaming_generate_example(client: MLX):
     """Example of using the .stream_generate method for streaming text generation."""
     prompt = "In a world where magic was real, the greatest wizard"
 
@@ -105,7 +110,8 @@ def streaming_generate_example(client: MLXLMClient):
         max_tokens=150,
         temperature=0.9,
         top_p=0.95,
-        stop=["."]
+        stop=["."],
+        log_dir=MLX_LOG_DIR
     ):
         if response["choices"]:
             content = response["choices"][0].get("text", "")
@@ -122,7 +128,7 @@ def streaming_generate_example(client: MLXLMClient):
 def main():
     """Main function to run all examples."""
     # Initialize the client with default configuration
-    client = MLXLMClient()
+    client = MLX()
 
     logger.info("\n=== Get Models Example ===")
     get_models_example(client)

@@ -10,12 +10,13 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
+GENERATED_DIR = os.path.join(script_dir, "generated", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
@@ -91,14 +92,13 @@ The Corrective RAG process represents a sophisticated evolution of the standard 
 
 The cell below installs all necessary packages required to run this notebook.
 """
-logger.info("# Corrective RAG Process: Retrieval-Augmented Generation with Dynamic Correction")
+logger.info(
+    "# Corrective RAG Process: Retrieval-Augmented Generation with Dynamic Correction")
 
 # !pip install langchain langchain-openai python-dotenv
 
 # !git clone https://github.com/N7/RAG_TECHNIQUES.git
 sys.path.append('RAG_TECHNIQUES')
-
-
 
 
 load_dotenv()
@@ -141,10 +141,15 @@ search = DuckDuckGoSearchResults()
 """
 ### Define retrieval evaluator, knowledge refinement and query rewriter llm chains
 """
-logger.info("### Define retrieval evaluator, knowledge refinement and query rewriter llm chains")
+logger.info(
+    "### Define retrieval evaluator, knowledge refinement and query rewriter llm chains")
+
 
 class RetrievalEvaluatorInput(BaseModel):
-    relevance_score: float = Field(..., description="The relevance score of the document to the query. the score should be between 0 and 1.")
+    relevance_score: float = Field(
+        ..., description="The relevance score of the document to the query. the score should be between 0 and 1.")
+
+
 def retrieval_evaluator(query: str, document: str) -> float:
     prompt = PromptTemplate(
         input_variables=["query", "document"],
@@ -155,8 +160,12 @@ def retrieval_evaluator(query: str, document: str) -> float:
     result = chain.invoke(input_variables).relevance_score
     return result
 
+
 class KnowledgeRefinementInput(BaseModel):
-    key_points: str = Field(..., description="The document to extract key information from.")
+    key_points: str = Field(...,
+                            description="The document to extract key information from.")
+
+
 def knowledge_refinement(document: str) -> List[str]:
     prompt = PromptTemplate(
         input_variables=["document"],
@@ -167,8 +176,11 @@ def knowledge_refinement(document: str) -> List[str]:
     result = chain.invoke(input_variables).key_points
     return [point.strip() for point in result.split('\n') if point.strip()]
 
+
 class QueryRewriterInput(BaseModel):
     query: str = Field(..., description="The query to rewrite.")
+
+
 def rewrite_query(query: str) -> str:
     prompt = PromptTemplate(
         input_variables=["query"],
@@ -178,10 +190,12 @@ def rewrite_query(query: str) -> str:
     input_variables = {"query": query}
     return chain.invoke(input_variables).query.strip()
 
+
 """
 ### Helper function to parse search results
 """
 logger.info("### Helper function to parse search results")
+
 
 def parse_search_results(results_string: str) -> List[Tuple[str, str]]:
     """
@@ -201,10 +215,12 @@ def parse_search_results(results_string: str) -> List[Tuple[str, str]]:
         logger.debug("Error parsing search results. Returning empty list.")
         return []
 
+
 """
 ### Define sub functions for the CRAG process
 """
 logger.info("### Define sub functions for the CRAG process")
+
 
 def retrieve_documents(query: str, faiss_index: FAISS, k: int = 3) -> List[str]:
     """
@@ -221,6 +237,7 @@ def retrieve_documents(query: str, faiss_index: FAISS, k: int = 3) -> List[str]:
     docs = faiss_index.similarity_search(query, k=k)
     return [doc.page_content for doc in docs]
 
+
 def evaluate_documents(query: str, documents: List[str]) -> List[float]:
     """
     Evaluate the relevance of documents based on a query.
@@ -233,6 +250,7 @@ def evaluate_documents(query: str, documents: List[str]) -> List[float]:
         List[float]: A list of relevance scores for each document.
     """
     return [retrieval_evaluator(query, doc) for doc in documents]
+
 
 def perform_web_search(query: str) -> Tuple[List[str], List[Tuple[str, str]]]:
     """
@@ -251,6 +269,7 @@ def perform_web_search(query: str) -> Tuple[List[str], List[Tuple[str, str]]]:
     web_knowledge = knowledge_refinement(web_results)
     sources = parse_search_results(web_results)
     return web_knowledge, sources
+
 
 def generate_response(query: str, knowledge: str, sources: List[Tuple[str, str]]) -> str:
     """
@@ -276,10 +295,12 @@ def generate_response(query: str, knowledge: str, sources: List[Tuple[str, str]]
     response_chain = response_prompt | llm
     return response_chain.invoke(input_variables).content
 
+
 """
 ### CRAG process
 """
 logger.info("### CRAG process")
+
 
 def crag_process(query: str, faiss_index: FAISS) -> str:
     """
@@ -312,7 +333,8 @@ def crag_process(query: str, faiss_index: FAISS) -> str:
         logger.debug("\nAction: Incorrect - Performing web search")
         final_knowledge, sources = perform_web_search(query)
     else:
-        logger.debug("\nAction: Ambiguous - Combining retrieved document and web search")
+        logger.debug(
+            "\nAction: Ambiguous - Combining retrieved document and web search")
         best_doc = retrieved_docs[eval_scores.index(max_score)]
         retrieved_knowledge = knowledge_refinement(best_doc)
         web_knowledge, web_sources = perform_web_search(query)
@@ -331,6 +353,7 @@ def crag_process(query: str, faiss_index: FAISS) -> str:
 
     logger.debug("\nResponse generated")
     return response
+
 
 """
 ### Example query with high relevance to the document

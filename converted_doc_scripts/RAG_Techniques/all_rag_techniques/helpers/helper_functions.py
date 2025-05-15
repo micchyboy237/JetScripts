@@ -1,6 +1,6 @@
-from langchain.document_loaders import PyPDFLoader
+from jet.file.utils import load_file
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+from jet.llm.ollama.base_langchain import OllamaEmbeddings
 from langchain.vectorstores import FAISS
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain import PromptTemplate
@@ -13,6 +13,7 @@ import random
 import textwrap
 import numpy as np
 from enum import Enum
+from langchain_core.documents import Document
 
 
 def replace_t_with_space(list_of_documents):
@@ -27,7 +28,8 @@ def replace_t_with_space(list_of_documents):
     """
 
     for doc in list_of_documents:
-        doc.page_content = doc.page_content.replace('\t', ' ')  # Replace tabs with spaces
+        doc.page_content = doc.page_content.replace(
+            '\t', ' ')  # Replace tabs with spaces
     return list_of_documents
 
 
@@ -59,8 +61,12 @@ def encode_pdf(path, chunk_size=1000, chunk_overlap=200):
     """
 
     # Load PDF documents
-    loader = PyPDFLoader(path)
-    documents = loader.load()
+    # loader = PyPDFLoader(path)
+    # documents = loader.load()
+    path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_split_header_docs/searched_html_myanimelist_net_Isekai/headers.json"
+    headers: List[dict] = load_file(path)
+    documents = [Document(page_content=item["text"],
+                          metadata=item["metadata"]) for item in headers]
 
     # Split documents into chunks
     text_splitter = RecursiveCharacterTextSplitter(
@@ -70,7 +76,7 @@ def encode_pdf(path, chunk_size=1000, chunk_overlap=200):
     cleaned_texts = replace_t_with_space(texts)
 
     # Create embeddings and vector store
-    embeddings = OpenAIEmbeddings()
+    embeddings = OllamaEmbeddings(model="mxbai-embed-large")
     vectorstore = FAISS.from_documents(cleaned_texts, embeddings)
 
     return vectorstore
@@ -117,11 +123,12 @@ def encode_from_string(content, chunk_size=1000, chunk_overlap=200):
             chunk.metadata['relevance_score'] = 1.0
 
         # Generate embeddings and create the vector store
-        embeddings = OpenAIEmbeddings()
+        embeddings = OllamaEmbeddings(model="mxbai-embed-large")
         vectorstore = FAISS.from_documents(chunks, embeddings)
 
     except Exception as e:
-        raise RuntimeError(f"An error occurred during the encoding process: {str(e)}")
+        raise RuntimeError(
+            f"An error occurred during the encoding process: {str(e)}")
 
     return vectorstore
 
@@ -152,11 +159,12 @@ def retrieve_context_per_question(question, chunks_query_retriever):
 class QuestionAnswerFromContext(BaseModel):
     """
     Model to generate an answer to a query based on a given context.
-    
+
     Attributes:
         answer_based_on_content (str): The generated answer based on the context.
     """
-    answer_based_on_content: str = Field(description="Generates an answer to a query based on a given context.")
+    answer_based_on_content: str = Field(
+        description="Generates an answer to a query based on a given context.")
 
 
 def create_question_answer_from_context_chain(llm):
@@ -276,10 +284,10 @@ def bm25_retrieval(bm25: BM25Okapi, cleaned_texts: List[str], query: str, k: int
 async def exponential_backoff(attempt):
     """
     Implements exponential backoff with a jitter.
-    
+
     Args:
         attempt: The current retry attempt number.
-        
+
     Waits for a period of time before retrying the operation.
     The wait time is calculated as (2^attempt) + a random fraction of a second.
     """
@@ -294,14 +302,14 @@ async def exponential_backoff(attempt):
 async def retry_with_exponential_backoff(coroutine, max_retries=5):
     """
     Retries a coroutine using exponential backoff upon encountering a RateLimitError.
-    
+
     Args:
         coroutine: The coroutine to be executed.
         max_retries: The maximum number of retry attempts.
-        
+
     Returns:
         The result of the coroutine if successful.
-        
+
     Raises:
         The last encountered exception if all retry attempts fail.
     """
@@ -328,6 +336,8 @@ class EmbeddingProvider(Enum):
     AMAZON_BEDROCK = "bedrock"
 
 # Enum class representing different model providers
+
+
 class ModelProvider(Enum):
     OPENAI = "openai"
     GROQ = "groq"
@@ -349,14 +359,5 @@ def get_langchain_embedding_provider(provider: EmbeddingProvider, model_id: str 
     Raises:
         ValueError: If the specified provider is not supported.
     """
-    if provider == EmbeddingProvider.OPENAI:
-        from langchain_openai import OpenAIEmbeddings
-        return OpenAIEmbeddings()
-    elif provider == EmbeddingProvider.COHERE:
-        from langchain_cohere import CohereEmbeddings
-        return CohereEmbeddings()
-    elif provider == EmbeddingProvider.AMAZON_BEDROCK:
-        from langchain_community.embeddings import BedrockEmbeddings
-        return BedrockEmbeddings(model_id=model_id) if model_id else BedrockEmbeddings(model_id="amazon.titan-embed-text-v2:0")
-    else:
-        raise ValueError(f"Unsupported embedding provider: {provider}")
+    from jet.llm.ollama.base_langchain import OllamaEmbeddings
+    return OllamaEmbeddings(model="mxbai-embed-large")

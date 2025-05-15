@@ -1,90 +1,121 @@
 import os
-from typing import List, Dict
-from jet.file.utils import load_file
-from jet.llm.mlx.templates.generate_labels import generate_labels
-from jet.logger import CustomLogger
+import numpy as np
+from sentence_transformers import SentenceTransformer, CrossEncoder
+import faiss
+import torch
+from concurrent.futures import ThreadPoolExecutor
+import re
 
-# Initialize logger
-script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+# Load SearxNG-scraped data
+documents = []
+for file in os.listdir("searxng_data"):
+    if file.endswith(".txt"):
+        try:
+            with open(os.path.join("searxng_data", file), "r", encoding="utf-8") as f:
+                documents.append(f.read())
+        except Exception as e:
+            print(f"Error reading {file}: {e}")
 
-
-def preprocess_text(text: str) -> str:
-    """Normalize and clean text for NER."""
-    if not isinstance(text, str):
-        return ""
-    return text.strip().lower()
-
-
-def load_and_validate_files(site_info_file: str, queries_file: str) -> tuple[Dict, Dict]:
-    """Load and validate input files."""
-    try:
-        site_info = load_file(site_info_file)
-        queries = load_file(queries_file)
-        if not isinstance(site_info, dict) or not isinstance(queries, dict):
-            raise ValueError("Invalid file content: Expected dictionaries")
-        return site_info, queries
-    except Exception as e:
-        logger.error(f"Failed to load files: {e}")
-        raise
+# Split documents
 
 
-def prepare_text(site_info: Dict, queries: Dict) -> List[str]:
-    """Prepare text inputs for label generation."""
-    query = queries.get("query", "")
-    title = site_info.get("title", "")
-    metadata = site_info.get("metadata", {})
-    description = metadata.get("description", "")
-    keywords = metadata.get("keywords", "")
-
-    # Preprocess individual fields
-    text = [preprocess_text(title), preprocess_text(description)]
-
-    # Split and preprocess keywords
-    if isinstance(keywords, str):
-        keyword_list = [preprocess_text(kw)
-                        for kw in keywords.split(",") if kw.strip()]
-        text.extend(keyword_list)
-    elif isinstance(keywords, list):
-        text.extend(preprocess_text(kw) for kw in keywords if kw.strip())
-
-    text.append(preprocess_text(query))
-
-    # Remove duplicates while preserving order
-    text = list(dict.fromkeys(t for t in text if t))
-
-    return text
-
-
-def main():
-    # File paths
-    headers_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/searched_html_myanimelist_net_Isekai/headers.json"
-    site_info_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/searched_html_myanimelist_net_Isekai/context_info.json"
-    queries_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/queries.json"
-
-    try:
-        # Load files
-        site_info, queries = load_and_validate_files(
-            site_info_file, queries_file)
-
-        # Prepare text inputs
-        text = prepare_text(site_info, queries)
-        logger.info(f"Preprocessed text: {text}")
-
-        # Generate labels
-        results = generate_labels(text)
-        if results:
-            logger.info(f"Generated labels: {results}")
+def split_document(text, chunk_size=800, overlap=200):
+    chunks = []
+    headers = []
+    lines = text.split("\n")
+    current_chunk = ""
+    current_len = 0
+    for line in lines:
+        if line.startswith(("#", "##", "###")):
+            headers.append(line)
+        line_len = len(line.split())
+        if line.startswith(("#", "##", "###")) or current_len + line_len > chunk_size:
+            if current_chunk:
+                chunks.append({"text": current_chunk.strip(),
+                              "headers": headers.copy()})
+            if line.startswith(("#", "##", "###")):
+                current_chunk = line
+                current_len = line_len
+            else:
+                current_chunk = line
+                current_len = line_len
         else:
-            logger.error("No labels generated.")
+            current_chunk += "\n" + line
+            current_len += line_len
+    if current_chunk:
+        chunks.append({"text": current_chunk.strip(),
+                      "headers": headers.copy()})
+    return chunks
 
-    except Exception as e:
-        logger.error(f"Error in main: {e}")
-        raise
+
+chunks = []
+for doc in documents:
+    chunks.extend(split_document(doc))
+
+# Pre-filter by header keywords
 
 
-if __name__ == "__main__":
-    main()
+def filter_by_headers(chunks, query):
+    query_terms = set(query.lower().split())
+    filtered = []
+    for chunk in chunks:
+        headers = [h.lower() for h in chunk["headers"]]
+        if any(any(term in h for term in query_terms) for h in headers) or not headers:
+            filtered.append(chunk)
+    return filtered if filtered else chunks  # Fallback to all chunks if none match
+
+
+query = "best RAG techniques for web data"
+filtered_chunks = filter_by_headers(chunks, query)
+chunk_texts = [chunk["text"] for chunk in filtered_chunks]
+
+# Initialize models
+embedder = SentenceTransformer("BAAI/bge-small-en-v1.5")
+cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+
+# Quantize cross-encoder (simplified, requires ONNX export in practice)
+cross_encoder.model.eval()
+with torch.no_grad():
+    cross_encoder.model = torch.quantization.quantize_dynamic(
+        cross_encoder.model, {torch.nn.Linear}, dtype=torch.qint8
+    )
+
+# Parallel embedding
+
+
+def embed_chunk(chunk):
+    return embedder.encode(chunk, convert_to_numpy=True)
+
+
+with ThreadPoolExecutor() as executor:
+    chunk_embeddings = np.vstack(list(executor.map(embed_chunk, chunk_texts)))
+
+# FAISS for initial retrieval
+dim = chunk_embeddings.shape[1]
+index = faiss.IndexFlatL2(dim)
+index.add(chunk_embeddings)
+
+# Adaptive top-k
+k = 20 if len(chunk_texts) < 1000 else 50
+query_embedding = embedder.encode([query], convert_to_numpy=True)
+distances, indices = index.search(query_embedding, k)
+initial_docs = [filtered_chunks[i] for i in indices[0]]
+
+# Batched cross-encoder reranking
+batch_size = 8
+pairs = [[query, doc["text"]] for doc in initial_docs]
+scores = []
+try:
+    for i in range(0, len(pairs), batch_size):
+        batch = pairs[i:i+batch_size]
+        scores.extend(cross_encoder.predict(batch))
+except Exception as e:
+    print(f"Error in reranking: {e}")
+    scores = [0] * len(pairs)  # Fallback
+reranked_indices = np.argsort(scores)[::-1][:5]
+reranked_docs = [initial_docs[i] for i in reranked_indices]
+
+# Output results
+for i, doc in enumerate(reranked_docs):
+    print(f"Rank {i+1}: {doc['text'][:200]}...")
+    print(f"Headers: {doc['headers']}")

@@ -12,12 +12,13 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
+GENERATED_DIR = os.path.join(script_dir, "generated", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
@@ -88,8 +89,6 @@ logger.info("# Reranking Methods in RAG Systems")
 sys.path.append('RAG_TECHNIQUES')
 
 
-
-
 load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
@@ -125,8 +124,11 @@ vectorstore = encode_pdf(path)
 """
 logger.info("## Method 1: LLM based function to rerank the retrieved documents")
 
+
 class RatingScore(BaseModel):
-    relevance_score: float = Field(..., description="The relevance score of a document to a query.")
+    relevance_score: float = Field(
+        ..., description="The relevance score of a document to a query.")
+
 
 def rerank_documents(query: str, docs: List[Document], top_n: int = 3) -> List[Document]:
     prompt_template = PromptTemplate(
@@ -153,10 +155,12 @@ def rerank_documents(query: str, docs: List[Document], top_n: int = 3) -> List[D
     reranked_docs = sorted(scored_docs, key=lambda x: x[1], reverse=True)
     return [doc for doc, _ in reranked_docs[:top_n]]
 
+
 """
 ### Example usage of the reranking function with a sample query relevant to the document
 """
-logger.info("### Example usage of the reranking function with a sample query relevant to the document")
+logger.info(
+    "### Example usage of the reranking function with a sample query relevant to the document")
 
 query = "What are the impacts of climate change on biodiversity?"
 initial_docs = vectorstore.similarity_search(query, k=15)
@@ -165,19 +169,22 @@ reranked_docs = rerank_documents(query, initial_docs)
 logger.debug("Top initial documents:")
 for i, doc in enumerate(initial_docs[:3]):
     logger.debug(f"\nDocument {i+1}:")
-    logger.debug(doc.page_content[:200] + "...")  # Print first 200 characters of each document
+    # Print first 200 characters of each document
+    logger.debug(doc.page_content[:200] + "...")
 
 
 logger.debug(f"Query: {query}\n")
 logger.debug("Top reranked documents:")
 for i, doc in enumerate(reranked_docs):
     logger.debug(f"\nDocument {i+1}:")
-    logger.debug(doc.page_content[:200] + "...")  # Print first 200 characters of each document
+    # Print first 200 characters of each document
+    logger.debug(doc.page_content[:200] + "...")
 
 """
 ### Create a custom retriever based on our reranker
 """
 logger.info("### Create a custom retriever based on our reranker")
+
 
 class CustomRetriever(BaseRetriever, BaseModel):
 
@@ -214,7 +221,8 @@ logger.debug(f"Answer: {result['result']}")
 logger.debug("\nRelevant source documents:")
 for i, doc in enumerate(result["source_documents"]):
     logger.debug(f"\nDocument {i+1}:")
-    logger.debug(doc.page_content[:200] + "...")  # Print first 200 characters of each document
+    # Print first 200 characters of each document
+    logger.debug(doc.page_content[:200] + "...")
 
 """
 ### Example that demonstrates why we should use reranking
@@ -271,11 +279,14 @@ logger.info("## Method 2: Cross Encoder models")
 
 cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
 
+
 class CrossEncoderRetriever(BaseRetriever, BaseModel):
     vectorstore: Any = Field(description="Vector store for initial retrieval")
     cross_encoder: Any = Field(description="Cross-encoder model for reranking")
-    k: int = Field(default=5, description="Number of documents to retrieve initially")
-    rerank_top_k: int = Field(default=3, description="Number of documents to return after reranking")
+    k: int = Field(
+        default=5, description="Number of documents to retrieve initially")
+    rerank_top_k: int = Field(
+        default=3, description="Number of documents to return after reranking")
 
     class Config:
         arbitrary_types_allowed = True
@@ -287,12 +298,14 @@ class CrossEncoderRetriever(BaseRetriever, BaseModel):
 
         scores = self.cross_encoder.predict(pairs)
 
-        scored_docs = sorted(zip(initial_docs, scores), key=lambda x: x[1], reverse=True)
+        scored_docs = sorted(zip(initial_docs, scores),
+                             key=lambda x: x[1], reverse=True)
 
         return [doc for doc, _ in scored_docs[:self.rerank_top_k]]
 
     async def aget_relevant_documents(self, query: str) -> List[Document]:
         raise NotImplementedError("Async retrieval not implemented")
+
 
 """
 ### Create an instance and showcase over an example
@@ -323,6 +336,7 @@ logger.debug(f"Answer: {result['result']}")
 logger.debug("\nRelevant source documents:")
 for i, doc in enumerate(result["source_documents"]):
     logger.debug(f"\nDocument {i+1}:")
-    logger.debug(doc.page_content[:200] + "...")  # Print first 200 characters of each document
+    # Print first 200 characters of each document
+    logger.debug(doc.page_content[:200] + "...")
 
 logger.info("\n\n[DONE]", bright=True)
