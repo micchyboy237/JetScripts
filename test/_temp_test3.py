@@ -2,6 +2,7 @@ import json
 import os
 import re
 from typing import List, Tuple, Dict, Optional, TypedDict
+from jet.llm.mlx.mlx_types import CompletionResponse
 from numpy.typing import NDArray
 import numpy as np
 from jet.llm.mlx.base import MLX
@@ -44,6 +45,8 @@ JSON_PATH: Final[str] = os.path.join(DATA_DIR, "web_scraped_data.json")
 VAL_JSON_PATH: Final[str] = os.path.join(DATA_DIR, "val.json")
 LOG_FILE_NAME: Final[str] = f"{os.path.splitext(os.path.basename(__file__))[0]}.log"
 LOG_FILE: Final[str] = os.path.join(SCRIPT_DIR, LOG_FILE_NAME)
+MLX_LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(
+    __file__)), os.path.splitext(os.path.basename(__file__))[0])
 
 # Chunking Parameters
 CHUNK_SIZE: Final[int] = 1000  # Max characters per chunk
@@ -109,7 +112,7 @@ logger.debug(f"Loaded {len(json_data)} JSON entries")
 logger.debug(extracted_text[0][:500])
 
 logger.info("Initializing MLX and embedding function")
-mlx: MLX = MLX()
+mlx: MLX = MLX(log_dir=MLX_LOG_DIR)
 embed_func = get_embedding_function(EMBEDDING_MODEL)
 
 logger.info("Using JSON entries as chunks")
@@ -249,14 +252,14 @@ def evaluate_response(question: str, response: str, true_answer: str) -> float:
         f"User Query: {question}\nAI Response:\n{response}\n"
         f"True Response: {true_answer}\n{evaluate_system_prompt}"
     )
-    evaluation_response: str = mlx.chat(
+    evaluation_response: CompletionResponse = mlx.chat(
         [
             {"role": "system", "content": "You are an objective evaluator. Return ONLY the numerical score."},
             {"role": "user", "content": evaluation_prompt}
         ]
     )
     try:
-        score: float = float(evaluation_response.strip())
+        score: float = float(str(evaluation_response).strip())
     except ValueError:
         logger.debug(
             "Warning: Could not parse evaluation score, defaulting to 0")
