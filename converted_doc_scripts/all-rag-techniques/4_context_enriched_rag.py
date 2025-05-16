@@ -1,3 +1,5 @@
+import re
+from jet.file.utils import load_file, save_file
 from jet.llm.mlx.base import MLX
 from jet.llm.utils.embeddings import get_embedding_function
 from jet.logger import CustomLogger
@@ -14,20 +16,23 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-DATA_DIR = os.path.join(script_dir, "data")
+GENERATED_DIR = os.path.join("generated", file_name)
+# DATA_DIR = os.path.join(script_dir, "data")
+DATA_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/data/hybrid_reranker_data/anime/top_isekai_anime"
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
 logger.info("Initializing PDF extraction")
 
 
 def extract_text_from_pdf(pdf_path):
-    all_text = ""
-    with open(pdf_path, "rb") as file:
-        reader = pypdf.PdfReader(file)
-        for page in reader.pages:
-            text = page.extract_text() or ""
-            all_text += text
+    # all_text = ""
+    # with open(pdf_path, "rb") as file:
+    #     reader = pypdf.PdfReader(file)
+    #     for page in reader.pages:
+    #         text = page.extract_text() or ""
+    #         all_text += text
+    data_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/searched_isekai_anime.md"
+    all_text = load_file(data_path)
     return all_text
 
 
@@ -49,7 +54,7 @@ def chunk_text(text, n, overlap):
     return chunks
 
 
-text_chunks = chunk_text(extracted_text, 1000, 200)
+text_chunks = chunk_text(extracted_text, 500, 100)
 logger.debug(f"Number of text chunks: {len(text_chunks)}")
 logger.debug("\nFirst text chunk:")
 logger.debug(text_chunks[0])
@@ -96,9 +101,10 @@ logger.debug(f"Query: {query}")
 for i, chunk in enumerate(top_chunks):
     logger.debug(
         f"Context {i + 1}:\n{chunk}\n=====================================")
+save_file(top_chunks, f"{GENERATED_DIR}/top_chunks.json")
 
 logger.info("Generating AI response")
-system_prompt = "You are an AI assistant that strictly answers based on the given context. If the answer cannot be derived directly from the provided context, respond with: 'I do not have enough information to answer that.'"
+system_prompt = "You are a helpful AI Assistance that can read structured and unstructured texts with headers (lines that start with #). You strictly answer based on the given context."
 
 
 def generate_response(query, system_prompt, retrieved_chunks, model="meta-llama/Llama-3.2-3B-Instruct"):
@@ -111,7 +117,7 @@ def generate_response(query, system_prompt, retrieved_chunks, model="meta-llama/
             {"role": "user", "content": user_prompt}
         ]
     )
-    return response
+    return response["content"]
 
 
 ai_response = generate_response(query, system_prompt, top_chunks)
@@ -122,6 +128,13 @@ evaluate_system_prompt = "You are an intelligent evaluation system tasked with a
 
 
 def evaluate_response(question, response, true_answer):
+    def parse_score(text: str) -> float:
+        # Find the first occurrence of a float in the text (e.g., 0.5, -1.23, 42.0)
+        match = re.search(r'-?\d*\.?\d+', text)
+        if match:
+            return float(match.group())
+        raise ValueError(f"No valid float found in text: {text}")
+
     evaluation_prompt = f"User Query: {question}\nAI Response:\n{response}\nTrue Response: {true_answer}\n{evaluate_system_prompt}"
     evaluation_response = mlx.chat(
         [
@@ -130,7 +143,7 @@ def evaluate_response(question, response, true_answer):
         ]
     )
     try:
-        score = float(evaluation_response.strip())
+        score: float = parse_score(evaluation_response["content"].strip())
     except ValueError:
         logger.debug(
             "Warning: Could not parse evaluation score, defaulting to 0")
@@ -138,7 +151,7 @@ def evaluate_response(question, response, true_answer):
     return score
 
 
-true_answer = data[0]['ideal_answer']
+true_answer = data[0]['answer']
 evaluation_score = evaluate_response(query, ai_response, true_answer)
 logger.debug(f"Evaluation Score: {evaluation_score}")
 
