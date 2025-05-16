@@ -220,9 +220,9 @@ def create_helpers(output_dir: str, samples: List[PromptSample]) -> None:
     (output_path / "tests").mkdir(exist_ok=True)  # Create tests directory
 
     sample_yes_no_answer_code = load_file(
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/helpers/yes_no_answer.py")
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/tasks/yes_no_answer.py")
     sample_answer_multiple_choice_code = load_file(
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/helpers/answer_multiple_choice.py")
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/tasks/answer_multiple_choice.py")
     sample_yes_no_answer = {
         "category": "Classification",
         "structure": "Yes/No",
@@ -240,10 +240,10 @@ def create_helpers(output_dir: str, samples: List[PromptSample]) -> None:
 
     # Mock test code for few-shot examples
     sample_yes_no_test_code = load_file(
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/helpers/test_yes_no_answer.py")
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/tasks/test_yes_no_answer.py")
 
     sample_multiple_choice_test_code = load_file(
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/helpers/test_answer_multiple_choice.py")
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/tasks/test_answer_multiple_choice.py")
 
     few_shot_examples: list[Message] = [
         {
@@ -374,7 +374,7 @@ if __name__ == "__main__":
     import os
     import shutil
 
-    prompt_samples_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/helpers/Dataset_Prompt_Samples.md"
+    prompt_samples_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/tasks/Dataset_Prompt_Samples.md"
     output_dir = os.path.join(
         os.path.dirname(__file__),
         "generated",
