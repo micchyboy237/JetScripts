@@ -53,7 +53,7 @@ def hybrid_rerank(query: str, documents: list[str], top_k=10) -> List[RerankResu
 
 
 if __name__ == "__main__":
-    query = "List trending isekai reincarnation anime this year."
+    query = "List trending isekai strong OP anime this year."
     data_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_split_header_docs/searched_html_myanimelist_net_Isekai/contexts.json"
     top_k = 10
     top_n = 5
