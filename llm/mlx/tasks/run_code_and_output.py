@@ -1,10 +1,10 @@
 from jet.llm.mlx.tasks.code_and_output import code_and_output
 from jet.logger import logger
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 
 if __name__ == "__main__":
-    model: ModelType = "llama-3.2-3b-instruct-4bit"
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit"
     description: str = "Write a Python function to calculate the factorial of a number."
     for method in ["stream_generate", "generate_step"]:
         logger.log("Method:", method, colors=["GRAY", "WHITE"])

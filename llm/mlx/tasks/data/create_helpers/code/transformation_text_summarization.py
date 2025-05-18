@@ -1,6 +1,6 @@
 from typing import List, Dict, Optional, TypedDict
 from jet.llm.mlx.config import DEFAULT_MODEL
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 from jet.llm.mlx.models import resolve_model
 from jet.llm.mlx.token_utils import tokenize_strings
 from jet.logger import logger
@@ -66,12 +66,13 @@ def summarize_text(text: str, max_tokens: int = 10) -> AnswerResult:
         )
 
         # Encode choices and setup generation parameters
-        choice_token_map = encode_choices(model_components.tokenizer, ["Text to be summarized"])
+        choice_token_map = encode_choices(
+            model_components.tokenizer, ["Text to be summarized"])
         logits_processors, sampler, stop_tokens = setup_generation_parameters(
             model_components.tokenizer, choice_token_map, 0.0, 0.9
         )
 
         # Generate answer based on method
-        if model_components.tokenizer.model_type == ModelType.STREAM_GENERATION:
+        if model_components.tokenizer.model_type == LLMModelType.STREAM_GENERATION:
             answer, token_id, _ = generate_answer_stream(
                 model_components,

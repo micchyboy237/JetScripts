@@ -1,11 +1,11 @@
 from jet.llm.mlx.tasks.text_entailment import text_entailment
 from jet.logger import logger
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 from typing import List
 
 if __name__ == "__main__":
-    model: ModelType = "llama-3.2-3b-instruct-4bit"
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit"
     premise: str = "All birds can fly."
     hypothesis: str = "Penguins can fly."
     labels: List[str] = ["Entailment", "Contradiction", "Neutral"]

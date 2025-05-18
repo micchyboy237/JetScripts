@@ -1,10 +1,10 @@
 from jet.llm.mlx.tasks.keyword_extraction import keyword_extraction
 from jet.logger import logger
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 
 if __name__ == "__main__":
-    model: ModelType = "llama-3.2-3b-instruct-4bit"
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit"
     text: str = "The Amazon rainforest, located in South America, is the world's largest tropical rainforest. It is home to millions of species and plays a critical role in global climate regulation."
     for method in ["stream_generate", "generate_step"]:
         logger.log("Method:", method, colors=["GRAY", "WHITE"])

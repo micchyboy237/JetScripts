@@ -1,6 +1,6 @@
 from typing import Dict, List, Union
 from jet.llm.mlx.config import DEFAULT_MODEL
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 from jet.llm.mlx.models import resolve_model
 from jet.llm.mlx.token_utils import tokenize_strings
 from jet.logger import logger
@@ -29,12 +29,12 @@ class InvalidOutputError(Exception):
 
 # Model components
 class ModelComponents:
-    def __init__(self, model: ModelType = DEFAULT_MODEL, tokenizer: TokenizerWrapper):
+    def __init__(self, model: LLMModelType = DEFAULT_MODEL, tokenizer: TokenizerWrapper):
         self.model = model
         self.tokenizer = tokenizer
 
 
-def load_model_components(model_path: ModelType) -> ModelComponents:
+def load_model_components(model_path: LLMModelType) -> ModelComponents:
     """Loads model and tokenizer from the specified path."""
     try:
         model, tokenizer = load(resolve_model(model_path))
@@ -56,7 +56,7 @@ def create_system_prompt(choices: List[str]) -> str:
     return f"Answer the following question by choosing one of the options provided without any additional text.\nOptions:\n{'\n'.join(choices)}"
 
 
-def log_prompt_details(system_prompt: str, question: str, model_path: ModelType) -> None:
+def log_prompt_details(system_prompt: str, question: str, model_path: LLMModelType) -> None:
     """Logs system prompt, tokenized system prompt, and user question for debugging."""
     logger.gray("System:")
     logger.debug(system_prompt)
@@ -181,7 +181,7 @@ def validate_answer(answer: str, choices: List[str]) -> None:
 def answer_multiple_choice(
     question: str,
     choices: List[str],
-    model_path: ModelType = DEFAULT_MODEL,
+    model_path: LLMModelType = DEFAULT_MODEL,
     method: str = "stream_generate",
     max_tokens: int = 10,
     temperature: float = 0.0,

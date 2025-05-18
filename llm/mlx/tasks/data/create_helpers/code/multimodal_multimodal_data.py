@@ -1,6 +1,6 @@
 from typing import List, Dict, Optional
 from jet.llm.mlx.config import DEFAULT_MODEL
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 from jet.llm.mlx.models import resolve_model
 from jet.llm.mlx.token_utils import tokenize_strings
 from jet.logger import logger
@@ -10,8 +10,9 @@ from mlx_lm.generate import stream_generate, generate_step
 from mlx_lm.sample_utils import make_sampler, make_logits_processors
 from mlx_lm.utils import TokenizerWrapper
 
+
 class MultimodalData:
-    def __init__(self, model_path: ModelType = DEFAULT_MODEL):
+    def __init__(self, model_path: LLMModelType = DEFAULT_MODEL):
         self.model_path = model_path
 
     def generate(self, method: str = "stream_generate", max_tokens: int = 10, temperature: float = 0.0, top_p: float = 0.9):
@@ -33,7 +34,8 @@ class MultimodalData:
             )
 
             # Encode choices and setup generation parameters
-            choice_token_map = encode_choices(model_components.tokenizer, ["Yes", "No"])
+            choice_token_map = encode_choices(
+                model_components.tokenizer, ["Yes", "No"])
             logits_processors, sampler, stop_tokens = setup_generation_parameters(
                 model_components.tokenizer, choice_token_map, temperature, top_p
             )

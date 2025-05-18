@@ -8,7 +8,7 @@ from jet.code.splitter_markdown_utils import count_md_header_contents, get_md_he
 from jet.logger import logger
 from jet.vectors.document_types import HeaderDocument
 from jet.file.utils import load_file, save_file
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 from jet.llm.mlx.token_utils import get_tokenizer_fn, count_tokens
 from jet.token.token_utils import split_headers
 from jet.utils.file import find_files_recursively
@@ -35,7 +35,7 @@ def merge_context_md_files(base_dir: Path, output_file: Path) -> None:
 
 
 if __name__ == "__main__":
-    model: ModelType = "llama-3.2-3b-instruct-4bit"
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit"
     chunk_size = 225
     chunk_overlap = 40
     # Search for all Python files in current directory and subdirectories

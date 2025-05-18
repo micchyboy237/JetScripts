@@ -1,11 +1,11 @@
 from jet.llm.mlx.tasks.conditional_text_generation import conditional_text_generation
 from jet.logger import logger
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 from typing import Dict
 
 if __name__ == "__main__":
-    model: ModelType = "llama-3.2-3b-instruct-4bit"
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit"
     prompt: str = "Describe a futuristic city."
     conditions: Dict[str, str] = {
         "Style": "Vivid and descriptive",

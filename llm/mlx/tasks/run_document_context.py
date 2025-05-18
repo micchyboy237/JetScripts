@@ -1,10 +1,10 @@
 from jet.llm.mlx.tasks.document_context import document_context
 from jet.logger import logger
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 
 if __name__ == "__main__":
-    model: ModelType = "llama-3.2-3b-instruct-4bit"
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit"
     document: str = "The Amazon rainforest, located in South America, is the world's largest tropical rainforest. It is home to millions of species and plays a critical role in global climate regulation."
     instruction: str = "Summarize the key points of the document in one sentence."
     for method in ["stream_generate", "generate_step"]:

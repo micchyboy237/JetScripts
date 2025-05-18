@@ -1,9 +1,9 @@
 from jet.llm.mlx.tasks.anaphora_resolution import AnaphoraResolutionResult, anaphora_resolution
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 from jet.logger import logger
 
 if __name__ == "__main__":
-    model: ModelType = "llama-3.2-3b-instruct-4bit"
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit"
     input_text: str = (
         "John went to the store. He bought some apples. They were fresh."
     )

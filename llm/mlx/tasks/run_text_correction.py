@@ -1,9 +1,9 @@
 from jet.llm.mlx.tasks.text_correction import CorrectionResult, text_correction
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 from jet.logger import logger
 
 if __name__ == "__main__":
-    model: ModelType = "llama-3.2-3b-instruct-4bit"
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit"
     input_text: str = (
         "The sun sets slow behind the montain, its a beatiful site. "
         "Birds chirps loud as evening breeze blow, signal end of day."

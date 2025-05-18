@@ -1,10 +1,10 @@
 from jet.llm.mlx.tasks.question_generation import question_generation
 from jet.logger import logger
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 
 if __name__ == "__main__":
-    model: ModelType = "llama-3.2-3b-instruct-4bit"
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit"
     text: str = "The Eiffel Tower, located in Paris, France, was completed in 1889. It was designed by Gustave Eiffel and serves as a global cultural icon."
     for method in ["stream_generate", "generate_step"]:
         logger.log("Method:", method, colors=["GRAY", "WHITE"])

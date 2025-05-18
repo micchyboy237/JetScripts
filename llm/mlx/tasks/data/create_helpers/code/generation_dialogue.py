@@ -1,6 +1,6 @@
 from typing import Dict, List
 from jet.llm.mlx.config import DEFAULT_MODEL
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 from jet.llm.mlx.models import resolve_model
 from jet.llm.mlx.generate import stream_generate, generate_step
 from jet.llm.mlx.sample_utils import make_sampler, make_logits_processors
@@ -44,7 +44,7 @@ class AnswerResult(TypedDict):
 
 def answer_yes_no(
     question: str,
-    model_path: ModelType = DEFAULT_MODEL,
+    model_path: LLMModelType = DEFAULT_MODEL,
     method: str = "stream_generate",
     max_tokens: int = 1,
     temperature: float = 0.1,

@@ -1,11 +1,11 @@
 from jet.llm.mlx.tasks.text_classification import text_classification
 from jet.logger import logger
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 from typing import List
 
 if __name__ == "__main__":
-    model: ModelType = "llama-3.2-3b-instruct-4bit"
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit"
     text: str = "Win a free iPhone now! Click here to claim your prize!"
     labels: List[str] = ["Spam", "Not Spam"]
     for method in ["stream_generate", "generate_step"]:

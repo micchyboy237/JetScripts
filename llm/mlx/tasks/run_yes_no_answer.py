@@ -1,9 +1,9 @@
 from jet.llm.mlx.tasks.yes_no_answer import AnswerResult, answer_yes_no
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 from jet.logger import logger
 
 if __name__ == "__main__":
-    model: ModelType = "llama-3.2-3b-instruct-4bit"
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit"
     question: str = "Is 1 + 1 equal to 2?"
     method = "generate_step"
     logger.log("Method:", method, colors=["GRAY", "WHITE"])

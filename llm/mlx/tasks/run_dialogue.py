@@ -1,11 +1,11 @@
 from jet.llm.mlx.tasks.dialogue import dialogue, ChatMessage
 from jet.logger import logger
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 from typing import List
 
 if __name__ == "__main__":
-    model: ModelType = "llama-3.2-3b-instruct-4bit"
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit"
     history: List[ChatMessage] = [
         {"role": "user", "content": "Hi, I'm planning a trip to Paris."},
         {"role": "assistant", "content": "That sounds amazing! Paris is beautiful. When are you planning to go?"}]

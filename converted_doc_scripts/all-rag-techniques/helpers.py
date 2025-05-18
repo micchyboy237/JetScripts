@@ -4,8 +4,9 @@ import numpy as np
 from typing import List, Dict, Any, Callable, Tuple, TypedDict
 from jet.file.utils import load_file, save_file
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.mlx_types import ModelType
-from jet.llm.utils.embeddings import get_embedding_function
+from jet.llm.mlx.mlx_types import LLMModelType
+# from jet.llm.utils.embeddings import get_embedding_function
+from jet.llm.utils.transformer_embeddings import get_embedding_function
 from jet.logger import CustomLogger
 import re
 
@@ -111,7 +112,7 @@ def generate_ai_response(
     retrieved_chunks: List[SearchResult],
     mlx: MLX,
     logger: CustomLogger,
-    model: ModelType = "llama-3.2-3b-instruct-4bit",
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit",
     **kwargs
 ) -> str:
     logger.info("Generating AI response")
@@ -142,7 +143,7 @@ def evaluate_ai_response(
     true_answer: str,
     mlx: MLX,
     logger: CustomLogger,
-    model: ModelType = "llama-3.2-3b-instruct-4bit",
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit",
     **kwargs
 ) -> Tuple[float, str]:
     logger.info("Evaluating response")

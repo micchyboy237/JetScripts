@@ -1,11 +1,11 @@
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 from jet.llm.mlx.models import resolve_model
 from mlx_lm import load, generate
 import mlx.core as mx
 import mlx.nn as nn
 
 # Load model and tokenizer
-model_path: ModelType = "llama-3.2-3b-instruct-4bit"
+model_path: LLMModelType = "llama-3.2-3b-instruct-4bit"
 model, tokenizer = load(resolve_model(model_path))
 
 

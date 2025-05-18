@@ -1,10 +1,10 @@
 from jet.llm.mlx.tasks.reasoning_chains import reasoning_chains
 from jet.logger import logger
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 
 if __name__ == "__main__":
-    model: ModelType = "llama-3.2-3b-instruct-4bit"
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit"
     problem: str = "If a car travels 60 miles in 2 hours, what is its average speed?"
     for method in ["stream_generate", "generate_step"]:
         logger.log("Method:", method, colors=["GRAY", "WHITE"])

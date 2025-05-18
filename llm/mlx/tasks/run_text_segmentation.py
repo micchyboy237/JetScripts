@@ -1,9 +1,9 @@
 from jet.llm.mlx.tasks.text_segmentation import SegmentationResult, text_segmentation
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 from jet.logger import logger
 
 if __name__ == "__main__":
-    model: ModelType = "llama-3.2-3b-instruct-4bit"
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit"
     input_text: str = (
         "The sun sets slowly behind the mountain, casting a warm golden glow over the valley. "
         "Birds chirp softly as the cool evening breeze begins to blow. "
