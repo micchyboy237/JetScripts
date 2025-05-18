@@ -183,3 +183,8 @@ def test_embedding_consistency(embed_func):
     assert np.allclose(embedding1, embedding2, atol=1e-6)
     assert isinstance(embedding1, list)
     assert all(isinstance(x, float) for x in embedding1)
+
+
+if __name__ == "__main__":
+    import pytest
+    pytest.main(["-v", __file__])
