@@ -5,7 +5,6 @@ from typing import List, Dict, Any, Callable, Tuple, TypedDict
 from jet.file.utils import load_file, save_file
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.mlx_types import LLMModelType
-# from jet.llm.utils.embeddings import get_embedding_function
 from jet.llm.utils.transformer_embeddings import get_embedding_function
 from jet.logger import CustomLogger
 import re
@@ -99,6 +98,14 @@ def generate_embeddings(
     return embeddings
 
 
+def cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
+    """Calculate cosine similarity between two vectors."""
+    dot_product = np.dot(vec1, vec2)
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+    return dot_product / (norm1 * norm2) if norm1 > 0 and norm2 > 0 else 0.0
+
+
 def load_validation_data(val_path: str, logger: CustomLogger) -> List[ValidationData]:
     logger.info("Loading validation data")
     with open(val_path) as f:
@@ -159,7 +166,6 @@ def evaluate_ai_response(
         if match:
             return float(match.group())
         raise ValueError(f"No valid float found in text: {text}")
-
     evaluation_prompt = f"User Query: {question}\nAI Response:\n{response}\nTrue Response: {true_answer}\n{evaluate_system_prompt}"
     response = ""
     for chunk in mlx.stream_chat(
@@ -193,7 +199,6 @@ class SimpleVectorStore:
         self.vectors.append(np.array(embedding))
         self.texts.append(text)
         self.metadata.append(metadata or {})
-        # Use passed id or create one (like index as string)
         self.ids.append(id if id is not None else str(len(self.ids)))
 
     def search(self, query_embedding: List[float] | np.ndarray, top_k: int = 5) -> List[VectorStoreItem]:
@@ -215,7 +220,7 @@ class SimpleVectorStore:
         for i in range(min(top_k, len(similarities))):
             idx, score = similarities[i]
             results.append({
-                "id": self.ids[idx],              # Add id here
+                "id": self.ids[idx],
                 "text": self.texts[idx],
                 "metadata": self.metadata[idx],
                 "similarity": score
