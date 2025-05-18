@@ -168,26 +168,8 @@ def extract_text_from_md(md_path, include_code=True, include_comments=True, save
 
 def extract_text_from_py(py_path, include_code=True, include_comments=True, save_as: Literal['md', 'py'] = 'md'):
     """Extract text content from a Python file as markdown or Python code."""
-    try:
-        with open(py_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-
-        if not include_code:
-            return ''
-
-        if not include_comments:
-            content = remove_single_line_comments_preserving_triple_quotes(
-                content)
-
-        if save_as == 'md':
-            markdown_content = ['```python', content, '```', '']
-            return '\n'.join(markdown_content)
-        else:  # save_as == 'py'
-            return content
-
-    except Exception as e:
-        print(f"Error processing {py_path}: {str(e)}")
-        return None
+    # Implement using ast
+    pass
 
 
 def process_file(input_path, output_dir=None, include_outputs=True, include_code=False, include_comments=False, save_as: Literal['md', 'py'] = 'md'):

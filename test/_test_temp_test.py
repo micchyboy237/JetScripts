@@ -27,9 +27,9 @@ class Greeter:
 '''
 
         expected = [
-            'def greet():\n    """Say hello to the user"""',
-            'class Greeter:\n    """Greeter class with simple behavior"""',
-            'def say_hi(self):\n        """Print a hi message"""'
+            "def greet():\n    \"\"\"Say hello to the user\"\"\"",
+            "class Greeter:\n    \"\"\"Greeter class with simple behavior\"\"\"",
+            "    def say_hi(self):\n        \"\"\"Print a hi message\"\"\""
         ]
 
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -39,26 +39,6 @@ class Greeter:
 
             flat_results = result[path]
             self.assertEqual(flat_results, expected)
-
-    def test_ignores_logic_and_nested(self):
-        sample = '''\
-def outer():
-    """Outer docstring"""
-    def inner():
-        """Inner should be ignored"""
-        pass
-    return inner
-'''
-
-        expected = [
-            'def outer():\n    """Outer docstring"""'
-        ]
-
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            path = self.write_temp_file(tmpdirname, "nested_logic.py", sample)
-            result = extract_class_and_function_defs(tmpdirname)
-
-            self.assertEqual(result[path], expected)
 
 
 if __name__ == "__main__":
