@@ -16,6 +16,10 @@ python find_large_folders.py -s 100 -i "aim,.aim"
 python find_large_folders.py -s 0 -i "<folder>/bin/activate"
 python find_large_folders.py -s 0 -i "<folder>/bin/activate" -b "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts"
 python find_large_folders.py -s 100 -b "/path/to/base/dir" -i "<folder>/node_modules" -e "node_modules/**"
+
+# Non-recursive
+python find_large_folders.py -b ~ -s 0 -i ".cache,.caches,cache,caches,Cache,Caches" -d 1
+python find_large_folders.py -b ~/Library -s 0 -i ".cache,.caches,cache,caches,Cache,Caches" -d 1
 """
 
 
