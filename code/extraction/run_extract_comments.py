@@ -12,9 +12,6 @@ if __name__ == "__main__":
 
     content = extract_comments(
         notebook_path,
-        include_outputs=include_outputs,
-        include_code=include_code,
-        include_comments=include_comments
     )
 
     logger.gray("Result:")
