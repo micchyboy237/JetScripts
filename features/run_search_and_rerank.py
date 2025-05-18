@@ -306,7 +306,7 @@ if __name__ == "__main__":
                 save_file(header_stats, f"{output_dir_url}/header_stats.json")
 
             context_docs = [
-                f"{(item["parent_header"] or "").strip()}\n{item["header"]}\n{item["text"]}" for item in docs
+                f"{(item["parent_header"] or "").strip()}\n{item["header"]}\n{item["content"]}" for item in docs
                 if not item["header_level"] == 1
             ]
             md_context = "\n\n".join(context_docs)
