@@ -111,7 +111,8 @@ def generate_ai_response(
     retrieved_chunks: List[SearchResult],
     mlx: MLX,
     logger: CustomLogger,
-    model: ModelType = "llama-3.2-3b-instruct-4bit"
+    model: ModelType = "llama-3.2-3b-instruct-4bit",
+    **kwargs
 ) -> str:
     logger.info("Generating AI response")
     context = "\n".join([
@@ -125,7 +126,8 @@ def generate_ai_response(
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
-        model=model
+        model=model,
+        **kwargs
     ):
         content = chunk["choices"][0]["message"]["content"]
         response += content
@@ -140,7 +142,8 @@ def evaluate_ai_response(
     true_answer: str,
     mlx: MLX,
     logger: CustomLogger,
-    model: ModelType = "llama-3.2-3b-instruct-4bit"
+    model: ModelType = "llama-3.2-3b-instruct-4bit",
+    **kwargs
 ) -> Tuple[float, str]:
     logger.info("Evaluating response")
     evaluate_system_prompt = (
@@ -163,7 +166,8 @@ def evaluate_ai_response(
             {"role": "system", "content": "You are an objective evaluator. Return ONLY the numerical score."},
             {"role": "user", "content": evaluation_prompt}
         ],
-        model=model
+        model=model,
+        **kwargs
     ):
         content = chunk["choices"][0]["message"]["content"]
         response += content
