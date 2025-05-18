@@ -1,39 +1,19 @@
-from jet.llm.mlx.base import MLX
-from jet.llm.utils.embeddings import get_embedding_function
-from jet.logger import CustomLogger
-from rank_bm25 import BM25Okapi
-from sklearn.metrics.pairwise import cosine_similarity
-import pypdf
 import json
 import numpy as np
-import os
 import re
-import time
-
-script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
-DATA_DIR = os.path.join(script_dir, "data")
-os.makedirs(DATA_DIR, exist_ok=True)
-logger.info("Initializing MLX and embedding function")
-mlx = MLX()
-embed_func = get_embedding_function("mxbai-embed-large")
+from rank_bm25 import BM25Okapi
+from sklearn.metrics.pairwise import cosine_similarity
+from typing import List, Dict, Any
+from jet.file.utils import save_file
+from helpers import (
+    setup_config, initialize_mlx, generate_embeddings,
+    load_validation_data, generate_ai_response,
+    load_json_data, SearchResult, SimpleVectorStore, DATA_DIR, DOCS_PATH
+)
 
 
-def extract_text_from_pdf(pdf_path):
-    logger.debug(f"Extracting text from {pdf_path}...")
-    all_text = ""
-    with open(pdf_path, "rb") as file:
-        reader = pypdf.PdfReader(file)
-        for page in reader.pages:
-            text = page.extract_text() or ""
-            all_text += text
-    return all_text
-
-
-def chunk_text(text, chunk_size=1000, chunk_overlap=200):
+def chunk_text(text: str, chunk_size: int = 1000, chunk_overlap: int = 200) -> List[Dict[str, Any]]:
+    """Chunk text into overlapping segments with metadata."""
     chunks = []
     for i in range(0, len(text), chunk_size - chunk_overlap):
         chunk = text[i:i + chunk_size]
@@ -50,62 +30,15 @@ def chunk_text(text, chunk_size=1000, chunk_overlap=200):
     return chunks
 
 
-def clean_text(text):
+def clean_text(text: str) -> str:
+    """Clean text by normalizing whitespace."""
     text = re.sub(r'\s+', ' ', text)
-    text = text.replace('\\t', ' ')
-    text = text.replace('\\n', ' ')
-    text = ' '.join(text.split())
-    return text
+    text = text.replace('\\t', ' ').replace('\\n', ' ')
+    return ' '.join(text.split())
 
 
-def create_embeddings(texts):
-    return embed_func(texts)
-
-
-class SimpleVectorStore:
-    def __init__(self):
-        self.vectors = []
-        self.texts = []
-        self.metadata = []
-
-    def add_item(self, text, embedding, metadata=None):
-        self.vectors.append(np.array(embedding))
-        self.texts.append(text)
-        self.metadata.append(metadata or {})
-
-    def add_items(self, items, embeddings):
-        for i, (item, embedding) in enumerate(zip(items, embeddings)):
-            self.add_item(
-                text=item["text"],
-                embedding=embedding,
-                metadata={**item.get("metadata", {}), "index": i}
-            )
-
-    def similarity_search_with_scores(self, query_embedding, k=5):
-        if not self.vectors:
-            return []
-        query_vector = np.array(query_embedding).flatten()
-        similarities = []
-        for i, vector in enumerate(self.vectors):
-            vector = vector.flatten()
-            similarity = cosine_similarity([query_vector], [vector])[0][0]
-            similarities.append((i, similarity))
-        similarities.sort(key=lambda x: x[1], reverse=True)
-        results = []
-        for i in range(min(k, len(similarities))):
-            idx, score = similarities[i]
-            results.append({
-                "text": self.texts[idx],
-                "metadata": self.metadata[idx],
-                "similarity": float(score)
-            })
-        return results
-
-    def get_all_documents(self):
-        return [{"text": text, "metadata": meta} for text, meta in zip(self.texts, self.metadata)]
-
-
-def create_bm25_index(chunks):
+def create_bm25_index(chunks: List[Dict[str, Any]]) -> BM25Okapi:
+    """Create BM25 index for text chunks."""
     texts = [chunk["text"] for chunk in chunks]
     tokenized_docs = [text.split() for text in texts]
     bm25 = BM25Okapi(tokenized_docs)
@@ -113,7 +46,8 @@ def create_bm25_index(chunks):
     return bm25
 
 
-def bm25_search(bm25, chunks, query, k=5):
+def bm25_search(bm25: BM25Okapi, chunks: List[Dict[str, Any]], query: str, k: int = 5) -> List[Dict[str, Any]]:
+    """Perform BM25 search."""
     query_tokens = query.split()
     scores = bm25.get_scores(query_tokens)
     results = []
@@ -129,16 +63,17 @@ def bm25_search(bm25, chunks, query, k=5):
     return results[:k]
 
 
-def fusion_retrieval(query, chunks, vector_store, bm25_index, k=5, alpha=0.5):
+def fusion_retrieval(query: str, chunks: List[Dict[str, Any]], vector_store: SimpleVectorStore, bm25_index: BM25Okapi, embed_func, k: int = 5, alpha: float = 0.5) -> List[Dict[str, Any]]:
+    """Perform fusion retrieval combining vector and BM25 scores."""
     logger.debug(f"Performing fusion retrieval for query: {query}")
     epsilon = 1e-8
-    query_embedding = create_embeddings(query)
-    vector_results = vector_store.similarity_search_with_scores(
-        query_embedding, k=len(chunks))
+    query_embedding = embed_func(query)
+    vector_results = vector_store.search(query_embedding, top_k=len(chunks))
     bm25_results = bm25_search(bm25_index, chunks, query, k=len(chunks))
     vector_scores_dict = {result["metadata"]["index"]: result["similarity"] for result in vector_results}
     bm25_scores_dict = {result["metadata"]["index"]: result["bm25_score"] for result in bm25_results}
-    all_docs = vector_store.get_all_documents()
+    all_docs = [{"text": text, "metadata": meta}
+                for text, meta in zip(vector_store.texts, vector_store.metadata)]
     combined_results = []
     for i, doc in enumerate(all_docs):
         vector_score = vector_scores_dict.get(i, 0.0)
@@ -167,39 +102,35 @@ def fusion_retrieval(query, chunks, vector_store, bm25_index, k=5, alpha=0.5):
     return top_results
 
 
-def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
-    text = extract_text_from_pdf(pdf_path)
-    cleaned_text = clean_text(text)
-    chunks = chunk_text(cleaned_text, chunk_size, chunk_overlap)
+def process_document(chunks: List[Dict[str, Any]], embed_func) -> tuple[List[Dict[str, Any]], SimpleVectorStore, BM25Okapi]:
+    """Process document chunks into vector store and BM25 index."""
     chunk_texts = [chunk["text"] for chunk in chunks]
     logger.debug("Creating embeddings for chunks...")
-    embeddings = create_embeddings(chunk_texts)
+    embeddings = generate_embeddings(chunk_texts, embed_func, logger)
     vector_store = SimpleVectorStore()
-    vector_store.add_items(chunks, embeddings)
+    for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+        vector_store.add_item(
+            text=chunk["text"],
+            embedding=embedding,
+            metadata={**chunk.get("metadata", {}), "index": i}
+        )
     logger.debug(f"Added {len(chunks)} items to vector store")
     bm25_index = create_bm25_index(chunks)
     return chunks, vector_store, bm25_index
 
 
-def generate_response(query, context, model="llama-3.2-1b-instruct-4bit"):
-    system_prompt = "You are a helpful AI assistant. Answer the question based on the provided context. If the context is insufficient, acknowledge the limitation."
-    user_prompt = f"Context:\n{context}\n\nQuestion: {query}"
-    response = mlx.chat(
-        [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        model=model,
-        temperature=0.1
-    )
-    return response["choices"][0]["message"]["content"]
-
-
-def answer_with_fusion_rag(query, chunks, vector_store, bm25_index, k=5, alpha=0.5, model="llama-3.2-1b-instruct-4bit"):
+def answer_with_fusion_rag(query: str, chunks: List[Dict[str, Any]], vector_store: SimpleVectorStore, bm25_index: BM25Okapi, embed_func, mlx, k: int = 5, alpha: float = 0.5, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+    """Answer query using fusion RAG."""
     retrieved_docs = fusion_retrieval(
-        query, chunks, vector_store, bm25_index, k=k, alpha=alpha)
-    context = "\n\n---\n\n".join([doc["text"] for doc in retrieved_docs])
-    response = generate_response(query, context, model)
+        query, chunks, vector_store, bm25_index, embed_func, k, alpha)
+    response = generate_ai_response(
+        query,
+        "You are a helpful AI assistant. Answer the question based on the provided context. If the context is insufficient, acknowledge the limitation.",
+        retrieved_docs,
+        mlx,
+        logger,
+        model=model
+    )
     return {
         "query": query,
         "retrieved_documents": retrieved_docs,
@@ -207,12 +138,18 @@ def answer_with_fusion_rag(query, chunks, vector_store, bm25_index, k=5, alpha=0
     }
 
 
-def vector_only_rag(query, vector_store, k=5, model="llama-3.2-1b-instruct-4bit"):
-    query_embedding = create_embeddings(query)
-    retrieved_docs = vector_store.similarity_search_with_scores(
-        query_embedding, k=k)
-    context = "\n\n---\n\n".join([doc["text"] for doc in retrieved_docs])
-    response = generate_response(query, context, model)
+def vector_only_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 5, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+    """Answer query using vector-only RAG."""
+    query_embedding = embed_func(query)
+    retrieved_docs = vector_store.search(query_embedding, top_k=k)
+    response = generate_ai_response(
+        query,
+        "You are a helpful AI assistant. Answer the question based on the provided context. If the context is insufficient, acknowledge the limitation.",
+        retrieved_docs,
+        mlx,
+        logger,
+        model=model
+    )
     return {
         "query": query,
         "retrieved_documents": retrieved_docs,
@@ -220,10 +157,17 @@ def vector_only_rag(query, vector_store, k=5, model="llama-3.2-1b-instruct-4bit"
     }
 
 
-def bm25_only_rag(query, chunks, bm25_index, k=5, model="llama-3.2-1b-instruct-4bit"):
+def bm25_only_rag(query: str, chunks: List[Dict[str, Any]], bm25_index: BM25Okapi, mlx, k: int = 5, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+    """Answer query using BM25-only RAG."""
     retrieved_docs = bm25_search(bm25_index, chunks, query, k=k)
-    context = "\n\n---\n\n".join([doc["text"] for doc in retrieved_docs])
-    response = generate_response(query, context, model)
+    response = generate_ai_response(
+        query,
+        "You are a helpful AI assistant. Answer the question based on the provided context. If the context is insufficient, acknowledge the limitation.",
+        retrieved_docs,
+        mlx,
+        logger,
+        model=model
+    )
     return {
         "query": query,
         "retrieved_documents": retrieved_docs,
@@ -231,15 +175,17 @@ def bm25_only_rag(query, chunks, bm25_index, k=5, model="llama-3.2-1b-instruct-4
     }
 
 
-def compare_retrieval_methods(query, chunks, vector_store, bm25_index, k=5, alpha=0.5, reference_answer=None, model="llama-3.2-1b-instruct-4bit"):
+def compare_retrieval_methods(query: str, chunks: List[Dict[str, Any]], vector_store: SimpleVectorStore, bm25_index: BM25Okapi, embed_func, mlx, k: int = 5, alpha: float = 0.5, reference_answer: str = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+    """Compare vector-only, BM25, and fusion retrieval methods."""
     logger.debug(f"\n=== Comparing retrieval methods for query: {query} ===\n")
     logger.debug("\nRunning vector-only RAG...")
-    vector_result = vector_only_rag(query, vector_store, k, model)
+    vector_result = vector_only_rag(
+        query, vector_store, embed_func, mlx, k, model)
     logger.debug("\nRunning BM25-only RAG...")
-    bm25_result = bm25_only_rag(query, chunks, bm25_index, k, model)
+    bm25_result = bm25_only_rag(query, chunks, bm25_index, mlx, k, model)
     logger.debug("\nRunning fusion RAG...")
     fusion_result = answer_with_fusion_rag(
-        query, chunks, vector_store, bm25_index, k, alpha, model)
+        query, chunks, vector_store, bm25_index, embed_func, mlx, k, alpha, model)
     logger.debug("\nComparing responses...")
     comparison = evaluate_responses(
         query,
@@ -247,6 +193,7 @@ def compare_retrieval_methods(query, chunks, vector_store, bm25_index, k=5, alph
         bm25_result["response"],
         fusion_result["response"],
         reference_answer,
+        mlx,
         model
     )
     return {
@@ -258,7 +205,8 @@ def compare_retrieval_methods(query, chunks, vector_store, bm25_index, k=5, alph
     }
 
 
-def evaluate_responses(query, vector_response, bm25_response, fusion_response, reference_answer=None, model="llama-3.2-1b-instruct-4bit"):
+def evaluate_responses(query: str, vector_response: str, bm25_response: str, fusion_response: str, reference_answer: str = None, mlx=None, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+    """Evaluate responses from different retrieval methods."""
     system_prompt = "You are an objective evaluator. Compare the three responses to the query and provide a concise evaluation. If a reference answer is provided, use it to assess accuracy and completeness."
     user_prompt = f"Query: {query}\n\nVector-only Response:\n{vector_response}\n\nBM25 Response:\n{bm25_response}\n\nFusion Response:\n{fusion_response}"
     if reference_answer:
@@ -274,9 +222,10 @@ def evaluate_responses(query, vector_response, bm25_response, fusion_response, r
     return response["choices"][0]["message"]["content"]
 
 
-def evaluate_fusion_retrieval(pdf_path, test_queries, reference_answers=None, k=5, alpha=0.5, model="llama-3.2-1b-instruct-4bit"):
+def evaluate_fusion_retrieval(chunks: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, k: int = 5, alpha: float = 0.5, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+    """Evaluate fusion retrieval against vector-only and BM25."""
     logger.debug("=== EVALUATING FUSION RETRIEVAL ===\n")
-    chunks, vector_store, bm25_index = process_document(pdf_path)
+    chunks, vector_store, bm25_index = process_document(chunks, embed_func)
     results = []
     for i, query in enumerate(test_queries):
         logger.debug(f"\n\n=== Evaluating Query {i+1}/{len(test_queries)} ===")
@@ -289,6 +238,8 @@ def evaluate_fusion_retrieval(pdf_path, test_queries, reference_answers=None, k=
             chunks,
             vector_store,
             bm25_index,
+            embed_func,
+            mlx,
             k=k,
             alpha=alpha,
             reference_answer=reference,
@@ -303,14 +254,15 @@ def evaluate_fusion_retrieval(pdf_path, test_queries, reference_answers=None, k=
         logger.debug(comparison["fusion_result"]["response"])
         logger.debug("\n=== Comparison ===")
         logger.debug(comparison["comparison"])
-    overall_analysis = generate_overall_analysis(results, model)
+    overall_analysis = generate_overall_analysis(results, mlx, model)
     return {
         "results": results,
         "overall_analysis": overall_analysis
     }
 
 
-def generate_overall_analysis(results, model="llama-3.2-1b-instruct-4bit"):
+def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+    """Generate overall analysis of retrieval methods."""
     evaluations_summary = ""
     for i, result in enumerate(results):
         evaluations_summary += f"Query {i+1}: {result['query']}\n"
@@ -328,7 +280,10 @@ def generate_overall_analysis(results, model="llama-3.2-1b-instruct-4bit"):
     return response["choices"][0]["message"]["content"]
 
 
-pdf_path = os.path.join(DATA_DIR, "AI_Information.pdf")
+script_dir, generated_dir, log_file, logger = setup_config(__file__)
+mlx, embed_func = initialize_mlx(logger)
+formatted_texts, original_chunks = load_json_data(DOCS_PATH, logger)
+logger.info("Loaded pre-chunked data from DOCS_PATH")
 test_queries = [
     "What are the main applications of transformer models in natural language processing?"
 ]
@@ -338,12 +293,17 @@ reference_answers = [
 k = 5
 alpha = 0.5
 evaluation_results = evaluate_fusion_retrieval(
-    pdf_path=pdf_path,
+    chunks=original_chunks,
     test_queries=test_queries,
+    embed_func=embed_func,
+    mlx=mlx,
     reference_answers=reference_answers,
     k=k,
     alpha=alpha
 )
-logger.debug("\n\n=== OVERALL ANALYSIS ===\n")
+save_file(evaluation_results, f"{generated_dir}/evaluation_results.json")
+logger.info(
+    f"Saved evaluation results to {generated_dir}/evaluation_results.json")
+logger.debug("\n=== OVERALL ANALYSIS ===\n")
 logger.debug(evaluation_results["overall_analysis"])
 logger.info("\n\n[DONE]", bright=True)

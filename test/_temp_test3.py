@@ -1,36 +1,56 @@
-from pathlib import Path
-import re
-from typing import List
-from jet.logger import logger
-from jet.transformers.formatters import format_json
-from jet.utils.commands import copy_to_clipboard
+import ast
+import os
+from typing import Dict, List, Union
 
 
-def get_python_filenames(directory_path: str) -> List[str]:
+def extract_class_and_function_defs(target_dir: str) -> Dict[str, List[str]]:
     """
-    Returns the base names of .py files in the specified directory (non-recursively).
+    Recursively extracts class and function headers and docstrings from .py files.
 
-    :param directory_path: Path to the directory
-    :return: List of .py file names
+    Args:
+        target_dir (str): The directory to search.
+
+    Returns:
+        Dict[str, List[str]]: A mapping of file paths to a list of stripped defs.
     """
-    dir_path = Path(directory_path)
-    if not dir_path.is_dir():
-        raise ValueError(f"{directory_path} is not a valid directory")
+    def_nodes = {}
 
-    return [item.name for item in dir_path.iterdir()
-            if item.is_file() and item.suffix == ".py"]
+    for root, _, files in os.walk(target_dir):
+        for file in files:
+            if file.endswith(".py"):
+                full_path = os.path.join(root, file)
+                try:
+                    with open(full_path, "r", encoding="utf-8") as f:
+                        source = f.read()
+                    lines = source.splitlines()
+                    tree = ast.parse(source, filename=full_path)
 
+                    extracted = []
 
-def sort_key(filename):
-    match = re.match(r'^(\d+)', filename)
-    return (int(match.group(1)) if match else float('inf'), filename)
+                    for node in ast.iter_child_nodes(tree):
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                            # Extract signature line
+                            header = lines[node.lineno - 1].rstrip()
 
+                            # Extract docstring if present
+                            docstring = ast.get_docstring(node, clean=False)
+                            if docstring:
+                                # Get the line numbers of the docstring
+                                first_stmt = node.body[0]
+                                if isinstance(first_stmt, ast.Expr) and isinstance(first_stmt.value, ast.Str):
+                                    doc_lines = lines[first_stmt.lineno -
+                                                      1:first_stmt.end_lineno]
+                                else:
+                                    doc_lines = []
+                            else:
+                                doc_lines = []
 
-python_files = get_python_filenames(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/all-rag-techniques")
+                            extracted.append("\n".join([header] + doc_lines))
 
+                    if extracted:
+                        def_nodes[full_path] = extracted
 
-sorted_files = sorted(python_files, key=sort_key)
+                except (SyntaxError, UnicodeDecodeError) as e:
+                    print(f"Error processing {full_path}: {e}")
 
-logger.success(format_json(sorted_files))
-copy_to_clipboard(format_json(sorted_files))
+    return def_nodes

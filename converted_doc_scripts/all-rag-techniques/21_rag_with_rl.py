@@ -1,37 +1,18 @@
-from jet.llm.mlx.base import MLX
-from jet.llm.utils.embeddings import get_embedding_function
-from jet.logger import CustomLogger
-from typing import Dict, List, Tuple, Optional, Union
 import json
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import pypdf
-
-script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
-DATA_DIR = os.path.join(script_dir, "data")
-os.makedirs(DATA_DIR, exist_ok=True)
-logger.info("Initializing MLX and embedding function")
-mlx = MLX()
-embed_func = get_embedding_function("mxbai-embed-large")
-
-
-def extract_text_from_pdf(pdf_path: str) -> str:
-    logger.debug(f"Extracting text from {pdf_path}...")
-    all_text = ""
-    with open(pdf_path, "rb") as file:
-        reader = pypdf.PdfReader(file)
-        for page in reader.pages:
-            text = page.extract_text() or ""
-            all_text += text
-    return all_text
+from typing import Dict, List, Tuple, Optional, Union
+from jet.file.utils import save_file
+from helpers import (
+    setup_config, initialize_mlx, generate_embeddings,
+    load_validation_data, generate_ai_response,
+    load_json_data, SimpleVectorStore, DATA_DIR, DOCS_PATH
+)
 
 
 def split_into_chunks(text: str, chunk_size: int = 100) -> List[str]:
+    """Split text into chunks based on word count."""
     chunks = []
     words = text.split()
     for i in range(0, len(words), chunk_size):
@@ -41,61 +22,29 @@ def split_into_chunks(text: str, chunk_size: int = 100) -> List[str]:
 
 
 def preprocess_text(text: str) -> str:
+    """Preprocess text by lowercasing and keeping alphanumeric characters."""
     text = text.lower()
     text = ''.join(char for char in text if char.isalnum() or char.isspace())
     return text
 
 
 def preprocess_chunks(chunks: List[str]) -> List[str]:
+    """Preprocess a list of chunks."""
     return [preprocess_text(chunk) for chunk in chunks]
 
 
-def generate_embeddings(chunks: List[str]) -> np.ndarray:
-    embeddings = embed_func(chunks)
-    return np.array(embeddings)
-
-
-def save_embeddings(embeddings: np.ndarray, output_file: str) -> None:
-    with open(output_file, 'w', encoding='utf-8') as file:
-        json.dump(embeddings.tolist(), file)
-
-
-vector_store: dict[int, dict[str, object]] = {}
-
-
-def add_to_vector_store(embeddings: np.ndarray, chunks: List[str]) -> None:
+def add_to_vector_store(vector_store: SimpleVectorStore, embeddings: List[np.ndarray], chunks: List[str]) -> None:
+    """Add embeddings and chunks to vector store."""
     for embedding, chunk in zip(embeddings, chunks):
-        vector_store[len(vector_store)] = {
-            "embedding": embedding, "chunk": chunk}
-
-
-def cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
-    vec1 = vec1.flatten()
-    vec2 = vec2.flatten()
-    dot_product = np.dot(vec1, vec2)
-    norm_vec1 = np.linalg.norm(vec1)
-    norm_vec2 = np.linalg.norm(vec2)
-    if norm_vec1 == 0 or norm_vec2 == 0:
-        return 0.0
-    return dot_product / (norm_vec1 * norm_vec2)
-
-
-def similarity_search(query_embedding: np.ndarray, top_k: int = 5) -> List[str]:
-    similarities = []
-    for key, value in vector_store.items():
-        similarity = cosine_similarity(query_embedding, value["embedding"])
-        similarities.append((key, similarity))
-    similarities = sorted(similarities, key=lambda x: x[1], reverse=True)
-    return [vector_store[key]["chunk"] for key, _ in similarities[:top_k]]
-
-
-def retrieve_relevant_chunks(query_text: str, top_k: int = 5) -> List[str]:
-    query_embedding = generate_embeddings([query_text])[0]
-    relevant_chunks = similarity_search(query_embedding, top_k=top_k)
-    return relevant_chunks
+        vector_store.add_item(
+            text=chunk,
+            embedding=embedding,
+            metadata={"chunk_index": len(vector_store.texts)}
+        )
 
 
 def construct_prompt(query: str, context_chunks: List[str]) -> str:
+    """Construct prompt for response generation."""
     context = "\n".join(context_chunks)
     system_message = (
         "You are a helpful assistant. Only use the provided context to answer the question. "
@@ -105,27 +54,22 @@ def construct_prompt(query: str, context_chunks: List[str]) -> str:
     return prompt
 
 
-def generate_response(
-    prompt: str,
-    model: str = "llama-3.2-1b-instruct-4bit",
-    max_tokens: int = 512,
-    temperature: float = 1.0
-) -> str:
-    response = mlx.chat(
-        [
-            {"role": "user", "content": prompt}
-        ],
+def basic_rag_pipeline(query: str, vector_store: SimpleVectorStore, embed_func, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+    """Run basic RAG pipeline."""
+    query_embedding = embed_func(query)
+    relevant_chunks = vector_store.search(query_embedding, top_k=5)
+    context = [chunk["text"] for chunk in relevant_chunks]
+    prompt = construct_prompt(query, context)
+    response = generate_ai_response(
+        query,
+        prompt,
+        relevant_chunks,
+        mlx,
+        logger,
         model=model,
-        max_tokens=max_tokens,
-        temperature=temperature
+        max_tokens=512,
+        temperature=1.0
     )
-    return response["choices"][0]["message"]["content"]
-
-
-def basic_rag_pipeline(query: str) -> str:
-    relevant_chunks: List[str] = retrieve_relevant_chunks(query)
-    prompt: str = construct_prompt(query, relevant_chunks)
-    response: str = generate_response(prompt)
     return response
 
 
@@ -136,36 +80,40 @@ def define_state(
     previous_responses: List[str] = None,
     previous_rewards: List[float] = None
 ) -> dict:
-    state = {
+    """Define RL state."""
+    return {
         "original_query": query,
         "current_query": rewritten_query if rewritten_query else query,
         "context": context_chunks,
         "previous_responses": previous_responses if previous_responses else [],
         "previous_rewards": previous_rewards if previous_rewards else []
     }
-    return state
 
 
 def define_action_space() -> List[str]:
-    actions = ["rewrite_query", "expand_context",
-               "filter_context", "generate_response"]
-    return actions
+    """Define RL action space."""
+    return ["rewrite_query", "expand_context", "filter_context", "generate_response"]
 
 
-def calculate_reward(response: str, ground_truth: str) -> float:
-    response_embedding = generate_embeddings([response])[0]
-    ground_truth_embedding = generate_embeddings([ground_truth])[0]
-    similarity = cosine_similarity(response_embedding, ground_truth_embedding)
-    return similarity
+def calculate_reward(response: str, ground_truth: str, embed_func) -> float:
+    """Calculate reward based on cosine similarity."""
+    response_embedding = embed_func(response)
+    ground_truth_embedding = embed_func(ground_truth)
+    return np.dot(response_embedding, ground_truth_embedding) / (
+        np.linalg.norm(response_embedding) *
+        np.linalg.norm(ground_truth_embedding)
+    )
 
 
 def rewrite_query(
     query: str,
     context_chunks: List[str],
+    mlx,
     model: str = "llama-3.2-1b-instruct-4bit",
     max_tokens: int = 100,
     temperature: float = 0.3
 ) -> str:
+    """Rewrite query for better precision."""
     system_prompt = "You are a helpful assistant. Rewrite the query to make it more precise and contextually relevant, based on the provided context."
     context = "\n".join(context_chunks)
     user_prompt = f"Context:\n{context}\n\nOriginal Query: {query}\n\nRewritten Query:"
@@ -178,35 +126,33 @@ def rewrite_query(
         max_tokens=max_tokens,
         temperature=temperature
     )
-    rewritten_query = response["choices"][0]["message"]["content"].strip()
-    return rewritten_query
+    return response["choices"][0]["message"]["content"].strip()
 
 
-def expand_context(query: str, current_chunks: List[str], top_k: int = 3) -> List[str]:
-    additional_chunks = retrieve_relevant_chunks(
-        query, top_k=top_k + len(current_chunks))
-    new_chunks = []
-    for chunk in additional_chunks:
-        if chunk not in current_chunks:
-            new_chunks.append(chunk)
-    expanded_context = current_chunks + new_chunks[:top_k]
-    return expanded_context
+def expand_context(query: str, current_chunks: List[str], vector_store: SimpleVectorStore, embed_func, top_k: int = 3) -> List[str]:
+    """Expand context with additional relevant chunks."""
+    query_embedding = embed_func(query)
+    additional_chunks = vector_store.search(
+        query_embedding, top_k=top_k + len(current_chunks))
+    new_chunks = [chunk["text"]
+                  for chunk in additional_chunks if chunk["text"] not in current_chunks]
+    return current_chunks + new_chunks[:top_k]
 
 
-def filter_context(query: str, context_chunks: List[str]) -> List[str]:
+def filter_context(query: str, context_chunks: List[str], embed_func) -> List[str]:
+    """Filter context to keep most relevant chunks."""
     if not context_chunks:
         return []
-    query_embedding = generate_embeddings([query])[0]
-    chunk_embeddings = [generate_embeddings(
-        [chunk])[0] for chunk in context_chunks]
-    relevance_scores = []
-    for chunk_embedding in chunk_embeddings:
-        score = cosine_similarity(query_embedding, chunk_embedding)
-        relevance_scores.append(score)
+    query_embedding = embed_func(query)
+    chunk_embeddings = [embed_func(chunk) for chunk in context_chunks]
+    relevance_scores = [
+        np.dot(query_embedding, chunk_emb) / (
+            np.linalg.norm(query_embedding) * np.linalg.norm(chunk_emb)
+        ) for chunk_emb in chunk_embeddings
+    ]
     sorted_chunks = [x for _, x in sorted(
         zip(relevance_scores, context_chunks), reverse=True)]
-    filtered_chunks = sorted_chunks[:min(5, len(sorted_chunks))]
-    return filtered_chunks
+    return sorted_chunks[:min(5, len(sorted_chunks))]
 
 
 def policy_network(
@@ -214,59 +160,70 @@ def policy_network(
     action_space: List[str],
     epsilon: float = 0.2
 ) -> str:
+    """Select action using epsilon-greedy policy."""
     if np.random.random() < epsilon:
-        action = np.random.choice(action_space)
-    else:
-        if len(state["previous_responses"]) == 0:
-            action = "rewrite_query"
-        elif state["previous_rewards"] and max(state["previous_rewards"]) < 0.7:
-            action = "expand_context"
-        elif len(state["context"]) > 5:
-            action = "filter_context"
-        else:
-            action = "generate_response"
-    return action
+        return np.random.choice(action_space)
+    if not state["previous_responses"]:
+        return "rewrite_query"
+    if state["previous_rewards"] and max(state["previous_rewards"]) < 0.7:
+        return "expand_context"
+    if len(state["context"]) > 5:
+        return "filter_context"
+    return "generate_response"
 
 
 def rl_step(
     state: dict,
     action_space: List[str],
-    ground_truth: str
+    ground_truth: str,
+    vector_store: SimpleVectorStore,
+    embed_func,
+    mlx,
+    model: str = "llama-3.2-1b-instruct-4bit"
 ) -> tuple[dict, str, float, str]:
-    action: str = policy_network(state, action_space)
-    response: str = None
-    reward: float = 0
+    """Execute one RL step."""
+    action = policy_network(state, action_space)
+    response = None
+    reward = 0
     if action == "rewrite_query":
-        rewritten_query: str = rewrite_query(
-            state["original_query"], state["context"])
+        rewritten_query = rewrite_query(
+            state["original_query"], state["context"], mlx, model)
         state["current_query"] = rewritten_query
-        new_context: List[str] = retrieve_relevant_chunks(rewritten_query)
+        query_embedding = embed_func(rewritten_query)
+        new_context = [chunk["text"]
+                       for chunk in vector_store.search(query_embedding, top_k=5)]
         state["context"] = new_context
     elif action == "expand_context":
-        expanded_context: List[str] = expand_context(
-            state["current_query"], state["context"])
-        state["context"] = expanded_context
+        state["context"] = expand_context(
+            state["current_query"], state["context"], vector_store, embed_func)
     elif action == "filter_context":
-        filtered_context: List[str] = filter_context(
-            state["current_query"], state["context"])
-        state["context"] = filtered_context
+        state["context"] = filter_context(
+            state["current_query"], state["context"], embed_func)
     elif action == "generate_response":
-        prompt: str = construct_prompt(
-            state["current_query"], state["context"])
-        response: str = generate_response(prompt)
-        reward: float = calculate_reward(response, ground_truth)
+        prompt = construct_prompt(state["current_query"], state["context"])
+        response = generate_ai_response(
+            state["current_query"],
+            prompt,
+            [{"text": chunk} for chunk in state["context"]],
+            mlx,
+            logger,
+            model=model,
+            max_tokens=512,
+            temperature=1.0
+        )
+        reward = calculate_reward(response, ground_truth, embed_func)
         state["previous_responses"].append(response)
         state["previous_rewards"].append(reward)
     return state, action, reward, response
 
 
 def initialize_training_params() -> Dict[str, Union[float, int]]:
-    params = {
+    """Initialize RL training parameters."""
+    return {
         "learning_rate": 0.01,
         "num_episodes": 100,
         "discount_factor": 0.99
     }
-    return params
 
 
 def update_policy(
@@ -276,6 +233,7 @@ def update_policy(
     reward: float,
     learning_rate: float
 ) -> Dict[str, Dict[str, Union[float, str]]]:
+    """Update RL policy."""
     policy[state["original_query"]] = {
         "action": action,
         "reward": reward
@@ -283,40 +241,38 @@ def update_policy(
     return policy
 
 
-def track_progress(
-    episode: int,
-    reward: float,
-    rewards_history: List[float]
-) -> List[float]:
-    rewards_history.append(reward)
-    logger.debug(f"Episode {episode}: Reward = {reward}")
-    return rewards_history
-
-
 def training_loop(
     query_text: str,
     ground_truth: str,
+    vector_store: SimpleVectorStore,
+    embed_func,
+    mlx,
     params: Optional[Dict[str, Union[float, int]]] = None
 ) -> Tuple[Dict[str, Dict[str, Union[float, str]]], List[float], List[List[str]], Optional[str]]:
+    """Run RL training loop."""
     if params is None:
         params = initialize_training_params()
-    rewards_history: List[float] = []
-    actions_history: List[List[str]] = []
-    policy: Dict[str, Dict[str, Union[float, str]]] = {}
-    action_space: List[str] = define_action_space()
-    best_response: Optional[str] = None
-    best_reward: float = -1
-    simple_response: str = basic_rag_pipeline(query_text)
-    simple_reward: float = calculate_reward(simple_response, ground_truth)
+    rewards_history = []
+    actions_history = []
+    policy = {}
+    action_space = define_action_space()
+    best_response = None
+    best_reward = -1
+    simple_response = basic_rag_pipeline(
+        query_text, vector_store, embed_func, mlx)
+    simple_reward = calculate_reward(simple_response, ground_truth, embed_func)
     logger.debug(f"Simple RAG reward: {simple_reward:.4f}")
     for episode in range(params["num_episodes"]):
-        context_chunks: List[str] = retrieve_relevant_chunks(query_text)
-        state: Dict[str, object] = define_state(query_text, context_chunks)
-        episode_reward: float = 0
-        episode_actions: List[str] = []
+        query_embedding = embed_func(query_text)
+        context_chunks = [chunk["text"]
+                          for chunk in vector_store.search(query_embedding, top_k=5)]
+        state = define_state(query_text, context_chunks)
+        episode_reward = 0
+        episode_actions = []
         for step in range(10):
             state, action, reward, response = rl_step(
-                state, action_space, ground_truth)
+                state, action_space, ground_truth, vector_store, embed_func, mlx
+            )
             episode_actions.append(action)
             if response:
                 episode_reward = reward
@@ -329,7 +285,7 @@ def training_loop(
         if episode % 5 == 0:
             logger.debug(
                 f"Episode {episode}: Reward = {episode_reward:.4f}, Actions = {episode_actions}")
-    improvement: float = best_reward - simple_reward
+    improvement = best_reward - simple_reward
     logger.debug(f"\nTraining completed:")
     logger.debug(f"Simple RAG reward: {simple_reward:.4f}")
     logger.debug(f"Best RL-enhanced RAG reward: {best_reward:.4f}")
@@ -337,32 +293,52 @@ def training_loop(
     return policy, rewards_history, actions_history, best_response
 
 
-def compare_rag_approaches(query_text: str, ground_truth: str) -> Tuple[str, str, float, float]:
+def compare_rag_approaches(
+    query_text: str,
+    ground_truth: str,
+    vector_store: SimpleVectorStore,
+    embed_func,
+    mlx
+) -> Tuple[str, str, float, float]:
+    """Compare simple and RL-enhanced RAG."""
     logger.debug("=" * 80)
     logger.debug(f"Query: {query_text}")
     logger.debug("=" * 80)
-    simple_response: str = basic_rag_pipeline(query_text)
-    simple_similarity: float = calculate_reward(simple_response, ground_truth)
+    simple_response = basic_rag_pipeline(
+        query_text, vector_store, embed_func, mlx)
+    simple_similarity = calculate_reward(
+        simple_response, ground_truth, embed_func)
     logger.debug("\nSimple RAG Output:")
     logger.debug("-" * 40)
     logger.debug(simple_response)
     logger.debug(f"Similarity to ground truth: {simple_similarity:.4f}")
     logger.debug("\nTraining RL-enhanced RAG model...")
-    params: Dict[str, float | int] = initialize_training_params()
+    params = initialize_training_params()
     params["num_episodes"] = 5
     _, rewards_history, actions_history, best_rl_response = training_loop(
-        query_text, ground_truth, params
+        query_text, ground_truth, vector_store, embed_func, mlx, params
     )
     if best_rl_response is None:
-        context_chunks: List[str] = retrieve_relevant_chunks(query_text)
-        prompt: str = construct_prompt(query_text, context_chunks)
-        best_rl_response: str = generate_response(prompt)
-    rl_similarity: float = calculate_reward(best_rl_response, ground_truth)
+        query_embedding = embed_func(query_text)
+        context_chunks = [chunk["text"]
+                          for chunk in vector_store.search(query_embedding, top_k=5)]
+        prompt = construct_prompt(query_text, context_chunks)
+        best_rl_response = generate_ai_response(
+            query_text,
+            prompt,
+            [{"text": chunk} for chunk in context_chunks],
+            mlx,
+            logger,
+            max_tokens=512,
+            temperature=1.0
+        )
+    rl_similarity = calculate_reward(
+        best_rl_response, ground_truth, embed_func)
     logger.debug("\nRL-enhanced RAG Output:")
     logger.debug("-" * 40)
     logger.debug(best_rl_response)
     logger.debug(f"Similarity to ground truth: {rl_similarity:.4f}")
-    improvement: float = rl_similarity - simple_similarity
+    improvement = rl_similarity - simple_similarity
     logger.debug("\nEvaluation Results:")
     logger.debug("-" * 40)
     logger.debug(
@@ -381,76 +357,85 @@ def compare_rag_approaches(query_text: str, ground_truth: str) -> Tuple[str, str
     return simple_response, best_rl_response, simple_similarity, rl_similarity
 
 
-def evaluate_relevance(retrieved_chunks: List[str], ground_truth_chunks: List[str]) -> float:
-    relevance_scores: List[float] = []
+def evaluate_relevance(retrieved_chunks: List[str], ground_truth_chunks: List[str], embed_func) -> float:
+    """Evaluate relevance of retrieved chunks."""
+    relevance_scores = []
     for retrieved, ground_truth in zip(retrieved_chunks, ground_truth_chunks):
-        relevance: float = cosine_similarity(
-            generate_embeddings([retrieved])[0],
-            generate_embeddings([ground_truth])[0]
+        relevance = np.dot(embed_func(retrieved), embed_func(ground_truth)) / (
+            np.linalg.norm(embed_func(retrieved)) *
+            np.linalg.norm(embed_func(ground_truth))
         )
         relevance_scores.append(relevance)
     return np.mean(relevance_scores)
 
 
-def evaluate_accuracy(responses: List[str], ground_truth_responses: List[str]) -> float:
-    accuracy_scores: List[float] = []
+def evaluate_accuracy(responses: List[str], ground_truth_responses: List[str], embed_func) -> float:
+    """Evaluate accuracy of responses."""
+    accuracy_scores = []
     for response, ground_truth in zip(responses, ground_truth_responses):
-        accuracy: float = cosine_similarity(
-            generate_embeddings([response])[0],
-            generate_embeddings([ground_truth])[0]
+        accuracy = np.dot(embed_func(response), embed_func(ground_truth)) / (
+            np.linalg.norm(embed_func(response)) *
+            np.linalg.norm(embed_func(ground_truth))
         )
         accuracy_scores.append(accuracy)
     return np.mean(accuracy_scores)
 
 
 def evaluate_response_quality(responses: List[str]) -> float:
-    quality_scores: List[float] = []
-    for response in responses:
-        quality: float = len(response.split()) / 100
-        quality_scores.append(min(quality, 1.0))
+    """Evaluate quality of responses based on length."""
+    quality_scores = [min(len(response.split()) / 100, 1.0)
+                      for response in responses]
     return np.mean(quality_scores)
 
 
 def evaluate_rag_performance(
     queries: List[str],
     ground_truth_chunks: List[str],
-    ground_truth_responses: List[str]
+    ground_truth_responses: List[str],
+    vector_store: SimpleVectorStore,
+    embed_func,
+    mlx
 ) -> Dict[str, float]:
-    relevance_scores: List[float] = []
-    accuracy_scores: List[float] = []
-    quality_scores: List[float] = []
+    """Evaluate RAG performance."""
+    relevance_scores = []
+    accuracy_scores = []
+    quality_scores = []
     for query, ground_truth_chunk, ground_truth_response in zip(queries, ground_truth_chunks, ground_truth_responses):
-        retrieved_chunks: List[str] = retrieve_relevant_chunks(query)
-        relevance: float = evaluate_relevance(
-            retrieved_chunks, [ground_truth_chunk])
+        query_embedding = embed_func(query)
+        retrieved_chunks = [chunk["text"]
+                            for chunk in vector_store.search(query_embedding, top_k=5)]
+        relevance = evaluate_relevance(
+            retrieved_chunks, [ground_truth_chunk], embed_func)
         relevance_scores.append(relevance)
-        response: str = basic_rag_pipeline(query)
-        accuracy: float = evaluate_accuracy(
-            [response], [ground_truth_response])
+        response = basic_rag_pipeline(query, vector_store, embed_func, mlx)
+        accuracy = evaluate_accuracy(
+            [response], [ground_truth_response], embed_func)
         accuracy_scores.append(accuracy)
-        quality: float = evaluate_response_quality([response])
+        quality = evaluate_response_quality([response])
         quality_scores.append(quality)
-    avg_relevance: float = np.mean(relevance_scores)
-    avg_accuracy: float = np.mean(accuracy_scores)
-    avg_quality: float = np.mean(quality_scores)
     return {
-        "average_relevance": avg_relevance,
-        "average_accuracy": avg_accuracy,
-        "average_quality": avg_quality
+        "average_relevance": np.mean(relevance_scores),
+        "average_accuracy": np.mean(accuracy_scores),
+        "average_quality": np.mean(quality_scores)
     }
 
 
-pdf_path = os.path.join(DATA_DIR, "AI_Information.pdf")
-text = extract_text_from_pdf(pdf_path)
-chunks = split_into_chunks(text)
-preprocessed_chunks = preprocess_chunks(chunks)
-embeddings = generate_embeddings(preprocessed_chunks)
-save_embeddings(embeddings, os.path.join(DATA_DIR, "embeddings.json"))
-add_to_vector_store(embeddings, preprocessed_chunks)
-
+script_dir, generated_dir, log_file, logger = setup_config(__file__)
+mlx, embed_func = initialize_mlx(logger)
+formatted_texts, original_chunks = load_json_data(DOCS_PATH, logger)
+logger.info("Loaded pre-chunked data from DOCS_PATH")
+preprocessed_chunks = preprocess_chunks(original_chunks)
+vector_store = SimpleVectorStore()
+embeddings = generate_embeddings(preprocessed_chunks, embed_func, logger)
+add_to_vector_store(vector_store, embeddings, preprocessed_chunks)
 sample_query = "What is Quantum Computing?"
-expected_answer = "Quantum computing is a type of computing that utilizes principles of quantum mechanics, such as superposition, entanglement, and quantum interference, to process information. Unlike classical computers, which use bits to represent information as 0s or 1s, quantum computers use quantum bits or qubits, which can exist in multiple states simultaneously, enabling potentially exponential increases in computational power for certain problems."
-response = basic_rag_pipeline(sample_query)
+expected_answer = (
+    "Quantum computing is a type of computing that utilizes principles of quantum mechanics, such as superposition, "
+    "entanglement, and quantum interference, to process information. Unlike classical computers, which use bits to "
+    "represent information as 0s or 1s, quantum computers use quantum bits or qubits, which can exist in multiple states "
+    "simultaneously, enabling potentially exponential increases in computational power for certain problems."
+)
+response = basic_rag_pipeline(sample_query, vector_store, embed_func, mlx)
 logger.debug("🔍 Running the Retrieval-Augmented Generation (RAG) pipeline...")
 logger.debug(f"📥 Query: {sample_query}\n")
 logger.debug("🤖 AI Response:")
@@ -461,10 +446,9 @@ logger.debug("✅ Ground Truth Answer:")
 logger.debug("-" * 50)
 logger.debug(expected_answer)
 logger.debug("-" * 50)
-
 simple_response, rl_response, simple_sim, rl_sim = compare_rag_approaches(
-    sample_query, expected_answer)
-
+    sample_query, expected_answer, vector_store, embed_func, mlx
+)
 results = {
     "query": sample_query,
     "ground_truth": expected_answer,
@@ -478,7 +462,6 @@ results = {
     },
     "improvement": float(rl_sim - simple_sim)
 }
-with open(os.path.join(DATA_DIR, 'rl_rag_results.json'), 'w') as f:
-    json.dump(results, f, indent=2)
+save_file(results, f"{generated_dir}/rl_rag_results.json")
 logger.debug("\nResults saved to rl_rag_results.json")
 logger.info("\n\n[DONE]", bright=True)

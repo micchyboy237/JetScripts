@@ -1,37 +1,19 @@
-from jet.llm.mlx.base import MLX
-from jet.llm.utils.embeddings import get_embedding_function
-from jet.logger import CustomLogger
-import pypdf
 import json
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import os
 import re
-
-script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
-DATA_DIR = os.path.join(script_dir, "data")
-os.makedirs(DATA_DIR, exist_ok=True)
-logger.info("Initializing MLX and embedding function")
-mlx = MLX()
-embed_func = get_embedding_function("mxbai-embed-large")
+from typing import List, Dict, Any
+from jet.file.utils import save_file
+from helpers import (
+    setup_config, initialize_mlx, generate_embeddings,
+    load_validation_data, generate_ai_response,
+    load_json_data, SearchResult, SimpleVectorStore, DATA_DIR, DOCS_PATH
+)
 
 
-def extract_text_from_pdf(pdf_path):
-    all_text = ""
-    with open(pdf_path, "rb") as file:
-        reader = pypdf.PdfReader(file)
-        for page in reader.pages:
-            text = page.extract_text() or ""
-            all_text += text
-    return all_text
-
-
-def chunk_text(text, chunk_size=1000, overlap=200):
+def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[Dict[str, Any]]:
+    """Chunk text into overlapping segments with metadata."""
     chunks = []
     for i in range(0, len(text), chunk_size - overlap):
         chunk_text = text[i:i + chunk_size]
@@ -46,53 +28,8 @@ def chunk_text(text, chunk_size=1000, overlap=200):
     return chunks
 
 
-def create_embeddings(texts):
-    if not texts:
-        return []
-    embeddings = embed_func(texts)
-    return embeddings
-
-
-class SimpleVectorStore:
-    def __init__(self):
-        self.vectors = []
-        self.texts = []
-        self.metadata = []
-
-    def add_item(self, text, embedding, metadata=None):
-        self.vectors.append(np.array(embedding))
-        self.texts.append(text)
-        self.metadata.append(metadata or {})
-
-    def similarity_search(self, query_embedding, k=5):
-        if not self.vectors:
-            return []
-        query_vector = np.array(query_embedding).flatten()
-        similarities = []
-        for i, vector in enumerate(self.vectors):
-            vector = vector.flatten()
-            dot_product = np.dot(query_vector, vector)
-            query_norm = np.linalg.norm(query_vector)
-            vector_norm = np.linalg.norm(vector)
-            if query_norm == 0 or vector_norm == 0:
-                similarity = 0.0
-            else:
-                similarity = dot_product / (query_norm * vector_norm)
-            similarities.append((i, similarity))
-        similarities.sort(key=lambda x: -float('inf')
-                          if np.isnan(x[1]) else x[1], reverse=True)
-        results = []
-        for i in range(min(k, len(similarities))):
-            idx, score = similarities[i]
-            results.append({
-                "text": self.texts[idx],
-                "metadata": self.metadata[idx],
-                "similarity": score
-            })
-        return results
-
-
-def extract_concepts(text, model="llama-3.2-1b-instruct-4bit"):
+def extract_concepts(text: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> List[str]:
+    """Extract key concepts from text."""
     system_message = "You are an expert in knowledge extraction. Extract key concepts from the provided text. Return a JSON object with a 'concepts' key containing a list of strings."
     response = mlx.chat(
         [
@@ -102,7 +39,6 @@ def extract_concepts(text, model="llama-3.2-1b-instruct-4bit"):
         ],
         model=model,
         temperature=0.0,
-        # response_format={"type": "json_object"}
     )
     try:
         concepts_json = json.loads(
@@ -123,25 +59,26 @@ def extract_concepts(text, model="llama-3.2-1b-instruct-4bit"):
         return []
 
 
-def build_knowledge_graph(chunks, pdf_path):
+def build_knowledge_graph(chunks: List[Dict[str, Any]], embed_func, source: str) -> tuple[nx.Graph, List[np.ndarray], SimpleVectorStore]:
+    """Build a knowledge graph from chunks."""
     logger.debug("Building knowledge graph...")
     graph = nx.Graph()
     texts = [chunk["text"] for chunk in chunks]
     logger.debug("Creating embeddings for chunks...")
-    embeddings = create_embeddings(texts)
+    embeddings = generate_embeddings(texts, embed_func, logger)
     logger.debug("Adding nodes to the graph...")
     store = SimpleVectorStore()
     for i, chunk in enumerate(chunks):
         logger.debug(f"Extracting concepts for chunk {i+1}/{len(chunks)}...")
-        concepts = extract_concepts(chunk["text"])
+        concepts = extract_concepts(chunk["text"], mlx)
         graph.add_node(i, text=chunk["text"],
                        concepts=concepts, embedding=embeddings[i])
         store.add_item(
             text=chunk["text"],
             embedding=embeddings[i],
-            metadata={"index": i, "source": pdf_path}
+            metadata={"index": i, "source": source}
         )
-    logger.debug("Creating Edges between nodes...")
+    logger.debug("Creating edges between nodes...")
     for i in range(len(chunks)):
         node_concepts = set(graph.nodes[i]["concepts"])
         for j in range(i + 1, len(chunks)):
@@ -161,10 +98,11 @@ def build_knowledge_graph(chunks, pdf_path):
     return graph, embeddings, store
 
 
-def traverse_graph(query, graph, store, top_k=5, max_depth=3):
+def traverse_graph(query: str, graph: nx.Graph, store: SimpleVectorStore, embed_func, top_k: int = 5, max_depth: int = 3) -> tuple[List[Dict[str, Any]], List[int]]:
+    """Traverse graph to find relevant chunks."""
     logger.debug(f"Traversing graph for query: {query}")
-    query_embedding = create_embeddings([query])[0]
-    initial_results = store.similarity_search(query_embedding, k=top_k)
+    query_embedding = embed_func(query)
+    initial_results = store.search(query_embedding, top_k=top_k)
     starting_nodes = [result["metadata"]["index"]
                       for result in initial_results]
     logger.debug(f"Starting traversal from {len(starting_nodes)} nodes")
@@ -197,25 +135,8 @@ def traverse_graph(query, graph, store, top_k=5, max_depth=3):
     return results, traversal_path
 
 
-def generate_response(query, context_chunks, model="llama-3.2-1b-instruct-4bit"):
-    context_texts = [chunk["text"] for chunk in context_chunks]
-    combined_context = "\n\n---\n\n".join(context_texts)
-    max_context = 14000
-    if len(combined_context) > max_context:
-        combined_context = combined_context[:max_context] + "... [truncated]"
-    system_message = "You are a helpful AI assistant. Answer the query based strictly on the provided context. If the context doesn't contain the answer, state that clearly."
-    response = mlx.chat(
-        [
-            {"role": "system", "content": system_message},
-            {"role": "user", "content": f"Context:\n{combined_context}\n\nQuestion: {query}"}
-        ],
-        model=model,
-        temperature=0.2
-    )
-    return response["choices"][0]["message"]["content"]
-
-
-def visualize_graph_traversal(graph, traversal_path):
+def visualize_graph_traversal(graph: nx.Graph, traversal_path: List[int]):
+    """Visualize graph with traversal path."""
     plt.figure(figsize=(12, 10))
     node_color = ['lightblue'] * graph.number_of_nodes()
     for node in traversal_path:
@@ -246,13 +167,20 @@ def visualize_graph_traversal(graph, traversal_path):
     plt.savefig(os.path.join(DATA_DIR, 'graph_traversal.png'))
 
 
-def graph_rag_pipeline(pdf_path, query, chunk_size=1000, chunk_overlap=200, top_k=3):
-    text = extract_text_from_pdf(pdf_path)
-    chunks = chunk_text(text, chunk_size, chunk_overlap)
-    graph, embeddings, store = build_knowledge_graph(chunks, pdf_path)
+def graph_rag_pipeline(chunks: List[Dict[str, Any]], query: str, embed_func, mlx, source: str = "document", chunk_size: int = 1000, chunk_overlap: int = 200, top_k: int = 3) -> Dict[str, Any]:
+    """Run Graph RAG pipeline."""
+    graph, embeddings, store = build_knowledge_graph(
+        chunks, embed_func, source)
     relevant_chunks, traversal_path = traverse_graph(
-        query, graph, store, top_k)
-    response = generate_response(query, relevant_chunks)
+        query, graph, store, embed_func, top_k)
+    response = generate_ai_response(
+        query,
+        "You are a helpful AI assistant. Answer the query based strictly on the provided context. If the context doesn't contain the answer, state that clearly.",
+        relevant_chunks,
+        mlx,
+        logger,
+        model="llama-3.2-1b-instruct-4bit"
+    )
     visualize_graph_traversal(graph, traversal_path)
     return {
         "query": query,
@@ -263,21 +191,30 @@ def graph_rag_pipeline(pdf_path, query, chunk_size=1000, chunk_overlap=200, top_
     }
 
 
-def evaluate_graph_rag(pdf_path, test_queries, reference_answers=None):
-    text = extract_text_from_pdf(pdf_path)
-    chunks = chunk_text(text)
-    graph, embeddings, store = build_knowledge_graph(chunks, pdf_path)
+def evaluate_graph_rag(chunks: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None) -> Dict[str, Any]:
+    """Evaluate Graph RAG performance."""
+    graph, embeddings, store = build_knowledge_graph(
+        chunks, embed_func, "document")
     results = []
     for i, query in enumerate(test_queries):
         logger.debug(f"\n\n=== Evaluating Query {i+1}/{len(test_queries)} ===")
         logger.debug(f"Query: {query}")
-        relevant_chunks, traversal_path = traverse_graph(query, graph, store)
-        response = generate_response(query, relevant_chunks)
+        relevant_chunks, traversal_path = traverse_graph(
+            query, graph, store, embed_func)
+        response = generate_ai_response(
+            query,
+            "You are a helpful AI assistant. Answer the query based strictly on the provided context. If the context doesn't contain the answer, state that clearly.",
+            relevant_chunks,
+            mlx,
+            logger,
+            model="llama-3.2-1b-instruct-4bit"
+        )
         reference = None
         comparison = None
         if reference_answers and i < len(reference_answers):
             reference = reference_answers[i]
-            comparison = compare_with_reference(response, reference, query)
+            comparison = compare_with_reference(
+                response, reference, query, mlx)
         results.append({
             "query": query,
             "response": response,
@@ -299,7 +236,8 @@ def evaluate_graph_rag(pdf_path, test_queries, reference_answers=None):
     }
 
 
-def compare_with_reference(response, reference, query, model="llama-3.2-1b-instruct-4bit"):
+def compare_with_reference(response: str, reference: str, query: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+    """Compare response with reference answer."""
     system_message = "You are an evaluator. Compare the response to the reference answer, assessing accuracy and completeness for the query. Provide a concise comparison."
     prompt = f"Query: {query}\n\nResponse: {response}\n\nReference Answer: {reference}"
     comparison = mlx.chat(
@@ -313,9 +251,17 @@ def compare_with_reference(response, reference, query, model="llama-3.2-1b-instr
     return comparison["choices"][0]["message"]["content"]
 
 
-pdf_path = os.path.join(DATA_DIR, "AI_Information.pdf")
+script_dir, generated_dir, log_file, logger = setup_config(__file__)
+mlx, embed_func = initialize_mlx(logger)
+formatted_texts, original_chunks = load_json_data(DOCS_PATH, logger)
+logger.info("Loaded pre-chunked data from DOCS_PATH")
 query = "What are the key applications of transformers in natural language processing?"
-results = graph_rag_pipeline(pdf_path, query)
+results = graph_rag_pipeline(
+    chunks=original_chunks,
+    query=query,
+    embed_func=embed_func,
+    mlx=mlx
+)
 logger.debug("\n=== ANSWER ===")
 logger.debug(results["response"])
 test_queries = [
@@ -324,7 +270,16 @@ test_queries = [
 reference_answers = [
     "Transformers handle sequential data differently from RNNs by using self-attention mechanisms instead of recurrent connections. This allows transformers to process all tokens in parallel rather than sequentially, capturing long-range dependencies more efficiently and enabling better parallelization during training. Unlike RNNs, transformers don't suffer from vanishing gradient problems with long sequences."
 ]
-evaluation = evaluate_graph_rag(pdf_path, test_queries, reference_answers)
+evaluation = evaluate_graph_rag(
+    chunks=original_chunks,
+    test_queries=test_queries,
+    embed_func=embed_func,
+    mlx=mlx,
+    reference_answers=reference_answers
+)
+save_file(evaluation, f"{generated_dir}/evaluation_results.json")
+logger.info(
+    f"Saved evaluation results to {generated_dir}/evaluation_results.json")
 logger.debug("\n=== EVALUATION SUMMARY ===")
 logger.debug(f"Graph nodes: {evaluation['graph_stats']['nodes']}")
 logger.debug(f"Graph edges: {evaluation['graph_stats']['edges']}")

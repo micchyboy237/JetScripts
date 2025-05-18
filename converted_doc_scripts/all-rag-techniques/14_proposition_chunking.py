@@ -1,35 +1,17 @@
-from jet.llm.mlx.base import MLX
-from jet.llm.utils.embeddings import get_embedding_function
-from jet.logger import CustomLogger
-import pypdf
-import json
 import numpy as np
-import os
 import re
-
-script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
-DATA_DIR = os.path.join(script_dir, "data")
-os.makedirs(DATA_DIR, exist_ok=True)
-logger.info("Initializing MLX and embedding function")
-mlx = MLX()
-embed_func = get_embedding_function("mxbai-embed-large")
+import json
+from typing import List, Dict, Any
+from jet.file.utils import save_file
+from helpers import (
+    setup_config, initialize_mlx, generate_embeddings,
+    load_validation_data, generate_ai_response,
+    load_json_data, SearchResult, SimpleVectorStore, DATA_DIR, DOCS_PATH
+)
 
 
-def extract_text_from_pdf(pdf_path):
-    all_text = ""
-    with open(pdf_path, "rb") as file:
-        reader = pypdf.PdfReader(file)
-        for page in reader.pages:
-            text = page.extract_text() or ""
-            all_text += text
-    return all_text
-
-
-def chunk_text(text, chunk_size=800, overlap=100):
+def chunk_text(text: str, chunk_size: int = 800, overlap: int = 100) -> List[Dict[str, Any]]:
+    """Chunk text into overlapping segments with metadata."""
     chunks = []
     for i in range(0, len(text), chunk_size - overlap):
         chunk = text[i:i + chunk_size]
@@ -44,56 +26,8 @@ def chunk_text(text, chunk_size=800, overlap=100):
     return chunks
 
 
-class SimpleVectorStore:
-    def __init__(self):
-        self.vectors = []
-        self.texts = []
-        self.metadata = []
-
-    def add_item(self, text, embedding, metadata=None):
-        self.vectors.append(np.array(embedding))
-        self.texts.append(text)
-        self.metadata.append(metadata or {})
-
-    def add_items(self, texts, embeddings, metadata_list=None):
-        if metadata_list is None:
-            metadata_list = [{} for _ in range(len(texts))]
-        for text, embedding, metadata in zip(texts, embeddings, metadata_list):
-            self.add_item(text, embedding, metadata)
-
-    def similarity_search(self, query_embedding, k=5):
-        if not self.vectors:
-            return []
-        query_vector = np.array(query_embedding).flatten()
-        similarities = []
-        for i, vector in enumerate(self.vectors):
-            vector = vector.flatten()
-            dot_product = np.dot(query_vector, vector)
-            query_norm = np.linalg.norm(query_vector)
-            vector_norm = np.linalg.norm(vector)
-            if query_norm == 0 or vector_norm == 0:
-                similarity = 0.0
-            else:
-                similarity = dot_product / (query_norm * vector_norm)
-            similarities.append((i, similarity))
-        similarities.sort(key=lambda x: -float('inf')
-                          if np.isnan(x[1]) else x[1], reverse=True)
-        results = []
-        for i in range(min(k, len(similarities))):
-            idx, score = similarities[i]
-            results.append({
-                "text": self.texts[idx],
-                "metadata": self.metadata[idx],
-                "similarity": float(score)
-            })
-        return results
-
-
-def create_embeddings(texts):
-    return embed_func(texts)
-
-
-def generate_propositions(chunk, model="llama-3.2-1b-instruct-4bit"):
+def generate_propositions(chunk: Dict[str, Any], mlx, model: str = "llama-3.2-1b-instruct-4bit") -> List[str]:
+    """Generate propositions from a text chunk."""
     system_prompt = "Convert the provided text into concise propositions, each representing a single fact or idea. List each proposition on a new line."
     user_prompt = f"Text to convert into propositions:\n\n{chunk['text']}"
     response = mlx.chat(
@@ -114,12 +48,9 @@ def generate_propositions(chunk, model="llama-3.2-1b-instruct-4bit"):
     return clean_propositions
 
 
-def evaluate_proposition(proposition, original_text, model="llama-3.2-1b-instruct-4bit"):
-    system_prompt = """Evaluate the proposition based on the original text. Provide a JSON object with scores (0-10) for:
-- accuracy: How factually correct is the proposition?
-- clarity: How clear and understandable is the proposition?
-- completeness: Does it capture a complete idea from the text?
-- conciseness: Is it succinct without losing meaning?"""
+def evaluate_proposition(proposition: str, original_text: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, int]:
+    """Evaluate proposition quality."""
+    system_prompt = "Evaluate the proposition based on accuracy, clarity, completeness, and conciseness on a scale of 0-10. Return a JSON object with these metrics."
     user_prompt = f"Proposition: {proposition}\nOriginal Text: {original_text}"
     response = mlx.chat(
         [
@@ -142,8 +73,8 @@ def evaluate_proposition(proposition, original_text, model="llama-3.2-1b-instruc
         }
 
 
-def process_document_into_propositions(pdf_path, chunk_size=800, chunk_overlap=100,
-                                       quality_thresholds=None, model="llama-3.2-1b-instruct-4bit"):
+def process_document_into_propositions(chunks: List[Dict[str, Any]], mlx, quality_thresholds: Dict[str, int] = None, model: str = "llama-3.2-1b-instruct-4bit") -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Process document into propositions with quality filtering."""
     if quality_thresholds is None:
         quality_thresholds = {
             "accuracy": 7,
@@ -151,13 +82,11 @@ def process_document_into_propositions(pdf_path, chunk_size=800, chunk_overlap=1
             "completeness": 7,
             "conciseness": 7
         }
-    text = extract_text_from_pdf(pdf_path)
-    chunks = chunk_text(text, chunk_size, chunk_overlap)
     all_propositions = []
     logger.debug("Generating propositions from chunks...")
     for i, chunk in enumerate(chunks):
         logger.debug(f"Processing chunk {i+1}/{len(chunks)}...")
-        chunk_propositions = generate_propositions(chunk, model)
+        chunk_propositions = generate_propositions(chunk, mlx, model)
         logger.debug(f"Generated {len(chunk_propositions)} propositions")
         for prop in chunk_propositions:
             proposition_data = {
@@ -172,7 +101,8 @@ def process_document_into_propositions(pdf_path, chunk_size=800, chunk_overlap=1
         if i % 10 == 0:
             logger.debug(
                 f"Evaluating proposition {i+1}/{len(all_propositions)}...")
-        scores = evaluate_proposition(prop["text"], prop["source_text"], model)
+        scores = evaluate_proposition(
+            prop["text"], prop["source_text"], mlx, model)
         prop["quality_scores"] = scores
         passes_quality = True
         for metric, threshold in quality_thresholds.items():
@@ -189,18 +119,19 @@ def process_document_into_propositions(pdf_path, chunk_size=800, chunk_overlap=1
     return chunks, quality_propositions
 
 
-def build_vector_stores(chunks, propositions):
+def build_vector_stores(chunks: List[Dict[str, Any]], propositions: List[Dict[str, Any]], embed_func) -> tuple[SimpleVectorStore, SimpleVectorStore]:
+    """Build vector stores for chunks and propositions."""
     chunk_store = SimpleVectorStore()
     chunk_texts = [chunk["text"] for chunk in chunks]
     logger.debug(f"Creating embeddings for {len(chunk_texts)} chunks...")
-    chunk_embeddings = create_embeddings(chunk_texts)
+    chunk_embeddings = generate_embeddings(chunk_texts, embed_func, logger)
     chunk_metadata = [{"chunk_id": chunk["chunk_id"],
                        "type": "chunk"} for chunk in chunks]
     chunk_store.add_items(chunk_texts, chunk_embeddings, chunk_metadata)
     prop_store = SimpleVectorStore()
     prop_texts = [prop["text"] for prop in propositions]
     logger.debug(f"Creating embeddings for {len(prop_texts)} propositions...")
-    prop_embeddings = create_embeddings(prop_texts)
+    prop_embeddings = generate_embeddings(prop_texts, embed_func, logger)
     prop_metadata = [
         {
             "type": "proposition",
@@ -213,18 +144,20 @@ def build_vector_stores(chunks, propositions):
     return chunk_store, prop_store
 
 
-def retrieve_from_store(query, vector_store, k=5):
-    query_embedding = create_embeddings(query)
-    results = vector_store.similarity_search(query_embedding, k=k)
+def retrieve_from_store(query: str, vector_store: SimpleVectorStore, embed_func, k: int = 5) -> List[Dict[str, Any]]:
+    """Retrieve from vector store."""
+    query_embedding = embed_func(query)
+    results = vector_store.search(query_embedding, top_k=k)
     return results
 
 
-def compare_retrieval_approaches(query, chunk_store, prop_store, k=5):
-    logger.debug(f"\ gravityn=== Query: {query} ===")
+def compare_retrieval_approaches(query: str, chunk_store: SimpleVectorStore, prop_store: SimpleVectorStore, embed_func, k: int = 5) -> Dict[str, Any]:
+    """Compare proposition-based and chunk-based retrieval."""
+    logger.debug(f"\n=== Query: {query} ===")
     logger.debug("\nRetrieving with proposition-based approach...")
-    prop_results = retrieve_from_store(query, prop_store, k)
+    prop_results = retrieve_from_store(query, prop_store, embed_func, k)
     logger.debug("Retrieving with chunk-based approach...")
-    chunk_results = retrieve_from_store(query, chunk_store, k)
+    chunk_results = retrieve_from_store(query, chunk_store, embed_func, k)
     logger.debug("\n=== Proposition-Based Results ===")
     for i, result in enumerate(prop_results):
         logger.debug(
@@ -242,22 +175,8 @@ def compare_retrieval_approaches(query, chunk_store, prop_store, k=5):
     }
 
 
-def generate_response(query, results, result_type="proposition", model="llama-3.2-1b-instruct-4bit"):
-    context = "\n\n".join([result["text"] for result in results])
-    system_prompt = "You are a helpful AI assistant. Answer the question based on the provided context. If the context is insufficient, acknowledge the limitation."
-    user_prompt = f"Context:\n{context}\n\nQuestion: {query}"
-    response = mlx.chat(
-        [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        model=model,
-        temperature=0.2
-    )
-    return response["choices"][0]["message"]["content"]
-
-
-def evaluate_responses(query, prop_response, chunk_response, reference_answer=None, model="llama-3.2-1b-instruct-4bit"):
+def evaluate_responses(query: str, prop_response: str, chunk_response: str, reference_answer: str = None, mlx=None, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+    """Evaluate proposition-based and chunk-based responses."""
     system_prompt = "You are an objective evaluator. Compare the two responses to the query and provide a concise evaluation. If a reference answer is provided, use it to assess accuracy and completeness."
     user_prompt = f"Query: {query}\n\nProposition-Based Response:\n{prop_response}\n\nChunk-Based Response:\n{chunk_response}"
     if reference_answer:
@@ -273,37 +192,31 @@ def evaluate_responses(query, prop_response, chunk_response, reference_answer=No
     return response["choices"][0]["message"]["content"]
 
 
-def run_proposition_chunking_evaluation(pdf_path, test_queries, reference_answers=None, model="llama-3.2-1b-instruct-4bit"):
+def run_proposition_chunking_evaluation(chunks: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+    """Run proposition chunking evaluation."""
     logger.debug("=== Starting Proposition Chunking Evaluation ===\n")
     chunks, propositions = process_document_into_propositions(
-        pdf_path, model=model)
-    chunk_store, prop_store = build_vector_stores(chunks, propositions)
+        chunks, mlx, model=model)
+    chunk_store, prop_store = build_vector_stores(
+        chunks, propositions, embed_func)
     results = []
     for i, query in enumerate(test_queries):
         logger.debug(f"\n\n=== Testing Query {i+1}/{len(test_queries)} ===")
         logger.debug(f"Query: {query}")
         retrieval_results = compare_retrieval_approaches(
-            query, chunk_store, prop_store)
+            query, chunk_store, prop_store, embed_func)
         logger.debug("\nGenerating response from proposition-based results...")
-        prop_response = generate_response(
-            query,
-            retrieval_results["proposition_results"],
-            "proposition",
-            model
-        )
+        prop_response = generate_ai_response(query, "You are a helpful AI assistant. Answer the question based on the provided context. If the context is insufficient, acknowledge the limitation.",
+                                             retrieval_results["proposition_results"], mlx, logger, model=model)
         logger.debug("Generating response from chunk-based results...")
-        chunk_response = generate_response(
-            query,
-            retrieval_results["chunk_results"],
-            "chunk",
-            model
-        )
+        chunk_response = generate_ai_response(
+            query, "You are a helpful AI assistant. Answer the question based on the provided context. If the context is insufficient, acknowledge the limitation.", retrieval_results["chunk_results"], mlx, logger, model=model)
         reference = None
         if reference_answers and i < len(reference_answers):
             reference = reference_answers[i]
         logger.debug("\nEvaluating responses...")
         evaluation = evaluate_responses(
-            query, prop_response, chunk_response, reference, model)
+            query, prop_response, chunk_response, reference, mlx, model)
         query_result = {
             "query": query,
             "proposition_results": retrieval_results["proposition_results"],
@@ -321,7 +234,7 @@ def run_proposition_chunking_evaluation(pdf_path, test_queries, reference_answer
         logger.debug("\n=== Evaluation ===")
         logger.debug(evaluation)
     logger.debug("\n\n=== Generating Overall Analysis ===")
-    overall_analysis = generate_overall_analysis(results, model)
+    overall_analysis = generate_overall_analysis(results, mlx, model)
     logger.debug("\n" + overall_analysis)
     return {
         "results": results,
@@ -331,7 +244,8 @@ def run_proposition_chunking_evaluation(pdf_path, test_queries, reference_answer
     }
 
 
-def generate_overall_analysis(results, model="llama-3.2-1b-instruct-4bit"):
+def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+    """Generate overall analysis of retrieval approaches."""
     evaluations_summary = ""
     for i, result in enumerate(results):
         evaluations_summary += f"Query {i+1}: {result['query']}\n"
@@ -349,7 +263,10 @@ def generate_overall_analysis(results, model="llama-3.2-1b-instruct-4bit"):
     return response["choices"][0]["message"]["content"]
 
 
-pdf_path = os.path.join(DATA_DIR, "AI_Information.pdf")
+script_dir, generated_dir, log_file, logger = setup_config(__file__)
+mlx, embed_func = initialize_mlx(logger)
+formatted_texts, original_chunks = load_json_data(DOCS_PATH, logger)
+logger.info("Loaded pre-chunked data from DOCS_PATH")
 test_queries = [
     "What are the main ethical concerns in AI development?",
 ]
@@ -357,10 +274,15 @@ reference_answers = [
     "The main ethical concerns in AI development include bias and fairness, privacy, transparency, accountability, safety, and the potential for misuse or harmful applications.",
 ]
 evaluation_results = run_proposition_chunking_evaluation(
-    pdf_path=pdf_path,
+    chunks=original_chunks,
     test_queries=test_queries,
+    embed_func=embed_func,
+    mlx=mlx,
     reference_answers=reference_answers
 )
-logger.debug("\n\n=== Overall Analysis ===")
+save_file(evaluation_results, f"{generated_dir}/evaluation_results.json")
+logger.info(
+    f"Saved evaluation results to {generated_dir}/evaluation_results.json")
+logger.debug("\n=== OVERALL ANALYSIS ===\n")
 logger.debug(evaluation_results["overall_analysis"])
 logger.info("\n\n[DONE]", bright=True)

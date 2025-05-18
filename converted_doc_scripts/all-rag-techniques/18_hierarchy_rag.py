@@ -1,46 +1,19 @@
-from jet.llm.mlx.base import MLX
-from jet.llm.utils.embeddings import get_embedding_function
-from jet.logger import CustomLogger
-import pypdf
 import json
 import numpy as np
 import os
 import pickle
 import re
-
-script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
-DATA_DIR = os.path.join(script_dir, "data")
-os.makedirs(DATA_DIR, exist_ok=True)
-logger.info("Initializing MLX and embedding function")
-mlx = MLX()
-embed_func = get_embedding_function("mxbai-embed-large")
+from typing import List, Dict, Any
+from jet.file.utils import save_file
+from helpers import (
+    setup_config, initialize_mlx, generate_embeddings,
+    load_validation_data, generate_ai_response,
+    load_json_data, SearchResult, SimpleVectorStore, DATA_DIR, DOCS_PATH
+)
 
 
-def extract_text_from_pdf(pdf_path):
-    logger.debug(f"Extracting text from {pdf_path}...")
-    pages = []
-    with open(pdf_path, "rb") as file:
-        reader = pypdf.PdfReader(file)
-        for page_num in range(len(reader.pages)):
-            page = reader.pages[page_num]
-            text = page.extract_text() or ""
-            if len(text.strip()) > 50:
-                pages.append({
-                    "text": text,
-                    "metadata": {
-                        "source": pdf_path,
-                        "page": page_num + 1
-                    }
-                })
-    logger.debug(f"Extracted {len(pages)} pages with content")
-    return pages
-
-
-def chunk_text(text, metadata, chunk_size=1000, overlap=200):
+def chunk_text(text: str, metadata: Dict[str, Any], chunk_size: int = 1000, overlap: int = 200) -> List[Dict[str, Any]]:
+    """Chunk text into overlapping segments with metadata."""
     chunks = []
     for i in range(0, len(text), chunk_size - overlap):
         chunk_text = text[i:i + chunk_size]
@@ -59,54 +32,8 @@ def chunk_text(text, metadata, chunk_size=1000, overlap=200):
     return chunks
 
 
-class SimpleVectorStore:
-    def __init__(self):
-        self.vectors = []
-        self.texts = []
-        self.metadata = []
-
-    def add_item(self, text, embedding, metadata=None):
-        self.vectors.append(np.array(embedding))
-        self.texts.append(text)
-        self.metadata.append(metadata or {})
-
-    def similarity_search(self, query_embedding, k=5, filter_func=None):
-        if not self.vectors:
-            return []
-        query_vector = np.array(query_embedding).flatten()
-        similarities = []
-        for i, vector in enumerate(self.vectors):
-            vector = vector.flatten()
-            if filter_func and not filter_func(self.metadata[i]):
-                continue
-            dot_product = np.dot(query_vector, vector)
-            query_norm = np.linalg.norm(query_vector)
-            vector_norm = np.linalg.norm(vector)
-            if query_norm == 0 or vector_norm == 0:
-                similarity = 0.0
-            else:
-                similarity = dot_product / (query_norm * vector_norm)
-            similarities.append((i, similarity))
-        similarities.sort(key=lambda x: -float('inf')
-                          if np.isnan(x[1]) else x[1], reverse=True)
-        results = []
-        for i in range(min(k, len(similarities))):
-            idx, score = similarities[i]
-            results.append({
-                "text": self.texts[idx],
-                "metadata": self.metadata[idx],
-                "similarity": float(score)
-            })
-        return results
-
-
-def create_embeddings(texts):
-    if not texts:
-        return []
-    return embed_func(texts)
-
-
-def generate_page_summary(page_text, model="llama-3.2-1b-instruct-4bit"):
+def generate_page_summary(page_text: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+    """Generate summary for a page."""
     max_tokens = 6000
     truncated_text = page_text[:max_tokens] if len(
         page_text) > max_tokens else page_text
@@ -122,13 +49,13 @@ def generate_page_summary(page_text, model="llama-3.2-1b-instruct-4bit"):
     return response["choices"][0]["message"]["content"]
 
 
-def process_document_hierarchically(pdf_path, chunk_size=1000, chunk_overlap=200, model="llama-3.2-1b-instruct-4bit"):
-    pages = extract_text_from_pdf(pdf_path)
+def process_document_hierarchically(pages: List[Dict[str, Any]], embed_func, mlx, chunk_size: int = 1000, chunk_overlap: int = 200, model: str = "llama-3.2-1b-instruct-4bit") -> tuple[SimpleVectorStore, SimpleVectorStore]:
+    """Process document hierarchically into summaries and detailed chunks."""
     logger.debug("Generating page summaries...")
     summaries = []
     for i, page in enumerate(pages):
         logger.debug(f"Summarizing page {i+1}/{len(pages)}...")
-        summary_text = generate_page_summary(page["text"], model)
+        summary_text = generate_page_summary(page["text"], mlx, model)
         summary_metadata = page["metadata"].copy()
         summary_metadata.update({"is_summary": True})
         summaries.append({
@@ -138,19 +65,15 @@ def process_document_hierarchically(pdf_path, chunk_size=1000, chunk_overlap=200
     detailed_chunks = []
     for page in pages:
         page_chunks = chunk_text(
-            page["text"],
-            page["metadata"],
-            chunk_size,
-            chunk_overlap
-        )
+            page["text"], page["metadata"], chunk_size, chunk_overlap)
         detailed_chunks.extend(page_chunks)
     logger.debug(f"Created {len(detailed_chunks)} detailed chunks")
     logger.debug("Creating embeddings for summaries...")
     summary_texts = [summary["text"] for summary in summaries]
-    summary_embeddings = create_embeddings(summary_texts)
+    summary_embeddings = generate_embeddings(summary_texts, embed_func, logger)
     logger.debug("Creating embeddings for detailed chunks...")
     chunk_texts = [chunk["text"] for chunk in detailed_chunks]
-    chunk_embeddings = create_embeddings(chunk_texts)
+    chunk_embeddings = generate_embeddings(chunk_texts, embed_func, logger)
     summary_store = SimpleVectorStore()
     detailed_store = SimpleVectorStore()
     for i, summary in enumerate(summaries):
@@ -170,23 +93,18 @@ def process_document_hierarchically(pdf_path, chunk_size=1000, chunk_overlap=200
     return summary_store, detailed_store
 
 
-def retrieve_hierarchically(query, summary_store, detailed_store, k_summaries=3, k_chunks=5):
+def retrieve_hierarchically(query: str, summary_store: SimpleVectorStore, detailed_store: SimpleVectorStore, embed_func, k_summaries: int = 3, k_chunks: int = 5) -> List[Dict[str, Any]]:
+    """Retrieve chunks hierarchically using summaries."""
     logger.debug(f"Performing hierarchical retrieval for query: {query}")
-    query_embedding = create_embeddings(query)
-    summary_results = summary_store.similarity_search(
-        query_embedding,
-        k=k_summaries
-    )
+    query_embedding = embed_func(query)
+    summary_results = summary_store.search(query_embedding, top_k=k_summaries)
     logger.debug(f"Retrieved {len(summary_results)} relevant summaries")
     relevant_pages = [result["metadata"]["page"] for result in summary_results]
 
     def page_filter(metadata):
         return metadata["page"] in relevant_pages
-    detailed_results = detailed_store.similarity_search(
-        query_embedding,
-        k=k_chunks * len(relevant_pages),
-        filter_func=page_filter
-    )
+    detailed_results = detailed_store.search(
+        query_embedding, top_k=k_chunks * len(relevant_pages), filter_func=page_filter)
     logger.debug(
         f"Retrieved {len(detailed_results)} detailed chunks from relevant pages")
     for result in detailed_results:
@@ -198,36 +116,17 @@ def retrieve_hierarchically(query, summary_store, detailed_store, k_summaries=3,
     return detailed_results
 
 
-def generate_response(query, retrieved_chunks, model="llama-3.2-1b-instruct-4bit"):
-    context_parts = []
-    for i, chunk in enumerate(retrieved_chunks):
-        page_num = chunk["metadata"]["page"]
-        context_parts.append(f"[Page {page_num}]: {chunk['text']}")
-    context = "\n\n".join(context_parts)
-    system_prompt = "You are a helpful AI assistant. Answer the question based on the provided context. If the context is insufficient, acknowledge the limitation."
-    user_prompt = f"Context:\n\n{context}\n\nQuestion: {query}"
-    response = mlx.chat(
-        [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        model=model,
-        temperature=0.2
-    )
-    return response["choices"][0]["message"]["content"]
-
-
-def hierarchical_rag(query, pdf_path, chunk_size=1000, chunk_overlap=200,
-                     k_summaries=3, k_chunks=5, regenerate=False, model="llama-3.2-1b-instruct-4bit"):
+def hierarchical_rag(query: str, pages: List[Dict[str, Any]], embed_func, mlx, chunk_size: int = 1000, chunk_overlap: int = 200, k_summaries: int = 3, k_chunks: int = 5, regenerate: bool = False, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+    """Run hierarchical RAG pipeline."""
+    source = pages[0]["metadata"]["source"] if pages else "document"
     summary_store_file = os.path.join(
-        DATA_DIR, f"{os.path.basename(pdf_path)}_summary_store.pkl")
+        DATA_DIR, f"{os.path.basename(source)}_summary_store.pkl")
     detailed_store_file = os.path.join(
-        DATA_DIR, f"{os.path.basename(pdf_path)}_detailed_store.pkl")
+        DATA_DIR, f"{os.path.basename(source)}_detailed_store.pkl")
     if regenerate or not os.path.exists(summary_store_file) or not os.path.exists(detailed_store_file):
         logger.debug("Processing document and creating vector stores...")
         summary_store, detailed_store = process_document_hierarchically(
-            pdf_path, chunk_size, chunk_overlap, model
-        )
+            pages, embed_func, mlx, chunk_size, chunk_overlap, model)
         with open(summary_store_file, 'wb') as f:
             pickle.dump(summary_store, f)
         with open(detailed_store_file, 'wb') as f:
@@ -239,9 +138,15 @@ def hierarchical_rag(query, pdf_path, chunk_size=1000, chunk_overlap=200,
         with open(detailed_store_file, 'rb') as f:
             detailed_store = pickle.load(f)
     retrieved_chunks = retrieve_hierarchically(
-        query, summary_store, detailed_store, k_summaries, k_chunks
+        query, summary_store, detailed_store, embed_func, k_summaries, k_chunks)
+    response = generate_ai_response(
+        query,
+        "You are a helpful AI assistant. Answer the question based on the provided context. If the context is insufficient, acknowledge the limitation.",
+        retrieved_chunks,
+        mlx,
+        logger,
+        model=model
     )
-    response = generate_response(query, retrieved_chunks, model)
     return {
         "query": query,
         "response": response,
@@ -251,32 +156,35 @@ def hierarchical_rag(query, pdf_path, chunk_size=1000, chunk_overlap=200,
     }
 
 
-def standard_rag(query, pdf_path, chunk_size=1000, chunk_overlap=200, k=15, model="llama-3.2-1b-instruct-4bit"):
-    pages = extract_text_from_pdf(pdf_path)
+def standard_rag(query: str, pages: List[Dict[str, Any]], embed_func, mlx, chunk_size: int = 1000, chunk_overlap: int = 200, k: int = 15, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+    """Run standard RAG pipeline."""
     chunks = []
     for page in pages:
         page_chunks = chunk_text(
-            page["text"],
-            page["metadata"],
-            chunk_size,
-            chunk_overlap
-        )
+            page["text"], page["metadata"], chunk_size, chunk_overlap)
         chunks.extend(page_chunks)
     logger.debug(f"Created {len(chunks)} chunks for standard RAG")
     store = SimpleVectorStore()
     logger.debug("Creating embeddings for chunks...")
     texts = [chunk["text"] for chunk in chunks]
-    embeddings = create_embeddings(texts)
+    embeddings = generate_embeddings(texts, embed_func, logger)
     for i, chunk in enumerate(chunks):
         store.add_item(
             text=chunk["text"],
             embedding=embeddings[i],
             metadata=chunk["metadata"]
         )
-    query_embedding = create_embeddings(query)
-    retrieved_chunks = store.similarity_search(query_embedding, k=k)
+    query_embedding = embed_func(query)
+    retrieved_chunks = store.search(query_embedding, top_k=k)
     logger.debug(f"Retrieved {len(retrieved_chunks)} chunks with standard RAG")
-    response = generate_response(query, retrieved_chunks, model)
+    response = generate_ai_response(
+        query,
+        "You are a helpful AI assistant. Answer the question based on the provided context. If the context is insufficient, acknowledge the limitation.",
+        retrieved_chunks,
+        mlx,
+        logger,
+        model=model
+    )
     return {
         "query": query,
         "response": response,
@@ -284,16 +192,18 @@ def standard_rag(query, pdf_path, chunk_size=1000, chunk_overlap=200, k=15, mode
     }
 
 
-def compare_approaches(query, pdf_path, reference_answer=None, model="llama-3.2-1b-instruct-4bit"):
+def compare_approaches(query: str, pages: List[Dict[str, Any]], embed_func, mlx, reference_answer: str = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+    """Compare hierarchical and standard RAG approaches."""
     logger.debug(f"\n=== Comparing RAG approaches for query: {query} ===")
     logger.debug("\nRunning hierarchical RAG...")
-    hierarchical_result = hierarchical_rag(query, pdf_path, model=model)
+    hierarchical_result = hierarchical_rag(
+        query, pages, embed_func, mlx, model=model)
     hier_response = hierarchical_result["response"]
     logger.debug("\nRunning standard RAG...")
-    standard_result = standard_rag(query, pdf_path, model=model)
+    standard_result = standard_rag(query, pages, embed_func, mlx, model=model)
     std_response = standard_result["response"]
     comparison = compare_responses(
-        query, hier_response, std_response, reference_answer, model)
+        query, hier_response, std_response, reference_answer, mlx, model)
     return {
         "query": query,
         "hierarchical_response": hier_response,
@@ -305,7 +215,8 @@ def compare_approaches(query, pdf_path, reference_answer=None, model="llama-3.2-
     }
 
 
-def compare_responses(query, hierarchical_response, standard_response, reference=None, model="llama-3.2-1b-instruct-4bit"):
+def compare_responses(query: str, hierarchical_response: str, standard_response: str, reference: str = None, mlx=None, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+    """Compare hierarchical and standard RAG responses."""
     system_prompt = "You are an objective evaluator. Compare the two responses to the query and provide a concise evaluation. If a reference answer is provided, use it to assess accuracy and completeness."
     user_prompt = f"Query: {query}\n\nHierarchical RAG Response:\n{hierarchical_response}\n\nStandard RAG Response:\n{standard_response}"
     if reference:
@@ -321,23 +232,26 @@ def compare_responses(query, hierarchical_response, standard_response, reference
     return response["choices"][0]["message"]["content"]
 
 
-def run_evaluation(pdf_path, test_queries, reference_answers=None, model="llama-3.2-1b-instruct-4bit"):
+def run_evaluation(pages: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+    """Run evaluation of hierarchical vs standard RAG."""
     results = []
     for i, query in enumerate(test_queries):
         logger.debug(f"Query: {query}")
         reference = None
         if reference_answers and i < len(reference_answers):
             reference = reference_answers[i]
-        result = compare_approaches(query, pdf_path, reference, model)
+        result = compare_approaches(
+            query, pages, embed_func, mlx, reference, model)
         results.append(result)
-    overall_analysis = generate_overall_analysis(results, model)
+    overall_analysis = generate_overall_analysis(results, mlx, model)
     return {
         "results": results,
         "overall_analysis": overall_analysis
     }
 
 
-def generate_overall_analysis(results, model="llama-3.2-1b-instruct-4bit"):
+def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+    """Generate overall analysis of RAG approaches."""
     evaluations_summary = ""
     for i, result in enumerate(results):
         evaluations_summary += f"Query {i+1}: {result['query']}\n"
@@ -356,9 +270,28 @@ def generate_overall_analysis(results, model="llama-3.2-1b-instruct-4bit"):
     return response["choices"][0]["message"]["content"]
 
 
-pdf_path = os.path.join(DATA_DIR, "AI_Information.pdf")
+script_dir, generated_dir, log_file, logger = setup_config(__file__)
+mlx, embed_func = initialize_mlx(logger)
+formatted_texts, original_chunks = load_json_data(DOCS_PATH, logger)
+logger.info("Loaded pre-chunked data from DOCS_PATH")
+# Adapt chunks to match expected page structure
+pages = [
+    {
+        "text": chunk["text"],
+        "metadata": {
+            "source": "AI_Information.pdf",
+            "page": i + 1
+        }
+    }
+    for i, chunk in enumerate(original_chunks)
+]
 query = "What are the key applications of transformer models in natural language processing?"
-result = hierarchical_rag(query, pdf_path)
+result = hierarchical_rag(
+    query=query,
+    pages=pages,
+    embed_func=embed_func,
+    mlx=mlx
+)
 logger.debug("\n=== Response ===")
 logger.debug(result["response"])
 test_queries = [
@@ -368,10 +301,15 @@ reference_answers = [
     "Transformers handle sequential data differently from RNNs by using self-attention mechanisms instead of recurrent connections. This allows transformers to process all tokens in parallel rather than sequentially, capturing long-range dependencies more efficiently and enabling better parallelization during training. Unlike RNNs, transformers don't suffer from vanishing gradient problems with long sequences."
 ]
 evaluation_results = run_evaluation(
-    pdf_path=pdf_path,
+    pages=pages,
     test_queries=test_queries,
+    embed_func=embed_func,
+    mlx=mlx,
     reference_answers=reference_answers
 )
+save_file(evaluation_results, f"{generated_dir}/evaluation_results.json")
+logger.info(
+    f"Saved evaluation results to {generated_dir}/evaluation_results.json")
 logger.debug("\n=== OVERALL ANALYSIS ===")
 logger.debug(evaluation_results["overall_analysis"])
 logger.info("\n\n[DONE]", bright=True)

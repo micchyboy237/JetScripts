@@ -1,46 +1,19 @@
-from jet.llm.mlx.base import MLX
-from jet.llm.utils.embeddings import get_embedding_function
-from jet.logger import CustomLogger
-import pypdf
 import json
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import re
-
-script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
-DATA_DIR = os.path.join(script_dir, "data")
-os.makedirs(DATA_DIR, exist_ok=True)
-logger.info("Initializing MLX and embedding function")
-mlx = MLX()
-embed_func = get_embedding_function("mxbai-embed-large")
+from typing import List, Dict, Any
+from jet.file.utils import save_file
+from helpers import (
+    setup_config, initialize_mlx, generate_embeddings,
+    load_validation_data, generate_ai_response,
+    load_json_data, SearchResult, SimpleVectorStore, DATA_DIR, DOCS_PATH
+)
 
 
-def extract_text_from_pdf(pdf_path):
-    logger.debug(f"Extracting text from {pdf_path}...")
-    pages = []
-    with open(pdf_path, "rb") as file:
-        reader = pypdf.PdfReader(file)
-        for page_num in range(len(reader.pages)):
-            page = reader.pages[page_num]
-            text = page.extract_text() or ""
-            if len(text.strip()) > 50:
-                pages.append({
-                    "text": text,
-                    "metadata": {
-                        "source": pdf_path,
-                        "page": page_num + 1
-                    }
-                })
-    logger.debug(f"Extracted {len(pages)} pages with content")
-    return pages
-
-
-def chunk_text(text, chunk_size=1000, overlap=200):
+def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[Dict[str, Any]]:
+    """Chunk text into overlapping segments with metadata."""
     chunks = []
     for i in range(0, len(text), chunk_size - overlap):
         chunk_text = text[i:i + chunk_size]
@@ -56,55 +29,8 @@ def chunk_text(text, chunk_size=1000, overlap=200):
     return chunks
 
 
-class SimpleVectorStore:
-    def __init__(self):
-        self.vectors = []
-        self.texts = []
-        self.metadata = []
-
-    def add_item(self, text, embedding, metadata=None):
-        self.vectors.append(np.array(embedding))
-        self.texts.append(text)
-        self.metadata.append(metadata or {})
-
-    def similarity_search(self, query_embedding, k=5, filter_func=None):
-        if not self.vectors:
-            return []
-        query_vector = np.array(query_embedding).flatten()
-        similarities = []
-        for i, vector in enumerate(self.vectors):
-            vector = vector.flatten()
-            if filter_func and not filter_func(self.metadata[i]):
-                continue
-            dot_product = np.dot(query_vector, vector)
-            query_norm = np.linalg.norm(query_vector)
-            vector_norm = np.linalg.norm(vector)
-            if query_norm == 0 or vector_norm == 0:
-                similarity = 0.0
-            else:
-                similarity = dot_product / (query_norm * vector_norm)
-            similarities.append((i, similarity))
-        similarities.sort(key=lambda x: -float('inf')
-                          if np.isnan(x[1]) else x[1], reverse=True)
-        results = []
-        for i in range(min(k, len(similarities))):
-            idx, score = similarities[i]
-            results.append({
-                "text": self.texts[idx],
-                "metadata": self.metadata[idx],
-                "similarity": float(score)
-            })
-        return results
-
-
-def create_embeddings(texts):
-    if not texts:
-        return []
-    return embed_func(texts)
-
-
-def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
-    pages = extract_text_from_pdf(pdf_path)
+def process_document(pages: List[Dict[str, Any]], embed_func, chunk_size: int = 1000, chunk_overlap: int = 200) -> SimpleVectorStore:
+    """Process document into chunks and create vector store."""
     all_chunks = []
     for page in pages:
         page_chunks = chunk_text(page["text"], chunk_size, chunk_overlap)
@@ -113,7 +39,7 @@ def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
         all_chunks.extend(page_chunks)
     logger.debug("Creating embeddings for chunks...")
     chunk_texts = [chunk["text"] for chunk in all_chunks]
-    chunk_embeddings = create_embeddings(chunk_texts)
+    chunk_embeddings = generate_embeddings(chunk_texts, embed_func, logger)
     vector_store = SimpleVectorStore()
     for i, chunk in enumerate(all_chunks):
         vector_store.add_item(
@@ -125,7 +51,8 @@ def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
     return vector_store
 
 
-def generate_hypothetical_document(query, desired_length=1000, model="llama-3.2-1b-instruct-4bit"):
+def generate_hypothetical_document(query: str, mlx, desired_length: int = 1000, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+    """Generate a hypothetical document for the query."""
     system_prompt = "You are a helpful AI assistant. Generate a detailed document that answers the given question comprehensively."
     user_prompt = f"Question: {query}\n\nGenerate a document that fully answers this question:"
     response = mlx.chat(
@@ -139,17 +66,17 @@ def generate_hypothetical_document(query, desired_length=1000, model="llama-3.2-
     return response["choices"][0]["message"]["content"]
 
 
-def hyde_rag(query, vector_store, k=5, should_generate_response=True, model="llama-3.2-1b-instruct-4bit"):
+def hyde_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 5, should_generate_response: bool = True, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+    """Run HyDE RAG pipeline."""
     logger.debug(f"\n=== Processing query with HyDE: {query} ===\n")
     logger.debug("Generating hypothetical document...")
-    hypothetical_doc = generate_hypothetical_document(query, model=model)
+    hypothetical_doc = generate_hypothetical_document(query, mlx, model=model)
     logger.debug(
         f"Generated hypothetical document of {len(hypothetical_doc)} characters")
     logger.debug("Creating embedding for hypothetical document...")
-    hypothetical_embedding = create_embeddings([hypothetical_doc])[0]
+    hypothetical_embedding = embed_func(hypothetical_doc)
     logger.debug(f"Retrieving {k} most similar chunks...")
-    retrieved_chunks = vector_store.similarity_search(
-        hypothetical_embedding, k=k)
+    retrieved_chunks = vector_store.search(hypothetical_embedding, top_k=k)
     results = {
         "query": query,
         "hypothetical_document": hypothetical_doc,
@@ -157,51 +84,54 @@ def hyde_rag(query, vector_store, k=5, should_generate_response=True, model="lla
     }
     if should_generate_response:
         logger.debug("Generating final response...")
-        response = generate_response(query, retrieved_chunks, model)
+        response = generate_ai_response(
+            query,
+            "You are a helpful AI assistant. Answer the question based on the provided context. If the context is insufficient, acknowledge the limitation.",
+            retrieved_chunks,
+            mlx,
+            logger,
+            model=model,
+            max_tokens=500
+        )
         results["response"] = response
     return results
 
 
-def standard_rag(query, vector_store, k=5, should_generate_response=True, model="llama-3.2-1b-instruct-4bit"):
+def standard_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 5, should_generate_response: bool = True, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+    """Run standard RAG pipeline."""
     logger.debug(f"\n=== Processing query with Standard RAG: {query} ===\n")
     logger.debug("Creating embedding for query...")
-    query_embedding = create_embeddings([query])[0]
+    query_embedding = embed_func(query)
     logger.debug(f"Retrieving {k} most similar chunks...")
-    retrieved_chunks = vector_store.similarity_search(query_embedding, k=k)
+    retrieved_chunks = vector_store.search(query_embedding, top_k=k)
     results = {
         "query": query,
         "retrieved_chunks": retrieved_chunks
     }
     if should_generate_response:
         logger.debug("Generating final response...")
-        response = generate_response(query, retrieved_chunks, model)
+        response = generate_ai_response(
+            query,
+            "You are a helpful AI assistant. Answer the question based on the provided context. If the context is insufficient, acknowledge the limitation.",
+            retrieved_chunks,
+            mlx,
+            logger,
+            model=model,
+            max_tokens=500
+        )
         results["response"] = response
     return results
 
 
-def generate_response(query, relevant_chunks, model="llama-3.2-1b-instruct-4bit"):
-    context = "\n\n".join([chunk["text"] for chunk in relevant_chunks])
-    system_prompt = "You are a helpful AI assistant. Answer the question based on the provided context. If the context is insufficient, acknowledge the limitation."
-    user_prompt = f"Context:\n{context}\n\nQuestion: {query}"
-    response = mlx.chat(
-        [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        model=model,
-        temperature=0.5,
-        max_tokens=500
-    )
-    return response["choices"][0]["message"]["content"]
-
-
-def compare_approaches(query, vector_store, reference_answer=None, model="llama-3.2-1b-instruct-4bit"):
-    hyde_result = hyde_rag(query, vector_store, model=model)
+def compare_approaches(query: str, vector_store: SimpleVectorStore, embed_func, mlx, reference_answer: str = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+    """Compare HyDE and standard RAG approaches."""
+    hyde_result = hyde_rag(query, vector_store, embed_func, mlx, model=model)
     hyde_response = hyde_result["response"]
-    standard_result = standard_rag(query, vector_store, model=model)
+    standard_result = standard_rag(
+        query, vector_store, embed_func, mlx, model=model)
     standard_response = standard_result["response"]
     comparison = compare_responses(
-        query, hyde_response, standard_response, reference_answer, model)
+        query, hyde_response, standard_response, reference_answer, mlx, model)
     return {
         "query": query,
         "hyde_response": hyde_response,
@@ -212,7 +142,8 @@ def compare_approaches(query, vector_store, reference_answer=None, model="llama-
     }
 
 
-def compare_responses(query, hyde_response, standard_response, reference=None, model="llama-3.2-1b-instruct-4bit"):
+def compare_responses(query: str, hyde_response: str, standard_response: str, reference: str = None, mlx=None, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+    """Compare HyDE and standard RAG responses."""
     system_prompt = "You are an objective evaluator. Compare the two responses to the query and provide a concise evaluation. If a reference answer is provided, use it to assess accuracy and completeness."
     user_prompt = f"Query: {query}\n\nHyDE Response:\n{hyde_response}\n\nStandard RAG Response:\n{standard_response}"
     if reference:
@@ -228,8 +159,10 @@ def compare_responses(query, hyde_response, standard_response, reference=None, m
     return response["choices"][0]["message"]["content"]
 
 
-def run_evaluation(pdf_path, test_queries, reference_answers=None, chunk_size=1000, chunk_overlap=200, model="llama-3.2-1b-instruct-4bit"):
-    vector_store = process_document(pdf_path, chunk_size, chunk_overlap)
+def run_evaluation(pages: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, chunk_size: int = 1000, chunk_overlap: int = 200, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+    """Run evaluation of HyDE vs standard RAG."""
+    vector_store = process_document(
+        pages, embed_func, chunk_size, chunk_overlap)
     results = []
     for i, query in enumerate(test_queries):
         logger.debug(
@@ -238,16 +171,18 @@ def run_evaluation(pdf_path, test_queries, reference_answers=None, chunk_size=10
         reference = None
         if reference_answers and i < len(reference_answers):
             reference = reference_answers[i]
-        result = compare_approaches(query, vector_store, reference, model)
+        result = compare_approaches(
+            query, vector_store, embed_func, mlx, reference, model)
         results.append(result)
-    overall_analysis = generate_overall_analysis(results, model)
+    overall_analysis = generate_overall_analysis(results, mlx, model)
     return {
         "results": results,
         "overall_analysis": overall_analysis
     }
 
 
-def generate_overall_analysis(results, model="llama-3.2-1b-instruct-4bit"):
+def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+    """Generate overall analysis of RAG approaches."""
     evaluations_summary = ""
     for i, result in enumerate(results):
         evaluations_summary += f"Query {i+1}: {result['query']}\n"
@@ -265,7 +200,8 @@ def generate_overall_analysis(results, model="llama-3.2-1b-instruct-4bit"):
     return response["choices"][0]["message"]["content"]
 
 
-def visualize_results(query, hyde_result, standard_result):
+def visualize_results(query: str, hyde_result: Dict[str, Any], standard_result: Dict[str, Any]):
+    """Visualize comparison of HyDE and standard RAG results."""
     fig, axs = plt.subplots(1, 3, figsize=(20, 6))
     axs[0].text(0.5, 0.5, f"Query:\n\n{query}",
                 horizontalalignment='center', verticalalignment='center',
@@ -296,13 +232,27 @@ def visualize_results(query, hyde_result, standard_result):
     plt.savefig(os.path.join(DATA_DIR, 'hyde_vs_standard_rag_comparison.png'))
 
 
-pdf_path = os.path.join(DATA_DIR, "AI_Information.pdf")
-vector_store = process_document(pdf_path)
+script_dir, generated_dir, log_file, logger = setup_config(__file__)
+mlx, embed_func = initialize_mlx(logger)
+formatted_texts, original_chunks = load_json_data(DOCS_PATH, logger)
+logger.info("Loaded pre-chunked data from DOCS_PATH")
+# Adapt chunks to match expected page structure
+pages = [
+    {
+        "text": chunk["text"],
+        "metadata": {
+            "source": "AI_Information.pdf",
+            "page": i + 1
+        }
+    }
+    for i, chunk in enumerate(original_chunks)
+]
+vector_store = process_document(pages, embed_func)
 query = "What are the main ethical considerations in artificial intelligence development?"
-hyde_result = hyde_rag(query, vector_store)
+hyde_result = hyde_rag(query, vector_store, embed_func, mlx)
 logger.debug("\n=== HyDE Response ===")
 logger.debug(hyde_result["response"])
-standard_result = standard_rag(query, vector_store)
+standard_result = standard_rag(query, vector_store, embed_func, mlx)
 logger.debug("\n=== Standard RAG Response ===")
 logger.debug(standard_result["response"])
 visualize_results(query, hyde_result, standard_result)
@@ -310,13 +260,18 @@ test_queries = [
     "How does neural network architecture impact AI performance?"
 ]
 reference_answers = [
-    "Neural network architecture significantly impacts AI performance through factors like depth (number of layers), width (neurons per layer), connectivity patterns, and activation functions. Different architectures like CNNs, RNNs, and Transformers are optimized for specific tasks such as image recognition, sequence processing, and natural language understanding respectively.",
+    "Neural network architecture significantly impacts AI performance through factors like depth (number of layers), width (neurons per layer), connectivity patterns, and activation functions. Different architectures like CNNs, RNNs, and Transformers are optimized for specific tasks such as image recognition, sequence processing, and natural language understanding respectively."
 ]
 evaluation_results = run_evaluation(
-    pdf_path=pdf_path,
+    pages=pages,
     test_queries=test_queries,
+    embed_func=embed_func,
+    mlx=mlx,
     reference_answers=reference_answers
 )
+save_file(evaluation_results, f"{generated_dir}/evaluation_results.json")
+logger.info(
+    f"Saved evaluation results to {generated_dir}/evaluation_results.json")
 logger.debug("\n=== OVERALL ANALYSIS ===")
 logger.debug(evaluation_results["overall_analysis"])
 logger.info("\n\n[DONE]", bright=True)
