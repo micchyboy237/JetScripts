@@ -21,6 +21,7 @@ python find_large_folders.py -s 100 -b "/path/to/base/dir" -i "<folder>/node_mod
 python find_large_folders.py -b ~ -s 100
 
 # Find large cache folders
+python find_large_folders.py -b ~ -s 100 -i "*cache*,*Cache*,*CACHE*" --save
 python find_large_folders.py -b ~ -s 100 -i ".cache,.caches,cache,caches,Cache,Caches" -d 1 --save
 """
 
