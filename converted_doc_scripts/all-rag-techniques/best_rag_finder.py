@@ -189,7 +189,7 @@ for chunk_size, chunk_overlap, top_k in tqdm(param_combinations, desc="Testing C
         try:
             temp_chunks = []
             for doc in original_chunks:
-                doc_chunks = chunk_text(doc, chunk_size, chunk_overlap)
+                doc_chunks = chunk_text(doc["text"], chunk_size, chunk_overlap)
                 if not doc_chunks:
                     logger.debug(
                         f"  Warning: No chunks created for document with size={chunk_size}, overlap={chunk_overlap}.")

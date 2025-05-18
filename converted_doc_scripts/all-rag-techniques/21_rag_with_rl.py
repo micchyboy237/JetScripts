@@ -30,7 +30,7 @@ def preprocess_text(text: str) -> str:
 
 def preprocess_chunks(chunks: List[str]) -> List[str]:
     """Preprocess a list of chunks."""
-    return [preprocess_text(chunk) for chunk in chunks]
+    return [preprocess_text(chunk["text"]) for chunk in chunks]
 
 
 def add_to_vector_store(vector_store: SimpleVectorStore, embeddings: List[np.ndarray], chunks: List[str]) -> None:

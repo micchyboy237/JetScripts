@@ -224,35 +224,6 @@ size() {
     eval "$command"
 }
 
-sizes() {
-    local base_dir="/Users/jethroestrada/Desktop/External_Projects"
-    local min_size=0
-    local include="<folder>/bin/activate"
-
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-        -b)
-            base_dir="$2"
-            shift 2
-            ;;
-        -s)
-            min_size="$2"
-            shift 2
-            ;;
-        -i)
-            include="$2"
-            shift 2
-            ;;
-        *)
-            echo "Unknown option: $1"
-            return 1
-            ;;
-        esac
-    done
-
-    python /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/find_large_folders.py -b "$base_dir"  -s $min_size -i "$include"
-}
-
 activate_venv() {
     if [[ -f .venv/bin/activate ]]; then
         source .venv/bin/activate
@@ -333,7 +304,7 @@ pip() {
 
 large_folders() {
     local base_dir=""
-    local min_size=""
+    local min_size=100
     local includes=""
     local excludes=""
     local max_depth=""
@@ -379,7 +350,6 @@ large_folders() {
     # Example:
     # large_folders -b . -s 200 -i "**/*" -e "node_modules,.venv" -d 2 -l 10 -f "out.json" --delete --direction forward --max-backward-depth 3 --save
 }
-
 
 last_updates() {
     local base_dir=""
