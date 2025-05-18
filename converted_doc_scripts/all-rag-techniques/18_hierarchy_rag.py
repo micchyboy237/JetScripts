@@ -38,15 +38,19 @@ def generate_page_summary(page_text: str, mlx, model: str = "llama-3.2-1b-instru
     truncated_text = page_text[:max_tokens] if len(
         page_text) > max_tokens else page_text
     system_prompt = "You are a helpful AI assistant. Summarize the provided text concisely, capturing the main ideas and key points."
-    response = mlx.chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"Please summarize this text:\n\n{truncated_text}"}
         ],
         model=model,
         temperature=0.3
-    )
-    return response["choices"][0]["message"]["content"]
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    return response
 
 
 def process_document_hierarchically(pages: List[Dict[str, Any]], embed_func, mlx, chunk_size: int = 1000, chunk_overlap: int = 200, model: str = "llama-3.2-1b-instruct-4bit") -> tuple[SimpleVectorStore, SimpleVectorStore]:
@@ -221,15 +225,19 @@ def compare_responses(query: str, hierarchical_response: str, standard_response:
     user_prompt = f"Query: {query}\n\nHierarchical RAG Response:\n{hierarchical_response}\n\nStandard RAG Response:\n{standard_response}"
     if reference:
         user_prompt += f"\n\nReference Answer:\n{reference}"
-    response = mlx.chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
         model=model,
         temperature=0
-    )
-    return response["choices"][0]["message"]["content"]
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    return response
 
 
 def run_evaluation(pages: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
@@ -259,15 +267,19 @@ def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "
         evaluations_summary += f"Comparison summary: {result['comparison'][:200]}...\n\n"
     system_prompt = "Provide an overall analysis of the performance of hierarchical versus standard RAG based on the provided summaries."
     user_prompt = f"Evaluations Summary:\n{evaluations_summary}"
-    response = mlx.chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
         model=model,
         temperature=0
-    )
-    return response["choices"][0]["message"]["content"]
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    return response
 
 
 script_dir, generated_dir, log_file, logger = setup_config(__file__)

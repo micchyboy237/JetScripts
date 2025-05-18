@@ -55,15 +55,19 @@ def generate_hypothetical_document(query: str, mlx, desired_length: int = 1000, 
     """Generate a hypothetical document for the query."""
     system_prompt = "You are a helpful AI assistant. Generate a detailed document that answers the given question comprehensively."
     user_prompt = f"Question: {query}\n\nGenerate a document that fully answers this question:"
-    response = mlx.chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
         model=model,
         temperature=0.1
-    )
-    return response["choices"][0]["message"]["content"]
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    return response
 
 
 def hyde_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 5, should_generate_response: bool = True, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
@@ -148,15 +152,19 @@ def compare_responses(query: str, hyde_response: str, standard_response: str, re
     user_prompt = f"Query: {query}\n\nHyDE Response:\n{hyde_response}\n\nStandard RAG Response:\n{standard_response}"
     if reference:
         user_prompt += f"\n\nReference Answer:\n{reference}"
-    response = mlx.chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
         model=model,
         temperature=0
-    )
-    return response["choices"][0]["message"]["content"]
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    return response
 
 
 def run_evaluation(pages: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, chunk_size: int = 1000, chunk_overlap: int = 200, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
@@ -189,15 +197,19 @@ def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "
         evaluations_summary += f"Comparison summary: {result['comparison'][:200]}...\n\n"
     system_prompt = "Provide an overall analysis of the performance of HyDE versus standard RAG based on the provided summaries."
     user_prompt = f"Evaluations Summary:\n{evaluations_summary}"
-    response = mlx.chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
         model=model,
         temperature=0
-    )
-    return response["choices"][0]["message"]["content"]
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    return response
 
 
 def visualize_results(query: str, hyde_result: Dict[str, Any], standard_result: Dict[str, Any]):

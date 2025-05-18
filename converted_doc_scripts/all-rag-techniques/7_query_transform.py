@@ -22,29 +22,37 @@ class SearchResult(TypedDict):
 def rewrite_query(original_query: str, mlx, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> str:
     """Rewrite query to be more specific and detailed."""
     system_prompt = "You are an AI assistant specialized in improving search queries. Your task is to rewrite user queries to be more specific, detailed, and likely to retrieve relevant information."
-    response = mlx.chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"Rewrite this query: {original_query}"}
         ],
         model=model,
-        temperature=0.0
-    )
-    return response["content"]
+        temperature=0
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    return response
 
 
 def generate_step_back_query(original_query: str, mlx, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> str:
     """Generate a broader version of the query."""
     system_prompt = "You are an AI assistant specialized in search strategies. Your task is to generate broader, more general versions of specific queries to retrieve relevant background information."
-    response = mlx.chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"Generate a broader version of this query: {original_query}"}
         ],
         model=model,
-        temperature=0.1
-    )
-    return response["content"]
+        temperature=0
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    return response
 
 
 def decompose_query(original_query: str, mlx, num_subqueries: int = None, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> List[str]:
@@ -58,18 +66,20 @@ def decompose_query(original_query: str, mlx, num_subqueries: int = None, model:
         f"Today's date is {current_date}."
     )
     logger.debug(original_query)
-    stream_response = mlx.stream_chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"Decompose this query: {original_query}"}
         ],
         model=model,
-        temperature=0.2
-    )
-    content = "".join(chunk["content"] for chunk in stream_response)
-    logger.success(content)
+        temperature=0.7
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
     logger.newline()
-    lines = content.split("\n")
+    lines = response.split("\n")
     sub_queries = []
     for line in lines:
         line = line.strip()
@@ -183,18 +193,22 @@ def compare_responses(results: Dict[str, Any], reference_answer: str, mlx, model
     comparison_text = f"Reference Answer: {reference_answer}\n\n"
     for technique, result in results.items():
         comparison_text += f"{technique.capitalize()} Query Response:\n{result['response']}\n\n"
-    response = mlx.chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": "You are an objective evaluator. Compare the responses and provide a concise evaluation."},
             {"role": "user", "content": comparison_text}
         ],
         model=model,
         temperature=0
-    )
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
     logger.debug("\n===== EVALUATION RESULTS =====")
-    logger.debug(response["content"])
+    logger.debug(response)
     logger.debug("=============================")
-    return response["content"]
+    return response
 
 
 def rag_with_query_transformation(query: str, vector_store: SimpleVectorStore, embed_func, mlx, transformation_type: str = None) -> Dict[str, Any]:

@@ -57,73 +57,73 @@ def evaluate_document_relevance(query: str, document: str, mlx, model: str = "ll
     """Evaluate document relevance to query."""
     system_prompt = "You are an objective evaluator. Rate the relevance of the document to the query on a scale from 0 to 1, where 0 is irrelevant and 1 is highly relevant. Return only the numerical score."
     user_prompt = f"Query: {query}\n\nDocument: {document}"
-    try:
-        response = mlx.chat(
-            [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            model=model,
-            temperature=0,
-            max_tokens=5
-        )
-        score_text = response["choices"][0]["message"]["content"].strip()
-        score_match = re.search(r'(\d+(\.\d+)?)', score_text)
-        if score_match:
-            return float(score_match.group(1))
-        return 0.5
-    except Exception as e:
-        logger.debug(f"Error evaluating document relevance: {e}")
-        return 0.5
+
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        model=model,
+        temperature=0,
+        max_tokens=5
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    score_text = response
+    score_match = re.search(r'(\d+(\.\d+)?)', score_text)
+    if score_match:
+        return float(score_match.group(1))
+    else:
+        logger.warning(
+            "Warning: Could not parse relevance score, defaulting to 0")
+        return 0.0
 
 
 def duck_duck_go_search(query: str, num_results: int = 3) -> tuple[str, List[Dict[str, str]]]:
     """Perform web search using DuckDuckGo API."""
     encoded_query = quote_plus(query)
     url = f"https://api.duckduckgo.com/?q={encoded_query}&format=json"
-    try:
-        response = requests.get(url, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    response = requests.get(url, headers={
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    })
+    data = response.json()
+    results_text = ""
+    sources = []
+    if data.get("AbstractText"):
+        results_text += f"{data['AbstractText']}\n\n"
+        sources.append({
+            "title": data.get("AbstractSource", "Wikipedia"),
+            "url": data.get("AbstractURL", "")
         })
-        data = response.json()
-        results_text = ""
-        sources = []
-        if data.get("AbstractText"):
-            results_text += f"{data['AbstractText']}\n\n"
+    for topic in data.get("RelatedTopics", [])[:num_results]:
+        if "Text" in topic and "FirstURL" in topic:
+            results_text += f"{topic['Text']}\n\n"
             sources.append({
-                "title": data.get("AbstractSource", "Wikipedia"),
-                "url": data.get("AbstractURL", "")
+                "title": topic.get("Text", "").split(" - ")[0],
+                "url": topic.get("FirstURL", "")
             })
-        for topic in data.get("RelatedTopics", [])[:num_results]:
-            if "Text" in topic and "FirstURL" in topic:
-                results_text += f"{topic['Text']}\n\n"
-                sources.append({
-                    "title": topic.get("Text", "").split(" - ")[0],
-                    "url": topic.get("FirstURL", "")
-                })
-        return results_text, sources
-    except Exception as e:
-        logger.debug(f"Error performing web search: {e}")
-        return "Failed to retrieve search results.", []
+    return results_text, sources
 
 
 def rewrite_search_query(query: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
     """Rewrite query for optimized web search."""
     system_prompt = "You are a helpful assistant. Rewrite the query to optimize it for a web search, making it more specific and concise."
-    try:
-        response = mlx.chat(
-            [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Original query: {query}\n\nRewritten query:"}
-            ],
-            model=model,
-            temperature=0.3,
-            max_tokens=50
-        )
-        return response["choices"][0]["message"]["content"].strip()
-    except Exception as e:
-        logger.debug(f"Error rewriting search query: {e}")
-        return query
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Original query: {query}\n\nRewritten query:"}
+        ],
+        model=model,
+        temperature=0.3,
+        max_tokens=50
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    return response
 
 
 def perform_web_search(query: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> tuple[str, List[Dict[str, str]]]:
@@ -137,19 +137,19 @@ def perform_web_search(query: str, mlx, model: str = "llama-3.2-1b-instruct-4bit
 def refine_knowledge(text: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
     """Refine text to be concise and relevant."""
     system_prompt = "You are a helpful assistant. Refine the provided text to make it concise, clear, and relevant, removing any redundant or irrelevant information."
-    try:
-        response = mlx.chat(
-            [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Text to refine:\n\n{text}"}
-            ],
-            model=model,
-            temperature=0.3
-        )
-        return response["choices"][0]["message"]["content"].strip()
-    except Exception as e:
-        logger.debug(f"Error refining knowledge: {e}")
-        return text
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Text to refine:\n\n{text}"}
+        ],
+        model=model,
+        temperature=0.3
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    return response
 
 
 def crag_process(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 3, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
@@ -221,19 +221,19 @@ def evaluate_crag_response(query: str, response: str, reference_answer: str = No
     user_prompt = f"Query: {query}\n\nResponse: {response}"
     if reference_answer:
         user_prompt += f"\n\nReference Answer: {reference_answer}"
-    try:
-        response = mlx.chat(
-            [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            model=model,
-            temperature=0
-        )
-        return response["choices"][0]["message"]["content"]
-    except Exception as e:
-        logger.debug(f"Error evaluating response: {e}")
-        return f"Evaluation failed: {str(e)}"
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        model=model,
+        temperature=0
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    return response
 
 
 def compare_crag_vs_standard_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, reference_answer: str = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
@@ -280,19 +280,19 @@ def compare_responses(query: str, crag_response: str, standard_response: str, re
     user_prompt = f"Query: {query}\n\nCRAG Response: {crag_response}\n\nStandard RAG Response: {standard_response}"
     if reference_answer:
         user_prompt += f"\n\nReference Answer: {reference_answer}"
-    try:
-        response = mlx.chat(
-            [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            model=model,
-            temperature=0
-        )
-        return response["choices"][0]["message"]["content"].strip()
-    except Exception as e:
-        logger.debug(f"Error comparing responses: {e}")
-        return f"Error comparing responses: {str(e)}"
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        model=model,
+        temperature=0
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    return response
 
 
 def run_crag_evaluation(pages: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
@@ -326,19 +326,19 @@ def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "
         evaluations_summary += f"Comparison summary: {result['comparison'][:200]}...\n\n"
     system_prompt = "Provide an overall analysis of the performance of CRAG versus standard RAG based on the provided summaries."
     user_prompt = f"Evaluations Summary:\n{evaluations_summary}"
-    try:
-        response = mlx.chat(
-            [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            model=model,
-            temperature=0
-        )
-        return response["choices"][0]["message"]["content"].strip()
-    except Exception as e:
-        logger.debug(f"Error generating overall analysis: {e}")
-        return f"Error generating overall analysis: {str(e)}"
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        model=model,
+        temperature=0
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    return response
 
 
 script_dir, generated_dir, log_file, logger = setup_config(__file__)

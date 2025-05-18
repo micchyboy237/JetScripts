@@ -117,16 +117,20 @@ def rewrite_query(
     system_prompt = "You are a helpful assistant. Rewrite the query to make it more precise and contextually relevant, based on the provided context."
     context = "\n".join(context_chunks)
     user_prompt = f"Context:\n{context}\n\nOriginal Query: {query}\n\nRewritten Query:"
-    response = mlx.chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
         model=model,
         max_tokens=max_tokens,
         temperature=temperature
-    )
-    return response["choices"][0]["message"]["content"].strip()
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    return response
 
 
 def expand_context(query: str, current_chunks: List[str], vector_store: SimpleVectorStore, embed_func, top_k: int = 3) -> List[str]:
