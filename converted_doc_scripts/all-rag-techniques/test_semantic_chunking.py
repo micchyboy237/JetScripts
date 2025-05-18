@@ -1,119 +1,185 @@
-import unittest
+import importlib
 import numpy as np
-from semantic_chunking import (
-    cosine_similarity,
-    compute_breakpoints,
-    split_into_chunks,
-    semantic_search
-)
+import pytest
+from helpers import SearchResult
+from typing import List
+from jet.llm.utils.transformer_embeddings import get_embedding_function
+
+# Dynamically import the module
+module = importlib.import_module('2_semantic_chunking')
+
+# Explicitly assign the functions to variables
+extract_text_from_chunks = getattr(module, 'extract_text_from_chunks')
+split_into_sentences = getattr(module, 'split_into_sentences')
+calculate_cosine_similarities = getattr(
+    module, 'calculate_cosine_similarities')
+compute_breakpoints = getattr(module, 'compute_breakpoints')
+split_into_semantic_chunks = getattr(module, 'split_into_semantic_chunks')
+perform_semantic_search = getattr(module, 'perform_semantic_search')
+
+# Mock logger for testing
 
 
-class TestSemanticChunking(unittest.TestCase):
-    def setUp(self):
-        # Sample data for tests
-        self.sentences = ["This is sentence one.",
-                          "This is sentence two.", "This is sentence three."]
-        self.embeddings = np.array([
-            [1.0, 0.0],
-            [0.5, 0.5],
-            [0.0, 1.0]
-        ])
-        # Cosine similarities between consecutive embeddings
-        self.similarities = [0.70710678, 0.70710678]
-        self.text_chunks = ["This is sentence one.",
-                            "This is sentence two. This is sentence three."]
-        self.chunk_embeddings = np.array([
-            [1.0, 0.0],
-            [0.0, 1.0]
-        ])
-
-    def test_cosine_similarity(self):
-        vec1 = np.array([1.0, 0.0])
-        vec2 = np.array([0.0, 1.0])
-        result = cosine_similarity(vec1, vec2)
-        self.assertAlmostEqual(
-            result, 0.0, places=4, msg="Cosine similarity for orthogonal vectors should be 0")
-
-        vec1 = np.array([1.0, 0.0])
-        vec2 = np.array([1.0, 0.0])
-        result = cosine_similarity(vec1, vec2)
-        self.assertAlmostEqual(
-            result, 1.0, places=4, msg="Cosine similarity for identical vectors should be 1")
-
-    def test_compute_breakpoints_percentile(self):
-        breakpoints = compute_breakpoints(
-            self.similarities, method="percentile", threshold=90)
-        self.assertEqual(breakpoints, [
-                         0, 1], msg="Breakpoints should include both indices for high percentile threshold")
-
-        breakpoints = compute_breakpoints(
-            self.similarities, method="percentile", threshold=10)
-        self.assertEqual(
-            breakpoints, [], msg="No breakpoints for low percentile threshold")
-
-    def test_compute_breakpoints_standard_deviation(self):
-        breakpoints = compute_breakpoints(
-            self.similarities, method="standard_deviation", threshold=1)
-        mean = np.mean(self.similarities)
-        std_dev = np.std(self.similarities)
-        expected_threshold = mean - std_dev
-        expected = [i for i, sim in enumerate(
-            self.similarities) if sim < expected_threshold]
-        self.assertEqual(breakpoints, expected,
-                         msg="Breakpoints should match standard deviation calculation")
-
-    def test_compute_breakpoints_interquartile(self):
-        breakpoints = compute_breakpoints(
-            self.similarities, method="interquartile", threshold=1.5)
-        q1, q3 = np.percentile(self.similarities, [25, 75])
-        expected_threshold = q1 - 1.5 * (q3 - q1)
-        expected = [i for i, sim in enumerate(
-            self.similarities) if sim < expected_threshold]
-        self.assertEqual(breakpoints, expected,
-                         msg="Breakpoints should match interquartile calculation")
-
-    def test_compute_breakpoints_invalid_method(self):
-        with self.assertRaises(ValueError, msg="Invalid method should raise ValueError"):
-            compute_breakpoints(self.similarities, method="invalid")
-
-    def test_split_into_chunks(self):
-        breakpoints = [1]
-        chunks = split_into_chunks(self.sentences, breakpoints)
-        expected = ["This is sentence one.",
-                    "This is sentence two. This is sentence three."]
-        self.assertEqual(chunks, expected,
-                         msg="Chunks should be split correctly at breakpoints")
-
-        chunks = split_into_chunks(self.sentences, [])
-        expected = [
-            "This is sentence one. This is sentence two. This is sentence three."]
-        self.assertEqual(chunks, expected,
-                         msg="No breakpoints should result in one chunk")
-
-    def test_semantic_search(self):
-        # Simulate query embedding directly since we can't use embed_func
-        query_embedding = np.array([1.0, 0.0])
-        result = semantic_search.__wrapped__(
-            None, self.text_chunks, self.chunk_embeddings, k=2, query_embedding=query_embedding)
-
-        expected = [
-            {"id": "chunk_0", "rank": 1, "doc_index": 0,
-                "score": 1.0, "text": self.text_chunks[0]},
-            {"id": "chunk_1", "rank": 2, "doc_index": 1,
-                "score": 0.0, "text": self.text_chunks[1]}
-        ]
-        for i, res in enumerate(result):
-            self.assertEqual(res["id"], expected[i]["id"],
-                             msg=f"ID mismatch at rank {i+1}")
-            self.assertEqual(res["rank"], expected[i]["rank"],
-                             msg=f"Rank mismatch at rank {i+1}")
-            self.assertEqual(res["doc_index"], expected[i]["doc_index"],
-                             msg=f"Doc index mismatch at rank {i+1}")
-            self.assertAlmostEqual(
-                res["score"], expected[i]["score"], places=4, msg=f"Score mismatch at rank {i+1}")
-            self.assertEqual(res["text"], expected[i]["text"],
-                             msg=f"Text mismatch at rank {i+1}")
+class MockLogger:
+    def debug(self, msg): pass
+    def info(self, msg): pass
+    def success(self, msg, **kwargs): pass
 
 
-if __name__ == '__main__':
-    unittest.main()
+@pytest.fixture
+def mock_logger():
+    return MockLogger()
+
+
+@pytest.fixture
+def embed_func():
+    """Initialize the real embedding function."""
+    return get_embedding_function("mxbai-embed-large")
+
+
+def test_extract_text_from_chunks(mock_logger):
+    """Test extracting text from formatted chunks."""
+    formatted_chunks = [
+        "[doc_index: 0]\n[header: Intro]\n\nThis is an anime about isekai adventures.",
+        "[doc_index: 1]\n[header: Plot]\n\nThe hero is transported to a new world."
+    ]
+    result = extract_text_from_chunks(formatted_chunks, mock_logger)
+    expected = "This is an anime about isekai adventures. The hero is transported to a new world."
+    assert result == expected
+
+
+def test_extract_text_from_chunks_empty(mock_logger):
+    """Test extracting text from empty chunks."""
+    result = extract_text_from_chunks([], mock_logger)
+    assert result == ""
+
+
+def test_split_into_sentences(mock_logger):
+    """Test splitting text into sentences."""
+    text = "This is a test. Another sentence. Final one."
+    result = split_into_sentences(text, mock_logger)
+    expected = ["This is a test", "Another sentence", "Final one"]
+    assert result == expected
+
+
+def test_split_into_sentences_single(mock_logger):
+    """Test splitting single sentence."""
+    text = "This is a test."
+    result = split_into_sentences(text, mock_logger)
+    expected = ["This is a test"]
+    assert result == expected
+
+
+def test_split_into_sentences_empty(mock_logger):
+    """Test splitting empty text."""
+    text = ""
+    result = split_into_sentences(text, mock_logger)
+    expected = []
+    assert result == expected
+
+
+def test_calculate_cosine_similarities(mock_logger):
+    """Test cosine similarity calculation between embeddings."""
+    embeddings = [
+        np.array([1.0, 0.0]),
+        np.array([0.707, 0.707]),
+        np.array([0.0, 1.0])
+    ]
+    result = calculate_cosine_similarities(embeddings, mock_logger)
+    expected = [0.7071067811865475, 0.7071067811865475]
+    assert len(result) == len(embeddings) - 1
+    assert all(abs(result[i] - expected[i]) < 1e-6 for i in range(len(result)))
+
+
+def test_compute_breakpoints_percentile():
+    """Test breakpoint computation using percentile method."""
+    similarities = [0.9, 0.3, 0.8, 0.2, 0.7]
+    result = compute_breakpoints(
+        similarities, method="percentile", threshold=30)
+    expected = [1, 3]
+    assert result == expected
+
+
+def test_compute_breakpoints_standard_deviation():
+    """Test breakpoint computation using standard deviation method."""
+    similarities = [0.9, 0.3, 0.8, 0.2, 0.7]
+    result = compute_breakpoints(
+        similarities, method="standard_deviation", threshold=1)
+    mean = np.mean(similarities)
+    std_dev = np.std(similarities)
+    threshold_value = mean - std_dev
+    expected = [i for i, sim in enumerate(
+        similarities) if sim < threshold_value]
+    assert result == expected
+
+
+def test_compute_breakpoints_interquartile():
+    """Test breakpoint computation using interquartile method."""
+    similarities = [0.9, 0.3, 0.8, 0.2, 0.7]
+    result = compute_breakpoints(similarities, method="interquartile")
+    q1, q3 = np.percentile(similarities, [25, 75])
+    threshold_value = q1 - 1.5 * (q3 - q1)
+    expected = [i for i, sim in enumerate(
+        similarities) if sim < threshold_value]
+    assert result == expected
+
+
+def test_compute_breakpoints_invalid_method():
+    """Test error handling for invalid breakpoint method."""
+    similarities = [0.9, 0.3, 0.8]
+    with pytest.raises(ValueError, match="Invalid method"):
+        compute_breakpoints(similarities, method="invalid")
+
+
+def test_split_into_semantic_chunks(mock_logger):
+    """Test splitting sentences into semantic chunks."""
+    sentences = ["First sentence", "Second sentence",
+                 "Third sentence", "Fourth sentence"]
+    breakpoints = [1, 2]
+    result = split_into_semantic_chunks(sentences, breakpoints, mock_logger)
+    expected = [
+        "First sentence. Second sentence.",
+        "Third sentence.",
+        "Fourth sentence."
+    ]
+    assert result == expected
+
+
+def test_split_into_semantic_chunks_no_breakpoints(mock_logger):
+    """Test splitting with no breakpoints."""
+    sentences = ["First sentence", "Second sentence"]
+    breakpoints = []
+    result = split_into_semantic_chunks(sentences, breakpoints, mock_logger)
+    expected = ["First sentence. Second sentence."]
+    assert result == expected
+
+
+def test_perform_semantic_search(mock_logger, embed_func):
+    """Test semantic search with real embedding function."""
+    text_chunks = [
+        "In this isekai anime, the protagonist is transported to a fantasy world filled with magic.",
+        "The hero battles fierce monsters and uncovers ancient secrets in a magical kingdom.",
+        "A group of adventurers explores a mysterious dungeon in a parallel world."
+    ]
+    chunk_embeddings = embed_func(text_chunks)
+    query = "isekai anime with magic and adventure"
+    result = perform_semantic_search(
+        query, text_chunks, chunk_embeddings, embed_func, k=2)
+    assert len(result) == 2
+    assert all(key in result[0] for key in [
+               "id", "rank", "doc_index", "score", "text", "metadata", "relevance_score"])
+    assert result[0]['rank'] == 1
+    assert result[0]['score'] > result[1]['score']
+    assert result[0]['text'] in text_chunks
+    assert 0.0 <= result[0]['score'] <= 1.0  # Cosine similarity range
+
+
+def test_embedding_consistency(embed_func):
+    """Test that the embedding function produces consistent embeddings for identical inputs."""
+    text = "Isekai anime with a magical world."
+    embedding1 = embed_func(text)
+    embedding2 = embed_func(text)
+    assert len(embedding1) == len(embedding2)
+    assert np.allclose(embedding1, embedding2, atol=1e-6)
+    assert isinstance(embedding1, list)
+    assert all(isinstance(x, float) for x in embedding1)
