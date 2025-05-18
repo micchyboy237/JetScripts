@@ -1,179 +1,216 @@
 import os
 import numpy as np
 from tqdm import tqdm
+from typing import Dict, List, Tuple
 from helpers import (
     setup_config, load_json_data, initialize_mlx, generate_embeddings,
     load_validation_data, generate_ai_response, evaluate_ai_response, save_file,
-    DATA_DIR, DOCS_PATH
+    DATA_DIR, DOCS_PATH, cosine_similarity
 )
 from jet.logger import CustomLogger
 
-# Setup configuration
-script_dir, generated_dir, log_file, logger = setup_config(__file__)
 
-logger.info("Loading JSON data")
-formatted_chunks, original_chunks = load_json_data(DOCS_PATH, logger)
-# Combine chunks into a single text for chunking
-extracted_text = " ".join([chunk.split("\n\n")[-1]
-                          for chunk in formatted_chunks])
-logger.debug(extracted_text[:500])
+class ChunkSizeSelector:
+    def __init__(self, script_path: str):
+        self.script_dir, self.generated_dir, self.log_file, self.logger = setup_config(
+            script_path)
+        self.mlx, self.embed_func = initialize_mlx(self.logger)
+        self.chunk_sizes = [128, 256, 512]
 
-# Initialize MLX and embedding function
-mlx, embed_func = initialize_mlx(logger)
+    def extract_text(self, formatted_chunks: List[str]) -> str:
+        """Extract text content from formatted chunks."""
+        return " ".join([chunk.split("\n\n")[-1] for chunk in formatted_chunks])
 
-logger.info("Chunking text with different sizes")
+    def chunk_text(self, text: str, size: int, overlap: int) -> List[str]:
+        """Split text into chunks of specified size with overlap."""
+        chunks = []
+        for i in range(0, len(text), size - overlap):
+            chunks.append(text[i:i + size])
+        return chunks
 
+    def generate_chunk_dict(self, text: str) -> Dict[int, List[str]]:
+        """Generate dictionary of chunks for each chunk size."""
+        return {
+            size: self.chunk_text(text, size, size // 5)
+            for size in self.chunk_sizes
+        }
 
-def chunk_text(text, n, overlap):
-    chunks = []
-    for i in range(0, len(text), n - overlap):
-        chunks.append(text[i:i + n])
-    return chunks
+    def generate_chunk_embeddings(self, chunk_dict: Dict[int, List[str]]) -> Dict[int, List[np.ndarray]]:
+        """Generate embeddings for all chunks."""
+        return {
+            size: generate_embeddings(chunks, self.embed_func, self.logger)
+            for size, chunks in tqdm(chunk_dict.items(), desc="Generating Embeddings")
+        }
 
-
-chunk_sizes = [128, 256, 512]
-text_chunks_dict = {size: chunk_text(
-    extracted_text, size, size // 5) for size in chunk_sizes}
-for size, chunks in text_chunks_dict.items():
-    logger.debug(f"Chunk Size: {size}, Number of Chunks: {len(chunks)}")
-save_file({"chunk_sizes": text_chunks_dict},
-          f"{generated_dir}/text_chunks.json")
-logger.info(f"Saved text chunks to {generated_dir}/text_chunks.json")
-
-logger.info("Generating embeddings for chunks")
-chunk_embeddings_dict = {
-    size: generate_embeddings(chunks, embed_func, logger)
-    for size, chunks in tqdm(text_chunks_dict.items(), desc="Generating Embeddings")
-}
-
-
-logger.info("Defining similarity and retrieval functions")
-
-
-def cosine_similarity(vec1, vec2):
-    return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
-
-
-def retrieve_relevant_chunks(query, text_chunks, chunk_embeddings, k=5):
-    query_embedding = embed_func(query)
-    similarities = [cosine_similarity(query_embedding, emb)
-                    for emb in chunk_embeddings]
-    top_indices = np.argsort(similarities)[-k:][::-1]
-    return [{"id": f"chunk_{i}", "rank": idx + 1, "doc_index": i, "score": similarities[i], "text": text_chunks[i]} for idx, i in enumerate(top_indices)]
-
-
-validation_data = load_validation_data(f"{DATA_DIR}/val.json", logger)
-query = validation_data[3]['question']
-retrieved_chunks_dict = {size: retrieve_relevant_chunks(
-    query, text_chunks_dict[size], chunk_embeddings_dict[size]) for size in chunk_sizes}
-logger.debug(retrieved_chunks_dict[256])
-save_file(retrieved_chunks_dict, f"{generated_dir}/retrieved_chunks.json")
-logger.info(f"Saved retrieved chunks to {generated_dir}/retrieved_chunks.json")
-
-logger.info("Generating AI responses")
-system_prompt = "You are an AI assistant that strictly answers based on the given context. If the answer cannot be derived directly from the provided context, respond with: 'I do not have enough information to answer that.'"
-ai_responses_dict = {size: generate_ai_response(
-    query, system_prompt, retrieved_chunks_dict[size], mlx, logger) for size in chunk_sizes}
-logger.debug(ai_responses_dict[256])
-save_file(ai_responses_dict, f"{generated_dir}/ai_responses.json")
-logger.info(f"Saved AI responses to {generated_dir}/ai_responses.json")
-
-logger.info("Evaluating responses")
-SCORE_FULL = 1.0
-SCORE_PARTIAL = 0.5
-SCORE_NONE = 0.0
-
-FAITHFULNESS_PROMPT_TEMPLATE = """
-Evaluate the faithfulness of the AI response compared to the true answer.
-User Query: {question}
-AI Response: {response}
-True Answer: {true_answer}
-
-Faithfulness measures how well the AI response aligns with facts in the true answer, without hallucinations.
-
-INSTRUCTIONS:
-- Score STRICTLY using only these values:
-    * {full} = Completely faithful, no contradictions with true answer
-    * {partial} = Partially faithful, minor contradictions
-    * {none} = Not faithful, major contradictions or hallucinations
-- Return ONLY the numerical score ({full}, {partial}, or {none}) with no explanation or additional text.
-"""
-
-RELEVANCY_PROMPT_TEMPLATE = """
-Evaluate the relevancy of the AI response to the user query.
-User Query: {question}
-AI Response: {response}
-
-Relevancy measures how well the response addresses the user's question.
-
-INSTRUCTIONS:
-- Score STRICTLY using only these values:
-    * {full} = Completely relevant, directly addresses the query
-    * {partial} = Partially relevant, addresses some aspects
-    * {none} = Not relevant, fails to address the query
-- Return ONLY the numerical score ({full}, {partial}, or {none}) with no explanation or additional text.
-"""
-
-
-def evaluate_response(question, response, true_answer):
-    faithfulness_prompt = FAITHFULNESS_PROMPT_TEMPLATE.format(
-        question=question,
-        response=response,
-        true_answer=true_answer,
-        full=SCORE_FULL,
-        partial=SCORE_PARTIAL,
-        none=SCORE_NONE
-    )
-    relevancy_prompt = RELEVANCY_PROMPT_TEMPLATE.format(
-        question=question,
-        response=response,
-        full=SCORE_FULL,
-        partial=SCORE_PARTIAL,
-        none=SCORE_NONE
-    )
-    faithfulness_response = mlx.chat(
-        [
-            {"role": "system", "content": "You are an objective evaluator. Return ONLY the numerical score."},
-            {"role": "user", "content": faithfulness_prompt}
+    def retrieve_relevant_chunks(
+        self,
+        query: str,
+        text_chunks: List[str],
+        chunk_embeddings: List[np.ndarray],
+        k: int = 5
+    ) -> List[Dict]:
+        """Retrieve top-k relevant chunks for a query."""
+        query_embedding = self.embed_func(query)
+        similarities = [cosine_similarity(
+            query_embedding, emb) for emb in chunk_embeddings]
+        top_indices = np.argsort(similarities)[-k:][::-1]
+        return [
+            {
+                "id": f"chunk_{i}",
+                "rank": idx + 1,
+                "doc_index": i,
+                "score": similarities[i],
+                "text": text_chunks[i]
+            }
+            for idx, i in enumerate(top_indices)
         ]
-    )
-    relevancy_response = mlx.chat(
-        [
-            {"role": "system", "content": "You are an objective evaluator. Return ONLY the numerical score."},
-            {"role": "user", "content": relevancy_prompt}
-        ]
-    )
-    try:
-        faithfulness_score = float(faithfulness_response["content"].strip())
-    except ValueError:
-        logger.debug(
-            "Warning: Could not parse faithfulness score, defaulting to 0")
-        faithfulness_score = 0.0
-    try:
-        relevancy_score = float(relevancy_response["content"].strip())
-    except ValueError:
-        logger.debug(
-            "Warning: Could not parse relevancy score, defaulting to 0")
-        relevancy_score = 0.0
-    return faithfulness_score, relevancy_score
+
+    def evaluate_response(
+        self,
+        question: str,
+        response: str,
+        true_answer: str
+    ) -> Tuple[float, float]:
+        """Evaluate response faithfulness and relevancy."""
+        FAITHFULNESS_PROMPT_TEMPLATE = (
+            "Evaluate how faithful the AI response is to the true answer. "
+            "Score 1.0 for complete faithfulness, 0.5 for partial, 0.0 for none.\n"
+            "Question: {question}\nAIShi Response: {response}\nTrue Answer: {true_answer}\n"
+            "Return ONLY the numerical score (1.0, 0.5, or 0.0)."
+        )
+        RELEVANCY_PROMPT_TEMPLATE = (
+            "Evaluate how relevant the AI response is to the question. "
+            "Score 1.0 for complete relevancy, 0.5 for partial, 0.0 for none.\n"
+            "Question: {question}\nAI Response: {response}\nTrue Answer: {true_answer}\n"
+            "Return ONLY the numerical score (1.0, 0.5, or 0.0)."
+        )
+        faithfulness_prompt = FAITHFULNESS_PROMPT_TEMPLATE.format(
+            question=question,
+            response=response,
+            true_answer=true_answer
+        )
+        relevancy_prompt = RELEVANCY_PROMPT_TEMPLATE.format(
+            question=question,
+            response=response,
+            true_answer=true_answer
+        )
+        faithfulness_response = self.mlx.chat(
+            [
+                {"role": "system",
+                    "content": "You are an objective evaluator. Return ONLY the numerical score (1.0, 0.5, or 0.0)."},
+                {"role": "user", "content": faithfulness_prompt}
+            ]
+        )
+        relevancy_response = self.mlx.chat(
+            [
+                {"role": "system",
+                    "content": "You are an objective evaluator. Return ONLY the numerical score (1.0, 0.5, or 0.0)."},
+                {"role": "user", "content": relevancy_prompt}
+            ]
+        )
+
+        def parse_score(response_content: str) -> float:
+            content = response_content.strip()
+            self.logger.debug(f"Raw score response: {content}")
+            try:
+                score = float(content)
+                if score not in [0.0, 0.5, 1.0]:
+                    self.logger.debug(
+                        f"Invalid score {score}, defaulting to 0.0")
+                    return 0.0
+                return score
+            except ValueError:
+                self.logger.debug("Could not parse score, defaulting to 0.0")
+                return 0.0
+
+        faithfulness_score = parse_score(faithfulness_response["content"])
+        relevancy_score = parse_score(relevancy_response["content"])
+        return faithfulness_score, relevancy_score
+
+    def run(self):
+        """Main execution flow."""
+        self.logger.info("Loading JSON data")
+        formatted_chunks, _ = load_json_data(DOCS_PATH, self.logger)
+
+        extracted_text = self.extract_text(formatted_chunks)
+        self.logger.debug(extracted_text[:500])
+
+        self.logger.info("Chunking text with different sizes")
+        text_chunks_dict = self.generate_chunk_dict(extracted_text)
+
+        for size, chunks in text_chunks_dict.items():
+            self.logger.debug(
+                f"Chunk Size: {size}, Number of Chunks: {len(chunks)}")
+
+        save_file({"chunk_sizes": text_chunks_dict},
+                  f"{self.generated_dir}/text_chunks.json")
+        self.logger.info(
+            f"Saved text chunks to {self.generated_dir}/text_chunks.json")
+
+        self.logger.info("Generating embeddings for chunks")
+        chunk_embeddings_dict = self.generate_chunk_embeddings(
+            text_chunks_dict)
+
+        self.logger.info("Processing validation data")
+        validation_data = load_validation_data(
+            f"{DATA_DIR}/val.json", self.logger)
+        query = validation_data[3]['question']
+
+        retrieved_chunks_dict = {
+            size: self.retrieve_relevant_chunks(
+                query, text_chunks_dict[size], chunk_embeddings_dict[size])
+            for size in self.chunk_sizes
+        }
+
+        self.logger.debug(retrieved_chunks_dict[256])
+        save_file(retrieved_chunks_dict,
+                  f"{self.generated_dir}/retrieved_chunks.json")
+        self.logger.info(
+            f"Saved retrieved chunks to {self.generated_dir}/retrieved_chunks.json")
+
+        self.logger.info("Generating AI responses")
+        system_prompt = (
+            "You are an AI assistant that strictly answers based on the given context. "
+            "If the answer cannot be derived directly from the provided context, "
+            "respond with: 'I do not have enough information to answer that.'"
+        )
+
+        ai_responses_dict = {
+            size: generate_ai_response(
+                query, system_prompt, retrieved_chunks_dict[size], self.mlx, self.logger
+            )
+            for size in self.chunk_sizes
+        }
+
+        self.logger.debug(ai_responses_dict[256])
+        save_file(ai_responses_dict, f"{self.generated_dir}/ai_responses.json")
+        self.logger.info(
+            f"Saved AI responses to {self.generated_dir}/ai_responses.json")
+
+        self.logger.info("Evaluating responses")
+        true_answer = validation_data[3]['answer']
+        evaluation_scores = {}
+
+        for size in [256, 128]:
+            faithfulness, relevancy = self.evaluate_response(
+                query, ai_responses_dict[size], true_answer
+            )
+            evaluation_scores[f"chunk_size_{size}"] = {
+                "faithfulness": faithfulness,
+                "relevancy": relevancy
+            }
+            self.logger.debug(
+                f"\nFaithfulness Score (Chunk Size {size}): {faithfulness}")
+            self.logger.debug(
+                f"Relevancy Score (Chunk Size {size}): {relevancy}")
+
+        save_file(evaluation_scores,
+                  f"{self.generated_dir}/evaluation_scores.json")
+        self.logger.info(
+            f"Saved evaluation scores to {self.generated_dir}/evaluation_scores.json")
+        self.logger.info("\n\n[DONE]", bright=True)
 
 
-true_answer = validation_data[3]['answer']
-faithfulness2, relevancy2 = evaluate_response(
-    query, ai_responses_dict[256], true_answer)
-logger.debug(f"\n")
-logger.debug(f"Faithfulness Score (Chunk Size 256): {faithfulness2}")
-logger.debug(f"Relevancy Score (Chunk Size 256): {relevancy2}")
-faithfulness3, relevancy3 = evaluate_response(
-    query, ai_responses_dict[128], true_answer)
-logger.debug(f"\n")
-logger.debug(f"Faithfulness Score (Chunk Size 128): {faithfulness3}")
-logger.debug(f"Relevancy Score (Chunk Size 128): {relevancy3}")
-save_file({
-    "chunk_size_256": {"faithfulness": faithfulness2, "relevancy": relevancy2},
-    "chunk_size_128": {"faithfulness": faithfulness3, "relevancy": relevancy3}
-}, f"{generated_dir}/evaluation_scores.json")
-logger.info(
-    f"Saved evaluation scores to {generated_dir}/evaluation_scores.json")
-
-logger.info("\n\n[DONE]", bright=True)
+if __name__ == "__main__":
+    selector = ChunkSizeSelector(__file__)
+    selector.run()
