@@ -173,7 +173,7 @@ def transformed_search(query: str, vector_store: SimpleVectorStore, embed_func, 
         results = sorted(seen_texts.values(),
                          key=lambda x: x["score"], reverse=True)[:top_k]
     else:
-        query_embedding = embed_func([query])[0]
+        query_embedding = embed_func(query)
         results = vector_store.similarity_search(query_embedding, k=top_k)
     return results
 
