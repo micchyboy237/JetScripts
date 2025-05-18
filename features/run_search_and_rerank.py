@@ -1,7 +1,9 @@
+import json
+import time
 import asyncio
 import os
 import shutil
-from typing import Generator, List, Optional, Union
+from typing import Generator, List, Optional, Union, TypedDict
 from datetime import datetime
 from tqdm import tqdm
 from mlx_lm import load
@@ -10,6 +12,7 @@ from jet.code.splitter_markdown_utils import Header, extract_md_header_contents,
 from jet.file.utils import save_file
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.token_utils import merge_texts
+from jet.llm.mlx.mlx_types import ModelType
 from jet.logger import logger
 from jet.scrapers.browser.playwright_utils import scrape_multiple_urls
 from jet.scrapers.preprocessor import html_to_markdown
@@ -18,10 +21,13 @@ from jet.scrapers.hrequests_utils import scrape_urls
 from jet.transformers.formatters import format_html, format_json
 from jet.utils.url_utils import normalize_url
 from jet.vectors.hybrid_search_engine import HybridSearchEngine
-from jet.wordnet.similarity import compute_info, query_similarity_scores
+# from jet.wordnet.similarity import compute_info, query_similarity_scores
+from jet.llm.utils.transformer_embeddings import get_embedding_function, search_docs
 
 logger.info("Initializing MLX and embedding function")
-mlx = MLX()
+seed = 42
+DEFAULT_MODEL = "llama-3.2-3b-instruct-4bit"
+mlx = MLX(DEFAULT_MODEL, seed=seed)
 
 
 def get_url_html_tuples(urls: list[str], top_n: int = 3, num_parallel: int = 3, min_header_count: int = 10, min_avg_word_count: int = 10, output_dir: Optional[str] = None) -> Generator[list[Header], None, None]:
@@ -36,6 +42,54 @@ def get_url_html_tuples(urls: list[str], top_n: int = 3, num_parallel: int = 3, 
             "headers": headers,
             "html": html,
         }
+
+
+class StepBackQueryResponse(TypedDict):
+    """TypedDict for the structured response of the step-back query."""
+    original_query: str
+    broader_query: List[str]
+
+
+def generate_step_back_query(original_query: str, mlx: MLX, model: ModelType = "llama-3.2-3b-instruct-4bit") -> StepBackQueryResponse:
+    """Generate a broader, more flexible version of the query, using the current date in the user message."""
+    # Format current date as YYYY-MM-DD
+    current_date = time.strftime("%Y-%m-%d")
+
+    system_prompt = """You are an AI assistant specialized in search strategies. Your task is to generate a broader, more general version of a specific query to retrieve relevant background information. The user will provide the query and the current date. Use the date to ensure the broader query is contextually relevant, but do not include the date in the broader query itself. Return a JSON object with the following structure:
+    {
+        "original_query": "<original query>",
+        "broader_query": "<broader query>"
+    }
+    Ensure the broader query is concise, general, flexible, and suitable for retrieving background information that aligns with the query's intent.
+    Output only the JSON block without any additional text."""
+
+    # Flexible user message encouraging context-aware, varied broader queries
+    user_message = f"Current date: {current_date}. Based on this date and the query's intent, generate a broader, more general version of this query that remains relevant and flexible: {original_query}"
+
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message}
+        ],
+        model=model,
+        temperature=0
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+
+    # Parse the response as JSON
+    try:
+        parsed_response = json.loads(response)
+        return parsed_response
+    except json.JSONDecodeError:
+        # Fallback in case the response isn't valid JSON
+        logger.error("Failed to parse response as JSON")
+        return StepBackQueryResponse(
+            original_query=original_query,
+            broader_query=original_query
+        )
 
 
 def decompose_query(original_query, num_subqueries=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
@@ -125,8 +179,8 @@ if __name__ == "__main__":
     output_dir = os.path.join(script_dir, "generated",
                               os.path.splitext(os.path.basename(__file__))[0])
 
-    # shutil.rmtree(output_dir, ignore_errors=True)
-    # os.makedirs(output_dir, exist_ok=True)
+    shutil.rmtree(output_dir, ignore_errors=True)
+    os.makedirs(output_dir, exist_ok=True)
 
     query = "List trending isekai anime this year."
     model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
@@ -137,8 +191,15 @@ if __name__ == "__main__":
     save_file({"query": query, "results": search_results}, os.path.join(
         output_dir, "search_results.json"))
 
-    # Decompose query to sub-queries
-    sub_queries = decompose_query(query)
+    # Filter up to n search results
+    search_results = search_results[:3]
+
+    # Generate broader query
+    query_result = generate_step_back_query(query, mlx)
+    query = query_result["original_query"]
+    # # Decompose query to sub-queries
+    # sub_queries = decompose_query(query)
+    sub_queries = [query_result["broader_query"]]
     save_file({"query": query, "sub_queries": sub_queries}, os.path.join(
         output_dir, "queries.json"))
 
@@ -148,10 +209,15 @@ if __name__ == "__main__":
         f"Title: {result["title"]}\nContent: {result["content"]}" for result in search_results]
     top_n = len(search_result_docs)
 
-    query_scores = query_similarity_scores(
-        queries, search_result_docs, model=embed_models)
-    save_file({"queries": queries, "results": query_scores},
-              os.path.join(output_dir, "search_query_scores.json"))
+    # query_scores = query_similarity_scores(
+    #     queries, search_result_docs, model=embed_models)
+    # save_file({"queries": queries, "results": query_scores},
+    #           os.path.join(output_dir, "search_query_scores.json"))
+    combined_query = "\n".join(queries)
+    search_docs_results = search_docs(
+        combined_query, search_result_docs, top_k=10)
+    save_file({"combined_query": combined_query, "results": search_docs_results},
+              os.path.join(output_dir, "search_docs_results.json"))
 
     # Use hybrid search
     # engine = HybridSearchEngine()
@@ -172,9 +238,7 @@ if __name__ == "__main__":
     # save_file(mmr_results, os.path.join(
     #     output_dir, "hybrid_search_with_diversity.json"))
 
-    sub_dir = os.path.join(output_dir, "searched_html")
-    shutil.rmtree(sub_dir, ignore_errors=True)
-    os.makedirs(output_dir, exist_ok=True)
+    sub_dir = f"{output_dir}/searched_html"
 
     # Convert html to docs
     urls = [item["url"] for item in search_results]
@@ -194,7 +258,11 @@ if __name__ == "__main__":
                 output_dir_url, "doc.html"))
 
             # docs = extract_texts_by_hierarchy(html_str)
-            docs = get_md_header_contents(html_str)
+            docs = get_md_header_contents(html_str, [
+                ("#", "h1"),
+                ("##", "h2"),
+                ("###", "h3"),
+            ])
             save_file(docs, f"{output_dir_url}/headers.json")
 
             headers = [item["header"] for item in docs]
@@ -209,25 +277,39 @@ if __name__ == "__main__":
             # Load the model and tokenizer
             model, tokenizer = load(model_path)
 
-            # Merge docs with max tokens
-            max_tokens = 300
+            # # Merge docs with max tokens
+            # max_tokens = 300
 
-            def _tokenizer(text: Union[str, List[str]]) -> Union[List[str], List[List[str]]]:
-                if isinstance(text, str):
-                    token_ids = tokenizer.encode(
-                        text, add_special_tokens=False)
-                    return tokenizer.convert_ids_to_tokens(token_ids)
-                else:
-                    token_ids_list = tokenizer.batch_encode_plus(
-                        text, add_special_tokens=False)["input_ids"]
-                    return [tokenizer.convert_ids_to_tokens(ids) for ids in token_ids_list]
+            # def _tokenizer(text: Union[str, List[str]]) -> Union[List[str], List[List[str]]]:
+            #     if isinstance(text, str):
+            #         token_ids = tokenizer.encode(
+            #             text, add_special_tokens=False)
+            #         return tokenizer.convert_ids_to_tokens(token_ids)
+            #     else:
+            #         token_ids_list = tokenizer.batch_encode_plus(
+            #             text, add_special_tokens=False)["input_ids"]
+            #         return [tokenizer.convert_ids_to_tokens(ids) for ids in token_ids_list]
 
-            merged_docs = merge_texts_by_hierarchy(
-                html_str, _tokenizer, max_tokens)
-            save_file(merged_docs, f"{output_dir_url}/context.json")
+            # merged_docs = merge_texts_by_hierarchy(
+            #     html_str, _tokenizer, max_tokens)
 
-            html_docs = [item["text"] for item in merged_docs]
-            md_context = "\n\n".join(html_docs)
+            # token_counts = [item["token_count"] for item in merged_docs]
+
+            # Analyze headings
+            header_stats = []
+            for item in tqdm(docs, desc="Analyzing headers"):
+                text = item["text"]
+                header = f"{(item["parent_header"] or "").strip()}\n{item["header"]}"
+                stats = get_header_stats(text)
+                header_stats.append(
+                    {"stats": stats, "header": header, "text": text})
+                save_file(header_stats, f"{output_dir_url}/header_stats.json")
+
+            context_docs = [
+                f"{(item["parent_header"] or "").strip()}\n{item["header"]}\n{item["text"]}" for item in docs
+                if not item["header_level"] == 1
+            ]
+            md_context = "\n\n".join(context_docs)
             save_file(md_context, os.path.join(output_dir_url, "context.md"))
 
             title_and_metadata = scrape_title_and_metadata(html_str)
@@ -237,42 +319,33 @@ if __name__ == "__main__":
             save_file(
                 {"url": url, "title": title_and_metadata["title"], "stats": stats}, f"{output_dir_url}/overall_stats.json")
 
-            # Analyze headings
-            header_stats = []
-            for item in tqdm(merged_docs, desc="Analyzing headers"):
-                text = item["text"]
-                header = text.splitlines()[0].strip()
-                stats = get_header_stats(text)
-                header_stats.append(
-                    {"stats": stats, "header": header, "text": text})
-                save_file(header_stats, f"{output_dir_url}/header_stats.json")
-
             # Rerank docs
-            query_scores = query_similarity_scores(
-                queries, html_docs, model=embed_models)
-            save_file({"queries": queries, "results": query_scores},
-                      os.path.join(output_dir_url, "query_scores.json"))
+            # query_scores = query_similarity_scores(
+            #     queries, context_docs, model=embed_models)
+            # save_file({"queries": queries, "results": query_scores},
+            #           os.path.join(output_dir_url, "query_scores.json"))
+            search_docs_results = search_docs(combined_query, context_docs)
+            save_file({"combined_query": combined_query, "results": search_docs_results},
+                      os.path.join(output_dir_url, "search_docs_results.json"))
 
-            headers = [item["text"].splitlines()[0].strip()
-                       for item in merged_docs]
+            headers = [item["header"] for item in header_stats]
             logger.debug(f"Headers (context) length: {len(headers)}")
             save_file("\n".join(headers), os.path.join(
                 output_dir_url, "context_headers.md"))
 
-            token_counts = [item["token_count"] for item in merged_docs]
             save_file({
                 "url": url,
                 "title": title_and_metadata["title"],
                 "headers": len(headers),
-                "tokens": {
-                    "min_tokens": min(token_counts),
-                    "max_tokens": max(token_counts),
-                    "ave_tokens": sum(token_counts) / len(token_counts) if token_counts else 0,
-                },
+                # "tokens": {
+                #     "min_tokens": min(token_counts),
+                #     "max_tokens": max(token_counts),
+                #     "ave_tokens": sum(token_counts) / len(token_counts) if token_counts else 0,
+                # },
                 "metadata": title_and_metadata["metadata"],
-                "text_analysis": compute_info(query_scores),
+                # "text_analysis": compute_info(query_scores),
                 "top_header": {
-                    "doc_index": query_scores[0]
+                    "doc_index": search_docs_results[0]
                 },
             }, os.path.join(output_dir_url, "context_info.json"))
 
