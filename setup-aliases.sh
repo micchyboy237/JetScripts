@@ -403,5 +403,5 @@ git_stats() {
 
 # Check if the 'deps' function is already defined to prevent echo
 # if ! declare -f deps &>/dev/null; then
-echo "Added deps, deps_tree, freeze, size, sizes, setup_venv, freeze_venv, reinstall_venv, force_reinstall_venv, activate_venv, deactivate_venv, reinstall_python functions, pip, large_folders, last_updates, git_stats"
+echo "Added deps, deps_tree, freeze, size, setup_venv, freeze_venv, reinstall_venv, force_reinstall_venv, activate_venv, deactivate_venv, reinstall_python functions, pip, large_folders, last_updates, git_stats"
 # fi
