@@ -216,15 +216,15 @@ def process_file(input_path, output_dir=None, include_outputs=True, include_code
 
 def main():
     """Main function to process notebook, markdown, and python files."""
-    input_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/docs/hf_readmes"
-    output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/docs/hf_readmes/code"
+    input_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/all-rag-techniques/notebooks"
+    output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/all-rag-techniques/docs_text_only"
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
     include_outputs = False
-    include_code = True
+    include_code = False
     include_comments = True
-    save_as: Literal['md', 'py'] = 'py'  # Change to 'md' for markdown output
+    save_as: Literal['md', 'py'] = 'md'  # Change to 'md' for markdown output
 
     if os.path.isdir(input_path):
         for ext in ['*.ipynb', '*.md', '*.py']:
