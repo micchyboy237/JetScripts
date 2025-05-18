@@ -1,111 +1,38 @@
-from jet.logger import CustomLogger
-from jet.llm.mlx.base import MLX
-from jet.llm.utils.embeddings import get_embedding_function
-import pypdf
-import json
-import numpy as np
 import os
-
-script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
-
-DATA_DIR = os.path.join(script_dir, "data")
-logger.info("Initializing MLX and embedding function")
-mlx = MLX()
-embed_func = get_embedding_function("mxbai-embed-large")
+import numpy as np
+import json
+from typing import List, Dict, Any
+from jet.file.utils import save_file
+from helpers import (
+    setup_config, initialize_mlx, generate_embeddings,
+    load_validation_data, generate_ai_response, evaluate_ai_response,
+    load_json_data, SimpleVectorStore, DATA_DIR, DOCS_PATH
+)
 
 
-def extract_text_from_pdf(pdf_path):
-    all_text = ""
-    with open(pdf_path, "rb") as file:
-        reader = pypdf.PdfReader(file)
-        for page in reader.pages:
-            text = page.extract_text() or ""
-            all_text += text
-    return all_text
-
-
-def chunk_text(text, chunk_size=800, overlap=0):
-    chunks = []
-    for i in range(0, len(text), chunk_size - overlap):
-        chunk = text[i:i + chunk_size]
-        if chunk:
-            chunks.append(chunk)
-    return chunks
-
-
-class SimpleVectorStore:
-    def __init__(self):
-        self.vectors = []
-        self.documents = []
-        self.metadata = []
-
-    def add_documents(self, text, embedding, metadata=None):
-        self.vectors.append(np.array(embedding))
-        self.documents.append(text)
-        self.metadata.append(metadata or {})
-
-    def search(self, query_embedding, top_k=5):
-        if not self.vectors:
-            return []
-        query_vector = np.array(query_embedding).flatten()
-        similarities = []
-        for i, vector in enumerate(self.vectors):
-            vector = vector.flatten()
-            dot_product = np.dot(query_vector, vector)
-            query_norm = np.linalg.norm(query_vector)
-            vector_norm = np.linalg.norm(vector)
-            if query_norm == 0 or vector_norm == 0:
-                similarity = 0.0
-            else:
-                similarity = dot_product / (query_norm * vector_norm)
-            similarities.append((i, similarity))
-        similarities.sort(key=lambda x: -float('inf')
-                          if np.isnan(x[1]) else x[1], reverse=True)
-        results = []
-        for i in range(min(top_k, len(similarities))):
-            idx, score = similarities[i]
-            results.append({
-                "text": self.documents[idx],
-                "metadata": self.metadata[idx],
-                "similarity": score
-            })
-        return results
-
-
-def create_embeddings(texts):
-    if not texts:
-        return []
-    return embed_func(texts)
-
-
-def process_document(pdf_path, chunk_size=800):
-    logger.debug("Extracting text from document...")
-    text = extract_text_from_pdf(pdf_path)
-    logger.debug("Chunking text into non-overlapping segments...")
-    chunks = chunk_text(text, chunk_size=chunk_size, overlap=0)
-    logger.debug(f"Created {len(chunks)} chunks")
+def process_document(formatted_texts: List[str], original_chunks: List[Dict[str, Any]]) -> tuple[List[str], Any, Dict[str, Any]]:
+    logger.debug("Processing document from preloaded JSON data...")
+    logger.debug(f"Loaded {len(formatted_texts)} text chunks")
     logger.debug("Generating embeddings for chunks...")
-    chunk_embeddings = create_embeddings(chunks)
+    chunk_embeddings = generate_embeddings(formatted_texts, embed_func, logger)
     vector_store = SimpleVectorStore()
-    metadata = [{"chunk_index": i, "source": pdf_path}
-                for i in range(len(chunks))]
-    vector_store.add_documents(chunks, chunk_embeddings, metadata)
+    metadata = [{"chunk_index": i, "source": DOCS_PATH}
+                for i in range(len(formatted_texts))]
+    for chunk, embedding, meta in zip(formatted_texts, chunk_embeddings, metadata):
+        vector_store.add_item(chunk, embedding, meta)
     doc_info = {
-        "chunks": chunks,
-        "source": pdf_path,
+        "chunks": formatted_texts,
+        "source": DOCS_PATH,
     }
-    return chunks, vector_store, doc_info
+    return formatted_texts, vector_store, doc_info
 
 
-def calculate_chunk_values(query, chunks, vector_store, irrelevant_chunk_penalty=0.2):
-    query_embedding = create_embeddings([query])[0]
+def calculate_chunk_values(query: str, chunks: List[str], vector_store: SimpleVectorStore, irrelevant_chunk_penalty: float = 0.2) -> List[float]:
+    query_embedding = generate_embeddings(query, embed_func, logger)
     num_chunks = len(chunks)
     results = vector_store.search(query_embedding, top_k=num_chunks)
-    relevance_scores = {result["metadata"]["chunk_index"]: result["score"] for result in results}
+    relevance_scores = {result["metadata"]["chunk_index"]
+        : result["similarity"] for result in results}
     chunk_values = []
     for i in range(num_chunks):
         score = relevance_scores.get(i, 0.0)
@@ -114,7 +41,7 @@ def calculate_chunk_values(query, chunks, vector_store, irrelevant_chunk_penalty
     return chunk_values
 
 
-def find_best_segments(chunk_values, max_segment_length=20, total_max_length=30, min_segment_value=0.2):
+def find_best_segments(chunk_values: List[float], max_segment_length: int = 20, total_max_length: int = 30, min_segment_value: float = 0.2) -> tuple[List[tuple[int, int]], List[float]]:
     logger.debug("Finding optimal continuous text segments...")
     best_segments = []
     segment_scores = []
@@ -145,7 +72,7 @@ def find_best_segments(chunk_values, max_segment_length=20, total_max_length=30,
     return best_segments, segment_scores
 
 
-def reconstruct_segments(chunks, best_segments):
+def reconstruct_segments(chunks: List[str], best_segments: List[tuple[int, int]]) -> List[Dict[str, Any]]:
     reconstructed_segments = []
     for start, end in best_segments:
         segment_text = " ".join(chunks[start:end])
@@ -156,7 +83,7 @@ def reconstruct_segments(chunks, best_segments):
     return reconstructed_segments
 
 
-def format_segments_for_context(segments):
+def format_segments_for_context(segments: List[Dict[str, Any]]) -> str:
     context = []
     for i, segment in enumerate(segments):
         segment_header = f"SEGMENT {i+1} (Chunks {segment['segment_range'][0]}-{segment['segment_range'][1]-1}):"
@@ -166,24 +93,11 @@ def format_segments_for_context(segments):
     return "\n\n".join(context)
 
 
-def generate_response(query, context, model="llama-3.2-1b-instruct-4bit"):
-    logger.debug("Generating response using relevant segments as context...")
-    system_prompt = "You are a helpful AI assistant. Answer the user's question based only on the provided context. If you cannot find the answer in the context, state that you don't have enough information."
-    response = mlx.chat(
-        [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"{context}\n\nQuestion: {query}"}
-        ],
-        model=model,
-        temperature=0
-    )
-    return response["choices"][0]["message"]["content"]
-
-
-def rag_with_rse(pdf_path, query, chunk_size=800, irrelevant_chunk_penalty=0.2):
+def rag_with_rse(formatted_texts: List[str], original_chunks: List[Dict[str, Any]], query: str, irrelevant_chunk_penalty: float = 0.2) -> Dict[str, Any]:
     logger.debug("\n=== STARTING RAG WITH RELEVANT SEGMENT EXTRACTION ===")
     logger.debug(f"Query: {query}")
-    chunks, vector_store, doc_info = process_document(pdf_path, chunk_size)
+    chunks, vector_store, doc_info = process_document(
+        formatted_texts, original_chunks)
     logger.debug("\nCalculating relevance scores and chunk values...")
     chunk_values = calculate_chunk_values(
         query, chunks, vector_store, irrelevant_chunk_penalty)
@@ -196,7 +110,12 @@ def rag_with_rse(pdf_path, query, chunk_size=800, irrelevant_chunk_penalty=0.2):
     logger.debug("\nReconstructing text segments from chunks...")
     segments = reconstruct_segments(chunks, best_segments)
     context = format_segments_for_context(segments)
-    response = generate_response(query, context)
+    system_prompt = (
+        "You are a helpful AI assistant. Answer the user's question based only on the provided context. "
+        "If you cannot find the answer in the context, state that you don't have enough information."
+    )
+    response = generate_ai_response(
+        query, system_prompt, segments, mlx, logger)
     result = {
         "query": query,
         "segments": segments,
@@ -204,22 +123,30 @@ def rag_with_rse(pdf_path, query, chunk_size=800, irrelevant_chunk_penalty=0.2):
     }
     logger.debug("\n=== FINAL RESPONSE ===")
     logger.debug(response)
+    save_file(result, f"{generated_dir}/rse_result.json")
     return result
 
 
-def standard_top_k_retrieval(pdf_path, query, k=10, chunk_size=800):
+def standard_top_k_retrieval(formatted_texts: List[str], original_chunks: List[Dict[str, Any]], query: str, k: int = 10) -> Dict[str, Any]:
     logger.debug("\n=== STARTING STANDARD TOP-K RETRIEVAL ===")
     logger.debug(f"Query: {query}")
-    chunks, vector_store, doc_info = process_document(pdf_path, chunk_size)
+    chunks, vector_store, doc_info = process_document(
+        formatted_texts, original_chunks)
     logger.debug("Creating query embedding and retrieving chunks...")
-    query_embedding = create_embeddings([query])[0]
+    query_embedding = generate_embeddings(query, embed_func, logger)
     results = vector_store.search(query_embedding, top_k=k)
-    retrieved_chunks = [result["document"] for result in results]
+    retrieved_chunks = [{"text": result["text"],
+                         "metadata": result["metadata"]} for result in results]
     context = "\n\n".join([
-        f"CHUNK {i+1}:\n{chunk}"
+        f"CHUNK {i+1}:\n{chunk['text']}"
         for i, chunk in enumerate(retrieved_chunks)
     ])
-    response = generate_response(query, context)
+    system_prompt = (
+        "You are a helpful AI assistant. Answer the user's question based only on the provided context. "
+        "If you cannot find the answer in the context, state that you don't have enough information."
+    )
+    response = generate_ai_response(
+        query, system_prompt, retrieved_chunks, mlx, logger)
     result = {
         "query": query,
         "chunks": retrieved_chunks,
@@ -227,43 +154,51 @@ def standard_top_k_retrieval(pdf_path, query, k=10, chunk_size=800):
     }
     logger.debug("\n=== FINAL RESPONSE ===")
     logger.debug(response)
+    save_file(result, f"{generated_dir}/standard_result.json")
     return result
 
 
-def evaluate_methods(pdf_path, query, reference_answer=None):
+def evaluate_methods(formatted_texts: List[str], original_chunks: List[Dict[str, Any]], query: str, reference_answer: str = None) -> Dict[str, Any]:
     logger.debug("\n========= EVALUATION =========\n")
-    rse_result = rag_with_rse(pdf_path, query)
-    standard_result = standard_top_k_retrieval(pdf_path, query)
+    rse_result = rag_with_rse(formatted_texts, original_chunks, query)
+    standard_result = standard_top_k_retrieval(
+        formatted_texts, original_chunks, query)
+    evaluation = {}
     if reference_answer:
         logger.debug("\n=== COMPARING RESULTS ===")
         logger.debug("Evaluating responses against reference answer...")
-        system_prompt = "You are an objective evaluator of RAG system responses."
-        evaluation_prompt = (
-            f"Reference Answer: {reference_answer}\n\n"
-            f"RSE Response: {rse_result['response']}\n\n"
-            f"Standard Top-K Response: {standard_result['response']}\n\n"
-            "Compare the responses and provide a concise evaluation."
-        )
-        evaluation = mlx.chat(
-            [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": evaluation_prompt}
-            ],
-            model="llama-3.2-1b-instruct-4bit",
-            temperature=0
-        )
+        evaluation_score, evaluation_text = evaluate_ai_response(
+            query, rse_result['response'], reference_answer, mlx, logger)
+        evaluation = {
+            "rse_evaluation_score": evaluation_score,
+            "rse_evaluation_text": evaluation_text
+        }
+        standard_score, standard_text = evaluate_ai_response(
+            query, standard_result['response'], reference_answer, mlx, logger)
+        evaluation.update({
+            "standard_evaluation_score": standard_score,
+            "standard_evaluation_text": standard_text
+        })
         logger.debug("\n=== EVALUATION RESULTS ===")
-        logger.debug(evaluation["choices"][0]["message"]["content"])
-    return {
+        logger.debug(f"RSE Evaluation Score: {evaluation_score}")
+        logger.debug(f"RSE Evaluation Text: {evaluation_text}")
+        logger.debug(f"Standard Evaluation Score: {standard_score}")
+        logger.debug(f"Standard Evaluation Text: {standard_text}")
+    result = {
         "rse_result": rse_result,
-        "standard_result": standard_result
+        "standard_result": standard_result,
+        "evaluation": evaluation
     }
+    save_file(result, f"{generated_dir}/evaluation.json")
+    return result
 
 
-with open(os.path.join(DATA_DIR, 'val.json')) as f:
-    data = json.load(f)
-query = data[0]['question']
-reference_answer = data[0]['ideal_answer']
-pdf_path = os.path.join(DATA_DIR, 'AI_Information.pdf')
-results = evaluate_methods(pdf_path, query, reference_answer)
+script_dir, generated_dir, log_file, logger = setup_config(__file__)
+formatted_texts, original_chunks = load_json_data(DOCS_PATH, logger)
+mlx, embed_func = initialize_mlx(logger)
+validation_data = load_validation_data(f"{DATA_DIR}/val.json", logger)
+query = validation_data[0]['question']
+reference_answer = validation_data[0]['answer']
+results = evaluate_methods(
+    formatted_texts, original_chunks, query, reference_answer)
 logger.info("\n\n[DONE]", bright=True)

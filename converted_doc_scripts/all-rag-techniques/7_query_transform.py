@@ -1,27 +1,26 @@
-from datetime import datetime
-from jet.llm.mlx.base import MLX
-from jet.llm.utils.embeddings import get_embedding_function
-from jet.logger import CustomLogger
-import pypdf
-import json
-import numpy as np
 import os
-
-script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-DATA_DIR = os.path.join(script_dir, "data")
-
-logger.info("Initializing MLX and embedding function")
-mlx = MLX()
-embed_func = get_embedding_function("mxbai-embed-large")
+import numpy as np
+from typing import List, Dict, Any, TypedDict
+from datetime import datetime
+from jet.file.utils import save_file
+from helpers import (
+    setup_config, initialize_mlx, generate_embeddings,
+    load_validation_data, generate_ai_response, evaluate_ai_response,
+    load_json_data, DATA_DIR, DOCS_PATH
+)
 
 
-def rewrite_query(original_query, model="llama-3.2-1b-instruct-4bit"):
+class SearchResult(TypedDict):
+    id: str
+    rank: int | None
+    doc_index: int
+    score: float
+    text: str
+    metadata: Dict[str, Any]
+
+
+def rewrite_query(original_query: str, mlx, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> str:
+    """Rewrite query to be more specific and detailed."""
     system_prompt = "You are an AI assistant specialized in improving search queries. Your task is to rewrite user queries to be more specific, detailed, and likely to retrieve relevant information."
     response = mlx.chat(
         [
@@ -31,10 +30,11 @@ def rewrite_query(original_query, model="llama-3.2-1b-instruct-4bit"):
         model=model,
         temperature=0.0
     )
-    return response["choices"][0]["message"]["content"]
+    return response["content"]
 
 
-def generate_step_back_query(original_query, model="llama-3.2-1b-instruct-4bit"):
+def generate_step_back_query(original_query: str, mlx, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> str:
+    """Generate a broader version of the query."""
     system_prompt = "You are an AI assistant specialized in search strategies. Your task is to generate broader, more general versions of specific queries to retrieve relevant background information."
     response = mlx.chat(
         [
@@ -44,64 +44,30 @@ def generate_step_back_query(original_query, model="llama-3.2-1b-instruct-4bit")
         model=model,
         temperature=0.1
     )
-    return response["choices"][0]["message"]["content"]
+    return response["content"]
 
 
-def decompose_query(original_query, num_subqueries=None, model="llama-3.2-1b-instruct-4bit"):
-    # Get current date dynamically
+def decompose_query(original_query: str, mlx, num_subqueries: int = None, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> List[str]:
+    """Decompose query into sub-questions."""
     current_date = datetime.now().strftime("%B %d, %Y")
-
-    # Define system prompt based on whether num_subqueries is provided
-    if num_subqueries is None:
-        system_prompt = """
-        You are an AI assistant specialized in breaking down complex browser-based queries for web search and information retrieval, as of {current_date}. Your task is to decompose a query into simpler sub-questions that, when answered together, fully and comprehensively address all components of the original query. Each sub-question should target a specific, answerable aspect of the query to guide web searches or scraping efforts, ensuring no part of the original query is overlooked.
-
-        Format your response as a numbered list of sub-questions, with a reasonable number of sub-questions (typically 2 to 4, depending on the query's complexity), each on a new line, with the following structure:
-        1. Sub-question text
-        2. Sub-question text
-        ...
-
-        Ensure each sub-question:
-        - Starts with a number followed by a period (e.g., '1.', '2.').
-        - Is a clear, standalone question ending with a question mark.
-        - Targets a distinct aspect of the original query, collectively covering all its components, including explicit and implicit elements.
-        - Is specific and designed for web search or content analysis, avoiding vague or overly broad questions.
-        - Reflects the current date ({current_date}) when relevant, especially for queries about trends, recent events, or time-sensitive information.
-        - Contains no additional text, headings, or explanations outside the numbered list.
-        """.format(current_date=current_date)
-    else:
-        system_prompt = """
-        You are an AI assistant specialized in breaking down complex browser-based queries for web search and information retrieval, as of {current_date}. Your task is to decompose a query into simpler sub-questions that, when answered together, fully and comprehensively address all components of the original query. Each sub-question should target a specific, answerable aspect of the query to guide web searches or scraping efforts, ensuring no part of the original query is overlooked.
-
-        Format your response as a numbered list of exactly {num_subqueries} sub-questions, each on a new line, with the following structure:
-        1. Sub-question text
-        2. Sub-question text
-        ...
-
-        Ensure each sub-question:
-        - Starts with a number followed by a period (e.g., '1.', '2.').
-        - Is a clear, standalone question ending with a question mark.
-        - Targets a distinct aspect of the original query, collectively covering all its components, including explicit and implicit elements.
-        - Is specific and designed for web search or content analysis, avoiding vague or overly broad questions.
-        - Reflects the current date ({current_date}) when relevant, especially for queries about trends, recent events, or time-sensitive information.
-        - Contains no additional text, headings, or explanations outside the numbered list.
-        """.format(current_date=current_date, num_subqueries=num_subqueries)
-
+    system_prompt = (
+        f"You are an AI assistant specialized in breaking down complex queries into simpler sub-questions. "
+        f"Decompose the user's query into {'exactly ' + str(num_subqueries) if num_subqueries else 'a reasonable number of'} clear sub-questions. "
+        f"Each sub-question should be concise, specific, and end with a question mark. "
+        f"List the sub-questions in a numbered format (e.g., '1. ...?'). "
+        f"Today's date is {current_date}."
+    )
     logger.debug(original_query)
     stream_response = mlx.stream_chat(
         [
             {"role": "system", "content": system_prompt},
-            {"role": "user",
-                "content": f"Decompose this query into {'exactly ' + str(num_subqueries) if num_subqueries else 'a reasonable number of'} sub-questions: {original_query}"}
+            {"role": "user", "content": f"Decompose this query: {original_query}"}
         ],
         model=model,
         temperature=0.2
     )
-    content = ""
-    for chunk in stream_response:
-        chunk_content = chunk["choices"][0]["delta"]["content"]
-        logger.success(chunk_content, flush=True)
-        content += chunk_content
+    content = "".join(chunk["content"] for chunk in stream_response)
+    logger.success(content)
     logger.newline()
     lines = content.split("\n")
     sub_queries = []
@@ -109,27 +75,9 @@ def decompose_query(original_query, num_subqueries=None, model="llama-3.2-1b-ins
         line = line.strip()
         if line and any(line.startswith(f"{i}.") for i in range(1, (num_subqueries or 4) + 1)):
             query = line[line.find(".") + 1:].strip()
-            if query.endswith("?"):  # Ensure it's a question
+            if query.endswith("?"):
                 sub_queries.append(query)
-    # If num_subqueries is specified, ensure exactly that number are returned
     return sub_queries[:num_subqueries] if num_subqueries else sub_queries
-
-
-original_query = "What are the impacts of AI on job automation and employment?"
-logger.debug("Original Query:", original_query)
-
-rewritten_query = rewrite_query(original_query)
-logger.info("\n1. Rewritten Query:")
-logger.success(rewritten_query)
-
-step_back_query = generate_step_back_query(original_query)
-logger.info("\n2. Step-back Query:")
-logger.success(step_back_query)
-
-sub_queries = decompose_query(original_query, num_subqueries=4)
-logger.info("\n3. Sub-queries:")
-for i, query in enumerate(sub_queries, 1):
-    logger.success(f"   {i}. {query}")
 
 
 class SimpleVectorStore:
@@ -138,152 +86,100 @@ class SimpleVectorStore:
         self.texts = []
         self.metadata = []
 
-    def add_item(self, text, embedding, metadata=None):
+    def add_item(self, text: str, embedding: np.ndarray, metadata: Dict[str, Any] = None):
+        """Add an item to the vector store."""
         self.vectors.append(np.array(embedding))
         self.texts.append(text)
         self.metadata.append(metadata or {})
 
-    def similarity_search(self, query_embedding, k=5):
+    def similarity_search(self, query_embedding: np.ndarray, k: int = 3) -> List[SearchResult]:
+        """Perform similarity search in the vector store."""
         if not self.vectors:
             return []
-        query_vector = np.array(
-            query_embedding).flatten()  # Ensure query is 1D
+        query_vector = np.array(query_embedding).flatten()
         similarities = []
         for i, vector in enumerate(self.vectors):
-            vector = vector.flatten()  # Ensure stored vector is 1D
-            # Calculate cosine similarity
+            vector = vector.flatten()
             dot_product = np.dot(query_vector, vector)
             query_norm = np.linalg.norm(query_vector)
             vector_norm = np.linalg.norm(vector)
-            # Check for zero norms to avoid division by zero
-            if query_norm == 0 or vector_norm == 0:
-                similarity = 0.0
-            else:
-                similarity = dot_product / (query_norm * vector_norm)
+            similarity = 0.0 if query_norm == 0 or vector_norm == 0 else dot_product / \
+                (query_norm * vector_norm)
             similarities.append((i, similarity))
-        # Sort similarities, handling NaN or invalid values
         similarities.sort(key=lambda x: -float('inf')
                           if np.isnan(x[1]) else x[1], reverse=True)
         results = []
         for i in range(min(k, len(similarities))):
             idx, score = similarities[i]
-            results.append({
-                "text": self.texts[idx],
-                "metadata": self.metadata[idx],
-                "similarity": score
-            })
+            results.append(SearchResult(
+                id=f"chunk_{idx}",
+                rank=i + 1,
+                doc_index=self.metadata[idx].get("index", idx),
+                score=float(score),
+                text=self.texts[idx],
+                metadata=self.metadata[idx]
+            ))
         return results
 
 
-def create_embeddings(text):
-    return embed_func(text)
-
-
-def extract_text_from_pdf(pdf_path):
-    all_text = ""
-    with open(pdf_path, "rb") as file:
-        reader = pypdf.PdfReader(file)
-        for page in reader.pages:
-            text = page.extract_text() or ""
-            all_text += text
-    return all_text
-
-
-def chunk_text(text, n=1000, overlap=200):
-    chunks = []
-    for i in range(0, len(text), n - overlap):
-        chunks.append(text[i:i + n])
-    return chunks
-
-
-def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
-    logger.debug("Extracting text from PDF...")
-    extracted_text = extract_text_from_pdf(pdf_path)
-    logger.debug("Chunking text...")
-    chunks = chunk_text(extracted_text, chunk_size, chunk_overlap)
-    logger.debug(f"Created {len(chunks)} text chunks")
-    logger.debug("Creating embeddings for chunks...")
-    chunk_embeddings = create_embeddings(chunks)
+def process_document(chunks: List[Dict[str, Any]], embed_func) -> SimpleVectorStore:
+    """Process document chunks and store in vector store."""
+    logger.debug("Processing chunks...")
+    text_chunks = [chunk["text"] for chunk in chunks]
+    logger.debug(f"Created {len(text_chunks)} text chunks")
+    chunk_embeddings = generate_embeddings(text_chunks, embed_func, logger)
     store = SimpleVectorStore()
-    for i, (chunk, embedding) in enumerate(zip(chunks, chunk_embeddings)):
+    for i, (chunk, embedding) in enumerate(zip(text_chunks, chunk_embeddings)):
         store.add_item(
             text=chunk,
             embedding=embedding,
-            metadata={"index": i, "source": pdf_path}
+            metadata={"index": chunks[i]["metadata"]
+                      ["doc_index"], "source": DOCS_PATH}
         )
-    logger.debug(f"Added {len(chunks)} chunks to the vector store")
+    logger.debug(f"Added {len(text_chunks)} chunks to the vector store")
     return store
 
 
-def transformed_search(query, vector_store, transformation_type, top_k=3):
-    logger.debug(f"Transformation type: {transformation_type}")
+def transformed_search(query: str, vector_store: SimpleVectorStore, embed_func, mlx, transformation_type: str = None, top_k: int = 3) -> List[SearchResult]:
+    """Perform search with query transformation."""
+    logger.debug(f"Transformation type: {transformation_type or 'original'}")
     logger.debug(f"Original query: {query}")
     results = []
     if transformation_type == "rewrite":
-        transformed_query = rewrite_query(query)
+        transformed_query = rewrite_query(query, mlx)
         logger.debug(f"Rewritten query: {transformed_query}")
-        query_embedding = create_embeddings(transformed_query)
+        query_embedding = embed_func([transformed_query])[0]
         results = vector_store.similarity_search(query_embedding, k=top_k)
     elif transformation_type == "step_back":
-        transformed_query = generate_step_back_query(query)
+        transformed_query = generate_step_back_query(query, mlx)
         logger.debug(f"Step-back query: {transformed_query}")
-        query_embedding = create_embeddings(transformed_query)
+        query_embedding = embed_func([transformed_query])[0]
         results = vector_store.similarity_search(query_embedding, k=top_k)
     elif transformation_type == "decompose":
-        sub_queries = decompose_query(query)
+        sub_queries = decompose_query(query, mlx)
         logger.debug("Decomposed into sub-queries:")
         for i, sub_q in enumerate(sub_queries, 1):
             logger.debug(f"{i}. {sub_q}")
-        sub_query_embeddings = create_embeddings(sub_queries)
+        sub_query_embeddings = embed_func(sub_queries)
         all_results = []
-        for i, embedding in enumerate(sub_query_embeddings):
+        for embedding in sub_query_embeddings:
             sub_results = vector_store.similarity_search(embedding, k=2)
             all_results.extend(sub_results)
         seen_texts = {}
         for result in all_results:
             text = result["text"]
-            if text not in seen_texts or result["similarity"] > seen_texts[text]["similarity"]:
+            if text not in seen_texts or result["score"] > seen_texts[text]["score"]:
                 seen_texts[text] = result
         results = sorted(seen_texts.values(),
-                         key=lambda x: x["similarity"], reverse=True)[:top_k]
+                         key=lambda x: x["score"], reverse=True)[:top_k]
     else:
-        query_embedding = create_embeddings(query)
+        query_embedding = embed_func([query])[0]
         results = vector_store.similarity_search(query_embedding, k=top_k)
     return results
 
 
-def generate_response(query, context, model="llama-3.2-1b-instruct-4bit"):
-    system_prompt = "You are a helpful AI assistant. Answer the user's question based only on the provided context. If you cannot find the answer in the context, state that you don't have enough information."
-    response = mlx.chat(
-        [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"{context}\n\nQuestion: {query}"}
-        ],
-        model=model,
-        temperature=0
-    )
-    return response["choices"][0]["message"]["content"]
-
-
-def rag_with_query_transformation(pdf_path, query, transformation_type=None):
-    vector_store = process_document(pdf_path)
-    if transformation_type:
-        results = transformed_search(query, vector_store, transformation_type)
-    else:
-        query_embedding = create_embeddings(query)
-        results = vector_store.similarity_search(query_embedding, k=3)
-    context = "\n\n".join(
-        [f"PASSAGE {i+1}:\n{result['text']}" for i, result in enumerate(results)])
-    response = generate_response(query, context)
-    return {
-        "original_query": query,
-        "transformation_type": transformation_type,
-        "context": context,
-        "response": response
-    }
-
-
-def compare_responses(results, reference_answer, model="llama-3.2-1b-instruct-4bit"):
+def compare_responses(results: Dict[str, Any], reference_answer: str, mlx, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> str:
+    """Compare responses from different transformations."""
     comparison_text = f"Reference Answer: {reference_answer}\n\n"
     for technique, result in results.items():
         comparison_text += f"{technique.capitalize()} Query Response:\n{result['response']}\n\n"
@@ -296,32 +192,94 @@ def compare_responses(results, reference_answer, model="llama-3.2-1b-instruct-4b
         temperature=0
     )
     logger.debug("\n===== EVALUATION RESULTS =====")
-    logger.debug(response["choices"][0]["message"]["content"])
+    logger.debug(response["content"])
     logger.debug("=============================")
+    return response["content"]
 
 
-def evaluate_transformations(pdf_path, query, reference_answer=None):
+def rag_with_query_transformation(query: str, vector_store: SimpleVectorStore, embed_func, mlx, transformation_type: str = None) -> Dict[str, Any]:
+    """Run RAG with query transformation."""
+    results = transformed_search(
+        query, vector_store, embed_func, mlx, transformation_type)
+    context = "\n\n".join(
+        [f"PASSAGE {i+1}:\n{result['text']}" for i, result in enumerate(results)])
+    system_prompt = (
+        "You are a helpful AI assistant. Answer the user's question based only on the provided context. "
+        "If you cannot find the answer in the context, state that you don't have enough information."
+    )
+    response = generate_ai_response(query, system_prompt, results, mlx, logger)
+    return {
+        "original_query": query,
+        "transformation_type": transformation_type,
+        "context": context,
+        "response": response
+    }
+
+
+def evaluate_transformations(query: str, vector_store: SimpleVectorStore, embed_func, mlx, reference_answer: str = None) -> Dict[str, Any]:
+    """Evaluate different query transformations."""
     transformation_types = [None, "rewrite", "step_back", "decompose"]
     results = {}
     for transformation_type in transformation_types:
         type_name = transformation_type if transformation_type else "original"
         logger.debug(f"\n===== Running RAG with {type_name} query =====")
         result = rag_with_query_transformation(
-            pdf_path, query, transformation_type)
+            query, vector_store, embed_func, mlx, transformation_type)
         results[type_name] = result
-        logger.debug(f"Response with {type_name} query:")
-        logger.debug(result["response"])
+        logger.debug(f"Response with {type_name} query: {result['response']}")
         logger.debug("=" * 50)
+    save_file(results, f"{generated_dir}/transformation_results.json")
+    logger.info(
+        f"Saved transformation results to {generated_dir}/transformation_results.json")
     if reference_answer:
-        compare_responses(results, reference_answer)
+        comparison_text = compare_responses(results, reference_answer, mlx)
+        save_file({"comparison": comparison_text},
+                  f"{generated_dir}/comparison.json")
+        logger.info(f"Saved comparison to {generated_dir}/comparison.json")
     return results
 
 
-with open('data/val.json') as f:
-    data = json.load(f)
-query = data[0]['question']
-reference_answer = data[0]['ideal_answer']
-pdf_path = f"{DATA_DIR}/AI_Information.pdf"
+# Setup configuration and logging
+script_dir, generated_dir, log_file, logger = setup_config(__file__)
+
+# Initialize MLX and embedding function
+mlx, embed_func = initialize_mlx(logger)
+
+# Load pre-chunked data
+formatted_texts, original_chunks = load_json_data(DOCS_PATH, logger)
+logger.info("Loaded pre-chunked data from DOCS_PATH")
+
+# Process document
+vector_store = process_document(original_chunks, embed_func)
+
+# Load validation data
+validation_data = load_validation_data(f"{DATA_DIR}/val.json", logger)
+query = validation_data[0]['question']
+reference_answer = validation_data[0]['answer']
+
+# Run query transformations and log results
+logger.debug(f"Original Query: {query}")
+rewritten_query = rewrite_query(query, mlx)
+logger.info("\n1. Rewritten Query:")
+logger.success(rewritten_query)
+step_back_query = generate_step_back_query(query, mlx)
+logger.info("\n2. Step-back Query:")
+logger.success(step_back_query)
+sub_queries = decompose_query(query, mlx, num_subqueries=4)
+logger.info("\n3. Sub-queries:")
+for i, query in enumerate(sub_queries, 1):
+    logger.success(f"   {i}. {query}")
+
+# Evaluate transformations
 evaluation_results = evaluate_transformations(
-    pdf_path, query, reference_answer)
+    query, vector_store, embed_func, mlx, reference_answer)
+
+# Save final evaluation
+save_file({
+    "question": query,
+    "reference_answer": reference_answer,
+    "evaluation_results": evaluation_results
+}, f"{generated_dir}/evaluation.json")
+logger.info(f"Saved evaluation results to {generated_dir}/evaluation.json")
+
 logger.info("\n\n[DONE]", bright=True)

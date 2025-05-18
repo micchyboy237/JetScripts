@@ -1,104 +1,34 @@
-from jet.llm.mlx.base import MLX
-from jet.llm.utils.embeddings import get_embedding_function
-from jet.logger import CustomLogger
-import pypdf
-import json
 import numpy as np
-import os
 import re
-
-script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
-
-DATA_DIR = os.path.join(script_dir, "data")
-logger.info("Initializing MLX and embedding function")
-mlx = MLX()
-embed_func = get_embedding_function("mxbai-embed-large")
+from typing import List, Dict, Any, TypedDict
+from jet.file.utils import save_file
+from jet.transformers.formatters import format_json
+from helpers import (
+    setup_config, initialize_mlx, generate_embeddings,
+    load_validation_data, generate_ai_response, evaluate_ai_response,
+    load_json_data, SearchResult, SimpleVectorStore, DATA_DIR, DOCS_PATH
+)
 
 
-def extract_text_from_pdf(pdf_path):
-    all_text = ""
-    with open(pdf_path, "rb") as file:
-        reader = pypdf.PdfReader(file)
-        for page in reader.pages:
-            text = page.extract_text() or ""
-            all_text += text
-    return all_text
-
-
-def chunk_text(text, n, overlap):
-    chunks = []
-    for i in range(0, len(text), n - overlap):
-        chunks.append(text[i:i + n])
-    return chunks
-
-
-class SimpleVectorStore:
-    def __init__(self):
-        self.vectors = []
-        self.texts = []
-        self.metadata = []
-
-    def add_item(self, text, embedding, metadata=None):
-        self.vectors.append(np.array(embedding))
-        self.texts.append(text)
-        self.metadata.append(metadata or {})
-
-    def similarity_search(self, query_embedding, k=5):
-        if not self.vectors:
-            return []
-        query_vector = np.array(query_embedding).flatten()
-        similarities = []
-        for i, vector in enumerate(self.vectors):
-            vector = vector.flatten()
-            dot_product = np.dot(query_vector, vector)
-            query_norm = np.linalg.norm(query_vector)
-            vector_norm = np.linalg.norm(vector)
-            if query_norm == 0 or vector_norm == 0:
-                similarity = 0.0
-            else:
-                similarity = dot_product / (query_norm * vector_norm)
-            similarities.append((i, similarity))
-        similarities.sort(key=lambda x: -float('inf')
-                          if np.isnan(x[1]) else x[1], reverse=True)
-        results = []
-        for i in range(min(k, len(similarities))):
-            idx, score = similarities[i]
-            results.append({
-                "text": self.texts[idx],
-                "metadata": self.metadata[idx],
-                "similarity": score
-            })
-        return results
-
-
-def create_embeddings(text):
-    return embed_func(text)
-
-
-def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
-    logger.debug("Extracting text from PDF...")
-    extracted_text = extract_text_from_pdf(pdf_path)
-    logger.debug("Chunking text...")
-    chunks = chunk_text(extracted_text, chunk_size, chunk_overlap)
-    logger.debug(f"Created {len(chunks)} text chunks")
-    logger.debug("Creating embeddings for chunks...")
-    chunk_embeddings = create_embeddings(chunks)
+def process_document(chunks: List[Dict[str, Any]], embed_func) -> SimpleVectorStore:
+    """Process document chunks and store in vector store."""
+    logger.debug("Processing chunks...")
+    text_chunks = [chunk["text"] for chunk in chunks]
+    logger.debug(f"Created {len(text_chunks)} text chunks")
+    chunk_embeddings = generate_embeddings(text_chunks, embed_func, logger)
     store = SimpleVectorStore()
-    for i, (chunk, embedding) in enumerate(zip(chunks, chunk_embeddings)):
+    for i, (chunk, embedding) in enumerate(zip(text_chunks, chunk_embeddings)):
         store.add_item(
             text=chunk,
             embedding=embedding,
-            metadata={"index": i, "source": pdf_path}
+            metadata=chunks[i]["metadata"]
         )
-    logger.debug(f"Added {len(chunks)} chunks to the vector store")
+    logger.debug(f"Added {len(text_chunks)} chunks to the vector store")
     return store
 
 
-def rerank_with_llm(query, results, top_n=3, model="llama-3.2-1b-instruct-4bit"):
+def rerank_with_llm(query: str, results: List[SearchResult], mlx, top_n: int = 3, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> List[SearchResult]:
+    """Rerank search results using LLM scoring."""
     logger.debug(f"Reranking {len(results)} documents...")
     system_prompt = "You are an AI assistant. Score the relevance of the document to the query from 0 to 10, where 10 is highly relevant. Provide only the score."
     scored_results = []
@@ -114,31 +44,38 @@ def rerank_with_llm(query, results, top_n=3, model="llama-3.2-1b-instruct-4bit")
             model=model,
             temperature=0
         )
-        score_text = response["choices"][0]["message"]["content"].strip()
+        score_text = response["content"].strip()
         score_match = re.search(r'\b(10|[0-9])\b', score_text)
         if score_match:
             score = float(score_match.group(1))
         else:
             logger.debug(
-                f"Warning: Could not extract score from response: '{score_text}', using similarity score instead")
-            score = result["similarity"] * 10
-        scored_results.append({
-            "text": result["text"],
-            "metadata": result["metadata"],
-            "similarity": result["similarity"],
-            "relevance_score": score
-        })
+                f"Warning: Could not extract score from response: '{score_text}', using similarity score")
+            score = result["score"] * 10
+        logger.debug(f"Result ({result["id"]}):\n{format_json(result)}")
+        scored_results.append(SearchResult(
+            id=result["id"],
+            rank=None,
+            doc_index=result["metadata"]["doc_index"],
+            score=result["score"],
+            text=result["text"],
+            metadata=result["metadata"],
+            relevance_score=score
+        ))
     reranked_results = sorted(
-        scored_results, key=lambda x: x["relevance_score"], reverse=True)
-    return reranked_results[:top_n]
+        scored_results, key=lambda x: x["relevance_score"], reverse=True)[:top_n]
+    for i, result in enumerate(reranked_results):
+        result["rank"] = i + 1
+    return reranked_results
 
 
-def rerank_with_keywords(query, results, top_n=3):
+def rerank_with_keywords(query: str, results: List[SearchResult], top_n: int = 3) -> List[SearchResult]:
+    """Rerank search results using keyword-based scoring."""
     keywords = [word.lower() for word in query.split() if len(word) > 3]
     scored_results = []
     for result in results:
         document_text = result["text"].lower()
-        base_score = result["similarity"] * 0.5
+        base_score = result["score"] * 0.5
         keyword_score = 0
         for keyword in keywords:
             if keyword in document_text:
@@ -149,102 +86,155 @@ def rerank_with_keywords(query, results, top_n=3):
                 frequency = document_text.count(keyword)
                 keyword_score += min(0.05 * frequency, 0.2)
         final_score = base_score + keyword_score
-        scored_results.append({
-            "text": result["text"],
-            "metadata": result["metadata"],
-            "similarity": result["similarity"],
-            "relevance_score": final_score
-        })
+        scored_results.append(SearchResult(
+            id=result["id"],
+            rank=None,
+            doc_index=result["doc_index"],
+            score=result["score"],
+            text=result["text"],
+            metadata=result["metadata"],
+            relevance_score=final_score
+        ))
     reranked_results = sorted(
-        scored_results, key=lambda x: x["relevance_score"], reverse=True)
-    return reranked_results[:top_n]
+        scored_results, key=lambda x: x["relevance_score"], reverse=True)[:top_n]
+    for i, result in enumerate(reranked_results):
+        result["rank"] = i + 1
+    return reranked_results
 
 
-def generate_response(query, context, model="llama-3.2-1b-instruct-4bit"):
-    system_prompt = "You are a helpful AI assistant. Answer the user's question based only on the provided context. If you cannot find the answer in the context, state that you don't have enough information."
-    response = mlx.chat(
-        [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"{context}\n\nQuestion: {query}"}
-        ],
-        model=model,
-        temperature=0
-    )
-    return response["choices"][0]["message"]["content"]
-
-
-def rag_with_reranking(query, vector_store, reranking_method="llm", top_n=3, model="llama-3.2-1b-instruct-4bit"):
-    query_embedding = create_embeddings(query)
-    initial_results = vector_store.similarity_search(query_embedding, k=10)
+def rag_with_reranking(query: str, vector_store: SimpleVectorStore, embed_func, mlx, reranking_method: str = "llm", top_n: int = 3, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> Dict[str, Any]:
+    """Run RAG with reranking."""
+    raw_embedding = embed_func(query)
+    logger.debug(
+        f"Raw embedding output: {raw_embedding[:10] if isinstance(raw_embedding, list) else raw_embedding}...")
+    query_embedding = raw_embedding
+    logger.debug(
+        f"Query embedding: {query_embedding[:10] if isinstance(query_embedding, (list, np.ndarray)) else query_embedding}... (length: {len(query_embedding) if hasattr(query_embedding, '__len__') else 'N/A'})")
+    if not isinstance(query_embedding, (list, np.ndarray)) or (hasattr(query_embedding, '__len__') and len(query_embedding) != 1024):
+        logger.error(
+            f"Invalid query embedding: {query_embedding[:10] if isinstance(query_embedding, (list, np.ndarray)) else query_embedding}, expected 1024-dimensional vector")
+        return {
+            "query": query,
+            "reranking_method": reranking_method,
+            "initial_results": [],
+            "reranked_results": [],
+            "response": "Error: Invalid query embedding"
+        }
+    query_embedding_array = np.array(query_embedding)
+    logger.debug(f"Query embedding shape: {query_embedding_array.shape}")
+    initial_results = vector_store.search(
+        query_embedding_array, top_k=10)
+    if not initial_results:
+        logger.warning("No initial results found, returning empty response")
+        return {
+            "query": query,
+            "reranking_method": reranking_method,
+            "initial_results": [],
+            "reranked_results": [],
+            "response": "No relevant documents found"
+        }
+    # Convert initial_results to SearchResult format
+    search_results = [
+        SearchResult(
+            id=result["id"],
+            rank=None,
+            doc_index=result["metadata"]["doc_index"],
+            score=result["similarity"],
+            text=result["text"],
+            metadata=result["metadata"],
+            relevance_score=None
+        )
+        for result in initial_results
+    ]
     if reranking_method == "llm":
         reranked_results = rerank_with_llm(
-            query, initial_results, top_n=top_n, model=model)
+            query, search_results, mlx, top_n=top_n, model=model)
     elif reranking_method == "keywords":
         reranked_results = rerank_with_keywords(
-            query, initial_results, top_n=top_n)
+            query, search_results, top_n=top_n)
     else:
-        reranked_results = initial_results[:top_n]
-    context = "\n\n===\n\n".join([result["text"]
-                                 for result in reranked_results])
-    response = generate_response(query, context, model)
+        reranked_results = search_results[:top_n]
+        for i, result in enumerate(reranked_results):
+            result["rank"] = i + 1
+            result["relevance_score"] = result["score"]
+    system_prompt = (
+        "You are a helpful AI assistant. Answer the user's question based only on the provided context. "
+        "If you cannot find the answer in the context, state that you don't have enough information."
+    )
+    response = generate_ai_response(
+        query, system_prompt, reranked_results, mlx, logger, model=model)
     return {
         "query": query,
         "reranking_method": reranking_method,
-        "initial_results": initial_results[:top_n],
-        "reranked_results": reranked_results,
-        "context": context,
+        "initial_results": [dict(result) for result in search_results[:top_n]],
+        "reranked_results": [dict(result) for result in reranked_results],
         "response": response
     }
 
 
-def evaluate_reranking(query, standard_results, reranked_results, reference_answer=None, model="llama-3.2-1b-instruct-4bit"):
-    if reference_answer:
-        system_prompt = "You are an objective evaluator. Compare the responses and provide a concise evaluation."
-        user_prompt = f"Reference Answer: {reference_answer}\n\nStandard Response:\n{standard_results['response']}\n\nReranked Response:\n{reranked_results['response']}"
-        response = mlx.chat(
-            [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            model=model,
-            temperature=0
-        )
-        return response["choices"][0]["message"]["content"]
-    return "No reference answer provided."
+def evaluate_reranking(query: str, standard_results: Dict[str, Any], reranked_results: Dict[str, Any], reference_answer: str, mlx, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> Dict[str, Any]:
+    """Evaluate standard and reranked responses."""
+    standard_score, standard_text = evaluate_ai_response(
+        query, standard_results["response"], reference_answer, mlx, logger)
+    reranked_score, reranked_text = evaluate_ai_response(
+        query, reranked_results["response"], reference_answer, mlx, logger)
+    return {
+        "standard": {"score": standard_score, "evaluation": standard_text},
+        "reranked": {"score": reranked_score, "evaluation": reranked_text}
+    }
 
 
-with open(os.path.join(DATA_DIR, 'val.json')) as f:
-    data = json.load(f)
-query = data[0]['question']
-reference_answer = data[0]['ideal_answer']
-pdf_path = os.path.join(DATA_DIR, 'AI_Information.pdf')
-vector_store = process_document(pdf_path)
-query = "Does AI have the potential to transform the way we live and work?"
+# Setup configuration and logging
+script_dir, generated_dir, log_file, logger = setup_config(__file__)
 
+# Initialize MLX and embedding function
+mlx, embed_func = initialize_mlx(logger)
+
+# Load pre-chunked data
+formatted_texts, original_chunks = load_json_data(DOCS_PATH, logger)
+logger.info("Loaded pre-chunked data from DOCS_PATH")
+
+# Process document
+vector_store = process_document(original_chunks, embed_func)
+
+# Load validation data
+validation_data = load_validation_data(f"{DATA_DIR}/val.json", logger)
+query = validation_data[0]['question']
+reference_answer = validation_data[0]['answer']
+
+# Run RAG with different reranking methods
 logger.debug("Comparing retrieval methods...")
 logger.debug("\n=== STANDARD RETRIEVAL ===")
 standard_results = rag_with_reranking(
-    query, vector_store, reranking_method="none")
+    query, vector_store, embed_func, mlx, reranking_method="none")
 logger.debug(f"\nQuery: {query}")
-logger.debug(f"\nResponse:\n{standard_results['response']}")
+logger.debug(f"\nResponse: {standard_results['response']}")
+save_file(standard_results, f"{generated_dir}/standard_results.json")
+logger.info(f"Saved standard results to {generated_dir}/standard_results.json")
 
 logger.debug("\n=== LLM-BASED RERANKING ===")
-llm_results = rag_with_reranking(query, vector_store, reranking_method="llm")
+llm_results = rag_with_reranking(
+    query, vector_store, embed_func, mlx, reranking_method="llm")
 logger.debug(f"\nQuery: {query}")
-logger.debug(f"\nResponse:\n{llm_results['response']}")
+logger.debug(f"\nResponse: {llm_results['response']}")
+save_file(llm_results, f"{generated_dir}/llm_results.json")
+logger.info(f"Saved LLM reranking results to {generated_dir}/llm_results.json")
 
 logger.debug("\n=== KEYWORD-BASED RERANKING ===")
 keyword_results = rag_with_reranking(
-    query, vector_store, reranking_method="keywords")
+    query, vector_store, embed_func, mlx, reranking_method="keywords")
 logger.debug(f"\nQuery: {query}")
-logger.debug(f"\nResponse:\n{keyword_results['response']}")
+logger.debug(f"\nResponse: {keyword_results['response']}")
+save_file(keyword_results, f"{generated_dir}/keyword_results.json")
+logger.info(
+    f"Saved keyword reranking results to {generated_dir}/keyword_results.json")
 
+# Evaluate reranking methods
 evaluation = evaluate_reranking(
-    query=query,
-    standard_results=standard_results,
-    reranked_results=llm_results,
-    reference_answer=reference_answer
-)
+    query, standard_results, llm_results, reference_answer, mlx)
 logger.debug("\n=== EVALUATION RESULTS ===")
 logger.debug(evaluation)
+save_file(evaluation, f"{generated_dir}/evaluation.json")
+logger.info(f"Saved evaluation results to {generated_dir}/evaluation.json")
+
 logger.info("\n\n[DONE]", bright=True)

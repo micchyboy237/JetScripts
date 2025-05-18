@@ -1,60 +1,34 @@
-import asyncio
-import platform
-from jet.logger import CustomLogger
-from jet.llm.mlx.base import MLX
-from jet.llm.utils.embeddings import get_embedding_function
-from tqdm import tqdm
-import pypdf
-import json
-import numpy as np
 import os
+import numpy as np
+from typing import List, Dict, Any, TypedDict
+from tqdm import tqdm
 import re
-
-# Setup logging and directories
-script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-DATA_DIR = os.path.join(script_dir, "data")
-logger.info("Initializing document processing pipeline")
-
-# Initialize MLX and embedding function
-logger.info("Initializing MLX and embedding function")
-mlx = MLX()
-embed_func = get_embedding_function("mxbai-embed-large")
+from jet.file.utils import save_file
+from helpers import (
+    setup_config, initialize_mlx, generate_embeddings,
+    load_validation_data, generate_ai_response, evaluate_ai_response,
+    load_json_data, DATA_DIR, DOCS_PATH
+)
 
 
-def extract_text_from_pdf(pdf_path):
-    """Extract text from PDF using pypdf."""
-    logger.debug(f"Extracting text from {pdf_path}")
-    all_text = ""
-    with open(pdf_path, "rb") as file:
-        reader = pypdf.PdfReader(file)
-        for page in reader.pages:
-            text = page.extract_text() or ""
-            all_text += text
-    return all_text
+class SearchResult(TypedDict):
+    id: str
+    rank: int | None
+    doc_index: int
+    score: float
+    text: str
+    metadata: Dict[str, Any]
 
 
-def chunk_text(text, n, overlap):
-    """Split text into chunks with specified size and overlap."""
-    chunks = []
-    for i in range(0, len(text), n - overlap):
-        chunks.append(text[i:i + n])
-    return chunks
-
-
-def generate_questions(text_chunk, num_questions=5, model="meta-llama/Llama-3.2-3B-Instruct"):
+def generate_questions(text_chunk: str, mlx, num_questions: int = 3, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> List[str]:
     """Generate questions from text chunk using MLX."""
-    system_prompt = "You are an expert at generating relevant questions from text. Create concise questions that can be answered using only the provided text. Focus on key information and concepts."
+    system_prompt = "You are an expert at generating relevant questions from text. Create concise questions that can be answered using only BUSY the provided text. Focus on key information and concepts."
     user_prompt = f"Generate {num_questions} questions based on the following text:\n\n{text_chunk}"
     response = mlx.chat([
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt}
     ])
-    questions_text = response.strip()
+    questions_text = response["content"].strip()
     questions = []
     for line in questions_text.split('\n'):
         cleaned_line = re.sub(r'^\d+\.\s*', '', line.strip())
@@ -63,92 +37,82 @@ def generate_questions(text_chunk, num_questions=5, model="meta-llama/Llama-3.2-
     return questions
 
 
-def create_embeddings(texts):
-    """Create embeddings using the embedding function."""
-    return embed_func(texts)
-
-
 class SimpleVectorStore:
     def __init__(self):
         self.vectors = []
         self.texts = []
         self.metadata = []
 
-    def add_item(self, text, embedding, metadata=None):
+    def add_item(self, text: str, embedding: np.ndarray, metadata: Dict[str, Any] = None):
+        """Add an item to the vector store."""
         self.vectors.append(np.array(embedding))
         self.texts.append(text)
         self.metadata.append(metadata or {})
 
-    def similarity_search(self, query_embedding, k=5):
+    def similarity_search(self, query_embedding: np.ndarray, k: int = 5) -> List[Dict[str, Any]]:
+        """Perform similarity search in the vector store."""
         if not self.vectors:
             return []
-        query_vector = np.array(
-            query_embedding).flatten()  # Ensure query is 1D
+        query_vector = np.array(query_embedding).flatten()
         similarities = []
         for i, vector in enumerate(self.vectors):
-            vector = vector.flatten()  # Ensure stored vector is 1D
-            # Calculate cosine similarity
+            vector = vector.flatten()
             dot_product = np.dot(query_vector, vector)
             query_norm = np.linalg.norm(query_vector)
             vector_norm = np.linalg.norm(vector)
-            # Check for zero norms to avoid division by zero
-            if query_norm == 0 or vector_norm == 0:
-                similarity = 0.0
-            else:
-                similarity = dot_product / (query_norm * vector_norm)
+            similarity = 0.0 if query_norm == 0 or vector_norm == 0 else dot_product / \
+                (query_norm * vector_norm)
             similarities.append((i, similarity))
-        # Sort similarities, handling NaN or invalid values
         similarities.sort(key=lambda x: -float('inf')
                           if np.isnan(x[1]) else x[1], reverse=True)
         results = []
         for i in range(min(k, len(similarities))):
             idx, score = similarities[i]
-            results.append({
-                "text": self.texts[idx],
-                "metadata": self.metadata[idx],
-                "similarity": score
-            })
+            results.append(SearchResult(
+                id=f"item_{idx}",
+                rank=i + 1,
+                doc_index=self.metadata[idx].get("index", idx),
+                score=float(score),
+                text=self.texts[idx],
+                metadata=self.metadata[idx]
+            ))
         return results
 
 
-def process_document(pdf_path, chunk_size=1000, chunk_overlap=200, questions_per_chunk=5):
-    logger.debug("Extracting text from PDF...")
-    extracted_text = extract_text_from_pdf(pdf_path)
-    logger.debug("Chunking text...")
-    text_chunks = chunk_text(extracted_text, chunk_size, chunk_overlap)
-    logger.debug(f"Created {len(text_chunks)} text chunks")
+def process_document(chunks: List[Dict[str, Any]], embed_func, mlx, questions_per_chunk: int = 3) -> tuple[List[str], SimpleVectorStore]:
+    """Process document chunks, generate questions, and store in vector store."""
     vector_store = SimpleVectorStore()
-    logger.debug("Processing chunks and generating questions...")
-
-    # Generate embeddings for all chunks at once
-    chunk_embeddings = create_embeddings(text_chunks)
+    text_chunks = [chunk["text"] for chunk in chunks]
+    chunk_embeddings = generate_embeddings(text_chunks, embed_func, logger)
 
     for i, (chunk, chunk_embedding) in enumerate(tqdm(zip(text_chunks, chunk_embeddings), total=len(text_chunks), desc="Processing Chunks")):
         vector_store.add_item(
             text=chunk,
             embedding=chunk_embedding,
-            metadata={"type": "chunk", "index": i}
+            metadata={"type": "chunk",
+                      "index": chunks[i]["metadata"]["doc_index"]}
         )
         questions = generate_questions(
-            chunk, num_questions=questions_per_chunk)
-        question_embeddings = create_embeddings(questions)
+            chunk, mlx, num_questions=questions_per_chunk)
+        question_embeddings = embed_func(questions)
         for j, (question, question_embedding) in enumerate(zip(questions, question_embeddings)):
             vector_store.add_item(
                 text=question,
                 embedding=question_embedding,
-                metadata={"type": "question",
-                          "chunk_index": i, "original_chunk": chunk}
+                metadata={
+                    "type": "question", "chunk_index": chunks[i]["metadata"]["doc_index"], "original_chunk": chunk}
             )
     return text_chunks, vector_store
 
 
-def semantic_search(query, vector_store, k=5):
-    query_embedding = create_embeddings([query])[0]
-    results = vector_store.similarity_search(query_embedding, k=k)
-    return results
+def semantic_search(query: str, vector_store: SimpleVectorStore, embed_func, k: int = 5) -> List[SearchResult]:
+    """Perform semantic search using the vector store."""
+    query_embedding = embed_func([query])[0]
+    return vector_store.similarity_search(query_embedding, k=k)
 
 
-def prepare_context(search_results):
+def prepare_context(search_results: List[SearchResult]) -> str:
+    """Prepare context from search results for response generation."""
     chunk_indices = set()
     context_chunks = []
     for result in search_results:
@@ -163,96 +127,81 @@ def prepare_context(search_results):
                 chunk_indices.add(chunk_idx)
                 context_chunks.append(
                     f"Chunk {chunk_idx} (referenced by question '{result['text']}'):\n{result['metadata']['original_chunk']}")
-    full_context = "\n\n".join(context_chunks)
-    return full_context
+    return "\n\n".join(context_chunks)
 
 
-def generate_response(query, context, model="meta-llama/Llama-3.2-3B-Instruct"):
-    system_prompt = "You are an AI assistant that strictly answers based on the given context. If the answer cannot be derived directly from the provided context, respond with: 'I do not have enough information to answer that.'"
-    user_prompt = f"{context}\n\nQuestion: {query}"
-    response = mlx.chat([
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt}
-    ])
-    return response
+# Setup configuration and logging
+script_dir, generated_dir, log_file, logger = setup_config(__file__)
 
+# Initialize MLX and embedding function
+mlx, embed_func = initialize_mlx(logger)
 
-def evaluate_response(query, response, reference_answer, model="meta-llama/Llama-3.2-3B-Instruct"):
-    evaluate_system_prompt = "You are an intelligent evaluation system tasked with assessing the AI assistant's responses. If the AI assistant's response is very close to the true response, assign a score of 1. If the response is incorrect or unsatisfactory in relation to the true response, assign a score of 0. If the response is partially aligned with the true response, assign a score of 0.5."
-    evaluation_prompt = f"User Query: {query}\nAI Response:\n{response}\nTrue Response: {reference_answer}\n{evaluate_system_prompt}"
-    eval_response = mlx.chat([
-        {"role": "system", "content": evaluate_system_prompt},
-        {"role": "user", "content": evaluation_prompt}
-    ])
-    try:
-        score = float(eval_response.strip())
-    except ValueError:
-        logger.debug(
-            "Warning: Could not parse evaluation score, defaulting to 0")
-        score = 0.0
-    return score
+# Load pre-chunked data
+formatted_texts, original_chunks = load_json_data(DOCS_PATH, logger)
+logger.info("Loaded pre-chunked data from DOCS_PATH")
 
+# Process document and generate questions
+text_chunks, vector_store = process_document(
+    original_chunks, embed_func, mlx, questions_per_chunk=3)
+logger.debug(f"Vector store contains {len(vector_store.texts)} items")
 
-async def main():
-    # Process document
-    pdf_path = f"{DATA_DIR}/AI_Information.pdf"
-    text_chunks, vector_store = process_document(
-        pdf_path,
-        chunk_size=1000,
-        chunk_overlap=200,
-        questions_per_chunk=3
-    )
-    logger.debug(f"Vector store contains {len(vector_store.texts)} items")
+# Load validation data
+validation_data = load_validation_data(f"{DATA_DIR}/val.json", logger)
+query = validation_data[0]['question']
 
-    # Load validation data and perform semantic search
-    with open('data/val.json') as f:
-        data = json.load(f)
-    query = data[0]['question']
-    search_results = semantic_search(query, vector_store, k=5)
+# Perform semantic search
+search_results = semantic_search(query, vector_store, embed_func, k=5)
+logger.debug(f"Query: {query}")
+logger.debug("\nSearch Results:")
+chunk_results = [r for r in search_results if r["metadata"]["type"] == "chunk"]
+question_results = [
+    r for r in search_results if r["metadata"]["type"] == "question"]
+logger.debug("\nRelevant Document Chunks:")
+for i, result in enumerate(chunk_results):
+    logger.debug(f"Context {i + 1} (similarity: {result['score']:.4f}):")
+    logger.debug(result["text"][:300] + "...")
+    logger.debug("=====================================")
+logger.debug("\nMatched Questions:")
+for i, result in enumerate(question_results):
+    logger.debug(f"Question {i + 1} (similarity: {result['score']:.4f}):")
+    logger.debug(result["text"])
+    logger.debug(f"From chunk {result['metadata']['chunk_index']}")
+    logger.debug("=====================================")
 
-    # Log search results
-    logger.debug("Query:", query)
-    logger.debug("\nSearch Results:")
-    chunk_results = []
-    question_results = []
-    for result in search_results:
-        if result["metadata"]["type"] == "chunk":
-            chunk_results.append(result)
-        else:
-            question_results.append(result)
+# Save search results
+save_file([dict(result) for result in search_results],
+          f"{generated_dir}/top_chunks.json")
+logger.info(f"Saved search results to {generated_dir}/top_chunks.json")
 
-    logger.debug("\nRelevant Document Chunks:")
-    for i, result in enumerate(chunk_results):
-        logger.debug(
-            f"Context {i + 1} (similarity: {result['similarity']:.4f}):")
-        logger.debug(result["text"][:300] + "...")
-        logger.debug("=====================================")
+# Generate AI response
+system_prompt = (
+    "You are an AI assistant that strictly answers based on the given context. "
+    "If the answer cannot be derived directly from the provided context, "
+    "respond with: 'I do not have enough information to answer that.'"
+)
+context = prepare_context(search_results)
+ai_response = generate_ai_response(
+    query, system_prompt, search_results, mlx, logger)
+logger.debug(f"\nResponse: {ai_response}")
+save_file({"question": query, "response": ai_response},
+          f"{generated_dir}/ai_response.json")
+logger.info(f"Saved AI response to {generated_dir}/ai_response.json")
 
-    logger.debug("\nMatched Questions:")
-    for i, result in enumerate(question_results):
-        logger.debug(
-            f"Question {i + 1} (similarity: {result['similarity']:.4f}):")
-        logger.debug(result["text"])
-        chunk_idx = result["metadata"]["chunk_index"]
-        logger.debug(f"From chunk {chunk_idx}")
-        logger.debug("=====================================")
+# Evaluate response
+true_answer = validation_data[0]['answer']
+evaluation_score, evaluation_text = evaluate_ai_response(
+    query, ai_response, true_answer, mlx, logger)
+logger.success(f"Evaluation Score: {evaluation_score}")
+logger.success(f"Evaluation Text: {evaluation_text}")
 
-    # Generate and evaluate response
-    context = prepare_context(search_results)
-    response_text = generate_response(query, context)
-    logger.debug("\nQuery:", query)
-    logger.debug("\nResponse:")
-    logger.debug(response_text)
+# Save evaluation results
+save_file({
+    "question": query,
+    "response": ai_response,
+    "true_answer": true_answer,
+    "evaluation_score": evaluation_score,
+    "evaluation_text": evaluation_text
+}, f"{generated_dir}/evaluation.json")
+logger.info(f"Saved evaluation results to {generated_dir}/evaluation.json")
 
-    reference_answer = data[0]['ideal_answer']
-    evaluation = evaluate_response(query, response_text, reference_answer)
-    logger.debug("\nEvaluation:")
-    logger.debug(f"Score: {evaluation}")
-
-    logger.info("\n\n[DONE]", bright=True)
-
-if platform.system() == "Emscripten":
-    asyncio.ensure_future(main())
-else:
-    if __name__ == "__main__":
-        asyncio.run(main())
+logger.info("\n\n[DONE]", bright=True)

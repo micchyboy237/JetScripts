@@ -4,6 +4,7 @@ import numpy as np
 from typing import List, Dict, Any, Callable, Tuple, TypedDict
 from jet.file.utils import load_file, save_file
 from jet.llm.mlx.base import MLX
+from jet.llm.mlx.mlx_types import ModelType
 from jet.llm.utils.embeddings import get_embedding_function
 from jet.logger import CustomLogger
 import re
@@ -18,6 +19,8 @@ class SearchResult(TypedDict):
     doc_index: int
     score: float
     text: str
+    metadata: Dict[str, Any]
+    relevance_score: float | None
 
 
 class ValidationData(TypedDict):
@@ -25,8 +28,30 @@ class ValidationData(TypedDict):
     answer: str
 
 
+class ChunkMetadata(TypedDict):
+    doc_index: int
+    header: str
+    parent_header: str
+    header_level: int
+
+
+class Chunk(TypedDict):
+    metadata: ChunkMetadata
+    text: str
+
+
+class ChunkData(TypedDict):
+    chunks: List[Chunk]
+
+
+class VectorStoreItem(TypedDict, total=False):
+    id: str
+    text: str
+    metadata: Dict[str, Any]
+    similarity: float
+
+
 def setup_config(script_path: str) -> Tuple[str, str, str, CustomLogger]:
-    """Set up configuration including directories and logger."""
     script_dir = os.path.dirname(os.path.abspath(script_path))
     log_file = os.path.join(
         script_dir, f"{os.path.splitext(os.path.basename(script_path))[0]}.log")
@@ -38,10 +63,9 @@ def setup_config(script_path: str) -> Tuple[str, str, str, CustomLogger]:
     return script_dir, generated_dir, log_file, logger
 
 
-def load_json_data(data_path: str, logger: CustomLogger) -> Tuple[List[str], List[Dict[str, Any]]]:
-    """Load pre-chunked data from a JSON file."""
+def load_json_data(data_path: str, logger: CustomLogger) -> Tuple[List[str], List[Chunk]]:
     with open(data_path, 'r') as f:
-        data = json.load(f)
+        data: ChunkData = json.load(f)
     formatted_chunks = []
     for chunk in data["chunks"]:
         metadata = chunk["metadata"]
@@ -56,16 +80,18 @@ def load_json_data(data_path: str, logger: CustomLogger) -> Tuple[List[str], Lis
     return formatted_chunks, data["chunks"]
 
 
-def initialize_mlx(logger: CustomLogger) -> Tuple[MLX, Callable]:
-    """Initialize MLX model and embedding function."""
+def initialize_mlx(logger: CustomLogger) -> Tuple[MLX, Callable[[str | List[str]], List[float] | List[List[float]]]]:
     logger.info("Initializing MLX and embedding function")
     mlx = MLX()
     embed_func = get_embedding_function("mxbai-embed-large")
     return mlx, embed_func
 
 
-def generate_embeddings(texts: List[str], embed_func: Callable, logger: CustomLogger) -> List[np.ndarray]:
-    """Generate embeddings for text chunks."""
+def generate_embeddings(
+    texts: str | List[str],
+    embed_func: Callable[[str | List[str]], List[float] | List[List[float]]],
+    logger: CustomLogger
+) -> np.ndarray | List[np.ndarray]:
     logger.info("Generating embeddings for chunks")
     embeddings = embed_func(texts)
     logger.info("Embeddings generated")
@@ -73,10 +99,9 @@ def generate_embeddings(texts: List[str], embed_func: Callable, logger: CustomLo
 
 
 def load_validation_data(val_path: str, logger: CustomLogger) -> List[ValidationData]:
-    """Load validation data from JSON file."""
     logger.info("Loading validation data")
     with open(val_path) as f:
-        data = json.load(f)
+        data: List[ValidationData] = json.load(f)
     return data
 
 
@@ -86,20 +111,27 @@ def generate_ai_response(
     retrieved_chunks: List[SearchResult],
     mlx: MLX,
     logger: CustomLogger,
-    model: str = "meta-llama/Llama-3.2-3B-Instruct"
+    model: ModelType = "llama-3.2-3b-instruct-4bit"
 ) -> str:
-    """Generate AI response using MLX model."""
     logger.info("Generating AI response")
-    context = "\n".join(
-        [f"Context {i+1}:\n{chunk['text']}\n=====================================\n" for i, chunk in enumerate(retrieved_chunks)])
-    user_prompt = f"{context}\nQuestion: {query}"
-    response = mlx.chat([
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt}
+    context = "\n".join([
+        f"Context {i+1}:\n{chunk['text']}\n=====================================\n"
+        for i, chunk in enumerate(retrieved_chunks)
     ])
-    ai_response = response["content"]
-    logger.success(f"AI Response:\n{ai_response}")
-    return ai_response
+    user_prompt = f"{context}\nQuestion: {query}"
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        model=model
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    logger.success(f"AI Response:\n{response}")
+    return response
 
 
 def evaluate_ai_response(
@@ -107,9 +139,9 @@ def evaluate_ai_response(
     response: str,
     true_answer: str,
     mlx: MLX,
-    logger: CustomLogger
+    logger: CustomLogger,
+    model: ModelType = "llama-3.2-3b-instruct-4bit"
 ) -> Tuple[float, str]:
-    """Evaluate AI response against true answer."""
     logger.info("Evaluating response")
     evaluate_system_prompt = (
         "You are an intelligent evaluation system tasked with assessing the AI assistant's responses. "
@@ -125,14 +157,62 @@ def evaluate_ai_response(
         raise ValueError(f"No valid float found in text: {text}")
 
     evaluation_prompt = f"User Query: {question}\nAI Response:\n{response}\nTrue Response: {true_answer}\n{evaluate_system_prompt}"
-    evaluation_response = mlx.chat([
-        {"role": "system", "content": "You are an objective evaluator. Return ONLY the numerical score."},
-        {"role": "user", "content": evaluation_prompt}
-    ])
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
+            {"role": "system", "content": "You are an objective evaluator. Return ONLY the numerical score."},
+            {"role": "user", "content": evaluation_prompt}
+        ],
+        model=model
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
     try:
-        score = parse_score(evaluation_response["content"].strip())
+        score = parse_score(response.strip())
     except ValueError:
         logger.debug(
             "Warning: Could not parse evaluation score, defaulting to 0")
         score = 0.0
-    return score, evaluation_response["content"]
+    return score, response
+
+
+class SimpleVectorStore:
+    def __init__(self) -> None:
+        self.vectors: List[np.ndarray] = []
+        self.texts: List[str] = []
+        self.metadata: List[Dict[str, Any]] = []
+        self.ids: List[str] = []
+
+    def add_item(self, text: str, embedding: List[float] | np.ndarray, metadata: Dict[str, Any] | None = None, id: str | None = None) -> None:
+        self.vectors.append(np.array(embedding))
+        self.texts.append(text)
+        self.metadata.append(metadata or {})
+        # Use passed id or create one (like index as string)
+        self.ids.append(id if id is not None else str(len(self.ids)))
+
+    def search(self, query_embedding: List[float] | np.ndarray, top_k: int = 5) -> List[VectorStoreItem]:
+        if not self.vectors:
+            return []
+        query_vector = np.array(query_embedding).flatten()
+        similarities: List[Tuple[int, float]] = []
+        for i, vector in enumerate(self.vectors):
+            vector = vector.flatten()
+            dot_product = np.dot(query_vector, vector)
+            query_norm = np.linalg.norm(query_vector)
+            vector_norm = np.linalg.norm(vector)
+            similarity = 0.0 if query_norm == 0 or vector_norm == 0 else dot_product / \
+                (query_norm * vector_norm)
+            similarities.append((i, similarity))
+        similarities.sort(key=lambda x: -float('inf')
+                          if np.isnan(x[1]) else x[1], reverse=True)
+        results: List[VectorStoreItem] = []
+        for i in range(min(top_k, len(similarities))):
+            idx, score = similarities[i]
+            results.append({
+                "id": self.ids[idx],              # Add id here
+                "text": self.texts[idx],
+                "metadata": self.metadata[idx],
+                "similarity": score
+            })
+        return results
