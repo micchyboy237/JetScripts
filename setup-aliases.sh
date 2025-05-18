@@ -397,11 +397,36 @@ git_stats() {
     # git_stats -e ".py,.md"
 }
 
+# Function to check memory usage of specific Python processes
+mem_python_check() {
+  local threshold="${1:-0}"
+  local python_version="python3.12"
+  local mem_column=8
 
+  top -l 1 -o mem | grep "$python_version" | awk -v th="$threshold" -v col="$mem_column" '$col ~ /[0-9]+M/ && $col+0 > th'
+}
+
+# Usage:
+#   mem_python_check            # Lists python3.12 processes using more than 0 MB (default)
+#   mem_python_check 300        # Lists python3.12 processes using more than 300 MB
+
+
+# Function to kill specific Python processes exceeding memory threshold
+mem_python_kill() {
+  local threshold="${1:-0}"
+  local python_version="python3.12"
+  local mem_column=8
+
+  top -l 1 -o mem | grep "$python_version" | awk -v th="$threshold" -v col="$mem_column" '$col ~ /[0-9]+M/ && $col+0 > th {print $1}' | xargs kill -9
+}
+
+# Usage:
+#   mem_python_kill             # Kills python3.12 processes using more than 0 MB (default)
+#   mem_python_kill 300         # Kills python3.12 processes using more than 300 MB
 
 
 
 # Check if the 'deps' function is already defined to prevent echo
 # if ! declare -f deps &>/dev/null; then
-echo "Added deps, deps_tree, freeze, size, setup_venv, freeze_venv, reinstall_venv, force_reinstall_venv, activate_venv, deactivate_venv, reinstall_python functions, pip, large_folders, last_updates, git_stats"
+echo "Added deps, deps_tree, freeze, size, setup_venv, freeze_venv, reinstall_venv, force_reinstall_venv, activate_venv, deactivate_venv, reinstall_python functions, pip, large_folders, last_updates, git_stats, mem_python_check, mem_python_kill"
 # fi
