@@ -8,6 +8,7 @@ from datetime import datetime
 from jet.token.token_utils import merge_headers, split_headers
 from jet.vectors.document_types import HeaderDocument
 from jet.vectors.hybrid_reranker import search_documents
+from jet.vectors.search_with_mmr import search_diverse_context
 from tqdm import tqdm
 from mlx_lm import load
 from jet.wordnet.analyzers.text_analysis import ReadabilityResult, analyze_readability, analyze_text
@@ -120,7 +121,7 @@ if __name__ == "__main__":
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    query = "List trending isekai anime this year."
+    query = "List trending isekai reincarnation anime this year."
     model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
     # embed_models = ["mxbai-embed-large"]
     embed_model = "all-minilm:33m"
@@ -165,44 +166,58 @@ if __name__ == "__main__":
 
     save_file(all_docs, os.path.join(output_dir, "headers.json"))
 
-    splitted_nodes = split_headers(
-        all_docs, embed_model, chunk_size=200, chunk_overlap=0)
-
-    merged_nodes = merge_headers(
-        splitted_nodes, embed_model, chunk_size=200, chunk_overlap=0)
-
-    contexts = [
-        f"{(item["parent_header"] or "").strip()}\n{item["header"]}\n{item["content"]}" for item in merged_nodes
-        if not item["header_level"] == 1
-    ]
-
-    results_dir = f"{output_dir}/results"
-    save_file({
-        "urls": all_urls,
-        "contexts": len(contexts),
-    }, os.path.join(results_dir, "info.json"))
-    splitted_node_token_counts: list[int] = count_tokens(
-        embed_model, [node.text for node in splitted_nodes], prevent_total=True)
-    for node, token_count in zip(splitted_nodes, splitted_node_token_counts):
-        node.metadata["tokens"] = token_count
-    save_file(splitted_nodes, os.path.join(results_dir, "splitted_nodes.json"))
-    merged_node_token_counts: list[int] = count_tokens(
-        embed_model, [node.text for node in merged_nodes], prevent_total=True)
-    for node, token_count in zip(merged_nodes, merged_node_token_counts):
-        node.metadata["tokens"] = token_count
-    save_file(merged_nodes, os.path.join(results_dir, "merged_nodes.json"))
-    save_file(contexts, os.path.join(results_dir, "contexts.json"))
-
-    # Search contexts
-    top_k = 10
-    hybrid_search_doc_results = search_documents(
-        combined_query, contexts, k=top_k)
-    save_file({
-        "query": combined_query,
-        "results": hybrid_search_doc_results
-    }, os.path.join(results_dir, "hybrid_search_doc_results.json"))
-    search_doc_results = search_docs(combined_query, contexts, top_k=top_k)
+    search_doc_results = search_diverse_context(
+        query=combined_query,
+        headers=all_docs,
+        model_name="all-MiniLM-L12-v2",
+        rerank_model="cross-encoder/ms-marco-MiniLM-L-12-v2",
+        top_k=20,
+        num_results=10,
+        lambda_param=0.5
+    )
     save_file({
         "query": combined_query,
         "results": search_doc_results
-    }, os.path.join(results_dir, "search_doc_results.json"))
+    }, os.path.join(output_dir, "search_doc_results.json"))
+
+    # splitted_nodes = split_headers(
+    #     all_docs, embed_model, chunk_size=200, chunk_overlap=0)
+
+    # merged_nodes = merge_headers(
+    #     splitted_nodes, embed_model, chunk_size=200, chunk_overlap=0)
+
+    # contexts = [
+    #     f"{(item["parent_header"] or "").strip()}\n{item["header"]}\n{item["content"]}" for item in merged_nodes
+    #     if not item["header_level"] == 1
+    # ]
+
+    # results_dir = f"{output_dir}/results"
+    # save_file({
+    #     "urls": all_urls,
+    #     "contexts": len(contexts),
+    # }, os.path.join(results_dir, "info.json"))
+    # splitted_node_token_counts: list[int] = count_tokens(
+    #     embed_model, [node.text for node in splitted_nodes], prevent_total=True)
+    # for node, token_count in zip(splitted_nodes, splitted_node_token_counts):
+    #     node.metadata["tokens"] = token_count
+    # save_file(splitted_nodes, os.path.join(results_dir, "splitted_nodes.json"))
+    # merged_node_token_counts: list[int] = count_tokens(
+    #     embed_model, [node.text for node in merged_nodes], prevent_total=True)
+    # for node, token_count in zip(merged_nodes, merged_node_token_counts):
+    #     node.metadata["tokens"] = token_count
+    # save_file(merged_nodes, os.path.join(results_dir, "merged_nodes.json"))
+    # save_file(contexts, os.path.join(results_dir, "contexts.json"))
+
+    # # Search contexts
+    # top_k = 10
+    # hybrid_search_doc_results = search_documents(
+    #     combined_query, contexts, k=top_k)
+    # save_file({
+    #     "query": combined_query,
+    #     "results": hybrid_search_doc_results
+    # }, os.path.join(results_dir, "hybrid_search_doc_results.json"))
+    # search_doc_results = search_docs(combined_query, contexts, top_k=top_k)
+    # save_file({
+    #     "query": combined_query,
+    #     "results": search_doc_results
+    # }, os.path.join(results_dir, "search_doc_results.json"))
