@@ -3,17 +3,20 @@ import time
 import asyncio
 import os
 import shutil
-from typing import Generator, List, Optional, Union, TypedDict
+from typing import Generator, List, Optional, Tuple, Union, TypedDict
 from datetime import datetime
 from jet.token.token_utils import split_headers
+from jet.vectors.document_types import HeaderDocument
+from jet.vectors.hybrid_reranker import search_documents
 from tqdm import tqdm
 from mlx_lm import load
-from jet.wordnet.analyzers.text_analysis import analyze_readability, analyze_text
+from jet.wordnet.analyzers.text_analysis import ReadabilityResult, analyze_readability, analyze_text
 from jet.code.splitter_markdown_utils import Header, extract_md_header_contents, get_md_header_contents, get_md_header_docs
 from jet.file.utils import save_file
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.helpers import decompose_query
-from jet.llm.mlx.token_utils import merge_texts
+from jet.llm.mlx.token_utils import count_tokens
+from jet.llm.embeddings.sentence_embedding import get_tokenizer_fn
 from jet.llm.mlx.mlx_types import LLMModelType
 from jet.logger import logger
 from jet.scrapers.browser.playwright_utils import scrape_multiple_urls
@@ -67,34 +70,46 @@ def get_header_stats(text: str):
     return stats
 
 
-def filter_htmls_with_best_combined_mtld(htmls: List[str], limit: int = 5, min_mtld: int = 100) -> List[str]:
+def filter_htmls_with_best_combined_mtld(
+    htmls: List[str],
+    limit: int = 3,
+    min_mtld: float = 100.0
+) -> List[Tuple[str, List[HeaderDocument], ReadabilityResult]]:
     """
     Filters a list of HTML strings to return the top <limit> items with the highest combined MTLD scores,
     excluding any items with MTLD score below min_mtld.
 
     Args:
-        htmls: List of HTML content strings
-        limit: Maximum number of HTML items to return
-        min_mtld: Minimum MTLD score required to include an HTML
+        htmls: List of HTML content strings.
+        limit: Maximum number of HTML items to return (default: 3).
+        min_mtld: Minimum MTLD score required to include an HTML (default: 100.0).
 
     Returns:
-        List of HTML strings with the highest combined MTLD scores, up to the specified limit
+        List of tuples, each containing an HTML string, its corresponding HeaderDocument list,
+        and the readability result dictionary, sorted by highest MTLD scores, up to the specified limit.
     """
     if not htmls or limit <= 0:
         return []
 
-    html_scores = []
+    doc_scores = []
     for html in htmls:
         try:
-            readability_result = analyze_readability(html)
+            docs = get_md_header_docs(html, [
+                ("#", "h1"),
+                ("##", "h2"),
+                ("###", "h3"),
+            ])
+            docs_text = "\n\n".join(doc.text for doc in docs)
+
+            readability_result = analyze_readability(docs_text)
             mtld_score = readability_result['mtld']
             if mtld_score >= min_mtld:
-                html_scores.append((html, mtld_score))
-        except ValueError:
+                doc_scores.append((html, docs, readability_result, mtld_score))
+        except (ValueError, KeyError, AttributeError):
             continue
 
-    html_scores.sort(key=lambda x: x[1], reverse=True)
-    return [html for html, _ in html_scores[:min(limit, len(html_scores))]]
+    doc_scores.sort(key=lambda x: x[3], reverse=True)
+    return [(html, docs, readability_result) for html, docs, readability_result, _ in doc_scores[:min(limit, len(doc_scores))]]
 
 
 if __name__ == "__main__":
@@ -109,6 +124,7 @@ if __name__ == "__main__":
     model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
     # embed_models = ["mxbai-embed-large"]
     embed_model = "all-minilm:33m"
+    tokenize = get_tokenizer_fn(embed_model)
 
     # Search web engine
     search_results = search_data(query)
@@ -130,34 +146,7 @@ if __name__ == "__main__":
         f"Title: {result["title"]}\nContent: {result["content"]}" for result in search_results]
     top_n = len(search_result_docs)
 
-    # query_scores = query_similarity_scores(
-    #     queries, search_result_docs, model=embed_models)
-    # save_file({"queries": queries, "results": query_scores},
-    #           os.path.join(output_dir, "search_query_scores.json"))
     combined_query = "\n".join(queries)
-    search_docs_results = search_docs(
-        combined_query, search_result_docs, top_k=10)
-    save_file({"combined_query": combined_query, "results": search_docs_results},
-              os.path.join(output_dir, "search_docs_results.json"))
-
-    # Use hybrid search
-    # engine = HybridSearchEngine()
-    # engine.fit(search_result_docs)
-
-    # print("\n🔎 Hybrid Search Results:\n")
-    # simple_results = engine.search(
-    #     query, top_n=top_n, alpha=0.5, use_mmr=False)
-    # for r in simple_results:
-    #     print(f"Score: {r['score']:.4f} | Document: {r['document'][:100]}")
-    # save_file(simple_results, os.path.join(output_dir, "hybrid_search.json"))
-
-    # print("\n🔎 Hybrid Search Results w/ MMR Diversity:\n")
-    # mmr_results = engine.search(
-    #     query, top_n=top_n, alpha=0.5, use_mmr=True, lambda_param=0.7)
-    # for r in mmr_results:
-    #     print(f"Score: {r['score']:.4f} | Document: {r['document'][:100]}")
-    # save_file(mmr_results, os.path.join(
-    #     output_dir, "hybrid_search_with_diversity.json"))
 
     sub_dir = f"{output_dir}/searched_html"
 
@@ -165,149 +154,34 @@ if __name__ == "__main__":
     urls = [item["url"] for item in search_results]
     html_list = asyncio.run(scrape_urls(urls, num_parallel=5))
 
-    filtered_html_list = filter_htmls_with_best_combined_mtld(html_list)
-    all_url_html_tuples = list(zip(urls, filtered_html_list))
+    filtered_docs_list = filter_htmls_with_best_combined_mtld(html_list)
+    all_url_html_tuples = list(zip(urls, filtered_docs_list))
 
-    selected_url_html_tuples = []
-    for url, html_str in tqdm(all_url_html_tuples, desc="Processing"):
-        if html_str:
-            logger.debug(f"Scraped {url}")
+    all_urls = []
+    all_docs = []
+    for url, (html_str, docs, readability_result) in tqdm(all_url_html_tuples, desc="Processing"):
+        all_urls.append(url)
+        all_docs.extend(docs)
 
-            selected_url_html_tuples.append((url, html_str))
+    splitted_nodes = split_headers(
+        all_docs, embed_model, chunk_size=200, chunk_overlap=20)
+    contexts = [
+        f"{(item["parent_header"] or "").strip()}\n{item["header"]}\n{item["content"]}" for item in splitted_nodes
+        if not item["header_level"] == 1
+    ]
 
-            output_dir_url = safe_path_from_url(url, sub_dir)
-
-            save_file(format_html(html_str), os.path.join(
-                output_dir_url, "doc.html"))
-
-            # docs = extract_texts_by_hierarchy(html_str)
-            docs = get_md_header_docs(html_str, [
-                ("#", "h1"),
-                ("##", "h2"),
-                ("###", "h3"),
-            ])
-            save_file(docs, f"{output_dir_url}/headers.json")
-
-            splitted_docs = split_headers(
-                docs, embed_model, chunk_size=200, chunk_overlap=20)
-            save_file(splitted_docs, f"{output_dir_url}/splitted-headers.json")
-
-            headers = [item["header"] for item in splitted_docs]
-            logger.debug(f"Headers (all) length: {len(headers)}")
-            save_file("\n".join(headers), os.path.join(
-                output_dir_url, "headers.md"))
-
-            all_links = scrape_links(html_str, base_url=url)
-            save_file(all_links, os.path.join(
-                output_dir_url, "links.json"))
-
-            # Load the model and tokenizer
-            model, tokenizer = load(model_path)
-
-            # # Merge docs with max tokens
-            # max_tokens = 300
-
-            # def _tokenizer(text: Union[str, List[str]]) -> Union[List[str], List[List[str]]]:
-            #     if isinstance(text, str):
-            #         token_ids = tokenizer.encode(
-            #             text, add_special_tokens=False)
-            #         return tokenizer.convert_ids_to_tokens(token_ids)
-            #     else:
-            #         token_ids_list = tokenizer.batch_encode_plus(
-            #             text, add_special_tokens=False)["input_ids"]
-            #         return [tokenizer.convert_ids_to_tokens(ids) for ids in token_ids_list]
-
-            # merged_docs = merge_texts_by_hierarchy(
-            #     html_str, _tokenizer, max_tokens)
-
-            # token_counts = [item["token_count"] for item in merged_docs]
-
-            # Analyze headings
-            header_stats = []
-            for item in tqdm(splitted_docs, desc="Analyzing headers"):
-                text = item["text"]
-                header = f"{(item["parent_header"] or "").strip()}\n{item["header"]}"
-                stats = get_header_stats(text)
-                header_stats.append(
-                    {"stats": stats, "header": header, "text": text})
-                save_file(header_stats, f"{output_dir_url}/header_stats.json")
-
-            context_docs = [
-                f"{(item["parent_header"] or "").strip()}\n{item["header"]}\n{item["content"]}" for item in splitted_docs
-                if not item["header_level"] == 1
-            ]
-            md_context = "\n\n".join(context_docs)
-            save_file(md_context, os.path.join(output_dir_url, "context.md"))
-
-            title_and_metadata = scrape_title_and_metadata(html_str)
-
-            # Analyze doc
-            stats = analyze_text(md_context)
-            save_file(
-                {"url": url, "title": title_and_metadata["title"], "stats": stats}, f"{output_dir_url}/overall_stats.json")
-
-            # Rerank splitted_docs
-            # query_scores = query_similarity_scores(
-            #     queries, context_docs, model=embed_models)
-            # save_file({"queries": queries, "results": query_scores},
-            #           os.path.join(output_dir_url, "query_scores.json"))
-            search_docs_results = search_docs(combined_query, context_docs)
-            save_file({"combined_query": combined_query, "results": search_docs_results},
-                      os.path.join(output_dir_url, "search_docs_results.json"))
-
-            headers = [item["header"] for item in header_stats]
-            logger.debug(f"Headers (context) length: {len(headers)}")
-            save_file("\n".join(headers), os.path.join(
-                output_dir_url, "context_headers.md"))
-
-            save_file({
-                "url": url,
-                "title": title_and_metadata["title"],
-                "headers": len(headers),
-                # "tokens": {
-                #     "min_tokens": min(token_counts),
-                #     "max_tokens": max(token_counts),
-                #     "ave_tokens": sum(token_counts) / len(token_counts) if token_counts else 0,
-                # },
-                "metadata": title_and_metadata["metadata"],
-                # "text_analysis": compute_info(query_scores),
-                "top_header": {
-                    "doc_index": search_docs_results[0]
-                },
-            }, os.path.join(output_dir_url, "context_info.json"))
-
-        else:
-            logger.error(f"Failed to fetch {url}")
-
-    logger.success(f"Done scraping urls {len(selected_url_html_tuples)}")
-
-    # Save all search_docs_results -> results as one combined search_docs_results.json under output_dir sorted by score in desc.
-    all_search_results: List[SimilarityResult] = []
-
-    for url, html_str in selected_url_html_tuples:
-        output_dir_url = safe_path_from_url(url, sub_dir)
-        search_results_file = os.path.join(
-            output_dir_url, "search_docs_results.json")
-
-        if os.path.exists(search_results_file):
-            with open(search_results_file, "r") as f:
-                search_results = json.load(f)
-                # Add source_url to each result
-                for result in search_results["results"]:
-                    result["source_url"] = url
-                    all_search_results.append(result)
-
-    # Sort all results by score in descending order
-    all_search_results.sort(key=lambda x: x["score"], reverse=True)
-
-    # Assign rank based on sorted order
-    for idx, result in enumerate(all_search_results, start=1):
-        result["rank"] = idx  # 1-based rank
-
-    # Save combined results
-    combined_results_file = os.path.join(
-        output_dir, "combined_search_results.json")
+    results_dir = f"{output_dir}/results"
     save_file({
-        "combined_query": combined_query,
-        "results": all_search_results
-    }, combined_results_file)
+        "urls": all_urls,
+        "contexts": len(contexts),
+    }, os.path.join(results_dir, "info.json"))
+    save_file(splitted_nodes, os.path.join(results_dir, "splitted_nodes.json"))
+    save_file(contexts, os.path.join(results_dir, "contexts.json"))
+
+    # Search contexts
+    top_k = None
+    search_doc_results = search_documents(combined_query, contexts, k=top_k)
+    save_file({
+        "query": query,
+        "results": search_doc_results
+    }, os.path.join(results_dir, "search_doc_results.json"))
