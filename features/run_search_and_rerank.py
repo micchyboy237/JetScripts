@@ -5,14 +5,16 @@ import os
 import shutil
 from typing import Generator, List, Optional, Union, TypedDict
 from datetime import datetime
+from jet.token.token_utils import split_headers
 from tqdm import tqdm
 from mlx_lm import load
-from jet.wordnet.analyzers.text_analysis import analyze_text
-from jet.code.splitter_markdown_utils import Header, extract_md_header_contents, get_md_header_contents
+from jet.wordnet.analyzers.text_analysis import analyze_readability, analyze_text
+from jet.code.splitter_markdown_utils import Header, extract_md_header_contents, get_md_header_contents, get_md_header_docs
 from jet.file.utils import save_file
 from jet.llm.mlx.base import MLX
+from jet.llm.mlx.helpers import decompose_query
 from jet.llm.mlx.token_utils import merge_texts
-from jet.llm.mlx.mlx_types import ModelType
+from jet.llm.mlx.mlx_types import LLMModelType
 from jet.logger import logger
 from jet.scrapers.browser.playwright_utils import scrape_multiple_urls
 from jet.scrapers.preprocessor import html_to_markdown
@@ -22,7 +24,7 @@ from jet.transformers.formatters import format_html, format_json
 from jet.utils.url_utils import normalize_url
 from jet.vectors.hybrid_search_engine import HybridSearchEngine
 # from jet.wordnet.similarity import compute_info, query_similarity_scores
-from jet.llm.utils.transformer_embeddings import get_embedding_function, search_docs
+from jet.llm.utils.transformer_embeddings import SimilarityResult, get_embedding_function, search_docs
 
 logger.info("Initializing MLX and embedding function")
 seed = 42
@@ -35,7 +37,11 @@ def get_url_html_tuples(urls: list[str], top_n: int = 3, num_parallel: int = 3, 
 
     for url, html in scrape_multiple_urls(urls, top_n=top_n, num_parallel=num_parallel, min_header_count=min_header_count, min_avg_word_count=min_avg_word_count):
 
-        headers = get_md_header_contents(html)
+        headers = get_md_header_contents(html, [
+            ("#", "h1"),
+            ("##", "h2"),
+            ("###", "h3"),
+        ])
 
         yield {
             "url": url,
@@ -50,128 +56,45 @@ class StepBackQueryResponse(TypedDict):
     broader_query: List[str]
 
 
-def generate_step_back_query(original_query: str, mlx: MLX, model: ModelType = "llama-3.2-3b-instruct-4bit") -> StepBackQueryResponse:
-    """Generate a broader, more flexible version of the query, using the current date in the user message."""
-    # Format current date as YYYY-MM-DD
-    current_date = time.strftime("%Y-%m-%d")
-
-    system_prompt = """You are an AI assistant specialized in search strategies. Your task is to generate a broader, more general version of a specific query to retrieve relevant background information. The user will provide the query and the current date. Use the date to ensure the broader query is contextually relevant, but do not include the date in the broader query itself. Return a JSON object with the following structure:
-    {
-        "original_query": "<original query>",
-        "broader_query": "<broader query>"
-    }
-    Ensure the broader query is concise, general, flexible, and suitable for retrieving background information that aligns with the query's intent.
-    Output only the JSON block without any additional text."""
-
-    # Flexible user message encouraging context-aware, varied broader queries
-    user_message = f"Current date: {current_date}. Based on this date and the query's intent, generate a broader, more general version of this query that remains relevant and flexible: {original_query}"
-
-    response = ""
-    for chunk in mlx.stream_chat(
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message}
-        ],
-        model=model,
-        temperature=0
-    ):
-        content = chunk["choices"][0]["message"]["content"]
-        response += content
-        logger.success(content, flush=True)
-
-    # Parse the response as JSON
-    try:
-        parsed_response = json.loads(response)
-        return parsed_response
-    except json.JSONDecodeError:
-        # Fallback in case the response isn't valid JSON
-        logger.error("Failed to parse response as JSON")
-        return StepBackQueryResponse(
-            original_query=original_query,
-            broader_query=original_query
-        )
-
-
-def decompose_query(original_query, num_subqueries=None, model="mlx-community/Llama-3.2-3B-Instruct-4bit"):
-    # Get current date dynamically
-    current_date = datetime.now().strftime("%B %d, %Y")
-
-    # Define system prompt based on whether num_subqueries is provided
-    if num_subqueries is None:
-        system_prompt = """
-        You are an AI assistant specialized in breaking down complex browser-based queries for web search and information retrieval, as of {current_date}. Your task is to decompose a query into simpler sub-questions that, when answered together, fully and comprehensively address all components of the original query. Each sub-question should target a specific, answerable aspect of the query to guide web searches or scraping efforts, ensuring no part of the original query is overlooked.
-
-        Format your response as a numbered list of sub-questions, with a reasonable number of sub-questions (typically 2 to 4, depending on the query's complexity), each on a new line, with the following structure:
-        1. Sub-question text
-        2. Sub-question text
-        ...
-
-        Ensure each sub-question:
-        - Starts with a number followed by a period (e.g., '1.', '2.').
-        - Is a clear, standalone question ending with a question mark.
-        - Targets a distinct aspect of the original query, collectively covering all its components, including explicit and implicit elements.
-        - Is specific and designed for web search or content analysis, avoiding vague or overly broad questions.
-        - Reflects the current date ({current_date}) when relevant, especially for queries about trends, recent events, or time-sensitive information.
-        - Contains no additional text, headings, explanations, or mentions of specific entities outside the numbered list.
-        - Ends with [TERMINATE] on a new line after the list.
-        """.format(current_date=current_date)
-    else:
-        system_prompt = """
-        You are an AI assistant specialized in breaking down complex browser-based queries for web search and information retrieval, as of {current_date}. Your task is to decompose a query into simpler sub-questions that, when answered together, fully and comprehensively address all components of the original query. Each sub-question should target a specific, answerable aspect of the query to guide web searches or scraping efforts, ensuring no part of the original query is overlooked.
-
-        Format your response as a numbered list of exactly {num_subqueries} sub-questions, each on a new line, with the following structure:
-        1. Sub-question text
-        2. Sub-question text
-        ...
-
-        Ensure each sub-question:
-        - Starts with a number followed by a period (e.g., '1.', '2.').
-        - Is a clear, standalone question ending with a question mark.
-        - Targets a distinct aspect of the original query, collectively covering all its components, including explicit and implicit elements.
-        - Is specific and designed for web search or content analysis, avoiding vague or overly broad questions.
-        - Reflects the current date ({current_date}) when relevant, especially for queries about trends, recent events, or time-sensitive information.
-        - Contains no additional text, headings, explanations, or mentions of specific entities outside the numbered list.
-        - Ends with [TERMINATE] on a new line after the list.
-        """.format(current_date=current_date, num_subqueries=num_subqueries)
-
-    logger.debug(original_query)
-    stream_response = mlx.stream_chat(
-        [
-            {"role": "system", "content": system_prompt},
-            {"role": "user",
-                "content": f"Decompose this query into {'exactly ' + str(num_subqueries) if num_subqueries else 'a reasonable number of'} sub-questions: {original_query}"}
-        ],
-        model=model,
-        temperature=0.2,
-        stop=["[TERMINATE]", "\n\n"]
-    )
-    content = ""
-    for chunk in stream_response:
-        chunk_content = chunk["choices"][0]["message"]["content"]
-        logger.success(chunk_content, flush=True)
-        content += chunk_content
-    logger.newline()
-    lines = content.split("\n")
-    sub_queries = []
-    for line in lines:
-        line = line.strip()
-        if line and any(line.startswith(f"{i}.") for i in range(1, (num_subqueries or 4) + 1)):
-            query = line[line.find(".") + 1:].strip()
-            if query.endswith("?"):  # Ensure it's a question
-                sub_queries.append(query)
-    # If num_subqueries is specified, ensure exactly that number are returned
-    return sub_queries[:num_subqueries] if num_subqueries else sub_queries
-
-
 def get_header_stats(text: str):
     analysis = analyze_text(text)
     stats = {
-        "mltd": analysis["mltd"],
-        "mltd_category": analysis["mltd_category"],
+        "mtld": analysis["mtld"],
+        "mtld_category": analysis["mtld_category"],
         "overall_difficulty": analysis["overall_difficulty"],
         "overall_difficulty_category": analysis["overall_difficulty_category"],
     }
     return stats
+
+
+def filter_htmls_with_best_combined_mtld(htmls: List[str], limit: int = 5, min_mtld: int = 100) -> List[str]:
+    """
+    Filters a list of HTML strings to return the top <limit> items with the highest combined MTLD scores,
+    excluding any items with MTLD score below min_mtld.
+
+    Args:
+        htmls: List of HTML content strings
+        limit: Maximum number of HTML items to return
+        min_mtld: Minimum MTLD score required to include an HTML
+
+    Returns:
+        List of HTML strings with the highest combined MTLD scores, up to the specified limit
+    """
+    if not htmls or limit <= 0:
+        return []
+
+    html_scores = []
+    for html in htmls:
+        try:
+            readability_result = analyze_readability(html)
+            mtld_score = readability_result['mtld']
+            if mtld_score >= min_mtld:
+                html_scores.append((html, mtld_score))
+        except ValueError:
+            continue
+
+    html_scores.sort(key=lambda x: x[1], reverse=True)
+    return [html for html, _ in html_scores[:min(limit, len(html_scores))]]
 
 
 if __name__ == "__main__":
@@ -184,22 +107,20 @@ if __name__ == "__main__":
 
     query = "List trending isekai anime this year."
     model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
-    embed_models = ["mxbai-embed-large"]
+    # embed_models = ["mxbai-embed-large"]
+    embed_model = "all-minilm:33m"
 
     # Search web engine
     search_results = search_data(query)
     save_file({"query": query, "results": search_results}, os.path.join(
         output_dir, "search_results.json"))
 
-    # Filter up to n search results
-    search_results = search_results[:3]
-
     # Generate broader query
-    query_result = generate_step_back_query(query, mlx)
-    query = query_result["original_query"]
-    # # Decompose query to sub-queries
-    # sub_queries = decompose_query(query)
-    sub_queries = [query_result["broader_query"]]
+    # transformed_query = generate_step_back_query(query, mlx)
+    # transformed_query = "Popular and trending isekai anime series released in 2023 or later, along with their genres, ratings, and a brief summary of each show."
+    # sub_queries = [transformed_query]
+    # Decompose query to sub-queries
+    sub_queries = decompose_query(query)
     save_file({"query": query, "sub_queries": sub_queries}, os.path.join(
         output_dir, "queries.json"))
 
@@ -243,14 +164,16 @@ if __name__ == "__main__":
     # Convert html to docs
     urls = [item["url"] for item in search_results]
     html_list = asyncio.run(scrape_urls(urls, num_parallel=5))
-    all_url_html_tuples = list(zip(urls, html_list))
 
-    url_html_tuples = []
+    filtered_html_list = filter_htmls_with_best_combined_mtld(html_list)
+    all_url_html_tuples = list(zip(urls, filtered_html_list))
+
+    selected_url_html_tuples = []
     for url, html_str in tqdm(all_url_html_tuples, desc="Processing"):
         if html_str:
             logger.debug(f"Scraped {url}")
 
-            url_html_tuples.append((url, html_str))
+            selected_url_html_tuples.append((url, html_str))
 
             output_dir_url = safe_path_from_url(url, sub_dir)
 
@@ -258,14 +181,18 @@ if __name__ == "__main__":
                 output_dir_url, "doc.html"))
 
             # docs = extract_texts_by_hierarchy(html_str)
-            docs = get_md_header_contents(html_str, [
+            docs = get_md_header_docs(html_str, [
                 ("#", "h1"),
                 ("##", "h2"),
                 ("###", "h3"),
             ])
             save_file(docs, f"{output_dir_url}/headers.json")
 
-            headers = [item["header"] for item in docs]
+            splitted_docs = split_headers(
+                docs, embed_model, chunk_size=200, chunk_overlap=20)
+            save_file(splitted_docs, f"{output_dir_url}/splitted-headers.json")
+
+            headers = [item["header"] for item in splitted_docs]
             logger.debug(f"Headers (all) length: {len(headers)}")
             save_file("\n".join(headers), os.path.join(
                 output_dir_url, "headers.md"))
@@ -297,7 +224,7 @@ if __name__ == "__main__":
 
             # Analyze headings
             header_stats = []
-            for item in tqdm(docs, desc="Analyzing headers"):
+            for item in tqdm(splitted_docs, desc="Analyzing headers"):
                 text = item["text"]
                 header = f"{(item["parent_header"] or "").strip()}\n{item["header"]}"
                 stats = get_header_stats(text)
@@ -306,7 +233,7 @@ if __name__ == "__main__":
                 save_file(header_stats, f"{output_dir_url}/header_stats.json")
 
             context_docs = [
-                f"{(item["parent_header"] or "").strip()}\n{item["header"]}\n{item["content"]}" for item in docs
+                f"{(item["parent_header"] or "").strip()}\n{item["header"]}\n{item["content"]}" for item in splitted_docs
                 if not item["header_level"] == 1
             ]
             md_context = "\n\n".join(context_docs)
@@ -319,7 +246,7 @@ if __name__ == "__main__":
             save_file(
                 {"url": url, "title": title_and_metadata["title"], "stats": stats}, f"{output_dir_url}/overall_stats.json")
 
-            # Rerank docs
+            # Rerank splitted_docs
             # query_scores = query_similarity_scores(
             #     queries, context_docs, model=embed_models)
             # save_file({"queries": queries, "results": query_scores},
@@ -352,51 +279,35 @@ if __name__ == "__main__":
         else:
             logger.error(f"Failed to fetch {url}")
 
-    logger.success(f"Done scraping urls {len(url_html_tuples)}")
+    logger.success(f"Done scraping urls {len(selected_url_html_tuples)}")
 
-    # url_html_tuples = []
-    # for item in get_url_html_tuples(urls, top_n=5):
-    #     url = item["url"]
-    #     headers = item["headers"]
-    #     html = item["html"]
+    # Save all search_docs_results -> results as one combined search_docs_results.json under output_dir sorted by score in desc.
+    all_search_results: List[SimilarityResult] = []
 
-    #     url_html_tuples.append((url, html))
+    for url, html_str in selected_url_html_tuples:
+        output_dir_url = safe_path_from_url(url, sub_dir)
+        search_results_file = os.path.join(
+            output_dir_url, "search_docs_results.json")
 
-    #     html_docs = [header["content"] for header in headers]
+        if os.path.exists(search_results_file):
+            with open(search_results_file, "r") as f:
+                search_results = json.load(f)
+                # Add source_url to each result
+                for result in search_results["results"]:
+                    result["source_url"] = url
+                    all_search_results.append(result)
 
-    #     output_dir_url = safe_path_from_url(url, sub_dir)
-    #     save_file({
-    #         "url": url,
-    #         "headers": len(headers),
-    #     }, os.path.join(output_dir_url, "info.json"))
-    #     save_file(html, os.path.join(output_dir_url, "doc.html"))
-    #     save_file("\n\n".join(html_docs),
-    #               os.path.join(output_dir_url, "doc.md"))
+    # Sort all results by score in descending order
+    all_search_results.sort(key=lambda x: x["score"], reverse=True)
 
-    #     # Rerank docs
-    #     query_scores = query_similarity_scores(
-    #         queries, html_docs, model=embed_models)
-    #     save_file({"queries": queries, "results": query_scores},
-    #               os.path.join(output_dir_url, "query_scores.json"))
+    # Assign rank based on sorted order
+    for idx, result in enumerate(all_search_results, start=1):
+        result["rank"] = idx  # 1-based rank
 
-    #     # Use hybrid search
-    #     # engine = HybridSearchEngine()
-    #     # engine.fit(html_docs)
-
-    #     # print("\n🔎 Docs Hybrid Search Results:\n")
-    #     # simple_results = engine.search(
-    #     #     query, top_n=top_n, alpha=0.5, use_mmr=False)
-    #     # for r in simple_results:
-    #     #     print(f"Score: {r['score']:.4f} | Document: {r['document'][:100]}")
-    #     # save_file(simple_results, os.path.join(
-    #     #     output_dir_url, "hybrid_search.json"))
-
-    #     # print("\n🔎 Docs Hybrid Search Results w/ MMR Diversity:\n")
-    #     # mmr_results = engine.search(
-    #     #     query, top_n=top_n, alpha=0.5, use_mmr=True, lambda_param=0.7)
-    #     # for r in mmr_results:
-    #     #     print(f"Score: {r['score']:.4f} | Document: {r['document'][:100]}")
-    #     # save_file(mmr_results, os.path.join(
-    #     #     output_dir_url, "hybrid_search_with_diversity.json"))
-
-    # logger.success(f"Done scraping urls {len(url_html_tuples)}")
+    # Save combined results
+    combined_results_file = os.path.join(
+        output_dir, "combined_search_results.json")
+    save_file({
+        "combined_query": combined_query,
+        "results": all_search_results
+    }, combined_results_file)

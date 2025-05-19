@@ -60,7 +60,7 @@ if __name__ == "__main__":
             readability = analyze_readability(doc)
             save_file(readability, f"{final_output_dir}/readability.json")
 
-            if readability["mltd_category"] == "high":
+            if readability["mtld_category"] == "high":
                 docs.append(
                     {"file": file, "header_count": header_count, "content": doc})
 

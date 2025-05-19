@@ -8,7 +8,11 @@ prompt = """You are a customer support representative for an online retail compa
 if tokenizer.chat_template is not None:
     messages = [{"role": "user", "content": prompt}]
     prompt = tokenizer.apply_chat_template(
-        messages, add_generation_prompt=True
+        messages,
+        tokenize=False,
+        add_generation_prompt=True,
+        # Switches between thinking and non-thinking modes. Default is True.
+        enable_thinking=False
     )
 
 response = generate(model, tokenizer, prompt=prompt, verbose=True)
