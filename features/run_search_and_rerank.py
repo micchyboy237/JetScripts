@@ -5,7 +5,7 @@ import os
 import shutil
 from typing import Generator, List, Optional, Tuple, Union, TypedDict
 from datetime import datetime
-from jet.token.token_utils import split_headers
+from jet.token.token_utils import merge_headers, split_headers
 from jet.vectors.document_types import HeaderDocument
 from jet.vectors.hybrid_reranker import search_documents
 from tqdm import tqdm
@@ -164,9 +164,13 @@ if __name__ == "__main__":
         all_docs.extend(docs)
 
     splitted_nodes = split_headers(
-        all_docs, embed_model, chunk_size=200, chunk_overlap=20)
+        all_docs, embed_model, chunk_size=200, chunk_overlap=0)
+
+    merged_nodes = merge_headers(
+        splitted_nodes, embed_model, chunk_size=200, chunk_overlap=0)
+
     contexts = [
-        f"{(item["parent_header"] or "").strip()}\n{item["header"]}\n{item["content"]}" for item in splitted_nodes
+        f"{(item["parent_header"] or "").strip()}\n{item["header"]}\n{item["content"]}" for item in merged_nodes
         if not item["header_level"] == 1
     ]
 
@@ -175,13 +179,28 @@ if __name__ == "__main__":
         "urls": all_urls,
         "contexts": len(contexts),
     }, os.path.join(results_dir, "info.json"))
+    splitted_node_token_counts: list[int] = count_tokens(
+        embed_model, [node.text for node in splitted_nodes], prevent_total=True)
+    for node, token_count in zip(splitted_nodes, splitted_node_token_counts):
+        node.metadata["tokens"] = token_count
     save_file(splitted_nodes, os.path.join(results_dir, "splitted_nodes.json"))
+    merged_node_token_counts: list[int] = count_tokens(
+        embed_model, [node.text for node in merged_nodes], prevent_total=True)
+    for node, token_count in zip(merged_nodes, merged_node_token_counts):
+        node.metadata["tokens"] = token_count
+    save_file(merged_nodes, os.path.join(results_dir, "merged_nodes.json"))
     save_file(contexts, os.path.join(results_dir, "contexts.json"))
 
     # Search contexts
-    top_k = None
-    search_doc_results = search_documents(combined_query, contexts, k=top_k)
+    top_k = 20
+    hybrid_search_doc_results = search_documents(
+        combined_query, contexts, k=top_k)
     save_file({
-        "query": query,
+        "query": combined_query,
+        "results": hybrid_search_doc_results
+    }, os.path.join(results_dir, "hybrid_search_doc_results.json"))
+    search_doc_results = search_docs(combined_query, contexts, top_k=top_k)
+    save_file({
+        "query": combined_query,
         "results": search_doc_results
     }, os.path.join(results_dir, "search_doc_results.json"))

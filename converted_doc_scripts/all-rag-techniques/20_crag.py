@@ -341,38 +341,39 @@ def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "
     return response
 
 
-script_dir, generated_dir, log_file, logger = setup_config(__file__)
-mlx, embed_func = initialize_mlx(logger)
-formatted_texts, original_chunks = load_json_data(DOCS_PATH, logger)
-logger.info("Loaded pre-chunked data from DOCS_PATH")
-# Adapt chunks to match expected page structure
-pages = [
-    {
-        "text": chunk["text"],
-        "metadata": {
-            "source": "AI_Information.pdf",
-            "page": i + 1,
-            "source_type": "document"
+if __name__ == "__main__":
+    script_dir, generated_dir, log_file, logger = setup_config(__file__)
+    mlx, embed_func = initialize_mlx(logger)
+    formatted_texts, original_chunks = load_json_data(DOCS_PATH, logger)
+    logger.info("Loaded pre-chunked data from DOCS_PATH")
+    # Adapt chunks to match expected page structure
+    pages = [
+        {
+            "text": chunk["text"],
+            "metadata": {
+                "source": "AI_Information.pdf",
+                "page": i + 1,
+                "source_type": "document"
+            }
         }
-    }
-    for i, chunk in enumerate(original_chunks)
-]
-test_queries = [
-    "How does machine learning differ from traditional programming?"
-]
-reference_answers = [
-    "Machine learning differs from traditional programming by having computers learn patterns from data rather than following explicit instructions. In traditional programming, developers write specific rules for the computer to follow, while in machine learning, algorithms learn from examples to make predictions or decisions."
-]
-evaluation_results = run_crag_evaluation(
-    pages=pages,
-    test_queries=test_queries,
-    embed_func=embed_func,
-    mlx=mlx,
-    reference_answers=reference_answers
-)
-save_file(evaluation_results, f"{generated_dir}/evaluation_results.json")
-logger.info(
-    f"Saved evaluation results to {generated_dir}/evaluation_results.json")
-logger.debug("\n=== Overall Analysis of CRAG vs Standard RAG ===")
-logger.debug(evaluation_results["overall_analysis"])
-logger.info("\n\n[DONE]", bright=True)
+        for i, chunk in enumerate(original_chunks)
+    ]
+    test_queries = [
+        "How does machine learning differ from traditional programming?"
+    ]
+    reference_answers = [
+        "Machine learning differs from traditional programming by having computers learn patterns from data rather than following explicit instructions. In traditional programming, developers write specific rules for the computer to follow, while in machine learning, algorithms learn from examples to make predictions or decisions."
+    ]
+    evaluation_results = run_crag_evaluation(
+        pages=pages,
+        test_queries=test_queries,
+        embed_func=embed_func,
+        mlx=mlx,
+        reference_answers=reference_answers
+    )
+    save_file(evaluation_results, f"{generated_dir}/evaluation_results.json")
+    logger.info(
+        f"Saved evaluation results to {generated_dir}/evaluation_results.json")
+    logger.debug("\n=== Overall Analysis of CRAG vs Standard RAG ===")
+    logger.debug(evaluation_results["overall_analysis"])
+    logger.info("\n\n[DONE]", bright=True)
