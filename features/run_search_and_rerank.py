@@ -163,6 +163,8 @@ if __name__ == "__main__":
         all_urls.append(url)
         all_docs.extend(docs)
 
+    save_file(all_docs, os.path.join(output_dir, "headers.json"))
+
     splitted_nodes = split_headers(
         all_docs, embed_model, chunk_size=200, chunk_overlap=0)
 
@@ -192,7 +194,7 @@ if __name__ == "__main__":
     save_file(contexts, os.path.join(results_dir, "contexts.json"))
 
     # Search contexts
-    top_k = 20
+    top_k = 10
     hybrid_search_doc_results = search_documents(
         combined_query, contexts, k=top_k)
     save_file({
