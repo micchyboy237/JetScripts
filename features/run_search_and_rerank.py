@@ -166,9 +166,10 @@ if __name__ == "__main__":
 
     save_file(all_docs, os.path.join(output_dir, "headers.json"))
 
+    headers_without_h1 = [doc for doc in all_docs if doc["header_level"] != 1]
     search_doc_results = search_diverse_context(
         query=combined_query,
-        headers=all_docs,
+        headers=headers_without_h1,
         model_name="all-MiniLM-L12-v2",
         rerank_model="cross-encoder/ms-marco-MiniLM-L-12-v2",
         top_k=20,
