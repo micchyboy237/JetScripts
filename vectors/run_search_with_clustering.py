@@ -1,6 +1,7 @@
 import json
 import os
-from typing import List, Optional, TypedDict, dict
+from typing import List, Optional, TypedDict
+from jet.vectors.cluster import cluster_texts
 import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer, util, CrossEncoder
@@ -9,108 +10,6 @@ import umap
 import hdbscan
 from sklearn.metrics import silhouette_score
 from sklearn.utils import deprecation
-
-# Suppress warnings (from prior responses)
-# os.environ["OMP_NESTED"] = "FALSE"
-
-
-class ClusterResult(TypedDict):
-    text: str
-    label: int
-    embedding: np.ndarray
-    cluster_probability: float
-    is_noise: bool
-    cluster_size: int
-
-
-def cluster_texts(
-    texts: List[str],
-    model_name: str = "all-MiniLM-L12-v2",
-    batch_size: int = 32,
-    device: str = "mps" if torch.backends.mps.is_available() else "cpu",
-    reduce_dim: bool = True,
-    n_components: int = 10,
-    min_cluster_size: int = 5,
-    random_state: int = 42
-) -> List[ClusterResult]:
-    """
-    Cluster a list of texts using Sentence Transformers, UMAP, and HDBSCAN.
-
-    Args:
-        texts (List[str]): List of texts to cluster.
-        model_name (str): Sentence Transformer model name (default: "all-MiniLM-L12-v2").
-        batch_size (int): Batch size for encoding (default: 32).
-        device (str): Device for Sentence Transformer ("mps" for M1 Mac, "cpu", or "cuda").
-        reduce_dim (bool): Whether to apply UMAP dimensionality reduction (default: True).
-        n_components (int): Number of dimensions for UMAP reduction (default: 10).
-        min_cluster_size (int): Minimum cluster size for HDBSCAN (default: 5).
-        random_state (int): Random seed for reproducibility (default: 42).
-
-    Returns:
-        List[ClusterResult]: List of dictionaries containing clustering results with:
-            - text: Original input text
-            - label: Cluster label (-1 for noise)
-            - embedding: Text embedding (reduced if reduce_dim=True)
-            - cluster_probability: HDBSCAN membership probability
-            - is_noise: Whether the point is classified as noise
-            - cluster_size: Number of points in the assigned cluster
-
-    Raises:
-        ValueError: If texts is empty or invalid parameters are provided.
-    """
-    if not texts:
-        raise ValueError("Input text list cannot be empty.")
-
-    # Step 1: Generate embeddings
-    model = SentenceTransformer(model_name, device=device)
-    embeddings = model.encode(
-        texts,
-        batch_size=batch_size,
-        show_progress_bar=True,
-        convert_to_numpy=True
-    )
-
-    # Step 2: Dimensionality reduction (optional)
-    if reduce_dim:
-        reducer = umap.UMAP(
-            n_components=n_components,
-            random_state=random_state,
-            metric="cosine",
-            n_neighbors=15,
-            min_dist=0.1
-        )
-        embeddings = reducer.fit_transform(embeddings)
-
-    # Step 3: Cluster with HDBSCAN
-    clusterer = hdbscan.HDBSCAN(
-        min_cluster_size=min_cluster_size,
-        metric="euclidean" if reduce_dim else "cosine",
-        cluster_selection_method="eom",
-        min_samples=None,
-        prediction_data=True
-    )
-    labels = clusterer.fit_predict(embeddings)
-    probabilities = clusterer.probabilities_
-
-    # Step 4: Compute cluster sizes
-    unique_labels, counts = np.unique(labels, return_counts=True)
-    cluster_sizes = dict(zip(unique_labels, counts))
-
-    # Step 5: Build results
-    results: List[ClusterResult] = []
-    for i, text in enumerate(texts):
-        label = int(labels[i])
-        result: ClusterResult = {
-            "text": text,
-            "label": label,
-            "embedding": embeddings[i],
-            "cluster_probability": float(probabilities[i]),
-            "is_noise": label == -1,
-            "cluster_size": int(cluster_sizes.get(label, 0))
-        }
-        results.append(result)
-
-    return results
 
 
 def preprocess_texts(headers: List[dict]) -> List[str]:
@@ -121,14 +20,7 @@ def preprocess_texts(headers: List[dict]) -> List[str]:
     Returns:
         List of cleaned texts.
     """
-    exclude_keywords = ["menu", "sign in", "trending", "close"]
-    min_words = 10
-    return [
-        header["text"]
-        for header in headers
-        if not any(keyword in header["text"].lower() for keyword in exclude_keywords)
-        and len(header["text"].split()) >= min_words
-    ]
+    return [header["text"] for header in headers]
 
 
 def embed_search(
@@ -196,33 +88,24 @@ def rerank_results(
     return sorted(candidates, key=lambda x: x["rerank_score"], reverse=True)
 
 
-def cluster_diversity(
-    candidates: List[dict],
-    num_results: int = 5,
+def cluster_texts_initial(
+    texts: List[str],
     model_name: str = "all-MiniLM-L12-v2",
     device: str = "mps" if torch.backends.mps.is_available() else "cpu",
     min_cluster_size: int = 2,
     n_components: int = 5
 ) -> List[dict]:
     """
-    Select diverse results by clustering candidates using cluster_texts.
+    Cluster texts using cluster_texts function.
     Args:
-        candidates: List of candidate dicts with 'text', 'score', 'embedding'.
-        num_results: Number of final results.
-        model_name: Sentence Transformer model (for cluster_texts).
+        texts: List of texts to cluster.
+        model_name: Sentence Transformer model.
         device: Device for clustering.
         min_cluster_size: Minimum cluster size for HDBSCAN.
         n_components: UMAP dimensions.
     Returns:
-        List of diverse results with cluster labels.
+        List of dicts with text, cluster label, and embedding.
     """
-    if not candidates:
-        return []
-
-    # Extract texts for clustering
-    texts = [candidate["text"] for candidate in candidates]
-
-    # Cluster candidates
     cluster_results = cluster_texts(
         texts=texts,
         model_name=model_name,
@@ -231,32 +114,17 @@ def cluster_diversity(
         reduce_dim=True,
         n_components=n_components,
         min_cluster_size=min_cluster_size,
-        random_state=42
     )
-
-    # Group candidates by cluster label, excluding noise
-    cluster_groups = {}
-    for cluster_result, candidate in zip(cluster_results, candidates):
-        label = cluster_result["label"]
-        if not cluster_result["is_noise"]:
-            if label not in cluster_groups:
-                cluster_groups[label] = []
-            candidate["cluster_label"] = label
-            cluster_groups[label].append(candidate)
-
-    # Select highest rerank_score from each cluster
-    selected = []
-    for label in sorted(cluster_groups.keys()):
-        cluster_candidates = sorted(
-            cluster_groups[label],
-            key=lambda x: x["rerank_score"],
-            reverse=True
-        )
-        selected.append(cluster_candidates[0])  # Take top-scoring candidate
-        if len(selected) >= num_results:
-            break
-
-    return selected[:num_results]
+    return [
+        {
+            "text": result["text"],
+            "cluster_label": result["label"],
+            # Convert to list for JSON serialization
+            "embedding": result["embedding"].tolist(),
+            "is_noise": result["is_noise"]
+        }
+        for result in cluster_results
+    ]
 
 
 def search_diverse_context(
@@ -271,14 +139,14 @@ def search_diverse_context(
     n_components: int = 5
 ) -> List[dict]:
     """
-    Search for diverse context data using embedding search, reranking, and clustering.
+    Search for diverse context data by clustering texts first, then applying search logic.
     Args:
         query: Search query.
         headers: List of header dicts with 'text'.
         model_name: Sentence Transformer model.
         rerank_model: Cross-encoder model.
         device: Device for encoding.
-        top_k: Number of candidates for reranking.
+        top_k: Number of candidates for reranking per cluster.
         num_results: Number of final diverse results.
         min_cluster_size: Minimum cluster size for HDBSCAN.
         n_components: UMAP dimensions for clustering.
@@ -290,23 +158,68 @@ def search_diverse_context(
     if not texts:
         return []
 
-    # Embedding-based search
-    candidates = embed_search(query, texts, model_name, device, top_k)
+    # Create output directory
+    output_dir = os.path.join(
+        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    os.makedirs(output_dir, exist_ok=True)
 
-    # Rerank
-    reranked = rerank_results(query, candidates, rerank_model, device)
-
-    # Diversity via clustering
-    diverse_results = cluster_diversity(
-        reranked,
-        num_results,
+    # Cluster texts first
+    clustered_texts = cluster_texts_initial(
+        texts,
         model_name,
         device,
         min_cluster_size,
         n_components
     )
 
-    return diverse_results
+    # Save clusters to a separate file
+    clusters_file = os.path.join(output_dir, "clusters.json")
+    save_file(clustered_texts, clusters_file)
+
+    # Group texts by cluster
+    cluster_groups = {}
+    for item in clustered_texts:
+        if item["is_noise"]:
+            continue
+        label = item["cluster_label"]
+        if label not in cluster_groups:
+            cluster_groups[label] = []
+        cluster_groups[label].append(item)
+
+    # Perform search within each cluster
+    selected_candidates = []
+    for label, cluster_items in cluster_groups.items():
+        cluster_texts = [item["text"] for item in cluster_items]
+        # Embedding-based search within cluster
+        candidates = embed_search(
+            query, cluster_texts, model_name, device, top_k)
+        # Add cluster label and original embedding
+        for candidate in candidates:
+            # Find original clustered text to get cluster_label and embedding
+            original_item = next(
+                (item for item in cluster_items if item["text"]
+                 == candidate["text"]),
+                None
+            )
+            if original_item:
+                candidate["cluster_label"] = original_item["cluster_label"]
+                candidate["embedding"] = np.array(
+                    original_item["embedding"])  # Convert back to numpy array
+
+        # Rerank candidates within cluster
+        reranked = rerank_results(query, candidates, rerank_model, device)
+        # Select top candidate from cluster
+        if reranked:
+            selected_candidates.append(reranked[0])
+
+    # Sort by rerank_score and select top num_results
+    selected_candidates = sorted(
+        selected_candidates,
+        key=lambda x: x["rerank_score"],
+        reverse=True
+    )[:num_results]
+
+    return selected_candidates
 
 
 # Example usage
