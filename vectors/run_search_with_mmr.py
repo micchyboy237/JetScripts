@@ -30,20 +30,9 @@ if __name__ == "__main__":
         headers=headers,
         model_name=embed_model,
         rerank_model=rerank_model,
-        device="mps" if torch.backends.mps.is_available() else "cpu",
         top_k=20,
         num_results=10,
-        lambda_param=0.5,
-        batch_size=16,
-        num_threads=4,
-        exclude_keywords=["menu", "sign in",
-                          "trending", "close", "cast", "see all"],
-        min_header_level=2,
-        parent_keyword="isekai",
-        parent_diversity_weight=0.3,
-        header_diversity_weight=0.2,
-        # min_content_sentences=2,
-        min_content_words=5,
+        lambda_param=0.5
     )
 
     logger.info(f"Search returned {len(results)} results")

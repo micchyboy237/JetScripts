@@ -143,7 +143,7 @@ if __name__ == "__main__":
         output_dir, "queries.json"))
 
     # Rerank docs
-    queries = [query, *sub_queries]
+    queries = [*sub_queries]
     search_result_docs = [
         f"Title: {result["title"]}\nContent: {result["content"]}" for result in search_results]
     top_n = len(search_result_docs)
@@ -186,44 +186,38 @@ if __name__ == "__main__":
         "results": results_without_embeddings
     }, os.path.join(output_dir, "search_doc_results.json"))
 
-    # splitted_nodes = split_headers(
-    #     all_docs, embed_model, chunk_size=200, chunk_overlap=0)
+    # Sort by doc_index
+    sorted_results = sorted(
+        search_doc_results, key=lambda x: x["doc_index"], reverse=True)
+    contexts = [
+        # f"{result["header"]}\n{result["content"]}" for result in sorted_results
+        f"{result["text"]}" for result in sorted_results
+    ]
+    save_file(contexts, os.path.join(output_dir, "contexts.json"))
 
-    # merged_nodes = merge_headers(
-    #     splitted_nodes, embed_model, chunk_size=200, chunk_overlap=0)
+    context = "\n\n".join(contexts)
 
-    # contexts = [
-    #     f"{(item["parent_header"] or "").strip()}\n{item["header"]}\n{item["content"]}" for item in merged_nodes
-    #     if not item["header_level"] == 1
-    # ]
+    # Run LLM response
+    PROMPT_TEMPLATE = """\
+Context information is below.
+---------------------
+{context}
+---------------------
 
-    # results_dir = f"{output_dir}/results"
-    # save_file({
-    #     "urls": all_urls,
-    #     "contexts": len(contexts),
-    # }, os.path.join(results_dir, "info.json"))
-    # splitted_node_token_counts: list[int] = count_tokens(
-    #     embed_model, [node.text for node in splitted_nodes], prevent_total=True)
-    # for node, token_count in zip(splitted_nodes, splitted_node_token_counts):
-    #     node.metadata["tokens"] = token_count
-    # save_file(splitted_nodes, os.path.join(results_dir, "splitted_nodes.json"))
-    # merged_node_token_counts: list[int] = count_tokens(
-    #     embed_model, [node.text for node in merged_nodes], prevent_total=True)
-    # for node, token_count in zip(merged_nodes, merged_node_token_counts):
-    #     node.metadata["tokens"] = token_count
-    # save_file(merged_nodes, os.path.join(results_dir, "merged_nodes.json"))
-    # save_file(contexts, os.path.join(results_dir, "contexts.json"))
+Given the context information, answer the query.
 
-    # # Search contexts
-    # top_k = 10
-    # hybrid_search_doc_results = search_documents(
-    #     combined_query, contexts, k=top_k)
-    # save_file({
-    #     "query": combined_query,
-    #     "results": hybrid_search_doc_results
-    # }, os.path.join(results_dir, "hybrid_search_doc_results.json"))
-    # search_doc_results = search_docs(combined_query, contexts, top_k=top_k)
-    # save_file({
-    #     "query": combined_query,
-    #     "results": search_doc_results
-    # }, os.path.join(results_dir, "search_doc_results.json"))
+Query: {query}
+"""
+
+    response = ""
+    prompt = PROMPT_TEMPLATE.format(query=combined_query, context=context)
+    for chunk in mlx.stream_chat(
+        prompt,
+        temperature=0.3,
+        verbose=True
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+
+    save_file({"query": query, "context": context, "response": response},
+              os.path.join(output_dir, "chat_response.json"))
