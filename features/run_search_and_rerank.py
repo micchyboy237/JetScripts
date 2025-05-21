@@ -220,7 +220,6 @@ if __name__ == "__main__":
         # f"{result["header"]}\n{result["content"]}" for result in sorted_results
         f"{result["text"]}" for result in sorted_results
     ]
-    save_file(contexts, os.path.join(output_dir, "contexts.json"))
 
     # Run LLM response
     PROMPT_TEMPLATE = """\
@@ -234,7 +233,10 @@ Given the context information, answer the query.
 Query: {query}
 """
 
-    context = "\n\n".join(contexts[:5])
+    contexts = contexts[:5]
+    context = "\n\n".join(contexts)
+    save_file(contexts, os.path.join(output_dir, "contexts.json"))
+
     response = ""
     prompt = PROMPT_TEMPLATE.format(query=query, context=context)
     for chunk in mlx.stream_chat(
