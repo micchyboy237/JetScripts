@@ -124,7 +124,8 @@ if __name__ == "__main__":
     query = "List trending isekai reincarnation anime this year."
     model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
     # embed_models = ["mxbai-embed-large"]
-    embed_model = "all-minilm:33m"
+    embed_model = "all-mpnet-base-v2"
+    rerank_model = "cross-encoder/ms-marco-MiniLM-L-12-v2"
     tokenize = get_tokenizer_fn(embed_model)
 
     # Search web engine
@@ -170,15 +171,19 @@ if __name__ == "__main__":
     search_doc_results = search_diverse_context(
         query=combined_query,
         headers=headers_without_h1,
-        model_name="all-MiniLM-L12-v2",
-        rerank_model="cross-encoder/ms-marco-MiniLM-L-12-v2",
+        model_name=embed_model,
+        rerank_model=rerank_model,
         top_k=20,
         num_results=10,
         lambda_param=0.5
     )
+
+    # Remove embedding attribute from each result before saving
+    results_without_embeddings = [
+        {k: v for k, v in result.items() if k != 'embedding'} for result in search_doc_results]
     save_file({
         "query": combined_query,
-        "results": search_doc_results
+        "results": results_without_embeddings
     }, os.path.join(output_dir, "search_doc_results.json"))
 
     # splitted_nodes = split_headers(
