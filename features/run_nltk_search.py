@@ -15,8 +15,10 @@ if __name__ == "__main__":
     query = "List trending isekai reincarnation anime this year."
 
     # Get and print query POS tags with document counts
-    query_pos = get_pos_tag(query)
     results = search_by_pos(query, docs)
+
+    # Get query POS tags
+    query_pos = get_pos_tag(query)
 
     # Calculate document counts for each query lemma
     lemma_doc_counts: Dict[str, int] = {

@@ -5,6 +5,7 @@ import os
 import shutil
 from typing import Generator, List, Optional, Tuple, Union, TypedDict
 from datetime import datetime
+from jet.features.nltk_search import search_by_pos
 from jet.token.token_utils import merge_headers, split_headers
 from jet.vectors.document_types import HeaderDocument
 from jet.vectors.hybrid_reranker import search_documents
@@ -168,22 +169,44 @@ if __name__ == "__main__":
     save_file(all_docs, os.path.join(output_dir, "headers.json"))
 
     headers_without_h1 = [doc for doc in all_docs if doc["header_level"] != 1]
-    search_doc_results = search_diverse_context(
-        query=combined_query,
-        headers=headers_without_h1,
-        model_name=embed_model,
-        rerank_model=rerank_model,
-        top_k=20,
-        num_results=10,
-        lambda_param=0.5
-    )
 
-    # Remove embedding attribute from each result before saving
-    results_without_embeddings = [
-        {k: v for k, v in result.items() if k != 'embedding'} for result in search_doc_results]
+    # Search headers
+
+    # search_doc_results = search_diverse_context(
+    #     query=combined_query,
+    #     headers=headers_without_h1,
+    #     model_name=embed_model,
+    #     rerank_model=rerank_model,
+    #     top_k=20,
+    #     num_results=10,
+    #     lambda_param=0.5
+    # )
+
+    # # Remove embedding attribute from each result before saving
+    # results_without_embeddings = [
+    #     {k: v for k, v in result.items() if k != 'embedding'} for result in search_doc_results]
+    # save_file({
+    #     "query": combined_query,
+    #     "results": results_without_embeddings
+    # }, os.path.join(output_dir, "search_doc_results.json"))
+
+    # Extract headers from all_docs, excluding level 1 headers
+    top_k = 10
+    docs = [header["text"]
+            for header in all_docs if header["header_level"] != 1]
+
+    # Perform search using the extracted header texts
+    search_by_pos_results = search_by_pos(query, docs)
+
+    # Map search results back to the original headers in all_docs
+    search_doc_results = [
+        header for header in all_docs
+        if header["header_level"] != 1 and header["text"] in [result["text"] for result in search_by_pos_results]
+    ]
+    search_doc_results = search_doc_results[:top_k]
     save_file({
-        "query": combined_query,
-        "results": results_without_embeddings
+        "query": query,
+        "results": search_doc_results
     }, os.path.join(output_dir, "search_doc_results.json"))
 
     # Sort by doc_index
@@ -210,7 +233,7 @@ Query: {query}
 """
 
     response = ""
-    prompt = PROMPT_TEMPLATE.format(query=combined_query, context=context)
+    prompt = PROMPT_TEMPLATE.format(query=query, context=context)
     for chunk in mlx.stream_chat(
         prompt,
         temperature=0.3,
