@@ -23,7 +23,7 @@ from jet.llm.mlx.mlx_types import LLMModelType
 from jet.logger import logger
 from jet.scrapers.browser.playwright_utils import scrape_multiple_urls
 from jet.scrapers.preprocessor import html_to_markdown
-from jet.scrapers.utils import extract_texts_by_hierarchy, merge_texts_by_hierarchy, safe_path_from_url, scrape_links, scrape_title_and_metadata, search_data
+from jet.scrapers.utils import extract_texts_by_hierarchy, merge_texts_by_hierarchy, safe_path_from_url, scrape_links, scrape_metadata, scrape_published_date, scrape_title_and_metadata, search_data
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.transformers.formatters import format_html, format_json
 from jet.utils.url_utils import normalize_url
@@ -35,24 +35,6 @@ logger.info("Initializing MLX and embedding function")
 seed = 42
 DEFAULT_MODEL = "llama-3.2-3b-instruct-4bit"
 mlx = MLX(DEFAULT_MODEL, seed=seed)
-
-
-def get_url_html_tuples(urls: list[str], top_n: int = 3, num_parallel: int = 3, min_header_count: int = 10, min_avg_word_count: int = 10, output_dir: Optional[str] = None) -> Generator[list[Header], None, None]:
-    urls = [normalize_url(url) for url in urls]
-
-    for url, html in scrape_multiple_urls(urls, top_n=top_n, num_parallel=num_parallel, min_header_count=min_header_count, min_avg_word_count=min_avg_word_count):
-
-        headers = get_md_header_contents(html, [
-            ("#", "h1"),
-            ("##", "h2"),
-            ("###", "h3"),
-        ])
-
-        yield {
-            "url": url,
-            "headers": headers,
-            "html": html,
-        }
 
 
 class StepBackQueryResponse(TypedDict):
@@ -100,7 +82,7 @@ def filter_htmls_with_best_combined_mtld(
                 ("#", "h1"),
                 ("##", "h2"),
                 ("###", "h3"),
-            ])
+            ], ignore_links=False)
             docs_text = "\n\n".join(doc.text for doc in docs)
 
             readability_result = analyze_readability(docs_text)
@@ -122,7 +104,8 @@ if __name__ == "__main__":
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    query = "List trending isekai reincarnation anime this year."
+    # query = "List trending isekai reincarnation anime this year."
+    query = "Tips and links to 2025 online registration steps for TikTok live selling in the Philippines."
     model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
     # embed_models = ["mxbai-embed-large"]
     embed_model = "all-mpnet-base-v2"
@@ -131,6 +114,24 @@ if __name__ == "__main__":
 
     # Search web engine
     search_results = search_data(query)
+    # Scrape htmls from search result urls
+    urls = [item["url"] for item in search_results]
+    html_list = asyncio.run(scrape_urls(urls, num_parallel=5))
+    # Extract published date if not exists
+    all_url_html_tuples = list(zip(search_results, html_list))
+    for result, html_str in all_url_html_tuples:
+        if not result.get("publishedDate"):
+            published_date = scrape_published_date(html_str)
+
+            if not published_date:
+                logger.info("No published date:")
+                metadata = scrape_metadata(html_str)
+                logger.info("Metadata:")
+                logger.debug(format_json(metadata))
+            else:
+                logger.info("Scraped published date:")
+                logger.debug(published_date)
+                result["publishedDate"] = published_date
     save_file({"query": query, "results": search_results}, os.path.join(
         output_dir, "search_results.json"))
 
@@ -143,26 +144,24 @@ if __name__ == "__main__":
     # save_file({"query": query, "sub_queries": sub_queries}, os.path.join(
     #     output_dir, "queries.json"))
 
-    # Rerank docs
+    # Format docs
     search_result_docs = [
-        f"Title: {result["title"]}\nContent: {result["content"]}" for result in search_results]
+        f"Title: {result['title']}\nContent: {result['content']}"
+        for result in search_results
+        if result.get("title")
+    ]
     top_n = len(search_result_docs)
 
     # queries = [*sub_queries]
     # combined_query = "\n".join(queries)
 
-    sub_dir = f"{output_dir}/searched_html"
-
     # Convert html to docs
-    urls = [item["url"] for item in search_results]
-    html_list = asyncio.run(scrape_urls(urls, num_parallel=5))
-
     filtered_docs_list = filter_htmls_with_best_combined_mtld(html_list)
     all_url_html_tuples = list(zip(urls, filtered_docs_list))
 
     all_urls = []
     all_docs = []
-    for url, (html_str, docs, readability_result) in tqdm(all_url_html_tuples, desc="Processing"):
+    for url, (html_str, docs, readability_result) in all_url_html_tuples:
         all_urls.append(url)
         all_docs.extend(docs)
 
