@@ -197,13 +197,17 @@ if __name__ == "__main__":
 
     # Perform search using the extracted header texts
     search_by_pos_results = search_by_pos(query, docs)
+    search_by_pos_results = search_by_pos_results[:top_k]
+    save_file({
+        "query": query,
+        "results": search_by_pos_results
+    }, os.path.join(output_dir, "search_by_pos_results.json"))
 
     # Map search results back to the original headers in all_docs
     search_doc_results = [
         header for header in all_docs
         if header["header_level"] != 1 and header["text"] in [result["text"] for result in search_by_pos_results]
     ]
-    search_doc_results = search_doc_results[:top_k]
     save_file({
         "query": query,
         "results": search_doc_results
