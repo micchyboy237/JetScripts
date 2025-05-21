@@ -55,28 +55,28 @@ def get_header_stats(text: str):
 
 
 def filter_htmls_with_best_combined_mtld(
-    htmls: List[str],
+    url_html_date_tuples: List[Tuple[str, str, Optional[str]]],
     limit: int = 3,
     min_mtld: float = 100.0
-) -> List[Tuple[str, List[HeaderDocument], ReadabilityResult]]:
+) -> List[Tuple[str, str, List[HeaderDocument], ReadabilityResult]]:
     """
-    Filters a list of HTML strings to return the top <limit> items with the highest combined MTLD scores,
+    Filters a list of (url, html, date) tuples to return the top <limit> items with the highest combined MTLD scores,
     excluding any items with MTLD score below min_mtld.
 
     Args:
-        htmls: List of HTML content strings.
-        limit: Maximum number of HTML items to return (default: 3).
-        min_mtld: Minimum MTLD score required to include an HTML (default: 100.0).
+        url_html_date_tuples: List of tuples containing (url, html_content, published_date).
+        limit: Maximum number of items to return (default: 3).
+        min_mtld: Minimum MTLD score required to include an item (default: 100.0).
 
     Returns:
-        List of tuples, each containing an HTML string, its corresponding HeaderDocument list,
+        List of tuples, each containing the URL, HTML string, its corresponding HeaderDocument list,
         and the readability result dictionary, sorted by highest MTLD scores, up to the specified limit.
     """
-    if not htmls or limit <= 0:
+    if not url_html_date_tuples or limit <= 0:
         return []
 
     doc_scores = []
-    for html in htmls:
+    for url, html, _ in url_html_date_tuples:
         try:
             docs = get_md_header_docs(html, [
                 ("#", "h1"),
@@ -88,12 +88,13 @@ def filter_htmls_with_best_combined_mtld(
             readability_result = analyze_readability(docs_text)
             mtld_score = readability_result['mtld']
             if mtld_score >= min_mtld:
-                doc_scores.append((html, docs, readability_result, mtld_score))
+                doc_scores.append(
+                    (url, html, docs, readability_result, mtld_score))
         except (ValueError, KeyError, AttributeError):
             continue
 
-    doc_scores.sort(key=lambda x: x[3], reverse=True)
-    return [(html, docs, readability_result) for html, docs, readability_result, _ in doc_scores[:min(limit, len(doc_scores))]]
+    doc_scores.sort(key=lambda x: x[4], reverse=True)
+    return [(url, html, docs, readability_result) for url, html, docs, readability_result, _ in doc_scores[:min(limit, len(doc_scores))]]
 
 
 if __name__ == "__main__":
@@ -118,8 +119,9 @@ if __name__ == "__main__":
     urls = [item["url"] for item in search_results]
     html_list = asyncio.run(scrape_urls(urls, num_parallel=5))
     # Extract published date if not exists
-    all_url_html_tuples = list(zip(search_results, html_list))
-    for result, html_str in all_url_html_tuples:
+    all_results_html_tuples = list(zip(search_results, html_list))
+    all_url_html_date_tuples = []
+    for result, html_str in all_results_html_tuples:
         if not result.get("publishedDate"):
             published_date = scrape_published_date(html_str)
 
@@ -132,6 +134,20 @@ if __name__ == "__main__":
                 logger.info("Scraped published date:")
                 logger.debug(published_date)
                 result["publishedDate"] = published_date
+
+        all_url_html_date_tuples.append(
+            (result["url"], html_str, result.get("publishedDate")))
+
+    # Sort by publishedDate in descending order (newest first)
+    all_url_html_date_tuples = sorted(
+        all_url_html_date_tuples,
+        key=lambda x: x[2] or "",  # fallback to "" if date is None
+        reverse=True
+    )
+
+    # Sort search results by latest first
+    search_results = sorted(
+        search_results, key=lambda x: x.get("published_date", ""), reverse=True)
     save_file({"query": query, "results": search_results}, os.path.join(
         output_dir, "search_results.json"))
 
@@ -156,16 +172,31 @@ if __name__ == "__main__":
     # combined_query = "\n".join(queries)
 
     # Convert html to docs
-    filtered_docs_list = filter_htmls_with_best_combined_mtld(html_list)
-    all_url_html_tuples = list(zip(urls, filtered_docs_list))
+    all_url_docs_tuples = filter_htmls_with_best_combined_mtld(
+        all_url_html_date_tuples)
 
     all_urls = []
     all_docs = []
-    for url, (html_str, docs, readability_result) in all_url_html_tuples:
+    headers = []
+    for url, html_str, docs, readability_result in all_url_docs_tuples:
         all_urls.append(url)
+
+        for doc in docs:
+            doc.metadata["source_url"] = url
+
+            headers.append({
+                "source_url": url,
+                "doc_index": doc.metadata["doc_index"],
+                "header": doc.metadata["header"],
+                "parent_header": doc.metadata["parent_header"],
+                "content": doc.metadata["content"],
+                "text": doc.text,
+            })
+
         all_docs.extend(docs)
 
-    save_file(all_docs, os.path.join(output_dir, "headers.json"))
+    save_file(all_docs, os.path.join(output_dir, "docs.json"))
+    save_file(headers, os.path.join(output_dir, "headers.json"))
 
     headers_without_h1 = [doc for doc in all_docs if doc["header_level"] != 1]
 
@@ -209,18 +240,26 @@ if __name__ == "__main__":
                 lemma_doc_counts[lemma] += 1
     total_docs = len(docs)
     save_file({
-        "query_pos": [
+        "query_pos": sorted([
             {
                 **pos_tag,
-                "document_count": lemma_doc_counts[pos_tag['lemma']],
-                "document_percentage": round((lemma_doc_counts[pos_tag['lemma']] / total_docs * 100), 2) if total_docs > 0 else 0.0
-            } for pos_tag in query_pos
-        ],
+                "document_count": lemma_doc_counts[pos_tag["lemma"]],
+                "document_percentage": (
+                    round(
+                        (lemma_doc_counts[pos_tag["lemma"]] / total_docs * 100), 2)
+                    if total_docs > 0 else 0.0
+                )
+            }
+            for pos_tag in query_pos
+        ], key=lambda x: x["word"]),
         "documents_pos": [
             {
                 "doc_index": result["doc_index"],
                 "matching_words_count": result["matching_words_count"],
-                "matching_words": ", ".join(item["lemma"] for item in result["matching_words_with_pos_and_lemma"]),
+                "matching_words": ", ".join(sorted(
+                    set(item["lemma"]
+                        for item in result["matching_words_with_pos_and_lemma"])
+                )),
                 "text": result["text"],
             } for result in search_by_pos_results
         ],
@@ -265,7 +304,8 @@ Query: {query}
     for chunk in mlx.stream_chat(
         prompt,
         temperature=0.3,
-        verbose=True
+        verbose=True,
+        max_tokens=2000
     ):
         content = chunk["choices"][0]["message"]["content"]
         response += content

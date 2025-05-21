@@ -47,7 +47,7 @@ if __name__ == "__main__":
             {
                 "doc_index": result["doc_index"],
                 "matching_words_count": result["matching_words_count"],
-                "matching_words": ", ".join(item["lemma"] for item in result["matching_words_with_pos_and_lemma"]),
+                "matching_words": ", ".join(list(set(item["lemma"] for item in result["matching_words_with_pos_and_lemma"]))),
                 "text": result["text"],
             } for result in results
         ],
