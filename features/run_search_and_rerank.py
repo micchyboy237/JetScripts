@@ -139,17 +139,17 @@ if __name__ == "__main__":
     # transformed_query = "Popular and trending isekai anime series released in 2023 or later, along with their genres, ratings, and a brief summary of each show."
     # sub_queries = [transformed_query]
     # Decompose query to sub-queries
-    sub_queries = decompose_query(query)
-    save_file({"query": query, "sub_queries": sub_queries}, os.path.join(
-        output_dir, "queries.json"))
+    # sub_queries = decompose_query(query)
+    # save_file({"query": query, "sub_queries": sub_queries}, os.path.join(
+    #     output_dir, "queries.json"))
 
     # Rerank docs
-    queries = [*sub_queries]
     search_result_docs = [
         f"Title: {result["title"]}\nContent: {result["content"]}" for result in search_results]
     top_n = len(search_result_docs)
 
-    combined_query = "\n".join(queries)
+    # queries = [*sub_queries]
+    # combined_query = "\n".join(queries)
 
     sub_dir = f"{output_dir}/searched_html"
 
