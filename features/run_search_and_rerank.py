@@ -222,8 +222,6 @@ if __name__ == "__main__":
     ]
     save_file(contexts, os.path.join(output_dir, "contexts.json"))
 
-    context = "\n\n".join(contexts)
-
     # Run LLM response
     PROMPT_TEMPLATE = """\
 Context information is below.
@@ -236,6 +234,7 @@ Given the context information, answer the query.
 Query: {query}
 """
 
+    context = "\n\n".join(contexts[:5])
     response = ""
     prompt = PROMPT_TEMPLATE.format(query=query, context=context)
     for chunk in mlx.stream_chat(
