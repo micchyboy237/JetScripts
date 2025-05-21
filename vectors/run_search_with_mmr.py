@@ -32,6 +32,7 @@ if __name__ == "__main__":
         print(f"Text: {json.dumps(result['text'])[:100]}...")
         print(f"Embedding Score: {result['score']:.4f}")
         print(f"Rerank Score: {result['rerank_score']:.4f}")
+        print(f"Diversity Score: {result['diversity_score']:.4f}")
         print("-" * 50)
 
     output_dir = os.path.join(
