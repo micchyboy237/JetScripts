@@ -3,9 +3,9 @@ import time
 import asyncio
 import os
 import shutil
-from typing import Generator, List, Optional, Tuple, Union, TypedDict
+from typing import Dict, Generator, List, Optional, Tuple, Union, TypedDict
 from datetime import datetime
-from jet.features.nltk_search import search_by_pos
+from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.token.token_utils import merge_headers, split_headers
 from jet.vectors.document_types import HeaderDocument
 from jet.vectors.hybrid_reranker import search_documents
@@ -197,10 +197,35 @@ if __name__ == "__main__":
 
     # Perform search using the extracted header texts
     search_by_pos_results = search_by_pos(query, docs)
+    # Get query POS tags
+    query_pos = get_pos_tag(query)
+    # Calculate document counts for each query lemma
+    lemma_doc_counts: Dict[str, int] = {
+        pos_tag['lemma']: 0 for pos_tag in query_pos}
+    for result in search_by_pos_results:
+        matched_lemmas = {pos_tag['lemma']
+                          for pos_tag in result['matching_words_with_pos_and_lemma']}
+        for lemma in lemma_doc_counts:
+            if lemma in matched_lemmas:
+                lemma_doc_counts[lemma] += 1
+    total_docs = len(docs)
     save_file({
-        "query": query,
-        "results": search_by_pos_results
-    }, os.path.join(output_dir, "search_by_pos_results.json"))
+        "query_pos": [
+            {
+                **pos_tag,
+                "document_count": lemma_doc_counts[pos_tag['lemma']],
+                "document_percentage": round((lemma_doc_counts[pos_tag['lemma']] / total_docs * 100), 2) if total_docs > 0 else 0.0
+            } for pos_tag in query_pos
+        ],
+        "documents_pos": [
+            {
+                "doc_index": result["doc_index"],
+                "matching_words_count": result["matching_words_count"],
+                "matching_words": ", ".join(item["lemma"] for item in result["matching_words_with_pos_and_lemma"]),
+                "text": result["text"],
+            } for result in search_by_pos_results
+        ],
+    }, f"{output_dir}/search_by_pos_results.json")
 
     # Map search results back to the original headers in all_docs
     search_doc_results = [

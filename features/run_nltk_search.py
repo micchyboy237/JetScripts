@@ -1,26 +1,16 @@
-# jet_python_modules/jet/run_nltk_search.py
 import os
 from typing import Dict
 from jet.features.nltk_search import search_by_pos, get_pos_tag
 from jet.file.utils import load_file, save_file
 
-# Example usage
 if __name__ == "__main__":
     docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/headers.json"
     headers: list[dict] = load_file(docs_file)
     docs = [header["text"]
             for header in headers if header["header_level"] != 1]
-
-    # Sample query (valid sentence)
     query = "List trending isekai reincarnation anime this year."
-
-    # Get and print query POS tags with document counts
     results = search_by_pos(query, docs)
-
-    # Get query POS tags
     query_pos = get_pos_tag(query)
-
-    # Calculate document counts for each query lemma
     lemma_doc_counts: Dict[str, int] = {
         pos_tag['lemma']: 0 for pos_tag in query_pos}
     for result in results:
@@ -29,8 +19,6 @@ if __name__ == "__main__":
         for lemma in lemma_doc_counts:
             if lemma in matched_lemmas:
                 lemma_doc_counts[lemma] += 1
-
-    # Print query POS tags with document counts
     print("Query POS Tags:")
     print(f"  Query: {query}")
     print("  Tags with document counts:")
@@ -38,26 +26,29 @@ if __name__ == "__main__":
         print(
             f"    Word: {pos_tag['word']}, POS: {pos_tag['pos']}, Lemma: {pos_tag['lemma']}, Documents: {lemma_doc_counts[pos_tag['lemma']]}")
     print()
-
-    # Print results
     for result in results:
-        print(f"Document {result['document_index']}:")
+        print(f"Document {result['doc_index']}:")
         print(f"  Text: {result['text']}")
         print(
             f"  Matching words (word, POS, lemma): {[(pos_tag['word'], pos_tag['pos'], pos_tag['lemma']) for pos_tag in result['matching_words_with_pos_and_lemma']]}")
         print(f"  Match count: {result['matching_words_count']}\n")
-
-    # Save results with query_pos and lemma document counts
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    total_docs = len(docs)
     save_file({
         "query_pos": [
             {
-                "word": pos_tag['word'],
-                "pos": pos_tag['pos'],
-                "lemma": pos_tag['lemma'],
-                "document_count": lemma_doc_counts[pos_tag['lemma']]
+                **pos_tag,
+                "document_count": lemma_doc_counts[pos_tag['lemma']],
+                "document_percentage": round((lemma_doc_counts[pos_tag['lemma']] / total_docs * 100), 2) if total_docs > 0 else 0.0
             } for pos_tag in query_pos
         ],
-        "documents_pos": results,
+        "documents_pos": [
+            {
+                "doc_index": result["doc_index"],
+                "matching_words_count": result["matching_words_count"],
+                "matching_words": ", ".join(item["lemma"] for item in result["matching_words_with_pos_and_lemma"]),
+                "text": result["text"],
+            } for result in results
+        ],
     }, f"{output_dir}/search_by_pos_results.json")
