@@ -8,7 +8,8 @@ from jet.file.utils import load_file, save_file
 if __name__ == "__main__":
     docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/headers.json"
     headers: list[dict] = load_file(docs_file)
-    docs = [header["text"] for header in headers]
+    docs = [header["text"]
+            for header in headers if header["header_level"] != 1]
 
     # Sample query (valid sentence)
     query = "List trending isekai reincarnation anime this year."
