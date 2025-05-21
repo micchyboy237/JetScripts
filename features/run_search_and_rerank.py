@@ -104,8 +104,8 @@ if __name__ == "__main__":
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    # query = "List trending isekai reincarnation anime this year."
-    query = "Tips and links to 2025 online registration steps for TikTok live selling in the Philippines."
+    query = "List trending isekai reincarnation anime this year."
+    # query = "Tips and links to 2025 online registration steps for TikTok live selling in the Philippines."
     model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
     # embed_models = ["mxbai-embed-large"]
     embed_model = "all-mpnet-base-v2"
