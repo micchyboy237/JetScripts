@@ -1,6 +1,6 @@
 import os
 from jet.file.utils import save_file
-from jet.llm.mlx.tasks.answer_multiple_yes_no_with_context import answer_multiple_yes_no_with_context, AnswerResult
+from jet.llm.mlx.tasks.answer_multiple_yes_no_with_context import QuestionContext, answer_multiple_yes_no_with_context, AnswerResult
 from jet.llm.mlx.mlx_types import LLMModelType
 from jet.logger import logger
 from jet.transformers.formatters import format_json
@@ -13,8 +13,11 @@ if __name__ == "__main__":
         "Mars has two small moons named Phobos and Deimos.",
         "Saturn is known for its rings and has 83 moons with confirmed orbits."
     ]
+    question_contexts: list[QuestionContext] = [
+        {"question": question, "context": ctx} for ctx in contexts
+    ]
     result = answer_multiple_yes_no_with_context(
-        question, contexts, model_path="llama-3.2-3b-instruct-4bit"
+        question_contexts, model_path="llama-3.2-3b-instruct-4bit"
     )
     logger.gray("Result:")
     logger.success(format_json(result))
