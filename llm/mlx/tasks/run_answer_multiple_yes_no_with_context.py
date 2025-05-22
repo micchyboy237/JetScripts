@@ -16,13 +16,13 @@ if __name__ == "__main__":
     question_contexts: list[QuestionContext] = [
         {"question": question, "context": ctx} for ctx in contexts
     ]
-    result = answer_multiple_yes_no_with_context(
+    results = answer_multiple_yes_no_with_context(
         question_contexts, model_path="llama-3.2-3b-instruct-4bit"
     )
-    logger.gray("Result:")
-    logger.success(format_json(result))
+    logger.gray("Results:")
+    logger.success(format_json(results))
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(
             os.path.basename(__file__))[0]
     )
-    save_file(result, f"{output_dir}/results.json")
+    save_file(results, f"{output_dir}/results.json")
