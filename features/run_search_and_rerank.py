@@ -30,6 +30,8 @@ from jet.utils.url_utils import normalize_url
 from jet.vectors.hybrid_search_engine import HybridSearchEngine
 # from jet.wordnet.similarity import compute_info, query_similarity_scores
 from jet.llm.utils.transformer_embeddings import SimilarityResult, get_embedding_function, search_docs
+from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_relevance
+from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
 
 logger.info("Initializing MLX and embedding function")
 seed = 42
@@ -78,11 +80,16 @@ def filter_htmls_with_best_combined_mtld(
     doc_scores = []
     for url, html, _ in url_html_date_tuples:
         try:
-            docs = get_md_header_docs(html, [
+            docs_with_links = get_md_header_docs(html, [
                 ("#", "h1"),
                 ("##", "h2"),
                 ("###", "h3"),
             ], ignore_links=False)
+            docs = get_md_header_docs(html, [
+                ("#", "h1"),
+                ("##", "h2"),
+                ("###", "h3"),
+            ], ignore_links=True)
             docs_text = "\n\n".join(doc.text for doc in docs)
 
             readability_result = analyze_readability(docs_text)
@@ -299,6 +306,12 @@ Query: {query}
     context = "\n\n".join(contexts)
     save_file(contexts, os.path.join(output_dir, "contexts.json"))
 
+    # Evaluate context
+    evaluate_context_relevance_result = evaluate_context_relevance(
+        query, context, DEFAULT_MODEL)
+    save_file(evaluate_context_relevance_result, os.path.join(
+        output_dir, "eval", "evaluate_context_relevance_result.json"))
+
     response = ""
     prompt = PROMPT_TEMPLATE.format(query=query, context=context)
     for chunk in mlx.stream_chat(
@@ -312,3 +325,9 @@ Query: {query}
 
     save_file({"query": query, "context": context, "response": response},
               os.path.join(output_dir, "chat_response.json"))
+
+    # Evaluate context and response
+    evaluate_response_relevance_result = evaluate_response_relevance(
+        query, context, response, DEFAULT_MODEL)
+    save_file(evaluate_response_relevance_result, os.path.join(
+        output_dir, "eval", "evaluate_response_relevance_result.json"))
