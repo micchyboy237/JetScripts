@@ -16,7 +16,7 @@ from jet.wordnet.analyzers.text_analysis import ReadabilityResult, analyze_reada
 from jet.code.splitter_markdown_utils import Header, extract_md_header_contents, get_md_header_contents, get_md_header_docs
 from jet.file.utils import save_file
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.helpers import decompose_query
+from jet.llm.mlx.helpers import decompose_query, get_system_date_prompt
 from jet.llm.mlx.token_utils import count_tokens
 from jet.llm.embeddings.sentence_embedding import get_tokenizer_fn
 from jet.llm.mlx.mlx_types import LLMModelType
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    query = "List trending isekai reincarnation anime this year."
+    query = f"{get_system_date_prompt()}\nList trending isekai reincarnation anime this year."
     # query = "Tips and links to 2025 online registration steps for TikTok live selling in the Philippines."
     model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
     # embed_models = ["mxbai-embed-large"]
@@ -194,6 +194,7 @@ if __name__ == "__main__":
             headers.append({
                 "source_url": url,
                 "doc_index": doc.metadata["doc_index"],
+                "header_level": doc.metadata["header_level"],
                 "header": doc.metadata["header"],
                 "parent_header": doc.metadata["parent_header"],
                 "content": doc.metadata["content"],
@@ -306,12 +307,6 @@ Query: {query}
     context = "\n\n".join(contexts)
     save_file(contexts, os.path.join(output_dir, "contexts.json"))
 
-    # Evaluate context
-    evaluate_context_relevance_result = evaluate_context_relevance(
-        query, context, DEFAULT_MODEL)
-    save_file(evaluate_context_relevance_result, os.path.join(
-        output_dir, "eval", "evaluate_context_relevance_result.json"))
-
     response = ""
     prompt = PROMPT_TEMPLATE.format(query=query, context=context)
     for chunk in mlx.stream_chat(
@@ -325,6 +320,12 @@ Query: {query}
 
     save_file({"query": query, "context": context, "response": response},
               os.path.join(output_dir, "chat_response.json"))
+
+    # Evaluate context
+    evaluate_context_relevance_result = evaluate_context_relevance(
+        query, context, DEFAULT_MODEL)
+    save_file(evaluate_context_relevance_result, os.path.join(
+        output_dir, "eval", "evaluate_context_relevance_result.json"))
 
     # Evaluate context and response
     evaluate_response_relevance_result = evaluate_response_relevance(
