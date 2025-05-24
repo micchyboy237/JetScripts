@@ -34,7 +34,7 @@ from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_r
 from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
 
 logger.info("Initializing MLX and embedding function")
-seed = 42
+seed = 44
 DEFAULT_MODEL = "llama-3.2-3b-instruct-4bit"
 mlx = MLX(DEFAULT_MODEL, seed=seed)
 
@@ -217,7 +217,7 @@ if __name__ == "__main__":
         headers=splitted_docs,
         model_name=embed_model,
         rerank_model=rerank_model,
-        top_k=top_k * 2,
+        top_k=len(splitted_docs),
         num_results=top_k,
         lambda_param=0.5,
         min_header_level=2,
