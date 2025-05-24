@@ -210,19 +210,18 @@ if __name__ == "__main__":
         all_docs, embed_model, chunk_size=200, chunk_overlap=20)
     save_file(splitted_docs, os.path.join(output_dir, "splitted_docs.json"))
 
-    headers_without_h1 = [
-        doc for doc in splitted_docs if doc["header_level"] != 1]
-
     # Search headers
 
     search_doc_results = search_documents(
         query=query,
-        headers=headers_without_h1,
+        headers=splitted_docs,
         model_name=embed_model,
         rerank_model=rerank_model,
         top_k=top_k * 2,
         num_results=top_k,
-        lambda_param=0.5
+        lambda_param=0.5,
+        min_header_level=2,
+        max_header_level=3
     )
 
     # # Extract headers from all_docs, excluding level 1 headers
@@ -333,7 +332,7 @@ Query: {query}
     for chunk in mlx.stream_chat(
         prompt,
         system_prompt=get_system_date_prompt(),
-        temperature=0.3,
+        temperature=0.7,
         verbose=True,
         max_tokens=2000
     ):
