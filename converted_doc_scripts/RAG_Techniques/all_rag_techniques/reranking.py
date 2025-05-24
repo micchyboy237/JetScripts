@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+from pydantic.fields import Field
 from evaluation.evalute_rag import *
 from helper_functions import *
 from jet.llm.ollama.base_langchain import ChatOllama
@@ -277,7 +278,7 @@ compare_rag_techniques(query, docs)
 """
 logger.info("## Method 2: Cross Encoder models")
 
-cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
+cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-12-v2')
 
 
 class CrossEncoderRetriever(BaseRetriever, BaseModel):

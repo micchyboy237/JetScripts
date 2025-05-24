@@ -112,7 +112,7 @@ if __name__ == "__main__":
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    query = f"{get_system_date_prompt()}\nList trending isekai reincarnation anime this year."
+    query = f"List trending isekai reincarnation anime this year."
     # query = "Tips and links to 2025 online registration steps for TikTok live selling in the Philippines."
     model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
     # embed_models = ["mxbai-embed-large"]
@@ -210,73 +210,65 @@ if __name__ == "__main__":
 
     # Search headers
 
-    # search_doc_results = search_diverse_context(
-    #     query=combined_query,
-    #     headers=headers_without_h1,
-    #     model_name=embed_model,
-    #     rerank_model=rerank_model,
-    #     top_k=20,
-    #     num_results=10,
-    #     lambda_param=0.5
-    # )
+    search_doc_results = search_diverse_context(
+        query=query,
+        headers=headers_without_h1,
+        model_name=embed_model,
+        rerank_model=rerank_model,
+        top_k=20,
+        num_results=10,
+        lambda_param=0.5
+    )
 
-    # # Remove embedding attribute from each result before saving
-    # results_without_embeddings = [
-    #     {k: v for k, v in result.items() if k != 'embedding'} for result in search_doc_results]
+    # # Extract headers from all_docs, excluding level 1 headers
+    # top_k = 10
+    # docs = [header["text"]
+    #         for header in all_docs if header["header_level"] != 1]
+
+    # # Perform search using the extracted header texts
+    # search_by_pos_results = search_by_pos(query, docs)
+    # # Get query POS tags
+    # query_pos = get_pos_tag(query)
+    # # Calculate document counts for each query lemma
+    # lemma_doc_counts: Dict[str, int] = {
+    #     pos_tag['lemma']: 0 for pos_tag in query_pos}
+    # for result in search_by_pos_results:
+    #     matched_lemmas = {pos_tag['lemma']
+    #                       for pos_tag in result['matching_words_with_pos_and_lemma']}
+    #     for lemma in lemma_doc_counts:
+    #         if lemma in matched_lemmas:
+    #             lemma_doc_counts[lemma] += 1
+    # total_docs = len(docs)
     # save_file({
-    #     "query": combined_query,
-    #     "results": results_without_embeddings
-    # }, os.path.join(output_dir, "search_doc_results.json"))
-
-    # Extract headers from all_docs, excluding level 1 headers
-    top_k = 10
-    docs = [header["text"]
-            for header in all_docs if header["header_level"] != 1]
-
-    # Perform search using the extracted header texts
-    search_by_pos_results = search_by_pos(query, docs)
-    # Get query POS tags
-    query_pos = get_pos_tag(query)
-    # Calculate document counts for each query lemma
-    lemma_doc_counts: Dict[str, int] = {
-        pos_tag['lemma']: 0 for pos_tag in query_pos}
-    for result in search_by_pos_results:
-        matched_lemmas = {pos_tag['lemma']
-                          for pos_tag in result['matching_words_with_pos_and_lemma']}
-        for lemma in lemma_doc_counts:
-            if lemma in matched_lemmas:
-                lemma_doc_counts[lemma] += 1
-    total_docs = len(docs)
-    save_file({
-        "query_pos": sorted([
-            {
-                **pos_tag,
-                "document_count": lemma_doc_counts[pos_tag["lemma"]],
-                "document_percentage": (
-                    round(
-                        (lemma_doc_counts[pos_tag["lemma"]] / total_docs * 100), 2)
-                    if total_docs > 0 else 0.0
-                )
-            }
-            for pos_tag in query_pos
-        ], key=lambda x: x["word"]),
-        "documents_pos": [
-            {
-                "doc_index": result["doc_index"],
-                "matching_words_count": result["matching_words_count"],
-                "matching_words": ", ".join(sorted(
-                    set(item["lemma"]
-                        for item in result["matching_words_with_pos_and_lemma"])
-                )),
-                "text": result["text"],
-            } for result in search_by_pos_results
-        ],
-    }, f"{output_dir}/search_by_pos_results.json")
+    #     "query_pos": sorted([
+    #         {
+    #             **pos_tag,
+    #             "document_count": lemma_doc_counts[pos_tag["lemma"]],
+    #             "document_percentage": (
+    #                 round(
+    #                     (lemma_doc_counts[pos_tag["lemma"]] / total_docs * 100), 2)
+    #                 if total_docs > 0 else 0.0
+    #             )
+    #         }
+    #         for pos_tag in query_pos
+    #     ], key=lambda x: x["word"]),
+    #     "documents_pos": [
+    #         {
+    #             "doc_index": result["doc_index"],
+    #             "matching_words_count": result["matching_words_count"],
+    #             "matching_words": ", ".join(sorted(
+    #                 set(item["lemma"]
+    #                     for item in result["matching_words_with_pos_and_lemma"])
+    #             )),
+    #             "text": result["text"],
+    #         } for result in search_by_pos_results
+    #     ],
+    # }, f"{output_dir}/search_by_pos_results.json")
 
     # Map search results back to the original headers in all_docs
     search_doc_results = [
         header for header in all_docs
-        if header["header_level"] != 1 and header["text"] in [result["text"] for result in search_by_pos_results[:top_k]]
+        if header["header_level"] != 1 and header["text"] in [result["text"] for result in search_doc_results]
     ]
     save_file({
         "query": query,
@@ -311,6 +303,7 @@ Query: {query}
     prompt = PROMPT_TEMPLATE.format(query=query, context=context)
     for chunk in mlx.stream_chat(
         prompt,
+        system_prompt=get_system_date_prompt(),
         temperature=0.3,
         verbose=True,
         max_tokens=2000
