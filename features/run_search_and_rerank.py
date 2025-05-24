@@ -106,6 +106,8 @@ if __name__ == "__main__":
 
     query = f"List trending isekai reincarnation anime this year."
     # query = "Tips and links to 2025 online registration steps for TikTok live selling in the Philippines."
+    top_k = 10
+
     model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
     # embed_models = ["mxbai-embed-large"]
     embed_model = "all-mpnet-base-v2"
@@ -207,13 +209,12 @@ if __name__ == "__main__":
         headers=headers_without_h1,
         model_name=embed_model,
         rerank_model=rerank_model,
-        top_k=20,
-        num_results=10,
+        top_k=top_k * 2,
+        num_results=top_k,
         lambda_param=0.5
     )
 
     # # Extract headers from all_docs, excluding level 1 headers
-    # top_k = 10
     # docs = [header["text"]
     #         for header in all_docs if header["header_level"] != 1]
 
@@ -287,7 +288,7 @@ Given the context information, answer the query.
 Query: {query}
 """
 
-    contexts = contexts[:5]
+    contexts = contexts[:top_k]
     context = "\n\n".join(contexts)
     save_file(contexts, os.path.join(output_dir, "contexts.json"))
 
