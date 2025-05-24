@@ -206,7 +206,12 @@ if __name__ == "__main__":
     save_file(all_docs, os.path.join(output_dir, "docs.json"))
     save_file(headers, os.path.join(output_dir, "headers.json"))
 
-    headers_without_h1 = [doc for doc in all_docs if doc["header_level"] != 1]
+    splitted_docs = split_headers(
+        all_docs, embed_model, chunk_size=200, chunk_overlap=0)
+    save_file(splitted_docs, os.path.join(output_dir, "splitted_docs.json"))
+
+    headers_without_h1 = [
+        doc for doc in splitted_docs if doc["header_level"] != 1]
 
     # Search headers
 
@@ -264,12 +269,12 @@ if __name__ == "__main__":
     #         } for result in search_by_pos_results
     #     ],
     # }, f"{output_dir}/search_by_pos_results.json")
+    # # Map search results back to the original headers in all_docs
+    # search_doc_results = [
+    #     header for header in all_docs
+    #     if header["header_level"] != 1 and header["text"] in [result["text"] for result in search_doc_results]
+    # ]
 
-    # Map search results back to the original headers in all_docs
-    search_doc_results = [
-        header for header in all_docs
-        if header["header_level"] != 1 and header["text"] in [result["text"] for result in search_doc_results]
-    ]
     save_file({
         "query": query,
         "results": search_doc_results
