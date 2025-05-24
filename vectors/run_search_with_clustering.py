@@ -10,7 +10,7 @@ import umap
 import hdbscan
 from sklearn.metrics import silhouette_score
 from sklearn.utils import deprecation
-from jet.vectors.search_with_clustering import search_diverse_context
+from jet.vectors.search_with_clustering import search_documents
 
 
 # Example usage
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     query = "best Isekai anime 2024"
 
     # Search
-    results = search_diverse_context(
+    results = search_documents(
         query=query,
         headers=headers,
         model_name="all-MiniLM-L12-v2",

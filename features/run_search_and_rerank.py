@@ -9,7 +9,7 @@ from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.token.token_utils import merge_headers, split_headers
 from jet.vectors.document_types import HeaderDocument
 from jet.vectors.hybrid_reranker import search_documents
-from jet.vectors.search_with_mmr import search_diverse_context
+from jet.vectors.search_with_mmr import search_documents
 from tqdm import tqdm
 from mlx_lm import load
 from jet.wordnet.analyzers.text_analysis import ReadabilityResult, analyze_readability, analyze_text
@@ -215,7 +215,7 @@ if __name__ == "__main__":
 
     # Search headers
 
-    search_doc_results = search_diverse_context(
+    search_doc_results = search_documents(
         query=query,
         headers=headers_without_h1,
         model_name=embed_model,
@@ -274,6 +274,12 @@ if __name__ == "__main__":
     #     if header["header_level"] != 1 and header["text"] in [result["text"] for result in search_doc_results]
     # ]
 
+    # Remove "embedding" prop
+    search_doc_results = [
+        {k: v for k, v in result.items() if k != "embedding"}
+        for result in search_doc_results
+    ]
+
     save_file({
         "query": query,
         "results": search_doc_results
@@ -284,7 +290,9 @@ if __name__ == "__main__":
         search_doc_results, key=lambda x: x["doc_index"], reverse=True)
     contexts = [
         # f"{result["header"]}\n{result["content"]}" for result in sorted_results
-        f"{result["text"]}" for result in sorted_results
+        f"{result["text"]}"
+        for result in sorted_results
+        # if result["header_level"] >= 3
     ]
 
     # Run LLM response

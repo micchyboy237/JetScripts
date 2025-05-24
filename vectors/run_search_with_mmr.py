@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer, util, CrossEncoder
 from jet.file.utils import load_file, save_file
-from jet.vectors.search_with_mmr import search_diverse_context, Header
+from jet.vectors.search_with_mmr import search_documents, Header
 import time
 from jet.logger import logger
 
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     query = "List trending isekai reincarnation anime this year.\nList trending isekai reincarnation anime this year.\nWhat are some popular isekai reincarnation anime that have gained significant attention in recent months?\nAre there any notable isekai reincarnation anime this year that have been widely praised or recommended?"
     logger.info(f"Executing query (length: {len(query.split())} words)")
 
-    results = search_diverse_context(
+    results = search_documents(
         query=query,
         headers=headers,
         model_name=embed_model,
