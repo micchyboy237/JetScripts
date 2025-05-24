@@ -45,6 +45,17 @@ class StepBackQueryResponse(TypedDict):
     broader_query: List[str]
 
 
+class ContextEntry(TypedDict):
+    tokens: int
+    text: str
+
+
+class ContextInfo(TypedDict):
+    model: str
+    total_tokens: int
+    contexts: list[ContextEntry]
+
+
 def get_header_stats(text: str):
     analysis = analyze_text(text)
     stats = {
@@ -288,9 +299,26 @@ Given the context information, answer the query.
 Query: {query}
 """
 
+    # Keep top-k contexts
     contexts = contexts[:top_k]
+    # Get token counts for each context
+    context_token_counts: list[int] = count_tokens(
+        DEFAULT_MODEL, contexts, prevent_total=True)
+    # Combine for downstream use (optional)
     context = "\n\n".join(contexts)
-    save_file(contexts, os.path.join(output_dir, "contexts.json"))
+    # Create the structured list of context entries
+    context_entries: list[ContextEntry] = [
+        {"tokens": tokens, "text": text}
+        for text, tokens in zip(contexts, context_token_counts)
+    ]
+    # Create final info payload
+    context_info: ContextInfo = {
+        "model": DEFAULT_MODEL,
+        "total_tokens": sum(context_token_counts),
+        "contexts": context_entries,
+    }
+    # Save to JSON file
+    save_file(context_info, os.path.join(output_dir, "context_info.json"))
 
     response = ""
     prompt = PROMPT_TEMPLATE.format(query=query, context=context)
