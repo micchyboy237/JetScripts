@@ -8,7 +8,7 @@ from datetime import datetime
 from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.token.token_utils import merge_headers, split_headers
 from jet.vectors.document_types import HeaderDocument
-from jet.vectors.search_with_mmr import search_documents
+from jet.vectors.search_with_clustering import search_documents
 from tqdm import tqdm
 from mlx_lm import load
 from jet.wordnet.analyzers.text_analysis import ReadabilityResult, analyze_readability, analyze_text
