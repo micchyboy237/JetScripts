@@ -8,7 +8,6 @@ from datetime import datetime
 from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.token.token_utils import merge_headers, split_headers
 from jet.vectors.document_types import HeaderDocument
-from jet.vectors.hybrid_reranker import search_documents
 from jet.vectors.search_with_mmr import search_documents
 from tqdm import tqdm
 from mlx_lm import load
@@ -46,7 +45,14 @@ class StepBackQueryResponse(TypedDict):
 
 
 class ContextEntry(TypedDict):
+    rank: int
+    doc_index: int
+    chunk_index: int
     tokens: int
+    score: float
+    rerank_score: float
+    diversity_score: float
+    source_url: str
     text: str
 
 
@@ -315,8 +321,8 @@ Query: {query}
     context = "\n\n".join(contexts)
     # Create the structured list of context entries
     context_entries: list[ContextEntry] = [
-        {"tokens": tokens, "text": text}
-        for text, tokens in zip(contexts, context_token_counts)
+        {"tokens": tokens, **ContextEntry(**result)}
+        for result, tokens in zip(sorted_results, context_token_counts)
     ]
     # Create final info payload
     context_info: ContextInfo = {
