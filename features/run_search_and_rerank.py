@@ -80,16 +80,8 @@ def filter_htmls_with_best_combined_mtld(
     doc_scores = []
     for url, html, _ in url_html_date_tuples:
         try:
-            docs_with_links = get_md_header_docs(html, [
-                ("#", "h1"),
-                ("##", "h2"),
-                ("###", "h3"),
-            ], ignore_links=False)
-            docs = get_md_header_docs(html, [
-                ("#", "h1"),
-                ("##", "h2"),
-                ("###", "h3"),
-            ], ignore_links=True)
+            docs_with_links = get_md_header_docs(html, ignore_links=False)
+            docs = get_md_header_docs(html, ignore_links=True)
             docs_text = "\n\n".join(doc.text for doc in docs)
 
             readability_result = analyze_readability(docs_text)
@@ -192,12 +184,7 @@ if __name__ == "__main__":
             doc.metadata["source_url"] = url
 
             headers.append({
-                "source_url": url,
-                "doc_index": doc.metadata["doc_index"],
-                "header_level": doc.metadata["header_level"],
-                "header": doc.metadata["header"],
-                "parent_header": doc.metadata["parent_header"],
-                "content": doc.metadata["content"],
+                **doc.metadata,
                 "text": doc.text,
             })
 
