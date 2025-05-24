@@ -334,7 +334,7 @@ Query: {query}
         system_prompt=get_system_date_prompt(),
         temperature=0.7,
         verbose=True,
-        max_tokens=2000
+        max_tokens=3000
     ):
         content = chunk["choices"][0]["message"]["content"]
         response += content
