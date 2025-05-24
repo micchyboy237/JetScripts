@@ -33,7 +33,7 @@ from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_r
 from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
 
 logger.info("Initializing MLX and embedding function")
-seed = 44
+seed = 45
 DEFAULT_MODEL = "llama-3.2-3b-instruct-4bit"
 mlx = MLX(DEFAULT_MODEL, seed=seed)
 
@@ -340,7 +340,7 @@ Query: {query}
         system_prompt=get_system_date_prompt(),
         temperature=0.7,
         verbose=True,
-        max_tokens=3000
+        max_tokens=10000
     ):
         content = chunk["choices"][0]["message"]["content"]
         response += content
