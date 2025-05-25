@@ -1,3 +1,4 @@
+from collections import defaultdict
 import json
 import time
 import asyncio
@@ -47,12 +48,14 @@ class StepBackQueryResponse(TypedDict):
 class ContextEntry(TypedDict):
     rank: int
     doc_index: int
+    chunk_index: int
     tokens: int
     score: float
     rerank_score: float
-    diversity_score: float
     source_url: str
-    text: str
+    parent_header: str
+    header: str
+    content: str
 
 
 class ContextInfo(TypedDict):
@@ -126,11 +129,11 @@ if __name__ == "__main__":
 
     query = f"List trending isekai reincarnation anime this year."
     # query = "Tips and links to 2025 online registration steps for TikTok live selling in the Philippines."
-    top_k = 10
+    top_k = 20
 
     model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
     # embed_models = ["mxbai-embed-large"]
-    embed_model = "all-MiniLM-L12-v2"
+    embed_model = "all-MiniLM-L6-v2"
     rerank_model = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     tokenize = get_tokenizer_fn(embed_model)
 
@@ -317,24 +320,66 @@ Given the context information, answer the query.
 Query: {query}
 """
 
-    # Keep top-k contexts
-    contexts = [result["text"] for result in search_doc_results]
-    save_file(contexts, os.path.join(output_dir, "contexts.json"))
+    # Filter results with positive scores
+    filtered_doc_results = [r for r in search_doc_results if r["score"] > 0]
 
-    # Combine for downstream use (optional)
-    context = "\n\n".join(contexts)
+    # Sort results by source_url, parent_header, doc_index, and chunk_index
+    sorted_doc_results = sorted(
+        filtered_doc_results,
+        key=lambda r: (r["source_url"], r["parent_header"],
+                       r["doc_index"], r["chunk_index"])
+    )
+
+    # Group results by source_url and parent_header
+    grouped_by_source_and_parent: dict[tuple[str,
+                                             str], List[dict]] = defaultdict(list)
+    for result in sorted_doc_results:
+        key = (result["source_url"], result["parent_header"])
+        grouped_by_source_and_parent[key].append(result)
+
+    # Format markdown context with no duplicate source_urls, parent_headers, or headers
+    formatted_context_blocks = []
+    seen_source_urls = set()
+
+    for (source_url, parent_header), group in grouped_by_source_and_parent.items():
+        # Add source URL as a comment only if not already seen
+        if source_url not in seen_source_urls:
+            formatted_context_blocks.append(f"<!-- Source: {source_url} -->")
+            seen_source_urls.add(source_url)
+
+        # Add parent header only if not already seen and non-empty
+        if parent_header.strip() and parent_header not in formatted_context_blocks:
+            formatted_context_blocks.append(parent_header)
+
+        # Add entries under the parent header
+        for entry in group:
+            header = entry.get("header", "").strip()
+
+            # Add header only if distinct from parent_header and not already seen in this group
+            if header:
+                formatted_context_blocks.append(header)
+
+            # Add content
+            formatted_context_blocks.append(entry["content"])
+
+    # Save formatted context as JSON and markdown files
+    save_file(formatted_context_blocks, os.path.join(
+        output_dir, "contexts.json"))
+    context = "\n\n".join(formatted_context_blocks)
     save_file(context, os.path.join(output_dir, "context.md"))
-    # Create the structured list of context entries
-    context_entries: list[ContextEntry] = [
-        ContextEntry(**result)
-        for result in search_doc_results
+
+    # Create structured context entries
+    context_entries: List[ContextEntry] = [
+        ContextEntry(**result) for result in sorted_doc_results
     ]
-    # Create final info payload
+
+    # Compile final context information
     context_info: ContextInfo = {
         "model": DEFAULT_MODEL,
         "total_tokens": sum(entry["tokens"] for entry in context_entries),
         "contexts": context_entries,
     }
+
     # Save to JSON file
     save_file(context_info, os.path.join(output_dir, "context_info.json"))
 
