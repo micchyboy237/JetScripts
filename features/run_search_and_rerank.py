@@ -131,7 +131,7 @@ if __name__ == "__main__":
     model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
     # embed_models = ["mxbai-embed-large"]
     embed_model = "all-MiniLM-L12-v2"
-    rerank_model = "cross-encoder/ms-marco-MiniLM-L-12-v2"
+    rerank_model = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     tokenize = get_tokenizer_fn(embed_model)
 
     # Search web engine
