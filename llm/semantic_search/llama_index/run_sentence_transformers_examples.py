@@ -23,7 +23,7 @@ class SentenceTransformerExamples:
 
     def question_answering(self, context, question):
         from sentence_transformers import CrossEncoder
-        self.re_ranking_model = CrossEncoder('ms-marco-MiniLM-L-12-v3')
+        self.re_ranking_model = CrossEncoder('ms-marco-MiniLM-L-6-v2')
         # Note: This method may not exist in the CrossEncoder class
         answer = self.re_ranking_model.answer_question(context, question)
         return answer
@@ -40,7 +40,7 @@ class SentenceTransformerExamples:
 
     def sentence_pair_classification(self):
         from sentence_transformers import CrossEncoder
-        self.re_ranking_model = CrossEncoder('ms-marco-MiniLM-L-12-v3')
+        self.re_ranking_model = CrossEncoder('ms-marco-MiniLM-L-6-v2')
         score = self.re_ranking_model.predict(
             [["Is it raining?", "Will it rain today?"]])
         return score

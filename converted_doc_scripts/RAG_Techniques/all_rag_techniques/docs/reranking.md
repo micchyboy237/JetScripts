@@ -3,12 +3,15 @@
 # Reranking Methods in RAG Systems
 
 ## Overview
+
 Reranking is a crucial step in Retrieval-Augmented Generation (RAG) systems that aims to improve the relevance and quality of retrieved documents. It involves reassessing and reordering initially retrieved documents to ensure that the most pertinent information is prioritized for subsequent processing or presentation.
 
 ## Motivation
+
 The primary motivation for reranking in RAG systems is to overcome limitations of initial retrieval methods, which often rely on simpler similarity metrics. Reranking allows for more sophisticated relevance assessment, taking into account nuanced relationships between queries and documents that might be missed by traditional retrieval techniques. This process aims to enhance the overall performance of RAG systems by ensuring that the most relevant information is used in the generation phase.
 
 ## Key Components
+
 Reranking systems typically include the following components:
 
 1. Initial Retriever: Often a vector store using embedding-based similarity search.
@@ -19,6 +22,7 @@ Reranking systems typically include the following components:
 4. Sorting and Selection Logic: To reorder documents based on new scores
 
 ## Method Details
+
 The reranking process generally follows these steps:
 
 1. Initial Retrieval: Fetch an initial set of potentially relevant documents.
@@ -31,6 +35,7 @@ The reranking process generally follows these steps:
 6. Selection: Choose the top K documents from the reordered list.
 
 ## Benefits of this Approach
+
 Reranking offers several advantages:
 
 1. Improved Relevance: By using more sophisticated models, reranking can capture subtle relevance factors.
@@ -39,6 +44,7 @@ Reranking offers several advantages:
 4. Reduced Noise: Reranking helps filter out less relevant information, focusing on the most pertinent content.
 
 ## Conclusion
+
 Reranking is a powerful technique in RAG systems that significantly enhances the quality of retrieved information. Whether using LLM-based scoring or specialized Cross-Encoder models, reranking allows for more nuanced and accurate assessment of document relevance. This improved relevance translates directly to better performance in downstream tasks, making reranking an essential component in advanced RAG implementations.
 
 The choice between LLM-based and Cross-Encoder reranking methods depends on factors such as required accuracy, available computational resources, and specific application needs. Both approaches offer substantial improvements over basic retrieval methods and contribute to the overall effectiveness of RAG systems.
@@ -137,10 +143,10 @@ def rerank_documents(query: str, docs: List[Document], top_n: int = 3) -> List[D
         Document: {doc}
         Relevance Score:"""
     )
-    
+
     llm = ChatOpenAI(temperature=0, model_name="gpt-4o", max_tokens=4000)
     llm_chain = prompt_template | llm.with_structured_output(RatingScore)
-    
+
     scored_docs = []
     for doc in docs:
         input_data = {"query": query, "doc": doc.page_content}
@@ -150,7 +156,7 @@ def rerank_documents(query: str, docs: List[Document], top_n: int = 3) -> List[D
         except ValueError:
             score = 0  # Default score if parsing fails
         scored_docs.append((doc, score))
-    
+
     reranked_docs = sorted(scored_docs, key=lambda x: x[1], reverse=True)
     return [doc for doc, _ in reranked_docs[:top_n]]
 ```
@@ -182,7 +188,7 @@ for i, doc in enumerate(reranked_docs):
 ```python
 # Create a custom retriever class
 class CustomRetriever(BaseRetriever, BaseModel):
-    
+
     vectorstore: Any = Field(description="Vector store for initial retrieval")
 
     class Config:
@@ -228,8 +234,8 @@ chunks = [
     "The capital of France is great.",
     "The capital of France is huge.",
     "The capital of France is beautiful.",
-    """Have you ever visited Paris? It is a beautiful city where you can eat delicious food and see the Eiffel Tower. 
-    I really enjoyed all the cities in france, but its capital with the Eiffel Tower is my favorite city.""", 
+    """Have you ever visited Paris? It is a beautiful city where you can eat delicious food and see the Eiffel Tower.
+    I really enjoyed all the cities in france, but its capital with the Eiffel Tower is my favorite city.""",
     "I really enjoyed my trip to Paris, France. The city is beautiful and the food is delicious. I would love to visit again. Such a great capital city."
 ]
 docs = [Document(page_content=sentence) for sentence in chunks]
@@ -242,7 +248,7 @@ def compare_rag_techniques(query: str, docs: List[Document] = docs) -> None:
     print("Comparison of Retrieval Techniques")
     print("==================================")
     print(f"Query: {query}\n")
-    
+
     print("Baseline Retrieval Result:")
     baseline_docs = vectorstore.similarity_search(query, k=2)
     for i, doc in enumerate(baseline_docs):
@@ -285,16 +291,16 @@ class CrossEncoderRetriever(BaseRetriever, BaseModel):
     def get_relevant_documents(self, query: str) -> List[Document]:
         # Initial retrieval
         initial_docs = self.vectorstore.similarity_search(query, k=self.k)
-        
+
         # Prepare pairs for cross-encoder
         pairs = [[query, doc.page_content] for doc in initial_docs]
-        
+
         # Get cross-encoder scores
         scores = self.cross_encoder.predict(pairs)
-        
+
         # Sort documents by score
         scored_docs = sorted(zip(initial_docs, scores), key=lambda x: x[1], reverse=True)
-        
+
         # Return top reranked documents
         return [doc for doc, _ in scored_docs[:self.rerank_top_k]]
 

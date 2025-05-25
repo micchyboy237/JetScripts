@@ -13,7 +13,7 @@ if __name__ == "__main__":
     start_time = time.time()
     docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/headers.json"
     embed_model = "all-mpnet-base-v2"
-    rerank_model = "cross-encoder/ms-marco-MiniLM-L-12-v2"
+    rerank_model = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
     logger.info(f"Loading headers from {docs_file}")
     headers: List[Header] = load_file(docs_file)
