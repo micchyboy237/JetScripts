@@ -221,7 +221,7 @@ if __name__ == "__main__":
     save_file(headers, os.path.join(output_dir, "headers.json"))
 
     splitted_docs = split_headers(
-        all_docs, embed_model, chunk_size=200, chunk_overlap=20)
+        all_docs, embed_model, chunk_size=200, chunk_overlap=50)
     save_file(splitted_docs, os.path.join(output_dir, "splitted_docs.json"))
 
     # Search headers
