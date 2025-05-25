@@ -222,8 +222,7 @@ if __name__ == "__main__":
         headers=splitted_docs,
         model_name=embed_model,
         rerank_model=rerank_model,
-        top_k=len(splitted_docs),
-        num_results=top_k,
+        top_k=top_k,
         lambda_param=0.5,
         min_header_level=2,
         max_header_level=3
