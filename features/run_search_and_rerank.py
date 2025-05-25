@@ -96,8 +96,7 @@ def filter_htmls_with_best_combined_mtld(
     doc_scores = []
     for url, html, _ in url_html_date_tuples:
         try:
-            docs_with_links = get_md_header_docs(html, ignore_links=False)
-            docs = get_md_header_docs(html, ignore_links=True)
+            docs = get_md_header_docs(html, ignore_links=False)
             docs_text = "\n\n".join(doc.text for doc in docs)
 
             readability_result = analyze_readability(docs_text)
@@ -151,6 +150,8 @@ if __name__ == "__main__":
                 logger.info("Scraped published date:")
                 logger.debug(published_date)
                 result["publishedDate"] = published_date
+
+        # docs = get_md_header_docs(html_str, ignore_links=True)
 
         all_url_html_date_tuples.append(
             (result["url"], html_str, result.get("publishedDate")))
