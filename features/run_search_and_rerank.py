@@ -325,11 +325,13 @@ Query: {query}
 
     # Keep top-k contexts
     contexts = contexts[:top_k]
+    save_file(contexts, os.path.join(output_dir, "contexts.json"))
     # Get token counts for each context
     context_token_counts: list[int] = count_tokens(
         DEFAULT_MODEL, contexts, prevent_total=True)
     # Combine for downstream use (optional)
     context = "\n\n".join(contexts)
+    save_file(context, os.path.join(output_dir, "context.md"))
     # Create the structured list of context entries
     context_entries: list[ContextEntry] = [
         {"tokens": tokens, **ContextEntry(**result)}
