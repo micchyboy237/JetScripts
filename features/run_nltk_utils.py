@@ -4,7 +4,7 @@ from jet.file.utils import load_file, save_file
 
 # Example usage
 if __name__ == "__main__":
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/headers.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
     headers: list[dict] = load_file(docs_file)
     docs = [header["text"] for header in headers]
 

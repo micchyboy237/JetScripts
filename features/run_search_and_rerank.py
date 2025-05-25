@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
     model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
     # embed_models = ["mxbai-embed-large"]
-    embed_model = "all-MiniLM-L6-v2"
+    embed_model = "all-mpnet-base-v2"
     rerank_model = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     tokenize = get_tokenizer_fn(embed_model)
 
@@ -230,9 +230,9 @@ if __name__ == "__main__":
         query=query,
         headers=splitted_docs,
         model_name=embed_model,
-        rerank_model=rerank_model,
+        # rerank_model=rerank_model,
         top_k=top_k,
-        lambda_param=0.5,
+        # lambda_param=0.5,
         min_header_level=2,
         max_header_level=3
     )
@@ -241,8 +241,8 @@ if __name__ == "__main__":
               os.path.join(results_dir, "merge_results.json"))
     save_file(search_results["embed_results"],
               os.path.join(results_dir, "embed_results.json"))
-    save_file(search_results["rerank_results"],
-              os.path.join(results_dir, "rerank_results.json"))
+    # save_file(search_results["rerank_results"],
+    #           os.path.join(results_dir, "rerank_results.json"))
     save_file(search_results["results"],
               os.path.join(results_dir, "results.json"))
 
