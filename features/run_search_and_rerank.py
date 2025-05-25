@@ -47,7 +47,6 @@ class StepBackQueryResponse(TypedDict):
 class ContextEntry(TypedDict):
     rank: int
     doc_index: int
-    chunk_index: int
     tokens: int
     score: float
     rerank_score: float
@@ -301,16 +300,6 @@ if __name__ == "__main__":
         "results": search_doc_results
     }, os.path.join(output_dir, "search_doc_results.json"))
 
-    # Sort by doc_index
-    sorted_results = sorted(
-        search_doc_results, key=lambda x: x["doc_index"], reverse=True)
-    contexts = [
-        # f"{result["header"]}\n{result["content"]}" for result in sorted_results
-        f"{result["text"]}"
-        for result in sorted_results
-        # if result["header_level"] >= 3
-    ]
-
     # Run LLM response
     PROMPT_TEMPLATE = """\
 Context information is below.
@@ -324,23 +313,21 @@ Query: {query}
 """
 
     # Keep top-k contexts
-    contexts = contexts[:top_k]
+    contexts = [result["text"] for result in search_doc_results]
     save_file(contexts, os.path.join(output_dir, "contexts.json"))
-    # Get token counts for each context
-    context_token_counts: list[int] = count_tokens(
-        DEFAULT_MODEL, contexts, prevent_total=True)
+
     # Combine for downstream use (optional)
     context = "\n\n".join(contexts)
     save_file(context, os.path.join(output_dir, "context.md"))
     # Create the structured list of context entries
     context_entries: list[ContextEntry] = [
-        {"tokens": tokens, **ContextEntry(**result)}
-        for result, tokens in zip(sorted_results, context_token_counts)
+        ContextEntry(**result)
+        for result in search_doc_results
     ]
     # Create final info payload
     context_info: ContextInfo = {
         "model": DEFAULT_MODEL,
-        "total_tokens": sum(context_token_counts),
+        "total_tokens": sum(entry["tokens"] for entry in context_entries),
         "contexts": context_entries,
     }
     # Save to JSON file
