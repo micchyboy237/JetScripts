@@ -79,7 +79,7 @@ def filter_htmls_with_best_combined_mtld(
 ) -> List[Tuple[str, str, List[HeaderDocument], ReadabilityResult]]:
     """
     Filters a list of (url, html, date) tuples to return the top <limit> items with the highest combined MTLD scores,
-    excluding any items with MTLD score below min_mtld.
+    excluding any items with MTLD score below min_mtld and fewer than or equal to 5 h2 headers.
 
     Args:
         url_html_date_tuples: List of tuples containing (url, html_content, published_date).
@@ -97,8 +97,13 @@ def filter_htmls_with_best_combined_mtld(
     for url, html, _ in url_html_date_tuples:
         try:
             docs = get_md_header_docs(html, ignore_links=False)
-            docs_text = "\n\n".join(doc.text for doc in docs)
+            # Count h2 headers
+            h2_count = sum(
+                1 for doc in docs if doc.metadata['header_level'] == 2)
+            if h2_count < 5:
+                continue
 
+            docs_text = "\n\n".join(doc.text for doc in docs)
             readability_result = analyze_readability(docs_text)
             mtld_score = readability_result['mtld']
             if mtld_score >= min_mtld:
