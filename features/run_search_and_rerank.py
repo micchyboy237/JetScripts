@@ -125,7 +125,7 @@ if __name__ == "__main__":
 
     query = f"List trending isekai reincarnation anime this year."
     # query = "Tips and links to 2025 online registration steps for TikTok live selling in the Philippines."
-    top_k = 20
+    top_k = 10
     # top_k = None
 
     model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
@@ -228,11 +228,11 @@ if __name__ == "__main__":
     # save_file(splitted_docs, os.path.join(output_dir, "splitted_docs.json"))
 
     # Search headers
-
+    docs_to_search = [doc for doc in all_docs if doc["header_level"] != 1]
     search_doc_results = search_docs(
         query=query,
-        documents=[doc.text for doc in all_docs],
-        ids=[doc.id_ for doc in all_docs],
+        documents=[doc.text for doc in docs_to_search],
+        ids=[doc.id_ for doc in docs_to_search],
         # headers=splitted_docs,
         model=embed_model,
         # rerank_model=rerank_model,
@@ -261,7 +261,8 @@ Query: {query}
     # filtered_doc_results = [r for r in search_doc_results if r["score"] > 0]
 
     # Map search result to ids
-    search_result_dict = {result["id"]: result for result in search_doc_results}
+    search_result_dict = {result["id"]
+        : result for result in search_doc_results}
     sorted_doc_results = []
     for doc in all_docs:
         if doc["header_level"] != 1:
@@ -282,59 +283,63 @@ Query: {query}
                parent_header if parent_header is not None else "", result["is_top"])
         grouped_by_source_and_parent[key].append(result)
 
-    # Create table of contents with top results section per source_url
-    toc = []
-    seen_source_urls = set()
-    seen_headers = set()
+    # # Create table of contents with top results section per source_url
+    # toc = []
+    # seen_source_urls = set()
+    # seen_headers = set()
 
-    for source_url in sorted(set(result["source_url"] for result in sorted_doc_results)):
-        if source_url:
-            toc.append(f"<!-- Source: {source_url} -->")
-            toc.append("# Table of Contents")
-            seen_source_urls.add(source_url)
+    # for source_url in sorted(set(result["source_url"] for result in sorted_doc_results)):
+    #     if source_url:
+    #         toc.append(f"<!-- Source: {source_url} -->")
+    #         toc.append("# Table of Contents")
+    #         seen_source_urls.add(source_url)
 
-            # Collect headers for this source_url
-            headers_by_parent = defaultdict(list)
-            for result in sorted_doc_results:
-                if result["source_url"] == source_url:
-                    parent_header = result.get("parent_header", None)
-                    header = result.get("header", "").strip()
-                    header_level = result.get("header_level", 1)
-                    headers_by_parent[parent_header if parent_header else ""].append(
-                        (header, header_level))
+    #         # Collect headers for this source_url
+    #         headers_by_parent = defaultdict(list)
+    #         for result in sorted_doc_results:
+    #             if result["source_url"] == source_url:
+    #                 parent_header = result.get("parent_header", None)
+    #                 header = result.get("header", "").strip()
+    #                 header_level = result.get("header_level", 1)
+    #                 headers_by_parent[parent_header if parent_header else ""].append(
+    #                     (header, header_level))
 
-            # Add headers to TOC
-            for parent_header in sorted(headers_by_parent.keys(), key=lambda x: "" if x is None else x):
-                if parent_header and parent_header not in seen_headers:
-                    parent_header_level = min(
-                        (entry[1] - 1 for entry in headers_by_parent[parent_header]), default=1)
-                    parent_indent = "\t" * (max(1, parent_header_level) - 1)
-                    toc.append(
-                        f"{parent_indent}- {parent_header.lstrip('#').strip()}")
-                    seen_headers.add(parent_header)
+    #         # Add headers to TOC
+    #         for parent_header in sorted(headers_by_parent.keys(), key=lambda x: "" if x is None else x):
+    #             if parent_header and parent_header not in seen_headers:
+    #                 parent_header_level = min(
+    #                     (entry[1] - 1 for entry in headers_by_parent[parent_header]), default=1)
+    #                 parent_indent = "\t" * (max(1, parent_header_level) - 1)
+    #                 toc.append(
+    #                     f"{parent_indent}- {parent_header.lstrip('#').strip()}")
+    #                 seen_headers.add(parent_header)
 
-                for header, header_level in sorted(headers_by_parent[parent_header], key=lambda x: x[1]):
-                    if header and header != parent_header and header not in seen_headers:
-                        indent = "\t" * (header_level - 1)
-                        toc.append(f"{indent}- {header.lstrip('#').strip()}")
-                        seen_headers.add(header)
+    #             for header, header_level in sorted(headers_by_parent[parent_header], key=lambda x: x[1]):
+    #                 if header and header != parent_header and header not in seen_headers:
+    #                     indent = "\t" * (header_level - 1)
+    #                     toc.append(f"{indent}- {header.lstrip('#').strip()}")
+    #                     seen_headers.add(header)
 
-            # Add Top Results section for this source_url
-            top_results = [
-                result["text"] for (url, _, is_top), results in grouped_by_source_and_parent.items()
-                if url == source_url and is_top
-                for result in sorted(results, key=lambda x: x.get("header_level", 1))
-            ]
-            if top_results:
-                toc.append("# Top Results")
-                toc.extend(top_results)
+    #         # Add Top Results section for this source_url
+    #         top_results = [
+    #             result["text"] for (url, _, is_top), results in grouped_by_source_and_parent.items()
+    #             if url == source_url and is_top
+    #             for result in sorted(results, key=lambda x: x.get("header_level", 1))
+    #         ]
+    #         if top_results:
+    #             toc.append("# Top Results")
+    #             toc.extend(top_results)
 
-    # Save formatted context as markdown file
-    context = "\n\n".join(toc)
-    save_file(context, os.path.join(output_dir, "context.md"))
+    # # Save formatted context as markdown file
+    # context = "\n\n".join(toc)
+    # save_file(context, os.path.join(output_dir, "context.md"))
 
     # contexts = truncate_texts([doc["text"] for doc in sorted_doc_results], 100)
     contexts = [doc["text"] for doc in sorted_doc_results if doc["is_top"]]
+
+    context = "\n\n".join(contexts)
+    save_file(context, os.path.join(output_dir, "context.md"))
+
     context_tokens: int = count_tokens(
         llm_model, context, prevent_total=True)
     save_file({
