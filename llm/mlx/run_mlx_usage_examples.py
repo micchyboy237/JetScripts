@@ -113,7 +113,7 @@ def example_streaming_creative():
         top_p=0.85,
         logit_bias={tokenizer.encode("light")[0]: 1.5}  # Bias toward "light"
     ):
-        logger.info(segment, end='', flush=True)
+        pass
     logger.info("\n")
 
 
