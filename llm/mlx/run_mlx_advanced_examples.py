@@ -1,5 +1,6 @@
 import os
-from jet.llm.mlx.client import MLXLMClient
+from typing import Any, Dict
+from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.transformers.formatters import format_json
 
@@ -10,18 +11,63 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.orange(f"Logs: {log_file}")
 
 
-def advanced_chat_with_logprobs_example(client: MLXLMClient):
-    """Example using chat with logprobs to analyze token probabilities.
-    Scenario: Generate a technical report summary, where logprobs=5 provides
-    probability data for the top 5 token choices at each step.
+def encode_decode_example(client: MLX) -> Dict[str, Any]:
+    """Encode and decode single and multiple text inputs using the model's tokenizer.
+
+    Args:
+        client: An object with a tokenizer attribute (instance of TokenizerWrapper).
+
+    Returns:
+        Dict containing the input texts, encoded tokens, decoded texts, and their types.
     """
+    single_text = "Hello, how are you today?"
+    multiple_texts = [
+        "The quick brown fox jumps over the lazy dog.",
+        "Artificial intelligence is transforming industries."
+    ]
+
+    # Encode single text
+    single_encoded = client.tokenizer.encode(single_text, return_tensors=None)
+    single_decoded = client.tokenizer.decode(single_encoded)
+
+    # Encode multiple texts with proper padding and truncation
+    multiple_encoded = client.tokenizer.encode(
+        multiple_texts, return_tensors=None, padding=True, truncation=True
+    )
+    multiple_decoded = client.tokenizer.batch_decode(multiple_encoded)
+
+    # Prepare results for logging
+    result = {
+        "single_text": {
+            "input": single_text,
+            "encoded": single_encoded,
+            "decoded": single_decoded,
+            "encoded_type": type(single_encoded).__name__,
+            "decoded_type": type(single_decoded).__name__
+        },
+        "multiple_texts": {
+            "inputs": multiple_texts,
+            "encoded": multiple_encoded,
+            "decoded": multiple_decoded,
+            "encoded_type": type(multiple_encoded).__name__,
+            "decoded_type": type(multiple_decoded).__name__
+        }
+    }
+
+    logger.debug("Encode/Decode Example (single and multiple text inputs):")
+    logger.success(format_json(result))
+    return result
+
+
+def advanced_chat_with_logprobs_example(client: MLX):
     messages = [
         {"role": "system", "content": "You are a technical writer for a research firm."},
         {"role": "user", "content": "Summarize a report on renewable energy advancements."},
     ]
     response = client.chat(
+        verbose=True,
         messages=messages,
-        logprobs=5  # Returns top 5 token probabilities for each generated token
+        logprobs=5
     )
     logger.debug(
         "Advanced Chat with Logprobs Response (technical report summary):")
@@ -29,10 +75,7 @@ def advanced_chat_with_logprobs_example(client: MLXLMClient):
     return response
 
 
-def chat_with_role_mapping_example(client: MLXLMClient):
-    """Example using chat with role_mapping to customize message formatting.
-    Scenario: Format a customer support conversation with custom role prefixes.
-    """
+def chat_with_role_mapping_example(client: MLX):
     messages = [
         {"role": "system", "content": "You are a customer support assistant for a tech company."},
         {"role": "user", "content": "My laptop won't turn on. What should I do?"},
@@ -43,8 +86,9 @@ def chat_with_role_mapping_example(client: MLXLMClient):
         "assistant": "Support Response: "
     }
     response = client.chat(
+        verbose=True,
         messages=messages,
-        role_mapping=role_mapping  # Customizes role prefixes in the prompt
+        role_mapping=role_mapping
     )
     logger.debug(
         "Chat with Role Mapping Response (customer support formatting):")
@@ -52,29 +96,55 @@ def chat_with_role_mapping_example(client: MLXLMClient):
     return response
 
 
-def chat_with_logit_bias_example(client: MLXLMClient):
+def chat_with_logit_bias_example(client: MLX) -> Dict[str, Any]:
     """Example using logit_bias to favor specific tokens.
     Scenario: Generate a weather description favoring terms like 'sunny' or 'cloudy'.
+
+    Args:
+        client: An object with a tokenizer and chat method (instance of MLX).
+
+    Returns:
+        Dict containing the chat response.
     """
     messages = [
-        {"role": "system", "content": "You are a weather assistant."},
+        {"role": "system", "content": "You are a weather assistant. Provide a general overview of New York's weather by season, avoiding speculative current weather."},
         {"role": "user", "content": "Describe the weather in New York."},
     ]
-    # logit_bias increases probability of specific tokens (hypothetical IDs for "sunny", "cloudy")
-    logit_bias = {32001: 2.0, 32002: 2.0}
-    response = client.chat(
-        messages=messages,
-        logit_bias=logit_bias
-    )
+    # Encode the words "sunny" and "cloudy" to get their token IDs
+    sunny_tokens = client.tokenizer.encode(
+        "sunny", return_tensors=None, add_special_tokens=False)
+    cloudy_tokens = client.tokenizer.encode(
+        "cloudy", return_tensors=None, add_special_tokens=False)
+
+    logger.debug(f"Sunny tokens: {sunny_tokens}")
+    logger.debug(f"Cloudy tokens: {cloudy_tokens}")
+
+    # Create logit_bias dictionary, including all non-special token IDs for "sunny" and "cloudy"
+    logit_bias = {}
+    for token_id in sunny_tokens:
+        logit_bias[token_id] = 5.0
+    for token_id in cloudy_tokens:
+        logit_bias[token_id] = 5.0
+
+    if not logit_bias:
+        logger.warning(
+            "No valid non-special token IDs found for 'sunny' or 'cloudy'. Proceeding without logit bias.")
+        response = client.chat(
+            verbose=True, messages=messages)
+    else:
+        response = client.chat(
+            verbose=True,
+            messages=messages,
+            logit_bias=logit_bias,
+            temperature=0.0
+        )
+
     logger.debug("Chat with Logit Bias Response (favoring 'sunny', 'cloudy'):")
     logger.success(format_json(response))
     return response
 
 
-def chat_with_tools_example(client: MLXLMClient):
-    """Example using tools for structured function calls.
-    Scenario: Structure a weather query for a weather API call.
-    """
+def chat_with_tools_example(client: MLX):
     messages = [
         {"role": "system", "content": "You are a weather assistant with access to a weather API."},
         {"role": "user", "content": "What's the weather like in New York?"},
@@ -96,6 +166,7 @@ def chat_with_tools_example(client: MLXLMClient):
         }
     ]
     response = client.chat(
+        verbose=True,
         messages=messages,
         tools=tools
     )
@@ -104,10 +175,7 @@ def chat_with_tools_example(client: MLXLMClient):
     return response
 
 
-def streaming_chat_with_stop_example(client: MLXLMClient):
-    """Example using streaming with stop tokens to terminate output.
-    Scenario: Generate a smartphone product description, stopping at specific phrases.
-    """
+def streaming_chat_with_stop_example(client: MLX):
     messages = [
         {"role": "system", "content": "You are a marketing assistant for tech products."},
         {"role": "user", "content": "Write a brief description for a new smartphone."},
@@ -131,17 +199,14 @@ def streaming_chat_with_stop_example(client: MLXLMClient):
     return full_response
 
 
-def streaming_chat_with_temperature_example(client: MLXLMClient):
-    """Example using streaming with temperature for creative output.
-    Scenario: Generate a creative tagline for a travel agency.
-    """
+def streaming_chat_with_temperature_example(client: MLX):
     messages = [
         {"role": "system", "content": "You are a creative copywriter for a travel agency."},
         {"role": "user", "content": "Suggest a catchy tagline for our global travel packages."},
     ]
     responses = client.stream_chat(
         messages=messages,
-        temperature=1.0  # Higher temperature for more creative output
+        temperature=1.0
     )
     logger.debug("Streaming Chat with High Temperature (creative tagline):")
     full_response = ""
@@ -157,14 +222,11 @@ def streaming_chat_with_temperature_example(client: MLXLMClient):
     return full_response
 
 
-def text_generation_with_logprobs_example(client: MLXLMClient):
-    """Example using logprobs to analyze token probabilities.
-    Scenario: Generate a product name for a smartwatch.
-    """
+def text_generation_with_logprobs_example(client: MLX):
     prompt = "Suggest a name for a new smartwatch: "
     response = client.generate(
         prompt=prompt,
-        logprobs=3  # Returns top 3 token probabilities for each generated token
+        logprobs=3
     )
     logger.debug(
         "Text Generation with Logprobs (smartwatch name with token probabilities):")
@@ -172,18 +234,16 @@ def text_generation_with_logprobs_example(client: MLXLMClient):
     return response
 
 
-def chat_with_repetition_penalty_example(client: MLXLMClient):
-    """Example using repetition penalty to reduce redundant phrases.
-    Scenario: Write a brief company mission statement.
-    """
+def chat_with_repetition_penalty_example(client: MLX):
     messages = [
         {"role": "system", "content": "You are a corporate communications specialist."},
         {"role": "user", "content": "Draft a mission statement for our tech startup."},
     ]
     response = client.chat(
+        verbose=True,
         messages=messages,
-        repetition_penalty=1.2,  # Penalizes repeated tokens to reduce redundancy
-        repetition_context_size=30  # Considers last 30 tokens for repetition check
+        repetition_penalty=1.2,
+        repetition_context_size=30
     )
     logger.debug(
         "Chat with Repetition Penalty (non-repetitive mission statement):")
@@ -191,30 +251,30 @@ def chat_with_repetition_penalty_example(client: MLXLMClient):
     return response
 
 
-def text_generation_with_xtc_example(client: MLXLMClient):
-    """Example using XTC for concise text generation.
-    Scenario: Summarize a news article with token compression.
-    """
+def text_generation_with_xtc_example(client: MLX):
     prompt = "Summarize: A new electric car was unveiled with a 400-mile range and advanced AI."
     response = client.generate(
         prompt=prompt,
-        xtc_probability=0.5,  # Apply XTC more often
-        xtc_threshold=0.4     # Only top tokens with probs > 0.4
+        xtc_probability=0.5,
+        xtc_threshold=0.4
     )
     logger.debug("Text Generation with XTC (concise news summary):")
     logger.success(format_json(response))
     return response
 
 
-def main():
+if __name__ == "__main__":
     """Main function to run all advanced examples."""
-    client = MLXLMClient()
+    client = MLX()
+
+    logger.info("\n=== Encode/Decode Example ===")
+    encode_decode_example(client)
+    logger.info("\n=== Chat with Logit Bias Example ===")
+    chat_with_logit_bias_example(client)
     logger.info("\n=== Advanced Chat with Logprobs Example ===")
     advanced_chat_with_logprobs_example(client)
     logger.info("\n=== Chat with Role Mapping Example ===")
     chat_with_role_mapping_example(client)
-    logger.info("\n=== Chat with Logit Bias Example ===")
-    chat_with_logit_bias_example(client)
     logger.info("\n=== Chat with Tools Example ===")
     chat_with_tools_example(client)
     logger.info("\n=== Streaming Chat with Stop Tokens Example ===")
@@ -227,7 +287,3 @@ def main():
     chat_with_repetition_penalty_example(client)
     logger.info("\n=== Text Generation with XTC Example ===")
     text_generation_with_xtc_example(client)
-
-
-if __name__ == "__main__":
-    main()

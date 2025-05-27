@@ -16,7 +16,7 @@ from jet.wordnet.analyzers.text_analysis import ReadabilityResult, analyze_reada
 from jet.code.splitter_markdown_utils import Header, extract_md_header_contents, get_header_level, get_md_header_contents, get_md_header_docs
 from jet.file.utils import save_file
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.helpers import decompose_query, get_system_date_prompt
+from jet.llm.mlx.helpers import decompose_query, get_system_date_prompt, rewrite_query
 from jet.llm.mlx.token_utils import count_tokens
 from jet.llm.embeddings.sentence_embedding import get_tokenizer_fn
 from jet.llm.mlx.mlx_types import LLMModelType
@@ -180,6 +180,7 @@ if __name__ == "__main__":
         output_dir, "search_results.json"))
 
     # Generate broader query
+    query = rewrite_query(query, llm_model)
     # transformed_query = generate_step_back_query(query, mlx)
     # transformed_query = "Popular and trending isekai anime series released in 2023 or later, along with their genres, ratings, and a brief summary of each show."
     # sub_queries = [transformed_query]
