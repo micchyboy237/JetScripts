@@ -1,11 +1,13 @@
 from collections import defaultdict
 import json
+import re
 import time
 import asyncio
 import os
 import shutil
 from typing import Dict, Generator, List, Optional, Tuple, Union, TypedDict
 from datetime import datetime
+from urllib.parse import unquote, urlparse
 from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.wordnet.text_chunker import truncate_texts
 from jet.vectors.document_types import HeaderDocument
@@ -115,6 +117,70 @@ def filter_htmls_with_best_combined_mtld(
     return [(url, html, docs, readability_result) for url, html, docs, readability_result, _ in doc_scores[:min(limit, len(doc_scores))]]
 
 
+def format_links_for_embedding(
+    links: List[str],
+    fragment_replacements: Optional[Dict[str, str]] = None
+) -> List[str]:
+    """Format links for embedding search with host (no scheme), decoded and readable paths, queries, fragments, and uniqueness.
+
+    Args:
+        links: List of URLs to format.
+        fragment_replacements: Optional dictionary mapping fragment patterns to replacements for custom handling.
+
+    Returns:
+        List of formatted, unique strings with decoded and readable components.
+    """
+    formatted_links = set()  # Use set to ensure uniqueness
+    # Unwanted patterns to filter (e.g., technical paths)
+    unwanted_patterns = (
+        r'wp-json|oembed|feed|xmlrpc|wp-content|wp-includes|wp-admin'
+    )
+    # Default fragment replacements if none provided
+    fragment_replacements = fragment_replacements or {}
+
+    for link in links:
+        # Parse URL components
+        parsed = urlparse(link)
+        host = parsed.netloc
+        path = parsed.path.strip("/")
+        query = f"?{unquote(parsed.query)}" if parsed.query else ""
+        fragment = f"#{unquote(parsed.fragment)}" if parsed.fragment else ""
+
+        # Skip unwanted technical paths
+        if path and re.search(unwanted_patterns, path, re.IGNORECASE):
+            continue
+
+        # Skip empty or root paths with no meaningful content
+        if not host or (not path and not query and not fragment):
+            continue
+
+        # Format path for readability: replace hyphens, underscores, slashes with spaces, then title case
+        readable_path = path.replace(
+            "-", " ").replace("_", " ").replace("/", " ").title() if path else ""
+
+        # Format fragment for readability: decode, replace hyphens/underscores/colons, and title case
+        readable_fragment = fragment
+        if fragment:
+            readable_fragment = unquote(fragment)
+            # Apply custom fragment replacements if provided
+            for pattern, replacement in fragment_replacements.items():
+                readable_fragment = readable_fragment.replace(
+                    pattern, replacement)
+            # General readability: replace hyphens, underscores, colons with spaces
+            readable_fragment = readable_fragment.replace(
+                "-", " ").replace("_", " ").replace(":", " ").title()
+
+        # Combine host, path, query, and fragment, replacing slashes in host/path separator
+        formatted = f"{host} {readable_path}{query}{readable_fragment}".strip()
+
+        # Skip if empty after formatting
+        if formatted:
+            formatted_links.add(formatted)
+
+    # Return sorted list for consistent output
+    return sorted(list(formatted_links))
+
+
 if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
     output_dir = os.path.join(script_dir, "generated",
@@ -139,15 +205,59 @@ if __name__ == "__main__":
     seed = 45
     mlx = MLX(llm_model, seed=seed)
 
+    # Generate broader query
+    query = rewrite_query(query, llm_model)
+
     # Search web engine
-    search_results = search_data(query)
+    browser_search_results = search_data(query)
+
+    # Sort search results by latest first
+    # browser_search_results = sorted(
+    #     browser_search_results, key=lambda x: x.get("published_date", ""), reverse=True)
+    save_file({"query": query, "count": len(browser_search_results), "results": browser_search_results}, os.path.join(
+        output_dir, "browser_search_results.json"))
+
+    # # Filter search results
+    # browser_docs = [
+    #     HeaderDocument(
+    #         text=f"Title: {search_result["title"]}\nContent: {search_result["content"]}",
+    #         url=search_result["url"],
+    #         score=search_result["score"]
+    #     )
+    #     for search_result in browser_search_results
+    #     if search_result.get("title")
+    # ]
+    # search_browser_doc_results = search_docs(
+    #     query=query,
+    #     documents=[doc.text for doc in browser_docs],
+    #     ids=[doc.id_ for doc in browser_docs],
+    #     # headers=splitted_docs,
+    #     model=embed_model,
+    #     # rerank_model=rerank_model,
+    #     top_k=None
+    # )
+    # search_browser_doc_result_ids = [result["id"]
+    #                                  for result in search_browser_doc_results]
+    # browser_search_result_docs = [
+    #     doc for doc in browser_docs
+    #     if doc.id_ in search_browser_doc_result_ids
+    # ]
+    # save_file({
+    #     "query": query,
+    #     "count": len(browser_search_result_docs),
+    #     "results": browser_search_result_docs
+    # }, os.path.join(output_dir, "browser_search_result_docs.json"))
+
     # Scrape htmls from search result urls
-    urls = [item["url"] for item in search_results]
+    urls = [item["url"] for item in browser_search_results]
     html_list = asyncio.run(scrape_urls(urls, num_parallel=5))
     # Extract published date if not exists
-    all_results_html_tuples = list(zip(search_results, html_list))
+    all_results_html_tuples = list(zip(browser_search_results, html_list))
     all_url_html_date_tuples = []
+    all_links = []
     for result, html_str in all_results_html_tuples:
+        url = result["url"]
+
         if not result.get("publishedDate"):
             published_date = scrape_published_date(html_str)
 
@@ -161,10 +271,56 @@ if __name__ == "__main__":
                 logger.debug(published_date)
                 result["publishedDate"] = published_date
 
-        # docs = get_md_header_docs(html_str, ignore_links=True)
+        if html_str:
+            # docs = get_md_header_docs(html_str, ignore_links=True)
+            links = scrape_links(html_str, url)
+            all_links.extend(links)
 
         all_url_html_date_tuples.append(
-            (result["url"], html_str, result.get("publishedDate")))
+            (url, html_str, result.get("publishedDate")))
+
+    save_file(all_links, os.path.join(output_dir, "links.json"))
+
+    # Step 1: Create mapping before deduplication
+    formatted_link_map = {}
+    for link in all_links:
+        formatted = format_links_for_embedding([link])
+        if formatted:
+            formatted_link = formatted[0]
+            if formatted_link not in formatted_link_map:
+                # retain first occurrence
+                formatted_link_map[formatted_link] = link
+
+    # Step 2: Get formatted list
+    formatted_links = format_links_for_embedding(all_links)
+
+    # Save formatted list
+    save_file(formatted_links, os.path.join(
+        output_dir, "formatted_links.json"))
+
+    # Step 3: Run search
+    search_links_results = search_docs(
+        query=query,
+        documents=formatted_links,
+        model=embed_model,
+        top_k=None
+    )
+
+    # Step 4: Enrich with original link using mapping
+    enriched_results = []
+    for i, result in enumerate(search_links_results):
+        formatted = formatted_links[i]
+        enriched_results.append({
+            **result,
+            "formatted_link": formatted,
+            "link": formatted_link_map.get(formatted, "")
+        })
+
+    # Save enriched search results
+    save_file({
+        "query": query,
+        "results": enriched_results
+    }, os.path.join(output_dir, "search_links_results.json"))
 
     # Sort by publishedDate in descending order (newest first)
     all_url_html_date_tuples = sorted(
@@ -172,30 +328,6 @@ if __name__ == "__main__":
         key=lambda x: x[2] or "",  # fallback to "" if date is None
         reverse=True
     )
-
-    # Sort search results by latest first
-    search_results = sorted(
-        search_results, key=lambda x: x.get("published_date", ""), reverse=True)
-    save_file({"query": query, "count": len(search_results), "results": search_results}, os.path.join(
-        output_dir, "search_results.json"))
-
-    # Generate broader query
-    query = rewrite_query(query, llm_model)
-    # transformed_query = generate_step_back_query(query, mlx)
-    # transformed_query = "Popular and trending isekai anime series released in 2023 or later, along with their genres, ratings, and a brief summary of each show."
-    # sub_queries = [transformed_query]
-    # Decompose query to sub-queries
-    # sub_queries = decompose_query(query)
-    # save_file({"query": query, "sub_queries": sub_queries}, os.path.join(
-    #     output_dir, "queries.json"))
-
-    # Format docs
-    search_result_docs = [
-        f"Title: {result['title']}\nContent: {result['content']}"
-        for result in search_results
-        if result.get("title")
-    ]
-    top_n = len(search_result_docs)
 
     # queries = [*sub_queries]
     # combined_query = "\n".join(queries)
@@ -261,8 +393,7 @@ Query: {query}
     # filtered_doc_results = [r for r in search_doc_results if r["score"] > 0]
 
     # Map search result to ids
-    search_result_dict = {result["id"]
-        : result for result in search_doc_results}
+    search_result_dict = {result["id"]                          : result for result in search_doc_results}
     sorted_doc_results = []
     for doc in all_docs:
         if doc["header_level"] != 1:
