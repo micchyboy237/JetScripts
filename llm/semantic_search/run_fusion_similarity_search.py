@@ -1,19 +1,19 @@
+import os
 from jet.code.splitter_markdown_utils import get_md_header_contents
-from jet.file.utils import load_file
-from jet.llm.ollama.base import Ollama, OllamaEmbedding
+from jet.file.utils import load_file, save_file
+from jet.llm.mlx.utils.base import get_model_max_tokens
 from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.logger import logger
 from jet.scrapers.preprocessor import html_to_markdown
-from jet.token.token_utils import get_model_max_tokens
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
-from jet.wordnet.similarity import fuse_similarity_scores, query_similarity_scores
+from jet.wordnet.similarity import query_similarity_scores
 from llama_index.core.node_parser.text.sentence import SentenceSplitter
 from llama_index.core.schema import Document, NodeWithScore, TextNode
 
 
 LLM_MODEL = "gemma3:4b"
-LLM_MAX_TOKENS = get_model_max_tokens(LLM_MODEL)
+LLM_MAX_TOKENS = (LLM_MODEL)
 EMBED_MODEL = "mxbai-embed-large"
 EMBED_MODEL_2 = "paraphrase-multilingual"
 EMBED_MODEL_3 = "granite-embedding"
@@ -24,28 +24,22 @@ EMBED_MODELS = [
 ]
 EVAL_MODEL = "gemma3:4b"
 
-DATA_FILE = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/valid-ids-scraper/philippines_national_id_registration_tips_2025/scraped_html.html"
-OUTPUT_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/generated/run_llm_reranker"
+DATA_FILE = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-html: str = load_file(DATA_FILE)
-query = "What are the steps in registering a National ID in the Philippines?"
+
+docs: list[dict] = load_file(DATA_FILE)
+query = "List popular isekai reincarnation anime series released in the last few years, focusing on those with high ratings and recent popularity."
 top_k = 5
-
-llm = Ollama(temperature=0.3, model=LLM_MODEL,
-             request_timeout=300.0, context_window=LLM_MAX_TOKENS)
-embed_model = OllamaEmbedding(model_name=EMBED_MODEL)
-
-md_text = html_to_markdown(html)
-header_contents = get_md_header_contents(md_text)
 
 # all_nodes = [TextNode(text=h["content"], metadata={
 #                       "doc_index": idx}) for idx, h in enumerate(header_contents)]
-header_docs = [Document(text=h["content"], metadata={
-    "doc_index": idx}) for idx, h in enumerate(header_contents)]
+header_docs = [Document(text=doc["text"], metadata={
+    "doc_index": doc["metadata"]["doc_index"]}) for doc in docs]
 
 chunk_overlap = 40
-chunk_size = min(get_model_max_tokens(embed_model)
-                 for embed_model in EMBED_MODELS)
+chunk_size = 300
 splitter = SentenceSplitter(
     chunk_size=chunk_size,
     chunk_overlap=chunk_overlap,
@@ -54,31 +48,21 @@ all_nodes: list[TextNode] = splitter.get_nodes_from_documents(
     documents=header_docs)
 
 # Build lookup of doc_index -> original text
-doc_index_to_text = {doc.metadata["doc_index"]: doc.text for doc in header_docs}
+doc_index_to_text = {
+    doc.metadata["doc_index"]: docs[doc.metadata["doc_index"]]["text"] for doc in all_nodes}
 
-# Inject start_idx and end_idx into each node's metadata
-for node in all_nodes:
-    doc_index = node.metadata["doc_index"]
-    full_text = doc_index_to_text[doc_index]
-    try:
-        start_idx = full_text.index(node.text)
-        end_idx = start_idx + len(node.text)
-        node.metadata["start_idx"] = start_idx
-        node.metadata["end_idx"] = end_idx
-    except ValueError:
-        logger.warning(
-            f"Text not found in original doc for doc_index={doc_index}")
-        node.metadata["start_idx"] = -1
-        node.metadata["end_idx"] = -1
+
 all_texts = [node.text for node in all_nodes]
 all_texts_dict = {node.text: node for node in all_nodes}
 
 query_similarities = query_similarity_scores(
-    query, all_texts, model_name=[EMBED_MODEL, EMBED_MODEL_2, EMBED_MODEL_3])
+    query, all_texts, model=[EMBED_MODEL, EMBED_MODEL_2, EMBED_MODEL_3])
 
 nodes_with_scores = []
 seen_docs = set()  # To track unique texts
-for text, score in query_similarities[0]["results"].items():
+for result in query_similarities:
+    text = result["text"]
+    score = result["score"]
     doc_index = all_texts_dict[text].metadata["doc_index"]
     if doc_index not in seen_docs:  # Ensure unique by text
         seen_docs.add(doc_index)
@@ -91,3 +75,8 @@ for text, score in query_similarities[0]["results"].items():
         )
 copy_to_clipboard(nodes_with_scores)
 display_jet_source_nodes(query, nodes_with_scores[:top_k])
+
+
+output_path = f"{OUTPUT_DIR}/nodes_with_scores.json"
+save_file(nodes_with_scores, output_path)
+print(f"Save JSON data to: {output_path}")

@@ -8,9 +8,9 @@ if __name__ == "__main__":
     docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
 
     # Load JSON data
-    headers = load_file(docs_file)
-    print(f"Loaded JSON data {len(headers)} from: {docs_file}")
-    docs = [header["text"] for header in headers]
+    docs = load_file(docs_file)
+    print(f"Loaded JSON data {len(docs)} from: {docs_file}")
+    docs = [doc["text"] for doc in docs]
     docs_str = "\n\n".join(docs)
 
     # Process word counts for each document as a whole
