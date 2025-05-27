@@ -123,8 +123,8 @@ if __name__ == "__main__":
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    query = f"List trending isekai reincarnation anime this year."
-    # query = "Tips and links to 2025 online registration steps for TikTok live selling in the Philippines."
+    # query = f"List trending isekai reincarnation anime this year."
+    query = "Tips and links to 2025 online registration steps for TikTok live selling in the Philippines."
     top_k = 10
     # top_k = None
 
