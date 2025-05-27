@@ -7,7 +7,7 @@ import shutil
 from typing import Dict, Generator, List, Optional, Tuple, Union, TypedDict
 from datetime import datetime
 from jet.features.nltk_search import get_pos_tag, search_by_pos
-from jet.token.token_utils import merge_headers, split_headers
+from jet.wordnet.text_chunker import truncate_texts
 from jet.vectors.document_types import HeaderDocument
 from jet.vectors.search_with_clustering import search_documents
 from tqdm import tqdm
@@ -32,11 +32,7 @@ from jet.vectors.hybrid_search_engine import HybridSearchEngine
 from jet.llm.utils.transformer_embeddings import SimilarityResult, get_embedding_function, search_docs
 from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_relevance
 from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
-
-logger.info("Initializing MLX and embedding function")
-seed = 45
-DEFAULT_MODEL = "llama-3.2-3b-instruct-4bit"
-mlx = MLX(DEFAULT_MODEL, seed=seed)
+from jet.wordnet.words import count_words
 
 
 class StepBackQueryResponse(TypedDict):
@@ -130,12 +126,18 @@ if __name__ == "__main__":
     query = f"List trending isekai reincarnation anime this year."
     # query = "Tips and links to 2025 online registration steps for TikTok live selling in the Philippines."
     top_k = 20
+    # top_k = None
 
     model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
     # embed_models = ["mxbai-embed-large"]
-    embed_model = "all-mpnet-base-v2"
+    embed_model = "all-MiniLM-L12-v2"
+    llm_model = "llama-3.2-3b-instruct-4bit"
     rerank_model = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     tokenize = get_tokenizer_fn(embed_model)
+
+    logger.info("Initializing MLX and embedding function")
+    seed = 45
+    mlx = MLX(llm_model, seed=seed)
 
     # Search web engine
     search_results = search_data(query)
@@ -174,7 +176,7 @@ if __name__ == "__main__":
     # Sort search results by latest first
     search_results = sorted(
         search_results, key=lambda x: x.get("published_date", ""), reverse=True)
-    save_file({"query": query, "results": search_results}, os.path.join(
+    save_file({"query": query, "count": len(search_results), "results": search_results}, os.path.join(
         output_dir, "search_results.json"))
 
     # Generate broader query
@@ -226,93 +228,19 @@ if __name__ == "__main__":
 
     # Search headers
 
-    # search_doc_results = search_documents(
-    #     query=query,
-    #     headers=docs,
-    #     # headers=splitted_docs,
-    #     model_name=embed_model,
-    #     # rerank_model=rerank_model,
-    #     top_k=top_k,
-    #     # lambda_param=0.5,
-    #     min_header_level=2,
-    #     max_header_level=3
-    # )
     search_doc_results = search_docs(
         query=query,
-        documents=[doc.text for doc in docs],
-        ids=[doc.id_ for doc in docs],
+        documents=[doc.text for doc in all_docs],
+        ids=[doc.id_ for doc in all_docs],
         # headers=splitted_docs,
         model=embed_model,
         # rerank_model=rerank_model,
         top_k=top_k,
     )
-    # results_dir = os.path.join(output_dir, "results")
-    # save_file(search_doc_results["merge_results"],
-    #           os.path.join(results_dir, "merge_results.json"))
-    # save_file(search_doc_results["embed_results"],
-    #           os.path.join(results_dir, "embed_results.json"))
-    # save_file(search_doc_results["rerank_results"],
-    #           os.path.join(results_dir, "rerank_results.json"))
-    # save_file(search_doc_results,
-    #           os.path.join(results_dir, "results.json"))
-
-    # # Extract headers from all_docs, excluding level 1 headers
-    # docs = [header["text"]
-    #         for header in all_docs if header["header_level"] != 1]
-
-    # # Perform search using the extracted header texts
-    # search_by_pos_results = search_by_pos(query, docs)
-    # # Get query POS tags
-    # query_pos = get_pos_tag(query)
-    # # Calculate document counts for each query lemma
-    # lemma_doc_counts: Dict[str, int] = {
-    #     pos_tag['lemma']: 0 for pos_tag in query_pos}
-    # for result in search_by_pos_results:
-    #     matched_lemmas = {pos_tag['lemma']
-    #                       for pos_tag in result['matching_words_with_pos_and_lemma']}
-    #     for lemma in lemma_doc_counts:
-    #         if lemma in matched_lemmas:
-    #             lemma_doc_counts[lemma] += 1
-    # total_docs = len(docs)
-    # save_file({
-    #     "query_pos": sorted([
-    #         {
-    #             **pos_tag,
-    #             "document_count": lemma_doc_counts[pos_tag["lemma"]],
-    #             "document_percentage": (
-    #                 round(
-    #                     (lemma_doc_counts[pos_tag["lemma"]] / total_docs * 100), 2)
-    #                 if total_docs > 0 else 0.0
-    #             )
-    #         }
-    #         for pos_tag in query_pos
-    #     ], key=lambda x: x["word"]),
-    #     "documents_pos": [
-    #         {
-    #             "doc_index": result["doc_index"],
-    #             "matching_words_count": result["matching_words_count"],
-    #             "matching_words": ", ".join(sorted(
-    #                 set(item["lemma"]
-    #                     for item in result["matching_words_with_pos_and_lemma"])
-    #             )),
-    #             "text": result["text"],
-    #         } for result in search_by_pos_results
-    #     ],
-    # }, f"{output_dir}/search_by_pos_results.json")
-    # # Map search results back to the original headers in all_docs
-    # search_doc_results = [
-    #     header for header in all_docs
-    #     if header["header_level"] != 1 and header["text"] in [result["text"] for result in search_doc_results]
-    # ]
-
-    # Remove "embedding" prop
-    # search_doc_results = [
-    #     {k: v for k, v in result.items() if k != "embedding"}
-    #     for result in search_doc_results
-    # ]
 
     save_file({
         "query": query,
+        "count": len(search_doc_results),
         "results": search_doc_results
     }, os.path.join(output_dir, "search_doc_results.json"))
 
@@ -331,71 +259,87 @@ Query: {query}
     # Filter results with positive scores
     # filtered_doc_results = [r for r in search_doc_results if r["score"] > 0]
 
-    # Map search results back to the original headers in all_docs
-    search_doc_results = [
-        doc for doc in all_docs
-        if get_header_level(doc["text"]) != 1 and doc["doc_index"] in [result["doc_index"] for result in search_doc_results]
-    ]
+    # Map search result to ids
+    search_result_dict = {result["id"]: result for result in search_doc_results}
+    sorted_doc_results = []
+    for doc in all_docs:
+        if doc["header_level"] != 1:
+            if count_words(doc["content"]) < 10:
+                continue
 
-    # Sort results by source_url, parent_header, doc_index, and chunk_index
-    sorted_doc_results = sorted(
-        search_doc_results,
-        key=lambda r: (r["source_url"], r["parent_header"],
-                       r["doc_index"], r["chunk_index"])
-    )
+            is_top = doc.id_ in search_result_dict
+            text = doc.text
+            sorted_doc_results.append(
+                {**doc.metadata, "text": text, "is_top": is_top})
 
-    # Group results by source_url and parent_header
+    # Group results by source_url, parent_header, and is_top
     grouped_by_source_and_parent: dict[tuple[str,
-                                             str], List[dict]] = defaultdict(list)
+                                             str, bool], List[dict]] = defaultdict(list)
     for result in sorted_doc_results:
-        key = (result["source_url"], result["parent_header"])
+        parent_header = result.get("parent_header", None)
+        key = (result["source_url"],
+               parent_header if parent_header is not None else "", result["is_top"])
         grouped_by_source_and_parent[key].append(result)
 
-    # Format markdown context with no duplicate source_urls, parent_headers, or headers
-    formatted_context_blocks = []
+    # Create table of contents with top results section per source_url
+    toc = []
     seen_source_urls = set()
+    seen_headers = set()
 
-    for (source_url, parent_header), group in grouped_by_source_and_parent.items():
-        # Add source URL as a comment only if not already seen
-        if source_url not in seen_source_urls:
-            formatted_context_blocks.append(f"<!-- Source: {source_url} -->")
+    for source_url in sorted(set(result["source_url"] for result in sorted_doc_results)):
+        if source_url:
+            toc.append(f"<!-- Source: {source_url} -->")
+            toc.append("# Table of Contents")
             seen_source_urls.add(source_url)
 
-        # Add parent header only if not already seen and non-empty
-        if parent_header.strip() and parent_header not in formatted_context_blocks:
-            formatted_context_blocks.append(parent_header)
+            # Collect headers for this source_url
+            headers_by_parent = defaultdict(list)
+            for result in sorted_doc_results:
+                if result["source_url"] == source_url:
+                    parent_header = result.get("parent_header", None)
+                    header = result.get("header", "").strip()
+                    header_level = result.get("header_level", 1)
+                    headers_by_parent[parent_header if parent_header else ""].append(
+                        (header, header_level))
 
-        # Add entries under the parent header
-        for entry in group:
-            header = entry.get("header", "").strip()
+            # Add headers to TOC
+            for parent_header in sorted(headers_by_parent.keys(), key=lambda x: "" if x is None else x):
+                if parent_header and parent_header not in seen_headers:
+                    parent_header_level = min(
+                        (entry[1] - 1 for entry in headers_by_parent[parent_header]), default=1)
+                    parent_indent = "\t" * (max(1, parent_header_level) - 1)
+                    toc.append(
+                        f"{parent_indent}- {parent_header.lstrip('#').strip()}")
+                    seen_headers.add(parent_header)
 
-            # Add header only if distinct from parent_header and not already seen in this group
-            if header:
-                formatted_context_blocks.append(header)
+                for header, header_level in sorted(headers_by_parent[parent_header], key=lambda x: x[1]):
+                    if header and header != parent_header and header not in seen_headers:
+                        indent = "\t" * (header_level - 1)
+                        toc.append(f"{indent}- {header.lstrip('#').strip()}")
+                        seen_headers.add(header)
 
-            # Add content
-            formatted_context_blocks.append(entry["content"])
+            # Add Top Results section for this source_url
+            top_results = [
+                result["text"] for (url, _, is_top), results in grouped_by_source_and_parent.items()
+                if url == source_url and is_top
+                for result in sorted(results, key=lambda x: x.get("header_level", 1))
+            ]
+            if top_results:
+                toc.append("# Top Results")
+                toc.extend(top_results)
 
-    # Save formatted context as JSON and markdown files
-    save_file(formatted_context_blocks, os.path.join(
-        output_dir, "contexts.json"))
-    context = "\n\n".join(formatted_context_blocks)
+    # Save formatted context as markdown file
+    context = "\n\n".join(toc)
     save_file(context, os.path.join(output_dir, "context.md"))
 
-    # # Create structured context entries
-    # context_entries: List[ContextEntry] = [
-    #     ContextEntry(**result) for result in sorted_doc_results
-    # ]
-
-    # # Compile final context information
-    # context_info: ContextInfo = {
-    #     "model": DEFAULT_MODEL,
-    #     "total_tokens": sum(entry["tokens"] for entry in context_entries),
-    #     "contexts": context_entries,
-    # }
-
-    # # Save to JSON file
-    # save_file(context_info, os.path.join(output_dir, "context_info.json"))
+    # contexts = truncate_texts([doc["text"] for doc in sorted_doc_results], 100)
+    contexts = [doc["text"] for doc in sorted_doc_results if doc["is_top"]]
+    context_tokens: int = count_tokens(
+        llm_model, context, prevent_total=True)
+    save_file({
+        "total_tokens": context_tokens,
+        "contexts": contexts
+    }, os.path.join(output_dir, "contexts.json"))
 
     response = ""
     prompt = PROMPT_TEMPLATE.format(query=query, context=context)
@@ -414,12 +358,12 @@ Query: {query}
 
     # Evaluate context
     evaluate_context_relevance_result = evaluate_context_relevance(
-        query, context, DEFAULT_MODEL)
+        query, context, llm_model)
     save_file(evaluate_context_relevance_result, os.path.join(
         output_dir, "eval", "evaluate_context_relevance_result.json"))
 
     # Evaluate context and response
     evaluate_response_relevance_result = evaluate_response_relevance(
-        query, context, response, DEFAULT_MODEL)
+        query, context, response, llm_model)
     save_file(evaluate_response_relevance_result, os.path.join(
         output_dir, "eval", "evaluate_response_relevance_result.json"))
