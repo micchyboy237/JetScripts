@@ -14,7 +14,8 @@ if __name__ == "__main__":
     docs_str = "\n\n".join(docs)
 
     # Process word counts for each document separately
-    word_counts_lemmatized_results = get_word_counts_lemmatized(docs_str)
+    word_counts_lemmatized_results = get_word_counts_lemmatized(
+        docs, pos=["noun"], min_count=2)
     output_path = f"{output_dir}/word_counts_lemmatized.json"
     save_file(word_counts_lemmatized_results, output_path)
     print(f"Save JSON data to: {output_path}")
