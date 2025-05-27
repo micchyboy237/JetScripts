@@ -1,6 +1,7 @@
+import os
 import sys
 import json
-from jet.file.utils import load_file
+from jet.file.utils import load_file, save_file
 from jet.llm.mlx.templates.generate_labels import generate_labels
 import spacy
 from typing import List, Dict
@@ -38,16 +39,19 @@ def determine_chunk_size(text: str) -> int:
 
 
 def main():
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/searched_html_myanimelist_net_Isekai/headers.json"
-    data: list[dict] = load_file(data_file)
-    data: list[str] = [d["text"] for d in data]
+    output_dir = os.path.join(
+        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
+    docs: list[dict] = load_file(docs_file)
+    data = [doc["text"] for doc in docs]
     # Read arguments
-    labels = generate_labels(data, max_labels=10)
+    labels = generate_labels(data[:10], max_labels=10)
     model = "urchade/gliner_small-v2.1"
     style = "ent"
 
-    for item in data:
-        id = item['id']
+    results = []
+    for item in docs:
+        id = item['id_']
         text = item['text']
         # Determine chunk size dynamically for each text
         chunk_size = determine_chunk_size(text)
@@ -65,12 +69,16 @@ def main():
             "score": f"{entity._.score:.4f}"
         } for entity in doc.ents]
 
-        # Output the result
-        print(f"result: {json.dumps({
+        result = {
             "id": id,
             "text": text,
             "entities": entities
-        })}")
+        }
+        # Output the result
+        print(f"Result: {json.dumps(result)}")
+
+        results.append(result)
+        save_file(results, f"{output_dir}/extracted_labels.json")
 
 
 if __name__ == "__main__":

@@ -164,8 +164,8 @@ if __name__ == "__main__":
 
     # Add SpanMarker as an additional NER pipeline
     nlp.add_pipe("span_marker", config={
-        # "model": "tomaarsen/span-marker-mbert-base-multinerd"
-        "model": "tomaarsen/span-marker-roberta-large-ontonotes5"
+        "model": "tomaarsen/span-marker-mbert-base-multinerd"
+        # "model": "tomaarsen/span-marker-roberta-large-ontonotes5"
     }, last=True)
 
     # Input text

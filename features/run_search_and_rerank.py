@@ -13,7 +13,7 @@ from jet.vectors.search_with_clustering import search_documents
 from tqdm import tqdm
 from mlx_lm import load
 from jet.wordnet.analyzers.text_analysis import ReadabilityResult, analyze_readability, analyze_text
-from jet.code.splitter_markdown_utils import Header, extract_md_header_contents, get_md_header_contents, get_md_header_docs
+from jet.code.splitter_markdown_utils import Header, extract_md_header_contents, get_header_level, get_md_header_contents, get_md_header_docs
 from jet.file.utils import save_file
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.helpers import decompose_query, get_system_date_prompt
@@ -220,33 +220,41 @@ if __name__ == "__main__":
     save_file(all_docs, os.path.join(output_dir, "docs.json"))
     save_file(headers, os.path.join(output_dir, "headers.json"))
 
-    splitted_docs = split_headers(
-        all_docs, embed_model, chunk_size=200, chunk_overlap=20)
-    save_file(splitted_docs, os.path.join(output_dir, "splitted_docs.json"))
+    # splitted_docs = split_headers(
+    #     all_docs, embed_model, chunk_size=200, chunk_overlap=20)
+    # save_file(splitted_docs, os.path.join(output_dir, "splitted_docs.json"))
 
     # Search headers
 
-    search_results = search_documents(
+    # search_doc_results = search_documents(
+    #     query=query,
+    #     headers=docs,
+    #     # headers=splitted_docs,
+    #     model_name=embed_model,
+    #     # rerank_model=rerank_model,
+    #     top_k=top_k,
+    #     # lambda_param=0.5,
+    #     min_header_level=2,
+    #     max_header_level=3
+    # )
+    search_doc_results = search_docs(
         query=query,
-        headers=splitted_docs,
-        model_name=embed_model,
+        documents=[doc.text for doc in docs],
+        ids=[doc.id_ for doc in docs],
+        # headers=splitted_docs,
+        model=embed_model,
         # rerank_model=rerank_model,
         top_k=top_k,
-        # lambda_param=0.5,
-        min_header_level=2,
-        max_header_level=3
     )
-    results_dir = os.path.join(output_dir, "results")
-    save_file(search_results["merge_results"],
-              os.path.join(results_dir, "merge_results.json"))
-    save_file(search_results["embed_results"],
-              os.path.join(results_dir, "embed_results.json"))
-    # save_file(search_results["rerank_results"],
+    # results_dir = os.path.join(output_dir, "results")
+    # save_file(search_doc_results["merge_results"],
+    #           os.path.join(results_dir, "merge_results.json"))
+    # save_file(search_doc_results["embed_results"],
+    #           os.path.join(results_dir, "embed_results.json"))
+    # save_file(search_doc_results["rerank_results"],
     #           os.path.join(results_dir, "rerank_results.json"))
-    save_file(search_results["results"],
-              os.path.join(results_dir, "results.json"))
-
-    search_doc_results = search_results["results"]
+    # save_file(search_doc_results,
+    #           os.path.join(results_dir, "results.json"))
 
     # # Extract headers from all_docs, excluding level 1 headers
     # docs = [header["text"]
@@ -298,10 +306,10 @@ if __name__ == "__main__":
     # ]
 
     # Remove "embedding" prop
-    search_doc_results = [
-        {k: v for k, v in result.items() if k != "embedding"}
-        for result in search_doc_results
-    ]
+    # search_doc_results = [
+    #     {k: v for k, v in result.items() if k != "embedding"}
+    #     for result in search_doc_results
+    # ]
 
     save_file({
         "query": query,
@@ -321,11 +329,17 @@ Query: {query}
 """
 
     # Filter results with positive scores
-    filtered_doc_results = [r for r in search_doc_results if r["score"] > 0]
+    # filtered_doc_results = [r for r in search_doc_results if r["score"] > 0]
+
+    # Map search results back to the original headers in all_docs
+    search_doc_results = [
+        doc for doc in all_docs
+        if get_header_level(doc["text"]) != 1 and doc["doc_index"] in [result["doc_index"] for result in search_doc_results]
+    ]
 
     # Sort results by source_url, parent_header, doc_index, and chunk_index
     sorted_doc_results = sorted(
-        filtered_doc_results,
+        search_doc_results,
         key=lambda r: (r["source_url"], r["parent_header"],
                        r["doc_index"], r["chunk_index"])
     )
@@ -368,20 +382,20 @@ Query: {query}
     context = "\n\n".join(formatted_context_blocks)
     save_file(context, os.path.join(output_dir, "context.md"))
 
-    # Create structured context entries
-    context_entries: List[ContextEntry] = [
-        ContextEntry(**result) for result in sorted_doc_results
-    ]
+    # # Create structured context entries
+    # context_entries: List[ContextEntry] = [
+    #     ContextEntry(**result) for result in sorted_doc_results
+    # ]
 
-    # Compile final context information
-    context_info: ContextInfo = {
-        "model": DEFAULT_MODEL,
-        "total_tokens": sum(entry["tokens"] for entry in context_entries),
-        "contexts": context_entries,
-    }
+    # # Compile final context information
+    # context_info: ContextInfo = {
+    #     "model": DEFAULT_MODEL,
+    #     "total_tokens": sum(entry["tokens"] for entry in context_entries),
+    #     "contexts": context_entries,
+    # }
 
-    # Save to JSON file
-    save_file(context_info, os.path.join(output_dir, "context_info.json"))
+    # # Save to JSON file
+    # save_file(context_info, os.path.join(output_dir, "context_info.json"))
 
     response = ""
     prompt = PROMPT_TEMPLATE.format(query=query, context=context)

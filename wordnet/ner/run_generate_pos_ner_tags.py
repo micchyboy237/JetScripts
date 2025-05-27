@@ -1,4 +1,5 @@
 import json
+import os
 from jet.data.utils import generate_key
 
 from jet.wordnet.sentence import adaptive_split
@@ -176,8 +177,13 @@ def process_ner_label(data):
 
 
 def main():
-    base_data = load_data(
-        'server/static/datasets/content/wiki_initial_descriptions.json')
+    # base_data = load_data(
+    #     'server/static/datasets/content/wiki_initial_descriptions.json')
+    base_data = [
+        {"language": "English", "title": "Manila"},
+        {"language": "English", "title": "Ferdinand Marcos"},
+        {"language": "English", "title": "University of the Philippines"}
+    ]
 
     process_ner_label(base_data)
 
