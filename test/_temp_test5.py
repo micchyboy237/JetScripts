@@ -19,11 +19,8 @@ class SimilarityResult(TypedDict):
 
 def preprocess_text(text: str) -> str:
     """Preprocess text by lowercasing, removing non-alphanumeric characters, and normalizing whitespace."""
-    # Lowercase
     text = text.lower()
-    # Remove non-alphanumeric characters, preserve spaces
     text = re.sub(r'[^a-z0-9\s]', '', text)
-    # Normalize whitespace
     text = re.sub(r'\s+', ' ', text.strip())
     return text
 
@@ -46,7 +43,6 @@ def search_docs(
     if not top_k:
         top_k = len(documents)
 
-    # Validate ids if provided
     if ids is not None:
         if len(ids) != len(documents):
             raise ValueError(
@@ -54,7 +50,6 @@ def search_docs(
         if len(ids) != len(set(ids)):
             raise ValueError("IDs must be unique")
 
-    # Preprocess query and documents
     if preprocess:
         processed_query = preprocess_text(query)
         processed_documents = [preprocess_text(doc) for doc in documents]
@@ -62,7 +57,6 @@ def search_docs(
         processed_query = query
         processed_documents = documents
 
-    # Initialize tokenizer for token counting
     embed_model = resolve_model_key(model)
     model_id = AVAILABLE_EMBED_MODELS[embed_model]
     tokenizer = AutoTokenizer.from_pretrained(model_id)
@@ -82,20 +76,20 @@ def search_docs(
             f"Mismatch between document embeddings ({len(doc_embeddings)}) and documents ({len(processed_documents)})")
         return []
 
-    similarities = np.dot(doc_embeddings, query_embedding) / (
-        np.linalg.norm(doc_embeddings, axis=1) *
-        np.linalg.norm(query_embedding)
-    )
-
-    similarities = np.nan_to_num(similarities, nan=-1.0)
+    # Compute similarities with zero-norm handling
+    doc_norms = np.linalg.norm(doc_embeddings, axis=1)
+    query_norm = np.linalg.norm(query_embedding)
+    similarities = np.dot(doc_embeddings, query_embedding)
+    # Avoid division by zero
+    valid_norms = (doc_norms > 0) & (query_norm > 0)
+    similarities[valid_norms] /= (doc_norms[valid_norms] * query_norm)
+    similarities[~valid_norms] = -1.0  # Replace NaN/invalid with -1.0
 
     top_k = min(top_k, len(processed_documents))
     if top_k <= 0:
         return []
 
     top_indices = np.argsort(similarities)[::-1][:top_k]
-
-    # Convert indices to Python int to avoid NumPy integer types
     valid_indices = [int(idx)
                      for idx in top_indices if idx < len(processed_documents)]
     if not valid_indices:
@@ -103,7 +97,6 @@ def search_docs(
 
     results = []
     for rank, idx in enumerate(valid_indices, start=1):
-        # Use original document text for result, not preprocessed
         doc_text = documents[idx]
         tokens = len(tokenizer.encode(doc_text, add_special_tokens=True))
         doc_id = ids[idx] if ids is not None else f"doc_{idx}"
