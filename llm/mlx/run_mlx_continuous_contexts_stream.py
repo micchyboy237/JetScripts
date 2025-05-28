@@ -42,7 +42,7 @@ def create_hierarchical_context(grouped_docs: List[GroupedResult], max_length: i
     return context
 
 
-async def fetch_search_results(query: str, output_dir: str) -> Tuple[List[SearchResult], List[str]]:
+async def fetch_search_results(query: str) -> Tuple[List[SearchResult], List[str]]:
     """Fetch search results and save them."""
     browser_search_results = search_data(query)
     urls = [item["url"] for item in browser_search_results]
@@ -122,7 +122,7 @@ async def main():
     # Search all anime titles if available in aniwatch for watching episodes
     query_aniwatch_search_links = f"Aniwatch anime search links"
     # query = rewrite_query(query, llm_model)
-    browser_aniwatch_search_links_results, html_list = await fetch_search_results(query_aniwatch_search_links, output_dir)
+    browser_aniwatch_search_links_results, html_list = await fetch_search_results(query_aniwatch_search_links)
     save_file({
         "query": query_aniwatch_search_links,
         "results": browser_aniwatch_search_links_results
