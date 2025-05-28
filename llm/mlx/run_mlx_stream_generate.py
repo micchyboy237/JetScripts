@@ -32,11 +32,11 @@ for stream_response in client.stream_generate(
     model=model,
     # max_tokens=200,
     temperature=0.3,
-    log_dir=MLX_LOG_DIR
+    log_dir=MLX_LOG_DIR,
+    verbose=True
 ):
     content = stream_response["choices"][0]["text"]
     response += content
-    logger.success(content, flush=True)
 
     if stream_response["choices"][0]["finish_reason"]:
         logger.newline()
