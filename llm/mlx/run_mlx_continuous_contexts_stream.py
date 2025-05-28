@@ -45,11 +45,6 @@ def create_hierarchical_context(grouped_docs: List[GroupedResult], max_length: i
 async def fetch_search_results(query: str, output_dir: str) -> Tuple[List[SearchResult], List[str]]:
     """Fetch search results and save them."""
     browser_search_results = search_data(query)
-    save_file(
-        {"query": query, "count": len(
-            browser_search_results), "results": browser_search_results},
-        os.path.join(output_dir, "browser_search_results.json")
-    )
     urls = [item["url"] for item in browser_search_results]
     html_list = await scrape_urls(urls, num_parallel=5)
     return browser_search_results, html_list
@@ -119,28 +114,33 @@ async def main():
     save_file(anime_titles, f"{output_dir}/anime_titles.json")
 
     messages.append(
-        {"role": "assistant", "content": response}
+        {"role": "assistant", "content": json_result}
     )
 
     save_file(messages, f"{output_dir}/stream_chat_anime_titles.json")
 
     # Search all anime titles if available in aniwatch for watching episodes
-    query = f"Find the link to this anime title ({anime_titles[0]}) to watch episodes on aniwatch."
+    query_aniwatch_search_links = f"Aniwatch anime search links"
     # query = rewrite_query(query, llm_model)
-    browser_search_results, html_list = await fetch_search_results(query, output_dir)
-    save_file(context, f"{output_dir}/search_results_aniwatch.json")
+    browser_aniwatch_search_links_results, html_list = await fetch_search_results(query_aniwatch_search_links, output_dir)
+    save_file({
+        "query": query_aniwatch_search_links,
+        "results": browser_aniwatch_search_links_results
+    }, f"{output_dir}/browser_aniwatch_search_links_results.json")
 
     documents = [
-        (
-            f"URL: {search_result['url']}\n"
-            f"Title: {search_result['title']}\n"
-            f"Content: {search_result['content']}\n"
-        ).strip()
-        for search_result in browser_search_results
+        search_result['url']
+        for search_result in browser_aniwatch_search_links_results
         if search_result.get("title")
     ]
-    context = f"Search results:\n\n{'n\n'.join(documents)}"
-    save_file(context, f"{output_dir}/context_aniwatch_urls.md")
+    save_file({
+        "query": query_aniwatch_search_links,
+        "results": documents
+    }, f"{output_dir}/context_aniwatch_urls.json")
+
+    context_aniwatch_search_urls = f"Aniwatch search link results:\n\n{'n\n'.join(documents)}"
+    save_file(context_aniwatch_search_urls,
+              f"{output_dir}/context_aniwatch_urls.md")
 
     messages = [
         {
@@ -149,7 +149,7 @@ async def main():
         },
         {
             "role": "user",
-            "content": f"Extract the AniWatch URL for watching episodes of \"{anime_titles[0]}\" from the following search results:\n\n{context}"
+            "content": f"Generate the AniWatch search URL for watching episodes of \"{anime_titles[0]}\" derived from the following urls:\n\n{context_aniwatch_search_urls}"
         },
     ]
 
