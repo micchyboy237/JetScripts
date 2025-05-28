@@ -1,291 +1,61 @@
-from typing import List, Dict
-import re
-from difflib import SequenceMatcher
-from collections import defaultdict
-import nltk
-from nltk.tokenize import word_tokenize
-from nltk.corpus import wordnet
-import pytest
-
-# Download required NLTK data (run once on Mac M1)
-try:
-    nltk.data.find('tokenizers/punkt')
-    nltk.data.find('corpora/wordnet')
-except LookupError:
-    nltk.download('punkt')
-    nltk.download('wordnet')
+import urllib.parse
+import requests
+from bs4 import BeautifulSoup
+import numpy as np
+import mlx.core as mx
+from sentence_transformers import SentenceTransformer
 
 
-class LinkSearcher:
-    def __init__(self, links: List[Dict[str, str]]):
-        """
-        Initialize with a list of links, each link being a dict with 'url' and 'title'
-        Example link: {'url': 'http://example.com', 'title': 'Example Site'}
-        """
-        self.links = links
-        self.keyword_weights = {
-            "tiktok": 2.0,
-            "live selling": 1.5,
-            "philippines": 1.5,
-            "registration": 1.2,
-            "guidelines": 1.2,
-            "2025": 2.0  # Weight for year, if present in query
-        }
+class AnimeAvailabilityTool:
+    def __init__(self):
+        # Load a lightweight embedding model for vector search, optimized for MPS
+        self.embedder = SentenceTransformer('all-MiniLM-L6-v2', device='mps')
 
-    def _parse_query(self, query: str) -> List[str]:
-        """Parse query into sub-queries based on 'or' operator."""
-        query = query.lower().strip()
-        sub_queries = [q.strip() for q in query.split(" or ")]
-        return [q for q in sub_queries if q]
-
-    def _extract_year(self, query: str) -> str | None:
-        """Extract a four-digit year from the query, if present."""
-        match = re.search(r'\b\d{4}\b', query)
-        return match.group(0) if match else None
-
-    def _get_synonyms(self, word: str) -> List[str]:
-        """Get synonyms for a word using WordNet."""
-        synonyms = set()
-        for syn in wordnet.synsets(word):
-            for lemma in syn.lemmas():
-                synonyms.add(lemma.name().lower().replace('_', ' '))
-        return list(synonyms)
-
-    def _tokenize_and_expand(self, query: str) -> List[str]:
-        """Tokenize query and expand with synonyms for key terms."""
-        tokens = word_tokenize(query)
-        expanded = []
-        for token in tokens:
-            expanded.append(token)
-            if token in self.keyword_weights:
-                expanded.extend(self._get_synonyms(token))
-        return expanded
-
-    def search(self, query: str, method: str = "combined") -> List[Dict[str, str]]:
-        """
-        Search links based on query using specified method.
-        Methods: 'exact', 'partial', 'fuzzy', 'combined'
-        """
-        if not query.strip():
+    def get_md_header_docs(self, url):
+        """Scrape HTML header documents from the given URL."""
+        try:
+            response = requests.get(url, timeout=5)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, 'html.parser')
+            # Extract headers (h1, h2, h3) and meta description
+            headers = [elem.get_text().strip()
+                       for elem in soup.find_all(['h1', 'h2', 'h3'])]
+            meta_desc = soup.find('meta', attrs={'name': 'description'})
+            meta_content = meta_desc['content'].strip() if meta_desc else ""
+            return headers + [meta_content] if meta_content else headers
+        except Exception as e:
+            print(f"Error scraping {url}: {e}")
             return []
 
-        sub_queries = self._parse_query(query)
-        year = self._extract_year(query)
-        results = []
+    def search_docs(self, query, documents):
+        """Perform vector search with MPS to find document similarity."""
+        if not documents:
+            return 0.0
+        # Generate embeddings for query and documents
+        query_embedding = self.embedder.encode([query], convert_to_numpy=False)
+        doc_embeddings = self.embedder.encode(
+            documents, convert_to_numpy=False)
+        # Convert to MLX arrays for MPS
+        query_embedding = mx.array(query_embedding)
+        doc_embeddings = mx.array(doc_embeddings)
+        # Compute cosine similarity
+        dot_product = mx.sum(query_embedding * doc_embeddings, axis=1)
+        norm_query = mx.sqrt(mx.sum(query_embedding ** 2))
+        norm_docs = mx.sqrt(mx.sum(doc_embeddings ** 2, axis=1))
+        similarities = dot_product / (norm_query * norm_docs + 1e-8)
+        return float(mx.max(similarities).item())
 
-        for sub_query in sub_queries:
-            if method == "exact":
-                results.extend(self._exact_match(sub_query, year))
-            elif method == "partial":
-                results.extend(self._partial_match(sub_query, year))
-            elif method == "fuzzy":
-                results.extend(self._fuzzy_match(
-                    sub_query, year, threshold=0.6))
-            else:  # combined
-                results.extend(self._combined_search(sub_query, year))
-
-        # Remove duplicates and sort by relevance
-        seen_urls = set()
-        unique_results = []
-        for link in results:
-            if link['url'] not in seen_urls:
-                unique_results.append(link)
-                seen_urls.add(link['url'])
-
-        return self._rank_results(unique_results, sub_queries)
-
-    def _exact_match(self, query: str, year: str | None) -> List[Dict[str, str]]:
-        """Exact string matching in title with optional year filter."""
-        if year:
-            return [
-                link for link in self.links
-                if query in link['title'].lower() and year in link['title'].lower()
-            ]
-        return [
-            link for link in self.links
-            if query in link['title'].lower()
-        ]
-
-    def _partial_match(self, query: str, year: str | None) -> List[Dict[str, str]]:
-        """Partial matching using regex with optional year filter."""
-        pattern = re.compile(re.escape(query), re.IGNORECASE)
-        if year:
-            return [
-                link for link in self.links
-                if pattern.search(link['title']) and year in link['title'].lower()
-            ]
-        return [
-            link for link in self.links
-            if pattern.search(link['title'])
-        ]
-
-    def _fuzzy_match(self, query: str, year: str | None, threshold: float) -> List[Dict[str, str]]:
-        """Fuzzy matching using SequenceMatcher with optional year filter."""
-        results = []
-        expanded_query = self._tokenize_and_expand(query)
-        for link in self.links:
-            if year and year not in link['title'].lower():
-                continue
-            max_ratio = max(
-                SequenceMatcher(None, q, link['title'].lower()).ratio()
-                for q in expanded_query
-            )
-            if max_ratio >= threshold:
-                results.append((link, max_ratio))
-        return [link for link, _ in sorted(results, key=lambda x: x[1], reverse=True)]
-
-    def _combined_search(self, query: str, year: str | None) -> List[Dict[str, str]]:
-        """Combined approach: exact matches first, then fuzzy matches with optional year filter."""
-        exact_results = self._exact_match(query, year)
-        fuzzy_results = self._fuzzy_match(query, year, threshold=0.6)
-
-        seen_urls = set()
-        combined = []
-
-        for link in exact_results:
-            if link['url'] not in seen_urls:
-                combined.append(link)
-                seen_urls.add(link['url'])
-
-        for link in fuzzy_results:
-            if link['url'] not in seen_urls:
-                combined.append(link)
-                seen_urls.add(link['url'])
-
-        return combined
-
-    def _rank_results(self, results: List[Dict[str, str]], queries: List[str]) -> List[Dict[str, str]]:
-        """Rank results based on keyword coverage and weights."""
-        scored_results = []
-        for link in results:
-            score = 0.0
-            title = link['title'].lower()
-            for query in queries:
-                tokens = word_tokenize(query)
-                for token in tokens:
-                    if token in title:
-                        score += self.keyword_weights.get(token, 1.0)
-            scored_results.append((link, score))
-        return [link for link, _ in sorted(scored_results, key=lambda x: x[1], reverse=True)]
-
-
-class TestLinkSearcher:
-    links = [
-        {'url': 'http://tiktok.com/ph1',
-            'title': '2025 TikTok Live Selling Registration Philippines'},
-        {'url': 'http://tiktok.com/ph2', 'title': 'TikTok Seller Guidelines 2025'},
-        {'url': 'http://example.com', 'title': 'General E-commerce Tips'},
-        {'url': 'http://tiktok.com/ph3',
-            'title': '2024 TikTok Live Selling Guide Philippines'},
-        {'url': 'http://coding.com', 'title': 'Learn Coding Online'}
-    ]
-
-    def test_empty_query(self):
-        """Test searching with empty query."""
-        searcher = LinkSearcher(self.links)
-        result = searcher.search("")
-        expected = []
-        assert result == expected, f"Expected {expected}, got {result}"
-
-    def test_exact_match_with_year(self):
-        """Test exact matching with year in query."""
-        searcher = LinkSearcher(self.links)
-        result = searcher.search("tiktok live selling 2025", method="exact")
-        expected = [
-            {'url': 'http://tiktok.com/ph1',
-                'title': '2025 TikTok Live Selling Registration Philippines'},
-            {'url': 'http://tiktok.com/ph2', 'title': 'TikTok Seller Guidelines 2025'}
-        ]
-        assert result == expected, f"Expected {expected}, got {result}"
-
-    def test_exact_match_no_year(self):
-        """Test exact matching without year in query."""
-        searcher = LinkSearcher(self.links)
-        result = searcher.search("tiktok live selling", method="exact")
-        expected = [
-            {'url': 'http://tiktok.com/ph1',
-                'title': '2025 TikTok Live Selling Registration Philippines'},
-            {'url': 'http://tiktok.com/ph2',
-                'title': 'TikTok Seller Guidelines 2025'},
-            {'url': 'http://tiktok.com/ph3',
-                'title': '2024 TikTok Live Selling Guide Philippines'}
-        ]
-        assert result == expected, f"Expected {expected}, got {result}"
-
-    def test_partial_match_with_year(self):
-        """Test partial matching with year in query."""
-        searcher = LinkSearcher(self.links)
-        result = searcher.search("registration 2025", method="partial")
-        expected = [
-            {'url': 'http://tiktok.com/ph1',
-                'title': '2025 TikTok Live Selling Registration Philippines'}
-        ]
-        assert result == expected, f"Expected {expected}, got {result}"
-
-    def test_fuzzy_match_with_typo(self):
-        """Test fuzzy matching with typo and year in query."""
-        searcher = LinkSearcher(self.links)
-        result = searcher.search("tik tok sell 2025", method="fuzzy")
-        expected = [
-            {'url': 'http://tiktok.com/ph1',
-                'title': '2025 TikTok Live Selling Registration Philippines'},
-            {'url': 'http://tiktok.com/ph2', 'title': 'TikTok Seller Guidelines 2025'}
-        ]
-        assert result == expected, f"Expected {expected}, got {result}"
-
-    def test_multi_part_query(self):
-        """Test handling of multi-part query with 'or'."""
-        searcher = LinkSearcher(self.links)
-        query = "tiktok live selling or seller guidelines 2025"
-        result = searcher.search(query)
-        expected = [
-            {'url': 'http://tiktok.com/ph1',
-                'title': '2025 TikTok Live Selling Registration Philippines'},
-            {'url': 'http://tiktok.com/ph2', 'title': 'TikTok Seller Guidelines 2025'}
-        ]
-        assert result == expected, f"Expected {expected}, got {result}"
-
-    def test_synonym_handling(self):
-        """Test synonym expansion in fuzzy matching."""
-        searcher = LinkSearcher(self.links)
-        result = searcher.search("signup 2025", method="fuzzy")
-        expected = [
-            {'url': 'http://tiktok.com/ph1',
-                'title': '2025 TikTok Live Selling Registration Philippines'}
-        ]
-        assert result == expected, f"Expected {expected}, got {result}"
-
-    def test_no_year_query(self):
-        """Test query without year reference."""
-        searcher = LinkSearcher(self.links)
-        result = searcher.search("tiktok guidelines")
-        expected = [
-            {'url': 'http://tiktok.com/ph2', 'title': 'TikTok Seller Guidelines 2025'}
-        ]
-        assert result == expected, f"Expected {expected}, got {result}"
-
-
-if __name__ == "__main__":
-    import os
-    from jet.file.utils import load_file, save_file
-
-    output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
-
-    query = "Tips and links to 2025 online registration steps for TikTok live selling in the Philippines, or recent guidelines for online sellers on TikTok in the Philippines, or 2025 registration process for TikTok live selling in the Philippines."
-
-    # Load JSON data
-    docs = load_file(docs_file)
-    print(f"Loaded JSON data {len(docs)} from: {docs_file}")
-    links = [{"url": doc_link["url"], "title": doc_link["text"]}
-             for doc in docs for doc_link in doc["metadata"]["links"]]
-    save_file(links, f"{output_dir}/links.json")
-
-    searcher = LinkSearcher(links)
-    results = searcher.search(query)
-
-    save_file({
-        "query": query,
-        "results": results
-    }, f"{output_dir}/results.json")
+    def validate_anime(self, anime_titles, threshold=0.8):
+        """Validate if anime titles exist on AniWatch with high similarity."""
+        results = {}
+        for title in anime_titles:
+            encoded_title = urllib.parse.quote(title)
+            url = f"https://aniwatchtv.to/search?keyword={encoded_title}"
+            documents = self.get_md_header_docs(url)
+            score = self.search_docs(title, documents)
+            results[title] = {
+                'url': url,
+                'exists': score >= threshold,
+                'score': score
+            }
+        return results
