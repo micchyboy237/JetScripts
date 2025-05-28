@@ -24,6 +24,8 @@ def multiply(a: float, b: float):
         b: The second number to multiply
     """
     logger.info(f"Called multiply. Params: (a={a}, b={b})")
+    a = float(a)
+    b = float(b)
     return a * b
 
 
