@@ -21,8 +21,7 @@ python find_large_folders.py -s 100 -b "/path/to/base/dir" -i "<folder>/node_mod
 python find_large_folders.py -b ~ -s 100
 
 # Find large cache folders
-python find_large_folders.py -b ~ -s 100 -i "*cache*,*Cache*,*CACHE*" --save
-python find_large_folders.py -b ~ -s 100 -i ".cache,.caches,cache,caches,Cache,Caches" -d 1 --save
+python find_large_folders.py -b ~ -s 100 -i "*cache*,*tmp*,*Temp*,*.TemporaryItems,Temporary Files,.Spotlight-V100,.fseventsd,.DS_Store,Logs,DerivedData,.npm,.node-gyp,.Trash" -d 1 --save
 """
 
 
@@ -124,7 +123,7 @@ if __name__ == "__main__":
                         help="Maximum depth to traverse forward. Defaults to 1. Set to 0 for infinite.")
     parser.add_argument("-i", "--includes", type=str,
                         help="Comma-separated list of patterns to include (e.g. 'node_modules,**/*,**/.git,**/.venv/**/site_packages').",
-                        default="")
+                        default="*cache*,*Cache*,*CACHE*,*tmp*,*Temp*,.TemporaryItems,Temporary Files,.Spotlight-V100,.fseventsd,.DS_Store,Logs,DerivedData")
     parser.add_argument("-e", "--excludes", type=str,
                         help="Comma-separated list of patterns to exclude (e.g. node_modules,*.env).",
                         default="")

@@ -349,7 +349,7 @@ large_folders() {
 
     # Example:
     # large_folders -b ~ -s 100
-    # large_folders -b ~ -s 100 -i "*cache*,*Cache*,*CACHE*" --save
+    # large_folders -b ~ -s 100 -i "*cache*,*Cache*,*CACHE*,*tmp*,*Temp*,.TemporaryItems,Temporary Files,.Spotlight-V100,.fseventsd,.DS_Store,Logs,DerivedData" -d 1 --save
     # large_folders -b . -s 200 -i "**/*" -e "node_modules,.venv" -d 2 -l 10 -f "out.json" --delete --direction forward --max-backward-depth 3 --save
 }
 
