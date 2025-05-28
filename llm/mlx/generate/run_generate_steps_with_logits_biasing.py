@@ -65,12 +65,13 @@ System: {system_prompt}
 Question: {question}
 """
 if __name__ == "__main__":
+    choices = ["Red",  "Yellow", "Indigo", "Black"]
     system_prompt = (
-        "Answer the following question by providing only the name of the element that answers the question, "
-        "choosing one of the options provided. Do not include any additional text.\n"
-        "Options:\nOxygen\nCarbon\nNitrogen\nHydrogen"
+        "Answer the following question by providing only the names of the elements that answers the question, "
+        "choosing one or more of the options provided separated by a comma. Do not include any additional text.\n"
+        f"Options:\n{"\n".join(choices)}"
     )
-    question = "Which element is known as the building block of life?"
+    question = "Which colors are in the rainbow?"
     print("Custom Generate Output:")
     prompt = prompt_template.format(
         system_prompt=system_prompt,
@@ -79,7 +80,7 @@ if __name__ == "__main__":
 
     # Example logit_bias: bias towards "Carbon" (token ID assumed, adjust as needed)
     # Simplified, adjust based on actual tokenizer
-    carbon_token_id = tokenizer.encode("Carbon", add_special_tokens=False)[0]
-    logit_bias = {carbon_token_id: 10.0}  # Bias "Carbon" with +10 logits
+    logit_bias = {tokenizer.encode("Correct Answers:", add_special_tokens=False)[
+        0]: 10.0}
     for token_text, prob in custom_generate(model, tokenizer, prompt, logit_bias=logit_bias):
         print(f"Token: {token_text}, Confidence: {prob:.4f}")

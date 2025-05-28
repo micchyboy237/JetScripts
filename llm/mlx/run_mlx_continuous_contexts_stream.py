@@ -44,7 +44,7 @@ def create_hierarchical_context(grouped_docs: List[GroupedResult], max_length: i
 
 async def fetch_search_results(query: str) -> Tuple[List[SearchResult], List[str]]:
     """Fetch search results and save them."""
-    browser_search_results = search_data(query)
+    browser_search_results = search_data(query, use_cache=False)
     urls = [item["url"] for item in browser_search_results]
     html_list = await scrape_urls(urls, num_parallel=5)
     return browser_search_results, html_list
@@ -125,6 +125,7 @@ async def main():
     browser_aniwatch_search_links_results, html_list = await fetch_search_results(query_aniwatch_search_links)
     save_file({
         "query": query_aniwatch_search_links,
+        "count": len(browser_aniwatch_search_links_results),
         "results": browser_aniwatch_search_links_results
     }, f"{output_dir}/browser_aniwatch_search_links_results.json")
 
@@ -138,7 +139,7 @@ async def main():
         "results": documents
     }, f"{output_dir}/context_aniwatch_urls.json")
 
-    context_aniwatch_search_urls = f"Aniwatch search link results:\n\n{'n\n'.join(documents)}"
+    context_aniwatch_search_urls = "\n\n".join(documents)
     save_file(context_aniwatch_search_urls,
               f"{output_dir}/context_aniwatch_urls.md")
 
