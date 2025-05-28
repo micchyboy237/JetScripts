@@ -1,37 +1,29 @@
+# search_engine.py
 from collections import defaultdict
 import json
-import re
-import time
-import asyncio
 import os
 import shutil
-from typing import Dict, Generator, List, Optional, Tuple, Union, TypedDict
+from typing import Dict, List, Optional, Tuple, TypedDict
 from datetime import datetime
+import asyncio
 from urllib.parse import unquote, urlparse
 
 from jet.features.nltk_search import get_pos_tag, search_by_pos
+from jet.scrapers.hrequests_utils import scrape_urls
 from jet.transformers.link_formatters import LinkFormatter, format_links_for_embedding
 from jet.wordnet.text_chunker import truncate_texts
 from jet.vectors.document_types import HeaderDocument
 from jet.vectors.search_with_clustering import search_documents
-from tqdm import tqdm
-from mlx_lm import load
 from jet.wordnet.analyzers.text_analysis import ReadabilityResult, analyze_readability, analyze_text
-from jet.code.splitter_markdown_utils import Header, extract_md_header_contents, get_header_level, get_md_header_contents, get_md_header_docs
+from jet.code.splitter_markdown_utils import get_md_header_docs
 from jet.file.utils import save_file
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.helpers import decompose_query, get_system_date_prompt, rewrite_query
 from jet.llm.mlx.token_utils import count_tokens
 from jet.llm.embeddings.sentence_embedding import get_tokenizer_fn
-from jet.llm.mlx.mlx_types import LLMModelType
-from jet.logger import logger
 from jet.scrapers.browser.playwright_utils import scrape_multiple_urls
 from jet.scrapers.preprocessor import html_to_markdown
-from jet.scrapers.utils import extract_texts_by_hierarchy, merge_texts_by_hierarchy, safe_path_from_url, scrape_links, scrape_metadata, scrape_published_date, scrape_title_and_metadata, search_data
-from jet.scrapers.hrequests_utils import scrape_urls
-from jet.transformers.formatters import format_html, format_json
-from jet.utils.url_utils import normalize_url
-from jet.vectors.hybrid_search_engine import HybridSearchEngine
+from jet.scrapers.utils import scrape_links, scrape_published_date, search_data
 from jet.llm.utils.search_docs import search_docs
 from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_relevance
 from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
@@ -62,7 +54,8 @@ class ContextInfo(TypedDict):
     contexts: list[ContextEntry]
 
 
-def get_header_stats(text: str):
+def get_header_stats(text: str) -> Dict:
+    """Analyze text and return header statistics."""
     analysis = analyze_text(text)
     return {
         "mtld": analysis["mtld"],
@@ -77,9 +70,7 @@ def filter_htmls_with_best_combined_mtld(
     limit: int = 3,
     min_mtld: float = 100.0
 ) -> List[Tuple[str, str, List[HeaderDocument], ReadabilityResult]]:
-    """
-    Returns top N HTMLs by MTLD score, excluding documents with low MTLD or too few headers.
-    """
+    """Filter HTMLs based on MTLD score and header count."""
     if not url_html_date_tuples or limit <= 0:
         return []
 
@@ -106,43 +97,51 @@ def filter_htmls_with_best_combined_mtld(
     return [(url, html, docs, readability_result) for url, html, docs, readability_result, _ in doc_scores[:limit]]
 
 
-if __name__ == "__main__":
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    output_dir = os.path.join(script_dir, "generated",
-                              os.path.splitext(os.path.basename(__file__))[0])
+def initialize_output_directory(script_path: str) -> str:
+    """Create and return the output directory path."""
+    script_dir = os.path.dirname(os.path.abspath(script_path))
+    output_dir = os.path.join(script_dir, "generated", os.path.splitext(
+        os.path.basename(script_path))[0])
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
+    return output_dir
 
-    query = "List trending isekai anime 2025."
-    top_k = 10
-    model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
-    embed_model = "all-MiniLM-L12-v2"
-    llm_model = "llama-3.2-3b-instruct-4bit"
-    rerank_model = "cross-encoder/ms-marco-MiniLM-L-6-v2"
-    tokenize = get_tokenizer_fn(embed_model)
 
-    logger.info("Initializing MLX and embedding function")
-    seed = 45
+def initialize_search_components(
+    llm_model: str,
+    embed_model: str,
+    seed: int
+) -> Tuple[MLX, callable]:
+    """Initialize MLX model and tokenizer."""
     mlx = MLX(llm_model, seed=seed)
+    tokenize = get_tokenizer_fn(embed_model)
+    return mlx, tokenize
 
-    query = rewrite_query(query, llm_model)
+
+async def fetch_search_results(query: str, output_dir: str) -> Tuple[List[Dict], List[str]]:
+    """Fetch search results and save them."""
     browser_search_results = search_data(query)
-
-    save_file({
-        "query": query,
-        "count": len(browser_search_results),
-        "results": browser_search_results
-    }, os.path.join(output_dir, "browser_search_results.json"))
-
+    save_file(
+        {"query": query, "count": len(
+            browser_search_results), "results": browser_search_results},
+        os.path.join(output_dir, "browser_search_results.json")
+    )
     urls = [item["url"] for item in browser_search_results]
-    html_list = asyncio.run(scrape_urls(urls, num_parallel=5))
+    html_list = await scrape_urls(urls, num_parallel=5)
+    return browser_search_results, html_list
 
+
+def process_search_results(
+    browser_search_results: List[Dict],
+    html_list: List[str],
+    output_dir: str
+) -> Tuple[List[Tuple[str, str, Optional[str]]], List[str]]:
+    """Process search results and extract links."""
     all_url_html_date_tuples = []
     all_links = []
 
     for result, html_str in zip(browser_search_results, html_list):
         url = result["url"]
-
         if not result.get("publishedDate"):
             published_date = scrape_published_date(html_str)
             result["publishedDate"] = published_date if published_date else None
@@ -158,12 +157,16 @@ if __name__ == "__main__":
 
     all_links = list(set(all_links))
     save_file(all_links, os.path.join(output_dir, "links.json"))
+    return all_url_html_date_tuples, all_links
 
-    all_url_html_date_tuples.sort(key=lambda x: x[2] or "", reverse=True)
 
+def process_documents(
+    url_html_date_tuples: List[Tuple[str, str, Optional[str]]],
+    output_dir: str
+) -> Tuple[List[HeaderDocument], List[Dict]]:
+    """Process documents and extract headers."""
     all_url_docs_tuples = filter_htmls_with_best_combined_mtld(
-        all_url_html_date_tuples)
-
+        url_html_date_tuples)
     all_docs = []
     headers = []
 
@@ -175,8 +178,20 @@ if __name__ == "__main__":
 
     save_file(all_docs, os.path.join(output_dir, "docs.json"))
     save_file(headers, os.path.join(output_dir, "headers.json"))
+    return all_docs, headers
 
-    docs_to_search = [doc for doc in all_docs if doc["header_level"] != 1]
+
+def search_and_group_documents(
+    query: str,
+    all_docs: List[HeaderDocument],
+    embed_model: str,
+    llm_model: str,
+    top_k: int,
+    output_dir: str
+) -> Tuple[List[Dict], str]:
+    """Search documents and group results."""
+    docs_to_search = [
+        doc for doc in all_docs if doc.metadata["header_level"] != 1]
     search_doc_results = search_docs(
         query=query,
         documents=[doc.text for doc in docs_to_search],
@@ -185,28 +200,17 @@ if __name__ == "__main__":
         top_k=top_k,
     )
 
-    save_file({
-        "query": query,
-        "count": len(search_doc_results),
-        "results": search_doc_results
-    }, os.path.join(output_dir, "search_doc_results.json"))
-
-    PROMPT_TEMPLATE = """\
-Context information is below.
----------------------
-{context}
----------------------
-
-Given the context information, answer the query.
-
-Query: {query}
-"""
+    save_file(
+        {"query": query, "count": len(
+            search_doc_results), "results": search_doc_results},
+        os.path.join(output_dir, "search_doc_results.json")
+    )
 
     search_result_dict = {result["id"]
         : result for result in search_doc_results}
     sorted_doc_results = []
     for doc in all_docs:
-        if doc["header_level"] != 1 and count_words(doc["content"]) >= 10:
+        if doc.metadata["header_level"] != 1 and count_words(doc.text) >= 10:
             sorted_doc_results.append({
                 **doc.metadata,
                 "text": doc.text,
@@ -228,21 +232,90 @@ Query: {query}
         "total_tokens": context_tokens,
         "contexts": contexts
     }, os.path.join(output_dir, "contexts.json"))
+    return sorted_doc_results, context
 
-    response = ""
+
+def generate_response(
+    query: str,
+    context: str,
+    llm_model: str,
+    mlx: MLX,
+    output_dir: str
+) -> str:
+    """Generate and save LLM response."""
+    PROMPT_TEMPLATE = """\
+Context information is below.
+---------------------
+{context}
+---------------------
+
+Given the context information, answer the query.
+
+Query: {query}
+"""
     prompt = PROMPT_TEMPLATE.format(query=query, context=context)
-    for chunk in mlx.stream_chat(prompt, system_prompt=get_system_date_prompt(), temperature=0.7, verbose=True, max_tokens=10000):
+    response = ""
+    for chunk in mlx.stream_chat(
+        prompt,
+        system_prompt=get_system_date_prompt(),
+        temperature=0.7,
+        verbose=True,
+        max_tokens=10000
+    ):
         content = chunk["choices"][0]["message"]["content"]
         response += content
 
-    save_file({"query": query, "context": context, "response": response},
-              os.path.join(output_dir, "chat_response.json"))
+    save_file(
+        {"query": query, "context": context, "response": response},
+        os.path.join(output_dir, "chat_response.json")
+    )
+    return response
 
+
+def evaluate_results(
+    query: str,
+    context: str,
+    response: str,
+    llm_model: str,
+    output_dir: str
+) -> None:
+    """Evaluate context and response relevance."""
+    os.makedirs(os.path.join(output_dir, "eval"), exist_ok=True)
     eval_context_result = evaluate_context_relevance(query, context, llm_model)
-    save_file(eval_context_result, os.path.join(
-        output_dir, "eval", "evaluate_context_relevance_result.json"))
-
+    save_file(
+        eval_context_result,
+        os.path.join(output_dir, "eval",
+                     "evaluate_context_relevance_result.json")
+    )
     eval_response_result = evaluate_response_relevance(
         query, context, response, llm_model)
-    save_file(eval_response_result, os.path.join(
-        output_dir, "eval", "evaluate_response_relevance_result.json"))
+    save_file(
+        eval_response_result,
+        os.path.join(output_dir, "eval",
+                     "evaluate_response_relevance_result.json")
+    )
+
+
+async def main():
+    """Main function to orchestrate the search and response generation."""
+    query = "List trending isekai anime 2025."
+    top_k = 10
+    embed_model = "all-MiniLM-L12-v2"
+    llm_model = "llama-3.2-3b-instruct-4bit"
+    seed = 45
+
+    output_dir = initialize_output_directory(__file__)
+    mlx, _ = initialize_search_components(llm_model, embed_model, seed)
+    query = rewrite_query(query, llm_model)
+    browser_search_results, html_list = await fetch_search_results(query, output_dir)
+    url_html_date_tuples, _ = process_search_results(
+        browser_search_results, html_list, output_dir)
+    url_html_date_tuples.sort(key=lambda x: x[2] or "", reverse=True)
+    all_docs, _ = process_documents(url_html_date_tuples, output_dir)
+    sorted_doc_results, context = search_and_group_documents(
+        query, all_docs, embed_model, llm_model, top_k, output_dir)
+    response = generate_response(query, context, llm_model, mlx, output_dir)
+    evaluate_results(query, context, response, llm_model, output_dir)
+
+if __name__ == "__main__":
+    asyncio.run(main())
