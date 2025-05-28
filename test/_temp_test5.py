@@ -1,121 +1,120 @@
-import os
-import numpy as np
-from sentence_transformers import SentenceTransformer, CrossEncoder
-import faiss
-import torch
-from concurrent.futures import ThreadPoolExecutor
 import re
-
-# Load SearxNG-scraped data
-documents = []
-for file in os.listdir("searxng_data"):
-    if file.endswith(".txt"):
-        try:
-            with open(os.path.join("searxng_data", file), "r", encoding="utf-8") as f:
-                documents.append(f.read())
-        except Exception as e:
-            print(f"Error reading {file}: {e}")
-
-# Split documents
+from jet.llm.mlx.mlx_types import EmbedModelType
+from jet.llm.utils.transformer_embeddings import generate_embeddings
+from transformers import AutoTokenizer
+import numpy as np
+from typing import List, Optional, TypedDict
+from jet.llm.mlx.models import AVAILABLE_EMBED_MODELS, resolve_model_key
+from jet.logger import logger
 
 
-def split_document(text, chunk_size=800, overlap=200):
-    chunks = []
-    headers = []
-    lines = text.split("\n")
-    current_chunk = ""
-    current_len = 0
-    for line in lines:
-        if line.startswith(("#", "##", "###")):
-            headers.append(line)
-        line_len = len(line.split())
-        if line.startswith(("#", "##", "###")) or current_len + line_len > chunk_size:
-            if current_chunk:
-                chunks.append({"text": current_chunk.strip(),
-                              "headers": headers.copy()})
-            if line.startswith(("#", "##", "###")):
-                current_chunk = line
-                current_len = line_len
-            else:
-                current_chunk = line
-                current_len = line_len
-        else:
-            current_chunk += "\n" + line
-            current_len += line_len
-    if current_chunk:
-        chunks.append({"text": current_chunk.strip(),
-                      "headers": headers.copy()})
-    return chunks
+class SimilarityResult(TypedDict):
+    id: str
+    rank: int
+    doc_index: int
+    score: float
+    text: str
+    tokens: int
 
 
-chunks = []
-for doc in documents:
-    chunks.extend(split_document(doc))
-
-# Pre-filter by header keywords
-
-
-def filter_by_headers(chunks, query):
-    query_terms = set(query.lower().split())
-    filtered = []
-    for chunk in chunks:
-        headers = [h.lower() for h in chunk["headers"]]
-        if any(any(term in h for term in query_terms) for h in headers) or not headers:
-            filtered.append(chunk)
-    return filtered if filtered else chunks  # Fallback to all chunks if none match
+def preprocess_text(text: str) -> str:
+    """Preprocess text by lowercasing, removing non-alphanumeric characters, and normalizing whitespace."""
+    # Lowercase
+    text = text.lower()
+    # Remove non-alphanumeric characters, preserve spaces
+    text = re.sub(r'[^a-z0-9\s]', '', text)
+    # Normalize whitespace
+    text = re.sub(r'\s+', ' ', text.strip())
+    return text
 
 
-query = "best RAG techniques for web data"
-filtered_chunks = filter_by_headers(chunks, query)
-chunk_texts = [chunk["text"] for chunk in filtered_chunks]
+def search_docs(
+    query: str,
+    documents: List[str],
+    model: EmbedModelType = "all-minilm:33m",
+    top_k: Optional[int] = 10,
+    batch_size: Optional[int] = None,
+    normalize: bool = True,
+    chunk_size: Optional[int] = None,
+    ids: Optional[List[str]] = None,
+    preprocess: bool = True
+) -> List[SimilarityResult]:
+    """Search documents with memory-efficient embedding generation and return SimilarityResult."""
+    if not query or not documents:
+        raise ValueError("Query string and documents list must not be empty.")
 
-# Initialize models
-embedder = SentenceTransformer("BAAI/bge-small-en-v1.5")
-cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+    if not top_k:
+        top_k = len(documents)
 
-# Quantize cross-encoder (simplified, requires ONNX export in practice)
-cross_encoder.model.eval()
-with torch.no_grad():
-    cross_encoder.model = torch.quantization.quantize_dynamic(
-        cross_encoder.model, {torch.nn.Linear}, dtype=torch.qint8
+    # Validate ids if provided
+    if ids is not None:
+        if len(ids) != len(documents):
+            raise ValueError(
+                f"Length of ids ({len(ids)}) must match length of documents ({len(documents)})")
+        if len(ids) != len(set(ids)):
+            raise ValueError("IDs must be unique")
+
+    # Preprocess query and documents
+    if preprocess:
+        processed_query = preprocess_text(query)
+        processed_documents = [preprocess_text(doc) for doc in documents]
+    else:
+        processed_query = query
+        processed_documents = documents
+
+    # Initialize tokenizer for token counting
+    embed_model = resolve_model_key(model)
+    model_id = AVAILABLE_EMBED_MODELS[embed_model]
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+
+    query_embedding = generate_embeddings(
+        model, processed_query, batch_size, normalize, chunk_size=chunk_size)
+    doc_embeddings = generate_embeddings(
+        model, processed_documents, batch_size, normalize, chunk_size=chunk_size)
+
+    query_embedding = np.array(query_embedding)
+    doc_embeddings = np.array(doc_embeddings)
+
+    if len(doc_embeddings) == 0 or len(processed_documents) == 0:
+        return []
+    if len(doc_embeddings) != len(processed_documents):
+        logger.error(
+            f"Mismatch between document embeddings ({len(doc_embeddings)}) and documents ({len(processed_documents)})")
+        return []
+
+    similarities = np.dot(doc_embeddings, query_embedding) / (
+        np.linalg.norm(doc_embeddings, axis=1) *
+        np.linalg.norm(query_embedding)
     )
 
-# Parallel embedding
+    similarities = np.nan_to_num(similarities, nan=-1.0)
 
+    top_k = min(top_k, len(processed_documents))
+    if top_k <= 0:
+        return []
 
-def embed_chunk(chunk):
-    return embedder.encode(chunk, convert_to_numpy=True)
+    top_indices = np.argsort(similarities)[::-1][:top_k]
 
+    # Convert indices to Python int to avoid NumPy integer types
+    valid_indices = [int(idx)
+                     for idx in top_indices if idx < len(processed_documents)]
+    if not valid_indices:
+        return []
 
-with ThreadPoolExecutor() as executor:
-    chunk_embeddings = np.vstack(list(executor.map(embed_chunk, chunk_texts)))
+    results = []
+    for rank, idx in enumerate(valid_indices, start=1):
+        # Use original document text for result, not preprocessed
+        doc_text = documents[idx]
+        tokens = len(tokenizer.encode(doc_text, add_special_tokens=True))
+        doc_id = ids[idx] if ids is not None else f"doc_{idx}"
+        result = SimilarityResult(
+            id=doc_id,
+            rank=rank,
+            doc_index=int(idx),
+            score=float(similarities[idx]),
+            text=doc_text,
+            tokens=tokens
+        )
+        results.append(result)
 
-# FAISS for initial retrieval
-dim = chunk_embeddings.shape[1]
-index = faiss.IndexFlatL2(dim)
-index.add(chunk_embeddings)
-
-# Adaptive top-k
-k = 20 if len(chunk_texts) < 1000 else 50
-query_embedding = embedder.encode([query], convert_to_numpy=True)
-distances, indices = index.search(query_embedding, k)
-initial_docs = [filtered_chunks[i] for i in indices[0]]
-
-# Batched cross-encoder reranking
-batch_size = 8
-pairs = [[query, doc["text"]] for doc in initial_docs]
-scores = []
-try:
-    for i in range(0, len(pairs), batch_size):
-        batch = pairs[i:i+batch_size]
-        scores.extend(cross_encoder.predict(batch))
-except Exception as e:
-    print(f"Error in reranking: {e}")
-    scores = [0] * len(pairs)  # Fallback
-reranked_indices = np.argsort(scores)[::-1][:5]
-reranked_docs = [initial_docs[i] for i in reranked_indices]
-
-# Output results
-for i, doc in enumerate(reranked_docs):
-    print(f"Rank {i+1}: {doc['text'][:200]}...")
-    print(f"Headers: {doc['headers']}")
+    return results

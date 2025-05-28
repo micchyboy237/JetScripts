@@ -206,8 +206,11 @@ if __name__ == "__main__":
             docs = get_md_header_docs(html_str)
             search_doc_results = search_docs(
                 query=title,
-                documents=[doc["header"] for doc in docs]
+                documents=[doc["header"].lstrip('#').strip() for doc in docs]
             )
 
             output_path = f"{output_title_dir}/{title}/search_doc_results.json"
-            save_file(search_doc_results, output_path)
+            save_file({
+                "query": title,
+                "results": search_doc_results
+            }, output_path)
