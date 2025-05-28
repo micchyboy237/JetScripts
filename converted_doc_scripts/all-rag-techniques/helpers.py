@@ -5,7 +5,7 @@ from typing import List, Dict, Any, Callable, Tuple, TypedDict
 from jet.file.utils import load_file, save_file
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.mlx_types import LLMModelType
-from jet.llm.utils.transformer_embeddings import get_embedding_function
+from jet.llm.utils.search_docs import get_embedding_function
 from jet.logger import CustomLogger
 import re
 

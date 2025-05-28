@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 from helpers import SearchResult
 from typing import List
-from jet.llm.utils.transformer_embeddings import get_embedding_function
+from jet.llm.utils.search_docs import get_embedding_function
 
 # Dynamically import the module
 module = importlib.import_module('2_semantic_chunking')

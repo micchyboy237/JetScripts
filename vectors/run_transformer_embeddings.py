@@ -1,4 +1,4 @@
-from jet.llm.utils.transformer_embeddings import generate_embeddings, get_embedding_function, search_docs
+from jet.llm.utils.search_docs import generate_embeddings, get_embedding_function, search_docs
 from jet.llm.mlx.models import EmbedModelType
 from jet.transformers.formatters import format_json
 from jet.logger import logger

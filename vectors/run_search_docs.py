@@ -5,7 +5,7 @@ from typing import List, Dict, Optional
 from jet.transformers.link_formatters import LinkFormatter
 import os
 from jet.file.utils import load_file, save_file
-from jet.llm.utils.transformer_embeddings import search_docs
+from jet.llm.utils.search_docs import search_docs
 
 if __name__ == "__main__":
 

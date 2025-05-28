@@ -32,7 +32,7 @@ from jet.transformers.formatters import format_html, format_json
 from jet.utils.url_utils import normalize_url
 from jet.vectors.hybrid_search_engine import HybridSearchEngine
 # from jet.wordnet.similarity import compute_info, query_similarity_scores
-from jet.llm.utils.transformer_embeddings import SimilarityResult, get_embedding_function, search_docs, search_docs_with_rerank
+from jet.llm.utils.search_docs import search_docs
 from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_relevance
 from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
 from jet.wordnet.words import count_words
@@ -126,8 +126,8 @@ if __name__ == "__main__":
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    # query = f"List trending isekai reincarnation anime this year."
-    query = "Tips and links to 2025 online registration steps for TikTok live selling in the Philippines."
+    query = f"List trending isekai anime 2025."
+    # query = "Tips and links to 2025 online registration steps for TikTok live selling in the Philippines."
     top_k = 10
     # top_k = None
 
@@ -212,62 +212,62 @@ if __name__ == "__main__":
             # Collect initial scraped URLs
             links = set(scrape_links(html_str, url))
 
-            # Extract URLs from header docs, normalize all to strings
-            docs = get_md_header_docs(html_str)
-            header_links = [
-                link["url"] if not link["is_heading"] else link
-                for doc in docs
-                for link in doc["links"]
-            ]
+            # # Extract URLs from header docs, normalize all to strings
+            # docs = get_md_header_docs(html_str)
+            # header_links = [
+            #     link["url"] if not link["is_heading"] else link
+            #     for doc in docs
+            #     for link in doc["links"]
+            # ]
 
-            # Convert to strings (in case headings are strings, not dicts)
-            normalized_links = set(str(link) for link in header_links)
+            # # Convert to strings (in case headings are strings, not dicts)
+            # normalized_links = set(str(link) for link in header_links)
 
-            # Merge sets to remove duplicates
-            links.update(normalized_links)
+            # # Merge sets to remove duplicates
+            # links.update(normalized_links)
 
-            # Convert back to list if needed
-            links = list(links)
+            # # Convert back to list if needed
+            # links = list(links)
+
+            # Filter out base url
+            links = [link for link in links
+                     if (link != url if isinstance(link, str) else link == link["url"])]
 
             all_links.extend(links)
 
         all_url_html_date_tuples.append(
             (url, html_str, result.get("publishedDate")))
 
+    all_links = list(set(all_links))
     save_file(all_links, os.path.join(output_dir, "links.json"))
 
-    # Initialize formatter
-    formatter = LinkFormatter()
-
-    # Format links
-    formatted_links = formatter.format_links_for_embedding(all_links)
-
-    # Save formatted list
-    save_file(formatted_links, os.path.join(
-        output_dir, "formatted-links.json"))
-
-    search_links_results = search_docs(
-        query=query,
-        documents=formatted_links,
-        model=embed_model,
-        top_k=None
-    )
-
-    # Step 4: Enrich with original link using mapping
-    enriched_results = []
-    for i, result in enumerate(search_links_results):
-        formatted = formatted_links[i]
-        enriched_results.append({
-            **result,
-            "formatted_link": formatted,
-            "link": formatter.formatted_to_original_map.get(formatted, "")
-        })
-
-    # Save enriched search results
-    save_file({
-        "query": query,
-        "results": enriched_results
-    }, os.path.join(output_dir, "search_links_results.json"))
+    # # Initialize formatter
+    # formatter = LinkFormatter()
+    # # Format links
+    # formatted_links = formatter.format_links_for_embedding(all_links)
+    # # Save formatted list
+    # save_file(formatted_links, os.path.join(
+    #     output_dir, "formatted-links.json"))
+    # search_links_results = search_docs(
+    #     query=query,
+    #     documents=formatted_links,
+    #     model=embed_model,
+    #     top_k=None
+    # )
+    # # Step 4: Enrich with original link using mapping
+    # enriched_results = []
+    # for i, result in enumerate(search_links_results):
+    #     formatted = formatted_links[i]
+    #     enriched_results.append({
+    #         **result,
+    #         "formatted_link": formatted,
+    #         "link": formatter.formatted_to_original_map.get(formatted, "")
+    #     })
+    # # Save enriched search results
+    # save_file({
+    #     "query": query,
+    #     "results": enriched_results
+    # }, os.path.join(output_dir, "search_links_results.json"))
 
     # Sort by publishedDate in descending order (newest first)
     all_url_html_date_tuples = sorted(
@@ -340,7 +340,7 @@ Query: {query}
     # filtered_doc_results = [r for r in search_doc_results if r["score"] > 0]
 
     # Map search result to ids
-    search_result_dict = {result["id"]                          : result for result in search_doc_results}
+    search_result_dict = {result["id"]: result for result in search_doc_results}
     sorted_doc_results = []
     for doc in all_docs:
         if doc["header_level"] != 1:
