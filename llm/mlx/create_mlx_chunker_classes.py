@@ -10,7 +10,7 @@ from jet.file.utils import load_file, save_file
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.mlx_types import ModelKey
 from jet.llm.mlx.token_utils import chunk_text, get_tokenizer_fn, merge_texts
-from jet.llm.mlx.utils import get_model_max_tokens
+from jet.llm.mlx.utils.base import get_model_max_tokens
 from jet.logger import logger
 from jet.scrapers.utils import MergedTextsResult, merge_texts_by_hierarchy
 

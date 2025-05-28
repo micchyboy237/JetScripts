@@ -13,12 +13,13 @@ import mlx.core as mx
 import mlx.nn as nn
 import torch
 from llama import Llama, ModelArgs, sanitize_config
-from mlx.utils import tree_flatten, tree_map, tree_unflatten
+from mlx.utils.base import tree_flatten, tree_map, tree_unflatten
 
 
 def torch_to_mx(a: torch.Tensor, *, dtype: str) -> mx.array:
     # bfloat16 is not numpy convertible. Upcast to float32 to avoid precision loss
-    a = a.to(torch.float32) if dtype == "bfloat16" else a.to(getattr(torch, dtype))
+    a = a.to(torch.float32) if dtype == "bfloat16" else a.to(
+        getattr(torch, dtype))
     return mx.array(a.numpy(), getattr(mx, dtype))
 
 
@@ -101,7 +102,8 @@ def tiny_llama(model_path, *, dtype: str):
     model = {k.replace("lm_head", "output"): v for k, v in model.items()}
 
     # 6. token emb
-    model = {k.replace("embed_tokens", "tok_embeddings"): v for k, v in model.items()}
+    model = {k.replace("embed_tokens", "tok_embeddings")
+                       : v for k, v in model.items()}
 
     # 7. attention
     model = {k.replace("self_attn", "attention"): v for k, v in model.items()}
@@ -163,7 +165,8 @@ def make_shards(weights: dict, max_file_size_gibibyte: int = 15):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Convert Llama weights to MLX")
+    parser = argparse.ArgumentParser(
+        description="Convert Llama weights to MLX")
     parser.add_argument(
         "--torch-path",
         type=str,

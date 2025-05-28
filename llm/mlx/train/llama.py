@@ -10,7 +10,7 @@ from typing import Optional, Tuple
 
 import mlx.core as mx
 import mlx.nn as nn
-from mlx.utils import tree_unflatten
+from mlx.utils.base import tree_unflatten
 from sentencepiece import SentencePieceProcessor
 
 
@@ -41,8 +41,10 @@ class Attention(nn.Module):
         self.scale = self.args.head_dim**-0.5
 
         self.wq = nn.Linear(args.dim, args.n_heads * args.head_dim, bias=False)
-        self.wk = nn.Linear(args.dim, args.n_kv_heads * args.head_dim, bias=False)
-        self.wv = nn.Linear(args.dim, args.n_kv_heads * args.head_dim, bias=False)
+        self.wk = nn.Linear(args.dim, args.n_kv_heads *
+                            args.head_dim, bias=False)
+        self.wv = nn.Linear(args.dim, args.n_kv_heads *
+                            args.head_dim, bias=False)
         self.wo = nn.Linear(args.n_heads * args.head_dim, args.dim, bias=False)
         self.rope = nn.RoPE(
             args.head_dim, traditional=args.rope_traditional, base=args.rope_theta
@@ -61,7 +63,8 @@ class Attention(nn.Module):
         # Prepare the queries, keys and values for the attention computation
         queries = queries.reshape(B, L, self.n_heads, -1).transpose(0, 2, 1, 3)
         keys = keys.reshape(B, L, self.n_kv_heads, -1).transpose(0, 2, 1, 3)
-        values = values.reshape(B, L, self.n_kv_heads, -1).transpose(0, 2, 1, 3)
+        values = values.reshape(
+            B, L, self.n_kv_heads, -1).transpose(0, 2, 1, 3)
 
         def repeat(a):
             a = mx.concatenate([mx.expand_dims(a, 2)] * self.repeats, axis=2)
@@ -82,7 +85,8 @@ class Attention(nn.Module):
         scores = (queries * self.scale) @ keys.transpose(0, 1, 3, 2)
         if mask is not None:
             scores += mask
-        scores = mx.softmax(scores.astype(mx.float32), axis=-1).astype(scores.dtype)
+        scores = mx.softmax(scores.astype(mx.float32),
+                            axis=-1).astype(scores.dtype)
         output = (scores @ values).transpose(0, 2, 1, 3).reshape(B, L, -1)
         return self.wo(output), (keys, values)
 
@@ -129,7 +133,8 @@ class Llama(nn.Module):
         self.args = args
         self.vocab_size = args.vocab_size
         self.tok_embeddings = nn.Embedding(args.vocab_size, args.dim)
-        self.layers = [TransformerBlock(args=args) for _ in range(args.n_layers)]
+        self.layers = [TransformerBlock(args=args)
+                       for _ in range(args.n_layers)]
         self.norm = nn.RMSNorm(args.dim, eps=args.norm_eps)
         self.output = nn.Linear(args.dim, args.vocab_size, bias=False)
 
@@ -246,7 +251,7 @@ def few_shot_generate(args):
         for i in range(len(word) - 1, 0, -1):
             if s[-i:] == word[:i]:
                 return 0
-        if s[-len(word) :] == word:
+        if s[-len(word):] == word:
             return 1
         return -1
 
@@ -328,7 +333,8 @@ def load_model(model_path):
         print("[INFO] Loading model from {}.".format(sharded_weights_glob))
 
         if len(weight_files) == 0:
-            raise FileNotFoundError("No weights found in {}".format(model_path))
+            raise FileNotFoundError(
+                "No weights found in {}".format(model_path))
 
         weights = {}
         for wf in weight_files:
@@ -341,7 +347,8 @@ def load_model(model_path):
     if quantization is not None:
         nn.quantize(model, **quantization)
     model.update(tree_unflatten(list(weights.items())))
-    tokenizer = SentencePieceProcessor(model_file=str(model_path / "tokenizer.model"))
+    tokenizer = SentencePieceProcessor(
+        model_file=str(model_path / "tokenizer.model"))
     return model, tokenizer
 
 

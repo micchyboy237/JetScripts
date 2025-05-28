@@ -1,4 +1,4 @@
-from jet.llm.mlx.utils import get_prompt_token_count
+from jet.llm.mlx.utils.base import get_prompt_token_count
 from mlx_lm import load, generate
 
 # Load the model and tokenizer

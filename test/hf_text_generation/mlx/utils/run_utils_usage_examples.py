@@ -1,7 +1,7 @@
 import mlx.core as mx
 from mlx_lm import load
 from mlx_lm.sample_utils import make_sampler
-from jet.llm.mlx.utils import (
+from jet.llm.mlx.utils.base import (
     get_model_max_tokens,
     get_hidden_size,
     get_prompt_token_count,

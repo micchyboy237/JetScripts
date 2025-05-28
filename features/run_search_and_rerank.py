@@ -9,6 +9,7 @@ from typing import Dict, Generator, List, Optional, Tuple, Union, TypedDict
 from datetime import datetime
 from urllib.parse import unquote, urlparse
 from jet.features.nltk_search import get_pos_tag, search_by_pos
+from jet.transformers.link_formatters import LinkFormatter, format_links_for_embedding
 from jet.wordnet.text_chunker import truncate_texts
 from jet.vectors.document_types import HeaderDocument
 from jet.vectors.search_with_clustering import search_documents
@@ -31,7 +32,7 @@ from jet.transformers.formatters import format_html, format_json
 from jet.utils.url_utils import normalize_url
 from jet.vectors.hybrid_search_engine import HybridSearchEngine
 # from jet.wordnet.similarity import compute_info, query_similarity_scores
-from jet.llm.utils.transformer_embeddings import SimilarityResult, get_embedding_function, search_docs
+from jet.llm.utils.transformer_embeddings import SimilarityResult, get_embedding_function, search_docs, search_docs_with_rerank
 from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_relevance
 from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
 from jet.wordnet.words import count_words
@@ -115,70 +116,6 @@ def filter_htmls_with_best_combined_mtld(
 
     doc_scores.sort(key=lambda x: x[4], reverse=True)
     return [(url, html, docs, readability_result) for url, html, docs, readability_result, _ in doc_scores[:min(limit, len(doc_scores))]]
-
-
-def format_links_for_embedding(
-    links: List[str],
-    fragment_replacements: Optional[Dict[str, str]] = None
-) -> List[str]:
-    """Format links for embedding search with host (no scheme), decoded and readable paths, queries, fragments, and uniqueness.
-
-    Args:
-        links: List of URLs to format.
-        fragment_replacements: Optional dictionary mapping fragment patterns to replacements for custom handling.
-
-    Returns:
-        List of formatted, unique strings with decoded and readable components.
-    """
-    formatted_links = set()  # Use set to ensure uniqueness
-    # Unwanted patterns to filter (e.g., technical paths)
-    unwanted_patterns = (
-        r'wp-json|oembed|feed|xmlrpc|wp-content|wp-includes|wp-admin'
-    )
-    # Default fragment replacements if none provided
-    fragment_replacements = fragment_replacements or {}
-
-    for link in links:
-        # Parse URL components
-        parsed = urlparse(link)
-        host = parsed.netloc
-        path = parsed.path.strip("/")
-        query = f"?{unquote(parsed.query)}" if parsed.query else ""
-        fragment = f"#{unquote(parsed.fragment)}" if parsed.fragment else ""
-
-        # Skip unwanted technical paths
-        if path and re.search(unwanted_patterns, path, re.IGNORECASE):
-            continue
-
-        # Skip empty or root paths with no meaningful content
-        if not host or (not path and not query and not fragment):
-            continue
-
-        # Format path for readability: replace hyphens, underscores, slashes with spaces, then title case
-        readable_path = path.replace(
-            "-", " ").replace("_", " ").replace("/", " ").title() if path else ""
-
-        # Format fragment for readability: decode, replace hyphens/underscores/colons, and title case
-        readable_fragment = fragment
-        if fragment:
-            readable_fragment = unquote(fragment)
-            # Apply custom fragment replacements if provided
-            for pattern, replacement in fragment_replacements.items():
-                readable_fragment = readable_fragment.replace(
-                    pattern, replacement)
-            # General readability: replace hyphens, underscores, colons with spaces
-            readable_fragment = readable_fragment.replace(
-                "-", " ").replace("_", " ").replace(":", " ").title()
-
-        # Combine host, path, query, and fragment, replacing slashes in host/path separator
-        formatted = f"{host} {readable_path}{query}{readable_fragment}".strip()
-
-        # Skip if empty after formatting
-        if formatted:
-            formatted_links.add(formatted)
-
-    # Return sorted list for consistent output
-    return sorted(list(formatted_links))
 
 
 if __name__ == "__main__":
@@ -272,8 +209,26 @@ if __name__ == "__main__":
                 result["publishedDate"] = published_date
 
         if html_str:
-            # docs = get_md_header_docs(html_str, ignore_links=True)
-            links = scrape_links(html_str, url)
+            # Collect initial scraped URLs
+            links = set(scrape_links(html_str, url))
+
+            # Extract URLs from header docs, normalize all to strings
+            docs = get_md_header_docs(html_str)
+            header_links = [
+                link["url"] if not link["is_heading"] else link
+                for doc in docs
+                for link in doc["links"]
+            ]
+
+            # Convert to strings (in case headings are strings, not dicts)
+            normalized_links = set(str(link) for link in header_links)
+
+            # Merge sets to remove duplicates
+            links.update(normalized_links)
+
+            # Convert back to list if needed
+            links = list(links)
+
             all_links.extend(links)
 
         all_url_html_date_tuples.append(
@@ -281,24 +236,16 @@ if __name__ == "__main__":
 
     save_file(all_links, os.path.join(output_dir, "links.json"))
 
-    # Step 1: Create mapping before deduplication
-    formatted_link_map = {}
-    for link in all_links:
-        formatted = format_links_for_embedding([link])
-        if formatted:
-            formatted_link = formatted[0]
-            if formatted_link not in formatted_link_map:
-                # retain first occurrence
-                formatted_link_map[formatted_link] = link
+    # Initialize formatter
+    formatter = LinkFormatter()
 
-    # Step 2: Get formatted list
-    formatted_links = format_links_for_embedding(all_links)
+    # Format links
+    formatted_links = formatter.format_links_for_embedding(all_links)
 
     # Save formatted list
     save_file(formatted_links, os.path.join(
-        output_dir, "formatted_links.json"))
+        output_dir, "formatted-links.json"))
 
-    # Step 3: Run search
     search_links_results = search_docs(
         query=query,
         documents=formatted_links,
@@ -313,7 +260,7 @@ if __name__ == "__main__":
         enriched_results.append({
             **result,
             "formatted_link": formatted,
-            "link": formatted_link_map.get(formatted, "")
+            "link": formatter.formatted_to_original_map.get(formatted, "")
         })
 
     # Save enriched search results
