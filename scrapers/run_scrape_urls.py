@@ -10,7 +10,7 @@ from jet.scrapers.hrequests import request_url
 from jet.search.scraper import scrape_url
 from jet.transformers.text import to_snake_case
 from jet.cache.redis import RedisConfigParams, RedisClient
-from jet.vectors import SettingsManager, SettingsDict, QueryProcessor
+from jet.vectors.rag import SettingsManager, SettingsDict, QueryProcessor
 from jet.actions.generation import call_ollama_chat
 from jet.llm.llm_types import OllamaChatOptions
 from jet.file import save_file

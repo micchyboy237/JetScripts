@@ -126,7 +126,7 @@ def main():
     from jet.logger import logger
     from jet.file import save_json
     from jet.transformers.object import make_serializable
-    from jet.vectors import SettingsDict, SettingsManager
+    from jet.vectors.rag import SettingsDict, SettingsManager
 
     settings = SettingsDict(
         llm_model="llama3.1",

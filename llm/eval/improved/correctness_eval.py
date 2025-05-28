@@ -1,5 +1,5 @@
 from llama_index.core.evaluation import CorrectnessEvaluator
-from jet.vectors import SettingsManager
+from jet.vectors.rag import SettingsManager
 settings_manager = SettingsManager.create()
 llm = settings_manager.llm
 evaluator = CorrectnessEvaluator(llm=llm)

@@ -1,5 +1,5 @@
 from jet.llm.ollama.base import initialize_ollama_settings, create_llm
-from jet.vectors import SettingsManager
+from jet.vectors.rag import SettingsManager
 from llama_index.core.evaluation import CorrectnessEvaluator
 from jet.logger import logger
 from jet.llm.ollama.base import initialize_ollama_settings

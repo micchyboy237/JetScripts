@@ -11,7 +11,7 @@ from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.types import PydanticProgramMode
 from jet.llm.ollama.base import Ollama
 
-from jet.vectors import SettingsManager
+from jet.vectors.rag import SettingsManager
 from jet.validation import validate_json
 from jet.logger import logger
 from jet.llm.ollama.base import initialize_ollama_settings

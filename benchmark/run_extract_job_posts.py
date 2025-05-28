@@ -14,7 +14,7 @@ from jet.file.utils import save_file, load_file
 from jet.token.token_utils import get_ollama_tokenizer
 from jet.transformers.formatters import format_json
 from jet.logger import logger
-from jet.vectors import SettingsManager
+from jet.vectors.rag import SettingsManager
 
 from llama_index.core import SimpleDirectoryReader, PromptTemplate
 from llama_index.core.node_parser.text.sentence import SentenceSplitter

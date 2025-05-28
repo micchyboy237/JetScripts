@@ -1,7 +1,7 @@
 from typing import Optional, List
 from pydantic import BaseModel
 from jet.logger import logger
-from jet.vectors import SettingsManager
+from jet.vectors.rag import SettingsManager
 from llama_index.core.response_synthesizers import TreeSummarize
 from llama_index.core.types import PydanticProgramMode
 from llama_index.core import SimpleDirectoryReader, PromptTemplate

@@ -2,7 +2,7 @@ from jet.llm.utils.llama_index_utils import display_jet_source_node
 from llama_index.core.text_splitter import SentenceSplitter
 from IPython.display import display, HTML
 import os
-from jet.vectors import SettingsManager, IndexManager
+from jet.vectors.rag import SettingsManager, IndexManager
 from llama_index.core import (
     SimpleDirectoryReader,
     VectorStoreIndex,

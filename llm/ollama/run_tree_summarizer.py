@@ -1,7 +1,7 @@
 import os
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.response_synthesizers import TreeSummarize
-from jet.vectors import SettingsManager, SettingsDict, QueryProcessor
+from jet.vectors.rag import SettingsManager, SettingsDict, QueryProcessor
 from jet.file import save_json
 
 

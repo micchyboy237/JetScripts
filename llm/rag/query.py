@@ -1,5 +1,5 @@
 import json
-from jet.vectors import (
+from jet.vectors.rag import (
     SettingsDict,
     SettingsManager,
     WikipediaLoader,
@@ -10,8 +10,8 @@ from llama_index.core import SimpleDirectoryReader
 from llama_index.core.prompts import PromptTemplate
 from llama_index.core.schema import NodeWithScore
 from llama_index.core.llms import ChatMessage, MessageRole
-from langchain_community.document_loaders.generic import GenericLoader
-from langchain_community.document_loaders.parsers import LanguageParser
+# from langchain_community.document_loaders.generic import GenericLoader
+# from langchain_community.document_loaders.parsers import LanguageParser
 from jet.logger import logger
 from jet.file import save_json
 from jet.transformers.object import make_serializable
@@ -69,8 +69,8 @@ def main():
     # loader = GenericLoader.from_filesystem(
     #     base_dir,
     #     glob="**/*",
-    #     suffixes=[".mdx"],
-    #     parser=LanguageParser("markdown"),
+    suffixes = [".mdx"],
+    parser = LanguageParser("markdown"),
     # )
     # documents = loader.load()
     logger.log("Documents:", len(documents), colors=["GRAY", "DEBUG"])
