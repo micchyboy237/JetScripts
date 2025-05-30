@@ -84,17 +84,17 @@ def filter_htmls_with_best_combined_mtld(
                 continue
 
             docs_text = "\n\n".join(doc.text for doc in docs)
-            readability_result = analyze_readability(docs_text)
-            mtld_score = readability_result['mtld']
+            readability = analyze_readability(docs_text)
+            mtld_score = readability['mtld']
 
             if mtld_score >= min_mtld:
                 doc_scores.append(
-                    (url, html, docs, readability_result, mtld_score))
+                    (url, html, docs, readability, mtld_score))
         except (ValueError, KeyError, AttributeError):
             continue
 
     doc_scores.sort(key=lambda x: x[4], reverse=True)
-    return [(url, html, docs, readability_result) for url, html, docs, readability_result, _ in doc_scores[:limit]]
+    return [(url, html, docs, readability) for url, html, docs, readability, _ in doc_scores[:limit]]
 
 
 def initialize_output_directory(script_path: str) -> str:
@@ -170,9 +170,10 @@ def process_documents(
     all_docs = []
     headers = []
 
-    for url, html_str, docs, readability_result in all_url_docs_tuples:
+    for url, html_str, docs, readability in all_url_docs_tuples:
         for doc in docs:
             doc.metadata["source_url"] = url
+            doc.metadata["readability"] = readability
             headers.append({**doc.metadata, "text": doc.text})
         all_docs.extend(docs)
 
