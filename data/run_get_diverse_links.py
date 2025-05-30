@@ -112,10 +112,7 @@ if __name__ == "__main__":
     print(f"Reranked URLs: {len(reranked_urls)}")
     logger.success(format_json(reranked_urls))
 
-    num_samples = len(reranked_urls)
-    n = 2
-    top_n = 1
-    diverse_urls = sample_diverse_urls(reranked_urls, num_samples, n, top_n)
+    diverse_urls = sample_diverse_urls(reranked_urls)
     save_file(diverse_urls, f"{output_dir}/diverse_urls.json")
     print(f"Diverse URLs: {len(diverse_urls)}")
     logger.success(format_json(diverse_urls))
