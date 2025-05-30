@@ -26,8 +26,8 @@ if __name__ == "__main__":
     save_file(links, f"{output_dir}/preprocessed-urls.json")
 
     # Stratify links for diversity
-    num_samples = 5
-    n = 5
-    top_n = 1
+    num_samples = 1000
+    n = 2
+    top_n = 2
     diverse_urls = sample_diverse_urls(links, num_samples, n, top_n)
     save_file(diverse_urls, f"{output_dir}/diverse-urls.json")
