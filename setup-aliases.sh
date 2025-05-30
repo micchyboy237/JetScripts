@@ -428,7 +428,7 @@ mem_python_kill() {
 # Override pytest
 pytest() {
 #   command python -m pytest --testmon "$@"
-  command python -m pytest "$@" --last-failed
+  command python -m pytest -vv "$@" --last-failed
 }
 
 

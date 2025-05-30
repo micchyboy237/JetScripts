@@ -6,11 +6,22 @@ import numpy as np
 from jet.data.url_sampler import preprocess_url
 from jet.features.nltk_utils import get_word_counts_lemmatized
 from jet.file.utils import load_file, save_file
+from urllib.parse import urlparse, urlunparse  # Added for URL parsing
 
 
 def preprocess_urls(urls: List[str]) -> List[str]:
-    """Preprocess URLs into tokenized strings."""
-    return [' '.join(preprocess_url(url)) for url in tqdm(urls, desc="Preprocessing URLs")]
+    """Preprocess URLs into tokenized strings, removing hash fragments."""
+    cleaned_urls = []
+    for url in tqdm(urls, desc="Preprocessing URLs"):
+        # Parse URL and remove fragment
+        parsed = urlparse(url)
+        # Reconstruct URL without fragment (fragment is parsed[5])
+        clean_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path,
+                               parsed.params, parsed.query, ''))
+        # Preprocess the cleaned URL
+        tokenized = ' '.join(preprocess_url(clean_url))
+        cleaned_urls.append(tokenized)
+    return cleaned_urls
 
 
 def get_query_noun_profile(query: str) -> Dict[str, float]:
