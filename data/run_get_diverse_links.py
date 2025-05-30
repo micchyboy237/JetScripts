@@ -1,6 +1,7 @@
 import os
 import shutil
 from typing import List, Dict, Tuple
+from jet.llm.utils.bm25_plus import bm25_plus
 from jet.llm.utils.search_docs import search_docs
 from tqdm import tqdm
 import numpy as np
@@ -11,135 +12,60 @@ from urllib.parse import urlparse, urlunparse
 import re
 
 
-def preprocess_urls(urls: List[str]) -> List[str]:
-    """Preprocess URLs into tokenized strings, removing hash fragments and filtering resources."""
+def preprocess_urls(urls: List[str]) -> Tuple[List[str], Dict[int, str]]:
+    """Preprocess URLs into tokenized strings and maintain mapping to original URLs.
+
+    Args:
+        urls: List of URLs to preprocess.
+
+    Returns:
+        Tuple containing:
+        - List of unique tokenized URLs.
+        - Dictionary mapping indices of unique tokenized URLs to original URLs.
+    """
     unwanted_patterns = r'wp-json|oembed|feed|xmlrpc|wp-content|wp-includes|wp-admin'
     resource_extensions = r'\.(jpg|jpeg|png|gif|bmp|pdf|zip|tar|gz|rar|css|js|woff|woff2|ttf|otf|ico|svg|mp4|mp3|avi|mov|wmv|flv|doc|docx|xls|xlsx|ppt|pptx)$'
     combined_pattern = f'({unwanted_patterns})|({resource_extensions})'
     resource_regex = re.compile(combined_pattern, re.IGNORECASE)
 
     tokenized_urls = []
+    index_to_original_url = {}
+    original_index = 0
+
     for url in tqdm(urls, desc="Preprocessing and filtering URLs"):
         try:
             cleaned = clean_url(url)
             if not cleaned:
+                original_index += 1
                 continue
             if resource_regex.search(cleaned):
-                print(f"Filtered out resource URL: {cleaned}")
+                original_index += 1
                 continue
             parsed = urlparse(cleaned)
             unparsed_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path,
-                                      parsed.params, parsed.query, ''))
+                                      parsed.params, '', ''))  # remove query and fragment
             tokenized = ' '.join(parse_url(unparsed_url))
             tokenized_urls.append(tokenized)
+            index_to_original_url[len(tokenized_urls) - 1] = url
+            original_index += 1
         except ValueError as e:
             print(f"Error processing URL {url}: {e}")
+            original_index += 1
             continue
-    # Filter unique tokenized urls
-    tokenized_urls = list(set(tokenized_urls))
-    print(f"Retained {len(tokenized_urls)} URLs after resource filtering")
-    return tokenized_urls
 
+    # Filter unique tokenized URLs while preserving mapping
+    unique_tokenized_urls = []
+    unique_index_to_original_url = {}
+    seen = set()
+    for idx, tokenized in enumerate(tokenized_urls):
+        if tokenized not in seen:
+            seen.add(tokenized)
+            new_index = len(unique_tokenized_urls)
+            unique_tokenized_urls.append(tokenized)
+            unique_index_to_original_url[new_index] = index_to_original_url[idx]
 
-def postprocess_urls(urls: List[str]) -> List[str]:
-    """Clean URLs and remove hash fragments."""
-    cleaned_urls = []
-    for url in tqdm(urls, desc="Cleaning URLs"):
-        try:
-            cleaned = clean_url(url)
-            if not cleaned:
-                continue
-            # Parse URL and remove fragment
-            parsed = urlparse(cleaned)
-            unparsed_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path,
-                                      parsed.params, parsed.query, ''))
-            cleaned_urls.append(unparsed_url)
-        except ValueError as e:
-            print(f"Error cleaning URL {url}: {e}")
-            continue
-    # Filter unique urls
-    cleaned_urls = list(set(cleaned_urls))
-    print(f"Retained {len(cleaned_urls)} URLs after cleaning")
-    return cleaned_urls
-
-
-def get_query_noun_profile(query: str) -> Dict[str, float]:
-    """Extract lemmatized nouns and their scores from the query."""
-    return get_word_counts_lemmatized(
-        query, pos=None, min_count=1, as_score=True
-    )
-
-
-def map_urls_to_nouns(
-    urls: List[str], word_counts: Dict[str, float], query_profile: Dict[str, float]
-) -> List[Tuple[Dict[str, float], float]]:
-    """Map each URL to its lemmatized nouns and compute relevance to query."""
-    preprocessed_urls = preprocess_urls(urls)
-    noun_profiles = []
-    all_nouns = set(word_counts.keys())
-
-    for preprocessed in tqdm(preprocessed_urls, desc="Mapping URLs to nouns"):
-        url_counts = get_word_counts_lemmatized(
-            preprocessed, pos=None, min_count=1, as_score=True
-        )
-        noun_profile = {noun: score for noun,
-                        score in url_counts.items() if noun in all_nouns}
-        relevance = cosine_similarity(
-            noun_profile, query_profile) if noun_profile and query_profile else 0.0
-        noun_profiles.append((noun_profile, relevance))
-
-    return noun_profiles
-
-
-def cosine_similarity(profile1: Dict[str, float], profile2: Dict[str, float]) -> float:
-    """Compute cosine similarity between two noun profiles."""
-    all_nouns = set(profile1.keys()) | set(profile2.keys())
-    if not all_nouns:
-        return 0.0
-    vec1 = np.array([profile1.get(noun, 0.0) for noun in all_nouns])
-    vec2 = np.array([profile2.get(noun, 0.0) for noun in all_nouns])
-    dot_product = np.dot(vec1, vec2)
-    norm1 = np.linalg.norm(vec1)
-    norm2 = np.linalg.norm(vec2)
-    if norm1 == 0 or norm2 == 0:
-        return 0.0
-    return dot_product / (norm1 * norm2)
-
-
-def filter_diverse_urls_by_nouns(
-    urls: List[str],
-    noun_profiles: List[Tuple[Dict[str, float], float]],
-    relevance_threshold: float = 0.3,
-    diversity_threshold: float = 0.7,
-    relevance_weight: float = 0.5,
-    show_progress: bool = False
-) -> List[str]:
-    """Filter URLs to retain diverse and relevant ones based on noun profiles."""
-    filtered_urls = []
-    filtered_profiles = []
-    iterator = tqdm(zip(urls, noun_profiles),
-                    desc="Filtering diverse URLs") if show_progress else zip(urls, noun_profiles)
-
-    sorted_pairs = sorted(
-        zip(urls, noun_profiles),
-        key=lambda x: x[1][1],
-        reverse=True
-    )
-
-    for url, (profile, relevance) in iterator:
-        if not profile or relevance < relevance_threshold:
-            continue
-        is_diverse = True
-        for existing_profile, _ in filtered_profiles:
-            if cosine_similarity(profile, existing_profile) >= diversity_threshold:
-                is_diverse = False
-                break
-        if is_diverse:
-            filtered_urls.append(url)
-            filtered_profiles.append((profile, relevance))
-
-    print(f"Retained {len(filtered_urls)} diverse and relevant URLs")
-    return filtered_urls
+    print(f"Retained {len(unique_tokenized_urls)} URLs after filtering")
+    return unique_tokenized_urls, unique_index_to_original_url
 
 
 if __name__ == "__main__":
@@ -152,31 +78,33 @@ if __name__ == "__main__":
 
     docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/links.json"
     query = "List all ongoing and upcoming isekai anime 2025."
+    top_k = 10
+
     urls: List[str] = load_file(docs_file)
 
-    query_profile = get_query_noun_profile(query)
-    save_file(query_profile, f"{output_dir}/query-profile.json")
-
-    preprocessed_urls = preprocess_urls(urls)
+    preprocessed_urls, unique_index_to_original_url = preprocess_urls(urls)
     save_file(preprocessed_urls, f"{output_dir}/preprocessed-urls.json")
+    save_file(unique_index_to_original_url,
+              f"{output_dir}/index-to-original-url.json")
 
-    word_counts_lemmatized_results = get_word_counts_lemmatized(
-        '\n\n'.join(preprocessed_urls), pos=None, min_count=2, as_score=True
-    )
-    save_file(word_counts_lemmatized_results,
-              f"{output_dir}/word-counts-lemmatized-results.json")
+    bm25_plus_results = bm25_plus(preprocessed_urls, query, k1=1.5)
+    save_file({
+        "query": query,
+        "results": bm25_plus_results
+    }, f"{output_dir}/bm25-plus-results.json")
 
-    noun_profiles = map_urls_to_nouns(
-        urls, word_counts_lemmatized_results, query_profile)
-    save_file(noun_profiles, f"{output_dir}/noun-profiles.json")
+    # Map doc_index to original URLs and debug
+    reranked_urls = []
+    for result in bm25_plus_results["results"]:
+        doc_index = result["doc_index"]
+        if doc_index in unique_index_to_original_url:
+            original_url = unique_index_to_original_url[doc_index]
+            reranked_urls.append(original_url)
+        else:
+            print(
+                f"Warning: doc_index {doc_index} not found in unique_index_to_original_url")
 
-    diverse_urls = filter_diverse_urls_by_nouns(
-        urls, noun_profiles, relevance_threshold=0.3, diversity_threshold=0.7, show_progress=True
-    )
-    diverse_urls = postprocess_urls(diverse_urls)
-    save_file(diverse_urls, f"{output_dir}/postprocessed-urls.json")
-
-    searched_diverse_urls = search_docs(
-        query, diverse_urls, top_k=5)
-    save_file(searched_diverse_urls,
-              f"{output_dir}/searched-diverse-urls.json")
+    # Unique results and limit to top_k
+    reranked_urls = list(dict.fromkeys(reranked_urls))[:top_k]
+    save_file(reranked_urls, f"{output_dir}/reranked-urls.json")
+    print(f"Reranked URLs: {reranked_urls}")
