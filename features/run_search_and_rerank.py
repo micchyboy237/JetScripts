@@ -297,7 +297,7 @@ def evaluate_results(
 
 async def main():
     """Main function to orchestrate the search and response generation."""
-    query = "List trending isekai anime 2025."
+    query = "List all ongoing and upcoming isekai anime 2025."
     top_k = 10
     embed_model = "all-MiniLM-L12-v2"
     llm_model = "llama-3.2-3b-instruct-4bit"
@@ -306,7 +306,7 @@ async def main():
 
     output_dir = initialize_output_directory(__file__)
     mlx, _ = initialize_search_components(llm_model, embed_model, seed)
-    query = rewrite_query(query, llm_model)
+    # query = rewrite_query(query, llm_model)
     browser_search_results, html_list = await fetch_search_results(query, output_dir, use_cache=use_cache)
     url_html_date_tuples, _ = process_search_results(
         browser_search_results, html_list, output_dir)
