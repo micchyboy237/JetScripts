@@ -111,3 +111,51 @@ def search_docs(
         results.append(result)
 
     return results
+
+
+def main():
+    """Example usage of search_docs function."""
+    # Sample query and documents
+    query = "Machine learning algorithms"
+    documents = [
+        "Machine learning is a subset of artificial intelligence that focuses on building systems that learn from data.",
+        "Deep learning is a type of machine learning that uses neural networks with many layers.",
+        "Python is a popular programming language for machine learning and data science.",
+        "The history of artificial intelligence began in the 1950s with early computational models."
+    ]
+    ids = ["doc1", "doc2", "doc3", "doc4"]
+
+    try:
+        # Basic search with default parameters
+        print("Performing basic search...")
+        results = search_docs(query, documents, ids=ids)
+        for result in results:
+            print(
+                f"ID: {result['id']}, Rank: {result['rank']}, Score: {result['score']:.4f}")
+            print(f"Text: {result['text']}")
+            print(f"Tokens: {result['tokens']}")
+            print("---")
+
+        # Search with specific parameters
+        print("\nPerforming search with top_k=2 and preprocess=False...")
+        results = search_docs(
+            query,
+            documents,
+            model="all-minilm:33m",
+            top_k=2,
+            preprocess=False,
+            ids=ids
+        )
+        for result in results:
+            print(
+                f"ID: {result['id']}, Rank: {result['rank']}, Score: {result['score']:.4f}")
+            print(f"Text: {result['text']}")
+            print(f"Tokens: {result['tokens']}")
+            print("---")
+
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+
+
+if __name__ == "__main__":
+    main()
