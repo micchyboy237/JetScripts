@@ -93,7 +93,7 @@ if __name__ == "__main__":
     bm25_plus_results = bm25_plus(preprocessed_urls, query, k1=1.5)
     save_file({
         "query": query,
-        "results": bm25_plus_results
+        **bm25_plus_results
     }, f"{output_dir}/bm25_plus_results.json")
 
     # Map doc_index to original URLs and debug
