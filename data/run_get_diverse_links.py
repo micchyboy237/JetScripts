@@ -35,6 +35,8 @@ def preprocess_urls(urls: List[str]) -> List[str]:
         except ValueError as e:
             print(f"Error processing URL {url}: {e}")
             continue
+    # Filter unique tokenized urls
+    tokenized_urls = list(set(tokenized_urls))
     print(f"Retained {len(tokenized_urls)} URLs after resource filtering")
     return tokenized_urls
 
@@ -175,6 +177,6 @@ if __name__ == "__main__":
     save_file(diverse_urls, f"{output_dir}/postprocessed-urls.json")
 
     searched_diverse_urls = search_docs(
-        query, diverse_urls, top_k=3, threshold=0.65)
+        query, diverse_urls, top_k=5)
     save_file(searched_diverse_urls,
               f"{output_dir}/searched-diverse-urls.json")
