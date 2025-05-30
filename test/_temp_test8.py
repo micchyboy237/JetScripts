@@ -1,15 +1,15 @@
-from jet.llm.mlx.helpers import load_model
-from jet.llm.mlx.mlx_types import LLMModelType
 import pytest
 import mlx.core as mx
 import mlx.nn as nn
 from mlx_lm import load, generate
+from mlx_lm.sample_utils import make_sampler
 import numpy as np
+import re
 
-# Simplified attention with padding mask
+# Attention layer with padding mask for feedback analysis
 
 
-class PaddedAttention(nn.Module):
+class FeedbackAttention(nn.Module):
     def __init__(self, dims: int, num_heads: int):
         super().__init__()
         self.num_heads = num_heads
@@ -30,127 +30,262 @@ class PaddedAttention(nn.Module):
         scale = mx.sqrt(1 / queries.shape[-1])
         scores = (queries * scale) @ keys.transpose(0, 1, 3, 2)
         if mask is not None:
-            scores = scores.masked_fill(
-                mask == 0, float('-inf'))  # Apply padding mask
+            scores = scores.masked_fill(mask == 0, float('-inf'))
         scores = mx.softmax(scores, axis=-1)
         values_hat = (scores @ values).transpose(0, 2, 1, 3).reshape(B, L, -1)
         return self.out_proj(values_hat)
 
-# Model with labeling, summarization, NER, and QA
-
-
-class TextProcessor(nn.Module):
-    def __init__(self, dims: int, num_heads: int, vocab_size: int, num_entities: int = 4):
-        super().__init__()
-        self.embedding = nn.Embedding(vocab_size, dims)
-        self.attention = PaddedAttention(dims, num_heads)
-        self.norm = nn.LayerNorm(dims)
-        # Sentiment labeling (sequence-level)
-        self.label_head = nn.Linear(dims, 1)
-        # NER (token-level)
-        self.ner_head = nn.Linear(dims, num_entities)  # e.g., O, PER, ORG, LOC
-        # QA (start and end positions)
-        self.qa_start_head = nn.Linear(dims, 1)
-        self.qa_end_head = nn.Linear(dims, 1)
-
-    def __call__(self, input_ids, mask=None):
-        x = self.embedding(input_ids)
-        x = self.attention(x, x, x, mask)
-        x = self.norm(x)
-        # Sentiment labeling: average non-padded tokens
-        seq_lengths = mask.sum(
-            axis=-1).squeeze() if mask is not None else x.shape[1]
-        masked_sum = (x * mask[..., None]).sum(axis=1)
-        label_logits = self.label_head(masked_sum / seq_lengths[..., None])
-        # NER: token-level predictions
-        ner_logits = self.ner_head(x)
-        # QA: start and end position logits
-        qa_start_logits = self.qa_start_head(x).squeeze(-1)
-        qa_end_logits = self.qa_end_head(x).squeeze(-1)
-        return x, label_logits, ner_logits, qa_start_logits, qa_end_logits
-
-# Create padding mask
+# Create padding mask for variable-length reviews
 
 
 def create_padding_mask(input_ids, pad_token_id):
     mask = (input_ids != pad_token_id).astype(mx.float32)
     return mask[:, None, None, :]  # Shape: (batch, 1, 1, seq_len)
 
+# Updated: Multi-class labeling with multiple label outputs
 
-# Example usage
-llm_model: LLMModelType = "qwen3-1.7b-4bit"
-model, tokenizer = load_model(llm_model)
-processor = TextProcessor(dims=512, num_heads=8,
-                          vocab_size=tokenizer.vocab_size, num_entities=4)
 
-sentences = ["Elon Musk visited Paris.", "Apple released a new product."]
-questions = ["Who visited Paris?", "What did Apple release?"]
-input_ids_np = tokenizer.encode(sentences, return_tensors="np", padding=True)
-input_ids = mx.array(input_ids_np.tolist())
+def multi_class_label(review, model, tokenizer, max_length=50):
+    prompt = (
+        f"Classify the review by selecting one or more categories: Positive, Negative, Neutral. "
+        f"Return the categories as a comma-separated list (e.g., 'Positive, Neutral').\n"
+        f"Examples:\n"
+        f"Review: Amazing quality and fast delivery!\n"
+        f"Categories: Positive\n"
+        f"Review: Poor battery life and terrible service.\n"
+        f"Categories: Negative\n"
+        f"Review: Decent performance, nothing special.\n"
+        f"Categories: Neutral\n"
+        f"Review: Great features but overpriced.\n"
+        f"Categories: Positive, Negative\n"
+        f"Review: Works as expected, but customer service was unhelpful.\n"
+        f"Categories: Neutral, Negative\n"
+        f"Review: {review}\n"
+        f"Categories: "
+    )
+    input_tokens = tokenizer.encode(
+        prompt, max_length=max_length, padding=True, truncation=True)
+    max_len = max_length
+    input_tokens = mx.array(
+        [input_tokens + [tokenizer.pad_token_id] * (max_len - len(input_tokens))])
+    sampler = make_sampler(temp=0.1)
+    categories = generate(model, tokenizer, prompt=prompt,
+                          max_tokens=20, sampler=sampler)
+    valid_categories = ["positive", "negative", "neutral"]
+    categories_lower = categories.lower().strip()
+    category_matches = re.findall(
+        r"\b(positive|negative|neutral)\b", categories_lower)
+    if not category_matches:
+        return "Neutral (invalid response)"
+    # Capitalize and join unique categories
+    unique_categories = sorted(set(category.capitalize()
+                               for category in category_matches))
+    return ", ".join(unique_categories)
+
+# Short summary (1 sentence)
+
+
+def generate_short_summary(reviews, model, tokenizer, max_length=50):
+    combined_reviews = " ".join(reviews)
+    prompt = (
+        f"Summarize the following reviews in one concise sentence:\n"
+        f"Example:\n"
+        f"Reviews: Great camera but slow processor.\n"
+        f"Summary: The product has a great camera but a slow processor.\n"
+        f"Reviews: {combined_reviews}\n"
+        f"Summary: "
+    )
+    sampler = make_sampler(temp=0.3)
+    summary = generate(model, tokenizer, prompt=prompt,
+                       max_tokens=50, sampler=sampler)
+    summary = re.match(r'^.*?[.?!]', summary)
+    summary = summary.group(
+        0) if summary else "Summary could not be generated."
+    key_themes = ["delivery", "quality", "battery",
+                  "customer service", "price", "features"]
+    if not any(theme in summary.lower() for theme in key_themes):
+        return "Summary could not be generated (missing key themes)."
+    return summary.strip()
+
+# Medium summary (2 sentences)
+
+
+def generate_medium_summary(reviews, model, tokenizer, max_length=100):
+    combined_reviews = " ".join(reviews)
+    prompt = (
+        f"Summarize the following reviews in two sentences, capturing key points:\n"
+        f"Example:\n"
+        f"Reviews: Great camera but slow processor. Battery life is amazing.\n"
+        f"Summary: The product features an excellent camera and impressive battery life. However, its processor is notably slow, impacting performance.\n"
+        f"Reviews: {combined_reviews}\n"
+        f"Summary: "
+    )
+    sampler = make_sampler(temp=0.3)
+    summary = generate(model, tokenizer, prompt=prompt,
+                       max_tokens=80, sampler=sampler)
+    summary_sentences = re.findall(r'[^.!?]+[.!?]', summary)
+    if len(summary_sentences) < 2:
+        return "Summary could not be generated (insufficient length)."
+    key_themes = ["delivery", "quality", "battery",
+                  "customer service", "price", "features"]
+    if not any(theme in summary.lower() for theme in key_themes):
+        return "Summary could not be generated (missing key themes)."
+    return " ".join(summary_sentences[:2]).strip()
+
+# Long summary (3 sentences)
+
+
+def generate_long_summary(reviews, model, tokenizer, max_length=100):
+    combined_reviews = " ".join(reviews)
+    prompt = (
+        f"Generate a detailed summary of the following reviews in three sentences, capturing all key points:\n"
+        f"Example:\n"
+        f"Reviews: Great camera but slow processor. Battery life is amazing.\n"
+        f"Summary: The product features an excellent camera that delivers high-quality images. Its battery life is exceptional, lasting through extended use. However, the slow processor significantly hinders performance.\n"
+        f"Reviews: {combined_reviews}\n"
+        f"Summary: "
+    )
+    sampler = make_sampler(temp=0.3)
+    summary = generate(model, tokenizer, prompt=prompt,
+                       max_tokens=120, sampler=sampler)
+    summary_sentences = re.findall(r'[^.!?]+[.!?]', summary)
+    if len(summary_sentences) < 3:
+        return "Summary could not be generated (insufficient length)."
+    key_themes = ["delivery", "quality", "battery",
+                  "customer service", "price", "features"]
+    if not any(theme in summary.lower() for theme in key_themes):
+        return "Summary could not be generated (missing key themes)."
+    return " ".join(summary_sentences[:3]).strip()
+
+
+# Real-world usage
+model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+reviews = [
+    "Amazing quality and fast delivery, highly recommend!",
+    "Poor battery life and terrible customer service.",
+    "Works as expected, nothing special but reliable.",
+    "Great features but overpriced and slow response time.",
+    "Good design, but the battery drains quickly and support was average."
+]
+
+# Tokenize with padding
+max_length = 50
+input_ids_list = [tokenizer.encode(
+    review, max_length=max_length, padding=True, truncation=True) for review in reviews]
+max_len = max(len(ids) for ids in input_ids_list)
+input_ids = [ids + [tokenizer.pad_token_id] *
+             (max_len - len(ids)) for ids in input_ids_list]
+input_ids = mx.array(np.array(input_ids))
 pad_token_id = tokenizer.pad_token_id
 mask = create_padding_mask(input_ids, pad_token_id)
 
-# Process input
-encoded, label_logits, ner_logits, qa_start_logits, qa_end_logits = processor(
-    input_ids, mask)
-sentiments = mx.sigmoid(label_logits)  # Sentiment scores
-ner_preds = mx.argmax(ner_logits, axis=-1)  # NER predictions
-qa_starts = mx.argmax(qa_start_logits, axis=-1)
-qa_ends = mx.argmax(qa_end_logits, axis=-1)
+# Multi-class labeling with multiple label outputs
+print("Multi-Class Labeling:")
+for i, review in enumerate(reviews):
+    categories = multi_class_label(review, model, tokenizer, max_length)
+    print(f"Review {i+1}: {review}\nCategories: {categories}")
 
-# Generate summaries and QA answers
-for i, (seq, question) in enumerate(zip(input_ids, questions)):
-    prompt = tokenizer.decode(seq.tolist())
-    # Summarization
-    summary = generate(model, tokenizer, prompt=prompt, max_tokens=10)
-    # Sentiment
-    sentiment = "Positive" if sentiments[i].item() > 0.5 else "Negative"
-    # NER (example mapping: 0=O, 1=PER, 2=ORG, 3=LOC)
-    ner_labels = ["O", "PER", "ORG", "LOC"]
-    ner_tokens = [ner_labels[p.item()] for p in ner_preds[i]]
-    # QA
-    start, end = qa_starts[i].item(), qa_ends[i].item() + 1
-    answer_tokens = seq[start:end].tolist()
-    answer = tokenizer.decode(answer_tokens)
-    print(
-        f"Sentence: {prompt}\nSentiment: {sentiment}\nSummary: {summary}\nNER: {ner_tokens}\nQ: {question}\nA: {answer}\n")
+# Summaries
+print("\nShort Summary of Reviews:")
+short_summary = generate_short_summary(
+    reviews, model, tokenizer, max_length=50)
+print(short_summary)
+
+print("\nMedium Summary of Reviews:")
+medium_summary = generate_medium_summary(
+    reviews, model, tokenizer, max_length=100)
+print(medium_summary)
+
+print("\nLong Summary of Reviews:")
+long_summary = generate_long_summary(reviews, model, tokenizer, max_length=100)
+print(long_summary)
 
 # Pytest tests
 
 
-class TestTextProcessor:
+class TestFeedbackPaddingMask:
     def test_padding_mask_shape(self):
+        input_ids = mx.array([[1, 2, 0], [1, 2, 3], [1, 0, 0]])
+        pad_token_id = 0
+        result = create_padding_mask(input_ids, pad_token_id)
+        expected_shape = (3, 1, 1, 3)
+        assert result.shape == expected_shape, f"Expected shape {expected_shape}, got {result.shape}"
+
+    def test_padding_mask_values(self):
         input_ids = mx.array([[1, 2, 0], [1, 2, 3]])
         pad_token_id = 0
         result = create_padding_mask(input_ids, pad_token_id)
-        expected_shape = (2, 1, 1, 3)
-        assert result.shape == expected_shape, f"Expected shape {expected_shape}, got {result.shape}"
+        expected = mx.array([[[[1., 1., 0.]]], [[[1., 1., 1.]]]])
+        assert mx.allclose(result, expected), "Padding mask values incorrect"
 
-    def test_labeling_output(self):
-        processor = TextProcessor(dims=64, num_heads=4, vocab_size=100)
-        input_ids = mx.array([[1, 2, 0], [1, 2, 3]])
-        pad_token_id = 0
-        mask = create_padding_mask(input_ids, pad_token_id)
-        _, result, _, _, _ = processor(input_ids, mask)
-        expected_shape = (2, 1)  # Batch size 2, binary label
-        assert result.shape == expected_shape, f"Expected shape {expected_shape}, got {result.shape}"
 
-    def test_ner_output(self):
-        processor = TextProcessor(
-            dims=64, num_heads=4, vocab_size=100, num_entities=4)
-        input_ids = mx.array([[1, 2, 0], [1, 2, 3]])
-        pad_token_id = 0
-        mask = create_padding_mask(input_ids, pad_token_id)
-        _, _, result, _, _ = processor(input_ids, mask)
-        expected_shape = (2, 3, 4)  # Batch size 2, seq len 3, 4 entities
-        assert result.shape == expected_shape, f"Expected shape {expected_shape}, got {result.shape}"
+class TestMultiClassLabeling:
+    def test_multi_class_label_positive(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        review = "Amazing quality and fast delivery, highly recommend!"
+        result = multi_class_label(review, model, tokenizer)
+        expected = "Positive"
+        assert result == expected, f"Expected categories {expected}, got {result}"
 
-    def test_qa_output(self):
-        processor = TextProcessor(dims=64, num_heads=4, vocab_size=100)
-        input_ids = mx.array([[1, 2, 0], [1, 2, 3]])
-        pad_token_id = 0
-        mask = create_padding_mask(input_ids, pad_token_id)
-        _, _, _, start_logits, end_logits = processor(input_ids, mask)
-        expected_shape = (2, 3)  # Batch size 2, seq len 3
-        assert start_logits.shape == expected_shape, f"Expected shape {expected_shape}, got {start_logits.shape}"
-        assert end_logits.shape == expected_shape, f"Expected shape {expected_shape}, got {end_logits.shape}"
+    def test_multi_class_label_negative(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        review = "Poor battery life and terrible customer service."
+        result = multi_class_label(review, model, tokenizer)
+        expected = "Negative"
+        assert result == expected, f"Expected categories {expected}, got {result}"
+
+    def test_multi_class_label_neutral(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        review = "Works as expected, nothing special but reliable."
+        result = multi_class_label(review, model, tokenizer)
+        expected = "Neutral"
+        assert result == expected, f"Expected categories {expected}, got {result}"
+
+    def test_multi_class_label_positive_negative(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        review = "Great features but overpriced and slow response time."
+        result = multi_class_label(review, model, tokenizer)
+        expected = "Negative, Positive"
+        assert result == expected, f"Expected categories {expected}, got {result}"
+
+    def test_multi_class_label_neutral_negative(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        review = "Good design, but the battery drains quickly and support was average."
+        result = multi_class_label(review, model, tokenizer)
+        expected = "Negative, Neutral"
+        assert result == expected, f"Expected categories {expected}, got {result}"
+
+
+class TestSummaries:
+    def test_short_summary_length(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        reviews = ["Great product!", "Poor service."]
+        result = generate_short_summary(reviews, model, tokenizer)
+        expected_sentences = 1
+        result_sentences = len(re.findall(r'[^.!?]+[.!?]', result))
+        assert result_sentences == expected_sentences, f"Expected {expected_sentences} sentence, got {result_sentences}"
+
+    def test_medium_summary_length(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        reviews = ["Fast delivery, great quality.", "Poor battery life."]
+        result = generate_medium_summary(reviews, model, tokenizer)
+        expected_sentences = 2
+        result_sentences = len(re.findall(r'[^.!?]+[.!?]', result))
+        assert result_sentences == expected_sentences, f"Expected {expected_sentences} sentences, got {result_sentences}"
+
+    def test_long_summary_length(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        reviews = ["Fast delivery, great quality.", "Poor battery life."]
+        result = generate_long_summary(reviews, model, tokenizer)
+        expected_sentences = 3
+        result_sentences = len(re.findall(r'[^.!?]+[.!?]', result))
+        assert result_sentences == expected_sentences, f"Expected {expected_sentences} sentences, got {result_sentences}"
+
+    def test_summary_themes(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        reviews = ["Fast delivery, great quality.", "Poor battery life."]
+        result = generate_long_summary(reviews, model, tokenizer)
+        expected_themes = ["delivery", "quality", "battery",
+                           "customer service", "price", "features"]
+        assert any(theme in result.lower(
+        ) for theme in expected_themes), f"Expected themes {expected_themes}, got {result}"

@@ -118,9 +118,9 @@ def initialize_search_components(
     return mlx, tokenize
 
 
-async def fetch_search_results(query: str, output_dir: str) -> Tuple[List[Dict], List[str]]:
+async def fetch_search_results(query: str, output_dir: str, use_cache: bool = False) -> Tuple[List[Dict], List[str]]:
     """Fetch search results and save them."""
-    browser_search_results = search_data(query)
+    browser_search_results = search_data(query, use_cache=use_cache)
     save_file(
         {"query": query, "count": len(
             browser_search_results), "results": browser_search_results},
@@ -206,8 +206,7 @@ def search_and_group_documents(
         os.path.join(output_dir, "search_doc_results.json")
     )
 
-    search_result_dict = {result["id"]
-        : result for result in search_doc_results}
+    search_result_dict = {result["id"]                          : result for result in search_doc_results}
     sorted_doc_results = []
     for doc in all_docs:
         if doc.metadata["header_level"] != 1 and count_words(doc.text) >= 10:
@@ -303,11 +302,12 @@ async def main():
     embed_model = "all-MiniLM-L12-v2"
     llm_model = "llama-3.2-3b-instruct-4bit"
     seed = 45
+    use_cache = False
 
     output_dir = initialize_output_directory(__file__)
     mlx, _ = initialize_search_components(llm_model, embed_model, seed)
     query = rewrite_query(query, llm_model)
-    browser_search_results, html_list = await fetch_search_results(query, output_dir)
+    browser_search_results, html_list = await fetch_search_results(query, output_dir, use_cache=use_cache)
     url_html_date_tuples, _ = process_search_results(
         browser_search_results, html_list, output_dir)
     url_html_date_tuples.sort(key=lambda x: x[2] or "", reverse=True)

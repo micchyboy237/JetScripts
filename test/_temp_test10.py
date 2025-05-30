@@ -3,13 +3,13 @@ from jet.llm.mlx.mlx_types import LLMModelType
 import pytest
 import mlx.core as mx
 import mlx.nn as nn
-import numpy as np
 from mlx_lm import load, generate
+import numpy as np
 
-# Simplified attention layer with causal mask
+# Simplified attention with padding mask
 
 
-class SimpleAttention(nn.Module):
+class PaddedAttention(nn.Module):
     def __init__(self, dims: int, num_heads: int):
         super().__init__()
         self.num_heads = num_heads
@@ -30,131 +30,156 @@ class SimpleAttention(nn.Module):
         scale = mx.sqrt(1 / queries.shape[-1])
         scores = (queries * scale) @ keys.transpose(0, 1, 3, 2)
         if mask is not None:
-            scores = scores + mask
+            scores = mx.where(mask, scores, float('-inf'))
         scores = mx.softmax(scores, axis=-1)
         values_hat = (scores @ values).transpose(0, 2, 1, 3).reshape(B, L, -1)
         return self.out_proj(values_hat)
 
-# Create causal mask
+# Model with labeling, summarization, NER, and QA
 
 
-def create_causal_mask(seq_len: int):
-    mask = mx.triu(mx.ones((seq_len, seq_len)) * float('-inf'), k=1)
-    return mask
+class TextProcessor(nn.Module):
+    def __init__(self, dims: int, num_heads: int, vocab_size: int, num_entities: int = 4):
+        super().__init__()
+        self.embedding = nn.Embedding(vocab_size, dims)
+        self.attention = PaddedAttention(dims, num_heads)
+        self.norm = nn.LayerNorm(dims)
+        # Sentiment labeling (sequence-level)
+        self.label_head = nn.Linear(dims, 1)
+        # NER (token-level)
+        self.ner_head = nn.Linear(dims, num_entities)  # e.g., O, PER, ORG, LOC
+        # QA (start and end positions)
+        self.qa_start_head = nn.Linear(dims, 1)
+        self.qa_end_head = nn.Linear(dims, 1)
 
-# Labeling function for generated text
+    def __call__(self, input_ids, mask=None):
+        x = self.embedding(input_ids)
+        x = self.attention(x, x, x, mask)
+        x = self.norm(x)
+
+        if mask is not None:
+            # Shape: (batch_size, seq_len)
+            flat_mask = mask.squeeze(axis=(1, 2))
+            seq_lengths = flat_mask.sum(axis=-1)  # Shape: (batch_size,)
+            # (batch_size, dims)
+            masked_sum = (x * flat_mask[..., None]).sum(axis=1)
+        else:
+            seq_lengths = mx.full((input_ids.shape[0],), x.shape[1])
+            masked_sum = x.sum(axis=1)
+
+        seq_lengths = mx.where(seq_lengths == 0, 1, seq_lengths)
+        label_logits = self.label_head(
+            masked_sum / seq_lengths[:, None])  # (batch_size, 1)
+
+        ner_logits = self.ner_head(x)
+        qa_start_logits = self.qa_start_head(x).squeeze(-1)
+        qa_end_logits = self.qa_end_head(x).squeeze(-1)
+        return x, label_logits, ner_logits, qa_start_logits, qa_end_logits
 
 
-def label_generated_text(text: str) -> str:
-    """Assigns a sentiment label to generated text based on keywords."""
-    positive_keywords = ["happy", "great", "wonderful", "beautiful"]
-    negative_keywords = ["sad", "terrible", "awful", "bad"]
-    text = text.lower()
-    if any(keyword in text for keyword in positive_keywords):
-        return "positive"
-    elif any(keyword in text for keyword in negative_keywords):
-        return "negative"
-    return "neutral"
+# Create padding mask
+
+
+def create_padding_mask(input_ids, pad_token_id):
+    mask = (input_ids != pad_token_id).astype(mx.float32)
+    return mask[:, None, None, :]  # Shape: (batch_size, 1, 1, seq_len)
 
 
 # Example usage
-# Load model and tokenizer
 llm_model: LLMModelType = "qwen3-1.7b-4bit"
 model, tokenizer = load_model(llm_model)
-prompt = "Once upon a time"
+processor = TextProcessor(dims=512, num_heads=8,
+                          vocab_size=tokenizer.vocab_size, num_entities=4)
 
-# Token budget
-MAX_TOTAL_TOKENS = 20
-MAX_LABEL_TOKENS = 2  # Max tokens for labels like "positive" or "negative"
-MAX_TEXT_TOKENS = MAX_TOTAL_TOKENS - MAX_LABEL_TOKENS  # Reserve tokens for label
+sentences = ["Elon Musk visited Paris.", "Apple released a new product."]
+questions = ["Who visited Paris?", "What did Apple release?"]
+input_ids_np = tokenizer.encode(sentences, return_tensors="np", padding=True)
+input_ids = mx.array(input_ids_np.tolist())
+pad_token_id = tokenizer.pad_token_id
+mask = create_padding_mask(input_ids, pad_token_id)
 
-# Use encode instead of calling the tokenizer
-input_ids = tokenizer.encode(prompt)
-input_ids = mx.array([input_ids])  # Add batch dimension
+# Debug shapes
+print(f"Input IDs shape: {input_ids.shape}")
+print(f"Mask shape: {mask.shape}")
 
-seq_len = input_ids.shape[1]
-mask = create_causal_mask(seq_len)
+# Process input
+encoded, label_logits, ner_logits, qa_start_logits, qa_end_logits = processor(
+    input_ids, mask)
+print(f"Label logits shape: {label_logits.shape}")
+sentiments = mx.sigmoid(label_logits)  # Sentiment scores
+print(f"Sentiments shape: {sentiments.shape}")
+ner_preds = mx.argmax(ner_logits, axis=-1)  # NER predictions
+qa_starts = mx.argmax(qa_start_logits, axis=-1)
+qa_ends = mx.argmax(qa_end_logits, axis=-1)
 
-# Generate text with reserved token space
-response = generate(model, tokenizer, prompt=prompt,
-                    max_tokens=MAX_TEXT_TOKENS, verbose=False)
-label = label_generated_text(response)
-# Append label to output
-final_output = f"{response} [{label}]"
-print(f"Generated text with label: {final_output}")
-
-# Verify token count
-final_output_ids = tokenizer.encode(final_output)
-total_tokens = len(final_output_ids)
-print(f"Total tokens (text + label): {total_tokens}")
+# Generate summaries and QA answers
+for i, (seq, question) in enumerate(zip(input_ids, questions)):
+    prompt = tokenizer.decode(seq.tolist())
+    # Summarization
+    summary = generate(model, tokenizer, prompt=prompt, max_tokens=10)
+    # Sentiment
+    sentiment_score = mx.squeeze(sentiments[i]).item()  # Ensure scalar
+    print(
+        f"Sentiment[{i}] shape: {sentiments[i].shape}, value: {sentiments[i]}")
+    sentiment = "Positive" if sentiment_score > 0.5 else "Negative"
+    # NER (example mapping: 0=O, 1=PER, 2=ORG, 3=LOC)
+    ner_labels = ["O", "PER", "ORG", "LOC"]
+    ner_tokens = [ner_labels[p.item()] for p in ner_preds[i]]
+    # QA
+    start, end = qa_starts[i].item(), qa_ends[i].item() + 1
+    answer_tokens = seq[start:end].tolist()
+    answer = tokenizer.decode(answer_tokens)
+    print(f"Sentence: {prompt}\nSentiment: {sentiment} ({sentiment_score:.3f})\nSummary: {summary}\nNER: {ner_tokens}\nQ: {question}\nA: {answer}\n")
 
 # Pytest tests
 
 
-class TestCausalMask:
-    def test_causal_mask_shape(self):
-        seq_len = 5
-        expected = mx.triu(mx.ones((seq_len, seq_len)) * float('-inf'), k=1)
-        result = create_causal_mask(seq_len)
-        assert result.shape == expected.shape, f"Expected shape {expected.shape}, got {result.shape}"
-        assert mx.all(result == expected), "Causal mask values incorrect"
+class TestTextProcessor:
+    def test_padding_mask_shape(self):
+        input_ids = mx.array([[1, 2, 0], [1, 2, 3]])
+        pad_token_id = 0
+        result = create_padding_mask(input_ids, pad_token_id)
+        expected_shape = (2, 1, 1, 3)
+        assert result.shape == expected_shape, f"Expected shape {expected_shape}, got {result.shape}"
 
-    def test_causal_mask_values(self):
-        seq_len = 3
-        expected = mx.array([[0., -float('inf'), -float('inf')],
-                             [0., 0., -float('inf')],
-                             [0., 0., 0.]])
-        result = create_causal_mask(seq_len)
-        assert mx.allclose(
-            result, expected), "Causal mask values not close to expected"
+    def test_labeling_output(self):
+        processor = TextProcessor(dims=64, num_heads=4, vocab_size=100)
+        input_ids = mx.array([[1, 2, 0], [1, 2, 3]])
+        pad_token_id = 0
+        mask = create_padding_mask(input_ids, pad_token_id)
+        _, result, _, _, _ = processor(input_ids, mask)
+        expected_shape = (2, 1)  # Batch size 2, binary label
+        assert result.shape == expected_shape, f"Expected shape {expected_shape}, got {result.shape}"
 
+    def test_ner_output(self):
+        processor = TextProcessor(
+            dims=64, num_heads=4, vocab_size=100, num_entities=4)
+        input_ids = mx.array([[1, 2, 0], [1, 2, 3]])
+        pad_token_id = 0
+        mask = create_padding_mask(input_ids, pad_token_id)
+        _, _, result, _, _ = processor(input_ids, mask)
+        expected_shape = (2, 3, 4)  # Batch size 2, seq len 3, 4 entities
+        assert result.shape == expected_shape, f"Expected shape {expected_shape}, got {result.shape}"
 
-class TestLabelGeneratedText:
-    def test_label_positive(self):
-        input_text = "It was a wonderful day in the beautiful town."
-        expected = "positive"
-        result = label_generated_text(input_text)
-        assert result == expected, f"Expected label {expected}, got {result}"
+    def test_qa_output(self):
+        processor = TextProcessor(dims=64, num_heads=4, vocab_size=100)
+        input_ids = mx.array([[1, 2, 0], [1, 2, 3]])
+        pad_token_id = 0
+        mask = create_padding_mask(input_ids, pad_token_id)
+        _, _, _, start_logits, end_logits = processor(input_ids, mask)
+        expected_shape = (2, 3)  # Batch size 2, seq len 3
+        assert start_logits.shape == expected_shape, f"Expected shape {expected_shape}, got {start_logits.shape}"
+        assert end_logits.shape == expected_shape, f"Expected shape {expected_shape}, got {end_logits.shape}"
 
-    def test_label_negative(self):
-        input_text = "The town was struck by a terrible storm."
-        expected = "negative"
-        result = label_generated_text(input_text)
-        assert result == expected, f"Expected label {expected}, got {result}"
-
-    def test_label_neutral(self):
-        input_text = "The town was quiet and peaceful."
-        expected = "neutral"
-        result = label_generated_text(input_text)
-        assert result == expected, f"Expected label {expected}, got {result}"
-
-
-class TestTokenBudget:
-    def test_token_budget(self, monkeypatch):
-        # Mock generate to return a fixed response
-        def mock_generate(*args, **kwargs):
-            return "The town was quiet"
-        monkeypatch.setattr("mlx_lm.generate", mock_generate)
-
-        # Mock tokenizer to return fixed token counts
-        class MockTokenizer:
-            def encode(self, text):
-                if text == "Once upon a time":
-                    return [1, 2, 3, 4]  # 4 tokens
-                elif text.startswith("The town was quiet ["):
-                    return [1] * len(text.split())  # Approximate token count
-                return [1] * len(text.split())
-        mock_tokenizer = MockTokenizer()
-
-        # Run generation and labeling
-        MAX_TOTAL_TOKENS = 20
-        MAX_LABEL_TOKENS = 2
-        MAX_TEXT_TOKENS = MAX_TOTAL_TOKENS - MAX_LABEL_TOKENS
-        response = mock_generate(
-            None, None, prompt="Once upon a time", max_tokens=MAX_TEXT_TOKENS)
-        label = label_generated_text(response)
-        final_output = f"{response} [{label}]"
-        total_tokens = len(mock_tokenizer.encode(final_output))
-        expected = MAX_TOTAL_TOKENS
-        result = total_tokens
-        assert result <= expected, f"Total tokens {result} exceeds budget {expected}"
+    def test_sentiment_scalar(self):
+        processor = TextProcessor(dims=64, num_heads=4, vocab_size=100)
+        input_ids = mx.array([[1, 2, 0], [1, 2, 3]])
+        pad_token_id = 0
+        mask = create_padding_mask(input_ids, pad_token_id)
+        _, label_logits, _, _, _ = processor(input_ids, mask)
+        result = mx.sigmoid(label_logits)
+        expected_shape = (2, 1)
+        assert result.shape == expected_shape, f"Expected shape {expected_shape}, got {result.shape}"
+        result_scalar = mx.squeeze(result[0]).item()
+        assert isinstance(
+            result_scalar, float), f"Expected float, got {type(result_scalar)}"

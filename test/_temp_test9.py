@@ -1,15 +1,15 @@
-from jet.llm.mlx.helpers import load_model
-from jet.llm.mlx.mlx_types import LLMModelType
 import pytest
 import mlx.core as mx
 import mlx.nn as nn
-import numpy as np
 from mlx_lm import load, generate
+from mlx_lm.sample_utils import make_sampler
+import numpy as np
+import re
 
-# Simplified attention layer with causal mask
+# Attention layer with padding mask for feedback analysis
 
 
-class SimpleAttention(nn.Module):
+class FeedbackAttention(nn.Module):
     def __init__(self, dims: int, num_heads: int):
         super().__init__()
         self.num_heads = num_heads
@@ -30,166 +30,262 @@ class SimpleAttention(nn.Module):
         scale = mx.sqrt(1 / queries.shape[-1])
         scores = (queries * scale) @ keys.transpose(0, 1, 3, 2)
         if mask is not None:
-            scores = scores + mask
+            scores = scores.masked_fill(mask == 0, float('-inf'))
         scores = mx.softmax(scores, axis=-1)
         values_hat = (scores @ values).transpose(0, 2, 1, 3).reshape(B, L, -1)
         return self.out_proj(values_hat)
 
-# Create causal mask
+# Create padding mask for variable-length reviews
 
 
-def create_causal_mask(seq_len: int):
-    mask = mx.triu(mx.ones((seq_len, seq_len)) * float('-inf'), k=1)
-    return mask
+def create_padding_mask(input_ids, pad_token_id):
+    mask = (input_ids != pad_token_id).astype(mx.float32)
+    return mask[:, None, None, :]  # Shape: (batch, 1, 1, seq_len)
 
-# Labeling function for generated text
-
-
-def label_generated_text(text: str) -> str:
-    """Assigns a sentiment label to generated text based on keywords."""
-    positive_keywords = ["happy", "great", "wonderful", "beautiful"]
-    negative_keywords = ["sad", "terrible", "awful", "bad"]
-    text = text.lower()
-    if any(keyword in text for keyword in positive_keywords):
-        return "positive"
-    elif any(keyword in text for keyword in negative_keywords):
-        return "negative"
-    return "neutral"
-
-# Summarization function
+# Updated: Multi-class labeling with multiple label outputs
 
 
-def summarize_text(model, tokenizer, text: str, max_summary_tokens: int) -> str:
-    """Generates a summary of the input text with a specified token limit."""
-    prompt = f"Summarize the following text in a concise manner:\n{text}\nSummary:"
+def multi_class_label(review, model, tokenizer, max_length=50):
+    prompt = (
+        f"Classify the review by selecting one or more categories: Positive, Negative, Neutral. "
+        f"Return the categories as a comma-separated list (e.g., 'Positive, Neutral').\n"
+        f"Examples:\n"
+        f"Review: Amazing quality and fast delivery!\n"
+        f"Categories: Positive\n"
+        f"Review: Poor battery life and terrible service.\n"
+        f"Categories: Negative\n"
+        f"Review: Decent performance, nothing special.\n"
+        f"Categories: Neutral\n"
+        f"Review: Great features but overpriced.\n"
+        f"Categories: Positive, Negative\n"
+        f"Review: Works as expected, but customer service was unhelpful.\n"
+        f"Categories: Neutral, Negative\n"
+        f"Review: {review}\n"
+        f"Categories: "
+    )
+    input_tokens = tokenizer.encode(
+        prompt, max_length=max_length, padding=True, truncation=True)
+    max_len = max_length
+    input_tokens = mx.array(
+        [input_tokens + [tokenizer.pad_token_id] * (max_len - len(input_tokens))])
+    sampler = make_sampler(temp=0.1)
+    categories = generate(model, tokenizer, prompt=prompt,
+                          max_tokens=20, sampler=sampler)
+    valid_categories = ["positive", "negative", "neutral"]
+    categories_lower = categories.lower().strip()
+    category_matches = re.findall(
+        r"\b(positive|negative|neutral)\b", categories_lower)
+    if not category_matches:
+        return "Neutral (invalid response)"
+    # Capitalize and join unique categories
+    unique_categories = sorted(set(category.capitalize()
+                               for category in category_matches))
+    return ", ".join(unique_categories)
+
+# Short summary (1 sentence)
+
+
+def generate_short_summary(reviews, model, tokenizer, max_length=50):
+    combined_reviews = " ".join(reviews)
+    prompt = (
+        f"Summarize the following reviews in one concise sentence:\n"
+        f"Example:\n"
+        f"Reviews: Great camera but slow processor.\n"
+        f"Summary: The product has a great camera but a slow processor.\n"
+        f"Reviews: {combined_reviews}\n"
+        f"Summary: "
+    )
+    sampler = make_sampler(temp=0.3)
     summary = generate(model, tokenizer, prompt=prompt,
-                       max_tokens=max_summary_tokens, verbose=False)
+                       max_tokens=50, sampler=sampler)
+    summary = re.match(r'^.*?[.?!]', summary)
+    summary = summary.group(
+        0) if summary else "Summary could not be generated."
+    key_themes = ["delivery", "quality", "battery",
+                  "customer service", "price", "features"]
+    if not any(theme in summary.lower() for theme in key_themes):
+        return "Summary could not be generated (missing key themes)."
     return summary.strip()
 
+# Medium summary (2 sentences)
 
-# Example usage
-# Load model and tokenizer
-llm_model: LLMModelType = "qwen3-1.7b-4bit"
-model, tokenizer = load_model(llm_model)
-prompt = "Once upon a time"
 
-# Token budget
-MAX_TOTAL_TOKENS = 20
-MAX_LABEL_TOKENS = 2  # Max tokens for label (e.g., "[positive]")
-MAX_SUMMARY_TOKENS = 5  # Tokens for summary
-MAX_TEXT_TOKENS = MAX_TOTAL_TOKENS - MAX_LABEL_TOKENS - \
-    MAX_SUMMARY_TOKENS  # Reserve tokens
+def generate_medium_summary(reviews, model, tokenizer, max_length=100):
+    combined_reviews = " ".join(reviews)
+    prompt = (
+        f"Summarize the following reviews in two sentences, capturing key points:\n"
+        f"Example:\n"
+        f"Reviews: Great camera but slow processor. Battery life is amazing.\n"
+        f"Summary: The product features an excellent camera and impressive battery life. However, its processor is notably slow, impacting performance.\n"
+        f"Reviews: {combined_reviews}\n"
+        f"Summary: "
+    )
+    sampler = make_sampler(temp=0.3)
+    summary = generate(model, tokenizer, prompt=prompt,
+                       max_tokens=80, sampler=sampler)
+    summary_sentences = re.findall(r'[^.!?]+[.!?]', summary)
+    if len(summary_sentences) < 2:
+        return "Summary could not be generated (insufficient length)."
+    key_themes = ["delivery", "quality", "battery",
+                  "customer service", "price", "features"]
+    if not any(theme in summary.lower() for theme in key_themes):
+        return "Summary could not be generated (missing key themes)."
+    return " ".join(summary_sentences[:2]).strip()
 
-# Use encode instead of calling the tokenizer
-input_ids = tokenizer.encode(prompt)
-input_ids = mx.array([input_ids])  # Add batch dimension
+# Long summary (3 sentences)
 
-seq_len = input_ids.shape[1]
-mask = create_causal_mask(seq_len)
 
-# Generate text
-response = generate(model, tokenizer, prompt=prompt,
-                    max_tokens=MAX_TEXT_TOKENS, verbose=False)
-label = label_generated_text(response)
-summary = summarize_text(model, tokenizer, response,
-                         max_summary_tokens=MAX_SUMMARY_TOKENS)
-final_output = f"{response} [{label}]"
-print(f"Generated text: {response}")
-print(f"Assigned label: {label}")
-print(f"Summary: {summary}")
-print(f"Total tokens (text + label): {len(tokenizer.encode(final_output))}")
-print(f"Summary tokens: {len(tokenizer.encode(summary))}")
+def generate_long_summary(reviews, model, tokenizer, max_length=100):
+    combined_reviews = " ".join(reviews)
+    prompt = (
+        f"Generate a detailed summary of the following reviews in three sentences, capturing all key points:\n"
+        f"Example:\n"
+        f"Reviews: Great camera but slow processor. Battery life is amazing.\n"
+        f"Summary: The product features an excellent camera that delivers high-quality images. Its battery life is exceptional, lasting through extended use. However, the slow processor significantly hinders performance.\n"
+        f"Reviews: {combined_reviews}\n"
+        f"Summary: "
+    )
+    sampler = make_sampler(temp=0.3)
+    summary = generate(model, tokenizer, prompt=prompt,
+                       max_tokens=120, sampler=sampler)
+    summary_sentences = re.findall(r'[^.!?]+[.!?]', summary)
+    if len(summary_sentences) < 3:
+        return "Summary could not be generated (insufficient length)."
+    key_themes = ["delivery", "quality", "battery",
+                  "customer service", "price", "features"]
+    if not any(theme in summary.lower() for theme in key_themes):
+        return "Summary could not be generated (missing key themes)."
+    return " ".join(summary_sentences[:3]).strip()
+
+
+# Real-world usage
+model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+reviews = [
+    "Amazing quality and fast delivery, highly recommend!",
+    "Poor battery life and terrible customer service.",
+    "Works as expected, nothing special but reliable.",
+    "Great features but overpriced and slow response time.",
+    "Good design, but the battery drains quickly and support was average."
+]
+
+# Tokenize with padding
+max_length = 50
+input_ids_list = [tokenizer.encode(
+    review, max_length=max_length, padding=True, truncation=True) for review in reviews]
+max_len = max(len(ids) for ids in input_ids_list)
+input_ids = [ids + [tokenizer.pad_token_id] *
+             (max_len - len(ids)) for ids in input_ids_list]
+input_ids = mx.array(np.array(input_ids))
+pad_token_id = tokenizer.pad_token_id
+mask = create_padding_mask(input_ids, pad_token_id)
+
+# Multi-class labeling with multiple label outputs
+print("Multi-Class Labeling:")
+for i, review in enumerate(reviews):
+    categories = multi_class_label(review, model, tokenizer, max_length)
+    print(f"Review {i+1}: {review}\nCategories: {categories}")
+
+# Summaries
+print("\nShort Summary of Reviews:")
+short_summary = generate_short_summary(
+    reviews, model, tokenizer, max_length=50)
+print(short_summary)
+
+print("\nMedium Summary of Reviews:")
+medium_summary = generate_medium_summary(
+    reviews, model, tokenizer, max_length=100)
+print(medium_summary)
+
+print("\nLong Summary of Reviews:")
+long_summary = generate_long_summary(reviews, model, tokenizer, max_length=100)
+print(long_summary)
 
 # Pytest tests
 
 
-class TestCausalMask:
-    def test_causal_mask_shape(self):
-        seq_len = 5
-        expected = mx.triu(mx.ones((seq_len, seq_len)) * float('-inf'), k=1)
-        result = create_causal_mask(seq_len)
-        assert result.shape == expected.shape, f"Expected shape {expected.shape}, got {result.shape}"
-        assert mx.all(result == expected), "Causal mask values incorrect"
+class TestFeedbackPaddingMask:
+    def test_padding_mask_shape(self):
+        input_ids = mx.array([[1, 2, 0], [1, 2, 3], [1, 0, 0]])
+        pad_token_id = 0
+        result = create_padding_mask(input_ids, pad_token_id)
+        expected_shape = (3, 1, 1, 3)
+        assert result.shape == expected_shape, f"Expected shape {expected_shape}, got {result.shape}"
 
-    def test_causal_mask_values(self):
-        seq_len = 3
-        expected = mx.array([[0., -float('inf'), -float('inf')],
-                             [0., 0., -float('inf')],
-                             [0., 0., 0.]])
-        result = create_causal_mask(seq_len)
-        assert mx.allclose(
-            result, expected), "Causal mask values not close to expected"
+    def test_padding_mask_values(self):
+        input_ids = mx.array([[1, 2, 0], [1, 2, 3]])
+        pad_token_id = 0
+        result = create_padding_mask(input_ids, pad_token_id)
+        expected = mx.array([[[[1., 1., 0.]]], [[[1., 1., 1.]]]])
+        assert mx.allclose(result, expected), "Padding mask values incorrect"
 
 
-class TestLabelGeneratedText:
-    def test_label_positive(self):
-        input_text = "It was a wonderful day in the beautiful town."
-        expected = "positive"
-        result = label_generated_text(input_text)
-        assert result == expected, f"Expected label {expected}, got {result}"
+class TestMultiClassLabeling:
+    def test_multi_class_label_positive(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        review = "Amazing quality and fast delivery, highly recommend!"
+        result = multi_class_label(review, model, tokenizer)
+        expected = "Positive"
+        assert result == expected, f"Expected categories {expected}, got {result}"
 
-    def test_label_negative(self):
-        input_text = "The town was struck by a terrible storm."
-        expected = "negative"
-        result = label_generated_text(input_text)
-        assert result == expected, f"Expected label {expected}, got {result}"
+    def test_multi_class_label_negative(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        review = "Poor battery life and terrible customer service."
+        result = multi_class_label(review, model, tokenizer)
+        expected = "Negative"
+        assert result == expected, f"Expected categories {expected}, got {result}"
 
-    def test_label_neutral(self):
-        input_text = "The town was quiet and peaceful."
-        expected = "neutral"
-        result = label_generated_text(input_text)
-        assert result == expected, f"Expected label {expected}, got {result}"
+    def test_multi_class_label_neutral(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        review = "Works as expected, nothing special but reliable."
+        result = multi_class_label(review, model, tokenizer)
+        expected = "Neutral"
+        assert result == expected, f"Expected categories {expected}, got {result}"
 
+    def test_multi_class_label_positive_negative(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        review = "Great features but overpriced and slow response time."
+        result = multi_class_label(review, model, tokenizer)
+        expected = "Negative, Positive"
+        assert result == expected, f"Expected categories {expected}, got {result}"
 
-class TestSummarization:
-    def test_summary_length(self, monkeypatch):
-        # Mock generate to return a fixed summary
-        def mock_generate(*args, **kwargs):
-            return "Quiet town in 19th century."
-        monkeypatch.setattr("mlx_lm.generate", mock_generate)
-
-        # Mock tokenizer
-        class MockTokenizer:
-            def encode(self, text):
-                return [1] * len(text.split())  # Approximate token count
-        mock_tokenizer = MockTokenizer()
-
-        # Test summarization
-        input_text = "The town was quiet and peaceful in the 19th century."
-        max_summary_tokens = 5
-        expected = max_summary_tokens
-        result = len(mock_tokenizer.encode(summarize_text(
-            None, mock_tokenizer, input_text, max_summary_tokens)))
-        assert result <= expected, f"Summary tokens {result} exceed limit {expected}"
+    def test_multi_class_label_neutral_negative(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        review = "Good design, but the battery drains quickly and support was average."
+        result = multi_class_label(review, model, tokenizer)
+        expected = "Negative, Neutral"
+        assert result == expected, f"Expected categories {expected}, got {result}"
 
 
-class TestTokenBudget:
-    def test_token_budget(self, monkeypatch):
-        # Mock generate to return fixed responses
-        def mock_generate(*args, **kwargs):
-            if kwargs["prompt"].startswith("Summarize"):
-                return "Quiet town"
-            return "The town was quiet"
-        monkeypatch.setattr("mlx_lm.generate", mock_generate)
+class TestSummaries:
+    def test_short_summary_length(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        reviews = ["Great product!", "Poor service."]
+        result = generate_short_summary(reviews, model, tokenizer)
+        expected_sentences = 1
+        result_sentences = len(re.findall(r'[^.!?]+[.!?]', result))
+        assert result_sentences == expected_sentences, f"Expected {expected_sentences} sentence, got {result_sentences}"
 
-        # Mock tokenizer
-        class MockTokenizer:
-            def encode(self, text):
-                if text == "Once upon a time":
-                    return [1, 2, 3, 4]  # 4 tokens
-                return [1] * len(text.split())  # Approximate token count
-        mock_tokenizer = MockTokenizer()
+    def test_medium_summary_length(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        reviews = ["Fast delivery, great quality.", "Poor battery life."]
+        result = generate_medium_summary(reviews, model, tokenizer)
+        expected_sentences = 2
+        result_sentences = len(re.findall(r'[^.!?]+[.!?]', result))
+        assert result_sentences == expected_sentences, f"Expected {expected_sentences} sentences, got {result_sentences}"
 
-        # Run generation, labeling, and summarization
-        MAX_TOTAL_TOKENS = 20
-        MAX_LABEL_TOKENS = 2
-        MAX_SUMMARY_TOKENS = 5
-        MAX_TEXT_TOKENS = MAX_TOTAL_TOKENS - MAX_LABEL_TOKENS - MAX_SUMMARY_TOKENS
-        response = mock_generate(
-            None, None, prompt="Once upon a time", max_tokens=MAX_TEXT_TOKENS)
-        label = label_generated_text(response)
-        final_output = f"{response} [{label}]"
-        total_tokens = len(mock_tokenizer.encode(final_output))
-        expected = MAX_TOTAL_TOKENS - MAX_SUMMARY_TOKENS
-        result = total_tokens
-        assert result <= expected, f"Total tokens {result} exceeds budget {expected}"
+    def test_long_summary_length(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        reviews = ["Fast delivery, great quality.", "Poor battery life."]
+        result = generate_long_summary(reviews, model, tokenizer)
+        expected_sentences = 3
+        result_sentences = len(re.findall(r'[^.!?]+[.!?]', result))
+        assert result_sentences == expected_sentences, f"Expected {expected_sentences} sentences, got {result_sentences}"
+
+    def test_summary_themes(self):
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        reviews = ["Fast delivery, great quality.", "Poor battery life."]
+        result = generate_long_summary(reviews, model, tokenizer)
+        expected_themes = ["delivery", "quality", "battery",
+                           "customer service", "price", "features"]
+        assert any(theme in result.lower(
+        ) for theme in expected_themes), f"Expected themes {expected_themes}, got {result}"
