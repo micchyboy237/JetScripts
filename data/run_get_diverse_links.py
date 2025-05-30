@@ -3,6 +3,7 @@ import shutil
 from typing import List
 from urllib.parse import urlparse, parse_qs
 
+from jet.data.stratified_sampler import ProcessedDataString, StratifiedSampler
 from jet.data.url_sampler import preprocess_url, sample_diverse_urls
 from jet.file.utils import load_file, save_file
 
@@ -19,15 +20,32 @@ if __name__ == "__main__":
     docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/links.json"
 
     # Load JSON data
-    links: List[str] = load_file(docs_file)
+    urls: List[str] = load_file(docs_file)
 
-    # Preprocess links
-    urls = preprocess_urls(links)
-    save_file(links, f"{output_dir}/preprocessed-urls.json")
-
-    # Stratify links for diversity
+    # Sample 1000 diverse URLs
     num_samples = 1000
     n = 2
     top_n = 2
-    diverse_urls = sample_diverse_urls(links, num_samples, n, top_n)
-    save_file(diverse_urls, f"{output_dir}/diverse-urls.json")
+    sampled_urls = sample_diverse_urls(urls, num_samples, n, top_n)
+    save_file(sampled_urls, f"{output_dir}/sampled-urls.json")
+
+    # For Scenario 2: Create train/test/val datasets
+    # Assign categories (e.g., based on domain)
+    data = [
+        ProcessedDataString(
+            source=url,
+            category_values=[urlparse(url).netloc]
+        )
+        for url in sampled_urls
+    ]
+
+    # Split into train (60%), test (20%), val (20%)
+    sampler = StratifiedSampler(data)
+    train_data, test_data, val_data = sampler.split_train_test_val(
+        train_ratio=0.6, test_ratio=0.2)
+
+    print(
+        f"Train: {len(train_data)}, Test: {len(test_data)}, Val: {len(val_data)}")
+    save_file(train_data, f"{output_dir}/train_data.json")
+    save_file(test_data, f"{output_dir}/test_data.json")
+    save_file(val_data, f"{output_dir}/val_data.json")
