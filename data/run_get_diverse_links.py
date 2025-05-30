@@ -8,12 +8,11 @@ from jet.utils.url_utils import clean_url, parse_url
 from jet.features.nltk_utils import get_word_counts_lemmatized
 from jet.file.utils import load_file, save_file
 from urllib.parse import urlparse, urlunparse
-import re  # Added for pattern matching
+import re
 
 
 def preprocess_urls(urls: List[str]) -> List[str]:
     """Preprocess URLs into tokenized strings, removing hash fragments and filtering resources."""
-    # Define patterns for resource-related URLs
     unwanted_patterns = r'wp-json|oembed|feed|xmlrpc|wp-content|wp-includes|wp-admin'
     resource_extensions = r'\.(jpg|jpeg|png|gif|bmp|pdf|zip|tar|gz|rar|css|js|woff|woff2|ttf|otf|ico|svg|mp4|mp3|avi|mov|wmv|flv|doc|docx|xls|xlsx|ppt|pptx)$'
     combined_pattern = f'({unwanted_patterns})|({resource_extensions})'
@@ -22,19 +21,15 @@ def preprocess_urls(urls: List[str]) -> List[str]:
     tokenized_urls = []
     for url in tqdm(urls, desc="Preprocessing and filtering URLs"):
         try:
-            # Clean URL first
             cleaned = clean_url(url)
             if not cleaned:
                 continue
-            # Filter out URLs matching resource patterns or extensions
             if resource_regex.search(cleaned):
                 print(f"Filtered out resource URL: {cleaned}")
                 continue
-            # Parse URL and remove fragment
             parsed = urlparse(cleaned)
             unparsed_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path,
                                       parsed.params, parsed.query, ''))
-            # Preprocess the cleaned URL
             tokenized = ' '.join(parse_url(unparsed_url))
             tokenized_urls.append(tokenized)
         except ValueError as e:
@@ -45,16 +40,23 @@ def preprocess_urls(urls: List[str]) -> List[str]:
 
 
 def postprocess_urls(urls: List[str]) -> List[str]:
-    """Clean URLs."""
+    """Clean URLs and remove hash fragments."""
     cleaned_urls = []
     for url in tqdm(urls, desc="Cleaning URLs"):
         try:
             cleaned = clean_url(url)
-            if cleaned:
-                cleaned_urls.append(cleaned)
+            if not cleaned:
+                continue
+            # Parse URL and remove fragment
+            parsed = urlparse(cleaned)
+            unparsed_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path,
+                                      parsed.params, parsed.query, ''))
+            cleaned_urls.append(unparsed_url)
         except ValueError as e:
             print(f"Error cleaning URL {url}: {e}")
             continue
+    # Filter unique urls
+    cleaned_urls = list(set(cleaned_urls))
     print(f"Retained {len(cleaned_urls)} URLs after cleaning")
     return cleaned_urls
 
@@ -150,16 +152,17 @@ if __name__ == "__main__":
     query = "List all ongoing and upcoming isekai anime 2025."
     urls: List[str] = load_file(docs_file)
 
+    query_profile = get_query_noun_profile(query)
+    save_file(query_profile, f"{output_dir}/query-profile.json")
+
     preprocessed_urls = preprocess_urls(urls)
     save_file(preprocessed_urls, f"{output_dir}/preprocessed-urls.json")
 
     word_counts_lemmatized_results = get_word_counts_lemmatized(
-        '\n\n'.join(preprocessed_urls), pos=["noun"], min_count=2, as_score=True
+        '\n\n'.join(preprocessed_urls), pos=None, min_count=2, as_score=True
     )
     save_file(word_counts_lemmatized_results,
               f"{output_dir}/word-counts-lemmatized-results.json")
-
-    query_profile = get_query_noun_profile(query)
 
     noun_profiles = map_urls_to_nouns(
         urls, word_counts_lemmatized_results, query_profile)
@@ -169,9 +172,9 @@ if __name__ == "__main__":
         urls, noun_profiles, relevance_threshold=0.3, diversity_threshold=0.7, show_progress=True
     )
     diverse_urls = postprocess_urls(diverse_urls)
-    save_file(diverse_urls, f"{output_dir}/diverse-urls.json")
+    save_file(diverse_urls, f"{output_dir}/postprocessed-urls.json")
 
     searched_diverse_urls = search_docs(
-        query, diverse_urls, model="snowflake-arctic-embed:33m")
+        query, diverse_urls, top_k=3, threshold=0.65)
     save_file(searched_diverse_urls,
               f"{output_dir}/searched-diverse-urls.json")
