@@ -34,10 +34,7 @@ def create_hierarchical_context(grouped_docs: List[GroupedResult], max_length: i
             header = item['metadata']['header']
             content = item['metadata']['content']
 
-            # Create markdown header based on header_level (minimum level 3)
             context += f"{header}\n"
-
-            # Truncate content to max_length tokens
             truncated_content = truncate_texts(content, max_length)
             context += f"{truncated_content}\n\n"
 
@@ -95,7 +92,7 @@ async def main():
         messages = [
             {
                 "role": "system",
-                "content": "You are a precise data extraction tool. Given a list of documents, extract each anime title from the 'header' field of each document. Return each title as a separate JSON object on a new line in JSONL format (e.g., {\"title\": \"Anime1\"}\\n{\"title\": \"Anime2\"}). Do not return an array or additional text, only valid JSONL lines."
+                "content": "You are a precise data extraction tool. Given a list of documents, extract each anime title from the 'header' field of each document. Return each title as a separate JSON object in JSONL format, with each line containing a single JSON object (e.g., {\"title\": \"Anime1\"}\\n{\"title\": \"Anime2\"}). Ensure each line is valid JSON, contains only the 'title' key, and is terminated with a newline. Do not return an array, additional text, or explanations."
             },
             {
                 "role": "user",
@@ -117,12 +114,12 @@ async def main():
             log_dir=MLX_LOG_DIR,
             verbose=True,
             logit_bias=["{", "}"],
-            max_tokens=-1
+            max_tokens=-1,
+            repetition_penalty=1.0
         ):
             content = stream_response["choices"][0]["message"]["content"]
             current_line += content
 
-            # Check for newline to save complete JSONL line
             if "\n" in current_line:
                 lines = current_line.split("\n")
                 for line in lines[:-1]:  # Process all complete lines
@@ -130,7 +127,7 @@ async def main():
                     if line:
                         try:
                             json.loads(line)  # Validate JSON
-                            save_file(line, anime_titles_file,
+                            save_file(line + "\n", anime_titles_file,
                                       verbose=False, append=True)
                         except json.JSONDecodeError:
                             logger.warning(
@@ -142,24 +139,33 @@ async def main():
         if current_line.strip():
             try:
                 json.loads(current_line)
-                save_file(current_line, anime_titles_file,
+                save_file(current_line + "\n", anime_titles_file,
                           verbose=False, append=True)
             except json.JSONDecodeError:
                 logger.warning(f"Skipping invalid JSON line: {current_line}")
-                pass
 
-        # Append the full conversation to stream_chat_anime_titles.jsonl
-        loaded_titles = load_file(anime_titles_file) or []
+        # Load titles and save conversation as JSONL
+        loaded_titles = []
+        if os.path.exists(anime_titles_file):
+            with open(anime_titles_file, 'r') as f:
+                for line in f:
+                    if line.strip():
+                        try:
+                            loaded_titles.append(json.loads(line.strip()))
+                        except json.JSONDecodeError:
+                            logger.warning(
+                                f"Invalid JSONL line in {anime_titles_file}: {line}")
         messages.append(
             {"role": "assistant", "content": "\n".join(
                 json.dumps(item) for item in loaded_titles)}
         )
-        save_file(
-            messages, f"{sub_output_dir}/stream_chat_anime_titles.jsonl", append=True)
+        # Save messages as JSONL
+        with open(f"{sub_output_dir}/stream_chat_anime_titles.jsonl", 'a') as f:
+            for message in messages:
+                f.write(json.dumps(message) + "\n")
 
         # Search all anime titles if available in aniwatch for watching episodes
         query_aniwatch_search_links = f"Aniwatch anime search links"
-        # query = rewrite_query(query, llm_model)
         browser_aniwatch_search_links_results, html_list = await fetch_search_results(query_aniwatch_search_links)
         save_file({
             "query": query_aniwatch_search_links,
@@ -184,11 +190,11 @@ async def main():
         messages = [
             {
                 "role": "system",
-                "content": "You are a precise URL extraction tool. Given search results, identify and return only the URL that best provides a link to watch episodes of the specified anime on AniWatch. Return only the URL as plain text, with no additional text, explanations, or formatting. If no matching AniWatch URL is found, return 'None'."
+                "content": "You are a precise URL extraction tool. Given search results, identify and return only the URL that best provides a link to watch episodes of the specified anime on AniWatch. Return the URL as a single JSON object in JSONL format (e.g., {\"url\": \"https://aniwatch.com/anime\"}\\n). Ensure the output is a single valid JSON line with only the 'url' key, terminated with a newline. If no matching AniWatch URL is found, return {\"url\": \"None\"}\\n. Do not include additional text, arrays, or explanations."
             },
             {
                 "role": "user",
-                "content": f"Generate the AniWatch search URL for watching episodes of \"{loaded_titles[0]}\" derived from the following urls:\n\n{context_aniwatch_search_urls}"
+                "content": f"Generate the AniWatch search URL for watching episodes of \"{loaded_titles[0]['title'] if loaded_titles else 'unknown'}\" derived from the following urls:\n\n{context_aniwatch_search_urls}"
             },
         ]
 
@@ -200,16 +206,29 @@ async def main():
             log_dir=MLX_LOG_DIR,
             verbose=True,
             logit_bias=["Link:", "None"],
-            max_tokens=-1
+            max_tokens=-1,
+            repetition_penalty=1.0
         ):
             content = chunk["choices"][0]["message"]["content"]
             response += content
 
-        messages.append(
-            {"role": "assistant", "content": response}
-        )
+        # Ensure response is saved as JSONL
+        try:
+            json.loads(response.strip())  # Validate JSON
+            with open(f"{sub_output_dir}/stream_chat_aniwatch_url.jsonl", 'a') as f:
+                f.write(response.strip() + "\n")
+        except json.JSONDecodeError:
+            logger.warning(
+                f"Invalid JSON response for AniWatch URL: {response}")
+            response = {"url": "None"}
+            with open(f"{sub_output_dir}/stream_chat_aniwatch_url.jsonl", 'a') as f:
+                f.write(json.dumps(response) + "\n")
 
-        save_file(messages, f"{sub_output_dir}/stream_chat_aniwatch_url.json")
+        # Append conversation to JSONL
+        messages.append({"role": "assistant", "content": response.strip()})
+        with open(f"{sub_output_dir}/stream_chat_aniwatch_url.jsonl", 'a') as f:
+            for message in messages:
+                f.write(json.dumps(message) + "\n")
 
 if __name__ == "__main__":
     asyncio.run(main())
