@@ -1,8 +1,11 @@
 import os
 import shutil
 from typing import List, Dict, Tuple
+from jet.data.sample_diverse_urls import sample_diverse_urls
 from jet.llm.utils.bm25_plus import bm25_plus
 from jet.llm.utils.search_docs import search_docs
+from jet.logger import logger
+from jet.transformers.formatters import format_json
 from tqdm import tqdm
 import numpy as np
 from jet.utils.url_utils import clean_url, parse_url
@@ -83,28 +86,36 @@ if __name__ == "__main__":
     urls: List[str] = load_file(docs_file)
 
     preprocessed_urls, unique_index_to_original_url = preprocess_urls(urls)
-    save_file(preprocessed_urls, f"{output_dir}/preprocessed-urls.json")
+    save_file(preprocessed_urls, f"{output_dir}/preprocessed_urls.json")
     save_file(unique_index_to_original_url,
-              f"{output_dir}/index-to-original-url.json")
+              f"{output_dir}/index_to_original_url.json")
 
     bm25_plus_results = bm25_plus(preprocessed_urls, query, k1=1.5)
     save_file({
         "query": query,
         "results": bm25_plus_results
-    }, f"{output_dir}/bm25-plus-results.json")
+    }, f"{output_dir}/bm25_plus_results.json")
 
     # Map doc_index to original URLs and debug
     reranked_urls = []
     for result in bm25_plus_results["results"]:
         doc_index = result["doc_index"]
-        if doc_index in unique_index_to_original_url:
+        score = result["score"]
+        if score > 0.9 and doc_index in unique_index_to_original_url:
             original_url = unique_index_to_original_url[doc_index]
             reranked_urls.append(original_url)
-        else:
-            print(
-                f"Warning: doc_index {doc_index} not found in unique_index_to_original_url")
 
     # Unique results and limit to top_k
-    reranked_urls = list(dict.fromkeys(reranked_urls))[:top_k]
-    save_file(reranked_urls, f"{output_dir}/reranked-urls.json")
-    print(f"Reranked URLs: {reranked_urls}")
+    reranked_urls = list(dict.fromkeys(reranked_urls))
+    reranked_urls = reranked_urls[:top_k]
+    save_file(reranked_urls, f"{output_dir}/reranked_urls.json")
+    print(f"Reranked URLs: {len(reranked_urls)}")
+    logger.success(format_json(reranked_urls))
+
+    num_samples = len(reranked_urls)
+    n = 2
+    top_n = 1
+    diverse_urls = sample_diverse_urls(reranked_urls, num_samples, n, top_n)
+    save_file(diverse_urls, f"{output_dir}/diverse_urls.json")
+    print(f"Diverse URLs: {len(diverse_urls)}")
+    logger.success(format_json(diverse_urls))
