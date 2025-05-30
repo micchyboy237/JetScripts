@@ -426,9 +426,9 @@ mem_python_kill() {
 
 
 # Override pytest
-pytest() {
-  command python -m pytest --testmon "$@"
-}
+# pytest() {
+#   command python -m pytest --testmon "$@"
+# }
 
 
 # Check if the 'deps' function is already defined to prevent echo
