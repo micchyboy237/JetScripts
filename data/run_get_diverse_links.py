@@ -1,9 +1,10 @@
 import os
 import shutil
 from typing import List, Dict, Tuple
+from jet.llm.utils.search_docs import search_docs
 from tqdm import tqdm
 import numpy as np
-from jet.data.url_sampler import preprocess_url
+from jet.data.url_sampler import parse_url
 from jet.features.nltk_utils import get_word_counts_lemmatized
 from jet.file.utils import load_file, save_file
 from urllib.parse import urlparse, urlunparse  # Added for URL parsing
@@ -19,7 +20,7 @@ def preprocess_urls(urls: List[str]) -> List[str]:
         clean_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path,
                                parsed.params, parsed.query, ''))
         # Preprocess the cleaned URL
-        tokenized = ' '.join(preprocess_url(clean_url))
+        tokenized = ' '.join(parse_url(clean_url))
         cleaned_urls.append(tokenized)
     return cleaned_urls
 
@@ -143,3 +144,8 @@ if __name__ == "__main__":
         urls, noun_profiles, relevance_threshold=0.3, diversity_threshold=0.7, show_progress=True
     )
     save_file(diverse_urls, f"{output_dir}/diverse-urls.json")
+
+    # Filter diverse and relevant URLs
+    searched_diverse_urls = search_docs(query, diverse_urls)
+    save_file(searched_diverse_urls,
+              f"{output_dir}/searched-diverse-urls.json")
