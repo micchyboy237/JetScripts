@@ -76,6 +76,7 @@ async def main():
     docs: list[dict] = load_file(docs_file)
     print(f"Loaded JSON data {len(docs)} from: {docs_file}")
     grouped_docs_by_source_url = group_by(docs, "['metadata']['source_url']")
+    results = []
 
     for group_source_url_docs in grouped_docs_by_source_url:
         source_url = group_source_url_docs['group']
@@ -114,7 +115,7 @@ async def main():
             log_dir=MLX_LOG_DIR,
             verbose=True,
             logit_bias=["{", "}"],
-            max_tokens=100,
+            max_tokens=200,
             repetition_penalty=1.0
         ):
             content = stream_response["choices"][0]["message"]["content"]
@@ -220,7 +221,6 @@ async def main():
         # save_file(messages, f"{output_dir}/stream_chat_aniwatch_url.json")
 
         search_link_template = "https://aniwatchtv.to/search?keyword={anime_title}"
-        results = []
         for anime_title in loaded_titles:
             title = anime_title["title"].lower()
             search_link = search_link_template.format(anime_title=title)
@@ -232,12 +232,13 @@ async def main():
             search_results = search_docs(
                 title, header_texts, threshold=0.8)
             if search_results:
-                results.extend(search_results)
-                save_file({
+                output = {
                     "title": title,
                     "link": search_link,
-                    "results": results
-                }, f"{output_dir}/existing_animes.json")
+                    "results": search_results
+                }
+                results.append(output)
+                save_file(results, f"{output_dir}/existing_animes.json")
 
 
 if __name__ == "__main__":
