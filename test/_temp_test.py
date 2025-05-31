@@ -1,5 +1,7 @@
+from jet.llm.mlx.generation import stream_chat
+from jet.llm.mlx.token_utils import get_tokenizer
 import pytest
-from mlx_lm import load, stream_generate
+from mlx_lm import load
 import json
 import uuid
 
@@ -34,7 +36,7 @@ def count_tokens(text, tokenizer):
 # Function to trim context while preserving critical information
 
 
-def trim_context(messages, max_context_tokens, preserve_system=True):
+def trim_context(messages, max_context_tokens, tokenizer, preserve_system=True):
     total_tokens = sum(count_tokens(json.dumps(msg), tokenizer)
                        for msg in messages)
     if total_tokens <= max_context_tokens:
@@ -65,7 +67,8 @@ def estimate_remaining_tokens(messages, context_window, tokenizer):
 # Streaming generation function
 
 
-def generate_response(messages, max_tokens_per_generation, context_window, model, tokenizer):
+def generate_response(messages, max_tokens_per_generation, context_window, model):
+    tokenizer = get_tokenizer(model)
     full_response = ""
     iteration = 0
 
@@ -78,7 +81,7 @@ def generate_response(messages, max_tokens_per_generation, context_window, model
         if remaining_tokens < 50:
             print("Warning: Insufficient tokens for generation. Trimming context.")
             messages, _ = trim_context(
-                messages, context_window - max_tokens_per_generation)
+                messages, context_window - max_tokens_per_generation, tokenizer)
             remaining_tokens = estimate_remaining_tokens(
                 messages, context_window, tokenizer)
 
@@ -87,24 +90,20 @@ def generate_response(messages, max_tokens_per_generation, context_window, model
             print("Error: No tokens available for generation.")
             break
 
-        prompt = tokenizer.apply_chat_template(
-            messages, add_generation_prompt=True)
-
         token_count = 0
         response_chunk = ""
         cutoff_detected = False
 
-        for chunk in stream_generate(
-            model,
-            tokenizer,
-            prompt=prompt,
+        for chunk in stream_chat(
+            messages,
+            model=model,
             max_tokens=current_max_tokens,
-            temp=0.7,
-            top_p=0.9
+            temperature=0.7,
+            top_p=0.9,
+            verbose=True
         ):
-            response_chunk += chunk
+            response_chunk += chunk["choices"][0]["message"]["content"]
             token_count += 1
-            print(chunk, end="", flush=True)
 
             if token_count >= current_max_tokens - 50:
                 response_chunk += "\n[CONTINUE]"
@@ -134,12 +133,7 @@ def generate_response(messages, max_tokens_per_generation, context_window, model
 
 def main():
     # Load model and tokenizer
-    model_id = "mlx-community/Qwen3-1.7B-4bit-DWQ"
-    try:
-        model, tokenizer = load(model_id)
-    except Exception as e:
-        print(f"Error loading model: {e}")
-        return
+    model = "mlx-community/Qwen3-1.7B-4bit-DWQ"
 
     # Initialize conversation history
     query = "Provide a detailed comparison of the anime titles in the provided markdown, focusing on their release dates, episode counts, and themes."
@@ -154,7 +148,7 @@ def main():
 
     # Generate response
     response = generate_response(
-        messages, max_tokens_per_generation, context_window, model, tokenizer)
+        messages, max_tokens_per_generation, context_window, model)
     print("\n\nFull Response:\n", response)
     return response
 
