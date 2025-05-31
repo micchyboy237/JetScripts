@@ -114,7 +114,7 @@ async def main():
             log_dir=MLX_LOG_DIR,
             verbose=True,
             logit_bias=["{", "}"],
-            max_tokens=-1,
+            max_tokens=100,
             repetition_penalty=1.0
         ):
             content = stream_response["choices"][0]["message"]["content"]
@@ -225,11 +225,14 @@ async def main():
             title = anime_title["title"].lower()
             search_link = search_link_template.format(anime_title=title)
             html_str = sync_scrape_url(search_link)
+            if not html_str:
+                continue
             docs = get_md_header_docs(html_str)
             header_texts = [doc["header"].lower() for doc in docs]
             search_results = search_docs(
-                title, header_texts, threshold=0.85)
+                title, header_texts, threshold=0.8)
             if search_results:
+                results.extend(search_results)
                 save_file({
                     "title": title,
                     "link": search_link,
