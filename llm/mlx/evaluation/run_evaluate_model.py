@@ -1,8 +1,7 @@
 # Usage example
 import os
 from jet.file.utils import save_file
-from jet.llm.mlx.evaluation.argparse_utils import parse_evaluation_args
-from jet.llm.mlx.evaluation.evaluate_model import evaluate_model
+from jet.llm.mlx.evaluation.evaluate_model import parse_evaluation_args, evaluate_model
 
 
 if __name__ == "__main__":
