@@ -1,0 +1,42 @@
+import os
+import shutil
+from jet.llm.mlx.base import MLX
+from jet.llm.mlx.generation import generate
+from jet.llm.mlx.mlx_types import LLMModelType
+from jet.file.utils import save_file
+from jet.transformers.formatters import format_json
+from jet.logger import logger
+
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(
+    __file__)), "generated", os.path.splitext(os.path.basename(__file__))[0])
+
+MLX_LOG_DIR = f"{OUTPUT_DIR}/mlx-logs"
+
+model: LLMModelType = "llama-3.2-1b-instruct-4bit"
+seed = 42
+
+
+prompt = "Tell me a very short story about a brave knight."
+
+logger.debug("Streaming Chat Response:")
+response = ""
+
+client = MLX(seed=seed)
+
+response = generate(
+    prompt=prompt,
+    model=model,
+    # max_tokens=200,
+    temperature=0.3,
+    log_dir=MLX_LOG_DIR,
+    verbose=True,
+    client=client
+)
+
+
+save_file({
+    "prompt": prompt,
+    "response": response["content"],
+}, f"{OUTPUT_DIR}/generate.json")

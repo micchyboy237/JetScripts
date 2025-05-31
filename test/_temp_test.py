@@ -1,45 +1,213 @@
-from keybert import KeyBERT
+import pytest
+from mlx_lm import load, stream_generate
+import json
+import uuid
 
-from jet.logger import logger
-from jet.transformers.formatters import format_json
+# Sample system instruction and markdown context
+SYSTEM_INSTRUCTION = """
+You are an expert on anime. Below is a markdown document with anime titles under ## headers, each followed by details like release date, episodes, and synopsis. Use this context to answer queries accurately, preserving relationships between titles and their details. If the response is cut off due to token limits, end with '[CONTINUE]' and ensure the next part continues seamlessly.
+"""
 
-# Initialize KeyBERT
-model = KeyBERT("all-mpnet-base-v2")  # Lightweight for Mac M1
+MARKDOWN_CONTEXT = """
+## Attack on Titan
+- **Release Date**: April 7, 2013
+- **Episodes**: 75
+- **Synopsis**: Humanity fights against giant Titans...
 
-# Sample text
-text = "I love watching Naruto and Attack on Titan. Have you seen One Piece?"
+## Demon Slayer
+- **Release Date**: April 6, 2019
+- **Episodes**: 44
+- **Synopsis**: Tanjiro battles demons...
 
-# Extract keywords guided by query
-query = "anime"
-keywords = model.extract_keywords(
-    text,
-    keyphrase_ngram_range=(1, 3),
-    top_n=5,
-    use_mmr=True,
-    diversity=0.5
-    # Removed candidates=["anime"] to avoid interfering with keyphrase extraction
-)
-anime_titles = [kw[0] for kw in keywords]
-# Expected output: ['naruto', 'attack on titan', 'one piece', ...]
-logger.success(format_json(anime_titles))
+## Jujutsu Kaisen
+- **Release Date**: October 3, 2020
+- **Episodes**: 24
+- **Synopsis**: Yuji Itadori consumes a cursed finger...
+"""
 
-# Pytest test
+# Function to count tokens (approximate)
 
 
-def test_keybert_query_extraction():
-    text = "I love watching Naruto and Attack on Titan."
-    keywords = model.extract_keywords(
-        text,
-        keyphrase_ngram_range=(1, 3),
-        top_n=2,
-        use_mmr=True,
-        diversity=0.5
-        # Removed candidates=["anime"]
-    )
-    extracted = [kw[0] for kw in keywords]
-    assert set(['attack on titan', 'naruto']).issubset(extracted)
+def count_tokens(text, tokenizer):
+    return len(tokenizer.encode(text))
+
+# Function to trim context while preserving critical information
+
+
+def trim_context(messages, max_context_tokens, preserve_system=True):
+    total_tokens = sum(count_tokens(json.dumps(msg), tokenizer)
+                       for msg in messages)
+    if total_tokens <= max_context_tokens:
+        return messages, total_tokens
+
+    trimmed_messages = [messages[0]] if preserve_system else []
+    current_tokens = count_tokens(json.dumps(
+        messages[0]), tokenizer) if preserve_system else 0
+
+    for msg in reversed(messages[1:]):
+        msg_tokens = count_tokens(json.dumps(msg), tokenizer)
+        if current_tokens + msg_tokens <= max_context_tokens:
+            trimmed_messages.insert(1, msg)
+            current_tokens += msg_tokens
+        else:
+            break
+
+    return trimmed_messages, current_tokens
+
+# Function to estimate remaining tokens
+
+
+def estimate_remaining_tokens(messages, context_window, tokenizer):
+    total_input_tokens = sum(count_tokens(
+        json.dumps(msg), tokenizer) for msg in messages)
+    return context_window - total_input_tokens
+
+# Streaming generation function
+
+
+def generate_response(messages, max_tokens_per_generation, context_window, model, tokenizer):
+    full_response = ""
+    iteration = 0
+
+    while True:
+        iteration += 1
+        print(f"\n[Iteration {iteration}]")
+
+        remaining_tokens = estimate_remaining_tokens(
+            messages, context_window, tokenizer)
+        if remaining_tokens < 50:
+            print("Warning: Insufficient tokens for generation. Trimming context.")
+            messages, _ = trim_context(
+                messages, context_window - max_tokens_per_generation)
+            remaining_tokens = estimate_remaining_tokens(
+                messages, context_window, tokenizer)
+
+        current_max_tokens = min(max_tokens_per_generation, remaining_tokens)
+        if current_max_tokens <= 0:
+            print("Error: No tokens available for generation.")
+            break
+
+        prompt = tokenizer.apply_chat_template(
+            messages, add_generation_prompt=True)
+
+        token_count = 0
+        response_chunk = ""
+        cutoff_detected = False
+
+        for chunk in stream_generate(
+            model,
+            tokenizer,
+            prompt=prompt,
+            max_tokens=current_max_tokens,
+            temp=0.7,
+            top_p=0.9
+        ):
+            response_chunk += chunk
+            token_count += 1
+            print(chunk, end="", flush=True)
+
+            if token_count >= current_max_tokens - 50:
+                response_chunk += "\n[CONTINUE]"
+                cutoff_detected = True
+                break
+
+        full_response += response_chunk
+        messages.append({"role": "assistant", "content": response_chunk})
+
+        if not cutoff_detected and not response_chunk.endswith("..."):
+            break
+
+        if cutoff_detected:
+            messages[-1]["content"] = messages[-1]["content"].replace(
+                "\n[CONTINUE]", "")
+            messages.append(
+                {"role": "user", "content": "Continue the previous response where it left off."})
+
+        messages, total_tokens = trim_context(
+            messages, context_window - max_tokens_per_generation)
+        print(f"\n[Context trimmed to {total_tokens} tokens]")
+
+    return full_response
+
+# Main function to run the stream chat
+
+
+def main():
+    # Load model and tokenizer
+    model_id = "mlx-community/Qwen3-1.7B-4bit-DWQ"
+    try:
+        model, tokenizer = load(model_id)
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        return
+
+    # Initialize conversation history
+    query = "Provide a detailed comparison of the anime titles in the provided markdown, focusing on their release dates, episode counts, and themes."
+    messages = [
+        {"role": "system", "content": SYSTEM_INSTRUCTION},
+        {"role": "user", "content": f"{MARKDOWN_CONTEXT}\n\n{query}"}
+    ]
+
+    # Parameters
+    max_tokens_per_generation = 1000
+    context_window = 33000
+
+    # Generate response
+    response = generate_response(
+        messages, max_tokens_per_generation, context_window, model, tokenizer)
+    print("\n\nFull Response:\n", response)
+    return response
+
+# Unit tests
+
+
+class TestMLXStreamChat:
+    def setup_method(self):
+        # Mock tokenizer for testing
+        class MockTokenizer:
+            def encode(self, text):
+                # Approximate token count as word count
+                return [0] * len(text.split())
+
+            def apply_chat_template(self, messages, add_generation_prompt):
+                return json.dumps(messages)
+
+        self.tokenizer = MockTokenizer()
+
+    def test_trim_context(self):
+        messages = [
+            {"role": "system", "content": "System instruction"},
+            {"role": "user", "content": "First query"},
+            {"role": "assistant", "content": "First response"},
+            {"role": "user", "content": "Second query"}
+        ]
+        max_context_tokens = 10  # Small limit to force trimming
+        expected_messages = [
+            {"role": "system", "content": "System instruction"},
+            {"role": "user", "content": "Second query"}
+        ]
+        # Approximate: "System instruction" (2) + "Second query" (1)
+        expected_tokens = 3
+
+        result_messages, result_tokens = trim_context(
+            messages, max_context_tokens, preserve_system=True)
+
+        assert result_messages == expected_messages
+        assert result_tokens == expected_tokens
+
+    def test_estimate_remaining_tokens(self):
+        messages = [
+            {"role": "system", "content": "System instruction"},
+            {"role": "user", "content": "User query"}
+        ]
+        context_window = 100
+        expected_remaining = 96  # 100 - (2 for system + 2 for user)
+
+        result_remaining = estimate_remaining_tokens(
+            messages, context_window, self.tokenizer)
+
+        assert result_remaining == expected_remaining
 
 
 if __name__ == "__main__":
-    import pytest
-    pytest.main(["-v", __file__])
+    main()
