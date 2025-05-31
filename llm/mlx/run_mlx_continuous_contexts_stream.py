@@ -225,9 +225,9 @@ async def main():
             search_link = search_link_template.format(anime_title=anime_title)
             html_str = sync_scrape_url(search_link)
             docs = get_md_header_docs(html_str)
-            header_texts = [doc["header"] for doc in docs]
+            header_texts = [doc["header"].lower() for doc in docs]
             search_results = search_docs(
-                anime_title, header_texts, threshold=0.85)
+                anime_title.lower(), header_texts, threshold=0.85)
             if search_results:
                 save_file({
                     "title": anime_title,
