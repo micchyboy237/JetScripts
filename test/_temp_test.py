@@ -1,4 +1,5 @@
 from jet.llm.mlx.generation import stream_chat
+from jet.llm.mlx.mlx_types import LLMModelType
 from jet.llm.mlx.token_utils import get_tokenizer
 import pytest
 from mlx_lm import load
@@ -133,7 +134,7 @@ def generate_response(messages, max_tokens_per_generation, context_window, model
 
 def main():
     # Load model and tokenizer
-    model = "mlx-community/Qwen3-1.7B-4bit-DWQ"
+    model: LLMModelType = "qwen3-1.7b-4bit"
 
     # Initialize conversation history
     query = "Provide a detailed comparison of the anime titles in the provided markdown, focusing on their release dates, episode counts, and themes."
@@ -144,7 +145,7 @@ def main():
 
     # Parameters
     max_tokens_per_generation = 1000
-    context_window = 33000
+    context_window = 5500
 
     # Generate response
     response = generate_response(
@@ -173,18 +174,21 @@ class TestMLXStreamChat:
             {"role": "system", "content": "System instruction"},
             {"role": "user", "content": "First query"},
             {"role": "assistant", "content": "First response"},
-            {"role": "user", "content": "Second query"}
+            {"role": "user", "content": "Second query"},
+            {"role": "assistant", "content": "Second response"},
+            {"role": "user", "content": "Third query"}
         ]
-        max_context_tokens = 10  # Small limit to force trimming
+        max_context_tokens = 15  # Small limit to force trimming
         expected_messages = [
             {"role": "system", "content": "System instruction"},
-            {"role": "user", "content": "Second query"}
+            {"role": "assistant", "content": "Second response"},
+            {"role": "user", "content": "Third query"}
         ]
         # Approximate: "System instruction" (2) + "Second query" (1)
-        expected_tokens = 3
+        expected_tokens = 15
 
         result_messages, result_tokens = trim_context(
-            messages, max_context_tokens, preserve_system=True)
+            messages, max_context_tokens, self.tokenizer, preserve_system=True)
 
         assert result_messages == expected_messages
         assert result_tokens == expected_tokens
@@ -195,7 +199,7 @@ class TestMLXStreamChat:
             {"role": "user", "content": "User query"}
         ]
         context_window = 100
-        expected_remaining = 96  # 100 - (2 for system + 2 for user)
+        expected_remaining = 90  # 100 - (2 for system + 2 for user)
 
         result_remaining = estimate_remaining_tokens(
             messages, context_window, self.tokenizer)
