@@ -1,5 +1,6 @@
 from jet.llm.mlx.generation import stream_chat
 from jet.llm.mlx.mlx_types import LLMModelType
+from jet.llm.mlx.models import resolve_model
 from jet.llm.mlx.token_utils import get_tokenizer
 import pytest
 from mlx_lm import load
@@ -184,7 +185,7 @@ class TestMLXStreamChat:
             {"role": "assistant", "content": "Second response"},
             {"role": "user", "content": "Third query"}
         ]
-        # Approximate: "System instruction" (2) + "Second query" (1)
+        # Approximate: "System instruction" (2) + "Second response" (2) + "Third query" (2)
         expected_tokens = 15
 
         result_messages, result_tokens = trim_context(
@@ -205,6 +206,49 @@ class TestMLXStreamChat:
             messages, context_window, self.tokenizer)
 
         assert result_remaining == expected_remaining
+
+    def test_generate_response(self, monkeypatch):
+        # Mock stream_chat to return controlled chunks
+        def mock_stream_chat(messages, model, max_tokens, temperature, top_p, verbose):
+            yield {"choices": [{"message": {"content": "Generated response chunk"}}]}
+
+        monkeypatch.setattr(
+            "jet.llm.mlx.generation.stream_chat", mock_stream_chat)
+
+        # Mock get_tokenizer to return our mock tokenizer
+        def mock_get_tokenizer(model):
+            return self.tokenizer
+
+        monkeypatch.setattr(
+            "jet.llm.mlx.token_utils.get_tokenizer", mock_get_tokenizer)
+
+        # Input data
+        messages = [
+            {"role": "system", "content": "System instruction"},
+            {"role": "user", "content": "Test query"}
+        ]
+        max_tokens_per_generation = 100
+        context_window = 500
+        model = resolve_model("qwen3-1.7b-4bit")
+
+        # Expected output
+        expected_response = "Sure! Please provide the query you'd like me to test, and I'll execute it for you."
+        expected_messages_after = [
+            {"role": "system", "content": "System instruction"},
+            {"role": "user", "content": "Test query"},
+            {"role": "assistant", "content": expected_response}
+        ]
+
+        # Run the function
+        result_response = generate_response(
+            messages, max_tokens_per_generation, context_window, model
+        )
+
+        # Assert results
+        assert result_response == expected_response
+        assert messages == expected_messages_after  # Messages list is modified in-place
+
+# ... (main function and if __name__ == "__main__" remain unchanged)
 
 
 if __name__ == "__main__":
