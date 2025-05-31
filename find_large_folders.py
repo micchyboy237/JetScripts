@@ -77,6 +77,9 @@ def find_large_folders(base_dir, includes, excludes, min_size_mb, delete_folders
             folder_data = {"size": folder_size, "file": folder}
             results.append(folder_data)
 
+            # Sort results by size in reverse order before saving
+            results.sort(key=lambda x: x["size"], reverse=True)
+
             # Update main output file with current results
             final_results = {
                 "file": output_file,
