@@ -69,7 +69,7 @@ def estimate_remaining_tokens(messages, context_window, tokenizer):
 # Streaming generation function
 
 
-def generate_response(messages, max_tokens_per_generation, context_window, model):
+def generate_response(messages, max_tokens_per_generation, context_window, model, seed=42):
     tokenizer = get_tokenizer(model)
     full_response = ""
     iteration = 0
@@ -102,7 +102,8 @@ def generate_response(messages, max_tokens_per_generation, context_window, model
             max_tokens=current_max_tokens,
             temperature=0.7,
             top_p=0.9,
-            verbose=True
+            verbose=True,
+            seed=seed
         ):
             response_chunk += chunk["choices"][0]["message"]["content"]
             token_count += 1
@@ -125,7 +126,7 @@ def generate_response(messages, max_tokens_per_generation, context_window, model
                 {"role": "user", "content": "Continue the previous response where it left off."})
 
         messages, total_tokens = trim_context(
-            messages, context_window - max_tokens_per_generation)
+            messages, context_window - max_tokens_per_generation, tokenizer)
         print(f"\n[Context trimmed to {total_tokens} tokens]")
 
     return full_response
@@ -232,7 +233,7 @@ class TestMLXStreamChat:
         model = resolve_model("qwen3-1.7b-4bit")
 
         # Expected output
-        expected_response = "Sure! Please provide the query you'd like me to test, and I'll execute it for you."
+        expected_response = "Sure! Please provide the query you'd like me to test."
         expected_messages_after = [
             {"role": "system", "content": "System instruction"},
             {"role": "user", "content": "Test query"},

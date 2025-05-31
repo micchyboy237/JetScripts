@@ -427,9 +427,21 @@ mem_python_kill() {
 
 # Override pytest
 pytest() {
-#   command python -m pytest --testmon "$@"
-  command python -m pytest -vv "$@" --last-failed
+  if [[ "$*" == *--watch* ]]; then
+    # Remove --watch from arguments to pass to pytest-watcher
+    local args=("${@/--watch/}")
+    command python -m pytest_watcher . -- --last-failed -vv "${args[@]}"
+  else
+    command python -m pytest -vv --last-failed "$@"
+  fi
 }
+
+# Usage:
+#   pytest                    # Run all tests with verbose output and last-failed mode
+#   pytest test_file.py       # Run specific test file
+#   pytest -k "test_name"     # Run tests matching the given name
+#   pytest --watch            # Run tests in watch mode with pytest-watcher
+#   pytest --watch test_file.py  # Watch specific test file
 
 
 # Check if the 'deps' function is already defined to prevent echo
