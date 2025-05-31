@@ -115,7 +115,7 @@ async def main():
             verbose=True,
             logit_bias=["{", "}"],
             max_tokens=30000,
-            repetition_penalty=1.2
+            repetition_penalty=1.0
         ):
             content = stream_response["choices"][0]["message"]["content"]
             current_line += content
@@ -157,7 +157,7 @@ async def main():
                                 f"Invalid JSONL line in {anime_titles_file}: {line}")
         messages.append(
             {"role": "assistant", "content": "\n".join(
-                json.dumps(item) for item in loaded_titles)}
+                item["title"] for item in loaded_titles)}
         )
         # Save messages as JSONL
         with open(f"{sub_output_dir}/stream_chat_anime_titles.jsonl", 'a') as f:
@@ -166,7 +166,9 @@ async def main():
 
         # Search all anime titles if available in aniwatch for watching episodes
         query_aniwatch_search_links = f"Aniwatch anime search links"
-        browser_aniwatch_search_links_results, html_list = await fetch_search_results(query_aniwatch_search_links)
+        # browser_aniwatch_search_links_results, html_list = await fetch_search_results(query_aniwatch_search_links)
+        browser_aniwatch_search_links_results = search_data(
+            query_aniwatch_search_links, use_cache=False)
         save_file({
             "query": query_aniwatch_search_links,
             "count": len(browser_aniwatch_search_links_results),
@@ -205,9 +207,9 @@ async def main():
             temperature=0.3,
             log_dir=MLX_LOG_DIR,
             verbose=True,
-            logit_bias=["Link:", "None"],
+            logit_bias=["Link:"],
             max_tokens=30000,
-            repetition_penalty=1.2
+            repetition_penalty=1.0
         ):
             content = chunk["choices"][0]["message"]["content"]
             response += content
