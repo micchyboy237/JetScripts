@@ -69,7 +69,7 @@ async def main():
     MLX_LOG_DIR = f"{output_dir}/mlx-logs"
     docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
 
-    llm_model: LLMModelType = "qwen3-1.7b-4bit"
+    llm_model: LLMModelType = "llama-3.2-3b-instruct-4bit"
     seed = 42
 
     # Load JSON data

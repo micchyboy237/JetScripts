@@ -1,6 +1,7 @@
 import os
 import shutil
-from jet.llm.mlx.base import MLX, stream_chat
+from jet.llm.mlx.base import MLX
+from jet.llm.mlx.generation import stream_chat
 from jet.llm.mlx.mlx_types import LLMModelType
 from jet.file.utils import save_file
 from jet.transformers.formatters import format_json
@@ -34,7 +35,8 @@ for stream_response in stream_chat(
     temperature=0.3,
     log_dir=MLX_LOG_DIR,
     verbose=True,
-    client=client
+    client=client,
+    logprobs=5
 ):
     content = stream_response["choices"][0]["message"]["content"]
     response += content
