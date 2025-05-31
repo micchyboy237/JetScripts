@@ -3,12 +3,13 @@ import json
 import os
 import shutil
 import re
+from jet.code.splitter_markdown_utils import get_md_header_docs
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.helpers import rewrite_query
 from jet.llm.mlx.mlx_types import LLMModelType
 from jet.file.utils import load_file, save_file
 from jet.llm.utils.search_docs import search_docs
-from jet.scrapers.hrequests_utils import scrape_urls
+from jet.scrapers.hrequests_utils import scrape_urls, sync_scrape_url
 from jet.scrapers.utils import search_data
 from jet.search.searxng import SearchResult
 from jet.transformers.formatters import format_json
@@ -59,7 +60,6 @@ def format_sub_url_dir(url: str) -> str:
 
 
 async def main():
-    SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
     output_dir = os.path.join(os.path.dirname(os.path.abspath(
         __file__)), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
@@ -114,7 +114,7 @@ async def main():
             log_dir=MLX_LOG_DIR,
             verbose=True,
             logit_bias=["{", "}"],
-            max_tokens=100,
+            max_tokens=-1,
             repetition_penalty=1.0
         ):
             content = stream_response["choices"][0]["message"]["content"]
@@ -164,59 +164,77 @@ async def main():
             for message in messages:
                 f.write(json.dumps(message) + "\n")
 
-        # Search all anime titles if available in aniwatch for watching episodes
-        query_aniwatch_search_links = f"Aniwatch anime search links"
-        # browser_aniwatch_search_links_results, html_list = await fetch_search_results(query_aniwatch_search_links)
-        browser_aniwatch_search_links_results = search_data(
-            query_aniwatch_search_links, use_cache=False)
-        save_file({
-            "query": query_aniwatch_search_links,
-            "count": len(browser_aniwatch_search_links_results),
-            "results": browser_aniwatch_search_links_results
-        }, f"{sub_output_dir}/browser_aniwatch_search_links_results.json")
+        # # Search all anime titles if available in aniwatch for watching episodes
+        # query_aniwatch_search_links = f"Aniwatch anime search links"
+        # # browser_aniwatch_search_links_results, html_list = await fetch_search_results(query_aniwatch_search_links)
+        # browser_aniwatch_search_links_results = search_data(
+        #     query_aniwatch_search_links, use_cache=False)
+        # save_file({
+        #     "query": query_aniwatch_search_links,
+        #     "count": len(browser_aniwatch_search_links_results),
+        #     "results": browser_aniwatch_search_links_results
+        # }, f"{sub_output_dir}/browser_aniwatch_search_links_results.json")
 
-        documents = [
-            search_result['url']
-            for search_result in browser_aniwatch_search_links_results
-            if search_result.get("title")
-        ]
-        save_file({
-            "query": query_aniwatch_search_links,
-            "results": documents
-        }, f"{sub_output_dir}/context_aniwatch_urls.json")
+        # documents = [
+        #     search_result['url']
+        #     for search_result in browser_aniwatch_search_links_results
+        #     if search_result.get("title")
+        # ]
+        # save_file({
+        #     "query": query_aniwatch_search_links,
+        #     "results": documents
+        # }, f"{sub_output_dir}/context_aniwatch_urls.json")
 
-        context_aniwatch_search_urls = "\n\n".join(documents)
-        save_file(context_aniwatch_search_urls,
-                  f"{sub_output_dir}/context_aniwatch_urls.md")
+        # context_aniwatch_search_urls = "\n\n".join(documents)
+        # save_file(context_aniwatch_search_urls,
+        #           f"{sub_output_dir}/context_aniwatch_urls.md")
 
-        messages = [
-            {
-                "role": "system",
-                "content": "You are a precise URL extraction tool. Given search results, identify and return only the URL that best provides a link to watch episodes of the specified anime on AniWatch. Return only the URL as plain text, with no additional text, explanations, or formatting. If no matching AniWatch URL is found, return 'None'."
-            },
-            {
-                "role": "user",
-                "content": f"Generate the AniWatch search URL for watching episodes of \"{loaded_titles[0]['title']}\" derived from any of following urls that provides a query to replace with.\nMake sure to update a search parameter with the anime title.\n{context_aniwatch_search_urls}"
-            },
-        ]
+        # messages = [
+        #     {
+        #         "role": "system",
+        #         "content": "You are a precise URL extraction tool. Given search results, identify and return only the URL that best provides a link to watch episodes of the specified anime on AniWatch. Return only the URL as plain text, with no additional text, explanations, or formatting. If no matching AniWatch URL is found, return 'None'."
+        #     },
+        #     {
+        #         "role": "user",
+        #         "content": f"Generate the AniWatch search URL for watching episodes of \"{loaded_titles[0]['title']}\" derived from any of following urls that provides a query to replace with.\nMake sure to update a search parameter with the anime title.\n{context_aniwatch_search_urls}"
+        #     },
+        # ]
 
-        response = ""
-        for chunk in mlx.stream_chat(
-            messages=messages,
-            model=llm_model,
-            temperature=0.3,
-            log_dir=MLX_LOG_DIR,
-            verbose=True,
-            logit_bias=["Link:", "None"]
-        ):
-            content = chunk["choices"][0]["message"]["content"]
-            response += content
+        # response = ""
+        # for chunk in mlx.stream_chat(
+        #     messages=messages,
+        #     model=llm_model,
+        #     temperature=0.3,
+        #     log_dir=MLX_LOG_DIR,
+        #     verbose=True,
+        #     logit_bias=["Link:"],
+        #     repetition_penalty=1.2
+        # ):
+        #     content = chunk["choices"][0]["message"]["content"]
+        #     response += content
 
-        messages.append(
-            {"role": "assistant", "content": response}
-        )
+        # messages.append(
+        #     {"role": "assistant", "content": response}
+        # )
 
-        save_file(messages, f"{output_dir}/stream_chat_aniwatch_url.json")
+        # save_file(messages, f"{output_dir}/stream_chat_aniwatch_url.json")
+
+        search_link_template = "https://aniwatchtv.to/search?keyword={anime_title}"
+        results = []
+        for anime_title in loaded_titles:
+            search_link = search_link_template.format(anime_title=anime_title)
+            html_str = sync_scrape_url(search_link)
+            docs = get_md_header_docs(html_str)
+            header_texts = [doc["header"] for doc in docs]
+            search_results = search_docs(
+                anime_title, header_texts, threshold=0.85)
+            if search_results:
+                save_file({
+                    "title": anime_title,
+                    "link": search_link,
+                    "results": results
+                }, f"{output_dir}/existing_animes.json")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
