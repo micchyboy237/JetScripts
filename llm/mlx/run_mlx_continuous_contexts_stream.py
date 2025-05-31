@@ -114,7 +114,7 @@ async def main():
             log_dir=MLX_LOG_DIR,
             verbose=True,
             logit_bias=["{", "}"],
-            max_tokens=30000,
+            max_tokens=100,
             repetition_penalty=1.0
         ):
             content = stream_response["choices"][0]["message"]["content"]
@@ -192,11 +192,11 @@ async def main():
         messages = [
             {
                 "role": "system",
-                "content": "You are a precise URL extraction tool. Given search results, identify and return only the URL that best provides a link to watch episodes of the specified anime on AniWatch. Return the URL as a single JSON object in JSONL format (e.g., {\"url\": \"https://aniwatch.com/anime\"}\\n). Ensure the output is a single valid JSON line with only the 'url' key, terminated with a newline. If no matching AniWatch URL is found, return {\"url\": \"None\"}\\n. Do not include additional text, arrays, or explanations."
+                "content": "You are a precise URL extraction tool. Given search results, identify and return only the URL that best provides a link to watch episodes of the specified anime on AniWatch. Return only the URL as plain text, with no additional text, explanations, or formatting. If no matching AniWatch URL is found, return 'None'."
             },
             {
                 "role": "user",
-                "content": f"Generate the AniWatch search URL for watching episodes of \"{loaded_titles[0]['title'] if loaded_titles else 'unknown'}\" derived from the following urls:\n\n{context_aniwatch_search_urls}"
+                "content": f"Generate the AniWatch search URL for watching episodes of \"{loaded_titles[0]['title']}\" derived from any of following urls that provides a query to replace with.\nMake sure to update a search parameter with the anime title.\n{context_aniwatch_search_urls}"
             },
         ]
 
@@ -207,30 +207,16 @@ async def main():
             temperature=0.3,
             log_dir=MLX_LOG_DIR,
             verbose=True,
-            logit_bias=["Link:"],
-            max_tokens=30000,
-            repetition_penalty=1.0
+            logit_bias=["Link:", "None"]
         ):
             content = chunk["choices"][0]["message"]["content"]
             response += content
 
-        # Ensure response is saved as JSONL
-        try:
-            json.loads(response.strip())  # Validate JSON
-            with open(f"{sub_output_dir}/stream_chat_aniwatch_url.jsonl", 'a') as f:
-                f.write(response.strip() + "\n")
-        except json.JSONDecodeError:
-            logger.warning(
-                f"Invalid JSON response for AniWatch URL: {response}")
-            response = {"url": "None"}
-            with open(f"{sub_output_dir}/stream_chat_aniwatch_url.jsonl", 'a') as f:
-                f.write(json.dumps(response) + "\n")
+        messages.append(
+            {"role": "assistant", "content": response}
+        )
 
-        # Append conversation to JSONL
-        messages.append({"role": "assistant", "content": response.strip()})
-        with open(f"{sub_output_dir}/stream_chat_aniwatch_url.jsonl", 'a') as f:
-            for message in messages:
-                f.write(json.dumps(message) + "\n")
+        save_file(messages, f"{output_dir}/stream_chat_aniwatch_url.json")
 
 if __name__ == "__main__":
     asyncio.run(main())
