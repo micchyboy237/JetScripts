@@ -1,91 +1,127 @@
-import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-from sentence_transformers import SentenceTransformer
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-import string
-
-# Download NLTK resources
-nltk.download('punkt')
-nltk.download('stopwords')
+import argparse
+import json
+from pathlib import Path
 
 
-def preprocess_text(text):
-    """Preprocess text: lowercase, remove punctuation, and stopwords."""
-    stop_words = set(stopwords.words('english'))
-    tokens = word_tokenize(text.lower())
-    tokens = [
-        t for t in tokens if t not in string.punctuation and t not in stop_words]
-    return ' '.join(tokens)
-
-
-def text_diversity_score(text1, text2, semantic_weight=0.5):
+def parse_evaluation_args(
+    model: str = None,
+    tasks: list = None,
+    output_dir: str = ".",
+    batch_size: int = 16,
+    num_shots: int = None,
+    max_tokens: int = None,
+    limit: int = None,
+    seed: int = 123,
+    fewshot_as_multiturn: bool = False,
+    apply_chat_template: bool = None,
+    chat_template_args: str = "{}"
+) -> argparse.Namespace:
     """
-    Compute diversity score between two texts (0 = identical, 1 = completely diverse).
+    Parse arguments for MLX model evaluation using lm-evaluation-harness.
 
     Args:
-        text1 (str): First text.
-        text2 (str): Second text.
-        semantic_weight (float): Weight for semantic similarity (0 to 1).
+        model: Model to evaluate
+        tasks: List of tasks to evaluate
+        output_dir: Output directory for result files
+        batch_size: Batch size for evaluation
+        num_shots: Number of few-shot examples
+        max_tokens: Maximum number of tokens to generate
+        limit: Limit the number of examples per task
+        seed: Random seed
+        fewshot_as_multiturn: Whether to provide fewshot examples as multiturn conversation
+        apply_chat_template: Whether to apply chat template to prompt
+        chat_template_args: JSON string of arguments for tokenizer's apply_chat_template
 
     Returns:
-        float: Diversity score between 0 and 1.
+        argparse.Namespace containing the parsed arguments
     """
-    if not text1.strip() or not text2.strip():
-        return 1.0
+    parser = argparse.ArgumentParser(
+        description="Evaluate an MLX model using lm-evaluation-harness."
+    )
 
-    # Lexical diversity using TF-IDF
-    processed_text1 = preprocess_text(text1)
-    processed_text2 = preprocess_text(text2)
-    vectorizer = TfidfVectorizer()
-    tfidf_matrix = vectorizer.fit_transform([processed_text1, processed_text2])
-    lexical_similarity = cosine_similarity(
-        tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
-    lexical_diversity = 1 - lexical_similarity
+    parser.add_argument("--model", help="Model to evaluate",
+                        default=model, required=not model)
+    parser.add_argument(
+        "--tasks", nargs="+", help="Tasks to evaluate", default=tasks, required=not tasks)
+    parser.add_argument(
+        "--output-dir",
+        default=output_dir,
+        help="Output directory for result files."
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=batch_size,
+        help="Batch size"
+    )
+    parser.add_argument(
+        "--num-shots",
+        type=int,
+        default=num_shots,
+        help="Number of shots"
+    )
+    parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=max_tokens,
+        help="Maximum number of tokens to generate. Defaults to the model's max context length."
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=limit,
+        help="Limit the number四大号 of examples per task."
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=seed,
+        help="Random seed."
+    )
+    parser.add_argument(
+        "--fewshot-as-multiturn",
+        action="store_true",
+        help="Whether to provide the fewshot examples as a multiturn conversation or a single user turn.",
+        default=fewshot_as_multiturn
+    )
+    parser.add_argument(
+        "--apply-chat-template",
+        action=argparse.BooleanOptionalAction,
+        help="Specifies whether to apply a chat template to the prompt.",
+        default=apply_chat_template
+    )
+    parser.add_argument(
+        "--chat-template-args",
+        type=json.loads,
+        help="A JSON formatted string of arguments for the tokenizer's apply_chat_template",
+        default=chat_template_args
+    )
 
-    # Semantic diversity using Sentence-BERT
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    embeddings = model.encode([text1, text2])
-    semantic_similarity = cosine_similarity(
-        [embeddings[0]], [embeddings[1]])[0][0]
-    semantic_diversity = 1 - semantic_similarity
-
-    # Combine scores
-    final_score = (semantic_weight * semantic_diversity) + \
-        ((1 - semantic_weight) * lexical_diversity)
-    return np.clip(final_score, 0, 1)
+    return parser.parse_args()
 
 
-def sort_texts_for_diversity(texts, semantic_weight=0.5):
-    """
-    Sort a list of texts to maximize diversity between adjacent texts.
+# Usage example
+if __name__ == "__main__":
+    # Example 1: Basic usage with required arguments
+    args1 = parse_evaluation_args(
+        model="mistral-7b",
+        tasks=["hellaswag", "arc_challenge"],
+        output_dir="./results"
+    )
+    print("Example 1 args:", vars(args1))
 
-    Args:
-        texts (list): List of text strings.
-        semantic_weight (float): Weight for semantic diversity in scoring.
-
-    Returns:
-        list: Sorted list of texts.
-    """
-    if not texts:
-        return []
-    if len(texts) == 1:
-        return texts
-
-    # Initialize result with the first text
-    result = [texts[0]]
-    remaining = texts[1:].copy()
-
-    while remaining:
-        last_text = result[-1]
-        # Compute diversity scores between the last selected text and all remaining texts
-        diversity_scores = [
-            text_diversity_score(last_text, text, semantic_weight) for text in remaining
-        ]
-        # Select the text with the highest diversity score
-        max_diversity_idx = np.argmax(diversity_scores)
-        result.append(remaining.pop(max_diversity_idx))
-
-    return result
+    # Example 2: Full configuration
+    args2 = parse_evaluation_args(
+        model="llama-3b",
+        tasks=["mmlu", "gsm8k"],
+        output_dir="./eval_results",
+        batch_size=32,
+        num_shots=5,
+        max_tokens=2048,
+        limit=100,
+        seed=42,
+        fewshot_as_multiturn=True,
+        apply_chat_template=True,
+        chat_template_args='{"enable_thinking": true}'
+    )
+    print("Example 2 args:", vars(args2))
