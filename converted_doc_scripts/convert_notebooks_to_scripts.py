@@ -613,13 +613,14 @@ if __name__ == "__main__":
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/all-rag-techniques",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/all-rag-techniques",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/RAG_Techniques/all_rag_techniques",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/RAG_Techniques/evaluation",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx-vlm/examples"
     ]
     include_files = [
         # "memgraph.ipynb",
-        "22_Big_data_with_KG.ipynb",
+        # "22_Big_data_with_KG.ipynb",
     ]
     exclude_files = [
         # "migrating_memory/",
