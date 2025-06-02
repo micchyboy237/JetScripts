@@ -5,7 +5,7 @@
 General instructions:
 
 - Answer all in chat
-- Dont use prior knowledge or add to memory
+- Dont use or add to memory
 - Execute browse or internet search if requested
 
 Conditions when applicable:
@@ -25,5 +25,5 @@ At the end:
 - Provide all complete updated or fixed code
 - Instructions for running the code
 - Show installation instructions if any
-- Write easy-to-visualize real world unit tests using unittest or any standard built in libraries.
+- Write easy-to-visualize real world unit tests using pytest or any standard built in libraries separated by test classes per function.
 - Provide "sample", "expected" and "result" variables for each test. Use long samples
