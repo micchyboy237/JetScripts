@@ -5,7 +5,7 @@ import shutil
 import re
 from jet.code.splitter_markdown_utils import get_md_header_docs
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.helpers import rewrite_query
+from jet.llm.mlx.helpers.base import rewrite_query
 from jet.llm.mlx.mlx_types import LLMModelType
 from jet.file.utils import load_file, save_file
 from jet.llm.utils.search_docs import search_docs
@@ -115,7 +115,6 @@ async def main():
             log_dir=MLX_LOG_DIR,
             verbose=True,
             logit_bias=["{", "}"],
-            max_tokens=200,
             repetition_penalty=1.0
         ):
             content = stream_response["choices"][0]["message"]["content"]

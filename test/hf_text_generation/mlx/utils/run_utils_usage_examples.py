@@ -205,7 +205,7 @@ def main2():
 
         # Create a sampler for generation
         sampler = make_sampler(temp=0.7, top_p=0.9,
-                               min_p=0.0, min_tokens_to_keep=1)
+                               min_p=0.0, min_tokens_to_keep=0)
 
         # Get response token count with speculative decoding
         text, response_tokens = get_response_token_count(
