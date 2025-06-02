@@ -9,8 +9,11 @@ import asyncio
 from urllib.parse import unquote, urlparse
 
 from jet.features.nltk_search import get_pos_tag, search_by_pos
+from jet.llm.mlx.helpers.base import get_system_date_prompt
+from jet.logger import logger
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.transformers.link_formatters import LinkFormatter, format_links_for_embedding
+from jet.utils.url_utils import rerank_bm25_plus
 from jet.wordnet.text_chunker import truncate_texts
 from jet.vectors.document_types import HeaderDocument
 from jet.vectors.search_with_clustering import search_documents
@@ -18,7 +21,6 @@ from jet.wordnet.analyzers.text_analysis import ReadabilityResult, analyze_reada
 from jet.code.splitter_markdown_utils import get_md_header_docs
 from jet.file.utils import save_file
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.helpers import decompose_query, get_system_date_prompt, rewrite_query
 from jet.llm.mlx.token_utils import count_tokens
 from jet.llm.embeddings.sentence_embedding import get_tokenizer_fn
 from jet.scrapers.browser.playwright_utils import scrape_multiple_urls
@@ -28,6 +30,7 @@ from jet.llm.utils.search_docs import search_docs
 from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_relevance
 from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
 from jet.wordnet.words import count_words
+from jet.search.searxng import SearchResult
 
 
 class StepBackQueryResponse(TypedDict):
@@ -118,7 +121,7 @@ def initialize_search_components(
     return mlx, tokenize
 
 
-async def fetch_search_results(query: str, output_dir: str, use_cache: bool = False) -> Tuple[List[Dict], List[str]]:
+async def fetch_search_results(query: str, output_dir: str, use_cache: bool = False) -> List[SearchResult]:
     """Fetch search results and save them."""
     browser_search_results = search_data(query, use_cache=use_cache)
     save_file(
@@ -126,44 +129,58 @@ async def fetch_search_results(query: str, output_dir: str, use_cache: bool = Fa
             browser_search_results), "results": browser_search_results},
         os.path.join(output_dir, "browser_search_results.json")
     )
+
+    return browser_search_results
+
+
+async def process_search_results(
+    browser_search_results: List[Dict],
+    query: str,
+    output_dir: str
+) -> List[Tuple[str, str, Optional[str]]]:
+    """Process search results and extract links."""
     urls = [item["url"] for item in browser_search_results]
     html_list = await scrape_urls(urls, num_parallel=5)
-    return browser_search_results, html_list
 
-
-def process_search_results(
-    browser_search_results: List[Dict],
-    html_list: List[str],
-    output_dir: str
-) -> Tuple[List[Tuple[str, str, Optional[str]]], List[str]]:
-    """Process search results and extract links."""
     all_url_html_date_tuples = []
     all_links = []
 
     for result, html_str in zip(browser_search_results, html_list):
         url = result["url"]
+        if not html_str:
+            continue
+
         if not result.get("publishedDate"):
             published_date = scrape_published_date(html_str)
             result["publishedDate"] = published_date if published_date else None
 
-        if html_str:
-            links = set(scrape_links(html_str, url))
-            links = [link for link in links if (
-                link != url if isinstance(link, str) else link["url"] != url)]
-            all_links.extend(links)
+        links = set(scrape_links(html_str, url))
+        links = [link for link in links if (
+            link != url if isinstance(link, str) else link["url"] != url)]
+        all_links.extend(links)
 
         all_url_html_date_tuples.append(
             (url, html_str, result.get("publishedDate")))
 
     all_links = list(set(all_links))
-    save_file(all_links, os.path.join(output_dir, "links.json"))
-    return all_url_html_date_tuples, all_links
+    reranked_links = rerank_bm25_plus(all_links, query, 3)
+    save_file(reranked_links, os.path.join(output_dir, "links.json"))
+
+    logger.info(f"Scraping reranked links ({len(reranked_links)})...")
+    reranked_html_list = await scrape_urls(reranked_links, num_parallel=5)
+    for url, html_str in zip(reranked_links, reranked_html_list):
+        if html_str:
+            published_date = scrape_published_date(html_str)
+            all_url_html_date_tuples.append(
+                (url, html_str, published_date))
+
+    return all_url_html_date_tuples
 
 
 def process_documents(
     url_html_date_tuples: List[Tuple[str, str, Optional[str]]],
     output_dir: str
-) -> Tuple[List[HeaderDocument], List[Dict]]:
+) -> List[HeaderDocument]:
     """Process documents and extract headers."""
     all_url_docs_tuples = filter_htmls_with_best_combined_mtld(
         url_html_date_tuples)
@@ -179,7 +196,7 @@ def process_documents(
 
     save_file(all_docs, os.path.join(output_dir, "docs.json"))
     save_file(headers, os.path.join(output_dir, "headers.json"))
-    return all_docs, headers
+    return all_docs
 
 
 def search_and_group_documents(
@@ -207,7 +224,7 @@ def search_and_group_documents(
         os.path.join(output_dir, "search_doc_results.json")
     )
 
-    search_result_dict = {result["id"]                          : result for result in search_doc_results}
+    search_result_dict = {result["id"]: result for result in search_doc_results}
     sorted_doc_results = []
     for doc in all_docs:
         if doc.metadata["header_level"] != 1 and count_words(doc.text) >= 10:
@@ -308,11 +325,10 @@ async def main():
     output_dir = initialize_output_directory(__file__)
     mlx, _ = initialize_search_components(llm_model, embed_model, seed)
     # query = rewrite_query(query, llm_model)
-    browser_search_results, html_list = await fetch_search_results(query, output_dir, use_cache=use_cache)
-    url_html_date_tuples, _ = process_search_results(
-        browser_search_results, html_list, output_dir)
+    browser_search_results = await fetch_search_results(query, output_dir, use_cache=use_cache)
+    url_html_date_tuples = await process_search_results(browser_search_results, query, output_dir)
     url_html_date_tuples.sort(key=lambda x: x[2] or "", reverse=True)
-    all_docs, _ = process_documents(url_html_date_tuples, output_dir)
+    all_docs = process_documents(url_html_date_tuples, output_dir)
     sorted_doc_results, context = search_and_group_documents(
         query, all_docs, embed_model, llm_model, top_k, output_dir)
     response = generate_response(query, context, llm_model, mlx, output_dir)

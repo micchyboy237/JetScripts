@@ -57,6 +57,7 @@ def find_large_folders(base_dir, includes, excludes, min_size_mb, delete_folders
         "max_forward_depth") if "max_forward_depth" in kwargs else depth
     output_file = kwargs.pop("output_file", os.path.join(
         base_dir, "_large_folders.json"))
+    save_results = kwargs.pop("save", False)  # Extract save flag from kwargs
 
     # Initialize tqdm progress bar
     total_folders = 0
@@ -73,24 +74,25 @@ def find_large_folders(base_dir, includes, excludes, min_size_mb, delete_folders
             pbar.update(1)
 
             logger.success(
-                f"Folder ({current_depth}): {folder} | Size: {folder_size:.2f} MB")
+                f"\nFolder ({current_depth}): {folder} | Size: {folder_size:.2f} MB")
             folder_data = {"size": folder_size, "file": folder}
             results.append(folder_data)
 
             # Sort results by size in reverse order before saving
             results.sort(key=lambda x: x["size"], reverse=True)
 
-            # Update main output file with current results
-            final_results = {
-                "file": output_file,
-                "size": calculate_total_size(results),
-                "min_size_mb": min_size_mb,
-                "depth": depth,
-                "max_backward_depth": kwargs.get("max_backward_depth"),
-                "results": results
-            }
-            save_file(final_results, output_file)
-            logger.info(f"Updated output file: {output_file}")
+            # Save results to output file only if save_results is True
+            if save_results:
+                final_results = {
+                    "file": output_file,
+                    "size": calculate_total_size(results),
+                    "min_size_mb": min_size_mb,
+                    "depth": depth,
+                    "max_backward_depth": kwargs.get("max_backward_depth"),
+                    "results": results
+                }
+                save_file(final_results, output_file)
+                logger.info(f"Updated output file: {output_file}")
 
             yield folder_data
             if delete_folders:
@@ -169,8 +171,11 @@ if __name__ == "__main__":
         args.base_dir, "_large_folders.json")
 
     results = []
-    generator = find_large_folders(args.base_dir, includes, excludes, args.min_size, args.delete, limit=args.limit,
-                                   direction=args.direction, depth=depth, max_backward_depth=args.max_backward_depth, output_file=output_file)
+    generator = find_large_folders(
+        args.base_dir, includes, excludes, args.min_size, args.delete, limit=args.limit,
+        direction=args.direction, depth=depth, max_backward_depth=args.max_backward_depth,
+        output_file=output_file, save=args.save
+    )
 
     logger.info(f"Output file: {output_file}")
     for folder_data in generator:
