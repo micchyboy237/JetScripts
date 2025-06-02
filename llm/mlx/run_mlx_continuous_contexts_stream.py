@@ -115,7 +115,8 @@ async def main():
             log_dir=MLX_LOG_DIR,
             verbose=True,
             logit_bias=["{", "}"],
-            repetition_penalty=1.0
+            repetition_penalty=1.0,
+            max_tokens=-1
         ):
             content = stream_response["choices"][0]["message"]["content"]
             current_line += content
