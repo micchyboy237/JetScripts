@@ -57,25 +57,28 @@ def find_large_folders(base_dir, includes, excludes, min_size_mb, delete_folders
         "max_forward_depth") if "max_forward_depth" in kwargs else depth
     output_file = kwargs.pop("output_file", os.path.join(
         base_dir, "_large_folders.json"))
-    save_results = kwargs.pop("save", False)  # Extract save flag from kwargs
+    save_results = kwargs.pop("save", False)
 
     # Initialize tqdm progress bar
     total_folders = 0
     accumulated_size = 0
-    pbar = tqdm(desc="Scanning folders", unit="folder")
+    pbar = tqdm(desc="Scanning folders", unit=" folder")
 
     for folder, current_depth in traverse_directory(base_dir, includes, excludes, max_forward_depth=depth, **kwargs):
         folder_size = get_folder_sizes(folder)
         if folder_size >= min_size_mb:
             total_folders += 1
-            accumulated_size += folder_size
+            # Only accumulate size for top-level folders (depth 0)
+            if current_depth == 0:
+                accumulated_size += folder_size
             pbar.set_postfix(
-                {"Folders": total_folders, "Total Size": f"{format_size(accumulated_size)}"})
+                {"Depth": current_depth, "Folders": total_folders})
             pbar.update(1)
 
             logger.success(
-                f"\nFolder ({current_depth}): {folder} | Size: {folder_size:.2f} MB")
-            folder_data = {"size": folder_size, "file": folder}
+                f"\nSize: {format_size(folder_size)} | Folder: {folder}")
+            folder_data = {"size": folder_size,
+                           "file": folder, "depth": current_depth}
             results.append(folder_data)
 
             # Sort results by size in reverse order before saving
@@ -111,10 +114,11 @@ def format_size(size_mb):
 
 
 def calculate_total_size(deleted_folders: list[dict]) -> float:
-    """Calculate the total size of a list of folders."""
+    """Calculate the total size of top-level folders only."""
     total_size = 0
     for item in deleted_folders:
-        total_size += item["size"]
+        if item["depth"] == 0:  # Only include top-level folders
+            total_size += item["size"]
     return total_size
 
 
