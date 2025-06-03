@@ -10,6 +10,7 @@ from urllib.parse import unquote, urlparse
 
 from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.llm.mlx.helpers.base import get_system_date_prompt
+from jet.llm.mlx.mlx_types import EmbedModelType, LLMModelType
 from jet.logger import logger
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.transformers.link_formatters import LinkFormatter, format_links_for_embedding
@@ -59,7 +60,10 @@ class ContextInfo(TypedDict):
 
 def get_header_stats(text: str) -> Dict:
     """Analyze text and return header statistics."""
+    logger.debug("Analyzing text for header statistics")
     analysis = analyze_text(text)
+    logger.info(
+        f"Header stats computed: MTLD={analysis['mtld']}, Difficulty={analysis['overall_difficulty']}")
     return {
         "mtld": analysis["mtld"],
         "mtld_category": analysis["mtld_category"],
@@ -74,62 +78,82 @@ def filter_htmls_with_best_combined_mtld(
     min_mtld: float = 100.0
 ) -> List[Tuple[str, str, List[HeaderDocument], ReadabilityResult]]:
     """Filter HTMLs based on MTLD score and header count."""
+    logger.info(
+        f"Filtering {len(url_html_date_tuples)} HTMLs with min MTLD={min_mtld} and limit={limit}")
     if not url_html_date_tuples or limit <= 0:
+        logger.debug("No HTMLs to filter or invalid limit")
         return []
 
     doc_scores = []
     for url, html, _ in url_html_date_tuples:
         try:
+            logger.debug(f"Processing HTML for URL: {url}")
             docs = get_md_header_docs(html, ignore_links=False)
             h2_count = sum(
                 1 for doc in docs if doc.metadata['header_level'] == 2)
+            logger.debug(f"Found {h2_count} H2 headers for {url}")
             if h2_count < 5:
+                logger.debug(
+                    f"Skipping {url}: insufficient H2 headers ({h2_count} < 5)")
                 continue
 
             docs_text = "\n\n".join(doc.text for doc in docs)
             readability = analyze_readability(docs_text)
             mtld_score = readability['mtld']
+            logger.debug(f"MTLD score for {url}: {mtld_score}")
 
             if mtld_score >= min_mtld:
-                doc_scores.append(
-                    (url, html, docs, readability, mtld_score))
-        except (ValueError, KeyError, AttributeError):
+                doc_scores.append((url, html, docs, readability, mtld_score))
+                logger.debug(
+                    f"Added {url} to candidates with MTLD={mtld_score}")
+        except (ValueError, KeyError, AttributeError) as e:
+            logger.debug(f"Error processing {url}: {str(e)}")
             continue
 
     doc_scores.sort(key=lambda x: x[4], reverse=True)
-    return [(url, html, docs, readability) for url, html, docs, readability, _ in doc_scores[:limit]]
+    filtered = [(url, html, docs, readability)
+                for url, html, docs, readability, _ in doc_scores[:limit]]
+    logger.info(f"Filtered to {len(filtered)} HTMLs with highest MTLD scores")
+    return filtered
 
 
 def initialize_output_directory(script_path: str) -> str:
     """Create and return the output directory path."""
+    logger.debug(f"Initializing output directory for script: {script_path}")
     script_dir = os.path.dirname(os.path.abspath(script_path))
     output_dir = os.path.join(script_dir, "generated", os.path.splitext(
         os.path.basename(script_path))[0])
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
+    logger.info(f"Output directory initialized: {output_dir}")
     return output_dir
 
 
 def initialize_search_components(
-    llm_model: str,
-    embed_model: str,
+    llm_model: LLMModelType,
+    embed_model: EmbedModelType,
     seed: int
 ) -> Tuple[MLX, callable]:
     """Initialize MLX model and tokenizer."""
+    logger.debug(
+        f"Initializing search components with LLM={llm_model}, Embed={embed_model}, Seed={seed}")
     mlx = MLX(llm_model, seed=seed)
     tokenize = get_tokenizer_fn(embed_model)
+    logger.info("Search components initialized successfully")
     return mlx, tokenize
 
 
 async def fetch_search_results(query: str, output_dir: str, use_cache: bool = False) -> List[SearchResult]:
     """Fetch search results and save them."""
+    logger.info(
+        f"Fetching search results for query: {query}, use_cache={use_cache}")
     browser_search_results = search_data(query, use_cache=use_cache)
+    logger.debug(f"Fetched {len(browser_search_results)} search results")
     save_file(
         {"query": query, "count": len(
             browser_search_results), "results": browser_search_results},
         os.path.join(output_dir, "browser_search_results.json")
     )
-
     return browser_search_results
 
 
@@ -139,7 +163,10 @@ async def process_search_results(
     output_dir: str
 ) -> List[Tuple[str, str, Optional[str]]]:
     """Process search results and extract links."""
+    logger.info(
+        f"Processing {len(browser_search_results)} search results for query: {query}")
     urls = [item["url"] for item in browser_search_results]
+    logger.debug(f"Scraping {len(urls)} URLs")
     html_list = await scrape_urls(urls, num_parallel=5)
 
     all_url_html_date_tuples = []
@@ -148,32 +175,40 @@ async def process_search_results(
     for result, html_str in zip(browser_search_results, html_list):
         url = result["url"]
         if not html_str:
+            logger.debug(f"No HTML content for {url}, skipping")
             continue
 
         if not result.get("publishedDate"):
             published_date = scrape_published_date(html_str)
             result["publishedDate"] = published_date if published_date else None
+            logger.debug(f"Scraped published date for {url}: {published_date}")
 
         links = set(scrape_links(html_str, url))
         links = [link for link in links if (
             link != url if isinstance(link, str) else link["url"] != url)]
         all_links.extend(links)
+        logger.debug(f"Extracted {len(links)} links from {url}")
 
         all_url_html_date_tuples.append(
             (url, html_str, result.get("publishedDate")))
 
     all_links = list(set(all_links))
+    save_file(all_links, os.path.join(output_dir, "links.json"))
+    logger.debug(f"Total unique links extracted: {len(all_links)}")
     reranked_links = rerank_bm25_plus(all_links, query, 3)
-    save_file(reranked_links, os.path.join(output_dir, "links.json"))
+    logger.debug(f"Reranked to {len(reranked_links)} links")
+    save_file(reranked_links, os.path.join(output_dir, "reranked_links.json"))
 
-    logger.info(f"Scraping reranked links ({len(reranked_links)})...")
+    logger.info(f"Scraping {len(reranked_links)} reranked links...")
     reranked_html_list = await scrape_urls(reranked_links, num_parallel=5)
     for url, html_str in zip(reranked_links, reranked_html_list):
         if html_str:
             published_date = scrape_published_date(html_str)
-            all_url_html_date_tuples.append(
-                (url, html_str, published_date))
+            all_url_html_date_tuples.append((url, html_str, published_date))
+            logger.debug(f"Scraped HTML and date for reranked URL: {url}")
 
+    logger.info(
+        f"Processed {len(all_url_html_date_tuples)} URL-HTML-date tuples")
     return all_url_html_date_tuples
 
 
@@ -182,12 +217,14 @@ def process_documents(
     output_dir: str
 ) -> List[HeaderDocument]:
     """Process documents and extract headers."""
+    logger.info(f"Processing {len(url_html_date_tuples)} documents")
     all_url_docs_tuples = filter_htmls_with_best_combined_mtld(
         url_html_date_tuples)
     all_docs = []
     headers = []
 
     for url, html_str, docs, readability in all_url_docs_tuples:
+        logger.debug(f"Processing documents for URL: {url}")
         for doc in docs:
             doc.metadata["source_url"] = url
             doc.metadata["readability"] = readability
@@ -208,8 +245,12 @@ def search_and_group_documents(
     output_dir: str
 ) -> Tuple[List[Dict], str]:
     """Search documents and group results."""
+    logger.info(
+        f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}")
     docs_to_search = [
         doc for doc in all_docs if doc.metadata["header_level"] != 1]
+    logger.debug(
+        f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1)")
     search_doc_results = search_docs(
         query=query,
         documents=[doc.text for doc in docs_to_search],
@@ -223,8 +264,10 @@ def search_and_group_documents(
             search_doc_results), "results": search_doc_results},
         os.path.join(output_dir, "search_doc_results.json")
     )
+    logger.info(
+        f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
 
-    search_result_dict = {result["id"]: result for result in search_doc_results}
+    search_result_dict = {result["id"]                          : result for result in search_doc_results}
     sorted_doc_results = []
     for doc in all_docs:
         if doc.metadata["header_level"] != 1 and count_words(doc.text) >= 10:
@@ -243,12 +286,15 @@ def search_and_group_documents(
     contexts = [doc["text"] for doc in sorted_doc_results if doc["is_top"]]
     context = "\n\n".join(contexts)
     save_file(context, os.path.join(output_dir, "context.md"))
+    logger.debug(f"Generated context with {len(contexts)} segments")
 
     context_tokens = count_tokens(llm_model, context, prevent_total=True)
     save_file({
         "total_tokens": context_tokens,
         "contexts": contexts
     }, os.path.join(output_dir, "contexts.json"))
+    logger.info(
+        f"Saved context with {context_tokens} tokens to {output_dir}/contexts.json")
     return sorted_doc_results, context
 
 
@@ -260,6 +306,8 @@ def generate_response(
     output_dir: str
 ) -> str:
     """Generate and save LLM response."""
+    logger.info(
+        f"Generating response for query: {query} with model: {llm_model}")
     PROMPT_TEMPLATE = """\
 Context information is below.
 ---------------------
@@ -271,6 +319,7 @@ Given the context information, answer the query.
 Query: {query}
 """
     prompt = PROMPT_TEMPLATE.format(query=query, context=context)
+    logger.debug("Prompt prepared for LLM")
     response = ""
     for chunk in mlx.stream_chat(
         prompt,
@@ -286,6 +335,10 @@ Query: {query}
         {"query": query, "context": context, "response": response},
         os.path.join(output_dir, "chat_response.json")
     )
+    try:
+        logger.success(f"Successfully generated response for query: {query}")
+    except AttributeError:
+        logger.info(f"Successfully generated response for query: {query}")
     return response
 
 
@@ -297,6 +350,7 @@ def evaluate_results(
     output_dir: str
 ) -> None:
     """Evaluate context and response relevance."""
+    logger.info(f"Evaluating context relevance for query: {query}")
     os.makedirs(os.path.join(output_dir, "eval"), exist_ok=True)
     eval_context_result = evaluate_context_relevance(query, context, llm_model)
     save_file(
@@ -304,6 +358,7 @@ def evaluate_results(
         os.path.join(output_dir, "eval",
                      "evaluate_context_relevance_result.json")
     )
+    logger.info(f"Evaluating response relevance for query: {query}")
     eval_response_result = evaluate_response_relevance(
         query, context, response, llm_model)
     save_file(
@@ -311,6 +366,10 @@ def evaluate_results(
         os.path.join(output_dir, "eval",
                      "evaluate_response_relevance_result.json")
     )
+    try:
+        logger.success("Evaluation completed successfully")
+    except AttributeError:
+        logger.info("Evaluation completed successfully")
 
 
 async def main():
@@ -322,6 +381,7 @@ async def main():
     seed = 45
     use_cache = False
 
+    logger.info(f"Starting search engine with query: {query}")
     output_dir = initialize_output_directory(__file__)
     mlx, _ = initialize_search_components(llm_model, embed_model, seed)
     # query = rewrite_query(query, llm_model)
@@ -333,6 +393,13 @@ async def main():
         query, all_docs, embed_model, llm_model, top_k, output_dir)
     response = generate_response(query, context, llm_model, mlx, output_dir)
     evaluate_results(query, context, response, llm_model, output_dir)
+    try:
+        logger.success("Search engine execution completed")
+    except AttributeError:
+        logger.info("Search engine execution completed")
+
 
 if __name__ == "__main__":
+    logger.info("Starting search engine script")
     asyncio.run(main())
+    logger.info("Search engine script finished")

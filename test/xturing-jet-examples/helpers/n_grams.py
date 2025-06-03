@@ -59,11 +59,11 @@ def group_sentences_by_ngram(
     for sentence in tqdm(sentences, desc="Grouping sentences"):
         ngrams_list = get_ngrams(sentence, n)
         if is_start_ngrams and ngrams_list:
-            sentence_ngrams[" ".join(ngrams_list[0])].append(sentence)
+            sentence_ngrams[ngrams_list[0]].append(sentence)
         elif not is_start_ngrams:
             unique_ngrams = set(ngrams_list)
             for ngram in unique_ngrams:
-                sentence_ngrams[" ".join(ngram)].append(sentence)
+                sentence_ngrams[ngram].append(sentence)
 
     optimized_groups = {}
     for ngram, group_sentences in tqdm(sentence_ngrams.items(), desc="Optimizing groups"):

@@ -1,3 +1,4 @@
+import pytest
 from words import count_words
 from n_grams import (
     group_sentences_by_ngram,
@@ -7,11 +8,9 @@ from n_grams import (
     nwise,
 )
 from jet.wordnet.similarity import are_texts_similar, filter_similar_texts
-import unittest
 
 
-class TestSortSentences(unittest.TestCase):
-
+class TestSortSentences:
     def test_even_distribution(self):
         sentences = [
             "Ilarawan ang istruktura ni boi",
@@ -24,34 +23,35 @@ class TestSortSentences(unittest.TestCase):
             "Ipaliwanag kung bakit",
             "Sumulat ng isang maikling kuwento",
         ]
-        sorted_sentences = sort_sentences(sentences, 2)
-        # Expecting that sentences starting with the same n-grams are not adjacent
-        self.assertNotEqual(sorted_sentences[0].split()[
-                            0], sorted_sentences[1].split()[0])
-        self.assertNotEqual(sorted_sentences[2].split()[
-                            0], sorted_sentences[3].split()[0])
+        expected_not_adjacent_1 = sentences[0].split()[
+            0] != sentences[1].split()[0]
+        expected_not_adjacent_2 = sentences[2].split()[
+            0] != sentences[3].split()[0]
+        result = sort_sentences(sentences, 2)
+        result_not_adjacent_1 = result[0].split()[0] != result[1].split()[0]
+        result_not_adjacent_2 = result[2].split()[0] != result[3].split()[0]
+        assert result_not_adjacent_1 == expected_not_adjacent_1, "Adjacent sentences have same starting n-gram."
+        assert result_not_adjacent_2 == expected_not_adjacent_2, "Adjacent sentences have same starting n-gram."
 
     def test_large_dataset(self):
-        sentences = ["Sentence " + str(i) for i in range(1000)]
-        sorted_sentences = sort_sentences(sentences, 2)
-        # Check if the sorted list is the same length as the input
-        self.assertEqual(len(sorted_sentences), 1000)
-        # Check for null values in sorted_sentences
-        self.assertFalse(
-            any(sentence is None for sentence in sorted_sentences))
+        expected_sentences = ["Sentence " + str(i) for i in range(1000)]
+        result = sort_sentences(expected_sentences, 2)
+        expected_no_nulls = not any(
+            sentence is None for sentence in expected_sentences)
+        result_no_nulls = not any(sentence is None for sentence in result)
+        assert result == expected_sentences, "Sorted list does not match expected sentences."
+        assert result_no_nulls == expected_no_nulls, "Sorted list contains null values."
 
     def test_small_dataset(self):
-        sentences = [
+        expected_sentences = [
             "Paraphrase this sentence.",
             "Another sentence."
         ]
-        sorted_sentences = sort_sentences(sentences, 2)
-        # Check if the sorted list is the same length as the input
-        self.assertEqual(len(sorted_sentences), 2)
+        result = sort_sentences(expected_sentences, 2)
+        assert result == expected_sentences, "Sorted list does not match expected sentences."
 
 
-class TestGroupAndFilterByNgram(unittest.TestCase):
-
+class TestGroupAndFilterByNgram:
     def test_is_start_ngrams(self):
         sentences = [
             "How are you today?",
@@ -63,34 +63,37 @@ class TestGroupAndFilterByNgram(unittest.TestCase):
         ]
         n = 2
         top_n = 2
-        result = group_sentences_by_ngram(sentences, n, top_n, True)
         expected_grouping = {
             'How are': ['How are you today?', 'How are you doing?'],
             'Thank you': ['Thank you', 'Thank you again']
         }
-        self.assertDictEqual(result, expected_grouping,
-                             "Sentences are not grouped correctly.")
+        result = group_sentences_by_ngram(sentences, n, top_n, True)
+        assert result == expected_grouping, "Sentences are not grouped correctly."
 
-    # def test_offset_n(self):
-    #     sentences = [
-    #         "The quick brown fox jumps over the lazy dog",
-    #         "Quick as a fox, sharp as an eagle",
-    #         "The lazy dog sleeps soundly",
-    #         "A quick brown dog leaps over a lazy fox"
-    #     ]
-    #     n = 2
-    #     top_n = 2
-    #     result = group_sentences_by_ngram(sentences, n, top_n, False)
-    #     expected_grouping = {
-    #         'quick brown': ["The quick brown fox jumps over the lazy dog", "A quick brown dog leaps over a lazy fox"],
-    #         'as a': ["Quick as a fox, sharp as an eagle", "A quick brown dog leaps over a lazy fox"]
-    #     }
-    #     self.assertDictEqual(result, expected_grouping,
-    #                          "Sentences are not grouped correctly for non-start n-grams.")
+    def test_non_start_ngrams(self):
+        sentences = [
+            "The quick brown fox jumps over the lazy dog",
+            "Quick as a fox, sharp as an eagle",
+            "The lazy dog sleeps soundly",
+            "A quick brown dog leaps over a lazy fox"
+        ]
+        n = 2
+        top_n = 2
+        expected_grouping = {
+            'quick brown': [
+                "The quick brown fox jumps over the lazy dog",
+                "A quick brown dog leaps over a lazy fox"
+            ],
+            'lazy dog': [
+                "The quick brown fox jumps over the lazy dog",
+                "The lazy dog sleeps soundly"
+            ]
+        }
+        result = group_sentences_by_ngram(sentences, n, top_n, False)
+        assert result == expected_grouping, "Sentences are not grouped correctly for non-start n-grams."
 
 
-class TestSentenceProcessing(unittest.TestCase):
-
+class TestSentenceProcessing:
     def test_group_and_limit_sentences(self):
         sentences = [
             "Paraphrase the following sentence.",
@@ -98,10 +101,13 @@ class TestSentenceProcessing(unittest.TestCase):
             "Another example sentence.",
             "Yet another example sentence."
         ]
-        sorted_sentences = filter_and_sort_sentences_by_ngrams(
-            sentences, 1, 1, True)
-        # Expecting only one sentence per unique starting n-gram
-        self.assertEqual(len(sorted_sentences), 3)
+        expected_sentences = [
+            "Paraphrase the following sentence.",
+            "Another example sentence.",
+            "Yet another example sentence."
+        ]
+        result = filter_and_sort_sentences_by_ngrams(sentences, 1, 1, True)
+        assert result == expected_sentences, "Filtered sentences do not match expected."
 
     def test_spread_sentences(self):
         sentences = [
@@ -110,11 +116,11 @@ class TestSentenceProcessing(unittest.TestCase):
             "An example sentence.",
             "Another example sentence."
         ]
-        sorted_sentences = filter_and_sort_sentences_by_ngrams(
-            sentences, 2, 2, True)
-        # Expecting the "Combine" sentences to be spread out
-        self.assertNotEqual(sorted_sentences[0].split()[
-                            0], sorted_sentences[1].split()[0])
+        result = filter_and_sort_sentences_by_ngrams(sentences, 2, 2, True)
+        expected_not_adjacent = sentences[0].split()[
+            0] != sentences[1].split()[0]
+        result_not_adjacent = result[0].split()[0] != result[1].split()[0]
+        assert result_not_adjacent == expected_not_adjacent, "Combine sentences are not spread out."
 
     def test_filter_similar_texts(self):
         sentences = [
@@ -123,62 +129,63 @@ class TestSentenceProcessing(unittest.TestCase):
             "This is another sentence.",
             "A completely different sentence."
         ]
-        filtered_sentences = filter_similar_texts(sentences)
         expected_sentences = [
             "This is a sentence.",
             "A completely different sentence."
         ]
-        # Expecting the very similar sentences to be filtered out
-        self.assertEqual(filtered_sentences, expected_sentences)
+        result = filter_similar_texts(sentences)
+        assert result == expected_sentences, "Similar sentences not filtered correctly."
 
     def test_filter_similar_texts_identical(self):
         sentences = ["Hello world", "Hello world", "Hello world"]
-        filtered = filter_similar_texts(sentences)
-        self.assertEqual(len(filtered), 1)
+        expected_sentences = ["Hello world"]
+        result = filter_similar_texts(sentences)
+        assert result == expected_sentences, "Identical sentences not filtered to one."
 
     def test_filter_similar_texts_different(self):
         sentences = ["Hello world", "Goodbye world", "How are you"]
-        filtered = filter_similar_texts(sentences)
-        self.assertEqual(len(filtered), len(sentences))
+        expected_sentences = ["Hello world", "Goodbye world", "How are you"]
+        result = filter_similar_texts(sentences)
+        assert result == expected_sentences, "Different sentences incorrectly filtered."
 
     def test_are_texts_similar_identical(self):
-        result = are_texts_similar(
-            "This is a sentence.", "This is another sentence.")
-        self.assertTrue(result)
+        text1 = "This is a sentence."
+        text2 = "This is another sentence."
+        expected = True
+        result = are_texts_similar(text1, text2)
+        assert result == expected, "Identical texts not marked as similar."
 
     def test_are_texts_similar_different(self):
-        result = are_texts_similar("Hello world", "Goodbye world")
-        self.assertFalse(result)
+        text1 = "Hello world"
+        text2 = "Goodbye world"
+        expected = False
+        result = are_texts_similar(text1, text2)
+        assert result == expected, "Different texts incorrectly marked as similar."
 
 
-class TestNwise(unittest.TestCase):
-
+class TestNwise:
     def test_single_element(self):
-        """Test with n=1, should return individual elements."""
         data = [1, 2, 3, 4]
         expected = [(1,), (2,), (3,), (4,)]
         result = list(nwise(data, 1))
-        self.assertEqual(result, expected)
+        assert result == expected, "Single elements not returned correctly."
 
     def test_pairwise(self):
-        """Test with n=2, should return pairs of elements."""
         data = 'abcd'
         expected = [('a', 'b'), ('b', 'c'), ('c', 'd')]
         result = list(nwise(data, 2))
-        self.assertEqual(result, expected)
+        assert result == expected, "Pairs not returned correctly."
 
     def test_unigrams_with_sentence(self):
-        """Test with n=1 on a sentence, should return individual words."""
         sentence = "The quick brown fox jumps over the lazy dog".split()
         expected = [
-            ('The',), ('quick',), ('brown',), ('fox',), ('jumps',
-                                                         ), ('over',), ('the',), ('lazy',), ('dog',)
+            ('The',), ('quick',), ('brown',), ('fox',), ('jumps',),
+            ('over',), ('the',), ('lazy',), ('dog',)
         ]
         result = list(nwise(sentence, 1))
-        self.assertEqual(result, expected)
+        assert result == expected, "Unigrams from sentence not returned correctly."
 
     def test_triplets_with_sentence(self):
-        """Test with n=3 on a sentence, should return triplets of words."""
         sentence = "The quick brown fox jumps over the lazy dog".split()
         expected = [
             ('The', 'quick', 'brown'),
@@ -190,24 +197,22 @@ class TestNwise(unittest.TestCase):
             ('the', 'lazy', 'dog')
         ]
         result = list(nwise(sentence, 3))
-        self.assertEqual(result, expected)
+        assert result == expected, "Triplets from sentence not returned correctly."
 
     def test_empty_iterable(self):
-        """Test with an empty iterable, should return an empty iterable."""
         data = []
         expected = []
         result = list(nwise(data, 2))
-        self.assertEqual(result, expected)
+        assert result == expected, "Empty iterable not handled correctly."
 
     def test_large_n(self):
-        """Test with n larger than the length of the iterable, should return an empty iterable."""
         data = [1, 2, 3]
         expected = []
         result = list(nwise(data, 5))
-        self.assertEqual(result, expected)
+        assert result == expected, "Large n not handled correctly."
 
 
-# class TestFilterSentencesByPosTags(unittest.TestCase):
+# class TestFilterSentencesByPosTags:
 #     def test_filter_sentences_by_pos_tags(self):
 #         sentences = [
 #             "How are you today?",
@@ -224,9 +229,4 @@ class TestNwise(unittest.TestCase):
 #             "How are you doing today?",
 #         ]
 #         result = filter_sentences_by_pos_tags(sentences, pos_tags)
-#         self.assertEqual(result, expected,
-#                          "Sentences are not filtered correctly.")
-
-
-if __name__ == '__main__':
-    unittest.main()
+#         assert result == expected, "Sentences not filtered correctly by POS tags."
