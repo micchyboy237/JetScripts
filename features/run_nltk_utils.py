@@ -41,9 +41,30 @@ if __name__ == "__main__":
     save_file(word_counts_lemmatized_list_results, output_path)
     print(f"Save JSON data to: {output_path}")
 
-    # # Process word sentence combination counts
-    # word_sentence_combination_counts_results = get_word_sentence_combination_counts(
-    #     docs, n=5, min_count=2, in_sequence=False, show_progress=True)
-    # output_path = f"{output_dir}/word_sentence_combination_counts.json"
-    # save_file(word_sentence_combination_counts_results, output_path)
-    # print(f"Save JSON data to: {output_path}")
+    # Process word sentence combination counts as a whole
+    word_sentence_combination_counts_results = get_word_sentence_combination_counts(
+        docs_str, n=1, min_count=5, in_sequence=False, show_progress=True)
+    output_path = f"{output_dir}/word_sentence_combination_counts.json"
+    save_file(word_sentence_combination_counts_results, output_path)
+    print(f"Save JSON data to: {output_path}")
+
+    # Process word sentence for each document separately
+    word_sentence_combination_counts_results = get_word_sentence_combination_counts(
+        docs, n=1, min_count=5, in_sequence=False, show_progress=True)
+    output_path = f"{output_dir}/word_sentence_combination_list_counts.json"
+    save_file(word_sentence_combination_counts_results, output_path)
+    print(f"Save JSON data to: {output_path}")
+
+    # Process word sentence combination counts as a whole
+    word_sentence_combination_counts_results = get_word_sentence_combination_counts(
+        docs_str, n=2, min_count=5, in_sequence=True, show_progress=True)
+    output_path = f"{output_dir}/word_sentence_combination_n_2_sequence_counts.json"
+    save_file(word_sentence_combination_counts_results, output_path)
+    print(f"Save JSON data to: {output_path}")
+
+    # Process word sentence for each document separately
+    word_sentence_combination_counts_results = get_word_sentence_combination_counts(
+        docs, n=2, min_count=5, in_sequence=True, show_progress=True)
+    output_path = f"{output_dir}/word_sentence_combination_n_2_sequence_list_counts.json"
+    save_file(word_sentence_combination_counts_results, output_path)
+    print(f"Save JSON data to: {output_path}")

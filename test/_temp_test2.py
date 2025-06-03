@@ -1,127 +1,65 @@
-import argparse
-import json
-from pathlib import Path
+import os
+import shutil
+from jet.data.sample_diverse_texts import sample_diverse_texts
+from jet.features.nltk_utils import get_word_counts_lemmatized, get_word_sentence_combination_counts
+from jet.file.utils import load_file, save_file
+from jet.llm.utils.bm25_plus import bm25_plus
+from jet.logger import logger
 
-
-def parse_evaluation_args(
-    model: str = None,
-    tasks: list = None,
-    output_dir: str = ".",
-    batch_size: int = 16,
-    num_shots: int = None,
-    max_tokens: int = None,
-    limit: int = None,
-    seed: int = 123,
-    fewshot_as_multiturn: bool = False,
-    apply_chat_template: bool = None,
-    chat_template_args: str = "{}"
-) -> argparse.Namespace:
-    """
-    Parse arguments for MLX model evaluation using lm-evaluation-harness.
-
-    Args:
-        model: Model to evaluate
-        tasks: List of tasks to evaluate
-        output_dir: Output directory for result files
-        batch_size: Batch size for evaluation
-        num_shots: Number of few-shot examples
-        max_tokens: Maximum number of tokens to generate
-        limit: Limit the number of examples per task
-        seed: Random seed
-        fewshot_as_multiturn: Whether to provide fewshot examples as multiturn conversation
-        apply_chat_template: Whether to apply chat template to prompt
-        chat_template_args: JSON string of arguments for tokenizer's apply_chat_template
-
-    Returns:
-        argparse.Namespace containing the parsed arguments
-    """
-    parser = argparse.ArgumentParser(
-        description="Evaluate an MLX model using lm-evaluation-harness."
-    )
-
-    parser.add_argument("--model", help="Model to evaluate",
-                        default=model, required=not model)
-    parser.add_argument(
-        "--tasks", nargs="+", help="Tasks to evaluate", default=tasks, required=not tasks)
-    parser.add_argument(
-        "--output-dir",
-        default=output_dir,
-        help="Output directory for result files."
-    )
-    parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=batch_size,
-        help="Batch size"
-    )
-    parser.add_argument(
-        "--num-shots",
-        type=int,
-        default=num_shots,
-        help="Number of shots"
-    )
-    parser.add_argument(
-        "--max-tokens",
-        type=int,
-        default=max_tokens,
-        help="Maximum number of tokens to generate. Defaults to the model's max context length."
-    )
-    parser.add_argument(
-        "--limit",
-        type=int,
-        default=limit,
-        help="Limit the number四大号 of examples per task."
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=seed,
-        help="Random seed."
-    )
-    parser.add_argument(
-        "--fewshot-as-multiturn",
-        action="store_true",
-        help="Whether to provide the fewshot examples as a multiturn conversation or a single user turn.",
-        default=fewshot_as_multiturn
-    )
-    parser.add_argument(
-        "--apply-chat-template",
-        action=argparse.BooleanOptionalAction,
-        help="Specifies whether to apply a chat template to the prompt.",
-        default=apply_chat_template
-    )
-    parser.add_argument(
-        "--chat-template-args",
-        type=json.loads,
-        help="A JSON formatted string of arguments for the tokenizer's apply_chat_template",
-        default=chat_template_args
-    )
-
-    return parser.parse_args()
-
-
-# Usage example
 if __name__ == "__main__":
-    # Example 1: Basic usage with required arguments
-    args1 = parse_evaluation_args(
-        model="mistral-7b",
-        tasks=["hellaswag", "arc_challenge"],
-        output_dir="./results"
-    )
-    print("Example 1 args:", vars(args1))
+    output_dir = os.path.join(
+        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    shutil.rmtree(output_dir, ignore_errors=True)
 
-    # Example 2: Full configuration
-    args2 = parse_evaluation_args(
-        model="llama-3b",
-        tasks=["mmlu", "gsm8k"],
-        output_dir="./eval_results",
-        batch_size=32,
-        num_shots=5,
-        max_tokens=2048,
-        limit=100,
-        seed=42,
-        fewshot_as_multiturn=True,
-        apply_chat_template=True,
-        chat_template_args='{"enable_thinking": true}'
-    )
-    print("Example 2 args:", vars(args2))
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
+
+    # Load JSON data
+    docs = load_file(docs_file)
+    print(f"Loaded JSON data {len(docs)} from: {docs_file}")
+    docs = [doc["text"] for doc in docs]
+    docs_str = "\n\n".join(docs)
+
+    # Process word counts for each document as a whole
+    word_counts_lemmatized_text_results = get_word_counts_lemmatized(
+        docs_str, min_count=10, as_score=False)
+    output_path = f"{output_dir}/word_counts_lemmatized_counts.json"
+    save_file(word_counts_lemmatized_text_results, output_path)
+
+    # Get all keywords from word counts
+    keywords = list(word_counts_lemmatized_text_results.keys())
+
+    # Filter keywords by length (>= 3 chars) and take top 20
+    keywords = [keyword for keyword in keywords if len(keyword) >= 3]
+    keywords = keywords[:20]
+
+    # Additional length filter (> 2 chars) and remove duplicates
+    keywords = [keyword for keyword in keywords if len(keyword) > 2]
+    keywords = list(set(keywords))
+
+    # Log and save keywords
+    logger.info(f"Keywords: {keywords}")
+    output_path = f"{output_dir}/keywords.json"
+    save_file(keywords, output_path)
+
+    query = " ".join(keywords)
+    logger.info(f"Query: {query}")
+    logger.info(f"Reranking docs ({len(docs)})...")
+    bm25_plus_results = bm25_plus(docs, query, k1=1.5)
+    save_file(bm25_plus_results, f"{output_dir}/bm25_plus_results.json")
+
+    # Map doc_index to original docs
+    reranked_docs = []
+    for result in bm25_plus_results["results"]:
+        doc_index = result["doc_index"]
+        score = result["score"]
+        if score >= 0.9:
+            reranked_docs.append(docs[doc_index])
+
+    # Save reranked docs
+    output_path = f"{output_dir}/reranked_docs.json"
+    save_file(reranked_docs, output_path)
+
+    # Get diverse docs
+    reranked_diverse_docs = sample_diverse_texts(reranked_docs)
+    output_path = f"{output_dir}/reranked_diverse_docs.json"
+    save_file(reranked_diverse_docs, output_path)
