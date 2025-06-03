@@ -11,9 +11,7 @@ from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.logger import logger
 from jet.actions.generation import call_ollama_chat
 from jet.llm.llm_types import OllamaChatOptions
-from jet.llm.query import setup_index, query_llm
-from jet.llm.ollama.base import initialize_ollama_settings, large_llm_model
-initialize_ollama_settings()
+from jet.llm.query.retrievers import setup_index, query_llm
 
 if __name__ == "__main__":
     system = (
@@ -59,7 +57,7 @@ if __name__ == "__main__":
     logger.newline()
     logger.info("RELATIVE_SCORE: sample query...")
     result = query_nodes(
-        sample_query, FUSION_MODES.RELATIVE_SCORE)
+        sample_query, fusion_mode=FUSION_MODES.RELATIVE_SCORE)
     logger.info(f"RETRIEVED NODES ({len(result["nodes"])})")
     display_jet_source_nodes(sample_query, result["nodes"])
 
@@ -76,7 +74,8 @@ if __name__ == "__main__":
                 print("Exiting query loop.")
                 break
 
-            result = query_nodes(query, FUSION_MODES.RELATIVE_SCORE)
+            result = query_nodes(
+                query, fusion_mode=FUSION_MODES.RELATIVE_SCORE)
             logger.info(f"RETRIEVED NODES ({len(result["nodes"])})")
             display_jet_source_nodes(query, result["nodes"])
 

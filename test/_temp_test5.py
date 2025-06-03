@@ -1,161 +1,96 @@
-import re
-from jet.llm.mlx.mlx_types import EmbedModelType
-from jet.llm.utils.transformer_embeddings import generate_embeddings
-from transformers import AutoTokenizer
-import numpy as np
-from typing import List, Optional, TypedDict
-from jet.llm.mlx.models import AVAILABLE_EMBED_MODELS, resolve_model_key
+import os
+from typing import Generator
+from jet.file.utils import load_file
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, PromptTemplate
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core.base.base_retriever import BaseRetriever
+from llama_index.core.retrievers import QueryFusionRetriever
+from llama_index.core.retrievers.fusion_retriever import FUSION_MODES
+from llama_index.core.schema import Document, NodeWithScore, BaseNode, TextNode, ImageNode
+from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.logger import logger
-
-
-class SimilarityResult(TypedDict):
-    id: str
-    rank: int
-    doc_index: int
-    score: float
-    text: str
-    tokens: int
-
-
-def preprocess_text(text: str) -> str:
-    """Preprocess text by lowercasing, removing non-alphanumeric characters, and normalizing whitespace."""
-    text = text.lower()
-    text = re.sub(r'[^a-z0-9\s]', '', text)
-    text = re.sub(r'\s+', ' ', text.strip())
-    return text
-
-
-def search_docs(
-    query: str,
-    documents: List[str],
-    model: EmbedModelType = "all-minilm:33m",
-    top_k: Optional[int] = 10,
-    batch_size: Optional[int] = None,
-    normalize: bool = True,
-    chunk_size: Optional[int] = None,
-    ids: Optional[List[str]] = None,
-    preprocess: bool = True
-) -> List[SimilarityResult]:
-    """Search documents with memory-efficient embedding generation and return SimilarityResult."""
-    if not query or not documents:
-        raise ValueError("Query string and documents list must not be empty.")
-
-    if not top_k:
-        top_k = len(documents)
-
-    if ids is not None:
-        if len(ids) != len(documents):
-            raise ValueError(
-                f"Length of ids ({len(ids)}) must match length of documents ({len(documents)})")
-        if len(ids) != len(set(ids)):
-            raise ValueError("IDs must be unique")
-
-    if preprocess:
-        processed_query = preprocess_text(query)
-        processed_documents = [preprocess_text(doc) for doc in documents]
-    else:
-        processed_query = query
-        processed_documents = documents
-
-    embed_model = resolve_model_key(model)
-    model_id = AVAILABLE_EMBED_MODELS[embed_model]
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
-
-    query_embedding = generate_embeddings(
-        model, processed_query, batch_size, normalize, chunk_size=chunk_size)
-    doc_embeddings = generate_embeddings(
-        model, processed_documents, batch_size, normalize, chunk_size=chunk_size)
-
-    query_embedding = np.array(query_embedding)
-    doc_embeddings = np.array(doc_embeddings)
-
-    if len(doc_embeddings) == 0 or len(processed_documents) == 0:
-        return []
-    if len(doc_embeddings) != len(processed_documents):
-        logger.error(
-            f"Mismatch between document embeddings ({len(doc_embeddings)}) and documents ({len(processed_documents)})")
-        return []
-
-    # Compute similarities with zero-norm handling
-    doc_norms = np.linalg.norm(doc_embeddings, axis=1)
-    query_norm = np.linalg.norm(query_embedding)
-    similarities = np.dot(doc_embeddings, query_embedding)
-    # Avoid division by zero
-    valid_norms = (doc_norms > 0) & (query_norm > 0)
-    similarities[valid_norms] /= (doc_norms[valid_norms] * query_norm)
-    similarities[~valid_norms] = -1.0  # Replace NaN/invalid with -1.0
-
-    top_k = min(top_k, len(processed_documents))
-    if top_k <= 0:
-        return []
-
-    top_indices = np.argsort(similarities)[::-1][:top_k]
-    valid_indices = [int(idx)
-                     for idx in top_indices if idx < len(processed_documents)]
-    if not valid_indices:
-        return []
-
-    results = []
-    for rank, idx in enumerate(valid_indices, start=1):
-        doc_text = documents[idx]
-        tokens = len(tokenizer.encode(doc_text, add_special_tokens=True))
-        doc_id = ids[idx] if ids is not None else f"doc_{idx}"
-        result = SimilarityResult(
-            id=doc_id,
-            rank=rank,
-            doc_index=int(idx),
-            score=float(similarities[idx]),
-            text=doc_text,
-            tokens=tokens
-        )
-        results.append(result)
-
-    return results
-
-
-def main():
-    """Example usage of search_docs function."""
-    # Sample query and documents
-    query = "Machine learning algorithms"
-    documents = [
-        "Machine learning is a subset of artificial intelligence that focuses on building systems that learn from data.",
-        "Deep learning is a type of machine learning that uses neural networks with many layers.",
-        "Python is a popular programming language for machine learning and data science.",
-        "The history of artificial intelligence began in the 1950s with early computational models."
-    ]
-    ids = ["doc1", "doc2", "doc3", "doc4"]
-
-    try:
-        # Basic search with default parameters
-        print("Performing basic search...")
-        results = search_docs(query, documents, ids=ids)
-        for result in results:
-            print(
-                f"ID: {result['id']}, Rank: {result['rank']}, Score: {result['score']:.4f}")
-            print(f"Text: {result['text']}")
-            print(f"Tokens: {result['tokens']}")
-            print("---")
-
-        # Search with specific parameters
-        print("\nPerforming search with top_k=2 and preprocess=False...")
-        results = search_docs(
-            query,
-            documents,
-            model="all-minilm:33m",
-            top_k=2,
-            preprocess=False,
-            ids=ids
-        )
-        for result in results:
-            print(
-                f"ID: {result['id']}, Rank: {result['rank']}, Score: {result['score']:.4f}")
-            print(f"Text: {result['text']}")
-            print(f"Tokens: {result['tokens']}")
-            print("---")
-
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
-
+from jet.actions.generation import call_ollama_chat
+from jet.llm.llm_types import OllamaChatOptions
+from jet.llm.query.retrievers import setup_index, query_llm
 
 if __name__ == "__main__":
-    main()
+    system = (
+        "You are a job applicant providing tailored responses during an interview.\n"
+        "Always answer questions using the provided context as if it is your resume, "
+        "and avoid referencing the context directly.\n"
+        "Some rules to follow:\n"
+        "1. Never directly mention the context or say 'According to my resume' or similar phrases.\n"
+        "2. Provide responses as if you are the individual described in the context, focusing on professionalism and relevance."
+    )
+
+    prompt_template = PromptTemplate(
+        """\
+    Resume details are below.
+    ---------------------
+    {context_str}
+    ---------------------
+    Given the resume details and not prior knowledge, respond to the question.
+    Question: {query_str}
+    Response: \
+    """
+    )
+
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
+
+    sample_query = "List all ongoing and upcoming isekai anime 2025."
+
+    data: list[dict] = load_file(docs_file)
+    documents: list[Document] = [
+        Document(**{**doc, "metadata": {
+            "doc_index": doc["metadata"]["doc_index"],
+            "parent_header": doc["metadata"]["parent_header"],
+            "header": doc["metadata"]["header"]
+        }}) for doc in data]
+
+    query_nodes = setup_index(documents)
+
+    # logger.newline()
+    # logger.info("RECIPROCAL_RANK: query...")
+    # response = query_nodes(sample_query, FUSION_MODES.RECIPROCAL_RANK)
+
+    # logger.newline()
+    # logger.info("DIST_BASED_SCORE: query...")
+    # response = query_nodes(sample_query, FUSION_MODES.DIST_BASED_SCORE)
+
+    logger.newline()
+    logger.info("RELATIVE_SCORE: sample query...")
+    result = query_nodes(
+        sample_query, fusion_mode=FUSION_MODES.RELATIVE_SCORE)
+    logger.info(f"RETRIEVED NODES ({len(result["nodes"])})")
+    display_jet_source_nodes(sample_query, result["nodes"])
+
+    response = query_llm(sample_query, result['texts'], system=system)
+    # logger.info("QUERY RESPONSE:")
+    # logger.success(response)
+
+    # Run app
+    while True:
+        # Continuously ask user for queries
+        try:
+            query = input("Enter your query (type 'exit' to quit): ").strip()
+            if query.lower() == "exit":
+                print("Exiting query loop.")
+                break
+
+            result = query_nodes(
+                query, fusion_mode=FUSION_MODES.RELATIVE_SCORE)
+            logger.info(f"RETRIEVED NODES ({len(result["nodes"])})")
+            display_jet_source_nodes(query, result["nodes"])
+
+            response = query_llm(query, result["texts"], system=system)
+            # logger.info("QUERY RESPONSE:")
+            # logger.success(response)
+
+        except KeyboardInterrupt:
+            print("\nExiting query loop.")
+            break
+        except Exception as e:
+            logger.error(f"Error while processing query: {e}")
+
+    logger.info("\n\n[DONE]", bright=True)
