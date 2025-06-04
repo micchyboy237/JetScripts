@@ -1,12 +1,14 @@
+from jet.file.utils import save_file
+from spacy.tokens import SpanGroup
 from dataclasses import dataclass
 from spacy.tokens import Doc
 import json
 from jet.logger import logger
 import spacy
 from spacy import displacy
-from spacy.tokens.doc import Doc
 from span_marker import SpanMarkerModel
 from typing import Dict, List, Optional
+import os
 
 
 def process_text(text: str, nlp: spacy.language.Language) -> Doc:
@@ -95,14 +97,7 @@ class DocSettings:
 
 
 def parse_entities(doc: Doc) -> List[DocEntity]:
-    """Parse a spaCy Doc into a list of DocEntity objects containing entity details.
-
-    Args:
-        doc (Doc): The spaCy document to parse.
-
-    Returns:
-        List[DocEntity]: A list of DocEntity objects with entity details.
-    """
+    """Parse a spaCy Doc into a list of DocEntity objects containing entity details."""
     return [
         DocEntity(
             text=entity.text,
@@ -118,14 +113,7 @@ def parse_entities(doc: Doc) -> List[DocEntity]:
 
 
 def parse_dependencies(doc: Doc) -> List[DocNounChunk]:
-    """Parse a spaCy Doc into a list of DocNounChunk objects containing noun chunk details.
-
-    Args:
-        doc (Doc): The spaCy document to parse.
-
-    Returns:
-        List[DocNounChunk]: A list of DocNounChunk objects with noun chunk details.
-    """
+    """Parse a spaCy Doc into a list of DocNounChunk objects containing noun chunk details."""
     return [
         DocNounChunk(
             text=chunk.text,
@@ -138,14 +126,7 @@ def parse_dependencies(doc: Doc) -> List[DocNounChunk]:
 
 
 def parse_sentences(doc: Doc) -> List[DocSentence]:
-    """Parse a spaCy Doc into a list of DocSentence objects containing sentence details.
-
-    Args:
-        doc (Doc): The spaCy document to parse.
-
-    Returns:
-        List[DocSentence]: A list of DocSentence objects with sentence details.
-    """
+    """Parse a spaCy Doc into a list of DocSentence objects containing sentence details."""
     return [
         DocSentence(
             text=sent.text,
@@ -158,30 +139,23 @@ def parse_sentences(doc: Doc) -> List[DocSentence]:
 
 
 def parse_settings(doc: Doc) -> DocSettings:
-    """Parse a spaCy Doc's settings into a DocSettings object.
-
-    Args:
-        doc (Doc): The spaCy document with a settings attribute.
-
-    Returns:
-        Optional[DocSettings]: A DocSettings object with language and direction, or None if settings are not available.
-    """
+    """Parse a spaCy Doc's settings into a DocSettings object."""
     return DocSettings(
         lang=doc.lang_,
-        direction=doc.vocab.writing_system.get("direction", "ltr"),
+        direction=doc.vocab.writing_system.get("direction", "ltr")
     )
 
 
 def main():
-    from jet.file.utils import save_file
-    import os
-
     # Load spaCy model
     nlp = spacy.load("en_core_web_sm")
 
-    # Add SpanMarker as an additional NER pipeline
+    # Add SpanMarker without spans_key (it defaults to "sc")
     nlp.add_pipe("span_marker", config={
-        "model": "tomaarsen/span-marker-mbert-base-multinerd"
+        "model": "tomaarsen/span-marker-mbert-base-multinerd",
+        "batch_size": 4,
+        "device": None,
+        "overwrite_entities": False
     }, last=True)
 
     # Input text
@@ -197,21 +171,34 @@ def main():
     log_noun_chunks(doc)
     log_sentences(doc)
 
-    entities = displacy.parse_ents(doc)
-    dependencies = displacy.parse_deps(doc)
-    spans = displacy.parse_spans(doc)
+    # Check available span keys
+    print("Available span keys:", doc.spans.keys())
 
+    # If no spans in "sc", copy entities to spans for visualization
+    if "sc" not in doc.spans:
+        doc.spans["sc"] = SpanGroup(doc, spans=[ent for ent in doc.ents])
+
+    # Parse and save data
     output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-    save_file(parse_entities(doc), f"{output_dir}/entities.json")
-    save_file(parse_dependencies(doc), f"{output_dir}/dependencies.json")
-    save_file(parse_sentences(doc), f"{output_dir}/sentences.json")
-    save_file(parse_settings(doc), f"{output_dir}/settings.json")
-    save_file(spans, f"{output_dir}/spans.json")
+        os.path.dirname(__file__), "generated", os.path.splitext(
+            os.path.basename(__file__))[0]
+    )
+    save_file([e.__dict__ for e in parse_entities(doc)],
+              f"{output_dir}/entities.json")
+    save_file([d.__dict__ for d in parse_dependencies(doc)],
+              f"{output_dir}/dependencies.json")
+    save_file([s.__dict__ for s in parse_sentences(doc)],
+              f"{output_dir}/sentences.json")
+    save_file(parse_settings(doc).__dict__, f"{output_dir}/settings.json")
+    save_file(displacy.parse_spans(doc, options={
+              "spans_key": "sc"}), f"{output_dir}/spans.json")
 
-    # Visualize dependencies
-    # displacy.serve(doc, style="dep", port=5002, options={"colors": {
-    #     "PER": "#ff9999", "LOC": "#99ff99", "DATE": "#9999ff"}})
+    # Visualize spans
+    options = {
+        "spans_key": "sc",
+        "colors": {"PER": "#ff9999", "LOC": "#99ff99", "DATE": "#9999ff"}
+    }
+    displacy.render(doc, style="span", options=options, jupyter=False)
 
 
 if __name__ == "__main__":
