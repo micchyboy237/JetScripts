@@ -255,7 +255,7 @@ def search_and_group_documents(
         documents=[doc.text for doc in docs_to_search],
         ids=[doc.id_ for doc in docs_to_search],
         model=embed_model,
-        top_k=top_k,
+        top_k=None,
     )
 
     save_file(
@@ -266,7 +266,8 @@ def search_and_group_documents(
     logger.info(
         f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
 
-    search_result_dict = {result["id"]                          : result for result in search_doc_results}
+    search_result_dict = {result["id"]
+        : result for result in search_doc_results}
     sorted_doc_results = []
     for doc in all_docs:
         if doc.metadata["header_level"] != 1 and count_words(doc.text) >= 10:
@@ -282,7 +283,8 @@ def search_and_group_documents(
             "parent_header", ""), result["is_top"])
         grouped_by_source_and_parent[key].append(result)
 
-    contexts = [doc["text"] for doc in sorted_doc_results if doc["is_top"]]
+    contexts = [doc["text"]
+                for doc in sorted_doc_results if doc["is_top"]][:top_k]
     context = "\n\n".join(contexts)
     save_file(context, os.path.join(output_dir, "context.md"))
     logger.debug(f"Generated context with {len(contexts)} segments")
