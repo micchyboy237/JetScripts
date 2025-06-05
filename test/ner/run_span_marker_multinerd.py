@@ -24,8 +24,8 @@ class DocEntity:
     label: str
     start_char: int
     end_char: int
-    score: str
-    vector_norm: str
+    score: float  # Changed to float
+    vector_norm: float | None  # Changed to float or None for cases with no vector
 
 
 @dataclass
@@ -104,9 +104,13 @@ def parse_entities(doc: Doc, predictions: List[Dict]) -> List[DocEntity]:
             label=entity["label"],
             start_char=entity["char_start_index"],
             end_char=entity["char_end_index"],
-            score=f"{entity['score']:.4f}",
-            vector_norm=str(doc[entity["char_start_index"]: entity["char_end_index"]].vector_norm
-                            if doc[entity["char_start_index"]: entity["char_end_index"]].has_vector else "No vector")
+            score=entity["score"],  # Keep as float
+            vector_norm=(
+                doc[entity["char_start_index"]
+                    :entity["char_end_index"]].vector_norm
+                if doc[entity["char_start_index"]:entity["char_end_index"]].has_vector
+                else None
+            )
         )
         for entity in predictions
     ]
