@@ -154,7 +154,7 @@ def main():
     nlp.add_pipe("span_marker", config={
         "model": "tomaarsen/span-marker-mbert-base-multinerd",
         "batch_size": 4,
-        "device": None,
+        "device": "mps",
         "overwrite_entities": False
     }, last=True)
 
