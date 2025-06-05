@@ -1,3 +1,4 @@
+from jet.models.embeddings.base import get_embedding_function
 from jet.llm.embeddings.fast_embedding import EmbeddingGenerator
 from jet.logger import logger
 from jet.file.utils import load_file, save_file
@@ -62,12 +63,14 @@ def process_long_text(
 
         logger.info("Processing chunks in batches...")
         chunk_texts = [chunk["text"] for chunk in chunks]
-        all_entities = generator.generate_embeddings(
-            chunk_texts,
-            batch_size=batch_size,
-            max_length=max_length,
-            normalize=False
-        )
+        embed_func = get_embedding_function(model_name)
+        # all_entities = generator.generate_embeddings(
+        #     chunk_texts,
+        #     batch_size=batch_size,
+        #     max_length=max_length,
+        #     normalize=False
+        # )
+        all_entities = embed_func(chunk_texts)
 
         logger.debug("Merging entities...")
         merged_entities = merge_entities(all_entities, chunks)
