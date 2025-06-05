@@ -1,5 +1,6 @@
 from jet.file.utils import save_file
 from jet.logger import logger
+from pydantic import BaseModel
 from spacy.tokens import SpanGroup
 from dataclasses import dataclass
 from spacy.tokens import Doc, Span
@@ -8,6 +9,20 @@ from spacy import displacy
 from span_marker import SpanMarkerModel
 from typing import Dict, List, Optional
 import os
+
+# SpanMarkerWord with label
+
+
+class SpanMarkerWord(BaseModel):
+    text: str
+    lemma: str
+    start_idx: int
+    end_idx: int
+    score: float
+    label: str
+
+    def __str__(self) -> str:
+        return self.text
 
 
 @dataclass
@@ -21,11 +36,12 @@ class DocSentence:
 @dataclass
 class DocEntity:
     text: str
+    lemma: str  # Added lemma field
     label: str
     start_char: int
     end_char: int
-    score: float  # Changed to float
-    vector_norm: float | None  # Changed to float or None for cases with no vector
+    score: float
+    vector_norm: float | None
 
 
 @dataclass
@@ -42,27 +58,38 @@ class DocSettings:
     direction: str
 
 
-def process_text(text: str, nlp: spacy.language.Language, model: SpanMarkerModel) -> tuple[Doc, List[Dict]]:
-    """Process text with spaCy pipeline and SpanMarker model."""
+def process_text(text: str, nlp: spacy.language.Language, model: SpanMarkerModel) -> tuple[Doc, List[SpanMarkerWord]]:
+    """Process text with spaCy pipeline and SpanMarker model, returning SpanMarkerWord predictions."""
     doc = nlp(text)
     predictions = model.predict(text)
-    return doc, predictions
+    processed_predictions = [
+        SpanMarkerWord(
+            text=pred["span"],
+            lemma=nlp(pred["span"])[0].lemma_ if pred["span"] else "",
+            start_idx=pred["char_start_index"],
+            end_idx=pred["char_end_index"],
+            score=pred["score"],
+            label=pred["label"]
+        )
+        for pred in predictions
+    ]
+    return doc, processed_predictions
 
 
-def log_entities(predictions: List[Dict]) -> None:
+def log_entities(predictions: List[SpanMarkerWord]) -> None:
     """Log named entities with relevant details."""
     logger.newline()
     logger.debug(f"Extracted Entities ({len(predictions)}):")
     for entity in predictions:
         logger.newline()
-        logger.log("Text:", entity["span"], colors=["WHITE", "INFO"])
-        logger.log("Label:", entity["label"], colors=["WHITE", "INFO"])
-        logger.log("Start:", f"{entity['char_start_index']}", colors=[
-                   "WHITE", "SUCCESS"])
-        logger.log("End:", f"{entity['char_end_index']}", colors=[
-                   "WHITE", "SUCCESS"])
-        logger.log("Score:", f"{entity['score']:.4f}", colors=[
-                   "WHITE", "SUCCESS"])
+        logger.log("Text:", entity.text, colors=["WHITE", "INFO"])
+        logger.log("Lemma:", entity.lemma, colors=["WHITE", "INFO"])
+        logger.log("Label:", entity.label, colors=["WHITE", "INFO"])
+        logger.log("Start:", f"{entity.start_idx}",
+                   colors=["WHITE", "SUCCESS"])
+        logger.log("End:", f"{entity.end_idx}", colors=["WHITE", "SUCCESS"])
+        logger.log("Score:", f"{entity.score:.4f}",
+                   colors=["WHITE", "SUCCESS"])
         logger.log("---")
 
 
@@ -96,19 +123,19 @@ def log_sentences(doc: Doc) -> None:
         logger.log("---")
 
 
-def parse_entities(doc: Doc, predictions: List[Dict]) -> List[DocEntity]:
-    """Parse SpanMarker predictions into a list of DocEntity objects."""
+def parse_entities(doc: Doc, predictions: List[SpanMarkerWord]) -> List[DocEntity]:
+    """Parse SpanMarkerWord predictions into a list of DocEntity objects."""
     return [
         DocEntity(
-            text=entity["span"],
-            label=entity["label"],
-            start_char=entity["char_start_index"],
-            end_char=entity["char_end_index"],
-            score=entity["score"],  # Keep as float
+            text=entity.text,
+            lemma=entity.lemma,  # Include lemma
+            label=entity.label,
+            start_char=entity.start_idx,
+            end_char=entity.end_idx,
+            score=entity.score,
             vector_norm=(
-                doc[entity["char_start_index"]
-                    :entity["char_end_index"]].vector_norm
-                if doc[entity["char_start_index"]:entity["char_end_index"]].has_vector
+                doc[entity.start_idx:entity.end_idx].vector_norm
+                if doc[entity.start_idx:entity.end_idx].has_vector
                 else None
             )
         )
@@ -163,28 +190,28 @@ def char_to_token_index(doc: Doc, char_start: int, char_end: int) -> tuple[Optio
     return start_token, end_token
 
 
-def create_span_group(doc: Doc, predictions: List[Dict]) -> SpanGroup:
-    """Create a SpanGroup from SpanMarker predictions for visualization."""
+def create_span_group(doc: Doc, predictions: List[SpanMarkerWord]) -> SpanGroup:
+    """Create a SpanGroup from SpanMarkerWord predictions for visualization."""
     spans = []
     for entity in predictions:
         start_token, end_token = char_to_token_index(
-            doc, entity["char_start_index"], entity["char_end_index"])
+            doc, entity.start_idx, entity.end_idx)
         if start_token is not None and end_token is not None and start_token < len(doc) and end_token <= len(doc):
             try:
                 span = Span(
                     doc,
                     start_token,
                     end_token,
-                    label=entity["label"],
-                    kb_id=f"score:{entity['score']:.4f}"
+                    label=entity.label,
+                    kb_id=f"score:{entity.score:.4f}"
                 )
                 spans.append(span)
             except IndexError as e:
-                logger.error(f"Error creating span for entity '{entity['span']}' "
-                             f"(char {entity['char_start_index']}:{entity['char_end_index']}): {e}")
+                logger.error(f"Error creating span for entity '{entity.text}' "
+                             f"(char {entity.start_idx}:{entity.end_idx}): {e}")
         else:
-            logger.warning(f"Skipping entity '{entity['span']}' due to invalid token indices "
-                           f"(char {entity['char_start_index']}:{entity['char_end_index']})")
+            logger.warning(f"Skipping entity '{entity.text}' due to invalid token indices "
+                           f"(char {entity.start_idx}:{entity.end_idx})")
     return SpanGroup(doc, name="entities", spans=spans)
 
 
@@ -228,7 +255,14 @@ def main():
     # Visualize spans
     options = {
         "spans_key": "entities",
-        "colors": {"PER": "#ff9999", "LOC": "#99ff99", "DATE": "#9999ff"}
+        "colors": {
+            "person-other": "#ff9999",
+            "location-GPE": "#99ff99",
+            "date": "#9999ff",
+            "product-airplane": "#ffcc99",
+            "location-bodiesofwater": "#99ccff",
+            "event-attack/battle/war/militaryconflict": "#cc99ff"
+        }
     }
     displacy.render(doc, style="span", options=options, jupyter=False)
 

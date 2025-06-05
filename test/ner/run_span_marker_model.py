@@ -1,30 +1,16 @@
+from jet.logger import logger
+from transformers import AutoTokenizer
 import transformers
 import os
+from typing import List, Dict, Any
 from pydantic import BaseModel
 from span_marker import SpanMarkerModel
 from span_marker.tokenizer import SpanMarkerTokenizer
-from jet.logger import logger
+
+
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
-
 print("transformers:", transformers.__version__)
-
-# Download from the 🤗 Hub
-model = SpanMarkerModel.from_pretrained(
-    "tomaarsen/span-marker-mbert-base-multinerd"
-    # "tomaarsen/span-marker-roberta-large-ontonotes5"
-)
-tokenizer: SpanMarkerTokenizer = model.tokenizer
-# Resolves error in data collator trying to find missing pad_token_id
-tokenizer.pad_token_id = tokenizer.pad_token_type_id
-
-# Input text
-text = "Explore Exciting Opportunities at Vault Outsourcing: Your Gateway to Offshoring Excellence:\n\nAre you seeking a great career opportunity with exceptional benefits? Look no further! Vault Outsourcing is not just a company; it's a dynamic force offering a new and exciting career path.\nWe believe our people are our greatest asset and foster a family atmosphere that encourages excellence. Join us in redefining offshoring excellence, where your career is valued, and exciting opportunities await. Discover what we can offer - your gateway to a fulfilling career!\nENJOY THESE EXCITING BENEFITS WHEN YOU JOIN OUR AMAZING TEAM!\n\nYour equipment is on us! Laptop provided\n13th Month Pay\nHMO benefits for you and your dependents\nGroup Life Insurance\nMental Health Program - GET FREE CONSULTATION!\nEligibility to our Employee Referral Program FROM DAY 1. Get above-average Referral Bonus for every successful hire\nLeave credits available in your first month! Up to 20 leave credits per year.\nUnused Credits Convertible to Cash*\nAnnual performance review\nCompany events\nRewards and Recognition\nMonthly engagement activities\nJob Description:\n\nThe primary responsibilities of the software engineer are to design, develop, test and maintain software programs for computer operating systems or applications as well as confer with and assist team members and other developers on problems, improvements and modifications to system software and projects.\nResponsibilities:\n\nBuilding front end components as well as wrangling APIs in the back end and ensure the quality of delivery.\nConduct code reviews and keep up with industry best practices and new technologies, learning & implementing latest trends.\nContribute to the team culture and be part of the team.\nOwn certain features within the app and assist with guiding others around these features.\nEnsure responsiveness, collaboration and ensure proactivity in coming forward with answers and solutions to product managers & vendors.\nUnderstand what quality code looks like and should be able to advise other within the team on how to achieve this level of quality.\nGuide and mentor other engineers within the team and be available to answer questions or queries and provide constructive feedback in a respectful manner.\nQualifications:\n\nRobust industry experience in React, Redux and Typescript\nProficient in GraphQL\nExperienced with React Native\nExperience with deployment pipeline technologies like AWS, bitbucket\nUnit testing using tools such as enzyme, Cypress, Jest and Mocha\nExperience with software platform design, Full SDLC, SOLID principles, Design Patterns, unit testing, Security & Compliance\nExperience with CI/CD pipelines including GIT / Bitbucket code repositories and workflows\nWorked in an agile scrum, continuously shipping environment\nYou have a customer centric mindset and care about user experience\nYou're a conceptual, critical and analytical thinker, who has sound problem solving skills.\nHungry to learn new skills, share the knowledge with your team and expand your horizon.\nYou can communicate your ideas coherently, especially to those not technologically proficient.\nAn individual who is pro-active, has a strong sense of ownership, and is able to work autonomously.\nYou are comfortable having difficult conversations and providing constructive feedback in a respectful manner.\nWilling to work on a\nDayshift or Australian Schedule\n\nWilling to work On-Site\n\n\nCompetency Matrix:\n\nTechnical Skills:\n Proficient with monitoring tools and metrics within their team's domain. Systematically debugs issues within a single service. Applies a security lens to engineering work, actively seeking vulnerabilities in code and peer reviews.\nFeedback, Communication, Collaboration:\n Delivers both praise and constructive feedback effectively to team members, peers, managers, and business stakeholders. Communicates effectively, clearly, and concisely in both technical and non-technical subjects, considering the audience.\nDelivery:\n Assists teammates in overcoming obstacles, resolving blockers, and completing tasks. Effectively manages risk, change, and uncertainty within their personal scope of work.\nLeadership:\n Strives for objectivity and self-reflection on biases when making decisions. Mentors teammates in an open, respectful, flexible, and empathetic manner.\nStrategy Impact:\n Has a thorough understanding of their team's domain, and how it contributes to overall business strategy.\n\n## Employer questions\nYour application will include the following questions:\n* What's your expected monthly basic salary?\n* How many years' experience do you have as a Front End Engineer?\n* Do you have experience working within a scrum agile team?\n* Which of the following front end development libraries and frameworks are you proficient in?\n* Do you have experience with responsive / mobile first web development?\n* How many years' experience do you have as a Front End React Developer?\n* How many years' experience do you have as an API Developer?\n* How many years' experience do you have as a React Native Developer?"
-
-logger.info(text)
-logger.debug("Predicting...")
-# Predict entities
-entities = model.predict(text)
 
 
 class SpanMarkerWord(BaseModel):
@@ -32,34 +18,185 @@ class SpanMarkerWord(BaseModel):
     lemma: str
     start_idx: int
     end_idx: int
-    score: float  # Normalized score
+    score: float
 
     def __str__(self) -> str:
-        """Return a readable string representation of the word."""
         return self.text
 
 
-results = [
-    SpanMarkerWord(
-        text=entity['span'],
-        lemma=entity['label'],
-        score=entity['score'],
-        start_idx=entity['char_start_index'],
-        end_idx=entity['char_start_index'],
-    )
-    for entity in entities
-]
+def chunk_text(
+    text: str,
+    tokenizer: SpanMarkerTokenizer,
+    max_length: int = 512,
+    stride: int = 128
+) -> List[Dict[str, Any]]:
+    """
+    Split text into chunks with overlap, preserving character indices.
+
+    Args:
+        text: Input text to chunk.
+        tokenizer: SpanMarker tokenizer.
+        max_length: Maximum token length per chunk (including special tokens).
+        stride: Overlap size in tokens.
+
+    Returns:
+        List of dictionaries with chunk text and character offsets.
+    """
+    try:
+        # Use the SpanMarkerTokenizer directly, which supports encode_plus
+        tokens = tokenizer.encode_plus(
+            text,
+            return_offsets_mapping=True,
+            return_tensors=None,
+            add_special_tokens=True,
+            max_length=None,  # No truncation here, we handle it manually
+            return_attention_mask=False
+        )
+        input_ids = tokens["input_ids"]
+        offset_mapping = tokens["offset_mapping"]
+
+        chunks = []
+        for i in range(0, len(input_ids), max_length - stride):
+            start_idx = i
+            end_idx = min(i + max_length, len(input_ids))
+            chunk_input_ids = input_ids[start_idx:end_idx]
+            chunk_offsets = offset_mapping[start_idx:end_idx]
+
+            # Calculate character offsets for the chunk
+            char_start = chunk_offsets[0][0] if chunk_offsets else 0
+            char_end = chunk_offsets[-1][1] if chunk_offsets else len(text)
+
+            # Decode tokens back to text
+            chunk_text = tokenizer.decode(
+                chunk_input_ids, skip_special_tokens=True)
+
+            chunks.append({
+                "text": chunk_text,
+                "input_ids": chunk_input_ids,
+                "offset_mapping": chunk_offsets,
+                "char_start": char_start,
+                "char_end": char_end
+            })
+
+        return chunks
+    except Exception as e:
+        logger.error(f"Failed to chunk text: {e}")
+        raise
 
 
-logger.debug("Extracted Entities:")
-for result in results:
-    logger.newline()
-    logger.log("Text:", result.text, colors=["WHITE", "INFO"])
-    logger.log("Lemma:", result.lemma, colors=["WHITE", "SUCCESS"])
-    logger.log("Score:", f"{result.score:.4f}", colors=[
-               "WHITE", "SUCCESS"])
-    logger.log("Start:", f"{result.start_idx}", colors=[
-               "WHITE", "SUCCESS"])
-    logger.log("End:", f"{result.end_idx}",
-               colors=["WHITE", "SUCCESS"])
-    logger.log("---")
+def merge_entities(
+    entities: List[Dict[str, Any]],
+    chunks: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """
+    Merge entity predictions from chunks, resolving overlaps by highest score.
+
+    Args:
+        entities: List of entity predictions from all chunks.
+        chunks: List of chunk metadata.
+
+    Returns:
+        Deduplicated list of entities with adjusted character indices.
+    """
+    merged = []
+    seen_spans = {}
+
+    for chunk_idx, chunk_entities in enumerate(entities):
+        char_start_offset = chunks[chunk_idx]["char_start"]
+        for entity in chunk_entities:
+            # Adjust character indices to original text
+            adjusted_entity = {
+                "span": entity["span"],
+                "label": entity["label"],
+                "score": entity["score"],
+                "char_start_index": entity["char_start_index"] + char_start_offset,
+                "char_end_index": entity["char_end_index"] + char_start_offset
+            }
+            span_key = (adjusted_entity["char_start_index"],
+                        adjusted_entity["char_end_index"])
+
+            # Keep entity with higher score if span overlaps
+            if span_key not in seen_spans or adjusted_entity["score"] > seen_spans[span_key]["score"]:
+                seen_spans[span_key] = adjusted_entity
+
+    return list(seen_spans.values())
+
+
+def process_long_text(
+    text: str,
+    model: SpanMarkerModel,
+    tokenizer: SpanMarkerTokenizer,
+    max_length: int = 512,
+    stride: int = 128
+) -> List[SpanMarkerWord]:
+    """
+    Process long text with NER, handling token length limits.
+
+    Args:
+        text: Input text.
+        model: SpanMarker model for NER.
+        tokenizer: SpanMarker tokenizer.
+        max_length: Maximum token length per chunk.
+        stride: Overlap size in tokens.
+
+    Returns:
+        List of SpanMarkerWord objects with entity information.
+    """
+    logger.info("Chunking text...")
+    chunks = chunk_text(text, tokenizer, max_length, stride)
+    logger.debug(f"Created {len(chunks)} chunks")
+
+    all_entities = []
+    for i, chunk in enumerate(chunks):
+        logger.debug(f"Predicting entities for chunk {i+1}/{len(chunks)}...")
+        try:
+            chunk_entities = model.predict(chunk["text"])
+            all_entities.append(chunk_entities)
+        except Exception as e:
+            logger.error(f"Failed to predict entities for chunk {i+1}: {e}")
+            raise
+
+    logger.debug("Merging entities...")
+    merged_entities = merge_entities(all_entities, chunks)
+
+    results = [
+        SpanMarkerWord(
+            text=entity["span"],
+            lemma=entity["label"],
+            score=entity["score"],
+            start_idx=entity["char_start_index"],
+            end_idx=entity["char_end_index"]
+        )
+        for entity in merged_entities
+    ]
+
+    logger.debug("Extracted Entities:")
+    for result in results:
+        logger.info(f"Text: {result.text}")
+        logger.info(f"Lemma: {result.lemma}")
+        logger.info(f"Score: {result.score:.4f}")
+        logger.info(f"Start: {result.start_idx}")
+        logger.info(f"End: {result.end_idx}")
+        logger.info("---")
+
+    return results
+
+
+# Example usage
+if __name__ == "__main__":
+    try:
+        model = SpanMarkerModel.from_pretrained(
+            "tomaarsen/span-marker-bert-base-fewnerd-fine-super")
+        tokenizer = model.tokenizer
+
+        # Example long text
+        long_text = (
+            "Apple Inc. is an American multinational technology company headquartered in Cupertino, California. "
+            "It was founded by Steve Jobs, Steve Wozniak, and Ronald Wayne in April 1976. "
+            * 10  # Simulate long text by repeating
+        )
+
+        results = process_long_text(long_text, model, tokenizer)
+    except Exception as e:
+        logger.error(f"Error in main execution: {e}")
+        raise
