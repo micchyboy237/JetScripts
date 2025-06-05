@@ -1,5 +1,5 @@
 from tqdm import tqdm
-from jet.file.utils import save_file
+from jet.file.utils import load_file, save_file
 from jet.logger import logger
 from transformers import AutoTokenizer
 import transformers
@@ -128,8 +128,8 @@ def process_long_text(
     text: str,
     model: SpanMarkerModel,
     tokenizer: SpanMarkerTokenizer,
-    max_length: int = 512,
-    stride: int = 128
+    max_length: int = 256,
+    stride: int = 64
 ) -> List[SpanMarkerWord]:
     """
     Process long text with NER, handling token length limits.
@@ -192,11 +192,8 @@ if __name__ == "__main__":
         tokenizer = model.tokenizer
 
         # Example long text
-        long_text = (
-            "Apple Inc. is an American multinational technology company headquartered in Cupertino, California. "
-            "It was founded by Steve Jobs, Steve Wozniak, and Ronald Wayne in April 1976. "
-            * 10  # Simulate long text by repeating
-        )
+        data_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/context.md"
+        long_text = load_file(data_path)
 
         results = process_long_text(long_text, model, tokenizer)
 
