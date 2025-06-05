@@ -16,7 +16,7 @@ sample_texts = [
 if __name__ == '__main__':
     output_dir = os.path.join(os.path.dirname(
         __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-    grouped_texts = group_similar_texts(sample_texts, threshold=0.7)
+    grouped_texts = group_similar_texts(sample_texts, threshold=0.5)
 
     save_file({"count": len(grouped_texts), "results": grouped_texts},
               f"{output_dir}/grouped_texts.json")
