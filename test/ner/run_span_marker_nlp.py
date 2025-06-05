@@ -1,3 +1,5 @@
+from spacy.tokens import Doc
+from typing import Dict, List, Tuple
 import json
 import spacy
 from spacy import displacy
@@ -35,7 +37,7 @@ def real_world_usage_examples():
         "start_end_char": {"description": "Use start_char and end_char to highlight entities in the text.", "function": highlight_entities},
         "label_usage": {"description": "Use label_ to classify named entities for further action.", "function": classify_entities},
         "text_similarity": {"description": "Use similarity for clustering or matching entities.", "function": text_similarity},
-        "vector_similarity": {"description": "Use vector for clustering or matching entities.", "function": vector_norms},
+        "vector_similarity": {"description": "Use vector for clustering or matching entities.", "function": vector_similarity},
         "sentiment_analysis": {"description": "Use sentiment for context-aware actions.", "function": analyze_sentiment},
     }
 
@@ -70,12 +72,26 @@ def text_similarity(doc):
     return {text: f"{score:.4f}" for text, score in sorted_similarities}
 
 
-def vector_norms(doc):
+def vector_similarity(doc: Doc) -> Dict[str, str]:
     """
     Gets vector_norm scores from each document, sorted by score in descending order.
+
+    Args:
+        doc: spaCy Doc object containing entities with vector_norm attributes.
+
+    Returns:
+        Dictionary mapping entity text to formatted vector_norm score (4 decimal places).
     """
-    norms = [(entity.text, entity.vector_norm) for entity in doc.ents]
-    # Sort by vector norm in descending order
+    if not isinstance(doc, Doc):
+        raise TypeError("Input must be a spaCy Doc object")
+    if not doc.ents:
+        return {}
+
+    norms: List[Tuple[str, float]] = [
+        (entity.text, entity.vector_norm)
+        for entity in doc.ents
+        if hasattr(entity, "vector_norm") and entity.vector_norm is not None
+    ]
     sorted_norms = sorted(norms, key=lambda x: x[1], reverse=True)
     return {text: f"{score:.4f}" for text, score in sorted_norms}
 
