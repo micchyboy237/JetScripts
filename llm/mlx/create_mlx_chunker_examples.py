@@ -5,10 +5,10 @@ from typing import Generator, TypedDict
 from jet.code.markdown_code_extractor import MarkdownCodeExtractor
 from jet.file.utils import save_file
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.mlx_types import ModelKey
+from jet.llm.mlx.mlx_types import LLMModelKey
 from jet.logger import logger
 
-MODEL: ModelKey = "llama-3.2-3b-instruct-4bit"
+MODEL: LLMModelKey = "llama-3.2-3b-instruct-4bit"
 
 SYSTEM_PROMPT = """
 """

@@ -5,13 +5,13 @@ from typing import Dict, List, TypedDict, Optional
 from uuid import uuid4
 from jet.code.markdown_code_extractor import MarkdownCodeExtractor
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.mlx_types import Message, ModelKey
+from jet.llm.mlx.mlx_types import Message, LLMModelKey
 from jet.llm.mlx.utils.base import get_model_max_tokens
 from jet.logger import logger
 from jet.file.utils import load_file, save_file
 import time
 
-MODEL: ModelKey = "qwen3-8b-3bit"
+MODEL: LLMModelKey = "qwen3-8b-3bit"
 seed = 42
 mlx = MLX(MODEL, seed=seed)
 

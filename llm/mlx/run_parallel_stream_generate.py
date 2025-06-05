@@ -1,5 +1,5 @@
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.mlx_types import ModelKey
+from jet.llm.mlx.mlx_types import LLMModelKey
 import mlx.core as mx
 import numpy as np
 from mpi4py import MPI
@@ -33,7 +33,7 @@ end_idx = (rank + 1) * prompts_per_process if rank < size - 1 else len(prompts)
 local_prompts = prompts[start_idx:end_idx]
 
 # Load the model and tokenizer (each process loads its own instance)
-model_path: ModelKey = "llama-3.2-1b-instruct-4bit"
+model_path: LLMModelKey = "llama-3.2-1b-instruct-4bit"
 # model, tokenizer = load(model_path)
 mlx = MLX(model_path)
 

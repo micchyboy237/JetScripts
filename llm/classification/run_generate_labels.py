@@ -1,5 +1,5 @@
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.mlx_types import ModelKey
+from jet.llm.mlx.mlx_types import LLMModelKey
 from jet.llm.ollama.base import Ollama
 from jet.logger import logger
 from jet.transformers.formatters import format_json
@@ -13,7 +13,7 @@ Generate 1 to 3 short, high-level labels that best describe the main topics or i
 Return them as a comma-separated list.
 Labels:"""
 
-model: ModelKey = "llama-3.2-1b-instruct-4bit"
+model: LLMModelKey = "llama-3.2-1b-instruct-4bit"
 
 mlx = MLX(model)
 response_stream = mlx.stream_chat(prompt)

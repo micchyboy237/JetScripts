@@ -3,7 +3,7 @@ import re
 import shutil
 from typing import List, Optional, TypedDict
 from pathlib import Path
-from jet.llm.mlx.hf_model_info import download_mlx_model_readmes
+from jet.models.base import download_model_readmes
 from jet.logger import logger
 
 # MarkdownCodeExtractor and related definitions
@@ -201,10 +201,10 @@ def process_readme_files(input_dir: str, output_dir: str, include_text: bool = F
 
 
 def main():
-    overwrite = False
+    overwrite = True
     hf_readme_download_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/docs/hf_readmes"
     # Download MLX Model README.md files.
-    download_mlx_model_readmes(hf_readme_download_dir, overwrite)
+    download_model_readmes(hf_readme_download_dir, overwrite)
 
     # output_dir = os.path.join(os.path.dirname(__file__), "hf_extracted_code")
     output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/docs/hf_readmes/code"

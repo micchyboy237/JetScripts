@@ -1,7 +1,7 @@
 import json
 import os
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.mlx_types import ModelKey
+from jet.llm.mlx.mlx_types import LLMModelKey
 from jet.logger import CustomLogger
 from jet.transformers.formatters import format_json
 
@@ -12,7 +12,7 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.orange(f"Logs: {log_file}")
 
 
-model: ModelKey = "llama-3.2-1b-instruct-4bit"
+model: LLMModelKey = "llama-3.2-1b-instruct-4bit"
 
 MLX_LOG_DIR = f"{script_dir}/generated/run_mlx_examples"
 

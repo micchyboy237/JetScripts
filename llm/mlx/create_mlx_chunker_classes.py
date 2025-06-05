@@ -8,13 +8,13 @@ from jet.code.utils import ProcessedResult, preprocess_notebooks_to_markdowns
 from jet.features.rag_llm_generation import SimilarityResult, rerank_llm, rewrite_query
 from jet.file.utils import load_file, save_file
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.mlx_types import ModelKey
+from jet.llm.mlx.mlx_types import LLMModelKey
 from jet.llm.mlx.token_utils import chunk_text, get_tokenizer_fn, merge_texts
 from jet.llm.mlx.utils.base import get_model_max_tokens
 from jet.logger import logger
 from jet.scrapers.utils import MergedTextsResult, merge_texts_by_hierarchy
 
-MODEL: ModelKey = "llama-3.2-3b-instruct-4bit"
+MODEL: LLMModelKey = "llama-3.2-3b-instruct-4bit"
 
 SYSTEM_PROMPT = """
 You are a code generation assistant. Given relevant chunking logic in context, generate a Python class named Chunker. Focus on clean, efficient, and well-documented code. Output only the python code block (```python) without any other additional text.
