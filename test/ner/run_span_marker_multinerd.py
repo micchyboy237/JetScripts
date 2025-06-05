@@ -1,67 +1,13 @@
 from jet.file.utils import save_file
+from jet.logger import logger
 from spacy.tokens import SpanGroup
 from dataclasses import dataclass
-from spacy.tokens import Doc
-import json
-from jet.logger import logger
+from spacy.tokens import Doc, Span
 import spacy
 from spacy import displacy
 from span_marker import SpanMarkerModel
 from typing import Dict, List, Optional
 import os
-
-
-def process_text(text: str, nlp: spacy.language.Language) -> Doc:
-    """Process text with spaCy pipeline."""
-    return nlp(text)
-
-
-def log_entities(doc: Doc) -> None:
-    """Log named entities with relevant details."""
-    logger.newline()
-    logger.debug(f"Extracted Entities ({len(doc.ents)}):")
-    for entity in doc.ents:
-        logger.newline()
-        logger.log("Text:", entity.text, colors=["WHITE", "INFO"])
-        logger.log("Label:", entity.label_, colors=["WHITE", "INFO"])
-        logger.log("Start:", f"{entity.start_char}",
-                   colors=["WHITE", "SUCCESS"])
-        logger.log("End:", f"{entity.end_char}", colors=["WHITE", "SUCCESS"])
-        score = getattr(entity, "score", "No score")
-        logger.log("Score:", f"{score}", colors=["WHITE", "SUCCESS"])
-        logger.log("Vector Norm:", f"{entity.vector_norm if entity.has_vector else 'No vector'}",
-                   colors=["WHITE", "INFO"])
-        logger.log("---")
-
-
-def log_noun_chunks(doc: Doc) -> None:
-    """Log noun chunks with relevant details."""
-    logger.newline()
-    logger.debug(f"Extracted Noun Chunks ({len(list(doc.noun_chunks))}):")
-    for chunk in doc.noun_chunks:
-        logger.newline()
-        logger.log("Text:", chunk.text, colors=["WHITE", "INFO"])
-        logger.log("Root Text:", chunk.root.text, colors=["WHITE", "INFO"])
-        logger.log("Root Dependency:", chunk.root.dep_,
-                   colors=["WHITE", "SUCCESS"])
-        logger.log("Root Head Text:", chunk.root.head.text,
-                   colors=["WHITE", "SUCCESS"])
-        logger.log("---")
-
-
-def log_sentences(doc: Doc) -> None:
-    """Log sentences with relevant details."""
-    logger.newline()
-    logger.debug(f"Extracted Sentences ({len(list(doc.sents))}):")
-    for i, sent in enumerate(doc.sents, 1):
-        logger.newline()
-        logger.log(f"Sentence {i}:", sent.text, colors=["WHITE", "INFO"])
-        logger.log("Start Char:", f"{sent.start_char}", colors=[
-                   "WHITE", "SUCCESS"])
-        logger.log("End Char:", f"{sent.end_char}",
-                   colors=["WHITE", "SUCCESS"])
-        logger.log("Token Count:", f"{len(sent)}", colors=["WHITE", "SUCCESS"])
-        logger.log("---")
 
 
 @dataclass
@@ -96,19 +42,73 @@ class DocSettings:
     direction: str
 
 
-def parse_entities(doc: Doc) -> List[DocEntity]:
-    """Parse a spaCy Doc into a list of DocEntity objects containing entity details."""
+def process_text(text: str, nlp: spacy.language.Language, model: SpanMarkerModel) -> tuple[Doc, List[Dict]]:
+    """Process text with spaCy pipeline and SpanMarker model."""
+    doc = nlp(text)
+    predictions = model.predict(text)
+    return doc, predictions
+
+
+def log_entities(predictions: List[Dict]) -> None:
+    """Log named entities with relevant details."""
+    logger.newline()
+    logger.debug(f"Extracted Entities ({len(predictions)}):")
+    for entity in predictions:
+        logger.newline()
+        logger.log("Text:", entity["span"], colors=["WHITE", "INFO"])
+        logger.log("Label:", entity["label"], colors=["WHITE", "INFO"])
+        logger.log("Start:", f"{entity['char_start_index']}", colors=[
+                   "WHITE", "SUCCESS"])
+        logger.log("End:", f"{entity['char_end_index']}", colors=[
+                   "WHITE", "SUCCESS"])
+        logger.log("Score:", f"{entity['score']:.4f}", colors=[
+                   "WHITE", "SUCCESS"])
+        logger.log("---")
+
+
+def log_noun_chunks(doc: Doc) -> None:
+    """Log noun chunks with relevant details."""
+    logger.newline()
+    logger.debug(f"Extracted Noun Chunks ({len(list(doc.noun_chunks))}):")
+    for chunk in doc.noun_chunks:
+        logger.newline()
+        logger.log("Text:", chunk.text, colors=["WHITE", "INFO"])
+        logger.log("Root Text:", chunk.root.text, colors=["WHITE", "INFO"])
+        logger.log("Root Dependency:", chunk.root.dep_,
+                   colors=["WHITE", "SUCCESS"])
+        logger.log("Root Head Text:", chunk.root.head.text,
+                   colors=["WHITE", "SUCCESS"])
+        logger.log("---")
+
+
+def log_sentences(doc: Doc) -> None:
+    """Log sentences with relevant details."""
+    logger.newline()
+    logger.debug(f"Extracted Sentences ({len(list(doc.sents))}):")
+    for i, sent in enumerate(doc.sents, 1):
+        logger.newline()
+        logger.log(f"Sentence {i}:", sent.text, colors=["WHITE", "INFO"])
+        logger.log("Start Char:", f"{sent.start_char}", colors=[
+                   "WHITE", "SUCCESS"])
+        logger.log("End Char:", f"{sent.end_char}",
+                   colors=["WHITE", "SUCCESS"])
+        logger.log("Token Count:", f"{len(sent)}", colors=["WHITE", "SUCCESS"])
+        logger.log("---")
+
+
+def parse_entities(doc: Doc, predictions: List[Dict]) -> List[DocEntity]:
+    """Parse SpanMarker predictions into a list of DocEntity objects."""
     return [
         DocEntity(
-            text=entity.text,
-            label=entity.label_,
-            start_char=entity.start_char,
-            end_char=entity.end_char,
-            score=str(getattr(entity, "score", "No score")),
-            vector_norm=str(
-                entity.vector_norm if entity.has_vector else "No vector")
+            text=entity["span"],
+            label=entity["label"],
+            start_char=entity["char_start_index"],
+            end_char=entity["char_end_index"],
+            score=f"{entity['score']:.4f}",
+            vector_norm=str(doc[entity["char_start_index"]: entity["char_end_index"]].vector_norm
+                            if doc[entity["char_start_index"]: entity["char_end_index"]].has_vector else "No vector")
         )
-        for entity in doc.ents
+        for entity in predictions
     ]
 
 
@@ -146,17 +146,49 @@ def parse_settings(doc: Doc) -> DocSettings:
     )
 
 
+def char_to_token_index(doc: Doc, char_start: int, char_end: int) -> tuple[Optional[int], Optional[int]]:
+    """Convert character indices to token indices in a spaCy Doc."""
+    start_token = None
+    end_token = None
+    for token in doc:
+        if token.idx <= char_start < token.idx + len(token.text):
+            start_token = token.i
+        if token.idx < char_end <= token.idx + len(token.text):
+            end_token = token.i + 1
+            break
+    return start_token, end_token
+
+
+def create_span_group(doc: Doc, predictions: List[Dict]) -> SpanGroup:
+    """Create a SpanGroup from SpanMarker predictions for visualization."""
+    spans = []
+    for entity in predictions:
+        start_token, end_token = char_to_token_index(
+            doc, entity["char_start_index"], entity["char_end_index"])
+        if start_token is not None and end_token is not None and start_token < len(doc) and end_token <= len(doc):
+            try:
+                span = Span(
+                    doc,
+                    start_token,
+                    end_token,
+                    label=entity["label"],
+                    kb_id=f"score:{entity['score']:.4f}"
+                )
+                spans.append(span)
+            except IndexError as e:
+                logger.error(f"Error creating span for entity '{entity['span']}' "
+                             f"(char {entity['char_start_index']}:{entity['char_end_index']}): {e}")
+        else:
+            logger.warning(f"Skipping entity '{entity['span']}' due to invalid token indices "
+                           f"(char {entity['char_start_index']}:{entity['char_end_index']})")
+    return SpanGroup(doc, name="entities", spans=spans)
+
+
 def main():
     # Load spaCy model
     nlp = spacy.load("en_core_web_sm")
-
-    # Add SpanMarker without spans_key (it defaults to "sc")
-    nlp.add_pipe("span_marker", config={
-        "model": "tomaarsen/span-marker-mbert-base-multinerd",
-        "batch_size": 4,
-        "device": "mps",
-        "overwrite_entities": False
-    }, last=True)
+    model = SpanMarkerModel.from_pretrained(
+        "tomaarsen/span-marker-mbert-base-multinerd").to("mps")
 
     # Input text
     text = """Cleopatra VII, also known as Cleopatra the Great, was the last active ruler of the 
@@ -164,38 +196,34 @@ def main():
     death in 30 BCE."""
 
     # Process text
-    doc = process_text(text, nlp)
+    doc, predictions = process_text(text, nlp, model)
 
     # Log entities, noun chunks, and sentences
-    log_entities(doc)
+    log_entities(predictions)
     log_noun_chunks(doc)
     log_sentences(doc)
 
-    # Check available span keys
-    print("Available span keys:", doc.spans.keys())
-
-    # If no spans in "sc", copy entities to spans for visualization
-    if "sc" not in doc.spans:
-        doc.spans["sc"] = SpanGroup(doc, spans=[ent for ent in doc.ents])
+    # Create span group for visualization
+    doc.spans["entities"] = create_span_group(doc, predictions)
 
     # Parse and save data
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(
             os.path.basename(__file__))[0]
     )
-    save_file([e.__dict__ for e in parse_entities(doc)],
-              f"{output_dir}/entities.json")
+    save_file([e.__dict__ for e in parse_entities(
+        doc, predictions)], f"{output_dir}/entities.json")
     save_file([d.__dict__ for d in parse_dependencies(doc)],
               f"{output_dir}/dependencies.json")
     save_file([s.__dict__ for s in parse_sentences(doc)],
               f"{output_dir}/sentences.json")
     save_file(parse_settings(doc).__dict__, f"{output_dir}/settings.json")
     save_file(displacy.parse_spans(doc, options={
-              "spans_key": "sc"}), f"{output_dir}/spans.json")
+              "spans_key": "entities"}), f"{output_dir}/spans.json")
 
     # Visualize spans
     options = {
-        "spans_key": "sc",
+        "spans_key": "entities",
         "colors": {"PER": "#ff9999", "LOC": "#99ff99", "DATE": "#9999ff"}
     }
     displacy.render(doc, style="span", options=options, jupyter=False)
