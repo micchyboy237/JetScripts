@@ -92,7 +92,7 @@ def process_long_text(
             logger.info(f"End: {result.end_idx}")
             logger.info("---")
 
-        return results
+        return chunk_texts, results
     except Exception as e:
         logger.error(f"Error in processing text: {e}")
         raise
@@ -102,9 +102,10 @@ if __name__ == "__main__":
     try:
         data_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/context.md"
         long_text = load_file(data_path)
-        results = process_long_text(long_text)
+        chunk_texts, results = process_long_text(long_text)
         output_dir = os.path.join(os.path.dirname(
             __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+        save_file(chunk_texts, f"{output_dir}/chunks.json")
         save_file(results, f"{output_dir}/results.json")
     except Exception as e:
         logger.error(f"Error in main execution: {e}")
