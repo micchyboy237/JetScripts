@@ -1,3 +1,5 @@
+from tqdm import tqdm
+from jet.file.utils import save_file
 from jet.logger import logger
 from transformers import AutoTokenizer
 import transformers
@@ -147,7 +149,7 @@ def process_long_text(
     logger.debug(f"Created {len(chunks)} chunks")
 
     all_entities = []
-    for i, chunk in enumerate(chunks):
+    for i, chunk in enumerate(tqdm(chunks, desc="Processing chunks")):
         logger.debug(f"Predicting entities for chunk {i+1}/{len(chunks)}...")
         try:
             chunk_entities = model.predict(chunk["text"])
@@ -197,6 +199,10 @@ if __name__ == "__main__":
         )
 
         results = process_long_text(long_text, model, tokenizer)
+
+        output_dir = os.path.join(os.path.dirname(
+            __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+        save_file(results, f"{output_dir}/results.json")
     except Exception as e:
         logger.error(f"Error in main execution: {e}")
         raise
