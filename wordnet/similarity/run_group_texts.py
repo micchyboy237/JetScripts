@@ -10,7 +10,8 @@ sample_texts = [
     "It's a sunny and beautiful day.",
     "I enjoy coding in Python.",
     "Machine learning is fascinating.",
-    "Artificial Intelligence is evolving rapidly."
+    "Artificial Intelligence is evolving rapidly.",
+    "Watch 2025 isekai anime on Netflix."
 ]
 if __name__ == '__main__':
     output_dir = os.path.join(os.path.dirname(
