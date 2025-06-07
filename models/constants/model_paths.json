@@ -1,6 +1,7 @@
 [
   "BAAI/bge-large-en-v1.5",
   "EleutherAI/pythia-70m",
+  "Snowflake/snowflake-arctic-embed-m",
   "Snowflake/snowflake-arctic-embed-m-long",
   "Snowflake/snowflake-arctic-embed-s",
   "Systran/faster-whisper-small",
@@ -42,6 +43,7 @@
   "mlx-community/Qwen3-4B-3bit",
   "mlx-community/Qwen3-4B-4bit-DWQ",
   "mlx-community/Qwen3-8B-4bit-DWQ",
+  "mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ",
   "mlx-community/all-MiniLM-L6-v2-4bit",
   "mlx-community/all-MiniLM-L6-v2-6bit",
   "mlx-community/all-MiniLM-L6-v2-8bit",
