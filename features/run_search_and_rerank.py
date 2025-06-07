@@ -26,7 +26,7 @@ from jet.llm.mlx.token_utils import count_tokens, get_tokenizer_fn
 from jet.scrapers.browser.playwright_utils import scrape_multiple_urls
 from jet.scrapers.preprocessor import html_to_markdown
 from jet.scrapers.utils import scrape_links, scrape_published_date, search_data
-from jet.llm.utils.search_docs import search_docs
+from jet.llm.utils.search_docs import SimilarityResult, search_docs
 from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_relevance
 from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
 from jet.wordnet.words import count_words
@@ -235,6 +235,20 @@ def process_documents(
     return all_docs
 
 
+def map_search_results_to_docs(search_results: List[SimilarityResult], docs: List[HeaderDocument]) -> List[HeaderDocument]:
+    """Map search results back to original documents.
+
+    Args:
+        search_results: List of search results with document IDs
+        docs: Original list of documents to map back to
+
+    Returns:
+        List of documents that matched the search results
+    """
+    result_ids = {result["id"] for result in search_results}
+    return [doc for doc in docs if doc.id_ in result_ids]
+
+
 def search_and_group_documents(
     query: str,
     all_docs: List[HeaderDocument],
@@ -259,19 +273,36 @@ def search_and_group_documents(
     ]
     logger.debug(
         f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1)")
+
+    # Search through parent headers
     parent_headers_search_doc_results = search_docs(
         query=query,
         documents=parent_headers,
         ids=[doc.id_ for doc in docs_to_search],
         model=embed_model,
-        top_k=None,
+        top_k=40,
     )
+    mapped_parent_headers_search_docs = map_search_results_to_docs(
+        parent_headers_search_doc_results, docs_to_search)
+
+    # Search through headers
     headers_search_doc_results = search_docs(
         query=query,
         documents=headers,
-        ids=[doc.id_ for doc in docs_to_search],
+        ids=[doc.id_ for doc in mapped_parent_headers_search_docs],
         model=embed_model,
-        top_k=None,
+        top_k=20,
+    )
+    mapped_headers_search_docs = map_search_results_to_docs(
+        headers_search_doc_results, mapped_parent_headers_search_docs)
+
+    # Final search through document contents
+    search_doc_results = search_docs(
+        query=query,
+        documents=[doc.text for doc in mapped_headers_search_docs],
+        ids=[doc.id_ for doc in mapped_headers_search_docs],
+        model=embed_model,
+        top_k=10,
     )
 
     save_file(
@@ -282,8 +313,7 @@ def search_and_group_documents(
     logger.info(
         f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
 
-    search_result_dict = {result["id"]
-        : result for result in search_doc_results}
+    search_result_dict = {result["id"]: result for result in search_doc_results}
     sorted_doc_results = []
     for doc in all_docs:
         if doc.metadata["header_level"] != 1 and count_words(doc.text) >= 10:

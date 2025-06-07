@@ -160,6 +160,22 @@ deps_tree() {
 }
 
 freeze() {
+    # Usage examples:
+    # 1. Run with default settings (uses .venv/bin/python and outputs to requirements-frozen.txt):
+    #    freeze
+    # 2. Specify a custom Python path:
+    #    freeze -f /usr/bin/python3
+    # 3. Specify a custom output file:
+    #    freeze -o requirements.txt
+    # 4. Specify both custom Python path and output file:
+    #    freeze -f /usr/bin/python3 -o custom-requirements.txt
+    # 5. Invalid option (will print error):
+    #    freeze -x (returns "Unknown option: -x")
+    # 6. Non-executable Python path (falls back to default_python):
+    #    freeze -f /invalid/path/python
+    # 7. Non-executable default Python path (returns error):
+    #    freeze -f /invalid/path/python (if default_python is also invalid)
+
     local python_path=".venv/bin/python"
     local output_path="requirements-frozen.txt"
     local default_python="$HOME/.pyenv/shims/python"
