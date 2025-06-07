@@ -1,104 +1,88 @@
-import os
 import numpy as np
 from llama_cpp import Llama
+from sklearn.preprocessing import normalize
 
 
-def initialize_llama_model(model_path):
-    """Initialize the Llama model with optimized settings for Mac M1."""
-    return Llama(
-        model_path=model_path,
-        n_gpu_layers=99,  # Offload all possible layers to Metal GPU
-        flash_attn=True,  # Enable Flash Attention for faster computation
-        n_ctx=2048,       # Increase context size for flexibility
-        n_batch=512,      # Batch size for efficient processing
-        n_threads=4,      # Use 4 threads for M1’s 4 performance cores
-        use_mmap=True,    # Memory mapping for efficient model loading
-        use_mlock=False,  # Disable memory locking to avoid overhead
-        offload_kqv=True,  # Offload key-value cache to GPU
-        embedding=True,   # Enable embedding mode for embed method
-        verbose=True      # Enable logging for debugging
-    )
+def last_token_pool(embeddings):
+    """Ensure embeddings are returned as-is (already fixed-size)."""
+    embeddings = np.array(embeddings)
+    return embeddings  # Expect 2D array (batch_size, embedding_dim)
 
 
-def generate_embeddings(llama, texts, normalize=True):
-    """
-    Generate embeddings for a list of texts using Llama's embed method.
-    Applies mean pooling if per-token embeddings are returned.
+def get_detailed_instruct(task_description: str, query: str) -> str:
+    """Format query with task instruction."""
+    return f'Instruct: {task_description}\nQuery: {query}'
 
-    Args:
-        llama: Initialized Llama model instance
-        texts: List of strings or single string to embed
-        normalize: Whether to normalize the embeddings
 
-    Returns:
-        NumPy array of embeddings, total token count
-    """
-    if isinstance(texts, str):
-        texts = [texts]
-
+def encode_with_padding(model, texts, max_length=512):
+    """Encode texts with padding and return fixed-size embeddings."""
     embeddings = []
-    total_tokens = 0
-    expected_dim = llama.n_embd()  # Expected embedding dimension
-
     for text in texts:
-        if not text.strip():  # Handle empty strings
-            embeddings.append(np.zeros(expected_dim, dtype=np.float32))
-            continue
-        # Use Llama's embed method
-        embedding, token_count = llama.embed(
-            input=text,
-            normalize=normalize,
-            truncate=True,
-            return_count=True
-        )
-        # Convert to NumPy array and apply mean pooling if needed
-        embedding = np.array(embedding, dtype=np.float32)
-        if embedding.ndim == 2:  # Per-token embeddings [seq_len, emb_dim]
-            embedding = np.mean(embedding, axis=0)  # Mean pool to [emb_dim]
-
-        # Verify embedding shape
-        if embedding.shape != (expected_dim,):
-            raise ValueError(
-                f"Embedding for text '{text}' has shape {embedding.shape}, "
-                f"expected ({expected_dim},)"
-            )
+        # Tokenize and pad/truncate to max_length
+        tokens = model.tokenize(text.encode('utf-8'), add_bos=True)
+        if len(tokens) > max_length:
+            tokens = tokens[:max_length]
+        else:
+            tokens = tokens + [0] * (max_length - len(tokens))  # Pad with 0
+        # Generate embedding and select last token's embedding
+        embedding = model.embed(text)
+        embedding = np.array(embedding)
+        # Ensure fixed-size embedding (last token if multi-dimensional)
+        if len(embedding.shape) > 1:
+            embedding = embedding[-1]
         embeddings.append(embedding)
-        total_tokens += token_count
-
-    return np.array(embeddings), total_tokens
-
-
-def main():
-    # Set model path
-    model_path = "/Users/jethroestrada/Downloads/Qwen3-Embedding-0.6B-f16.gguf"
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Model file not found at {model_path}")
-
-    # Initialize Llama model with optimized settings
-    llama = initialize_llama_model(model_path)
-
-    # Example texts for embedding
-    texts = [
-        "Hello, world!",
-        "This is a test sentence.",
-        "Qwen model embedding generation."
-    ]
-
-    # Generate embeddings
-    try:
-        embeddings, total_tokens = generate_embeddings(llama, texts)
-
-        # Print results
-        print(f"Total tokens used: {total_tokens}")
-        for text, emb in zip(texts, embeddings):
-            print(f"Text: {text}")
-            print(f"Embedding shape: {emb.shape}")
-            print(f"Embedding (first 5 values): {emb[:5]}\n")
-
-    finally:
-        # Clean up
-        llama.close()
+    # Verify shapes before returning
+    shapes = [e.shape for e in embeddings]
+    if len(set(shapes)) > 1:
+        raise ValueError(f"Inconsistent embedding shapes: {shapes}")
+    return embeddings
 
 
-if __name__ == "__main__":
-    main()
+# Load the GGUF model
+model_path = "/Users/jethroestrada/Downloads/Qwen3-Embedding-0.6B-f16.gguf"
+model = Llama(
+    model_path=model_path,
+    embedding=True,
+    n_ctx=2048,       # Balance capacity and memory
+    n_threads=4,      # Suitable for Mac M1
+    n_gpu_layers=0,   # CPU-only due to unsupported bf16 kernels
+    verbose=False     # Reduce logging
+)
+
+# Task description
+task = 'Given a web search query, retrieve relevant passages that answer the query'
+
+# Example with one query and multiple documents
+queries = [
+    get_detailed_instruct(task, 'What is the capital of China?'),
+    get_detailed_instruct(task, 'Explain gravity')
+]
+documents = [
+    "The capital of China is Beijing.",
+    "China is a country in East Asia with a rich history.",
+    "Gravity is a force that attracts two bodies towards each other. It gives weight to physical objects and is responsible for the movement of planets around the sun."
+]
+
+try:
+    # Encode queries and documents
+    query_embeddings = encode_with_padding(model, queries, max_length=512)
+    document_embeddings = encode_with_padding(model, documents, max_length=512)
+
+    # Apply last-token pooling (no-op as embeddings are fixed-size)
+    query_embeddings = last_token_pool(query_embeddings)
+    document_embeddings = last_token_pool(document_embeddings)
+
+    # Normalize embeddings
+    query_embeddings = normalize(query_embeddings, norm='l2', axis=1)
+    document_embeddings = normalize(document_embeddings, norm='l2', axis=1)
+
+    # Compute similarity scores (queries vs documents)
+    scores = query_embeddings @ document_embeddings.T
+    print("Similarity matrix:")
+    print(scores.tolist())
+
+except Exception as e:
+    print(f"Error during embedding or similarity computation: {str(e)}")
+finally:
+    # Clean up model resources
+    model.close()
