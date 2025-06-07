@@ -1,6 +1,7 @@
 import numpy as np
 from llama_cpp import Llama
 from sklearn.preprocessing import normalize
+from tqdm import tqdm
 
 
 def last_token_pool(embeddings):
@@ -17,7 +18,8 @@ def get_detailed_instruct(task_description: str, query: str) -> str:
 def encode_with_padding(model, texts, max_length=512):
     """Encode texts with padding and return fixed-size embeddings."""
     embeddings = []
-    for text in texts:
+    texts_list = tqdm(texts, desc="Encoding") if len(texts) > 1 else texts
+    for text in texts_list:
         # Tokenize and pad/truncate to max_length
         tokens = model.tokenize(text.encode('utf-8'), add_bos=True)
         if len(tokens) > max_length:

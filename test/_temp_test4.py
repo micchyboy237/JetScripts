@@ -1,3 +1,4 @@
+from tqdm import tqdm
 from jet.file.utils import load_file, save_file
 import os
 import numpy as np
@@ -19,7 +20,8 @@ def get_detailed_instruct(task_description: str, query: str) -> str:
 def encode_with_padding(model, texts, max_length=512):
     """Encode texts with padding and return fixed-size embeddings."""
     embeddings = []
-    for text in texts:
+    texts_list = tqdm(texts, desc="Encoding") if len(texts) > 1 else texts
+    for text in texts_list:
         # Tokenize and pad/truncate to max_length
         tokens = model.tokenize(text.encode('utf-8'), add_bos=True)
         if len(tokens) > max_length:
@@ -75,7 +77,7 @@ documents = [
     "\n".join([
         doc["metadata"].get("parent_header") or "",
         doc["metadata"]["header"],
-        # doc["metadata"]["content"]
+        doc["metadata"]["content"]
     ]).strip()
     for doc in docs
 ]
@@ -86,7 +88,7 @@ queries = [
     get_detailed_instruct(task, query),
     # get_detailed_instruct(task, 'Explain gravity')
 ]
-documents = documents[:10]
+documents = documents[:20]
 
 try:
     # Encode queries and documents

@@ -1,12 +1,14 @@
 import numpy as np
 from llama_cpp import Llama
 from sklearn.metrics.pairwise import cosine_similarity
+from tqdm import tqdm
 
 
 def encode_with_padding(model, texts, max_length=512, prompt=None):
     """Encode texts with padding and return fixed-size embeddings."""
     embeddings = []
-    for text in texts:
+    texts_list = tqdm(texts, desc="Encoding") if len(texts) > 1 else texts
+    for text in texts_list:
         if prompt:
             text = prompt.format(text)
         # Tokenize and pad/truncate to max_length
@@ -42,7 +44,8 @@ queries = [
 ]
 documents = [
     "The capital of China is Beijing.",
-    "Gravity is a force that attracts two bodies towards each other. It gives weight to physical objects and is responsible for the movement of planets around the sun.",
+    "China is a country in East Asia with a rich history.",
+    "Gravity is a force that attracts two bodies towards each other. It gives weight to physical objects and is responsible for the movement of planets around the sun."
 ]
 
 try:
