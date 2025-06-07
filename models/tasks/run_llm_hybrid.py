@@ -13,8 +13,7 @@ if __name__ == "__main__":
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     docs = load_file(docs_file)
-    # query = "List all ongoing and upcoming isekai anime 2025."
-    query = "List anime named Zenryoku Usagi (2025)."
+    query = "List all ongoing and upcoming isekai anime 2025."
     task = 'Given a web search query, retrieve relevant passages that answer the query'
 
     queries = [
@@ -43,8 +42,8 @@ if __name__ == "__main__":
 
     try:
         # Initial search
-        search_start_time = time.time()
         print("Starting search docs...")
+        search_start_time = time.time()
         search_results = search_docs(model, queries, documents, task)
         for query_idx, query_results in enumerate(search_results):
             print(f"\nQuery: {queries[query_idx]} (Search Results)")
@@ -54,8 +53,8 @@ if __name__ == "__main__":
         search_execution_time = time.time() - search_start_time
 
         # Rerank results
-        rerank_start_time = time.time()
         print("Starting rerank docs...")
+        rerank_start_time = time.time()
         rerank_results = rerank_docs(model, queries, search_results)
         for query_idx, query_results in enumerate(rerank_results):
             print(f"\nQuery: {queries[query_idx]} (Reranked Results)")

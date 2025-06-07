@@ -14,8 +14,7 @@ if __name__ == "__main__":
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     docs = load_file(docs_file)
-    # query = "List all ongoing and upcoming isekai anime 2025."
-    query = "List anime named Zenryoku Usagi (2025)."
+    query = "List all ongoing and upcoming isekai anime 2025."
     task = 'Given a web search query, retrieve relevant passages that answer the query'
 
     queries = [
@@ -43,8 +42,8 @@ if __name__ == "__main__":
     )
 
     try:
-        start_time = time.time()
         print("Starting search docs...")
+        start_time = time.time()
         results = search_docs(model, queries, documents, task)
         execution_time = time.time() - start_time
         print(f"Completed search_docs in {execution_time:.2f}s")
