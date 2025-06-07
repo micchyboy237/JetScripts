@@ -27,6 +27,8 @@ def encode_with_padding(model: Llama, texts: List[str], max_length: int = 512, b
     """
     Encode texts with padding and return fixed-size embeddings in batches.
 
+    Skips batching when there's only one input.
+
     Args:
         model: Llama model instance.
         texts: List of texts to encode.
@@ -36,6 +38,19 @@ def encode_with_padding(model: Llama, texts: List[str], max_length: int = 512, b
     Returns:
         np.ndarray: Array of embeddings with shape (len(texts), embedding_dim).
     """
+    if len(texts) == 1:
+        logger.info("Single input detected. Skipping batch processing.")
+        try:
+            embedding = model.embed(texts[0])
+            embedding = np.array(embedding)
+            if len(embedding.shape) > 1:
+                embedding = embedding[-1]
+        except Exception as e:
+            logger.error(f"Error embedding single input: {str(e)}")
+            embedding = np.zeros(512, dtype=np.float32)  # fallback
+
+        return np.expand_dims(embedding, axis=0)
+
     def tokenize_text(text: str) -> List[int]:
         tokens = model.tokenize(text.encode('utf-8'), add_bos=True)
         if len(tokens) > max_length:
