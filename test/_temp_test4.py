@@ -157,12 +157,14 @@ queries = [
     get_detailed_instruct(task, query),
     # get_detailed_instruct(task, 'Explain gravity')
 ]
-documents = documents[:20]
+documents = documents[:100]
 
 try:
     # Encode queries and documents
-    query_embeddings = encode_with_padding(model, queries, max_length=512)
-    document_embeddings = encode_with_padding(model, documents, max_length=512)
+    query_embeddings = encode_with_padding(
+        model, queries, max_length=256, batch_size=16)
+    document_embeddings = encode_with_padding(
+        model, documents, max_length=256, batch_size=16)
 
     # Apply last-token pooling (no-op as embeddings are fixed-size)
     query_embeddings = last_token_pool(query_embeddings)
