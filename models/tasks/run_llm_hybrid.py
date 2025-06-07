@@ -51,6 +51,12 @@ if __name__ == "__main__":
                 print(
                     f"Rank: {res['rank']}, Score: {res['score']:.4f}, Text: {res['text']}")
         search_execution_time = time.time() - search_start_time
+        save_file({
+            "execution_time": f"{search_execution_time:.2f}s",
+            "query": query,
+            "count": len(search_results),
+            "results": search_results
+        }, f"{output_dir}/search_results.json")
 
         # Rerank results
         print("Starting rerank docs...")
