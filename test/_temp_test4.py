@@ -1,6 +1,7 @@
 import logging
 import time
-from typing import List
+from typing import List, TypedDict
+import uuid
 import numpy as np
 import mlx.core as mx
 from tqdm import tqdm
@@ -13,6 +14,26 @@ from jet.utils.commands import copy_to_clipboard
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+class SimilarityResult(TypedDict):
+    """
+    Represents a single similarity result for a text.
+
+    Fields:
+        id: Identifier for the text (UUID if not provided).
+        rank: Rank based on score (1 for highest).
+        doc_index: Original index of the text in the input list.
+        score: Normalized similarity score.
+        text: The compared text (or chunk if long).
+        tokens: Number of tokens from text.
+    """
+    id: str
+    rank: int
+    doc_index: int
+    score: float
+    text: str
+    tokens: int
 
 
 def get_detailed_instruct(task_description: str, query: str) -> str:
@@ -56,20 +77,20 @@ def compute_similarity_scores(
     return scores.tolist()
 
 
-# Load the GGUF model (unchanged)
-model_path = "/Users/jethroestrada/Downloads/Qwen3-Embedding-0.6B-f16.gguf"
-model = Llama(
-    model_path=model_path,
-    embedding=True,
-    n_ctx=512,
-    n_threads=4,
-    n_threads_batch=4,
-    n_gpu_layers=0,
-    n_batch=32,
-    verbose=True
-)
+# Load the GGUF model
+# model_path = "/Users/jethroestrada/Downloads/Qwen3-Embedding-0.6B-f16.gguf"
+# model = Llama(
+#     model_path=model_path,
+#     embedding=True,
+#     n_ctx=512,
+#     n_threads=4,
+#     n_threads_batch=4,
+#     n_gpu_layers=0,
+#     n_batch=32,
+#     verbose=True
+# )
 
-# Load documents (unchanged)
+# Load documents
 docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
 output_dir = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -79,16 +100,18 @@ documents = [
     "\n".join([
         doc["metadata"].get("parent_header") or "",
         doc["metadata"]["header"],
+        # doc["metadata"]["content"],
     ]).strip()
     for doc in docs
 ]
 task = 'Given a web search query, retrieve relevant passages that answer the query'
 query = "List all ongoing and upcoming isekai anime 2025."
 
-queries = [get_detailed_instruct(task, query)]
+# query = get_detailed_instruct(task, query)
+# queries = [get_detailed_instruct(task, query)]
 documents = documents[:64]
 
-# Load embedding model (unchanged)
+# Load embedding model
 model_name = "mlx-community/Qwen3-0.6B-4bit-DWQ-053125"
 model, _ = load(model_name)
 
@@ -98,19 +121,6 @@ query_embeddings = generate_embeddings(
 document_embeddings = generate_embeddings(
     documents, model_name, model=model, show_progress=True)
 
-# Log embedding details for debugging
-copy_to_clipboard([
-    len(query_embeddings) if isinstance(query_embeddings,
-                                        (list, mx.array)) else "not a list/array",
-    len(query_embeddings[0]) if isinstance(query_embeddings,
-                                           list) and query_embeddings else "no query embeddings",
-    str(type(query_embeddings)),
-    len(document_embeddings),
-    len(document_embeddings[0]) if document_embeddings else 0,
-    str(type(document_embeddings)),
-    str(type(document_embeddings[0])
-        ) if document_embeddings else "no document embeddings",
-])
 
 # Convert embeddings to compatible format
 # query_embeddings might be an mx.array (e.g., shape [1, 151936]) or a list [array([...])]
@@ -120,15 +130,17 @@ if isinstance(query_embeddings, mx.array):
 elif isinstance(query_embeddings, list) and query_embeddings:
     # Extract first element and flatten if necessary
     query_emb = query_embeddings[0]
-    query_embedding.ndim > 0 and (
-        query_embedding == query_embedding.flatten[0])
-    query_embedding = mx.flatten(query_emb).tolist()
+    if isinstance(query_emb, mx.array) and query_emb.ndim > 1:
+        query_emb = mx.flatten(query_emb)
+    query_embedding = query_emb.tolist()
 else:
     query_embedding = []
 
 # document_embeddings is a list of mx.array, convert each to list
 document_embeddings = [
-    mx.flatten(doc_emb).tolist() for doc_emb in document_embeddings
+    mx.flatten(doc_emb).tolist() if isinstance(
+        doc_emb, mx.array) and doc_emb.ndim > 1 else doc_emb.tolist()
+    for doc_emb in document_embeddings
 ]
 
 # Log converted shapes for debugging
@@ -149,12 +161,36 @@ start_time = time.time()
 # Compute similarity scores
 scores = compute_similarity_scores(query_embedding, document_embeddings)
 
+# Create SimilarityResult list
+results = []
+for idx, (score, text) in enumerate(zip(scores, documents)):
+    # Estimate tokens (approximate: 1 token ~ 4 chars in English text)
+    token_count = len(text.split())  # Simple word count as proxy
+    result: SimilarityResult = {
+        "id": str(uuid.uuid4()),
+        "rank": 0,  # Will be updated after sorting
+        "doc_index": idx,
+        "score": float(score),
+        "text": text,
+        "tokens": token_count
+    }
+    results.append(result)
+
+# Sort by score (descending) and assign ranks
+results.sort(key=lambda x: x["score"], reverse=True)
+for rank, result in enumerate(results, 1):
+    result["rank"] = rank
+
 end_time = time.time()
 execution_time = end_time - start_time
 
+# Save results in the desired format
 save_file(
-    {"execution_time": f"{execution_time:.4f}s",
-        "count": len(scores), "results": scores},
+    {
+        "execution_time": f"{execution_time:.4f}s",
+        "count": len(results),
+        "results": results
+    },
     f"{output_dir}/similarity.json"
 )
 
