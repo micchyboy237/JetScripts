@@ -34,7 +34,7 @@ if __name__ == "__main__":
         embedding=True,
         n_ctx=512,
         n_threads=8,
-        n_gpu_layers=99,
+        n_gpu_layers=-1,
         n_threads_batch=8,
         no_perf=True,      # Disable performance timings
         verbose=True
