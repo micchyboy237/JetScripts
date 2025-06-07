@@ -70,35 +70,36 @@ def main():
 
     # Iterate through all available models
     results_dict = {}
-    for model_key in AVAILABLE_EMBED_MODELS.keys():
-        results_dict[model_key] = {"duration": 0.0, "results": []}
+    model_key = "qwen3-embedding-0.6b-4bit"
+    # for model_key in AVAILABLE_EMBED_MODELS.keys():
+    results_dict[model_key] = {"duration": 0.0, "results": []}
 
-        logger.newline()
+    logger.newline()
 
-        # Load model and tokenizer
-        logger.log(f"Testing model:", model_key, colors=["GRAY", "ORANGE"])
-        model, tokenizer = load_model(model_key)
+    # Load model and tokenizer
+    logger.log(f"Testing model:", model_key, colors=["GRAY", "ORANGE"])
+    model, tokenizer = load_model(model_key)
 
-        # Perform search with timing
-        start_time = time.time()
-        search_results = search(query, corpus, model, tokenizer, top_k=top_k)
-        duration = time.time() - start_time
+    # Perform search with timing
+    start_time = time.time()
+    search_results = search(query, corpus, model, tokenizer, top_k=top_k)
+    duration = time.time() - start_time
 
-        # Update results dictionary
-        results_dict[model_key]["duration"] = f"{duration:.2f}s"
-        results_dict[model_key]["results"] = search_results
+    # Update results dictionary
+    results_dict[model_key]["duration"] = f"{duration:.2f}s"
+    results_dict[model_key]["results"] = search_results
 
-        # Print search results
-        logger.log("Query:", query, colors=["GRAY", "INFO"])
-        logger.gray(
-            f"Top matching texts (model: {model_key}, duration: {duration:.2f}s):")
-        for i, result in enumerate(search_results, 1):
-            score = result['score'] * 100
-            logger.log(f"{i}.", f"{score:.2f}%", json.dumps(result['text'])[:100], colors=[
-                       "DEBUG", "SUCCESS", "WHITE"])
+    # Print search results
+    logger.log("Query:", query, colors=["GRAY", "INFO"])
+    logger.gray(
+        f"Top matching texts (model: {model_key}, duration: {duration:.2f}s):")
+    for i, result in enumerate(search_results, 1):
+        score = result['score'] * 100
+        logger.log(f"{i}.", f"{score:.2f}%", json.dumps(result['text'])[:100], colors=[
+            "DEBUG", "SUCCESS", "WHITE"])
 
-        save_file(
-            results_dict, f"{output_dir}/mlx_embed_and_search_results.json")
+    save_file(
+        results_dict, f"{output_dir}/mlx_embed_and_search_results.json")
 
 
 if __name__ == "__main__":
