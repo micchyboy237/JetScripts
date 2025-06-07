@@ -248,11 +248,27 @@ def search_and_group_documents(
         f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}")
     docs_to_search = [
         doc for doc in all_docs if doc.metadata["header_level"] != 1]
+    parent_headers = [
+        doc.metadata["parent_header"].lstrip('#').strip() for doc in docs_to_search
+    ]
+    headers = [
+        doc.metadata["header"].lstrip('#').strip() for doc in docs_to_search
+    ]
+    contents = [
+        doc.metadata["content"].lstrip('#').strip() for doc in docs_to_search
+    ]
     logger.debug(
         f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1)")
-    search_doc_results = search_docs(
+    parent_headers_search_doc_results = search_docs(
         query=query,
-        documents=[doc.text for doc in docs_to_search],
+        documents=parent_headers,
+        ids=[doc.id_ for doc in docs_to_search],
+        model=embed_model,
+        top_k=None,
+    )
+    headers_search_doc_results = search_docs(
+        query=query,
+        documents=headers,
         ids=[doc.id_ for doc in docs_to_search],
         model=embed_model,
         top_k=None,
