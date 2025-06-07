@@ -1,9 +1,15 @@
+import logging
+from typing import List, Union
+from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 from jet.file.utils import load_file, save_file
 import os
 import numpy as np
 from llama_cpp import Llama
 from sklearn.preprocessing import normalize
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def last_token_pool(embeddings):
@@ -17,29 +23,77 @@ def get_detailed_instruct(task_description: str, query: str) -> str:
     return f'Instruct: {task_description}\nQuery: {query}'
 
 
-def encode_with_padding(model, texts, max_length=512):
-    """Encode texts with padding and return fixed-size embeddings."""
-    embeddings = []
-    texts_list = tqdm(texts, desc="Encoding") if len(texts) > 1 else texts
-    for text in texts_list:
-        # Tokenize and pad/truncate to max_length
+def encode_with_padding(model: Llama, texts: List[str], max_length: int = 512, batch_size: int = 8) -> np.ndarray:
+    """
+    Encode texts with padding and return fixed-size embeddings in batches.
+
+    Args:
+        model: Llama model instance.
+        texts: List of texts to encode.
+        max_length: Maximum token length for padding/truncation.
+        batch_size: Number of texts to process per batch.
+
+    Returns:
+        np.ndarray: Array of embeddings with shape (len(texts), embedding_dim).
+    """
+    def tokenize_text(text: str) -> List[int]:
         tokens = model.tokenize(text.encode('utf-8'), add_bos=True)
         if len(tokens) > max_length:
-            tokens = tokens[:max_length]
-        else:
-            tokens = tokens + [0] * (max_length - len(tokens))  # Pad with 0
-        # Generate embedding and select last token's embedding
-        embedding = model.embed(text)
-        embedding = np.array(embedding)
-        # Ensure fixed-size embedding (last token if multi-dimensional)
-        if len(embedding.shape) > 1:
-            embedding = embedding[-1]
-        embeddings.append(embedding)
-    # Verify shapes before returning
-    shapes = [e.shape for e in embeddings]
-    if len(set(shapes)) > 1:
-        raise ValueError(f"Inconsistent embedding shapes: {shapes}")
-    return embeddings
+            return tokens[:max_length]
+        return tokens + [0] * (max_length - len(tokens))
+
+    total_batches = (len(texts) + batch_size - 1) // batch_size
+    embeddings = []
+
+    for batch_idx in tqdm(range(0, len(texts), batch_size), desc="Encoding batches"):
+        current_batch = texts[batch_idx:batch_idx + batch_size]
+        logger.info(
+            f"Processing batch {batch_idx // batch_size + 1}/{total_batches} - {len(current_batch)} items")
+
+        with ThreadPoolExecutor(max_workers=model.n_threads) as executor:
+            batch_tokens = list(executor.map(tokenize_text, current_batch))
+
+        batch_max_len = min(max_length, max(len(tokens)
+                            for tokens in batch_tokens))
+        logger.info(
+            f"Batch {batch_idx // batch_size + 1}: max token length after padding = {batch_max_len}")
+
+        batch_tokens = [
+            tokens[:batch_max_len] + [0] * (batch_max_len - len(tokens))
+            if len(tokens) < batch_max_len else tokens[:batch_max_len]
+            for tokens in batch_tokens
+        ]
+
+        batch_embeddings = []
+        for idx, text in enumerate(current_batch):
+            try:
+                embedding = model.embed(text)
+                embedding = np.array(embedding)
+                if len(embedding.shape) > 1:
+                    embedding = embedding[-1]
+                batch_embeddings.append(embedding)
+            except Exception as e:
+                logger.error(
+                    f"Error embedding text at batch {batch_idx // batch_size + 1}, item {idx + 1}: {str(e)}")
+                batch_embeddings.append(np.zeros_like(embedding))
+
+        shapes = [e.shape for e in batch_embeddings]
+        if len(set(shapes)) > 1:
+            logger.warning(
+                f"Batch {batch_idx // batch_size + 1}: Inconsistent embedding shapes: {shapes}")
+            max_dim = max(s[0] for s in shapes)
+            batch_embeddings = [
+                np.pad(
+                    e, (0, max_dim - e.shape[0]), mode='constant') if e.shape[0] < max_dim else e[:max_dim]
+                for e in batch_embeddings
+            ]
+
+        logger.info(
+            f"Batch {batch_idx // batch_size + 1}: Final embedding shape = {batch_embeddings[0].shape}")
+        embeddings.extend(batch_embeddings)
+
+    logger.info(f"Total embeddings generated: {len(embeddings)}")
+    return np.array(embeddings)
 
 
 # Load the GGUF model
