@@ -6,6 +6,7 @@ from jet.data.utils import generate_key
 from jet.file.utils import load_file, save_file
 from jet.models.tasks.llm_search import search_docs
 from jet.models.tasks.llm_rerank import rerank_docs
+from jet.models.tokenizer.base import count_tokens
 
 if __name__ == "__main__":
     # Load documents
@@ -28,8 +29,10 @@ if __name__ == "__main__":
         ]).strip()
         for doc in docs
     ]
-
     model_path = "/Users/jethroestrada/Downloads/Qwen3-Embedding-0.6B-f16.gguf"
+
+    token_counts = count_tokens(model_path, documents, prevent_total=True)
+
     settings = {
         "model_path": model_path,
         "embedding": True,
