@@ -2,6 +2,7 @@ import os
 import time
 from llama_cpp import Llama
 
+from jet.data.utils import generate_key
 from jet.file.utils import load_file, save_file
 from jet.models.tasks.llm_search import search_docs
 from jet.models.tasks.llm_rerank import rerank_docs
@@ -29,16 +30,21 @@ if __name__ == "__main__":
     ]
 
     model_path = "/Users/jethroestrada/Downloads/Qwen3-Embedding-0.6B-f16.gguf"
-    model = Llama(
-        model_path=model_path,
-        embedding=True,
-        n_ctx=512,
-        n_threads=8,
-        n_gpu_layers=-1,
-        n_threads_batch=8,
-        no_perf=True,      # Disable performance timings
-        verbose=True
-    )
+    settings = {
+        "model_path": model_path,
+        "embedding": True,
+        "n_ctx": 512,
+        "n_threads": 4,
+        "n_gpu_layers": -1,
+        "n_threads_batch": 64,
+        "no_perf": True,      # Disable performance timings
+        "verbose": True,
+        "flash_attn": True,
+    }
+    key = generate_key(**settings)
+    model = Llama(**settings)
+
+    output_key_dir = os.path.join(output_dir, key)
 
     try:
         # Initial search
@@ -56,7 +62,7 @@ if __name__ == "__main__":
             "query": query,
             "count": len(search_results),
             "results": search_results
-        }, f"{output_dir}/search_results.json")
+        }, f"{output_key_dir}/search_results.json")
 
         # Rerank results
         print("Starting rerank docs...")
@@ -76,8 +82,17 @@ if __name__ == "__main__":
             "query": query,
             "count": len(rerank_results),
             "results": rerank_results
-        }, f"{output_dir}/rerank_results.json")
+        }, f"{output_key_dir}/rerank_results.json")
+        save_file(settings, f"{output_key_dir}/settings.json")
     except Exception as e:
         print(f"Error: {str(e)}")
     finally:
         model.close()
+
+        print("\nExecution Times:")
+        logger.log(f"Search Execution Time:",
+                   f"{search_execution_time:.2f}s", colors=["GRAY", "ORANGE"])
+        logger.log(f"Rerank Execution Time:",
+                   f"{rerank_execution_time:.2f}s", colors=["GRAY", "ORANGE"])
+        logger.log(
+            f"Total Execution Time:", f"{(search_execution_time + rerank_execution_time):.2f}s", colors=["GRAY", "ORANGE"])

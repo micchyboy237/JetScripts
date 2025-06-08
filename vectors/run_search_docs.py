@@ -27,7 +27,7 @@ if __name__ == "__main__":
     search_doc_results = search_docs(
         query=query,
         documents=documents,
-        model="all-minilm:33m",
+        model="paraphrase-MiniLM-L12-v2",
         top_k=None,
         ids=ids
     )
