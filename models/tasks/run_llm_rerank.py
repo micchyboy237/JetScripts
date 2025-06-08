@@ -21,7 +21,7 @@ if __name__ == "__main__":
         "\n".join([
             doc["metadata"].get("parent_header") or "",
             doc["metadata"]["header"],
-            # doc["metadata"]["content"],
+            doc["metadata"]["content"],
         ]).strip()
         for doc in docs
     ]
