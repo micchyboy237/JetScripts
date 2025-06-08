@@ -268,20 +268,25 @@ async def process_search_results(
         save_file(matched_keywords,
                   f"{sub_output_dir}/most_common_ngrams.json")
 
-        logger.info("\nInitializing model")
-        model = initialize_model(doc_texts)
+        try:
+            logger.info("\nInitializing model")
+            model = initialize_model(doc_texts)
 
-        task = 'Given a web search query, retrieve relevant passages that answer the query'
-        queries = [
-            query
-        ]
-        search_doc_texts = [doc.text for doc in docs]
-        ids = [doc.id for doc in docs]
+            task = 'Given a web search query, retrieve relevant passages that answer the query'
+            queries = [
+                query
+            ]
+            search_doc_texts = [doc.text for doc in docs]
+            ids = [doc.id for doc in docs]
 
-        search_results = search_docs(
-            model, queries, search_doc_texts, task, ids=ids, threshold=0.5)
-        save_file(search_results,
-                  f"{sub_output_dir}/search_results.json")
+            search_results = search_docs(
+                model, queries, search_doc_texts, task, ids=ids, threshold=0.5)
+            save_file(search_results,
+                      f"{sub_output_dir}/search_results.json")
+        except Exception as e:
+            logger.error(
+                f"Error on initializing model (docs - {len(doc_texts)}): {e}", exc_info=True)
+            continue
 
         # rerank_results = rerank_docs(model, queries, search_results)
         # save_file(rerank_results,
