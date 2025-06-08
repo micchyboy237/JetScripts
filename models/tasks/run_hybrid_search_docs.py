@@ -12,5 +12,4 @@ if __name__ == "__main__":
         print(f"Embedding Score: {result['embedding_score']:.4f}")
         print(f"Rerank Score: {result['rerank_score']:.4f}")
         print(f"Headers: {result['headers']}")
-        print(f"Original Document:\n{result['original_document']}\n")
-        print(f"Text: {result['text']}")
+        print(f"Original Document:\n{result['text']}")
