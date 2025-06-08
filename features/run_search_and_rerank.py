@@ -282,9 +282,9 @@ async def process_search_results(
         save_file(search_results,
                   f"{sub_output_dir}/search_results.json")
 
-        rerank_results = rerank_docs(model, queries, search_results)
-        save_file(rerank_results,
-                  f"{sub_output_dir}/rerank_results.json")
+        # rerank_results = rerank_docs(model, queries, search_results)
+        # save_file(rerank_results,
+        #           f"{sub_output_dir}/rerank_results.json")
 
     all_links = list(set(all_links))
     save_file(all_links, os.path.join(output_dir, "links.json"))
@@ -380,11 +380,11 @@ def filter_browser_search_results(
     search_start_time = time.time()
     search_results = search_docs(
         model, queries, search_engine_documents, task, ids=ids, threshold=0.5)
-    for query_idx, query_results in enumerate(search_results):
-        print(f"\nQuery: {queries[query_idx]} (Search Engine Results)")
-        for res in query_results:
-            print(
-                f"Rank: {res['rank']}, Score: {res['score']:.4f}, Text: {res['text']}")
+    search_results = search_results[0]
+    for res in search_results:
+        print(f"\nQuery: {query} (Search Engine Results)")
+        print(
+            f"Rank: {res['rank']}, Score: {res['score']:.4f}, Text: {res['text']}")
     search_execution_time = time.time() - search_start_time
     save_file({
         "execution_time": f"{search_execution_time:.2f}s",
@@ -392,31 +392,33 @@ def filter_browser_search_results(
         "count": len(search_results),
         "results": search_results
     }, f"{output_dir}/filtered_browser_search_results.json")
+    mapped_searched_docs = map_search_results_to_docs(
+        search_results, browser_search_results)
 
-    # Rerank results
-    logger.info("\nStarting rerank docs...")
-    rerank_start_time = time.time()
-    rerank_results = rerank_docs(model, queries, search_results)
-    for query_idx, query_results in enumerate(rerank_results):
-        print(f"\nQuery: {queries[query_idx]} (Reranked Results)")
-        for res in query_results:
-            print(
-                f"Rank: {res['rank']}, Score: {res['score']:.4f}, Text: {res['text']}")
-    rerank_execution_time = time.time() - rerank_start_time
-    save_file({
-        "search_execution_time": f"{search_execution_time:.2f}s",
-        "rerank_execution_time": f"{rerank_execution_time:.2f}s",
-        "total_execution_time": f"{(search_execution_time + rerank_execution_time):.2f}s",
-        "query": query,
-        "count": len(rerank_results),
-        "results": rerank_results
-    }, f"{output_dir}/filtered_browser_rerank_results.json")
+    # # Rerank results
+    # logger.info("\nStarting rerank docs...")
+    # rerank_start_time = time.time()
+    # rerank_results = rerank_docs(model, queries, search_results)
+    # for query_idx, query_results in enumerate(rerank_results):
+    #     print(f"\nQuery: {queries[query_idx]} (Reranked Results)")
+    #     for res in query_results:
+    #         print(
+    #             f"Rank: {res['rank']}, Score: {res['score']:.4f}, Text: {res['text']}")
+    # rerank_execution_time = time.time() - rerank_start_time
+    # save_file({
+    #     "search_execution_time": f"{search_execution_time:.2f}s",
+    #     "rerank_execution_time": f"{rerank_execution_time:.2f}s",
+    #     "total_execution_time": f"{(search_execution_time + rerank_execution_time):.2f}s",
+    #     "query": query,
+    #     "count": len(rerank_results),
+    #     "results": rerank_results
+    # }, f"{output_dir}/filtered_browser_rerank_results.json")
 
-    mapped_reranked_docs = map_search_results_to_docs(
-        rerank_results[0], browser_search_results)
-    mapped_reranked_docs = mapped_reranked_docs[:10]
+    # mapped_reranked_docs = map_search_results_to_docs(
+    #     rerank_results[0], browser_search_results)
+    # mapped_reranked_docs = mapped_reranked_docs[:10]
 
-    return mapped_reranked_docs
+    return mapped_searched_docs
 
 
 def search_and_group_documents(
@@ -512,11 +514,11 @@ def search_and_group_documents(
     search_start_time = time.time()
     search_results = search_docs(
         model, queries, header_documents, task, ids=ids, threshold=0.5)
-    for query_idx, query_results in enumerate(search_results):
-        print(f"\nQuery: {queries[query_idx]} (Search Header Results)")
-        for res in query_results:
-            print(
-                f"Rank: {res['rank']}, Score: {res['score']:.4f}, Text: {res['text']}")
+    search_results = search_results[0]
+    for res in search_results:
+        print(f"\nQuery: {query} (Search Engine Results)")
+        print(
+            f"Rank: {res['rank']}, Score: {res['score']:.4f}, Text: {res['text']}")
     search_execution_time = time.time() - search_start_time
     save_file({
         "execution_time": f"{search_execution_time:.2f}s",
@@ -524,31 +526,33 @@ def search_and_group_documents(
         "count": len(search_results),
         "results": search_results
     }, f"{output_dir}/search_results.json")
+    mapped_searched_docs = map_search_results_to_docs(
+        search_results, docs_to_search)
 
-    # Rerank results
-    logger.info("\nStarting rerank docs...")
-    rerank_start_time = time.time()
-    rerank_results = rerank_docs(model, queries, search_results)
-    for query_idx, query_results in enumerate(rerank_results):
-        print(f"\nQuery: {queries[query_idx]} (Reranked Results)")
-        for res in query_results:
-            print(
-                f"Rank: {res['rank']}, Score: {res['score']:.4f}, Text: {res['text']}")
-    rerank_execution_time = time.time() - rerank_start_time
-    save_file({
-        "search_execution_time": f"{search_execution_time:.2f}s",
-        "rerank_execution_time": f"{rerank_execution_time:.2f}s",
-        "total_execution_time": f"{(search_execution_time + rerank_execution_time):.2f}s",
-        "query": query,
-        "count": len(rerank_results),
-        "results": rerank_results
-    }, f"{output_dir}/rerank_results.json")
+    # # Rerank results
+    # logger.info("\nStarting rerank docs...")
+    # rerank_start_time = time.time()
+    # rerank_results = rerank_docs(model, queries, search_results)
+    # for query_idx, query_results in enumerate(rerank_results):
+    #     print(f"\nQuery: {queries[query_idx]} (Reranked Results)")
+    #     for res in query_results:
+    #         print(
+    #             f"Rank: {res['rank']}, Score: {res['score']:.4f}, Text: {res['text']}")
+    # rerank_execution_time = time.time() - rerank_start_time
+    # save_file({
+    #     "search_execution_time": f"{search_execution_time:.2f}s",
+    #     "rerank_execution_time": f"{rerank_execution_time:.2f}s",
+    #     "total_execution_time": f"{(search_execution_time + rerank_execution_time):.2f}s",
+    #     "query": query,
+    #     "count": len(rerank_results),
+    #     "results": rerank_results
+    # }, f"{output_dir}/rerank_results.json")
 
-    mapped_reranked_docs = map_search_results_to_docs(
-        rerank_results[0], docs_to_search)
-    mapped_reranked_docs = mapped_reranked_docs[:5]
+    # mapped_reranked_docs = map_search_results_to_docs(
+    #     rerank_results[0], docs_to_search)
+    # mapped_reranked_docs = mapped_reranked_docs[:5]
 
-    contexts = [doc["text"]for doc in mapped_reranked_docs][:top_k]
+    contexts = [doc["text"] for doc in mapped_searched_docs][:top_k]
     context = "\n\n".join(contexts)
     save_file(context, os.path.join(output_dir, "context.md"))
     logger.debug(f"Generated context with {len(contexts)} segments")
@@ -560,7 +564,7 @@ def search_and_group_documents(
     }, os.path.join(output_dir, "contexts.json"))
     logger.info(
         f"Saved context with {context_tokens} tokens to {output_dir}/contexts.json")
-    return mapped_reranked_docs, context
+    return mapped_searched_docs, context
 
 
 def generate_response(

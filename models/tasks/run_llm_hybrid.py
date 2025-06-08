@@ -107,26 +107,26 @@ if __name__ == "__main__":
         ]
         ids = [doc.id for doc in mapped_search_results_to_docs]
 
-        # Rerank results
-        print("Starting rerank docs...")
-        rerank_start_time = time.time()
-        rerank_results = rerank_docs(
-            query, search_result_documents, task, ids=ids, show_progress=True)
-        rerank_results = rerank_results[0]
-        for res in rerank_results:
-            print(f"\nQuery: {query} (Reranked Results)")
-            print(
-                f"Rank: {res['ran']}, Score: {res['score']:.4f}, Text: {res['text']}")
-        rerank_execution_time = time.time() - rerank_start_time
+        # # Rerank results
+        # print("Starting rerank docs...")
+        # rerank_start_time = time.time()
+        # rerank_results = rerank_docs(
+        #     query, search_result_documents, task, ids=ids, show_progress=True)
+        # rerank_results = rerank_results[0]
+        # for res in rerank_results:
+        #     print(f"\nQuery: {query} (Reranked Results)")
+        #     print(
+        #         f"Rank: {res['ran']}, Score: {res['score']:.4f}, Text: {res['text']}")
+        # rerank_execution_time = time.time() - rerank_start_time
 
-        save_file({
-            "search_execution_time": f"{search_execution_time:.2f}s",
-            "rerank_execution_time": f"{rerank_execution_time:.2f}s",
-            "total_execution_time": f"{(search_execution_time + rerank_execution_time):.2f}s",
-            "query": query,
-            "count": len(rerank_results),
-            "results": rerank_results
-        }, f"{output_key_dir}/rerank_results.json")
+        # save_file({
+        #     "search_execution_time": f"{search_execution_time:.2f}s",
+        #     "rerank_execution_time": f"{rerank_execution_time:.2f}s",
+        #     "total_execution_time": f"{(search_execution_time + rerank_execution_time):.2f}s",
+        #     "query": query,
+        #     "count": len(rerank_results),
+        #     "results": rerank_results
+        # }, f"{output_key_dir}/rerank_results.json")
         save_file(settings, f"{output_key_dir}/settings.json")
 
         print("n_ctx:", n_ctx)
@@ -134,8 +134,8 @@ if __name__ == "__main__":
         print("\nExecution Times:")
         logger.log(f"Search Execution Time:",
                    f"{search_execution_time:.2f}s", colors=["GRAY", "ORANGE"])
-        logger.log(f"Rerank Execution Time:",
-                   f"{rerank_execution_time:.2f}s", colors=["GRAY", "ORANGE"])
+        # logger.log(f"Rerank Execution Time:",
+        #            f"{rerank_execution_time:.2f}s", colors=["GRAY", "ORANGE"])
         logger.log(
             f"Total Execution Time:", f"{(search_execution_time + rerank_execution_time):.2f}s", colors=["GRAY", "ORANGE"])
     except Exception as e:
