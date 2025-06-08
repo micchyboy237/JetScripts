@@ -4,9 +4,11 @@ from llama_cpp import Llama
 
 from jet.data.utils import generate_key
 from jet.file.utils import load_file, save_file
+from jet.logger import logger
 from jet.models.tasks.llm_search import search_docs
 from jet.models.tasks.llm_rerank import rerank_docs
-from jet.models.tokenizer.base import count_tokens, get_tokenizer
+from jet.models.tokenizer.utils import calculate_n_ctx
+from jet.models.utils import get_embedding_size
 
 if __name__ == "__main__":
     # Load documents
@@ -25,30 +27,29 @@ if __name__ == "__main__":
         "\n".join([
             doc["metadata"].get("parent_header") or "",
             doc["metadata"]["header"],
-            # doc["metadata"]["content"],
+            doc["metadata"]["content"],
         ]).strip()
         for doc in docs
     ]
+
     model_path = "/Users/jethroestrada/.cache/huggingface/hub/models--Qwen--Qwen3-Embedding-0.6B-GGUF/snapshots/8aa0010e73a1075e99dfc213a475a60fd971bbe7/Qwen3-Embedding-0.6B-f16.gguf"
-    tokenizer_name = "mlx-community/Qwen3-0.6B-4bit"
+    model_name = "mlx-community/Qwen3-0.6B-4bit"
 
-    tokenizer = get_tokenizer(tokenizer_name)
-    token_counts: list[int] = count_tokens(
-        tokenizer, documents, prevent_total=True)
-    largest_size = max(token_counts)
-
-    print("Largest doc tokens:", largest_size)
+    n_ctx = calculate_n_ctx(model_name, documents)
 
     settings = {
         "model_path": model_path,
         "embedding": True,
-        "n_ctx": largest_size + 32,
-        "n_threads": 4,
+        "n_ctx": n_ctx,
+        "n_threads": 8,
         "n_gpu_layers": -1,
         "n_threads_batch": 64,
         "no_perf": True,      # Disable performance timings
         "verbose": True,
         "flash_attn": True,
+        # "n_batch": 512,
+        # "n_ubatch": 512,
+
     }
     key = generate_key(**settings)
     model = Llama(**settings)
@@ -76,7 +77,7 @@ if __name__ == "__main__":
         # Rerank results
         print("Starting rerank docs...")
         rerank_start_time = time.time()
-        rerank_results = rerank_docs(model, queries, search_results)
+        rerank_results = rerank_docs(queries, documents, task)
         for query_idx, query_results in enumerate(rerank_results):
             print(f"\nQuery: {queries[query_idx]} (Reranked Results)")
             for res in query_results:
@@ -97,6 +98,9 @@ if __name__ == "__main__":
         print(f"Error: {str(e)}")
     finally:
         model.close()
+
+        print("Largest doc tokens:", largest_size)
+        print("n_ctx:", n_ctx)
 
         print("\nExecution Times:")
         logger.log(f"Search Execution Time:",

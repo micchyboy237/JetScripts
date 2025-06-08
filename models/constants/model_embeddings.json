@@ -1,5 +1,7 @@
 {
   "bge-large": 1024,
+  "qwen3-embedding-0.6b": 1024,
+  "qwen3-reranker-0.6b": 1024,
   "snowflake-arctic-embed-m": 768,
   "snowflake-arctic-embed:137m": 768,
   "snowflake-arctic-embed-s": 384,
@@ -14,8 +16,6 @@
   "qwen2.5-14b-instruct-4bit": 5120,
   "qwen2.5-7b-instruct-4bit": 3584,
   "qwen2.5-coder-14b-instruct-4bit": 5120,
-  "qwen3-0.6b-4bit": 1024,
-  "qwen3-1.7b-4bit": 2048,
   "qwen3-4b-4bit": 2560,
   "qwen3-8b-4bit": 4096,
   "qwen3-embedding-0.6b-4bit": 1024,
@@ -27,5 +27,5 @@
   "all-MiniLM-L12-v2": 384,
   "all-MiniLM-L6-v2": 384,
   "all-mpnet-base-v2": 768,
-  "paraphrase-MiniLM-L12-v2": 384
+  "paraphrase-multilingual": 384
 }
