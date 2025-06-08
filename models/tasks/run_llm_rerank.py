@@ -1,5 +1,6 @@
 # Example usage
 import os
+import time
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
 from jet.models.tasks.llm_rerank import rerank_docs
@@ -20,7 +21,7 @@ if __name__ == "__main__":
         "\n".join([
             doc["metadata"].get("parent_header") or "",
             doc["metadata"]["header"],
-            doc["metadata"]["content"],
+            # doc["metadata"]["content"],
         ]).strip()
         for doc in docs
     ]
@@ -34,9 +35,18 @@ if __name__ == "__main__":
     # ]
     # doc_ids = ["doc1", "doc2"]
 
-    results = rerank_docs(query, documents, task,
-                          ids=doc_ids, show_progress=True)
-    for result in results:
-        print(result.dict())
+    logger.info("\nStarting rerank docs...")
+    rerank_start_time = time.time()
+    rerank_results = rerank_docs(query, documents, task,
+                                 ids=doc_ids, show_progress=True)
+    rerank_execution_time = time.time() - rerank_start_time
 
-    save_file(results, f"{output_dir}/results.json")
+    logger.log(f"Execution time:",
+               f"{rerank_execution_time:.2f}s", colors=["GRAY", "ORANGE"])
+
+    save_file({
+        "execution_time": f"{rerank_execution_time:.2f}s",
+        "query": query,
+        "count": len(rerank_results),
+        "results": rerank_results,
+    }, f"{output_dir}/results.json")
