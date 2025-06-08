@@ -78,7 +78,7 @@ def compute_similarity_scores(
 
 
 # Load the GGUF model
-# model_path = "/Users/jethroestrada/Downloads/Qwen3-Embedding-0.6B-f16.gguf"
+# model_path = "/Users/jethroestrada/.cache/huggingface/hub/models--Qwen--Qwen3-Embedding-0.6B-GGUF/snapshots/8aa0010e73a1075e99dfc213a475a60fd971bbe7/Qwen3-Embedding-0.6B-f16.gguf"
 # model = Llama(
 #     model_path=model_path,
 #     embedding=True,

@@ -6,7 +6,7 @@ from jet.data.utils import generate_key
 from jet.file.utils import load_file, save_file
 from jet.models.tasks.llm_search import search_docs
 from jet.models.tasks.llm_rerank import rerank_docs
-from jet.models.tokenizer.base import count_tokens
+from jet.models.tokenizer.base import count_tokens, get_tokenizer
 
 if __name__ == "__main__":
     # Load documents
@@ -29,14 +29,20 @@ if __name__ == "__main__":
         ]).strip()
         for doc in docs
     ]
-    model_path = "/Users/jethroestrada/Downloads/Qwen3-Embedding-0.6B-f16.gguf"
+    model_path = "/Users/jethroestrada/.cache/huggingface/hub/models--Qwen--Qwen3-Embedding-0.6B-GGUF/snapshots/8aa0010e73a1075e99dfc213a475a60fd971bbe7/Qwen3-Embedding-0.6B-f16.gguf"
+    tokenizer_name = "mlx-community/Qwen3-0.6B-4bit"
 
-    token_counts = count_tokens(model_path, documents, prevent_total=True)
+    tokenizer = get_tokenizer(tokenizer_name)
+    token_counts: list[int] = count_tokens(
+        tokenizer, documents, prevent_total=True)
+    largest_size = max(token_counts)
+
+    print("Largest doc tokens:", largest_size)
 
     settings = {
         "model_path": model_path,
         "embedding": True,
-        "n_ctx": 512,
+        "n_ctx": largest_size + 32,
         "n_threads": 4,
         "n_gpu_layers": -1,
         "n_threads_batch": 64,
