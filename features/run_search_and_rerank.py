@@ -10,6 +10,7 @@ import asyncio
 from urllib.parse import unquote, urlparse
 
 from llama_cpp import Llama
+from tqdm import tqdm
 
 from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.llm.mlx.helpers.base import get_system_date_prompt
@@ -90,16 +91,15 @@ def filter_htmls_with_best_combined_mtld(
         return []
 
     doc_scores = []
-    for url, html, _ in url_html_date_tuples:
+    for url, html, _ in tqdm(url_html_date_tuples, desc="Filtering highest mtld"):
         try:
             logger.debug(f"Processing HTML for URL: {url}")
             docs = get_md_header_docs(html, ignore_links=False)
-            h2_count = sum(
-                1 for doc in docs if doc.metadata['header_level'] == 2)
-            logger.debug(f"Found {h2_count} H2 headers for {url}")
-            if h2_count < 5:
+            header_count = len(docs)
+            logger.debug(f"Found {header_count} headers for {url}")
+            if header_count < 5:
                 logger.debug(
-                    f"Skipping {url}: insufficient H2 headers ({h2_count} < 5)")
+                    f"Skipping {url}: insufficient headers ({header_count} < 5)")
                 continue
 
             docs_text = "\n\n".join(doc.text for doc in docs)
@@ -289,7 +289,7 @@ def filter_browser_search_results(
     logger.info("\nStarting search engine docs...")
     search_start_time = time.time()
     search_results = search_docs(
-        model, queries, search_engine_documents, task, ids=ids)
+        model, queries, search_engine_documents, task, ids=ids, threshold=0.5)
     for query_idx, query_results in enumerate(search_results):
         print(f"\nQuery: {queries[query_idx]} (Search Engine Results)")
         for res in query_results:
@@ -324,6 +324,7 @@ def filter_browser_search_results(
 
     mapped_reranked_docs = map_search_results_to_docs(
         rerank_results[0], browser_search_results)
+    mapped_reranked_docs = mapped_reranked_docs[:10]
 
     return mapped_reranked_docs
 
@@ -420,7 +421,7 @@ def search_and_group_documents(
     logger.info("\nStarting search header docs...")
     search_start_time = time.time()
     search_results = search_docs(
-        model, queries, header_documents, task, ids=ids)
+        model, queries, header_documents, task, ids=ids, threshold=0.5)
     for query_idx, query_results in enumerate(search_results):
         print(f"\nQuery: {queries[query_idx]} (Search Header Results)")
         for res in query_results:
@@ -455,6 +456,7 @@ def search_and_group_documents(
 
     mapped_reranked_docs = map_search_results_to_docs(
         rerank_results[0], docs_to_search)
+    mapped_reranked_docs = mapped_reranked_docs[:5]
 
     contexts = [doc["text"]for doc in mapped_reranked_docs][:top_k]
     context = "\n\n".join(contexts)
