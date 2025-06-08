@@ -76,7 +76,7 @@ if __name__ == "__main__":
             "query": query,
             "count": len(rerank_results),
             "results": rerank_results
-        }, f"{output_dir}/hybrid_results.json")
+        }, f"{output_dir}/rerank_results.json")
     except Exception as e:
         print(f"Error: {str(e)}")
     finally:

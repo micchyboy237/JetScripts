@@ -3,15 +3,22 @@ from collections import defaultdict
 import json
 import os
 import shutil
-from typing import Dict, List, Optional, Tuple, TypedDict
+import time
+from typing import Dict, List, Optional, Tuple, TypedDict, Union
 from datetime import datetime
 import asyncio
 from urllib.parse import unquote, urlparse
+
+from llama_cpp import Llama
 
 from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.llm.mlx.helpers.base import get_system_date_prompt
 from jet.llm.mlx.mlx_types import EmbedModelType, LLMModelType
 from jet.logger import logger
+from jet.models.tasks.llm_search import search_docs
+from jet.models.tasks.llm_rerank import rerank_docs
+from jet.models.tasks.task_types import SimilarityResult
+from jet.models.tasks.utils import initialize_model
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.transformers.link_formatters import LinkFormatter, format_links_for_embedding
 from jet.utils.url_utils import rerank_bm25_plus
@@ -26,7 +33,6 @@ from jet.llm.mlx.token_utils import count_tokens, get_tokenizer_fn
 from jet.scrapers.browser.playwright_utils import scrape_multiple_urls
 from jet.scrapers.preprocessor import html_to_markdown
 from jet.scrapers.utils import scrape_links, scrape_published_date, search_data
-from jet.llm.utils.search_docs import SimilarityResult, search_docs
 from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_relevance
 from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
 from jet.wordnet.words import count_words
@@ -106,7 +112,7 @@ def filter_htmls_with_best_combined_mtld(
                 logger.debug(
                     f"Added {url} to candidates with MTLD={mtld_score}")
         except (ValueError, KeyError, AttributeError) as e:
-            logger.debug(f"Error processing {url}: {str(e)}")
+            logger.error(f"Error processing {url}: {str(e)}")
             continue
 
     doc_scores.sort(key=lambda x: x[4], reverse=True)
@@ -157,7 +163,7 @@ async def fetch_search_results(query: str, output_dir: str, use_cache: bool = Fa
 
 
 async def process_search_results(
-    browser_search_results: List[Dict],
+    browser_search_results: List[SearchResult],
     query: str,
     output_dir: str
 ) -> List[Tuple[str, str, Optional[str]]]:
@@ -235,7 +241,7 @@ def process_documents(
     return all_docs
 
 
-def map_search_results_to_docs(search_results: List[SimilarityResult], docs: List[HeaderDocument]) -> List[HeaderDocument]:
+def map_search_results_to_docs(search_results: Union[List[SimilarityResult], List[SearchResult]], docs: Union[List[HeaderDocument], List[SearchResult]]) -> Union[List[HeaderDocument], List[SearchResult]]:
     """Map search results back to original documents.
 
     Args:
@@ -246,7 +252,80 @@ def map_search_results_to_docs(search_results: List[SimilarityResult], docs: Lis
         List of documents that matched the search results
     """
     result_ids = {result["id"] for result in search_results}
-    return [doc for doc in docs if doc.id_ in result_ids]
+    return [doc for doc in docs if doc["id"] in result_ids]
+
+
+def filter_browser_search_results(
+    browser_search_results: List[SearchResult],
+    query: str,
+    output_dir: str
+    # embed_model: str,
+    # llm_model: str,
+    # top_k: int,
+) -> List[SearchResult]:
+    task = 'Given a web search query, retrieve relevant passages that answer the query'
+    queries = [
+        query
+    ]
+    search_engine_documents = [
+        "\n".join([
+            f"Title: {result["title"]}",
+            f"Content: {result["content"]}",
+        ]).strip()
+        for result in browser_search_results
+        if "content" in result
+    ]
+    ids = [
+        result["id"]
+        for result in browser_search_results
+        if "content" in result
+    ]
+
+    # Initialize model
+    logger.info("\nInitializing model")
+    model = initialize_model()
+
+    # Initial search
+    logger.info("\nStarting search engine docs...")
+    search_start_time = time.time()
+    search_results = search_docs(
+        model, queries, search_engine_documents, task, ids=ids)
+    for query_idx, query_results in enumerate(search_results):
+        print(f"\nQuery: {queries[query_idx]} (Search Engine Results)")
+        for res in query_results:
+            print(
+                f"Rank: {res['rank']}, Score: {res['score']:.4f}, Text: {res['text']}")
+    search_execution_time = time.time() - search_start_time
+    save_file({
+        "execution_time": f"{search_execution_time:.2f}s",
+        "query": query,
+        "count": len(search_results),
+        "results": search_results
+    }, f"{output_dir}/filtered_browser_search_results.json")
+
+    # Rerank results
+    logger.info("\nStarting rerank docs...")
+    rerank_start_time = time.time()
+    rerank_results = rerank_docs(model, queries, search_results)
+    for query_idx, query_results in enumerate(rerank_results):
+        print(f"\nQuery: {queries[query_idx]} (Reranked Results)")
+        for res in query_results:
+            print(
+                f"Rank: {res['rank']}, Score: {res['score']:.4f}, Text: {res['text']}")
+    rerank_execution_time = time.time() - rerank_start_time
+    save_file({
+        "search_execution_time": f"{search_execution_time:.2f}s",
+        "rerank_execution_time": f"{rerank_execution_time:.2f}s",
+        "total_execution_time": f"{(search_execution_time + rerank_execution_time):.2f}s",
+        "query": query,
+        "count": len(rerank_results),
+        "results": rerank_results
+    }, f"{output_dir}/filtered_browser_rerank_results.json")
+
+    mapped_reranked_docs = map_search_results_to_docs(
+        rerank_results[0], browser_search_results)
+
+    return mapped_reranked_docs
 
 
 def search_and_group_documents(
@@ -256,14 +335,14 @@ def search_and_group_documents(
     llm_model: str,
     top_k: int,
     output_dir: str
-) -> Tuple[List[Dict], str]:
+) -> Tuple[List[HeaderDocument], str]:
     """Search documents and group results."""
     logger.info(
         f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}")
     docs_to_search = [
         doc for doc in all_docs if doc.metadata["header_level"] != 1]
     parent_headers = [
-        doc.metadata["parent_header"].lstrip('#').strip() for doc in docs_to_search
+        (doc.metadata["parent_header"] or "").lstrip('#').strip() for doc in docs_to_search
     ]
     headers = [
         doc.metadata["header"].lstrip('#').strip() for doc in docs_to_search
@@ -274,63 +353,110 @@ def search_and_group_documents(
     logger.debug(
         f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1)")
 
-    # Search through parent headers
-    parent_headers_search_doc_results = search_docs(
-        query=query,
-        documents=parent_headers,
-        ids=[doc.id_ for doc in docs_to_search],
-        model=embed_model,
-        top_k=40,
-    )
-    mapped_parent_headers_search_docs = map_search_results_to_docs(
-        parent_headers_search_doc_results, docs_to_search)
+    # # Search through parent headers
+    # parent_headers_search_doc_results = search_docs(
+    #     query=query,
+    #     documents=parent_headers,
+    #     ids=[doc.id_ for doc in docs_to_search],
+    #     model=embed_model,
+    #     top_k=40,
+    # )
+    # mapped_parent_headers_search_docs = map_search_results_to_docs(
+    #     parent_headers_search_doc_results, docs_to_search)
 
-    # Search through headers
-    headers_search_doc_results = search_docs(
-        query=query,
-        documents=headers,
-        ids=[doc.id_ for doc in mapped_parent_headers_search_docs],
-        model=embed_model,
-        top_k=20,
-    )
-    mapped_headers_search_docs = map_search_results_to_docs(
-        headers_search_doc_results, mapped_parent_headers_search_docs)
+    # # Search through headers
+    # headers_search_doc_results = search_docs(
+    #     query=query,
+    #     documents=headers,
+    #     ids=[doc.id_ for doc in mapped_parent_headers_search_docs],
+    #     model=embed_model,
+    #     top_k=20,
+    # )
+    # mapped_headers_search_docs = map_search_results_to_docs(
+    #     headers_search_doc_results, mapped_parent_headers_search_docs)
 
-    # Final search through document contents
-    search_doc_results = search_docs(
-        query=query,
-        documents=[doc.text for doc in mapped_headers_search_docs],
-        ids=[doc.id_ for doc in mapped_headers_search_docs],
-        model=embed_model,
-        top_k=10,
-    )
+    # # Final search through document contents
+    # search_doc_results = search_docs(
+    #     query=query,
+    #     documents=[doc.text for doc in mapped_headers_search_docs],
+    #     ids=[doc.id_ for doc in mapped_headers_search_docs],
+    #     model=embed_model,
+    #     top_k=10,
+    # )
 
-    save_file(
-        {"query": query, "count": len(
-            search_doc_results), "results": search_doc_results},
-        os.path.join(output_dir, "search_doc_results.json")
-    )
-    logger.info(
-        f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
+    # save_file(
+    #     {"query": query, "count": len(
+    #         search_doc_results), "results": search_doc_results},
+    #     os.path.join(output_dir, "search_doc_results.json")
+    # )
+    # logger.info(
+    #     f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
 
-    search_result_dict = {result["id"]: result for result in search_doc_results}
-    sorted_doc_results = []
-    for doc in all_docs:
-        if doc.metadata["header_level"] != 1 and count_words(doc.text) >= 10:
-            sorted_doc_results.append({
-                **doc.metadata,
-                "text": doc.text,
-                "is_top": doc.id_ in search_result_dict
-            })
+    # Setup query and documents
+    task = 'Given a web search query, retrieve relevant passages that answer the query'
+    queries = [
+        query
+    ]
+    header_documents = [
+        "\n".join([
+            doc["metadata"]["parent_header"] or "",
+            doc["metadata"]["header"],
+        ]).strip()
+        for doc in all_docs
+    ]
+    content_documents = [
+        "\n".join([
+            doc["metadata"]["content"],
+        ]).strip()
+        for doc in all_docs
+    ]
+    ids = [doc.id for doc in all_docs]
 
-    grouped_by_source_and_parent = defaultdict(list)
-    for result in sorted_doc_results:
-        key = (result["source_url"], result.get(
-            "parent_header", ""), result["is_top"])
-        grouped_by_source_and_parent[key].append(result)
+    # Initialize model
+    logger.info("\nInitializing model")
+    model = initialize_model()
 
-    contexts = [doc["text"]
-                for doc in sorted_doc_results if doc["is_top"]][:top_k]
+    # Initial search
+    logger.info("\nStarting search header docs...")
+    search_start_time = time.time()
+    search_results = search_docs(
+        model, queries, header_documents, task, ids=ids)
+    for query_idx, query_results in enumerate(search_results):
+        print(f"\nQuery: {queries[query_idx]} (Search Header Results)")
+        for res in query_results:
+            print(
+                f"Rank: {res['rank']}, Score: {res['score']:.4f}, Text: {res['text']}")
+    search_execution_time = time.time() - search_start_time
+    save_file({
+        "execution_time": f"{search_execution_time:.2f}s",
+        "query": query,
+        "count": len(search_results),
+        "results": search_results
+    }, f"{output_dir}/search_results.json")
+
+    # Rerank results
+    logger.info("\nStarting rerank docs...")
+    rerank_start_time = time.time()
+    rerank_results = rerank_docs(model, queries, search_results)
+    for query_idx, query_results in enumerate(rerank_results):
+        print(f"\nQuery: {queries[query_idx]} (Reranked Results)")
+        for res in query_results:
+            print(
+                f"Rank: {res['rank']}, Score: {res['score']:.4f}, Text: {res['text']}")
+    rerank_execution_time = time.time() - rerank_start_time
+    save_file({
+        "search_execution_time": f"{search_execution_time:.2f}s",
+        "rerank_execution_time": f"{rerank_execution_time:.2f}s",
+        "total_execution_time": f"{(search_execution_time + rerank_execution_time):.2f}s",
+        "query": query,
+        "count": len(rerank_results),
+        "results": rerank_results
+    }, f"{output_dir}/rerank_results.json")
+
+    mapped_reranked_docs = map_search_results_to_docs(
+        rerank_results[0], docs_to_search)
+
+    contexts = [doc["text"]for doc in mapped_reranked_docs][:top_k]
     context = "\n\n".join(contexts)
     save_file(context, os.path.join(output_dir, "context.md"))
     logger.debug(f"Generated context with {len(contexts)} segments")
@@ -342,7 +468,7 @@ def search_and_group_documents(
     }, os.path.join(output_dir, "contexts.json"))
     logger.info(
         f"Saved context with {context_tokens} tokens to {output_dir}/contexts.json")
-    return sorted_doc_results, context
+    return mapped_reranked_docs, context
 
 
 def generate_response(
@@ -433,10 +559,12 @@ async def main():
     mlx, _ = initialize_search_components(llm_model, embed_model, seed)
     # query = rewrite_query(query, llm_model)
     browser_search_results = await fetch_search_results(query, output_dir, use_cache=use_cache)
-    url_html_date_tuples = await process_search_results(browser_search_results, query, output_dir)
+    filtered_browser_search_results = filter_browser_search_results(
+        browser_search_results, query, output_dir)
+    url_html_date_tuples = await process_search_results(filtered_browser_search_results, query, output_dir)
     url_html_date_tuples.sort(key=lambda x: x[2] or "", reverse=True)
     all_docs = process_documents(url_html_date_tuples, output_dir)
-    sorted_doc_results, context = search_and_group_documents(
+    doc_results, context = search_and_group_documents(
         query, all_docs, embed_model, llm_model, top_k, output_dir)
     response = generate_response(query, context, llm_model, mlx, output_dir)
     evaluate_results(query, context, response, llm_model, output_dir)
