@@ -110,7 +110,8 @@ def filter_htmls_with_best_combined_mtld(
                     f"Skipping {url}: insufficient headers ({header_count} < 5)")
                 continue
 
-            docs_text = "\n\n".join(doc.text for doc in docs)
+            doc_texts = [doc.text for doc in docs]
+            docs_text = "\n\n".join(doc_texts)
             readability = analyze_readability(docs_text)
             mtld_score = readability['mtld']
             logger.debug(f"MTLD score for {url}: {mtld_score}")
@@ -132,7 +133,7 @@ def filter_htmls_with_best_combined_mtld(
             matched_keywords = get_word_counts_lemmatized(
                 f"{query}\n{docs_text}".lower(), min_count=2, as_score=False)
 
-            model = initialize_model()
+            model = initialize_model(doc_texts)
             task = 'Given a web search query, retrieve relevant keywords that can be used as data'
             keyword_similarity_results = search_docs(
                 model, [query], [" ".join(list(matched_keywords.keys()))], task)
@@ -268,7 +269,7 @@ async def process_search_results(
                   f"{sub_output_dir}/most_common_ngrams.json")
 
         logger.info("\nInitializing model")
-        model = initialize_model()
+        model = initialize_model(doc_texts)
 
         task = 'Given a web search query, retrieve relevant passages that answer the query'
         queries = [
@@ -373,7 +374,7 @@ def filter_browser_search_results(
 
     # Initialize model
     logger.info("\nInitializing model")
-    model = initialize_model()
+    model = initialize_model(search_engine_documents)
 
     # Initial search
     logger.info("\nStarting search engine docs...")
@@ -507,7 +508,7 @@ def search_and_group_documents(
 
     # Initialize model
     logger.info("\nInitializing model")
-    model = initialize_model()
+    model = initialize_model(header_documents)
 
     # Initial search
     logger.info("\nStarting search header docs...")
