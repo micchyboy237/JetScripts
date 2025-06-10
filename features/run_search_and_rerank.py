@@ -22,7 +22,7 @@ from jet.wordnet.analyzers.text_analysis import ReadabilityResult, analyze_reada
 from jet.code.splitter_markdown_utils import get_md_header_docs
 from jet.file.utils import save_file
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.token_utils import count_tokens, get_tokenizer_fn
+from jet.models.tokenizer.base import count_tokens, get_tokenizer_fn
 from jet.scrapers.browser.playwright_utils import scrape_multiple_urls
 from jet.scrapers.preprocessor import html_to_markdown
 from jet.scrapers.utils import scrape_links, scrape_published_date, search_data
