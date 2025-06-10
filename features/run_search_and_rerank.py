@@ -19,9 +19,10 @@ from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.llm.mlx.helpers.base import get_system_date_prompt
 from jet.llm.mlx.mlx_types import EmbedModelType, LLMModelType
 from jet.logger import logger
-# from jet.models.tasks.llm_search import search_docs
+from jet.models.tasks.llm_search import search_docs
 # from jet.models.tasks.llm_rerank import rerank_docs
-from jet.models.tasks.hybrid_search_docs import search_docs
+# from jet.models.tasks.hybrid_search_docs import search_docs
+from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
 from jet.models.tasks.task_types import SimilarityResult
 from jet.models.tasks.utils import initialize_model
 from jet.scrapers.hrequests_utils import scrape_urls
@@ -453,45 +454,6 @@ def search_and_group_documents(
     logger.debug(
         f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1)")
 
-    # # Search through parent headers
-    # parent_headers_search_doc_results = search_docs(
-    #     query=query,
-    #     documents=parent_headers,
-    #     ids=[doc.id_ for doc in docs_to_search],
-    #     model=embed_model,
-    #     top_k=40,
-    # )
-    # mapped_parent_headers_search_docs = map_search_results_to_docs(
-    #     parent_headers_search_doc_results, docs_to_search)
-
-    # # Search through headers
-    # headers_search_doc_results = search_docs(
-    #     query=query,
-    #     documents=headers,
-    #     ids=[doc.id_ for doc in mapped_parent_headers_search_docs],
-    #     model=embed_model,
-    #     top_k=20,
-    # )
-    # mapped_headers_search_docs = map_search_results_to_docs(
-    #     headers_search_doc_results, mapped_parent_headers_search_docs)
-
-    # # Final search through document contents
-    # search_doc_results = search_docs(
-    #     query=query,
-    #     documents=[doc.text for doc in mapped_headers_search_docs],
-    #     ids=[doc.id_ for doc in mapped_headers_search_docs],
-    #     model=embed_model,
-    #     top_k=10,
-    # )
-
-    # save_file(
-    #     {"query": query, "count": len(
-    #         search_doc_results), "results": search_doc_results},
-    #     os.path.join(output_dir, "search_doc_results.json")
-    # )
-    # logger.info(
-    #     f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
-
     # Setup query and documents
     task = 'Given a web search query, retrieve relevant passages that answer the query'
     queries = [
@@ -513,8 +475,8 @@ def search_and_group_documents(
     ids = [doc.id for doc in all_docs]
 
     # Initialize model
-    logger.info("\nInitializing model")
-    model = initialize_model(header_documents)
+    # logger.info("\nInitializing model")
+    # model = initialize_model(header_documents)
 
     # Initial search
     logger.info("\nStarting search header docs...")

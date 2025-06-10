@@ -181,8 +181,8 @@ def main():
     except Exception as e:
         logger.error("Error in reranking: %s", e)
         scores = [0] * len(pairs)  # Fallback
-    logger.debug("All rerank scores: %s", scores[:5])
-    reranked_indices = np.argsort(scores)[::-1][:5]
+    logger.debug("All rerank scores: %s", scores[:10])
+    reranked_indices = np.argsort(scores)[::-1][:10]
     reranked_docs = [
         (initial_docs[i][0], initial_docs[i][1], scores[i])
         for i in reranked_indices
