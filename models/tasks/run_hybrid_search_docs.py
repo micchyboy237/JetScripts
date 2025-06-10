@@ -10,9 +10,9 @@ if __name__ == "__main__":
     results = search_docs(docs_file, query, rerank_top_k=10)
     for result in results:
         logger.success(
-            f"\nRank {result['rank']} (Document ID {result['doc_id']}):")
+            f"\nRank {result['rank']} (Document ID {result['doc_index']}):")
         print(f"Embedding Score: {result['embedding_score']:.4f}")
         print(f"Combined Score: {result['combined_score']:.4f}")
-        print(f"Rerank Score: {result['rerank_score']:.4f}")
+        print(f"Rerank Score: {result['score']:.4f}")
         print(f"Headers: {result['headers']}")
         print(f"Original Document:\n{result['text']}")

@@ -1,3 +1,4 @@
+from typing import Optional, List, Set
 import glob
 import os
 import fnmatch
@@ -228,7 +229,7 @@ def clean_content(content: str, file_path: str, shorten_funcs: bool = True):
     if file_path.endswith(".py"):
         content = strip_comments(content)
         if shorten_funcs:
-            content = shorten_functions(content)
+            content = shorten_functions(content, file_path)
     if not file_path.endswith(".md"):
         content = clean_comments(content)
     content = clean_logging(content)
@@ -253,16 +254,42 @@ def remove_parent_paths(path: str) -> str:
 #     return result
 
 
-def shorten_functions(content):
-    """Extracts function and class definitions from Python code, 
+def shorten_functions(content: str, file_path: Optional[str] = None) -> str:
+    """
+    Extracts function and class definitions from Python code, 
     including full signatures, return/yield statements, 
-    and unique assignments from class instantiations or method calls."""
+    and unique assignments from class instantiations or method calls.
 
-    tree = ast.parse(content)
-    content_lines = content.splitlines()
-    definitions = []
-    seen_calls = set()  # Tracks seen obj.method() or ClassName() calls
-    seen_objects = set()  # Tracks seen object names for assignments
+    Args:
+        content: The Python source code as a string.
+        file_path: Optional file path for error reporting.
+
+    Returns:
+        A string containing the extracted definitions.
+
+    Raises:
+        ShortenFunctionsError: If the input content has invalid Python syntax.
+    """
+    logger.debug(f"Processing content with file_path: {file_path}")
+    # Split early to access lines in except block
+    content_lines: List[str] = content.splitlines()
+    try:
+        tree = ast.parse(content)
+        logger.debug("Successfully parsed AST")
+    except SyntaxError as e:
+        # Get the exact line from content, if available
+        line_content = content_lines[e.lineno - 1].rstrip(
+        ) if e.lineno <= len(content_lines) else "<unavailable>"
+        error_msg = f"{file_path or '<string>'}:{e.lineno}\nLine content:\n{line_content}"
+        logger.error(error_msg)
+
+        raise
+
+    logger.debug(f"Split content into {len(content_lines)} lines")
+    definitions: List[str] = []
+    # Tracks seen obj.method() or ClassName() calls
+    seen_calls: Set[str] = set()
+    seen_objects: Set[str] = set()  # Tracks seen object names for assignments
 
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):

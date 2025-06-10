@@ -19,8 +19,9 @@ from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.llm.mlx.helpers.base import get_system_date_prompt
 from jet.llm.mlx.mlx_types import EmbedModelType, LLMModelType
 from jet.logger import logger
-from jet.models.tasks.llm_search import search_docs
-from jet.models.tasks.llm_rerank import rerank_docs
+# from jet.models.tasks.llm_search import search_docs
+# from jet.models.tasks.llm_rerank import rerank_docs
+from jet.models.tasks.hybrid_search_docs import search_docs
 from jet.models.tasks.task_types import SimilarityResult
 from jet.models.tasks.utils import initialize_model
 from jet.scrapers.hrequests_utils import scrape_urls
