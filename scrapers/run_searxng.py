@@ -1,9 +1,8 @@
 import os
 import json
-from jet.llm.query.retrievers import SearchResult
 from jet.utils.commands import copy_to_clipboard
 import requests
-from jet.search.searxng import search_searxng
+from jet.search.searxng import search_searxng, SearchResult
 from jet.logger import logger
 
 
@@ -13,11 +12,13 @@ os.chdir(file_dir)
 
 
 if __name__ == "__main__":
-    fields = ["seasons", "episodes"]
-    search_keys_str = ", ".join(
-        [key.replace('.', ' ').replace('_', ' ') for key in fields])
-    title = "I'll Become a Villainess Who Goes Down in History"
-    query = f"Anime \"{title}\" {search_keys_str}"
+    # fields = ["seasons", "episodes"]
+    # search_keys_str = ", ".join(
+    #     [key.replace('.', ' ').replace('_', ' ') for key in fields])
+    # title = "I'll Become a Villainess Who Goes Down in History"
+    # query = f"Anime \"{title}\" {search_keys_str}"
+
+    query = "List all ongoing and upcoming isekai anime 2025."
 
     try:
         include_sites = [

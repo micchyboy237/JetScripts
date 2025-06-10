@@ -2,33 +2,19 @@
 from collections import defaultdict
 import json
 import os
-import re
 import shutil
-import time
-from typing import Dict, List, Optional, Tuple, TypedDict, Union
+from typing import Dict, List, Optional, Tuple, TypedDict
 from datetime import datetime
 import asyncio
 from urllib.parse import unquote, urlparse
 
-from llama_cpp import Llama
-from tqdm import tqdm
-
-from jet.features.nlp_utils.nlp_types import MatchedKeywords
-from jet.features.nlp_utils.word_counts import get_word_counts_lemmatized
 from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.llm.mlx.helpers.base import get_system_date_prompt
 from jet.llm.mlx.mlx_types import EmbedModelType, LLMModelType
 from jet.logger import logger
-from jet.models.tasks.llm_search import search_docs
-# from jet.models.tasks.llm_rerank import rerank_docs
-# from jet.models.tasks.hybrid_search_docs import search_docs
-from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
-from jet.models.tasks.task_types import SimilarityResult
-from jet.models.tasks.utils import initialize_model
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.transformers.link_formatters import LinkFormatter, format_links_for_embedding
 from jet.utils.url_utils import rerank_bm25_plus
-from jet.wordnet.n_grams import get_most_common_ngrams
 from jet.wordnet.text_chunker import truncate_texts
 from jet.vectors.document_types import HeaderDocument
 from jet.vectors.search_with_clustering import search_documents
@@ -40,12 +26,12 @@ from jet.llm.mlx.token_utils import count_tokens, get_tokenizer_fn
 from jet.scrapers.browser.playwright_utils import scrape_multiple_urls
 from jet.scrapers.preprocessor import html_to_markdown
 from jet.scrapers.utils import scrape_links, scrape_published_date, search_data
+# from jet.llm.utils.search_docs import search_docs
+from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
 from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_relevance
 from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
 from jet.wordnet.words import count_words
 from jet.search.searxng import SearchResult
-# from jet.llm.utils.search_docs import search_docs as search_embed_docs
-# from jet.llm.utils.rerank_docs import rerank_docs as rerank_embed_docs
 
 
 class StepBackQueryResponse(TypedDict):
@@ -88,10 +74,9 @@ def get_header_stats(text: str) -> Dict:
 
 def filter_htmls_with_best_combined_mtld(
     url_html_date_tuples: List[Tuple[str, str, Optional[str]]],
-    query: str,
     limit: int = 3,
     min_mtld: float = 100.0
-) -> List[Tuple[str, str, List[HeaderDocument], ReadabilityResult, float, List[SimilarityResult], float, List[ReadabilityResult], float]]:
+) -> List[Tuple[str, str, List[HeaderDocument], ReadabilityResult]]:
     """Filter HTMLs based on MTLD score and header count."""
     logger.info(
         f"Filtering {len(url_html_date_tuples)} HTMLs with min MTLD={min_mtld} and limit={limit}")
@@ -100,62 +85,34 @@ def filter_htmls_with_best_combined_mtld(
         return []
 
     doc_scores = []
-    for url, html, _ in tqdm(url_html_date_tuples, desc="Filtering highest mtld"):
+    for url, html, _ in url_html_date_tuples:
         try:
             logger.debug(f"Processing HTML for URL: {url}")
             docs = get_md_header_docs(html, ignore_links=False)
-            docs = [doc for doc in docs if doc.metadata["header_level"] > 1]
-            header_count = len(docs)
-            logger.debug(f"Found {header_count} headers for {url}")
-            if header_count < 5:
+            h2_count = sum(
+                1 for doc in docs if doc.metadata['header_level'] == 2)
+            logger.debug(f"Found {h2_count} H2 headers for {url}")
+            if h2_count < 5:
                 logger.debug(
-                    f"Skipping {url}: insufficient headers ({header_count} < 5)")
+                    f"Skipping {url}: insufficient H2 headers ({h2_count} < 5)")
                 continue
 
-            doc_texts = [doc.text for doc in docs]
-            docs_text = "\n\n".join(doc_texts)
+            docs_text = "\n\n".join(doc.text for doc in docs)
             readability = analyze_readability(docs_text)
             mtld_score = readability['mtld']
             logger.debug(f"MTLD score for {url}: {mtld_score}")
-            if mtld_score < min_mtld:
-                continue
 
-            readability_results = [
-                analyze_readability(doc.text) for doc in docs]
-            mtld_scores = [readability_result["mtld"]
-                           for readability_result in readability_results]
-            low_mtld = min(mtld_scores)
-            high_mtld = max(mtld_scores)
-            average_mtld = sum(mtld_scores) / len(docs) if docs else 0.0
-            logger.debug(f"Average mtld for {url}: {average_mtld}")
-            # Count matched keywords
-            if average_mtld < 80:
-                continue
-
-            matched_keywords = get_word_counts_lemmatized(
-                f"{query}\n{docs_text}".lower(), min_count=2, as_score=False)
-
-            # model = initialize_model(doc_texts)
-            task = 'Given a web search query, retrieve relevant keywords that can be used as data'
-            keyword_similarity_results = search_docs(
-                query, [" ".join(list(matched_keywords.keys()))], task)
-            keyword_similarity_results = keyword_similarity_results[0]
-            average_matched_score = keyword_similarity_results[0]["score"]
-            logger.debug(
-                f"Average matched score for {url}: {average_matched_score}")
-
-            doc_scores.append((url, html, docs, readability,
-                              mtld_score, keyword_similarity_results, average_matched_score, readability_results, average_mtld))
-
-            logger.debug(
-                f"Added {url} to candidates with MTLD={mtld_score}")
+            if mtld_score >= min_mtld:
+                doc_scores.append((url, html, docs, readability, mtld_score))
+                logger.debug(
+                    f"Added {url} to candidates with MTLD={mtld_score}")
         except (ValueError, KeyError, AttributeError) as e:
-            logger.error(f"Error processing {url}: {str(e)}")
-            raise
+            logger.debug(f"Error processing {url}: {str(e)}")
+            continue
 
     doc_scores.sort(key=lambda x: x[4], reverse=True)
-    filtered = [(url, html, docs, readability, mtld_score, keyword_similarity_results, average_matched_score, readability_results, average_mtld)
-                for url, html, docs, readability, mtld_score, keyword_similarity_results, average_matched_score, readability_results, average_mtld in doc_scores[:limit]]
+    filtered = [(url, html, docs, readability)
+                for url, html, docs, readability, _ in doc_scores[:limit]]
     logger.info(f"Filtered to {len(filtered)} HTMLs with highest MTLD scores")
     return filtered
 
@@ -200,17 +157,8 @@ async def fetch_search_results(query: str, output_dir: str, use_cache: bool = Fa
     return browser_search_results
 
 
-def format_sub_url_dir(url: str) -> str:
-    """Format a URL into a lowercase directory name, replacing hyphens and spaces with underscores."""
-    clean_url = re.sub(r'^(https?://|www\.)|(\?.*)', '', url)
-    formatted = re.sub(r'[- ]+', '_', clean_url).lower()
-    formatted = re.sub(r'[^\w./]', '_', formatted)
-    formatted = re.sub(r'_+', '_', formatted)
-    return formatted.strip('_')
-
-
 async def process_search_results(
-    browser_search_results: List[SearchResult],
+    browser_search_results: List[Dict],
     query: str,
     output_dir: str
 ) -> List[Tuple[str, str, Optional[str]]]:
@@ -224,75 +172,25 @@ async def process_search_results(
     all_url_html_date_tuples = []
     all_links = []
 
-    for result, html in zip(browser_search_results, html_list):
+    for result, html_str in zip(browser_search_results, html_list):
         url = result["url"]
-        if not html:
+        if not html_str:
             logger.debug(f"No HTML content for {url}, skipping")
             continue
 
         if not result.get("publishedDate"):
-            published_date = scrape_published_date(html)
+            published_date = scrape_published_date(html_str)
             result["publishedDate"] = published_date if published_date else None
             logger.debug(f"Scraped published date for {url}: {published_date}")
 
-        links = set(scrape_links(html, url))
+        links = set(scrape_links(html_str, url))
         links = [link for link in links if (
             link != url if isinstance(link, str) else link["url"] != url)]
         all_links.extend(links)
         logger.debug(f"Extracted {len(links)} links from {url}")
 
         all_url_html_date_tuples.append(
-            (url, html, result.get("publishedDate")))
-
-        sub_output_dir = os.path.join(output_dir, format_sub_url_dir(url))
-        save_file(html, f"{sub_output_dir}/docs.html")
-
-        docs = get_md_header_docs(html, ignore_links=False)
-        save_file(docs, f"{sub_output_dir}/docs.json")
-
-        doc_texts = [doc.text for doc in docs]
-        docs_text = "\n\n".join(doc_texts)
-        ids = [doc.id for doc in docs]
-
-        readability = analyze_readability(docs_text)
-        save_file(readability, f"{sub_output_dir}/readability.json")
-
-        readability_per_doc = [analyze_readability(doc.text) for doc in docs]
-        save_file(readability_per_doc,
-                  f"{sub_output_dir}/readability_per_doc.json")
-
-        matched_keywords = get_word_counts_lemmatized(
-            f"{query}\n{docs_text}".lower(), min_count=2, as_score=False)
-        save_file(matched_keywords, f"{sub_output_dir}/matched_keywords.json")
-
-        matched_keywords = get_most_common_ngrams(
-            f"{query}\n{docs_text}".lower(), min_count=2, max_words=10)
-        save_file(matched_keywords,
-                  f"{sub_output_dir}/most_common_ngrams.json")
-
-        try:
-            logger.info("\nInitializing model")
-            # model = initialize_model(doc_texts)
-
-            task = 'Given a web search query, retrieve relevant passages that answer the query'
-            queries = [
-                query
-            ]
-            search_doc_texts = [doc.text for doc in docs]
-            ids = [doc.id for doc in docs]
-
-            search_results = search_docs(
-                query, search_doc_texts, ids=ids)
-            save_file(search_results,
-                      f"{sub_output_dir}/search_results.json")
-        except Exception as e:
-            logger.error(
-                f"Error on initializing model (docs - {len(doc_texts)}): {e}", exc_info=True)
-            continue
-
-        # rerank_results = rerank_docs(query, search_results)
-        # save_file(rerank_results,
-        #           f"{sub_output_dir}/rerank_results.json")
+            (url, html_str, result.get("publishedDate")))
 
     all_links = list(set(all_links))
     save_file(all_links, os.path.join(output_dir, "links.json"))
@@ -316,17 +214,16 @@ async def process_search_results(
 
 def process_documents(
     url_html_date_tuples: List[Tuple[str, str, Optional[str]]],
-    query: str,
     output_dir: str
 ) -> List[HeaderDocument]:
     """Process documents and extract headers."""
     logger.info(f"Processing {len(url_html_date_tuples)} documents")
     all_url_docs_tuples = filter_htmls_with_best_combined_mtld(
-        url_html_date_tuples, query)
+        url_html_date_tuples)
     all_docs = []
     headers = []
 
-    for url, html, docs, readability, mtld_score, keyword_similarity_results, average_matched_score, readability_results, average_mtld in all_url_docs_tuples:
+    for url, html_str, docs, readability in all_url_docs_tuples:
         logger.debug(f"Processing documents for URL: {url}")
         for doc in docs:
             doc.metadata["source_url"] = url
@@ -339,96 +236,6 @@ def process_documents(
     return all_docs
 
 
-def map_search_results_to_docs(search_results: Union[List[SimilarityResult], List[SearchResult]], docs: Union[List[HeaderDocument], List[SearchResult]]) -> Union[List[HeaderDocument], List[SearchResult]]:
-    """Map search results back to original documents.
-
-    Args:
-        search_results: List of search results with document IDs
-        docs: Original list of documents to map back to
-
-    Returns:
-        List of documents that matched the search results
-    """
-    result_ids = {result["id"] for result in search_results}
-    return [doc for doc in docs if doc["id"] in result_ids]
-
-
-def filter_browser_search_results(
-    browser_search_results: List[SearchResult],
-    query: str,
-    output_dir: str
-    # embed_model: str,
-    # llm_model: str,
-    # top_k: int,
-) -> List[SearchResult]:
-    task = 'Given a web search query, retrieve relevant passages that answer the query'
-    queries = [
-        query
-    ]
-    search_engine_documents = [
-        "\n".join([
-            f"Title: {result["title"]}",
-            f"Content: {result["content"]}",
-        ]).strip()
-        for result in browser_search_results
-        if "content" in result
-    ]
-    ids = [
-        result["id"]
-        for result in browser_search_results
-        if "content" in result
-    ]
-
-    # Initialize model
-    logger.info("\nInitializing model")
-    # model = initialize_model(search_engine_documents)
-
-    # Initial search
-    logger.info("\nStarting search engine docs...")
-    search_start_time = time.time()
-    search_results = search_docs(
-        query, search_engine_documents, ids=ids)
-    search_results = search_results[0]
-    for res in search_results:
-        print(f"\nQuery: {query} (Search Engine Results)")
-        print(
-            f"Rank: {res['rank']}, Score: {res['score']:.4f}, Text: {res['text']}")
-    search_execution_time = time.time() - search_start_time
-    save_file({
-        "execution_time": f"{search_execution_time:.2f}s",
-        "query": query,
-        "count": len(search_results),
-        "results": search_results
-    }, f"{output_dir}/filtered_browser_search_results.json")
-    mapped_searched_docs = map_search_results_to_docs(
-        search_results, browser_search_results)
-
-    # # Rerank results
-    # logger.info("\nStarting rerank docs...")
-    # rerank_start_time = time.time()
-    # rerank_results = rerank_docs(query, search_results)
-    # for query_idx, query_results in enumerate(rerank_results):
-    #     print(f"\nQuery: {queries[query_idx]} (Reranked Results)")
-    #     for res in query_results:
-    #         print(
-    #             f"Rank: {res['rank']}, Score: {res['score']:.4f}, Text: {res['text']}")
-    # rerank_execution_time = time.time() - rerank_start_time
-    # save_file({
-    #     "search_execution_time": f"{search_execution_time:.2f}s",
-    #     "rerank_execution_time": f"{rerank_execution_time:.2f}s",
-    #     "total_execution_time": f"{(search_execution_time + rerank_execution_time):.2f}s",
-    #     "query": query,
-    #     "count": len(rerank_results),
-    #     "results": rerank_results
-    # }, f"{output_dir}/filtered_browser_rerank_results.json")
-
-    # mapped_reranked_docs = map_search_results_to_docs(
-    #     rerank_results[0], browser_search_results)
-    # mapped_reranked_docs = mapped_reranked_docs[:10]
-
-    return mapped_searched_docs
-
-
 def search_and_group_documents(
     query: str,
     all_docs: List[HeaderDocument],
@@ -436,92 +243,49 @@ def search_and_group_documents(
     llm_model: str,
     top_k: int,
     output_dir: str
-) -> Tuple[List[HeaderDocument], str]:
+) -> Tuple[List[Dict], str]:
     """Search documents and group results."""
     logger.info(
         f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}")
     docs_to_search = [
         doc for doc in all_docs if doc.metadata["header_level"] != 1]
-    parent_headers = [
-        (doc.metadata["parent_header"] or "").lstrip('#').strip() for doc in docs_to_search
-    ]
-    headers = [
-        doc.metadata["header"].lstrip('#').strip() for doc in docs_to_search
-    ]
-    contents = [
-        doc.metadata["content"].lstrip('#').strip() for doc in docs_to_search
-    ]
     logger.debug(
         f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1)")
+    search_doc_results = search_docs(
+        query=query,
+        documents=[doc.text for doc in docs_to_search],
+        ids=[doc.id_ for doc in docs_to_search],
+        model=embed_model,
+        top_k=None,
+    )
 
-    # Setup query and documents
-    task = 'Given a web search query, retrieve relevant passages that answer the query'
-    queries = [
-        query
-    ]
-    header_documents = [
-        "\n".join([
-            doc["metadata"]["parent_header"] or "",
-            doc["metadata"]["header"],
-        ]).strip()
-        for doc in all_docs
-    ]
-    content_documents = [
-        "\n".join([
-            doc["metadata"]["content"],
-        ]).strip()
-        for doc in all_docs
-    ]
-    ids = [doc.id for doc in all_docs]
+    save_file(
+        {"query": query, "count": len(
+            search_doc_results), "results": search_doc_results},
+        os.path.join(output_dir, "search_doc_results.json")
+    )
+    logger.info(
+        f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
 
-    # Initialize model
-    # logger.info("\nInitializing model")
-    # model = initialize_model(header_documents)
+    search_result_dict = {result["id"]
+        : result for result in search_doc_results}
+    sorted_doc_results = []
+    for doc in all_docs:
+        if doc.metadata["header_level"] != 1 and count_words(doc.text) >= 10:
+            sorted_doc_results.append({
+                **doc.metadata,
+                "text": doc.text,
+                "is_top": doc.id_ in search_result_dict
+            })
 
-    # Initial search
-    logger.info("\nStarting search header docs...")
-    search_start_time = time.time()
-    search_results = search_docs(
-        query, all_docs, ids=ids)
-    search_results = search_results[0]
-    for res in search_results:
-        print(f"\nQuery: {query} (Search Engine Results)")
-        print(
-            f"Rank: {res['rank']}, Score: {res['score']:.4f}, Text: {res['text']}")
-    search_execution_time = time.time() - search_start_time
-    save_file({
-        "execution_time": f"{search_execution_time:.2f}s",
-        "query": query,
-        "count": len(search_results),
-        "results": search_results
-    }, f"{output_dir}/search_results.json")
-    mapped_searched_docs = map_search_results_to_docs(
-        search_results, docs_to_search)
+    grouped_by_source_and_parent = defaultdict(list)
+    for result in sorted_doc_results:
+        key = (result["source_url"], result.get(
+            "parent_header", ""), result["is_top"])
+        grouped_by_source_and_parent[key].append(result)
 
-    # # Rerank results
-    # logger.info("\nStarting rerank docs...")
-    # rerank_start_time = time.time()
-    # rerank_results = rerank_docs(query, search_results)
-    # for query_idx, query_results in enumerate(rerank_results):
-    #     print(f"\nQuery: {queries[query_idx]} (Reranked Results)")
-    #     for res in query_results:
-    #         print(
-    #             f"Rank: {res['rank']}, Score: {res['score']:.4f}, Text: {res['text']}")
-    # rerank_execution_time = time.time() - rerank_start_time
-    # save_file({
-    #     "search_execution_time": f"{search_execution_time:.2f}s",
-    #     "rerank_execution_time": f"{rerank_execution_time:.2f}s",
-    #     "total_execution_time": f"{(search_execution_time + rerank_execution_time):.2f}s",
-    #     "query": query,
-    #     "count": len(rerank_results),
-    #     "results": rerank_results
-    # }, f"{output_dir}/rerank_results.json")
-
-    # mapped_reranked_docs = map_search_results_to_docs(
-    #     rerank_results[0], docs_to_search)
-    # mapped_reranked_docs = mapped_reranked_docs[:5]
-
-    contexts = [doc["text"] for doc in mapped_searched_docs][:top_k]
+    contexts = [doc["text"]
+                for doc in sorted_doc_results if doc["is_top"]][:top_k]
     context = "\n\n".join(contexts)
     save_file(context, os.path.join(output_dir, "context.md"))
     logger.debug(f"Generated context with {len(contexts)} segments")
@@ -533,7 +297,7 @@ def search_and_group_documents(
     }, os.path.join(output_dir, "contexts.json"))
     logger.info(
         f"Saved context with {context_tokens} tokens to {output_dir}/contexts.json")
-    return mapped_searched_docs, context
+    return sorted_doc_results, context
 
 
 def generate_response(
@@ -614,7 +378,7 @@ async def main():
     """Main function to orchestrate the search and response generation."""
     query = "List all ongoing and upcoming isekai anime 2025."
     top_k = 10
-    embed_model = "all-MiniLM-L12-v2"
+    embed_model = "static-retrieval-mrl-en-v1"
     llm_model = "llama-3.2-3b-instruct-4bit"
     seed = 45
     use_cache = False
@@ -624,12 +388,10 @@ async def main():
     mlx, _ = initialize_search_components(llm_model, embed_model, seed)
     # query = rewrite_query(query, llm_model)
     browser_search_results = await fetch_search_results(query, output_dir, use_cache=use_cache)
-    filtered_browser_search_results = filter_browser_search_results(
-        browser_search_results, query, output_dir)
-    url_html_date_tuples = await process_search_results(filtered_browser_search_results, query, output_dir)
+    url_html_date_tuples = await process_search_results(browser_search_results, query, output_dir)
     url_html_date_tuples.sort(key=lambda x: x[2] or "", reverse=True)
-    all_docs = process_documents(url_html_date_tuples, query, output_dir)
-    doc_results, context = search_and_group_documents(
+    all_docs = process_documents(url_html_date_tuples, output_dir)
+    sorted_doc_results, context = search_and_group_documents(
         query, all_docs, embed_model, llm_model, top_k, output_dir)
     response = generate_response(query, context, llm_model, mlx, output_dir)
     evaluate_results(query, context, response, llm_model, output_dir)
