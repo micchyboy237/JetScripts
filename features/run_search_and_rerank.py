@@ -253,7 +253,7 @@ def search_and_group_documents(
         f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1)")
     search_doc_results = search_docs(
         query=query,
-        documents=[doc.text for doc in docs_to_search],
+        documents=docs_to_search,
         ids=[doc.id_ for doc in docs_to_search],
         model=embed_model,
         top_k=None,

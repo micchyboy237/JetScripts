@@ -6,8 +6,8 @@ from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
 
 
 if __name__ == "__main__":
-    # docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/models/tasks/data/browser_search_texts.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
+    # docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/models/tasks/data/browser_search_texts.json"
     query = "List all ongoing and upcoming isekai anime 2025."
     docs = load_file(docs_file)
     results = search_docs(query, docs, rerank_top_k=10)
