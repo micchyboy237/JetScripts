@@ -608,15 +608,15 @@ if __name__ == "__main__":
         "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot",
         "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents",
         "/Users/jethroestrada/Desktop/External_Projects/AI/eval_agents",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025",
         "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025",
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/all-rag-techniques",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/RAG_Techniques/all_rag_techniques",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/RAG_Techniques/evaluation",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx-vlm/examples"
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/rag-cookbooks"
     ]
     include_files = [
         # "memgraph.ipynb",
