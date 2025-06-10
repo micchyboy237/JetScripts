@@ -135,10 +135,10 @@ def filter_htmls_with_best_combined_mtld(
             matched_keywords = get_word_counts_lemmatized(
                 f"{query}\n{docs_text}".lower(), min_count=2, as_score=False)
 
-            model = initialize_model(doc_texts)
+            # model = initialize_model(doc_texts)
             task = 'Given a web search query, retrieve relevant keywords that can be used as data'
             keyword_similarity_results = search_docs(
-                model, [query], [" ".join(list(matched_keywords.keys()))], task)
+                query, [" ".join(list(matched_keywords.keys()))], task)
             keyword_similarity_results = keyword_similarity_results[0]
             average_matched_score = keyword_similarity_results[0]["score"]
             logger.debug(
@@ -272,7 +272,7 @@ async def process_search_results(
 
         try:
             logger.info("\nInitializing model")
-            model = initialize_model(doc_texts)
+            # model = initialize_model(doc_texts)
 
             task = 'Given a web search query, retrieve relevant passages that answer the query'
             queries = [
@@ -282,7 +282,7 @@ async def process_search_results(
             ids = [doc.id for doc in docs]
 
             search_results = search_docs(
-                model, queries, search_doc_texts, task, ids=ids, threshold=0.5)
+                query, search_doc_texts, ids=ids)
             save_file(search_results,
                       f"{sub_output_dir}/search_results.json")
         except Exception as e:
@@ -290,7 +290,7 @@ async def process_search_results(
                 f"Error on initializing model (docs - {len(doc_texts)}): {e}", exc_info=True)
             continue
 
-        # rerank_results = rerank_docs(model, queries, search_results)
+        # rerank_results = rerank_docs(query, search_results)
         # save_file(rerank_results,
         #           f"{sub_output_dir}/rerank_results.json")
 
@@ -381,13 +381,13 @@ def filter_browser_search_results(
 
     # Initialize model
     logger.info("\nInitializing model")
-    model = initialize_model(search_engine_documents)
+    # model = initialize_model(search_engine_documents)
 
     # Initial search
     logger.info("\nStarting search engine docs...")
     search_start_time = time.time()
     search_results = search_docs(
-        model, queries, search_engine_documents, task, ids=ids, threshold=0.5)
+        query, search_engine_documents, ids=ids)
     search_results = search_results[0]
     for res in search_results:
         print(f"\nQuery: {query} (Search Engine Results)")
@@ -406,7 +406,7 @@ def filter_browser_search_results(
     # # Rerank results
     # logger.info("\nStarting rerank docs...")
     # rerank_start_time = time.time()
-    # rerank_results = rerank_docs(model, queries, search_results)
+    # rerank_results = rerank_docs(query, search_results)
     # for query_idx, query_results in enumerate(rerank_results):
     #     print(f"\nQuery: {queries[query_idx]} (Reranked Results)")
     #     for res in query_results:
@@ -482,7 +482,7 @@ def search_and_group_documents(
     logger.info("\nStarting search header docs...")
     search_start_time = time.time()
     search_results = search_docs(
-        model, queries, header_documents, task, ids=ids, threshold=0.5)
+        query, all_docs, ids=ids)
     search_results = search_results[0]
     for res in search_results:
         print(f"\nQuery: {query} (Search Engine Results)")
@@ -501,7 +501,7 @@ def search_and_group_documents(
     # # Rerank results
     # logger.info("\nStarting rerank docs...")
     # rerank_start_time = time.time()
-    # rerank_results = rerank_docs(model, queries, search_results)
+    # rerank_results = rerank_docs(query, search_results)
     # for query_idx, query_results in enumerate(rerank_results):
     #     print(f"\nQuery: {queries[query_idx]} (Reranked Results)")
     #     for res in query_results:
