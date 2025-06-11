@@ -26,7 +26,7 @@ if __name__ == '__main__':
     start_time = time.time()
 
     grouped_similar_texts = group_similar_texts(
-        documents, threshold=0.5, model_name=model_name)
+        documents, threshold=0.7, model_name=model_name)
 
     # End timing
     end_time = time.time()
