@@ -244,13 +244,17 @@ def search_and_group_documents(
     top_k: int,
     output_dir: str
 ) -> Tuple[List[Dict], str]:
-    """Search documents and group results."""
+    """Search documents and group results with source_url at the top of each group."""
     logger.info(
         f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}")
+
+    # Filter out header level 1 documents
     docs_to_search = [
         doc for doc in all_docs if doc.metadata["header_level"] != 1]
     logger.debug(
         f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1)")
+
+    # Perform search
     search_doc_results = search_docs(
         query=query,
         documents=docs_to_search,
@@ -259,7 +263,6 @@ def search_and_group_documents(
         top_k=None,
         rerank_top_k=top_k
     )
-
     save_file(
         {"query": query, "count": len(
             search_doc_results), "results": search_doc_results},
@@ -268,22 +271,45 @@ def search_and_group_documents(
     logger.info(
         f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
 
+    # Sort results by source_url and doc_index
     sorted_doc_results = sorted(
-        search_doc_results, key=lambda x: x["doc_index"])
+        search_doc_results,
+        key=lambda x: (x["document"]["metadata"]["source_url"], x["doc_index"])
+    )
+    save_file(
+        {"query": query, "count": len(
+            sorted_doc_results), "results": sorted_doc_results},
+        os.path.join(output_dir, "sorted_doc_results.json")
+    )
 
-    contexts = [doc["text"]
-                for doc in sorted_doc_results][:top_k]
+    # Group contexts by source_url
+    contexts: List[str] = []
+    current_url: str | None = None
+    for doc in sorted_doc_results[:top_k]:
+        source_url = doc["document"]["metadata"]["source_url"]
+        if source_url != current_url:
+            contexts.append(f"<!-- Source: {source_url} -->")
+            current_url = source_url
+            logger.debug(f"Added source_url header: {source_url}")
+        contexts.append(doc["text"])
+
+    # Join contexts with double newlines
     context = "\n\n".join(contexts)
     save_file(context, os.path.join(output_dir, "context.md"))
     logger.debug(f"Generated context with {len(contexts)} segments")
 
+    # Save context metadata
     context_tokens = count_tokens(llm_model, context, prevent_total=True)
-    save_file({
-        "total_tokens": context_tokens,
-        "contexts": contexts
-    }, os.path.join(output_dir, "contexts.json"))
+    save_file(
+        {
+            "total_tokens": context_tokens,
+            "contexts": contexts
+        },
+        os.path.join(output_dir, "contexts.json")
+    )
     logger.info(
         f"Saved context with {context_tokens} tokens to {output_dir}/contexts.json")
+
     return sorted_doc_results, context
 
 
