@@ -277,7 +277,7 @@ compare_rag_techniques(query, docs)
 ### Define the cross encoder class
 
 ```python
-cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
+cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L6-v2')
 
 class CrossEncoderRetriever(BaseRetriever, BaseModel):
     vectorstore: Any = Field(description="Vector store for initial retrieval")

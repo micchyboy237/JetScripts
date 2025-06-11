@@ -27,7 +27,7 @@ if __name__ == "__main__":
         query=query,
         headers=headers,
         model_name="all-MiniLM-L12-v2",
-        rerank_model="cross-encoder/ms-marco-MiniLM-L-6-v2",
+        rerank_model="cross-encoder/ms-marco-MiniLM-L6-v2",
         device="mps" if torch.backends.mps.is_available() else "cpu",
         top_k=20,
         num_results=5,

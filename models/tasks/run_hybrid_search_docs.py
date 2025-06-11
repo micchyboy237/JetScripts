@@ -16,7 +16,7 @@ if __name__ == "__main__":
         documents=documents,
         task_description="Retrieve relevant anime documents",
         model="static-retrieval-mrl-en-v1",
-        rerank_model="cross-encoder/ms-marco-MiniLM-L-6-v2",
+        rerank_model="cross-encoder/ms-marco-MiniLM-L6-v2",
         max_length=512,
         ids=[],
         threshold=0.0

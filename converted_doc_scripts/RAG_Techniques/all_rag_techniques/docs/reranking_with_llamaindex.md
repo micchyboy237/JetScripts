@@ -225,7 +225,7 @@ query_engine_w_cross_encoder = index.as_query_engine(
     similarity_top_k=10,
     node_postprocessors=[
         SentenceTransformerRerank(
-            model='cross-encoder/ms-marco-MiniLM-L-6-v2',
+            model='cross-encoder/ms-marco-MiniLM-L6-v2',
             top_n=5
         )
     ],

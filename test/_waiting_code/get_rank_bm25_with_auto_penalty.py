@@ -80,7 +80,7 @@ def fast_rerank(query: str, documents: List[str], ids: List[str]) -> List[Dict]:
 
 if __name__ == "__main__":
     # Load optimized model for Mac M1
-    MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L6-v2"
     device = "mps" if torch.backends.mps.is_available() else "cpu"
 
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)

@@ -48,7 +48,7 @@ class SentenceTransformerExamples:
     def re_ranking(self, queries, candidate_docs):
         from sentence_transformers import CrossEncoder
         self.re_ranking_model = CrossEncoder(
-            'cross-encoder/ms-marco-MiniLM-L-6-v2', max_length=512)
+            'cross-encoder/ms-marco-MiniLM-L6-v2', max_length=512)
 
         ranked_docs = self.re_ranking_model.predict(
             [(query, doc) for query in queries for doc in candidate_docs])

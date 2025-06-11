@@ -132,7 +132,7 @@ def main():
     logger.info("Initializing SentenceTransformer and CrossEncoder models")
     global embedder, cross_encoder
     embedder = SentenceTransformer("all-MiniLM-L12-v2")
-    cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+    cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
 
     # Cache setup
     logger.info("Checking for cached query results")
