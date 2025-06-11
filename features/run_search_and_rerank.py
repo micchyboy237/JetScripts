@@ -244,20 +244,20 @@ def search_and_group_documents(
     top_k: int,
     output_dir: str
 ) -> Tuple[List[Dict], str]:
-    """Search documents and group results by source_url and parent_header, sorted by doc_index."""
+    """Search documents and group results."""
     logger.info(
         f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}")
     docs_to_search = [
         doc for doc in all_docs if doc.metadata["header_level"] != 1]
     logger.debug(
         f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1)")
-
     search_doc_results = search_docs(
         query=query,
         documents=docs_to_search,
         ids=[doc.id_ for doc in docs_to_search],
         model=embed_model,
         top_k=None,
+        rerank_top_k=top_k
     )
 
     save_file(
@@ -268,55 +268,11 @@ def search_and_group_documents(
     logger.info(
         f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
 
-    # Group documents by source_url and parent_header
-    grouped_docs = defaultdict(lambda: defaultdict(list))
-    for doc in all_docs:
-        if doc.metadata["header_level"] != 1 and count_words(doc.text) >= 10:
-            source_url = doc.metadata["source_url"] or "unknown"
-            parent_header = doc.metadata["parent_header"] or "none"
-            grouped_docs[source_url][parent_header].append({
-                **doc.metadata,
-                "text": doc.text,
-            })
+    sorted_doc_results = sorted(
+        search_doc_results, key=lambda x: x["doc_index"])
 
-    # Sort groups by doc_index and build context
-    sorted_doc_results = []
-    contexts = []
-    doc_count = 0
-    # Sort source_urls for consistency
-    for source_url in sorted(grouped_docs.keys()):
-        source_context = [f"Source: {source_url}"]
-        # Sort parent_headers
-        for parent_header in sorted(grouped_docs[source_url].keys()):
-            sorted_group = sorted(
-                grouped_docs[source_url][parent_header],
-                key=lambda x: x["doc_index"]
-            )
-            sorted_doc_results.extend(sorted_group)
-            if doc_count >= top_k:
-                break
-            parent_context = [f"Parent Header: {parent_header}"]
-            for doc in sorted_group:
-                if doc_count >= top_k:
-                    break
-                parent_context.append(f"Header: {doc['header']}")
-                parent_context.append(f"Content: {doc['text']}")
-                doc_count += 1
-            source_context.extend(parent_context)
-            logger.debug(
-                f"Added {len(parent_context)-1} documents for source_url: {source_url}, parent_header: {parent_header}")
-        contexts.extend(source_context)
-        if doc_count >= top_k:
-            break
-
-    save_file(
-        {"query": query, "count": len(
-            sorted_doc_results), "results": sorted_doc_results},
-        os.path.join(output_dir, "sorted_doc_results.json")
-    )
-    logger.info(
-        f"Saved {len(sorted_doc_results)} sorted results to {output_dir}/sorted_doc_results.json")
-
+    contexts = [doc["text"]
+                for doc in sorted_doc_results][:top_k]
     context = "\n\n".join(contexts)
     save_file(context, os.path.join(output_dir, "context.md"))
     logger.debug(f"Generated context with {len(contexts)} segments")
@@ -328,7 +284,6 @@ def search_and_group_documents(
     }, os.path.join(output_dir, "contexts.json"))
     logger.info(
         f"Saved context with {context_tokens} tokens to {output_dir}/contexts.json")
-
     return sorted_doc_results, context
 
 
