@@ -1,7 +1,7 @@
 import os
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
-from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
+from jet.models.tasks.hybrid_text_search_with_bm25 import search_texts
 
 
 if __name__ == "__main__":
@@ -11,8 +11,8 @@ if __name__ == "__main__":
 
     query = "List all ongoing and upcoming isekai anime 2025."
     docs = load_file(docs_file)
-    search_output = search_docs(
-        query, docs, top_k=None, rerank_top_k=10, return_raw_scores=True)
+    search_output = search_texts(
+        query, docs, top_k=None, rerank_top_k=10)
 
     # Unpack the tuple if return_raw_scores is True
     results, raw_scores = search_output if isinstance(
