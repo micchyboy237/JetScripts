@@ -89,12 +89,12 @@ def filter_htmls_with_best_combined_mtld(
         try:
             logger.debug(f"Processing HTML for URL: {url}")
             docs = get_md_header_docs(html, ignore_links=False)
-            h2_count = sum(
-                1 for doc in docs if doc.metadata['header_level'] == 2)
-            logger.debug(f"Found {h2_count} H2 headers for {url}")
-            if h2_count < 5:
+            docs = [doc for doc in docs if doc.metadata["header_level"] > 1]
+            header_count = len(docs)
+            logger.debug(f"Found {header_count} headers for {url}")
+            if header_count < 5:
                 logger.debug(
-                    f"Skipping {url}: insufficient H2 headers ({h2_count} < 5)")
+                    f"Skipping {url}: insufficient headers ({header_count} < 5)")
                 continue
 
             docs_text = "\n\n".join(doc.text for doc in docs)
