@@ -285,7 +285,7 @@ def search_and_group_documents(
     # Group contexts by source_url
     contexts: List[str] = []
     current_url: str | None = None
-    for doc in sorted_doc_results[:top_k]:
+    for doc in sorted_doc_results:
         source_url = doc["document"]["metadata"]["source_url"]
         if source_url != current_url:
             contexts.append(f"<!-- Source: {source_url} -->")
