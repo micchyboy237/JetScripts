@@ -14,9 +14,9 @@ if __name__ == '__main__':
     docs = load_file(docs_file)
     documents = [
         "\n".join([
-            doc["metadata"].get("parent_header") or "",
-            doc["metadata"]["header"],
-            doc["metadata"]["content"]
+            # doc["metadata"].get("parent_header") or "",
+            doc["metadata"]["header"].lstrip('#').strip(),
+            # doc["metadata"]["content"]
         ]).strip()
         for doc in docs
     ]
