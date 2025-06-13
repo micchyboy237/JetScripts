@@ -2,8 +2,8 @@ from typing import Union, List
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
 from typing import List, Dict, Any, Optional, Callable, Union, TypedDict
+from jet.models.embeddings.base import generate_embeddings
 from jet.vectors.document_types import HeaderDocument
-from jet.token.token_utils import split_headers
 from jet.file.utils import load_file, save_file
 import os
 from unittest.mock import Mock
@@ -13,87 +13,7 @@ import numpy as np
 from typing import List, Dict, Any, Optional
 from jet.vectors.document_types import HeaderDocument, HeaderMetadata
 from jet.logger import logger
-
-
-def chunk_headers(docs: List[HeaderDocument], max_tokens: int = 500) -> List[HeaderDocument]:
-    """
-    Chunk documents into smaller HeaderDocument objects with generated headers.
-
-    Args:
-        docs: List of HeaderDocument objects to chunk.
-        max_tokens: Maximum token count per chunk (approximated by word count).
-
-    Returns:
-        List of chunked HeaderDocument objects with headers and metadata.
-    """
-    logger.debug("Starting chunk_headers with %d documents", len(docs))
-    chunked_docs: List[HeaderDocument] = []
-
-    for doc in docs:
-        chunk_index = 0  # Reset chunk_index for each document
-        metadata = HeaderMetadata(**doc.metadata)
-        text_lines = metadata.get("texts", doc.text.splitlines())
-        current_chunk = []
-        current_tokens = 0
-        parent_header = metadata.get("parent_header", "")
-        doc_index = metadata.get("doc_index", 0)
-
-        for line in text_lines:
-            # Approximate token count (1 word ≈ 1.3 tokens)
-            line_tokens = len(line.split()) * 1.3
-            if current_tokens + line_tokens > max_tokens and current_chunk:
-                # Create a new chunk
-                chunk_text = "\n".join(current_chunk)
-                header = current_chunk[0][:100] + \
-                    "..." if current_chunk else ""
-                chunked_docs.append(HeaderDocument(
-                    id=f"{doc.id}_chunk_{chunk_index}",
-                    text=chunk_text,
-                    metadata={
-                        "header": header,
-                        "parent_header": parent_header,
-                        "header_level": metadata.get("header_level", 0) + 1,
-                        "content": chunk_text,
-                        "doc_index": doc_index,
-                        "chunk_index": chunk_index,
-                        "texts": current_chunk,
-                        "tokens": round(current_tokens, 2)
-                    }
-                ))
-                logger.debug("Created chunk %d for doc %s: header=%s",
-                             chunk_index, doc.id, header)
-                chunk_index += 1
-                current_chunk = [line]
-                current_tokens = line_tokens
-            else:
-                current_chunk.append(line)
-                current_tokens += line_tokens
-
-        # Add remaining chunk
-        if current_chunk:
-            chunk_text = "\n".join(current_chunk)
-            header = current_chunk[0][:100] + "..." if current_chunk else ""
-            chunked_docs.append(HeaderDocument(
-                id=f"{doc.id}_chunk_{chunk_index}",
-                text=chunk_text,
-                metadata={
-                    "header": header,
-                    "parent_header": parent_header,
-                    "header_level": metadata.get("header_level", 0) + 1,
-                    "content": chunk_text,
-                    "doc_index": doc_index,
-                    "chunk_index": chunk_index,
-                    "texts": current_chunk,
-                    "tokens": round(current_tokens, 2)
-                }
-            ))
-            logger.debug("Created final chunk %d for doc %s: header=%s",
-                         chunk_index, doc.id, header)
-            chunk_index += 1
-
-    logger.info("Generated %d chunks from %d documents",
-                len(chunked_docs), len(docs))
-    return chunked_docs
+from jet.wordnet.text_chunker import chunk_headers
 
 
 def search_docs(
@@ -181,6 +101,7 @@ def search_docs(
             "rank": None,  # Will be set after sorting
             "doc_index": metadata.get("doc_index", 0),
             "chunk_index": metadata.get("chunk_index", 0),
+            "source_url": metadata.get("source_url", None),
             "tokens": metadata.get("tokens", None),
             "score": float(avg_score),
             "text": doc.text,
@@ -205,51 +126,6 @@ def search_docs(
 
 # Pytest tests
 
-
-class TestChunkHeaders:
-    def test_chunk_headers_single_doc(self):
-        doc = HeaderDocument(
-            id="doc1",
-            text="Line 1\nLine 2\nLine 3\nLine 4",
-            metadata={"doc_index": 1, "parent_header": "Parent"}
-        )
-        # Small max_tokens for testing
-        result = chunk_headers([doc], max_tokens=2)
-        expected = [
-            HeaderDocument(
-                id="doc1_chunk_0",
-                text="Line 1\nLine 2",
-                metadata={
-                    "header": "Line 1...",
-                    "parent_header": "Parent",
-                    "header_level": 1,
-                    "content": "Line 1\nLine 2",
-                    "doc_index": 1,
-                    "chunk_index": 0,
-                    "texts": ["Line 1", "Line 2"]
-                }
-            ),
-            HeaderDocument(
-                id="doc1_chunk_1",
-                text="Line 3\nLine 4",
-                metadata={
-                    "header": "Line 3...",
-                    "parent_header": "Parent",
-                    "header_level": 1,
-                    "content": "Line 3\nLine 4",
-                    "doc_index": 1,
-                    "chunk_index": 1,
-                    "texts": ["Line 3", "Line 4"]
-                }
-            )
-        ]
-        for r, e in zip(result, expected):
-            assert r.id == e.id
-            assert r.text == e.text
-            assert r.metadata == e.metadata
-        logger.debug("Test chunk_headers_single_doc passed")
-
-
 class TestSearchDocs:
     def test_search_docs(self):
         embed_func = Mock(side_effect=lambda x: [
@@ -264,6 +140,8 @@ class TestSearchDocs:
             "id": "doc1",
             "rank": 1,
             "doc_index": 1,
+            "chunk_index": 0,
+            "source_url": None,
             "score": 0.0,  # Cosine similarity of orthogonal vectors
             "text": "Test content",
             "header": "Test header",
@@ -274,84 +152,6 @@ class TestSearchDocs:
         }]
         assert result == expected
         logger.debug("Test search_docs passed")
-
-
-def generate_embeddings(
-    input_data: Union[str, List[str]],
-    model: str = "static-retrieval-mrl-en-v1",
-    batch_size: int = 32,
-    show_progress: bool = False
-) -> Union[List[float], List[List[float]]]:
-    """
-    Generate embeddings for a single string or list of strings using SentenceTransformer.
-
-    Args:
-        input_data: A single string or list of strings to embed.
-        model: Name of the SentenceTransformer model to use.
-        batch_size: Batch size for embedding multiple strings.
-        show_progress: Whether to display a progress bar for batch processing.
-
-    Returns:
-        List[float] for a single string input, or List[List[float]] for a list of strings.
-    """
-    logger.info("Generating embeddings for input type: %s, model: %s, show_progress: %s",
-                type(input_data), model, show_progress)
-
-    try:
-        # Initialize SentenceTransformer with ONNX backend for Mac M1 compatibility
-        embedder = SentenceTransformer(model, device="cpu", backend="onnx")
-        logger.debug(
-            "Embedding model initialized with device: %s", embedder.device)
-
-        if isinstance(input_data, str):
-            # Handle single string input
-            logger.debug("Processing single string input: %s", input_data[:50])
-            embedding = embedder.encode(input_data, convert_to_numpy=True)
-            embedding = np.ascontiguousarray(embedding.astype(np.float32))
-            logger.debug("Generated embedding shape: %s", embedding.shape)
-            return embedding.tolist()
-
-        elif isinstance(input_data, list) and all(isinstance(item, str) for item in input_data):
-            # Handle list of strings input
-            logger.debug("Processing %d strings in batches of %d",
-                         len(input_data), batch_size)
-            if not input_data:
-                logger.info(
-                    "Empty input list, returning empty list of embeddings")
-                return []
-
-            embeddings = []
-            # Use tqdm for progress bar if show_progress is True
-            iterator = range(0, len(input_data), batch_size)
-            if show_progress:
-                iterator = tqdm(iterator, desc="Embedding texts", total=len(
-                    range(0, len(input_data), batch_size)))
-
-            for i in iterator:
-                batch = input_data[i:i + batch_size]
-                logger.debug("Encoding batch %d-%d", i,
-                             min(i + batch_size, len(input_data)))
-                batch_embeddings = embedder.encode(
-                    batch,
-                    convert_to_numpy=True,
-                    batch_size=batch_size
-                )
-                batch_embeddings = np.ascontiguousarray(
-                    batch_embeddings.astype(np.float32))
-                embeddings.extend(batch_embeddings.tolist())
-
-            logger.debug("Generated embeddings shape: (%d, %d)", len(
-                embeddings), len(embeddings[0]) if embeddings else 0)
-            return embeddings
-
-        else:
-            logger.error(
-                "Invalid input type: %s, expected str or List[str]", type(input_data))
-            raise ValueError("Input must be a string or a list of strings")
-
-    except Exception as e:
-        logger.error("Failed to generate embeddings: %s", str(e))
-        raise
 
 
 if __name__ == "__main__":

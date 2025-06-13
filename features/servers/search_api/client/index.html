@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Search App</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind for dark mode -->
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {},
+        },
+      };
+    </script>
+    <!-- React and ReactDOM via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.20.15/babel.min.js"></script>
+  </head>
+  <body
+    class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col items-center justify-center"
+  >
+    <div id="root"></div>
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+
+      // Step Component
+      const StepItem = ({ step }) => {
+        const { step_title, step_result } = step;
+        return (
+          <li className="mb-2 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+            <span className="font-semibold text-blue-600 dark:text-blue-400">
+              {step_title}
+            </span>
+            {step_result && (
+              <pre className="mt-1 text-sm text-gray-700 dark:text-gray-300 overflow-x-auto">
+                {JSON.stringify(step_result, null, 2)}
+              </pre>
+            )}
+          </li>
+        );
+      };
+
+      // Main App Component
+      const App = () => {
+        const [steps, setSteps] = useState([]);
+        const [isLoading, setIsLoading] = useState(false);
+        const [error, setError] = useState(null);
+        const [theme, setTheme] = useState("light");
+
+        // Detect system theme
+        useEffect(() => {
+          const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+          const handleChange = () => {
+            setTheme(mediaQuery.matches ? "dark" : "light");
+            document.documentElement.classList.toggle(
+              "dark",
+              mediaQuery.matches
+            );
+          };
+          handleChange();
+          mediaQuery.addListener(handleChange);
+          return () => mediaQuery.removeListener(handleChange);
+        }, []);
+
+        // Handle search
+        const handleSearch = async (event) => {
+          event.preventDefault(); // Prevent default behavior
+          setIsLoading(true);
+          setError(null);
+          setSteps([]);
+
+          try {
+            const response = await fetch("http://localhost:8000/search", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/x-ndjson",
+              },
+              body: JSON.stringify({
+                query: "List top 10 isekai anime today.",
+                top_k: 10,
+                embed_model: "static-retrieval-mrl-en-v1",
+                llm_model: "llama-3.2-1b-instruct-4bit",
+                seed: 42,
+                use_cache: true,
+                min_mtld: 100.0,
+                stream: true,
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP error: ${response.status}`);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split("\n");
+              buffer = lines.pop(); // Keep incomplete line
+
+              for (const line of lines) {
+                if (line.trim()) {
+                  try {
+                    const step = JSON.parse(line);
+                    setSteps((prev) => [...prev, step]);
+                  } catch (e) {
+                    console.error("JSON parse error:", e, "Line:", line);
+                  }
+                }
+              }
+            }
+          } catch (err) {
+            setError(`Search failed: ${err.message}`);
+          } finally {
+            setIsLoading(false);
+          }
+        };
+
+        return (
+          <div className="w-full max-w-2xl p-6">
+            <h1 className="text-2xl font-bold mb-4 text-center">Search App</h1>
+            <button
+              type="button" // Explicitly set type to button
+              onClick={handleSearch}
+              disabled={isLoading}
+              className={`w-full py-2 px-4 rounded-lg font-semibold text-white ${
+                isLoading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+              }`}
+            >
+              {isLoading ? "Searching..." : "Search Isekai Anime"}
+            </button>
+            {error && (
+              <div className="mt-4 p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-lg">
+                {error}
+              </div>
+            )}
+            {steps.length > 0 && (
+              <div className="mt-6">
+                <h2 className="text-lg font-semibold mb-2">Search Progress</h2>
+                <ul className="max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
+                  {steps.map((step, index) => (
+                    <StepItem key={index} step={step} />
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      // Render App
+      ReactDOM.render(<App />, document.getElementById("root"));
+    </script>
+  </body>
+</html>

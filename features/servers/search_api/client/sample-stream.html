@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>React Streaming Search App</title>
+    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.25.7/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="text/babel">
+      const StreamDisplay = () => {
+        const [query, setQuery] = React.useState("");
+        const [steps, setSteps] = React.useState([]);
+        const [isStreaming, setIsStreaming] = React.useState(false);
+        const [error, setError] = React.useState(null);
+
+        const handleStream = async () => {
+          setIsStreaming(true);
+          setSteps([]);
+          setError(null);
+
+          try {
+            const res = await fetch("http://localhost:8000/search", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                query: query || "example search",
+                top_k: 10,
+                stream: true,
+              }),
+            });
+
+            if (!res.ok)
+              throw new Error(`Network response was not ok: ${res.status}`);
+            if (!res.body) throw new Error("No response body available");
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split("\n");
+              buffer = lines.pop(); // Keep incomplete line in buffer
+
+              for (const line of lines) {
+                if (line.trim()) {
+                  try {
+                    const chunk = JSON.parse(line);
+                    setSteps((prev) => [...prev, chunk]);
+                  } catch (e) {
+                    console.error("JSON parse error:", e);
+                  }
+                }
+              }
+            }
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setIsStreaming(false);
+          }
+        };
+
+        return (
+          <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-4">
+            <h1 className="text-3xl font-bold mb-4 text-white">
+              Search Streaming App
+            </h1>
+            <div className="w-full max-w-md mb-4">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Enter search query"
+                className="w-full px-4 py-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <button
+              onClick={handleStream}
+              disabled={isStreaming}
+              className={`px-4 py-2 rounded text-white ${
+                isStreaming
+                  ? "bg-gray-600 cursor-not-allowed"
+                  : "bg-blue-500 hover:bg-blue-600"
+              }`}
+            >
+              {isStreaming ? "Streaming..." : "Start Search"}
+            </button>
+            {error && <p className="text-red-400 mt-2">Error: {error}</p>}
+            <div className="mt-4 p-4 bg-gray-800 rounded shadow w-full max-w-2xl">
+              {steps.length === 0 && (
+                <p className="text-gray-200">No steps yet</p>
+              )}
+              {steps.map((step, index) => (
+                <div key={index} className="mb-4">
+                  <h3 className="text-lg font-semibold text-white">
+                    {step.step_title}
+                  </h3>
+                  <pre className="text-sm text-gray-200 overflow-auto max-h-48">
+                    {JSON.stringify(step.step_result, null, 2)}
+                  </pre>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      };
+
+      const App = () => <StreamDisplay />;
+
+      ReactDOM.render(<App />, document.getElementById("root"));
+    </script>
+  </body>
+</html>

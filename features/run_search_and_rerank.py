@@ -395,7 +395,7 @@ async def main():
     query = "List all ongoing and upcoming isekai anime 2025."
     top_k = 10
     embed_model = "static-retrieval-mrl-en-v1"
-    llm_model = "llama-3.2-3b-instruct-4bit"
+    llm_model = "llama-3.2-1b-instruct-4bit"
     seed = 45
     use_cache = False
 

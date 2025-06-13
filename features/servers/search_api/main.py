@@ -27,7 +27,7 @@ def run_server(
         logger.info(
             f"Starting FastAPI server on {host}:{port} with log_level={log_level}, reload={reload}")
         uvicorn.run(
-            "search_api:app",  # Use import string to support reload
+            "server.search_api:app",  # Use import string to support reload
             host=host,
             port=port,
             log_level=log_level,
@@ -43,4 +43,8 @@ def run_server(
 
 if __name__ == "__main__":
     logger.debug("Starting server from __main__")
-    run_server(reload=True, reload_dirs=os.path.dirname(__file__))
+    base_dir = os.path.dirname(__file__)
+    run_server(reload=True, reload_dirs=[
+        f"{base_dir}/main.py",
+        f"{base_dir}/server",
+    ])
