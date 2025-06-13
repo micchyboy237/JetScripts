@@ -389,15 +389,23 @@ if __name__ == "__main__":
         query, chunked_docs, embed_func, top_k=10)
 
     for result in search_results:
-        original_doc = next(
-            doc for doc in docs if doc['doc_index'] == result['doc_index'])
-        logger.success(
-            f"\nRank {result['rank']} (Doc: {result['doc_index']} | Chunk: {result['chunk_index']} | Tokens: {result['tokens']}):")
-        print(f"Score: {result['score']:.4f}")
-        print(f"Header: {result['header']}")
-        print(f"Parent Header: {result['parent_header']}")
-        print(f"Chunk:\n{result['text']}")
-        print(f"Original Document:\n{original_doc.text}")
+        # Extract the base ID from the chunked document's ID
+        base_id = result['id'].split('_chunk_')[0]
+        logger.debug(
+            "Searching for original document with base ID: %s", base_id)
+        logger.debug("Available doc IDs: %s", [doc.id for doc in docs])
+        try:
+            original_doc = next(doc for doc in docs if doc.id == base_id)
+            logger.success(
+                f"\nRank {result['rank']} (Doc: {result['doc_index']} | Chunk: {result['chunk_index']} | Tokens: {result['tokens']}):")
+            print(f"Score: {result['score']:.4f}")
+            print(f"Header: {result['header']}")
+            print(f"Parent Header: {result['parent_header']}")
+            print(f"Chunk:\n{result['text']}")
+            print(f"Original Document:\n{original_doc.text}")
+        except StopIteration:
+            logger.error(f"No original document found for base ID: {base_id}")
+            continue
 
     save_file(search_results, f"{output_dir}/results.json")
     logger.info("Saved search results to %s/results.json", output_dir)
