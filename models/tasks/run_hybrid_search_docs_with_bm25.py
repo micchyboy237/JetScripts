@@ -27,8 +27,9 @@ if __name__ == "__main__":
         print(f"Headers: {result['headers']}")
         print(f"Original Document:\n{result['text']}")
 
-    save_file(results, f"{output_dir}/results.json")
-
     # Optionally log raw scores for debugging
     if raw_scores:
         logger.debug("Raw Scores: %s", raw_scores)
+
+    save_file(results, f"{output_dir}/results.json")
+    save_file(raw_scores, f"{output_dir}/raw_scores.json")
