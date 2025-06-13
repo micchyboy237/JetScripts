@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Tuple
 import asyncio
 import os
-from jet.data.utils import generate_unique_hash
+from jet.data.utils import generate_key, generate_unique_hash
 from jet.logger import logger
 from jet.vectors.document_types import HeaderDocument
 from jet.llm.mlx.base import MLX
@@ -14,6 +14,7 @@ from jet.scrapers.hrequests_utils import scrape_urls
 from jet.scrapers.utils import scrape_published_date, scrape_links
 from jet.code.splitter_markdown_utils import get_md_header_docs
 from jet.file.utils import save_file
+from jet.models.tokenizer.base import count_tokens
 from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
 from jet.wordnet.analyzers.text_analysis import analyze_readability
 from search_and_rerank import (
@@ -181,11 +182,35 @@ async def search_and_group_documents(
             sorted_doc_results), "results": sorted_doc_results},
         os.path.join(output_dir, "sorted_doc_results.json")
     )
+    # Save context metadata
+    logger.info(f"Counting contexts ({len(sorted_doc_results)}) tokens...")
+    result_texts = [result["text"] for result in sorted_doc_results]
+    context_tokens: List[int] = count_tokens(
+        llm_model, result_texts, prevent_total=True)
+    total_tokens = sum(context_tokens)
+    save_file(
+        {
+            "total_tokens": total_tokens,
+            "contexts": [
+                {
+                    "doc_index": result["doc_index"],
+                    "score": result["score"],
+                    "tokens": tokens,
+                    "text": result["text"]
+                }
+                for result, tokens in zip(sorted_doc_results, context_tokens)
+            ]
+        },
+        os.path.join(output_dir, "contexts.json")
+    )
+    logger.info(
+        f"Saved context with {context_tokens} tokens to {output_dir}/contexts.json")
+
     contexts = []
     context_info: ContextInfo = {
-        "model": llm_model, "total_tokens": 0, "contexts": []}
+        "model": llm_model, "total_tokens": total_tokens, "contexts": []}
     current_url = None
-    for doc in sorted_doc_results:
+    for idx, doc in enumerate(sorted_doc_results):
         source_url = doc["document"]["metadata"]["source_url"]
         if source_url != current_url:
             contexts.append(f"<!-- Source: {source_url} -->")
@@ -195,7 +220,7 @@ async def search_and_group_documents(
             "rank": doc["rank"],
             "doc_index": doc["doc_index"],
             "chunk_index": doc["document"]["metadata"].get("chunk_index", 0),
-            "tokens": doc["document"]["metadata"].get("tokens", 0),
+            "tokens": context_tokens[idx],
             "score": doc["score"],
             "rerank_score": doc.get("rerank_score", 0.0),
             "source_url": source_url,
@@ -211,8 +236,11 @@ async def search_and_group_documents(
 @app.post("/search")
 async def search_endpoint(request: SearchRequest):
     try:
+        shared_dir = generate_key(
+            request.query, request.llm_model, request.embed_model)
         sub_dir = generate_unique_hash()
-        output_dir = initialize_output_directory(__file__, sub_dir)
+        output_dir = initialize_output_directory(
+            __file__, f"{shared_dir}/{sub_dir}")
         mlx, _ = initialize_search_components(
             request.llm_model, request.embed_model, request.seed)
 
