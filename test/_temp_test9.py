@@ -159,7 +159,7 @@ def generate_long_summary(reviews, model, tokenizer, max_length=100):
 
 
 # Real-world usage
-model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ-053125")
 reviews = [
     "Amazing quality and fast delivery, highly recommend!",
     "Poor battery life and terrible customer service.",
@@ -221,35 +221,35 @@ class TestFeedbackPaddingMask:
 
 class TestMultiClassLabeling:
     def test_multi_class_label_positive(self):
-        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ-053125")
         review = "Amazing quality and fast delivery, highly recommend!"
         result = multi_class_label(review, model, tokenizer)
         expected = "Positive"
         assert result == expected, f"Expected categories {expected}, got {result}"
 
     def test_multi_class_label_negative(self):
-        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ-053125")
         review = "Poor battery life and terrible customer service."
         result = multi_class_label(review, model, tokenizer)
         expected = "Negative"
         assert result == expected, f"Expected categories {expected}, got {result}"
 
     def test_multi_class_label_neutral(self):
-        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ-053125")
         review = "Works as expected, nothing special but reliable."
         result = multi_class_label(review, model, tokenizer)
         expected = "Neutral"
         assert result == expected, f"Expected categories {expected}, got {result}"
 
     def test_multi_class_label_positive_negative(self):
-        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ-053125")
         review = "Great features but overpriced and slow response time."
         result = multi_class_label(review, model, tokenizer)
         expected = "Negative, Positive"
         assert result == expected, f"Expected categories {expected}, got {result}"
 
     def test_multi_class_label_neutral_negative(self):
-        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ-053125")
         review = "Good design, but the battery drains quickly and support was average."
         result = multi_class_label(review, model, tokenizer)
         expected = "Negative, Neutral"
@@ -258,7 +258,7 @@ class TestMultiClassLabeling:
 
 class TestSummaries:
     def test_short_summary_length(self):
-        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ-053125")
         reviews = ["Great product!", "Poor service."]
         result = generate_short_summary(reviews, model, tokenizer)
         expected_sentences = 1
@@ -266,7 +266,7 @@ class TestSummaries:
         assert result_sentences == expected_sentences, f"Expected {expected_sentences} sentence, got {result_sentences}"
 
     def test_medium_summary_length(self):
-        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ-053125")
         reviews = ["Fast delivery, great quality.", "Poor battery life."]
         result = generate_medium_summary(reviews, model, tokenizer)
         expected_sentences = 2
@@ -274,7 +274,7 @@ class TestSummaries:
         assert result_sentences == expected_sentences, f"Expected {expected_sentences} sentences, got {result_sentences}"
 
     def test_long_summary_length(self):
-        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ-053125")
         reviews = ["Fast delivery, great quality.", "Poor battery life."]
         result = generate_long_summary(reviews, model, tokenizer)
         expected_sentences = 3
@@ -282,7 +282,7 @@ class TestSummaries:
         assert result_sentences == expected_sentences, f"Expected {expected_sentences} sentences, got {result_sentences}"
 
     def test_summary_themes(self):
-        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ")
+        model, tokenizer = load("mlx-community/Qwen3-1.7B-4bit-DWQ-053125")
         reviews = ["Fast delivery, great quality.", "Poor battery life."]
         result = generate_long_summary(reviews, model, tokenizer)
         expected_themes = ["delivery", "quality", "battery",
