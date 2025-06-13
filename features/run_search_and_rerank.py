@@ -260,8 +260,7 @@ def search_and_group_documents(
         documents=docs_to_search,
         ids=[doc.id_ for doc in docs_to_search],
         model=embed_model,
-        top_k=None,
-        rerank_top_k=top_k
+        top_k=top_k,
     )
     save_file(
         {"query": query, "count": len(
