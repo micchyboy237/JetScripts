@@ -4,7 +4,6 @@ from sentence_transformers import SentenceTransformer
 from typing import List, Dict, Any, Optional, Callable, Union, TypedDict
 from jet.vectors.document_types import HeaderDocument
 from jet.token.token_utils import split_headers
-from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
 from jet.file.utils import load_file, save_file
 import os
 from unittest.mock import Mock
