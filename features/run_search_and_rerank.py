@@ -227,7 +227,12 @@ def process_documents(
         for doc in docs:
             doc.metadata["source_url"] = url
             doc.metadata["readability"] = readability
-            headers.append({**doc.metadata, "text": doc.text})
+            headers.append({
+                "doc_index": doc["doc_index"],
+                "source_url": doc["source_url"],
+                "parent_header": doc["parent_header"],
+                "header": doc["header"],
+            })
         all_docs.extend(docs)
 
     save_file(all_docs, os.path.join(output_dir, "docs.json"))
