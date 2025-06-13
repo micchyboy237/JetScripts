@@ -179,6 +179,7 @@ def search_docs(
             "id": doc.id,
             "rank": None,  # Will be set after sorting
             "doc_index": metadata.get("doc_index", 0),
+            "chunk_index": metadata.get("chunk_index", 0),
             "score": float(avg_score),
             "text": doc.text,
             "header": header_texts[i],
