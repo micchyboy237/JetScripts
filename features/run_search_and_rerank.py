@@ -89,7 +89,6 @@ def filter_htmls_with_best_combined_mtld(
         try:
             logger.debug(f"Processing HTML for URL: {url}")
             docs = get_md_header_docs(html, ignore_links=False)
-            docs = [doc for doc in docs if doc.metadata["header_level"] > 1]
             header_count = len(docs)
             logger.debug(f"Found {header_count} headers for {url}")
             if header_count < 5:

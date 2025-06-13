@@ -28,9 +28,9 @@ def chunk_headers(docs: List[HeaderDocument], max_tokens: int = 500) -> List[Hea
     """
     logger.debug("Starting chunk_headers with %d documents", len(docs))
     chunked_docs: List[HeaderDocument] = []
-    chunk_index = 0
 
     for doc in docs:
+        chunk_index = 0  # Reset chunk_index for each document
         metadata = HeaderMetadata(**doc.metadata)
         text_lines = metadata.get("texts", doc.text.splitlines())
         current_chunk = []
@@ -56,7 +56,8 @@ def chunk_headers(docs: List[HeaderDocument], max_tokens: int = 500) -> List[Hea
                         "content": chunk_text,
                         "doc_index": doc_index,
                         "chunk_index": chunk_index,
-                        "texts": current_chunk
+                        "texts": current_chunk,
+                        "tokens": round(current_tokens, 2)
                     }
                 ))
                 logger.debug("Created chunk %d for doc %s: header=%s",
@@ -82,7 +83,8 @@ def chunk_headers(docs: List[HeaderDocument], max_tokens: int = 500) -> List[Hea
                     "content": chunk_text,
                     "doc_index": doc_index,
                     "chunk_index": chunk_index,
-                    "texts": current_chunk
+                    "texts": current_chunk,
+                    "tokens": round(current_tokens, 2)
                 }
             ))
             logger.debug("Created final chunk %d for doc %s: header=%s",
@@ -179,6 +181,7 @@ def search_docs(
             "rank": None,  # Will be set after sorting
             "doc_index": metadata.get("doc_index", 0),
             "chunk_index": metadata.get("chunk_index", 0),
+            "tokens": metadata.get("tokens", None),
             "score": float(avg_score),
             "text": doc.text,
             "header": header_texts[i],
@@ -367,7 +370,7 @@ if __name__ == "__main__":
     logger.info("Loaded %d documents", len(docs))
 
     # Chunk documents using chunk_headers
-    chunked_docs = chunk_headers(docs, max_tokens=500)
+    chunked_docs = chunk_headers(docs, max_tokens=200)
     logger.info("Chunked into %d documents", len(chunked_docs))
 
     # Save chunked documents
@@ -386,12 +389,15 @@ if __name__ == "__main__":
         query, chunked_docs, embed_func, top_k=10)
 
     for result in search_results:
+        original_doc = next(
+            doc for doc in docs if doc['doc_index'] == result['doc_index'])
         logger.success(
-            f"\nRank {result['rank']} (Doc: {result['doc_index']} | Chunk: {result['chunk_index']}):")
+            f"\nRank {result['rank']} (Doc: {result['doc_index']} | Chunk: {result['chunk_index']} | Tokens: {result['tokens']}):")
         print(f"Score: {result['score']:.4f}")
         print(f"Header: {result['header']}")
         print(f"Parent Header: {result['parent_header']}")
-        print(f"Original Document:\n{result['text']}")
+        print(f"Chunk:\n{result['text']}")
+        print(f"Original Document:\n{original_doc.text}")
 
     save_file(search_results, f"{output_dir}/results.json")
     logger.info("Saved search results to %s/results.json", output_dir)
