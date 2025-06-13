@@ -20,6 +20,11 @@ from jet.file.utils import save_file
 from jet.models.tokenizer.base import count_tokens
 from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
 from jet.wordnet.analyzers.text_analysis import analyze_readability
+from .search_models import (
+    SearchRequest,
+    SearchResponse,
+    StreamResponseChunk
+)
 from .search_and_rerank import (
     initialize_output_directory,
     initialize_search_components,
@@ -41,36 +46,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-class SearchRequest(BaseModel):
-    query: str = Field(..., description="Search query string")
-    top_k: int = Field(
-        10, ge=1, le=50, description="Number of top results to return")
-    embed_model: str = Field("static-retrieval-mrl-en-v1",
-                             description="Embedding model type")
-    llm_model: str = Field("llama-3.2-1b-instruct-4bit",
-                           description="LLM model type")
-    seed: int = Field(45, description="Random seed for reproducibility")
-    use_cache: bool = Field(
-        False, description="Whether to use cached search results")
-    min_mtld: float = Field(
-        100.0, ge=0.0, description="Minimum MTLD score for filtering")
-    stream: bool = Field(False, description="Whether to stream the response")
-
-
-class SearchResponse(BaseModel):
-    query: str
-    context: str
-    response: str
-    context_info: dict
-    headers_stats: dict
-
-
-class StreamResponseChunk(BaseModel):
-    step_title: str = Field(..., description="Title of the processing step")
-    step_result: Optional[dict] = Field(
-        None, description="Result of the processing step")
 
 
 def setup_output_directory(query: str, llm_model: str, embed_model: str, script_path: str) -> str:

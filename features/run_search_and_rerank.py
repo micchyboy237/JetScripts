@@ -166,7 +166,12 @@ async def process_search_results(
         f"Processing {len(browser_search_results)} search results for query: {query}")
     urls = [item["url"] for item in browser_search_results]
     logger.debug(f"Scraping {len(urls)} URLs")
-    html_list = await scrape_urls(urls, num_parallel=5)
+
+    # Process initial search result URLs
+    html_list = []
+    async for url, status, html in scrape_urls(urls, num_parallel=5):
+        if status == "completed":
+            html_list.append(html)
 
     all_url_html_date_tuples = []
     all_links = []
@@ -198,8 +203,13 @@ async def process_search_results(
     logger.debug(f"Reranked to {len(reranked_links)} links")
     save_file(reranked_links, os.path.join(output_dir, "reranked_links.json"))
 
+    # Process reranked links
     logger.info(f"Scraping {len(reranked_links)} reranked links...")
-    reranked_html_list = await scrape_urls(reranked_links, num_parallel=5)
+    reranked_html_list = []
+    async for url, status, html in scrape_urls(reranked_links, num_parallel=5):
+        if status == "completed":
+            reranked_html_list.append(html)
+
     for url, html_str in zip(reranked_links, reranked_html_list):
         if html_str:
             published_date = scrape_published_date(html_str)
@@ -392,7 +402,7 @@ def evaluate_results(
 
 async def main():
     """Main function to orchestrate the search and response generation."""
-    query = "List all ongoing and upcoming isekai anime 2025."
+    query = "List top 10 isekai anime today."
     top_k = 10
     embed_model = "static-retrieval-mrl-en-v1"
     llm_model = "llama-3.2-1b-instruct-4bit"
