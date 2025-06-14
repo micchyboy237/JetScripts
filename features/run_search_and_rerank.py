@@ -92,9 +92,9 @@ def filter_htmls_with_best_combined_mtld(
             docs = get_md_header_docs(html, ignore_links=False)
             header_count = len(docs)
             logger.debug(f"Found {header_count} headers for {url}")
-            if header_count < 5:
+            if header_count == 0:
                 logger.warning(
-                    f"Skipping {url}: insufficient headers ({header_count} < 5)")
+                    f"Skipping {url}: no headers found")
                 continue
 
             docs_text = "\n\n".join(doc.text for doc in docs)
@@ -241,6 +241,29 @@ async def process_search_results(
     reranked_html_list = []
     async for url, status, html in scrape_urls(reranked_links, num_parallel=5):
         if status == "completed":
+            if not html:
+                continue
+
+            sub_url_dir = format_sub_url_dir(url)
+            sub_output_dir = os.path.join(output_dir, sub_url_dir)
+
+            save_file(html, f"{sub_output_dir}/page.html")
+
+            docs = get_md_header_docs(html)
+            save_file(docs, f"{sub_output_dir}/docs.json")
+
+            headers = [doc["header"] for doc in docs]
+            save_file(headers, f"{sub_output_dir}/headers.json")
+
+            docs_text = "\n\n".join(doc.text for doc in docs)
+            readability_overall = analyze_readability(docs_text)
+            save_file(readability_overall,
+                      f"{sub_output_dir}/readability_overall.json")
+
+            readability_docs = [analyze_readability(doc.text) for doc in docs]
+            save_file(readability_docs,
+                      f"{sub_output_dir}/readability_docs.json")
+
             reranked_html_list.append(html)
 
     for url, html_str in zip(reranked_links, reranked_html_list):
