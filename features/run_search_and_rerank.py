@@ -89,7 +89,7 @@ def filter_htmls_with_best_combined_mtld(
     for url, html, _ in url_html_date_tuples:
         try:
             logger.debug(f"Processing HTML for URL: {url}")
-            docs = get_md_header_docs(html, ignore_links=False)
+            docs = get_md_header_docs(html, ignore_links=True)
             header_count = len(docs)
             logger.debug(f"Found {header_count} headers for {url}")
             if header_count == 0:
