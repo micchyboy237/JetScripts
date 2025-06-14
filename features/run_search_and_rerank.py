@@ -189,7 +189,7 @@ async def process_search_results(
 
             save_file(html, f"{sub_output_dir}/page.html")
 
-            docs = get_md_header_docs(html)
+            docs = get_md_header_docs(html, ignore_links=True)
             save_file(docs, f"{sub_output_dir}/docs.json")
 
             headers = [doc["header"] for doc in docs]
@@ -249,7 +249,7 @@ async def process_search_results(
 
             save_file(html, f"{sub_output_dir}/page.html")
 
-            docs = get_md_header_docs(html)
+            docs = get_md_header_docs(html, ignore_links=True)
             save_file(docs, f"{sub_output_dir}/docs.json")
 
             headers = [doc["header"] for doc in docs]
@@ -380,6 +380,9 @@ def search_and_group_documents(
                     "doc_index": result["doc_index"],
                     "score": result["score"],
                     "tokens": tokens,
+                    "source_url": result["document"]["metadata"]["source_url"],
+                    "parent_header": result["document"]["metadata"]["parent_header"],
+                    "header": result["document"]["metadata"]["header"],
                     "text": result["text"]
                 }
                 for result, tokens in zip(sorted_doc_results, context_tokens)
