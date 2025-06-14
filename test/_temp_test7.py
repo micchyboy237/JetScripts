@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class TextClusterer:
-    def __init__(self, model_name: str = "all-MiniLM-L12-v2", n_clusters: int = 2):
+    def __init__(self, model_name: str = 'static-retrieval-mrl-en-v1', n_clusters: int = 2):
         self.model = SentenceTransformer(
             model_name, device="cpu", backend="onnx")
         self.clusterer = KMeans(n_clusters=n_clusters, random_state=42)
@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
 
 class AnomalyDetector:
-    def __init__(self, model_name: str = "all-MiniLM-L12-v2"):
+    def __init__(self, model_name: str = 'static-retrieval-mrl-en-v1'):
         """Initialize anomaly detector with Sentence Transformer and Isolation Forest."""
         device = "cpu"
         self.model = SentenceTransformer(
@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
 
 class QueryRanker:
-    def __init__(self, model_name: str = "all-MiniLM-L12-v2"):
+    def __init__(self, model_name: str = 'static-retrieval-mrl-en-v1'):
         """Initialize query ranker with Sentence Transformer."""
         device = "cpu"
         self.model = SentenceTransformer(
@@ -262,7 +262,7 @@ if __name__ == "__main__":
 
 
 class RelevanceRegressor:
-    def __init__(self, model_name: str = "all-MiniLM-L12-v2"):
+    def __init__(self, model_name: str = 'static-retrieval-mrl-en-v1'):
         self.model = SentenceTransformer(
             model_name, device="cpu", backend="onnx")
         self.regressor = LinearRegression()
