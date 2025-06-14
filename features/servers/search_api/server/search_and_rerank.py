@@ -94,7 +94,7 @@ def get_header_stats(text: str) -> Dict:
 
 async def filter_htmls_with_best_combined_mtld(
     url_html_date_tuples: List[Tuple[str, str, Optional[str]]],
-    limit: int = 3,
+    limit: Optional[int] = None,
     min_mtld: float = 100.0
 ) -> List[Tuple[str, str, List[HeaderDocument]]]:
     logger.info(
