@@ -472,7 +472,7 @@ def evaluate_results(
 
 async def main():
     """Main function to orchestrate the search and response generation."""
-    query = "List top 10 isekai anime 2025."
+    query = "List top isekai anime 2025."
     top_k = 10
     embed_model = "static-retrieval-mrl-en-v1"
     llm_model = "llama-3.2-1b-instruct-4bit"
