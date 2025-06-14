@@ -74,7 +74,7 @@ def get_header_stats(text: str) -> Dict:
 
 def filter_htmls_with_best_combined_mtld(
     url_html_date_tuples: List[Tuple[str, str, Optional[str]]],
-    limit: int = 3,
+    limit: int = 5,
     min_mtld: float = 100.0
 ) -> List[Tuple[str, str, List[HeaderDocument], ReadabilityResult]]:
     """Filter HTMLs based on MTLD score and header count."""
