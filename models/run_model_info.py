@@ -13,7 +13,8 @@ if __name__ == "__main__":
     save_file(model_info["models"], f"{output_dir}/models.json")
     save_file(model_info["contexts"], f"{output_dir}/model_contexts.json")
     save_file(model_info["embeddings"], f"{output_dir}/model_embeddings.json")
-    save_file(model_info["has_onnx"], f"{output_dir}/model_has_onnx.json")
+    save_file({k: v for k, v in model_info["has_onnx"].items(
+    ) if v is True}, f"{output_dir}/model_has_onnx.json")
     save_file(model_info["missing"], f"{output_dir}/missing.json")
 
     for model_id in model_info["missing"]:
