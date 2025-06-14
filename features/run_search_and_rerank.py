@@ -312,11 +312,22 @@ def search_and_group_documents(
     logger.debug(f"Generated context with {len(contexts)} segments")
 
     # Save context metadata
-    context_tokens = count_tokens(llm_model, context, prevent_total=True)
+    result_texts = [result["text"] for result in sorted_doc_results]
+    context_tokens: List[int] = count_tokens(
+        llm_model, result_texts, prevent_total=True)
+    total_tokens = sum(context_tokens)
     save_file(
         {
-            "total_tokens": context_tokens,
-            "contexts": contexts
+            "total_tokens": total_tokens,
+            "contexts": [
+                {
+                    "doc_index": result["doc_index"],
+                    "score": result["score"],
+                    "tokens": tokens,
+                    "text": result["text"]
+                }
+                for result, tokens in zip(sorted_doc_results, context_tokens)
+            ]
         },
         os.path.join(output_dir, "contexts.json")
     )
