@@ -2,6 +2,7 @@
 from collections import defaultdict
 import json
 import os
+import re
 import shutil
 from typing import Dict, List, Optional, Tuple, TypedDict
 from datetime import datetime
@@ -14,7 +15,7 @@ from jet.llm.mlx.mlx_types import EmbedModelType, LLMModelType
 from jet.logger import logger
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.transformers.link_formatters import LinkFormatter, format_links_for_embedding
-from jet.utils.url_utils import rerank_bm25_plus
+from jet.utils.url_utils import rerank_urls_bm25_plus
 from jet.wordnet.text_chunker import truncate_texts
 from jet.vectors.document_types import HeaderDocument
 from jet.vectors.search_with_clustering import search_documents
@@ -128,6 +129,15 @@ def initialize_output_directory(script_path: str) -> str:
     return output_dir
 
 
+def format_sub_url_dir(url: str) -> str:
+    """Format a URL into a lowercase directory name, replacing hyphens and spaces with underscores."""
+    clean_url = re.sub(r'^(https?://|www\.)|(\?.*)', '', url)
+    formatted = re.sub(r'[- ]+', '_', clean_url).lower()
+    formatted = re.sub(r'[^\w./]', '_', formatted)
+    formatted = re.sub(r'_+', '_', formatted)
+    return formatted.strip('_')
+
+
 def initialize_search_components(
     llm_model: LLMModelType,
     embed_model: EmbedModelType,
@@ -171,6 +181,29 @@ async def process_search_results(
     html_list = []
     async for url, status, html in scrape_urls(urls, num_parallel=5):
         if status == "completed":
+            if not html:
+                continue
+
+            sub_url_dir = format_sub_url_dir(url)
+            sub_output_dir = os.path.join(output_dir, sub_url_dir)
+
+            save_file(html, f"{sub_output_dir}/page.html")
+
+            docs = get_md_header_docs(html)
+            save_file(docs, f"{sub_output_dir}/docs.json")
+
+            headers = [doc["header"] for doc in docs]
+            save_file(headers, f"{sub_output_dir}/headers.json")
+
+            docs_text = "\n\n".join(doc.text for doc in docs)
+            readability_overall = analyze_readability(docs_text)
+            save_file(readability_overall,
+                      f"{sub_output_dir}/readability_overall.json")
+
+            readability_docs = [analyze_readability(doc.text) for doc in docs]
+            save_file(readability_docs,
+                      f"{sub_output_dir}/readability_docs.json")
+
             html_list.append(html)
 
     all_url_html_date_tuples = []
@@ -199,7 +232,7 @@ async def process_search_results(
     all_links = list(set(all_links))
     save_file(all_links, os.path.join(output_dir, "links.json"))
     logger.debug(f"Total unique links extracted: {len(all_links)}")
-    reranked_links = rerank_bm25_plus(all_links, query, 3)
+    reranked_links = rerank_urls_bm25_plus(all_links, query, 3)
     logger.debug(f"Reranked to {len(reranked_links)} links")
     save_file(reranked_links, os.path.join(output_dir, "reranked_links.json"))
 
@@ -413,7 +446,7 @@ def evaluate_results(
 
 async def main():
     """Main function to orchestrate the search and response generation."""
-    query = "List top 10 isekai anime today."
+    query = "List top 10 isekai anime 2025."
     top_k = 10
     embed_model = "static-retrieval-mrl-en-v1"
     llm_model = "llama-3.2-1b-instruct-4bit"

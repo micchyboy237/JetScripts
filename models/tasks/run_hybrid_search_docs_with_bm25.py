@@ -20,8 +20,8 @@ if __name__ == "__main__":
         top_k=None,
         rerank_top_k=10,
         return_raw_scores=True,
-        with_bm25=True,
-        with_rerank=True,
+        with_bm25=False,
+        with_rerank=False,
     )
 
     # Unpack the tuple if return_raw_scores is True

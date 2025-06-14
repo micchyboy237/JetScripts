@@ -14,7 +14,7 @@ from jet.llm.mlx.tasks.utils import load_model_components
 from jet.logger import logger
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.transformers.link_formatters import LinkFormatter, format_links_for_embedding
-from jet.utils.url_utils import rerank_bm25_plus
+from jet.utils.url_utils import rerank_urls_bm25_plus
 from jet.wordnet.text_chunker import truncate_texts
 from jet.vectors.document_types import HeaderDocument
 from jet.vectors.search_with_clustering import search_documents
@@ -215,7 +215,7 @@ async def process_search_results(
 
     all_links = list(set(all_links))
     save_file(all_links, os.path.join(output_dir, "links.json"))
-    reranked_links = rerank_bm25_plus(all_links, query, 3)
+    reranked_links = rerank_urls_bm25_plus(all_links, query, 3)
     save_file(reranked_links, os.path.join(output_dir, "reranked_links.json"))
 
     # Process reranked links

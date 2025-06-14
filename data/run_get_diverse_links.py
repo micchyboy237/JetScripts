@@ -8,7 +8,7 @@ from jet.logger import logger
 from jet.transformers.formatters import format_json
 from tqdm import tqdm
 import numpy as np
-from jet.utils.url_utils import clean_url, parse_url, rerank_bm25_plus
+from jet.utils.url_utils import clean_url, parse_url, rerank_urls_bm25_plus
 from jet.features.nltk_utils import get_word_counts_lemmatized
 from jet.file.utils import load_file, save_file
 from urllib.parse import urlparse, urlunparse
@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     urls: List[str] = load_file(docs_file)
 
-    reranked_urls = rerank_bm25_plus(urls, query, top_k)
+    reranked_urls = rerank_urls_bm25_plus(urls, query, top_k)
     save_file(reranked_urls, f"{output_dir}/reranked_urls.json")
     print(f"Reranked URLs: {len(reranked_urls)}")
     logger.success(format_json(reranked_urls))

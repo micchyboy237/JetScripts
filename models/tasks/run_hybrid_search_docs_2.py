@@ -19,9 +19,8 @@ def search_docs(
     docs: List[HeaderDocument],
     embed_func: Callable[[Union[str, List[str]]], Union[List[float], List[List[float]]]],
     top_k: Optional[int] = 5,
-    header_weight: float = 0.4,
-    content_weight: float = 0.4,
-    header_content_similarity_weight: float = 0.2
+    header_weight: float = 0.5,
+    content_weight: float = 0.5,
 ) -> List[Dict[str, Any]]:
     """
     Perform semantic search on HeaderDocument objects using text and header embeddings.
@@ -32,25 +31,24 @@ def search_docs(
         embed_func: Function to generate embeddings for text, accepting a string or list of strings
                    and returning a list of floats or list of list of floats.
         top_k: Number of top results to return (None for all).
-        header_weight: Weight for header similarity in final score (default: 0.4).
-        content_weight: Weight for content similarity in final score (default: 0.4).
-        header_content_similarity_weight: Weight for header-content similarity (default: 0.2).
+        header_weight: Weight for header similarity in final score (default: 0.5).
+        content_weight: Weight for content similarity in final score (default: 0.5).
 
     Returns:
         List of dictionaries containing search results with scores and metadata.
     """
-    logger.debug("Starting search_docs with query: %s, %d docs, weights: header=%.2f, content=%.2f, header-content=%.2f",
-                 query, len(docs), header_weight, content_weight, header_content_similarity_weight)
+    logger.debug("Starting search_docs with query: %s, %d docs, weights: header=%.2f, content=%.2f",
+                 query, len(docs), header_weight, content_weight)
 
     if not docs:
         logger.info("No documents provided, returning empty results")
         return []
 
-    if not (0 <= header_weight <= 1 and 0 <= content_weight <= 1 and 0 <= header_content_similarity_weight <= 1):
+    if not (0 <= header_weight <= 1 and 0 <= content_weight <= 1):
         logger.error("Weights must be between 0 and 1")
         raise ValueError("Weights must be between 0 and 1")
 
-    if abs(header_weight + content_weight + header_content_similarity_weight - 1.0) > 1e-6:
+    if abs(header_weight + content_weight - 1.0) > 1e-6:
         logger.error("Weights must sum to 1")
         raise ValueError("Weights must sum to 1")
 
@@ -107,14 +105,11 @@ def search_docs(
             (query_norm * text_norm) if text_norm > 0 else 0.0
         sim_header = np.dot(query_embedding, header_embedding) / \
             (query_norm * header_norm) if header_norm > 0 else sim_text
-        sim_header_content = np.dot(text_embedding, header_embedding) / \
-            (text_norm * header_norm) if text_norm > 0 and header_norm > 0 else 0.0
 
         # Combine scores with weights
         final_score = (
             header_weight * sim_header +
-            content_weight * sim_text +
-            header_content_similarity_weight * sim_header_content
+            content_weight * sim_text
         )
 
         result = {
@@ -131,11 +126,10 @@ def search_docs(
             "header_level": metadata.get("header_level", 0),
             "sim_text": float(sim_text),
             "sim_header": float(sim_header),
-            "sim_header_content": float(sim_header_content)
         }
         results.append((result, final_score))
-        logger.debug("Processed doc %s: score=%.4f (text=%.4f, header=%.4f, header-content=%.4f)",
-                     doc.id, final_score, sim_text, sim_header, sim_header_content)
+        logger.debug("Processed doc %s: score=%.4f (text=%.4f, header=%.4f)",
+                     doc.id, final_score, sim_text, sim_header)
 
     # Sort and assign ranks
     results.sort(key=lambda x: x[1], reverse=True)
@@ -150,11 +144,10 @@ def search_docs(
 # Pytest tests
 class TestSearchDocs:
     def test_search_docs(self):
-        # Mock embed_func to return orthogonal vectors for query, orthogonal header/content, and similar header/content
+        # Mock embed_func to return orthogonal vectors for query and header/content
         embed_func = Mock(side_effect=lambda x:
                           [1.0, 0.0] if "query" in x else
-                          [0.0, 1.0] if "content" in x else
-                          [0.0, 1.0]  # Header similar to content
+                          [0.0, 1.0]  # Header and content are the same
                           )
         doc = HeaderDocument(
             id="doc1",
@@ -163,7 +156,7 @@ class TestSearchDocs:
         )
         result = search_docs(
             "query", [doc], embed_func, top_k=1,
-            header_weight=0.4, content_weight=0.4, header_content_similarity_weight=0.2
+            header_weight=0.5, content_weight=0.5,
         )
         expected = [{
             "id": "doc1",
@@ -172,22 +165,21 @@ class TestSearchDocs:
             "chunk_index": 0,
             "source_url": None,
             "tokens": None,
-            # 0.4 * 0 (query-content) + 0.4 * 0 (query-header) + 0.2 * 1 (header-content)
-            "score": 0.2,
+            # 0.5 * 0 (query-content) + 0.5 * 0 (query-header)
+            "score": 0.0,
             "text": "Test content",
             "header": "Test header",
             "parent_header": "",
             "header_level": 0,
             "sim_text": 0.0,
             "sim_header": 0.0,
-            "sim_header_content": 1.0
         }]
         assert result == expected
         logger.debug("Test search_docs passed")
 
-    def test_search_docs_zero_weights(self):
+    def test_search_docs_invalid_weights(self):
         embed_func = Mock(side_effect=lambda x: [
-                          1.0, 0.0] if "query" in x else [0.0, 1.0])
+            1.0, 0.0] if "query" in x else [0.0, 1.0])
         doc = HeaderDocument(
             id="doc1",
             text="Test content",
@@ -196,9 +188,9 @@ class TestSearchDocs:
         with pytest.raises(ValueError, match="Weights must sum to 1"):
             search_docs(
                 "query", [doc], embed_func, top_k=1,
-                header_weight=0.5, content_weight=0.5, header_content_similarity_weight=0.5
+                header_weight=0.7, content_weight=0.5
             )
-        logger.debug("Test search_docs_zero_weights passed")
+        logger.debug("Test search_docs_invalid_weights passed")
 
 
 if __name__ == "__main__":
@@ -207,7 +199,7 @@ if __name__ == "__main__":
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     os.makedirs(output_dir, exist_ok=True)
-    logger.debug("Output directory: %s", output_dir)
+    logger.debug("Output directory created: %s", output_dir)
 
     query = "List all ongoing and upcoming isekai anime 2025."
     logger.debug("Loading documents from %s", docs_file)
@@ -219,7 +211,6 @@ if __name__ == "__main__":
     logger.info("Chunked into %d documents", len(chunked_docs))
 
     # Fix headers for chunks
-    # Matches markdown headers (e.g., ### Header)
     header_pattern = re.compile(r'^#+ .+$', re.MULTILINE)
     doc_to_header = {}
     fixed_chunked_docs = []
@@ -227,33 +218,32 @@ if __name__ == "__main__":
     for doc in chunked_docs:
         base_id = doc.id.split('_chunk_')[0]
         chunk_index = doc.metadata.get("chunk_index", 0)
-        current_header = doc.metadata.get("header", "")
-
         logger.debug("Processing chunk ID: %s, Chunk Index: %d, Header: %s, Text: %s",
-                     doc.id, chunk_index, current_header, doc.text[:50])
+                     doc.id, chunk_index, doc.metadata.get("header", ""), doc.text[:50])
 
-        # If this is the first chunk (chunk_index == 0), check if it starts with a header
+        # If first chunk, check for header in text
         if chunk_index == 0:
             match = header_pattern.match(doc.text.strip())
             if match:
                 doc_to_header[base_id] = match.group(0).strip()
-                logger.debug("Set header for doc %s: %s",
+                logger.debug("Matched header for doc %s: %s",
                              base_id, doc_to_header[base_id])
             else:
                 # Fallback to original header or empty string
-                doc_to_header[base_id] = current_header or ""
+                doc_to_header[base_id] = doc.metadata.get("header", "")
                 logger.debug(
-                    "No header found in text for doc %s, using: %s", base_id, doc_to_header[base_id])
+                    "No header found for doc %s, using: %s", base_id, doc_to_header[base_id])
         else:
-            # For subsequent chunks, use the header from the first chunk of the same document
+            # Use header from first chunk of same doc
             if base_id in doc_to_header:
                 doc.metadata["header"] = doc_to_header[base_id]
                 logger.debug("Fixed header for chunk %s: %s",
                              doc.id, doc.metadata["header"])
             else:
-                logger.warning("No header found for doc %s, chunk %d, using original: %s",
+                current_header = doc.metadata.get("header", "")
+                logger.warning("No header found for doc %s, chunk %d, using: %s",
                                base_id, chunk_index, current_header)
-                doc.metadata["header"] = current_header or ""
+                doc.metadata["header"] = current_header
 
         fixed_chunked_docs.append(doc)
 
@@ -267,7 +257,7 @@ if __name__ == "__main__":
         "tokens": doc.metadata.get("tokens", 0),
         "text": doc.text,
     } for doc in fixed_chunked_docs], f"{output_dir}/chunked_docs.json")
-    logger.debug("Saved chunked documents to %s/chunked_docs.json", output_dir)
+    logger.debug("Saved chunked docs to %s/chunked_docs.json", output_dir)
 
     model_name = "static-retrieval-mrl-en-v1"
 
@@ -275,17 +265,16 @@ if __name__ == "__main__":
         x, model_name, show_progress=True)
     search_results = search_docs(
         query, fixed_chunked_docs, embed_func, top_k=10,
-        header_weight=0.4, content_weight=0.4, header_content_similarity_weight=0.2
+        header_weight=0.5, content_weight=0.5
     )
 
     for result in search_results:
         base_id = result['id'].split('_chunk_')[0]
-        logger.debug(
-            "Searching for original document with base ID: %s", base_id)
+        logger.debug("Searching for original doc with base ID: %s", base_id)
         logger.debug("Available doc IDs: %s", [doc.id for doc in docs])
         try:
             original_doc = next(doc for doc in docs if doc.id == base_id)
-            logger.success(
+            logger.info(
                 f"\nRank {result['rank']} (Doc: {result['doc_index']} | Chunk: {result['chunk_index']} | Tokens: {result['tokens']}):")
             print(f"Score: {result['score']:.4f}")
             print(f"Header: {result['header']}")
@@ -293,7 +282,7 @@ if __name__ == "__main__":
             print(f"Chunk:\n{result['text']}")
             print(f"Original Document:\n{original_doc.text}")
             print(
-                f"Similarities: text={result['sim_text']:.4f}, header={result['sim_header']:.4f}, header-content={result['sim_header_content']:.4f}")
+                f"Similarities: text={result['sim_text']:.4f}, header={result['sim_header']:.4f}")
         except StopIteration:
             logger.error(
                 f"No original document found for base ID: %s", base_id)

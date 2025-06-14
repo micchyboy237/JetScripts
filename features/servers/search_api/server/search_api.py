@@ -11,7 +11,7 @@ from jet.logger import logger
 from jet.vectors.document_types import HeaderDocument
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.mlx_types import EmbedModelType, LLMModelType
-from jet.utils.url_utils import rerank_bm25_plus
+from jet.utils.url_utils import rerank_urls_bm25_plus
 from jet.search.searxng import SearchResult
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.scrapers.utils import scrape_published_date, scrape_links
