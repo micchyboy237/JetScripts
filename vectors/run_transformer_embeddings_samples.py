@@ -7,8 +7,7 @@ import torch
 import numpy as np
 
 # Check for MPS availability (for M1 optimization)
-device = torch.device(
-    "mps") if torch.backends.mps.is_available() else torch.device("cpu")
+device = torch.device("cpu")
 logger.info(f"Using device: {device}")
 
 # Load the model (optimized for M1 with MPS if available)

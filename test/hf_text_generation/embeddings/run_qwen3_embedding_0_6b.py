@@ -5,7 +5,7 @@ import torch
 from sentence_transformers import SentenceTransformer
 
 # Check for MPS
-device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+device = torch.device("cpu")
 
 # Load the model
 model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B")

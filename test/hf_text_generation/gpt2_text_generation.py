@@ -17,7 +17,7 @@ def generate_next_sentences(prompt, num_sentences=1, max_length_per_sentence=50,
     """
     # Check if MPS is available
     device = torch.device(
-        "mps" if torch.backends.mps.is_available() else "cpu")
+        "cpu")
     print(f"Using device: {device}")
 
     # Load pre-trained GPT-2 model and tokenizer

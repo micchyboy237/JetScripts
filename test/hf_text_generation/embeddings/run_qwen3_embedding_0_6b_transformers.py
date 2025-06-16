@@ -37,7 +37,7 @@ documents = [
 input_texts = queries + documents
 
 # Set MPS device if available
-device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+device = torch.device("cpu")
 
 tokenizer = AutoTokenizer.from_pretrained(
     'Qwen/Qwen3-Embedding-0.6B', padding_side='left')

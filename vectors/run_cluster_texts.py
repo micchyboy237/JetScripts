@@ -20,7 +20,7 @@ if __name__ == "__main__":
         texts=sample_texts,
         model_name="all-MiniLM-L12-v2",
         batch_size=32,
-        device="mps" if torch.backends.mps.is_available() else "cpu",
+        device="cpu",
         reduce_dim=True,
         n_components=5,
         min_cluster_size=2

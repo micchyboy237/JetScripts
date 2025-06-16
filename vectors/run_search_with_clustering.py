@@ -28,7 +28,7 @@ if __name__ == "__main__":
         headers=headers,
         model_name="all-MiniLM-L12-v2",
         rerank_model="cross-encoder/ms-marco-MiniLM-L6-v2",
-        device="mps" if torch.backends.mps.is_available() else "cpu",
+        device="cpu",
         top_k=20,
         num_results=5,
         min_cluster_size=2,
