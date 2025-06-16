@@ -32,7 +32,7 @@ from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
 from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_relevance
 from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
 from jet.wordnet.words import count_words
-from jet.search.searxng import SearchResult
+from jet.search.searxng import SearchResult as BrowserSearchResult
 
 
 class StepBackQueryResponse(TypedDict):
@@ -102,7 +102,7 @@ def filter_htmls_with_best_combined_mtld(
             mtld_score = readability['mtld']
             logger.debug(f"MTLD score for {url}: {mtld_score}")
 
-            if mtld_score >= min_mtld:
+            if header_count > 5 or mtld_score >= min_mtld:
                 doc_scores.append((url, html, docs, readability, mtld_score))
                 logger.debug(
                     f"Added {url} to candidates with MTLD={mtld_score}")
@@ -152,7 +152,7 @@ def initialize_search_components(
     return mlx, tokenize
 
 
-async def fetch_search_results(query: str, output_dir: str, use_cache: bool = False) -> List[SearchResult]:
+async def fetch_search_results(query: str, output_dir: str, use_cache: bool = False) -> List[BrowserSearchResult]:
     """Fetch search results and save them."""
     logger.info(
         f"Fetching search results for query: {query}, use_cache={use_cache}")
@@ -167,23 +167,73 @@ async def fetch_search_results(query: str, output_dir: str, use_cache: bool = Fa
 
 
 async def process_search_results(
-    browser_search_results: List[Dict],
+    browser_search_results: List[BrowserSearchResult],
     query: str,
     output_dir: str
 ) -> List[Tuple[str, str, Optional[str]]]:
-    """Process search results and extract links."""
+    """Process search results and extract links, ensuring top 5 URLs are always included."""
     logger.info(
         f"Processing {len(browser_search_results)} search results for query: {query}")
-    urls = [item["url"] for item in browser_search_results]
-    logger.debug(f"Scraping {len(urls)} URLs")
 
-    # Process initial search result URLs
+    # Ensure top 5 URLs are included
+    top_k = 10
+    # Top 5 or fewer if less available
+    guaranteed_top_n = min(5, len(browser_search_results))
+    top_urls = [item["url"]
+                for item in browser_search_results[:guaranteed_top_n]]
+    remaining_urls = [item["url"]
+                      for item in browser_search_results[guaranteed_top_n:]]
+    logger.debug(f"Guaranteed top {guaranteed_top_n} URLs: {top_urls}")
+    logger.debug(
+        f"Remaining {len(remaining_urls)} URLs for filtering: {remaining_urls}")
+
+    # Prepare documents for search_docs filtering
+    browser_search_docs = [
+        HeaderDocument(
+            id=result["id"],
+            source_url=result["url"],
+            header=f"## {result["title"]}",
+            content=result["content"],
+            text=f"## {result["title"]}\n\n{result['content']}"
+        )
+        for result in browser_search_results
+        if result.get("title") and result.get("content")
+    ]
+
+    # Filter remaining URLs (excluding top 5) using search_docs
+    remaining_docs = [
+        doc for doc in browser_search_docs if doc["source_url"] in remaining_urls
+    ]
+
+    # Only perform search_docs if we have more remaining docs than needed
+    remaining_k = top_k - guaranteed_top_n
+    if len(remaining_docs) > remaining_k:
+        browser_search_doc_results = search_docs(
+            query=query,
+            documents=remaining_docs,
+            ids=[doc["id"] for doc in remaining_docs],
+            top_k=remaining_k,  # Adjust top_k to fill up to 10 total
+            filter_by_headers_enabled=False
+        )
+    else:
+        # If we have fewer remaining docs than needed, use all of them
+        browser_search_doc_results = remaining_docs
+
+    save_file(browser_search_doc_results,
+              f"{output_dir}/browser_search_doc_results.json")
+
+    # Combine top 5 URLs with filtered URLs
+    filtered_ids = {result["id"] for result in browser_search_doc_results}
+    selected_urls = top_urls + [
+        doc["source_url"] for doc in browser_search_docs
+        if doc["id"] in filtered_ids and doc["source_url"] not in top_urls
+    ]
+    logger.debug(f"Selected {len(selected_urls)} URLs: {selected_urls}")
+
+    # Process selected URLs
     html_list = []
-    async for url, status, html in scrape_urls(urls, num_parallel=5):
-        if status == "completed":
-            if not html:
-                continue
-
+    async for url, status, html in scrape_urls(selected_urls, num_parallel=10, limit=10):
+        if status == "completed" and html:
             sub_url_dir = format_sub_url_dir(url)
             sub_output_dir = os.path.join(output_dir, sub_url_dir)
 
@@ -205,11 +255,17 @@ async def process_search_results(
                       f"{sub_output_dir}/readability_docs.json")
 
             html_list.append(html)
+        else:
+            html_list.append("")  # Placeholder for failed URLs
 
     all_url_html_date_tuples = []
     all_links = []
 
-    for result, html_str in zip(browser_search_results, html_list):
+    # Match HTML with results for selected URLs
+    for result, html_str in zip(
+        [r for r in browser_search_results if r["url"] in selected_urls],
+        html_list
+    ):
         url = result["url"]
         if not html_str:
             logger.debug(f"No HTML content for {url}, skipping")
@@ -240,10 +296,7 @@ async def process_search_results(
     logger.info(f"Scraping {len(reranked_links)} reranked links...")
     reranked_html_list = []
     async for url, status, html in scrape_urls(reranked_links, num_parallel=5):
-        if status == "completed":
-            if not html:
-                continue
-
+        if status == "completed" and html:
             sub_url_dir = format_sub_url_dir(url)
             sub_output_dir = os.path.join(output_dir, sub_url_dir)
 
@@ -265,6 +318,8 @@ async def process_search_results(
                       f"{sub_output_dir}/readability_docs.json")
 
             reranked_html_list.append(html)
+        else:
+            reranked_html_list.append("")  # Placeholder for failed URLs
 
     for url, html_str in zip(reranked_links, reranked_html_list):
         if html_str:
@@ -343,7 +398,7 @@ def search_and_group_documents(
     # Sort results by source_url and doc_index
     sorted_doc_results = sorted(
         search_doc_results,
-        key=lambda x: (x["document"]["metadata"]["source_url"], x["doc_index"])
+        key=lambda x: (x["metadata"]["source_url"], x["doc_index"])
     )
     save_file(
         {"query": query, "count": len(
@@ -355,7 +410,7 @@ def search_and_group_documents(
     contexts: List[str] = []
     current_url: str | None = None
     for doc in sorted_doc_results:
-        source_url = doc["document"]["metadata"]["source_url"]
+        source_url = doc["metadata"]["source_url"]
         if source_url != current_url:
             contexts.append(f"<!-- Source: {source_url} -->")
             current_url = source_url
@@ -375,14 +430,20 @@ def search_and_group_documents(
     save_file(
         {
             "total_tokens": total_tokens,
+            "count": len(sorted_doc_results),
+            "urls_info": {
+                result["metadata"]["source_url"]: len(
+                    [r for r in sorted_doc_results if r["metadata"]["source_url"] == result["metadata"]["source_url"]])
+                for result in sorted_doc_results
+            },
             "contexts": [
                 {
                     "doc_index": result["doc_index"],
                     "score": result["score"],
                     "tokens": tokens,
-                    "source_url": result["document"]["metadata"]["source_url"],
-                    "parent_header": result["document"]["metadata"]["parent_header"],
-                    "header": result["document"]["metadata"]["header"],
+                    "source_url": result["metadata"]["source_url"],
+                    "parent_header": result["metadata"]["parent_header"],
+                    "header": result["metadata"]["header"],
                     "text": result["text"]
                 }
                 for result, tokens in zip(sorted_doc_results, context_tokens)

@@ -28,10 +28,9 @@ if __name__ == "__main__":
         print(f"Headers: {result['headers']}")
         print(f"Original Document:\n{result['text']}")
 
-    results_no_document = [
-        {k: v for k, v in result.items() if k != 'document'} for result in results]
-
-    save_file(results_no_document, f"{output_dir}/results.json")
+    results_no_node = [
+        {k: v for k, v in result.items() if k != 'node'} for result in results]
+    save_file(results_no_node, f"{output_dir}/results.json")
 
     # Optionally log raw scores for debugging
     if raw_scores:

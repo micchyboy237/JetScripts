@@ -43,9 +43,9 @@ if __name__ == "__main__":
     if raw_scores:
         logger.debug("Raw Scores: %s", raw_scores)
 
-    results_no_document = [
-        {k: v for k, v in result.items() if k != 'document'} for result in results]
+    results_no_node = [
+        {k: v for k, v in result.items() if k != 'node'} for result in results]
 
-    save_file(results_no_document, f"{output_dir}/results.json")
+    save_file(results_no_node, f"{output_dir}/results.json")
     save_file(token_counts, f"{output_dir}/tokens.json")
     save_file(raw_scores, f"{output_dir}/raw_scores.json")

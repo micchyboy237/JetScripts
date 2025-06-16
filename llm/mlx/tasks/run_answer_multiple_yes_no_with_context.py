@@ -1,23 +1,30 @@
 import os
-from jet.file.utils import save_file
+from jet.file.utils import load_file, save_file
 from jet.llm.mlx.tasks.answer_multiple_yes_no_with_context import QuestionContext, answer_multiple_yes_no_with_context, AnswerResult
 from jet.llm.mlx.mlx_types import LLMModelType
 from jet.logger import logger
 from jet.transformers.formatters import format_json
+from jet.vectors.document_types import HeaderDocument
 
 if __name__ == "__main__":
-    question = "Which planet in our solar system has one or more moons?"
-    contexts = [
-        "Venus is the second planet from the Sun and has no natural moons.",
-        "Jupiter is the largest planet and has at least 79 known moons, including Ganymede.",
-        "Mars has two small moons named Phobos and Deimos.",
-        "Saturn is known for its rings and has 83 moons with confirmed orbits."
-    ]
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
+    output_dir = os.path.join(
+        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+
+    query = "List all ongoing and upcoming isekai anime 2025."
+    model_path = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125"
+
+    docs = load_file(docs_file)
+    docs = [HeaderDocument(**doc) for doc in docs]
+    doc_texts = [doc.text for doc in docs]
+
+    question = f"Does this contain actual data that answer this browser query: \"{query}\"?"
+    contexts = doc_texts
     question_contexts: list[QuestionContext] = [
         {"question": question, "context": ctx} for ctx in contexts
     ]
     results = answer_multiple_yes_no_with_context(
-        question_contexts, model_path="llama-3.2-3b-instruct-4bit"
+        question_contexts, model_path=model_path
     )
     logger.gray("Results:")
     logger.success(format_json(results))
