@@ -20,7 +20,7 @@ from jet.wordnet.text_chunker import truncate_texts
 from jet.vectors.document_types import HeaderDocument
 from jet.vectors.search_with_clustering import search_documents
 from jet.wordnet.analyzers.text_analysis import ReadabilityResult, analyze_readability, analyze_text
-from jet.code.splitter_markdown_utils import get_md_header_docs
+from jet.code.splitter_markdown_utils import get_md_header_docs, get_header_level
 from jet.file.utils import save_file
 from jet.llm.mlx.base import MLX
 from jet.models.tokenizer.base import count_tokens, get_tokenizer_fn
@@ -378,6 +378,10 @@ def process_documents(
         "query": query,
         "count": len(all_docs),
         "source_urls": {doc.metadata["source_url"]: sum(1 for d in all_docs if d.metadata["source_url"] == doc.metadata["source_url"]) for doc in all_docs},
+        "headers": {
+            f"h{i}": sum(1 for doc in all_docs if doc.metadata["header_level"] == i)
+            for i in range(1, 7)
+        },
         "documents": all_docs
     }, os.path.join(output_dir, "docs.json"))
     save_file(headers, os.path.join(output_dir, "headers.json"))
