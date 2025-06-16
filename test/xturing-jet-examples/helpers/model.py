@@ -108,7 +108,7 @@ def load_gpt_model(model_path: str):
         if model_path.endswith('.ckpt') or model_path.endswith('.pt'):
             # Load the PyTorch checkpoint
             checkpoint = torch.load(
-                model_path, map_location=torch.device('cpu'))
+                model_path, map_location=torch.device("cpu"))
 
             # Assume that we need to create the model architecture here
             # Load with the given config
