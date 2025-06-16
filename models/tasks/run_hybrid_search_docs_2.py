@@ -194,16 +194,17 @@ class TestSearchDocs:
 
 
 if __name__ == "__main__":
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/docs.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     os.makedirs(output_dir, exist_ok=True)
     logger.debug("Output directory created: %s", output_dir)
 
-    query = "List all ongoing and upcoming isekai anime 2025."
     logger.debug("Loading documents from %s", docs_file)
     docs = load_file(docs_file)
+    query = docs["query"]
+    docs = docs["documents"]
     docs = [HeaderDocument(**doc) for doc in docs]
     logger.info("Loaded %d documents", len(docs))
 

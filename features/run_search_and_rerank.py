@@ -186,11 +186,7 @@ async def process_search_results(
     guaranteed_top_n = min(5, len(browser_search_results))
     top_urls = [item["url"]
                 for item in browser_search_results[:guaranteed_top_n]]
-    remaining_urls = [item["url"]
-                      for item in browser_search_results[guaranteed_top_n:]]
     logger.debug(f"Guaranteed top {guaranteed_top_n} URLs: {top_urls}")
-    logger.debug(
-        f"Remaining {len(remaining_urls)} URLs for filtering: {remaining_urls}")
 
     browser_search_docs = [
         HeaderDocument(
@@ -205,19 +201,13 @@ async def process_search_results(
         for result in browser_search_results
         if result.get("title") and result.get("content")
     ]
-    remaining_docs = [
-        doc for doc in browser_search_docs if doc["source_url"] in remaining_urls]
-    remaining_k = top_k - guaranteed_top_n
-    if len(remaining_docs) > remaining_k:
-        browser_search_doc_results = search_docs(
-            query=query,
-            documents=remaining_docs,
-            ids=[doc["id"] for doc in remaining_docs],
-            top_k=remaining_k,
-            filter_by_headers_enabled=False
-        )
-    else:
-        browser_search_doc_results = remaining_docs
+    browser_search_doc_results = search_docs(
+        query=query,
+        documents=browser_search_docs,
+        ids=[doc["id"] for doc in browser_search_docs],
+        top_k=None,
+        filter_by_headers_enabled=False
+    )
     save_file(browser_search_doc_results,
               f"{output_dir}/browser_search_doc_results.json")
 
@@ -559,7 +549,7 @@ async def main():
     # query = rewrite_query(query, llm_model)
     browser_search_results = await fetch_search_results(query, output_dir, use_cache=use_cache)
     url_html_date_tuples = await process_search_results(browser_search_results, query, output_dir)
-    url_html_date_tuples.sort(key=lambda x: x[2] or "", reverse=True)
+    # url_html_date_tuples.sort(key=lambda x: x[2] or "", reverse=True)
     all_docs = process_documents(url_html_date_tuples, query, output_dir)
     sorted_doc_results, context = search_and_group_documents(
         query, all_docs, embed_model, llm_model, top_k, output_dir)

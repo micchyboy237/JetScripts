@@ -4,16 +4,19 @@ from jet.logger import logger
 from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
 from jet.models.tokenizer.base import count_tokens
 from jet.models.model_types import LLMModelType
+from jet.vectors.document_types import HeaderDocument
 
 
 if __name__ == "__main__":
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/docs.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
-    query = "List all ongoing and upcoming isekai anime 2025."
     docs = load_file(docs_file)
+    query = docs["query"]
+    docs = docs["documents"]
+    docs = [HeaderDocument(**doc) for doc in docs]
     search_output = search_docs(
         query,
         docs,
