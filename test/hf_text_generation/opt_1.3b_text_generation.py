@@ -7,7 +7,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 
 # Prepare input
 prompt = "Once upon a time"
-inputs = tokenizer(prompt, return_tensors="pt").to("mps")
+inputs = tokenizer(prompt, return_tensors="pt").to("cpu")
 
 # Generate text
 outputs = model.generate(**inputs, max_length=50)

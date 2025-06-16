@@ -12,7 +12,7 @@ import mlx.nn as nn
 import mlx.core as mx
 import pytest
 import os
-os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "0"
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

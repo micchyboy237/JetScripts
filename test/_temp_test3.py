@@ -216,7 +216,7 @@ def main():
     model = SpanMarkerModel.from_pretrained(
         # "tomaarsen/span-marker-mbert-base-multinerd",
         "tomaarsen/span-marker-bert-base-fewnerd-fine-super",
-    ).to("mps")
+    ).to("cpu")
 
     # Process text
     doc, predictions = process_text(text, nlp, model)

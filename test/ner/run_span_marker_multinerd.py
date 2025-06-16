@@ -219,7 +219,7 @@ def main():
     # Load spaCy model
     nlp = spacy.load("en_core_web_sm")
     model = SpanMarkerModel.from_pretrained(
-        "tomaarsen/span-marker-mbert-base-multinerd").to("mps")
+        "tomaarsen/span-marker-mbert-base-multinerd").to("cpu")
 
     # Input text
     text = """Cleopatra VII, also known as Cleopatra the Great, was the last active ruler of the 

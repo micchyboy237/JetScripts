@@ -15,7 +15,7 @@ print("Done resolving imports...")
 # Set environment variables for CPU usage and stability
 os.environ["OMP_NUM_THREADS"] = "4"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "4"
-os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "0"
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # Configure multiprocessing start method
@@ -27,7 +27,7 @@ class NERProcessor:
         """Initialize the SpanMarker model on CPU."""
         logger.info(f"Loading model: {model_name}")
         torch.set_num_threads(4)
-        self.device = torch.device("mps")
+        self.device = torch.device("cpu")
         logger.debug(f"Using device: {self.device}")
         logger.debug(f"PyTorch threads: {torch.get_num_threads()}")
         logger.debug(f"Process ID: {os.getpid()}")
