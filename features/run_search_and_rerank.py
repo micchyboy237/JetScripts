@@ -73,48 +73,48 @@ def get_header_stats(text: str) -> Dict:
     }
 
 
-def filter_htmls_with_best_combined_mtld(
-    url_html_date_tuples: List[Tuple[str, str, Optional[str]]],
-    limit: Optional[int] = None,
-    min_mtld: float = 100.0
-) -> List[Tuple[str, str, List[HeaderDocument], ReadabilityResult]]:
-    """Filter HTMLs based on MTLD score and header count."""
-    logger.info(
-        f"Filtering {len(url_html_date_tuples)} HTMLs with min MTLD={min_mtld} and limit={limit}")
-    if not url_html_date_tuples:
-        logger.debug("No HTMLs to filter")
-        return []
+# def filter_htmls_with_best_combined_mtld(
+#     url_html_date_tuples: List[Tuple[str, str, Optional[str]]],
+#     limit: Optional[int] = None,
+#     min_mtld: float = 100.0
+# ) -> List[Tuple[str, str, List[HeaderDocument], ReadabilityResult]]:
+#     """Filter HTMLs based on MTLD score and header count."""
+#     logger.info(
+#         f"Filtering {len(url_html_date_tuples)} HTMLs with min MTLD={min_mtld} and limit={limit}")
+#     if not url_html_date_tuples:
+#         logger.debug("No HTMLs to filter")
+#         return []
 
-    doc_scores = []
-    for url, html, _ in url_html_date_tuples:
-        try:
-            logger.debug(f"Processing HTML for URL: {url}")
-            docs = get_md_header_docs(html, ignore_links=True)
-            header_count = len(docs)
-            logger.debug(f"Found {header_count} headers for {url}")
-            if header_count == 0:
-                logger.warning(
-                    f"Skipping {url}: no headers found")
-                continue
+#     doc_scores = []
+#     for url, html, _ in url_html_date_tuples:
+#         try:
+#             logger.debug(f"Processing HTML for URL: {url}")
+#             docs = get_md_header_docs(html, ignore_links=True)
+#             header_count = len(docs)
+#             logger.debug(f"Found {header_count} headers for {url}")
+#             if header_count == 0:
+#                 logger.warning(
+#                     f"Skipping {url}: no headers found")
+#                 continue
 
-            docs_text = "\n\n".join(doc.text for doc in docs)
-            readability = analyze_readability(docs_text)
-            mtld_score = readability['mtld']
-            logger.debug(f"MTLD score for {url}: {mtld_score}")
+#             docs_text = "\n\n".join(doc.text for doc in docs)
+#             readability = analyze_readability(docs_text)
+#             mtld_score = readability['mtld']
+#             logger.debug(f"MTLD score for {url}: {mtld_score}")
 
-            if header_count > 5 or mtld_score >= min_mtld:
-                doc_scores.append((url, html, docs, readability, mtld_score))
-                logger.debug(
-                    f"Added {url} to candidates with MTLD={mtld_score}")
-        except (ValueError, KeyError, AttributeError) as e:
-            logger.debug(f"Error processing {url}: {str(e)}")
-            continue
+#             if header_count > 5 or mtld_score >= min_mtld:
+#                 doc_scores.append((url, html, docs, readability, mtld_score))
+#                 logger.debug(
+#                     f"Added {url} to candidates with MTLD={mtld_score}")
+#         except (ValueError, KeyError, AttributeError) as e:
+#             logger.debug(f"Error processing {url}: {str(e)}")
+#             continue
 
-    doc_scores.sort(key=lambda x: x[4], reverse=True)
-    filtered = [(url, html, docs, readability)
-                for url, html, docs, readability, _ in doc_scores[:limit]]
-    logger.info(f"Filtered to {len(filtered)} HTMLs with highest MTLD scores")
-    return filtered
+#     doc_scores.sort(key=lambda x: x[4], reverse=True)
+#     filtered = [(url, html, docs, readability)
+#                 for url, html, docs, readability, _ in doc_scores[:limit]]
+#     logger.info(f"Filtered to {len(filtered)} HTMLs with highest MTLD scores")
+#     return filtered
 
 
 def format_sub_dir(text: str) -> str:
@@ -176,15 +176,13 @@ async def fetch_search_results(query: str, output_dir: str, use_cache: bool = Fa
 async def process_search_results(
     browser_search_results: List[BrowserSearchResult],
     query: str,
-    output_dir: str
+    output_dir: str,
+    top_k: int = 10
 ) -> List[Tuple[str, str, Optional[str]]]:
     """Process search results and extract links, ensuring top 5 URLs are always included."""
     logger.info(
         f"Processing {len(browser_search_results)} search results for query: {query}")
 
-    # Ensure top 5 URLs are included
-    top_k = 10
-    # Top 5 or fewer if less available
     guaranteed_top_n = min(5, len(browser_search_results))
     top_urls = [item["url"]
                 for item in browser_search_results[:guaranteed_top_n]]
@@ -194,42 +192,35 @@ async def process_search_results(
     logger.debug(
         f"Remaining {len(remaining_urls)} URLs for filtering: {remaining_urls}")
 
-    # Prepare documents for search_docs filtering
     browser_search_docs = [
         HeaderDocument(
             id=result["id"],
-            source_url=result["url"],
-            header=f"## {result["title"]}",
-            content=result["content"],
-            text=f"## {result["title"]}\n\n{result['content']}"
+            text=f"{result['title']}\n{result['content']}",
+            metadata={
+                "source_url": result["url"],
+                "header": result["title"],
+                "content": result["content"],
+            }
         )
         for result in browser_search_results
         if result.get("title") and result.get("content")
     ]
-
-    # Filter remaining URLs (excluding top 5) using search_docs
     remaining_docs = [
-        doc for doc in browser_search_docs if doc["source_url"] in remaining_urls
-    ]
-
-    # Only perform search_docs if we have more remaining docs than needed
+        doc for doc in browser_search_docs if doc["source_url"] in remaining_urls]
     remaining_k = top_k - guaranteed_top_n
     if len(remaining_docs) > remaining_k:
         browser_search_doc_results = search_docs(
             query=query,
             documents=remaining_docs,
             ids=[doc["id"] for doc in remaining_docs],
-            top_k=remaining_k,  # Adjust top_k to fill up to 10 total
+            top_k=remaining_k,
             filter_by_headers_enabled=False
         )
     else:
-        # If we have fewer remaining docs than needed, use all of them
         browser_search_doc_results = remaining_docs
-
     save_file(browser_search_doc_results,
               f"{output_dir}/browser_search_doc_results.json")
 
-    # Combine top 5 URLs with filtered URLs
     filtered_ids = {result["id"] for result in browser_search_doc_results}
     selected_urls = top_urls + [
         doc["source_url"] for doc in browser_search_docs
@@ -237,113 +228,108 @@ async def process_search_results(
     ]
     logger.debug(f"Selected {len(selected_urls)} URLs: {selected_urls}")
 
-    # Process selected URLs
-    html_list = []
-    async for url, status, html in scrape_urls(selected_urls, num_parallel=10, limit=10):
+    # Store URL-to-HTML mapping
+    url_to_result = {r["url"]: r for r in browser_search_results}
+    all_url_html_date_tuples = []
+    all_links = []
+    async for url, status, html in scrape_urls(selected_urls, num_parallel=10, limit=10, show_progress=True):
         if status == "completed" and html:
+            docs = get_md_header_docs(
+                html, ignore_links=True, metadata={"source_url": url})
+            if len(docs) == 0:
+                logger.debug(f"No headers found for {url}, skipping")
+                continue
             sub_url_dir = format_sub_url_dir(url)
             sub_output_dir = os.path.join(output_dir, sub_url_dir)
-
             save_file(html, f"{sub_output_dir}/page.html")
-
-            docs = get_md_header_docs(html, ignore_links=True)
             save_file({
                 "query": query,
                 "from_reranked_link": False,
                 "count": len(docs),
+                "source_url": url,
+                "headers": {
+                    f"h{i}": sum(1 for doc in docs if doc.metadata["header_level"] == i)
+                    for i in range(1, 7)
+                },
                 "documents": docs
             }, f"{sub_output_dir}/docs.json")
-
             headers = [doc["header"] for doc in docs]
             save_file(headers, f"{sub_output_dir}/headers.json")
-
             docs_text = "\n\n".join(doc.text for doc in docs)
             readability_overall = analyze_readability(docs_text)
             save_file(readability_overall,
                       f"{sub_output_dir}/readability_overall.json")
-
             readability_docs = [analyze_readability(doc.text) for doc in docs]
             save_file(readability_docs,
                       f"{sub_output_dir}/readability_docs.json")
 
-            html_list.append(html)
-        else:
-            html_list.append("")  # Placeholder for failed URLs
+            all_url_html_date_tuples.append(
+                (url, html, docs, readability_overall))
 
-    all_url_html_date_tuples = []
-    all_links = []
-
-    # Match HTML with results for selected URLs
-    for result, html_str in zip(
-        [r for r in browser_search_results if r["url"] in selected_urls],
-        html_list
-    ):
-        url = result["url"]
-        if not html_str:
-            logger.debug(f"No HTML content for {url}, skipping")
-            continue
-
-        if not result.get("publishedDate"):
-            published_date = scrape_published_date(html_str)
-            result["publishedDate"] = published_date if published_date else None
-            logger.debug(f"Scraped published date for {url}: {published_date}")
-
-        links = set(scrape_links(html_str, url))
-        links = [link for link in links if (
-            link != url if isinstance(link, str) else link["url"] != url)]
-        all_links.extend(links)
-        logger.debug(f"Extracted {len(links)} links from {url}")
-
-        all_url_html_date_tuples.append(
-            (url, html_str, result.get("publishedDate")))
+            # Get published date and links
+            result = url_to_result.get(url)
+            if not result.get("publishedDate"):
+                published_date = scrape_published_date(html)
+                result["publishedDate"] = published_date if published_date else None
+                logger.debug(
+                    f"Scraped published date for {url}: {published_date}")
+            links = set(scrape_links(html, url))
+            links = [link for link in links if (
+                link != url if isinstance(link, str) else link["url"] != url)]
+            all_links.extend(links)
+            logger.debug(f"Extracted {len(links)} links from {url}")
 
     all_links = list(set(all_links))
+    all_links = [link for link in all_links if (link not in selected_urls if isinstance(
+        link, str) else link["url"] not in selected_urls)]
     save_file(all_links, os.path.join(output_dir, "links.json"))
     logger.debug(f"Total unique links extracted: {len(all_links)}")
-    reranked_links = rerank_urls_bm25_plus(all_links, query, 3)
+    reranked_links = rerank_urls_bm25_plus(all_links, query, threshold=0.7)
     logger.debug(f"Reranked to {len(reranked_links)} links")
     save_file(reranked_links, os.path.join(output_dir, "reranked_links.json"))
 
-    # Process reranked links
-    logger.info(f"Scraping {len(reranked_links)} reranked links...")
-    reranked_html_list = []
-    async for url, status, html in scrape_urls(reranked_links, num_parallel=5):
-        if status == "completed" and html:
-            sub_url_dir = format_sub_url_dir(url)
-            sub_output_dir = os.path.join(output_dir, sub_url_dir)
+    remaining_k = top_k - len(all_url_html_date_tuples)
+    if remaining_k > 0:
+        logger.info(f"Scraping {len(reranked_links)} reranked links...")
+        async for url, status, html in scrape_urls(reranked_links, num_parallel=10, show_progress=True):
+            if status == "completed" and html:
+                docs = get_md_header_docs(
+                    html, ignore_links=True, metadata={"source_url": url})
+                if len(docs) == 0:
+                    logger.debug(f"No headers found for {url}, skipping")
+                    continue
+                sub_url_dir = format_sub_url_dir(url)
+                sub_output_dir = os.path.join(output_dir, sub_url_dir)
+                save_file(html, f"{sub_output_dir}/page.html")
+                save_file({
+                    "query": query,
+                    "from_reranked_link": True,
+                    "count": len(docs),
+                    "source_url": url,
+                    "headers": {
+                        f"h{i}": sum(1 for doc in docs if doc.metadata["header_level"] == i)
+                        for i in range(1, 7)
+                    },
+                    "documents": docs
+                }, f"{sub_output_dir}/docs.json")
+                headers = [doc["header"] for doc in docs]
+                save_file(headers, f"{sub_output_dir}/headers.json")
+                docs_text = "\n\n".join(doc.text for doc in docs)
+                readability_overall = analyze_readability(docs_text)
+                save_file(readability_overall,
+                          f"{sub_output_dir}/readability_overall.json")
+                readability_docs = [
+                    analyze_readability(doc.text) for doc in docs]
+                save_file(readability_docs,
+                          f"{sub_output_dir}/readability_docs.json")
 
-            save_file(html, f"{sub_output_dir}/page.html")
+                published_date = scrape_published_date(html)
+                all_url_html_date_tuples.append(
+                    (url, html, docs, readability_overall))
+                logger.debug(f"Scraped HTML and date for reranked URL: {url}")
 
-            docs = get_md_header_docs(html, ignore_links=True)
-            save_file({
-                "query": query,
-                "from_reranked_link": True,
-                "count": len(docs),
-                "documents": docs
-            }, f"{sub_output_dir}/docs.json")
-
-            headers = [doc["header"] for doc in docs]
-            save_file(headers, f"{sub_output_dir}/headers.json")
-
-            docs_text = "\n\n".join(doc.text for doc in docs)
-            readability_overall = analyze_readability(docs_text)
-            save_file(readability_overall,
-                      f"{sub_output_dir}/readability_overall.json")
-
-            readability_docs = [analyze_readability(doc.text) for doc in docs]
-            save_file(readability_docs,
-                      f"{sub_output_dir}/readability_docs.json")
-
-            reranked_html_list.append(html)
-        else:
-            reranked_html_list.append("")  # Placeholder for failed URLs
-
-    for url, html_str in zip(reranked_links, reranked_html_list):
-        if html_str:
-            published_date = scrape_published_date(html_str)
-            all_url_html_date_tuples.append((url, html_str, published_date))
-            logger.debug(f"Scraped HTML and date for reranked URL: {url}")
-
+                if len(all_url_html_date_tuples) == top_k:
+                    break
     logger.info(
         f"Processed {len(all_url_html_date_tuples)} URL-HTML-date tuples")
     return all_url_html_date_tuples
@@ -356,12 +342,12 @@ def process_documents(
 ) -> List[HeaderDocument]:
     """Process documents and extract headers."""
     logger.info(f"Processing {len(url_html_date_tuples)} documents")
-    all_url_docs_tuples = filter_htmls_with_best_combined_mtld(
-        url_html_date_tuples)
+    # all_url_docs_tuples = filter_htmls_with_best_combined_mtld(
+    #     url_html_date_tuples)
     all_docs = []
     headers = []
 
-    for url, html_str, docs, readability in all_url_docs_tuples:
+    for url, html_str, docs, readability in url_html_date_tuples:
         logger.debug(f"Processing documents for URL: {url}")
         for doc in docs:
             doc.metadata["source_url"] = url
