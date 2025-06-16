@@ -117,12 +117,19 @@ def filter_htmls_with_best_combined_mtld(
     return filtered
 
 
-def initialize_output_directory(script_path: str) -> str:
+def format_sub_dir(text: str) -> str:
+    return text.lower().strip('.,!?').replace(' ', '_').replace(
+        '.', '_').replace(',', '_').replace('!', '_').replace('?', '_').strip()
+
+
+def initialize_output_directory(script_path: str, query: str) -> str:
     """Create and return the output directory path."""
     logger.debug(f"Initializing output directory for script: {script_path}")
     script_dir = os.path.dirname(os.path.abspath(script_path))
     output_dir = os.path.join(script_dir, "generated", os.path.splitext(
         os.path.basename(script_path))[0])
+    query_sub_dir = format_sub_dir(query)
+    output_dir = os.path.join(output_dir, query_sub_dir)
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
     logger.info(f"Output directory initialized: {output_dir}")
@@ -240,7 +247,12 @@ async def process_search_results(
             save_file(html, f"{sub_output_dir}/page.html")
 
             docs = get_md_header_docs(html, ignore_links=True)
-            save_file(docs, f"{sub_output_dir}/docs.json")
+            save_file({
+                "query": query,
+                "from_reranked_link": False,
+                "count": len(docs),
+                "documents": docs
+            }, f"{sub_output_dir}/docs.json")
 
             headers = [doc["header"] for doc in docs]
             save_file(headers, f"{sub_output_dir}/headers.json")
@@ -303,7 +315,12 @@ async def process_search_results(
             save_file(html, f"{sub_output_dir}/page.html")
 
             docs = get_md_header_docs(html, ignore_links=True)
-            save_file(docs, f"{sub_output_dir}/docs.json")
+            save_file({
+                "query": query,
+                "from_reranked_link": True,
+                "count": len(docs),
+                "documents": docs
+            }, f"{sub_output_dir}/docs.json")
 
             headers = [doc["header"] for doc in docs]
             save_file(headers, f"{sub_output_dir}/headers.json")
@@ -334,6 +351,7 @@ async def process_search_results(
 
 def process_documents(
     url_html_date_tuples: List[Tuple[str, str, Optional[str]]],
+    query: str,
     output_dir: str
 ) -> List[HeaderDocument]:
     """Process documents and extract headers."""
@@ -356,7 +374,12 @@ def process_documents(
             })
         all_docs.extend(docs)
 
-    save_file(all_docs, os.path.join(output_dir, "docs.json"))
+    save_file({
+        "query": query,
+        "count": len(all_docs),
+        "source_urls": {doc.metadata["source_url"]: sum(1 for d in all_docs if d.metadata["source_url"] == doc.metadata["source_url"]) for doc in all_docs},
+        "documents": all_docs
+    }, os.path.join(output_dir, "docs.json"))
     save_file(headers, os.path.join(output_dir, "headers.json"))
     return all_docs
 
@@ -533,7 +556,7 @@ def evaluate_results(
 
 async def main():
     """Main function to orchestrate the search and response generation."""
-    query = "List top isekai anime 2025."
+    query = "Top isekai anime 2025."
     top_k = 10
     embed_model = "static-retrieval-mrl-en-v1"
     llm_model = "llama-3.2-1b-instruct-4bit"
@@ -541,13 +564,13 @@ async def main():
     use_cache = False
 
     logger.info(f"Starting search engine with query: {query}")
-    output_dir = initialize_output_directory(__file__)
+    output_dir = initialize_output_directory(__file__, query)
     mlx, _ = initialize_search_components(llm_model, embed_model, seed)
     # query = rewrite_query(query, llm_model)
     browser_search_results = await fetch_search_results(query, output_dir, use_cache=use_cache)
     url_html_date_tuples = await process_search_results(browser_search_results, query, output_dir)
     url_html_date_tuples.sort(key=lambda x: x[2] or "", reverse=True)
-    all_docs = process_documents(url_html_date_tuples, output_dir)
+    all_docs = process_documents(url_html_date_tuples, query, output_dir)
     sorted_doc_results, context = search_and_group_documents(
         query, all_docs, embed_model, llm_model, top_k, output_dir)
     response = generate_response(query, context, llm_model, mlx, output_dir)

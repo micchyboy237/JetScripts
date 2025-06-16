@@ -1,7 +1,7 @@
-from collections import Counter
 import json
 import os
 import shutil
+
 from jet.code.splitter_markdown_utils import get_header_level
 from jet.data.stratified_sampler import ProcessedDataString, StratifiedSampler
 from jet.file.utils import load_file, save_file
@@ -16,6 +16,9 @@ from jet.llm.mlx.tasks.eval.evaluate_multiple_contexts_relevance import (
 from jet.vectors.document_types import HeaderDocument
 from jet.wordnet.words import get_words
 
+from collections import Counter, defaultdict
+from statistics import mean
+
 
 def summarize_results(results: list[ContextRelevanceResult]) -> dict:
     priority_counts = Counter(res["priority"]
@@ -24,6 +27,29 @@ def summarize_results(results: list[ContextRelevanceResult]) -> dict:
 
     def percent(val: int) -> float:
         return (val / total_valid * 100) if total_valid else 0.0
+
+    # Prepare probability groups by priority
+    # {priority: [[p0s], [p1s], [p2s]]}
+    prob_by_priority = defaultdict(lambda: [[] for _ in range(3)])
+    for res in results:
+        if res["is_valid"]:
+            for i in range(3):
+                prob_by_priority[res["priority"]][i].append(
+                    res["probabilities"][i])
+
+    # Compute mean probabilities per priority
+    mean_probs_by_priority = {
+        priority: [round(mean(prob_list), 4)
+                   if prob_list else 0.0 for prob_list in prob_lists]
+        for priority, prob_lists in prob_by_priority.items()
+    }
+
+    def prob_diff(p1: str, p2: str) -> list[float]:
+        return [
+            round(mean_probs_by_priority.get(p1, [0, 0, 0])[
+                  i] - mean_probs_by_priority.get(p2, [0, 0, 0])[i], 4)
+            for i in range(3)
+        ]
 
     summary = {
         "total_valid": total_valid,
@@ -34,50 +60,58 @@ def summarize_results(results: list[ContextRelevanceResult]) -> dict:
             "low": round(percent(priority_counts.get("low", 0)), 2),
         },
         "differences": {
-            "high_vs_medium": round(
-                percent(priority_counts.get("high", 0)) -
-                percent(priority_counts.get("medium", 0)), 2
-            ),
-            "high_vs_low": round(
-                percent(priority_counts.get("high", 0)) -
-                percent(priority_counts.get("low", 0)), 2
-            ),
-            "medium_vs_low": round(
-                percent(priority_counts.get("medium", 0)) -
-                percent(priority_counts.get("low", 0)), 2
-            ),
+            "high_vs_medium": round(percent(priority_counts.get("high", 0)) - percent(priority_counts.get("medium", 0)), 2),
+            "high_vs_low": round(percent(priority_counts.get("high", 0)) - percent(priority_counts.get("low", 0)), 2),
+            "medium_vs_low": round(percent(priority_counts.get("medium", 0)) - percent(priority_counts.get("low", 0)), 2),
+        },
+        "probability_means": mean_probs_by_priority,
+        "probability_differences": {
+            "high_vs_medium": prob_diff("high", "medium"),
+            "high_vs_low": prob_diff("high", "low"),
+            "medium_vs_low": prob_diff("medium", "low"),
         }
     }
 
     return summary
 
 
+def format_sub_dir(text: str) -> str:
+    return text.lower().strip('.,!?').replace(' ', '_').replace(
+        '.', '_').replace(',', '_').replace('!', '_').replace('?', '_').strip()
+
+
 if __name__ == "__main__":
     docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-    shutil.rmtree(output_dir, ignore_errors=True)
 
     docs = load_file(docs_file)
-    docs = [HeaderDocument(**doc) for doc in docs]
+    query = docs["query"]
+
+    docs = [HeaderDocument(**doc) for doc in docs["documents"]]
     doc_texts = [
         f"{doc["header"].lstrip('#').strip()}\n{doc["content"]}" for doc in docs]
 
-    query = "List all ongoing and upcoming isekai anime 2025."
     contexts = doc_texts
-
     model_path = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125"
+
+    query_sub_dir = format_sub_dir(query)
+    output_dir = os.path.join(output_dir, query_sub_dir)
+    shutil.rmtree(output_dir, ignore_errors=True)
+
     save_dir = f"{os.path.dirname(__file__)}/saved_models/model_scraped_html"
 
     mock_data = load_file(
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/tasks/data/inputs/query-context-labels-pairs.json")
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/tasks/data/inputs/query-context-relevance-labels.json")
     data: list[ProcessedDataString] = [
         ProcessedDataString(
             source="Query: {}\nContext: {}".format(
                 d["query"], d["context"].lstrip('#').strip()),
             category_values=[
-                str(d["label"]),
-                str(get_header_level(d["context"])),
+                d["label"],
+                d["query"],
+                get_header_level(d["context"]),
+                *get_words(d["context"].splitlines()[0])
                 # *get_words(d["context"])
             ]
         ) for d in mock_data
