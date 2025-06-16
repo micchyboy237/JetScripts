@@ -270,18 +270,19 @@ if __name__ == "__main__":
 
     for result in search_results:
         base_id = result['id'].split('_chunk_')[0]
-        logger.debug("Searching for original doc with base ID: %s", base_id)
-        logger.debug("Available doc IDs: %s", [doc.id for doc in docs])
         try:
             original_doc = next(doc for doc in docs if doc.id == base_id)
+            logger.gray(
+                "\n=====================================================")
             logger.info(
-                f"\nRank {result['rank']} (Doc: {result['doc_index']} | Chunk: {result['chunk_index']} | Tokens: {result['tokens']}):")
+                f"Rank {result['rank']} (Doc: {result['doc_index']} | Chunk: {result['chunk_index']} | Tokens: {result['tokens']}):")
             print(f"Score: {result['score']:.4f}")
             print(f"Header: {result['header']}")
             print(f"Parent Header: {result['parent_header']}")
-            print(f"Chunk:\n{result['text']}")
-            print(f"Original Document:\n{original_doc.text}")
-            print(
+            logger.gray(f"Chunk:")
+            logger.orange(result['text'])
+            # print(f"Original Document:\n{original_doc.text}")
+            logger.success(
                 f"Similarities: text={result['sim_text']:.4f}, header={result['sim_header']:.4f}")
         except StopIteration:
             logger.error(
