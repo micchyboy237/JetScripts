@@ -87,8 +87,8 @@ if __name__ == "__main__":
 
     docs = load_file(docs_file)
     query = docs["query"]
-
-    docs = [HeaderDocument(**doc) for doc in docs["documents"]]
+    docs = docs["documents"]
+    docs = [HeaderDocument(**doc) for doc in docs]
     doc_texts = [
         f"{doc["header"].lstrip('#').strip()}\n{doc["content"]}" for doc in docs]
 
@@ -101,21 +101,34 @@ if __name__ == "__main__":
 
     save_dir = f"{os.path.dirname(__file__)}/saved_models/model_scraped_html"
 
-    mock_data = load_file(
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/tasks/data/inputs/query-context-relevance-labels.json")
+    # data_samples = load_file(
+    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/tasks/data/inputs/query-context-relevance-labels.json")
+    # data: list[ProcessedDataString] = [
+    #     ProcessedDataString(
+    #         source="Query: {}\nContext: {}".format(
+    #             d["query"], d["context"].lstrip('#').strip()),
+    #         category_values=[
+    #             d["label"],
+    #             d["query"],
+    #             get_header_level(d["context"]),
+    #             *get_words(d["context"].splitlines()[0])
+    #             # *get_words(d["context"])
+    #         ]
+    #     ) for d in data_samples
+    # ]
+
     data: list[ProcessedDataString] = [
         ProcessedDataString(
-            source="Query: {}\nContext: {}".format(
-                d["query"], d["context"].lstrip('#').strip()),
+            source=f"Query: {query}\nContext: {((doc["parent_header"] or "") + '\n' + doc["text"]).strip()}",
             category_values=[
-                d["label"],
-                d["query"],
-                get_header_level(d["context"]),
-                *get_words(d["context"].splitlines()[0])
-                # *get_words(d["context"])
+                doc["parent_header"] or "",
+                doc["header_level"],
+                doc["source_url"],
+                *get_words(((doc["parent_header"] or "") + '\n' + doc["header"]).strip().lower())
             ]
-        ) for d in mock_data
+        ) for doc in docs
     ]
+
     sampler = StratifiedSampler(data)
     train_data, test_data, val_data = sampler.split_train_test_val(
         train_ratio=0.6, test_ratio=0.2)
@@ -123,12 +136,21 @@ if __name__ == "__main__":
     save_file(test_data, f"{output_dir}/dataset/test.json")
     save_file(val_data, f"{output_dir}/dataset/val.json")
 
-    default_pairs = [d["source"] for d in train_data]
-    default_labels = [int(d["category_values"][0]) for d in train_data]
-    save_file({
-        "pairs": default_pairs,
-        "labels": default_labels
-    }, f"{output_dir}/formatted_train_data.json")
+    few_shot_examples = [{
+        "pair": d["source"],
+        "relevance_score": None
+    } for d in train_data]
+    save_file(few_shot_examples, f"{output_dir}/few_shot_examples.json")
+
+    # default_pairs = [d["source"] for d in train_data]
+    # default_labels = [int(d["category_values"][0]) for d in train_data]
+    # save_file({
+    #     "pairs": default_pairs,
+    #     "labels": default_labels
+    # }, f"{output_dir}/formatted_train_data.json")
+
+    default_pairs = None
+    default_labels = None
 
     # Training step
     classifier, label_encoder, embedder = load_classifier(
@@ -153,7 +175,10 @@ if __name__ == "__main__":
         print(f"Priority: {res['priority']}")
         print(f"Valid: {res['is_valid']}, Error: {res['error']}\n")
 
-    save_file(results, f"{output_dir}/results.json")
+    save_file({
+        "query": query,
+        "results": results
+    }, f"{output_dir}/results.json")
 
     summary = summarize_results(results)
     save_file(summary, f"{output_dir}/summary.json")

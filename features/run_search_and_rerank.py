@@ -1,6 +1,7 @@
 # search_engine.py
 from collections import defaultdict
 import json
+import math
 import os
 import re
 import shutil
@@ -17,7 +18,7 @@ from jet.scrapers.hrequests_utils import scrape_urls
 from jet.transformers.link_formatters import LinkFormatter, format_links_for_embedding
 from jet.utils.url_utils import rerank_urls_bm25_plus
 from jet.wordnet.text_chunker import truncate_texts
-from jet.vectors.document_types import HeaderDocument
+from jet.vectors.document_types import HeaderDocument, HeaderDocumentWithScore
 from jet.vectors.search_with_clustering import search_documents
 from jet.wordnet.analyzers.text_analysis import ReadabilityResult, analyze_readability, analyze_text
 from jet.code.splitter_markdown_utils import get_md_header_docs, get_header_level
@@ -353,7 +354,10 @@ def process_documents(
     save_file({
         "query": query,
         "count": len(all_docs),
-        "source_urls": {doc.metadata["source_url"]: sum(1 for d in all_docs if d.metadata["source_url"] == doc.metadata["source_url"]) for doc in all_docs},
+        "source_urls": {doc.metadata["source_url"]: {
+            f"h{i}": sum(1 for d in all_docs if d.metadata["source_url"] == doc.metadata["source_url"] and d.metadata["header_level"] == i)
+            for i in range(1, 7)
+        } for doc in all_docs},
         "headers": {
             f"h{i}": sum(1 for doc in all_docs if doc.metadata["header_level"] == i)
             for i in range(1, 7)
@@ -369,24 +373,16 @@ def search_and_group_documents(
     all_docs: List[HeaderDocument],
     embed_model: str,
     llm_model: str,
-    top_k: int,
-    output_dir: str
-) -> Tuple[List[Dict], str]:
-    """Search documents and group results with source_url at the top of each group."""
+    output_dir: str,
+    top_k: Optional[int] = None,
+    max_tokens: Optional[int] = None,
+) -> Tuple[List[Dict], str, List[Dict]]:
     logger.info(
-        f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}")
-
-    # Filter out header level 1 documents
-    docs_to_search = [
-        doc for doc in all_docs if doc.metadata["header_level"] != 1]
-    logger.debug(
-        f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1)")
-
-    # Perform search
+        f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}, max_tokens={max_tokens}")
     search_doc_results = search_docs(
         query=query,
-        documents=docs_to_search,
-        ids=[doc.id_ for doc in docs_to_search],
+        documents=all_docs,
+        ids=[doc.id_ for doc in all_docs],
         model=embed_model,
         top_k=top_k,
     )
@@ -397,67 +393,144 @@ def search_and_group_documents(
     )
     logger.info(
         f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
-
-    # Sort results by source_url and doc_index
-    sorted_doc_results = sorted(
-        search_doc_results,
-        key=lambda x: (x["metadata"]["source_url"], x["doc_index"])
-    )
+    parent_groups: dict[str, List[HeaderDocumentWithScore]] = defaultdict(list)
+    doc_id_to_result = {result["id"]: result for result in search_doc_results}
+    for doc in all_docs:
+        if doc.id_ in doc_id_to_result:
+            parent_header = doc.metadata.get("parent_header", "")
+            parent_groups[parent_header].append(doc_id_to_result[doc.id_])
+    parent_scores = []
+    for parent_header, docs in parent_groups.items():
+        if not docs:
+            logger.debug(
+                f"No documents found for parent_header: {parent_header}, skipping")
+            continue
+        parent_doc = next(
+            (d for d in all_docs if d.metadata["header"] == parent_header), None)
+        parent_score = doc_id_to_result[parent_doc.id_]["score"] if parent_doc else 0.0
+        num_children = len(docs)
+        avg_child_score = sum(doc["score"] for doc in docs) / \
+            num_children if num_children > 0 else 0.0
+        combined_score = parent_score + \
+            (num_children * 0.2) + (avg_child_score * 0.5)
+        child_headers = [{
+            "doc_index": doc["metadata"]["doc_index"],
+            "score": doc["score"],
+            "text": doc["text"],
+        } for doc in docs]
+        parent_scores.append({
+            "parent_header": parent_header,
+            "source_url": docs[0]["metadata"]["source_url"] if docs else "",
+            "parent_score": parent_score,
+            "num_children": num_children,
+            "avg_child_score": avg_child_score,
+            "combined_score": combined_score,
+            "child_headers": child_headers
+        })
+    sorted_parent_headers = sorted(
+        parent_scores, key=lambda x: x["combined_score"], reverse=True)
     save_file(
         {"query": query, "count": len(
-            sorted_doc_results), "results": sorted_doc_results},
-        os.path.join(output_dir, "sorted_doc_results.json")
+            sorted_parent_headers), "sorted_parent_headers": sorted_parent_headers},
+        os.path.join(output_dir, "sorted_parent_headers.json")
     )
-
-    # Group contexts by source_url
+    logger.info(
+        f"Saved {len(sorted_parent_headers)} sorted parent headers to {output_dir}/sorted_parent_headers.json")
     contexts: List[str] = []
+    texts_to_tokenize: List[str] = []
     current_url: str | None = None
-    for doc in sorted_doc_results:
-        source_url = doc["metadata"]["source_url"]
+    total_tokens = 0
+    selected_docs = []
+    for parent in sorted_parent_headers:
+        parent_header = parent["parent_header"]
+        source_url = parent["source_url"]
         if source_url != current_url:
-            contexts.append(f"<!-- Source: {source_url} -->")
+            source_line = f"<!-- Source: {source_url} -->"
+            texts_to_tokenize.append(source_line)
+            contexts.append(source_line)
             current_url = source_url
             logger.debug(f"Added source_url header: {source_url}")
-        contexts.append(doc["text"])
-
-    # Join contexts with double newlines
+        parent_doc = next(
+            (d for d in all_docs if d.metadata["header"] == parent_header and d.metadata["header_level"] == 1), None)
+        if parent_doc:
+            parent_text = parent_doc.get_recursive_text()
+            texts_to_tokenize.append(parent_text)
+            contexts.append(parent_text)
+            selected_docs.append({
+                "id": parent_doc.id_,
+                "metadata": parent_doc.metadata,
+                "text": parent_text,
+                "score": parent["parent_score"],
+                "doc_index": parent_doc.metadata["doc_index"]
+            })
+        for child in parent["child_headers"]:
+            child_text = child["text"]
+            child_doc_result = next(
+                (result for result in doc_id_to_result.values()
+                 if result["metadata"]["doc_index"] == child["doc_index"]),
+                None
+            )
+            if not child_doc_result:
+                logger.warning(
+                    f"No document found for doc_index: {child['doc_index']}")
+                continue
+            texts_to_tokenize.append(child_text)
+            contexts.append(child_text)
+            selected_docs.append({
+                "id": child_doc_result["id"],
+                "metadata": child_doc_result["metadata"],
+                "text": child_text,
+                "score": child["score"],
+                "doc_index": child["doc_index"]
+            })
+    context_tokens = count_tokens(
+        llm_model, texts_to_tokenize, prevent_total=True)
+    total_tokens = sum(context_tokens)
+    if max_tokens is not None:
+        valid_indices = []
+        running_tokens = 0
+        for i, tokens in enumerate(context_tokens):
+            if running_tokens + tokens > max_tokens:
+                break
+            running_tokens += tokens
+            valid_indices.append(i)
+        contexts = [contexts[i] for i in valid_indices]
+        selected_docs = [selected_docs[i] for i in valid_indices]
+        context_tokens = [context_tokens[i] for i in valid_indices]
+        total_tokens = sum(context_tokens)
     context = "\n\n".join(contexts)
     save_file(context, os.path.join(output_dir, "context.md"))
-    logger.debug(f"Generated context with {len(contexts)} segments")
-
-    # Save context metadata
-    result_texts = [result["text"] for result in sorted_doc_results]
-    context_tokens: List[int] = count_tokens(
-        llm_model, result_texts, prevent_total=True)
-    total_tokens = sum(context_tokens)
+    logger.debug(
+        f"Generated context with {len(contexts)} segments, {total_tokens} tokens")
     save_file(
         {
             "total_tokens": total_tokens,
-            "count": len(sorted_doc_results),
+            "count": len(selected_docs),
             "urls_info": {
-                result["metadata"]["source_url"]: len(
-                    [r for r in sorted_doc_results if r["metadata"]["source_url"] == result["metadata"]["source_url"]])
-                for result in sorted_doc_results
+                doc["metadata"]["source_url"]: len(
+                    [d for d in selected_docs if d["metadata"]
+                        ["source_url"] == doc["metadata"]["source_url"]]
+                )
+                for doc in selected_docs
             },
             "contexts": [
                 {
-                    "doc_index": result["doc_index"],
-                    "score": result["score"],
+                    "doc_index": doc["doc_index"],
+                    "score": doc["score"],
                     "tokens": tokens,
-                    "source_url": result["metadata"]["source_url"],
-                    "parent_header": result["metadata"]["parent_header"],
-                    "header": result["metadata"]["header"],
-                    "text": result["text"]
+                    "source_url": doc["metadata"]["source_url"],
+                    "parent_header": doc["metadata"]["parent_header"],
+                    "header": doc["metadata"]["header"],
+                    "text": doc["text"]
                 }
-                for result, tokens in zip(sorted_doc_results, context_tokens)
+                for doc, tokens in zip(selected_docs, context_tokens)
             ]
         },
         os.path.join(output_dir, "contexts.json")
     )
     logger.info(
-        f"Saved context with {context_tokens} tokens to {output_dir}/contexts.json")
-
-    return sorted_doc_results, context
+        f"Saved context with {total_tokens} tokens to {output_dir}/contexts.json")
+    return search_doc_results, context, sorted_parent_headers
 
 
 def generate_response(
@@ -493,9 +566,10 @@ Query: {query}
         content = chunk["choices"][0]["message"]["content"]
         response += content
 
+    save_file(response, os.path.join(output_dir, "response.md"))
     save_file(
         {"query": query, "context": context, "response": response},
-        os.path.join(output_dir, "chat_response.json")
+        os.path.join(output_dir, "chat_result.json")
     )
     try:
         logger.success(f"Successfully generated response for query: {query}")
@@ -537,7 +611,8 @@ def evaluate_results(
 async def main():
     """Main function to orchestrate the search and response generation."""
     query = "Top isekai anime 2025."
-    top_k = 10
+    top_k = None
+    max_tokens = 2000
     embed_model = "static-retrieval-mrl-en-v1"
     llm_model = "llama-3.2-1b-instruct-4bit"
     seed = 45
@@ -551,8 +626,8 @@ async def main():
     url_html_date_tuples = await process_search_results(browser_search_results, query, output_dir)
     # url_html_date_tuples.sort(key=lambda x: x[2] or "", reverse=True)
     all_docs = process_documents(url_html_date_tuples, query, output_dir)
-    sorted_doc_results, context = search_and_group_documents(
-        query, all_docs, embed_model, llm_model, top_k, output_dir)
+    sorted_doc_results, context, sorted_parent_headers = search_and_group_documents(
+        query, all_docs, embed_model, llm_model, output_dir, top_k=top_k, max_tokens=max_tokens)
     response = generate_response(query, context, llm_model, mlx, output_dir)
     evaluate_results(query, context, response, llm_model, output_dir)
     try:
