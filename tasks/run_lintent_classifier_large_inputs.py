@@ -1,6 +1,6 @@
 import os
 from typing import Dict, List, Optional, Literal, Union
-from jet.file.utils import load_file
+from jet.file.utils import load_file, save_file
 from jet.logger import logger
 from jet.models.model_registry.transformers.bert_model_registry import BERTModelRegistry, ONNXBERTWrapper
 from transformers import PreTrainedTokenizer, AutoModelForSequenceClassification
@@ -11,7 +11,7 @@ from jet.tasks.intent_classifier import classify_intents
 from jet.vectors.document_types import HeaderDocument
 
 
-def main(texts: List[str]):
+def main(texts: List[str], output_dir: str):
     """Example usage of BERTModelRegistry for intent classification."""
     registry = BERTModelRegistry()
     model_id = "Falconsai/intent_classification"
@@ -33,7 +33,12 @@ def main(texts: List[str]):
             model, tokenizer, texts, batch_size=32, show_progress=True)
         for text, result in zip(texts, results):
             logger.info(
-                f"Text: {text}, Intent: {result['label']}, Value: {result['value']}, Score: {result['score']:.4f}")
+                f"\nRank {result['rank']} (Doc: {result['doc_index']}):")
+            logger.log("Score:", f"{result['score']:.4f}", colors=["SUCCESS"])
+            logger.log(
+                "Intent:", f"{result['label']} ({result['value']})", colors=["DEBUG"])
+            logger.log("Text:", f"{result['text']}", colors=["WHITE"])
+        save_file(results, f"{output_dir}/results.json")
     except Exception as e:
         logger.error(f"Error during intent classification: {str(e)}")
     finally:
@@ -51,4 +56,4 @@ if __name__ == "__main__":
     docs = [HeaderDocument(**doc) for doc in docs]
 
     headers = [doc["header"].lstrip('#').strip() for doc in docs]
-    main(headers)
+    main(headers, output_dir)
