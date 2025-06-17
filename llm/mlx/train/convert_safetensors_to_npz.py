@@ -6,7 +6,7 @@ from sqlalchemy import exists
 from safetensors.torch import load_file
 import torch
 from jet.models.model_types import ModelType
-from jet.models.utils import get_local_repo_dir, resolve_model_value
+from jet.models.utils import get_local_repo_dir, resolve_model_key, resolve_model_value
 import numpy as np
 import json
 from tqdm import tqdm
@@ -98,6 +98,7 @@ def convert_safetensors_to_npz(model_path: ModelType, output_path: str) -> None:
 
 
 if __name__ == "__main__":
-    model_path: ModelType = "qwen3-1.7b-4bit-dwq-053125"  # Path to your model directory
-    output_path = f"{os.path.dirname(__file__)}/models/{model_path}"
+    # Path to your model directory
+    model_path: ModelType = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125"
+    output_path = f"{os.path.dirname(__file__)}/models/{resolve_model_key(model_path)}"
     convert_safetensors_to_npz(model_path, output_path)
