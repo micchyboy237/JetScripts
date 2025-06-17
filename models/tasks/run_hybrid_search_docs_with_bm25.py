@@ -20,7 +20,7 @@ if __name__ == "__main__":
     search_output = search_docs(
         query,
         docs,
-        top_k=20,
+        top_k=None,
         return_raw_scores=True,
         with_bm25=False,
         with_rerank=False,

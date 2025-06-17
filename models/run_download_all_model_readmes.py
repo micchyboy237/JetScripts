@@ -1,4 +1,4 @@
-from jet.models.base import download_model_readmes
+from jet.models.utils import download_model_readmes
 
 
 if __name__ == "__main__":

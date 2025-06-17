@@ -3,7 +3,7 @@ import re
 import shutil
 from typing import List, Optional, TypedDict
 from pathlib import Path
-from jet.models.base import download_model_readmes
+from jet.models.utils import download_model_readmes
 from jet.logger import logger
 
 # MarkdownCodeExtractor and related definitions

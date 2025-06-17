@@ -1,6 +1,6 @@
 import os
 from jet.file.utils import save_file
-from jet.models.base import scan_local_hf_models
+from jet.models.utils import scan_local_hf_models
 
 
 if __name__ == "__main__":

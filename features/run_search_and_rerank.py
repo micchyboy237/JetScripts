@@ -1,4 +1,3 @@
-# search_engine.py
 from collections import defaultdict
 import json
 import math
@@ -9,7 +8,6 @@ from typing import Dict, List, Optional, Tuple, TypedDict
 from datetime import datetime
 import asyncio
 from urllib.parse import unquote, urlparse
-
 from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.llm.mlx.helpers.base import get_system_date_prompt
 from jet.llm.mlx.mlx_types import EmbedModelType, LLMModelType
@@ -17,7 +15,6 @@ from jet.logger import logger
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.transformers.link_formatters import LinkFormatter, format_links_for_embedding
 from jet.utils.url_utils import rerank_urls_bm25_plus
-from jet.wordnet.text_chunker import truncate_texts
 from jet.vectors.document_types import HeaderDocument, HeaderDocumentWithScore
 from jet.vectors.search_with_clustering import search_documents
 from jet.wordnet.analyzers.text_analysis import ReadabilityResult, analyze_readability, analyze_text
@@ -28,7 +25,6 @@ from jet.models.tokenizer.base import count_tokens, get_tokenizer_fn
 from jet.scrapers.browser.playwright_utils import scrape_multiple_urls
 from jet.scrapers.preprocessor import html_to_markdown
 from jet.scrapers.utils import scrape_links, scrape_published_date, search_data
-# from jet.llm.utils.search_docs import search_docs
 from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
 from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_relevance
 from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
@@ -72,50 +68,6 @@ def get_header_stats(text: str) -> Dict:
         "overall_difficulty": analysis["overall_difficulty"],
         "overall_difficulty_category": analysis["overall_difficulty_category"],
     }
-
-
-# def filter_htmls_with_best_combined_mtld(
-#     url_html_date_tuples: List[Tuple[str, str, Optional[str]]],
-#     limit: Optional[int] = None,
-#     min_mtld: float = 100.0
-# ) -> List[Tuple[str, str, List[HeaderDocument], ReadabilityResult]]:
-#     """Filter HTMLs based on MTLD score and header count."""
-#     logger.info(
-#         f"Filtering {len(url_html_date_tuples)} HTMLs with min MTLD={min_mtld} and limit={limit}")
-#     if not url_html_date_tuples:
-#         logger.debug("No HTMLs to filter")
-#         return []
-
-#     doc_scores = []
-#     for url, html, _ in url_html_date_tuples:
-#         try:
-#             logger.debug(f"Processing HTML for URL: {url}")
-#             docs = get_md_header_docs(html, ignore_links=True)
-#             header_count = len(docs)
-#             logger.debug(f"Found {header_count} headers for {url}")
-#             if header_count == 0:
-#                 logger.warning(
-#                     f"Skipping {url}: no headers found")
-#                 continue
-
-#             docs_text = "\n\n".join(doc.text for doc in docs)
-#             readability = analyze_readability(docs_text)
-#             mtld_score = readability['mtld']
-#             logger.debug(f"MTLD score for {url}: {mtld_score}")
-
-#             if header_count > 5 or mtld_score >= min_mtld:
-#                 doc_scores.append((url, html, docs, readability, mtld_score))
-#                 logger.debug(
-#                     f"Added {url} to candidates with MTLD={mtld_score}")
-#         except (ValueError, KeyError, AttributeError) as e:
-#             logger.debug(f"Error processing {url}: {str(e)}")
-#             continue
-
-#     doc_scores.sort(key=lambda x: x[4], reverse=True)
-#     filtered = [(url, html, docs, readability)
-#                 for url, html, docs, readability, _ in doc_scores[:limit]]
-#     logger.info(f"Filtered to {len(filtered)} HTMLs with highest MTLD scores")
-#     return filtered
 
 
 def format_sub_dir(text: str) -> str:
@@ -183,12 +135,10 @@ async def process_search_results(
     """Process search results and extract links, ensuring top 5 URLs are always included."""
     logger.info(
         f"Processing {len(browser_search_results)} search results for query: {query}")
-
     guaranteed_top_n = min(5, len(browser_search_results))
     top_urls = [item["url"]
                 for item in browser_search_results[:guaranteed_top_n]]
     logger.debug(f"Guaranteed top {guaranteed_top_n} URLs: {top_urls}")
-
     browser_search_docs = [
         HeaderDocument(
             id=result["id"],
@@ -211,15 +161,12 @@ async def process_search_results(
     )
     save_file(browser_search_doc_results,
               f"{output_dir}/browser_search_doc_results.json")
-
     filtered_ids = {result["id"] for result in browser_search_doc_results}
     selected_urls = top_urls + [
         doc["source_url"] for doc in browser_search_docs
         if doc["id"] in filtered_ids and doc["source_url"] not in top_urls
     ]
     logger.debug(f"Selected {len(selected_urls)} URLs: {selected_urls}")
-
-    # Store URL-to-HTML mapping
     url_to_result = {r["url"]: r for r in browser_search_results}
     all_url_html_date_tuples = []
     all_links = []
@@ -253,11 +200,8 @@ async def process_search_results(
             readability_docs = [analyze_readability(doc.text) for doc in docs]
             save_file(readability_docs,
                       f"{sub_output_dir}/readability_docs.json")
-
             all_url_html_date_tuples.append(
                 (url, html, docs, readability_overall))
-
-            # Get published date and links
             result = url_to_result.get(url)
             if not result.get("publishedDate"):
                 published_date = scrape_published_date(html)
@@ -269,7 +213,6 @@ async def process_search_results(
                 link != url if isinstance(link, str) else link["url"] != url)]
             all_links.extend(links)
             logger.debug(f"Extracted {len(links)} links from {url}")
-
     all_links = list(set(all_links))
     all_links = [link for link in all_links if (link not in selected_urls if isinstance(
         link, str) else link["url"] not in selected_urls)]
@@ -278,7 +221,6 @@ async def process_search_results(
     reranked_links = rerank_urls_bm25_plus(all_links, query, threshold=0.7)
     logger.debug(f"Reranked to {len(reranked_links)} links")
     save_file(reranked_links, os.path.join(output_dir, "reranked_links.json"))
-
     remaining_k = top_k - len(all_url_html_date_tuples)
     if remaining_k > 0:
         logger.info(f"Scraping {len(reranked_links)} reranked links...")
@@ -313,12 +255,10 @@ async def process_search_results(
                     analyze_readability(doc.text) for doc in docs]
                 save_file(readability_docs,
                           f"{sub_output_dir}/readability_docs.json")
-
                 published_date = scrape_published_date(html)
                 all_url_html_date_tuples.append(
                     (url, html, docs, readability_overall))
                 logger.debug(f"Scraped HTML and date for reranked URL: {url}")
-
                 if len(all_url_html_date_tuples) == top_k:
                     break
     logger.info(
@@ -333,11 +273,8 @@ def process_documents(
 ) -> List[HeaderDocument]:
     """Process documents and extract headers."""
     logger.info(f"Processing {len(url_html_date_tuples)} documents")
-    # all_url_docs_tuples = filter_htmls_with_best_combined_mtld(
-    #     url_html_date_tuples)
     all_docs = []
     headers = []
-
     for url, html_str, docs, readability in url_html_date_tuples:
         logger.debug(f"Processing documents for URL: {url}")
         for doc in docs:
@@ -350,7 +287,6 @@ def process_documents(
                 "header": doc["header"],
             })
         all_docs.extend(docs)
-
     save_file({
         "query": query,
         "count": len(all_docs),
@@ -368,6 +304,82 @@ def process_documents(
     return all_docs
 
 
+def get_recency_score(published_date: Optional[str], current_date: datetime) -> float:
+    """Calculate recency score based on published date."""
+    if not published_date:
+        return 0.0
+    try:
+        pub_date = datetime.strptime(published_date, "%Y-%m-%d")
+        days_diff = (current_date - pub_date).days
+        return math.exp(-days_diff / 365.0)  # Decay over ~1 year
+    except (ValueError, TypeError):
+        return 0.0
+
+
+def get_keyword_relevance(text: str, query: str) -> float:
+    """Calculate keyword relevance score based on query matches."""
+    pos_results = search_by_pos(text, query)
+    return len(pos_results) / max(count_words(text), 1)
+
+
+def get_query_intent(query: str) -> str:
+    """Determine query intent (list or informational)."""
+    return "list" if any(kw in query.lower() for kw in ["top", "best", "list"]) else "informational"
+
+
+def get_token_penalty(text: str, llm_model: str, max_tokens: int) -> float:
+    """Calculate penalty for exceeding max tokens."""
+    tokens = count_tokens(llm_model, text)
+    return 1.0 if tokens <= max_tokens else max_tokens / max(tokens, 1)
+
+
+def calculate_combined_score(
+    parent_score: float,
+    num_children: int,
+    avg_child_score: float,
+    max_child_score: float,
+    max_source_score: float,
+    published_date: Optional[str],
+    parent_text: str,
+    llm_model: str,
+    query: str,
+    max_tokens: int,
+    max_children: int,
+    current_date: datetime
+) -> float:
+    """Calculate combined score for parent header ranking."""
+    norm_num_children = num_children / max_children if max_children > 0 else 0.0
+    relative_max_child_score = max_child_score / \
+        max_source_score if max_source_score > 0 else 0.0
+    recency_score = get_recency_score(published_date, current_date)
+    keyword_score = get_keyword_relevance(parent_text, query)
+    token_penalty = get_token_penalty(parent_text, llm_model, max_tokens)
+    intent = get_query_intent(query)
+    weights = {
+        "list": {
+            "parent_score": 0.3,
+            "num_children": 0.1,
+            "avg_child_score": 0.35,
+            "relative_max_child_score": 0.1,
+            "recency": 0.15
+        },
+        "informational": {
+            "parent_score": 0.5,
+            "num_children": 0.05,
+            "avg_child_score": 0.2,
+            "relative_max_child_score": 0.1,
+            "recency": 0.15
+        }
+    }
+    return (
+        weights[intent]["parent_score"] * parent_score +
+        weights[intent]["num_children"] * norm_num_children +
+        weights[intent]["avg_child_score"] * avg_child_score +
+        weights[intent]["relative_max_child_score"] * relative_max_child_score +
+        weights[intent]["recency"] * recency_score
+    ) * token_penalty
+
+
 def search_and_group_documents(
     query: str,
     all_docs: List[HeaderDocument],
@@ -377,6 +389,7 @@ def search_and_group_documents(
     top_k: Optional[int] = None,
     max_tokens: Optional[int] = None,
 ) -> Tuple[List[Dict], str, List[Dict]]:
+    """Search and group documents, ranking parent headers by combined score."""
     logger.info(
         f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}, max_tokens={max_tokens}")
     search_doc_results = search_docs(
@@ -393,23 +406,55 @@ def search_and_group_documents(
     )
     logger.info(
         f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
-    parent_groups: dict[str, List[HeaderDocumentWithScore]] = defaultdict(list)
+    source_url_max_scores: Dict[str, float] = defaultdict(float)
     doc_id_to_result = {result["id"]: result for result in search_doc_results}
+    for doc in all_docs:
+        if doc.id_ in doc_id_to_result:
+            source_url = doc.metadata.get("source_url", "")
+            score = doc_id_to_result[doc.id_]["score"]
+            source_url_max_scores[source_url] = max(
+                source_url_max_scores[source_url], score)
+    parent_groups: dict[str, List[HeaderDocumentWithScore]] = defaultdict(list)
     for doc in all_docs:
         if doc.id_ in doc_id_to_result:
             parent_header = doc.metadata.get("parent_header", "")
             parent_groups[parent_header].append(doc_id_to_result[doc.id_])
     parent_scores = []
+    max_children = max(len(docs) for docs in parent_groups.values()) or 1
+    current_date = datetime.now()
     for parent_header, docs in parent_groups.items():
         if not docs:
-            logger.debug(f"No documents found for parent_header: {parent_header}, skipping")
+            logger.debug(
+                f"No documents found for parent_header: {parent_header}, skipping")
             continue
         parent_doc = next(
             (d for d in all_docs if d.metadata["header"] == parent_header), None)
-        parent_score = doc_id_to_result.get(parent_doc.id_, {}).get("score", 0.0) if parent_doc else 0.0
+        parent_score = doc_id_to_result.get(parent_doc.id_, {}).get(
+            "score", 0.0) if parent_doc else 0.0
         num_children = len(docs)
-        avg_child_score = sum(doc["score"] for doc in docs) / num_children if num_children > 0 else 0.0
-        combined_score = parent_score + (num_children * 0.2) + (avg_child_score * 0.5)
+        avg_child_score = sum(doc["score"] for doc in docs) / \
+            num_children if num_children > 0 else 0.0
+        source_url = docs[0]["metadata"]["source_url"] if docs else ""
+        max_child_score = max((doc["score"] for doc in docs), default=0.0)
+        max_source_score = source_url_max_scores.get(
+            source_url, 1.0) or 1.0
+        published_date = next(
+            (d.metadata.get("published_date") for d in all_docs if d.metadata["source_url"] == source_url), None)
+        parent_text = parent_doc.get_recursive_text() if parent_doc else ""
+        combined_score = calculate_combined_score(
+            parent_score=parent_score,
+            num_children=num_children,
+            avg_child_score=avg_child_score,
+            max_child_score=max_child_score,
+            max_source_score=max_source_score,
+            published_date=published_date,
+            parent_text=parent_text,
+            llm_model=llm_model,
+            query=query,
+            max_tokens=max_tokens or 2000,
+            max_children=max_children,
+            current_date=current_date
+        )
         child_headers = [{
             "doc_index": doc["metadata"]["doc_index"],
             "score": doc["score"],
@@ -417,10 +462,11 @@ def search_and_group_documents(
         } for doc in docs]
         parent_scores.append({
             "parent_header": parent_header,
-            "source_url": docs[0]["metadata"]["source_url"] if docs else "",
+            "source_url": source_url,
             "parent_score": parent_score,
             "num_children": num_children,
             "avg_child_score": avg_child_score,
+            "relative_max_child_score": max_child_score / max_source_score if max_source_score > 0 else 0.0,
             "combined_score": combined_score,
             "child_headers": child_headers
         })
@@ -528,7 +574,7 @@ def search_and_group_documents(
     logger.info(
         f"Saved context with {total_tokens} tokens to {output_dir}/contexts.json")
     return search_doc_results, context, sorted_parent_headers
-    
+
 
 def generate_response(
     query: str,
@@ -614,14 +660,11 @@ async def main():
     llm_model = "llama-3.2-1b-instruct-4bit"
     seed = 45
     use_cache = False
-
     logger.info(f"Starting search engine with query: {query}")
     output_dir = initialize_output_directory(__file__, query)
     mlx, _ = initialize_search_components(llm_model, embed_model, seed)
-    # query = rewrite_query(query, llm_model)
     browser_search_results = await fetch_search_results(query, output_dir, use_cache=use_cache)
     url_html_date_tuples = await process_search_results(browser_search_results, query, output_dir)
-    # url_html_date_tuples.sort(key=lambda x: x[2] or "", reverse=True)
     all_docs = process_documents(url_html_date_tuples, query, output_dir)
     sorted_doc_results, context, sorted_parent_headers = search_and_group_documents(
         query, all_docs, embed_model, llm_model, output_dir, top_k=top_k, max_tokens=max_tokens)
@@ -631,7 +674,6 @@ async def main():
         logger.success("Search engine execution completed")
     except AttributeError:
         logger.info("Search engine execution completed")
-
 
 if __name__ == "__main__":
     logger.info("Starting search engine script")
