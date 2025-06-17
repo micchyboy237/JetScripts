@@ -402,17 +402,14 @@ def search_and_group_documents(
     parent_scores = []
     for parent_header, docs in parent_groups.items():
         if not docs:
-            logger.debug(
-                f"No documents found for parent_header: {parent_header}, skipping")
+            logger.debug(f"No documents found for parent_header: {parent_header}, skipping")
             continue
         parent_doc = next(
             (d for d in all_docs if d.metadata["header"] == parent_header), None)
-        parent_score = doc_id_to_result[parent_doc.id_]["score"] if parent_doc else 0.0
+        parent_score = doc_id_to_result.get(parent_doc.id_, {}).get("score", 0.0) if parent_doc else 0.0
         num_children = len(docs)
-        avg_child_score = sum(doc["score"] for doc in docs) / \
-            num_children if num_children > 0 else 0.0
-        combined_score = parent_score + \
-            (num_children * 0.2) + (avg_child_score * 0.5)
+        avg_child_score = sum(doc["score"] for doc in docs) / num_children if num_children > 0 else 0.0
+        combined_score = parent_score + (num_children * 0.2) + (avg_child_score * 0.5)
         child_headers = [{
             "doc_index": doc["metadata"]["doc_index"],
             "score": doc["score"],
@@ -531,7 +528,7 @@ def search_and_group_documents(
     logger.info(
         f"Saved context with {total_tokens} tokens to {output_dir}/contexts.json")
     return search_doc_results, context, sorted_parent_headers
-
+    
 
 def generate_response(
     query: str,
