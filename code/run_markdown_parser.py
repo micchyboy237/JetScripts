@@ -1,6 +1,6 @@
 import os
 
-from jet.code.markdown_utils import analyze_markdown
+from jet.code.markdown_utils import parse_markdown
 from jet.file.utils import save_file
 
 md_content = """
@@ -55,6 +55,6 @@ if __name__ == "__main__":
     output_dir = os.path.join(os.path.dirname(
         __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-    results = analyze_markdown(md_content)
+    results = parse_markdown(md_content)
 
     save_file(results, f"{output_dir}/results.json")

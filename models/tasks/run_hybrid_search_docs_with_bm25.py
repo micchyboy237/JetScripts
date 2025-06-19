@@ -5,6 +5,7 @@ from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
 from jet.models.tokenizer.base import count_tokens
 from jet.models.model_types import LLMModelType
 from jet.vectors.document_types import HeaderDocument
+from jet.wordnet.text_chunker import chunk_headers
 
 
 if __name__ == "__main__":
@@ -17,6 +18,8 @@ if __name__ == "__main__":
     query = docs["query"]
     docs = docs["documents"]
     docs = [HeaderDocument(**doc) for doc in docs]
+    chunked_docs = chunk_headers(docs, max_tokens=200)
+    docs = chunked_docs
     docs_to_search = [
         doc for doc in docs if doc.metadata["header_level"] != 1 and doc.metadata["content"].strip()]
     logger.debug(
@@ -41,9 +44,34 @@ if __name__ == "__main__":
         print(f"Headers: {result['headers']}")
         print(f"Original Document:\n{result['text']}")
 
-    results_no_node = [
-        {k: v for k, v in result.items() if k != 'node'} for result in results]
+    result_texts = [result["text"] for result in results]
+    context_tokens: list[int] = count_tokens(
+        llm_model, result_texts, prevent_total=True)
+    total_tokens = sum(context_tokens)
 
-    save_file({"query": query, "results": results_no_node},
-              f"{output_dir}/results.json")
+    save_file(
+        {
+            "query": query,
+            "total_tokens": total_tokens,
+            "count": len(results),
+            "urls_info": {
+                result["metadata"]["source_url"]: len(
+                    [r for r in results if r["metadata"]["source_url"] == result["metadata"]["source_url"]])
+                for result in results
+            },
+            "contexts": [
+                {
+                    "doc_index": result["doc_index"],
+                    "score": result["score"],
+                    "tokens": tokens,
+                    "source_url": result["metadata"]["source_url"],
+                    "parent_header": result["metadata"]["parent_header"],
+                    "header": result["metadata"]["header"],
+                    "text": result["text"]
+                }
+                for result, tokens in zip(results, context_tokens)
+            ]
+        },
+        f"{output_dir}/results.json"
+    )
     save_file(token_counts, f"{output_dir}/tokens.json")

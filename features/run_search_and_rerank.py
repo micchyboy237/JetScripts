@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Tuple, TypedDict
 from datetime import datetime
 import asyncio
 from urllib.parse import unquote, urlparse
+from jet.code.markdown_utils import convert_html_to_markdown
 from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.llm.mlx.helpers.base import get_system_date_prompt
 from jet.models.model_types import EmbedModelType, LLMModelType
@@ -182,8 +183,10 @@ async def process_search_results(
                 logger.debug(f"No headers found for {url}, skipping")
                 continue
             sub_url_dir = format_sub_url_dir(url)
-            sub_output_dir = os.path.join(output_dir, sub_url_dir)
+            sub_output_dir = os.path.join(output_dir, "pages", sub_url_dir)
             save_file(html, f"{sub_output_dir}/page.html")
+            md_content = convert_html_to_markdown(html)
+            save_file(md_content, f"{sub_output_dir}/md_content.md")
             save_file({
                 "query": query,
                 "from_reranked_link": False,
