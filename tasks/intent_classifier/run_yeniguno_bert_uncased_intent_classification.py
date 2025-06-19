@@ -11,7 +11,7 @@ from jet.tasks.intent_classifier import classify_intents
 from jet.vectors.document_types import HeaderDocument
 
 
-def main(texts: List[str], output_dir: str):
+def main(texts: List[str]):
     """Example usage of BERTModelRegistry for intent classification."""
     registry = BERTModelRegistry()
     model_id = "yeniguno/bert-uncased-intent-classification"
@@ -38,7 +38,7 @@ def main(texts: List[str], output_dir: str):
             logger.log(
                 "Intent:", f"{result['label']} ({result['value']})", colors=["DEBUG"])
             logger.log("Text:", f"{result['text']}", colors=["WHITE"])
-        save_file(results, f"{output_dir}/results.json")
+        return results
     except Exception as e:
         logger.error(f"Error during intent classification: {str(e)}")
     finally:
@@ -55,5 +55,10 @@ if __name__ == "__main__":
     docs = docs["documents"]
     docs = [HeaderDocument(**doc) for doc in docs]
 
-    headers = [doc["header"].lstrip('#').strip() for doc in docs]
-    main(headers, output_dir)
+    texts = [
+        f"Header: {f"{doc["parent_header"].lstrip('#').strip()}\n" if doc["parent_header"] else ""}{doc["header"].lstrip('#').strip()}\nContent: {doc["text"]}" for doc in docs]
+    results = main(texts)
+    save_file({
+        "counts": {label: sum(1 for r in results if r["label"] == label) for label in set(r["label"] for r in results)},
+        "results": results
+    }, f"{output_dir}/results.json")

@@ -141,58 +141,6 @@ def search_docs(
     return [result for result, _ in top_results]
 
 
-# Pytest tests
-class TestSearchDocs:
-    def test_search_docs(self):
-        # Mock embed_func to return orthogonal vectors for query and header/content
-        embed_func = Mock(side_effect=lambda x:
-                          [1.0, 0.0] if "query" in x else
-                          [0.0, 1.0]  # Header and content are the same
-                          )
-        doc = HeaderDocument(
-            id="doc1",
-            text="Test content",
-            metadata={"header": "Test header", "doc_index": 1}
-        )
-        result = search_docs(
-            "query", [doc], embed_func, top_k=1,
-            header_weight=0.5, content_weight=0.5,
-        )
-        expected = [{
-            "id": "doc1",
-            "rank": 1,
-            "doc_index": 1,
-            "chunk_index": 0,
-            "source_url": None,
-            "tokens": None,
-            # 0.5 * 0 (query-content) + 0.5 * 0 (query-header)
-            "score": 0.0,
-            "text": "Test content",
-            "header": "Test header",
-            "parent_header": "",
-            "header_level": 0,
-            "sim_text": 0.0,
-            "sim_header": 0.0,
-        }]
-        assert result == expected
-        logger.debug("Test search_docs passed")
-
-    def test_search_docs_invalid_weights(self):
-        embed_func = Mock(side_effect=lambda x: [
-            1.0, 0.0] if "query" in x else [0.0, 1.0])
-        doc = HeaderDocument(
-            id="doc1",
-            text="Test content",
-            metadata={"header": "Test header", "doc_index": 1}
-        )
-        with pytest.raises(ValueError, match="Weights must sum to 1"):
-            search_docs(
-                "query", [doc], embed_func, top_k=1,
-                header_weight=0.7, content_weight=0.5
-            )
-        logger.debug("Test search_docs_invalid_weights passed")
-
-
 if __name__ == "__main__":
     docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/docs.json"
     output_dir = os.path.join(

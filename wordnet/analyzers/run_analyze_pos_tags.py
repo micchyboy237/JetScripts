@@ -6,10 +6,10 @@ if __name__ == '__main__':
 
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/docs.json"
 
-    headers: list[dict] = load_file(docs_file)
-    texts = [{'text': header["text"], 'lang': 'en'} for header in headers]
+    docs: list[dict] = load_file(docs_file)
+    texts = [{'text': doc["text"], 'lang': 'en'} for doc in docs["documents"]]
 
     analyze_pos_tags(texts, n=2, from_start=True,
                      words_only=True, output_dir=output_dir)

@@ -1,3 +1,4 @@
+import argparse
 from collections import defaultdict
 import json
 import math
@@ -10,8 +11,9 @@ import asyncio
 from urllib.parse import unquote, urlparse
 from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.llm.mlx.helpers.base import get_system_date_prompt
-from jet.llm.mlx.mlx_types import EmbedModelType, LLMModelType
+from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.logger import logger
+from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.transformers.link_formatters import LinkFormatter, format_links_for_embedding
 from jet.utils.url_utils import rerank_urls_bm25_plus
@@ -26,8 +28,10 @@ from jet.scrapers.browser.playwright_utils import scrape_multiple_urls
 from jet.scrapers.preprocessor import html_to_markdown
 from jet.scrapers.utils import scrape_links, scrape_published_date, search_data
 from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
-from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_relevance
-from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
+from jet.llm.evaluators.context_relevancy_evaluator import evaluate_context_relevancy
+from jet.llm.evaluators.response_relevancy_evaluator import evaluate_response_relevancy
+# from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_relevance
+# from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
 from jet.wordnet.words import count_words
 from jet.search.searxng import SearchResult as BrowserSearchResult
 
@@ -106,7 +110,7 @@ def initialize_search_components(
     """Initialize MLX model and tokenizer."""
     logger.debug(
         f"Initializing search components with LLM={llm_model}, Embed={embed_model}, Seed={seed}")
-    mlx = MLX(llm_model, seed=seed)
+    mlx = MLXModelRegistry.load_model(llm_model, seed=seed)
     tokenize = get_tokenizer_fn(embed_model)
     logger.info("Search components initialized successfully")
     return mlx, tokenize
@@ -271,22 +275,26 @@ def process_documents(
     query: str,
     output_dir: str
 ) -> List[HeaderDocument]:
-    """Process documents and extract headers."""
+    """Process documents and extract headers, assigning doc_index based on list order."""
     logger.info(f"Processing {len(url_html_date_tuples)} documents")
     all_docs = []
     headers = []
+    doc_index = 0  # Initialize doc_index counter
     for url, html_str, docs, readability in url_html_date_tuples:
         logger.debug(f"Processing documents for URL: {url}")
         for doc in docs:
             doc.metadata["source_url"] = url
             doc.metadata["readability"] = readability
+            # Assign sequential doc_index
+            doc.metadata["doc_index"] = doc_index
             headers.append({
-                "doc_index": doc["doc_index"],
+                "doc_index": doc_index,
                 "source_url": doc["source_url"],
                 "parent_header": doc["parent_header"],
                 "header": doc["header"],
             })
-        all_docs.extend(docs)
+            all_docs.append(doc)
+            doc_index += 1  # Increment doc_index for the next document
     save_file({
         "query": query,
         "count": len(all_docs),
@@ -304,98 +312,30 @@ def process_documents(
     return all_docs
 
 
-def get_recency_score(published_date: Optional[str], current_date: datetime) -> float:
-    """Calculate recency score based on published date."""
-    if not published_date:
-        return 0.0
-    try:
-        pub_date = datetime.strptime(published_date, "%Y-%m-%d")
-        days_diff = (current_date - pub_date).days
-        return math.exp(-days_diff / 365.0)  # Decay over ~1 year
-    except (ValueError, TypeError):
-        return 0.0
-
-
-def get_keyword_relevance(text: str, query: str) -> float:
-    """Calculate keyword relevance score based on query matches."""
-    pos_results = search_by_pos(text, query)
-    return len(pos_results) / max(count_words(text), 1)
-
-
-def get_query_intent(query: str) -> str:
-    """Determine query intent (list or informational)."""
-    return "list" if any(kw in query.lower() for kw in ["top", "best", "list"]) else "informational"
-
-
-def get_token_penalty(text: str, llm_model: str, max_tokens: int) -> float:
-    """Calculate penalty for exceeding max tokens."""
-    tokens = count_tokens(llm_model, text)
-    return 1.0 if tokens <= max_tokens else max_tokens / max(tokens, 1)
-
-
-def calculate_combined_score(
-    parent_score: float,
-    num_children: int,
-    avg_child_score: float,
-    max_child_score: float,
-    max_source_score: float,
-    published_date: Optional[str],
-    parent_text: str,
-    llm_model: str,
-    query: str,
-    max_tokens: int,
-    max_children: int,
-    current_date: datetime
-) -> float:
-    """Calculate combined score for parent header ranking."""
-    norm_num_children = num_children / max_children if max_children > 0 else 0.0
-    relative_max_child_score = max_child_score / \
-        max_source_score if max_source_score > 0 else 0.0
-    recency_score = get_recency_score(published_date, current_date)
-    keyword_score = get_keyword_relevance(parent_text, query)
-    token_penalty = get_token_penalty(parent_text, llm_model, max_tokens)
-    intent = get_query_intent(query)
-    weights = {
-        "list": {
-            "parent_score": 0.3,
-            "num_children": 0.1,
-            "avg_child_score": 0.35,
-            "relative_max_child_score": 0.1,
-            "recency": 0.15
-        },
-        "informational": {
-            "parent_score": 0.5,
-            "num_children": 0.05,
-            "avg_child_score": 0.2,
-            "relative_max_child_score": 0.1,
-            "recency": 0.15
-        }
-    }
-    return (
-        weights[intent]["parent_score"] * parent_score +
-        weights[intent]["num_children"] * norm_num_children +
-        weights[intent]["avg_child_score"] * avg_child_score +
-        weights[intent]["relative_max_child_score"] * relative_max_child_score +
-        weights[intent]["recency"] * recency_score
-    ) * token_penalty
-
-
 def search_and_group_documents(
     query: str,
     all_docs: List[HeaderDocument],
     embed_model: str,
-    llm_model: str,
+    llm_model: LLMModelType,
     output_dir: str,
-    top_k: Optional[int] = None,
+    top_k: int,
     max_tokens: Optional[int] = None,
-) -> Tuple[List[Dict], str, List[Dict]]:
-    """Search and group documents, ranking parent headers by combined score."""
+) -> Tuple[List[Dict], str]:
+    """Search documents and group results with source_url at the top of each group, optionally limiting total tokens to max_tokens."""
     logger.info(
-        f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}, max_tokens={max_tokens}")
+        f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}")
+
+    # Filter out header level 1 documents
+    docs_to_search = [
+        doc for doc in all_docs if doc.metadata["header_level"] != 1 and doc.metadata["content"].strip()]
+    logger.debug(
+        f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1)")
+
+    # Perform search
     search_doc_results = search_docs(
         query=query,
-        documents=all_docs,
-        ids=[doc.id_ for doc in all_docs],
+        documents=docs_to_search,
+        ids=[doc.id_ for doc in docs_to_search],
         model=embed_model,
         top_k=top_k,
     )
@@ -406,186 +346,97 @@ def search_and_group_documents(
     )
     logger.info(
         f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
-    source_url_max_scores: Dict[str, float] = defaultdict(float)
-    doc_id_to_result = {result["id"]: result for result in search_doc_results}
-    for doc in all_docs:
-        if doc.id_ in doc_id_to_result:
-            source_url = doc.metadata.get("source_url", "")
-            score = doc_id_to_result[doc.id_]["score"]
-            source_url_max_scores[source_url] = max(
-                source_url_max_scores[source_url], score)
-    parent_groups: dict[str, List[HeaderDocumentWithScore]] = defaultdict(list)
-    for doc in all_docs:
-        if doc.id_ in doc_id_to_result:
-            parent_header = doc.metadata.get("parent_header", "")
-            parent_groups[parent_header].append(doc_id_to_result[doc.id_])
-    parent_scores = []
-    max_children = max(len(docs) for docs in parent_groups.values()) or 1
-    current_date = datetime.now()
-    for parent_header, docs in parent_groups.items():
-        if not docs:
-            logger.debug(
-                f"No documents found for parent_header: {parent_header}, skipping")
-            continue
-        parent_doc = next(
-            (d for d in all_docs if d.metadata["header"] == parent_header), None)
-        parent_score = doc_id_to_result.get(parent_doc.id_, {}).get(
-            "score", 0.0) if parent_doc else 0.0
-        num_children = len(docs)
-        avg_child_score = sum(doc["score"] for doc in docs) / \
-            num_children if num_children > 0 else 0.0
-        source_url = docs[0]["metadata"]["source_url"] if docs else ""
-        max_child_score = max((doc["score"] for doc in docs), default=0.0)
-        max_source_score = source_url_max_scores.get(
-            source_url, 1.0) or 1.0
-        published_date = next(
-            (d.metadata.get("published_date") for d in all_docs if d.metadata["source_url"] == source_url), None)
-        parent_text = parent_doc.get_recursive_text() if parent_doc else ""
-        combined_score = calculate_combined_score(
-            parent_score=parent_score,
-            num_children=num_children,
-            avg_child_score=avg_child_score,
-            max_child_score=max_child_score,
-            max_source_score=max_source_score,
-            published_date=published_date,
-            parent_text=parent_text,
-            llm_model=llm_model,
-            query=query,
-            max_tokens=max_tokens or 2000,
-            max_children=max_children,
-            current_date=current_date
+
+    # Initialize results and token tracking
+    result_texts = [result["text"] for result in search_doc_results]
+    context_tokens: List[int] = count_tokens(
+        llm_model, result_texts, prevent_total=True)
+    limited_results = search_doc_results
+    limited_context_tokens = context_tokens
+    total_tokens = sum(context_tokens)
+
+    # Limit results by max_tokens if specified
+    if max_tokens is not None:
+        total_tokens = 0
+        limited_results = []
+        limited_context_tokens = []
+        for result, tokens in zip(search_doc_results, context_tokens):
+            if total_tokens + tokens > max_tokens:
+                break
+            limited_results.append(result)
+            limited_context_tokens.append(tokens)
+            total_tokens += tokens
+
+    # Sort limited_results and limited_context_tokens by doc_index
+    if limited_results:
+        # Pair results and tokens, sort by doc_index, then unzip
+        paired = list(zip(limited_results, limited_context_tokens))
+        paired_sorted = sorted(
+            paired,
+            key=lambda x: x[0].get(
+                "doc_index", x[0]["metadata"].get("doc_index", 0))
         )
-        child_headers = [{
-            "doc_index": doc["metadata"]["doc_index"],
-            "score": doc["score"],
-            "text": doc["text"],
-        } for doc in docs]
-        parent_scores.append({
-            "parent_header": parent_header,
-            "source_url": source_url,
-            "parent_score": parent_score,
-            "num_children": num_children,
-            "avg_child_score": avg_child_score,
-            "relative_max_child_score": max_child_score / max_source_score if max_source_score > 0 else 0.0,
-            "combined_score": combined_score,
-            "child_headers": child_headers
-        })
-    sorted_parent_headers = sorted(
-        parent_scores, key=lambda x: x["combined_score"], reverse=True)
-    save_file(
-        {"query": query, "count": len(
-            sorted_parent_headers), "sorted_parent_headers": sorted_parent_headers},
-        os.path.join(output_dir, "sorted_parent_headers.json")
-    )
-    logger.info(
-        f"Saved {len(sorted_parent_headers)} sorted parent headers to {output_dir}/sorted_parent_headers.json")
+        limited_results, limited_context_tokens = zip(*paired_sorted)
+        limited_results = list(limited_results)
+        limited_context_tokens = list(limited_context_tokens)
+
+    # Group contexts by source_url
     contexts: List[str] = []
-    texts_to_tokenize: List[str] = []
     current_url: str | None = None
-    total_tokens = 0
-    selected_docs = []
-    for parent in sorted_parent_headers:
-        parent_header = parent["parent_header"]
-        source_url = parent["source_url"]
+    for doc in limited_results:
+        source_url = doc["metadata"]["source_url"]
         if source_url != current_url:
-            source_line = f"<!-- Source: {source_url} -->"
-            texts_to_tokenize.append(source_line)
-            contexts.append(source_line)
+            contexts.append(f"<!-- Source: {source_url} -->")
             current_url = source_url
             logger.debug(f"Added source_url header: {source_url}")
-        parent_doc = next(
-            (d for d in all_docs if d.metadata["header"] == parent_header and d.metadata["header_level"] == 1), None)
-        if parent_doc:
-            parent_text = parent_doc.get_recursive_text()
-            texts_to_tokenize.append(parent_text)
-            contexts.append(parent_text)
-            selected_docs.append({
-                "id": parent_doc.id_,
-                "metadata": parent_doc.metadata,
-                "text": parent_text,
-                "score": parent["parent_score"],
-                "doc_index": parent_doc.metadata["doc_index"]
-            })
-        for child in parent["child_headers"]:
-            child_text = child["text"]
-            child_doc_result = next(
-                (result for result in doc_id_to_result.values()
-                 if result["metadata"]["doc_index"] == child["doc_index"]),
-                None
-            )
-            if not child_doc_result:
-                logger.warning(
-                    f"No document found for doc_index: {child['doc_index']}")
-                continue
-            texts_to_tokenize.append(child_text)
-            contexts.append(child_text)
-            selected_docs.append({
-                "id": child_doc_result["id"],
-                "metadata": child_doc_result["metadata"],
-                "text": child_text,
-                "score": child["score"],
-                "doc_index": child["doc_index"]
-            })
-    context_tokens = count_tokens(
-        llm_model, texts_to_tokenize, prevent_total=True)
-    total_tokens = sum(context_tokens)
-    if max_tokens is not None:
-        valid_indices = []
-        running_tokens = 0
-        for i, tokens in enumerate(context_tokens):
-            if running_tokens + tokens > max_tokens:
-                break
-            running_tokens += tokens
-            valid_indices.append(i)
-        contexts = [contexts[i] for i in valid_indices]
-        selected_docs = [selected_docs[i] for i in valid_indices]
-        context_tokens = [context_tokens[i] for i in valid_indices]
-        total_tokens = sum(context_tokens)
+        contexts.append(doc["text"])
+
+    # Join contexts with double newlines
     context = "\n\n".join(contexts)
     save_file(context, os.path.join(output_dir, "context.md"))
-    logger.debug(
-        f"Generated context with {len(contexts)} segments, {total_tokens} tokens")
+    logger.debug(f"Generated context with {len(contexts)} segments")
+
+    # Save context metadata
     save_file(
         {
+            "query": query,
             "total_tokens": total_tokens,
-            "count": len(selected_docs),
+            "count": len(limited_results),
             "urls_info": {
-                doc["metadata"]["source_url"]: len(
-                    [d for d in selected_docs if d["metadata"]
-                        ["source_url"] == doc["metadata"]["source_url"]]
-                )
-                for doc in selected_docs
+                result["metadata"]["source_url"]: len(
+                    [r for r in limited_results if r["metadata"]["source_url"] == result["metadata"]["source_url"]])
+                for result in limited_results
             },
             "contexts": [
                 {
-                    "doc_index": doc["doc_index"],
-                    "score": doc["score"],
+                    "doc_index": result["doc_index"],
+                    "score": result["score"],
                     "tokens": tokens,
-                    "source_url": doc["metadata"]["source_url"],
-                    "parent_header": doc["metadata"]["parent_header"],
-                    "header": doc["metadata"]["header"],
-                    "text": doc["text"]
+                    "source_url": result["metadata"]["source_url"],
+                    "parent_header": result["metadata"]["parent_header"],
+                    "header": result["metadata"]["header"],
+                    "text": result["text"]
                 }
-                for doc, tokens in zip(selected_docs, context_tokens)
+                for result, tokens in zip(limited_results, limited_context_tokens)
             ]
         },
         os.path.join(output_dir, "contexts.json")
     )
     logger.info(
-        f"Saved context with {total_tokens} tokens to {output_dir}/contexts.json")
-    return search_doc_results, context, sorted_parent_headers
+        f"Saved context with {limited_context_tokens} tokens to {output_dir}/contexts.json")
+
+    return limited_results, context
 
 
 def generate_response(
     query: str,
     context: str,
-    llm_model: str,
     mlx: MLX,
     output_dir: str
 ) -> str:
     """Generate and save LLM response."""
     logger.info(
-        f"Generating response for query: {query} with model: {llm_model}")
+        f"Generating response for query: {query} with model: {mlx.model}")
     PROMPT_TEMPLATE = """\
 Context information is below.
 ---------------------
@@ -625,21 +476,21 @@ def evaluate_results(
     query: str,
     context: str,
     response: str,
-    llm_model: str,
+    llm_model: LLMModelType,
     output_dir: str
 ) -> None:
     """Evaluate context and response relevance."""
     logger.info(f"Evaluating context relevance for query: {query}")
     os.makedirs(os.path.join(output_dir, "eval"), exist_ok=True)
-    eval_context_result = evaluate_context_relevance(query, context, llm_model)
+    eval_context_result = evaluate_context_relevancy(query, context, llm_model)
     save_file(
         eval_context_result,
         os.path.join(output_dir, "eval",
                      "evaluate_context_relevance_result.json")
     )
     logger.info(f"Evaluating response relevance for query: {query}")
-    eval_response_result = evaluate_response_relevance(
-        query, context, response, llm_model)
+    eval_response_result = evaluate_response_relevancy(
+        query, response, llm_model)
     save_file(
         eval_response_result,
         os.path.join(output_dir, "eval",
@@ -651,28 +502,51 @@ def evaluate_results(
         logger.info("Evaluation completed successfully")
 
 
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        description="Run semantic search and processing pipeline.")
+    p.add_argument("-q", "--query", type=str,
+                   default="Top isekai anime 2025.", help="Search query to process")
+    p.add_argument("-k", "--top_k", type=int, default=10,
+                   help="Number of top documents to consider")
+    p.add_argument("-m", "--llm_model", type=str,
+                   default="qwen3-1.7b-4bit", help="LLM model to use")
+    p.add_argument("-e", "--embed_model", type=str,
+                   default="static-retrieval-mrl-en-v1", help="Embedding model to use")
+    p.add_argument("-s", "--seed", type=int, default=45,
+                   help="Random seed for reproducibility")
+    p.add_argument("-t", "--max_tokens", type=int, default=None,
+                   help="Maximum number of tokens for final context")
+    p.add_argument("-c", "--use_cache", action="store_true",
+                   default=True, help="Use cached search results if available")
+    return p.parse_args()
+
+
 async def main():
-    """Main function to orchestrate the search and response generation."""
-    query = "Top isekai anime 2025."
-    top_k = None
-    max_tokens = 2000
-    embed_model = "static-retrieval-mrl-en-v1"
-    llm_model = "llama-3.2-1b-instruct-4bit"
-    seed = 45
-    use_cache = False
-    logger.info(f"Starting search engine with query: {query}")
-    output_dir = initialize_output_directory(__file__, query)
-    mlx, _ = initialize_search_components(llm_model, embed_model, seed)
-    browser_search_results = await fetch_search_results(query, output_dir, use_cache=use_cache)
-    url_html_date_tuples = await process_search_results(browser_search_results, query, output_dir)
-    all_docs = process_documents(url_html_date_tuples, query, output_dir)
-    sorted_doc_results, context, sorted_parent_headers = search_and_group_documents(
-        query, all_docs, embed_model, llm_model, output_dir, top_k=top_k, max_tokens=max_tokens)
-    response = generate_response(query, context, llm_model, mlx, output_dir)
-    evaluate_results(query, context, response, llm_model, output_dir)
-    try:
+    args = parse_args()
+    output_dir = initialize_output_directory(__file__, args.query)
+    mlx, tokenize = initialize_search_components(
+        args.llm_model, args.embed_model, args.seed)
+
+    browser_results = await fetch_search_results(args.query, output_dir, use_cache=args.use_cache)
+    url_html_docs = await process_search_results(browser_results, args.query, output_dir, top_k=args.top_k)
+    all_docs = process_documents(url_html_docs, args.query, output_dir)
+    search_results, context_md = search_and_group_documents(
+        query=args.query,
+        all_docs=all_docs,
+        embed_model=args.embed_model,
+        llm_model=args.llm_model,
+        output_dir=output_dir,
+        top_k=args.top_k,
+        max_tokens=args.max_tokens,
+    )
+    response = generate_response(
+        args.query, context_md, mlx, output_dir)
+    evaluate_results(args.query, context_md, response,
+                     args.llm_model, output_dir)
+    if hasattr(logger, "success"):
         logger.success("Search engine execution completed")
-    except AttributeError:
+    else:
         logger.info("Search engine execution completed")
 
 if __name__ == "__main__":

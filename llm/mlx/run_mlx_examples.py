@@ -1,15 +1,15 @@
 import json
 import os
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.mlx_types import LLMModelKey
+from jet.models.model_types import LLMModelKey, LLMModelType
 from jet.logger import CustomLogger
+from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.transformers.formatters import format_json
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(
     script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
 
 
 model: LLMModelKey = "llama-3.2-1b-instruct-4bit"
@@ -17,8 +17,9 @@ model: LLMModelKey = "llama-3.2-1b-instruct-4bit"
 MLX_LOG_DIR = f"{script_dir}/generated/run_mlx_examples"
 
 
-def get_models_example(client: MLX):
+def get_models_example(model_id: LLMModelType):
     """Example of using the .get_models method to list available models."""
+    client = MLXModelRegistry.load_model(model_id)
     models = client.get_models()
 
     logger.debug("Available Models:")
@@ -26,8 +27,9 @@ def get_models_example(client: MLX):
     return models
 
 
-def chatbot_example(client: MLX):
+def chatbot_example(model_id: LLMModelType):
     """Example of using the .chat method for a conversational AI assistant."""
+    client = MLXModelRegistry.load_model(model_id)
     messages = [
         {"role": "system", "content": "You are a helpful AI assistant."},
         {"role": "user", "content": "What's the capital of France?"},
@@ -47,8 +49,9 @@ def chatbot_example(client: MLX):
     return response
 
 
-def streaming_chat_example(client: MLX):
+def streaming_chat_example(model_id: LLMModelType):
     """Example of using the .stream_chat method for streaming chat completions."""
+    client = MLXModelRegistry.load_model(model_id)
     messages = [
         {"role": "system", "content": "You are a helpful AI assistant."},
         {"role": "user", "content": "Tell me a short story about a brave knight."},
@@ -73,13 +76,13 @@ def streaming_chat_example(client: MLX):
 
             if response["choices"][0]["finish_reason"]:
                 logger.newline()
-                logger.orange(format_json(response))
 
     return full_response
 
 
-def text_generation_example(client: MLX):
+def text_generation_example(model_id: LLMModelType):
     """Example of using the .generate method for creative text generation."""
+    client = MLXModelRegistry.load_model(model_id)
     prompt = "Once upon a time, in a distant kingdom, there lived a"
 
     response = client.generate(
@@ -97,8 +100,9 @@ def text_generation_example(client: MLX):
     return response
 
 
-def streaming_generate_example(client: MLX):
+def streaming_generate_example(model_id: LLMModelType):
     """Example of using the .stream_generate method for streaming text generation."""
+    client = MLXModelRegistry.load_model(model_id)
     prompt = "In a world where magic was real, the greatest wizard"
 
     logger.debug("Streaming Text Generation Response:")
@@ -120,31 +124,30 @@ def streaming_generate_example(client: MLX):
 
             if response["choices"][0]["finish_reason"]:
                 logger.newline()
-                logger.orange(format_json(response))
 
     return full_response
 
 
 def main():
     """Main function to run all examples."""
-    # Initialize the client with default configuration
-    client = MLX()
+    model_id: LLMModelType = "qwen3-1.7b-4bit"
 
     logger.info("\n=== Get Models Example ===")
-    get_models_example(client)
+    get_models_example(model_id)
 
     logger.info("\n=== Chatbot Example ===")
-    chatbot_example(client)
+    chatbot_example(model_id)
 
     logger.info("\n=== Streaming Chat Example ===")
-    streaming_chat_example(client)
+    streaming_chat_example(model_id)
 
     logger.info("\n=== Text Generation Example ===")
-    text_generation_example(client)
+    text_generation_example(model_id)
 
     logger.info("\n=== Streaming Text Generation Example ===")
-    streaming_generate_example(client)
+    streaming_generate_example(model_id)
 
 
 if __name__ == "__main__":
     main()
+    logger.orange(f"Logs: {log_file}")

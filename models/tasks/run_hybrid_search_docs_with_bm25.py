@@ -17,18 +17,17 @@ if __name__ == "__main__":
     query = docs["query"]
     docs = docs["documents"]
     docs = [HeaderDocument(**doc) for doc in docs]
-    search_output = search_docs(
+    docs_to_search = [
+        doc for doc in docs if doc.metadata["header_level"] != 1 and doc.metadata["content"].strip()]
+    logger.debug(
+        f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1)")
+    results = search_docs(
         query,
-        docs,
+        documents=docs_to_search,
+        ids=[doc.id_ for doc in docs_to_search],
         top_k=None,
-        return_raw_scores=True,
-        with_bm25=False,
-        with_rerank=False,
     )
 
-    # Unpack the tuple if return_raw_scores is True
-    results, raw_scores = search_output if isinstance(
-        search_output, tuple) else (search_output, None)
     logger.info(f"Counting tokens ({len(results)})...")
     token_counts: list[int] = count_tokens(
         llm_model, [result['text'] for result in results], prevent_total=True)
@@ -42,13 +41,9 @@ if __name__ == "__main__":
         print(f"Headers: {result['headers']}")
         print(f"Original Document:\n{result['text']}")
 
-    # Optionally log raw scores for debugging
-    if raw_scores:
-        logger.debug("Raw Scores: %s", raw_scores)
-
     results_no_node = [
         {k: v for k, v in result.items() if k != 'node'} for result in results]
 
-    save_file(results_no_node, f"{output_dir}/results.json")
+    save_file({"query": query, "results": results_no_node},
+              f"{output_dir}/results.json")
     save_file(token_counts, f"{output_dir}/tokens.json")
-    save_file(raw_scores, f"{output_dir}/raw_scores.json")
