@@ -1,61 +1,83 @@
-from typing import Dict, Optional, TypedDict, Literal, Union
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
-import numpy as np
-import logging
-from sklearn.metrics.pairwise import cosine_similarity
+import torch
 
-logger = logging.getLogger(__name__)
+
+def load_pytorch_model(model_id: str = "static-retrieval-mrl-en-v1"):
+    """Load a SentenceTransformer model using PyTorch backend."""
+    model = SentenceTransformerRegistry.load_model(
+        model_id=model_id,
+        device="cpu",
+        precision="fp32",
+        backend="pytorch"
+    )
+    print(f"Loaded PyTorch model: {model_id}")
+    return model
+
+
+def encode_single_sentence(text: str, model_id: str = "static-retrieval-mrl-en-v1"):
+    """Generate embedding for a single input sentence."""
+    registry = SentenceTransformerRegistry()
+    embedding = registry.generate_embeddings(
+        input_data=text,
+        model_id=model_id,
+        return_format="list",
+        backend="pytorch"
+    )
+    print(
+        f"Single sentence embedding (length={len(embedding)}):\n{embedding[:5]} ...")
+    return embedding
+
+
+def encode_batch(sentences, model_id: str = "static-retrieval-mrl-en-v1"):
+    """Generate embeddings for a list of sentences using ONNX."""
+    registry = SentenceTransformerRegistry()
+    embeddings = registry.generate_embeddings(
+        input_data=sentences,
+        model_id=model_id,
+        batch_size=2,
+        show_progress=False,
+        return_format="torch",
+        backend="onnx"
+    )
+    print(f"Batch embeddings tensor shape: {embeddings.shape}")
+    return embeddings
+
+
+def show_tokenizer_and_config(model_id: str):
+    """Load and show tokenizer and config information."""
+    registry = SentenceTransformerRegistry()
+    tokenizer = registry.get_tokenizer(model_id)
+    config = registry.get_config(model_id)
+    print(f"Tokenizer type: {type(tokenizer)}")
+    print(f"Model hidden size from config: {config.hidden_size}")
+    return tokenizer, config
+
+
+def clear_registry():
+    """Clear cached models, sessions, and configs."""
+    registry = SentenceTransformerRegistry()
+    registry.clear()
+    print("Registry cleared.")
 
 
 def main():
-    """Example usage of SentenceTransformerRegistry for semantic text similarity."""
-    # Configure logging
-    logging.basicConfig(level=logging.INFO)
+    # Load PyTorch model and encode a single sentence
+    load_pytorch_model()
+    encode_single_sentence("What is the capital of France?")
 
-    # Initialize registry
-    registry = SentenceTransformerRegistry()
+    # Encode a batch of sentences with ONNX
+    sentences = [
+        "What is the capital of France?",
+        "How far is the moon from Earth?",
+        "Explain quantum entanglement."
+    ]
+    encode_batch(sentences)
 
-    # Define model and features
-    model_id = "sentence-transformers/all-MiniLM-L6-v2"
-    features: Dict[str, Literal["cpu", "cuda", "mps", "fp16", "fp32"]] = {
-        "device": "mps",  # Optimized for Mac M1
-        "precision": "fp16"
-    }
+    # Access tokenizer and config
+    show_tokenizer_and_config("static-retrieval-mrl-en-v1")
 
-    try:
-        # Load model
-        model = registry.load_model(model_id, features)
-        if model is None:
-            logger.error(f"Failed to load model {model_id}")
-            return
-
-        # Example: Compute semantic similarity between sentences
-        sentences = [
-            "The cat sits on the mat.",
-            "A cat is resting on a rug.",
-            "The dog runs in the park."
-        ]
-
-        # Encode sentences to get embeddings
-        embeddings = model.encode(
-            sentences, batch_size=32, convert_to_numpy=True)
-        logger.info(f"Generated embeddings shape: {embeddings.shape}")
-
-        # Compute cosine similarity
-        similarities = cosine_similarity(embeddings)
-        logger.info("Cosine similarity matrix:")
-        for i, sentence in enumerate(sentences):
-            for j, other_sentence in enumerate(sentences):
-                if i < j:
-                    logger.info(
-                        f"Similarity between '{sentence}' and '{other_sentence}': {similarities[i][j]:.4f}")
-
-    except Exception as e:
-        logger.error(f"Error during embedding generation: {str(e)}")
-
-    finally:
-        # Clear registry to free resources
-        registry.clear()
+    # Clear registry
+    clear_registry()
 
 
 if __name__ == "__main__":
