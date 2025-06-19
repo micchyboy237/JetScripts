@@ -3,15 +3,18 @@ import time
 from jet.file.utils import save_file, load_file
 from jet.logger import logger
 from jet.models.model_types import EmbedModelType
+from jet.vectors.document_types import HeaderDocument
 from jet.wordnet.similarity import group_similar_texts
 
 
 if __name__ == '__main__':
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/docs.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     docs = load_file(docs_file)
+    docs = docs["documents"]
+    docs = [HeaderDocument(**doc) for doc in docs]
     documents = [
         "\n".join([
             # doc["metadata"].get("parent_header") or "",
@@ -37,4 +40,4 @@ if __name__ == '__main__':
                f"{execution_time:.2f}s", colors=["WHITE", "ORANGE"])
 
     save_file({"execution_time": f"{execution_time:.2f}s", "count": len(grouped_similar_texts), "results": grouped_similar_texts},
-              f"{output_dir}/grouped_similar_texts.json")
+              f"{output_dir}/results.json")

@@ -17,4 +17,4 @@ if __name__ == '__main__':
     grouped_texts = group_similar_texts(texts, threshold=0.5)
 
     save_file({"count": len(grouped_texts), "results": grouped_texts},
-              f"{output_dir}/grouped_long_texts.json")
+              f"{output_dir}/results.json")

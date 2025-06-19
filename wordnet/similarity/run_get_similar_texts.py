@@ -5,7 +5,7 @@ from jet.file.utils import save_file, load_file
 from jet.logger import logger
 from jet.models.model_types import EmbedModelType
 from jet.vectors.document_types import HeaderDocument
-from jet.wordnet.similarity import group_similar_headers, group_similar_texts
+from jet.wordnet.similarity import get_similar_texts
 
 # Define typed structures for clarity
 
@@ -38,8 +38,8 @@ if __name__ == '__main__':
 
     # Group similar documents
     try:
-        grouped_results = group_similar_headers(
-            docs, threshold=0.7, model_name=model_name)
+        texts = [doc["header"].lstrip('#').strip() for doc in docs]
+        grouped_results = get_similar_texts(texts, threshold=0.7)
     except Exception as e:
         logger.log("main:", f"Grouping failed: {str(e)}", colors=[
                    "WHITE", "RED"])
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     # Log performance
     logger.log(
         "main:",
-        f"group_similar_headers: {execution_time:.2f}s, groups: {len(grouped_results)}",
+        f"get_similar_texts: {execution_time:.2f}s, groups: {len(grouped_results)}",
         colors=["WHITE", "ORANGE"]
     )
 

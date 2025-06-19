@@ -56,7 +56,7 @@ if __name__ == "__main__":
     docs = [HeaderDocument(**doc) for doc in docs]
 
     texts = [
-        f"Header: {f"{doc["parent_header"].lstrip('#').strip()}\n" if doc["parent_header"] else ""}{doc["header"].lstrip('#').strip()}\nContent: {doc["text"]}" for doc in docs]
+        f"Header: {doc["header"].lstrip('#').strip()}\nContent: {doc["text"]}" for doc in docs]
     results = main(texts)
     save_file({
         "counts": {label: sum(1 for r in results if r["label"] == label) for label in set(r["label"] for r in results)},
