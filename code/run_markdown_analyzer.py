@@ -39,12 +39,17 @@ Use `print("Hello")` for quick debugging.
 [^1]: This is a footnote reference.
 [^1]: Footnote definition here.
 
+## Unordered list
 - List item 1
-  - Nested item
+    - Nested item
 - List item 2
 
-1. Ordered list
-2. Another item
+## Ordered list
+1. Ordered item 1
+2. Ordered item 2
+
+## Inline HTML
+<span class="badge">New</span> inline HTML
 """
 
 if __name__ == "__main__":
