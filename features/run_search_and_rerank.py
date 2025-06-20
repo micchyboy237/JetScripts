@@ -10,9 +10,9 @@ from datetime import datetime
 import asyncio
 from urllib.parse import unquote, urlparse
 from jet.code.markdown_utils import analyze_markdown, parse_markdown
-# from jet.code.markdown_utils import convert_html_to_markdown
 from jet.data.sample_diverse_headers import sample_diverse_headers
 from jet.scrapers.preprocessor import convert_html_to_markdown
+from jet.code.markdown_utils import convert_html_to_markdown as convert_html_to_markdownify
 from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.llm.mlx.helpers.base import get_system_date_prompt
 from jet.models.model_types import EmbedModelType, LLMModelType
@@ -195,6 +195,9 @@ async def process_search_results(
             save_file(html, f"{sub_output_dir}/page.html")
             md_content = convert_html_to_markdown(html)
             save_file(md_content, f"{sub_output_dir}/md_content.md")
+            md_content_markdownify = convert_html_to_markdownify(html)
+            save_file(
+                md_content_markdownify, f"{sub_output_dir}/md_content_markdownify.md")
             parse_markdown_results = parse_markdown(md_content)
             save_file(
                 parse_markdown_results, f"{sub_output_dir}/parse_markdown_results.json")
@@ -303,6 +306,9 @@ def process_documents(
     for url, html_str, docs, readability in url_html_date_tuples:
         logger.debug(f"Processing documents for URL: {url}")
         for doc in docs:
+            if not doc.metadata["content"].strip():
+                continue
+
             doc.metadata["source_url"] = url
             doc.metadata["readability"] = readability
             # Assign sequential doc_index
@@ -343,27 +349,32 @@ def search_and_group_documents(
     output_dir: str,
     chunk_size: int,
     top_k: Optional[int] = None,
+    min_tokens: Optional[int] = None,
     max_tokens: Optional[int] = None,
 ) -> Tuple[List[Dict], str]:
-    """Search documents and group results with source_url at the top of each group, optionally limiting total tokens to max_tokens."""
+    """Search documents and group results with source_url at the top of each group, optionally limiting total tokens to max_tokens and filtering contexts with fewer than min_tokens."""
     # Validate that at least one of top_k or max_tokens is provided
     if top_k is None and max_tokens is None:
         raise ValueError(
             "At least one of top_k or max_tokens must be provided")
 
     logger.info(
-        f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}, max_tokens={max_tokens}")
+        f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}, max_tokens={max_tokens}, min_tokens={min_tokens}")
 
     chunked_docs = chunk_headers(
         all_docs, max_tokens=200, model=llm_model)
-    save_file({"query": query, "results": chunked_docs},
+    save_file({"query": query, "count": len(chunked_docs), "results": chunked_docs},
               os.path.join(output_dir, "chunked_docs.json"))
 
-    # Filter out header level 1 documents
+    # Filter out header level 1 documents and those without content or below min_tokens
     docs_to_search = [
-        doc for doc in chunked_docs if doc.metadata["header_level"] != 1 and doc.metadata["content"].strip()]
+        doc for doc in chunked_docs
+        if doc.metadata["header_level"] != 1
+        and doc.metadata.get("content", "").strip()
+        and (min_tokens is None or count_tokens(llm_model, [doc.metadata.get("content", "")], prevent_total=True)[0] >= min_tokens)
+    ]
     logger.debug(
-        f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1)")
+        f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1, empty content, and below min_tokens)")
 
     # Perform search
     search_doc_results = search_docs(
@@ -449,6 +460,10 @@ def search_and_group_documents(
                 llm_model, [doc_text], prevent_total=True)
             tokens = tokens_list[0] if tokens_list else 0
 
+            # Apply min_tokens filter
+            if min_tokens is not None and tokens < min_tokens:
+                continue
+
             # If chunk_size is set, flush chunk if adding this doc would exceed chunk_size
             if chunk_size is not None and current_chunk_tokens + tokens > chunk_size:
                 flushed = flush_chunk()
@@ -503,35 +518,33 @@ def search_and_group_documents(
             limited_context_tokens.append(tokens)
             total_tokens += tokens
 
-    # # Sort limited_results and limited_context_tokens by doc_index
-    # if limited_results:
-    #     # Pair results and tokens, sort by doc_index, then unzip
-    #     paired = list(zip(limited_results, limited_context_tokens))
-    #     paired_sorted = sorted(
-    #         paired,
-    #         key=lambda x: x[0].metadata.get("doc_index", 0)
-    #     )
-    #     limited_results, limited_context_tokens = zip(*paired_sorted)
-    #     limited_results = list(limited_results)
-    #     limited_context_tokens = list(limited_context_tokens)
-
     # Group contexts by source_url
     contexts: List[str] = []
     current_url: str | None = None
+    url_to_docs = defaultdict(list)
     for doc in limited_results:
         source_url = doc.metadata["source_url"]
-        if source_url != current_url:
-            contexts.append(f"<!-- Source: {source_url} -->")
-            current_url = source_url
-            logger.debug(f"Added source_url header: {source_url}")
-        contexts.append(doc.text)
+        url_to_docs[source_url].append(doc)
+
+    # Sort each group by doc_index and build contexts
+    contexts: List[str] = []
+    for source_url in url_to_docs:
+        # Sort documents by doc_index
+        sorted_docs = sorted(
+            url_to_docs[source_url],
+            key=lambda x: x.metadata.get("doc_index", 0)
+        )
+        contexts.append(f"<!-- Source: {source_url} -->")
+        contexts.extend(doc.text for doc in sorted_docs)
+        logger.debug(
+            f"Added source_url header with {len(sorted_docs)} sorted documents: {source_url}")
 
     # Join contexts with double newlines
     context = "\n\n".join(contexts)
     save_file(context, os.path.join(output_dir, "context.md"))
     logger.debug(f"Generated context with {len(contexts)} segments")
 
-    # Save context metadata
+    # Save context metadata (update to reflect sorted order)
     save_file(
         {
             "query": query,
@@ -648,7 +661,9 @@ def parse_args() -> argparse.Namespace:
                    default="qwen3-1.7b-4bit", help="LLM model to use")
     p.add_argument("-e", "--embed_model", type=str,
                    default="static-retrieval-mrl-en-v1", help="Embedding model to use")
-    p.add_argument("-t", "--max_tokens", type=int, default=2000,
+    p.add_argument("-min", "--min_tokens", type=int, default=100,
+                   help="Maximum number of tokens for final context")
+    p.add_argument("-max", "--max_tokens", type=int, default=2000,
                    help="Maximum number of tokens for final context")
     p.add_argument("-s", "--chunk_size", type=int, default=200,
                    help="Maximum number of tokens per context")
@@ -677,6 +692,7 @@ async def main():
         output_dir=output_dir,
         top_k=args.top_k,
         chunk_size=args.chunk_size,
+        min_tokens=args.min_tokens,
         max_tokens=args.max_tokens,
     )
     response = generate_response(
