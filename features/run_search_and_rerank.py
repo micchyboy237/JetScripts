@@ -539,7 +539,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("-t", "--max_tokens", type=int, default=None,
                    help="Maximum number of tokens for final context")
     p.add_argument("-c", "--use_cache", action="store_true",
-                   default=False, help="Use cached search results if available")
+                   default=True, help="Use cached search results if available")
     return p.parse_args()
 
 
