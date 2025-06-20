@@ -396,6 +396,7 @@ def search_and_group_documents(
 
     for group in grouped_similar_headers:
         docs = group.get("documents", [])
+        average_score = group.get("average_score", None)
         # Sort docs by doc["score"] in descending order
         docs = sorted(docs, key=lambda d: getattr(d, "score", 0), reverse=True)
         current_chunk_texts = []
@@ -424,8 +425,7 @@ def search_and_group_documents(
                 # Create a HeaderDocumentWithScore object
                 merged_doc = HeaderDocumentWithScore(
                     node=node,
-                    score=max((d.score for d in current_chunk_docs),
-                              default=0.0),
+                    score=average_score,
                     doc_index=min(d.metadata.get("doc_index", 0)
                                   for d in current_chunk_docs) if current_chunk_docs else 0,
                     headers=group.get("headers", []),
@@ -500,17 +500,17 @@ def search_and_group_documents(
             limited_context_tokens.append(tokens)
             total_tokens += tokens
 
-    # Sort limited_results and limited_context_tokens by doc_index
-    if limited_results:
-        # Pair results and tokens, sort by doc_index, then unzip
-        paired = list(zip(limited_results, limited_context_tokens))
-        paired_sorted = sorted(
-            paired,
-            key=lambda x: x[0].metadata.get("doc_index", 0)
-        )
-        limited_results, limited_context_tokens = zip(*paired_sorted)
-        limited_results = list(limited_results)
-        limited_context_tokens = list(limited_context_tokens)
+    # # Sort limited_results and limited_context_tokens by doc_index
+    # if limited_results:
+    #     # Pair results and tokens, sort by doc_index, then unzip
+    #     paired = list(zip(limited_results, limited_context_tokens))
+    #     paired_sorted = sorted(
+    #         paired,
+    #         key=lambda x: x[0].metadata.get("doc_index", 0)
+    #     )
+    #     limited_results, limited_context_tokens = zip(*paired_sorted)
+    #     limited_results = list(limited_results)
+    #     limited_context_tokens = list(limited_context_tokens)
 
     # Group contexts by source_url
     contexts: List[str] = []
