@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Tuple, TypedDict
 from datetime import datetime
 import asyncio
 from urllib.parse import unquote, urlparse
-from jet.code.markdown_utils import convert_html_to_markdown
+from jet.code.markdown_utils import analyze_markdown, convert_html_to_markdown, parse_markdown
 from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.llm.mlx.helpers.base import get_system_date_prompt
 from jet.models.model_types import EmbedModelType, LLMModelType
@@ -33,6 +33,7 @@ from jet.llm.evaluators.context_relevancy_evaluator import evaluate_context_rele
 from jet.llm.evaluators.response_relevancy_evaluator import evaluate_response_relevancy
 # from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_relevance
 # from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
+from jet.wordnet.text_chunker import chunk_headers
 from jet.wordnet.words import count_words
 from jet.search.searxng import SearchResult as BrowserSearchResult
 
@@ -187,6 +188,13 @@ async def process_search_results(
             save_file(html, f"{sub_output_dir}/page.html")
             md_content = convert_html_to_markdown(html)
             save_file(md_content, f"{sub_output_dir}/md_content.md")
+            parse_markdown_results = parse_markdown(md_content)
+            save_file(
+                parse_markdown_results, f"{sub_output_dir}/parse_markdown_results.json")
+            analyze_markdown_results = analyze_markdown(md_content)
+            save_file(
+                analyze_markdown_results, f"{sub_output_dir}/analyze_markdown_results.json")
+
             save_file({
                 "query": query,
                 "from_reranked_link": False,
@@ -331,6 +339,9 @@ def search_and_group_documents(
     # Filter out header level 1 documents
     docs_to_search = [
         doc for doc in all_docs if doc.metadata["header_level"] != 1 and doc.metadata["content"].strip()]
+    chunked_docs = chunk_headers(
+        docs_to_search, max_tokens=200, model=llm_model)
+    docs_to_search = chunked_docs
     logger.debug(
         f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1)")
 
@@ -521,7 +532,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("-t", "--max_tokens", type=int, default=None,
                    help="Maximum number of tokens for final context")
     p.add_argument("-c", "--use_cache", action="store_true",
-                   default=True, help="Use cached search results if available")
+                   default=False, help="Use cached search results if available")
     return p.parse_args()
 
 

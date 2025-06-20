@@ -18,7 +18,7 @@ if __name__ == "__main__":
     query = docs["query"]
     docs = docs["documents"]
     docs = [HeaderDocument(**doc) for doc in docs]
-    chunked_docs = chunk_headers(docs, max_tokens=200)
+    chunked_docs = chunk_headers(docs, max_tokens=200, model=llm_model)
     docs = chunked_docs
     docs_to_search = [
         doc for doc in docs if doc.metadata["header_level"] != 1 and doc.metadata["content"].strip()]
