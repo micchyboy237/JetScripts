@@ -1,5 +1,6 @@
 import os
 from jet.file.utils import load_file, save_file
+from jet.llm.mlx.mlx_types import EmbedModelType
 from jet.logger import logger
 from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
 from jet.models.tokenizer.base import count_tokens
@@ -14,11 +15,13 @@ def main(with_bm25: bool):
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
+    embed_model: EmbedModelType = "mxbai-embed-large"
+
     docs = load_file(docs_file)
     query = docs["query"]
     docs = docs["documents"]
     docs = [HeaderDocument(**doc) for doc in docs]
-    chunked_docs = chunk_headers(docs, max_tokens=200, model=llm_model)
+    chunked_docs = chunk_headers(docs, max_tokens=300, model=embed_model)
     docs = chunked_docs
     docs_to_search = [
         doc for doc in docs if doc.metadata["header_level"] != 1 and doc.metadata["content"].strip()]
@@ -79,7 +82,9 @@ def main(with_bm25: bool):
         },
         output_path
     )
-    save_file(token_counts, f"{output_dir}/tokens.json")
+
+    output_path = f"{output_dir}/tokens_with_bm25.json" if with_bm25 else f"{output_dir}/tokens_no_bm25.json"
+    save_file(token_counts, output_path)
 
 
 if __name__ == "__main__":

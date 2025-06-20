@@ -344,7 +344,7 @@ def process_documents(
 def search_and_group_documents(
     query: str,
     all_docs: List[HeaderDocument],
-    embed_model: str,
+    embed_model: EmbedModelType,
     llm_model: LLMModelType,
     output_dir: str,
     chunk_size: int,
@@ -362,7 +362,7 @@ def search_and_group_documents(
         f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}, max_tokens={max_tokens}, min_tokens={min_tokens}")
 
     chunked_docs = chunk_headers(
-        all_docs, max_tokens=200, model=llm_model)
+        all_docs, max_tokens=300, model=embed_model)
     save_file({"query": query, "count": len(chunked_docs), "results": chunked_docs},
               os.path.join(output_dir, "chunked_docs.json"))
 
