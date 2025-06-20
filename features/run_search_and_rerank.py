@@ -362,7 +362,7 @@ def search_and_group_documents(
         f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}, max_tokens={max_tokens}, min_tokens={min_tokens}")
 
     chunked_docs = chunk_headers(
-        all_docs, max_tokens=300, model=embed_model)
+        all_docs, max_tokens=chunk_size, model=embed_model)
     save_file({"query": query, "count": len(chunked_docs), "results": chunked_docs},
               os.path.join(output_dir, "chunked_docs.json"))
 
@@ -661,11 +661,11 @@ def parse_args() -> argparse.Namespace:
                    default="qwen3-1.7b-4bit", help="LLM model to use")
     p.add_argument("-e", "--embed_model", type=str,
                    default="static-retrieval-mrl-en-v1", help="Embedding model to use")
-    p.add_argument("-min", "--min_tokens", type=int, default=100,
+    p.add_argument("-min", "--min_tokens", type=int, default=None,
                    help="Maximum number of tokens for final context")
     p.add_argument("-max", "--max_tokens", type=int, default=2000,
                    help="Maximum number of tokens for final context")
-    p.add_argument("-s", "--chunk_size", type=int, default=200,
+    p.add_argument("-s", "--chunk_size", type=int, default=300,
                    help="Maximum number of tokens per context")
     p.add_argument("-c", "--use_cache", action="store_true",
                    default=True, help="Use cached search results if available")
