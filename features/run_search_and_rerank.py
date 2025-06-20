@@ -9,7 +9,9 @@ from typing import Dict, List, Optional, Tuple, TypedDict
 from datetime import datetime
 import asyncio
 from urllib.parse import unquote, urlparse
-from jet.code.markdown_utils import analyze_markdown, convert_html_to_markdown, parse_markdown
+from jet.code.markdown_utils import analyze_markdown, parse_markdown
+# from jet.code.markdown_utils import convert_html_to_markdown
+from jet.scrapers.preprocessor import convert_html_to_markdown
 from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.llm.mlx.helpers.base import get_system_date_prompt
 from jet.models.model_types import EmbedModelType, LLMModelType
@@ -26,13 +28,14 @@ from jet.file.utils import save_file
 from jet.llm.mlx.base import MLX
 from jet.models.tokenizer.base import count_tokens, get_tokenizer_fn
 from jet.scrapers.browser.playwright_utils import scrape_multiple_urls
-from jet.scrapers.preprocessor import html_to_markdown
+
 from jet.scrapers.utils import scrape_links, scrape_published_date, search_data
 from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
 from jet.llm.evaluators.context_relevancy_evaluator import evaluate_context_relevancy
 from jet.llm.evaluators.response_relevancy_evaluator import evaluate_response_relevancy
 # from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_relevance
 # from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
+from jet.wordnet.similarity import group_similar_headers
 from jet.wordnet.text_chunker import chunk_headers
 from jet.wordnet.words import count_words
 from jet.search.searxng import SearchResult as BrowserSearchResult
@@ -282,13 +285,14 @@ async def process_search_results(
 
 
 def process_documents(
-    url_html_date_tuples: List[Tuple[str, str, Optional[str]]],
+    url_html_date_tuples: List[Tuple[str, str, List[HeaderDocument], Optional[str]]],
     query: str,
     output_dir: str
 ) -> List[HeaderDocument]:
     """Process documents and extract headers, assigning doc_index based on list order."""
     logger.info(f"Processing {len(url_html_date_tuples)} documents")
-    all_docs = []
+
+    all_docs: List[HeaderDocument] = []
     headers = []
     doc_index = 0  # Initialize doc_index counter
     for url, html_str, docs, readability in url_html_date_tuples:
@@ -319,6 +323,9 @@ def process_documents(
         },
         "documents": all_docs
     }, os.path.join(output_dir, "docs.json"))
+    grouped_docs = group_similar_headers(all_docs)
+    save_file({"query": query, "results": grouped_docs},
+              os.path.join(output_dir, "grouped_docs.json"))
     save_file(headers, os.path.join(output_dir, "headers.json"))
     return all_docs
 
