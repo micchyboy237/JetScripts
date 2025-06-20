@@ -11,6 +11,7 @@ import asyncio
 from urllib.parse import unquote, urlparse
 from jet.code.markdown_utils import analyze_markdown, parse_markdown
 # from jet.code.markdown_utils import convert_html_to_markdown
+from jet.data.sample_diverse_headers import sample_diverse_headers
 from jet.scrapers.preprocessor import convert_html_to_markdown
 from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.llm.mlx.helpers.base import get_system_date_prompt
@@ -479,6 +480,8 @@ def search_and_group_documents(
         search_doc_results = merged_similar_headers[:top_k]
     else:
         search_doc_results = merged_similar_headers
+
+    search_doc_results = sample_diverse_headers(search_doc_results)
 
     # Initialize results and token tracking
     result_texts = [result.text for result in search_doc_results]
