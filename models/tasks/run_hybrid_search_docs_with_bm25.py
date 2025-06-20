@@ -8,7 +8,7 @@ from jet.vectors.document_types import HeaderDocument
 from jet.wordnet.text_chunker import chunk_headers
 
 
-if __name__ == "__main__":
+def main(with_bm25: bool):
     docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/docs.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -29,6 +29,7 @@ if __name__ == "__main__":
         documents=docs_to_search,
         ids=[doc.id_ for doc in docs_to_search],
         top_k=None,
+        with_bm25=with_bm25
     )
 
     logger.info(f"Counting tokens ({len(results)})...")
@@ -49,11 +50,13 @@ if __name__ == "__main__":
         llm_model, result_texts, prevent_total=True)
     total_tokens = sum(context_tokens)
 
+    output_path = f"{output_dir}/results_with_bm25.json" if with_bm25 else f"{output_dir}/results_no_bm25.json"
     save_file(
         {
             "query": query,
             "total_tokens": total_tokens,
             "count": len(results),
+            "with_bm25": with_bm25,
             "urls_info": {
                 result["metadata"]["source_url"]: len(
                     [r for r in results if r["metadata"]["source_url"] == result["metadata"]["source_url"]])
@@ -61,7 +64,9 @@ if __name__ == "__main__":
             },
             "contexts": [
                 {
+                    "rank": result["rank"],
                     "doc_index": result["doc_index"],
+                    "chunk_index": result["chunk_index"],
                     "score": result["score"],
                     "tokens": tokens,
                     "source_url": result["metadata"]["source_url"],
@@ -72,6 +77,11 @@ if __name__ == "__main__":
                 for result, tokens in zip(results, context_tokens)
             ]
         },
-        f"{output_dir}/results.json"
+        output_path
     )
     save_file(token_counts, f"{output_dir}/tokens.json")
+
+
+if __name__ == "__main__":
+    main(with_bm25=True)
+    main(with_bm25=False)
