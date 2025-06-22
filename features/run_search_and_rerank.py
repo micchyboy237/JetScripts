@@ -383,11 +383,14 @@ def search_and_group_documents(
     logger.info(f"Classifying headers for query: {classifier_query}")
 
     classification_results = []
+    rank = 0
     for label, score, idx in mlx_classifier.stream_generate(
         classifier_query, chunks, embeddings, top_k=len(chunks), relevance_threshold=0.7
     ):
+        rank += 1
         classification_results.append({
             "doc_index": search_doc_results[idx]["doc_index"],
+            "rank": rank,
             "chunk_index": 0,  # Set to 0 since chunking is not used
             "header_level": search_doc_results[idx]["header_level"],
             "label": label,
@@ -416,14 +419,23 @@ def search_and_group_documents(
         os.path.join(output_dir, "classification_results.json")
     )
 
-    # Filter for relevant documents using doc_index
-    relevant_results = [
-        result for result in search_doc_results
-        if any(
-            cr["label"] == "relevant" and cr["doc_index"] == result["doc_index"]
-            for cr in classification_results
-        )
-    ]
+    # Convert classification results to HeaderDocumentWithScore and filter for relevant documents
+    relevant_results: List[HeaderDocumentWithScore] = []
+    for cr in classification_results:
+        if cr["label"] == "relevant":
+            # Find the corresponding document from search_doc_results
+            for result in search_doc_results:
+                if result["doc_index"] == cr["doc_index"]:
+                    # Create HeaderDocumentWithScore with classification score
+                    doc_with_score = HeaderDocumentWithScore(
+                        id_=result["id"],
+                        text=result["text"],
+                        metadata=result["metadata"],
+                        score=cr["score"]  # Use classification score
+                    )
+                    relevant_results.append(doc_with_score)
+                    break
+
     relevant_results = relevant_results[:top_k] if top_k else relevant_results
     logger.debug(
         f"Filtered to {len(relevant_results)} relevant documents after classification")
