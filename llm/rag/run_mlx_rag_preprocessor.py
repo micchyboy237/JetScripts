@@ -12,8 +12,8 @@ def main():
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     docs: Dict = load_file(docs_file)
-    query: str = f"Does the webpage have concrete answer to this query?\nQuery: {docs['query']}"
-    chunks: List[str] = [doc["text"] for doc in docs["results"]]
+    query: str = f"Will this webpage header have an answer to this query?\nQuery: {docs['query']}"
+    chunks: List[str] = [doc["metadata"]["header"] for doc in docs["results"]]
     chunks = chunks[:10]
     top_k: int = len(chunks)
     try:
