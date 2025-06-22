@@ -428,7 +428,7 @@ def search_and_group_documents(
                 if result["doc_index"] == cr["doc_index"]:
                     # Create HeaderDocumentWithScore with classification score
                     doc_with_score = HeaderDocumentWithScore(
-                        id_=result["id"],
+                        # id=result["id"],
                         text=result["text"],
                         metadata=result["metadata"],
                         score=cr["score"]  # Use classification score
