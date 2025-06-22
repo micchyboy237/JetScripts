@@ -392,111 +392,112 @@ def search_and_group_documents(
     logger.info(
         f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
 
-    grouped_similar_headers = group_similar_headers(
-        search_doc_results, threshold=0.7, model_name=embed_model)
+    # grouped_similar_headers = group_similar_headers(
+    #     search_doc_results, threshold=0.7, model_name=embed_model)
 
-    save_file(
-        {"query": query, "count": len(
-            grouped_similar_headers), "results": grouped_similar_headers},
-        os.path.join(output_dir, "grouped_similar_headers.json")
-    )
+    # save_file(
+    #     {"query": query, "count": len(
+    #         grouped_similar_headers), "results": grouped_similar_headers},
+    #     os.path.join(output_dir, "grouped_similar_headers.json")
+    # )
 
-    # Merge each group by doc["text"], splitting into chunks that do not exceed chunk_size tokens
-    # Use max_tokens to limit the total number of tokens across all merged similar headers
-    merged_similar_headers: List[HeaderDocumentWithScore] = []
-    total_merged_tokens = 0  # Track total tokens across all merged headers
+    # # Merge each group by doc["text"], splitting into chunks that do not exceed chunk_size tokens
+    # # Use max_tokens to limit the total number of tokens across all merged similar headers
+    # merged_similar_headers: List[HeaderDocumentWithScore] = []
+    # total_merged_tokens = 0  # Track total tokens across all merged headers
 
-    for group in grouped_similar_headers:
-        docs = group.get("documents", [])
-        average_score = group.get("average_score", None)
-        # Sort docs by doc["score"] in descending order
-        docs = sorted(docs, key=lambda d: getattr(d, "score", 0), reverse=True)
-        current_chunk_texts = []
-        current_chunk_docs = []
-        current_chunk_tokens = 0
+    # for group in grouped_similar_headers:
+    #     docs = group.get("documents", [])
+    #     average_score = group.get("average_score", None)
+    #     # Sort docs by doc["score"] in descending order
+    #     docs = sorted(docs, key=lambda d: getattr(d, "score", 0), reverse=True)
+    #     current_chunk_texts = []
+    #     current_chunk_docs = []
+    #     current_chunk_tokens = 0
 
-        def flush_chunk():
-            nonlocal total_merged_tokens, current_chunk_tokens
-            if current_chunk_texts:
-                # Only flush if adding this chunk does not exceed max_tokens (if set)
-                if max_tokens is not None and total_merged_tokens + current_chunk_tokens > max_tokens:
-                    return False  # Do not flush, would exceed max_tokens
-                # Create a HeaderDocument for the node field
-                node = HeaderDocument(
-                    id_=f"merged_{len(merged_similar_headers)}",
-                    text="\n\n".join(current_chunk_texts),
-                    metadata={
-                        "source_url": current_chunk_docs[0].metadata.get("source_url", "") if current_chunk_docs else "",
-                        "parent_header": current_chunk_docs[0].metadata.get("parent_header", "") if current_chunk_docs else "",
-                        "header": current_chunk_docs[0].metadata.get("header", "") if current_chunk_docs else "",
-                        "doc_index": min(d.metadata.get("doc_index", 0) for d in current_chunk_docs) if current_chunk_docs else 0,
-                        "header_level": min(d.metadata.get("header_level", 0) for d in current_chunk_docs) if current_chunk_docs else 0,
-                        "content": "\n\n".join(current_chunk_texts),
-                    }
-                )
-                # Create a HeaderDocumentWithScore object
-                merged_doc = HeaderDocumentWithScore(
-                    node=node,
-                    score=average_score,
-                    doc_index=min(d.metadata.get("doc_index", 0)
-                                  for d in current_chunk_docs) if current_chunk_docs else 0,
-                    headers=group.get("headers", []),
-                    matches=[],
-                    highlighted_text="\n\n".join(current_chunk_texts),
-                )
-                merged_similar_headers.append(merged_doc)
-                total_merged_tokens += current_chunk_tokens
-                return True
-            return False
+    #     def flush_chunk():
+    #         nonlocal total_merged_tokens, current_chunk_tokens
+    #         if current_chunk_texts:
+    #             # Only flush if adding this chunk does not exceed max_tokens (if set)
+    #             if max_tokens is not None and total_merged_tokens + current_chunk_tokens > max_tokens:
+    #                 return False  # Do not flush, would exceed max_tokens
+    #             # Create a HeaderDocument for the node field
+    #             node = HeaderDocument(
+    #                 id_=f"merged_{len(merged_similar_headers)}",
+    #                 text="\n\n".join(current_chunk_texts),
+    #                 metadata={
+    #                     "source_url": current_chunk_docs[0].metadata.get("source_url", "") if current_chunk_docs else "",
+    #                     "parent_header": current_chunk_docs[0].metadata.get("parent_header", "") if current_chunk_docs else "",
+    #                     "header": current_chunk_docs[0].metadata.get("header", "") if current_chunk_docs else "",
+    #                     "doc_index": min(d.metadata.get("doc_index", 0) for d in current_chunk_docs) if current_chunk_docs else 0,
+    #                     "header_level": min(d.metadata.get("header_level", 0) for d in current_chunk_docs) if current_chunk_docs else 0,
+    #                     "content": "\n\n".join(current_chunk_texts),
+    #                 }
+    #             )
+    #             # Create a HeaderDocumentWithScore object
+    #             merged_doc = HeaderDocumentWithScore(
+    #                 node=node,
+    #                 score=average_score,
+    #                 doc_index=min(d.metadata.get("doc_index", 0)
+    #                               for d in current_chunk_docs) if current_chunk_docs else 0,
+    #                 headers=group.get("headers", []),
+    #                 matches=[],
+    #                 highlighted_text="\n\n".join(current_chunk_texts),
+    #             )
+    #             merged_similar_headers.append(merged_doc)
+    #             total_merged_tokens += current_chunk_tokens
+    #             return True
+    #         return False
 
-        for doc in docs:
-            # Try to get doc["text"], fallback to doc["metadata"]["content"]
-            doc_text = getattr(doc, "text", None)
-            if doc_text is None and hasattr(doc, "metadata"):
-                doc_text = doc.metadata.get("content", None)
-            if not doc_text:
-                continue
-            tokens_list = count_tokens(
-                llm_model, [doc_text], prevent_total=True)
-            tokens = tokens_list[0] if tokens_list else 0
+    #     for doc in docs:
+    #         # Try to get doc["text"], fallback to doc["metadata"]["content"]
+    #         doc_text = getattr(doc, "text", None)
+    #         if doc_text is None and hasattr(doc, "metadata"):
+    #             doc_text = doc.metadata.get("content", None)
+    #         if not doc_text:
+    #             continue
+    #         tokens_list = count_tokens(
+    #             llm_model, [doc_text], prevent_total=True)
+    #         tokens = tokens_list[0] if tokens_list else 0
 
-            # Apply min_tokens filter
-            if min_tokens is not None and tokens < min_tokens:
-                continue
+    #         # Apply min_tokens filter
+    #         if min_tokens is not None and tokens < min_tokens:
+    #             continue
 
-            # If chunk_size is set, flush chunk if adding this doc would exceed chunk_size
-            if chunk_size is not None and current_chunk_tokens + tokens > chunk_size:
-                flushed = flush_chunk()
-                if not flushed and max_tokens is not None and total_merged_tokens >= max_tokens:
-                    break  # Stop processing if max_tokens reached
-                current_chunk_texts = []
-                current_chunk_docs = []
-                current_chunk_tokens = 0
+    #         # If chunk_size is set, flush chunk if adding this doc would exceed chunk_size
+    #         if chunk_size is not None and current_chunk_tokens + tokens > chunk_size:
+    #             flushed = flush_chunk()
+    #             if not flushed and max_tokens is not None and total_merged_tokens >= max_tokens:
+    #                 break  # Stop processing if max_tokens reached
+    #             current_chunk_texts = []
+    #             current_chunk_docs = []
+    #             current_chunk_tokens = 0
 
-            # If max_tokens is set, check if adding this doc would exceed max_tokens
-            if max_tokens is not None and total_merged_tokens + current_chunk_tokens + tokens > max_tokens:
-                break  # Stop processing this group if max_tokens would be exceeded
+    #         # If max_tokens is set, check if adding this doc would exceed max_tokens
+    #         if max_tokens is not None and total_merged_tokens + current_chunk_tokens + tokens > max_tokens:
+    #             break  # Stop processing this group if max_tokens would be exceeded
 
-            current_chunk_texts.append(doc_text)
-            current_chunk_docs.append(doc)
-            current_chunk_tokens += tokens
+    #         current_chunk_texts.append(doc_text)
+    #         current_chunk_docs.append(doc)
+    #         current_chunk_tokens += tokens
 
-        # Flush any remaining chunk, respecting max_tokens
-        flush_chunk()
+    #     # Flush any remaining chunk, respecting max_tokens
+    #     flush_chunk()
 
-    save_file(
-        {"query": query, "count": len(
-            merged_similar_headers), "results": merged_similar_headers},
-        os.path.join(output_dir, "merged_similar_headers.json")
-    )
+    # save_file(
+    #     {"query": query, "count": len(
+    #         merged_similar_headers), "results": merged_similar_headers},
+    #     os.path.join(output_dir, "merged_similar_headers.json")
+    # )
 
-    # Apply top_k limit only if specified
-    if top_k is not None:
-        search_doc_results = merged_similar_headers[:top_k]
-    else:
-        search_doc_results = merged_similar_headers
+    # # Apply top_k limit only if specified
+    # if top_k is not None:
+    #     search_doc_results = merged_similar_headers[:top_k]
+    # else:
+    #     search_doc_results = merged_similar_headers
 
-    search_doc_results = sample_diverse_headers(search_doc_results)
+    # search_doc_results = sample_diverse_headers(search_doc_results)
+    search_doc_results = search_doc_results[:top_k]
 
     # Initialize results and token tracking
     result_texts = [result.text for result in search_doc_results]
