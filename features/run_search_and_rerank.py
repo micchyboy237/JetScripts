@@ -136,6 +136,86 @@ async def fetch_search_results(query: str, output_dir: str, use_cache: bool = Fa
     return browser_search_results
 
 
+async def process_url_content(
+    url: str,
+    html: str,
+    query: str,
+    output_dir: str,
+    from_reranked_link: bool,
+    url_to_result: Optional[Dict[str, Dict]] = None
+) -> Optional[Tuple[str, str, List[HeaderDocument], Dict]]:
+    """
+    Process HTML content for a given URL, extract documents, save files, and analyze readability.
+
+    Args:
+        url: The source URL.
+        html: The HTML content.
+        query: The search query.
+        output_dir: The base output directory.
+        from_reranked_link: Whether the URL is from reranked links.
+        url_to_result: Mapping of URLs to search results (optional, for published date).
+
+    Returns:
+        Tuple of (URL, HTML, documents, readability_overall) or None if no headers found.
+    """
+    docs = get_md_header_docs(html, ignore_links=True,
+                              metadata={"source_url": url})
+    if len(docs) == 0:
+        logger.debug(f"No headers found for {url}, skipping")
+        return None
+
+    sub_url_dir = format_sub_url_dir(url)
+    sub_output_dir = os.path.join(output_dir, "pages", sub_url_dir)
+    os.makedirs(sub_output_dir, exist_ok=True)
+
+    # Save HTML and related files
+    save_file(html, f"{sub_output_dir}/page.html")
+    md_content = convert_html_to_markdown(html)
+    save_file(md_content, f"{sub_output_dir}/md_content.md")
+    md_content_markdownify = convert_html_to_markdownify(html)
+    save_file(md_content_markdownify,
+              f"{sub_output_dir}/md_content_markdownify.md")
+    markdown_parsed = parse_markdown(md_content)
+    save_file(markdown_parsed, f"{sub_output_dir}/markdown_parsed.json")
+    markdown_analysis = analyze_markdown(md_content)
+    save_file(markdown_analysis, f"{sub_output_dir}/markdown_analysis.json")
+
+    # Save document metadata
+    save_file({
+        "query": query,
+        "from_reranked_link": from_reranked_link,
+        "count": len(docs),
+        "source_url": url,
+        "headers": {
+            f"h{i}": sum(1 for doc in docs if doc.metadata["header_level"] == i)
+            for i in range(1, 7)
+        },
+        "documents": docs
+    }, f"{sub_output_dir}/docs.json")
+
+    # Save headers
+    headers = [doc["header"] for doc in docs]
+    save_file(headers, f"{sub_output_dir}/headers.json")
+
+    # Analyze readability
+    docs_text = "\n\n".join(doc.text for doc in docs)
+    readability_overall = analyze_readability(docs_text)
+    save_file(readability_overall,
+              f"{sub_output_dir}/readability_overall.json")
+    readability_docs = [analyze_readability(doc.text) for doc in docs]
+    save_file(readability_docs, f"{sub_output_dir}/readability_docs.json")
+
+    # Handle published date if url_to_result is provided
+    if url_to_result and url in url_to_result:
+        result = url_to_result[url]
+        if not result.get("publishedDate"):
+            published_date = scrape_published_date(html)
+            result["publishedDate"] = published_date if published_date else None
+            logger.debug(f"Scraped published date for {url}: {published_date}")
+
+    return url, html, docs, readability_overall
+
+
 async def process_search_results(
     browser_search_results: List[BrowserSearchResult],
     query: str,
@@ -152,6 +232,7 @@ async def process_search_results(
     top_urls = [item["url"]
                 for item in browser_search_results[:guaranteed_top_n]]
     logger.debug(f"Guaranteed top {guaranteed_top_n} URLs: {top_urls}")
+
     browser_search_docs = [
         HeaderDocument(
             id=result["id"],
@@ -180,112 +261,59 @@ async def process_search_results(
         if doc["id"] in filtered_ids and doc["source_url"] not in top_urls
     ]
     logger.debug(f"Selected {len(selected_urls)} URLs: {selected_urls}")
+
     url_to_result = {r["url"]: r for r in browser_search_results}
     all_url_html_date_tuples = []
     all_links = []
+
     async for url, status, html in scrape_urls(selected_urls, num_parallel=10, limit=10, show_progress=True):
         if status == "completed" and html:
-            docs = get_md_header_docs(
-                html, ignore_links=True, metadata={"source_url": url})
-            if len(docs) == 0:
-                logger.debug(f"No headers found for {url}, skipping")
-                continue
-            sub_url_dir = format_sub_url_dir(url)
-            sub_output_dir = os.path.join(output_dir, "pages", sub_url_dir)
-            save_file(html, f"{sub_output_dir}/page.html")
-            md_content = convert_html_to_markdown(html)
-            save_file(md_content, f"{sub_output_dir}/md_content.md")
-            md_content_markdownify = convert_html_to_markdownify(html)
-            save_file(
-                md_content_markdownify, f"{sub_output_dir}/md_content_markdownify.md")
-            parse_markdown_results = parse_markdown(md_content)
-            save_file(
-                parse_markdown_results, f"{sub_output_dir}/parse_markdown_results.json")
-            analyze_markdown_results = analyze_markdown(md_content)
-            save_file(
-                analyze_markdown_results, f"{sub_output_dir}/analyze_markdown_results.json")
+            result = await process_url_content(
+                url=url,
+                html=html,
+                query=query,
+                output_dir=output_dir,
+                from_reranked_link=False,
+                url_to_result=url_to_result
+            )
+            if result:
+                all_url_html_date_tuples.append(result)
+                links = set(scrape_links(html, url))
+                links = [link for link in links if (
+                    link != url if isinstance(link, str) else link["url"] != url)]
+                all_links.extend(links)
+                logger.debug(f"Extracted {len(links)} links from {url}")
 
-            save_file({
-                "query": query,
-                "from_reranked_link": False,
-                "count": len(docs),
-                "source_url": url,
-                "headers": {
-                    f"h{i}": sum(1 for doc in docs if doc.metadata["header_level"] == i)
-                    for i in range(1, 7)
-                },
-                "documents": docs
-            }, f"{sub_output_dir}/docs.json")
-            headers = [doc["header"] for doc in docs]
-            save_file(headers, f"{sub_output_dir}/headers.json")
-            docs_text = "\n\n".join(doc.text for doc in docs)
-            readability_overall = analyze_readability(docs_text)
-            save_file(readability_overall,
-                      f"{sub_output_dir}/readability_overall.json")
-            readability_docs = [analyze_readability(doc.text) for doc in docs]
-            save_file(readability_docs,
-                      f"{sub_output_dir}/readability_docs.json")
-            all_url_html_date_tuples.append(
-                (url, html, docs, readability_overall))
-            result = url_to_result.get(url)
-            if not result.get("publishedDate"):
-                published_date = scrape_published_date(html)
-                result["publishedDate"] = published_date if published_date else None
-                logger.debug(
-                    f"Scraped published date for {url}: {published_date}")
-            links = set(scrape_links(html, url))
-            links = [link for link in links if (
-                link != url if isinstance(link, str) else link["url"] != url)]
-            all_links.extend(links)
-            logger.debug(f"Extracted {len(links)} links from {url}")
     all_links = list(set(all_links))
-    all_links = [link for link in all_links if (link not in selected_urls if isinstance(
-        link, str) else link["url"] not in selected_urls)]
+    all_links = [link for link in all_links if (
+        link not in selected_urls if isinstance(link, str) else link["url"] not in selected_urls)]
     save_file(all_links, os.path.join(output_dir, "links.json"))
     logger.debug(f"Total unique links extracted: {len(all_links)}")
-    reranked_links = rerank_urls_bm25_plus(all_links, query, threshold=0.7)
-    logger.debug(f"Reranked to {len(reranked_links)} links")
-    save_file(reranked_links, os.path.join(output_dir, "reranked_links.json"))
-    remaining_k = top_k - len(all_url_html_date_tuples)
-    if remaining_k > 0:
-        logger.info(f"Scraping {len(reranked_links)} reranked links...")
-        async for url, status, html in scrape_urls(reranked_links, num_parallel=10, show_progress=True):
-            if status == "completed" and html:
-                docs = get_md_header_docs(
-                    html, ignore_links=True, metadata={"source_url": url})
-                if len(docs) == 0:
-                    logger.debug(f"No headers found for {url}, skipping")
-                    continue
-                sub_url_dir = format_sub_url_dir(url)
-                sub_output_dir = os.path.join(output_dir, sub_url_dir)
-                save_file(html, f"{sub_output_dir}/page.html")
-                save_file({
-                    "query": query,
-                    "from_reranked_link": True,
-                    "count": len(docs),
-                    "source_url": url,
-                    "headers": {
-                        f"h{i}": sum(1 for doc in docs if doc.metadata["header_level"] == i)
-                        for i in range(1, 7)
-                    },
-                    "documents": docs
-                }, f"{sub_output_dir}/docs.json")
-                headers = [doc["header"] for doc in docs]
-                save_file(headers, f"{sub_output_dir}/headers.json")
-                docs_text = "\n\n".join(doc.text for doc in docs)
-                readability_overall = analyze_readability(docs_text)
-                save_file(readability_overall,
-                          f"{sub_output_dir}/readability_overall.json")
-                readability_docs = [
-                    analyze_readability(doc.text) for doc in docs]
-                save_file(readability_docs,
-                          f"{sub_output_dir}/readability_docs.json")
-                published_date = scrape_published_date(html)
-                all_url_html_date_tuples.append(
-                    (url, html, docs, readability_overall))
-                logger.debug(f"Scraped HTML and date for reranked URL: {url}")
-                if len(all_url_html_date_tuples) == top_k:
-                    break
+
+    # reranked_links = rerank_urls_bm25_plus(all_links, query, threshold=0.7)
+    # logger.debug(f"Reranked to {len(reranked_links)} links")
+    # save_file(reranked_links, os.path.join(output_dir, "reranked_links.json"))
+
+    # remaining_k = top_k - len(all_url_html_date_tuples)
+    # if remaining_k > 0:
+    #     logger.info(f"Scraping {len(reranked_links)} reranked links...")
+    #     async for url, status, html in scrape_urls(reranked_links, num_parallel=10, show_progress=True):
+    #         if status == "completed" and html:
+    #             result = await process_url_content(
+    #                 url=url,
+    #                 html=html,
+    #                 query=query,
+    #                 output_dir=output_dir,
+    #                 from_reranked_link=True,
+    #                 url_to_result=None
+    #             )
+    #             if result:
+    #                 all_url_html_date_tuples.append(result)
+    #                 logger.debug(
+    #                     f"Scraped HTML and date for reranked URL: {url}")
+    #                 if len(all_url_html_date_tuples) == top_k:
+    #                     break
+
     logger.info(
         f"Processed {len(all_url_html_date_tuples)} URL-HTML-date tuples")
     return all_url_html_date_tuples
@@ -669,7 +697,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("-s", "--chunk_size", type=int, default=300,
                    help="Maximum number of tokens per context")
     p.add_argument("-c", "--use_cache", action="store_true",
-                   default=True, help="Use cached search results if available")
+                   default=False, help="Use cached search results if available")
     p.add_argument("--seed", type=int, default=45,
                    help="Random seed for reproducibility")
     return p.parse_args()
