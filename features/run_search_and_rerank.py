@@ -29,17 +29,28 @@ from jet.file.utils import save_file
 from jet.llm.mlx.base import MLX
 from jet.models.tokenizer.base import count_tokens, get_tokenizer_fn
 from jet.scrapers.browser.playwright_utils import scrape_multiple_urls
-
 from jet.scrapers.utils import scrape_links, scrape_published_date, search_data
 from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
 from jet.llm.evaluators.context_relevancy_evaluator import evaluate_context_relevancy
 from jet.llm.evaluators.response_relevancy_evaluator import evaluate_response_relevancy
-# from jet.llm.mlx.tasks.eval.evaluate_context_relevance import evaluate_context_relevance
-# from jet.llm.mlx.tasks.eval.evaluate_response_relevance import evaluate_response_relevance
 from jet.wordnet.similarity import group_similar_headers
 from jet.wordnet.text_chunker import chunk_headers
 from jet.wordnet.words import count_words
 from jet.search.searxng import SearchResult as BrowserSearchResult
+from jet.llm.rag.mlx.classification import MLXRAGClassifier
+import time
+import numpy as np
+
+PROMPT_TEMPLATE = """\
+Context information is below.
+---------------------
+{context}
+---------------------
+
+Given the context information, answer the query.
+
+Query: {query}
+"""
 
 
 class StepBackQueryResponse(TypedDict):
@@ -144,31 +155,14 @@ async def process_url_content(
     from_reranked_link: bool,
     url_to_result: Optional[Dict[str, Dict]] = None
 ) -> Optional[Tuple[str, str, List[HeaderDocument], Dict]]:
-    """
-    Process HTML content for a given URL, extract documents, save files, and analyze readability.
-
-    Args:
-        url: The source URL.
-        html: The HTML content.
-        query: The search query.
-        output_dir: The base output directory.
-        from_reranked_link: Whether the URL is from reranked links.
-        url_to_result: Mapping of URLs to search results (optional, for published date).
-
-    Returns:
-        Tuple of (URL, HTML, documents, readability_overall) or None if no headers found.
-    """
     docs = get_md_header_docs(html, ignore_links=True,
                               metadata={"source_url": url})
     if len(docs) == 0:
         logger.debug(f"No headers found for {url}, skipping")
         return None
-
     sub_url_dir = format_sub_url_dir(url)
     sub_output_dir = os.path.join(output_dir, "pages", sub_url_dir)
     os.makedirs(sub_output_dir, exist_ok=True)
-
-    # Save HTML and related files
     save_file(html, f"{sub_output_dir}/page.html")
     md_content = convert_html_to_markdown(html)
     save_file(md_content, f"{sub_output_dir}/md_content.md")
@@ -179,40 +173,32 @@ async def process_url_content(
     save_file(markdown_parsed, f"{sub_output_dir}/markdown_parsed.json")
     markdown_analysis = analyze_markdown(md_content)
     save_file(markdown_analysis, f"{sub_output_dir}/markdown_analysis.json")
-
-    # Save document metadata
-    save_file({
-        "query": query,
-        "from_reranked_link": from_reranked_link,
-        "count": len(docs),
-        "source_url": url,
-        "headers": {
-            f"h{i}": sum(1 for doc in docs if doc.metadata["header_level"] == i)
-            for i in range(1, 7)
-        },
-        "documents": docs
-    }, f"{sub_output_dir}/docs.json")
-
-    # Save headers
+    save_file(
+        {
+            "query": query,
+            "from_reranked_link": from_reranked_link,
+            "count": len(docs),
+            "source_url": url,
+            "headers": {
+                f"h{i}": sum(1 for doc in docs if doc.metadata["header_level"] == i)
+                for i in range(1, 7)
+            },
+            "documents": docs
+        }, f"{sub_output_dir}/docs.json")
     headers = [doc["header"] for doc in docs]
     save_file(headers, f"{sub_output_dir}/headers.json")
-
-    # Analyze readability
     docs_text = "\n\n".join(doc.text for doc in docs)
     readability_overall = analyze_readability(docs_text)
     save_file(readability_overall,
               f"{sub_output_dir}/readability_overall.json")
     readability_docs = [analyze_readability(doc.text) for doc in docs]
     save_file(readability_docs, f"{sub_output_dir}/readability_docs.json")
-
-    # Handle published date if url_to_result is provided
     if url_to_result and url in url_to_result:
         result = url_to_result[url]
         if not result.get("publishedDate"):
             published_date = scrape_published_date(html)
             result["publishedDate"] = published_date if published_date else None
             logger.debug(f"Scraped published date for {url}: {published_date}")
-
     return url, html, docs, readability_overall
 
 
@@ -225,14 +211,12 @@ async def process_search_results(
     """Process search results and extract links, ensuring top 5 URLs are always included."""
     if not top_k:
         top_k = 10
-
     logger.info(
         f"Processing {len(browser_search_results)} search results for query: {query}")
     guaranteed_top_n = min(5, len(browser_search_results))
     top_urls = [item["url"]
                 for item in browser_search_results[:guaranteed_top_n]]
     logger.debug(f"Guaranteed top {guaranteed_top_n} URLs: {top_urls}")
-
     browser_search_docs = [
         HeaderDocument(
             id=result["id"],
@@ -261,11 +245,9 @@ async def process_search_results(
         if doc["id"] in filtered_ids and doc["source_url"] not in top_urls
     ]
     logger.debug(f"Selected {len(selected_urls)} URLs: {selected_urls}")
-
     url_to_result = {r["url"]: r for r in browser_search_results}
     all_url_html_date_tuples = []
     all_links = []
-
     async for url, status, html in scrape_urls(selected_urls, num_parallel=10, limit=10, show_progress=True):
         if status == "completed" and html:
             result = await process_url_content(
@@ -283,37 +265,11 @@ async def process_search_results(
                     link != url if isinstance(link, str) else link["url"] != url)]
                 all_links.extend(links)
                 logger.debug(f"Extracted {len(links)} links from {url}")
-
     all_links = list(set(all_links))
     all_links = [link for link in all_links if (
         link not in selected_urls if isinstance(link, str) else link["url"] not in selected_urls)]
     save_file(all_links, os.path.join(output_dir, "links.json"))
     logger.debug(f"Total unique links extracted: {len(all_links)}")
-
-    # reranked_links = rerank_urls_bm25_plus(all_links, query, threshold=0.7)
-    # logger.debug(f"Reranked to {len(reranked_links)} links")
-    # save_file(reranked_links, os.path.join(output_dir, "reranked_links.json"))
-
-    # remaining_k = top_k - len(all_url_html_date_tuples)
-    # if remaining_k > 0:
-    #     logger.info(f"Scraping {len(reranked_links)} reranked links...")
-    #     async for url, status, html in scrape_urls(reranked_links, num_parallel=10, show_progress=True):
-    #         if status == "completed" and html:
-    #             result = await process_url_content(
-    #                 url=url,
-    #                 html=html,
-    #                 query=query,
-    #                 output_dir=output_dir,
-    #                 from_reranked_link=True,
-    #                 url_to_result=None
-    #             )
-    #             if result:
-    #                 all_url_html_date_tuples.append(result)
-    #                 logger.debug(
-    #                     f"Scraped HTML and date for reranked URL: {url}")
-    #                 if len(all_url_html_date_tuples) == top_k:
-    #                     break
-
     logger.info(
         f"Processed {len(all_url_html_date_tuples)} URL-HTML-date tuples")
     return all_url_html_date_tuples
@@ -327,19 +283,16 @@ def process_documents(
 ) -> List[HeaderDocument]:
     """Process documents and extract headers, assigning doc_index based on list order."""
     logger.info(f"Processing {len(url_html_date_tuples)} documents")
-
     all_docs: List[HeaderDocument] = []
     headers = []
-    doc_index = 0  # Initialize doc_index counter
+    doc_index = 0
     for url, html_str, docs, readability in url_html_date_tuples:
         logger.debug(f"Processing documents for URL: {url}")
         for doc in docs:
             if not doc.metadata["content"].strip():
                 continue
-
             doc.metadata["source_url"] = url
             doc.metadata["readability"] = readability
-            # Assign sequential doc_index
             doc.metadata["doc_index"] = doc_index
             headers.append({
                 "doc_index": doc_index,
@@ -348,7 +301,7 @@ def process_documents(
                 "header": doc["header"],
             })
             all_docs.append(doc)
-            doc_index += 1  # Increment doc_index for the next document
+            doc_index += 1
     save_file({
         "query": query,
         "count": len(all_docs),
@@ -380,37 +333,32 @@ def search_and_group_documents(
     min_tokens: Optional[int] = None,
     max_tokens: Optional[int] = None,
 ) -> Tuple[List[Dict], str]:
-    """Search documents and group results with source_url at the top of each group, optionally limiting total tokens to max_tokens and filtering contexts with fewer than min_tokens."""
-    # Validate that at least one of top_k or max_tokens is provided
+    """Search documents, classify relevance with MLXRAGClassifier, and group results with source_url at the top of each group, optionally limiting total tokens to max_tokens and filtering contexts with fewer than min_tokens."""
     if top_k is None and max_tokens is None:
         raise ValueError(
             "At least one of top_k or max_tokens must be provided")
-
     logger.info(
         f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}, max_tokens={max_tokens}, min_tokens={min_tokens}")
 
-    chunked_docs = chunk_headers(
-        all_docs, max_tokens=chunk_size, model=embed_model)
-    save_file({"query": query, "count": len(chunked_docs), "results": chunked_docs},
-              os.path.join(output_dir, "chunked_docs.json"))
+    # Chunk documents
+    # chunked_docs = chunk_headers(
+    #     all_docs, max_tokens=chunk_size, model=embed_model)
+    # save_file({"query": query, "count": len(chunked_docs), "results": chunked_docs},
+    #           os.path.join(output_dir, "chunked_docs.json"))
 
-    # Filter out header level 1 documents and those without content or below min_tokens
-    docs_to_search = [
-        doc for doc in chunked_docs
-        if doc.metadata["header_level"] != 1
-        and doc.metadata.get("content", "").strip()
-        and (min_tokens is None or count_tokens(llm_model, [doc.metadata.get("content", "")], prevent_total=True)[0] >= min_tokens)
-    ]
+    # Filter documents for search
+    docs_to_search = all_docs
     logger.debug(
         f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1, empty content, and below min_tokens)")
 
-    # Perform search
+    # Search documents
     search_doc_results = search_docs(
         query=query,
         documents=docs_to_search,
         ids=[doc.id_ for doc in docs_to_search],
         model=embed_model,
-        top_k=top_k,  # Pass top_k directly to search_docs
+        top_k=None,  # Get all results for classification
+        threshold=0.7
     )
     save_file(
         {"query": query, "count": len(
@@ -420,145 +368,92 @@ def search_and_group_documents(
     logger.info(
         f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
 
-    # grouped_similar_headers = group_similar_headers(
-    #     search_doc_results, threshold=0.7, model_name=embed_model)
+    # Classify relevance using MLXRAGClassifier
+    classifier_query = f"Will this webpage header have a concrete answer to this query?\nQuery: {query}"
+    chunks = [doc.metadata["header"] for doc in search_doc_results]
+    source_urls = [doc.metadata["source_url"] for doc in search_doc_results]
 
-    # save_file(
-    #     {"query": query, "count": len(
-    #         grouped_similar_headers), "results": grouped_similar_headers},
-    #     os.path.join(output_dir, "grouped_similar_headers.json")
-    # )
+    start_classify = time.time()
+    mlx_classifier = MLXRAGClassifier(
+        model_name=llm_model, batch_size=4, show_progress=True)
+    logger.info("Generating embeddings for classification")
+    embeddings = mlx_classifier.generate_embeddings(
+        chunks, group_ids=source_urls)
+    logger.info(f"Classifying headers for query: {classifier_query}")
 
-    # # Merge each group by doc["text"], splitting into chunks that do not exceed chunk_size tokens
-    # # Use max_tokens to limit the total number of tokens across all merged similar headers
-    # merged_similar_headers: List[HeaderDocumentWithScore] = []
-    # total_merged_tokens = 0  # Track total tokens across all merged headers
+    classification_results = []
+    for label, score, idx in mlx_classifier.stream_generate(
+        classifier_query, chunks, embeddings, top_k=len(chunks), relevance_threshold=0.7
+    ):
+        classification_results.append({
+            "doc_index": search_doc_results[idx]["doc_index"],
+            "chunk_index": 0,  # Set to 0 since chunking is not used
+            "header_level": search_doc_results[idx]["header_level"],
+            "label": label,
+            "score": score,
+            "source_url": search_doc_results[idx]["source_url"],
+            "header": search_doc_results[idx]["header"],
+            "content": search_doc_results[idx]["content"],
+        })
+    end_classify = time.time()
+    logger.info(
+        f"Classification took {end_classify - start_classify:.2f} seconds")
 
-    # for group in grouped_similar_headers:
-    #     docs = group.get("documents", [])
-    #     average_score = group.get("average_score", None)
-    #     # Sort docs by doc["score"] in descending order
-    #     docs = sorted(docs, key=lambda d: getattr(d, "score", 0), reverse=True)
-    #     current_chunk_texts = []
-    #     current_chunk_docs = []
-    #     current_chunk_tokens = 0
+    # Filter for classification results using header_level and content
+    classification_results = [
+        cr for cr in classification_results
+        if cr["header_level"] > 1 and cr["content"].strip()
+    ]
 
-    #     def flush_chunk():
-    #         nonlocal total_merged_tokens, current_chunk_tokens
-    #         if current_chunk_texts:
-    #             # Only flush if adding this chunk does not exceed max_tokens (if set)
-    #             if max_tokens is not None and total_merged_tokens + current_chunk_tokens > max_tokens:
-    #                 return False  # Do not flush, would exceed max_tokens
-    #             # Create a HeaderDocument for the node field
-    #             node = HeaderDocument(
-    #                 id_=f"merged_{len(merged_similar_headers)}",
-    #                 text="\n\n".join(current_chunk_texts),
-    #                 metadata={
-    #                     "source_url": current_chunk_docs[0].metadata.get("source_url", "") if current_chunk_docs else "",
-    #                     "parent_header": current_chunk_docs[0].metadata.get("parent_header", "") if current_chunk_docs else "",
-    #                     "header": current_chunk_docs[0].metadata.get("header", "") if current_chunk_docs else "",
-    #                     "doc_index": min(d.metadata.get("doc_index", 0) for d in current_chunk_docs) if current_chunk_docs else 0,
-    #                     "header_level": min(d.metadata.get("header_level", 0) for d in current_chunk_docs) if current_chunk_docs else 0,
-    #                     "content": "\n\n".join(current_chunk_texts),
-    #                 }
-    #             )
-    #             # Create a HeaderDocumentWithScore object
-    #             merged_doc = HeaderDocumentWithScore(
-    #                 node=node,
-    #                 score=average_score,
-    #                 doc_index=min(d.metadata.get("doc_index", 0)
-    #                               for d in current_chunk_docs) if current_chunk_docs else 0,
-    #                 headers=group.get("headers", []),
-    #                 matches=[],
-    #                 highlighted_text="\n\n".join(current_chunk_texts),
-    #             )
-    #             merged_similar_headers.append(merged_doc)
-    #             total_merged_tokens += current_chunk_tokens
-    #             return True
-    #         return False
+    # Save classification results
+    save_file(
+        {
+            "query": classifier_query,
+            "count": len(classification_results),
+            "results": classification_results
+        },
+        os.path.join(output_dir, "classification_results.json")
+    )
 
-    #     for doc in docs:
-    #         # Try to get doc["text"], fallback to doc["metadata"]["content"]
-    #         doc_text = getattr(doc, "text", None)
-    #         if doc_text is None and hasattr(doc, "metadata"):
-    #             doc_text = doc.metadata.get("content", None)
-    #         if not doc_text:
-    #             continue
-    #         tokens_list = count_tokens(
-    #             llm_model, [doc_text], prevent_total=True)
-    #         tokens = tokens_list[0] if tokens_list else 0
+    # Filter for relevant documents using doc_index
+    relevant_results = [
+        result for result in search_doc_results
+        if any(
+            cr["label"] == "relevant" and cr["doc_index"] == result["doc_index"]
+            for cr in classification_results
+        )
+    ]
+    relevant_results = relevant_results[:top_k] if top_k else relevant_results
+    logger.debug(
+        f"Filtered to {len(relevant_results)} relevant documents after classification")
 
-    #         # Apply min_tokens filter
-    #         if min_tokens is not None and tokens < min_tokens:
-    #             continue
-
-    #         # If chunk_size is set, flush chunk if adding this doc would exceed chunk_size
-    #         if chunk_size is not None and current_chunk_tokens + tokens > chunk_size:
-    #             flushed = flush_chunk()
-    #             if not flushed and max_tokens is not None and total_merged_tokens >= max_tokens:
-    #                 break  # Stop processing if max_tokens reached
-    #             current_chunk_texts = []
-    #             current_chunk_docs = []
-    #             current_chunk_tokens = 0
-
-    #         # If max_tokens is set, check if adding this doc would exceed max_tokens
-    #         if max_tokens is not None and total_merged_tokens + current_chunk_tokens + tokens > max_tokens:
-    #             break  # Stop processing this group if max_tokens would be exceeded
-
-    #         current_chunk_texts.append(doc_text)
-    #         current_chunk_docs.append(doc)
-    #         current_chunk_tokens += tokens
-
-    #     # Flush any remaining chunk, respecting max_tokens
-    #     flush_chunk()
-
-    # save_file(
-    #     {"query": query, "count": len(
-    #         merged_similar_headers), "results": merged_similar_headers},
-    #     os.path.join(output_dir, "merged_similar_headers.json")
-    # )
-
-    # # Apply top_k limit only if specified
-    # if top_k is not None:
-    #     search_doc_results = merged_similar_headers[:top_k]
-    # else:
-    #     search_doc_results = merged_similar_headers
-
-    # search_doc_results = sample_diverse_headers(search_doc_results)
-    search_doc_results = search_doc_results[:top_k]
-
-    # Initialize results and token tracking
-    result_texts = [result.text for result in search_doc_results]
-    context_tokens: List[int] = count_tokens(
-        llm_model, result_texts, prevent_total=True)
-    limited_results = search_doc_results
+    # Process tokens for relevant results
+    result_texts = [result.text for result in relevant_results]
+    context_tokens = count_tokens(llm_model, result_texts, prevent_total=True)
+    limited_results = relevant_results
     limited_context_tokens = context_tokens
     total_tokens = sum(context_tokens)
 
-    # Limit results by max_tokens if specified
+    # Apply max_tokens limit
     if max_tokens is not None:
         total_tokens = 0
         limited_results = []
         limited_context_tokens = []
-        for result, tokens in zip(search_doc_results, context_tokens):
+        for result, tokens in zip(relevant_results, context_tokens):
             if total_tokens + tokens > max_tokens:
                 break
             limited_results.append(result)
             limited_context_tokens.append(tokens)
             total_tokens += tokens
 
-    # Group contexts by source_url
+    # Group and format contexts
     contexts: List[str] = []
-    current_url: str | None = None
     url_to_docs = defaultdict(list)
     for doc in limited_results:
         source_url = doc.metadata["source_url"]
         url_to_docs[source_url].append(doc)
 
-    # Sort each group by doc_index and build contexts
-    contexts: List[str] = []
     for source_url in url_to_docs:
-        # Sort documents by doc_index
         sorted_docs = sorted(
             url_to_docs[source_url],
             key=lambda x: x.metadata.get("doc_index", 0)
@@ -568,12 +463,11 @@ def search_and_group_documents(
         logger.debug(
             f"Added source_url header with {len(sorted_docs)} sorted documents: {source_url}")
 
-    # Join contexts with double newlines
     context = "\n\n".join(contexts)
     save_file(context, os.path.join(output_dir, "context.md"))
     logger.debug(f"Generated context with {len(contexts)} segments")
 
-    # Save context metadata (update to reflect sorted order)
+    # Save final context info
     save_file(
         {
             "query": query,
@@ -614,16 +508,6 @@ def generate_response(
     """Generate and save LLM response."""
     logger.info(
         f"Generating response for query: {query} with model: {mlx.model}")
-    PROMPT_TEMPLATE = """\
-Context information is below.
----------------------
-{context}
----------------------
-
-Given the context information, answer the query.
-
-Query: {query}
-"""
     prompt = PROMPT_TEMPLATE.format(query=query, context=context)
     logger.debug("Prompt prepared for LLM")
     response = ""
@@ -636,7 +520,6 @@ Query: {query}
     ):
         content = chunk["choices"][0]["message"]["content"]
         response += content
-
     save_file(response, os.path.join(output_dir, "response.md"))
     save_file(
         {"query": query, "context": context, "response": response},
@@ -697,7 +580,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("-s", "--chunk_size", type=int, default=300,
                    help="Maximum number of tokens per context")
     p.add_argument("-c", "--use_cache", action="store_true",
-                   default=False, help="Use cached search results if available")
+                   default=True, help="Use cached search results if available")
     p.add_argument("--seed", type=int, default=45,
                    help="Random seed for reproducibility")
     return p.parse_args()
@@ -708,7 +591,6 @@ async def main():
     output_dir = initialize_output_directory(__file__, args.query)
     mlx, tokenize = initialize_search_components(
         args.llm_model, args.embed_model, args.seed)
-
     browser_results = await fetch_search_results(args.query, output_dir, use_cache=args.use_cache)
     url_html_docs = await process_search_results(browser_results, args.query, output_dir, top_k=args.top_k)
     all_docs = process_documents(
