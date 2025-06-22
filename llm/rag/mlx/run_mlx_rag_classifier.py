@@ -1,7 +1,7 @@
 import os
 import time
 from jet.file.utils import load_file, save_file
-from jet.llm.rag.rag_preprocessor import MLXRAGProcessor, WebDataPreprocessor
+from jet.llm.rag.mlx.classification import MLXRAGClassifier
 from jet.logger import logger
 from typing import List, Dict
 from numpy.typing import NDArray
@@ -19,7 +19,7 @@ def main():
     try:
         # Timing: total
         start_total = time.time()
-        mlx_processor = MLXRAGProcessor(show_progress=True, batch_size=4)
+        mlx_processor = MLXRAGClassifier(show_progress=True, batch_size=4)
         logger.info("Generating embeddings for chunks")
         # Timing: embedding generation
         start_embed = time.time()
