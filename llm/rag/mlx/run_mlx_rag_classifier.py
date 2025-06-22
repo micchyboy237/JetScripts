@@ -6,6 +6,8 @@ from jet.logger import logger
 from typing import List, Dict
 from numpy.typing import NDArray
 
+from jet.vectors.document_types import HeaderDocument
+
 
 def main():
     """Main function to demonstrate preprocessing and MLX RAG usage with classification."""
@@ -14,7 +16,8 @@ def main():
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     docs: Dict = load_file(docs_file)
     query: str = f"Will this webpage header have an answer to this query?\nQuery: {docs['query']}"
-    chunks: List[str] = [doc["metadata"]["header"] for doc in docs["results"]]
+    docs = [HeaderDocument(**doc) for doc in docs["results"]]
+    chunks: List[str] = [doc["header"] for doc in docs]
     top_k: int = len(chunks)
     try:
         # Timing: total
@@ -41,11 +44,15 @@ def main():
         for label, score, idx in mlx_processor.stream_generate(query, chunks, embeddings, top_k=top_k, relevance_threshold=0.7):
             logger.debug(
                 f"Stream Classification {idx}: Label={label}, Score={score:.4f}")
+            original_doc = docs[idx]
             response.append({
-                "num_chunk": idx,
+                "doc_index": original_doc["doc_index"],
+                "chunk_index": original_doc["chunk_index"],
                 "label": label,
                 "score": score,
+                "source_url": original_doc["source_url"],
                 "chunk": chunks[idx],
+                "chunk": original_doc["content"],
             })
         end_classify = time.time()
         total_classify = end_classify - start_classify
