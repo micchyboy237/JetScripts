@@ -346,27 +346,28 @@ def search_and_group_documents(
     # save_file({"query": query, "count": len(chunked_docs), "results": chunked_docs},
     #           os.path.join(output_dir, "chunked_docs.json"))
 
-    # Filter documents for search
-    docs_to_search = all_docs
-    logger.debug(
-        f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1, empty content, and below min_tokens)")
+    # # Filter documents for search
+    # docs_to_search = all_docs
+    # logger.debug(
+    #     f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1, empty content, and below min_tokens)")
 
-    # Search documents
-    search_doc_results = search_docs(
-        query=query,
-        documents=docs_to_search,
-        ids=[doc.id_ for doc in docs_to_search],
-        model=embed_model,
-        top_k=None,  # Get all results for classification
-        threshold=0.7
-    )
-    save_file(
-        {"query": query, "count": len(
-            search_doc_results), "results": search_doc_results},
-        os.path.join(output_dir, "search_doc_results.json")
-    )
-    logger.info(
-        f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
+    # # Search documents
+    # search_doc_results = search_docs(
+    #     query=query,
+    #     documents=docs_to_search,
+    #     ids=[doc.id_ for doc in docs_to_search],
+    #     model=embed_model,
+    #     top_k=None,  # Get all results for classification
+    #     threshold=0.7
+    # )
+    # save_file(
+    #     {"query": query, "count": len(
+    #         search_doc_results), "results": search_doc_results},
+    #     os.path.join(output_dir, "search_doc_results.json")
+    # )
+    # logger.info(
+    #     f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
+    search_doc_results = all_docs
 
     # Classify relevance using MLXRAGClassifier
     classifier_query = f"Will this webpage header have a concrete answer to this query?\nQuery: {query}"
