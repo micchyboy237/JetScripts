@@ -1,5 +1,6 @@
 from typing import List, Optional
 from jet.llm.rag.rag_preprocessor import WebDataPreprocessor
+from jet.logger import logger
 from jet.models.model_types import ModelType
 from jet.models.utils import resolve_model_value
 import mlx.core as mx
@@ -12,11 +13,6 @@ import spacy
 from spacy.language import Language
 import textacy.preprocessing as tprep
 import numpy as np
-
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 
 class MLXRAGProcessor:
