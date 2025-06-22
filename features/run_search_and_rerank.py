@@ -419,23 +419,14 @@ def search_and_group_documents(
         os.path.join(output_dir, "classification_results.json")
     )
 
-    # Convert classification results to HeaderDocumentWithScore and filter for relevant documents
-    relevant_results: List[HeaderDocumentWithScore] = []
-    for cr in classification_results:
-        if cr["label"] == "relevant":
-            # Find the corresponding document from search_doc_results
-            for result in search_doc_results:
-                if result["doc_index"] == cr["doc_index"]:
-                    # Create HeaderDocumentWithScore with classification score
-                    doc_with_score = HeaderDocumentWithScore(
-                        # id=result["id"],
-                        text=result["text"],
-                        metadata=result["metadata"],
-                        score=cr["score"]  # Use classification score
-                    )
-                    relevant_results.append(doc_with_score)
-                    break
-
+    # Filter for relevant documents using doc_index
+    relevant_results = [
+        result for result in search_doc_results
+        if any(
+            cr["label"] == "relevant" and cr["doc_index"] == result["doc_index"]
+            for cr in classification_results
+        )
+    ]
     relevant_results = relevant_results[:top_k] if top_k else relevant_results
     logger.debug(
         f"Filtered to {len(relevant_results)} relevant documents after classification")
@@ -480,6 +471,13 @@ def search_and_group_documents(
     save_file(context, os.path.join(output_dir, "context.md"))
     logger.debug(f"Generated context with {len(contexts)} segments")
 
+    # Create mapping from doc_index to classification score
+    doc_index_to_score = {
+        cr["doc_index"]: cr["score"]
+        for cr in classification_results
+        if cr["label"] == "relevant"
+    }
+
     # Save final context info
     save_file(
         {
@@ -494,7 +492,7 @@ def search_and_group_documents(
             "contexts": [
                 {
                     "doc_index": result.metadata.get("doc_index", 0),
-                    "score": result.score,
+                    "score": doc_index_to_score.get(result.metadata.get("doc_index", 0), 0.0),
                     "tokens": tokens,
                     "source_url": result.metadata["source_url"],
                     "parent_header": result.metadata["parent_header"],
