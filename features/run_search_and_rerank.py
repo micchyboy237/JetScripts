@@ -257,49 +257,17 @@ async def process_search_results(
     browser_search_results: List[BrowserSearchResult],
     query: str,
     output_dir: str,
-    top_k: Optional[int] = None
+    top_n: int = 3
 ) -> List[Tuple[str, str, Optional[str]]]:
-    """Process search results and extract links, ensuring top 5 URLs are always included."""
-    if not top_k:
-        top_k = 10
+    """Process search results and extract links from the top N URLs."""
     logger.info(
         f"Processing {len(browser_search_results)} search results for query: {query}")
-    guaranteed_top_n = min(5, len(browser_search_results))
-    top_urls = [item["url"]
-                for item in browser_search_results[:guaranteed_top_n]]
-    logger.debug(f"Guaranteed top {guaranteed_top_n} URLs: {top_urls}")
-    browser_search_docs = [
-        HeaderDocument(
-            id=result["id"],
-            text=f"{result['title']}\n{result['content']}",
-            metadata={
-                "source_url": result["url"],
-                "header": result["title"],
-                "content": result["content"],
-            }
-        )
-        for result in browser_search_results
-        if result.get("title") and result.get("content")
-    ]
-    browser_search_doc_results = search_docs(
-        query=query,
-        documents=browser_search_docs,
-        ids=[doc["id"] for doc in browser_search_docs],
-        top_k=None,
-        filter_by_headers_enabled=False
-    )
-    save_file(browser_search_doc_results,
-              f"{output_dir}/browser_search_doc_results.json")
-    filtered_ids = {result["id"] for result in browser_search_doc_results}
-    selected_urls = top_urls + [
-        doc["source_url"] for doc in browser_search_docs
-        if doc["id"] in filtered_ids and doc["source_url"] not in top_urls
-    ]
+    selected_urls = [item["url"] for item in browser_search_results[:top_n]]
     logger.debug(f"Selected {len(selected_urls)} URLs: {selected_urls}")
     url_to_result = {r["url"]: r for r in browser_search_results}
     all_url_html_date_tuples = []
     all_links = []
-    async for url, status, html in scrape_urls(selected_urls, num_parallel=10, limit=10, show_progress=True):
+    async for url, status, html in scrape_urls(selected_urls, num_parallel=top_n, limit=top_n, show_progress=True):
         if status == "completed" and html:
             result = await process_url_content(
                 url=url,
@@ -659,7 +627,7 @@ async def main():
     mlx, tokenize = initialize_search_components(
         args.llm_model, args.embed_model, args.seed)
     browser_results = await fetch_search_results(args.query, output_dir, use_cache=args.use_cache)
-    url_html_docs = await process_search_results(browser_results, args.query, output_dir, top_k=args.top_k)
+    url_html_docs = await process_search_results(browser_results, args.query, output_dir)
     all_docs = process_documents(
         url_html_docs, args.query, args.embed_model, output_dir)
     search_results, context_md = search_and_group_documents(

@@ -16,7 +16,7 @@ def main(with_bm25: bool):
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
-    embed_model: EmbedModelType = "static-retrieval-mrl-en-v1"
+    embed_model: EmbedModelType = "mxbai-embed-large"
 
     docs = load_file(docs_file)
     query = docs["query"]
@@ -38,7 +38,7 @@ def main(with_bm25: bool):
         model=embed_model,
         top_k=None,
         with_bm25=with_bm25,
-        threshold=0.7
+        threshold=0.5
     )
 
     logger.info(f"Counting tokens ({len(results)})...")
