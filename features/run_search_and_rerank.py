@@ -22,6 +22,7 @@ from jet.scrapers.hrequests_utils import scrape_urls
 from jet.transformers.link_formatters import LinkFormatter, format_links_for_embedding
 from jet.utils.url_utils import rerank_urls_bm25_plus
 from jet.vectors.document_types import HeaderDocument, HeaderDocumentWithScore
+from jet.vectors.document_utils import get_leaf_documents
 from jet.vectors.search_with_clustering import search_documents
 from jet.wordnet.analyzers.text_analysis import ReadabilityResult, analyze_readability, analyze_text
 from jet.code.splitter_markdown_utils import get_md_header_docs, get_header_level
@@ -346,28 +347,29 @@ def search_and_group_documents(
     # save_file({"query": query, "count": len(chunked_docs), "results": chunked_docs},
     #           os.path.join(output_dir, "chunked_docs.json"))
 
-    # # Filter documents for search
-    # docs_to_search = all_docs
-    # logger.debug(
-    #     f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1, empty content, and below min_tokens)")
+    # Filter documents for search
+    docs_to_search = get_leaf_documents(all_docs)
+    docs_to_search = [
+        doc for doc in docs_to_search if doc.metadata["content"].strip()]
+    logger.debug(
+        f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1, empty content, and below min_tokens)")
 
-    # # Search documents
-    # search_doc_results = search_docs(
-    #     query=query,
-    #     documents=docs_to_search,
-    #     ids=[doc.id_ for doc in docs_to_search],
-    #     model=embed_model,
-    #     top_k=None,  # Get all results for classification
-    #     threshold=0.7
-    # )
-    # save_file(
-    #     {"query": query, "count": len(
-    #         search_doc_results), "results": search_doc_results},
-    #     os.path.join(output_dir, "search_doc_results.json")
-    # )
-    # logger.info(
-    #     f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
-    search_doc_results = all_docs
+    # Search documents
+    search_doc_results = search_docs(
+        query=query,
+        documents=docs_to_search,
+        ids=[doc.id_ for doc in docs_to_search],
+        model=embed_model,
+        top_k=None,  # Get all results for classification
+        threshold=0.7
+    )
+    save_file(
+        {"query": query, "count": len(
+            search_doc_results), "results": search_doc_results},
+        os.path.join(output_dir, "search_doc_results.json")
+    )
+    logger.info(
+        f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
 
     # Classify relevance using MLXRAGClassifier
     classifier_query = f"Will this webpage header have a concrete answer to this query?\nQuery: {query}"

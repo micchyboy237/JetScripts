@@ -6,6 +6,7 @@ from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
 from jet.models.tokenizer.base import count_tokens
 from jet.models.model_types import LLMModelType
 from jet.vectors.document_types import HeaderDocument
+from jet.vectors.document_utils import get_leaf_documents
 from jet.wordnet.text_chunker import chunk_headers
 
 
@@ -15,24 +16,26 @@ def main(with_bm25: bool):
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
-    embed_model: EmbedModelType = "mxbai-embed-large"
+    embed_model: EmbedModelType = "static-retrieval-mrl-en-v1"
 
     docs = load_file(docs_file)
     query = docs["query"]
     docs = docs["documents"]
-    docs = [HeaderDocument(**doc) for doc in docs]
-    chunked_docs = chunk_headers(docs, max_tokens=300, model=embed_model)
-    docs = chunked_docs
-    docs_to_search = [
-        doc for doc in docs if doc.metadata["header_level"] != 1 and doc.metadata["content"].strip()]
+    docs = HeaderDocument.from_list(docs)
+    docs = get_leaf_documents(docs)
+    # chunked_docs = chunk_headers(docs, max_tokens=300, model=embed_model)
+    # docs = chunked_docs
+    docs_to_search = [doc for doc in docs if doc.metadata["content"].strip()]
     logger.debug(
         f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1)")
     results = search_docs(
         query,
         documents=docs_to_search,
         ids=[doc.id_ for doc in docs_to_search],
+        model=embed_model,
         top_k=None,
-        with_bm25=with_bm25
+        with_bm25=with_bm25,
+        threshold=0.7
     )
 
     logger.info(f"Counting tokens ({len(results)})...")
