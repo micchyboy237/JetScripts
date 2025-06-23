@@ -341,12 +341,6 @@ def search_and_group_documents(
     logger.info(
         f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}, max_tokens={max_tokens}, min_tokens={min_tokens}")
 
-    # Chunk documents
-    # chunked_docs = chunk_headers(
-    #     all_docs, max_tokens=chunk_size, model=embed_model)
-    # save_file({"query": query, "count": len(chunked_docs), "results": chunked_docs},
-    #           os.path.join(output_dir, "chunked_docs.json"))
-
     all_docs = [
         doc for doc in all_docs
         if doc["header_level"] > 1 and doc["content"].strip()
@@ -390,24 +384,25 @@ def search_and_group_documents(
     logger.info(f"Classifying headers for query: {classifier_query}")
 
     classification_results = []
+    classified = mlx_classifier.classify(
+        classifier_query, chunks, embeddings, verbose=True)
     rank = 0
-    for label, score, idx in mlx_classifier.stream_generate(
-        classifier_query, chunks, embeddings, top_k=len(chunks), relevance_threshold=0.7
-    ):
-        rank += 1
-        doc = search_doc_results[idx]
-        classification_results.append({
-            # Use metadata doc_index
-            "doc_index": doc.node.metadata.get("doc_index", 0),
-            "rank": rank,
-            "chunk_index": 0,  # Set to 0 since chunking is not used
-            "header_level": doc.node.metadata.get("header_level", 0),
-            "label": label,
-            "score": score,
-            "source_url": doc.node.metadata.get("source_url", ""),
-            "header": doc.node.metadata.get("header", ""),
-            "content": doc.node.metadata.get("content", ""),
-        })
+    for result in classified:
+        if result["score"] >= 0.7:  # Apply relevance threshold
+            rank += 1
+            doc = search_doc_results[result["doc_index"]]
+            classification_results.append({
+                "doc_index": doc.node.metadata.get("doc_index", 0),
+                "rank": rank,
+                "chunk_index": 0,  # Set to 0 since chunking is not used
+                "header_level": doc.node.metadata.get("header_level", 0),
+                "label": "relevant" if result["score"] >= 0.7 else "non-relevant",
+                "score": result["score"],
+                "source_url": doc.node.metadata.get("source_url", ""),
+                "header": doc.node.metadata.get("header", ""),
+                "content": doc.node.metadata.get("content", ""),
+            })
+
     end_classify = time.time()
     logger.info(
         f"Classification took {end_classify - start_classify:.2f} seconds")
@@ -470,7 +465,7 @@ def search_and_group_documents(
         logger.debug(
             f"Added source_url header with {len(sorted_docs)} sorted documents: {source_url}")
 
-    context = "\n\n".join(contexts)
+    context = "\n".join(contexts)
     save_file(context, os.path.join(output_dir, "context.md"))
     logger.debug(f"Generated context with {len(contexts)} segments")
 
