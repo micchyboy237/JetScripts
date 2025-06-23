@@ -79,7 +79,7 @@ def generate_summary(query: str, results: List[Dict], chunks: List[str], total_e
             summary.extend([
                 f"### {i}. Chunk (Score: {r['score']:.4f})",
                 f"- **Source URL**: {r['source_url']}",
-                f"- **Chunk**: {r['chunk'][:100]}{'...' if len(r['chunk']) > 100 else ''}",
+                f"- **Text**: {r['text'][:100]}{'...' if len(r['text']) > 100 else ''}",
                 ""
             ])
     else:
@@ -130,10 +130,11 @@ def main():
             results.append({
                 "doc_index": original_doc["doc_index"],
                 "header_level": original_doc["header_level"],
+                "parent_header": original_doc["parent_header"],
                 "label": label,
                 "score": score,
                 "source_url": original_doc["source_url"],
-                "chunk": chunks[idx],
+                "text": original_doc["text"],
             })
         end_classify = time.time()
         total_classify = end_classify - start_classify

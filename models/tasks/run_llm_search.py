@@ -5,26 +5,30 @@ import llama_cpp
 
 from jet.file.utils import load_file, save_file
 from jet.models.tasks.llm_search import search_docs
+from jet.vectors.document_types import HeaderDocument
 
 
 if __name__ == "__main__":
     # Load documents
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/docs.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     docs = load_file(docs_file)
-    query = "List all ongoing and upcoming isekai anime 2025."
-    task = 'Given a web search query, retrieve relevant passages that answer the query'
+    query = docs["query"]
+    docs = HeaderDocument.from_list(docs["documents"])
+    task = 'Given a web search query, retrieve relevant documents that have concrete answers.'
+
+    docs = docs[:20]
 
     queries = [
         query
     ]
     documents = [
         "\n".join([
-            doc["metadata"].get("parent_header") or "",
+            # doc["metadata"].get("parent_header") or "",
             doc["metadata"]["header"],
-            # doc["metadata"]["content"],
+            doc["metadata"]["content"][:50],
         ]).strip()
         for doc in docs
     ]

@@ -30,13 +30,13 @@ def map_search_results_to_docs(search_results: List[SimilarityResult], docs: Lis
 
 if __name__ == "__main__":
     # Load documents
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/docs.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     docs = load_file(docs_file)
-    docs = [HeaderDocument(**doc) for doc in docs]
-    query = "List all ongoing and upcoming isekai anime 2025."
+    query = docs["query"]
+    docs = HeaderDocument.from_list(docs["documents"])
     task = 'Given a web search query, retrieve relevant passages that answer the query'
 
     queries = [
