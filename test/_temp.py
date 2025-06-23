@@ -1,12 +1,26 @@
-from jet.llm.mlx.helpers.detect_repetition import clean_repeated_ngrams, find_repeated_consecutive_ngrams
+from jet.code.markdown_utils import analyze_markdown, parse_markdown
+from jet.code.splitter_markdown_utils import get_md_header_contents
+from jet.file.utils import load_file
 from jet.logger import logger
+
+
+from typing import List, Dict
+
 from jet.transformers.formatters import format_json
 
-text = "* !\n!r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\n* ![]()\n![r/Isekai - My top 20 favorite isekai animes not including the new isekai anime from 2025]()\nShare\nShare"
 
+if __name__ == "__main__":
+    md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/__sample.md"
 
-result = find_repeated_consecutive_ngrams(text)
-logger.success(format_json(result))
+    results = parse_markdown(md_file)
+    logger.gray("parse_markdown:")
+    logger.success(results)
 
-result = clean_repeated_ngrams(text)
-logger.success(format_json(result))
+    results = analyze_markdown(md_file)
+    logger.gray("analyze_markdown:")
+    logger.success(results)
+
+    md_content = load_file(md_file)
+    results = get_md_header_contents(md_content, ignore_links=True)
+    logger.gray("get_md_header_contents:")
+    logger.success(format_json(results))
