@@ -388,7 +388,8 @@ def search_and_group_documents(
         classifier_query, chunks, embeddings, verbose=True)
     rank = 0
     for result in classified:
-        if result["score"] >= 0.7:  # Apply relevance threshold
+        label = result["label"]  # Reuse label from classify method
+        if label == "relevant":  # Apply relevance threshold via label
             rank += 1
             doc = search_doc_results[result["doc_index"]]
             classification_results.append({
@@ -396,7 +397,7 @@ def search_and_group_documents(
                 "rank": rank,
                 "chunk_index": 0,  # Set to 0 since chunking is not used
                 "header_level": doc.node.metadata.get("header_level", 0),
-                "label": "relevant" if result["score"] >= 0.7 else "non-relevant",
+                "label": label,
                 "score": result["score"],
                 "source_url": doc.node.metadata.get("source_url", ""),
                 "header": doc.node.metadata.get("header", ""),
