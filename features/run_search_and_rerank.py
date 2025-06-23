@@ -347,6 +347,11 @@ def search_and_group_documents(
     # save_file({"query": query, "count": len(chunked_docs), "results": chunked_docs},
     #           os.path.join(output_dir, "chunked_docs.json"))
 
+    all_docs = [
+        doc for doc in all_docs
+        if doc["header_level"] > 1 and doc["content"].strip()
+    ]
+
     # Filter documents for search
     docs_to_search = get_leaf_documents(all_docs)
     docs_to_search = [
@@ -390,26 +395,22 @@ def search_and_group_documents(
         classifier_query, chunks, embeddings, top_k=len(chunks), relevance_threshold=0.7
     ):
         rank += 1
+        doc = search_doc_results[idx]
         classification_results.append({
-            "doc_index": search_doc_results[idx]["doc_index"],
+            # Use metadata doc_index
+            "doc_index": doc.node.metadata.get("doc_index", 0),
             "rank": rank,
             "chunk_index": 0,  # Set to 0 since chunking is not used
-            "header_level": search_doc_results[idx]["header_level"],
+            "header_level": doc.node.metadata.get("header_level", 0),
             "label": label,
             "score": score,
-            "source_url": search_doc_results[idx]["source_url"],
-            "header": search_doc_results[idx]["header"],
-            "content": search_doc_results[idx]["content"],
+            "source_url": doc.node.metadata.get("source_url", ""),
+            "header": doc.node.metadata.get("header", ""),
+            "content": doc.node.metadata.get("content", ""),
         })
     end_classify = time.time()
     logger.info(
         f"Classification took {end_classify - start_classify:.2f} seconds")
-
-    # Filter for classification results using header_level and content
-    classification_results = [
-        cr for cr in classification_results
-        if cr["header_level"] > 1 and cr["content"].strip()
-    ]
 
     # Save classification results
     save_file(
