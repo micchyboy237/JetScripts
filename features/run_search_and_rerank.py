@@ -257,7 +257,7 @@ async def process_search_results(
     browser_search_results: List[BrowserSearchResult],
     query: str,
     output_dir: str,
-    top_n: int = 3
+    top_n: int = 5
 ) -> List[Tuple[str, str, Optional[str]]]:
     """Process search results and extract links from the top N URLs."""
     logger.info(
