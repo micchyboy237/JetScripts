@@ -20,8 +20,11 @@ def main(with_bm25: bool):
 
     docs = load_file(docs_file)
     query = docs["query"]
-    docs = docs["documents"]
-    docs = HeaderDocument.from_list(docs)
+    # docs = docs["documents"]
+    docs = HeaderDocument.from_list(docs["documents"])
+    # Filter only items with the specified source_url
+    docs = [doc for doc in docs if doc["source_url"] ==
+            "https://gamerant.com/new-isekai-anime-2025"]
     docs = get_leaf_documents(docs)
     # chunked_docs = chunk_headers(docs, max_tokens=300, model=embed_model)
     # docs = chunked_docs

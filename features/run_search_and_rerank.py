@@ -161,6 +161,19 @@ async def process_url_content(
     if len(docs) == 0:
         logger.debug(f"No headers found for {url}, skipping")
         return None
+    # Filter out docs with readability["mtld_category"] == "very_low"
+    filtered_docs = []
+    for doc in docs:
+        readability = analyze_readability(doc.text)
+        mtld_category = readability.get("mtld_category")
+        if mtld_category not in ["very_low", "low"]:
+            filtered_docs.append(doc)
+    docs = filtered_docs
+    if len(docs) == 0:
+        logger.debug(
+            f"All docs for {url} filtered out due to mtld_category == 'very_low'")
+        return None
+
     sub_url_dir = format_sub_url_dir(url)
     sub_output_dir = os.path.join(output_dir, "pages", sub_url_dir)
     os.makedirs(sub_output_dir, exist_ok=True)
@@ -189,11 +202,48 @@ async def process_url_content(
     headers = [doc["header"] for doc in docs]
     save_file(headers, f"{sub_output_dir}/headers.json")
     docs_text = "\n\n".join(doc.text for doc in docs)
+
+    text_stats_all = analyze_text(docs_text)
+    save_file(text_stats_all,
+              f"{sub_output_dir}/text_stats_all.json")
+    text_stats_docs = [
+        {
+            "id": getattr(doc, "id", None),
+            "doc_index": idx,
+            "text": doc.text,
+            "text_stats": analyze_text(doc.text)
+        }
+        for idx, doc in enumerate(docs)
+    ]
+    # Sort by text_stats["mtld"] in descending order
+    text_stats_docs_sorted = sorted(
+        text_stats_docs,
+        key=lambda x: x["text_stats"].get("mtld", float('-inf')),
+        reverse=True
+    )
+    save_file(text_stats_docs_sorted, f"{sub_output_dir}/text_stats_docs.json")
+
     readability_overall = analyze_readability(docs_text)
     save_file(readability_overall,
               f"{sub_output_dir}/readability_overall.json")
-    readability_docs = [analyze_readability(doc.text) for doc in docs]
-    save_file(readability_docs, f"{sub_output_dir}/readability_docs.json")
+    readability_docs = [
+        {
+            "id": getattr(doc, "id", None),
+            "doc_index": idx,
+            "text": doc.text,
+            "readability": analyze_readability(doc.text)
+        }
+        for idx, doc in enumerate(docs)
+    ]
+    # Sort by readability["mtld"] in descending order
+    readability_docs_sorted = sorted(
+        readability_docs,
+        key=lambda x: x["readability"].get("mtld", float('-inf')),
+        reverse=True
+    )
+    save_file(readability_docs_sorted,
+              f"{sub_output_dir}/readability_docs.json")
+
     if url_to_result and url in url_to_result:
         result = url_to_result[url]
         if not result.get("publishedDate"):
@@ -449,27 +499,6 @@ def search_and_group_documents(
             limited_context_tokens.append(tokens)
             total_tokens += tokens
 
-    # Group and format contexts
-    contexts: List[str] = []
-    url_to_docs = defaultdict(list)
-    for doc in limited_results:
-        source_url = doc.metadata["source_url"]
-        url_to_docs[source_url].append(doc)
-
-    for source_url in url_to_docs:
-        sorted_docs = sorted(
-            url_to_docs[source_url],
-            key=lambda x: x.metadata.get("doc_index", 0)
-        )
-        contexts.append(f"<!-- Source: {source_url} -->")
-        contexts.extend(doc.text for doc in sorted_docs)
-        logger.debug(
-            f"Added source_url header with {len(sorted_docs)} sorted documents: {source_url}")
-
-    context = "\n".join(contexts)
-    save_file(context, os.path.join(output_dir, "context.md"))
-    logger.debug(f"Generated context with {len(contexts)} segments")
-
     # Create mapping from doc_index to classification score
     doc_index_to_score = {
         cr["doc_index"]: cr["score"]
@@ -477,7 +506,46 @@ def search_and_group_documents(
         if cr["label"] == "relevant"
     }
 
+    # Group and format contexts by score
+    contexts: List[str] = []
+    # Create a list of (doc, score) tuples
+    scored_docs = [
+        (doc, doc_index_to_score.get(doc.metadata.get("doc_index", 0), 0.0))
+        for doc in limited_results
+    ]
+    # Sort by score in descending order
+    scored_docs = sorted(scored_docs, key=lambda x: x[1], reverse=True)
+
+    current_url = None
+    for doc, _ in scored_docs:
+        source_url = doc.metadata["source_url"]
+        # Add source URL header if it's a new URL
+        if source_url != current_url:
+            contexts.append(f"<!-- Source: {source_url} -->")
+            current_url = source_url
+        contexts.append(doc.text)
+
+    context = "\n".join(contexts)
+    save_file(context, os.path.join(output_dir, "context.md"))
+    logger.debug(
+        f"Generated context with {len(contexts)} segments sorted by score")
+
     # Save final context info
+    context_info = [
+        {
+            "doc_index": result.metadata.get("doc_index", 0),
+            "score": doc_index_to_score.get(result.metadata.get("doc_index", 0), 0.0),
+            "tokens": tokens,
+            "source_url": result.metadata["source_url"],
+            "parent_header": result.metadata["parent_header"],
+            "header": result.metadata["header"],
+            "text": result.text
+        }
+        for result, tokens in zip(limited_results, limited_context_tokens)
+    ]
+    # Sort contexts by score in descending order
+    context_info = sorted(context_info, key=lambda x: x["score"], reverse=True)
+
     save_file(
         {
             "query": query,
@@ -488,18 +556,7 @@ def search_and_group_documents(
                     [r for r in limited_results if r.metadata["source_url"] == result.metadata["source_url"]])
                 for result in limited_results
             },
-            "contexts": [
-                {
-                    "doc_index": result.metadata.get("doc_index", 0),
-                    "score": doc_index_to_score.get(result.metadata.get("doc_index", 0), 0.0),
-                    "tokens": tokens,
-                    "source_url": result.metadata["source_url"],
-                    "parent_header": result.metadata["parent_header"],
-                    "header": result.metadata["header"],
-                    "text": result.text
-                }
-                for result, tokens in zip(limited_results, limited_context_tokens)
-            ]
+            "contexts": context_info
         },
         os.path.join(output_dir, "contexts.json")
     )

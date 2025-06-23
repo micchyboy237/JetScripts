@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
     # Group similar documents
     grouped_results = group_similar_headers(
-        docs, threshold=0.7, model_name=model_name)
+        docs, threshold=0.8, model_name=model_name)
 
     # Sort each group's "documents" by score in descending order
     for group in grouped_results:

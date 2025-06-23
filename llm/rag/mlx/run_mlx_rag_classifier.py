@@ -96,7 +96,9 @@ def main():
     docs: Dict = load_file(docs_file)
     query: str = f"Will this webpage header have a concrete answer to this query?\nQuery: {docs['query']}"
     docs = HeaderDocument.from_list(docs["documents"])
-    docs = get_leaf_documents(docs)
+    # Filter only items with the specified source_url
+    docs = [doc for doc in docs if doc["source_url"] ==
+            "https://gamerant.com/new-isekai-anime-2025"]
 
     model: ModelType = "qwen3-1.7b-4bit"
     chunks: List[str] = [doc["header"] for doc in docs]
