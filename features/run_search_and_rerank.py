@@ -161,18 +161,18 @@ async def process_url_content(
     if len(docs) == 0:
         logger.debug(f"No headers found for {url}, skipping")
         return None
-    # Filter out docs with readability["mtld_category"] == "very_low"
-    filtered_docs = []
-    for doc in docs:
-        readability = analyze_readability(doc.text)
-        mtld_category = readability.get("mtld_category")
-        if mtld_category not in ["very_low", "low"]:
-            filtered_docs.append(doc)
-    docs = filtered_docs
-    if len(docs) == 0:
-        logger.debug(
-            f"All docs for {url} filtered out due to mtld_category == 'very_low'")
-        return None
+    # # Filter out docs with readability["mtld_category"] == "very_low"
+    # filtered_docs = []
+    # for doc in docs:
+    #     readability = analyze_readability(doc.text)
+    #     mtld_category = readability.get("mtld_category")
+    #     if mtld_category not in ["very_low", "low"]:
+    #         filtered_docs.append(doc)
+    # docs = filtered_docs
+    # if len(docs) == 0:
+    #     logger.debug(
+    #         f"All docs for {url} filtered out due to mtld_category == 'very_low'")
+    #     return None
 
     sub_url_dir = format_sub_url_dir(url)
     sub_output_dir = os.path.join(output_dir, "pages", sub_url_dir)
@@ -257,7 +257,7 @@ async def process_search_results(
     browser_search_results: List[BrowserSearchResult],
     query: str,
     output_dir: str,
-    top_n: int = 5
+    top_n: int = 10
 ) -> List[Tuple[str, str, Optional[str]]]:
     """Process search results and extract links from the top N URLs."""
     logger.info(
@@ -481,8 +481,9 @@ def search_and_group_documents(
         (doc, doc_index_to_score.get(doc.metadata.get("doc_index", 0), 0.0))
         for doc in limited_results
     ]
-    # Sort by score in descending order
-    scored_docs = sorted(scored_docs, key=lambda x: x[1], reverse=True)
+    # Sort by doc_index in ascending order
+    scored_docs = sorted(
+        scored_docs, key=lambda x: x[0].metadata.get("doc_index", 0))
 
     current_url = None
     for doc, _ in scored_docs:
@@ -511,8 +512,8 @@ def search_and_group_documents(
         }
         for result, tokens in zip(limited_results, limited_context_tokens)
     ]
-    # Sort contexts by score in descending order
-    context_info = sorted(context_info, key=lambda x: x["score"], reverse=True)
+    # Sort context_info by doc_index in ascending order
+    context_info = sorted(context_info, key=lambda x: x["doc_index"])
 
     save_file(
         {

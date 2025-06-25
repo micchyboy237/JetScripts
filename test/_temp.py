@@ -8,7 +8,7 @@ from typing import List, Dict
 
 from jet.transformers.formatters import format_json
 
-md_content = "###### ![Game Rant logo](https://screenrant.com/db/tv-show/the-beginning-after-the-end/)\n\nSample content"
+md_content = "###### [Game Rant logo](https://screenrant.com/db/)\n\nExpand"
 
 if __name__ == "__main__":
 
@@ -31,8 +31,8 @@ if __name__ == "__main__":
     expected = [
         {
             "header": "###### Game Rant logo",
-            "content": "\nSample content",
-            "text": "###### Game Rant logo\n\nSample content"
+            "content": "\nExpand",
+            "text": "###### Game Rant logo\n\nExpand"
         }
     ]
     logger.gray("results:")

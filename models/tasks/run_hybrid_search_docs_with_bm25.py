@@ -16,15 +16,17 @@ def main(with_bm25: bool):
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
-    embed_model: EmbedModelType = "mxbai-embed-large"
+    embed_model: EmbedModelType = "static-retrieval-mrl-en-v1"
 
     docs = load_file(docs_file)
     query = docs["query"]
     # docs = docs["documents"]
     docs = HeaderDocument.from_list(docs["documents"])
     # Filter only items with the specified source_url
-    docs = [doc for doc in docs if doc["source_url"] ==
-            "https://gamerant.com/new-isekai-anime-2025"]
+    docs = [
+        doc for doc in docs
+        if doc["header_level"] > 1 and doc["content"].strip()
+    ]
     docs = get_leaf_documents(docs)
     # chunked_docs = chunk_headers(docs, max_tokens=300, model=embed_model)
     # docs = chunked_docs
