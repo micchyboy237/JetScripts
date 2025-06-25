@@ -353,185 +353,111 @@ def search_and_group_documents(
     min_tokens: Optional[int] = None,
     max_tokens: Optional[int] = None,
 ) -> Tuple[List[Dict], str]:
-    """Search documents, classify relevance with MLXRAGClassifier, and group results with source_url at the top of each group, optionally limiting total tokens to max_tokens and filtering contexts with fewer than min_tokens."""
+    """Search documents and group results with source_url at the top of each group, optionally limiting total tokens to max_tokens and filtering contexts with fewer than min_tokens."""
     if top_k is None and max_tokens is None:
         raise ValueError(
             "At least one of top_k or max_tokens must be provided")
     logger.info(
         f"Searching {len(all_docs)} documents for query: {query}, top_k={top_k}, max_tokens={max_tokens}, min_tokens={min_tokens}")
 
-    all_docs = [
-        doc for doc in all_docs
-        if doc["header_level"] > 1 and doc["content"].strip()
-    ]
-
-    # Filter documents for search
-    docs_to_search = get_leaf_documents(all_docs)
-    docs_to_search = [
-        doc for doc in docs_to_search if doc.metadata["content"].strip()]
+    # Filter documents
+    docs = get_leaf_documents(all_docs)
+    docs_to_search = [doc for doc in docs if doc.metadata["content"].strip()]
     logger.debug(
-        f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1, empty content, and below min_tokens)")
+        f"Filtered to {len(docs_to_search)} documents for search (excluding empty content)")
 
     # Search documents
-    search_doc_results = search_docs(
+    search_results = search_docs(
         query=query,
         documents=docs_to_search,
         ids=[doc.id_ for doc in docs_to_search],
         model=embed_model,
-        top_k=None,  # Get all results for classification
-        threshold=0.7
+        top_k=None,
+        threshold=0.5
     )
-    save_file(
-        {"query": query, "count": len(
-            search_doc_results), "results": search_doc_results},
-        os.path.join(output_dir, "search_doc_results.json")
-    )
-    logger.info(
-        f"Saved {len(search_doc_results)} search results to {output_dir}/search_doc_results.json")
+    logger.debug(f"Found {len(search_results)} search results")
 
-    # Classify relevance using MLXRAGClassifier
-    classifier_query = f"Will this webpage header have a concrete answer to this query?\nQuery: {query}"
-    chunks = [doc.metadata["header"] for doc in search_doc_results]
-    source_urls = [doc.metadata["source_url"] for doc in search_doc_results]
-
-    start_classify = time.time()
-    mlx_classifier = MLXRAGClassifier(
-        model_name=llm_model, batch_size=4, show_progress=True)
-    logger.info("Generating embeddings for classification")
-    embeddings = mlx_classifier.generate_embeddings(
-        chunks, group_ids=source_urls)
-    logger.info(f"Classifying headers for query: {classifier_query}")
-
-    classification_results = []
-    classified = mlx_classifier.classify(
-        classifier_query, chunks, embeddings, verbose=True)
-    rank = 0
-    for result in classified:
-        label = result["label"]  # Reuse label from classify method
-        if label == "relevant":  # Apply relevance threshold via label
-            rank += 1
-            doc = search_doc_results[result["doc_index"]]
-            classification_results.append({
-                "doc_index": doc.node.metadata.get("doc_index", 0),
-                "rank": rank,
-                "chunk_index": 0,  # Set to 0 since chunking is not used
-                "header_level": doc.node.metadata.get("header_level", 0),
-                "label": label,
-                "score": result["score"],
-                "source_url": doc.node.metadata.get("source_url", ""),
-                "header": doc.node.metadata.get("header", ""),
-                "content": doc.node.metadata.get("content", ""),
-            })
-
-    end_classify = time.time()
-    logger.info(
-        f"Classification took {end_classify - start_classify:.2f} seconds")
-
-    # Save classification results
-    save_file(
-        {
-            "query": classifier_query,
-            "count": len(classification_results),
-            "results": classification_results
-        },
-        os.path.join(output_dir, "classification_results.json")
-    )
-
-    # Filter for relevant documents using doc_index
-    relevant_results = [
-        result for result in search_doc_results
-        if any(
-            cr["label"] == "relevant" and cr["doc_index"] == result["doc_index"]
-            for cr in classification_results
-        )
-    ]
-    relevant_results = relevant_results[:top_k] if top_k else relevant_results
-    logger.debug(
-        f"Filtered to {len(relevant_results)} relevant documents after classification")
-
-    # Process tokens for relevant results
-    result_texts = [result.text for result in relevant_results]
+    # Count tokens
+    result_texts = [result["text"] for result in search_results]
     context_tokens = count_tokens(llm_model, result_texts, prevent_total=True)
-    limited_results = relevant_results
-    limited_context_tokens = context_tokens
     total_tokens = sum(context_tokens)
 
-    # Apply max_tokens limit
+    # Apply token filters
+    limited_results = search_results
+    limited_context_tokens = context_tokens
+    if min_tokens is not None:
+        limited_results = [
+            result for result, tokens in zip(search_results, context_tokens)
+            if tokens >= min_tokens
+        ]
+        limited_context_tokens = [
+            tokens for tokens in context_tokens
+            if tokens >= min_tokens
+        ]
+        total_tokens = sum(limited_context_tokens)
     if max_tokens is not None:
-        total_tokens = 0
-        limited_results = []
-        limited_context_tokens = []
-        for result, tokens in zip(relevant_results, context_tokens):
-            if total_tokens + tokens > max_tokens:
+        current_tokens = 0
+        temp_results = []
+        temp_tokens = []
+        for result, tokens in zip(limited_results, limited_context_tokens):
+            if current_tokens + tokens > max_tokens:
                 break
-            limited_results.append(result)
-            limited_context_tokens.append(tokens)
-            total_tokens += tokens
+            temp_results.append(result)
+            temp_tokens.append(tokens)
+            current_tokens += tokens
+        limited_results = temp_results
+        limited_context_tokens = temp_tokens
+        total_tokens = sum(limited_context_tokens)
+    if top_k is not None:
+        limited_results = limited_results[:top_k]
+        limited_context_tokens = limited_context_tokens[:top_k]
+        total_tokens = sum(limited_context_tokens)
 
-    # Create mapping from doc_index to classification score
-    doc_index_to_score = {
-        cr["doc_index"]: cr["score"]
-        for cr in classification_results
-        if cr["label"] == "relevant"
-    }
-
-    # Group and format contexts by score
+    # Group by source URL
     contexts: List[str] = []
-    # Create a list of (doc, score) tuples
-    scored_docs = [
-        (doc, doc_index_to_score.get(doc.metadata.get("doc_index", 0), 0.0))
-        for doc in limited_results
-    ]
-    # Sort by doc_index in ascending order
-    scored_docs = sorted(
-        scored_docs, key=lambda x: x[0].metadata.get("doc_index", 0))
-
     current_url = None
-    for doc, _ in scored_docs:
-        source_url = doc.metadata["source_url"]
-        # Add source URL header if it's a new URL
+    for result in limited_results:
+        source_url = result["metadata"]["source_url"]
         if source_url != current_url:
             contexts.append(f"<!-- Source: {source_url} -->")
             current_url = source_url
-        contexts.append(doc.text)
-
+        contexts.append(result["text"])
     context = "\n".join(contexts)
     save_file(context, os.path.join(output_dir, "context.md"))
-    logger.debug(
-        f"Generated context with {len(contexts)} segments sorted by score")
+    logger.debug(f"Generated context with {len(contexts)} segments")
 
-    # Save final context info
-    context_info = [
-        {
-            "doc_index": result.metadata.get("doc_index", 0),
-            "score": doc_index_to_score.get(result.metadata.get("doc_index", 0), 0.0),
-            "tokens": tokens,
-            "source_url": result.metadata["source_url"],
-            "parent_header": result.metadata["parent_header"],
-            "header": result.metadata["header"],
-            "text": result.text
-        }
-        for result, tokens in zip(limited_results, limited_context_tokens)
-    ]
-    # Sort context_info by doc_index in ascending order
-    context_info = sorted(context_info, key=lambda x: x["doc_index"])
-
+    # Save results
+    output_path = os.path.join(output_dir, "contexts.json")
     save_file(
         {
             "query": query,
             "total_tokens": total_tokens,
             "count": len(limited_results),
             "urls_info": {
-                result.metadata["source_url"]: len(
-                    [r for r in limited_results if r.metadata["source_url"] == result.metadata["source_url"]])
+                result["metadata"]["source_url"]: len(
+                    [r for r in limited_results if r["metadata"]
+                        ["source_url"] == result["metadata"]["source_url"]]
+                )
                 for result in limited_results
             },
-            "contexts": context_info
+            "contexts": [
+                {
+                    "rank": result["rank"],
+                    "doc_index": result["doc_index"],
+                    "chunk_index": result["chunk_index"],
+                    "score": result["score"],
+                    "tokens": tokens,
+                    "source_url": result["metadata"]["source_url"],
+                    "parent_header": result["metadata"]["parent_header"],
+                    "header": result["metadata"]["header"],
+                    "text": result["text"]
+                }
+                for result, tokens in zip(limited_results, limited_context_tokens)
+            ]
         },
-        os.path.join(output_dir, "contexts.json")
+        output_path
     )
-    logger.info(
-        f"Saved context with {sum(limited_context_tokens)} tokens to {output_dir}/contexts.json")
+    logger.info(f"Saved context with {total_tokens} tokens to {output_path}")
 
     return limited_results, context
 
