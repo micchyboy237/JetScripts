@@ -26,6 +26,7 @@ if __name__ == "__main__":
     multi_docs = doc_texts
 
     candidate_keywords = extract_query_candidates(query)
+    save_file(candidate_keywords, f"{output_dir}/candidate_keywords.json")
 
     # Initialize KeyBERT
     kw_model = setup_keybert()
@@ -33,14 +34,14 @@ if __name__ == "__main__":
     # Example 1: Extract keywords from a single document
     print("\nExample 1: Single Document Keywords")
     keywords = extract_single_doc_keywords(
-        single_doc, kw_model, top_n=3, use_mmr=True, diversity=0.7)
+        single_doc, kw_model, top_n=5, use_mmr=True, diversity=0.7)
     print(f"Keywords: {keywords}")
     save_file(keywords, f"{output_dir}/extract_single_doc_keywords.json")
 
     # Example 2: Extract keywords from multiple documents
     print("\nExample 2: Multiple Documents Keywords")
     keywords = extract_multi_doc_keywords(
-        multi_docs, kw_model, top_n=3, keyphrase_ngram_range=(1, 2))
+        multi_docs, kw_model, seed_keywords=candidate_keywords, top_n=5, use_mmr=True, diversity=0.7, keyphrase_ngram_range=(1, 2))
     for i, kw in enumerate(keywords):
         print(f"Document {i+1} Keywords: {kw}")
     save_file(keywords, f"{output_dir}/extract_multi_doc_keywords.json")
@@ -48,7 +49,7 @@ if __name__ == "__main__":
     # Example 3: Extract keywords with candidate list
     print("\nExample 3: Keywords with Candidates")
     keywords = extract_keywords_with_candidates(
-        single_doc, kw_model, candidate_keywords, top_n=2)
+        multi_docs, kw_model, candidates=candidate_keywords, top_n=5)
     print(f"Keywords: {keywords}")
     save_file(keywords, f"{output_dir}/extract_keywords_with_candidates.json")
 
@@ -57,7 +58,7 @@ if __name__ == "__main__":
     custom_vectorizer = CountVectorizer(
         ngram_range=(1, 2), stop_words="english")
     keywords = extract_keywords_with_custom_vectorizer(
-        multi_docs, kw_model, custom_vectorizer, top_n=3)
+        multi_docs, kw_model, custom_vectorizer, seed_keywords=candidate_keywords, top_n=5)
     for i, kw in enumerate(keywords):
         print(f"Document {i+1} Keywords: {kw}")
     save_file(
@@ -65,7 +66,7 @@ if __name__ == "__main__":
 
     # Example 5: Extract keywords with precomputed embeddings
     print("\nExample 5: Keywords with Precomputed Embeddings")
-    keywords = extract_keywords_with_embeddings(multi_docs, kw_model, top_n=3)
+    keywords = extract_keywords_with_embeddings(multi_docs, kw_model, top_n=5)
     for i, kw in enumerate(keywords):
         print(f"Document {i+1} Keywords: {kw}")
     save_file(keywords, f"{output_dir}/extract_keywords_with_embeddings.json")
