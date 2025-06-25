@@ -1,7 +1,8 @@
 import os
+import shutil
 import time
 from jet.file.utils import load_file, save_file
-from jet.llm.rag.mlx.classification import MLXRAGClassifier
+from jet.llm.rag.mlx.classification import MLXRAGClassifier, generate_summary
 from jet.logger import logger
 from typing import List, Dict
 from numpy.typing import NDArray
@@ -10,73 +11,28 @@ from jet.models.model_types import ModelType
 from jet.vectors.document_utils import get_leaf_documents
 from jet.wordnet.text_chunker import truncate_texts
 from jet.vectors.document_types import HeaderDocument
-from collections import Counter
 from datetime import datetime, timedelta
 
-
-def generate_summary(query: str, results: List[Dict], chunks: List[str], total_embed: float, total_classify: float, total_time: float) -> str:
-    total_chunks = len(chunks)
-    relevant_count = sum(1 for r in results if r["label"] == "relevant")
-    non_relevant_count = total_chunks - relevant_count
-    relevant_percentage = (relevant_count / total_chunks *
-                           100) if total_chunks > 0 else 0
-    non_relevant_percentage = 100 - relevant_percentage
-    relevant_scores = [r["score"] for r in results if r["label"] == "relevant"]
-    avg_relevant_score = sum(relevant_scores) / \
-        len(relevant_scores) if relevant_scores else 0
-    source_url_counts = Counter(r["source_url"]
-                                for r in results if r["label"] == "relevant")
-    top_relevant = sorted(
-        [r for r in results if r["label"] == "relevant"],
-        key=lambda x: x["score"],
-        reverse=True
-    )[:3]
-    summary = [
-        "# RAG Classification Summary",
-        f"**Query**: {query}",
-        f"**Date**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %Z')}",
-        "",
-        "## Overview",
-        f"- **Total Chunks Processed**: {total_chunks}",
-        f"- **Relevant Chunks**: {relevant_count} ({relevant_percentage:.2f}%)",
-        f"- **Non-Relevant Chunks**: {non_relevant_count} ({non_relevant_percentage:.2f}%)",
-        f"- **Average Score for Relevant Chunks**: {avg_relevant_score:.4f}",
-        "",
-        "## Performance",
-        f"- **Embedding Generation Time**: {timedelta(seconds=total_embed)} ({total_embed:.2f} seconds)",
-        f"- **Classification Time**: {timedelta(seconds=total_classify)} ({total_classify:.2f} seconds)",
-        f"- **Total Execution Time**: {timedelta(seconds=total_time)} ({total_time:.2f} seconds)",
-        "",
-        "## Source URL Distribution (Relevant Chunks)",
-        "\n".join(f"- {url}: {count} chunk(s)" for url,
-                  count in source_url_counts.items()) or "- None",
-        "",
-        "## Top Relevant Chunks",
-    ]
-    if top_relevant:
-        for i, r in enumerate(top_relevant, 1):
-            summary.extend([
-                f"**Relevant Chunk {i}**:",
-                f"- **Source URL**: {r['source_url']}",
-                f"- **Text**: {r['text'][:100]}{'...' if len(r['text']) > 100 else ''}",
-                ""
-            ])
-    else:
-        summary.append("- No relevant chunks found.")
-    return "\n".join(summary)
+base_output_dir = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(base_output_dir, ignore_errors=True)
 
 
-def main():
-    """Main function to demonstrate preprocessing and MLX RAG usage with classification."""
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/docs.json"
+def main(window_size: int, start_index: int):
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/docs.json"
     output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+        base_output_dir, f"window_size_{window_size}_start_{start_index}")
     docs: Dict = load_file(docs_file)
     query: str = f"Will this webpage header have a concrete answer to this query?\nQuery: {docs['query']}"
+    model: ModelType = "qwen3-1.7b-4bit"
     docs = HeaderDocument.from_list(docs["documents"])
     docs = [doc for doc in docs if doc["source_url"] ==
-            "https://gamerant.com/new-isekai-anime-2025"]
-    model: ModelType = "qwen3-1.7b-4bit"
+            "https://www.louisbouchard.ai/top-rag-techniques" and doc["header"].strip()]
+    docs = docs[start_index:start_index + window_size]
+    if not docs:
+        logger.info(
+            f"No valid documents available for window starting at index {start_index}")
+        return
     chunks: List[str] = [doc["header"] for doc in docs]
     source_urls: List[str] = [doc["source_url"] for doc in docs]
     top_k: int = len(chunks)
@@ -84,6 +40,8 @@ def main():
         start_total = time.time()
         mlx_processor = MLXRAGClassifier(
             model, show_progress=True, batch_size=4)
+        # Clear caches before processing to ensure fresh embeddings
+        mlx_processor.clear_cache()
         logger.info("Generating embeddings for chunks")
         start_embed = time.time()
         embeddings = mlx_processor.generate_embeddings(
@@ -100,8 +58,7 @@ def main():
         logger.info("\nClassifications:")
         results: List[Dict] = []
         start_classify = time.time()
-        # classification_results = mlx_processor.classify(
-        classification_results = mlx_processor.classify_multi_label(
+        classification_results = mlx_processor.classify(
             query, chunks, embeddings, verbose=True)
         for res in classification_results:
             logger.debug(
@@ -114,15 +71,23 @@ def main():
                 "label": res["label"],
                 "score": res["score"],
                 "source_url": original_doc["source_url"],
-                "text": original_doc["text"],
+                "text": res["text"],
+                "original_doc": original_doc["text"],
             })
+        results.sort(key=lambda r: r["doc_index"])
         end_classify = time.time()
         total_classify = end_classify - start_classify
         logger.info(
             f"Classification (classify) took {total_classify:.2f} seconds")
         logger.info("Main function completed successfully")
         save_file(query, f"{output_dir}/query.md")
-        save_file(results, f"{output_dir}/results.json")
+        save_file({
+            "window_size": window_size,
+            "start_index": start_index,
+            "query": query,
+            "count": len(results),
+            "results": results
+        }, f"{output_dir}/results.json")
         save_file(chunks, f"{output_dir}/chunks.json")
         end_total = time.time()
         total_time = end_total - start_total
@@ -164,7 +129,17 @@ def main():
         save_file(timings, os.path.join(output_dir, "timings.json"))
     except Exception as e:
         logger.error(f"Error in main function: {str(e)}")
+    finally:
+        # Ensure cache is cleared after each run
+        if 'mlx_processor' in locals():
+            mlx_processor.clear_cache()
 
 
 if __name__ == "__main__":
-    main()
+    window_size = 2
+    start_index = 2
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/docs.json"
+    docs: Dict = load_file(docs_file)
+    total_docs = len(HeaderDocument.from_list(docs["documents"]))
+    for window_size in range(1, (window_size * start_index) + 1):
+        main(window_size=window_size, start_index=start_index)

@@ -28,19 +28,34 @@ def main(with_bm25: bool):
         if doc["header_level"] > 1 and doc["content"].strip()
     ]
     docs = get_leaf_documents(docs)
+    docs = [
+        {
+            "text": f"{doc["parent_header" or None]}\n{doc["header"]}\n{text}".strip(),
+            "metadata": {
+                **doc.metadata,
+                "content": text,
+                "doc_index": doc["doc_index"],
+                "chunk_index": chunk_index,
+            }
+        }
+        for doc in docs
+        for chunk_index, text in enumerate(doc.texts)
+    ]
+
+    docs = HeaderDocument.from_list(docs)
     # chunked_docs = chunk_headers(docs, max_tokens=300, model=embed_model)
     # docs = chunked_docs
-    docs_to_search = [doc for doc in docs if doc.metadata["content"].strip()]
-    logger.debug(
-        f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1)")
+    # docs_to_search = [doc for doc in docs if doc.metadata["content"].strip()]
+    # logger.debug(
+    #     f"Filtered to {len(docs_to_search)} documents for search (excluding header level 1)")
     results = search_docs(
         query,
-        documents=docs_to_search,
-        ids=[doc.id_ for doc in docs_to_search],
+        documents=docs,
+        ids=[doc.id for doc in docs],
         model=embed_model,
         top_k=None,
         with_bm25=with_bm25,
-        threshold=0.5
+        # threshold=0.7
     )
 
     logger.info(f"Counting tokens ({len(results)})...")

@@ -112,10 +112,11 @@ def initialize_output_directory(script_path: str, query: str) -> str:
 
 
 def format_sub_url_dir(url: str) -> str:
-    """Format a URL into a lowercase directory name, replacing hyphens and spaces with underscores."""
+    """Format a URL into a lowercase directory name, replacing hyphens, spaces, and slashes with underscores."""
     clean_url = re.sub(r'^(https?://|www\.)|(\?.*)', '', url)
-    formatted = re.sub(r'[- ]+', '_', clean_url).lower()
-    formatted = re.sub(r'[^\w./]', '_', formatted)
+    # replace hyphens, spaces, and slashes with underscores
+    formatted = re.sub(r'[- /]+', '_', clean_url).lower()
+    formatted = re.sub(r'[^\w.]', '_', formatted)  # keep underscores and dots
     formatted = re.sub(r'_+', '_', formatted)
     return formatted.strip('_')
 
