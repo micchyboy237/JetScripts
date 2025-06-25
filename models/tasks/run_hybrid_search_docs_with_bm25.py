@@ -22,11 +22,11 @@ def main(with_bm25: bool):
     query = docs["query"]
     # docs = docs["documents"]
     docs = HeaderDocument.from_list(docs["documents"])
-    # Filter only items with the specified source_url
-    docs = [
-        doc for doc in docs
-        if doc["header_level"] > 1 and doc["content"].strip()
-    ]
+    # Filter docs
+    # docs = [
+    #     doc for doc in docs
+    #     if doc["header_level"] > 1 and doc["content"].strip()
+    # ]
     docs = get_leaf_documents(docs)
     # chunked_docs = chunk_headers(docs, max_tokens=300, model=embed_model)
     # docs = chunked_docs

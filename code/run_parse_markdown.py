@@ -1,11 +1,15 @@
 import os
 
-from jet.code.markdown_utils import analyze_markdown
+from jet.code.markdown_utils import parse_markdown
 from jet.file.utils import save_file
 
 md_content = """
+Sample title
+
 # Project Overview
 Welcome to our **project**! This is an `introduction` to our work, featuring a [website](https://project.com).
+
+![Project Logo](https://project.com/logo.png)
 
 > **Note**: Always check the [docs](https://docs.project.com) for updates.
 
@@ -55,6 +59,6 @@ if __name__ == "__main__":
     output_dir = os.path.join(os.path.dirname(
         __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-    results = analyze_markdown(md_content)
+    results = parse_markdown(md_content)
 
     save_file(results, f"{output_dir}/results.json")
