@@ -23,7 +23,7 @@ def main(window_size: int, start_index: int):
     output_dir = os.path.join(
         base_output_dir, f"window_size_{window_size}_start_{start_index}")
     docs: Dict = load_file(docs_file)
-    query: str = f"Will this webpage header have a concrete answer to this query?\nQuery: {docs['query']}"
+    query: str = docs['query']
     model: ModelType = "qwen3-1.7b-4bit"
     docs = HeaderDocument.from_list(docs["documents"])
     docs = [doc for doc in docs if doc["source_url"] ==
@@ -33,7 +33,7 @@ def main(window_size: int, start_index: int):
         logger.info(
             f"No valid documents available for window starting at index {start_index}")
         return
-    chunks: List[str] = [doc["header"] for doc in docs]
+    chunks: List[str] = [doc["text"] for doc in docs]
     source_urls: List[str] = [doc["source_url"] for doc in docs]
     top_k: int = len(chunks)
     try:
@@ -137,9 +137,9 @@ def main(window_size: int, start_index: int):
 
 if __name__ == "__main__":
     window_size = 2
-    start_index = 2
+    start_index = 4
     docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/docs.json"
     docs: Dict = load_file(docs_file)
     total_docs = len(HeaderDocument.from_list(docs["documents"]))
-    for window_size in range(1, (window_size * start_index) + 1):
+    for window_size in range(1, (window_size * 2) + 1):
         main(window_size=window_size, start_index=start_index)
