@@ -1,6 +1,6 @@
 import os
 from jet.file.utils import load_file, save_file
-from jet.llm.mlx.mlx_types import EmbedModelType
+from jet.models.model_types import EmbedModelType
 from jet.logger import logger
 from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
 from jet.models.tokenizer.base import count_tokens
@@ -11,36 +11,31 @@ from jet.wordnet.text_chunker import chunk_headers
 
 
 def main(with_bm25: bool):
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/docs.json"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/pages/animebytes.in_15_best_upcoming_isekai_anime_in_2025/page.html"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/pages/animebytes.in_15_best_upcoming_isekai_anime_in_2025/docs.json"
+    headers_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/generated/run_header_docs/header_texts.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
     embed_model: EmbedModelType = "static-retrieval-mrl-en-v1"
 
+    html = load_file(html_file)
     docs = load_file(docs_file)
+    headers = load_file(headers_file)
     query = docs["query"]
-    # docs = docs["documents"]
-    docs = HeaderDocument.from_list(docs["documents"])
-    # Filter docs
-    # docs = [
-    #     doc for doc in docs
-    #     if doc["header_level"] > 1 and doc["content"].strip()
-    # ]
-    docs = get_leaf_documents(docs)
+    # docs = HeaderDocument.from_markdown(html)
+
     docs = [
         {
-            "text": text,
+            "text": text.lstrip('#').strip(),
             "metadata": {
-                **doc.metadata,
                 "content": text,
-                "doc_index": doc["doc_index"],
-                "chunk_index": chunk_index,
+                "doc_index": doc_index,
+                "chunk_index": 0,
             }
         }
-        for doc in docs
-        for chunk_index, text in enumerate(doc.texts)
-        if text.lstrip('#').strip()
+        for doc_index, text in enumerate(headers)
     ]
 
     docs = HeaderDocument.from_list(docs)

@@ -1,6 +1,6 @@
 import os
 from jet.file.utils import load_file, save_file
-from jet.llm.mlx.mlx_types import EmbedModelType
+from jet.models.model_types import EmbedModelType
 from jet.logger import logger
 from jet.models.tasks.hybrid_search_docs_with_bm25 import search_docs
 from jet.models.tokenizer.base import count_tokens
@@ -11,7 +11,7 @@ from jet.wordnet.text_chunker import chunk_headers
 
 
 def main(with_bm25: bool):
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/docs.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/docs.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
