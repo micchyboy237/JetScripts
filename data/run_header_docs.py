@@ -1,5 +1,5 @@
 import os
-from jet.code.markdown_utils import parse_markdown
+from jet.code.markdown_utils import get_summary, parse_markdown
 from jet.data.header_docs import HeaderDocs
 from jet.file.utils import load_file, save_file
 
@@ -10,9 +10,10 @@ if __name__ == "__main__":
             os.path.basename(__file__))[0]
     )
 
-    html = load_file(html_file)
+    summary = get_summary(html_file)
+    save_file(summary, f"{output_dir}/summary.json")
 
-    tokens = parse_markdown(html)
+    tokens = parse_markdown(html_file)
     save_file(tokens, f"{output_dir}/markdown_tokens.json")
 
     header_docs = HeaderDocs.from_tokens(tokens)
