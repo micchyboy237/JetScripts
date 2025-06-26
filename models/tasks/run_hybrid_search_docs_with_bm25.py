@@ -11,7 +11,8 @@ from jet.wordnet.text_chunker import chunk_headers
 
 
 def main(with_bm25: bool):
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/docs.json"
+    # docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/docs.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/docs.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
