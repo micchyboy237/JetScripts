@@ -17,7 +17,7 @@ if __name__ == "__main__":
     analysis = analyze_markdown(html_file)
     save_file(analysis, f"{output_dir}/analysis.json")
 
-    tokens = parse_markdown(html_file, merge_contents=True)
+    tokens = parse_markdown(html_file)
     save_file(tokens, f"{output_dir}/markdown_tokens.json")
 
     header_docs = HeaderDocs.from_tokens(tokens)
