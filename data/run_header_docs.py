@@ -1,4 +1,5 @@
 import os
+import shutil
 from jet.code.markdown_utils import analyze_markdown, parse_markdown
 from jet.data.header_docs import HeaderDocs
 from jet.file.utils import load_file, save_file
@@ -10,6 +11,7 @@ if __name__ == "__main__":
         os.path.dirname(__file__), "generated", os.path.splitext(
             os.path.basename(__file__))[0]
     )
+    shutil.rmtree(output_dir, ignore_errors=True)
 
     html = load_file(html_file)
     save_file(html, f"{output_dir}/page.html")
