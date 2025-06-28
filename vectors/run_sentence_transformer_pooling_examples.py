@@ -52,5 +52,6 @@ if __name__ == "__main__":
         save_file({
             "model": model_name,
             "strategy": strategy,
+            "query": query,
             "results": results
         }, f"{output_dir}/{strategy}_results.json")
