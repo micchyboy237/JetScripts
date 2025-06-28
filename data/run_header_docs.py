@@ -10,10 +10,13 @@ if __name__ == "__main__":
             os.path.basename(__file__))[0]
     )
 
+    html = load_file(html_file)
+    save_file(html, f"{output_dir}/page.html")
+
     summary = get_summary(html_file)
     save_file(summary, f"{output_dir}/summary.json")
 
-    tokens = parse_markdown(html_file)
+    tokens = parse_markdown(html_file, merge_paragraphs=False)
     save_file(tokens, f"{output_dir}/markdown_tokens.json")
 
     header_docs = HeaderDocs.from_tokens(tokens)
