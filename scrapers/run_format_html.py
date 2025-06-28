@@ -29,6 +29,10 @@ if __name__ == "__main__":
 
     save_file(format_html(html_str), f"{output_dir}/doc.html")
 
+    # # Text elements
+    # text_elements = extract_text_elements(html_str)
+    # save_file(text_elements, f"{output_dir}/text_elements.json")
+
     # Headings
     headings = extract_texts_by_hierarchy(html_str, ignore_links=True)
     save_file(headings, f"{output_dir}/headings.json")
@@ -86,9 +90,6 @@ if __name__ == "__main__":
     # Get the tree-like structure
     tree_elements = extract_tree_with_text(html_str)
     save_file(tree_elements, f"{output_dir}/tree_elements.json")
-
-    # text_elements = extract_text_elements(html_str)
-    # save_file(text_elements, f"{output_dir}/text_elements.json")
 
     formatted_html = format_html(html_str)
     save_file(formatted_html, f"{output_dir}/formatted_html.html")
