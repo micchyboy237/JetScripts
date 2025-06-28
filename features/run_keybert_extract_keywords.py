@@ -20,8 +20,6 @@ if __name__ == "__main__":
     md_contents = parse_markdown(html_file)
     docs = load_file(docs_file)
     query = docs["query"]
-    # docs = HeaderDocument.from_list(docs["documents"])
-    # doc_texts = [text for doc in docs for text in doc.texts]
     doc_texts = [item["content"].lstrip('#').strip() for item in md_contents]
 
     # Sample documents
@@ -38,7 +36,7 @@ if __name__ == "__main__":
     print("\nExample 1: Single Document Keywords")
     keywords = extract_single_doc_keywords(
         single_doc, kw_model, seed_keywords=candidate_keywords, top_n=5, use_mmr=True, diversity=0.7, keyphrase_ngram_range=(1, 3))
-    print(f"Keywords: {[(kw['text'], kw['score']) for kw in keywords]}")
+    print(f"Keywords: {[(kw['keywords'][i]['keyword'], kw['keywords'][i]['score']) for kw in keywords for i in range(len(kw['keywords']))]}")
     save_file(keywords, f"{output_dir}/extract_single_doc_keywords.json")
 
     # Example 2: Extract keywords from multiple documents
@@ -47,7 +45,7 @@ if __name__ == "__main__":
         multi_docs, kw_model, seed_keywords=candidate_keywords, top_n=5, use_mmr=True, diversity=0.7, keyphrase_ngram_range=(1, 3))
     for i, doc_keywords in enumerate(keywords):
         print(
-            f"Document {i+1} Keywords: {[(kw['text'], kw['score']) for kw in doc_keywords]}")
+            f"Document {i+1} Keywords: {[(kw['keyword'], kw['score']) for kw in doc_keywords['keywords']]}")
     save_file(keywords, f"{output_dir}/extract_multi_doc_keywords.json")
 
     # Example 3: Extract keywords with candidate list
@@ -56,7 +54,7 @@ if __name__ == "__main__":
         multi_docs, kw_model, candidates=candidate_keywords, seed_keywords=candidate_keywords, top_n=5, keyphrase_ngram_range=(1, 3))
     for i, doc_keywords in enumerate(keywords):
         print(
-            f"Document {i+1} Keywords: {[(kw['text'], kw['score']) for kw in doc_keywords]}")
+            f"Document {i+1} Keywords: {[(kw['keyword'], kw['score']) for kw in doc_keywords['keywords']]}")
     save_file(keywords, f"{output_dir}/extract_keywords_with_candidates.json")
 
     # Example 4: Extract keywords with custom vectorizer
@@ -67,7 +65,7 @@ if __name__ == "__main__":
         multi_docs, kw_model, custom_vectorizer, seed_keywords=candidate_keywords, top_n=5)
     for i, doc_keywords in enumerate(keywords):
         print(
-            f"Document {i+1} Keywords: {[(kw['text'], kw['score']) for kw in doc_keywords]}")
+            f"Document {i+1} Keywords: {[(kw['keyword'], kw['score']) for kw in doc_keywords['keywords']]}")
     save_file(
         keywords, f"{output_dir}/extract_keywords_with_custom_vectorizer.json")
 
@@ -77,5 +75,5 @@ if __name__ == "__main__":
         multi_docs, kw_model, seed_keywords=candidate_keywords, top_n=5, keyphrase_ngram_range=(1, 3))
     for i, doc_keywords in enumerate(keywords):
         print(
-            f"Document {i+1} Keywords: {[(kw['text'], kw['score']) for kw in doc_keywords]}")
+            f"Document {i+1} Keywords: {[(kw['keyword'], kw['score']) for kw in doc_keywords['keywords']]}")
     save_file(keywords, f"{output_dir}/extract_keywords_with_embeddings.json")
