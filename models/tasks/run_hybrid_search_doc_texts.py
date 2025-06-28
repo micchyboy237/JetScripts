@@ -13,11 +13,12 @@ from jet.wordnet.text_chunker import chunk_headers
 
 
 def main(with_bm25: bool):
+    output_dir = os.path.join(
+        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+
     html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/pages/www.reddit.com_r_rag_comments_1j4r4wj_10_rag_papers_you_should_read_from_february_2025/page.html"
     docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/pages/www.reddit.com_r_rag_comments_1j4r4wj_10_rag_papers_you_should_read_from_february_2025/docs.json"
     # headers_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/generated/run_header_docs/header_texts.json"
-    output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
     embed_model: EmbedModelType = "static-retrieval-mrl-en-v1"
