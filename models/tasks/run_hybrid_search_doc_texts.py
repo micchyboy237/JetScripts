@@ -1,4 +1,6 @@
 import os
+from jet.code.markdown_utils import parse_markdown
+from jet.code.splitter_markdown_utils import get_md_header_docs
 from jet.file.utils import load_file, save_file
 from jet.models.model_types import EmbedModelType
 from jet.logger import logger
@@ -11,38 +13,44 @@ from jet.wordnet.text_chunker import chunk_headers
 
 
 def main(with_bm25: bool):
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/pages/animebytes.in_15_best_upcoming_isekai_anime_in_2025/page.html"
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/pages/animebytes.in_15_best_upcoming_isekai_anime_in_2025/docs.json"
-    headers_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/generated/run_header_docs/header_texts.json"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/pages/www.reddit.com_r_rag_comments_1j4r4wj_10_rag_papers_you_should_read_from_february_2025/page.html"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/pages/www.reddit.com_r_rag_comments_1j4r4wj_10_rag_papers_you_should_read_from_february_2025/docs.json"
+    # headers_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/generated/run_header_docs/header_texts.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
     embed_model: EmbedModelType = "static-retrieval-mrl-en-v1"
 
-    html = load_file(html_file)
     docs = load_file(docs_file)
-    headers = load_file(headers_file)
     query = docs["query"]
+    source_url = docs["source_url"]
+
+    md_contents = parse_markdown(html_file)
+    # md_content = "\n".join(item["content"] for item in md_contents)
+    # docs = get_md_header_docs(md_content, base_url=source_url)
+
+    # headers = load_file(headers_file)
+
     # docs = HeaderDocument.from_markdown(html)
 
     docs = [
         {
-            "text": text.lstrip('#').strip(),
+            "text": item["content"].lstrip('#').strip(),
             "metadata": {
-                "content": text,
+                "content": item["content"],
                 "doc_index": doc_index,
                 "chunk_index": 0,
             }
         }
-        for doc_index, text in enumerate(headers)
+        for doc_index, item in enumerate(md_contents)
     ]
-
     docs = HeaderDocument.from_list(docs)
     for doc in docs:
         doc.metadata.update({
             "parent_header": ""
         })
+
     # chunked_docs = chunk_headers(docs, max_tokens=300, model=embed_model)
     # docs = chunked_docs
     # docs_to_search = [doc for doc in docs if doc.metadata["content"].strip()]

@@ -17,7 +17,7 @@ from jet.utils.commands import copy_to_clipboard
 if __name__ == "__main__":
     from jet.scrapers.preprocessor import html_to_markdown
 
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/searched_html_www_ranker_com_anna-lindwasser/doc.html"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/pages/www.reddit.com_r_rag_comments_1j4r4wj_10_rag_papers_you_should_read_from_february_2025/page.html"
     output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/run_format_html"
 
     shutil.rmtree(output_dir, ignore_errors=True)

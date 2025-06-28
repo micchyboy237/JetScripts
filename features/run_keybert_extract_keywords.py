@@ -1,6 +1,7 @@
 import os
 import spacy
 from sklearn.feature_extraction.text import CountVectorizer
+from jet.code.markdown_utils import parse_markdown
 from jet.file.utils import load_file, save_file
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.vectors.document_types import HeaderDocument
@@ -8,17 +9,20 @@ from jet.wordnet.keywords.keyword_extraction import extract_query_candidates, ex
 
 if __name__ == "__main__":
     """Main function demonstrating KeyBERT usage."""
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/docs.json"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/pages/www.reddit.com_r_rag_comments_1j4r4wj_10_rag_papers_you_should_read_from_february_2025/page.html"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/pages/www.reddit.com_r_rag_comments_1j4r4wj_10_rag_papers_you_should_read_from_february_2025/docs.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
     embed_model: EmbedModelType = "static-retrieval-mrl-en-v1"
 
+    md_contents = parse_markdown(html_file)
     docs = load_file(docs_file)
     query = docs["query"]
-    docs = HeaderDocument.from_list(docs["documents"])
-    doc_texts = [text for doc in docs for text in doc.texts]
+    # docs = HeaderDocument.from_list(docs["documents"])
+    # doc_texts = [text for doc in docs for text in doc.texts]
+    doc_texts = [item["content"].lstrip('#').strip() for item in md_contents]
 
     # Sample documents
     single_doc = "\n".join(doc_texts)
@@ -33,14 +37,14 @@ if __name__ == "__main__":
     # Example 1: Extract keywords from a single document
     print("\nExample 1: Single Document Keywords")
     keywords = extract_single_doc_keywords(
-        single_doc, kw_model, top_n=5, use_mmr=True, diversity=0.7, keyphrase_ngram_range=(1, 2))
+        single_doc, kw_model, seed_keywords=candidate_keywords, top_n=5, use_mmr=True, diversity=0.7, keyphrase_ngram_range=(1, 3))
     print(f"Keywords: {[(kw['text'], kw['score']) for kw in keywords]}")
     save_file(keywords, f"{output_dir}/extract_single_doc_keywords.json")
 
     # Example 2: Extract keywords from multiple documents
     print("\nExample 2: Multiple Documents Keywords")
     keywords = extract_multi_doc_keywords(
-        multi_docs, kw_model, seed_keywords=candidate_keywords, top_n=5, use_mmr=True, diversity=0.7, keyphrase_ngram_range=(1, 2))
+        multi_docs, kw_model, seed_keywords=candidate_keywords, top_n=5, use_mmr=True, diversity=0.7, keyphrase_ngram_range=(1, 3))
     for i, doc_keywords in enumerate(keywords):
         print(
             f"Document {i+1} Keywords: {[(kw['text'], kw['score']) for kw in doc_keywords]}")
@@ -49,7 +53,7 @@ if __name__ == "__main__":
     # Example 3: Extract keywords with candidate list
     print("\nExample 3: Keywords with Candidates")
     keywords = extract_keywords_with_candidates(
-        multi_docs, kw_model, candidates=candidate_keywords, top_n=5)
+        multi_docs, kw_model, candidates=candidate_keywords, seed_keywords=candidate_keywords, top_n=5, keyphrase_ngram_range=(1, 3))
     for i, doc_keywords in enumerate(keywords):
         print(
             f"Document {i+1} Keywords: {[(kw['text'], kw['score']) for kw in doc_keywords]}")
@@ -58,7 +62,7 @@ if __name__ == "__main__":
     # Example 4: Extract keywords with custom vectorizer
     print("\nExample 4: Keywords with Custom Vectorizer")
     custom_vectorizer = CountVectorizer(
-        ngram_range=(1, 2), stop_words="english")
+        ngram_range=(1, 3), stop_words="english")
     keywords = extract_keywords_with_custom_vectorizer(
         multi_docs, kw_model, custom_vectorizer, seed_keywords=candidate_keywords, top_n=5)
     for i, doc_keywords in enumerate(keywords):
@@ -69,7 +73,8 @@ if __name__ == "__main__":
 
     # Example 5: Extract keywords with precomputed embeddings
     print("\nExample 5: Keywords with Precomputed Embeddings")
-    keywords = extract_keywords_with_embeddings(multi_docs, kw_model, top_n=5)
+    keywords = extract_keywords_with_embeddings(
+        multi_docs, kw_model, seed_keywords=candidate_keywords, top_n=5, keyphrase_ngram_range=(1, 3))
     for i, doc_keywords in enumerate(keywords):
         print(
             f"Document {i+1} Keywords: {[(kw['text'], kw['score']) for kw in doc_keywords]}")
