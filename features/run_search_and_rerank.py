@@ -5,6 +5,7 @@ import math
 import os
 import re
 import shutil
+import string
 from typing import Dict, List, Optional, Tuple, TypedDict
 from datetime import datetime
 import asyncio
@@ -112,11 +113,12 @@ def initialize_output_directory(script_path: str, query: str) -> str:
 
 
 def format_sub_url_dir(url: str) -> str:
-    """Format a URL into a lowercase directory name, replacing hyphens, spaces, and slashes with underscores."""
+    """
+    Format a URL into a lowercase directory name, replacing all punctuation with underscores.
+    """
     clean_url = re.sub(r'^(https?://|www\.)|(\?.*)', '', url)
-    # replace hyphens, spaces, and slashes with underscores
-    formatted = re.sub(r'[- /]+', '_', clean_url).lower()
-    formatted = re.sub(r'[^\w.]', '_', formatted)  # keep underscores and dots
+    trans_table = str.maketrans({p: '_' for p in string.punctuation})
+    formatted = clean_url.translate(trans_table).lower()
     formatted = re.sub(r'_+', '_', formatted)
     return formatted.strip('_')
 
