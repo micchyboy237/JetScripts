@@ -30,6 +30,8 @@ def main(with_bm25: bool):
     source_url = docs["source_url"]
 
     md_contents = parse_markdown(html_file)
+    save_file(md_contents, f"{output_dir}/contexts.json")
+
     # md_content = "\n".join(item["content"] for item in md_contents)
     # docs = get_md_header_docs(md_content, base_url=source_url)
 
