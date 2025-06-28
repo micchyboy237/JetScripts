@@ -46,10 +46,12 @@ Use `print("Hello")` for quick debugging.
 - List item 1
     - Nested item
 - List item 2
+- List item 3
 
 ## Ordered list
 1. Ordered item 1
 2. Ordered item 2
+3. Ordered item 3
 
 ## Inline HTML
 <span class="badge">New</span> inline HTML

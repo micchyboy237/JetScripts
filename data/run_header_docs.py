@@ -16,7 +16,7 @@ if __name__ == "__main__":
     summary = get_summary(html_file)
     save_file(summary, f"{output_dir}/summary.json")
 
-    tokens = parse_markdown(html_file, merge_paragraphs=False)
+    tokens = parse_markdown(html_file, merge_contents=True)
     save_file(tokens, f"{output_dir}/markdown_tokens.json")
 
     header_docs = HeaderDocs.from_tokens(tokens)
