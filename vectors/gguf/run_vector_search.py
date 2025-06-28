@@ -1,70 +1,90 @@
+from jet.code.markdown_utils import parse_markdown
+from jet.file.utils import load_file
+from jet.vectors.document_types import HeaderDocument
 from jet.vectors.gguf.vector_search import VectorSearch, get_detailed_instruct
 
 
 if __name__ == "__main__":
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/pages/www.reddit.com_r_rag_comments_1j4r4wj_10_rag_papers_you_should_read_from_february_2025/page.html"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/pages/www.reddit.com_r_rag_comments_1j4r4wj_10_rag_papers_you_should_read_from_february_2025/docs.json"
+
     # Model configuration
     model_path = "/Users/jethroestrada/.cache/huggingface/hub/models--Qwen--Qwen3-Embedding-0.6B-GGUF/snapshots/8aa0010e73a1075e99dfc213a475a60fd971bbe7/Qwen3-Embedding-0.6B-f16.gguf"
+
+    md_contents = parse_markdown(html_file)
+    docs = load_file(docs_file)
+    query = docs["query"]
+    docs = HeaderDocument.from_list(docs["documents"])
+
     task = 'Given a web search query, retrieve relevant passages that answer the query'
+    top_k = 10
 
-    # Input data (same as provided)
     queries = [
-        get_detailed_instruct(task, 'What is the capital of China?'),
+        get_detailed_instruct(task, query),
     ]
+    # documents = [
+    #     {"id": doc.id, "text": doc.text}
+    #     for doc in docs
+    # ]
     documents = [
-        "The capital of China is Beijing.",
-        "China is a country in East Asia with a rich history.",
-        "Gravity is a force that attracts two bodies towards each other. It gives weight to physical objects and is responsible for the movement of planets around the sun."
+        {"id": f"doc_{idx}", "text": doc["content"]}
+        for idx, doc in enumerate(md_contents)
     ]
 
-    try:
-        # Initialize vector search
-        searcher = VectorSearch(model_path, n_ctx=2048,
-                                n_threads=4, n_gpu_layers=0)
+    # Initialize vector search
+    searcher = VectorSearch(model_path, n_ctx=2048,
+                            n_threads=4, n_gpu_layers=0)
 
-        # Example 1: Single query (same as original)
-        print("\nExample 1: Single query - Capital of China")
-        query_embeddings = searcher.encode_texts(queries)
-        doc_embeddings = searcher.encode_texts(documents)
-        query_embeddings = searcher.normalize_embeddings(query_embeddings)
-        doc_embeddings = searcher.normalize_embeddings(doc_embeddings)
-        scores = searcher.compute_similarity_matrix(
-            query_embeddings, doc_embeddings)
-        print("Similarity matrix:")
-        print(scores.tolist())
+    # Example 1: Single query (same as original)
+    print(f"\nExample 1: Single query - {query}")
+    results = searcher.search(queries, documents, top_k=top_k)
+    for query_idx, query_results in enumerate(results):
+        print(f"Query: {queries[query_idx].split('Query:')[-1].strip()}")
+        for result in query_results:
+            print(
+                f"ID: {result['id']}, Rank: {result['rank']}, Score: {result['score']:.4f}")
+            print(f"Text: {result['text']}")
+            print()
 
-        # Example 2: Multiple queries
-        print("\nExample 2: Multiple queries")
-        queries_multi = [
-            get_detailed_instruct(task, 'What is the capital of China?'),
-            get_detailed_instruct(task, 'Explain gravity')
-        ]
-        query_embeddings = searcher.encode_texts(queries_multi)
-        query_embeddings = searcher.normalize_embeddings(query_embeddings)
-        scores = searcher.compute_similarity_matrix(
-            query_embeddings, doc_embeddings)
-        print("Similarity matrix (multiple queries):")
-        print(scores.tolist())
+    # # Example 2: Multiple queries
+    # print("\nExample 2: Multiple queries")
+    # queries_multi = [
+    #     get_detailed_instruct(task, 'What is the capital of China?'),
+    #     get_detailed_instruct(task, 'Explain gravity')
+    # ]
+    # results = searcher.search(queries_multi, documents, top_k=top_k)
+    # for query_idx, query_results in enumerate(results):
+    #     print(
+    #         f"Query: {queries_multi[query_idx].split('Query:')[-1].strip()}")
+    #     for result in query_results:
+    #         print(
+    #             f"ID: {result['id']}, Rank: {result['rank']}, Score: {result['score']:.4f}")
+    #         print(f"Text: {result['text']}")
+    #         print()
 
-        # Example 3: Empty query edge case
-        print("\nExample 3: Empty query")
-        queries_empty = [get_detailed_instruct(task, '')]
-        query_embeddings = searcher.encode_texts(queries_empty)
-        query_embeddings = searcher.normalize_embeddings(query_embeddings)
-        scores = searcher.compute_similarity_matrix(
-            query_embeddings, doc_embeddings)
-        print("Similarity matrix (empty query):")
-        print(scores.tolist())
+    # # Example 3: Empty query
+    # print("\nExample 3: Empty query")
+    # queries_empty = [get_detailed_instruct(task, '')]
+    # results = searcher.search(queries_empty, documents, top_k=top_k)
+    # for query_idx, query_results in enumerate(results):
+    #     print(
+    #         f"Query: {queries_empty[query_idx].split('Query:')[-1].strip() or '(empty)'}")
+    #     for result in query_results:
+    #         print(
+    #             f"ID: {result['id']}, Rank: {result['rank']}, Score: {result['score']:.4f}")
+    #         print(f"Text: {result['text']}")
+    #         print()
 
-        # Example 4: Long query
-        print("\nExample 4: Long query")
-        queries_long = [get_detailed_instruct(
-            task, 'What is the historical significance of Beijing as the capital of China, and how has it influenced Chinese culture?')]
-        query_embeddings = searcher.encode_texts(queries_long)
-        query_embeddings = searcher.normalize_embeddings(query_embeddings)
-        scores = searcher.compute_similarity_matrix(
-            query_embeddings, doc_embeddings)
-        print("Similarity matrix (long query):")
-        print(scores.tolist())
-
-    except Exception as e:
-        print(f"Error during processing: {str(e)}")
+    # # Example 4: Long query
+    # print("\nExample 4: Long query")
+    # queries_long = [get_detailed_instruct(
+    #     task, 'What is the historical significance of Beijing as the capital of China, and how has it influenced Chinese culture?')]
+    # results = searcher.search(queries_long, documents, top_k=top_k)
+    # for query_idx, query_results in enumerate(results):
+    #     print(
+    #         f"Query: {queries_long[query_idx].split('Query:')[-1].strip()}")
+    #     for result in query_results:
+    #         print(
+    #             f"ID: {result['id']}, Rank: {1}, Score: {result['score']:.4f}")
+    #         print(f"Text: {result['text']}")
+    #         print()
