@@ -16,10 +16,10 @@ if __name__ == "__main__":
     html = load_file(html_file)
     save_file(html, f"{output_dir}/page.html")
 
-    analysis = analyze_markdown(html_file)
+    analysis = analyze_markdown(html_file, ignore_links=True)
     save_file(analysis, f"{output_dir}/analysis.json")
 
-    tokens = parse_markdown(html_file)
+    tokens = parse_markdown(html_file, ignore_links=True)
     save_file(tokens, f"{output_dir}/markdown_tokens.json")
 
     header_docs = HeaderDocs.from_tokens(tokens)
