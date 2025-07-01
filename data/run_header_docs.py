@@ -26,7 +26,7 @@ if __name__ == "__main__":
         html_file, ignore_links=True, merge_contents=False, merge_headers=False)
     save_file(tokens_no_merge, f"{output_dir}/markdown_tokens_no_merge.json")
 
-    tokens = parse_markdown(html_file, ignore_links=True)
+    tokens = parse_markdown(html_file, ignore_links=False)
     save_file(tokens, f"{output_dir}/markdown_tokens.json")
 
     header_docs = HeaderDocs.from_tokens(tokens)
