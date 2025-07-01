@@ -41,8 +41,20 @@ if __name__ == "__main__":
     all_nodes = header_docs.as_nodes()
     save_file(all_nodes, f"{output_dir}/all_nodes.json")
 
+    parent_headers = [
+        {"id": node.id, "chunk_index": node.chunk_index, "level": node.level, "parent_headers": "\n".join(node.get_parent_headers()).strip(
+        ), "header": node.header, "content": node.content}
+        for node in all_nodes]
+    save_file(parent_headers, f"{output_dir}/parent_headers.json")
+
     header_nodes = [node for node in all_nodes if node.type == "header"]
     save_file(header_nodes, f"{output_dir}/header_nodes.json")
+
+    header_recursive_texts = [{"id": node.id, "chunk_index": node.chunk_index, "level": node.level, "parent_headers": "\n".join(node.get_parent_headers()).strip(
+    ), "header": node.header, "content": node.content, "text": node.get_recursive_text()}
+        for node in header_nodes]
+    save_file(header_recursive_texts,
+              f"{output_dir}/header_recursive_texts.json")
 
     all_headers = [node.header for node in header_nodes]
     save_file(all_headers, f"{output_dir}/all_headers.json")
