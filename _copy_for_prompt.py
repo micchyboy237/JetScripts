@@ -233,7 +233,7 @@ def main():
 
     if clipboard_content:
         clipboard_content_parts.append(
-            f"EXISTING FILES CONTENTS\n{clipboard_content}")
+            f"Existing Files Contents\n{clipboard_content}")
 
     clipboard_content = "\n\n".join(clipboard_content_parts)
 
