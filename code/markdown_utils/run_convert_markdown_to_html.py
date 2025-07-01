@@ -69,10 +69,6 @@ def hello():
 |---------|---------|
 | Cell1   | Cell2   |
 
-The HTML specification is maintained by the W3C.
-
-*[HTML]: HyperText Markup Language
-
 A paragraph with custom attributes {#para1 .class1 style="color: blue;"}
 
 Term 1
@@ -95,45 +91,6 @@ Here is some text[^1].
 *Emphasis* inside a div.
 </div>
 
-| Name | Age |
-|------|-----|
-| Alice | 25  |
-| Bob   | 30  |
-
-!!! warning "Custom Title"
-    This is a warning admonition.
-    It spans multiple lines.
-
-```python
-def calculate_sum(a, b):
-    return a + b
-```
-
-A paragraph with legacy attributes {id="para1" class="class1"}.
-
-This is *emphasized* and /italicized/ text.
-
-title: My Document
-author: John Doe
-date: 2025-07-02
-
-Content starts here.
-
-1. Ordered item
-   - Nested bullet
-   - Another bullet
-2. Another ordered item
-
-# Heading 1
-## Heading 2
-### Heading 3
-
-Go to [[Target Page]] and [[Another Page|Display Text]].
-
-Some content
-
-Basic **bold** text
-
 ```python
 def example():
     pass
@@ -145,6 +102,35 @@ def example():
 Text with footnote[^1].
 
 [^1]: Footnote content.
+
+LOL and WTF are abbreviations.
+
+*[LOL]: Laughing Out Loud
+*[WTF]: What The Fudge
+
+```python
+def example():
+    print('Hello')
+```
+
+Paragraph with *legacy* attributes {id="my-id" class="my-class"}.
+
+*italic* and **bold** text.
+
+- Item 1
+    1. Subitem A
+    2. Subitem B
+- Item 2
+
+He said, "Hello..." and used -- and --- in text.
+
+[TOC]
+
+# Heading 1
+## Heading 2
+### Heading 3
+
+This is a [[WikiLink]].
 """
 
 if __name__ == "__main__":
