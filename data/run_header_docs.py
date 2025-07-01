@@ -61,12 +61,18 @@ if __name__ == "__main__":
     top_k = 5
     model = "all-MiniLM-L6-v2"
 
+    rag_output_dir = f"{output_dir}/rag"
+
+    save_file(header_docs.root, f"{rag_output_dir}/all_docs.json")
+
     chunked_nodes = split_and_merge_headers(
         header_docs.root, model=model, chunk_size=50, chunk_overlap=10)
-    save_file(chunked_nodes, f"{output_dir}/chunked_nodes.json")
+    save_file(chunked_nodes, f"{rag_output_dir}/chunked_nodes.json")
 
     vector_store = prepare_for_rag(chunked_nodes, model=model)
+    save_file(vector_store.get_nodes(),
+              f"{rag_output_dir}/prepared_nodes.json")
 
     search_results = search_headers(
         query, vector_store, model=model, top_k=top_k)
-    save_file(search_results, f"{output_dir}/search_results.json")
+    save_file(search_results, f"{rag_output_dir}/search_results.json")
