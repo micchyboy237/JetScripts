@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
     docs = load_file(docs_file)
     query = docs["query"]
-    top_k = 5
+    top_k = 20
     model = "all-MiniLM-L6-v2"
 
     rag_output_dir = f"{output_dir}/rag"
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     save_file(header_docs.root, f"{rag_output_dir}/all_docs.json")
 
     chunked_nodes = split_and_merge_headers(
-        header_docs.root, model=model, chunk_size=50, chunk_overlap=10)
+        header_docs.root, model=model, chunk_size=200, chunk_overlap=20)
     save_file(chunked_nodes, f"{rag_output_dir}/chunked_nodes.json")
 
     vector_store = prepare_for_rag(chunked_nodes, model=model)
