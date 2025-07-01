@@ -538,7 +538,7 @@ def parse_args() -> argparse.Namespace:
                    default="qwen3-1.7b-4bit", help="LLM model to use")
     p.add_argument("-e", "--embed_model", type=str,
                    default="static-retrieval-mrl-en-v1", help="Embedding model to use")
-    p.add_argument("-min", "--min_tokens", type=int, default=None,
+    p.add_argument("-min", "--min_tokens", type=int, default=50,
                    help="Maximum number of tokens for final context")
     p.add_argument("-max", "--max_tokens", type=int, default=2000,
                    help="Maximum number of tokens for final context")
