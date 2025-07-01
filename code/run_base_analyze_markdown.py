@@ -1,6 +1,6 @@
 import os
 
-from jet.code.markdown_utils import analyze_markdown
+from jet.code.markdown_utils import base_analyze_markdown
 from jet.file.utils import save_file
 from jet.utils.print_utils import print_dict_types
 
@@ -62,6 +62,10 @@ if __name__ == "__main__":
     output_dir = os.path.join(os.path.dirname(
         __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-    results = analyze_markdown(md_content)
+    results_ignore_links = base_analyze_markdown(md_content, ignore_links=True)
+    results_with_links = base_analyze_markdown(md_content, ignore_links=False)
 
-    save_file(results, f"{output_dir}/results.json")
+    print_dict_types(results_with_links)
+
+    save_file(results_with_links, f"{output_dir}/results_with_links.json")
+    save_file(results_ignore_links, f"{output_dir}/results_ignore_links.json")
