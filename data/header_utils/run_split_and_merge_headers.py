@@ -43,13 +43,17 @@ def main_deeply_nested_with_chunking(tokenizer: Tokenizer) -> Nodes:
                                     content=content,
                                     meta=None,
                                     parent_id="header3",
-                                    parent_header="Level 3 Header"
+                                    parent_header="Level 3 Header",
+                                    chunk_index=0
                                 )
-                            ]
+                            ],
+                            chunk_index=0
                         )
-                    ]
+                    ],
+                    chunk_index=0
                 )
-            ]
+            ],
+            chunk_index=0
         )
     ]
     chunk_size = 50
@@ -77,15 +81,18 @@ def main_deeply_nested_with_chunking(tokenizer: Tokenizer) -> Nodes:
     assert header_nodes[0].content == "Level 1 Header\nLevel 1 content"
     assert header_nodes[0].parent_id is None
     assert header_nodes[0].parent_header is None
+    assert header_nodes[0].chunk_index == 0
     assert header_nodes[1].header == "Level 2 Header"
     assert header_nodes[1].content == "Level 2 Header\nLevel 2 content"
     assert header_nodes[1].parent_id == "header1"
     assert header_nodes[1].parent_header == "Level 1 Header"
+    assert header_nodes[1].chunk_index == 0
     assert header_nodes[2].header == "Level 3 Header"
     assert header_nodes[2].content == "Level 3 Header\nLevel 3 content"
     assert header_nodes[2].parent_id == "header2"
     assert header_nodes[2].parent_header == "Level 2 Header"
-    for node in chunk_nodes:
+    assert header_nodes[2].chunk_index == 0
+    for i, node in enumerate(chunk_nodes):
         assert node.header == "Child Header"
         assert node.content.startswith("Child Header\n")
         assert node.type == "paragraph"
@@ -93,6 +100,7 @@ def main_deeply_nested_with_chunking(tokenizer: Tokenizer) -> Nodes:
         assert node.meta is None
         assert node.parent_id == "header3"
         assert node.parent_header == "Level 3 Header"
+        assert node.chunk_index == i
         tokens = tokenizer.encode(
             node.content[len("Child Header\n"):], add_special_tokens=False).ids
         assert len(tokens) <= chunk_size - buffer

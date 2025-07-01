@@ -2,10 +2,11 @@ import os
 import shutil
 from jet.code.markdown_utils import analyze_markdown, parse_markdown
 from jet.data.header_docs import HeaderDocs
+from jet.data.header_utils._split_and_merge_headers import split_and_merge_headers
 from jet.file.utils import load_file, save_file
 
 if __name__ == "__main__":
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/pages/animebytes.in_15_best_upcoming_isekai_anime_in_2025/page.html"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/pages/bakabuzz_com_26_upcoming_isekai_anime_of_2025_you_must_watch/page.html"
     # html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/pages/www.reddit.com_r_rag_comments_1j4r4wj_10_rag_papers_you_should_read_from_february_2025/page.html"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(
@@ -20,7 +21,7 @@ if __name__ == "__main__":
     save_file(analysis, f"{output_dir}/analysis.json")
 
     tokens_no_merge = parse_markdown(
-        html_file, ignore_links=True, merge_contents=True, merge_headers=False)
+        html_file, ignore_links=True, merge_contents=False, merge_headers=False)
     save_file(tokens_no_merge, f"{output_dir}/markdown_tokens_no_merge.json")
 
     tokens = parse_markdown(html_file, ignore_links=True)
@@ -28,6 +29,10 @@ if __name__ == "__main__":
 
     header_docs = HeaderDocs.from_tokens(tokens)
     save_file(header_docs, f"{output_dir}/header_docs.json")
+
+    chunked_nodes = split_and_merge_headers(
+        header_docs.root, model="all-MiniLM-L6-v2", chunk_size=50, chunk_overlap=10)
+    save_file(chunked_nodes, f"{output_dir}/chunked_nodes.json")
 
     all_texts = header_docs.as_texts()
     save_file(all_texts, f"{output_dir}/all_texts.json")
