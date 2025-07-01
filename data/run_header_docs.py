@@ -37,8 +37,11 @@ if __name__ == "__main__":
     header_nodes = [node for node in all_nodes if node.type == "header"]
     save_file(header_nodes, f"{output_dir}/header_nodes.json")
 
-    header_texts = [node.content for node in header_nodes]
-    save_file(header_texts, f"{output_dir}/header_texts.json")
+    all_headers = [node.header for node in header_nodes]
+    save_file(all_headers, f"{output_dir}/all_headers.json")
+
+    all_contents = [node.content for node in header_nodes]
+    save_file(all_contents, f"{output_dir}/all_contents.json")
 
     header_tree = header_docs.as_tree()
     save_file(header_tree, f"{output_dir}/header_tree.json")
