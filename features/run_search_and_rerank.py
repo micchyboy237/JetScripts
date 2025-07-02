@@ -349,6 +349,8 @@ async def process_search_results(
             sub_url_dir = format_sub_url_dir(url)
             sub_output_dir = os.path.join(output_dir, "pages", sub_url_dir)
 
+            save_file(html, f"{sub_output_dir}/page.html")
+
             md_content = convert_html_to_markdown(html)
             tokens = parse_markdown(md_content, ignore_links=True)
             save_file(tokens, f"{sub_output_dir}/markdown_tokens.json")
