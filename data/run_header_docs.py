@@ -8,8 +8,8 @@ from jet.logger import logger
 from jet.models.model_types import ModelType
 
 if __name__ == "__main__":
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/docs.json"
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/pages/bakabuzz_com_26_upcoming_isekai_anime_of_2025_you_must_watch/page.html"
+    query_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/query.md"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/pages/aniground_com_best_isekai_anime_series/page.html"
     # html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/pages/www.reddit.com_r_rag_comments_1j4r4wj_10_rag_papers_you_should_read_from_february_2025/page.html"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(
@@ -67,8 +67,7 @@ if __name__ == "__main__":
     # RAG search
     logger.info("\nStart RAG search...")
 
-    docs = load_file(docs_file)
-    query = docs["query"]
+    query = load_file(query_file)
     chunk_size = 100
     chunk_overlap = 20
     threshold = 0.5
