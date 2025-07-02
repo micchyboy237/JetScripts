@@ -5,6 +5,7 @@ from jet.data.header_docs import HeaderDocs
 from jet.data.header_utils import split_and_merge_headers, prepare_for_rag, search_headers
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
+from jet.models.model_types import ModelType
 
 if __name__ == "__main__":
     docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/docs.json"
@@ -32,14 +33,14 @@ if __name__ == "__main__":
     header_docs = HeaderDocs.from_tokens(tokens)
     save_file(header_docs, f"{output_dir}/header_docs.json")
 
+    all_nodes = header_docs.as_nodes()
+    save_file(all_nodes, f"{output_dir}/all_nodes.json")
+
     all_texts = header_docs.as_texts()
     save_file(all_texts, f"{output_dir}/all_texts.json")
 
     md_content = '\n\n'.join(all_texts)
     save_file(md_content, f"{output_dir}/md_content.md")
-
-    all_nodes = header_docs.as_nodes()
-    save_file(all_nodes, f"{output_dir}/all_nodes.json")
 
     parent_headers = [
         {"id": node.id, "chunk_index": node.chunk_index, "level": node.level, "parent_headers": "\n".join(node.get_parent_headers()).strip(
@@ -72,11 +73,12 @@ if __name__ == "__main__":
     query = docs["query"]
     chunk_size = 100
     chunk_overlap = 20
-    top_k = 20
-    model = "all-MiniLM-L6-v2"
+    top_k = None
+    model: ModelType = "all-MiniLM-L6-v2"
 
     rag_output_dir = f"{output_dir}/rag"
 
+    header_docs.calculate_num_tokens(model)
     save_file(header_docs.root, f"{rag_output_dir}/all_docs.json")
 
     chunked_nodes = split_and_merge_headers(
