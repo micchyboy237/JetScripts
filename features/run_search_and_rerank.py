@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Tuple, TypedDict
 from datetime import datetime
 import asyncio
 from urllib.parse import unquote, urlparse
+from jet.code.html_utils import preprocess_html
 from jet.code.markdown_utils import analyze_markdown, parse_markdown
 from jet.data.header_docs import HeaderDocs
 from jet.data.header_types import NodeWithScore
@@ -349,6 +350,7 @@ async def process_search_results(
             sub_url_dir = format_sub_url_dir(url)
             sub_output_dir = os.path.join(output_dir, "pages", sub_url_dir)
 
+            html = preprocess_html(html)
             save_file(html, f"{sub_output_dir}/page.html")
 
             md_content = convert_html_to_markdown(html)

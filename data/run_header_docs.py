@@ -9,7 +9,7 @@ from jet.models.model_types import ModelType
 
 if __name__ == "__main__":
     query_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/query.md"
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/pages/aniground_com_best_isekai_anime_series/page.html"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/pages/animebytes_in_15_best_upcoming_isekai_anime_in_2025/page.html"
     # html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/pages/www.reddit.com_r_rag_comments_1j4r4wj_10_rag_papers_you_should_read_from_february_2025/page.html"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     query = load_file(query_file)
     chunk_size = 100
     chunk_overlap = 20
-    threshold = 0.7
+    threshold = 0.0
     top_k = None
     model: ModelType = "all-MiniLM-L6-v2"
 
@@ -87,7 +87,7 @@ if __name__ == "__main__":
 
     search_results = search_headers(
         query, vector_store, model=model, top_k=top_k, threshold=threshold)
-    search_results = sorted(search_results, key=lambda n: (
-        getattr(n, "doc_index", 0), getattr(n, "chunk_index", 0)))
+    search_results = sorted(
+        search_results, key=lambda n: getattr(n, "score", 0), reverse=True)
     save_file({"query": query, "results": search_results},
               f"{rag_output_dir}/search_results.json")
