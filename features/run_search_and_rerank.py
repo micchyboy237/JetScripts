@@ -384,9 +384,11 @@ async def process_search_results(
     logger.info(
         f"Processed {len(all_url_html_date_tuples)} URL-HTML-date tuples")
 
+    save_file(all_search_results, os.path.join(
+        output_dir, "all_search_results.json"))
+
     sorted_search_results = sorted(
         all_search_results, key=lambda x: x.score, reverse=True)
-
     save_file(sorted_search_results, os.path.join(
         output_dir, "sorted_search_results.json"))
 
