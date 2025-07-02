@@ -368,7 +368,7 @@ async def process_search_results(
                       f"{sub_output_dir}/prepared_nodes.json")
 
             search_results = search_headers(
-                query, vector_store, model=embed_model, top_k=None, threshold=0.0)
+                query, vector_store, model=embed_model, top_k=None, threshold=0.7)
             for result in search_results:
                 result.metadata.update({
                     "source_url": url
