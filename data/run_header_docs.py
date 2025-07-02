@@ -70,7 +70,7 @@ if __name__ == "__main__":
     query = load_file(query_file)
     chunk_size = 100
     chunk_overlap = 20
-    threshold = 0.0
+    threshold = 0.7
     top_k = None
     model: ModelType = "all-MiniLM-L6-v2"
 
@@ -87,5 +87,7 @@ if __name__ == "__main__":
 
     search_results = search_headers(
         query, vector_store, model=model, top_k=top_k, threshold=threshold)
+    search_results = sorted(search_results, key=lambda n: (
+        getattr(n, "doc_index", 0), getattr(n, "chunk_index", 0)))
     save_file({"query": query, "results": search_results},
               f"{rag_output_dir}/search_results.json")

@@ -660,6 +660,8 @@ def group_search_results_by_source_url_for_context(search_results: List[NodeWith
     context_blocks = []
     for url, nodes in grouped.items():
         block = f"<!-- Source: {url} -->\n\n"
+        nodes = sorted(nodes, key=lambda n: (
+            getattr(n, "doc_index", 0), getattr(n, "chunk_index", 0)))
         for i, node in enumerate(nodes, 1):
             # Try to get a title or header if available
             block += node.get_text() + "\n\n"

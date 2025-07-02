@@ -1,84 +1,51 @@
+from typing import Union, List
+import numpy as np
+
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
-import torch
-
-
-def load_pytorch_model(model_id: str = "static-retrieval-mrl-en-v1"):
-    """Load a SentenceTransformer model using PyTorch backend."""
-    model = SentenceTransformerRegistry.load_model(
-        model_id=model_id,
-        device="cpu",
-        precision="fp32",
-        backend="pytorch"
-    )
-    print(f"Loaded PyTorch model: {model_id}")
-    return model
-
-
-def encode_single_sentence(text: str, model_id: str = "static-retrieval-mrl-en-v1"):
-    """Generate embedding for a single input sentence."""
-    registry = SentenceTransformerRegistry()
-    embedding = registry.generate_embeddings(
-        input_data=text,
-        model_id=model_id,
-        return_format="list",
-        backend="pytorch"
-    )
-    print(
-        f"Single sentence embedding (length={len(embedding)}):\n{embedding[:5]} ...")
-    return embedding
-
-
-def encode_batch(sentences, model_id: str = "static-retrieval-mrl-en-v1"):
-    """Generate embeddings for a list of sentences using ONNX."""
-    registry = SentenceTransformerRegistry()
-    embeddings = registry.generate_embeddings(
-        input_data=sentences,
-        model_id=model_id,
-        batch_size=2,
-        show_progress=False,
-        return_format="torch",
-        backend="onnx"
-    )
-    print(f"Batch embeddings tensor shape: {embeddings.shape}")
-    return embeddings
-
-
-def show_tokenizer_and_config(model_id: str):
-    """Load and show tokenizer and config information."""
-    registry = SentenceTransformerRegistry()
-    tokenizer = registry.get_tokenizer(model_id)
-    config = registry.get_config(model_id)
-    print(f"Tokenizer type: {type(tokenizer)}")
-    print(f"Model hidden size from config: {config.hidden_size}")
-    return tokenizer, config
-
-
-def clear_registry():
-    """Clear cached models, sessions, and configs."""
-    registry = SentenceTransformerRegistry()
-    registry.clear()
-    print("Registry cleared.")
-
-
-def main():
-    # Load PyTorch model and encode a single sentence
-    load_pytorch_model()
-    encode_single_sentence("What is the capital of France?")
-
-    # Encode a batch of sentences with ONNX
-    sentences = [
-        "What is the capital of France?",
-        "How far is the moon from Earth?",
-        "Explain quantum entanglement."
-    ]
-    encode_batch(sentences)
-
-    # Access tokenizer and config
-    show_tokenizer_and_config("static-retrieval-mrl-en-v1")
-
-    # Clear registry
-    clear_registry()
-
 
 if __name__ == "__main__":
-    main()
+    # Initialize the registry
+    registry = SentenceTransformerRegistry()
+
+    # Load a model (sets model_id in the instance)
+    model_id = "static-retrieval-mrl-en-v1"
+    registry.load_model(
+        model_id=model_id,
+    )
+
+    # Example 1: Generate embeddings for a single string
+    single_input = "This is a sample sentence."
+    embeddings_list = registry.generate_embeddings(
+        input_data=single_input,
+        batch_size=1,
+        show_progress=False,
+        return_format="list",
+    )
+    print("Single string embedding (list format):", embeddings_list)
+    print("Embedding length:", len(embeddings_list))
+
+    # Example 2: Generate embeddings for a list of strings
+    multiple_inputs = [
+        "This is the first sentence.",
+        "This is another sentence for testing.",
+        "A third sentence to embed."
+    ]
+    embeddings_numpy = registry.generate_embeddings(
+        input_data=multiple_inputs,
+        batch_size=2,
+        show_progress=True,
+        return_format="numpy",
+    )
+    print("Multiple strings embeddings (numpy format):", embeddings_numpy)
+    print("Embeddings shape:", embeddings_numpy.shape)
+
+    # Example 3: Attempt to generate embeddings without loading a model (will raise an error)
+    new_registry = SentenceTransformerRegistry()
+    try:
+        new_registry.generate_embeddings(
+            input_data="This will fail.",
+            batch_size=1,
+            return_format="list"
+        )
+    except ValueError as e:
+        print("Expected error:", str(e))
