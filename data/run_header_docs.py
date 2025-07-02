@@ -42,10 +42,11 @@ if __name__ == "__main__":
     parent_headers = [
         {"id": node.id, "chunk_index": node.chunk_index, "level": node.level, "parent_headers": "\n".join(node.get_parent_headers()).strip(
         ), "header": node.header, "content": node.content}
-        for node in header_docs.root]
+        for node in header_docs.as_nodes()]
     save_file(parent_headers, f"{output_dir}/parent_headers.json")
 
-    header_nodes = [node for node in header_docs.root if node.type == "header"]
+    header_nodes = [node for node in header_docs.as_nodes()
+                    if node.type == "header"]
     save_file(header_nodes, f"{output_dir}/header_nodes.json")
 
     header_recursive_texts = [{"id": node.id, "chunk_index": node.chunk_index, "level": node.level, "parent_headers": "\n".join(node.get_parent_headers()).strip(
@@ -79,11 +80,8 @@ if __name__ == "__main__":
     all_nodes = header_docs.as_nodes()
     save_file(all_nodes, f"{rag_output_dir}/all_nodes.json")
 
-    chunked_nodes = split_and_merge_headers(
-        header_docs.root, model=model, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-    save_file(chunked_nodes, f"{rag_output_dir}/chunked_nodes.json")
-
-    vector_store = prepare_for_rag(chunked_nodes, model=model)
+    vector_store = prepare_for_rag(
+        all_nodes, model=model, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     save_file(vector_store.get_nodes(),
               f"{rag_output_dir}/prepared_nodes.json")
 
