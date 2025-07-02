@@ -71,6 +71,7 @@ if __name__ == "__main__":
     query = docs["query"]
     chunk_size = 100
     chunk_overlap = 20
+    threshold = 0.5
     top_k = None
     model: ModelType = "all-MiniLM-L6-v2"
 
@@ -86,5 +87,5 @@ if __name__ == "__main__":
               f"{rag_output_dir}/prepared_nodes.json")
 
     search_results = search_headers(
-        query, vector_store, model=model, top_k=top_k)
+        query, vector_store, model=model, top_k=top_k, threshold=threshold)
     save_file(search_results, f"{rag_output_dir}/search_results.json")

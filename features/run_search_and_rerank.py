@@ -11,6 +11,9 @@ from datetime import datetime
 import asyncio
 from urllib.parse import unquote, urlparse
 from jet.code.markdown_utils import analyze_markdown, parse_markdown
+from jet.data.header_docs import HeaderDocs
+from jet.data.header_utils._prepare_for_rag import prepare_for_rag
+from jet.data.header_utils._search_headers import search_headers
 from jet.data.sample_diverse_headers import sample_diverse_headers
 # from jet.scrapers.preprocessor import convert_html_to_markdown
 from jet.code.markdown_utils import convert_html_to_markdown
@@ -256,11 +259,55 @@ async def process_url_content(
     return url, html, docs, readability_overall
 
 
+# async def process_search_results(
+#     browser_search_results: List[BrowserSearchResult],
+#     query: str,
+#     output_dir: str,
+#     top_n: int = 10
+# ) -> List[Tuple[str, str, Optional[str]]]:
+#     """Process search results and extract links from the top N URLs."""
+#     logger.info(
+#         f"Processing {len(browser_search_results)} search results for query: {query}")
+#     selected_urls = [item["url"] for item in browser_search_results[:top_n]]
+#     logger.debug(f"Selected {len(selected_urls)} URLs: {selected_urls}")
+#     url_to_result = {r["url"]: r for r in browser_search_results}
+#     all_url_html_date_tuples = []
+#     all_links = []
+#     async for url, status, html in scrape_urls(selected_urls, num_parallel=top_n, limit=top_n, show_progress=True):
+#         if status == "completed" and html:
+#             result = await process_url_content(
+#                 url=url,
+#                 html=html,
+#                 query=query,
+#                 output_dir=output_dir,
+#                 from_reranked_link=False,
+#                 url_to_result=url_to_result
+#             )
+#             if result:
+#                 all_url_html_date_tuples.append(result)
+#                 links = set(scrape_links(html, url))
+#                 links = [link for link in links if (
+#                     link != url if isinstance(link, str) else link["url"] != url)]
+#                 all_links.extend(links)
+#                 logger.debug(f"Extracted {len(links)} links from {url}")
+#     all_links = list(set(all_links))
+#     all_links = [link for link in all_links if (
+#         link not in selected_urls if isinstance(link, str) else link["url"] not in selected_urls)]
+#     save_file(all_links, os.path.join(output_dir, "links.json"))
+#     logger.debug(f"Total unique links extracted: {len(all_links)}")
+#     logger.info(
+#         f"Processed {len(all_url_html_date_tuples)} URL-HTML-date tuples")
+#     return all_url_html_date_tuples
+
+
 async def process_search_results(
     browser_search_results: List[BrowserSearchResult],
     query: str,
     output_dir: str,
-    top_n: int = 10
+    top_n: int = 10,
+    embed_model: EmbedModelType = "static-retrieval-mrl-en-v1",
+    chunk_size: int = 200,
+    chunk_overlap: int = 40,
 ) -> List[Tuple[str, str, Optional[str]]]:
     """Process search results and extract links from the top N URLs."""
     logger.info(
@@ -272,21 +319,43 @@ async def process_search_results(
     all_links = []
     async for url, status, html in scrape_urls(selected_urls, num_parallel=top_n, limit=top_n, show_progress=True):
         if status == "completed" and html:
-            result = await process_url_content(
-                url=url,
-                html=html,
-                query=query,
-                output_dir=output_dir,
-                from_reranked_link=False,
-                url_to_result=url_to_result
-            )
-            if result:
-                all_url_html_date_tuples.append(result)
-                links = set(scrape_links(html, url))
-                links = [link for link in links if (
-                    link != url if isinstance(link, str) else link["url"] != url)]
-                all_links.extend(links)
-                logger.debug(f"Extracted {len(links)} links from {url}")
+            # result = await process_url_content(
+            #     url=url,
+            #     html=html,
+            #     query=query,
+            #     output_dir=output_dir,
+            #     from_reranked_link=False,
+            #     url_to_result=url_to_result
+            # )
+            # if result:
+            #     all_url_html_date_tuples.append(result)
+            #     links = set(scrape_links(html, url))
+            #     links = [link for link in links if (
+            #         link != url if isinstance(link, str) else link["url"] != url)]
+            #     all_links.extend(links)
+            #     logger.debug(f"Extracted {len(links)} links from {url}")
+            sub_url_dir = format_sub_url_dir(url)
+            sub_output_dir = os.path.join(output_dir, "pages", sub_url_dir)
+
+            tokens = parse_markdown(html, ignore_links=True)
+            save_file(tokens, f"{sub_output_dir}/markdown_tokens.json")
+
+            header_docs = HeaderDocs.from_tokens(tokens)
+            save_file(header_docs, f"{sub_output_dir}/header_docs.json")
+
+            header_docs.calculate_num_tokens(embed_model)
+            all_nodes = header_docs.as_nodes()
+            save_file(all_nodes, f"{sub_output_dir}/all_nodes.json")
+
+            vector_store = prepare_for_rag(
+                all_nodes, model=embed_model, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+            save_file(vector_store.get_nodes(),
+                      f"{sub_output_dir}/prepared_nodes.json")
+
+            search_results = search_headers(
+                query, vector_store, model=embed_model, top_k=None)
+            save_file(search_results, f"{sub_output_dir}/search_results.json")
+
     all_links = list(set(all_links))
     all_links = [link for link in all_links if (
         link not in selected_urls if isinstance(link, str) else link["url"] not in selected_urls)]
