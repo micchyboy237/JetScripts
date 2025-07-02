@@ -679,6 +679,7 @@ async def main():
     browser_results = await fetch_search_results(args.query, output_dir, use_cache=args.use_cache)
     # url_html_docs = await process_search_results(browser_results, args.query, output_dir)
     search_results = await process_search_results(browser_results, args.query, output_dir, max_length=1500)
+    save_file(search_results, os.path.join(output_dir, "contexts.json"))
     context_md = group_search_results_by_source_url_for_context(search_results)
     save_file({
         "context_tokens": count_tokens(args.llm_model, context_md),
