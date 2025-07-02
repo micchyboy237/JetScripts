@@ -1,27 +1,34 @@
 from jet.code.markdown_utils import parse_markdown
+from jet.data.header_types import TextNode
 from jet.file.utils import load_file
 from jet.vectors.document_types import HeaderDocument
 from jet.vectors.gguf.vector_search import VectorSearch, get_detailed_instruct
 
 
 if __name__ == "__main__":
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/pages/www.reddit.com_r_rag_comments_1j4r4wj_10_rag_papers_you_should_read_from_february_2025/page.html"
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/pages/www.reddit.com_r_rag_comments_1j4r4wj_10_rag_papers_you_should_read_from_february_2025/docs.json"
+    query_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/query.md"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/pages/animebytes_in_15_best_upcoming_isekai_anime_in_2025/page.html"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/generated/run_header_docs/rag/all_nodes.json"
 
     # Model configuration
     model_path = "/Users/jethroestrada/.cache/huggingface/hub/models--Qwen--Qwen3-Embedding-0.6B-GGUF/snapshots/8aa0010e73a1075e99dfc213a475a60fd971bbe7/Qwen3-Embedding-0.6B-f16.gguf"
 
     md_contents = parse_markdown(html_file)
-    docs = load_file(docs_file)
-    query = docs["query"]
-    docs = HeaderDocument.from_list(docs["documents"])
+    nodes = load_file(docs_file)
+    nodes = [TextNode(**node) for node in nodes]
+    query = load_file(query_file)
+
+    header_texts = [node.header for node in nodes]
+    content_texts = [node.content for node in nodes]
+    all_texts = [node.get_text() for node in nodes]
 
     task = 'Given a web search query, retrieve relevant passages that answer the query'
     top_k = 10
 
     queries = [
-        get_detailed_instruct(task, query),
+        get_detailed_instruct(task, query)
     ]
+    documents = all_texts
     # documents = [
     #     {"id": doc.id, "text": doc.text}
     #     for doc in docs

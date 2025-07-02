@@ -5,6 +5,7 @@ from jet.data.header_docs import HeaderDocs
 from jet.data.header_utils import split_and_merge_headers, prepare_for_rag, search_headers
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
+from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.models.model_types import ModelType
 
 if __name__ == "__main__":
@@ -68,8 +69,9 @@ if __name__ == "__main__":
     logger.info("\nStart RAG search...")
 
     query = load_file(query_file)
-    chunk_size = 100
-    chunk_overlap = 20
+    chunk_size = 150
+    chunk_overlap = 40
+    truncate_dim = 256
     threshold = 0.0
     top_k = None
     model: ModelType = "all-MiniLM-L6-v2"
@@ -80,8 +82,14 @@ if __name__ == "__main__":
     all_nodes = header_docs.as_nodes()
     save_file(all_nodes, f"{rag_output_dir}/all_nodes.json")
 
+    SentenceTransformerRegistry.load_model(model, truncate_dim)
+
     vector_store = prepare_for_rag(
         all_nodes, model=model, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    save_file({
+        "embeddings_shape": vector_store.get_embeddings_shape(),
+        "nodes_count": len(vector_store.get_nodes())
+    }, f"{rag_output_dir}/embeddings_info.json")
     save_file(vector_store.get_nodes(),
               f"{rag_output_dir}/prepared_nodes.json")
 
@@ -89,5 +97,5 @@ if __name__ == "__main__":
         query, vector_store, model=model, top_k=top_k, threshold=threshold)
     search_results = sorted(
         search_results, key=lambda n: getattr(n, "score", 0), reverse=True)
-    save_file({"query": query, "results": search_results},
+    save_file({"query": query, "count": len(search_results), "results": search_results},
               f"{rag_output_dir}/search_results.json")
