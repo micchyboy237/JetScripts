@@ -203,7 +203,7 @@ def use_prompts_for_contextual_encoding(query: str, passages: List[str], model: 
     #     device="mps"
     # )
     SentenceTransformerRegistry.load_model(
-        model, truncate_dim=192, prompts=prompts)
+        model, truncate_dim=None, prompts=prompts)
     # query = "What is Python?"
     # passages = [
     #     "Python is a programming language.",
