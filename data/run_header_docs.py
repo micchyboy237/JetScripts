@@ -33,9 +33,6 @@ if __name__ == "__main__":
     header_docs = HeaderDocs.from_tokens(tokens)
     save_file(header_docs, f"{output_dir}/header_docs.json")
 
-    all_nodes = header_docs.as_nodes()
-    save_file(all_nodes, f"{output_dir}/all_nodes.json")
-
     all_texts = header_docs.as_texts()
     save_file(all_texts, f"{output_dir}/all_texts.json")
 
@@ -45,10 +42,10 @@ if __name__ == "__main__":
     parent_headers = [
         {"id": node.id, "chunk_index": node.chunk_index, "level": node.level, "parent_headers": "\n".join(node.get_parent_headers()).strip(
         ), "header": node.header, "content": node.content}
-        for node in all_nodes]
+        for node in header_docs.root]
     save_file(parent_headers, f"{output_dir}/parent_headers.json")
 
-    header_nodes = [node for node in all_nodes if node.type == "header"]
+    header_nodes = [node for node in header_docs.root if node.type == "header"]
     save_file(header_nodes, f"{output_dir}/header_nodes.json")
 
     header_recursive_texts = [{"id": node.id, "chunk_index": node.chunk_index, "level": node.level, "parent_headers": "\n".join(node.get_parent_headers()).strip(
@@ -79,7 +76,8 @@ if __name__ == "__main__":
     rag_output_dir = f"{output_dir}/rag"
 
     header_docs.calculate_num_tokens(model)
-    save_file(header_docs.root, f"{rag_output_dir}/all_docs.json")
+    all_nodes = header_docs.as_nodes()
+    save_file(all_nodes, f"{rag_output_dir}/all_nodes.json")
 
     chunked_nodes = split_and_merge_headers(
         header_docs.root, model=model, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
