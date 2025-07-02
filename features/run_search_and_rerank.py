@@ -12,6 +12,7 @@ import asyncio
 from urllib.parse import unquote, urlparse
 from jet.code.markdown_utils import analyze_markdown, parse_markdown
 from jet.data.header_docs import HeaderDocs
+from jet.data.header_types import NodeWithScore
 from jet.data.header_utils._prepare_for_rag import prepare_for_rag
 from jet.data.header_utils._search_headers import search_headers
 from jet.data.sample_diverse_headers import sample_diverse_headers
@@ -308,7 +309,8 @@ async def process_search_results(
     embed_model: EmbedModelType = "static-retrieval-mrl-en-v1",
     chunk_size: int = 200,
     chunk_overlap: int = 40,
-) -> List[Tuple[str, str, Optional[str]]]:
+    max_length: int = 2000,
+) -> List[NodeWithScore]:
     """Process search results and extract links from the top N URLs."""
     logger.info(
         f"Processing {len(browser_search_results)} search results for query: {query}")
@@ -317,6 +319,7 @@ async def process_search_results(
     url_to_result = {r["url"]: r for r in browser_search_results}
     all_url_html_date_tuples = []
     all_links = []
+    all_search_results: List[NodeWithScore] = []
     async for url, status, html in scrape_urls(selected_urls, num_parallel=top_n, limit=top_n, show_progress=True):
         if status == "completed" and html:
             # result = await process_url_content(
@@ -334,10 +337,20 @@ async def process_search_results(
             #         link != url if isinstance(link, str) else link["url"] != url)]
             #     all_links.extend(links)
             #     logger.debug(f"Extracted {len(links)} links from {url}")
+
+            # Extract links from html
+            links = set(scrape_links(html, url))
+            links = [link for link in links if (
+                link != url if isinstance(link, str) else link["url"] != url)]
+            all_links.extend(links)
+            logger.debug(f"Extracted {len(links)} links from {url}")
+
+            # RAG Search
             sub_url_dir = format_sub_url_dir(url)
             sub_output_dir = os.path.join(output_dir, "pages", sub_url_dir)
 
-            tokens = parse_markdown(html, ignore_links=True)
+            md_content = convert_html_to_markdown(html)
+            tokens = parse_markdown(md_content, ignore_links=True)
             save_file(tokens, f"{sub_output_dir}/markdown_tokens.json")
 
             header_docs = HeaderDocs.from_tokens(tokens)
@@ -353,8 +366,13 @@ async def process_search_results(
                       f"{sub_output_dir}/prepared_nodes.json")
 
             search_results = search_headers(
-                query, vector_store, model=embed_model, top_k=None)
+                query, vector_store, model=embed_model, top_k=None, threshold=0.0)
+            for result in search_results:
+                result.metadata.update({
+                    "source_url": url
+                })
             save_file(search_results, f"{sub_output_dir}/search_results.json")
+            all_search_results.extend(search_results)
 
     all_links = list(set(all_links))
     all_links = [link for link in all_links if (
@@ -363,7 +381,29 @@ async def process_search_results(
     logger.debug(f"Total unique links extracted: {len(all_links)}")
     logger.info(
         f"Processed {len(all_url_html_date_tuples)} URL-HTML-date tuples")
-    return all_url_html_date_tuples
+
+    sorted_search_results = sorted(
+        all_search_results, key=lambda x: x.score, reverse=True)
+
+    save_file(sorted_search_results, os.path.join(
+        output_dir, "sorted_search_results.json"))
+
+    # INSERT_YOUR_CODE
+    # Filter all_search_results by num_tokens up to max_length
+    filtered_search_results = []
+    total_tokens = 0
+
+    for result in sorted_search_results:
+        num_tokens = getattr(result, "num_tokens", None)
+        if num_tokens is None:
+            # Try to get from metadata if not present directly
+            num_tokens = result.num_tokens
+        if total_tokens + num_tokens > max_length:
+            break
+        filtered_search_results.append(result)
+        total_tokens += num_tokens
+
+    return filtered_search_results
 
 
 def process_documents(
@@ -596,6 +636,73 @@ def evaluate_results(
         logger.info("Evaluation completed successfully")
 
 
+def group_search_results_by_source_url_for_context(search_results: List[NodeWithScore]) -> str:
+    """
+    Group search results by their source URL and format as a context string.
+
+    Args:
+        search_results (List[NodeWithScore]): List of search result nodes, each with metadata.
+
+    Returns:
+        str: Markdown-formatted string grouping content by source URL.
+    """
+    from collections import defaultdict
+
+    grouped = defaultdict(list)
+    for node in search_results:
+        url = node.metadata.get("source_url", "Unknown Source")
+        grouped[url].append(node)
+
+    context_blocks = []
+    for url, nodes in grouped.items():
+        block = f"<!-- Source: {url} -->\n\n"
+        for i, node in enumerate(nodes, 1):
+            # Try to get a title or header if available
+            block += node.get_text() + "\n\n"
+        context_blocks.append(block.strip())
+
+    return "\n\n".join(context_blocks)
+
+
+async def main():
+    args = parse_args()
+    output_dir = initialize_output_directory(__file__, args.query)
+    mlx, tokenize = initialize_search_components(
+        args.llm_model, args.embed_model, args.seed)
+    save_file(args.query, os.path.join(output_dir, "query.md"))
+    browser_results = await fetch_search_results(args.query, output_dir, use_cache=args.use_cache)
+    # url_html_docs = await process_search_results(browser_results, args.query, output_dir)
+    search_results = await process_search_results(browser_results, args.query, output_dir, max_length=1500)
+    context_md = group_search_results_by_source_url_for_context(search_results)
+    save_file({
+        "context_tokens": count_tokens(args.llm_model, context_md),
+        "analysis": analyze_markdown(context_md),
+    }, os.path.join(output_dir, "context_info.json"))
+    save_file(context_md, os.path.join(output_dir, "context.md"))
+
+    # all_docs = process_documznts(
+    #     url_html_docs, args.query, args.embed_model, output_dir)
+    # search_results, context_md = search_and_group_documents(
+    #     query=args.query,
+    #     all_docs=all_docs,
+    #     embed_model=args.embed_model,
+    #     llm_model=args.llm_model,
+    #     output_dir=output_dir,
+    #     top_k=args.top_k,
+    #     chunk_size=args.chunk_size,
+    #     min_tokens=args.min_tokens,
+    #     max_tokens=args.max_tokens,
+    # )
+    response = generate_response(
+        args.query, context_md, mlx, output_dir)
+    evaluate_results(args.query, context_md, response,
+                     args.llm_model, output_dir)
+    if hasattr(logger, "success"):
+        logger.success("Search engine execution completed")
+    else:
+        logger.info("Search engine execution completed")
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description="Run semantic search and processing pipeline.")
@@ -619,35 +726,6 @@ def parse_args() -> argparse.Namespace:
                    help="Random seed for reproducibility")
     return p.parse_args()
 
-
-async def main():
-    args = parse_args()
-    output_dir = initialize_output_directory(__file__, args.query)
-    mlx, tokenize = initialize_search_components(
-        args.llm_model, args.embed_model, args.seed)
-    browser_results = await fetch_search_results(args.query, output_dir, use_cache=args.use_cache)
-    url_html_docs = await process_search_results(browser_results, args.query, output_dir)
-    all_docs = process_documents(
-        url_html_docs, args.query, args.embed_model, output_dir)
-    search_results, context_md = search_and_group_documents(
-        query=args.query,
-        all_docs=all_docs,
-        embed_model=args.embed_model,
-        llm_model=args.llm_model,
-        output_dir=output_dir,
-        top_k=args.top_k,
-        chunk_size=args.chunk_size,
-        min_tokens=args.min_tokens,
-        max_tokens=args.max_tokens,
-    )
-    response = generate_response(
-        args.query, context_md, mlx, output_dir)
-    evaluate_results(args.query, context_md, response,
-                     args.llm_model, output_dir)
-    if hasattr(logger, "success"):
-        logger.success("Search engine execution completed")
-    else:
-        logger.info("Search engine execution completed")
 
 if __name__ == "__main__":
     logger.info("Starting search engine script")
