@@ -352,6 +352,14 @@ async def process_search_results(
             save_file(html, f"{sub_output_dir}/page.html")
 
             md_content = convert_html_to_markdown(html)
+            save_file(md_content, f"{sub_output_dir}/md_content.md")
+
+            parsed_md = parse_markdown(md_content)
+            save_file(parsed_md, f"{sub_output_dir}/parsed_md.json")
+
+            analysis = analyze_markdown(md_content)
+            save_file(analysis, f"{sub_output_dir}/analysis.json")
+
             tokens = parse_markdown(md_content, ignore_links=True)
             save_file(tokens, f"{sub_output_dir}/markdown_tokens.json")
 
@@ -681,11 +689,14 @@ async def main():
     search_results = await process_search_results(browser_results, args.query, output_dir, max_length=1500)
     save_file(search_results, os.path.join(output_dir, "contexts.json"))
     context_md = group_search_results_by_source_url_for_context(search_results)
+    save_file(context_md, os.path.join(output_dir, "context.md"))
     save_file({
         "context_tokens": count_tokens(args.llm_model, context_md),
-        "analysis": analyze_markdown(context_md),
     }, os.path.join(output_dir, "context_info.json"))
-    save_file(context_md, os.path.join(output_dir, "context.md"))
+    parsed_md = parse_markdown(context_md)
+    save_file(parsed_md, f"{output_dir}/parsed_md.json")
+    analysis = analyze_markdown(context_md)
+    save_file(analysis, f"{output_dir}/analysis.json")
 
     # all_docs = process_documznts(
     #     url_html_docs, args.query, args.embed_model, output_dir)
