@@ -69,7 +69,7 @@ if __name__ == "__main__":
     logger.info("\nStart RAG search...")
 
     query = load_file(query_file)
-    chunk_size = 150
+    chunk_size = 300
     chunk_overlap = 40
     truncate_dim = 256
     threshold = 0.0
@@ -100,16 +100,22 @@ if __name__ == "__main__":
     save_file({"query": query, "count": len(search_results), "results": search_results},
               f"{rag_output_dir}/search_results.json")
 
-    search_results_top_10 = [
+    search_results_top_20 = [
         {
             "rank": n.rank,
             "doc_id": n.doc_id,
+            "doc_index": n.doc_index,
             "chunk_index": n.chunk_index,
+            "num_tokens": n.num_tokens,
             "score": n.score,
             "parent_header": n.parent_header,
             "text": n.header + ("\n" + n.content if n.content else "")
         }
-        for n in search_results[:10]
+        for n in search_results[:20]
     ]
+    save_file({"query": query, "results": search_results_top_20},
+              f"{rag_output_dir}/search_results_top_20.json")
+
+    search_results_top_10 = search_results_top_20[:10]
     save_file({"query": query, "results": search_results_top_10},
               f"{rag_output_dir}/search_results_top_10.json")
