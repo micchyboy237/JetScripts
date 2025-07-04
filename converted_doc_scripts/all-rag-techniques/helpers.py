@@ -123,7 +123,7 @@ def generate_ai_response(
     model: LLMModelType = LLM_MODEL,
     **kwargs
 ) -> str:
-    logger.info("Generating AI response")
+    logger.info(f"Generating AI response for model: {model}")
     context = "\n".join([
         f"Context {i+1}:\n{chunk['text']}\n=====================================\n"
         for i, chunk in enumerate(retrieved_chunks)

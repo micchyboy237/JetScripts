@@ -9,7 +9,7 @@ from jet.file.utils import save_file
 from helpers import (
     setup_config, initialize_mlx, generate_embeddings,
     load_validation_data, generate_ai_response,
-    load_json_data, SearchResult, SimpleVectorStore, DATA_DIR, DOCS_PATH
+    load_json_data, SearchResult, SimpleVectorStore, DATA_DIR, DOCS_PATH, LLM_MODEL
 )
 
 
@@ -53,7 +53,7 @@ def process_document(pages: List[Dict[str, Any]], embed_func, chunk_size: int = 
     return vector_store
 
 
-def evaluate_document_relevance(query: str, document: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> float:
+def evaluate_document_relevance(query: str, document: str, mlx, model: str = LLM_MODEL) -> float:
     """Evaluate document relevance to query."""
     system_prompt = "You are an objective evaluator. Rate the relevance of the document to the query on a scale from 0 to 1, where 0 is irrelevant and 1 is highly relevant. Return only the numerical score."
     user_prompt = f"Query: {query}\n\nDocument: {document}"
@@ -107,7 +107,7 @@ def duck_duck_go_search(query: str, num_results: int = 3) -> tuple[str, List[Dic
     return results_text, sources
 
 
-def rewrite_search_query(query: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def rewrite_search_query(query: str, mlx, model: str = LLM_MODEL) -> str:
     """Rewrite query for optimized web search."""
     system_prompt = "You are a helpful assistant. Rewrite the query to optimize it for a web search, making it more specific and concise."
     response = ""
@@ -126,7 +126,7 @@ def rewrite_search_query(query: str, mlx, model: str = "llama-3.2-1b-instruct-4b
     return response
 
 
-def perform_web_search(query: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> tuple[str, List[Dict[str, str]]]:
+def perform_web_search(query: str, mlx, model: str = LLM_MODEL) -> tuple[str, List[Dict[str, str]]]:
     """Perform web search with rewritten query."""
     rewritten_query = rewrite_search_query(query, mlx, model)
     logger.debug(f"Rewritten search query: {rewritten_query}")
@@ -134,7 +134,7 @@ def perform_web_search(query: str, mlx, model: str = "llama-3.2-1b-instruct-4bit
     return results_text, sources
 
 
-def refine_knowledge(text: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def refine_knowledge(text: str, mlx, model: str = LLM_MODEL) -> str:
     """Refine text to be concise and relevant."""
     system_prompt = "You are a helpful assistant. Refine the provided text to make it concise, clear, and relevant, removing any redundant or irrelevant information."
     response = ""
@@ -152,7 +152,7 @@ def refine_knowledge(text: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") 
     return response
 
 
-def crag_process(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 3, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def crag_process(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 3, model: str = LLM_MODEL) -> Dict[str, Any]:
     """Run CRAG pipeline."""
     logger.debug(f"\n=== Processing query with CRAG: {query} ===\n")
     logger.debug("Retrieving initial documents...")
@@ -215,7 +215,7 @@ def crag_process(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k
     }
 
 
-def evaluate_crag_response(query: str, response: str, reference_answer: str = None, mlx=None, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def evaluate_crag_response(query: str, response: str, reference_answer: str = None, mlx=None, model: str = LLM_MODEL) -> str:
     """Evaluate CRAG response."""
     system_prompt = "You are an objective evaluator. Assess the response for accuracy, completeness, and relevance to the query. If a reference answer is provided, compare against it. Provide a concise evaluation."
     user_prompt = f"Query: {query}\n\nResponse: {response}"
@@ -236,7 +236,7 @@ def evaluate_crag_response(query: str, response: str, reference_answer: str = No
     return response
 
 
-def compare_crag_vs_standard_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, reference_answer: str = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def compare_crag_vs_standard_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, reference_answer: str = None, model: str = LLM_MODEL) -> Dict[str, Any]:
     """Compare CRAG and standard RAG approaches."""
     logger.debug("\n=== Running CRAG ===")
     crag_result = crag_process(
@@ -274,7 +274,7 @@ def compare_crag_vs_standard_rag(query: str, vector_store: SimpleVectorStore, em
     }
 
 
-def compare_responses(query: str, crag_response: str, standard_response: str, reference_answer: str = None, mlx=None, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def compare_responses(query: str, crag_response: str, standard_response: str, reference_answer: str = None, mlx=None, model: str = LLM_MODEL) -> str:
     """Compare CRAG and standard RAG responses."""
     system_prompt = "You are an objective evaluator. Compare the CRAG and standard RAG responses to the query, assessing their accuracy, completeness, and relevance. If a reference answer is provided, use it to evaluate correctness. Provide a concise comparison."
     user_prompt = f"Query: {query}\n\nCRAG Response: {crag_response}\n\nStandard RAG Response: {standard_response}"
@@ -295,7 +295,7 @@ def compare_responses(query: str, crag_response: str, standard_response: str, re
     return response
 
 
-def run_crag_evaluation(pages: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def run_crag_evaluation(pages: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = LLM_MODEL) -> Dict[str, Any]:
     """Run evaluation of CRAG vs standard RAG."""
     vector_store = process_document(pages, embed_func)
     results = []
@@ -318,7 +318,7 @@ def run_crag_evaluation(pages: List[Dict[str, Any]], test_queries: List[str], em
     }
 
 
-def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = LLM_MODEL) -> str:
     """Generate overall analysis of CRAG vs standard RAG."""
     evaluations_summary = ""
     for i, result in enumerate(results):
