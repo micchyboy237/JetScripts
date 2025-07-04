@@ -1,16 +1,17 @@
 import os
 import json
-from jet.llm.utils.transformer_embeddings import get_embedding_function
+from jet.models.embeddings.base import get_embedding_function
 import numpy as np
 from typing import List, Dict, Any, Callable, Tuple, TypedDict
 from jet.file.utils import load_file, save_file
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.mlx_types import LLMModelType
+from jet.models.model_types import LLMModelType
 from jet.logger import CustomLogger
 import re
 
 DATA_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/data/hybrid_reranker_data/anime/top_isekai_anime"
 DOCS_PATH = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_split_header_docs/searched_html_myanimelist_net_Isekai/chunks.json"
+LLM_MODEL = "qwen3-1.7b-4bit-dwq-053125"
 
 
 class SearchResult(TypedDict):
@@ -119,7 +120,7 @@ def generate_ai_response(
     retrieved_chunks: List[SearchResult],
     mlx: MLX,
     logger: CustomLogger,
-    model: LLMModelType = "llama-3.2-3b-instruct-4bit",
+    model: LLMModelType = LLM_MODEL,
     **kwargs
 ) -> str:
     logger.info("Generating AI response")
@@ -150,7 +151,7 @@ def evaluate_ai_response(
     true_answer: str,
     mlx: MLX,
     logger: CustomLogger,
-    model: LLMModelType = "llama-3.2-3b-instruct-4bit",
+    model: LLMModelType = LLM_MODEL,
     **kwargs
 ) -> Tuple[float, str]:
     logger.info("Evaluating response")

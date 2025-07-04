@@ -8,7 +8,7 @@ from jet.file.utils import save_file
 from helpers import (
     setup_config, initialize_mlx, generate_embeddings,
     load_validation_data, generate_ai_response,
-    load_json_data, SearchResult, SimpleVectorStore, DATA_DIR, DOCS_PATH
+    load_json_data, SearchResult, SimpleVectorStore, DATA_DIR, DOCS_PATH, LLM_MODEL
 )
 
 
@@ -32,7 +32,7 @@ def chunk_text(text: str, metadata: Dict[str, Any], chunk_size: int = 1000, over
     return chunks
 
 
-def generate_page_summary(page_text: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def generate_page_summary(page_text: str, mlx, model: str = LLM_MODEL) -> str:
     """Generate summary for a page."""
     max_tokens = 6000
     truncated_text = page_text[:max_tokens] if len(
@@ -53,7 +53,7 @@ def generate_page_summary(page_text: str, mlx, model: str = "llama-3.2-1b-instru
     return response
 
 
-def process_document_hierarchically(pages: List[Dict[str, Any]], embed_func, mlx, chunk_size: int = 1000, chunk_overlap: int = 200, model: str = "llama-3.2-1b-instruct-4bit") -> tuple[SimpleVectorStore, SimpleVectorStore]:
+def process_document_hierarchically(pages: List[Dict[str, Any]], embed_func, mlx, chunk_size: int = 1000, chunk_overlap: int = 200, model: str = LLM_MODEL) -> tuple[SimpleVectorStore, SimpleVectorStore]:
     """Process document hierarchically into summaries and detailed chunks."""
     logger.debug("Generating page summaries...")
     summaries = []
@@ -120,7 +120,7 @@ def retrieve_hierarchically(query: str, summary_store: SimpleVectorStore, detail
     return detailed_results
 
 
-def hierarchical_rag(query: str, pages: List[Dict[str, Any]], embed_func, mlx, chunk_size: int = 1000, chunk_overlap: int = 200, k_summaries: int = 3, k_chunks: int = 5, regenerate: bool = False, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def hierarchical_rag(query: str, pages: List[Dict[str, Any]], embed_func, mlx, chunk_size: int = 1000, chunk_overlap: int = 200, k_summaries: int = 3, k_chunks: int = 5, regenerate: bool = False, model: str = LLM_MODEL) -> Dict[str, Any]:
     """Run hierarchical RAG pipeline."""
     source = pages[0]["metadata"]["source"] if pages else "document"
     summary_store_file = os.path.join(
@@ -160,7 +160,7 @@ def hierarchical_rag(query: str, pages: List[Dict[str, Any]], embed_func, mlx, c
     }
 
 
-def standard_rag(query: str, pages: List[Dict[str, Any]], embed_func, mlx, chunk_size: int = 1000, chunk_overlap: int = 200, k: int = 15, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def standard_rag(query: str, pages: List[Dict[str, Any]], embed_func, mlx, chunk_size: int = 1000, chunk_overlap: int = 200, k: int = 15, model: str = LLM_MODEL) -> Dict[str, Any]:
     """Run standard RAG pipeline."""
     chunks = []
     for page in pages:
@@ -196,7 +196,7 @@ def standard_rag(query: str, pages: List[Dict[str, Any]], embed_func, mlx, chunk
     }
 
 
-def compare_approaches(query: str, pages: List[Dict[str, Any]], embed_func, mlx, reference_answer: str = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def compare_approaches(query: str, pages: List[Dict[str, Any]], embed_func, mlx, reference_answer: str = None, model: str = LLM_MODEL) -> Dict[str, Any]:
     """Compare hierarchical and standard RAG approaches."""
     logger.debug(f"\n=== Comparing RAG approaches for query: {query} ===")
     logger.debug("\nRunning hierarchical RAG...")
@@ -219,7 +219,7 @@ def compare_approaches(query: str, pages: List[Dict[str, Any]], embed_func, mlx,
     }
 
 
-def compare_responses(query: str, hierarchical_response: str, standard_response: str, reference: str = None, mlx=None, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def compare_responses(query: str, hierarchical_response: str, standard_response: str, reference: str = None, mlx=None, model: str = LLM_MODEL) -> str:
     """Compare hierarchical and standard RAG responses."""
     system_prompt = "You are an objective evaluator. Compare the two responses to the query and provide a concise evaluation. If a reference answer is provided, use it to assess accuracy and completeness."
     user_prompt = f"Query: {query}\n\nHierarchical RAG Response:\n{hierarchical_response}\n\nStandard RAG Response:\n{standard_response}"
@@ -240,7 +240,7 @@ def compare_responses(query: str, hierarchical_response: str, standard_response:
     return response
 
 
-def run_evaluation(pages: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def run_evaluation(pages: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = LLM_MODEL) -> Dict[str, Any]:
     """Run evaluation of hierarchical vs standard RAG."""
     results = []
     for i, query in enumerate(test_queries):
@@ -258,7 +258,7 @@ def run_evaluation(pages: List[Dict[str, Any]], test_queries: List[str], embed_f
     }
 
 
-def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = LLM_MODEL) -> str:
     """Generate overall analysis of RAG approaches."""
     evaluations_summary = ""
     for i, result in enumerate(results):
