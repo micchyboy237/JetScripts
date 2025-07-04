@@ -94,8 +94,22 @@ if __name__ == "__main__":
               f"{rag_output_dir}/prepared_nodes.json")
 
     search_results = search_headers(
-        query, vector_store, model=model, top_k=top_k, threshold=threshold)
+        query, vector_store, top_k=top_k, threshold=threshold)
     search_results = sorted(
         search_results, key=lambda n: getattr(n, "score", 0), reverse=True)
     save_file({"query": query, "count": len(search_results), "results": search_results},
               f"{rag_output_dir}/search_results.json")
+
+    search_results_top_10 = [
+        {
+            "rank": n.rank,
+            "doc_id": n.doc_id,
+            "chunk_index": n.chunk_index,
+            "score": n.score,
+            "parent_header": n.parent_header,
+            "text": n.header + ("\n" + n.content if n.content else "")
+        }
+        for n in search_results[:10]
+    ]
+    save_file({"query": query, "results": search_results_top_10},
+              f"{rag_output_dir}/search_results_top_10.json")
