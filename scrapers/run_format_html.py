@@ -1,7 +1,6 @@
 import os
 import shutil
 from typing import List, Union
-from jet.code.html_utils import remove_noisy_elements
 from jet.code.markdown_utils._converters import convert_html_to_markdown, convert_markdown_to_html
 from jet.code.markdown_utils._markdown_parser import parse_markdown
 from jet.code.splitter_markdown_utils import get_md_header_contents
@@ -34,7 +33,6 @@ if __name__ == "__main__":
     model_path: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
 
     html_str: str = load_file(html_file)
-    html_str = remove_noisy_elements(html_str)
 
     save_file(format_html(html_str), f"{output_dir}/doc.html")
 
