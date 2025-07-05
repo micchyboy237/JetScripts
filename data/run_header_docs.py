@@ -115,6 +115,10 @@ if __name__ == "__main__":
             "analysis": analyze_readability(node.content)
         })
 
+    # Filter out results with mtld < 40
+    search_results = [
+        node for node in search_results if node.metadata["analysis"]["mtld"] >= 40]
+
     search_results_top_20 = [
         {
             "rank": n.rank,
