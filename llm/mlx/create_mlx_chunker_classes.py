@@ -12,7 +12,7 @@ from jet.llm.mlx.mlx_types import LLMModelKey
 from jet.llm.mlx.token_utils import chunk_text, get_tokenizer_fn, merge_texts
 from jet.llm.mlx.utils.base import get_model_max_tokens
 from jet.logger import logger
-from jet.scrapers.utils import MergedTextsResult, merge_texts_by_hierarchy
+from jet.models.embeddings.utils import ChunkResult, chunk_headers_by_hierarchy
 
 MODEL: LLMModelKey = "llama-3.2-3b-instruct-4bit"
 
@@ -50,7 +50,7 @@ def call_llm_generation(context: str) -> GenerationResult:
 
 
 def preprocess_data(texts: list[str], chunk_size: int) -> list[str]:
-    chunks = merge_texts_by_hierarchy(
+    chunks = chunk_headers_by_hierarchy(
         "\n\n".join(texts), get_tokenizer_fn(MODEL), max_tokens=chunk_size)
     # chunks = chunk_text(texts, chunk_size, overlap=40, model=MODEL)
     return [chunk["text"] for chunk in chunks]

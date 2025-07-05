@@ -4,11 +4,13 @@
 import os
 import shutil
 from typing import List, Union
+from jet.code.markdown_utils._markdown_parser import parse_markdown
 from jet.code.splitter_markdown_utils import get_md_header_contents
+from jet.models.embeddings.utils import chunk_headers_by_hierarchy
 from mlx_lm import load
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
-from jet.scrapers.utils import extract_by_heading_hierarchy, extract_texts_by_hierarchy, extract_tree_with_text, extract_text_elements, merge_texts_by_hierarchy, print_html
+from jet.scrapers.utils import extract_by_heading_hierarchy, extract_texts_by_hierarchy, extract_tree_with_text, extract_text_elements, print_html
 from jet.search.formatters import clean_string
 from jet.transformers.formatters import format_html
 from jet.utils.commands import copy_to_clipboard
@@ -50,8 +52,8 @@ if __name__ == "__main__":
     # Load the model and tokenizer
     model, tokenizer = load(model_path)
 
-    # Merge docs with max tokens
-    max_tokens = 300
+    # Chunk docs with chunk size
+    chunk_size = 300
 
     def _tokenizer(text: Union[str, List[str]]) -> Union[List[str], List[List[str]]]:
         if isinstance(text, str):
@@ -63,13 +65,18 @@ if __name__ == "__main__":
                 text, add_special_tokens=False)["input_ids"]
             return [tokenizer.convert_ids_to_tokens(ids) for ids in token_ids_list]
 
-    merged_docs = merge_texts_by_hierarchy(
-        html_str, _tokenizer, max_tokens)
-    save_file(merged_docs, f"{output_dir}/merged_docs.json")
+    doc_markdown_tokens = parse_markdown(html_str)
+    doc_markdown = "\n\n".join([item["content"]
+                               for item in doc_markdown_tokens])
+    save_file(doc_markdown, f"{output_dir}/doc_markdown.md")
 
-    html_docs = [item["text"] for item in merged_docs]
-    md_text = "\n\n".join(html_docs)
-    save_file(md_text, f"{output_dir}/md_text.md")
+    chunked_docs = chunk_headers_by_hierarchy(
+        doc_markdown, chunk_size, _tokenizer)
+    save_file(chunked_docs, f"{output_dir}/chunked_docs.json")
+
+    html_docs = [item["content"] for item in chunked_docs]
+    chunked_markdown = "\n\n".join(html_docs)
+    save_file(chunked_markdown, f"{output_dir}/chunked_markdown.md")
 
     # By headings
     header_elements = extract_by_heading_hierarchy(html_str)
