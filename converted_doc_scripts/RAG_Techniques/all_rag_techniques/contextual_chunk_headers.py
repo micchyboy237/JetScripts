@@ -9,13 +9,12 @@ import os
 import tiktoken
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join(script_dir, "generated", file_name)
+GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
@@ -72,7 +71,7 @@ logger.info("# Contextual Chunk Headers (CCH)")
 
 
 load_dotenv()
-os.environ["CO_API_KEY"] = os.getenv('CO_API_KEY')  # Cohere API key
+os.environ["CO_API_KEY"] = os.getenv('CO_API_KEY') # Cohere API key
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY') # Ollama API key
 
 """
@@ -83,8 +82,8 @@ logger.info("## Load the document and split it into chunks")
 
 os.makedirs('data', exist_ok=True)
 
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
-# !wget -O data/nike_2023_annual_report.txt https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/nike_2023_annual_report.txt
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/nike_2023_annual_report.txt https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/nike_2023_annual_report.txt
 
 
 def split_into_chunks(text: str, chunk_size: int = 800) -> list[str]:
@@ -111,7 +110,6 @@ def split_into_chunks(text: str, chunk_size: int = 800) -> list[str]:
     )
     documents = text_splitter.create_documents([text])
     return [document.page_content for document in documents]
-
 
 FILE_PATH = f"{GENERATED_DIR}/nike_2023_annual_report.txt"
 
@@ -147,7 +145,6 @@ MAX_CONTENT_TOKENS = 4000
 MODEL_NAME = "llama3.1"
 TOKEN_ENCODER = tiktoken.encoding_for_model('gpt-3.5-turbo')
 
-
 def make_llm_call(chat_messages: list[dict]) -> str:
     """
     Make an API call to the Ollama language model.
@@ -167,7 +164,6 @@ def make_llm_call(chat_messages: list[dict]) -> str:
     )
     return response.choices[0].message.content.strip()
 
-
 def truncate_content(content: str, max_tokens: int) -> tuple[str, int]:
     """
     Truncate the content to a specified maximum number of tokens.
@@ -183,7 +179,6 @@ def truncate_content(content: str, max_tokens: int) -> tuple[str, int]:
     truncated_tokens = tokens[:max_tokens]
     return TOKEN_ENCODER.decode(truncated_tokens), min(len(tokens), max_tokens)
 
-
 def get_document_title(document_text: str, document_title_guidance: str = "") -> str:
     """
     Extract the title of a document using a language model.
@@ -195,10 +190,8 @@ def get_document_title(document_text: str, document_title_guidance: str = "") ->
     Returns:
         str: The extracted document title.
     """
-    document_text, num_tokens = truncate_content(
-        document_text, MAX_CONTENT_TOKENS)
-    truncation_message = TRUNCATION_MESSAGE.format(
-        num_words=3000) if num_tokens >= MAX_CONTENT_TOKENS else ""
+    document_text, num_tokens = truncate_content(document_text, MAX_CONTENT_TOKENS)
+    truncation_message = TRUNCATION_MESSAGE.format(num_words=3000) if num_tokens >= MAX_CONTENT_TOKENS else ""
 
     prompt = DOCUMENT_TITLE_PROMPT.format(
         document_title_guidance=document_title_guidance,
@@ -209,7 +202,6 @@ def get_document_title(document_text: str, document_title_guidance: str = "") ->
 
     return make_llm_call(chat_messages)
 
-
 if __name__ == "__main__":
     document_title = get_document_title(document_text)
     logger.debug(f"Document Title: {document_title}")
@@ -219,7 +211,6 @@ if __name__ == "__main__":
 Let's look at a specific example to demonstrate the impact of adding a chunk header. We'll use the Cohere reranker to measure relevance to a query with and without a chunk header.
 """
 logger.info("## Add chunk header and measure impact")
-
 
 def rerank_documents(query: str, chunks: List[str]) -> List[float]:
     """
@@ -235,8 +226,7 @@ def rerank_documents(query: str, chunks: List[str]) -> List[float]:
     MODEL = "rerank-english-v3.0"
     client = cohere.Client(api_key=os.environ["CO_API_KEY"])
 
-    reranked_results = client.rerank(
-        model=MODEL, query=query, documents=chunks)
+    reranked_results = client.rerank(model=MODEL, query=query, documents=chunks)
     results = reranked_results.results
     reranked_indices = [result.index for result in results]
     reranked_similarity_scores = [result.relevance_score for result in results]
@@ -246,7 +236,6 @@ def rerank_documents(query: str, chunks: List[str]) -> List[float]:
         similarity_scores[index] = reranked_similarity_scores[i]
 
     return similarity_scores
-
 
 def compare_chunk_similarities(chunk_index: int, chunks: List[str], document_title: str, query: str) -> None:
     """
@@ -265,23 +254,18 @@ def compare_chunk_similarities(chunk_index: int, chunks: List[str], document_tit
     chunk_wo_header = chunk_text
     chunk_w_header = f"Document Title: {document_title}\n\n{chunk_text}"
 
-    similarity_scores = rerank_documents(
-        query, [chunk_wo_header, chunk_w_header])
+    similarity_scores = rerank_documents(query, [chunk_wo_header, chunk_w_header])
 
     logger.debug(f"\nChunk header:\nDocument Title: {document_title}")
     logger.debug(f"\nChunk text:\n{chunk_text}")
     logger.debug(f"\nQuery: {query}")
-    logger.debug(
-        f"\nSimilarity without contextual chunk header: {similarity_scores[0]:.4f}")
-    logger.debug(
-        f"Similarity with contextual chunk header: {similarity_scores[1]:.4f}")
-
+    logger.debug(f"\nSimilarity without contextual chunk header: {similarity_scores[0]:.4f}")
+    logger.debug(f"Similarity with contextual chunk header: {similarity_scores[1]:.4f}")
 
 CHUNK_INDEX_TO_INSPECT = 86
 QUERY = "Nike climate change impact"
 
-compare_chunk_similarities(CHUNK_INDEX_TO_INSPECT,
-                           chunks, document_title, QUERY)
+compare_chunk_similarities(CHUNK_INDEX_TO_INSPECT, chunks, document_title, QUERY)
 
 """
 This chunk is clearly about the impact of climate change on some organization, but it doesn't explicitly say "Nike" in it. So the relevance to the query "Nike climate change impact" in only about 0.1. By simply adding the document title to the chunk that similarity goes up to 0.92.

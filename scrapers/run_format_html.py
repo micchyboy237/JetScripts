@@ -50,7 +50,7 @@ if __name__ == "__main__":
     model, tokenizer = load(model_path)
 
     # Chunk docs with chunk size
-    chunk_size = 64
+    chunk_size = 300
 
     def _tokenizer(text: Union[str, List[str]]) -> Union[List[str], List[List[str]]]:
         if isinstance(text, str):
@@ -62,7 +62,7 @@ if __name__ == "__main__":
                 text, add_special_tokens=False)["input_ids"]
             return [tokenizer.convert_ids_to_tokens(ids) for ids in token_ids_list]
 
-    doc_markdown_tokens = parse_markdown(html_str, ignore_links=True)
+    doc_markdown_tokens = parse_markdown(html_str, ignore_links=False)
     doc_markdown = "\n\n".join([item["content"]
                                for item in doc_markdown_tokens])
     save_file(doc_markdown, f"{output_dir}/doc_markdown.md")

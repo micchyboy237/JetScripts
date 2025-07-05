@@ -8,6 +8,8 @@ from jet.file.utils import load_file, save_file
 from jet.logger import logger
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.models.model_types import ModelType
+from jet.wordnet.analyzers.text_analysis import analyze_readability
+
 
 if __name__ == "__main__":
     query_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/query.md"
@@ -107,6 +109,12 @@ if __name__ == "__main__":
     save_file({"query": query, "count": len(search_results), "results": search_results},
               f"{rag_output_dir}/search_results.json")
 
+    # Analyze each node
+    for node in search_results:
+        node.metadata.update({
+            "analysis": analyze_readability(node.content)
+        })
+
     search_results_top_20 = [
         {
             "rank": n.rank,
@@ -115,6 +123,8 @@ if __name__ == "__main__":
             "chunk_index": n.chunk_index,
             "num_tokens": n.num_tokens,
             "score": n.score,
+            "mtld": n.metadata["analysis"]["mtld"],
+            "mtld_category": n.metadata["analysis"]["mtld_category"],
             "parent_header": n.parent_header,
             "header": n.header,
             "content": n.content

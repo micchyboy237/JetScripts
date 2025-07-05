@@ -8,13 +8,12 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join(script_dir, "generated", file_name)
+GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
@@ -101,8 +100,10 @@ logger.info("# Semantic Chunking for Document Processing")
 
 # !pip install langchain-experimental langchain-openai python-dotenv
 
-# !git clone https://github.com/N7/RAG_TECHNIQUES.git
+# !git clone https://github.com/NirDiamant/RAG_TECHNIQUES.git
 sys.path.append('RAG_TECHNIQUES')
+
+
 
 
 load_dotenv()
@@ -116,8 +117,8 @@ logger.info("### Define file path")
 
 os.makedirs('data', exist_ok=True)
 
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
 
 path = f"{GENERATED_DIR}/Understanding_Climate_Change.pdf"
 
@@ -136,9 +137,7 @@ content = read_pdf_to_string(path)
 """
 logger.info("### Breakpoint types:")
 
-text_splitter = SemanticChunker(OllamaEmbeddings(model="mxbai-embed-large"), breakpoint_threshold_type='percentile',
-                                # chose which embeddings and breakpoint type and threshold to use
-                                breakpoint_threshold_amount=90)
+text_splitter = SemanticChunker(OllamaEmbeddings(model="mxbai-embed-large"), breakpoint_threshold_type='percentile', breakpoint_threshold_amount=90) # chose which embeddings and breakpoint type and threshold to use
 
 """
 ### Split original text to semantic chunks

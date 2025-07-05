@@ -6,13 +6,12 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join(script_dir, "generated", file_name)
+GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
@@ -96,8 +95,10 @@ logger.info("# Hypothetical Document Embedding (HyDE) in Document Retrieval")
 
 # !pip install python-dotenv
 
-# !git clone https://github.com/N7/RAG_TECHNIQUES.git
+# !git clone https://github.com/NirDiamant/RAG_TECHNIQUES.git
 sys.path.append('RAG_TECHNIQUES')
+
+
 
 
 load_dotenv()
@@ -111,8 +112,8 @@ logger.info("### Define document(s) path")
 
 os.makedirs('data', exist_ok=True)
 
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
 
 path = f"{GENERATED_DIR}/Understanding_Climate_Change.pdf"
 
@@ -121,7 +122,6 @@ path = f"{GENERATED_DIR}/Understanding_Climate_Change.pdf"
 """
 logger.info("### Define the HyDe retriever class - creating vector store, generating hypothetical document, and retrieving")
 
-
 class HyDERetriever:
     def __init__(self, files_path, chunk_size=500, chunk_overlap=100):
         self.llm = ChatOllama(model="llama3.1")
@@ -129,8 +129,8 @@ class HyDERetriever:
         self.embeddings = OllamaEmbeddings(model="mxbai-embed-large")
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
-        self.vectorstore = encode_pdf(
-            files_path, chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)
+        self.vectorstore = encode_pdf(files_path, chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)
+
 
         self.hyde_prompt = PromptTemplate(
             input_variables=["query", "chunk_size"],
@@ -145,10 +145,8 @@ class HyDERetriever:
 
     def retrieve(self, query, k=3):
         hypothetical_doc = self.generate_hypothetical_document(query)
-        similar_docs = self.vectorstore.similarity_search(
-            hypothetical_doc, k=k)
+        similar_docs = self.vectorstore.similarity_search(hypothetical_doc, k=k)
         return similar_docs, hypothetical_doc
-
 
 """
 ### Create a HyDe retriever instance

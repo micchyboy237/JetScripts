@@ -9,13 +9,12 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join(script_dir, "generated", file_name)
+GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
@@ -81,21 +80,20 @@ The paper also has an official code implemention, and this code is based on it, 
 
 The cell below installs all necessary packages required to run this notebook.
 """
-logger.info(
-    "# Dartboard RAG: Retrieval-Augmented Generation with Balanced Relevance and Diversity")
+logger.info("# Dartboard RAG: Retrieval-Augmented Generation with Balanced Relevance and Diversity")
 
 # !pip install numpy python-dotenv
 
-# !git clone https://github.com/N7/RAG_TECHNIQUES.git
+# !git clone https://github.com/NirDiamant/RAG_TECHNIQUES.git
 sys.path.append('RAG_TECHNIQUES')
 
 
 load_dotenv()
 # if not os.getenv('OPENAI_API_KEY'):
-logger.debug("Please enter your Ollama API key: ")
+    logger.debug("Please enter your Ollama API key: ")
 #     os.environ["OPENAI_API_KEY"] = input("Please enter your Ollama API key: ")
 else:
-    #     os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
+#     os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
 
 """
@@ -105,8 +103,8 @@ logger.info("### Read Docs")
 
 os.makedirs('data', exist_ok=True)
 
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
 
 path = f"{GENERATED_DIR}/Understanding_Climate_Change.pdf"
 
@@ -114,7 +112,6 @@ path = f"{GENERATED_DIR}/Understanding_Climate_Change.pdf"
 ### Encode document
 """
 logger.info("### Encode document")
-
 
 def encode_pdf(path, chunk_size=1000, chunk_overlap=200):
     """
@@ -131,7 +128,7 @@ def encode_pdf(path, chunk_size=1000, chunk_overlap=200):
 
     loader = PyPDFLoader(path)
     documents = loader.load()
-    documents = documents*5  # load every document 5 times to emulate a dense dataset
+    documents=documents*5 # load every document 5 times to emulate a dense dataset
 
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size, chunk_overlap=chunk_overlap, length_function=len
@@ -144,7 +141,6 @@ def encode_pdf(path, chunk_size=1000, chunk_overlap=200):
     vectorstore = FAISS.from_documents(cleaned_texts, embeddings)
 
     return vectorstore
-
 
 """
 ### Create Vector store
@@ -159,8 +155,7 @@ this part is same like simple_rag.ipynb, only its using the actual FAISS index (
 """
 logger.info("### Some helper functions for using the vector store for retrieval.")
 
-
-def idx_to_text(idx: int):
+def idx_to_text(idx:int):
     """
     Convert a Vector store index to the corresponding text.
     """
@@ -169,16 +164,15 @@ def idx_to_text(idx: int):
     return document.page_content
 
 
-def get_context(query: str, k: int = 5) -> Tuple[np.ndarray, np.ndarray, List[str]]:
+def get_context(query:str,k:int=5) -> Tuple[np.ndarray, np.ndarray, List[str]]:
     """
     Retrieve top k context items for a query using top k retrieval.
     """
-    q_vec = chunks_vector_store.embedding_function.embed_documents([query])
-    _, indices = chunks_vector_store.index.search(np.array(q_vec), k=k)
+    q_vec=chunks_vector_store.embedding_function.embed_documents([query])
+    _,indices=chunks_vector_store.index.search(np.array(q_vec),k=k)
 
     texts = [idx_to_text(i) for i in indices[0]]
     return texts
-
 
 test_query = "What is the main cause of climate change?"
 
@@ -188,7 +182,7 @@ test_query = "What is the main cause of climate change?"
 """
 logger.info("### Regular top k retrieval")
 
-texts = get_context(test_query, k=3)
+texts=get_context(test_query,k=3)
 show_context(texts)
 
 """
@@ -198,15 +192,13 @@ show_context(texts)
 """
 logger.info("## Now for the real part :)")
 
-
-def lognorm(dist: np.ndarray, sigma: float):
+def lognorm(dist:np.ndarray, sigma:float):
     """
     Calculate the log-normal probability for a given distance and sigma.
     """
     if sigma < 1e-9:
         return -np.inf * dist
     return -np.log(sigma) - 0.5 * np.log(2 * np.pi) - dist**2 / (2 * sigma**2)
-
 
 """
 ## Greedy Dartboard Search
@@ -235,7 +227,6 @@ DIVERSITY_WEIGHT = 1.0  # Weight for diversity in document selection
 RELEVANCE_WEIGHT = 1.0  # Weight for relevance to query
 SIGMA = 0.1  # Smoothing parameter for probability distribution
 
-
 def greedy_dartsearch(
     query_distances: np.ndarray,
     document_distances: np.ndarray,
@@ -261,9 +252,10 @@ def greedy_dartsearch(
     query_probabilities = lognorm(query_distances, sigma)
     document_probabilities = lognorm(document_distances, sigma)
 
+
     most_relevant_idx = np.argmax(query_probabilities)
     selected_indices = np.array([most_relevant_idx])
-    selection_scores = [1.0]  # dummy score for the first document
+    selection_scores = [1.0] # dummy score for the first document
     max_distances = document_probabilities[most_relevant_idx]
 
     while len(selected_indices) < num_results:
@@ -287,7 +279,6 @@ def greedy_dartsearch(
     selected_documents = [documents[i] for i in selected_indices]
     return selected_documents, selection_scores
 
-
 """
 ## Dartboard Context Retrieval
 
@@ -299,7 +290,6 @@ def greedy_dartsearch(
 4. Returns the final list of documents and their scores
 """
 logger.info("## Dartboard Context Retrieval")
-
 
 def get_context_with_dartboard(
     query: str,
@@ -324,8 +314,7 @@ def get_context_with_dartboard(
         fetches oversampling_factor * num_results items to ensure sufficient diversity
         in the final selection.
     """
-    query_embedding = chunks_vector_store.embedding_function.embed_documents([
-                                                                             query])
+    query_embedding = chunks_vector_store.embedding_function.embed_documents([query])
     _, candidate_indices = chunks_vector_store.index.search(
         np.array(query_embedding),
         k=num_results * oversampling_factor
@@ -348,14 +337,13 @@ def get_context_with_dartboard(
 
     return selected_texts, selection_scores
 
-
 """
 ### dartboard retrieval - results on same query, k, and dataset
 - As you can see now the top 3 results are not mere repetitions.
 """
 logger.info("### dartboard retrieval - results on same query, k, and dataset")
 
-texts, scores = get_context_with_dartboard(test_query, k=3)
+texts,scores=get_context_with_dartboard(test_query,k=3)
 show_context(texts)
 
 logger.info("\n\n[DONE]", bright=True)

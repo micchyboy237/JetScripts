@@ -74,7 +74,7 @@ logger.info("# Explainable Retrieval in Document Search")
 
 # !pip install python-dotenv
 
-# !git clone https://github.com/N7/RAG_TECHNIQUES.git
+# !git clone https://github.com/NirDiamant/RAG_TECHNIQUES.git
 sys.path.append('RAG_TECHNIQUES')
 
 

@@ -11,13 +11,12 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join(script_dir, "generated", file_name)
+GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
@@ -100,19 +99,20 @@ While the implementation adds complexity compared to a basic RAG system, the ben
 
 The cell below installs all necessary packages required to run this notebook.
 """
-logger.info(
-    "# RAG System with Feedback Loop: Enhancing Retrieval and Response Quality")
+logger.info("# RAG System with Feedback Loop: Enhancing Retrieval and Response Quality")
 
 # !pip install langchain langchain-openai python-dotenv
 
-# !git clone https://github.com/N7/RAG_TECHNIQUES.git
+# !git clone https://github.com/NirDiamant/RAG_TECHNIQUES.git
 sys.path.append('RAG_TECHNIQUES')
+
+
 
 
 load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 """
 ### Define documents path
@@ -121,9 +121,9 @@ logger.info("### Define documents path")
 
 os.makedirs('data', exist_ok=True)
 
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
-# !wget -O data/feedback_data.json https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/feedback_data.json
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/feedback_data.json https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/feedback_data.json
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
 
 path = f"{GENERATED_DIR}/Understanding_Climate_Change.pdf"
 
@@ -144,7 +144,6 @@ qa_chain = RetrievalQA.from_chain_type(llm, retriever=retriever)
 """
 logger.info("### Function to format user feedback in a dictionary")
 
-
 def get_user_feedback(query, response, relevance, quality, comments=""):
     return {
         "query": query,
@@ -154,24 +153,20 @@ def get_user_feedback(query, response, relevance, quality, comments=""):
         "comments": comments
     }
 
-
 """
 ### Function to store the feedback in a json file
 """
 logger.info("### Function to store the feedback in a json file")
-
 
 def store_feedback(feedback):
     with open(f"{GENERATED_DIR}/feedback_data.json", "a") as f:
         json.dump(feedback, f)
         f.write("\n")
 
-
 """
 ### Function to read the feedback file
 """
 logger.info("### Function to read the feedback file")
-
 
 def load_feedback_data():
     feedback_data = []
@@ -180,26 +175,20 @@ def load_feedback_data():
             for line in f:
                 feedback_data.append(json.loads(line.strip()))
     except FileNotFoundError:
-        logger.debug(
-            "No feedback data file found. Starting with empty feedback.")
+        logger.debug("No feedback data file found. Starting with empty feedback.")
     return feedback_data
-
 
 """
 ### Function to adjust files relevancy based on the feedbacks file
 """
 logger.info("### Function to adjust files relevancy based on the feedbacks file")
 
-
 class Response(BaseModel):
-    answer: str = Field(
-        ..., title="The answer to the question. The options can be only 'Yes' or 'No'")
-
+    answer: str = Field(..., title="The answer to the question. The options can be only 'Yes' or 'No'")
 
 def adjust_relevance_scores(query: str, docs: List[Any], feedback_data: List[Dict[str, Any]]) -> List[Any]:
     relevance_prompt = PromptTemplate(
-        input_variables=["query", "feedback_query",
-                         "doc_content", "feedback_response"],
+        input_variables=["query", "feedback_query", "doc_content", "feedback_response"],
         template="""
         Determine if the following feedback response is relevant to the current query and document content.
         You are also provided with the Feedback original query that was used to generate the feedback response.
@@ -231,23 +220,18 @@ def adjust_relevance_scores(query: str, docs: List[Any], feedback_data: List[Dic
                 relevant_feedback.append(feedback)
 
         if relevant_feedback:
-            avg_relevance = sum(f['relevance']
-                                for f in relevant_feedback) / len(relevant_feedback)
-            # Assuming a 1-5 scale, 3 is neutral
-            doc.metadata['relevance_score'] *= (avg_relevance / 3)
+            avg_relevance = sum(f['relevance'] for f in relevant_feedback) / len(relevant_feedback)
+            doc.metadata['relevance_score'] *= (avg_relevance / 3)  # Assuming a 1-5 scale, 3 is neutral
 
     return sorted(docs, key=lambda x: x.metadata['relevance_score'], reverse=True)
-
 
 """
 ### Function to fine tune the vector index to include also queries + answers that received good feedbacks
 """
 logger.info("### Function to fine tune the vector index to include also queries + answers that received good feedbacks")
 
-
 def fine_tune_index(feedback_data: List[Dict[str, Any]], texts: List[str]) -> Any:
-    good_responses = [
-        f for f in feedback_data if f['relevance'] >= 4 and f['quality'] >= 4]
+    good_responses = [f for f in feedback_data if f['relevance'] >= 4 and f['quality'] >= 4]
 
     additional_texts = []
     for f in good_responses:
@@ -261,12 +245,10 @@ def fine_tune_index(feedback_data: List[Dict[str, Any]], texts: List[str]) -> An
 
     return new_vectorstore
 
-
 """
 ### Demonstration of how to retrieve answers with respect to user feedbacks
 """
-logger.info(
-    "### Demonstration of how to retrieve answers with respect to user feedbacks")
+logger.info("### Demonstration of how to retrieve answers with respect to user feedbacks")
 
 query = "What is the greenhouse effect?"
 

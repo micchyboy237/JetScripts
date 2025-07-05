@@ -10,13 +10,12 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join(script_dir, "generated", file_name)
+GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
@@ -102,8 +101,9 @@ logger.info("# Hypothetical Prompt Embeddings (HyPE)")
 
 # !pip install faiss-cpu futures langchain-community python-dotenv tqdm
 
-# !git clone https://github.com/N7/RAG_TECHNIQUES.git
+# !git clone https://github.com/NirDiamant/RAG_TECHNIQUES.git
 sys.path.append('RAG_TECHNIQUES')
+
 
 
 load_dotenv()
@@ -111,7 +111,7 @@ load_dotenv()
 # if not os.getenv('OPENAI_API_KEY'):
 #     os.environ["OPENAI_API_KEY"] = input("Please enter your Ollama API key: ")
 else:
-    #     os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
+#     os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
 
 """
@@ -131,8 +131,8 @@ logger.info("### Define constants")
 
 os.makedirs('data', exist_ok=True)
 
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
 
 PATH = f"{GENERATED_DIR}/Understanding_Climate_Change.pdf"
 LANGUAGE_MODEL_NAME = "llama3.1"
@@ -152,7 +152,6 @@ The code block below generates hypothetical questions for each text chunk and em
 To ensure clean output, extra newlines are removed, and regex parsing can improve list formatting when needed.
 """
 logger.info("### Define generation of Hypothetical Prompt Embeddings")
-
 
 def generate_hypothetical_prompt_embeddings(chunk_text: str):
     """
@@ -179,11 +178,9 @@ def generate_hypothetical_prompt_embeddings(chunk_text: str):
     )
     question_chain = question_gen_prompt | llm | StrOutputParser()
 
-    questions = question_chain.invoke(
-        {"chunk_text": chunk_text}).replace("\n\n", "\n").split("\n")
+    questions = question_chain.invoke({"chunk_text": chunk_text}).replace("\n\n", "\n").split("\n")
 
     return chunk_text, embedding_model.embed_documents(questions)
-
 
 """
 ### Define creation and population of FAISS Vector Store
@@ -199,7 +196,6 @@ What happens?
 This ensures efficient retrieval, improving query alignment with precomputed question embeddings.
 """
 logger.info("### Define creation and population of FAISS Vector Store")
-
 
 def prepare_vector_store(chunks: List[str]):
     """
@@ -219,8 +215,7 @@ def prepare_vector_store(chunks: List[str]):
     vector_store = None
 
     with ThreadPoolExecutor() as pool:
-        futures = [pool.submit(
-            generate_hypothetical_prompt_embeddings, c) for c in chunks]
+        futures = [pool.submit(generate_hypothetical_prompt_embeddings, c) for c in chunks]
 
         for f in tqdm(as_completed(futures), total=len(chunks)):
 
@@ -228,21 +223,17 @@ def prepare_vector_store(chunks: List[str]):
 
             if vector_store == None:
                 vector_store = FAISS(
-                    embedding_function=OllamaEmbeddings(
-                        model="mxbai-embed-large"),  # Define embedding model
-                    # Define an L2 index for similarity search
-                    index=faiss.IndexFlatL2(len(vectors[0]))
+                    embedding_function=OllamaEmbeddings(model="mxbai-embed-large"),  # Define embedding model
+                    index=faiss.IndexFlatL2(len(vectors[0]))  # Define an L2 index for similarity search
                     docstore=InMemoryDocstore(),  # Use in-memory document storage
                     index_to_docstore_id={}  # Maintain index-to-document mapping
                 )
 
-            chunks_with_embedding_vectors = [
-                (chunk.page_content, vec) for vec in vectors]
+            chunks_with_embedding_vectors = [(chunk.page_content, vec) for vec in vectors]
 
             vector_store.add_embeddings(chunks_with_embedding_vectors)
 
     return vector_store  # Return the populated vector store
-
 
 """
 ### Encode PDF into a FAISS Vector Store
@@ -256,7 +247,6 @@ What happens?
 - Vector store creation – Generates embeddings and stores them in FAISS for retrieval.
 """
 logger.info("### Encode PDF into a FAISS Vector Store")
-
 
 def encode_pdf(path, chunk_size=1000, chunk_overlap=200):
     """
@@ -284,7 +274,6 @@ def encode_pdf(path, chunk_size=1000, chunk_overlap=200):
 
     return vectorstore
 
-
 """
 ### Create HyPE vector store
 
@@ -293,8 +282,7 @@ This step initializes the FAISS vector store with the encoded document.
 """
 logger.info("### Create HyPE vector store")
 
-chunks_vector_store = encode_pdf(
-    PATH, chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
+chunks_vector_store = encode_pdf(PATH, chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
 
 """
 ### Create retriever
@@ -305,8 +293,7 @@ Retrieves the top `k=3` most relevant chunks based on query similarity.
 """
 logger.info("### Create retriever")
 
-chunks_query_retriever = chunks_vector_store.as_retriever(search_kwargs={
-                                                          "k": 3})
+chunks_query_retriever = chunks_vector_store.as_retriever(search_kwargs={"k": 3})
 
 """
 ### Test retriever

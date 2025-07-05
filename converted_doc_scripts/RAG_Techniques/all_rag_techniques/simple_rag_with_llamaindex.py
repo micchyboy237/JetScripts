@@ -18,13 +18,12 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join(script_dir, "generated", file_name)
+GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
@@ -99,8 +98,9 @@ logger.info("# Simple RAG (Retrieval-Augmented Generation) System")
 
 # !pip install faiss-cpu llama-index python-dotenv
 
-# !git clone https://github.com/N7/RAG_TECHNIQUES.git
+# !git clone https://github.com/NirDiamant/RAG_TECHNIQUES.git
 sys.path.append('RAG_TECHNIQUES')
+
 
 
 EMBED_DIMENSION = 512
@@ -121,8 +121,8 @@ logger.info("### Read Docs")
 
 os.makedirs('data', exist_ok=True)
 
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
-# !wget -O data/q_a.json https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/q_a.json
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/q_a.json https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/q_a.json
 
 path = f"{GENERATED_DIR}/"
 node_parser = SimpleDirectoryReader(input_dir=path, required_exts=['.pdf'])
@@ -142,31 +142,25 @@ vector_store = FaissVectorStore(faiss_index=faiss_index)
 """
 logger.info("### Text Cleaner Transformation")
 
-
 class TextCleaner(TransformComponent):
     """
     Transformation to be used within the ingestion pipeline.
     Cleans clutters from texts.
     """
-
     def __call__(self, nodes, **kwargs) -> List[BaseNode]:
 
         for node in nodes:
-            node.text = node.text.replace(
-                '\t', ' ')  # Replace tabs with spaces
-            # Replace paragraph seperator with spacaes
-            node.text = node.text.replace(' \n', ' ')
+            node.text = node.text.replace('\t', ' ') # Replace tabs with spaces
+            node.text = node.text.replace(' \n', ' ') # Replace paragraph seperator with spacaes
 
         return nodes
-
 
 """
 ### Ingestion Pipeline
 """
 logger.info("### Ingestion Pipeline")
 
-text_splitter = SentenceSplitter(
-    chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
+text_splitter = SentenceSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
 
 pipeline = IngestionPipeline(
     transformations=[
@@ -191,7 +185,6 @@ retriever = vector_store_index.as_retriever(similarity_top_k=2)
 """
 logger.info("### Test retriever")
 
-
 def show_context(context):
     """
     Display the contents of the provided context list.
@@ -205,7 +198,6 @@ def show_context(context):
         logger.debug(f"Context {i+1}:")
         logger.debug(c.text)
         logger.debug("\n")
-
 
 test_query = "What is the main cause of climate change?"
 context = retriever.retrieve(test_query)
@@ -243,7 +235,6 @@ relevance_metric = ContextualRelevancyMetric(
     include_reason=True
 )
 
-
 def evaluate_rag(query_engine, num_questions: int = 5) -> None:
     """
     Evaluate the RAG system using predefined metrics.
@@ -252,6 +243,7 @@ def evaluate_rag(query_engine, num_questions: int = 5) -> None:
         query_engine: Query engine to ask questions and get answers along with retrieved context.
         num_questions (int): Number of questions to evaluate (default: 5).
     """
+
 
     q_a_file_name = f"{GENERATED_DIR}/q_a.json"
     with open(q_a_file_name, "r", encoding="utf-8") as json_file:
@@ -268,20 +260,18 @@ def evaluate_rag(query_engine, num_questions: int = 5) -> None:
         retrieved_documents.append(context)
         generated_answers.append(response.response)
 
-    test_cases = create_deep_eval_test_cases(
-        questions, ground_truth_answers, generated_answers, retrieved_documents)
+    test_cases = create_deep_eval_test_cases(questions, ground_truth_answers, generated_answers, retrieved_documents)
     evaluate(
         test_cases=test_cases,
         metrics=[correctness_metric, faithfulness_metric, relevance_metric]
     )
-
 
 """
 ### Evaluate results
 """
 logger.info("### Evaluate results")
 
-query_engine = vector_store_index.as_query_engine(similarity_top_k=2)
+query_engine  = vector_store_index.as_query_engine(similarity_top_k=2)
 evaluate_rag(query_engine, num_questions=1)
 
 logger.info("\n\n[DONE]", bright=True)

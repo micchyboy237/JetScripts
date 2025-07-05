@@ -86,20 +86,6 @@ class ContextInfo(TypedDict):
     contexts: list[ContextEntry]
 
 
-def get_header_stats(text: str) -> Dict:
-    """Analyze text and return header statistics."""
-    logger.debug("Analyzing text for header statistics")
-    analysis = analyze_text(text)
-    logger.info(
-        f"Header stats computed: MTLD={analysis['mtld']}, Difficulty={analysis['overall_difficulty']}")
-    return {
-        "mtld": analysis["mtld"],
-        "mtld_category": analysis["mtld_category"],
-        "overall_difficulty": analysis["overall_difficulty"],
-        "overall_difficulty_category": analysis["overall_difficulty_category"],
-    }
-
-
 def format_sub_dir(text: str) -> str:
     return text.lower().strip('.,!?').replace(' ', '_').replace(
         '.', '_').replace(',', '_').replace('!', '_').replace('?', '_').strip()

@@ -10,13 +10,12 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join(script_dir, "generated", file_name)
+GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
@@ -89,8 +88,11 @@ logger.info("# Fusion Retrieval in Document Search")
 
 # !pip install langchain numpy python-dotenv rank-bm25
 
-# !git clone https://github.com/N7/RAG_TECHNIQUES.git
+# !git clone https://github.com/NirDiamant/RAG_TECHNIQUES.git
 sys.path.append('RAG_TECHNIQUES')
+
+
+
 
 
 load_dotenv()
@@ -104,8 +106,8 @@ logger.info("### Define document path")
 
 os.makedirs('data', exist_ok=True)
 
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
 
 path = f"{GENERATED_DIR}/Understanding_Climate_Change.pdf"
 
@@ -113,7 +115,6 @@ path = f"{GENERATED_DIR}/Understanding_Climate_Change.pdf"
 ### Encode the pdf to vector store and return split document from the step before to create BM25 instance
 """
 logger.info("### Encode the pdf to vector store and return split document from the step before to create BM25 instance")
-
 
 def encode_pdf_and_get_split_documents(path, chunk_size=1000, chunk_overlap=200):
     """
@@ -142,7 +143,6 @@ def encode_pdf_and_get_split_documents(path, chunk_size=1000, chunk_overlap=200)
 
     return vectorstore, cleaned_texts
 
-
 """
 ### Create vectorstore and get the chunked documents
 """
@@ -154,7 +154,6 @@ vectorstore, cleaned_texts = encode_pdf_and_get_split_documents(path)
 ### Create a bm25 index for retrieving documents by keywords
 """
 logger.info("### Create a bm25 index for retrieving documents by keywords")
-
 
 def create_bm25_index(documents: List[Document]) -> BM25Okapi:
     """
@@ -172,15 +171,12 @@ def create_bm25_index(documents: List[Document]) -> BM25Okapi:
     tokenized_docs = [doc.page_content.split() for doc in documents]
     return BM25Okapi(tokenized_docs)
 
-
-# Create BM25 index from the cleaned texts (chunks)
-bm25 = create_bm25_index(cleaned_texts)
+bm25 = create_bm25_index(cleaned_texts) # Create BM25 index from the cleaned texts (chunks)
 
 """
 ### Define a function that retrieves both semantically and by keyword, normalizes the scores and gets the top k documents
 """
 logger.info("### Define a function that retrieves both semantically and by keyword, normalizes the scores and gets the top k documents")
-
 
 def fusion_retrieval(vectorstore, bm25, query: str, k: int = 5, alpha: float = 0.5) -> List[Document]:
     """
@@ -203,22 +199,18 @@ def fusion_retrieval(vectorstore, bm25, query: str, k: int = 5, alpha: float = 0
 
     bm25_scores = bm25.get_scores(query.split())
 
-    vector_results = vectorstore.similarity_search_with_score(
-        query, k=len(all_docs))
+    vector_results = vectorstore.similarity_search_with_score(query, k=len(all_docs))
 
     vector_scores = np.array([score for _, score in vector_results])
-    vector_scores = 1 - (vector_scores - np.min(vector_scores)) / \
-        (np.max(vector_scores) - np.min(vector_scores) + epsilon)
+    vector_scores = 1 - (vector_scores - np.min(vector_scores)) / (np.max(vector_scores) - np.min(vector_scores) + epsilon)
 
-    bm25_scores = (bm25_scores - np.min(bm25_scores)) / \
-        (np.max(bm25_scores) - np.min(bm25_scores) + epsilon)
+    bm25_scores = (bm25_scores - np.min(bm25_scores)) / (np.max(bm25_scores) -  np.min(bm25_scores) + epsilon)
 
     combined_scores = alpha * vector_scores + (1 - alpha) * bm25_scores
 
     sorted_indices = np.argsort(combined_scores)[::-1]
 
     return [all_docs[i] for i in sorted_indices[:k]]
-
 
 """
 ### Use Case example

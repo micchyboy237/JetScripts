@@ -616,7 +616,8 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/all-rag-techniques",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/RAG_Techniques/all_rag_techniques",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/RAG_Techniques/evaluation",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/rag-cookbooks"
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/rag-cookbooks",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/RAG_Techniques/all_rag_techniques",
     ]
     include_files = [
         # "memgraph.ipynb",

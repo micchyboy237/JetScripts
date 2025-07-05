@@ -17,13 +17,12 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join(script_dir, "generated", file_name)
+GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
@@ -91,9 +90,8 @@ load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
-EMBED_DIMENSION = 512
-Settings.llm = Ollama(model="llama3.2", request_timeout=300.0,
-                      context_window=4096, temperature=0.1)
+EMBED_DIMENSION=512
+Settings.llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
 Settings.embed_model = OllamaEmbedding(model_name="mxbai-embed-large")
 
 """
@@ -103,7 +101,7 @@ logger.info("### Read Docs")
 
 os.makedirs('data', exist_ok=True)
 
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
 
 path = f"{GENERATED_DIR}/"
 reader = SimpleDirectoryReader(input_dir=path, required_exts=['.pdf'])
@@ -123,23 +121,18 @@ vector_store = FaissVectorStore(faiss_index=fais_index)
 """
 logger.info("### Text Cleaner Transformation")
 
-
 class TextCleaner(TransformComponent):
     """
     Transformation to be used within the ingestion pipeline.
     Cleans clutters from texts.
     """
-
     def __call__(self, nodes, **kwargs) -> List[BaseNode]:
 
         for node in nodes:
-            node.text = node.text.replace(
-                '\t', ' ')  # Replace tabs with spaces
-            # Replace paragprah seperator with spacaes
-            node.text = node.text.replace(' \n', ' ')
+            node.text = node.text.replace('\t', ' ') # Replace tabs with spaces
+            node.text = node.text.replace(' \n', ' ') # Replace paragprah seperator with spacaes
 
         return nodes
-
 
 """
 ### Ingestion Pipeline
@@ -188,8 +181,8 @@ retriever = QueryFusionRetriever(
         bm25_retriever
     ],
     retriever_weights=[
-        0.6,  # vector retriever weight
-        0.4  # BM25 retriever weight
+        0.6, # vector retriever weight
+        0.4 # BM25 retriever weight
     ],
     num_queries=1,
     mode='dist_based_score',

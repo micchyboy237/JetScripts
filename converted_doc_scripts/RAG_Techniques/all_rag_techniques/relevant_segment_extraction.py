@@ -167,8 +167,8 @@ def plot_relevance_scores(chunk_values: List[float], start_index: int = None, en
 
 os.makedirs('data', exist_ok=True)
 
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
-# !wget -O data/nike_2023_annual_report.txt https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/nike_2023_annual_report.txt
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/nike_2023_annual_report.txt https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/nike_2023_annual_report.txt
 
 FILE_PATH = f"{GENERATED_DIR}/nike_2023_annual_report.txt"
 

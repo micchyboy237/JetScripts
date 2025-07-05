@@ -91,8 +91,8 @@ logger.info("### CSV File Structure and Use Case")
 
 os.makedirs('data', exist_ok=True)
 
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
-# !wget -O data/customers-100.csv https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/customers-100.csv
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/customers-100.csv https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/customers-100.csv
 
 file_path = ('data/customers-100.csv') # insert the path of the csv file
 data = pd.read_csv(file_path)

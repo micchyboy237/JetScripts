@@ -7,13 +7,12 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join(script_dir, "generated", file_name)
+GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
@@ -88,8 +87,10 @@ logger.info("# Context Enrichment Window for Document Retrieval")
 
 # !pip install langchain python-dotenv
 
-# !git clone https://github.com/N7/RAG_TECHNIQUES.git
+# !git clone https://github.com/NirDiamant/RAG_TECHNIQUES.git
 sys.path.append('RAG_TECHNIQUES')
+
+
 
 
 load_dotenv()
@@ -103,8 +104,8 @@ logger.info("### Define path to PDF")
 
 os.makedirs('data', exist_ok=True)
 
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
 
 path = f"{GENERATED_DIR}/Understanding_Climate_Change.pdf"
 
@@ -118,9 +119,7 @@ content = read_pdf_to_string(path)
 """
 ### Function to split text into chunks with metadata of the chunk chronological index
 """
-logger.info(
-    "### Function to split text into chunks with metadata of the chunk chronological index")
-
+logger.info("### Function to split text into chunks with metadata of the chunk chronological index")
 
 def split_text_to_chunks_with_indices(text: str, chunk_size: int, chunk_overlap: int) -> List[Document]:
     chunks = []
@@ -128,11 +127,9 @@ def split_text_to_chunks_with_indices(text: str, chunk_size: int, chunk_overlap:
     while start < len(text):
         end = start + chunk_size
         chunk = text[start:end]
-        chunks.append(Document(page_content=chunk, metadata={
-                      "index": len(chunks), "text": text}))
+        chunks.append(Document(page_content=chunk, metadata={"index": len(chunks), "text": text}))
         start += chunk_size - chunk_overlap
     return chunks
-
 
 """
 ### Split our document accordingly
@@ -155,9 +152,7 @@ chunks_query_retriever = vectorstore.as_retriever(search_kwargs={"k": 1})
 """
 ### Function to draw the k<sup>th</sup> chunk (in the original order) from the vector store
 """
-logger.info(
-    "### Function to draw the k<sup>th</sup> chunk (in the original order) from the vector store")
-
+logger.info("### Function to draw the k<sup>th</sup> chunk (in the original order) from the vector store")
 
 def get_chunk_by_index(vectorstore, target_index: int) -> Document:
     """
@@ -176,7 +171,6 @@ def get_chunk_by_index(vectorstore, target_index: int) -> Document:
             return doc
     return None
 
-
 """
 ### Check the function
 """
@@ -189,7 +183,6 @@ logger.debug(chunk.page_content)
 ### Function that retrieves from the vector stroe based on semantic similarity and then pads each retrieved chunk with its num_neighbors before and after, taking into account the chunk overlap to construct a meaningful wide window arround it
 """
 logger.info("### Function that retrieves from the vector stroe based on semantic similarity and then pads each retrieved chunk with its num_neighbors before and after, taking into account the chunk overlap to construct a meaningful wide window arround it")
-
 
 def retrieve_with_context_overlap(vectorstore, retriever, query: str, num_neighbors: int = 1, chunk_size: int = 200, chunk_overlap: int = 20) -> List[str]:
     """
@@ -216,8 +209,7 @@ def retrieve_with_context_overlap(vectorstore, retriever, query: str, num_neighb
             continue
 
         start_index = max(0, current_index - num_neighbors)
-        # +1 because range is exclusive at the end
-        end_index = current_index + num_neighbors + 1
+        end_index = current_index + num_neighbors + 1  # +1 because range is exclusive at the end
 
         neighbor_chunks = []
         for i in range(start_index, end_index):
@@ -231,13 +223,11 @@ def retrieve_with_context_overlap(vectorstore, retriever, query: str, num_neighb
         for i in range(1, len(neighbor_chunks)):
             current_chunk = neighbor_chunks[i].page_content
             overlap_start = max(0, len(concatenated_text) - chunk_overlap)
-            concatenated_text = concatenated_text[:overlap_start] + \
-                current_chunk
+            concatenated_text = concatenated_text[:overlap_start] + current_chunk
 
         result_sequences.append(concatenated_text)
 
     return result_sequences
-
 
 """
 ### Comparing regular retrival and retrival with context window
@@ -245,9 +235,10 @@ def retrieve_with_context_overlap(vectorstore, retriever, query: str, num_neighb
 logger.info("### Comparing regular retrival and retrival with context window")
 
 query = "Explain the role of deforestation and fossil fuels in climate change."
-baseline_chunk = chunks_query_retriever.get_relevant_documents(query,
-                                                               k=1
-                                                               )
+baseline_chunk = chunks_query_retriever.get_relevant_documents(query
+    ,
+    k=1
+)
 enriched_chunks = retrieve_with_context_overlap(
     vectorstore,
     chunks_query_retriever,
@@ -265,8 +256,7 @@ logger.debug(enriched_chunks[0])
 """
 ### An example that showcases the superiority of additional context window
 """
-logger.info(
-    "### An example that showcases the superiority of additional context window")
+logger.info("### An example that showcases the superiority of additional context window")
 
 document_content = """
 Artificial Intelligence (AI) has a rich history dating back to the mid-20th century. The term "Artificial Intelligence" was coined in 1956 at the Dartmouth Conference, marking the field's official beginning.
@@ -296,8 +286,7 @@ As AI continues to evolve, new challenges and opportunities arise. Explainable A
 
 chunks_size = 250
 chunk_overlap = 20
-document_chunks = split_text_to_chunks_with_indices(
-    document_content, chunks_size, chunk_overlap)
+document_chunks = split_text_to_chunks_with_indices(document_content, chunks_size, chunk_overlap)
 document_vectorstore = FAISS.from_documents(document_chunks, embeddings)
 document_retriever = document_vectorstore.as_retriever(search_kwargs={"k": 1})
 
@@ -308,8 +297,7 @@ context_pages_content = [doc.page_content for doc in context]
 logger.debug("Regular retrieval:\n")
 show_context(context_pages_content)
 
-sequences = retrieve_with_context_overlap(
-    document_vectorstore, document_retriever, query, num_neighbors=1)
+sequences = retrieve_with_context_overlap(document_vectorstore, document_retriever, query, num_neighbors=1)
 logger.debug("\nRetrieval with context enrichment:\n")
 show_context(sequences)
 

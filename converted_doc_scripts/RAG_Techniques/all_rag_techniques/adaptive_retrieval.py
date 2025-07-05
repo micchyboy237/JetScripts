@@ -22,6 +22,10 @@ logger.info(f"Logs: {log_file}")
 """
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/NirDiamant/RAG_Techniques/blob/main/all_rag_techniques/adaptive_retrieval.ipynb)
 
+<!-- ![](https://europe-west1-atp-views-tracker.cloudfunctions.net/working-analytics?notebook=adaptive-retrieval) -->
+
+
+
 # Adaptive Retrieval-Augmented Generation (RAG) System
 
 ## Overview
@@ -117,7 +121,7 @@ logger.info("# Adaptive Retrieval-Augmented Generation (RAG) System")
 
 # !pip install faiss-cpu langchain langchain-openai python-dotenv
 
-# !git clone https://github.com/N7/RAG_TECHNIQUES.git
+# !git clone https://github.com/NirDiamant/RAG_TECHNIQUES.git
 sys.path.append('RAG_TECHNIQUES')
 
 

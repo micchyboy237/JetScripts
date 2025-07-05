@@ -9,13 +9,12 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(
-    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join(script_dir, "generated", file_name)
+GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
@@ -85,8 +84,10 @@ logger.info("# Self-RAG: A Dynamic Approach to Retrieval-Augmented Generation")
 
 # !pip install langchain langchain-openai python-dotenv
 
-# !git clone https://github.com/N7/RAG_TECHNIQUES.git
+# !git clone https://github.com/NirDiamant/RAG_TECHNIQUES.git
 sys.path.append('RAG_TECHNIQUES')
+
+
 
 
 load_dotenv()
@@ -100,8 +101,8 @@ logger.info("### Define files path")
 
 os.makedirs('data', exist_ok=True)
 
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
-# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/N7/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
+# !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
 
 path = f"{GENERATED_DIR}/Understanding_Climate_Change.pdf"
 
@@ -124,67 +125,44 @@ llm = ChatOllama(model="llama3.1")
 """
 logger.info("### Defining prompt templates")
 
-
 class RetrievalResponse(BaseModel):
-    response: str = Field(..., title="Determines if retrieval is necessary",
-                          description="Output only 'Yes' or 'No'.")
-
-
+    response: str = Field(..., title="Determines if retrieval is necessary", description="Output only 'Yes' or 'No'.")
 retrieval_prompt = PromptTemplate(
     input_variables=["query"],
     template="Given the query '{query}', determine if retrieval is necessary. Output only 'Yes' or 'No'."
 )
 
-
 class RelevanceResponse(BaseModel):
-    response: str = Field(..., title="Determines if context is relevant",
-                          description="Output only 'Relevant' or 'Irrelevant'.")
-
-
+    response: str = Field(..., title="Determines if context is relevant", description="Output only 'Relevant' or 'Irrelevant'.")
 relevance_prompt = PromptTemplate(
     input_variables=["query", "context"],
     template="Given the query '{query}' and the context '{context}', determine if the context is relevant. Output only 'Relevant' or 'Irrelevant'."
 )
 
-
 class GenerationResponse(BaseModel):
-    response: str = Field(..., title="Generated response",
-                          description="The generated response.")
-
-
+    response: str = Field(..., title="Generated response", description="The generated response.")
 generation_prompt = PromptTemplate(
     input_variables=["query", "context"],
     template="Given the query '{query}' and the context '{context}', generate a response."
 )
 
-
 class SupportResponse(BaseModel):
-    response: str = Field(..., title="Determines if response is supported",
-                          description="Output 'Fully supported', 'Partially supported', or 'No support'.")
-
-
+    response: str = Field(..., title="Determines if response is supported", description="Output 'Fully supported', 'Partially supported', or 'No support'.")
 support_prompt = PromptTemplate(
     input_variables=["response", "context"],
     template="Given the response '{response}' and the context '{context}', determine if the response is supported by the context. Output 'Fully supported', 'Partially supported', or 'No support'."
 )
 
-
 class UtilityResponse(BaseModel):
-    response: int = Field(..., title="Utility rating",
-                          description="Rate the utility of the response from 1 to 5.")
-
-
+    response: int = Field(..., title="Utility rating", description="Rate the utility of the response from 1 to 5.")
 utility_prompt = PromptTemplate(
     input_variables=["query", "response"],
     template="Given the query '{query}' and the response '{response}', rate the utility of the response from 1 to 5."
 )
 
-retrieval_chain = retrieval_prompt | llm.with_structured_output(
-    RetrievalResponse)
-relevance_chain = relevance_prompt | llm.with_structured_output(
-    RelevanceResponse)
-generation_chain = generation_prompt | llm.with_structured_output(
-    GenerationResponse)
+retrieval_chain = retrieval_prompt | llm.with_structured_output(RetrievalResponse)
+relevance_chain = relevance_prompt | llm.with_structured_output(RelevanceResponse)
+generation_chain = generation_prompt | llm.with_structured_output(GenerationResponse)
 support_chain = support_prompt | llm.with_structured_output(SupportResponse)
 utility_chain = utility_prompt | llm.with_structured_output(UtilityResponse)
 
@@ -193,14 +171,12 @@ utility_chain = utility_prompt | llm.with_structured_output(UtilityResponse)
 """
 logger.info("### Defining the self RAG logic flow")
 
-
 def self_rag(query, vectorstore, top_k=3):
     logger.debug(f"\nProcessing query: {query}")
 
     logger.debug("Step 1: Determining if retrieval is necessary...")
     input_data = {"query": query}
-    retrieval_decision = retrieval_chain.invoke(
-        input_data).response.strip().lower()
+    retrieval_decision = retrieval_chain.invoke(input_data).response.strip().lower()
     logger.debug(f"Retrieval decision: {retrieval_decision}")
 
     if retrieval_decision == 'yes':
@@ -213,8 +189,7 @@ def self_rag(query, vectorstore, top_k=3):
         relevant_contexts = []
         for i, context in enumerate(contexts):
             input_data = {"query": query, "context": context}
-            relevance = relevance_chain.invoke(
-                input_data).response.strip().lower()
+            relevance = relevance_chain.invoke(input_data).response.strip().lower()
             logger.debug(f"Document {i+1} relevance: {relevance}")
             if relevance == 'relevant':
                 relevant_contexts.append(context)
@@ -222,10 +197,8 @@ def self_rag(query, vectorstore, top_k=3):
         logger.debug(f"Number of relevant contexts: {len(relevant_contexts)}")
 
         if not relevant_contexts:
-            logger.debug(
-                "No relevant contexts found. Generating without retrieval...")
-            input_data = {"query": query,
-                          "context": "No relevant context found."}
+            logger.debug("No relevant contexts found. Generating without retrieval...")
+            input_data = {"query": query, "context": "No relevant context found."}
             return generation_chain.invoke(input_data).response
 
         logger.debug("Step 4: Generating responses using relevant contexts...")
@@ -248,16 +221,13 @@ def self_rag(query, vectorstore, top_k=3):
             responses.append((response, support, utility))
 
         logger.debug("Selecting the best response...")
-        best_response = max(responses, key=lambda x: (
-            x[1] == 'fully supported', x[2]))
-        logger.debug(
-            f"Best response support: {best_response[1]}, utility: {best_response[2]}")
+        best_response = max(responses, key=lambda x: (x[1] == 'fully supported', x[2]))
+        logger.debug(f"Best response support: {best_response[1]}, utility: {best_response[2]}")
         return best_response[0]
     else:
         logger.debug("Generating without retrieval...")
         input_data = {"query": query, "context": "No retrieval necessary."}
         return generation_chain.invoke(input_data).response
-
 
 """
 ### Test the self-RAG function easy query with high relevance
@@ -273,8 +243,7 @@ logger.debug(response)
 """
 ### Test the self-RAG function with a more challenging query with low relevance
 """
-logger.info(
-    "### Test the self-RAG function with a more challenging query with low relevance")
+logger.info("### Test the self-RAG function with a more challenging query with low relevance")
 
 query = "how did harry beat quirrell?"
 response = self_rag(query, vectorstore)
