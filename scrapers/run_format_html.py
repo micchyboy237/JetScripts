@@ -50,7 +50,7 @@ if __name__ == "__main__":
     model, tokenizer = load(model_path)
 
     # Chunk docs with chunk size
-    chunk_size = 300
+    chunk_size = 64
 
     def _tokenizer(text: Union[str, List[str]]) -> Union[List[str], List[List[str]]]:
         if isinstance(text, str):
