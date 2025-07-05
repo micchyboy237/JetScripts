@@ -1,9 +1,13 @@
 import os
 import shutil
 from typing import List, Union
+from jet.code.html_utils import remove_noisy_elements
+from jet.code.markdown_utils._converters import convert_html_to_markdown, convert_markdown_to_html
 from jet.code.markdown_utils._markdown_parser import parse_markdown
 from jet.code.splitter_markdown_utils import get_md_header_contents
 from jet.models.embeddings.chunking import chunk_headers_by_hierarchy
+from jet.models.model_types import LLMModelType
+from jet.models.utils import resolve_model_value
 from mlx_lm import load
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
@@ -27,9 +31,10 @@ if __name__ == "__main__":
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    model_path = "mlx-community/Llama-3.2-3B-Instruct-4bit"
+    model_path: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
 
     html_str: str = load_file(html_file)
+    html_str = remove_noisy_elements(html_str)
 
     save_file(format_html(html_str), f"{output_dir}/doc.html")
 
@@ -47,7 +52,8 @@ if __name__ == "__main__":
     texts = [item["text"] for item in headings]
 
     # Load the model and tokenizer
-    model, tokenizer = load(model_path)
+    model_id = resolve_model_value(model_path)
+    model, tokenizer = load(model_id)
 
     # Chunk docs with chunk size
     chunk_size = 150
@@ -65,6 +71,7 @@ if __name__ == "__main__":
     doc_markdown_tokens = parse_markdown(html_str, ignore_links=False)
     doc_markdown = "\n\n".join([item["content"]
                                for item in doc_markdown_tokens])
+    # doc_html = convert_markdown_to_html(doc_markdown)
     save_file(doc_markdown, f"{output_dir}/doc_markdown.md")
 
     chunked_docs = chunk_headers_by_hierarchy(
