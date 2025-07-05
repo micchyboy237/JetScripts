@@ -11,6 +11,7 @@ from jet.models.model_types import ModelType
 if __name__ == "__main__":
     query_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/query.md"
     html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/pages/animebytes_in_15_best_upcoming_isekai_anime_in_2025/page.html"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/run_format_html/merged_docs.json"
     # html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/pages/www.reddit.com_r_rag_comments_1j4r4wj_10_rag_papers_you_should_read_from_february_2025/page.html"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(
@@ -31,7 +32,11 @@ if __name__ == "__main__":
     tokens = parse_markdown(html_file, ignore_links=True)
     save_file(tokens, f"{output_dir}/markdown_tokens.json")
 
-    header_docs = HeaderDocs.from_tokens(tokens)
+    # header_docs = HeaderDocs.from_tokens(tokens)
+    docs = load_file(docs_file)
+    # header_docs = HeaderDocs.from_dicts(docs)
+    texts = [f"{doc["header"]}\n{doc["text"]}" for doc in docs]
+    header_docs = HeaderDocs.from_texts(texts)
     save_file(header_docs, f"{output_dir}/header_docs.json")
 
     all_texts = header_docs.as_texts()
@@ -69,9 +74,9 @@ if __name__ == "__main__":
     logger.info("\nStart RAG search...")
 
     query = load_file(query_file)
-    chunk_size = 300
+    chunk_size = None
     chunk_overlap = 40
-    truncate_dim = 256
+    truncate_dim = 300
     threshold = 0.0
     top_k = None
     model: ModelType = "all-MiniLM-L6-v2"
@@ -109,7 +114,8 @@ if __name__ == "__main__":
             "num_tokens": n.num_tokens,
             "score": n.score,
             "parent_header": n.parent_header,
-            "text": n.header + ("\n" + n.content if n.content else "")
+            "header": n.header,
+            "content": n.content
         }
         for n in search_results[:20]
     ]
