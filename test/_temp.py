@@ -233,12 +233,16 @@ def main():
     """
     Main function to process URLs, prepare for RAG, and demonstrate a query.
     """
-    urls = ["https://planet.python.org/"]
+    urls = ["https://animebytes.in/15-best-upcoming-isekai-anime-in-2025"]
     index, embeddings, model = prepare_for_rag(urls, batch_size=32)
 
+    if index is None or not embeddings:
+        print("No data indexed, exiting.")
+        return
+
     # Example query
-    query_text = "What is Python programming?"
-    results = query_rag(index, embeddings, model, query_text, k=10)
+    query_text = "Top isekai anime 2025."
+    results = query_rag(index, embeddings, model, query_text, k=20)
 
     print("\nQuery Results:")
     for i, result in enumerate(results, 1):
