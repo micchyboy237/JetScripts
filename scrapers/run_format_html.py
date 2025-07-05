@@ -1,6 +1,3 @@
-
-
-# Example Usage
 import os
 import shutil
 from typing import List, Union
@@ -75,7 +72,41 @@ if __name__ == "__main__":
     save_file(chunked_docs, f"{output_dir}/chunked_docs.json")
 
     html_docs = [item["content"] for item in chunked_docs]
-    chunked_markdown = "\n\n".join(html_docs)
+    # Group by parent_header first, then by header
+    parent_header_groups = {}
+    used_headers = set()  # Track used parent headers for grouping
+
+    for doc in chunked_docs:
+        parent_header = doc.get("parent_header") or ""
+        header = doc.get("header") or ""
+
+        if parent_header not in parent_header_groups:
+            parent_header_groups[parent_header] = {}
+            used_headers.add(parent_header)
+
+        if header not in parent_header_groups[parent_header]:
+            parent_header_groups[parent_header][header] = []
+
+        parent_header_groups[parent_header][header].append(doc["content"])
+
+    # Create markdown with parent headers as group headers, deduplicating globally
+    grouped_markdown_parts = []
+    appended_headers = set()  # Track all appended headers (parent and subheaders)
+
+    for parent_header, header_groups in parent_header_groups.items():
+        # Only append parent header if it hasn't been used before
+        if parent_header and parent_header not in appended_headers:
+            grouped_markdown_parts.append(parent_header)
+            appended_headers.add(parent_header)
+
+        for header, contents in header_groups.items():
+            # Only append header if it hasn't been used before
+            if header and header not in appended_headers:
+                grouped_markdown_parts.append(header)
+                appended_headers.add(header)
+            grouped_markdown_parts.extend(contents)
+
+    chunked_markdown = "\n\n".join(grouped_markdown_parts)
     save_file(chunked_markdown, f"{output_dir}/chunked_markdown.md")
 
     # By headings

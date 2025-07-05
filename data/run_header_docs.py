@@ -2,6 +2,7 @@ import os
 import shutil
 from jet.code.markdown_utils import analyze_markdown, parse_markdown
 from jet.data.header_docs import HeaderDocs
+from jet.data.header_types import HeaderNode
 from jet.data.header_utils import split_and_merge_headers, prepare_for_rag, search_headers
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
@@ -11,7 +12,7 @@ from jet.models.model_types import ModelType
 if __name__ == "__main__":
     query_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/query.md"
     html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/pages/animebytes_in_15_best_upcoming_isekai_anime_in_2025/page.html"
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/run_format_html/chunked_docs.json"
+    chunked_json_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/run_format_html/chunked_docs.json"
     # html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_rag_strategies_reddit_2025/pages/www.reddit.com_r_rag_comments_1j4r4wj_10_rag_papers_you_should_read_from_february_2025/page.html"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(
@@ -32,12 +33,8 @@ if __name__ == "__main__":
     tokens = parse_markdown(html_file, ignore_links=True)
     save_file(tokens, f"{output_dir}/markdown_tokens.json")
 
-    # header_docs = HeaderDocs.from_tokens(tokens)
-    docs = load_file(docs_file)
     # header_docs = HeaderDocs.from_dicts(docs)
-    texts = [f"{doc["header"]}\n{doc["content"]}" for doc in docs]
-    header_docs = HeaderDocs.from_texts(texts)
-    save_file(header_docs, f"{output_dir}/header_docs.json")
+    header_docs = HeaderDocs.from_tokens(tokens)
 
     all_texts = header_docs.as_texts()
     save_file(all_texts, f"{output_dir}/all_texts.json")
@@ -81,22 +78,27 @@ if __name__ == "__main__":
     top_k = None
     model: ModelType = "all-MiniLM-L6-v2"
 
+    chunked_docs = load_file(chunked_json_file)
+    context_docs = HeaderDocs.from_dicts(chunked_docs)
+
     rag_output_dir = f"{output_dir}/rag"
 
-    header_docs.calculate_num_tokens(model)
-    all_nodes = header_docs.as_nodes()
-    save_file(all_nodes, f"{rag_output_dir}/all_nodes.json")
+    context_docs.calculate_num_tokens(model)
+    context_nodes = context_docs.as_nodes()
+    save_file(context_nodes, f"{rag_output_dir}/context_nodes.json")
 
-    SentenceTransformerRegistry.load_model(model, truncate_dim)
+    SentenceTransformerRegistry.load_model(model)
 
     vector_store = prepare_for_rag(
-        all_nodes, model=model, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        context_nodes, model=model, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     save_file({
         "embeddings_shape": vector_store.get_embeddings_shape(),
         "nodes_count": len(vector_store.get_nodes())
     }, f"{rag_output_dir}/embeddings_info.json")
     save_file(vector_store.get_nodes(),
               f"{rag_output_dir}/prepared_nodes.json")
+    save_file(vector_store.get_processed_texts(),
+              f"{rag_output_dir}/processed_texts.json")
 
     search_results = search_headers(
         query, vector_store, top_k=top_k, threshold=threshold)

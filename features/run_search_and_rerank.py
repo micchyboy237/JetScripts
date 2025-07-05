@@ -21,6 +21,8 @@ from jet.data.sample_diverse_headers import sample_diverse_headers
 from jet.code.markdown_utils import convert_html_to_markdown
 from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.llm.mlx.helpers.base import get_system_date_prompt
+from jet.models.embeddings.chunking import chunk_headers_by_hierarchy
+from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.logger import logger
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
@@ -307,7 +309,7 @@ async def process_search_results(
     query: str,
     output_dir: str,
     top_n: int = 10,
-    embed_model: EmbedModelType = "static-retrieval-mrl-en-v1",
+    embed_model: EmbedModelType = "all-MiniLM-L6-v2",
     chunk_size: int = 200,
     chunk_overlap: int = 40,
     max_length: int = 2000,
@@ -317,6 +319,9 @@ async def process_search_results(
         f"Processing {len(browser_search_results)} search results for query: {query}")
     selected_urls = [item["url"] for item in browser_search_results[:top_n]]
     logger.debug(f"Selected {len(selected_urls)} URLs: {selected_urls}")
+
+    SentenceTransformerRegistry.load_model(embed_model)
+    tokenizer = SentenceTransformerRegistry.get_tokenizer()
     url_to_result = {r["url"]: r for r in browser_search_results}
     all_url_html_date_tuples = []
     all_links = []
@@ -352,6 +357,15 @@ async def process_search_results(
 
             html = preprocess_html(html)
             save_file(html, f"{sub_output_dir}/page.html")
+
+            doc_markdown_tokens = parse_markdown(html, ignore_links=True)
+            doc_markdown = "\n\n".join([item["content"]
+                                        for item in doc_markdown_tokens])
+            save_file(doc_markdown, f"{output_dir}/doc_markdown.md")
+
+            chunked_docs = chunk_headers_by_hierarchy(
+                doc_markdown, chunk_size, tokenizer)
+            save_file(chunked_docs, f"{output_dir}/chunked_docs.json")
 
             md_content = convert_html_to_markdown(html)
             save_file(md_content, f"{sub_output_dir}/md_content.md")
@@ -733,7 +747,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("-m", "--llm_model", type=str,
                    default="qwen3-1.7b-4bit", help="LLM model to use")
     p.add_argument("-e", "--embed_model", type=str,
-                   default="static-retrieval-mrl-en-v1", help="Embedding model to use")
+                   default="all-MiniLM-L6-v2", help="Embedding model to use")
     p.add_argument("-min", "--min_tokens", type=int, default=50,
                    help="Maximum number of tokens for final context")
     p.add_argument("-max", "--max_tokens", type=int, default=2000,
