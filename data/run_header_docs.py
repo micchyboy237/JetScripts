@@ -35,7 +35,7 @@ if __name__ == "__main__":
     # header_docs = HeaderDocs.from_tokens(tokens)
     docs = load_file(docs_file)
     # header_docs = HeaderDocs.from_dicts(docs)
-    texts = [f"{doc["header"]}\n{doc["text"]}" for doc in docs]
+    texts = [f"{doc["header"]}\n{doc["content"]}" for doc in docs]
     header_docs = HeaderDocs.from_texts(texts)
     save_file(header_docs, f"{output_dir}/header_docs.json")
 

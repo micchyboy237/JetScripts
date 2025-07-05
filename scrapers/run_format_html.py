@@ -6,7 +6,7 @@ import shutil
 from typing import List, Union
 from jet.code.markdown_utils._markdown_parser import parse_markdown
 from jet.code.splitter_markdown_utils import get_md_header_contents
-from jet.models.embeddings.utils import chunk_headers_by_hierarchy
+from jet.models.embeddings.chunking import chunk_headers_by_hierarchy
 from mlx_lm import load
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
@@ -65,7 +65,7 @@ if __name__ == "__main__":
                 text, add_special_tokens=False)["input_ids"]
             return [tokenizer.convert_ids_to_tokens(ids) for ids in token_ids_list]
 
-    doc_markdown_tokens = parse_markdown(html_str)
+    doc_markdown_tokens = parse_markdown(html_str, ignore_links=True)
     doc_markdown = "\n\n".join([item["content"]
                                for item in doc_markdown_tokens])
     save_file(doc_markdown, f"{output_dir}/doc_markdown.md")

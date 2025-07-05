@@ -12,7 +12,7 @@ from jet.llm.mlx.mlx_types import LLMModelKey
 from jet.llm.mlx.token_utils import chunk_text, get_tokenizer_fn, merge_texts
 from jet.llm.mlx.utils.base import get_model_max_tokens
 from jet.logger import logger
-from jet.models.embeddings.utils import ChunkResult, chunk_headers_by_hierarchy
+from jet.models.embeddings.chunking import ChunkResult, chunk_headers_by_hierarchy
 
 MODEL: LLMModelKey = "llama-3.2-3b-instruct-4bit"
 
