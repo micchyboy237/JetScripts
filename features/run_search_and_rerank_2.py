@@ -5,6 +5,7 @@ from jet.data.utils import generate_unique_id
 from jet.file.utils import save_file
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.scrapers.utils import search_data
+from jet.wordnet.analyzers.text_analysis import analyze_readability
 import justext
 import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -264,9 +265,11 @@ def save_metadata(embeddings: List[Dict], merge_info: List[Dict] = None, origina
                 "chunk_index": doc["chunk_index"],
                 "url": doc["url"],
                 "header": doc["header"],
+                "token_count": doc.get("token_count", None),
                 "text": doc["text"],
                 "xpath": doc["xpath"],
-                "token_count": doc.get("token_count", None)
+                "mtld": doc["mtld"],
+                "mtld_category": doc["mtld_category"],
             } for doc in original_chunks
         ]
         save_file(original_metadata, f"{OUTPUT_DIR}/original_chunks.json")
@@ -284,7 +287,8 @@ def save_metadata(embeddings: List[Dict], merge_info: List[Dict] = None, origina
             merge_info = []
 
     # Create a mapping from chunk_id to original_chunk_ids
-    merge_info_map = {info["merged_chunk_id"]: info["original_chunk_ids"] for info in merge_info}
+    merge_info_map = {info["merged_chunk_id"]
+        : info["original_chunk_ids"] for info in merge_info}
 
     metadata = [
         {
@@ -364,6 +368,16 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
         logging.warning("No chunks created. Returning empty index.")
         return None, [], model, []
 
+    # Calculate MTLD score for each embedding
+    for doc in chunked_documents:
+        readability = analyze_readability(doc["text"])
+        doc["mtld"] = readability["mtld"]
+        doc["mtld_category"] = readability["mtld_category"]
+
+    # Filter out chunked_documents with "very_low" mtld_category
+    chunked_documents = [doc for doc in chunked_documents if doc.get(
+        "mtld_category") != "very_low"]
+
     # Save original chunks before generating embeddings
     save_metadata([], None, chunked_documents)
 
@@ -436,6 +450,8 @@ def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, sco
                 "text": embeddings[idx]["text"],
                 "url": embeddings[idx]["url"],
                 "score": float(cross_score),
+                "mtld": embeddings[idx]["mtld"],
+                "mtld_category": embeddings[idx]["mtld_category"],
                 "token_count": embeddings[idx]["token_count"]
             })
 
