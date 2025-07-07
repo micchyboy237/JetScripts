@@ -1,3 +1,4 @@
+from jet.models.embeddings.base import generate_embeddings
 from jet.wordnet.similarity import group_similar_texts
 import asyncio
 import os
@@ -176,28 +177,33 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
                 if attempt == max_retries - 1:
                     continue
     if not chunked_documents:
-        return None, [], model, []
+        return None, [], model
     for doc in chunked_documents:
         readability = analyze_readability(doc["content"])
         doc["mtld"] = readability["mtld"]
         doc["mtld_category"] = readability["mtld_category"]
     save_file(chunked_documents, f"{OUTPUT_DIR}/original_docs.json")
-    embeddings = []
     texts = [chunk["content"] for chunk in chunked_documents]
-    for i in tqdm(range(0, len(texts), batch_size), desc="Generating embeddings"):
-        batch_texts = texts[i:i + batch_size]
-        batch_embeddings = model.encode(
-            batch_texts, convert_to_tensor=False, show_progress_bar=False, normalize_embeddings=True)
-        for j, embedding in enumerate(batch_embeddings):
-            chunked_documents[i + j]["embedding"] = embedding
-            embeddings.append(chunked_documents[i + j])
-    if not embeddings:
-        return None, [], model, []
-    embedding_matrix = np.array([doc["embedding"]
-                                for doc in embeddings]).astype('float32')
+    generated_embeddings = generate_embeddings(
+        texts, model_name, show_progress=True)
+
+    embeddings = []
+    for i, (doc, embedding) in enumerate(zip(chunked_documents, generated_embeddings)):
+        doc["embedding"] = embedding
+        doc["chunk_index"] = i  # Add chunk index for tracking
+        embeddings.append(doc)
+
+    embedding_matrix = np.array(generated_embeddings).astype('float32')
     index = faiss.IndexFlatIP(embedding_matrix.shape[1])
     index.add(embedding_matrix)
-    return index, embeddings, model
+
+    merged_chunks, merge_info = merge_similar_docs(embeddings)
+    merged_embedding_matrix = np.array(
+        [chunk["embedding"] for chunk in merged_chunks]).astype('float32')
+    merged_index = faiss.IndexFlatIP(merged_embedding_matrix.shape[1])
+    merged_index.add(merged_embedding_matrix)
+
+    return merged_index, merged_chunks, model
 
 
 def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, score_threshold: float = 1.0, cross_encoder_model: str = 'cross-encoder/ms-marco-MiniLM-L-12-v2') -> List[Dict]:
