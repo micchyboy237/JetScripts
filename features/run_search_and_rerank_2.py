@@ -23,6 +23,9 @@ logging.basicConfig(level=logging.INFO,
 nltk.download('punkt', quiet=True)
 nltk.download('stopwords', quiet=True)
 
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+
 
 def clean_html(html: str, language: str = "English", max_link_density: float = 0.2, max_link_ratio: float = 0.3) -> List:
     """
@@ -221,15 +224,7 @@ def save_metadata(embeddings: List[Dict]) -> None:
             "index": i
         } for i, doc in enumerate(embeddings)
     ]
-    try:
-        with open("metadata.json", "w") as f:
-            json.dump(metadata, f, indent=2)
-        logging.info(f"Saved metadata for {len(embeddings)} chunks")
-    except Exception as e:
-        logging.error(f"Failed to save metadata: {str(e)}")
-        with open("metadata_backup.json", "w") as f:
-            json.dump(metadata, f, indent=2)
-        logging.info("Saved metadata to backup file")
+    save_file(metadata, f"{OUTPUT_DIR}/metadata.json")
 
 
 async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2', batch_size: int = 32, max_retries: int = 3) -> tuple:
@@ -348,16 +343,13 @@ async def main():
     """
     Main function to process URLs, prepare for RAG, and demonstrate a query.
     """
-    output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-
     # Example query
     query = "Top isekai anime 2025."
     use_cache = True
 
     search_results = search_data(query, use_cache=use_cache)
     save_file({"query": query, "count": len(search_results),
-              "results": search_results}, f"{output_dir}/search_results.json")
+              "results": search_results}, f"{OUTPUT_DIR}/search_results.json")
 
     urls = [result["url"] for result in search_results]
     index, embeddings, model = await prepare_for_rag(urls, batch_size=32, max_retries=3)
@@ -378,7 +370,7 @@ async def main():
         print(f"Score: {result['score']:.4f}")
 
     save_file({"query": query, "count": len(results),
-              "results": results}, f"{output_dir}/rag_results.json")
+              "results": results}, f"{OUTPUT_DIR}/rag_results.json")
 
 
 if __name__ == "__main__":
