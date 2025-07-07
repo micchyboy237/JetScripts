@@ -195,6 +195,8 @@ def merge_similar_chunks(embeddings: List[Dict], similarity_threshold: float = 0
                     chunk["token_count"] for chunk in cluster_chunks)
                 merged_chunk_id = str(uuid.uuid4())
                 merged_chunk = cluster_chunks[0].copy()
+                # Set chunk_id to merged_chunk_id
+                merged_chunk["chunk_id"] = merged_chunk_id
                 merged_chunk["text"] = merged_text
                 merged_chunk["token_count"] = merged_token_count
                 merge_info.append({
@@ -282,8 +284,7 @@ def save_metadata(embeddings: List[Dict], merge_info: List[Dict] = None, origina
             merge_info = []
 
     # Create a mapping from chunk_id to original_chunk_ids
-    merge_info_map = {info["merged_chunk_id"]
-        : info["original_chunk_ids"] for info in merge_info}
+    merge_info_map = {info["merged_chunk_id"]: info["original_chunk_ids"] for info in merge_info}
 
     metadata = [
         {
@@ -401,6 +402,7 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
 def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, score_threshold: float = 1.0, cross_encoder_model: str = 'cross-encoder/ms-marco-MiniLM-L-12-v2') -> List[Dict]:
     """
     Query the RAG system and return top-k results sorted by cross-encoder score in descending order.
+    Uses merged_chunk_id for consistency with merged chunks.
     """
     cross_encoder = CrossEncoder(cross_encoder_model)
     query_embedding = model.encode(query, convert_to_tensor=False,
@@ -416,7 +418,8 @@ def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, sco
         if cross_score >= score_threshold:
             embeddings[idx]["score"] = float(cross_score)
             results.append({
-                "chunk_id": embeddings[idx]["chunk_id"],
+                # Use chunk_id which is now the merged_chunk_id
+                "merged_chunk_id": embeddings[idx]["chunk_id"],
                 "chunk_index": embeddings[idx]["chunk_index"],
                 "header": embeddings[idx]["header"],
                 "text": embeddings[idx]["text"],
