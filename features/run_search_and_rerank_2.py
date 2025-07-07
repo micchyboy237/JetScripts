@@ -212,8 +212,9 @@ def merge_similar_chunks(embeddings: List[Dict], similarity_threshold: float = 0
 
 def save_metadata(embeddings: List[Dict]) -> None:
     """
-    Save metadata to JSON file with error handling and backup.
+    Save metadata to JSON file with error handling and backup, sorted by score in descending order with rank.
     """
+    # Create metadata list
     metadata = [
         {
             "chunk_id": doc["chunk_id"],
@@ -221,34 +222,41 @@ def save_metadata(embeddings: List[Dict]) -> None:
             "header": doc["header"],
             "text": doc["text"],
             "xpath": doc["xpath"],
-            "index": i
+            "index": i,
+            "score": doc.get("score", None)
         } for i, doc in enumerate(embeddings)
     ]
+
+    # Sort metadata by score in descending order, with None scores at the end
+    metadata = sorted(
+        metadata,
+        key=lambda x: x["score"] if x["score"] is not None else float('-inf'),
+        reverse=True
+    )
+
+    # Assign ranks to chunks with non-null scores
+    for i, doc in enumerate(metadata):
+        doc["rank"] = i + 1 if doc["score"] is not None else None
+
     save_file(metadata, f"{OUTPUT_DIR}/metadata.json")
 
 
 async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2', batch_size: int = 32, max_retries: int = 3) -> tuple:
-    """
-    Prepare documents for RAG: clean, separate, chunk, embed, and index.
-    Returns FAISS index, embeddings, and model.
-    """
     logging.debug(
         f"Starting prepare_for_rag with {len(urls)} URLs, model: {model_name}, batch_size: {batch_size}")
     model = SentenceTransformer(model_name)
     chunked_documents = []
 
-    # Process URLs asynchronously with retries
     for url in tqdm(urls, desc="Scraping URLs"):
         for attempt in range(max_retries):
             try:
                 async for u, status, html in scrape_urls([url], show_progress=True):
                     if status == "completed" and html:
                         logging.debug(f"Successfully scraped {url}")
-                        # Clean HTML content
                         paragraphs = clean_html(
                             html, max_link_density=0.15, max_link_ratio=0.3)
-
-                        # Separate and chunk
+                        logging.info(
+                            f"Scraped {len(paragraphs)} paragraphs from {url}")
                         sections = separate_by_headers(paragraphs)
                         for section in tqdm(sections, desc=f"Chunking sections for {url}", leave=False):
                             chunks = chunk_with_overlap(
@@ -265,9 +273,13 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
                     f"Attempt {attempt + 1} failed for {url}: {str(e)}")
                 if attempt == max_retries - 1:
                     logging.error(f"Max retries reached for {url}. Skipping.")
-                continue
+                    continue
 
-    # Generate embeddings in batches
+    logging.info(f"Total chunks created: {len(chunked_documents)}")
+    if not chunked_documents:
+        logging.warning("No chunks created. Returning empty index.")
+        return None, [], model
+
     embeddings = []
     texts = [chunk["text"] for chunk in chunked_documents]
     logging.debug(f"Generating embeddings for {len(texts)} chunks")
@@ -279,40 +291,27 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
             chunked_documents[i + j]["embedding"] = embedding
             embeddings.append(chunked_documents[i + j])
 
-    # Merge similar chunks
     if embeddings:
         logging.debug(
             f"Merging similar chunks for {len(embeddings)} embeddings")
         embeddings = merge_similar_chunks(
             embeddings, similarity_threshold=0.95)
-
-    # Create FAISS index
-    if not embeddings:
+    else:
         logging.warning("No embeddings generated. Returning empty index.")
         return None, [], model
 
     embedding_matrix = np.array([doc["embedding"]
                                 for doc in embeddings]).astype('float32')
-    logging.debug(
-        f"Embedding matrix shape: {embedding_matrix.shape}")
-
-    # Choose index type based on dataset size
+    logging.debug(f"Embedding matrix shape: {embedding_matrix.shape}")
     logging.debug("Using IndexFlatIP due to small dataset size")
     index = faiss.IndexFlatIP(embedding_matrix.shape[1])
     index.add(embedding_matrix)
-
-    # Save metadata
-    logging.debug("Saving metadata")
-    save_metadata(embeddings)
 
     logging.info(f"Indexed {len(embeddings)} chunks in FAISS")
     return index, embeddings, model
 
 
-def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, score_threshold: float = 5.0, cross_encoder_model: str = 'cross-encoder/ms-marco-MiniLM-L-12-v2') -> List[Dict]:
-    """
-    Query the RAG system and return top-k results sorted by cross-encoder score in descending order.
-    """
+def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, score_threshold: float = 1.0, cross_encoder_model: str = 'cross-encoder/ms-marco-MiniLM-L-12-v2') -> List[Dict]:
     cross_encoder = CrossEncoder(cross_encoder_model)
     query_embedding = model.encode(query, convert_to_tensor=False,
                                    show_progress_bar=False, normalize_embeddings=True).astype('float32')
@@ -322,9 +321,12 @@ def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, sco
     # Prepare pairs for cross-encoder re-ranking
     pairs = [[query, embeddings[idx]["text"]] for idx in I[0]]
     cross_scores = cross_encoder.predict(pairs)
+    # Log scores for debugging
+    logging.info(f"Cross-encoder scores: {cross_scores}")
 
     for idx, cross_score, distance in zip(I[0], cross_scores, D[0]):
         if cross_score >= score_threshold:
+            embeddings[idx]["score"] = float(cross_score)
             results.append({
                 "header": embeddings[idx]["header"],
                 "text": embeddings[idx]["text"],
@@ -340,10 +342,6 @@ def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, sco
 
 
 async def main():
-    """
-    Main function to process URLs, prepare for RAG, and demonstrate a query.
-    """
-    # Example query
     query = "Top isekai anime 2025."
     use_cache = True
 
@@ -359,19 +357,19 @@ async def main():
         return
 
     results = query_rag(index, embeddings, model, query,
-                        k=20, score_threshold=5.0)
+                        k=20, score_threshold=1.0)
+    save_metadata(embeddings)  # Moved save_metadata after query_rag
 
     print("\nQuery Results:")
     for i, result in enumerate(results, 1):
         print(f"\nResult {i}:")
         print(f"Header: {result['header'] or 'No header'}")
-        print(f"Text: {result['text'][:200]}...")  # Truncate for display
+        print(f"Text: {result['text'][:200]}...")
         print(f"URL: {result['url']}")
         print(f"Score: {result['score']:.4f}")
 
     save_file({"query": query, "count": len(results),
               "results": results}, f"{OUTPUT_DIR}/rag_results.json")
-
 
 if __name__ == "__main__":
     asyncio.run(main())
