@@ -32,7 +32,7 @@ Query: {query}
 """
 
 if __name__ == "__main__":
-    original_chunks_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/original_chunks.json"
+    original_chunks_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/original_docs.json"
     merged_chunks_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/merged_chunks.json"
     rag_results_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/rag_results.json"
     output_dir = os.path.join(
@@ -42,17 +42,17 @@ if __name__ == "__main__":
     merged_chunks = load_file(merged_chunks_file)
     rag_results = load_file(rag_results_file)
 
-    original_chunks_dict = {chunk["chunk_id"]
+    original_chunks_dict = {chunk["doc_id"]
         : chunk for chunk in original_chunks}
     rag_result_merged_chunk_ids = [result["merged_chunk_id"]
                                    for result in rag_results["results"]]
     result_original_chunks = [
         original_chunks_dict[original_chunk_id]
         for merged_chunk in merged_chunks
-        for original_chunk_id in merged_chunk["original_chunk_ids"]
+        for original_chunk_id in merged_chunk["original_doc_ids"]
     ]
     save_file(result_original_chunks, f"{output_dir}/docs.json")
-    texts = [chunk["text"] for chunk in result_original_chunks]
+    texts = [chunk["content"] for chunk in result_original_chunks]
     save_file(texts, f"{output_dir}/doc_texts.json")
 
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     total_tokens = sum(context_tokens)
 
     save_file({"query": query, "count": len(diverse_result_texts), "tokens": total_tokens,
-              "contexts": [{"tokens": tokens, "text": result} for tokens, result in zip(context_tokens, diverse_result_texts)]}, f"{output_dir}/contexts.json")
+              "contexts": [{"tokens": tokens, "content": result} for tokens, result in zip(context_tokens, diverse_result_texts)]}, f"{output_dir}/contexts.json")
 
     context = "\n\n".join(diverse_result_texts)
     save_file(context, f"{output_dir}/context.md")

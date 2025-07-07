@@ -1,5 +1,7 @@
 import os
 import time
+
+from fastapi.utils import generate_unique_id
 from jet.file.utils import save_file, load_file
 from jet.logger import logger
 from jet.models.model_types import EmbedModelType
@@ -8,20 +10,22 @@ from jet.wordnet.similarity import group_similar_texts
 
 
 if __name__ == '__main__':
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/original_chunks.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/original_docs.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     docs = load_file(docs_file)
-    documents = [doc["text"] for doc in docs]
+    documents = [f"{doc["header"]}\n{doc["content"]}" for doc in docs]
 
     model_name: EmbedModelType = "all-MiniLM-L12-v2"
 
     # Start timing
     start_time = time.time()
 
+    ids = [f"doc_{idx}" for idx, _ in enumerate(docs)]
+
     grouped_similar_texts = group_similar_texts(
-        documents, threshold=0.7, model_name=model_name)
+        documents, threshold=0.7, model_name=model_name, ids=ids)
 
     # End timing
     end_time = time.time()
