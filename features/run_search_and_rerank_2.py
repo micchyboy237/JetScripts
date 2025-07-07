@@ -284,8 +284,7 @@ def save_metadata(embeddings: List[Dict], merge_info: List[Dict] = None, origina
             merge_info = []
 
     # Create a mapping from chunk_id to original_chunk_ids
-    merge_info_map = {info["merged_chunk_id"]
-        : info["original_chunk_ids"] for info in merge_info}
+    merge_info_map = {info["merged_chunk_id"]: info["original_chunk_ids"] for info in merge_info}
 
     metadata = [
         {
@@ -322,6 +321,7 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
         f"Starting prepare_for_rag with {len(urls)} URLs, model: {model_name}, batch_size: {batch_size}")
     model = SentenceTransformer(model_name)
     chunked_documents = []
+    seen_texts = set()
 
     for url in tqdm(urls, desc="Scraping URLs"):
         for attempt in range(max_retries):
@@ -339,7 +339,14 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
                                 section, max_tokens=200, overlap_tokens=30, dynamic_max_tokens=300)
                             for chunk in chunks:
                                 chunk["url"] = url
-                            chunked_documents.extend(chunks)
+                                # Deduplication logic: use normalized text as key
+                                text_key = chunk["text"].strip().replace(
+                                    "\n", " ").replace("\r", " ")
+                                text_key = re.sub(r"\s+", " ", text_key)
+                                if text_key in seen_texts:
+                                    continue
+                                seen_texts.add(text_key)
+                                chunked_documents.append(chunk)
                         break
                     else:
                         logging.warning(
@@ -351,7 +358,8 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
                     logging.error(f"Max retries reached for {url}. Skipping.")
                     continue
 
-    logging.info(f"Total chunks created: {len(chunked_documents)}")
+    logging.info(
+        f"Total unique chunks created after deduplication: {len(chunked_documents)}")
     if not chunked_documents:
         logging.warning("No chunks created. Returning empty index.")
         return None, [], model, []

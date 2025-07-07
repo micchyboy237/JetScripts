@@ -51,8 +51,9 @@ if __name__ == "__main__":
         for merged_chunk in merged_chunks
         for original_chunk_id in merged_chunk["original_chunk_ids"]
     ]
+    save_file(result_original_chunks, f"{output_dir}/docs.json")
     texts = [chunk["text"] for chunk in result_original_chunks]
-    save_file(texts, f"{output_dir}/docs.json")
+    save_file(texts, f"{output_dir}/doc_texts.json")
 
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
     query = "Top isekai anime 2025."

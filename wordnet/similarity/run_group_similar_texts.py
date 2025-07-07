@@ -8,21 +8,13 @@ from jet.wordnet.similarity import group_similar_texts
 
 
 if __name__ == '__main__':
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/docs.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/original_chunks.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     docs = load_file(docs_file)
-    docs = docs["documents"]
-    docs = [HeaderDocument(**doc) for doc in docs]
-    documents = [
-        "\n".join([
-            # doc["metadata"].get("parent_header") or "",
-            doc["metadata"]["header"].lstrip('#').strip(),
-            # doc["metadata"]["content"]
-        ]).strip()
-        for doc in docs
-    ]
+    documents = [doc["text"] for doc in docs]
+
     model_name: EmbedModelType = "all-MiniLM-L12-v2"
 
     # Start timing
