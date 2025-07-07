@@ -1,9 +1,10 @@
 from collections import defaultdict
+from jet.logger import logger
 from jet.models.embeddings.base import generate_embeddings
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
-from jet.models.tokenizer.base import count_tokens
+from jet.models.tokenizer.base import count_tokens, get_tokenizer_fn
 from jet.wordnet.similarity import group_similar_texts
 import asyncio
 import os
@@ -291,18 +292,21 @@ def query_rag(index, embeddings: List[Dict], model, merge_info: List[Dict], quer
 def group_results_by_url_for_llm_context(documents: List[Dict], llm_model: LLMModelType, max_tokens: int = 2000) -> str:
     """
     Groups RAG query results by URL and formats them into a string for LLM context.
-    Sorts documents by num_tokens in ascending order and filters out documents from the end
-    if total tokens exceed max_tokens, using the specified LLM's tokenizer.
+    Sorts documents by num_tokens in ascending order and filters out documents if total tokens,
+    including headers and separators, would exceed max_tokens, using the specified LLM's tokenizer.
 
     Args:
-        documents: List of dictionaries containing RAG query results.
+        documents: List of dictionaries containing RAG query results with 'text', 'url', 'num_tokens', 'doc_index', and 'chunk_index'.
         llm_model: The LLM model type to use for tokenization.
         max_tokens: Maximum number of tokens allowed in the output context (default: 2000).
 
     Returns:
         A formatted string with grouped content by URL, respecting token limit.
     """
-    tokenizer = MLXModelRegistry.get_tokenizer(llm_model)
+    tokenizer = get_tokenizer_fn(
+        llm_model, add_special_tokens=False, remove_pad_tokens=True)
+    separator = "\n\n"
+    separator_tokens = len(tokenizer.encode(separator))
 
     # Sort all documents by num_tokens in ascending order
     sorted_docs = sorted(
@@ -311,26 +315,40 @@ def group_results_by_url_for_llm_context(documents: List[Dict], llm_model: LLMMo
             tokenizer.encode(d.get("text", ""))))
     )
 
-    # Filter documents to respect max_tokens
+    # Filter documents to respect max_tokens, including header and separator tokens
     filtered_docs = []
     total_tokens = 0
+    grouped_temp = defaultdict(list)
     for doc in sorted_docs:
         text = doc.get("text", "")
         doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
-        if total_tokens + doc_tokens <= max_tokens:
+        url = doc.get("url", "Unknown Source")
+        header = f"<!-- Source: {url} -->\n\n"
+        header_tokens = len(tokenizer.encode(header))
+
+        # Check if adding this document exceeds max_tokens
+        if grouped_temp[url]:  # Document belongs to an existing group
+            additional_tokens = doc_tokens
+        else:  # New group, include header and separator (if not first group)
+            additional_tokens = header_tokens + doc_tokens + \
+                (separator_tokens if filtered_docs else 0)
+
+        if total_tokens + additional_tokens <= max_tokens:
             filtered_docs.append(doc)
+            grouped_temp[url].append(doc)
             total_tokens += doc_tokens
+            if not grouped_temp[url][:-1]:  # First doc in this group
+                total_tokens += header_tokens + \
+                    (separator_tokens if filtered_docs else 0)
         else:
             break
 
-    # Group filtered documents by URL
+    # Group filtered documents by URL and build context
+    context_blocks = []
     grouped = defaultdict(list)
     for doc in filtered_docs:
         url = doc.get("url", "Unknown Source")
         grouped[url].append(doc)
-
-    context_blocks = []
-    total_tokens = 0
 
     for url, docs in grouped.items():
         block = f"<!-- Source: {url} -->\n\n"
@@ -338,22 +356,28 @@ def group_results_by_url_for_llm_context(documents: List[Dict], llm_model: LLMMo
         docs = sorted(docs, key=lambda d: (
             d.get("doc_index", 0), d.get("chunk_index", 0)))
 
-        block_tokens = len(tokenizer.encode(block))
         for doc in docs:
             text = doc.get("text", "")
-            doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
-
-            # Since we filtered earlier, no need to trim here
             block += text + "\n\n"
-            block_tokens += doc_tokens
-            total_tokens += doc_tokens
 
-        if block_tokens > len(tokenizer.encode(f"<!-- Source: {url} -->\n\n")):
+        # Verify block tokens to ensure no overrun (shouldn't happen due to filtering)
+        block_tokens = len(tokenizer.encode(block.strip()))
+        if block_tokens <= max_tokens:
             context_blocks.append(block.strip())
-            total_tokens += len(tokenizer.encode(
-                f"<!-- Source: {url} -->\n\n"))
+        else:
+            logger.warning(
+                f"Block for {url} exceeds max_tokens ({block_tokens} > {max_tokens}); skipping.")
+            continue
 
-    return "\n\n".join(context_blocks)
+    result = separator.join(context_blocks)
+    final_token_count = len(tokenizer.encode(result))
+    if final_token_count > max_tokens:
+        logger.warning(
+            f"Final context exceeds max_tokens: {final_token_count} > {max_tokens}")
+
+    logger.debug(
+        f"Grouped context created with {final_token_count} tokens for {len(grouped)} URLs")
+    return result
 
 
 async def main():
@@ -393,7 +417,7 @@ async def main():
     context = group_results_by_url_for_llm_context(results, llm_model)
     save_file(context, f"{OUTPUT_DIR}/context.md")
     save_file({"num_tokens": count_tokens(llm_model, context)},
-              f"{OUTPUT_DIR}/context_info.md")
+              f"{OUTPUT_DIR}/context_info.json")
 
     # Generate LLM response
     mlx = MLXModelRegistry.load_model(llm_model)
