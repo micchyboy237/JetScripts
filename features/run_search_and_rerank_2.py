@@ -81,7 +81,7 @@ def separate_by_headers(paragraphs: List) -> List[Dict]:
 
 
 def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.7) -> tuple[List[Dict], List[Dict]]:
-    texts = [f"{doc["header"]}\n{doc["content"]}" for doc in embeddings]
+    texts = [f"{doc['header']}\n{doc['content']}" for doc in embeddings]
     embedding_matrix = [doc["embedding"] for doc in embeddings]
 
     # Group similar texts using group_similar_texts
@@ -101,27 +101,30 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.7
                           for i, text in enumerate(texts) if text in cluster_texts]
 
         if len(cluster_chunks) > 1:
-            # Merge similar chunks
+            # Select the chunk with the highest MTLD score for merged_chunks
+            best_chunk = max(cluster_chunks, key=lambda x: x["mtld"])
+            merged_chunk_id = generate_unique_id()
+            merged_chunk = best_chunk.copy()
+            merged_chunk["chunk_id"] = merged_chunk_id
+            merged_chunks.append(merged_chunk)
+
+            # Merge content for merge_info (to preserve combined content in merged_chunks.json)
             merged_text = "\n".join([chunk["content"]
-                                     for chunk in cluster_chunks])
+                                    for chunk in cluster_chunks])
             merged_token_count = sum(chunk["num_tokens"]
                                      for chunk in cluster_chunks)
-            merged_chunk_id = generate_unique_id()
-            merged_chunk = cluster_chunks[0].copy()
-            merged_chunk["chunk_id"] = merged_chunk_id
-            merged_chunk["content"] = merged_text
-            merged_chunk["num_tokens"] = merged_token_count
             merge_info.append({
                 "merged_chunk_id": merged_chunk_id,
                 "original_doc_ids": [chunk["chunk_id"] for chunk in cluster_chunks],
                 "text": merged_text,
                 "token_count": merged_token_count,
-                "header": merged_chunk["header"],
-                "url": merged_chunk["url"],
-                "xpath": merged_chunk["xpath"],
-                "score": merged_chunk.get("score", None)
+                "header": best_chunk["header"],
+                "url": best_chunk["url"],
+                "xpath": best_chunk["xpath"],
+                "score": best_chunk.get("score", None),
+                "mtld": best_chunk["mtld"],
+                "mtld_category": best_chunk["mtld_category"]
             })
-            merged_chunks.append(merged_chunk)
         else:
             # Single chunk, no merging needed
             chunk = cluster_chunks[0]
@@ -134,7 +137,9 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.7
                 "header": chunk["header"],
                 "url": chunk["url"],
                 "xpath": chunk["xpath"],
-                "score": chunk.get("score", None)
+                "score": chunk.get("score", None),
+                "mtld": chunk["mtld"],
+                "mtld_category": chunk["mtld_category"]
             })
 
     save_file(merge_info, f"{OUTPUT_DIR}/merged_chunks.json")
