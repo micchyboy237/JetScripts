@@ -153,9 +153,10 @@ def chunk_with_overlap(section: Dict, max_tokens: int = 200, overlap_tokens: int
     return chunks
 
 
-def merge_similar_chunks(embeddings: List[Dict], similarity_threshold: float = 0.95) -> List[Dict]:
+def merge_similar_chunks(embeddings: List[Dict], similarity_threshold: float = 0.95) -> tuple[List[Dict], List[Dict]]:
     """
     Merge chunks with high similarity based on embeddings and save merge details to a separate file.
+    Returns merged embeddings and merge_info.
     """
     logging.debug(
         f"Starting merge_similar_chunks with {len(embeddings)} embeddings")
@@ -169,7 +170,7 @@ def merge_similar_chunks(embeddings: List[Dict], similarity_threshold: float = 0
 
     if n_unique < 2:
         logging.warning("Fewer than 2 unique embeddings, skipping clustering")
-        return embeddings
+        return embeddings, []
 
     kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
     labels = kmeans.fit_predict(embedding_matrix)
@@ -192,10 +193,10 @@ def merge_similar_chunks(embeddings: List[Dict], similarity_threshold: float = 0
                                        for chunk in cluster_chunks])
                 merged_token_count = sum(
                     chunk["token_count"] for chunk in cluster_chunks)
+                merged_chunk_id = str(uuid.uuid4())
                 merged_chunk = cluster_chunks[0].copy()
                 merged_chunk["text"] = merged_text
                 merged_chunk["token_count"] = merged_token_count
-                merged_chunk_id = str(uuid.uuid4())
                 merge_info.append({
                     "merged_chunk_id": merged_chunk_id,
                     "original_chunk_ids": [chunk["chunk_id"] for chunk in cluster_chunks],
@@ -213,7 +214,7 @@ def merge_similar_chunks(embeddings: List[Dict], similarity_threshold: float = 0
                 merged_chunks.extend(cluster_chunks)
                 for chunk in cluster_chunks:
                     merge_info.append({
-                        "merged_chunk_id": str(uuid.uuid4()),
+                        "merged_chunk_id": chunk["chunk_id"],
                         "original_chunk_ids": [chunk["chunk_id"]],
                         "text": chunk["text"],
                         "token_count": chunk["token_count"],
@@ -227,7 +228,7 @@ def merge_similar_chunks(embeddings: List[Dict], similarity_threshold: float = 0
         else:
             merged_chunks.append(cluster_chunks[0])
             merge_info.append({
-                "merged_chunk_id": str(uuid.uuid4()),
+                "merged_chunk_id": cluster_chunks[0]["chunk_id"],
                 "original_chunk_ids": [cluster_chunks[0]["chunk_id"]],
                 "text": cluster_chunks[0]["text"],
                 "token_count": cluster_chunks[0]["token_count"],
@@ -245,13 +246,45 @@ def merge_similar_chunks(embeddings: List[Dict], similarity_threshold: float = 0
         f"Saved merge information for {len(merge_info)} chunks to merged_chunks.json")
     logging.info(
         f"Merged {len(embeddings) - len(merged_chunks)} similar chunks")
-    return merged_chunks
+    return merged_chunks, merge_info
 
 
-def save_metadata(embeddings: List[Dict]) -> None:
+def save_metadata(embeddings: List[Dict], merge_info: List[Dict] = None, original_chunks: List[Dict] = None) -> None:
     """
     Save metadata to JSON file with error handling and backup, sorted by score in descending order with rank.
+    Includes original_chunk_ids from merge_info for traceability.
     """
+    # Save original chunks if provided
+    if original_chunks:
+        original_metadata = [
+            {
+                "chunk_id": doc["chunk_id"],
+                "chunk_index": doc["chunk_index"],
+                "url": doc["url"],
+                "header": doc["header"],
+                "text": doc["text"],
+                "xpath": doc["xpath"],
+                "token_count": doc.get("token_count", None)
+            } for doc in original_chunks
+        ]
+        save_file(original_metadata, f"{OUTPUT_DIR}/original_chunks.json")
+        logging.info(
+            f"Saved original chunks for {len(original_metadata)} chunks to original_chunks.json")
+
+    # If merge_info is not provided, load it from merged_chunks.json
+    if merge_info is None:
+        try:
+            with open(f"{OUTPUT_DIR}/merged_chunks.json", "r") as f:
+                merge_info = json.load(f)
+        except FileNotFoundError:
+            logging.warning(
+                "merged_chunks.json not found, proceeding without original_chunk_ids")
+            merge_info = []
+
+    # Create a mapping from chunk_id to original_chunk_ids
+    merge_info_map = {info["merged_chunk_id"]
+        : info["original_chunk_ids"] for info in merge_info}
+
     metadata = [
         {
             "chunk_id": doc["chunk_id"],
@@ -263,53 +296,23 @@ def save_metadata(embeddings: List[Dict]) -> None:
             "index": i,
             "score": doc.get("score", None),
             "token_count": doc.get("token_count", None),
-            "rank": None
+            "rank": None,
+            "original_chunk_ids": merge_info_map.get(doc["chunk_id"], [doc["chunk_id"]])
         } for i, doc in enumerate(embeddings)
     ]
 
+    # Sort by score in descending order
     metadata = sorted(
         metadata,
         key=lambda x: x["score"] if x["score"] is not None else float('-inf'),
         reverse=True
     )
 
+    # Assign ranks
     for i, doc in enumerate(metadata):
         doc["rank"] = i + 1 if doc["score"] is not None else None
 
     save_file(metadata, f"{OUTPUT_DIR}/metadata.json")
-
-
-def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, score_threshold: float = 1.0, cross_encoder_model: str = 'cross-encoder/ms-marco-MiniLM-L-12-v2') -> List[Dict]:
-    """
-    Query the RAG system and return top-k results sorted by cross-encoder score in descending order.
-    """
-    cross_encoder = CrossEncoder(cross_encoder_model)
-    query_embedding = model.encode(query, convert_to_tensor=False,
-                                   show_progress_bar=False, normalize_embeddings=True).astype('float32')
-    D, I = index.search(np.array([query_embedding]), k)
-    results = []
-
-    pairs = [[query, embeddings[idx]["text"]] for idx in I[0]]
-    cross_scores = cross_encoder.predict(pairs)
-    logging.info(f"Cross-encoder scores: {cross_scores}")
-
-    for idx, cross_score, distance in zip(I[0], cross_scores, D[0]):
-        if cross_score >= score_threshold:
-            embeddings[idx]["score"] = float(cross_score)
-            results.append({
-                "chunk_id": embeddings[idx]["chunk_id"],
-                "chunk_index": embeddings[idx]["chunk_index"],
-                "header": embeddings[idx]["header"],
-                "text": embeddings[idx]["text"],
-                "url": embeddings[idx]["url"],
-                "score": float(cross_score),
-                "token_count": embeddings[idx]["token_count"]
-            })
-
-    results = sorted(results, key=lambda x: x["score"], reverse=True)
-    logging.info(
-        f"Retrieved {len(results)} results above score threshold {score_threshold}")
-    return results
 
 
 async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2', batch_size: int = 32, max_retries: int = 3) -> tuple:
@@ -349,7 +352,10 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
     logging.info(f"Total chunks created: {len(chunked_documents)}")
     if not chunked_documents:
         logging.warning("No chunks created. Returning empty index.")
-        return None, [], model
+        return None, [], model, []
+
+    # Save original chunks before generating embeddings
+    save_metadata([], None, chunked_documents)
 
     embeddings = []
     texts = [chunk["text"] for chunk in chunked_documents]
@@ -365,11 +371,21 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
     if embeddings:
         logging.debug(
             f"Merging similar chunks for {len(embeddings)} embeddings")
-        embeddings = merge_similar_chunks(
+        embeddings, merge_info = merge_similar_chunks(
             embeddings, similarity_threshold=0.95)
+
+        # Validate chunk_id consistency after merging
+        original_chunk_ids = {chunk["chunk_id"] for chunk in chunked_documents}
+        for info in merge_info:
+            for orig_id in info["original_chunk_ids"]:
+                if orig_id not in original_chunk_ids:
+                    logging.error(
+                        f"support@jet.com Original chunk ID {orig_id} in merge_info not found in original_chunks")
+                    raise ValueError(
+                        f"Original chunk ID {orig_id} in merge_info not found in original_chunks")
     else:
         logging.warning("No embeddings generated. Returning empty index.")
-        return None, [], model
+        return None, [], model, []
 
     embedding_matrix = np.array([doc["embedding"]
                                 for doc in embeddings]).astype('float32')
@@ -379,7 +395,40 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
     index.add(embedding_matrix)
 
     logging.info(f"Indexed {len(embeddings)} chunks in FAISS")
-    return index, embeddings, model
+    return index, embeddings, model, merge_info
+
+
+def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, score_threshold: float = 1.0, cross_encoder_model: str = 'cross-encoder/ms-marco-MiniLM-L-12-v2') -> List[Dict]:
+    """
+    Query the RAG system and return top-k results sorted by cross-encoder score in descending order.
+    """
+    cross_encoder = CrossEncoder(cross_encoder_model)
+    query_embedding = model.encode(query, convert_to_tensor=False,
+                                   show_progress_bar=False, normalize_embeddings=True).astype('float32')
+    D, I = index.search(np.array([query_embedding]), k)
+    results = []
+
+    pairs = [[query, embeddings[idx]["text"]] for idx in I[0]]
+    cross_scores = cross_encoder.predict(pairs)
+    logging.info(f"Cross-encoder scores: {cross_scores}")
+
+    for idx, cross_score, distance in zip(I[0], cross_scores, D[0]):
+        if cross_score >= score_threshold:
+            embeddings[idx]["score"] = float(cross_score)
+            results.append({
+                "chunk_id": embeddings[idx]["chunk_id"],
+                "chunk_index": embeddings[idx]["chunk_index"],
+                "header": embeddings[idx]["header"],
+                "text": embeddings[idx]["text"],
+                "url": embeddings[idx]["url"],
+                "score": float(cross_score),
+                "token_count": embeddings[idx]["token_count"]
+            })
+
+    results = sorted(results, key=lambda x: x["score"], reverse=True)
+    logging.info(
+        f"Retrieved {len(results)} results above score threshold {score_threshold}")
+    return results
 
 
 async def main():
@@ -391,7 +440,7 @@ async def main():
               "results": search_results}, f"{OUTPUT_DIR}/search_results.json")
 
     urls = [result["url"] for result in search_results]
-    index, embeddings, model = await prepare_for_rag(urls, batch_size=32, max_retries=3)
+    index, embeddings, model, merge_info = await prepare_for_rag(urls, batch_size=32, max_retries=3)
 
     if index is None or not embeddings:
         print("No data indexed, exiting.")
@@ -399,7 +448,7 @@ async def main():
 
     results = query_rag(index, embeddings, model, query,
                         k=20, score_threshold=1.0)
-    save_metadata(embeddings)
+    save_metadata(embeddings, merge_info)
 
     print("\nQuery Results:")
     for i, result in enumerate(results, 1):
@@ -412,6 +461,7 @@ async def main():
 
     save_file({"query": query, "count": len(results),
               "results": results}, f"{OUTPUT_DIR}/rag_results.json")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
