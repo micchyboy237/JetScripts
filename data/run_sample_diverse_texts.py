@@ -58,7 +58,7 @@ if __name__ == "__main__":
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
     query = "Top isekai anime 2025."
 
-    diverse_result_texts: List[HeaderDocument] = sample_diverse_texts(texts)
+    diverse_result_texts: List[str] = sample_diverse_texts(texts)
     logger.success(f"Diverse Results: {len(diverse_result_texts)}")
 
     context_tokens: list[int] = count_tokens(
