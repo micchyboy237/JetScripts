@@ -232,13 +232,13 @@ def save_metadata(embeddings: List[Dict]) -> None:
         logging.info("Saved metadata to backup file")
 
 
-async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2', batch_size: int = 32, max_retries: int = 3, nlist: int = 100, use_ivf_threshold: int = 1000) -> tuple:
+async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2', batch_size: int = 32, max_retries: int = 3) -> tuple:
     """
     Prepare documents for RAG: clean, separate, chunk, embed, and index.
     Returns FAISS index, embeddings, and model.
     """
     logging.debug(
-        f"Starting prepare_for_rag with {len(urls)} URLs, model: {model_name}, batch_size: {batch_size}, nlist: {nlist}, use_ivf_threshold: {use_ivf_threshold}")
+        f"Starting prepare_for_rag with {len(urls)} URLs, model: {model_name}, batch_size: {batch_size}")
     model = SentenceTransformer(model_name)
     chunked_documents = []
 
@@ -299,31 +299,12 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
     embedding_matrix = np.array([doc["embedding"]
                                 for doc in embeddings]).astype('float32')
     logging.debug(
-        f"Embedding matrix shape: {embedding_matrix.shape}, nlist: {nlist}")
+        f"Embedding matrix shape: {embedding_matrix.shape}")
 
     # Choose index type based on dataset size
-    if len(embeddings) < use_ivf_threshold:
-        logging.debug("Using IndexFlatIP due to small dataset size")
-        index = faiss.IndexFlatIP(embedding_matrix.shape[1])
-        index.add(embedding_matrix)
-    else:
-        logging.debug(f"Using IndexIVFFlat with nlist: {nlist}")
-        nlist = min(nlist, max(1, len(embeddings) // 39))
-        logging.debug(f"Adjusted nlist: {nlist}")
-        try:
-            quantizer = faiss.IndexFlatIP(embedding_matrix.shape[1])
-            index = faiss.IndexIVFFlat(
-                quantizer, embedding_matrix.shape[1], nlist, faiss.METRIC_INNER_PRODUCT)
-            index.nprobe = min(10, nlist)
-            logging.debug("Training FAISS index")
-            index.train(embedding_matrix)
-            logging.debug("Adding embeddings to FAISS index")
-            index.add(embedding_matrix)
-        except Exception as e:
-            logging.error(f"Failed to train/add to FAISS index: {str(e)}")
-            logging.warning("Falling back to IndexFlatIP")
-            index = faiss.IndexFlatIP(embedding_matrix.shape[1])
-            index.add(embedding_matrix)
+    logging.debug("Using IndexFlatIP due to small dataset size")
+    index = faiss.IndexFlatIP(embedding_matrix.shape[1])
+    index.add(embedding_matrix)
 
     # Save metadata
     logging.debug("Saving metadata")
@@ -379,7 +360,7 @@ async def main():
               "results": search_results}, f"{output_dir}/search_results.json")
 
     urls = [result["url"] for result in search_results]
-    index, embeddings, model = await prepare_for_rag(urls, batch_size=32, max_retries=3, nlist=100)
+    index, embeddings, model = await prepare_for_rag(urls, batch_size=32, max_retries=3)
 
     if index is None or not embeddings:
         print("No data indexed, exiting.")
