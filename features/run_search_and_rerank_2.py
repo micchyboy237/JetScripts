@@ -244,7 +244,7 @@ async def main():
     search_results = search_data(query, use_cache=use_cache)
     save_file({"query": query, "count": len(search_results),
               "results": search_results}, f"{OUTPUT_DIR}/search_results.json")
-    urls = [result["url"] for result in search_results][:2]
+    urls = [result["url"] for result in search_results]
     index, embeddings, model = await prepare_for_rag(urls, batch_size=32, max_retries=3)
     if index is None or not embeddings:
         print("No data indexed, exiting.")
