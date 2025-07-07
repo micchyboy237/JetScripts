@@ -179,7 +179,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                             html, max_link_density=0.15, max_link_ratio=0.3)
                         sections = separate_by_headers(paragraphs)
                         for section in tqdm(sections, desc=f"Chunking sections for {url}", leave=False):
-                            markdown_text = (f"{section['header']}\n" + "\n".join(
+                            markdown_text = (f"# {section['header']}\n" + "\n".join(
                                 section["content"]) if section["header"] else "\n".join(section["content"]))
                             chunks = chunk_headers_by_hierarchy(
                                 markdown_text,
@@ -287,8 +287,8 @@ def group_results_by_url_for_llm_context(documents: List[Dict], llm_model: LLMMo
     Groups RAG query results by URL and formats them into a string for LLM context.
     Organizes documents hierarchically by parent_header and header, sorts by score,
     and filters to respect max_tokens, including headers and separators, using the specified LLM's tokenizer.
-    Uses the 'level' field to determine the number of hashtags for 'header' only; 'parent_header' uses a single '#'.
-    Skips headers if parent_header or header is None or "None".
+    Uses the 'level' field to determine the number of hashtags for headers.
+    Ensures the last document is included if it fits within max_tokens.
 
     Args:
         documents: List of dictionaries containing RAG query results with 'text', 'url', 'num_tokens',
@@ -316,7 +316,7 @@ def group_results_by_url_for_llm_context(documents: List[Dict], llm_model: LLMMo
     for doc in sorted_docs:
         text = doc.get("text", "")
         url = doc.get("url", "Unknown Source")
-        parent_header = doc.get("parent_header", None)
+        parent_header = doc.get("parent_header", "None")
         header = doc.get("header", None)
         level = doc.get("level", 0)
         doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
@@ -324,18 +324,18 @@ def group_results_by_url_for_llm_context(documents: List[Dict], llm_model: LLMMo
 
         # Calculate header tokens for this document
         url_header = f"<!-- Source: {url} -->\n\n"
-        parent_header_text = f"# {parent_header}\n\n" if parent_header and parent_header != "None" else ""
-        subheader_text = f"{'#' * level} {header}\n" if header and header != "None" and header != parent_header and level > 0 else ""
+        parent_header_text = f"{'#' * level} {parent_header}\n\n" if parent_header != "None" and level > 0 else ""
+        subheader_text = f"{'#' * (level + 1)} {header}\n" if header and header != parent_header and level >= 0 else ""
 
         # Only add URL header and separator for new URLs
         if not grouped_temp[url]:
             header_tokens += len(tokenizer.encode(url_header))
             header_tokens += separator_tokens if filtered_docs else 0  # Separator before new URL
         # Only add parent header for new parent_header groups
-        if not grouped_temp[url][parent_header] and parent_header and parent_header != "None":
+        if not grouped_temp[url][parent_header] and parent_header != "None" and level > 0:
             header_tokens += len(tokenizer.encode(parent_header_text))
         # Add subheader if applicable
-        if header and header != "None" and header != parent_header and level > 0:
+        if header and header != parent_header and level >= 0:
             header_tokens += len(tokenizer.encode(subheader_text))
 
         additional_tokens = doc_tokens + header_tokens
@@ -361,8 +361,9 @@ def group_results_by_url_for_llm_context(documents: List[Dict], llm_model: LLMMo
                 x.get("level", 0), x.get("chunk_index", 0)))
 
             # Add parent header if it exists
-            if parent_header and parent_header != "None":
-                parent_header_text = f"# {parent_header}\n\n"
+            level = parent_docs[0].get("level", 0) if parent_docs else 0
+            if parent_header != "None" and level > 0:
+                parent_header_text = f"{'#' * level} {parent_header}\n\n"
                 block += parent_header_text
                 block_tokens += len(tokenizer.encode(parent_header_text))
 
@@ -373,8 +374,8 @@ def group_results_by_url_for_llm_context(documents: List[Dict], llm_model: LLMMo
                 doc_level = doc.get("level", 0)
 
                 # Add header if it exists and is not the same as parent_header
-                if header and header != "None" and header != parent_header and doc_level > 0:
-                    subheader_text = f"{'#' * doc_level} {header}\n"
+                if header and header != parent_header and doc_level >= 0:
+                    subheader_text = f"{'#' * (doc_level + 1)} {header}\n"
                     block += subheader_text
                     block_tokens += len(tokenizer.encode(subheader_text))
 
