@@ -1,4 +1,9 @@
+from collections import defaultdict
 from jet.models.embeddings.base import generate_embeddings
+from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
+from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
+from jet.models.model_types import EmbedModelType, LLMModelType
+from jet.models.tokenizer.base import count_tokens
 from jet.wordnet.similarity import group_similar_texts
 import asyncio
 import os
@@ -28,6 +33,18 @@ nltk.download('stopwords', quiet=True)
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+
+
+PROMPT_TEMPLATE = """\
+Context information is below.
+---------------------
+{context}
+---------------------
+
+Given the context information, answer the query.
+
+Query: {query}
+"""
 
 
 def clean_html(html: str, language: str = "English", max_link_density: float = 0.2, max_link_ratio: float = 0.3) -> List:
@@ -157,14 +174,14 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.7
     return merged_docs, merge_info
 
 
-async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2', batch_size: int = 32, max_retries: int = 3) -> tuple:
-    model = SentenceTransformer(model_name)
+async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-MiniLM-L6-v2', urls_limit: int = 10, max_retries: int = 3) -> tuple:
+    model = SentenceTransformerRegistry.load_model(model_name)
     documents = []
     seen_texts = set()
     for url in tqdm(urls, desc="Scraping URLs"):
         for attempt in range(max_retries):
             try:
-                async for u, status, html in scrape_urls([url], show_progress=True):
+                async for u, status, html in scrape_urls([url], show_progress=True, limit=urls_limit):
                     if status == "completed" and html:
                         paragraphs = clean_html(
                             html, max_link_density=0.15, max_link_ratio=0.3)
@@ -195,16 +212,23 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
             except Exception as e:
                 if attempt == max_retries - 1:
                     continue
+
     if not documents:
         return None, [], model, []
+
     for doc in documents:
         readability = analyze_readability(doc["content"])
         doc["mtld"] = readability["mtld"]
         doc["mtld_category"] = readability["mtld_category"]
+
+    # Filter out documents with "very_low" mtld_category
+    documents = [doc for doc in documents if doc.get(
+        "mtld_category") != "very_low"]
     save_file(documents, f"{OUTPUT_DIR}/original_docs.json")
+
     texts = [doc["content"] for doc in documents]
     generated_embeddings = generate_embeddings(
-        texts, model_name, show_progress=True)
+        texts, model, show_progress=True)
 
     embeddings = []
     for i, (doc, embedding) in enumerate(zip(documents, generated_embeddings)):
@@ -264,14 +288,84 @@ def query_rag(index, embeddings: List[Dict], model, merge_info: List[Dict], quer
     return results
 
 
+def group_results_by_url_for_llm_context(documents: List[Dict], llm_model: LLMModelType, max_tokens: int = 2000) -> str:
+    """
+    Groups RAG query results by URL and formats them into a string for LLM context.
+    Sorts documents by num_tokens in ascending order and filters out documents from the end
+    if total tokens exceed max_tokens, using the specified LLM's tokenizer.
+
+    Args:
+        documents: List of dictionaries containing RAG query results.
+        llm_model: The LLM model type to use for tokenization.
+        max_tokens: Maximum number of tokens allowed in the output context (default: 2000).
+
+    Returns:
+        A formatted string with grouped content by URL, respecting token limit.
+    """
+    tokenizer = MLXModelRegistry.get_tokenizer(llm_model)
+
+    # Sort all documents by num_tokens in ascending order
+    sorted_docs = sorted(
+        documents,
+        key=lambda d: d.get("num_tokens", len(
+            tokenizer.encode(d.get("text", ""))))
+    )
+
+    # Filter documents to respect max_tokens
+    filtered_docs = []
+    total_tokens = 0
+    for doc in sorted_docs:
+        text = doc.get("text", "")
+        doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
+        if total_tokens + doc_tokens <= max_tokens:
+            filtered_docs.append(doc)
+            total_tokens += doc_tokens
+        else:
+            break
+
+    # Group filtered documents by URL
+    grouped = defaultdict(list)
+    for doc in filtered_docs:
+        url = doc.get("url", "Unknown Source")
+        grouped[url].append(doc)
+
+    context_blocks = []
+    total_tokens = 0
+
+    for url, docs in grouped.items():
+        block = f"<!-- Source: {url} -->\n\n"
+        # Sort documents within each URL by doc_index and chunk_index
+        docs = sorted(docs, key=lambda d: (
+            d.get("doc_index", 0), d.get("chunk_index", 0)))
+
+        block_tokens = len(tokenizer.encode(block))
+        for doc in docs:
+            text = doc.get("text", "")
+            doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
+
+            # Since we filtered earlier, no need to trim here
+            block += text + "\n\n"
+            block_tokens += doc_tokens
+            total_tokens += doc_tokens
+
+        if block_tokens > len(tokenizer.encode(f"<!-- Source: {url} -->\n\n")):
+            context_blocks.append(block.strip())
+            total_tokens += len(tokenizer.encode(
+                f"<!-- Source: {url} -->\n\n"))
+
+    return "\n\n".join(context_blocks)
+
+
 async def main():
     query = "Top isekai anime 2025."
     use_cache = True
+    urls_limit = 3
+
     search_results = search_data(query, use_cache=use_cache)
     save_file({"query": query, "count": len(search_results),
               "results": search_results}, f"{OUTPUT_DIR}/search_results.json")
     urls = [result["url"] for result in search_results]
-    index, embeddings, model, merge_info = await prepare_for_rag(urls, batch_size=32, max_retries=3)
+    index, embeddings, model, merge_info = await prepare_for_rag(urls, urls_limit=urls_limit, max_retries=3)
     if index is None or not embeddings:
         print("No data indexed, exiting.")
         return
@@ -292,6 +386,21 @@ async def main():
     total_tokens = sum(result["num_tokens"] for result in results)
     save_file({"query": query, "count": len(results), "total_tokens": total_tokens,
               "results": results}, f"{OUTPUT_DIR}/rag_results.json")
+
+    # Prepare LLM RAG context
+    llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
+
+    context = group_results_by_url_for_llm_context(results, llm_model)
+    save_file(context, f"{OUTPUT_DIR}/context.md")
+    save_file({"num_tokens": count_tokens(llm_model, context)},
+              f"{OUTPUT_DIR}/context_info.md")
+
+    # Generate LLM response
+    mlx = MLXModelRegistry.load_model(llm_model)
+    prompt = PROMPT_TEMPLATE.format(query=query, context=context)
+    llm_response = mlx.chat(prompt, llm_model, temperature=0.7, verbose=True)
+
+    save_file(llm_response["content"], f"{OUTPUT_DIR}/response.md")
 
 if __name__ == "__main__":
     asyncio.run(main())
