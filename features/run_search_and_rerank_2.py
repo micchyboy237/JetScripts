@@ -101,8 +101,8 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.7
                         for i, text in enumerate(texts) if text in cluster_texts]
 
         if len(cluster_docs) > 1:
-            # Select the document with the highest MTLD score for merged_docs
-            best_doc = max(cluster_docs, key=lambda x: x["mtld"])
+            # Select the first document in the cluster
+            best_doc = cluster_docs[0]
             merged_doc_id = generate_unique_id()
             merged_doc = best_doc.copy()
             merged_doc["doc_id"] = merged_doc_id
@@ -111,14 +111,15 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.7
             # Merge content for merge_info (to preserve combined content in merged_docs.json)
             merged_text = "\n".join([doc["content"]
                                     for doc in cluster_docs])
-            merged_token_count = sum(doc["num_tokens"]
-                                     for doc in cluster_docs)
+            merged_num_tokens = sum(doc["num_tokens"]
+                                    for doc in cluster_docs)
             merge_info.append({
                 "merged_doc_id": merged_doc_id,
+                # Include all document IDs
                 "original_doc_ids": [doc["doc_id"] for doc in cluster_docs],
                 "original_chunk_ids": [doc["chunk_id"] for doc in cluster_docs],
                 "text": merged_text,
-                "token_count": merged_token_count,
+                "num_tokens": merged_num_tokens,
                 "header": best_doc["header"],
                 "url": best_doc["url"],
                 "xpath": best_doc["xpath"],
@@ -139,7 +140,7 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.7
                 "original_doc_ids": [doc["doc_id"]],
                 "original_chunk_ids": [doc["chunk_id"]],
                 "text": doc["content"],
-                "token_count": doc["num_tokens"],
+                "num_tokens": doc["num_tokens"],
                 "header": doc["header"],
                 "url": doc["url"],
                 "xpath": doc["xpath"],
@@ -238,11 +239,11 @@ def query_rag(index, embeddings: List[Dict], model, merge_info: List[Dict], quer
         if cross_score >= score_threshold and doc_id not in seen_doc_ids:
             seen_doc_ids.add(doc_id)
             embeddings[idx]["score"] = float(cross_score)
-            # Find original_doc_ids from merge_info
+            # Find selected_doc_id from merge_info (first document's ID in the cluster)
             merge_entry = next(
                 (entry for entry in merge_info if entry["merged_doc_id"] == doc_id), None)
-            original_doc_ids = merge_entry["original_doc_ids"] if merge_entry else [
-                doc_id]
+            selected_doc_id = merge_entry["original_doc_ids"][0] if merge_entry and len(
+                merge_entry["original_doc_ids"]) > 1 else doc_id
             results.append({
                 "merged_doc_id": doc_id,
                 "chunk_id": embeddings[idx]["chunk_id"],
@@ -254,10 +255,10 @@ def query_rag(index, embeddings: List[Dict], model, merge_info: List[Dict], quer
                 "score": float(cross_score),
                 "mtld": embeddings[idx]["mtld"],
                 "mtld_category": embeddings[idx]["mtld_category"],
-                "token_count": embeddings[idx]["num_tokens"],
+                "num_tokens": embeddings[idx]["num_tokens"],
                 "parent_header": embeddings[idx].get("parent_header", None),
                 "level": embeddings[idx].get("level", None),
-                "original_doc_ids": original_doc_ids
+                "selected_doc_ids": [selected_doc_id]
             })
     results = sorted(results, key=lambda x: x["score"], reverse=True)
     return results
@@ -283,11 +284,13 @@ async def main():
         print(f"Text: {result['text'][:200]}...")
         print(f"URL: {result['url']}")
         print(f"Score: {result['score']:.4f}")
-        print(f"Token Count: {result['token_count']}")
+        print(f"Token Count: {result['num_tokens']}")
         print(f"Parent Header: {result['parent_header'] or 'None'}")
         print(f"Level: {result['level'] or 'None'}")
-        print(f"Original Doc IDs: {result['original_doc_ids']}")
-    save_file({"query": query, "count": len(results),
+        print(f"Selected Doc IDs: {result['selected_doc_ids']}")
+
+    total_tokens = sum(result["num_tokens"] for result in results)
+    save_file({"query": query, "count": len(results), "total_tokens": total_tokens,
               "results": results}, f"{OUTPUT_DIR}/rag_results.json")
 
 if __name__ == "__main__":
