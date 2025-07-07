@@ -195,7 +195,7 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
                 if attempt == max_retries - 1:
                     continue
     if not documents:
-        return None, [], model
+        return None, [], model, []
     for doc in documents:
         readability = analyze_readability(doc["content"])
         doc["mtld"] = readability["mtld"]
@@ -221,10 +221,10 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
     merged_index = faiss.IndexFlatIP(merged_embedding_matrix.shape[1])
     merged_index.add(merged_embedding_matrix)
 
-    return merged_index, merged_docs, model
+    return merged_index, merged_docs, model, merge_info
 
 
-def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, score_threshold: float = 1.0, cross_encoder_model: str = 'cross-encoder/ms-marco-MiniLM-L-12-v2') -> List[Dict]:
+def query_rag(index, embeddings: List[Dict], model, merge_info: List[Dict], query: str, k: int = 10, score_threshold: float = 1.0, cross_encoder_model: str = 'cross-encoder/ms-marco-MiniLM-L-12-v2') -> List[Dict]:
     cross_encoder = CrossEncoder(cross_encoder_model)
     query_embedding = model.encode(query, convert_to_tensor=False,
                                    show_progress_bar=False, normalize_embeddings=True).astype('float32')
@@ -238,6 +238,11 @@ def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, sco
         if cross_score >= score_threshold and doc_id not in seen_doc_ids:
             seen_doc_ids.add(doc_id)
             embeddings[idx]["score"] = float(cross_score)
+            # Find original_doc_ids from merge_info
+            merge_entry = next(
+                (entry for entry in merge_info if entry["merged_doc_id"] == doc_id), None)
+            original_doc_ids = merge_entry["original_doc_ids"] if merge_entry else [
+                doc_id]
             results.append({
                 "merged_doc_id": doc_id,
                 "chunk_id": embeddings[idx]["chunk_id"],
@@ -251,7 +256,8 @@ def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, sco
                 "mtld_category": embeddings[idx]["mtld_category"],
                 "token_count": embeddings[idx]["num_tokens"],
                 "parent_header": embeddings[idx].get("parent_header", None),
-                "level": embeddings[idx].get("level", None)
+                "level": embeddings[idx].get("level", None),
+                "original_doc_ids": original_doc_ids
             })
     results = sorted(results, key=lambda x: x["score"], reverse=True)
     return results
@@ -264,11 +270,11 @@ async def main():
     save_file({"query": query, "count": len(search_results),
               "results": search_results}, f"{OUTPUT_DIR}/search_results.json")
     urls = [result["url"] for result in search_results]
-    index, embeddings, model = await prepare_for_rag(urls, batch_size=32, max_retries=3)
+    index, embeddings, model, merge_info = await prepare_for_rag(urls, batch_size=32, max_retries=3)
     if index is None or not embeddings:
         print("No data indexed, exiting.")
         return
-    results = query_rag(index, embeddings, model, query,
+    results = query_rag(index, embeddings, model, merge_info, query,
                         k=20, score_threshold=1.0)
     print("\nQuery Results:")
     for i, result in enumerate(results, 1):
@@ -280,6 +286,7 @@ async def main():
         print(f"Token Count: {result['token_count']}")
         print(f"Parent Header: {result['parent_header'] or 'None'}")
         print(f"Level: {result['level'] or 'None'}")
+        print(f"Original Doc IDs: {result['original_doc_ids']}")
     save_file({"query": query, "count": len(results),
               "results": results}, f"{OUTPUT_DIR}/rag_results.json")
 
