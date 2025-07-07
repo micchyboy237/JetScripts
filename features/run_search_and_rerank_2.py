@@ -1,6 +1,7 @@
 import asyncio
 import os
 from typing import List, Dict, Optional
+from jet.data.utils import generate_unique_id
 from jet.file.utils import save_file
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.scrapers.utils import search_data
@@ -16,6 +17,7 @@ from tqdm import tqdm
 import re
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
+import uuid
 
 # Set up logging
 logging.basicConfig(level=logging.INFO,
@@ -63,7 +65,6 @@ def is_valid_header(header: Optional[str]) -> bool:
         return False
     if any(keyword in header.lower() for keyword in anime_keywords):
         return True
-    # Allow headers with more than 3 tokens
     return len(word_tokenize(header)) > 3
 
 
@@ -108,7 +109,7 @@ def chunk_with_overlap(section: Dict, max_tokens: int = 200, overlap_tokens: int
     chunks = []
     current_chunk = []
     current_tokens = 0
-    chunk_id = 0
+    chunk_index = 0
 
     for sentence in sentences:
         sentence_tokens = len(word_tokenize(sentence))
@@ -117,7 +118,8 @@ def chunk_with_overlap(section: Dict, max_tokens: int = 200, overlap_tokens: int
             current_tokens += sentence_tokens
         else:
             chunks.append({
-                "chunk_id": chunk_id,
+                "chunk_id": generate_unique_id(),
+                "chunk_index": chunk_index,
                 "text": " ".join(current_chunk),
                 "token_count": current_tokens,
                 "header": section["header"],
@@ -134,11 +136,12 @@ def chunk_with_overlap(section: Dict, max_tokens: int = 200, overlap_tokens: int
                     break
             current_chunk = overlap_sentences + [sentence]
             current_tokens = overlap_count + sentence_tokens
-            chunk_id += 1
+            chunk_index += 1
 
     if current_chunk:
         chunks.append({
-            "chunk_id": chunk_id,
+            "chunk_id": generate_unique_id(),
+            "chunk_index": chunk_index,
             "text": " ".join(current_chunk),
             "token_count": current_tokens,
             "header": section["header"],
@@ -152,16 +155,14 @@ def chunk_with_overlap(section: Dict, max_tokens: int = 200, overlap_tokens: int
 
 def merge_similar_chunks(embeddings: List[Dict], similarity_threshold: float = 0.95) -> List[Dict]:
     """
-    Merge chunks with high similarity based on embeddings.
+    Merge chunks with high similarity based on embeddings and save merge details to a separate file.
     """
     logging.debug(
         f"Starting merge_similar_chunks with {len(embeddings)} embeddings")
     embedding_matrix = np.array([doc["embedding"] for doc in embeddings])
     logging.debug(f"Embedding matrix shape: {embedding_matrix.shape}")
 
-    # Adjust n_clusters to avoid ConvergenceWarning
     n_unique = len(np.unique(embedding_matrix, axis=0))
-    # More conservative clustering
     n_clusters = min(max(1, len(embeddings) // 4), n_unique)
     logging.debug(
         f"Adjusted n_clusters: {n_clusters}, unique embeddings: {n_unique}")
@@ -173,6 +174,7 @@ def merge_similar_chunks(embeddings: List[Dict], similarity_threshold: float = 0
     kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
     labels = kmeans.fit_predict(embedding_matrix)
     merged_chunks = []
+    merge_info = []
 
     for cluster_id in np.unique(labels):
         cluster_chunks = [embeddings[i] for i in range(
@@ -181,7 +183,6 @@ def merge_similar_chunks(embeddings: List[Dict], similarity_threshold: float = 0
             f"Processing cluster {cluster_id} with {len(cluster_chunks)} chunks")
 
         if len(cluster_chunks) > 1:
-            # Merge chunks with high similarity
             similarities = [cosine_similarity([cluster_chunks[0]["embedding"]], [chunk["embedding"]])[0][0]
                             for chunk in cluster_chunks[1:]]
             logging.debug(
@@ -189,22 +190,59 @@ def merge_similar_chunks(embeddings: List[Dict], similarity_threshold: float = 0
             if max(similarities, default=0) > similarity_threshold:
                 merged_text = " ".join([chunk["text"]
                                        for chunk in cluster_chunks])
+                merged_token_count = sum(
+                    chunk["token_count"] for chunk in cluster_chunks)
                 merged_chunk = cluster_chunks[0].copy()
                 merged_chunk["text"] = merged_text
-                merged_chunk["token_count"] = sum(
-                    chunk["token_count"] for chunk in cluster_chunks)
+                merged_chunk["token_count"] = merged_token_count
+                merged_chunk_id = str(uuid.uuid4())
+                merge_info.append({
+                    "merged_chunk_id": merged_chunk_id,
+                    "original_chunk_ids": [chunk["chunk_id"] for chunk in cluster_chunks],
+                    "text": merged_text,
+                    "token_count": merged_token_count,
+                    "header": merged_chunk["header"],
+                    "url": merged_chunk["url"],
+                    "xpath": merged_chunk["xpath"],
+                    "score": merged_chunk.get("score", None)
+                })
                 merged_chunks.append(merged_chunk)
                 logging.debug(
-                    f"Merged {len(cluster_chunks)} chunks in cluster {cluster_id}")
+                    f"Merged {len(cluster_chunks)} chunks in cluster {cluster_id} into merged_chunk_id: {merged_chunk_id}")
             else:
                 merged_chunks.extend(cluster_chunks)
+                for chunk in cluster_chunks:
+                    merge_info.append({
+                        "merged_chunk_id": str(uuid.uuid4()),
+                        "original_chunk_ids": [chunk["chunk_id"]],
+                        "text": chunk["text"],
+                        "token_count": chunk["token_count"],
+                        "header": chunk["header"],
+                        "url": chunk["url"],
+                        "xpath": chunk["xpath"],
+                        "score": chunk.get("score", None)
+                    })
                 logging.debug(
                     f"No merge for cluster {cluster_id}, keeping {len(cluster_chunks)} chunks")
         else:
             merged_chunks.append(cluster_chunks[0])
+            merge_info.append({
+                "merged_chunk_id": str(uuid.uuid4()),
+                "original_chunk_ids": [cluster_chunks[0]["chunk_id"]],
+                "text": cluster_chunks[0]["text"],
+                "token_count": cluster_chunks[0]["token_count"],
+                "header": cluster_chunks[0]["header"],
+                "url": cluster_chunks[0]["url"],
+                "xpath": cluster_chunks[0]["xpath"],
+                "score": cluster_chunks[0].get("score", None)
+            })
             logging.debug(
                 f"Single chunk in cluster {cluster_id}, no merge needed")
 
+    # Save merge information to a separate file
+    save_file(merge_info, f"{OUTPUT_DIR}/merged_chunks.json")
+    logging.info(
+        f"Saved merge information for {len(merge_info)} chunks to merged_chunks.json")
     logging.info(
         f"Merged {len(embeddings) - len(merged_chunks)} similar chunks")
     return merged_chunks
@@ -217,6 +255,7 @@ def save_metadata(embeddings: List[Dict]) -> None:
     metadata = [
         {
             "chunk_id": doc["chunk_id"],
+            "chunk_index": doc["chunk_index"],
             "url": doc["url"],
             "header": doc["header"],
             "text": doc["text"],
@@ -224,22 +263,53 @@ def save_metadata(embeddings: List[Dict]) -> None:
             "index": i,
             "score": doc.get("score", None),
             "token_count": doc.get("token_count", None),
-            "rank": None  # Temporary placeholder
+            "rank": None
         } for i, doc in enumerate(embeddings)
     ]
 
-    # Sort metadata by score in descending order, with None scores at the end
     metadata = sorted(
         metadata,
         key=lambda x: x["score"] if x["score"] is not None else float('-inf'),
         reverse=True
     )
 
-    # Assign ranks to chunks with non-null scores
     for i, doc in enumerate(metadata):
         doc["rank"] = i + 1 if doc["score"] is not None else None
 
     save_file(metadata, f"{OUTPUT_DIR}/metadata.json")
+
+
+def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, score_threshold: float = 1.0, cross_encoder_model: str = 'cross-encoder/ms-marco-MiniLM-L-12-v2') -> List[Dict]:
+    """
+    Query the RAG system and return top-k results sorted by cross-encoder score in descending order.
+    """
+    cross_encoder = CrossEncoder(cross_encoder_model)
+    query_embedding = model.encode(query, convert_to_tensor=False,
+                                   show_progress_bar=False, normalize_embeddings=True).astype('float32')
+    D, I = index.search(np.array([query_embedding]), k)
+    results = []
+
+    pairs = [[query, embeddings[idx]["text"]] for idx in I[0]]
+    cross_scores = cross_encoder.predict(pairs)
+    logging.info(f"Cross-encoder scores: {cross_scores}")
+
+    for idx, cross_score, distance in zip(I[0], cross_scores, D[0]):
+        if cross_score >= score_threshold:
+            embeddings[idx]["score"] = float(cross_score)
+            results.append({
+                "chunk_id": embeddings[idx]["chunk_id"],
+                "chunk_index": embeddings[idx]["chunk_index"],
+                "header": embeddings[idx]["header"],
+                "text": embeddings[idx]["text"],
+                "url": embeddings[idx]["url"],
+                "score": float(cross_score),
+                "token_count": embeddings[idx]["token_count"]
+            })
+
+    results = sorted(results, key=lambda x: x["score"], reverse=True)
+    logging.info(
+        f"Retrieved {len(results)} results above score threshold {score_threshold}")
+    return results
 
 
 async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2', batch_size: int = 32, max_retries: int = 3) -> tuple:
@@ -312,40 +382,6 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
     return index, embeddings, model
 
 
-def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, score_threshold: float = 1.0, cross_encoder_model: str = 'cross-encoder/ms-marco-MiniLM-L-12-v2') -> List[Dict]:
-    """
-    Query the RAG system and return top-k results sorted by cross-encoder score in descending order.
-    """
-    cross_encoder = CrossEncoder(cross_encoder_model)
-    query_embedding = model.encode(query, convert_to_tensor=False,
-                                   show_progress_bar=False, normalize_embeddings=True).astype('float32')
-    D, I = index.search(np.array([query_embedding]), k)
-    results = []
-
-    # Prepare pairs for cross-encoder re-ranking
-    pairs = [[query, embeddings[idx]["text"]] for idx in I[0]]
-    cross_scores = cross_encoder.predict(pairs)
-    # Log scores for debugging
-    logging.info(f"Cross-encoder scores: {cross_scores}")
-
-    for idx, cross_score, distance in zip(I[0], cross_scores, D[0]):
-        if cross_score >= score_threshold:
-            embeddings[idx]["score"] = float(cross_score)
-            results.append({
-                "header": embeddings[idx]["header"],
-                "text": embeddings[idx]["text"],
-                "url": embeddings[idx]["url"],
-                "score": float(cross_score),
-                "token_count": embeddings[idx]["token_count"]
-            })
-
-    # Sort results by cross-encoder score in descending order
-    results = sorted(results, key=lambda x: x["score"], reverse=True)
-    logging.info(
-        f"Retrieved {len(results)} results above score threshold {score_threshold}")
-    return results
-
-
 async def main():
     query = "Top isekai anime 2025."
     use_cache = True
@@ -363,7 +399,7 @@ async def main():
 
     results = query_rag(index, embeddings, model, query,
                         k=20, score_threshold=1.0)
-    save_metadata(embeddings)  # Moved save_metadata after query_rag
+    save_metadata(embeddings)
 
     print("\nQuery Results:")
     for i, result in enumerate(results, 1):
@@ -372,6 +408,7 @@ async def main():
         print(f"Text: {result['text'][:200]}...")
         print(f"URL: {result['url']}")
         print(f"Score: {result['score']:.4f}")
+        print(f"Token Count: {result['token_count']}")
 
     save_file({"query": query, "count": len(results),
               "results": results}, f"{OUTPUT_DIR}/rag_results.json")
