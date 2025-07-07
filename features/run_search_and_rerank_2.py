@@ -284,7 +284,8 @@ def save_metadata(embeddings: List[Dict], merge_info: List[Dict] = None, origina
             merge_info = []
 
     # Create a mapping from chunk_id to original_chunk_ids
-    merge_info_map = {info["merged_chunk_id"]: info["original_chunk_ids"] for info in merge_info}
+    merge_info_map = {info["merged_chunk_id"]
+        : info["original_chunk_ids"] for info in merge_info}
 
     metadata = [
         {
@@ -402,24 +403,26 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
 def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, score_threshold: float = 1.0, cross_encoder_model: str = 'cross-encoder/ms-marco-MiniLM-L-12-v2') -> List[Dict]:
     """
     Query the RAG system and return top-k results sorted by cross-encoder score in descending order.
-    Uses merged_chunk_id for consistency with merged chunks.
+    Uses merged_chunk_id for consistency with merged chunks and deduplicates results by merged_chunk_id.
     """
     cross_encoder = CrossEncoder(cross_encoder_model)
     query_embedding = model.encode(query, convert_to_tensor=False,
                                    show_progress_bar=False, normalize_embeddings=True).astype('float32')
     D, I = index.search(np.array([query_embedding]), k)
     results = []
+    seen_chunk_ids = set()
 
     pairs = [[query, embeddings[idx]["text"]] for idx in I[0]]
     cross_scores = cross_encoder.predict(pairs)
     logging.info(f"Cross-encoder scores: {cross_scores}")
 
     for idx, cross_score, distance in zip(I[0], cross_scores, D[0]):
-        if cross_score >= score_threshold:
+        chunk_id = embeddings[idx]["chunk_id"]
+        if cross_score >= score_threshold and chunk_id not in seen_chunk_ids:
+            seen_chunk_ids.add(chunk_id)
             embeddings[idx]["score"] = float(cross_score)
             results.append({
-                # Use chunk_id which is now the merged_chunk_id
-                "merged_chunk_id": embeddings[idx]["chunk_id"],
+                "merged_chunk_id": chunk_id,
                 "chunk_index": embeddings[idx]["chunk_index"],
                 "header": embeddings[idx]["header"],
                 "text": embeddings[idx]["text"],
@@ -430,7 +433,7 @@ def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, sco
 
     results = sorted(results, key=lambda x: x["score"], reverse=True)
     logging.info(
-        f"Retrieved {len(results)} results above score threshold {score_threshold}")
+        f"Retrieved {len(results)} unique results above score threshold {score_threshold} after deduplication")
     return results
 
 

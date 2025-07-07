@@ -1,21 +1,10 @@
-from jet.scrapers.utils import clean_newlines
 from jet.search.formatters import clean_string
-import numpy as np
-from gensim.similarities.annoy import AnnoyIndexer
-from gensim.models import TfidfModel
-from gensim.similarities import SoftCosineSimilarity, SparseTermSimilarityMatrix, WordEmbeddingSimilarityIndex
-from gensim.models import Word2Vec
-from typing import TypedDict
-from gensim.corpora import Dictionary
-from gensim.models import TfidfModel, OkapiBM25Model
-from gensim.similarities import SparseMatrixSimilarity
-from jet.utils.commands import copy_to_clipboard
+from jet.vectors.reranker.bm25 import get_bm25_similarities
 from jet.wordnet.gensim_scripts.phrase_detector import PhraseDetector
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
-from jet.transformers.formatters import format_json
 from jet.wordnet.words import get_words
-from jet.search.similarity import get_bm25_similarities, get_cosine_similarities, get_annoy_similarities
+from jet.search.similarity import get_cosine_similarities, get_annoy_similarities
 from shared.data_types.job import JobData
 
 
