@@ -214,7 +214,6 @@ def save_metadata(embeddings: List[Dict]) -> None:
     """
     Save metadata to JSON file with error handling and backup, sorted by score in descending order with rank.
     """
-    # Create metadata list
     metadata = [
         {
             "chunk_id": doc["chunk_id"],
@@ -223,7 +222,9 @@ def save_metadata(embeddings: List[Dict]) -> None:
             "text": doc["text"],
             "xpath": doc["xpath"],
             "index": i,
-            "score": doc.get("score", None)
+            "score": doc.get("score", None),
+            "token_count": doc.get("token_count", None),
+            "rank": None  # Temporary placeholder
         } for i, doc in enumerate(embeddings)
     ]
 
@@ -312,6 +313,9 @@ async def prepare_for_rag(urls: List[str], model_name: str = 'all-MiniLM-L6-v2',
 
 
 def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, score_threshold: float = 1.0, cross_encoder_model: str = 'cross-encoder/ms-marco-MiniLM-L-12-v2') -> List[Dict]:
+    """
+    Query the RAG system and return top-k results sorted by cross-encoder score in descending order.
+    """
     cross_encoder = CrossEncoder(cross_encoder_model)
     query_embedding = model.encode(query, convert_to_tensor=False,
                                    show_progress_bar=False, normalize_embeddings=True).astype('float32')
@@ -331,7 +335,8 @@ def query_rag(index, embeddings: List[Dict], model, query: str, k: int = 10, sco
                 "header": embeddings[idx]["header"],
                 "text": embeddings[idx]["text"],
                 "url": embeddings[idx]["url"],
-                "score": float(cross_score)
+                "score": float(cross_score),
+                "token_count": embeddings[idx]["token_count"]
             })
 
     # Sort results by cross-encoder score in descending order
