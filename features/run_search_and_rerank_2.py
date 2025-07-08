@@ -418,7 +418,10 @@ def group_results_by_url_for_llm_context(
                     f"Skipping empty parent_header group: {parent_header} for URL: {url}")
                 continue
             parent_docs = sorted(parent_docs, key=lambda x: (
-                x.get("level", 0), x.get("chunk_index", 0)))
+                x.get("level", 0) if x.get("level") is not None else 0,
+                x.get("chunk_index", 0) if x.get(
+                    "chunk_index") is not None else 0
+            ))
             parent_level = parent_docs[0].get("parent_level", None)
             if parent_header and parent_header != "None" and parent_level is not None:
                 parent_header_text = f"{'#' * parent_level} {parent_header}\n\n"
@@ -428,7 +431,8 @@ def group_results_by_url_for_llm_context(
                 header = doc.get("header", None)
                 text = doc.get("text", "")
                 doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
-                doc_level = doc.get("level", 0)
+                doc_level = doc.get("level", 0) if doc.get(
+                    "level") is not None else 0
                 if header and header != parent_header and doc_level >= 0:
                     subheader_text = f"{'#' * doc_level} {header}\n\n"
                     block += subheader_text
