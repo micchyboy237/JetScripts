@@ -405,10 +405,10 @@ def group_results_by_url_for_llm_context(
             header_tokens += separator_tokens if filtered_docs else 0
         if not grouped_temp[url][parent_header] and parent_header and parent_header != "None" and parent_level is not None:
             header_tokens += len(tokenizer.encode(
-                f"{'#' * parent_level} {parent_header}\n\n"))
+                f"{parent_header}\n\n"))
         if header and header != parent_header and level >= 0:
             header_tokens += len(tokenizer.encode(
-                f"{'#' * level} {header}\n\n"))
+                f"{header}\n\n"))
         additional_tokens = doc_tokens + header_tokens + separator_tokens
         if total_tokens + additional_tokens <= max_tokens - buffer:
             filtered_docs.append(doc)
@@ -434,7 +434,7 @@ def group_results_by_url_for_llm_context(
             ))
             parent_level = parent_docs[0].get("parent_level", None)
             if parent_header and parent_header != "None" and parent_level is not None:
-                parent_header_text = f"{'#' * parent_level} {parent_header}\n\n"
+                parent_header_text = f"{parent_header}\n\n"
                 block += parent_header_text
                 block_tokens += len(tokenizer.encode(parent_header_text))
             for doc in parent_docs:
@@ -444,7 +444,7 @@ def group_results_by_url_for_llm_context(
                 doc_level = doc.get("level", 0) if doc.get(
                     "level") is not None else 0
                 if header and header != parent_header and doc_level >= 0:
-                    subheader_text = f"{'#' * doc_level} {header}\n\n"
+                    subheader_text = f"{header}\n\n"
                     block += subheader_text
                     block_tokens += len(tokenizer.encode(subheader_text))
                 block += text + "\n\n"
@@ -457,6 +457,32 @@ def group_results_by_url_for_llm_context(
                 f"Empty block for {url} after processing; skipping.")
     result = "\n\n".join(context_blocks)
     final_token_count = len(tokenizer.encode(result))
+    # Save contexts.json with filtered documents
+    contexts_data = {
+        "query": documents[0].get("query", "") if documents else "",
+        "count": len(filtered_docs),
+        "total_tokens": sum(doc.get("num_tokens", 0) for doc in filtered_docs),
+        "results": [
+            {
+                "merged_doc_id": doc.get("merged_doc_id"),
+                "chunk_id": doc.get("chunk_id"),
+                "doc_index": doc.get("doc_index"),
+                "chunk_index": doc.get("chunk_index", 0),
+                "header": doc.get("header"),
+                "text": doc.get("text"),
+                "url": doc.get("url"),
+                "score": doc.get("score"),
+                "mtld": doc.get("mtld"),
+                "mtld_category": doc.get("mtld_category"),
+                "num_tokens": doc.get("num_tokens"),
+                "parent_header": doc.get("parent_header"),
+                "parent_level": doc.get("parent_level"),
+                "level": doc.get("level"),
+                "selected_doc_ids": doc.get("selected_doc_ids")
+            } for doc in filtered_docs
+        ]
+    }
+    save_file(contexts_data, f"{OUTPUT_DIR}/contexts.json")
     if final_token_count > max_tokens:
         logger.warning(
             f"Final context exceeds max_tokens: {final_token_count} > {max_tokens}")
