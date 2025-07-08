@@ -108,7 +108,7 @@ def separate_by_headers(paragraphs: List) -> List[Dict]:
                 "header": paragraph.text,
                 "content": [],
                 "xpath": paragraph.xpath,
-                "parent_header": None  # Will be set during chunking
+                "parent_header": None
             }
         else:
             current_section["content"].append(paragraph.text)
@@ -117,7 +117,7 @@ def separate_by_headers(paragraphs: List) -> List[Dict]:
     return sections
 
 
-def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.7) -> tuple[List[Dict], List[Dict]]:
+def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.8) -> tuple[List[Dict], List[Dict]]:
     texts = [f"{doc['header'] or ''}\n{doc['content']}" for doc in embeddings]
     embedding_matrix = [doc["embedding"] for doc in embeddings]
 
@@ -184,11 +184,18 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.7
     return merged_docs, merge_info
 
 
-async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-MiniLM-L6-v2', urls_limit: Optional[int] = None, max_retries: int = 3) -> tuple:
+async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-MiniLM-L6-v2', urls_limit: Optional[int] = None, max_retries: int = 3, query: str = "") -> tuple:
     model = SentenceTransformerRegistry.load_model(model_name)
-    documents = []
+    all_documents = []
     all_links = []
     seen_texts = set()
+    all_results = []
+    total_tokens = 0
+    high_quality_docs = 0
+    MIN_HIGH_QUALITY_DOCS = 5
+    HIGH_QUALITY_SCORE = 0.5
+    TARGET_TOKEN_COUNT = 1500
+    TOKEN_BUFFER = 200
 
     async for url, status, html in scrape_urls(urls, show_progress=True, limit=urls_limit):
         if status == "completed" and html:
@@ -215,6 +222,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 html, max_link_density=0.15, max_link_ratio=0.3)
             save_file(paragraphs, f"{sub_output_dir}/elements.json")
             sections = separate_by_headers(paragraphs)
+            documents = []
             for section in tqdm(sections, desc=f"Chunking sections for {url}", leave=False):
                 markdown_text = (f"{section['header']}\n" + "\n".join(
                     section["content"]) if section["header"] else "\n".join(section["content"]))
@@ -239,40 +247,62 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                         word_tokenize(chunk["content"]))
                     documents.append(chunk)
 
-    if not documents:
+            if not documents:
+                logger.warning(f"No documents collected for {url}.")
+                continue
+
+            for doc in documents:
+                readability = analyze_readability(doc["content"])
+                doc["mtld"] = readability["mtld"]
+                doc["mtld_category"] = readability["mtld_category"]
+                doc["doc_index"] = len(all_documents) + len(documents)
+
+            texts = [doc["content"] for doc in documents]
+            generated_embeddings = generate_embeddings(
+                texts, model, show_progress=True)
+
+            embeddings = []
+            for i, (doc, embedding) in enumerate(zip(documents, generated_embeddings)):
+                doc["embedding"] = embedding
+                doc["doc_index"] = len(all_documents) + i
+                embeddings.append(doc)
+
+            # Create FAISS index for unmerged documents
+            embedding_matrix = np.array(
+                [doc["embedding"] for doc in embeddings]).astype('float32')
+            index = faiss.IndexFlatIP(embedding_matrix.shape[1])
+            index.add(embedding_matrix)
+
+            # Run query_rag for this URL with empty merge_info since no clustering yet
+            results = query_rag(index, embeddings, model, [], query,
+                                k=20, threshold=-0.0, use_reranking=False)
+            total_tokens += sum(result["num_tokens"] for result in results)
+            high_quality_docs += sum(
+                1 for result in results if result["score"] > HIGH_QUALITY_SCORE)
+            all_results.extend(results)
+            save_file({"query": query, "count": len(results), "total_tokens": sum(result["num_tokens"] for result in results),
+                       "results": results}, f"{sub_output_dir}/rag_results.json")
+
+            all_documents.extend(embeddings)
+            save_file({"count": len(all_documents), "total_tokens": total_tokens, "documents": [doc for doc in all_documents if "embedding" in doc]},
+                      f"{sub_output_dir}/docs.json")
+
+            # Break condition
+            if high_quality_docs >= MIN_HIGH_QUALITY_DOCS and total_tokens >= TARGET_TOKEN_COUNT - TOKEN_BUFFER:
+                logger.info(
+                    f"Stopping scrape: {high_quality_docs} high-quality docs and {total_tokens} tokens collected.")
+                break
+
+    if not all_documents:
         logger.warning("No documents collected after scraping.")
         return None, [], model, []
 
-    for doc in documents:
-        readability = analyze_readability(doc["content"])
-        doc["mtld"] = readability["mtld"]
-        doc["mtld_category"] = readability["mtld_category"]
+    # Perform clustering after the loop
+    logger.info(f"Clustering {len(all_documents)} documents...")
+    merged_docs, merge_info = merge_similar_docs(
+        all_documents, similarity_threshold=0.8)
 
-    # Update doc_index to be incrementing
-    for i, doc in enumerate(documents):
-        doc["doc_index"] = i
-
-    # documents = [doc for doc in documents if doc.get(
-    #     "mtld_category") != "very_low"]
-    total_tokens = sum(doc["num_tokens"] for doc in documents)
-    save_file({"count": len(documents), "total_tokens": total_tokens, "documents": documents},
-              f"{OUTPUT_DIR}/docs.json")
-
-    texts = [doc["content"] for doc in documents]
-    generated_embeddings = generate_embeddings(
-        texts, model, show_progress=True)
-
-    embeddings = []
-    for i, (doc, embedding) in enumerate(zip(documents, generated_embeddings)):
-        doc["embedding"] = embedding
-        doc["doc_index"] = i
-        embeddings.append(doc)
-
-    embedding_matrix = np.array(generated_embeddings).astype('float32')
-    index = faiss.IndexFlatIP(embedding_matrix.shape[1])
-    index.add(embedding_matrix)
-
-    merged_docs, merge_info = merge_similar_docs(embeddings)
+    # Create FAISS index for merged documents
     merged_embedding_matrix = np.array(
         [doc["embedding"] for doc in merged_docs]).astype('float32')
     merged_index = faiss.IndexFlatIP(merged_embedding_matrix.shape[1])
@@ -292,23 +322,6 @@ def query_rag(
     cross_encoder_model: str = 'cross-encoder/ms-marco-MiniLM-L-12-v2',
     use_reranking: bool = True
 ) -> List[Dict]:
-    """
-    Query the RAG system to retrieve relevant documents based on the query.
-
-    Args:
-        index: FAISS index for embeddings.
-        embeddings: List of document dictionaries containing embeddings and metadata.
-        model: SentenceTransformer model for encoding queries.
-        merge_info: List of merge information for documents.
-        query: The query string to search for.
-        k: Number of top documents to retrieve (default: 10).
-        threshold: Minimum score for including documents (default: 0.0, used only with reranking).
-        cross_encoder_model: Cross-encoder model name for reranking (default: 'cross-encoder/ms-marco-MiniLM-L-12-v2').
-        use_reranking: Whether to use cross-encoder for reranking (default: True).
-
-    Returns:
-        List of dictionaries containing retrieved documents with metadata and scores.
-    """
     query_embedding = model.encode(query, convert_to_tensor=False,
                                    show_progress_bar=False, normalize_embeddings=True).astype('float32')
     D, I = index.search(np.array([query_embedding]), k)
@@ -321,7 +334,6 @@ def query_rag(
         cross_scores = cross_encoder.predict(pairs)
         scores = cross_scores
     else:
-        # Use normalized cosine similarity scores (D is already cosine similarity from FAISS)
         scores = D[0]
 
     for idx, score in zip(I[0], scores):
@@ -338,7 +350,7 @@ def query_rag(
             "merged_doc_id": doc_id,
             "chunk_id": embeddings[idx]["chunk_id"],
             "doc_index": embeddings[idx]["doc_index"],
-            "chunk_index": embeddings[idx]["chunk_index"],
+            "chunk_index": embeddings[idx].get("chunk_index", 0),
             "header": embeddings[idx]["header"],
             "text": embeddings[idx]["content"],
             "url": embeddings[idx]["url"],
@@ -361,33 +373,14 @@ def group_results_by_url_for_llm_context(
     max_tokens: int = 2000,
     buffer: int = 100
 ) -> str:
-    """
-    Groups RAG query results by URL and formats them into a string for LLM context.
-    Organizes documents hierarchically by parent_header and header, sorts by score,
-    and filters to respect max_tokens, including headers and separators, using the specified LLM's tokenizer.
-    Uses the 'level' field to determine the number of hashtags for headers.
-    Ensures the last document is included if it fits within max_tokens with a buffer.
-
-    Args:
-        documents: List of dictionaries containing RAG query results with 'text', 'url', 'num_tokens',
-                   'doc_index', 'chunk_index', 'header', 'parent_header', 'score', and 'level'.
-        llm_model: The LLM model type to use for tokenization.
-        max_tokens: Maximum number of tokens allowed in the output context (default: 2000).
-        buffer: Number of tokens to reserve as a safety buffer (default: 100).
-
-    Returns:
-        A formatted string with grouped content by URL, respecting token limit and hierarchy.
-    """
     tokenizer = get_tokenizer_fn(
         llm_model, add_special_tokens=False, remove_pad_tokens=True)
     separator = "\n\n"
     separator_tokens = len(tokenizer.encode(separator))
 
-    # Sort documents by score (descending) to prioritize high-relevance results
     sorted_docs = sorted(
         documents, key=lambda x: x.get("score", 0), reverse=True)
 
-    # Filter documents to respect max_tokens, including headers, separators, and buffer
     filtered_docs = []
     total_tokens = 0
     grouped_temp = defaultdict(lambda: defaultdict(list))
@@ -401,25 +394,17 @@ def group_results_by_url_for_llm_context(
         doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
         header_tokens = 0
 
-        # Calculate header tokens for this document
-        url_header = f"<!-- Source: {url} -->\n\n"
-        parent_header_text = f"# {parent_header}\n\n" if parent_header and parent_header != "None" and level > 0 else ""
-        subheader_text = f"## {header}\n" if header and header != parent_header and level >= 0 else ""
-
-        # Only add URL header and separator for new URLs
         if not grouped_temp[url]:
-            header_tokens += len(tokenizer.encode(url_header))
-            header_tokens += separator_tokens if filtered_docs else 0  # Separator before new URL
-        # Only add parent header for new parent_header groups
+            header_tokens += len(tokenizer.encode(
+                f"<!-- Source: {url} -->\n\n"))
+            header_tokens += separator_tokens if filtered_docs else 0
         if not grouped_temp[url][parent_header] and parent_header and parent_header != "None" and level > 0:
-            header_tokens += len(tokenizer.encode(parent_header_text))
-        # Add subheader if applicable
+            header_tokens += len(tokenizer.encode(f"# {parent_header}\n\n"))
         if header and header != parent_header and level >= 0:
-            header_tokens += len(tokenizer.encode(subheader_text))
+            header_tokens += len(tokenizer.encode(f"## {header}\n"))
 
         additional_tokens = doc_tokens + header_tokens + separator_tokens
 
-        # Check if adding this document exceeds max_tokens with buffer
         if total_tokens + additional_tokens <= max_tokens - buffer:
             filtered_docs.append(doc)
             grouped_temp[url][parent_header].append(doc)
@@ -428,7 +413,6 @@ def group_results_by_url_for_llm_context(
             logger.debug(
                 f"Skipping document (score: {doc.get('score', 0)}): would exceed max_tokens ({total_tokens + additional_tokens} > {max_tokens - buffer})")
 
-    # Build context by grouping filtered documents
     context_blocks = []
     total_tokens = 0
     for url, parent_groups in grouped_temp.items():
@@ -436,13 +420,10 @@ def group_results_by_url_for_llm_context(
         block_tokens = len(tokenizer.encode(block))
 
         for parent_header, parent_docs in parent_groups.items():
-            # Sort by level (ascending) and then chunk_index
             parent_docs = sorted(parent_docs, key=lambda x: (
                 x.get("level", 0), x.get("chunk_index", 0)))
 
-            # Add parent header if it exists and has a value
-            level = parent_docs[0].get("level", 0) if parent_docs else 0
-            if parent_header and parent_header != "None" and level > 0:
+            if parent_header and parent_header != "None" and parent_docs[0].get("level", 0) > 0:
                 parent_header_text = f"# {parent_header}\n\n"
                 block += parent_header_text
                 block_tokens += len(tokenizer.encode(parent_header_text))
@@ -453,7 +434,6 @@ def group_results_by_url_for_llm_context(
                 doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
                 doc_level = doc.get("level", 0)
 
-                # Add header if it exists, has a value, and is not the same as parent_header
                 if header and header != parent_header and doc_level >= 0:
                     subheader_text = f"## {header}\n"
                     block += subheader_text
@@ -469,7 +449,7 @@ def group_results_by_url_for_llm_context(
             logger.warning(
                 f"Empty block for {url} after processing; skipping.")
 
-    result = separator.join(context_blocks)
+    result = "\n\n".join(context_blocks)
     final_token_count = len(tokenizer.encode(result))
     if final_token_count > max_tokens:
         logger.warning(
@@ -484,10 +464,8 @@ def group_results_by_url_for_llm_context(
 async def main():
     p = argparse.ArgumentParser(
         description="Run semantic search and processing pipeline.")
-    # Positional query (optional)
     p.add_argument("query_pos", type=str, nargs="?",
                    help="Search query as positional argument")
-    # Optional query flag
     p.add_argument("-q", "--query", type=str,
                    help="Search query using optional flag")
     args = p.parse_args()
@@ -506,31 +484,40 @@ async def main():
     save_file({"query": query, "count": len(search_results),
               "results": search_results}, f"{OUTPUT_DIR}/search_results.json")
     urls = [result["url"] for result in search_results]
-    index, embeddings, model, merge_info = await prepare_for_rag(urls, urls_limit=urls_limit, max_retries=3)
-    if index is None or not embeddings:
+    index, embeddings, model, merge_info = await prepare_for_rag(urls, urls_limit=urls_limit, max_retries=3, query=query)
+    if not embeddings:
         print("No data indexed, exiting.")
         return
 
-    # Query RAG without reranking
-    results_no_reranking = query_rag(index, embeddings, model, merge_info, query,
-                                     k=20, threshold=0.0, use_reranking=False)
-    total_tokens_no_reranking = sum(
-        result["num_tokens"] for result in results_no_reranking)
-    save_file({"query": query, "count": len(results_no_reranking), "total_tokens": total_tokens_no_reranking,
-               "results": results_no_reranking}, f"{OUTPUT_DIR}/results_no_reranking.json")
+    # Aggregate results from all sub_url_dir
+    results = []
+    pages_dir = os.path.join(OUTPUT_DIR, "pages")
+    for sub_url_dir in os.listdir(pages_dir):
+        rag_results_path = os.path.join(
+            pages_dir, sub_url_dir, "rag_results.json")
+        if os.path.exists(rag_results_path):
+            with open(rag_results_path, 'r') as f:
+                rag_data = json.load(f)
+                results.extend(rag_data["results"])
 
-    # Query RAG with reranking
-    results_with_reranking = query_rag(index, embeddings, model, merge_info, query,
-                                       k=20, threshold=0.0, use_reranking=True)
-    total_tokens_with_reranking = sum(
-        result["num_tokens"] for result in results_with_reranking)
-    save_file({"query": query, "count": len(results_with_reranking), "total_tokens": total_tokens_with_reranking,
-               "results": results_with_reranking}, f"{OUTPUT_DIR}/results_with_reranking.json")
+    # Run query_rag on merged documents
+    final_results = query_rag(index, embeddings, model, merge_info, query,
+                              k=50, threshold=-1.0, use_reranking=True)
 
-    results = results_no_reranking
+    # Combine per-URL results with final merged results
+    results.extend(final_results)
+
+    # Sort and deduplicate results by score
+    results = sorted(results, key=lambda x: x["score"], reverse=True)
+    seen_doc_ids = set()
+    unique_results = []
+    for result in results:
+        if result["merged_doc_id"] not in seen_doc_ids:
+            seen_doc_ids.add(result["merged_doc_id"])
+            unique_results.append(result)
 
     print("\nQuery Results (With Reranking):")
-    for i, result in enumerate(results, 1):
+    for i, result in enumerate(unique_results, 1):
         print(f"\nResult {i}:")
         print(f"Header: {result['header'] or 'No header'}")
         print(f"Text: {result['text'][:200]}...")
@@ -542,8 +529,7 @@ async def main():
         print(f"Selected Doc IDs: {result['selected_doc_ids']}")
 
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
-    context = group_results_by_url_for_llm_context(
-        results, llm_model)
+    context = group_results_by_url_for_llm_context(unique_results, llm_model)
     save_file(context, f"{OUTPUT_DIR}/context.md")
     save_file({"num_tokens": count_tokens(llm_model, context)},
               f"{OUTPUT_DIR}/context_info.json")
