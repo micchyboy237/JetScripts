@@ -32,7 +32,7 @@ Query: {query}
 """
 
 if __name__ == "__main__":
-    original_chunks_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/original_docs.json"
+    original_chunks_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/docs.json"
     merged_chunks_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/merged_chunks.json"
     rag_results_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/rag_results.json"
     output_dir = os.path.join(

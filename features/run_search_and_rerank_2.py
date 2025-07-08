@@ -1,3 +1,4 @@
+import argparse
 from collections import defaultdict
 import shutil
 import string
@@ -39,7 +40,6 @@ nltk.download('stopwords', quiet=True)
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 PROMPT_TEMPLATE = """\
 Context information is below.
@@ -51,6 +51,10 @@ Given the context information, answer the query.
 
 Query: {query}
 """
+
+
+def format_sub_dir(text: str) -> str:
+    return text.lower().strip('.,!?').replace(' ', '_').replace('.', '_').replace(',', '_').replace('!', '_').replace('?', '_').strip()
 
 
 def format_sub_url_dir(url: str) -> str:
@@ -244,11 +248,15 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
         doc["mtld"] = readability["mtld"]
         doc["mtld_category"] = readability["mtld_category"]
 
-    documents = [doc for doc in documents if doc.get(
-        "mtld_category") != "very_low"]
+    # Update doc_index to be incrementing
+    for i, doc in enumerate(documents):
+        doc["doc_index"] = i
+
+    # documents = [doc for doc in documents if doc.get(
+    #     "mtld_category") != "very_low"]
     total_tokens = sum(doc["num_tokens"] for doc in documents)
-    save_file({"count": len(documents), "total_tokens": total_tokens},
-              f"{OUTPUT_DIR}/original_docs.json")
+    save_file({"count": len(documents), "total_tokens": total_tokens, "documents": documents},
+              f"{OUTPUT_DIR}/docs.json")
 
     texts = [doc["content"] for doc in documents]
     generated_embeddings = generate_embeddings(
@@ -474,7 +482,23 @@ def group_results_by_url_for_llm_context(
 
 
 async def main():
-    query = "Top isekai anime 2025."
+    p = argparse.ArgumentParser(
+        description="Run semantic search and processing pipeline.")
+    # Positional query (optional)
+    p.add_argument("query_pos", type=str, nargs="?",
+                   help="Search query as positional argument")
+    # Optional query flag
+    p.add_argument("-q", "--query", type=str,
+                   help="Search query using optional flag")
+    args = p.parse_args()
+
+    query = args.query if args.query else args.query_pos or "Top isekai anime 2025."
+
+    query_sub_dir = format_sub_dir(query)
+    global OUTPUT_DIR
+    OUTPUT_DIR = f"{OUTPUT_DIR}/{query_sub_dir}"
+    shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
     use_cache = True
     urls_limit = 10
 
@@ -503,8 +527,10 @@ async def main():
     save_file({"query": query, "count": len(results_with_reranking), "total_tokens": total_tokens_with_reranking,
                "results": results_with_reranking}, f"{OUTPUT_DIR}/results_with_reranking.json")
 
+    results = results_no_reranking
+
     print("\nQuery Results (With Reranking):")
-    for i, result in enumerate(results_with_reranking, 1):
+    for i, result in enumerate(results, 1):
         print(f"\nResult {i}:")
         print(f"Header: {result['header'] or 'No header'}")
         print(f"Text: {result['text'][:200]}...")
@@ -517,7 +543,7 @@ async def main():
 
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
     context = group_results_by_url_for_llm_context(
-        results_with_reranking, llm_model)
+        results, llm_model)
     save_file(context, f"{OUTPUT_DIR}/context.md")
     save_file({"num_tokens": count_tokens(llm_model, context)},
               f"{OUTPUT_DIR}/context_info.json")

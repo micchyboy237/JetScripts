@@ -2,7 +2,7 @@ from typing import List, Dict, Any
 from jet.data.stratified_sampler import ProcessedDataString, StratifiedSampler
 from jet.file.utils import load_file
 
-original_chunks_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/original_docs.json"
+original_chunks_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/docs.json"
 merged_docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/merged_docs.json"
 
 # Load files with error handling
