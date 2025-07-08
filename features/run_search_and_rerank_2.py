@@ -97,19 +97,40 @@ def is_valid_header(header: Optional[str]) -> bool:
 
 def separate_by_headers(paragraphs: List) -> List[Dict]:
     sections = []
-    current_section = {"header": None, "content": [],
-                       "xpath": None, "parent_header": None}
-    header_tags = {"h1", "h2", "h3", "h4", "h5", "h6"}
+    current_section = {
+        "header": None,
+        "content": [],
+        "xpath": None,
+        "parent_header": None,
+        "parent_level": None,
+        "level": None
+    }
+    header_stack = []
+    header_tags = {"h1": 1, "h2": 2, "h3": 3, "h4": 4, "h5": 5, "h6": 6}
+
     for paragraph in paragraphs:
         if paragraph.is_heading:
-            if (current_section["content"] or current_section["header"]) and is_valid_header(current_section["header"]):
-                sections.append(current_section)
-            current_section = {
-                "header": paragraph.text,
-                "content": [],
-                "xpath": paragraph.xpath,
-                "parent_header": None
-            }
+            # Extract header tag from xpath using regex (e.g., '/html/body/h1' -> 'h1')
+            xpath = paragraph.xpath.lower()
+            header_tag_match = re.search(r'/(h[1-6])(?:\[|$)', xpath)
+            header_tag = header_tag_match.group(
+                1) if header_tag_match else None
+            if header_tag and header_tag in header_tags:
+                if (current_section["content"] or current_section["header"]) and is_valid_header(current_section["header"]):
+                    sections.append(current_section)
+                level = header_tags[header_tag]
+                header_stack = [h for h in header_stack if h["level"] < level]
+                parent = next(
+                    (h for h in header_stack[::-1] if h["level"] < level), None)
+                current_section = {
+                    "header": paragraph.text,
+                    "content": [],
+                    "xpath": paragraph.xpath,
+                    "parent_header": parent["text"] if parent else None,
+                    "parent_level": parent["level"] if parent else None,
+                    "level": level
+                }
+                header_stack.append({"level": level, "text": paragraph.text})
         else:
             current_section["content"].append(paragraph.text)
     if (current_section["content"] or current_section["header"]) and is_valid_header(current_section["header"]):
@@ -120,16 +141,13 @@ def separate_by_headers(paragraphs: List) -> List[Dict]:
 def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.8) -> tuple[List[Dict], List[Dict]]:
     texts = [f"{doc['header'] or ''}\n{doc['content']}" for doc in embeddings]
     embedding_matrix = [doc["embedding"] for doc in embeddings]
-
     clusters = group_similar_texts(
         texts=texts,
         threshold=similarity_threshold,
         embeddings=embedding_matrix,
     )
-
     merged_docs = []
     merge_info = []
-
     for cluster_texts in clusters:
         cluster_docs = [embeddings[i]
                         for i, text in enumerate(texts) if text in cluster_texts]
@@ -139,7 +157,6 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.8
             merged_doc = best_doc.copy()
             merged_doc["doc_id"] = merged_doc_id
             merged_docs.append(merged_doc)
-
             merged_text = "\n".join([doc["content"] for doc in cluster_docs])
             merged_num_tokens = sum(doc["num_tokens"] for doc in cluster_docs)
             merge_info.append({
@@ -148,6 +165,7 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.8
                 "original_chunk_ids": [doc["chunk_id"] for doc in cluster_docs],
                 "text": merged_text,
                 "num_tokens": merged_num_tokens,
+                # Fixed typo: sock_doc to best_doc
                 "header": best_doc["header"],
                 "url": best_doc["url"],
                 "xpath": best_doc["xpath"],
@@ -155,6 +173,7 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.8
                 "mtld": best_doc["mtld"],
                 "mtld_category": best_doc["mtld_category"],
                 "parent_header": best_doc.get("parent_header", None),
+                "parent_level": best_doc.get("parent_level", None),
                 "level": best_doc.get("level", None),
                 "chunk_index": best_doc.get("chunk_index", None),
                 "doc_index": best_doc.get("doc_index", None)
@@ -175,11 +194,11 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.8
                 "mtld": doc["mtld"],
                 "mtld_category": doc["mtld_category"],
                 "parent_header": doc.get("parent_header", None),
+                "parent_level": doc.get("parent_level", None),
                 "level": doc.get("level", None),
                 "chunk_index": doc.get("chunk_index", None),
                 "doc_index": doc.get("doc_index", None)
             })
-
     save_file(merge_info, f"{OUTPUT_DIR}/merged_docs.json")
     return merged_docs, merge_info
 
@@ -196,7 +215,6 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
     HIGH_QUALITY_SCORE = 0.5
     TARGET_TOKEN_COUNT = 1500
     TOKEN_BUFFER = 200
-
     async for url, status, html in scrape_urls(urls, show_progress=True, limit=urls_limit):
         if status == "completed" and html:
             links = set(scrape_links(html, url))
@@ -204,20 +222,15 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 link != url if isinstance(link, str) else link["url"] != url)]
             all_links.extend(links)
             save_file(all_links, os.path.join(OUTPUT_DIR, "links.json"))
-
             sub_url_dir = format_sub_url_dir(url)
             sub_output_dir = os.path.join(OUTPUT_DIR, "pages", sub_url_dir)
             os.makedirs(sub_output_dir, exist_ok=True)
-
             html = preprocess_html(html)
             save_file(html, f"{sub_output_dir}/page.html")
-
             doc_markdown = convert_html_to_markdown(html)
             save_file(doc_markdown, f"{sub_output_dir}/page.md")
-
             doc_analysis = analyze_markdown(doc_markdown)
             save_file(doc_analysis, f"{sub_output_dir}/analysis.json")
-
             paragraphs = clean_html(
                 html, max_link_density=0.15, max_link_ratio=0.3)
             save_file(paragraphs, f"{sub_output_dir}/elements.json")
@@ -236,44 +249,39 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                     chunk["url"] = url
                     chunk["xpath"] = section["xpath"]
                     chunk["parent_header"] = section.get(
-                        "parent_header", None)
+                        "parent_header", chunk.get("parent_header", None))
+                    chunk["parent_level"] = section.get(
+                        "parent_level", chunk.get("parent_level", None))
+                    chunk["level"] = section.get(
+                        "level", chunk.get("level", 0))
                     text_key = chunk["content"].strip().replace(
                         "\n", " ").replace("\r", " ")
                     text_key = re.sub(r"\s+", " ", text_key)
                     if text_key in seen_texts:
                         continue
                     seen_texts.add(text_key)
-                    chunk["num_tokens"] = len(
-                        word_tokenize(chunk["content"]))
+                    chunk["num_tokens"] = len(word_tokenize(chunk["content"]))
                     documents.append(chunk)
-
             if not documents:
                 logger.warning(f"No documents collected for {url}.")
                 continue
-
             for doc in documents:
                 readability = analyze_readability(doc["content"])
                 doc["mtld"] = readability["mtld"]
                 doc["mtld_category"] = readability["mtld_category"]
                 doc["doc_index"] = len(all_documents) + len(documents)
-
             texts = [doc["content"] for doc in documents]
             generated_embeddings = generate_embeddings(
                 texts, model, show_progress=True)
-
             embeddings = []
             for i, (doc, embedding) in enumerate(zip(documents, generated_embeddings)):
                 doc["embedding"] = embedding
                 doc["doc_index"] = len(all_documents) + i
                 embeddings.append(doc)
-
-            # Create FAISS index for unmerged documents
             embedding_matrix = np.array(
                 [doc["embedding"] for doc in embeddings]).astype('float32')
             index = faiss.IndexFlatIP(embedding_matrix.shape[1])
             index.add(embedding_matrix)
-
-            # Run query_rag for this URL with empty merge_info since no clustering yet
             results = query_rag(index, embeddings, model, [], query,
                                 k=20, threshold=-0.0, use_reranking=False)
             total_tokens += sum(result["num_tokens"] for result in results)
@@ -282,32 +290,23 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
             all_results.extend(results)
             save_file({"query": query, "count": len(results), "total_tokens": sum(result["num_tokens"] for result in results),
                        "results": results}, f"{sub_output_dir}/rag_results.json")
-
             all_documents.extend(embeddings)
             save_file({"count": len(all_documents), "total_tokens": total_tokens, "documents": [doc for doc in all_documents if "embedding" in doc]},
                       f"{sub_output_dir}/docs.json")
-
-            # Break condition
             if high_quality_docs >= MIN_HIGH_QUALITY_DOCS and total_tokens >= TARGET_TOKEN_COUNT - TOKEN_BUFFER:
                 logger.info(
                     f"Stopping scrape: {high_quality_docs} high-quality docs and {total_tokens} tokens collected.")
                 break
-
     if not all_documents:
         logger.warning("No documents collected after scraping.")
         return None, [], model, []
-
-    # Perform clustering after the loop
     logger.info(f"Clustering {len(all_documents)} documents...")
     merged_docs, merge_info = merge_similar_docs(
         all_documents, similarity_threshold=0.8)
-
-    # Create FAISS index for merged documents
     merged_embedding_matrix = np.array(
         [doc["embedding"] for doc in merged_docs]).astype('float32')
     merged_index = faiss.IndexFlatIP(merged_embedding_matrix.shape[1])
     merged_index.add(merged_embedding_matrix)
-
     return merged_index, merged_docs, model, merge_info
 
 
@@ -327,15 +326,14 @@ def query_rag(
     D, I = index.search(np.array([query_embedding]), k)
     results = []
     seen_doc_ids = set()
-
     if use_reranking:
-        cross_encoder = CrossEncoder(cross_encoder_model)
+        cross_encoder = CrossEncoder(
+            cross_encoder_model)  # Correct instantiation
         pairs = [[query, embeddings[idx]["content"]] for idx in I[0]]
         cross_scores = cross_encoder.predict(pairs)
         scores = cross_scores
     else:
         scores = D[0]
-
     for idx, score in zip(I[0], scores):
         doc_id = embeddings[idx]["doc_id"]
         if (use_reranking and score < threshold) or doc_id in seen_doc_ids:
@@ -359,10 +357,10 @@ def query_rag(
             "mtld_category": embeddings[idx]["mtld_category"],
             "num_tokens": embeddings[idx]["num_tokens"],
             "parent_header": embeddings[idx].get("parent_header", None),
+            "parent_level": embeddings[idx].get("parent_level", None),
             "level": embeddings[idx].get("level", None),
             "selected_doc_ids": [selected_doc_id]
         })
-
     results = sorted(results, key=lambda x: x["score"], reverse=True)
     return results
 
@@ -377,34 +375,31 @@ def group_results_by_url_for_llm_context(
         llm_model, add_special_tokens=False, remove_pad_tokens=True)
     separator = "\n\n"
     separator_tokens = len(tokenizer.encode(separator))
-
     sorted_docs = sorted(
         documents, key=lambda x: x.get("score", 0), reverse=True)
-
     filtered_docs = []
     total_tokens = 0
     grouped_temp = defaultdict(lambda: defaultdict(list))
-
     for doc in sorted_docs:
         text = doc.get("text", "")
         url = doc.get("url", "Unknown Source")
         parent_header = doc.get("parent_header", "None")
         header = doc.get("header", None)
         level = doc.get("level", 0)
+        parent_level = doc.get("parent_level", None)
         doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
         header_tokens = 0
-
         if not grouped_temp[url]:
             header_tokens += len(tokenizer.encode(
                 f"<!-- Source: {url} -->\n\n"))
             header_tokens += separator_tokens if filtered_docs else 0
-        if not grouped_temp[url][parent_header] and parent_header and parent_header != "None" and level > 0:
-            header_tokens += len(tokenizer.encode(f"# {parent_header}\n\n"))
+        if not grouped_temp[url][parent_header] and parent_header and parent_header != "None" and parent_level is not None:
+            header_tokens += len(tokenizer.encode(
+                f"{'#' * parent_level} {parent_header}\n\n"))
         if header and header != parent_header and level >= 0:
-            header_tokens += len(tokenizer.encode(f"## {header}\n"))
-
+            header_tokens += len(tokenizer.encode(
+                f"{'#' * level} {header}\n\n"))
         additional_tokens = doc_tokens + header_tokens + separator_tokens
-
         if total_tokens + additional_tokens <= max_tokens - buffer:
             filtered_docs.append(doc)
             grouped_temp[url][parent_header].append(doc)
@@ -412,43 +407,40 @@ def group_results_by_url_for_llm_context(
         else:
             logger.debug(
                 f"Skipping document (score: {doc.get('score', 0)}): would exceed max_tokens ({total_tokens + additional_tokens} > {max_tokens - buffer})")
-
     context_blocks = []
     total_tokens = 0
     for url, parent_groups in grouped_temp.items():
         block = f"<!-- Source: {url} -->\n\n"
         block_tokens = len(tokenizer.encode(block))
-
         for parent_header, parent_docs in parent_groups.items():
+            if not parent_docs:  # Skip empty parent_docs to avoid IndexError
+                logger.debug(
+                    f"Skipping empty parent_header group: {parent_header} for URL: {url}")
+                continue
             parent_docs = sorted(parent_docs, key=lambda x: (
                 x.get("level", 0), x.get("chunk_index", 0)))
-
-            if parent_header and parent_header != "None" and parent_docs[0].get("level", 0) > 0:
-                parent_header_text = f"# {parent_header}\n\n"
+            parent_level = parent_docs[0].get("parent_level", None)
+            if parent_header and parent_header != "None" and parent_level is not None:
+                parent_header_text = f"{'#' * parent_level} {parent_header}\n\n"
                 block += parent_header_text
                 block_tokens += len(tokenizer.encode(parent_header_text))
-
             for doc in parent_docs:
                 header = doc.get("header", None)
                 text = doc.get("text", "")
                 doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
                 doc_level = doc.get("level", 0)
-
                 if header and header != parent_header and doc_level >= 0:
-                    subheader_text = f"## {header}\n"
+                    subheader_text = f"{'#' * doc_level} {header}\n\n"
                     block += subheader_text
                     block_tokens += len(tokenizer.encode(subheader_text))
-
                 block += text + "\n\n"
                 block_tokens += doc_tokens + separator_tokens
-
         if block_tokens > len(tokenizer.encode(f"<!-- Source: {url} -->\n\n")):
             context_blocks.append(block.strip())
             total_tokens += block_tokens
         else:
             logger.warning(
                 f"Empty block for {url} after processing; skipping.")
-
     result = "\n\n".join(context_blocks)
     final_token_count = len(tokenizer.encode(result))
     if final_token_count > max_tokens:
@@ -457,7 +449,6 @@ def group_results_by_url_for_llm_context(
     else:
         logger.debug(
             f"Grouped context created with {final_token_count} tokens for {len(grouped_temp)} URLs")
-
     return result
 
 
@@ -469,17 +460,13 @@ async def main():
     p.add_argument("-q", "--query", type=str,
                    help="Search query using optional flag")
     args = p.parse_args()
-
     query = args.query if args.query else args.query_pos or "Top isekai anime 2025."
-
     query_sub_dir = format_sub_dir(query)
     global OUTPUT_DIR
     OUTPUT_DIR = f"{OUTPUT_DIR}/{query_sub_dir}"
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-
     use_cache = True
     urls_limit = 10
-
     search_results = search_data(query, use_cache=use_cache)
     save_file({"query": query, "count": len(search_results),
               "results": search_results}, f"{OUTPUT_DIR}/search_results.json")
@@ -488,8 +475,6 @@ async def main():
     if not embeddings:
         print("No data indexed, exiting.")
         return
-
-    # Aggregate results from all sub_url_dir
     results = []
     pages_dir = os.path.join(OUTPUT_DIR, "pages")
     for sub_url_dir in os.listdir(pages_dir):
@@ -499,15 +484,9 @@ async def main():
             with open(rag_results_path, 'r') as f:
                 rag_data = json.load(f)
                 results.extend(rag_data["results"])
-
-    # Run query_rag on merged documents
     final_results = query_rag(index, embeddings, model, merge_info, query,
                               k=50, threshold=-1.0, use_reranking=True)
-
-    # Combine per-URL results with final merged results
     results.extend(final_results)
-
-    # Sort and deduplicate results by score
     results = sorted(results, key=lambda x: x["score"], reverse=True)
     seen_doc_ids = set()
     unique_results = []
@@ -515,7 +494,6 @@ async def main():
         if result["merged_doc_id"] not in seen_doc_ids:
             seen_doc_ids.add(result["merged_doc_id"])
             unique_results.append(result)
-
     print("\nQuery Results (With Reranking):")
     for i, result in enumerate(unique_results, 1):
         print(f"\nResult {i}:")
@@ -525,19 +503,17 @@ async def main():
         print(f"Score: {result['score']:.4f}")
         print(f"Token Count: {result['num_tokens']}")
         print(f"Parent Header: {result['parent_header'] or 'None'}")
+        print(f"Parent Level: {result['parent_level'] or 'None'}")
         print(f"Level: {result['level'] or 'None'}")
         print(f"Selected Doc IDs: {result['selected_doc_ids']}")
-
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
     context = group_results_by_url_for_llm_context(unique_results, llm_model)
     save_file(context, f"{OUTPUT_DIR}/context.md")
     save_file({"num_tokens": count_tokens(llm_model, context)},
               f"{OUTPUT_DIR}/context_info.json")
-
     mlx = MLXModelRegistry.load_model(llm_model)
     prompt = PROMPT_TEMPLATE.format(query=query, context=context)
     llm_response = mlx.chat(prompt, llm_model, temperature=0.7, verbose=True)
-
     save_file(llm_response["content"], f"{OUTPUT_DIR}/response.md")
 
 if __name__ == "__main__":
