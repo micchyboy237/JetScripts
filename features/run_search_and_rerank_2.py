@@ -82,8 +82,8 @@ def clean_html(html: str, language: str = "English", max_link_density: float = 0
 
 
 def is_valid_header(header: Optional[str]) -> bool:
-    if not header:
-        return True
+    if not header or not header.strip():
+        return False
     generic_keywords = {'planet', 'articles', 'tutorials',
                         'jobs', 'series details', 'about us', 'conclusion'}
     date_pattern = r'\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}\b'
@@ -103,7 +103,7 @@ def separate_by_headers(paragraphs: List) -> List[Dict]:
         "xpath": None,
         "parent_header": None,
         "parent_level": None,
-        "level": None
+        "level": 0  # Default to 0 for non-heading content
     }
     header_stack = []
     header_tags = {"h1": 1, "h2": 2, "h3": 3, "h4": 4, "h5": 5, "h6": 6}
@@ -123,14 +123,17 @@ def separate_by_headers(paragraphs: List) -> List[Dict]:
                 parent = next(
                     (h for h in header_stack[::-1] if h["level"] < level), None)
                 current_section = {
-                    "header": paragraph.text,
+                    "header": f"{'#' * level} {paragraph.text}" if paragraph.text else None,
                     "content": [],
                     "xpath": paragraph.xpath,
-                    "parent_header": parent["text"] if parent else None,
+                    "parent_header": f"{'#' * parent['level']} {parent['text']}" if parent else None,
                     "parent_level": parent["level"] if parent else None,
                     "level": level
                 }
                 header_stack.append({"level": level, "text": paragraph.text})
+            else:
+                # Treat as content if header tag is invalid
+                current_section["content"].append(paragraph.text)
         else:
             current_section["content"].append(paragraph.text)
     if (current_section["content"] or current_section["header"]) and is_valid_header(current_section["header"]):
@@ -237,8 +240,12 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
             sections = separate_by_headers(paragraphs)
             documents = []
             for section in tqdm(sections, desc=f"Chunking sections for {url}", leave=False):
-                markdown_text = (f"{section['header']}\n" + "\n".join(
-                    section["content"]) if section["header"] else "\n".join(section["content"]))
+                markdown_text = ""
+                if section.get("parent_header"):
+                    markdown_text += f"{section['parent_header']}\n"
+                if section["header"]:
+                    markdown_text += f"{section['header']}\n"
+                markdown_text += "\n".join(section["content"])
                 chunks = chunk_headers_by_hierarchy(
                     markdown_text,
                     chunk_size=200,
@@ -252,6 +259,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                         "parent_header", chunk.get("parent_header", None))
                     chunk["parent_level"] = section.get(
                         "parent_level", chunk.get("parent_level", None))
+                    # Ensure level is always an integer
                     chunk["level"] = section.get(
                         "level", chunk.get("level", 0))
                     text_key = chunk["content"].strip().replace(
@@ -261,6 +269,8 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                         continue
                     seen_texts.add(text_key)
                     chunk["num_tokens"] = len(word_tokenize(chunk["content"]))
+                    if chunk["level"] is None:  # Debug check
+                        logger.debug(f"Chunk with None level: {chunk}")
                     documents.append(chunk)
             if not documents:
                 logger.warning(f"No documents collected for {url}.")
@@ -385,7 +395,7 @@ def group_results_by_url_for_llm_context(
         url = doc.get("url", "Unknown Source")
         parent_header = doc.get("parent_header", "None")
         header = doc.get("header", None)
-        level = doc.get("level", 0)
+        level = doc.get("level", 0)  # Default to 0 to avoid None
         parent_level = doc.get("parent_level", None)
         doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
         header_tokens = 0
