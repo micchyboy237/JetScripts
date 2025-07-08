@@ -240,12 +240,8 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
             sections = separate_by_headers(paragraphs)
             documents = []
             for section in tqdm(sections, desc=f"Chunking sections for {url}", leave=False):
-                markdown_text = ""
-                if section.get("parent_header"):
-                    markdown_text += f"{section['parent_header']}\n"
-                if section["header"]:
-                    markdown_text += f"{section['header']}\n"
-                markdown_text += "\n".join(section["content"])
+                markdown_text = (f"{section['header']}\n" + "\n".join(
+                    section["content"]) if section["header"] else "\n".join(section["content"]))
                 chunks = chunk_headers_by_hierarchy(
                     markdown_text,
                     chunk_size=200,
@@ -301,7 +297,8 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
             save_file({"query": query, "count": len(results), "total_tokens": sum(result["num_tokens"] for result in results),
                        "results": results}, f"{sub_output_dir}/rag_results.json")
             all_documents.extend(embeddings)
-            save_file({"count": len(all_documents), "total_tokens": total_tokens, "documents": [doc for doc in all_documents if "embedding" in doc]},
+            save_file({"count": len(documents), "total_tokens": sum(doc["num_tokens"] for doc in documents),
+                       "documents": [doc for doc in documents if "embedding" in doc]},
                       f"{sub_output_dir}/docs.json")
             if high_quality_docs >= MIN_HIGH_QUALITY_DOCS and total_tokens >= TARGET_TOKEN_COUNT - TOKEN_BUFFER:
                 logger.info(
@@ -310,6 +307,30 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
     if not all_documents:
         logger.warning("No documents collected after scraping.")
         return None, [], model, []
+    # Save combined docs.json with all documents
+    save_file({
+        "count": len(all_documents),
+        "total_tokens": sum(doc.get("num_tokens", 0) for doc in all_documents),
+        "documents": [
+            {
+                "doc_id": doc.get("doc_id"),
+                "chunk_id": doc.get("chunk_id"),
+                "url": doc.get("url"),
+                "xpath": doc.get("xpath"),
+                "header": doc.get("header"),
+                "parent_header": doc.get("parent_header"),
+                "level": doc.get("level"),
+                "parent_level": doc.get("parent_level"),
+                "num_tokens": doc.get("num_tokens"),
+                "mtld": doc.get("mtld"),
+                "mtld_category": doc.get("mtld_category"),
+                "doc_index": doc.get("doc_index"),
+                "chunk_index": doc.get("chunk_index", 0)
+            } for doc in all_documents
+        ]
+    }, f"{OUTPUT_DIR}/docs.json")
+    logger.info(
+        f"Saved combined docs.json with {len(all_documents)} documents to {OUTPUT_DIR}/docs.json")
     logger.info(f"Clustering {len(all_documents)} documents...")
     merged_docs, merge_info = merge_similar_docs(
         all_documents, similarity_threshold=0.8)
