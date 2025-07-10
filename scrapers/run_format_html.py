@@ -6,7 +6,7 @@ from jet.code.markdown_utils._converters import convert_html_to_markdown, conver
 from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
 from jet.code.markdown_utils._markdown_parser import parse_markdown
 from jet.code.splitter_markdown_utils import get_md_header_contents
-from jet.models.embeddings.chunking import chunk_headers_by_hierarchy
+from jet.models.embeddings.chunking import chunk_headers_by_hierarchy, merge_same_level_chunks
 from jet.models.model_types import LLMModelType
 from jet.models.utils import resolve_model_value
 from mlx_lm import load
@@ -108,6 +108,11 @@ if __name__ == "__main__":
     chunked_docs = chunk_headers_by_hierarchy(
         doc_markdown, chunk_size, _tokenizer)
     save_file(chunked_docs, f"{output_dir}/chunked_docs.json")
+
+    chunked_docs = merge_same_level_chunks(
+        chunked_docs, chunk_size, _tokenizer)
+    save_file({"chunk_size": chunk_size, "count": len(chunked_docs),
+              "results": chunked_docs}, f"{output_dir}/merged_chunked_docs.json")
 
     html_docs = [item["content"] for item in chunked_docs]
     # Group by parent_header first, then by header

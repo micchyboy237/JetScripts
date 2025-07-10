@@ -5,13 +5,15 @@ import string
 from jet.code.html_utils import clean_html, preprocess_html
 from jet.code.markdown_utils._converters import convert_html_to_markdown
 from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
-from jet.code.markdown_utils._markdown_parser import derive_sections, parse_markdown
+from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy, parse_markdown
+from jet.code.markdown_utils._preprocessors import clean_markdown_links
+from jet.code.splitter_markdown_utils import extract_markdown_links
 from jet.logger import logger
 from jet.models.embeddings.base import generate_embeddings
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
-from jet.models.model_types import EmbedModelType, LLMModelType
-from jet.models.tokenizer.base import count_tokens, get_tokenizer_fn
+from jet.models.model_types import ModelType, EmbedModelType, LLMModelType
+from jet.models.tokenizer.base import count_tokens, get_string_tokenizer_fn, get_tokenizer_fn
 from jet.wordnet.similarity import group_similar_texts
 import asyncio
 import os
@@ -21,7 +23,7 @@ from jet.file.utils import save_file
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.scrapers.utils import scrape_links, search_data
 from jet.wordnet.analyzers.text_analysis import analyze_readability
-from jet.models.embeddings.chunking import chunk_headers_by_hierarchy
+from jet.models.embeddings.chunking import chunk_headers_by_hierarchy, merge_same_level_chunks
 import justext
 import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -191,7 +193,7 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.8
     return merged_docs, merge_info
 
 
-async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-MiniLM-L6-v2', urls_limit: Optional[int] = None, max_retries: int = 3, query: str = "") -> tuple:
+async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-MiniLM-L6-v2', urls_limit: Optional[int] = None, chunk_size: int = 200, chunk_overlap: int = 20, query: str = "", tokenizer_model: Optional[ModelType] = None) -> tuple:
     model = SentenceTransformerRegistry.load_model(model_name)
     all_documents = []
     all_links = []
@@ -199,9 +201,9 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
     seen_texts = set()
     total_tokens = 0
     high_quality_docs = 0
-    MIN_HIGH_QUALITY_DOCS = 5
+    MIN_HIGH_QUALITY_DOCS = 10
     HIGH_QUALITY_SCORE = 0.5
-    TARGET_TOKEN_COUNT = 1500
+    TARGET_TOKEN_COUNT = 4000
     TOKEN_BUFFER = 200
     async for url, status, html in scrape_urls(urls, show_progress=True, limit=urls_limit):
         if status == "completed" and html:
@@ -225,53 +227,65 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
             # save_file(paragraphs, f"{sub_output_dir}/elements.json")
             # sections = separate_by_headers(paragraphs)
 
-            doc_markdown_tokens = parse_markdown(
-                doc_markdown, ignore_links=False)
-            save_file(doc_markdown_tokens,
-                      f"{sub_output_dir}/markdown_tokens.json")
+            _tokenizer = get_string_tokenizer_fn(
+                tokenizer_model) if tokenizer_model else None
 
-            sections = derive_sections(doc_markdown_tokens)
-            save_file(sections, f"{sub_output_dir}/sections.json")
+            sections = chunk_headers_by_hierarchy(
+                doc_markdown,
+                chunk_size=chunk_size,
+                tokenizer=_tokenizer,
+            )
+            save_file(sections, f"{sub_output_dir}/headers.json")
+            # sections = merge_same_level_chunks(sections, chunk_size, _tokenizer)
+
+            # doc_markdown_tokens = parse_markdown(
+            #     doc_markdown, ignore_links=False)
+            # save_file(doc_markdown_tokens,
+            #           f"{sub_output_dir}/markdown_tokens.json")
+
+            # sections = derive_by_header_hierarchy(doc_markdown_tokens)
+            # save_file(sections, f"{sub_output_dir}/sections.json")
 
             documents = []
             for section in tqdm(sections, desc=f"Chunking sections for {url}", leave=False):
-                markdown_text = (f"{section['header']}\n" + "\n".join(
-                    section["content"]) if section["header"] else "\n".join(section["content"]))
-                chunks = chunk_headers_by_hierarchy(
-                    markdown_text,
-                    chunk_size=200,
-                )
-                for chunk in chunks:
-                    chunk["doc_id"] = generate_unique_id()
-                    chunk["chunk_id"] = generate_unique_id()
-                    chunk["url"] = url
-                    # chunk["xpath"] = section["xpath"]
-                    chunk["parent_header"] = section.get(
-                        "parent_header", chunk.get("parent_header", None))
-                    chunk["parent_level"] = section.get(
-                        "parent_level", chunk.get("parent_level", None))
-                    # Ensure level is always an integer
-                    chunk["level"] = section.get(
-                        "level", chunk.get("level", 0))
-                    text_key = chunk["content"].strip().replace(
-                        "\n", " ").replace("\r", " ")
-                    text_key = re.sub(r"\s+", " ", text_key)
-                    if text_key in seen_texts:
-                        continue
-                    seen_texts.add(text_key)
-                    chunk["num_tokens"] = len(word_tokenize(chunk["content"]))
-                    if chunk["level"] is None:  # Debug check
-                        logger.debug(f"Chunk with None level: {chunk}")
-                    documents.append(chunk)
+                section = section.copy()
+
+                section["doc_id"] = generate_unique_id()
+                section["chunk_id"] = generate_unique_id()
+                section["url"] = url
+                # section["xpath"] = section["xpath"]
+                section["parent_header"] = section.get(
+                    "parent_header")
+                section["parent_level"] = section.get("parent_level")
+                # Ensure level is always an integer
+                section["level"] = section.get("level")
+                text_key = section["content"].strip().replace(
+                    "\n", " ").replace("\r", " ")
+                text_key = re.sub(r"\s+", " ", text_key)
+                if text_key in seen_texts:
+                    continue
+                seen_texts.add(text_key)
+                if section["level"] is None:  # Debug check
+                    logger.debug(f"Chunk with None level: {chunk}")
+                documents.append(section)
             if not documents:
                 logger.warning(f"No documents collected for {url}.")
                 continue
+            filtered_documents = []
             for doc in documents:
                 readability = analyze_readability(doc["content"])
                 doc["mtld"] = readability["mtld"]
                 doc["mtld_category"] = readability["mtld_category"]
                 doc["doc_index"] = len(all_documents) + len(documents)
-            texts = [doc["content"] for doc in documents]
+                cleaned_content = clean_markdown_links(doc["content"])
+                word_count = len(word_tokenize(cleaned_content))
+                doc["word_count"] = word_count
+                if word_count >= 8:
+                    filtered_documents.append(doc)
+            documents = filtered_documents
+
+            texts = [f"{doc["parent_header"] or ""}\n{doc["header"]}\n{doc["content"]}".strip()
+                     for doc in documents]
             generated_embeddings = generate_embeddings(
                 texts, model, show_progress=True)
             embeddings = []
@@ -283,14 +297,27 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 [doc["embedding"] for doc in embeddings]).astype('float32')
             index = faiss.IndexFlatIP(embedding_matrix.shape[1])
             index.add(embedding_matrix)
+
             results = query_rag(index, embeddings, model, [], query,
                                 k=20, threshold=-0.0, use_reranking=False)
             total_tokens += sum(result["num_tokens"] for result in results)
+            save_file({
+                "query": query,
+                "count": len(results),
+                "total_tokens": total_tokens,
+                "results": results
+            }, f"{sub_output_dir}/rag_results.json")
+
             high_quality_docs += sum(
-                1 for result in results if result["score"] > HIGH_QUALITY_SCORE)
+                1 for result in results
+                if (
+                    result["score"] > HIGH_QUALITY_SCORE
+                    and result.get("mtld_category") != "very_low"
+                    and result["score"] > 0.5
+                )
+            )
             all_results.extend(results)
-            save_file({"query": query, "count": len(results), "total_tokens": sum(result["num_tokens"] for result in results),
-                       "results": results}, f"{sub_output_dir}/rag_results.json")
+
             all_documents.extend(embeddings)
             save_file(
                 {
@@ -373,22 +400,63 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
             if lower <= score < upper:
                 url_summary[url]["score_categories"][f"{upper}"] += 1
                 break
-    summary_data = {
-        "urls": [
-            {
-                "url": url,
-                "count": len(data["scores"]),
-                "max_score": max(data["scores"]) if data["scores"] else 0.0,
-                "avg_score": sum(data["scores"]) / len(data["scores"]) if data["scores"] else 0.0,
-                "min_score": min(data["scores"]) if data["scores"] else 0.0,
-                "total_tokens": data["num_tokens"],
-                "score_categories": {
-                    f"{upper}": data["score_categories"][f"{upper}"]
-                    for lower, upper in score_ranges
+    # Build header insights per URL
+    header_insights = {}
+    for result in all_results:
+        url = result.get("url", "Unknown Source")
+        header = result.get("header", "No Header")
+        score = result.get("score", 0.0)
+        if url not in header_insights:
+            header_insights[url] = {}
+        if header not in header_insights[url]:
+            header_insights[url][header] = {
+                "count": 0,
+                "scores": [],
+                "avg_score": 0.0,
+                "max_score": 0.0,
+                "min_score": 0.0,
+            }
+        header_insights[url][header]["count"] += 1
+        header_insights[url][header]["scores"].append(float(score))
+
+    # Finalize header stats
+    for url in header_insights:
+        for header in header_insights[url]:
+            scores = header_insights[url][header]["scores"]
+            if scores:
+                header_insights[url][header]["avg_score"] = sum(
+                    scores) / len(scores)
+                header_insights[url][header]["max_score"] = max(scores)
+                header_insights[url][header]["min_score"] = min(scores)
+            else:
+                header_insights[url][header]["avg_score"] = 0.0
+                header_insights[url][header]["max_score"] = 0.0
+                header_insights[url][header]["min_score"] = 0.0
+
+    summary_data = [
+        {
+            "url": url,
+            "count": len(data["scores"]),
+            "max_score": max(data["scores"]) if data["scores"] else 0.0,
+            "avg_score": sum(data["scores"]) / len(data["scores"]) if data["scores"] else 0.0,
+            "min_score": min(data["scores"]) if data["scores"] else 0.0,
+            "total_tokens": data["num_tokens"],
+            "score_categories": {
+                f"{upper}": data["score_categories"][f"{upper}"]
+                for lower, upper in score_ranges
+            },
+            "header_insights": [
+                {
+                    "header": header,
+                    "count": header_insights[url][header]["count"],
+                    "avg_score": header_insights[url][header]["avg_score"],
+                    "max_score": header_insights[url][header]["max_score"],
+                    "min_score": header_insights[url][header]["min_score"],
                 }
-            } for url, data in url_summary.items()
-        ]
-    }
+                for header in header_insights.get(url, {})
+            ]
+        } for url, data in url_summary.items()
+    ]
     save_file(summary_data, f"{OUTPUT_DIR}/summary.json")
     logger.info(
         f"Saved combined docs.json with {len(all_documents)} documents to {OUTPUT_DIR}/docs.json")
@@ -430,6 +498,8 @@ def query_rag(
         scores = cross_scores
     else:
         scores = D[0]
+
+    rank = 0
     for idx, score in zip(I[0], scores):
         doc_id = embeddings[idx]["doc_id"]
         if (use_reranking and score < threshold) or doc_id in seen_doc_ids:
@@ -440,22 +510,24 @@ def query_rag(
             (entry for entry in merge_info if entry["merged_doc_id"] == doc_id), None)
         selected_doc_id = merge_entry["original_doc_ids"][0] if merge_entry and len(
             merge_entry["original_doc_ids"]) > 1 else doc_id
+        rank += 1
         results.append({
+            "rank": rank,
+            "score": float(score),
             "merged_doc_id": doc_id,
             "chunk_id": embeddings[idx]["chunk_id"],
             "doc_index": embeddings[idx]["doc_index"],
             "chunk_index": embeddings[idx].get("chunk_index", 0),
-            "header": embeddings[idx]["header"],
-            "content": embeddings[idx]["content"],
             "url": embeddings[idx]["url"],
-            "score": float(score),
             "mtld": embeddings[idx]["mtld"],
             "mtld_category": embeddings[idx]["mtld_category"],
             "num_tokens": embeddings[idx]["num_tokens"],
-            "parent_header": embeddings[idx].get("parent_header", None),
+            "selected_doc_ids": [selected_doc_id],
             "parent_level": embeddings[idx].get("parent_level", None),
             "level": embeddings[idx].get("level", None),
-            "selected_doc_ids": [selected_doc_id]
+            "parent_header": embeddings[idx].get("parent_header", None),
+            "header": embeddings[idx]["header"],
+            "content": embeddings[idx]["content"],
         })
     results = sorted(results, key=lambda x: x["score"], reverse=True)
     return results
@@ -472,6 +544,16 @@ def group_results_by_url_for_llm_context(
         if text:
             return text.lstrip('#').strip()
         return text
+
+    filtered_documents = []
+    total_tokens = 0
+    for doc in documents:
+        doc_tokens = doc.get("num_tokens", 0)
+        if total_tokens + doc_tokens > max_tokens - buffer:
+            break
+        filtered_documents.append(doc)
+        total_tokens += doc_tokens
+    documents = filtered_documents
 
     tokenizer = get_tokenizer_fn(
         llm_model, add_special_tokens=False, remove_pad_tokens=True)
@@ -502,12 +584,6 @@ def group_results_by_url_for_llm_context(
         doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
         header_tokens = 0
 
-        # Check document tokens against limit first
-        if doc_tokens > max_tokens - buffer:
-            logger.debug(
-                f"Skipping document (score: {doc.get('score', 0)}): would exceed max_tokens ({doc_tokens} > {max_tokens - buffer})")
-            continue
-
         # Calculate header tokens for URL
         if not grouped_temp[url]:
             header_tokens += len(tokenizer.encode(
@@ -524,10 +600,6 @@ def group_results_by_url_for_llm_context(
             seen_header_text[url].add(header_key)
 
         additional_tokens = doc_tokens + header_tokens + separator_tokens
-        if total_tokens + additional_tokens > max_tokens - buffer:
-            logger.debug(
-                f"Skipping document (score: {doc.get('score', 0)}): would exceed max_tokens ({total_tokens + additional_tokens} > {max_tokens - buffer})")
-            continue
 
         filtered_docs.append(doc)
         grouped_temp[url].append(doc)
@@ -636,7 +708,12 @@ async def main():
     p.add_argument("-q", "--query", type=str,
                    help="Search query using optional flag")
     args = p.parse_args()
+
     query = args.query if args.query else args.query_pos or "Top isekai anime 2025."
+    chunk_size = 200
+    chunk_overlap = 20
+    llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
+
     query_sub_dir = format_sub_dir(query)
     global OUTPUT_DIR
     OUTPUT_DIR = f"{OUTPUT_DIR}/{query_sub_dir}"
@@ -647,7 +724,7 @@ async def main():
     save_file({"query": query, "count": len(search_results),
               "results": search_results}, f"{OUTPUT_DIR}/search_results.json")
     urls = [result["url"] for result in search_results]
-    index, embeddings, model, merge_info = await prepare_for_rag(urls, urls_limit=urls_limit, max_retries=3, query=query)
+    index, embeddings, model, merge_info = await prepare_for_rag(urls, urls_limit=urls_limit, chunk_size=chunk_size, chunk_overlap=chunk_overlap, query=query, tokenizer_model=llm_model)
     if not embeddings:
         print("No data indexed, exiting.")
         return
@@ -682,7 +759,9 @@ async def main():
         print(f"Parent Level: {result['parent_level'] or 'None'}")
         print(f"Level: {result['level'] or 'None'}")
         print(f"Selected Doc IDs: {result['selected_doc_ids']}")
-    llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
+
+    save_file(unique_results, f"{OUTPUT_DIR}/contexts_before_max_filter.json")
+
     context = group_results_by_url_for_llm_context(unique_results, llm_model)
     save_file(context, f"{OUTPUT_DIR}/context.md")
     save_file({"num_tokens": count_tokens(llm_model, context)},
