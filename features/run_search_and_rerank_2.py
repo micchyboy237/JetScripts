@@ -14,7 +14,7 @@ from jet.models.tokenizer.base import count_tokens, get_tokenizer_fn
 from jet.wordnet.similarity import group_similar_texts
 import asyncio
 import os
-from typing import List, Dict, Optional
+from typing import DefaultDict, List, Dict, Optional
 from jet.data.utils import generate_unique_id
 from jet.file.utils import save_file
 from jet.scrapers.hrequests_utils import scrape_urls
@@ -210,8 +210,8 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
     model = SentenceTransformerRegistry.load_model(model_name)
     all_documents = []
     all_links = []
-    seen_texts = set()
     all_results = []
+    seen_texts = set()
     total_tokens = 0
     high_quality_docs = 0
     MIN_HIGH_QUALITY_DOCS = 5
@@ -329,8 +329,69 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
             } for doc in all_documents
         ]
     }, f"{OUTPUT_DIR}/docs.json")
+    # Save combined rag_results.json with all results
+    save_file({
+        "query": query,
+        "count": len(all_results),
+        "total_tokens": sum(result.get("num_tokens", 0) for result in all_results),
+        "results": [
+            {
+                "merged_doc_id": result.get("merged_doc_id"),
+                "chunk_id": result.get("chunk_id"),
+                "doc_index": result.get("doc_index"),
+                "chunk_index": result.get("chunk_index", 0),
+                "header": result.get("header"),
+                "text": result.get("text"),
+                "url": result.get("url"),
+                "score": result.get("score"),
+                "mtld": result.get("mtld"),
+                "mtld_category": result.get("mtld_category"),
+                "num_tokens": result.get("num_tokens"),
+                "parent_header": result.get("parent_header"),
+                "parent_level": result.get("parent_level"),
+                "level": result.get("level"),
+                "selected_doc_ids": result.get("selected_doc_ids")
+            } for result in all_results
+        ]
+    }, f"{OUTPUT_DIR}/rag_results.json")
+    # Save summary.json with per-URL score insights and categories
+    score_ranges = [(0.0, 0.2), (0.2, 0.4), (0.4, 0.6), (0.6, 0.8), (0.8, 1.0)]
+    url_summary = defaultdict(
+        lambda: {"scores": [], "num_tokens": 0, "score_categories": defaultdict(int)})
+    for result in all_results:
+        url = result.get("url", "Unknown Source")
+        score = result.get("score", 0.0)
+        num_tokens = result.get("num_tokens", 0)
+        url_summary[url]["scores"].append(float(score))
+        url_summary[url]["num_tokens"] += num_tokens
+        # Categorize score into ranges
+        for lower, upper in score_ranges:
+            if lower <= score < upper:
+                url_summary[url]["score_categories"][f"{upper}"] += 1
+                break
+    summary_data = {
+        "urls": [
+            {
+                "url": url,
+                "count": len(data["scores"]),
+                "max_score": max(data["scores"]) if data["scores"] else 0.0,
+                "avg_score": sum(data["scores"]) / len(data["scores"]) if data["scores"] else 0.0,
+                "min_score": min(data["scores"]) if data["scores"] else 0.0,
+                "total_tokens": data["num_tokens"],
+                "score_categories": {
+                    f"{upper}": data["score_categories"][f"{upper}"]
+                    for lower, upper in score_ranges
+                }
+            } for url, data in url_summary.items()
+        ]
+    }
+    save_file(summary_data, f"{OUTPUT_DIR}/summary.json")
     logger.info(
         f"Saved combined docs.json with {len(all_documents)} documents to {OUTPUT_DIR}/docs.json")
+    logger.info(
+        f"Saved combined rag_results.json with {len(all_results)} results to {OUTPUT_DIR}/rag_results.json")
+    logger.info(
+        f"Saved summary.json with insights for {len(url_summary)} URLs to {OUTPUT_DIR}/summary.json")
     logger.info(f"Clustering {len(all_documents)} documents...")
     merged_docs, merge_info = merge_similar_docs(
         all_documents, similarity_threshold=0.8)
@@ -410,7 +471,11 @@ def group_results_by_url_for_llm_context(
         documents, key=lambda x: x.get("score", 0), reverse=True)
     filtered_docs = []
     total_tokens = 0
-    grouped_temp = defaultdict(lambda: defaultdict(list))
+    grouped_temp: DefaultDict[str, DefaultDict[str, List[Dict]]] = defaultdict(
+        lambda: defaultdict(list))
+    seen_header_text: DefaultDict[str, set] = defaultdict(
+        set)  # Track all header text per URL
+
     for doc in sorted_docs:
         text = doc.get("text", "")
         url = doc.get("url", "Unknown Source")
@@ -420,16 +485,33 @@ def group_results_by_url_for_llm_context(
         parent_level = doc.get("parent_level", None)
         doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
         header_tokens = 0
+
+        # Calculate header tokens for URL
         if not grouped_temp[url]:
             header_tokens += len(tokenizer.encode(
                 f"<!-- Source: {url} -->\n\n"))
             header_tokens += separator_tokens if filtered_docs else 0
-        if not grouped_temp[url][parent_header] and parent_header and parent_header != "None" and parent_level is not None:
-            header_tokens += len(tokenizer.encode(
-                f"{parent_header}\n\n"))
-        if header and header != parent_header and level >= 0:
-            header_tokens += len(tokenizer.encode(
-                f"{header}\n\n"))
+
+        # Check for duplicate parent_header text
+        parent_header_key = parent_header if parent_header and parent_header != "None" else None
+        if parent_header_key and parent_header_key in seen_header_text[url]:
+            logger.debug(
+                f"Skipping duplicate parent_header '{parent_header}' for URL: {url}")
+            continue
+        if parent_header_key and parent_level is not None:
+            header_tokens += len(tokenizer.encode(f"{parent_header}\n\n"))
+            seen_header_text[url].add(parent_header_key)
+
+        # Check for duplicate header text
+        header_key = header if header else None
+        if header_key and header_key in seen_header_text[url]:
+            logger.debug(
+                f"Skipping duplicate header '{header}' for URL: {url}, parent: {parent_header}")
+            continue
+        if header_key and header != parent_header and level >= 0:
+            header_tokens += len(tokenizer.encode(f"{header}\n\n"))
+            seen_header_text[url].add(header_key)
+
         additional_tokens = doc_tokens + header_tokens + separator_tokens
         if total_tokens + additional_tokens <= max_tokens - buffer:
             filtered_docs.append(doc)
@@ -438,13 +520,15 @@ def group_results_by_url_for_llm_context(
         else:
             logger.debug(
                 f"Skipping document (score: {doc.get('score', 0)}): would exceed max_tokens ({total_tokens + additional_tokens} > {max_tokens - buffer})")
+
     context_blocks = []
     total_tokens = 0
     for url, parent_groups in grouped_temp.items():
         block = f"<!-- Source: {url} -->\n\n"
         block_tokens = len(tokenizer.encode(block))
+        seen_header_text_in_block = set()  # Track headers within this block
         for parent_header, parent_docs in parent_groups.items():
-            if not parent_docs:  # Skip empty parent_docs to avoid IndexError
+            if not parent_docs:  # Skip empty parent_docs
                 logger.debug(
                     f"Skipping empty parent_header group: {parent_header} for URL: {url}")
                 continue
@@ -454,20 +538,24 @@ def group_results_by_url_for_llm_context(
                     "chunk_index") is not None else 0
             ))
             parent_level = parent_docs[0].get("parent_level", None)
-            if parent_header and parent_header != "None" and parent_level is not None:
+            parent_header_key = parent_header if parent_header and parent_header != "None" else None
+            if parent_header_key and parent_level is not None and parent_header_key not in seen_header_text_in_block:
                 parent_header_text = f"{parent_header}\n\n"
                 block += parent_header_text
                 block_tokens += len(tokenizer.encode(parent_header_text))
+                seen_header_text_in_block.add(parent_header_key)
             for doc in parent_docs:
                 header = doc.get("header", None)
                 text = doc.get("text", "")
                 doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
                 doc_level = doc.get("level", 0) if doc.get(
                     "level") is not None else 0
-                if header and header != parent_header and doc_level >= 0:
+                header_key = header if header else None
+                if header_key and header != parent_header and doc_level >= 0 and header_key not in seen_header_text_in_block:
                     subheader_text = f"{header}\n\n"
                     block += subheader_text
                     block_tokens += len(tokenizer.encode(subheader_text))
+                    seen_header_text_in_block.add(header_key)
                 block += text + "\n\n"
                 block_tokens += doc_tokens + separator_tokens
         if block_tokens > len(tokenizer.encode(f"<!-- Source: {url} -->\n\n")):
@@ -476,9 +564,9 @@ def group_results_by_url_for_llm_context(
         else:
             logger.warning(
                 f"Empty block for {url} after processing; skipping.")
+
     result = "\n\n".join(context_blocks)
     final_token_count = len(tokenizer.encode(result))
-    # Save contexts.json with filtered documents
     contexts_data = {
         "query": documents[0].get("query", "") if documents else "",
         "count": len(filtered_docs),
