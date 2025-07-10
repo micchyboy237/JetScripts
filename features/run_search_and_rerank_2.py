@@ -779,7 +779,7 @@ async def main():
 
     query = args.query if args.query else args.query_pos or "Top isekai anime 2025."
     chunk_size = 200
-    chunk_overlap = 40
+    chunk_overlap = 20
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
 
     query_sub_dir = format_sub_dir(query)
