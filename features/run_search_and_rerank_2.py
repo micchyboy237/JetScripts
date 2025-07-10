@@ -2,9 +2,10 @@ import argparse
 from collections import defaultdict
 import shutil
 import string
-from jet.code.html_utils import preprocess_html
+from jet.code.html_utils import clean_html, preprocess_html
 from jet.code.markdown_utils._converters import convert_html_to_markdown
 from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
+from jet.code.markdown_utils._markdown_parser import derive_sections, parse_markdown
 from jet.logger import logger
 from jet.models.embeddings.base import generate_embeddings
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
@@ -64,22 +65,6 @@ def format_sub_url_dir(url: str) -> str:
     return formatted.strip('_')
 
 
-def clean_html(html: str, language: str = "English", max_link_density: float = 0.2, max_link_ratio: float = 0.3) -> List:
-    paragraphs = justext.justext(
-        html,
-        justext.get_stoplist(language),
-        max_link_density=max_link_density,
-        length_low=50,
-        length_high=150,
-        no_headings=False
-    )
-    filtered_paragraphs = [
-        p for p in paragraphs
-        if not p.is_boilerplate and p.links_density() < max_link_ratio
-    ]
-    return filtered_paragraphs
-
-
 def is_valid_header(header: Optional[str]) -> bool:
     if not header or not header.strip():
         return False
@@ -125,11 +110,12 @@ def separate_by_headers(paragraphs: List) -> List[Dict]:
                     "header": f"{'#' * level} {paragraph.text}" if paragraph.text else None,
                     "content": [],
                     "xpath": paragraph.xpath,
-                    "parent_header": f"{'#' * parent['level']} {parent['text']}" if parent else None,
+                    "parent_header": f"{'#' * parent['level']} {parent['content']}" if parent else None,
                     "parent_level": parent["level"] if parent else None,
                     "level": level
                 }
-                header_stack.append({"level": level, "text": paragraph.text})
+                header_stack.append(
+                    {"level": level, "content": paragraph.text})
             else:
                 # Treat as content if header tag is invalid
                 current_section["content"].append(paragraph.text)
@@ -165,12 +151,12 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.8
                 "merged_doc_id": merged_doc_id,
                 "original_doc_ids": [doc["doc_id"] for doc in cluster_docs],
                 "original_chunk_ids": [doc["chunk_id"] for doc in cluster_docs],
-                "text": merged_text,
+                "content": merged_text,
                 "num_tokens": merged_num_tokens,
                 # Fixed typo: sock_doc to best_doc
                 "header": best_doc["header"],
                 "url": best_doc["url"],
-                "xpath": best_doc["xpath"],
+                # "xpath": best_doc["xpath"],
                 "score": best_doc.get("score", None),
                 "mtld": best_doc["mtld"],
                 "mtld_category": best_doc["mtld_category"],
@@ -187,11 +173,11 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.8
                 "merged_doc_id": doc["doc_id"],
                 "original_doc_ids": [doc["doc_id"]],
                 "original_chunk_ids": [doc["chunk_id"]],
-                "text": doc["content"],
+                "content": doc["content"],
                 "num_tokens": doc["num_tokens"],
                 "header": doc["header"],
                 "url": doc["url"],
-                "xpath": doc["xpath"],
+                # "xpath": doc["xpath"],
                 "score": doc.get("score", None),
                 "mtld": doc["mtld"],
                 "mtld_category": doc["mtld_category"],
@@ -233,10 +219,20 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
             save_file(doc_markdown, f"{sub_output_dir}/page.md")
             doc_analysis = analyze_markdown(doc_markdown)
             save_file(doc_analysis, f"{sub_output_dir}/analysis.json")
-            paragraphs = clean_html(
-                html, max_link_density=0.15, max_link_ratio=0.3)
-            save_file(paragraphs, f"{sub_output_dir}/elements.json")
-            sections = separate_by_headers(paragraphs)
+
+            # paragraphs = clean_html(
+            #     html, max_link_density=0.15, max_link_ratio=0.3)
+            # save_file(paragraphs, f"{sub_output_dir}/elements.json")
+            # sections = separate_by_headers(paragraphs)
+
+            doc_markdown_tokens = parse_markdown(
+                doc_markdown, ignore_links=False)
+            save_file(doc_markdown_tokens,
+                      f"{sub_output_dir}/markdown_tokens.json")
+
+            sections = derive_sections(doc_markdown_tokens)
+            save_file(sections, f"{sub_output_dir}/sections.json")
+
             documents = []
             for section in tqdm(sections, desc=f"Chunking sections for {url}", leave=False):
                 markdown_text = (f"{section['header']}\n" + "\n".join(
@@ -249,7 +245,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                     chunk["doc_id"] = generate_unique_id()
                     chunk["chunk_id"] = generate_unique_id()
                     chunk["url"] = url
-                    chunk["xpath"] = section["xpath"]
+                    # chunk["xpath"] = section["xpath"]
                     chunk["parent_header"] = section.get(
                         "parent_header", chunk.get("parent_header", None))
                     chunk["parent_level"] = section.get(
@@ -296,9 +292,17 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
             save_file({"query": query, "count": len(results), "total_tokens": sum(result["num_tokens"] for result in results),
                        "results": results}, f"{sub_output_dir}/rag_results.json")
             all_documents.extend(embeddings)
-            save_file({"count": len(documents), "total_tokens": sum(doc["num_tokens"] for doc in documents),
-                       "documents": [doc for doc in documents if "embedding" in doc]},
-                      f"{sub_output_dir}/docs.json")
+            save_file(
+                {
+                    "count": len(documents),
+                    "total_tokens": sum(doc["num_tokens"] for doc in documents),
+                    "documents": [
+                        {k: v for k, v in doc.items() if k != "embedding"}
+                        for doc in documents if "embedding" in doc
+                    ]
+                },
+                f"{sub_output_dir}/docs.json"
+            )
             if high_quality_docs >= MIN_HIGH_QUALITY_DOCS and total_tokens >= TARGET_TOKEN_COUNT - TOKEN_BUFFER:
                 logger.info(
                     f"Stopping scrape: {high_quality_docs} high-quality docs and {total_tokens} tokens collected.")
@@ -315,11 +319,12 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 "doc_id": doc.get("doc_id"),
                 "chunk_id": doc.get("chunk_id"),
                 "url": doc.get("url"),
-                "xpath": doc.get("xpath"),
-                "header": doc.get("header"),
-                "parent_header": doc.get("parent_header"),
-                "level": doc.get("level"),
+                # "xpath": doc.get("xpath"),
                 "parent_level": doc.get("parent_level"),
+                "level": doc.get("level"),
+                "parent_header": doc.get("parent_header"),
+                "header": doc.get("header"),
+                "content": doc.get("content"),
                 "num_tokens": doc.get("num_tokens"),
                 "mtld": doc.get("mtld"),
                 "mtld_category": doc.get("mtld_category"),
@@ -340,7 +345,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 "doc_index": result.get("doc_index"),
                 "chunk_index": result.get("chunk_index", 0),
                 "header": result.get("header"),
-                "text": result.get("text"),
+                "content": result.get("content"),
                 "url": result.get("url"),
                 "score": result.get("score"),
                 "mtld": result.get("mtld"),
@@ -441,7 +446,7 @@ def query_rag(
             "doc_index": embeddings[idx]["doc_index"],
             "chunk_index": embeddings[idx].get("chunk_index", 0),
             "header": embeddings[idx]["header"],
-            "text": embeddings[idx]["content"],
+            "content": embeddings[idx]["content"],
             "url": embeddings[idx]["url"],
             "score": float(score),
             "mtld": embeddings[idx]["mtld"],
@@ -481,12 +486,19 @@ def group_results_by_url_for_llm_context(
         set)  # Track all header text per URL
 
     for doc in sorted_docs:
-        text = doc.get("text", "")
+        text = doc.get("content", "")
         url = doc.get("url", "Unknown Source")
         parent_header = doc.get("parent_header", "None")
         header = doc.get("header", None)
         level = doc.get("level", 0)  # Default to 0 to avoid None
         parent_level = doc.get("parent_level", None)
+
+        # Handle non-string content
+        if not isinstance(text, str):
+            logger.debug(
+                f"Non-string content found for url: {url}, doc_index: {doc.get('doc_index', 0)}, type: {type(text)}. Converting to string.")
+            text = str(text) if text else ""
+
         doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
         header_tokens = 0
 
@@ -527,15 +539,22 @@ def group_results_by_url_for_llm_context(
         block = f"<!-- Source: {url} -->\n\n"
         block_tokens = len(tokenizer.encode(block))
         seen_header_text_in_block = set()  # Track headers within this block
-        # Sort docs by level and chunk_index
+        # Sort docs by doc_index then chunk_index
         docs = sorted(docs, key=lambda x: (
-            x.get("level", 0) if x.get("level") is not None else 0,
-            x.get("chunk_index", 0) if x.get("chunk_index") is not None else 0
+            x.get("doc_index", 0),
+            x.get("chunk_index", 0)
         ))
         for doc in docs:
             header = doc.get("header", None)
             parent_header = doc.get("parent_header", "None")
-            text = doc.get("text", "")
+            text = doc.get("content", "")
+
+            # Handle non-string content
+            if not isinstance(text, str):
+                logger.debug(
+                    f"Non-string content in block for url: {url}, doc_index: {doc.get('doc_index', 0)}, type: {type(text)}. Converting to string.")
+                text = str(text) if text else ""
+
             doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
             doc_level = doc.get("level", 0) if doc.get(
                 "level") is not None else 0
@@ -586,7 +605,7 @@ def group_results_by_url_for_llm_context(
                 "doc_index": doc.get("doc_index"),
                 "chunk_index": doc.get("chunk_index", 0),
                 "header": doc.get("header"),
-                "text": doc.get("text"),
+                "content": doc.get("content"),
                 "url": doc.get("url"),
                 "score": doc.get("score"),
                 "mtld": doc.get("mtld"),
@@ -655,7 +674,7 @@ async def main():
     for i, result in enumerate(unique_results, 1):
         print(f"\nResult {i}:")
         print(f"Header: {result['header'] or 'No header'}")
-        print(f"Text: {result['text'][:200]}...")
+        print(f"Text: {result['content'][:200]}...")
         print(f"URL: {result['url']}")
         print(f"Score: {result['score']:.4f}")
         print(f"Token Count: {result['num_tokens']}")

@@ -1,7 +1,9 @@
 import os
 import shutil
 from typing import List, Union
+from jet.code.html_utils import clean_html
 from jet.code.markdown_utils._converters import convert_html_to_markdown, convert_markdown_to_html
+from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
 from jet.code.markdown_utils._markdown_parser import parse_markdown
 from jet.code.splitter_markdown_utils import get_md_header_contents
 from jet.models.embeddings.chunking import chunk_headers_by_hierarchy
@@ -19,7 +21,7 @@ from jet.utils.commands import copy_to_clipboard
 if __name__ == "__main__":
     from jet.scrapers.preprocessor import html_to_markdown
 
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/pages/gamerant_com_new_isekai_anime_2025/page.html"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/2025_philippines_online_tiktok_live_selling_registration_steps/pages/www_bigseller_com_blog_articledetails_2363_a_complete_guide_on_how_to_sell_on_tiktok_shop_philippines_2024_htm/page.html"
     html_dir = os.path.dirname(html_file)
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(
@@ -29,7 +31,7 @@ if __name__ == "__main__":
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    model_path: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
+    llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
 
     html_str: str = load_file(html_file)
 
@@ -49,7 +51,7 @@ if __name__ == "__main__":
     texts = [item["text"] for item in headings]
 
     # Load the model and tokenizer
-    model_id = resolve_model_value(model_path)
+    model_id = resolve_model_value(llm_model)
     model, tokenizer = load(model_id)
 
     # Chunk docs with chunk size
@@ -65,11 +67,43 @@ if __name__ == "__main__":
                 text, add_special_tokens=False)["input_ids"]
             return [tokenizer.convert_ids_to_tokens(ids) for ids in token_ids_list]
 
-    doc_markdown_tokens = parse_markdown(html_str, ignore_links=False)
-    doc_markdown = "\n\n".join([item["content"]
-                               for item in doc_markdown_tokens])
-    # doc_html = convert_markdown_to_html(doc_markdown)
+    doc_markdown = convert_html_to_markdown(html_str)
     save_file(doc_markdown, f"{output_dir}/doc_markdown.md")
+
+    doc_analysis = analyze_markdown(doc_markdown)
+    save_file(doc_analysis, f"{output_dir}/doc_analysis.json")
+
+    doc_markdown_tokens_no_merge = parse_markdown(
+        doc_markdown, ignore_links=False, merge_headers=False,  merge_contents=False)
+    save_file(doc_markdown_tokens_no_merge,
+              f"{output_dir}/doc_markdown_tokens_no_merge.json")
+
+    doc_markdown_tokens_no_merge_html_template = "<body>{body}</body>"
+    doc_markdown_tokens_no_merge_html_list = [convert_markdown_to_html(
+        token["content"]) for token in doc_markdown_tokens_no_merge]
+    doc_markdown_tokens_no_merge_html = doc_markdown_tokens_no_merge_html_template.format(
+        body="\n".join(doc_markdown_tokens_no_merge_html_list))
+    doc_markdown_tokens_no_merge_html = format_html(
+        doc_markdown_tokens_no_merge_html)
+    save_file(doc_markdown_tokens_no_merge_html,
+              f"{output_dir}/doc_markdown_tokens_no_merge.html")
+    save_file(clean_html(doc_markdown_tokens_no_merge_html),
+              f"{output_dir}/clean_doc_markdown_tokens_no_merge.json")
+
+    doc_markdown_tokens = parse_markdown(doc_markdown, ignore_links=False)
+    save_file(doc_markdown_tokens, f"{output_dir}/doc_markdown_tokens.json")
+
+    doc_markdown_tokens_html_template = "<body>{body}</body>"
+    doc_markdown_tokens_html_list = [convert_markdown_to_html(
+        token["content"]) for token in doc_markdown_tokens]
+    doc_markdown_tokens_html = doc_markdown_tokens_html_template.format(
+        body="\n".join(doc_markdown_tokens_html_list))
+    doc_markdown_tokens_html = format_html(
+        doc_markdown_tokens_html)
+    save_file(doc_markdown_tokens_html,
+              f"{output_dir}/doc_markdown_tokens.html")
+    save_file(clean_html(doc_markdown_tokens_html),
+              f"{output_dir}/clean_doc_markdown_tokens.json")
 
     chunked_docs = chunk_headers_by_hierarchy(
         doc_markdown, chunk_size, _tokenizer)
