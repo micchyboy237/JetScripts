@@ -222,11 +222,6 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
             doc_analysis = analyze_markdown(doc_markdown)
             save_file(doc_analysis, f"{sub_output_dir}/analysis.json")
 
-            # paragraphs = clean_html(
-            #     html, max_link_density=0.15, max_link_ratio=0.3)
-            # save_file(paragraphs, f"{sub_output_dir}/elements.json")
-            # sections = separate_by_headers(paragraphs)
-
             _tokenizer = get_string_tokenizer_fn(
                 tokenizer_model) if tokenizer_model else None
 
@@ -236,15 +231,6 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 tokenizer=_tokenizer,
             )
             save_file(sections, f"{sub_output_dir}/headers.json")
-            # sections = merge_same_level_chunks(sections, chunk_size, _tokenizer)
-
-            # doc_markdown_tokens = parse_markdown(
-            #     doc_markdown, ignore_links=False)
-            # save_file(doc_markdown_tokens,
-            #           f"{sub_output_dir}/markdown_tokens.json")
-
-            # sections = derive_by_header_hierarchy(doc_markdown_tokens)
-            # save_file(sections, f"{sub_output_dir}/sections.json")
 
             documents = []
             for section in tqdm(sections, desc=f"Chunking sections for {url}", leave=False):
@@ -253,11 +239,9 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 section["doc_id"] = generate_unique_id()
                 section["chunk_id"] = generate_unique_id()
                 section["url"] = url
-                # section["xpath"] = section["xpath"]
                 section["parent_header"] = section.get(
                     "parent_header")
                 section["parent_level"] = section.get("parent_level")
-                # Ensure level is always an integer
                 section["level"] = section.get("level")
                 text_key = section["content"].strip().replace(
                     "\n", " ").replace("\r", " ")
@@ -265,8 +249,8 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 if text_key in seen_texts:
                     continue
                 seen_texts.add(text_key)
-                if section["level"] is None:  # Debug check
-                    logger.debug(f"Chunk with None level: {chunk}")
+                if section["level"] is None:
+                    logger.debug(f"Chunk with None level: {section}")
                 documents.append(section)
             if not documents:
                 logger.warning(f"No documents collected for {url}.")
@@ -317,7 +301,6 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 )
             )
             all_results.extend(results)
-
             all_documents.extend(embeddings)
             save_file(
                 {
@@ -336,8 +319,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 break
     if not all_documents:
         logger.warning("No documents collected after scraping.")
-        return None, [], model, []
-    # Save combined docs.json with all documents
+        return None, [], model, [], []
     save_file({
         "count": len(all_documents),
         "total_tokens": sum(doc.get("num_tokens", 0) for doc in all_documents),
@@ -346,7 +328,6 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 "doc_id": doc.get("doc_id"),
                 "chunk_id": doc.get("chunk_id"),
                 "url": doc.get("url"),
-                # "xpath": doc.get("xpath"),
                 "parent_level": doc.get("parent_level"),
                 "level": doc.get("level"),
                 "parent_header": doc.get("parent_header"),
@@ -360,7 +341,6 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
             } for doc in all_documents
         ]
     }, f"{OUTPUT_DIR}/docs.json")
-    # Save combined rag_results.json with all results
     save_file({
         "query": query,
         "count": len(all_results),
@@ -385,7 +365,6 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
             } for result in all_results
         ]
     }, f"{OUTPUT_DIR}/rag_results.json")
-    # Save summary.json with per-URL score insights and categories
     score_ranges = [(0.0, 0.2), (0.2, 0.4), (0.4, 0.6), (0.6, 0.8), (0.8, 1.0)]
     url_summary = defaultdict(
         lambda: {"scores": [], "num_tokens": 0, "score_categories": defaultdict(int)})
@@ -395,12 +374,10 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
         num_tokens = result.get("num_tokens", 0)
         url_summary[url]["scores"].append(float(score))
         url_summary[url]["num_tokens"] += num_tokens
-        # Categorize score into ranges
         for lower, upper in score_ranges:
             if lower <= score < upper:
                 url_summary[url]["score_categories"][f"{upper}"] += 1
                 break
-    # Build header insights per URL
     header_insights = {}
     for result in all_results:
         url = result.get("url", "Unknown Source")
@@ -419,7 +396,6 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
         header_insights[url][header]["count"] += 1
         header_insights[url][header]["scores"].append(float(score))
 
-    # Finalize header stats
     for url in header_insights:
         for header in header_insights[url]:
             scores = header_insights[url][header]["scores"]
@@ -471,7 +447,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
         [doc["embedding"] for doc in merged_docs]).astype('float32')
     merged_index = faiss.IndexFlatIP(merged_embedding_matrix.shape[1])
     merged_index.add(merged_embedding_matrix)
-    return merged_index, merged_docs, model, merge_info
+    return merged_index, merged_docs, model, merge_info, all_results
 
 
 def query_rag(
@@ -724,22 +700,10 @@ async def main():
     save_file({"query": query, "count": len(search_results),
               "results": search_results}, f"{OUTPUT_DIR}/search_results.json")
     urls = [result["url"] for result in search_results]
-    index, embeddings, model, merge_info = await prepare_for_rag(urls, urls_limit=urls_limit, chunk_size=chunk_size, chunk_overlap=chunk_overlap, query=query, tokenizer_model=llm_model)
+    index, embeddings, model, merge_info, results = await prepare_for_rag(urls, urls_limit=urls_limit, chunk_size=chunk_size, chunk_overlap=chunk_overlap, query=query, tokenizer_model=llm_model)
     if not embeddings:
         print("No data indexed, exiting.")
         return
-    results = []
-    pages_dir = os.path.join(OUTPUT_DIR, "pages")
-    for sub_url_dir in os.listdir(pages_dir):
-        rag_results_path = os.path.join(
-            pages_dir, sub_url_dir, "rag_results.json")
-        if os.path.exists(rag_results_path):
-            with open(rag_results_path, 'r') as f:
-                rag_data = json.load(f)
-                results.extend(rag_data["results"])
-    final_results = query_rag(index, embeddings, model, merge_info, query,
-                              k=50, threshold=-1.0, use_reranking=True)
-    results.extend(final_results)
     results = sorted(results, key=lambda x: x["score"], reverse=True)
     seen_doc_ids = set()
     unique_results = []
