@@ -24,7 +24,7 @@ from jet.file.utils import save_file
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.scrapers.utils import scrape_links, search_data
 from jet.wordnet.analyzers.text_analysis import analyze_readability
-from jet.models.embeddings.chunking import chunk_headers_by_hierarchy, merge_same_level_chunks
+from jet.models.embeddings.chunking import chunk_headers_by_hierarchy
 import justext
 import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -299,14 +299,29 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 link_to_text_ratio_result = link_to_text_ratio(
                     doc["content"], threshold=0.3)
                 doc["link_to_text_ratio"] = link_to_text_ratio_result["ratio"]
-                if word_count >= 8 and not link_to_text_ratio_result["is_link_heavy"]:
+                if word_count >= 8 and readability["mtld"] > 0.0 and not link_to_text_ratio_result["is_link_heavy"]:
                     filtered_documents.append(doc)
             documents = filtered_documents
             if not documents:
                 continue
 
-            texts = [f"{doc["parent_header"] or ""}\n{doc["header"]}\n{doc["content"]}"
-                     for doc in documents]
+            # Use chunk_overlap to prepend the last chunk_overlap tokens from the previous document's content
+            texts = []
+            prev_content_tokens = []
+            for i, doc in enumerate(documents):
+                # Use _tokenizer to tokenize the content instead of word_tokenize
+                content_tokens = _tokenizer(
+                    doc["content"]) if _tokenizer else word_tokenize(doc["content"])
+                # Get the last chunk_overlap tokens from the previous doc, if any
+                if i > 0 and chunk_overlap > 0 and doc["chunk_index"] > 0:
+                    prev_overlap = prev_content_tokens[-chunk_overlap:] if len(
+                        prev_content_tokens) >= chunk_overlap else prev_content_tokens
+                    prev_content = " ".join(prev_overlap) + " "
+                else:
+                    prev_content = ""
+                text = f"{doc['parent_header'] or ''}\n{doc['header']}\n{prev_content}{doc['content']}"
+                texts.append(text)
+                prev_content_tokens = content_tokens
             # Preprocess texts before embed
             texts = [preprocess_text(clean_markdown_links(text))
                      for text in texts]
@@ -762,7 +777,7 @@ async def main():
 
     query = args.query if args.query else args.query_pos or "Top isekai anime 2025."
     chunk_size = 200
-    chunk_overlap = 20
+    chunk_overlap = 40
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
 
     query_sub_dir = format_sub_dir(query)
