@@ -294,7 +294,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 tokenizer_model, [clean_markdown_links(f"{doc["header"]}\n{doc["content"]}") for doc in documents], prevent_total=True)
             for doc, num_tokens in zip(documents, token_counts):
                 link_to_text_ratio_result = link_to_text_ratio(
-                    f"{doc["header"].lstrip('#').strip()}\n{doc["content"]}", threshold=0.5)
+                    f"{doc["header"].lstrip('#').strip()}\n{doc["content"]}", threshold=0.25)
                 doc["link_to_text_ratio"] = link_to_text_ratio_result["ratio"]
                 doc["num_tokens"] = num_tokens
 
@@ -336,7 +336,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 texts.append(text)
                 prev_content_tokens = content_tokens
             # Preprocess texts before embed
-            texts = [preprocess_text(clean_markdown_links(text))
+            texts = [preprocess_text(text)
                      for text in texts]
             save_file(
                 {
@@ -625,10 +625,10 @@ def group_results_by_url_for_llm_context(
 
     # Prioritize documents with score >= 0.7, then fill with >= 0.4 until max_tokens - buffer is reached
     high_score_docs = [
-        doc for doc in documents if doc["score"] >= 0.6 and doc["link_to_text_ratio"] < 0.5
+        doc for doc in documents if doc["score"] >= 0.6 and doc["link_to_text_ratio"] < 0.25
     ]
     med_score_docs = [
-        doc for doc in documents if 0.4 <= doc["score"] < 0.6 and doc["link_to_text_ratio"] < 0.5
+        doc for doc in documents if 0.4 <= doc["score"] < 0.6 and doc["link_to_text_ratio"] < 0.25
     ]
 
     # Sort by score in descending order
