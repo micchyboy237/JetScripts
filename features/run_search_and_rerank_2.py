@@ -13,7 +13,7 @@ from jet.models.embeddings.base import generate_embeddings
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.models.model_types import ModelType, EmbedModelType, LLMModelType
-from jet.models.tokenizer.base import count_tokens, get_string_tokenizer_fn, get_tokenizer_fn
+from jet.models.tokenizer.base import count_tokens, get_string_detokenizer_fn, get_string_tokenizer_fn, get_tokenizer_fn
 from jet.utils.text_constants import TEXT_CONTRACTIONS_EN
 from jet.wordnet.similarity import group_similar_texts
 import asyncio
@@ -256,6 +256,8 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
 
             _tokenizer = get_string_tokenizer_fn(
                 tokenizer_model) if tokenizer_model else None
+            _detokenizer_fn = get_string_detokenizer_fn(
+                tokenizer_model) if tokenizer_model else None
 
             sections = chunk_headers_by_hierarchy(
                 doc_markdown,
@@ -316,7 +318,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 if i > 0 and chunk_overlap > 0 and doc["chunk_index"] > 0:
                     prev_overlap = prev_content_tokens[-chunk_overlap:] if len(
                         prev_content_tokens) >= chunk_overlap else prev_content_tokens
-                    prev_content = " ".join(prev_overlap) + " "
+                    prev_content = _detokenizer_fn(prev_overlap) + " "
                 else:
                     prev_content = ""
                 text = f"{doc['parent_header'] or ''}\n{doc['header']}\n{prev_content}{doc['content']}"
