@@ -290,17 +290,28 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 logger.warning(f"No documents collected for {url}.")
                 continue
             filtered_documents = []
-            for doc in documents:
+            token_counts: List[int] = count_tokens(
+                tokenizer_model, [clean_markdown_links(f"{doc["header"]}\n{doc["content"]}") for doc in documents], prevent_total=True)
+            for doc, num_tokens in zip(documents, token_counts):
+                link_to_text_ratio_result = link_to_text_ratio(
+                    f"{doc["header"].lstrip('#').strip()}\n{doc["content"]}", threshold=0.5)
+                doc["link_to_text_ratio"] = link_to_text_ratio_result["ratio"]
+                doc["num_tokens"] = num_tokens
+
+                if doc["parent_header"]:
+                    doc["parent_header"] = clean_markdown_links(
+                        doc["parent_header"])
+                doc["header"] = clean_markdown_links(doc["header"])
+                doc["content"] = clean_markdown_links(doc["content"])
+
                 readability = analyze_readability(doc["content"])
                 doc["mtld"] = readability["mtld"]
                 doc["mtld_category"] = readability["mtld_category"]
                 doc["doc_index"] = len(all_documents) + len(documents)
-                cleaned_content = clean_markdown_links(doc["content"])
-                word_count = len(word_tokenize(cleaned_content))
+                doc_text = f"{doc["header"]}\n{doc["content"]}"
+                word_count = len(word_tokenize(doc_text))
                 doc["word_count"] = word_count
-                link_to_text_ratio_result = link_to_text_ratio(
-                    f"{doc["header"].lstrip('#').strip()}\n{doc["content"]}", threshold=0.25)
-                doc["link_to_text_ratio"] = link_to_text_ratio_result["ratio"]
+
                 if word_count >= 8 and readability["mtld"] > 0.0 and not link_to_text_ratio_result["is_link_heavy"]:
                     filtered_documents.append(doc)
             documents = filtered_documents
@@ -393,6 +404,8 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
     if not all_documents:
         logger.warning("No documents collected after scraping.")
         return None, [], model, [], []
+
+    save_file(all_documents, f"{OUTPUT_DIR}/all-docs.json")
 
     # Sort all_results by score in descending order before updating ranks
     all_results.sort(key=lambda x: x.get("score", 0), reverse=True)
@@ -612,21 +625,21 @@ def group_results_by_url_for_llm_context(
 
     # Prioritize documents with score >= 0.7, then fill with >= 0.4 until max_tokens - buffer is reached
     high_score_docs = [
-        doc for doc in documents if doc["score"] >= 0.7 and doc["link_to_text_ratio"] == 0
+        doc for doc in documents if doc["score"] >= 0.6 and doc["link_to_text_ratio"] < 0.5
     ]
     med_score_docs = [
-        doc for doc in documents if 0.4 <= doc["score"] < 0.7 and doc["link_to_text_ratio"] == 0
+        doc for doc in documents if 0.4 <= doc["score"] < 0.6 and doc["link_to_text_ratio"] < 0.5
     ]
 
-    # Sort both groups by num_tokens descending, then by score descending
+    # Sort by score in descending order
     high_score_docs_sorted = sorted(
         high_score_docs,
-        key=lambda x: (x.get("num_tokens", 0), x.get("score", 0)),
+        key=lambda x: x.get("score", 0),
         reverse=True
     )
     med_score_docs_sorted = sorted(
         med_score_docs,
-        key=lambda x: (x.get("num_tokens", 0), x.get("score", 0)),
+        key=lambda x: x.get("score", 0),
         reverse=True
     )
 
