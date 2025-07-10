@@ -4,7 +4,7 @@ import shutil
 import string
 from jet.code.html_utils import clean_html, preprocess_html
 from jet.code.markdown_utils._converters import convert_html_to_markdown
-from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
+from jet.code.markdown_utils._markdown_analyzer import analyze_markdown, link_to_text_ratio
 from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy, parse_markdown
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.code.splitter_markdown_utils import extract_markdown_links
@@ -14,10 +14,11 @@ from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRe
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.models.model_types import ModelType, EmbedModelType, LLMModelType
 from jet.models.tokenizer.base import count_tokens, get_string_tokenizer_fn, get_tokenizer_fn
+from jet.utils.text_constants import TEXT_CONTRACTIONS_EN
 from jet.wordnet.similarity import group_similar_texts
 import asyncio
 import os
-from typing import DefaultDict, List, Dict, Optional
+from typing import DefaultDict, List, Dict, Optional, Set
 from jet.data.utils import generate_unique_id
 from jet.file.utils import save_file
 from jet.scrapers.hrequests_utils import scrape_urls
@@ -162,6 +163,8 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.8
                 "score": best_doc.get("score", None),
                 "mtld": best_doc["mtld"],
                 "mtld_category": best_doc["mtld_category"],
+                "word_count": best_doc["word_count"],
+                "link_to_text_ratio": best_doc["link_to_text_ratio"],
                 "parent_header": best_doc.get("parent_header", None),
                 "parent_level": best_doc.get("parent_level", None),
                 "level": best_doc.get("level", None),
@@ -183,6 +186,8 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.8
                 "score": doc.get("score", None),
                 "mtld": doc["mtld"],
                 "mtld_category": doc["mtld_category"],
+                "word_count": doc["word_count"],
+                "link_to_text_ratio": doc["link_to_text_ratio"],
                 "parent_header": doc.get("parent_header", None),
                 "parent_level": doc.get("parent_level", None),
                 "level": doc.get("level", None),
@@ -191,6 +196,33 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.8
             })
     save_file(merge_info, f"{OUTPUT_DIR}/merged_docs.json")
     return merged_docs, merge_info
+
+
+def preprocess_text(
+    text: str,
+    preserve_chars: Optional[Set[str]] = None,
+    remove_stopwords: bool = False,
+    apply_lemmatization: bool = False
+) -> str:
+    if not text or not text.strip():
+        logger.debug(f"Empty or whitespace-only input text: '{text}'")
+        return ""
+    logger.debug(f"Preprocessing text: '{text}'")
+    text = re.sub(r'\s+', ' ', text.strip())
+    for contraction, expanded in TEXT_CONTRACTIONS_EN.items():
+        text = re.sub(r'\b' + contraction + r'\b',
+                      expanded, text, flags=re.IGNORECASE)
+    text = text.lower()
+    preserve_chars = preserve_chars or {'-', '_'}
+    pattern = r'[^a-z0-9\s' + ''.join(map(re.escape, preserve_chars)) + r']'
+    text = re.sub(pattern, '', text)
+    text = re.sub(r'\s+', ' ', text.strip())
+    if remove_stopwords:
+        logger.warning("Stopword removal not implemented in this version")
+    if apply_lemmatization:
+        logger.warning("Lemmatization not implemented in this version")
+    logger.debug(f"Preprocessed text: '{text}'")
+    return text
 
 
 async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-MiniLM-L6-v2', urls_limit: Optional[int] = None, chunk_size: int = 200, chunk_overlap: int = 20, query: str = "", tokenizer_model: Optional[ModelType] = None) -> tuple:
@@ -264,12 +296,37 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 cleaned_content = clean_markdown_links(doc["content"])
                 word_count = len(word_tokenize(cleaned_content))
                 doc["word_count"] = word_count
-                if word_count >= 8:
+                link_to_text_ratio_result = link_to_text_ratio(
+                    doc["content"], threshold=0.3)
+                doc["link_to_text_ratio"] = link_to_text_ratio_result["ratio"]
+                if word_count >= 8 and not link_to_text_ratio_result["is_link_heavy"]:
                     filtered_documents.append(doc)
             documents = filtered_documents
+            if not documents:
+                continue
 
-            texts = [f"{doc["parent_header"] or ""}\n{doc["header"]}\n{doc["content"]}".strip()
+            texts = [f"{doc["parent_header"] or ""}\n{doc["header"]}\n{doc["content"]}"
                      for doc in documents]
+            # Preprocess texts before embed
+            texts = [preprocess_text(clean_markdown_links(text))
+                     for text in texts]
+            save_file(
+                {
+                    "preprocessed_query": preprocess_text(query),
+                    "count": len(documents),
+                    "preprocessed_texts": [
+                        {
+                            "text": text,
+                            "doc_index": doc["doc_index"],
+                            "chunk_index": doc["chunk_index"],
+                            "header": doc["header"],
+                        }
+                        for text, doc in zip(texts, documents)
+                    ]
+                },
+                f"{sub_output_dir}/texts_for_embeddings.json"
+            )
+
             generated_embeddings = generate_embeddings(
                 texts, model, show_progress=True)
             embeddings = []
@@ -283,7 +340,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
             index.add(embedding_matrix)
 
             results = query_rag(index, embeddings, model, [], query,
-                                k=20, threshold=-0.0, use_reranking=False)
+                                k=None, threshold=-0.0, use_reranking=False)
             total_tokens += sum(result["num_tokens"] for result in results)
             save_file({
                 "query": query,
@@ -320,6 +377,12 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
     if not all_documents:
         logger.warning("No documents collected after scraping.")
         return None, [], model, [], []
+
+    # Sort all_results by score in descending order before updating ranks
+    all_results.sort(key=lambda x: x.get("score", 0), reverse=True)
+    for i, result in enumerate(all_results, 1):
+        result["rank"] = i
+
     save_file({
         "count": len(all_documents),
         "total_tokens": sum(doc.get("num_tokens", 0) for doc in all_documents),
@@ -336,6 +399,8 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 "num_tokens": doc.get("num_tokens"),
                 "mtld": doc.get("mtld"),
                 "mtld_category": doc.get("mtld_category"),
+                "word_count": doc.get("word_count"),
+                "link_to_text_ratio": doc.get("link_to_text_ratio"),
                 "doc_index": doc.get("doc_index"),
                 "chunk_index": doc.get("chunk_index", 0)
             } for doc in all_documents
@@ -357,6 +422,8 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 "score": result.get("score"),
                 "mtld": result.get("mtld"),
                 "mtld_category": result.get("mtld_category"),
+                "word_count": result.get("word_count"),
+                "link_to_text_ratio": result.get("link_to_text_ratio"),
                 "num_tokens": result.get("num_tokens"),
                 "parent_header": result.get("parent_header"),
                 "parent_level": result.get("parent_level"),
@@ -456,11 +523,14 @@ def query_rag(
     model,
     merge_info: List[Dict],
     query: str,
-    k: int = 10,
+    k: Optional[int] = None,
     threshold: float = 0.0,
     cross_encoder_model: str = 'cross-encoder/ms-marco-MiniLM-L-12-v2',
     use_reranking: bool = True
 ) -> List[Dict]:
+    if not k:
+        k = len(embeddings)
+    query = preprocess_text(query)
     query_embedding = model.encode(query, convert_to_tensor=False,
                                    show_progress_bar=False, normalize_embeddings=True).astype('float32')
     D, I = index.search(np.array([query_embedding]), k)
@@ -497,6 +567,8 @@ def query_rag(
             "url": embeddings[idx]["url"],
             "mtld": embeddings[idx]["mtld"],
             "mtld_category": embeddings[idx]["mtld_category"],
+            "word_count": embeddings[idx]["word_count"],
+            "link_to_text_ratio": embeddings[idx]["link_to_text_ratio"],
             "num_tokens": embeddings[idx]["num_tokens"],
             "selected_doc_ids": [selected_doc_id],
             "parent_level": embeddings[idx].get("parent_level", None),
@@ -648,6 +720,7 @@ def group_results_by_url_for_llm_context(
         "total_tokens": sum(doc.get("num_tokens", 0) for doc in filtered_docs),
         "results": [
             {
+                "rank": doc.get("rank"),
                 "merged_doc_id": doc.get("merged_doc_id"),
                 "chunk_id": doc.get("chunk_id"),
                 "doc_index": doc.get("doc_index"),
@@ -658,6 +731,8 @@ def group_results_by_url_for_llm_context(
                 "score": doc.get("score"),
                 "mtld": doc.get("mtld"),
                 "mtld_category": doc.get("mtld_category"),
+                "word_count": doc.get("word_count"),
+                "link_to_text_ratio": doc.get("link_to_text_ratio"),
                 "num_tokens": doc.get("num_tokens"),
                 "parent_header": doc.get("parent_header"),
                 "parent_level": doc.get("parent_level"),
