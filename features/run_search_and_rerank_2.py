@@ -299,7 +299,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 word_count = len(word_tokenize(cleaned_content))
                 doc["word_count"] = word_count
                 link_to_text_ratio_result = link_to_text_ratio(
-                    doc["content"], threshold=0.25)
+                    f"{doc["header"].lstrip('#').strip()}\n{doc["content"]}", threshold=0.25)
                 doc["link_to_text_ratio"] = link_to_text_ratio_result["ratio"]
                 if word_count >= 8 and readability["mtld"] > 0.0 and not link_to_text_ratio_result["is_link_heavy"]:
                     filtered_documents.append(doc)
@@ -610,22 +610,46 @@ def group_results_by_url_for_llm_context(
             return text.lstrip('#').strip()
         return text
 
-    # Sort documents by num_tokens descending, then by score descending (if available)
-    filtered_documents_by_score = [
-        doc for doc in documents if doc["score"] >= 0.4 and doc["link_to_text_ratio"] == 0]
-    sorted_docs_by_num_tokens = sorted(
-        filtered_documents_by_score,
+    # Prioritize documents with score >= 0.7, then fill with >= 0.4 until max_tokens - buffer is reached
+    high_score_docs = [
+        doc for doc in documents if doc["score"] >= 0.7 and doc["link_to_text_ratio"] == 0
+    ]
+    med_score_docs = [
+        doc for doc in documents if 0.4 <= doc["score"] < 0.7 and doc["link_to_text_ratio"] == 0
+    ]
+
+    # Sort both groups by num_tokens descending, then by score descending
+    high_score_docs_sorted = sorted(
+        high_score_docs,
         key=lambda x: (x.get("num_tokens", 0), x.get("score", 0)),
         reverse=True
     )
+    med_score_docs_sorted = sorted(
+        med_score_docs,
+        key=lambda x: (x.get("num_tokens", 0), x.get("score", 0)),
+        reverse=True
+    )
+
     filtered_documents = []
     total_tokens = 0
-    for doc in sorted_docs_by_num_tokens:
+
+    # Add high score docs first
+    for doc in high_score_docs_sorted:
         doc_tokens = doc.get("num_tokens", 0)
         if total_tokens + doc_tokens > max_tokens - buffer:
             break
         filtered_documents.append(doc)
         total_tokens += doc_tokens
+
+    # If room remains, add medium score docs
+    if total_tokens < max_tokens - buffer:
+        for doc in med_score_docs_sorted:
+            doc_tokens = doc.get("num_tokens", 0)
+            if total_tokens + doc_tokens > max_tokens - buffer:
+                break
+            filtered_documents.append(doc)
+            total_tokens += doc_tokens
+
     documents = filtered_documents
 
     tokenizer = get_tokenizer_fn(
