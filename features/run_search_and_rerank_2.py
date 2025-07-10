@@ -234,7 +234,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
     total_tokens = 0
     high_quality_docs = 0
     MIN_HIGH_QUALITY_DOCS = 10
-    HIGH_QUALITY_SCORE = 0.5
+    HIGH_QUALITY_SCORE = 0.4
     TARGET_TOKEN_COUNT = 4000
     TOKEN_BUFFER = 200
     async for url, status, html in scrape_urls(urls, show_progress=True, limit=urls_limit):
@@ -299,7 +299,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 word_count = len(word_tokenize(cleaned_content))
                 doc["word_count"] = word_count
                 link_to_text_ratio_result = link_to_text_ratio(
-                    doc["content"], threshold=0.3)
+                    doc["content"], threshold=0.25)
                 doc["link_to_text_ratio"] = link_to_text_ratio_result["ratio"]
                 if word_count >= 8 and readability["mtld"] > 0.0 and not link_to_text_ratio_result["is_link_heavy"]:
                     filtered_documents.append(doc)
@@ -369,9 +369,8 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
             high_quality_docs += sum(
                 1 for result in results
                 if (
-                    result["score"] > HIGH_QUALITY_SCORE
+                    result["score"] >= HIGH_QUALITY_SCORE
                     and result.get("mtld_category") != "very_low"
-                    and result["score"] > 0.5
                 )
             )
             all_results.extend(results)
@@ -414,6 +413,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 "header": doc.get("header"),
                 "content": doc.get("content"),
                 "num_tokens": doc.get("num_tokens"),
+                "score": result.get("score"),
                 "mtld": doc.get("mtld"),
                 "mtld_category": doc.get("mtld_category"),
                 "word_count": doc.get("word_count"),
@@ -610,9 +610,17 @@ def group_results_by_url_for_llm_context(
             return text.lstrip('#').strip()
         return text
 
+    # Sort documents by num_tokens descending, then by score descending (if available)
+    filtered_documents_by_score = [
+        doc for doc in documents if doc["score"] >= 0.4 and doc["link_to_text_ratio"] == 0]
+    sorted_docs_by_num_tokens = sorted(
+        filtered_documents_by_score,
+        key=lambda x: (x.get("num_tokens", 0), x.get("score", 0)),
+        reverse=True
+    )
     filtered_documents = []
     total_tokens = 0
-    for doc in documents:
+    for doc in sorted_docs_by_num_tokens:
         doc_tokens = doc.get("num_tokens", 0)
         if total_tokens + doc_tokens > max_tokens - buffer:
             break
