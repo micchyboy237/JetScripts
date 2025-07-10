@@ -1,265 +1,202 @@
-import pytest
+import unittest
 from typing import List, Dict
 from collections import defaultdict
-from unittest.mock import Mock
-from jet.models.model_types import LLMModelType
+import os
+from unittest.mock import Mock, patch
 
-from run_search_and_rerank_2 import group_results_by_url_for_llm_context
+# Assuming these are defined in your module
+from run_search_and_rerank_2 import group_results_by_url_for_llm_context, LLMModelType
 
-# Mock tokenizer function
+# Mock logger to capture debug/warning messages
+logger = Mock()
 
-
-def mock_tokenizer(text: str) -> List[int]:
-    return list(range(len(text.split())))
-
-
-@pytest.fixture
-def mock_get_tokenizer_fn():
-    return Mock(return_value=mock_tokenizer)
+# Mock tokenizer class to mimic a tokenizer with an encode method
 
 
-@pytest.fixture
-def sample_documents():
-    return [
-        {
-            "text": "Content for introduction",
-            "url": "https://example.com",
-            "parent_header": "## Introduction",
-            "header": "## Sub Introduction",
-            "level": 2,
-            "parent_level": 2,
-            "num_tokens": 3,
-            "score": 0.9,
-            "merged_doc_id": "doc1",
-            "chunk_id": "chunk1",
-            "doc_index": 0,
-            "chunk_index": 0,
-        },
-        {
-            "text": "Duplicate introduction content",
-            "url": "https://example.com",
-            "parent_header": "## Introduction",
-            "header": "## Introduction",
-            "level": 2,
-            "parent_level": 2,
-            "num_tokens": 3,
-            "score": 0.85,
-            "merged_doc_id": "doc2",
-            "chunk_id": "chunk2",
-            "doc_index": 1,
-            "chunk_index": 1,
-        },
-        {
-            "text": "Content for another section",
-            "url": "https://example.com",
-            "parent_header": "# Main Section",
-            "header": "## Another Section",
-            "level": 2,
-            "parent_level": 1,
-            "num_tokens": 4,
-            "score": 0.8,
-            "merged_doc_id": "doc3",
-            "chunk_id": "chunk3",
-            "doc_index": 2,
-            "chunk_index": 2,
-        },
-        {
-            "text": "Content for another URL",
-            "url": "https://another.com",
-            "parent_header": "## Introduction",
-            "header": None,
-            "level": 0,
-            "parent_level": 2,
-            "num_tokens": 4,
-            "score": 0.7,
-            "merged_doc_id": "doc4",
-            "chunk_id": "chunk4",
-            "doc_index": 3,
-            "chunk_index": 0,
-        },
-    ]
+class MockTokenizer:
+    def encode(self, text: str, add_special_tokens: bool = False, remove_pad_tokens: bool = True) -> List[int]:
+        # Simple tokenization: count words as tokens, plus 2 for newlines
+        return list(range(len(text.split()) + (2 if '\n\n' in text else 0)))
+
+# Mock save_file function
 
 
-class TestGroupResultsByUrlForLLMContext:
-    def test_deduplicates_identical_parent_and_child_headers(self, mock_get_tokenizer_fn, sample_documents):
-        # Given: Documents with identical parent_header and header text
-        documents = sample_documents
-        llm_model = "mock-model"  # type: LLMModelType
-        max_tokens = 1000
-        buffer = 100
-        expected = (
-            "<!-- Source: https://example.com -->\n\n"
-            "## Introduction\n\n"
-            "Content for introduction\n\n"
-            "# Main Section\n\n"
-            "## Another Section\n\n"
-            "Content for another section\n\n"
-            "<!-- Source: https://another.com -->\n\n"
-            "## Introduction\n\n"
-            "Content for another URL"
-        )
+def mock_save_file(data: Dict, path: str):
+    pass
 
-        # When: The function processes the documents
-        result = group_results_by_url_for_llm_context(
-            documents, llm_model, max_tokens, buffer)
 
-        # Then: Duplicate headers are skipped, keeping the highest-scoring document
-        assert result.strip() == expected.strip()
-        assert "Duplicate introduction content" not in result
-        # Skipped due to duplicate with parent_header
-        assert "## Sub Introduction" not in result
+class TestGroupResultsByUrlForLlmContext(unittest.TestCase):
+    def setUp(self):
+        self.max_tokens = 2000
+        self.buffer = 100
+        self.llm_model = Mock(spec=LLMModelType)
+        # Mock the tokenizer function to return a MockTokenizer instance
+        self.patcher = patch(
+            'run_search_and_rerank_2.get_tokenizer_fn', return_value=MockTokenizer())
+        self.patcher.start()
+        # Mock save_file
+        self.save_file_patcher = patch(
+            'run_search_and_rerank_2.save_file', side_effect=mock_save_file)
+        self.save_file_patcher.start()
+        # Mock OUTPUT_DIR
+        self.output_dir_patcher = patch(
+            'run_search_and_rerank_2.OUTPUT_DIR', '/tmp')
+        self.output_dir_patcher.start()
+        # Mock logger
+        self.logger_patcher = patch('run_search_and_rerank_2.logger', logger)
+        self.logger_patcher.start()
 
-    def test_deduplicates_headers_across_parent_groups(self, mock_get_tokenizer_fn):
-        # Given: Documents with the same header text in different parent groups
+    def tearDown(self):
+        self.patcher.stop()
+        self.save_file_patcher.stop()
+        self.output_dir_patcher.stop()
+        self.logger_patcher.stop()
+
+    def test_duplicate_parent_and_child_header(self):
+        """Test case where parent header matches a child header's text."""
         documents = [
             {
-                "text": "Content for introduction under main",
+                "text": "Fall 2025 has its villainess isekai anime, but this one comes with a clever twist.",
                 "url": "https://example.com",
-                "parent_header": "# Main Section",
-                "header": "## Introduction",
-                "level": 2,
-                "parent_level": 1,
-                "num_tokens": 5,
+                "parent_header": "### A Wild Last Boss Appeared!",
+                "header": "#### The Dark History of the Reincarnated Villainess",
+                "level": 4,
+                "parent_level": 3,
                 "score": 0.9,
-                "merged_doc_id": "doc5",
-                "chunk_id": "chunk5",
-                "doc_index": 4,
-                "chunk_index": 0,
+                "num_tokens": 20,
+                "chunk_index": 0
             },
             {
-                "text": "Duplicate introduction content",
+                "text": "Fans of OP isekai anime protagonists will be eating well throughout 2025, and A Wild Last Boss Appeared should be a particularly great feast.",
                 "url": "https://example.com",
-                "parent_header": "# Another Section",
-                "header": "## Introduction",
-                "level": 2,
-                "parent_level": 1,
-                "num_tokens": 4,
-                "score": 0.85,
-                "merged_doc_id": "doc6",
-                "chunk_id": "chunk6",
-                "doc_index": 5,
-                "chunk_index": 1,
-            },
-        ]
-        llm_model = "mock-model"  # type: LLMModelType
-        max_tokens = 1000
-        buffer = 100
-        expected = (
-            "<!-- Source: https://example.com -->\n\n"
-            "# Main Section\n\n"
-            "## Introduction\n\n"
-            "Content for introduction under main"
-        )
-
-        # When: The function processes documents with duplicate headers across parent groups
-        result = group_results_by_url_for_llm_context(
-            documents, llm_model, max_tokens, buffer)
-
-        # Then: Only the highest-scoring document with the header is included
-        assert result.strip() == expected.strip()
-        assert "Duplicate introduction content" not in result
-
-    def test_handles_empty_parent_header(self, mock_get_tokenizer_fn):
-        # Given: Documents with no parent header
-        documents = [
-            {
-                "text": "Content without parent",
-                "url": "https://example.com",
-                "parent_header": "None",
-                "header": None,
-                "level": 0,
-                "parent_level": None,
-                "num_tokens": 3,
-                "score": 0.9,
-                "merged_doc_id": "doc7",
-                "chunk_id": "chunk7",
-                "doc_index": 6,
-                "chunk_index": 0,
+                "parent_header": "### A Wild Last Boss Appeared!",
+                "header": "#### A Wild Last Boss Appeared!",
+                "level": 4,
+                "parent_level": 3,
+                "score": 0.8,
+                "num_tokens": 30,
+                "chunk_index": 1
             }
         ]
-        llm_model = "mock-model"  # type: LLMModelType
-        max_tokens = 1000
-        buffer = 100
-        expected = (
+        expected_output = (
             "<!-- Source: https://example.com -->\n\n"
-            "Content without parent"
+            "#### The Dark History of the Reincarnated Villainess\n\n"
+            "Fall 2025 has its villainess isekai anime, but this one comes with a clever twist.\n\n"
+            "#### A Wild Last Boss Appeared!\n\n"
+            "Fans of OP isekai anime protagonists will be eating well throughout 2025, and A Wild Last Boss Appeared should be a particularly great feast."
         )
-
-        # When: The function processes documents without parent headers
         result = group_results_by_url_for_llm_context(
-            documents, llm_model, max_tokens, buffer)
+            documents, self.llm_model, self.max_tokens, self.buffer)
+        print("Actual output:\n", result)  # Print actual output for debugging
+        self.assertEqual(result.strip(), expected_output.strip())
 
-        # Then: The output includes content without unnecessary headers
-        assert result.strip() == expected.strip()
-
-    def test_respects_token_limit(self, mock_get_tokenizer_fn, sample_documents):
-        # Given: Documents that exceed token limit
-        documents = sample_documents
-        llm_model = "mock-model"  # type: LLMModelType
-        max_tokens = 20  # Low limit to force truncation
-        buffer = 5
-        expected = (
-            "<!-- Source: https://example.com -->\n\n"
-            "## Introduction\n\n"
-            "Content for introduction"
-        )
-
-        # When: The function processes documents with a strict token limit
-        result = group_results_by_url_for_llm_context(
-            documents, llm_model, max_tokens, buffer)
-
-        # Then: Only documents within token limit are included
-        assert result.strip() == expected.strip()
-        assert "Content for another section" not in result
-        assert "Content for another URL" not in result
-
-    def test_handles_identical_content_different_headers(self, mock_get_tokenizer_fn):
-        # Given: Documents with identical content but different headers
+    def test_non_duplicate_headers(self):
+        """Test case where parent and child headers are different."""
         documents = [
             {
-                "text": "Identical content",
+                "text": "This is a unique section about isekai trends.",
                 "url": "https://example.com",
-                "parent_header": "# Main Section",
-                "header": "## Header A",
-                "level": 2,
-                "parent_level": 1,
-                "num_tokens": 3,
+                "parent_header": "### Isekai Trends",
+                "header": "#### New Releases",
+                "level": 4,
+                "parent_level": 3,
+                "score": 0.7,
+                "num_tokens": 10,
+                "chunk_index": 0
+            }
+        ]
+        expected_output = (
+            "<!-- Source: https://example.com -->\n\n"
+            "### Isekai Trends\n\n"
+            "#### New Releases\n\n"
+            "This is a unique section about isekai trends."
+        )
+        result = group_results_by_url_for_llm_context(
+            documents, self.llm_model, self.max_tokens, self.buffer)
+        self.assertEqual(result.strip(), expected_output.strip())
+
+    def test_multiple_child_headers(self):
+        """Test case with multiple child headers, one matching parent."""
+        documents = [
+            {
+                "text": "First section text.",
+                "url": "https://example.com",
+                "parent_header": "### Main Topic",
+                "header": "#### Subtopic One",
+                "level": 4,
+                "parent_level": 3,
                 "score": 0.9,
-                "merged_doc_id": "doc8",
-                "chunk_id": "chunk8",
-                "doc_index": 7,
-                "chunk_index": 0,
+                "num_tokens": 10,
+                "chunk_index": 0
             },
             {
-                "text": "Identical content",
+                "text": "Second section text.",
                 "url": "https://example.com",
-                "parent_header": "# Main Section",
-                "header": "## Header B",
-                "level": 2,
-                "parent_level": 1,
-                "num_tokens": 3,
-                "score": 0.85,
-                "merged_doc_id": "doc9",
-                "chunk_id": "chunk9",
-                "doc_index": 8,
-                "chunk_index": 1,
-            },
+                "parent_header": "### Main Topic",
+                "header": "#### Main Topic",
+                "level": 4,
+                "parent_level": 3,
+                "score": 0.8,
+                "num_tokens": 10,
+                "chunk_index": 1
+            }
         ]
-        llm_model = "mock-model"  # type: LLMModelType
-        max_tokens = 1000
-        buffer = 100
-        expected = (
+        expected_output = (
             "<!-- Source: https://example.com -->\n\n"
-            "# Main Section\n\n"
-            "## Header A\n\n"
-            "Identical content\n\n"
-            "## Header B\n\n"
-            "Identical content"
+            "#### Subtopic One\n\n"
+            "First section text.\n\n"
+            "#### Main Topic\n\n"
+            "Second section text."
         )
-
-        # When: The function processes documents with identical content
         result = group_results_by_url_for_llm_context(
-            documents, llm_model, max_tokens, buffer)
+            documents, self.llm_model, self.max_tokens, self.buffer)
+        self.assertEqual(result.strip(), expected_output.strip())
 
-        # Then: Both headers are included since they are different
-        assert result.strip() == expected.strip()
+    def test_no_parent_header(self):
+        """Test case with no parent header."""
+        documents = [
+            {
+                "text": "Content without a parent header.",
+                "url": "https://example.com",
+                "parent_header": "None",
+                "header": "#### Standalone Section",
+                "level": 4,
+                "parent_level": None,
+                "score": 0.6,
+                "num_tokens": 10,
+                "chunk_index": 0
+            }
+        ]
+        expected_output = (
+            "<!-- Source: https://example.com -->\n\n"
+            "#### Standalone Section\n\n"
+            "Content without a parent header."
+        )
+        result = group_results_by_url_for_llm_context(
+            documents, self.llm_model, self.max_tokens, self.buffer)
+        self.assertEqual(result.strip(), expected_output.strip())
+
+    def test_token_limit_exceeded(self):
+        """Test case where documents exceed token limit."""
+        documents = [
+            {
+                "text": "This is a very long text " * 1000,  # Exceeds max_tokens
+                "url": "https://example.com",
+                "parent_header": "### Main Topic",
+                "header": "#### Subtopic",
+                "level": 4,
+                "parent_level": 3,
+                "score": 0.9,
+                "num_tokens": 2001,
+                "chunk_index": 0
+            }
+        ]
+        result = group_results_by_url_for_llm_context(
+            documents, self.llm_model, self.max_tokens, self.buffer)
+        self.assertEqual(result, "")  # Expect empty output due to token limit
+        logger.debug.assert_called_with(
+            "Skipping document (score: 0.9): would exceed max_tokens (2001 > 1900)")
+
+
+if __name__ == '__main__':
+    unittest.main()

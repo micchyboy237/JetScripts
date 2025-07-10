@@ -28,7 +28,6 @@ from sentence_transformers import SentenceTransformer, CrossEncoder
 import faiss
 import numpy as np
 import json
-import logging
 from tqdm import tqdm
 import re
 from sklearn.cluster import KMeans
@@ -459,10 +458,16 @@ def query_rag(
 
 def group_results_by_url_for_llm_context(
     documents: List[Dict],
-    llm_model: LLMModelType,
+    llm_model: 'LLMModelType',
     max_tokens: int = 2000,
     buffer: int = 100
 ) -> str:
+    def strip_hashtags(text: str) -> str:
+        """Remove leading hashtags and whitespace from header text."""
+        if text:
+            return text.lstrip('#').strip()
+        return text
+
     tokenizer = get_tokenizer_fn(
         llm_model, add_special_tokens=False, remove_pad_tokens=True)
     separator = "\n\n"
@@ -471,8 +476,7 @@ def group_results_by_url_for_llm_context(
         documents, key=lambda x: x.get("score", 0), reverse=True)
     filtered_docs = []
     total_tokens = 0
-    grouped_temp: DefaultDict[str, DefaultDict[str, List[Dict]]] = defaultdict(
-        lambda: defaultdict(list))
+    grouped_temp: DefaultDict[str, List[Dict]] = defaultdict(list)
     seen_header_text: DefaultDict[str, set] = defaultdict(
         set)  # Track all header text per URL
 
@@ -486,78 +490,82 @@ def group_results_by_url_for_llm_context(
         doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
         header_tokens = 0
 
+        # Check document tokens against limit first
+        if doc_tokens > max_tokens - buffer:
+            logger.debug(
+                f"Skipping document (score: {doc.get('score', 0)}): would exceed max_tokens ({doc_tokens} > {max_tokens - buffer})")
+            continue
+
         # Calculate header tokens for URL
         if not grouped_temp[url]:
             header_tokens += len(tokenizer.encode(
                 f"<!-- Source: {url} -->\n\n"))
             header_tokens += separator_tokens if filtered_docs else 0
 
-        # Check for duplicate parent_header text
-        parent_header_key = parent_header if parent_header and parent_header != "None" else None
-        if parent_header_key and parent_header_key in seen_header_text[url]:
-            logger.debug(
-                f"Skipping duplicate parent_header '{parent_header}' for URL: {url}")
-            continue
-        if parent_header_key and parent_level is not None:
-            header_tokens += len(tokenizer.encode(f"{parent_header}\n\n"))
-            seen_header_text[url].add(parent_header_key)
+        parent_header_key = strip_hashtags(
+            parent_header) if parent_header and parent_header != "None" else None
+        header_key = strip_hashtags(header) if header else None
 
-        # Check for duplicate header text
-        header_key = header if header else None
-        if header_key and header_key in seen_header_text[url]:
-            logger.debug(
-                f"Skipping duplicate header '{header}' for URL: {url}, parent: {parent_header}")
-            continue
-        if header_key and header != parent_header and level >= 0:
+        # Only add header tokens if the header will be included
+        if header_key and header_key not in seen_header_text[url] and level >= 0:
             header_tokens += len(tokenizer.encode(f"{header}\n\n"))
             seen_header_text[url].add(header_key)
 
         additional_tokens = doc_tokens + header_tokens + separator_tokens
-        if total_tokens + additional_tokens <= max_tokens - buffer:
-            filtered_docs.append(doc)
-            grouped_temp[url][parent_header].append(doc)
-            total_tokens += additional_tokens
-        else:
+        if total_tokens + additional_tokens > max_tokens - buffer:
             logger.debug(
                 f"Skipping document (score: {doc.get('score', 0)}): would exceed max_tokens ({total_tokens + additional_tokens} > {max_tokens - buffer})")
+            continue
+
+        filtered_docs.append(doc)
+        grouped_temp[url].append(doc)
+        total_tokens += additional_tokens
 
     context_blocks = []
     total_tokens = 0
-    for url, parent_groups in grouped_temp.items():
+    for url, docs in grouped_temp.items():
         block = f"<!-- Source: {url} -->\n\n"
         block_tokens = len(tokenizer.encode(block))
         seen_header_text_in_block = set()  # Track headers within this block
-        for parent_header, parent_docs in parent_groups.items():
-            if not parent_docs:  # Skip empty parent_docs
-                logger.debug(
-                    f"Skipping empty parent_header group: {parent_header} for URL: {url}")
-                continue
-            parent_docs = sorted(parent_docs, key=lambda x: (
-                x.get("level", 0) if x.get("level") is not None else 0,
-                x.get("chunk_index", 0) if x.get(
-                    "chunk_index") is not None else 0
-            ))
-            parent_level = parent_docs[0].get("parent_level", None)
-            parent_header_key = parent_header if parent_header and parent_header != "None" else None
-            if parent_header_key and parent_level is not None and parent_header_key not in seen_header_text_in_block:
+        # Sort docs by level and chunk_index
+        docs = sorted(docs, key=lambda x: (
+            x.get("level", 0) if x.get("level") is not None else 0,
+            x.get("chunk_index", 0) if x.get("chunk_index") is not None else 0
+        ))
+        for doc in docs:
+            header = doc.get("header", None)
+            parent_header = doc.get("parent_header", "None")
+            text = doc.get("text", "")
+            doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
+            doc_level = doc.get("level", 0) if doc.get(
+                "level") is not None else 0
+            parent_level = doc.get("parent_level", None)
+            parent_header_key = strip_hashtags(
+                parent_header) if parent_header and parent_header != "None" else None
+            header_key = strip_hashtags(header) if header else None
+
+            # Check if parent header should be included (only if no child header matches it)
+            has_matching_child = any(
+                strip_hashtags(d.get("header", "")) == parent_header_key
+                for d in docs
+                if d.get("header") and d.get("level", 0) >= 0
+            )
+            if parent_header_key and parent_level is not None and not has_matching_child and parent_header_key not in seen_header_text_in_block:
                 parent_header_text = f"{parent_header}\n\n"
                 block += parent_header_text
                 block_tokens += len(tokenizer.encode(parent_header_text))
                 seen_header_text_in_block.add(parent_header_key)
-            for doc in parent_docs:
-                header = doc.get("header", None)
-                text = doc.get("text", "")
-                doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
-                doc_level = doc.get("level", 0) if doc.get(
-                    "level") is not None else 0
-                header_key = header if header else None
-                if header_key and header != parent_header and doc_level >= 0 and header_key not in seen_header_text_in_block:
-                    subheader_text = f"{header}\n\n"
-                    block += subheader_text
-                    block_tokens += len(tokenizer.encode(subheader_text))
-                    seen_header_text_in_block.add(header_key)
-                block += text + "\n\n"
-                block_tokens += doc_tokens + separator_tokens
+
+            # Add child header if it exists and is not a duplicate
+            if header_key and header_key not in seen_header_text_in_block and doc_level >= 0:
+                subheader_text = f"{header}\n\n"
+                block += subheader_text
+                block_tokens += len(tokenizer.encode(subheader_text))
+                seen_header_text_in_block.add(header_key)
+
+            block += text + "\n\n"
+            block_tokens += doc_tokens + separator_tokens
+
         if block_tokens > len(tokenizer.encode(f"<!-- Source: {url} -->\n\n")):
             context_blocks.append(block.strip())
             total_tokens += block_tokens
