@@ -11,6 +11,7 @@ from jet.code.splitter_markdown_utils import extract_markdown_links
 from jet.llm.mlx.templates.generate_labels import generate_labels
 from jet.logger import logger
 from jet.models.embeddings.base import generate_embeddings
+from jet.models.model_registry.transformers.cross_encoder_model_registry import CrossEncoderRegistry
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.models.model_types import ModelType, EmbedModelType, LLMModelType
@@ -641,7 +642,7 @@ def query_rag(
     query: str,
     k: Optional[int] = None,
     threshold: float = 0.0,
-    cross_encoder_model: str = 'cross-encoder/ms-marco-MiniLM-L-12-v2',
+    cross_encoder_model: EmbedModelType = 'cross-encoder/ms-marco-MiniLM-L12-v2',
     use_reranking: bool = True
 ) -> List[Dict]:
     if not k:
@@ -654,7 +655,7 @@ def query_rag(
     seen_doc_ids = set()
 
     if use_reranking:
-        cross_encoder = CrossEncoder(cross_encoder_model)
+        cross_encoder = CrossEncoderRegistry.load_model(cross_encoder_model)
         pairs = [[query, embeddings[idx]["content"]] for idx in I[0]]
         cross_scores = cross_encoder.predict(pairs)
         scores = cross_scores

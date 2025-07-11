@@ -8,7 +8,7 @@ from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
 from jet.file.utils import load_file, save_file
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.vectors.document_types import HeaderDocument
-from jet.wordnet.keywords.keyword_extraction import extract_query_candidates, extract_keywords_with_candidates, extract_keywords_with_custom_vectorizer, extract_keywords_with_embeddings, extract_multi_doc_keywords, extract_single_doc_keywords, setup_keybert, SimilarityResult
+from jet.wordnet.keywords.helpers import extract_query_candidates, extract_keywords_with_candidates, extract_keywords_with_custom_vectorizer, extract_keywords_with_embeddings, extract_multi_doc_keywords, extract_single_doc_keywords, setup_keybert, SimilarityResult
 
 
 class HeaderDoc(TypedDict):
