@@ -8,6 +8,7 @@ from jet.code.markdown_utils._markdown_analyzer import analyze_markdown, link_to
 from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy, parse_markdown
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.code.splitter_markdown_utils import extract_markdown_links
+from jet.llm.mlx.templates.generate_labels import generate_labels
 from jet.logger import logger
 from jet.models.embeddings.base import generate_embeddings
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
@@ -220,8 +221,9 @@ def preprocess_text(
     return text
 
 
-async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-MiniLM-L6-v2', urls_limit: Optional[int] = None, chunk_size: int = 200, chunk_overlap: int = 20, query: str = "", tokenizer_model: Optional[ModelType] = None) -> tuple:
-    model = SentenceTransformerRegistry.load_model(model_name)
+async def prepare_for_rag(urls: List[str], embed_model: EmbedModelType = 'all-MiniLM-L6-v2', urls_limit: Optional[int] = None, chunk_size: int = 200, chunk_overlap: int = 20, query: str = "", tokenizer_model: Optional[ModelType] = None) -> tuple:
+    model = SentenceTransformerRegistry.load_model(embed_model)
+    all_orig_documents = []
     all_documents = []
     all_links = []
     all_results = []
@@ -258,6 +260,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
 
             original_docs = derive_by_header_hierarchy(doc_markdown_tokens)
             save_file(original_docs, f"{sub_output_dir}/docs.json")
+            all_orig_documents.extend(original_docs)
 
             _tokenizer = get_string_tokenizer_fn(
                 tokenizer_model) if tokenizer_model else None
@@ -562,13 +565,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
     logger.info(
         f"Saved summary.json with insights for {len(url_summary)} URLs to {OUTPUT_DIR}/summary.json")
     logger.info(f"Clustering {len(all_documents)} documents...")
-    merged_docs, merge_info = merge_similar_docs(
-        all_documents, similarity_threshold=0.8)
-    merged_embedding_matrix = np.array(
-        [doc["embedding"] for doc in merged_docs]).astype('float32')
-    merged_index = faiss.IndexFlatIP(merged_embedding_matrix.shape[1])
-    merged_index.add(merged_embedding_matrix)
-    return merged_index, merged_docs, model, merge_info, all_results
+    return all_orig_documents, all_documents, all_results
 
 
 def compute_similarity(
@@ -911,26 +908,53 @@ async def main():
                    help="Search query using optional flag")
     args = p.parse_args()
 
+    global OUTPUT_DIR
+
     query = args.query if args.query else args.query_pos or "Top isekai anime 2025."
+
+    llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
+    embed_model: EmbedModelType = "all-MiniLM-L6-v2"
     chunk_size = 200
     chunk_overlap = 20
-    llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
+    urls_limit = 10
+    use_cache = True
+
+    save_file(query, f"{OUTPUT_DIR}/query.md")
+    save_file({
+        "query": query,
+        "urls_limit": urls_limit,
+        "use_cache": use_cache,
+        # Save the LLM model and chunking parameters to input.json for reproducibility
+        "llm_model": llm_model,
+        "chunk_size": chunk_size,
+        "chunk_overlap": chunk_overlap
+    }, f"{OUTPUT_DIR}/input.json")
 
     query_sub_dir = format_sub_dir(query)
-    global OUTPUT_DIR
+
     OUTPUT_DIR = f"{OUTPUT_DIR}/{query_sub_dir}"
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-    use_cache = True
-    urls_limit = 10
+
     search_results = search_data(query, use_cache=use_cache)
     save_file({"query": query, "count": len(search_results),
               "results": search_results}, f"{OUTPUT_DIR}/search_results.json")
     urls = [result["url"] for result in search_results]
-    index, embeddings, model, merge_info, results = await prepare_for_rag(urls, urls_limit=urls_limit, chunk_size=chunk_size, chunk_overlap=chunk_overlap, query=query, tokenizer_model=llm_model)
-    if not embeddings:
-        print("No data indexed, exiting.")
-        return
-    results = sorted(results, key=lambda x: x["score"], reverse=True)
+    all_orig_documents, all_documents, all_results = await prepare_for_rag(urls, embed_model=embed_model, urls_limit=urls_limit, chunk_size=chunk_size, chunk_overlap=chunk_overlap, query=query, tokenizer_model=llm_model)
+
+    labels: List[str] = generate_labels(query, model_path=llm_model)
+    save_file({"text": query, "labels": labels}, f"{OUTPUT_DIR}/labels.json")
+
+    embeddings, merge_info = merge_similar_docs(
+        all_documents, similarity_threshold=0.8)
+    # if not embeddings:
+    #     logger.error("No data indexed, exiting.")
+    #     return
+    # merged_embedding_matrix = np.array(
+    #     [doc["embedding"] for doc in embeddings]).astype('float32')
+    # index = faiss.IndexFlatIP(merged_embedding_matrix.shape[1])
+    # index.add(merged_embedding_matrix)
+
+    results = sorted(all_results, key=lambda x: x["score"], reverse=True)
     seen_doc_ids = set()
     unique_results = []
     for result in results:

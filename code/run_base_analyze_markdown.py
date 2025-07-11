@@ -3,6 +3,7 @@ import os
 from jet.code.markdown_utils import base_analyze_markdown
 from jet.code.markdown_utils._markdown_analyzer import get_summary
 from jet.file.utils import save_file
+from jet.utils.commands import copy_to_clipboard
 from jet.utils.print_utils import print_dict_types
 
 md_content = """
@@ -67,7 +68,8 @@ if __name__ == "__main__":
     results_ignore_links = base_analyze_markdown(md_content, ignore_links=True)
     results_with_links = base_analyze_markdown(md_content, ignore_links=False)
 
-    print_dict_types(results_with_links)
+    lines = print_dict_types(results_with_links)
+    copy_to_clipboard("\n".join(lines))
 
     save_file(summary, f"{output_dir}/summary.json")
     save_file(results_with_links, f"{output_dir}/results_with_links.json")

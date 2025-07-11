@@ -2,6 +2,7 @@ import os
 import sys
 import json
 from jet.file.utils import load_file, save_file
+from jet.models.model_types import LLMModelType
 from jet.llm.mlx.templates.generate_labels import generate_labels
 import spacy
 from typing import List, Dict
@@ -43,17 +44,18 @@ def main():
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/latest_react_web_online_jobs_philippines/docs.json"
     docs: list[dict] = load_file(docs_file)
-    data = [f"{doc["parent_header" or ""]}\n{doc["header"]}\n{doc["content"]}".strip()
-            for doc in docs["documents"]]
-    # Read arguments
-    labels = generate_labels(data[:10], max_labels=10)
+    data = docs["documents"]
+
+    llm_model: LLMModelType = "qwen3-1.7b-4bit"
+
     model = "urchade/gliner_small-v2.1"
     style = "ent"
 
     results = []
-    for item in docs:
-        id = item['id_']
-        text = item['text']
+    for item in data:
+        id = item['doc_id']
+        text = f"{item["parent_header" or ""]}\n{item["header"]}\n{item["content"]}".strip()
+        labels: List[str] = generate_labels(text, model_path=llm_model)
         # Determine chunk size dynamically for each text
         chunk_size = determine_chunk_size(text)
 
@@ -73,6 +75,7 @@ def main():
         result = {
             "id": id,
             "text": text,
+            "labels": labels,
             "entities": entities
         }
         # Output the result
