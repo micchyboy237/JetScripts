@@ -918,6 +918,11 @@ async def main():
 
     query = args.query if args.query else args.query_pos or "Top isekai anime 2025."
 
+    query_sub_dir = format_sub_dir(query)
+
+    OUTPUT_DIR = f"{OUTPUT_DIR}/{query_sub_dir}"
+    shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
     chunk_size = 200
@@ -936,11 +941,6 @@ async def main():
         "chunk_overlap": chunk_overlap
     }, f"{OUTPUT_DIR}/input.json")
 
-    query_sub_dir = format_sub_dir(query)
-
-    OUTPUT_DIR = f"{OUTPUT_DIR}/{query_sub_dir}"
-    shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-
     search_results = search_data(query, use_cache=use_cache)
     save_file({"query": query, "count": len(search_results),
               "results": search_results}, f"{OUTPUT_DIR}/search_results.json")
@@ -950,8 +950,9 @@ async def main():
     # labels: List[str] = generate_labels(query, model_path=llm_model)
     # save_file({"text": query, "labels": labels}, f"{OUTPUT_DIR}/labels.json")
 
-    embeddings, merge_info = merge_similar_docs(
-        all_documents, similarity_threshold=0.8)
+    # embeddings, merge_info = merge_similar_docs(
+    #     all_documents, similarity_threshold=0.8)
+
     # if not embeddings:
     #     logger.error("No data indexed, exiting.")
     #     return
