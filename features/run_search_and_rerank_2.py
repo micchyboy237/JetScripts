@@ -258,7 +258,7 @@ async def prepare_for_rag(urls: List[str], embed_model: EmbedModelType = 'all-Mi
             save_file(doc_markdown_tokens,
                       f"{sub_output_dir}/markdown_tokens.json")
 
-            original_docs = derive_by_header_hierarchy(doc_markdown_tokens)
+            original_docs = derive_by_header_hierarchy(doc_markdown)
             save_file(original_docs, f"{sub_output_dir}/docs.json")
             all_orig_documents.extend(original_docs)
 
@@ -403,8 +403,11 @@ async def prepare_for_rag(urls: List[str], embed_model: EmbedModelType = 'all-Mi
 
             save_file(
                 {
+                    "query": query,
                     "count": len(documents),
                     "total_tokens": sum(doc["num_tokens"] for doc in documents),
+                    "high_score_tokens": high_score_tokens,
+                    "mtld_high_score_average": mtld_high_score_average,
                     "documents": [
                         {k: v for k, v in doc.items() if k != "embedding"}
                         for doc in documents if "embedding" in doc
@@ -906,6 +909,8 @@ async def main():
                    help="Search query as positional argument")
     p.add_argument("-q", "--query", type=str,
                    help="Search query using optional flag")
+    p.add_argument("-r", "--reset_cache", action="store_true",
+                   default=False, help="Reset and ignore cached search results")
     args = p.parse_args()
 
     global OUTPUT_DIR
@@ -917,7 +922,7 @@ async def main():
     chunk_size = 200
     chunk_overlap = 20
     urls_limit = 10
-    use_cache = True
+    use_cache = not args.reset_cache
 
     save_file(query, f"{OUTPUT_DIR}/query.md")
     save_file({
@@ -941,8 +946,8 @@ async def main():
     urls = [result["url"] for result in search_results]
     all_orig_documents, all_documents, all_results = await prepare_for_rag(urls, embed_model=embed_model, urls_limit=urls_limit, chunk_size=chunk_size, chunk_overlap=chunk_overlap, query=query, tokenizer_model=llm_model)
 
-    labels: List[str] = generate_labels(query, model_path=llm_model)
-    save_file({"text": query, "labels": labels}, f"{OUTPUT_DIR}/labels.json")
+    # labels: List[str] = generate_labels(query, model_path=llm_model)
+    # save_file({"text": query, "labels": labels}, f"{OUTPUT_DIR}/labels.json")
 
     embeddings, merge_info = merge_similar_docs(
         all_documents, similarity_threshold=0.8)
