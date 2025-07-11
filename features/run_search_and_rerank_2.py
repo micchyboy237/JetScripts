@@ -18,7 +18,7 @@ from jet.utils.text_constants import TEXT_CONTRACTIONS_EN
 from jet.wordnet.similarity import group_similar_texts
 import asyncio
 import os
-from typing import DefaultDict, List, Dict, Optional, Set
+from typing import DefaultDict, List, Dict, Literal, Optional, Set
 from jet.data.utils import generate_unique_id
 from jet.file.utils import save_file
 from jet.scrapers.hrequests_utils import scrape_urls
@@ -90,14 +90,13 @@ def separate_by_headers(paragraphs: List) -> List[Dict]:
         "xpath": None,
         "parent_header": None,
         "parent_level": None,
-        "level": 0  # Default to 0 for non-heading content
+        "level": 0
     }
     header_stack = []
     header_tags = {"h1": 1, "h2": 2, "h3": 3, "h4": 4, "h5": 5, "h6": 6}
 
     for paragraph in paragraphs:
         if paragraph.is_heading:
-            # Extract header tag from xpath using regex (e.g., '/html/body/h1' -> 'h1')
             xpath = paragraph.xpath.lower()
             header_tag_match = re.search(r'/(h[1-6])(?:\[|$)', xpath)
             header_tag = header_tag_match.group(
@@ -120,7 +119,6 @@ def separate_by_headers(paragraphs: List) -> List[Dict]:
                 header_stack.append(
                     {"level": level, "content": paragraph.text})
             else:
-                # Treat as content if header tag is invalid
                 current_section["content"].append(paragraph.text)
         else:
             current_section["content"].append(paragraph.text)
@@ -156,10 +154,8 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.8
                 "original_chunk_ids": [doc["chunk_id"] for doc in cluster_docs],
                 "content": merged_text,
                 "num_tokens": merged_num_tokens,
-                # Fixed typo: sock_doc to best_doc
                 "header": best_doc["header"],
                 "url": best_doc["url"],
-                # "xpath": best_doc["xpath"],
                 "score": best_doc.get("score", None),
                 "mtld": best_doc["mtld"],
                 "mtld_category": best_doc["mtld_category"],
@@ -182,7 +178,6 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.8
                 "num_tokens": doc["num_tokens"],
                 "header": doc["header"],
                 "url": doc["url"],
-                # "xpath": doc["xpath"],
                 "score": doc.get("score", None),
                 "mtld": doc["mtld"],
                 "mtld_category": doc["mtld_category"],
@@ -232,10 +227,12 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
     all_results = []
     seen_texts = set()
     total_tokens = 0
-    high_quality_docs = 0
-    MIN_HIGH_QUALITY_DOCS = 10
-    HIGH_QUALITY_SCORE = 0.4
-    TARGET_TOKEN_COUNT = 4000
+    total_high_score_tokens = 0
+    total_mtld_high_score_average = 0
+    HIGH_QUALITY_SCORE = 0.6
+    TARGET_HIGH_SCORE_TOKENS = 2000
+    TARGET_TOKENS = 10000
+
     async for url, status, html in scrape_urls(urls, show_progress=True, limit=urls_limit):
         if status == "completed" and html:
             sub_url_dir = format_sub_url_dir(url)
@@ -265,7 +262,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 chunk_size=chunk_size,
                 tokenizer=_tokenizer,
             )
-            save_file(sections, f"{sub_output_dir}/headers.json")
+            save_file(sections, f"{sub_output_dir}/all_docs.json")
 
             documents = []
             for section in tqdm(sections, desc=f"Chunking sections for {url}", leave=False):
@@ -309,24 +306,19 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 doc["mtld"] = readability["mtld"]
                 doc["mtld_category"] = readability["mtld_category"]
                 doc["doc_index"] = len(all_documents) + len(documents)
-                doc_text = f"{doc["header"]}\n{doc["content"]}"
-                word_count = len(word_tokenize(doc_text))
-                doc["word_count"] = word_count
+                doc["word_count"] = len(word_tokenize(doc["content"]))
 
-                if word_count >= 8 and readability["mtld"] > 0.0 and not link_to_text_ratio_result["is_link_heavy"]:
+                if doc["header"].strip() and doc["word_count"] >= 8 and readability["mtld"] > 0.0 and not link_to_text_ratio_result["is_link_heavy"]:
                     filtered_documents.append(doc)
             documents = filtered_documents
             if not documents:
                 continue
 
-            # Use chunk_overlap to prepend the last chunk_overlap tokens from the previous document's content
             texts = []
             prev_content_tokens = []
             for i, doc in enumerate(documents):
-                # Use _tokenizer to tokenize the content instead of word_tokenize
                 content_tokens = _tokenizer(
                     doc["content"]) if _tokenizer else word_tokenize(doc["content"])
-                # Get the last chunk_overlap tokens from the previous doc, if any
                 if i > 0 and chunk_overlap > 0 and doc["chunk_index"] > 0:
                     prev_overlap = prev_content_tokens[-chunk_overlap:] if len(
                         prev_content_tokens) >= chunk_overlap else prev_content_tokens
@@ -336,7 +328,6 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 text = f"{doc['parent_header'] or ''}\n{doc['header']}\n{prev_content}{doc['content']}"
                 texts.append(text)
                 prev_content_tokens = content_tokens
-            # Preprocess texts before embed
             texts = [preprocess_text(text)
                      for text in texts]
             save_file(
@@ -371,22 +362,35 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
             results = query_rag(index, embeddings, model, [], query,
                                 k=None, threshold=-0.0, use_reranking=False)
             total_tokens += sum(result["num_tokens"] for result in results)
-            save_file({
-                "query": query,
-                "count": len(results),
-                "total_tokens": total_tokens,
-                "results": results
-            }, f"{sub_output_dir}/rag_results.json")
-
-            high_quality_docs += sum(
-                1 for result in results
+            high_score_tokens = sum(
+                result["num_tokens"]
+                for result in results
                 if (
                     result["score"] >= HIGH_QUALITY_SCORE
                     and result.get("mtld_category") != "very_low"
                 )
             )
-            all_results.extend(results)
-            all_documents.extend(embeddings)
+            mtld_high_score_values = [
+                result["mtld"]
+                for result in results
+                if (
+                    result["score"] >= HIGH_QUALITY_SCORE
+                    and result.get("mtld_category") != "very_low"
+                )
+            ]
+            mtld_high_score_average = (
+                sum(mtld_high_score_values) / len(mtld_high_score_values)
+                if mtld_high_score_values else 0
+            )
+            save_file({
+                "query": query,
+                "count": len(results),
+                "total_tokens": total_tokens,
+                "high_score_tokens": high_score_tokens,
+                "mtld_high_score_average": mtld_high_score_average,
+                "results": results
+            }, f"{sub_output_dir}/rag_results.json")
+
             save_file(
                 {
                     "count": len(documents),
@@ -398,17 +402,23 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 },
                 f"{sub_output_dir}/docs.json"
             )
-            if high_quality_docs >= MIN_HIGH_QUALITY_DOCS and total_tokens >= TARGET_TOKEN_COUNT:
-                logger.info(
-                    f"Stopping scrape: {high_quality_docs} high-quality docs and {total_tokens} tokens collected.")
-                break
+
+            # if high_score_tokens:
+            all_results.extend(results)
+            all_documents.extend(embeddings)
+
+            total_tokens += sum(result["num_tokens"] for result in results)
+            total_high_score_tokens += high_score_tokens
+            total_mtld_high_score_average += round(mtld_high_score_average, 2)
+
+        if total_high_score_tokens >= TARGET_HIGH_SCORE_TOKENS or total_tokens >= TARGET_TOKENS:
+            logger.info(
+                f"Stopping scrape: {total_tokens} tokens collected.")
+            break
     if not all_documents:
         logger.warning("No documents collected after scraping.")
         return None, [], model, [], []
 
-    save_file(all_documents, f"{OUTPUT_DIR}/all-docs.json")
-
-    # Sort all_results by score in descending order before updating ranks
     all_results.sort(key=lambda x: x.get("score", 0), reverse=True)
     for i, result in enumerate(all_results, 1):
         result["rank"] = i
@@ -417,6 +427,8 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
     save_file({
         "count": len(all_documents),
         "total_tokens": sum(doc.get("num_tokens", 0) for doc in all_documents),
+        "total_high_score_tokens": total_high_score_tokens,
+        "total_mtld_high_score_average": total_mtld_high_score_average,
         "documents": [
             {
                 "doc_id": doc.get("doc_id"),
@@ -451,6 +463,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 "header": result.get("header"),
                 "content": result.get("content"),
                 "url": result.get("url"),
+                "similarity_scores": result.get("similarity_scores"),
                 "score": result.get("score"),
                 "mtld": result.get("mtld"),
                 "mtld_category": result.get("mtld_category"),
@@ -549,10 +562,72 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
     return merged_index, merged_docs, model, merge_info, all_results
 
 
+def compute_similarity(
+    query_embedding: np.ndarray,
+    header_text: str,
+    content_text: str,
+    parent_header: Optional[str],
+    model: SentenceTransformer,
+    mode: Literal["average", "max"] = "average"
+) -> tuple[float, Dict[str, float]]:
+    """Compute similarity score and individual similarities between query, combined headers, and content.
+
+    Returns score based on specified mode: 'average' or 'max'.
+    """
+    def strip_hashtags(text: str) -> str:
+        return text.lstrip('#').strip() if text else ""
+
+    header_clean = strip_hashtags(header_text) if header_text else ""
+    parent_header_clean = strip_hashtags(
+        parent_header) if parent_header else ""
+    content_clean = preprocess_text(content_text) if content_text else ""
+
+    combined_header = f"{parent_header_clean}\n{header_clean}".strip()
+
+    texts_to_embed = [text for text in [
+        combined_header, content_clean] if text]
+    similarities = {
+        "query_vs_combined_header": 0.0,
+        "query_vs_content": 0.0
+    }
+
+    if not texts_to_embed:
+        return 0.0, similarities
+
+    text_embeddings = model.encode(
+        texts_to_embed,
+        convert_to_tensor=False,
+        show_progress_bar=False,
+        normalize_embeddings=True
+    )
+
+    computed_similarities = []
+
+    if combined_header:
+        similarities["query_vs_combined_header"] = cosine_similarity(
+            [query_embedding], [text_embeddings[0]])[0][0]
+        computed_similarities.append(similarities["query_vs_combined_header"])
+
+    if content_clean:
+        content_idx = 1 if combined_header else 0
+        similarities["query_vs_content"] = cosine_similarity(
+            [query_embedding], [text_embeddings[content_idx]])[0][0]
+        computed_similarities.append(similarities["query_vs_content"])
+
+    if mode == "max":
+        score = float(np.max(computed_similarities)
+                      ) if computed_similarities else 0.0
+    else:
+        score = float(np.mean(computed_similarities)
+                      ) if computed_similarities else 0.0
+
+    return score, similarities
+
+
 def query_rag(
     index,
     embeddings: List[Dict],
-    model,
+    model: SentenceTransformer,
     merge_info: List[Dict],
     query: str,
     k: Optional[int] = None,
@@ -568,17 +643,32 @@ def query_rag(
     D, I = index.search(np.array([query_embedding]), k)
     results = []
     seen_doc_ids = set()
+
     if use_reranking:
-        cross_encoder = CrossEncoder(
-            cross_encoder_model)  # Correct instantiation
+        cross_encoder = CrossEncoder(cross_encoder_model)
         pairs = [[query, embeddings[idx]["content"]] for idx in I[0]]
         cross_scores = cross_encoder.predict(pairs)
         scores = cross_scores
+        # Placeholder for cross-encoder case
+        individual_scores = [{} for _ in range(len(I[0]))]
     else:
-        scores = D[0]
+        scores = []
+        individual_scores = []
+        for idx in I[0]:
+            doc = embeddings[idx]
+            score, sim_scores = compute_similarity(
+                query_embedding=query_embedding,
+                header_text=doc.get("header"),
+                content_text=doc.get("content"),
+                parent_header=doc.get("parent_header"),
+                model=model,
+                mode="average"  # or "average", depending on desired behavior
+            )
+            scores.append(score)
+            individual_scores.append(sim_scores)
 
     rank = 0
-    for idx, score in zip(I[0], scores):
+    for idx, score, ind_scores in zip(I[0], scores, individual_scores):
         doc_id = embeddings[idx]["doc_id"]
         if (use_reranking and score < threshold) or doc_id in seen_doc_ids:
             continue
@@ -592,6 +682,7 @@ def query_rag(
         results.append({
             "rank": rank,
             "score": float(score),
+            "similarity_scores": ind_scores,
             "merged_doc_id": doc_id,
             "chunk_id": embeddings[idx]["chunk_id"],
             "doc_index": embeddings[idx]["doc_index"],
@@ -620,20 +711,17 @@ def group_results_by_url_for_llm_context(
     buffer: int = 100
 ) -> str:
     def strip_hashtags(text: str) -> str:
-        """Remove leading hashtags and whitespace from header text."""
         if text:
             return text.lstrip('#').strip()
         return text
 
-    # Prioritize documents with score >= 0.7, then fill with >= 0.4 until max_tokens - buffer is reached
     high_score_docs = [
-        doc for doc in documents if doc["score"] >= 0.6 and doc["link_to_text_ratio"] < 0.25
+        doc for doc in documents if doc["score"] >= 0.6
     ]
     med_score_docs = [
-        doc for doc in documents if 0.4 <= doc["score"] < 0.6 and doc["link_to_text_ratio"] < 0.25
+        doc for doc in documents if 0.4 <= doc["score"] < 0.6
     ]
 
-    # Sort by score in descending order
     high_score_docs_sorted = sorted(
         high_score_docs,
         key=lambda x: x.get("score", 0),
@@ -648,7 +736,6 @@ def group_results_by_url_for_llm_context(
     filtered_documents = []
     total_tokens = 0
 
-    # Add high score docs first
     for doc in high_score_docs_sorted:
         doc_tokens = doc.get("num_tokens", 0)
         if total_tokens + doc_tokens > max_tokens - buffer:
@@ -656,7 +743,6 @@ def group_results_by_url_for_llm_context(
         filtered_documents.append(doc)
         total_tokens += doc_tokens
 
-    # If room remains, add medium score docs
     if total_tokens < max_tokens - buffer:
         for doc in med_score_docs_sorted:
             doc_tokens = doc.get("num_tokens", 0)
@@ -676,18 +762,16 @@ def group_results_by_url_for_llm_context(
     filtered_docs = []
     total_tokens = 0
     grouped_temp: DefaultDict[str, List[Dict]] = defaultdict(list)
-    seen_header_text: DefaultDict[str, set] = defaultdict(
-        set)  # Track all header text per URL
+    seen_header_text: DefaultDict[str, set] = defaultdict(set)
 
     for doc in sorted_docs:
         text = doc.get("content", "")
         url = doc.get("url", "Unknown Source")
         parent_header = doc.get("parent_header", "None")
         header = doc.get("header", None)
-        level = doc.get("level", 0)  # Default to 0 to avoid None
+        level = doc.get("level", 0)
         parent_level = doc.get("parent_level", None)
 
-        # Handle non-string content
         if not isinstance(text, str):
             logger.debug(
                 f"Non-string content found for url: {url}, doc_index: {doc.get('doc_index', 0)}, type: {type(text)}. Converting to string.")
@@ -696,7 +780,6 @@ def group_results_by_url_for_llm_context(
         doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
         header_tokens = 0
 
-        # Calculate header tokens for URL
         if not grouped_temp[url]:
             header_tokens += len(tokenizer.encode(
                 f"<!-- Source: {url} -->\n\n"))
@@ -706,7 +789,6 @@ def group_results_by_url_for_llm_context(
             parent_header) if parent_header and parent_header != "None" else None
         header_key = strip_hashtags(header) if header else None
 
-        # Only add header tokens if the header will be included
         if header_key and header_key not in seen_header_text[url] and level >= 0:
             header_tokens += len(tokenizer.encode(f"{header}\n\n"))
             seen_header_text[url].add(header_key)
@@ -722,8 +804,7 @@ def group_results_by_url_for_llm_context(
     for url, docs in grouped_temp.items():
         block = f"<!-- Source: {url} -->\n\n"
         block_tokens = len(tokenizer.encode(block))
-        seen_header_text_in_block = set()  # Track headers within this block
-        # Sort docs by doc_index then chunk_index
+        seen_header_text_in_block = set()
         docs = sorted(docs, key=lambda x: (
             x.get("doc_index", 0),
             x.get("chunk_index", 0)
@@ -733,7 +814,6 @@ def group_results_by_url_for_llm_context(
             parent_header = doc.get("parent_header", "None")
             text = doc.get("content", "")
 
-            # Handle non-string content
             if not isinstance(text, str):
                 logger.debug(
                     f"Non-string content in block for url: {url}, doc_index: {doc.get('doc_index', 0)}, type: {type(text)}. Converting to string.")
@@ -747,7 +827,6 @@ def group_results_by_url_for_llm_context(
                 parent_header) if parent_header and parent_header != "None" else None
             header_key = strip_hashtags(header) if header else None
 
-            # Check if parent header should be included (only if no child header matches it)
             has_matching_child = any(
                 strip_hashtags(d.get("header", "")) == parent_header_key
                 for d in docs
@@ -759,7 +838,6 @@ def group_results_by_url_for_llm_context(
                 block_tokens += len(tokenizer.encode(parent_header_text))
                 seen_header_text_in_block.add(parent_header_key)
 
-            # Add child header if it exists and is not a duplicate
             if header_key and header_key not in seen_header_text_in_block and doc_level >= 0:
                 subheader_text = f"{header}\n\n"
                 block += subheader_text
