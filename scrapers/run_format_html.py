@@ -6,7 +6,7 @@ from jet.code.markdown_utils._converters import convert_html_to_markdown, conver
 from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
 from jet.code.markdown_utils._markdown_parser import parse_markdown
 from jet.code.splitter_markdown_utils import get_md_header_contents
-from jet.models.embeddings.chunking import chunk_headers_by_hierarchy, merge_same_level_chunks
+from jet.models.embeddings.chunking import chunk_headers_by_hierarchy
 from jet.models.model_types import LLMModelType
 from jet.models.utils import resolve_model_value
 from mlx_lm import load
@@ -21,7 +21,7 @@ from jet.utils.commands import copy_to_clipboard
 if __name__ == "__main__":
     from jet.scrapers.preprocessor import html_to_markdown
 
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/2025_philippines_online_tiktok_live_selling_registration_steps/pages/www_bigseller_com_blog_articledetails_2363_a_complete_guide_on_how_to_sell_on_tiktok_shop_philippines_2024_htm/page.html"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/latest_react_web_online_jobs_philippines/pages/www_onlinejobs_ph_jobseekers_search_c_javascript_react_js/page.html"
     html_dir = os.path.dirname(html_file)
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(
@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     html_str: str = load_file(html_file)
 
-    save_file(format_html(html_str), f"{output_dir}/doc.html")
+    save_file(html_str, f"{output_dir}/doc.html")
 
     # # Text elements
     # text_elements = extract_text_elements(html_str)
@@ -109,10 +109,10 @@ if __name__ == "__main__":
         doc_markdown, chunk_size, _tokenizer)
     save_file(chunked_docs, f"{output_dir}/chunked_docs.json")
 
-    chunked_docs = merge_same_level_chunks(
-        chunked_docs, chunk_size, _tokenizer)
-    save_file({"chunk_size": chunk_size, "count": len(chunked_docs),
-              "results": chunked_docs}, f"{output_dir}/merged_chunked_docs.json")
+    # chunked_docs = merge_same_level_chunks(
+    #     chunked_docs, chunk_size, _tokenizer)
+    # save_file({"chunk_size": chunk_size, "count": len(chunked_docs),
+    #           "results": chunked_docs}, f"{output_dir}/merged_chunked_docs.json")
 
     html_docs = [item["content"] for item in chunked_docs]
     # Group by parent_header first, then by header

@@ -236,17 +236,18 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
     MIN_HIGH_QUALITY_DOCS = 10
     HIGH_QUALITY_SCORE = 0.4
     TARGET_TOKEN_COUNT = 4000
-    TOKEN_BUFFER = 200
     async for url, status, html in scrape_urls(urls, show_progress=True, limit=urls_limit):
         if status == "completed" and html:
-            links = set(scrape_links(html, url))
-            links = [link for link in links if (
-                link != url if isinstance(link, str) else link["url"] != url)]
-            all_links.extend(links)
-            save_file(all_links, os.path.join(OUTPUT_DIR, "links.json"))
             sub_url_dir = format_sub_url_dir(url)
             sub_output_dir = os.path.join(OUTPUT_DIR, "pages", sub_url_dir)
             os.makedirs(sub_output_dir, exist_ok=True)
+
+            links = set(scrape_links(html, url))
+            links = [link for link in links if (
+                link != url if isinstance(link, str) else link["url"] != url)]
+            save_file(links, os.path.join(sub_output_dir, "links.json"))
+            all_links.extend(links)
+
             html = preprocess_html(html)
             save_file(html, f"{sub_output_dir}/page.html")
             doc_markdown = convert_html_to_markdown(html)
@@ -397,7 +398,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 },
                 f"{sub_output_dir}/docs.json"
             )
-            if high_quality_docs >= MIN_HIGH_QUALITY_DOCS and total_tokens >= TARGET_TOKEN_COUNT - TOKEN_BUFFER:
+            if high_quality_docs >= MIN_HIGH_QUALITY_DOCS and total_tokens >= TARGET_TOKEN_COUNT:
                 logger.info(
                     f"Stopping scrape: {high_quality_docs} high-quality docs and {total_tokens} tokens collected.")
                 break
@@ -412,6 +413,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
     for i, result in enumerate(all_results, 1):
         result["rank"] = i
 
+    save_file(all_links, os.path.join(OUTPUT_DIR, "links.json"))
     save_file({
         "count": len(all_documents),
         "total_tokens": sum(doc.get("num_tokens", 0) for doc in all_documents),
