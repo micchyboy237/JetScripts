@@ -249,8 +249,15 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
             save_file(html, f"{sub_output_dir}/page.html")
             doc_markdown = convert_html_to_markdown(html)
             save_file(doc_markdown, f"{sub_output_dir}/page.md")
+
             doc_analysis = analyze_markdown(doc_markdown)
             save_file(doc_analysis, f"{sub_output_dir}/analysis.json")
+            doc_markdown_tokens = parse_markdown(doc_markdown)
+            save_file(doc_markdown_tokens,
+                      f"{sub_output_dir}/markdown_tokens.json")
+
+            original_docs = derive_by_header_hierarchy(doc_markdown_tokens)
+            save_file(original_docs, f"{sub_output_dir}/docs.json")
 
             _tokenizer = get_string_tokenizer_fn(
                 tokenizer_model) if tokenizer_model else None
@@ -262,7 +269,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                 chunk_size=chunk_size,
                 tokenizer=_tokenizer,
             )
-            save_file(sections, f"{sub_output_dir}/all_docs.json")
+            save_file(sections, f"{sub_output_dir}/chunks.json")
 
             documents = []
             for section in tqdm(sections, desc=f"Chunking sections for {url}", leave=False):
@@ -400,7 +407,7 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
                         for doc in documents if "embedding" in doc
                     ]
                 },
-                f"{sub_output_dir}/docs.json"
+                f"{sub_output_dir}/docs_with_scores.json"
             )
 
             # if high_score_tokens:
@@ -454,6 +461,8 @@ async def prepare_for_rag(urls: List[str], model_name: EmbedModelType = 'all-Min
         "query": query,
         "count": len(all_results),
         "total_tokens": sum(result.get("num_tokens", 0) for result in all_results),
+        "total_high_score_tokens": total_high_score_tokens,
+        "total_mtld_high_score_average": total_mtld_high_score_average,
         "results": [
             {
                 "merged_doc_id": result.get("merged_doc_id"),
@@ -719,7 +728,7 @@ def group_results_by_url_for_llm_context(
         doc for doc in documents if doc["score"] >= 0.6
     ]
     med_score_docs = [
-        doc for doc in documents if 0.4 <= doc["score"] < 0.6
+        doc for doc in documents if 0.35 <= doc["score"] < 0.6
     ]
 
     high_score_docs_sorted = sorted(

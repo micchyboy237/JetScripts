@@ -1,7 +1,7 @@
 # Example usage
 import os
 from jet.llm.mlx.prediction import predict_finishing_words, predict_next_word, predict_top_completions
-from jet.logger.logger import CustomLogger
+from jet.logger import CustomLogger
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(

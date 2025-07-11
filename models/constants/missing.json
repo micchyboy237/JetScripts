@@ -1,6 +1,6 @@
 [
-  "Systran/faster-whisper-small",
   "sentence-transformers/static-retrieval-mrl-en-v1",
+  "t5-base",
   "tomaarsen/span-marker-bert-base-fewnerd-fine-super",
   "tomaarsen/span-marker-mbert-base-multinerd",
   "tomaarsen/span-marker-roberta-large-ontonotes5",

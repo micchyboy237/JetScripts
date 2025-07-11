@@ -41,9 +41,10 @@ def determine_chunk_size(text: str) -> int:
 def main():
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/latest_react_web_online_jobs_philippines/docs.json"
     docs: list[dict] = load_file(docs_file)
-    data = [doc["text"] for doc in docs]
+    data = [f"{doc["parent_header" or ""]}\n{doc["header"]}\n{doc["content"]}".strip()
+            for doc in docs["documents"]]
     # Read arguments
     labels = generate_labels(data[:10], max_labels=10)
     model = "urchade/gliner_small-v2.1"
