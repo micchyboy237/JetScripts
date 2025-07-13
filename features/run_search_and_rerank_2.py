@@ -964,34 +964,30 @@ def select_best_from_group(
     return [id_to_result[c['id']] for c in selected]
 
 
-def rerank_by_headers_documents_relevance(query: str, contexts: List[Dict], embed_model: EmbedModelType = "all-MiniLM-L12-v2"):
-
+def rerank_by_headers_documents_relevance(query: str, docs: List[Dict], embed_model: EmbedModelType = "all-MiniLM-L12-v2"):
     texts = []
-    for d in contexts:
+    for d in docs:
         _texts = []
         if d["header"].lstrip('#') != (d["parent_header"] or "").lstrip('#'):
             _texts.append((d["parent_header"] or "").lstrip('#'))
-        _texts.append(d["header"].lstrip('#'))
+        # _texts.append(d["header"].lstrip('#'))
         _texts.append(d["content"])
         text = "\n".join(_texts)
         texts.append(preprocess_text(text))
 
-    ids = [d["merged_doc_id"] for d in contexts]
-    id_to_result = {r["merged_doc_id"]: r for r in contexts}
+    ids = [d["merged_doc_id"] for d in docs]
+    id_to_result = {r["merged_doc_id"]: r for r in docs}
 
-    # candidates = extract_query_candidates(query)
-    candidates = extract_query_candidates(
-        preprocess_text(query) + "\n" + "\n".join(texts))
-    # Filter out candidates that are only punctuation (e.g., ".", "!!", etc.)
-    candidates = [c for c in candidates if re.search(r'\w', c)]
+    # candidates = extract_query_candidates(
+    #     preprocess_text(query) + "\n" + "\n".join([d["header"].lstrip('#') for d in docs]))
     reranked_results = rerank_by_keywords(
         texts=texts,
         embed_model=embed_model,
         ids=ids,
         top_n=10,
-        candidates=candidates,
-        seed_keywords=candidates,
-        min_count=3,
+        # candidates=candidates,
+        # seed_keywords=candidates,
+        min_count=2,
         use_mmr=True,
         diversity=0.7,
     )
