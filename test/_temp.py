@@ -1,22 +1,29 @@
-from jet.file.utils import load_file
-from jet.logger import logger
-from jet.transformers.formatters import format_json
-from jet.utils.commands import copy_to_clipboard
-from jet.wordnet.keywords.keyword_extraction import rerank_by_keywords
+from jet.models.model_registry.transformers.cross_encoder_model_registry import CrossEncoderRegistry
 
+if __name__ == '__main__':
+    model = CrossEncoderRegistry.load_model(
+        'cross-encoder/ms-marco-MiniLM-L6-v2')
 
-contexts_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/top_isekai_anime_2025/contexts_before_max_filter.json"
+    candidates = [
+        "numpy.linalg.linalg",
+        "numpy.core.multiarray",
+        "pandas.core.frame",
+        "matplotlib.pyplot",
+        "sklearn.linear_model",
+        "torch.nn.functional",
+    ]
 
-contexts = load_file(contexts_file)
+    queries = [
+        "import matplotlib.pyplot as plt",
+        "from numpy.linalg import inv",
+        "import torch"
+    ]
 
-texts = [f"{d["header"]}\n{d["content"]}" for d in contexts]
-ids = [d["merged_doc_id"] for d in contexts]
+    # Create pairs of each query with each module path
+    pairs = [(query, path) for query in queries for path in candidates]
 
-reranked_results = rerank_by_keywords(
-    texts=texts,
-    ids=ids,
-    top_n=10
-)
-
-logger.success(format_json(reranked_results))
-copy_to_clipboard(reranked_results)
+    # Compute relevance scores
+    scores = model.predict(pairs)
+    ranked_results = sorted(zip(candidates, scores),
+                            key=lambda x: x[1], reverse=True)
+    print("Results:", ranked_results)

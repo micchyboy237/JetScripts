@@ -1,6 +1,6 @@
-from sentence_transformers import CrossEncoder
+from jet.models.model_registry.transformers.cross_encoder_model_registry import CrossEncoderRegistry
 
-model = CrossEncoder('cross-encoder/ms-marco-MiniLM-L6-v2')
+model = CrossEncoderRegistry.load_model('cross-encoder/ms-marco-MiniLM-L6-v2')
 
 module_paths = [
     "numpy.linalg.linalg",

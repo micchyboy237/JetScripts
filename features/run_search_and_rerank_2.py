@@ -9,6 +9,7 @@ from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy,
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.code.splitter_markdown_utils import extract_markdown_links
 from jet.llm.mlx.templates.generate_labels import generate_labels
+from jet.llm.utils.mmr_diversity import sort_by_mmr_diversity
 from jet.logger import logger
 from jet.models.embeddings.base import generate_embeddings
 from jet.models.model_registry.transformers.cross_encoder_model_registry import CrossEncoderRegistry
@@ -961,13 +962,49 @@ async def main():
     # index = faiss.IndexFlatIP(merged_embedding_matrix.shape[1])
     # index.add(merged_embedding_matrix)
 
-    results = sorted(all_results, key=lambda x: x["score"], reverse=True)
-    seen_doc_ids = set()
+    sorted_results = sorted(
+        all_results, key=lambda x: x["score"], reverse=True)
+    save_file(sorted_results, f"{OUTPUT_DIR}/contexts_search_results.json")
+    result_texts = [
+        f"{r["header"].lstrip('#').strip()}\n{r["content"]}" for r in sorted_results]
+
+    id_to_result = {r["merged_doc_id"]: r for r in sorted_results}
+
+    ids = [r["merged_doc_id"] for r in sorted_results]
+    grouped_results = group_similar_texts(
+        result_texts, threshold=0.7, model_name=embed_model, ids=ids)
+
+    # diverse_results = sort_by_mmr_diversity(result_texts, ids=ids)
+
+    # Replace grouped_results ids by {id, rank, score, parent_header, header, content}
+    contexts_grouped_results = []
+    for group in grouped_results:
+        group_info = []
+        for idx, doc_id in enumerate(group):
+            r = id_to_result[doc_id]
+            group_info.append({
+                "id": doc_id,
+                "chunk_index": r.get("chunk_index"),
+                "rank": r.get("rank"),
+                "score": r.get("score"),
+                "header": r.get("header"),
+                "content": r.get("content"),
+            })
+        contexts_grouped_results.append(group_info)
+
+    save_file(contexts_grouped_results,
+              f"{OUTPUT_DIR}/contexts_grouped_results.json")
+
+    # Map back to sorted_results
     unique_results = []
-    for result in results:
-        if result["merged_doc_id"] not in seen_doc_ids:
-            seen_doc_ids.add(result["merged_doc_id"])
+    for group in grouped_results:
+        # Each group is a list of ids; pick the first two ids as representatives (if available)
+        for idx in range(min(2, len(group))):
+            result = id_to_result[group[idx]]
             unique_results.append(result)
+
+    save_file(unique_results, f"{OUTPUT_DIR}/contexts_before_max_filter.json")
+
     print("\nQuery Results (With Reranking):")
     for i, result in enumerate(unique_results, 1):
         print(f"\nResult {i}:")
@@ -980,8 +1017,6 @@ async def main():
         print(f"Parent Level: {result['parent_level'] or 'None'}")
         print(f"Level: {result['level'] or 'None'}")
         print(f"Selected Doc IDs: {result['selected_doc_ids']}")
-
-    save_file(unique_results, f"{OUTPUT_DIR}/contexts_before_max_filter.json")
 
     context = group_results_by_url_for_llm_context(unique_results, llm_model)
     save_file(context, f"{OUTPUT_DIR}/context.md")
