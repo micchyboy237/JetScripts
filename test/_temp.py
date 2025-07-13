@@ -1,19 +1,22 @@
-from jet.code.markdown_utils._markdown_analyzer import link_to_text_ratio
-from jet.code.markdown_utils._markdown_parser import base_parse_markdown
-from jet.code.markdown_utils._preprocessors import preprocess_markdown
+from jet.file.utils import load_file
 from jet.logger import logger
-from jet.scrapers.utils import scrape_links
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
+from jet.wordnet.keywords.keyword_extraction import rerank_by_keywords
 
 
-input_text = "* * *\n* [ Reddit reReddit: Top posts of March 9, 2024\n* * * ](https://www.reddit.com/posts/2024/march-9-1/)\n* [ Reddit reReddit: Top posts of March 2024\n* * * ](https://www.reddit.com/posts/2024/march/)\n* [ Reddit reReddit: Top posts of 2024\n* * * ](https://www.reddit.com/posts/2024/)"
-links = scrape_links(input_text)
-# input_text = preprocess_markdown(input_text)
-result = base_parse_markdown(input_text, ignore_links=False)
-final = {
-    "links": links,
-    "result": result
-}
-copy_to_clipboard(final)
-logger.success(format_json(result))
+contexts_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/top_isekai_anime_2025/contexts_before_max_filter.json"
+
+contexts = load_file(contexts_file)
+
+texts = [f"{d["header"]}\n{d["content"]}" for d in contexts]
+ids = [d["merged_doc_id"] for d in contexts]
+
+reranked_results = rerank_by_keywords(
+    texts=texts,
+    ids=ids,
+    top_n=10
+)
+
+logger.success(format_json(reranked_results))
+copy_to_clipboard(reranked_results)
