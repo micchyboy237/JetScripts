@@ -372,7 +372,7 @@ async def prepare_for_rag(urls: List[str], embed_model: EmbedModelType = 'all-Mi
             index.add(embedding_matrix)
 
             results = query_rag(index, embeddings, model, [], query,
-                                k=None, threshold=-0.0, use_reranking=False)
+                                k=None, threshold=-0.0, use_reranking=True)
             total_tokens += sum(result["num_tokens"] for result in results)
             high_score_tokens = sum(
                 result["num_tokens"]
@@ -643,7 +643,7 @@ def query_rag(
     query: str,
     k: Optional[int] = None,
     threshold: float = 0.0,
-    cross_encoder_model: EmbedModelType = 'cross-encoder/ms-marco-MiniLM-L12-v2',
+    cross_encoder_model: EmbedModelType = 'cross-encoder/ms-marco-MiniLM-L6-v2',
     use_reranking: bool = True
 ) -> List[Dict]:
     if not k:
