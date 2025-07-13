@@ -11,6 +11,6 @@ Use types, typed dicts and Literal typing if appropriate.
 Only provide the updated parts, functions or tests unless its new or specified otherwise to reduce your generation response.
 Do not remove existing function and class definitions. Only update if needed.
 Use BDD principles when writing tests. Add "Given", "When", "Then" for each.
-Tests should contain complete edge cases and variants of complex input data. This is to improve the code to be more robust on real world scenarios.
+Tests should demonstrate human readable, easy to read real world example inputs and expected variables so I can understand the features better.
 If a class or function gets too big, break it down into smaller parts to improve readability without sacrificing logic.
 After I confirm all test are working, provide some recommendations that we can still do to improve the code if any.
