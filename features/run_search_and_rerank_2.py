@@ -1113,11 +1113,10 @@ async def main():
     #     if best_result:
     #         merged_results.extend(best_result)
 
-    # save_file(merged_results,
-    #           f"{OUTPUT_DIR}/contexts_before_max_filter.json")
-
     # final_results = merged_results
     final_results = reranked_results_by_keywords
+    save_file(final_results,
+              f"{OUTPUT_DIR}/contexts_before_max_filter.json")
 
     print("\nQuery Results (With Reranking):")
     for i, result in enumerate(final_results, 1):
