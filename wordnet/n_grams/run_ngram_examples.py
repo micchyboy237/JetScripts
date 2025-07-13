@@ -86,7 +86,7 @@ def preprocess_texts(texts: str | list[str]) -> list[str]:
 
 
 if __name__ == "__main__":
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/top_isekai_anime_2025/contexts_search_results.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(
             os.path.basename(__file__))[0]
@@ -96,8 +96,15 @@ if __name__ == "__main__":
     try:
         logger.debug(f"Loading documents from {docs_file}")
         docs = load_file(docs_file)
-        docs = [HeaderDocument(**doc) for doc in docs]
-        texts: List[str] = [doc.text for doc in docs]
+
+        texts: List[str] = []
+        for d in docs:
+            _texts = []
+            _texts.append(d["header"])
+            _texts.append(d["content"])
+            text = "\n".join(_texts)
+            texts.append(text)
+
         logger.debug(f"Loaded {len(texts)} documents")
     except Exception as e:
         logger.error(f"Failed to load documents: {e}")

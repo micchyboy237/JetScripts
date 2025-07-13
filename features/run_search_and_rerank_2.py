@@ -18,10 +18,12 @@ from jet.models.model_registry.transformers.sentence_transformer_registry import
 from jet.models.model_types import ModelType, EmbedModelType, LLMModelType
 from jet.models.tokenizer.base import count_tokens, get_string_detokenizer_fn, get_string_tokenizer_fn, get_tokenizer_fn
 from jet.utils.text_constants import TEXT_CONTRACTIONS_EN
+from jet.wordnet.keywords.helpers import extract_query_candidates
+from jet.wordnet.keywords.keyword_extraction import rerank_by_keywords
 from jet.wordnet.similarity import group_similar_texts
 import asyncio
 import os
-from typing import DefaultDict, List, Dict, Literal, Optional, Set
+from typing import DefaultDict, List, Dict, Literal, Optional, Set, Union
 from jet.data.utils import generate_unique_id
 from jet.file.utils import save_file
 from jet.scrapers.hrequests_utils import scrape_urls
@@ -223,7 +225,7 @@ def preprocess_text(
     return text
 
 
-async def prepare_for_rag(urls: List[str], embed_model: EmbedModelType = 'all-MiniLM-L6-v2', urls_limit: Optional[int] = None, chunk_size: int = 200, chunk_overlap: int = 20, query: str = "", tokenizer_model: Optional[ModelType] = None) -> tuple:
+async def prepare_for_rag(urls: List[str], embed_model: EmbedModelType = 'all-MiniLM-L12-v2', urls_limit: Optional[int] = None, chunk_size: int = 200, chunk_overlap: int = 20, query: str = "", tokenizer_model: Optional[ModelType] = None) -> tuple:
     model = SentenceTransformerRegistry.load_model(embed_model)
     all_orig_documents = []
     all_documents = []
@@ -372,7 +374,7 @@ async def prepare_for_rag(urls: List[str], embed_model: EmbedModelType = 'all-Mi
             index.add(embedding_matrix)
 
             results = query_rag(index, embeddings, model, [], query,
-                                k=None, threshold=-0.0, use_reranking=True)
+                                k=None, threshold=-0.0, use_reranking=False)
             total_tokens += sum(result["num_tokens"] for result in results)
             high_score_tokens = sum(
                 result["num_tokens"]
@@ -638,19 +640,24 @@ def compute_similarity(
 def query_rag(
     index,
     embeddings: List[Dict],
-    model: SentenceTransformer,
+    model: Union[EmbedModelType, SentenceTransformer],
     merge_info: List[Dict],
     query: str,
     k: Optional[int] = None,
     threshold: float = 0.0,
-    cross_encoder_model: EmbedModelType = 'cross-encoder/ms-marco-MiniLM-L6-v2',
+    cross_encoder_model: EmbedModelType = 'ms-marco-MiniLM-L12-v2',
     use_reranking: bool = True
 ) -> List[Dict]:
     if not k:
         k = len(embeddings)
     query = preprocess_text(query)
-    query_embedding = model.encode(query, convert_to_tensor=False,
-                                   show_progress_bar=False, normalize_embeddings=True).astype('float32')
+
+    if isinstance(model, str):
+        query_embedding = generate_embeddings(
+            query, model, show_progress=True, return_format="numpy")
+    else:
+        query_embedding = model.encode(query, convert_to_tensor=False,
+                                       show_progress_bar=False, normalize_embeddings=True).astype('float32')
     D, I = index.search(np.array([query_embedding]), k)
     results = []
     seen_doc_ids = set()
@@ -904,6 +911,102 @@ def group_results_by_url_for_llm_context(
     return result
 
 
+def select_best_from_group(
+    group: List[str],
+    id_to_result: Dict[str, Dict],
+    top_n: int = 1,
+    lambda_param: float = 0.5,
+    text_diversity_weight: float = 0.4
+) -> List[Dict]:
+    """
+    Select the top_n best documents from a group based on relevance and diversity using MMR.
+    Returns a list of up to top_n result dicts, sorted by rank.
+
+    Args:
+        group: List of document IDs.
+        id_to_result: Dictionary mapping document IDs to their result dicts (containing score, mtld, text).
+        top_n: Number of documents to select.
+        lambda_param: Trade-off between relevance and diversity (0 to 1, higher favors relevance).
+        text_diversity_weight: Weight for diversity penalty (0 to 1).
+
+    Returns:
+        List of up to top_n result dicts, sorted by selection order.
+    """
+    if not group:
+        return []
+
+    # Prepare candidates for sort_by_mmr_diversity
+    candidates = [id_to_result[doc_id].get('text', '') for doc_id in group]
+    ids = group  # Pass the document IDs directly
+
+    # Combine relevance score and MTLD for each document
+    for doc_id in group:
+        result = id_to_result[doc_id]
+        # Normalize MTLD to [0,1], assuming MTLD typically ranges from 0 to ~100
+        normalized_mtld = min(result.get('mtld', 0) / 80, 1.0)
+        # Define weights for score and MTLD
+        SCORE_WEIGHT = 0.6
+        MTLD_WEIGHT = 0.4
+        # Update the result with a combined score
+        result['score'] = (SCORE_WEIGHT * result.get('score', 0)
+                           ) + (MTLD_WEIGHT * normalized_mtld)
+
+    # Call sort_by_mmr_diversity to select diverse documents
+    selected = sort_by_mmr_diversity(
+        candidates=candidates,
+        num_results=top_n,
+        lambda_param=lambda_param,
+        text_diversity_weight=text_diversity_weight,
+        ids=ids
+    )
+
+    # Return the result dicts in the order of selection
+    return [id_to_result[c['id']] for c in selected]
+
+
+def rerank_by_headers_documents_relevance(query: str, contexts: List[Dict], embed_model: EmbedModelType = "all-MiniLM-L12-v2"):
+
+    texts = []
+    for d in contexts:
+        _texts = []
+        if d["header"].lstrip('#') != (d["parent_header"] or "").lstrip('#'):
+            _texts.append((d["parent_header"] or "").lstrip('#'))
+        _texts.append(d["header"].lstrip('#'))
+        _texts.append(d["content"])
+        text = "\n".join(_texts)
+        texts.append(preprocess_text(text))
+
+    ids = [d["merged_doc_id"] for d in contexts]
+    id_to_result = {r["merged_doc_id"]: r for r in contexts}
+
+    # candidates = extract_query_candidates(query)
+    candidates = extract_query_candidates(
+        preprocess_text(query) + "\n" + "\n".join(texts))
+    # Filter out candidates that are only punctuation (e.g., ".", "!!", etc.)
+    candidates = [c for c in candidates if re.search(r'\w', c)]
+    reranked_results = rerank_by_keywords(
+        texts=texts,
+        embed_model=embed_model,
+        ids=ids,
+        top_n=10,
+        candidates=candidates,
+        seed_keywords=candidates,
+        min_count=3,
+        use_mmr=True,
+        diversity=0.7,
+    )
+    save_file(reranked_results,
+              f"{OUTPUT_DIR}/reranked_results_by_keywords.json")
+
+    results = []
+    # Map reranked results back to original context dicts by id
+    for result in reranked_results:
+        doc_id = result["id"]
+        context = id_to_result.get(doc_id, {})
+        results.append(context)
+    return results
+
+
 async def main():
     p = argparse.ArgumentParser(
         description="Run semantic search and processing pipeline.")
@@ -925,10 +1028,11 @@ async def main():
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
-    embed_model: EmbedModelType = "all-MiniLM-L6-v2"
+    embed_model: EmbedModelType = "all-MiniLM-L12-v2"
     chunk_size = 200
     chunk_overlap = 20
     urls_limit = 10
+    max_tokens = 2000
     use_cache = not args.reset_cache
 
     save_file(query, f"{OUTPUT_DIR}/query.md")
@@ -948,6 +1052,8 @@ async def main():
     urls = [result["url"] for result in search_results]
     all_orig_documents, all_documents, all_results = await prepare_for_rag(urls, embed_model=embed_model, urls_limit=urls_limit, chunk_size=chunk_size, chunk_overlap=chunk_overlap, query=query, tokenizer_model=llm_model)
 
+    save_file(all_results, f"{OUTPUT_DIR}/contexts_search_results.json")
+
     # labels: List[str] = generate_labels(query, model_path=llm_model)
     # save_file({"text": query, "labels": labels}, f"{OUTPUT_DIR}/labels.json")
 
@@ -962,51 +1068,59 @@ async def main():
     # index = faiss.IndexFlatIP(merged_embedding_matrix.shape[1])
     # index.add(merged_embedding_matrix)
 
-    sorted_results = sorted(
-        all_results, key=lambda x: x["score"], reverse=True)
-    save_file(sorted_results, f"{OUTPUT_DIR}/contexts_search_results.json")
-    result_texts = [
-        f"{r["header"].lstrip('#').strip()}\n{r["content"]}" for r in sorted_results]
+    reranked_results_by_keywords = rerank_by_headers_documents_relevance(
+        query, all_results, embed_model=embed_model)
 
-    id_to_result = {r["merged_doc_id"]: r for r in sorted_results}
+    save_file(reranked_results_by_keywords,
+              f"{OUTPUT_DIR}/contexts_reranked_results.json")
 
-    ids = [r["merged_doc_id"] for r in sorted_results]
-    grouped_results = group_similar_texts(
-        result_texts, threshold=0.7, model_name=embed_model, ids=ids)
+    # result_texts = [
+    #     f"{r["header"].lstrip('#').strip()}\n{r["content"]}" for r in reranked_results_by_keywords]
 
-    # diverse_results = sort_by_mmr_diversity(result_texts, ids=ids)
+    # id_to_result = {r["merged_doc_id"]: r for r in reranked_results_by_keywords}
 
-    # Replace grouped_results ids by {id, rank, score, parent_header, header, content}
-    contexts_grouped_results = []
-    for group in grouped_results:
-        group_info = []
-        for idx, doc_id in enumerate(group):
-            r = id_to_result[doc_id]
-            group_info.append({
-                "id": doc_id,
-                "chunk_index": r.get("chunk_index"),
-                "rank": r.get("rank"),
-                "score": r.get("score"),
-                "header": r.get("header"),
-                "content": r.get("content"),
-            })
-        contexts_grouped_results.append(group_info)
+    # ids = [r["merged_doc_id"] for r in reranked_results_by_keywords]
+    # grouped_results = group_similar_texts(
+    #     result_texts, threshold=0.8, model_name=embed_model, ids=ids)
 
-    save_file(contexts_grouped_results,
-              f"{OUTPUT_DIR}/contexts_grouped_results.json")
+    # # diverse_results = sort_by_mmr_diversity(result_texts, ids=ids)
 
-    # Map back to sorted_results
-    unique_results = []
-    for group in grouped_results:
-        # Each group is a list of ids; pick the first two ids as representatives (if available)
-        for idx in range(min(2, len(group))):
-            result = id_to_result[group[idx]]
-            unique_results.append(result)
+    # # Replace grouped_results ids by {id, rank, score, parent_header, header, content}
+    # contexts_grouped_results = []
+    # for group in grouped_results:
+    #     group_info = []
+    #     for idx, doc_id in enumerate(group):
+    #         r = id_to_result[doc_id]
+    #         group_info.append({
+    #             "id": doc_id,
+    #             "chunk_index": r.get("chunk_index"),
+    #             "rank": r.get("rank"),
+    #             "score": r.get("score"),
+    #             "num_tokens": r.get("num_tokens"),
+    #             "header": r.get("header"),
+    #             "content": r.get("content"),
+    #         })
+    #     contexts_grouped_results.append(group_info)
 
-    save_file(unique_results, f"{OUTPUT_DIR}/contexts_before_max_filter.json")
+    # save_file(contexts_grouped_results,
+    #           f"{OUTPUT_DIR}/contexts_grouped_results.json")
+
+    # # Map back to sorted_results
+    # merged_results = []
+    # for group in grouped_results:
+    #     # Select the best document from each group based on combined score
+    #     best_result = select_best_from_group(group, id_to_result, top_n=2)
+    #     if best_result:
+    #         merged_results.extend(best_result)
+
+    # save_file(merged_results,
+    #           f"{OUTPUT_DIR}/contexts_before_max_filter.json")
+
+    # final_results = merged_results
+    final_results = reranked_results_by_keywords
 
     print("\nQuery Results (With Reranking):")
-    for i, result in enumerate(unique_results, 1):
+    for i, result in enumerate(final_results, 1):
         print(f"\nResult {i}:")
         print(f"Header: {result['header'] or 'No header'}")
         print(f"Text: {result['content'][:200]}...")
@@ -1018,7 +1132,7 @@ async def main():
         print(f"Level: {result['level'] or 'None'}")
         print(f"Selected Doc IDs: {result['selected_doc_ids']}")
 
-    context = group_results_by_url_for_llm_context(unique_results, llm_model)
+    context = group_results_by_url_for_llm_context(final_results, llm_model)
     save_file(context, f"{OUTPUT_DIR}/context.md")
     save_file({"num_tokens": count_tokens(llm_model, context)},
               f"{OUTPUT_DIR}/context_info.json")

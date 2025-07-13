@@ -7,7 +7,7 @@ from jet.logger import logger
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
 from jet.wordnet.keywords.helpers import extract_query_candidates
-from jet.wordnet.keywords.keyword_extraction import rerank_by_keywords
+from jet.wordnet.keywords.keyword_extraction_cross_encoder import extract_keywords_cross_encoder
 from jet.wordnet.keywords.utils import preprocess_text
 
 output_dir = os.path.join(
@@ -15,15 +15,15 @@ output_dir = os.path.join(
 
 if __name__ == '__main__':
     query_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/top_isekai_anime_2025/query.md"
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/top_isekai_anime_2025/docs.json"
+    contexts_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/top_isekai_anime_2025/contexts_search_results.json"
 
     query = load_file(query_file)
-    docs = load_file(docs_file)["documents"]
+    contexts = load_file(contexts_file)
 
-    embed_model: EmbedModelType = "all-MiniLM-L12-v2"
+    cross_encoder_model: EmbedModelType = "ms-marco-MiniLM-L6-v2"
 
     texts = []
-    for d in docs:
+    for d in contexts:
         _texts = []
         if d["header"].lstrip('#') != (d["parent_header"] or "").lstrip('#'):
             _texts.append((d["parent_header"] or "").lstrip('#'))
@@ -32,36 +32,32 @@ if __name__ == '__main__':
         text = "\n".join(_texts)
         texts.append(preprocess_text(text))
 
-    ids = [d["doc_id"] for d in docs]
-    id_to_result = {r["doc_id"]: r for r in docs}
+    ids = [d["merged_doc_id"] for d in contexts]
+    id_to_result = {r["merged_doc_id"]: r for r in contexts}
 
     # candidates = extract_query_candidates(query)
     candidates = extract_query_candidates(
-        preprocess_text(query) + "\n" + "\n".join(texts))
+        preprocess_text(query) + "\n" + "\n".join([preprocess_text(d["header"].lstrip('#')) for d in contexts]))
     # Filter out candidates that are only punctuation (e.g., ".", "!!", etc.)
     candidates = [c for c in candidates if re.search(r'\w', c)]
-    reranked_results = rerank_by_keywords(
+    reranked_results = extract_keywords_cross_encoder(
         texts=texts,
-        embed_model=embed_model,
+        cross_encoder_model=cross_encoder_model,
         ids=ids,
         top_n=10,
         candidates=candidates,
-        seed_keywords=candidates,
-        min_count=3,
-        use_mmr=True,
-        diversity=0.7,
     )
 
     results = []
-    # Map reranked results back to original doc dicts by id
+    # Map reranked results back to original context dicts by id
     for result in reranked_results:
         doc_id = result["id"]
-        doc = id_to_result.get(doc_id, {})
+        context = id_to_result.get(doc_id, {})
         mapped_result = {
             "rerank_rank": result.get("rank"),
             "rerank_score": result.get("score"),
-            "average_score": ((result["score"] + doc["score"]) / 2),
-            **doc,
+            "average_score": ((result["score"] + context["score"]) / 2),
+            **context,
             "keywords": result["keywords"],
         }
         results.append(mapped_result)
