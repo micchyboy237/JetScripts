@@ -568,8 +568,9 @@ if __name__ == '__main__':
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     resume_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/data/complete_jet_resume.md"
 
-    query = "Tell me about your recent achievements."
+    query = "Tell me about yourself."
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
+    chunk_size = 150
     max_tokens = 1500
 
     # Ensure output directory exists
@@ -588,7 +589,7 @@ if __name__ == '__main__':
     original_docs = preprocess_markdown_texts(text_file_tuples)
     save_file(original_docs, f"{output_dir}/docs.json")
 
-    chunks = get_chunks(original_docs)
+    chunks = get_chunks(original_docs, chunk_size=chunk_size)
     save_file(chunks, f"{output_dir}/chunks.json")
 
     # # Perform initial vector search

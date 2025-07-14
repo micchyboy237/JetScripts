@@ -1,32 +1,5 @@
 # Resume
 
-## Table of Contents
-
-- [Personal Information](#personal-information)
-- [Professional Summary](#professional-summary)
-- [Skills](#skills)
-  - [Frontend Technologies](#frontend-technologies)
-  - [Backend Technologies](#backend-technologies)
-  - [Databases](#databases)
-  - [Cloud Platforms](#cloud-platforms)
-  - [Development Tools](#development-tools)
-- [Professional Experience](#professional-experience)
-  - [JulesAI (formerly Macanta Software Ltd.)](#julesai-formerly-macanta-software-ltd)
-  - [8WeekApp](#8weekapp)
-  - [ADEC Innovations](#adec-innovations)
-  - [Asia Pacific Digital](#asia-pacific-digital)
-  - [Entertainment Gateway Group (now Yondu)](#entertainment-gateway-group-now-yondu)
-- [Projects](#projects)
-  - [Mobile Applications](#mobile-applications)
-    - [JABA AI](#jaba-ai)
-    - [Graduapp](#graduapp)
-    - [EZ Myoma](#ez-myoma)
-  - [Web Applications](#web-applications)
-    - [Jules Procure](#jules-procure)
-    - [Digital Cities PH](#digital-cities-ph)
-    - [ADEC Kenya, AMDATEX](#adec-kenya-amdatex)
-- [Notes](#notes)
-
 ## Personal Information
 
 - **Full Name**: Jethro Reuel A. Estrada
