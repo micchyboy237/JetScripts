@@ -1,3 +1,4 @@
+from jet.code.markdown_utils._markdown_parser import parse_markdown
 from jet.wordnet.lemmatizer import lemmatize_text
 from jet.search.formatters import clean_string
 from jet.scrapers.utils import clean_newlines, clean_punctuations, clean_spaces
@@ -86,29 +87,18 @@ def preprocess_texts(texts: str | list[str]) -> list[str]:
 
 
 if __name__ == "__main__":
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/top_isekai_anime_2025/contexts_search_results.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(
             os.path.basename(__file__))[0]
     )
     shutil.rmtree(output_dir, ignore_errors=True)
 
-    try:
-        logger.debug(f"Loading documents from {docs_file}")
-        docs = load_file(docs_file)
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/data/complete_jet_resume.md"
+    markdown_tokens = parse_markdown(
+        docs_file, merge_headers=False, merge_contents=True, ignore_links=False)
+    texts: List[str] = [d["content"] for d in markdown_tokens]
 
-        texts: List[str] = []
-        for d in docs:
-            _texts = []
-            _texts.append(d["header"])
-            _texts.append(d["content"])
-            text = "\n".join(_texts)
-            texts.append(text)
-
-        logger.debug(f"Loaded {len(texts)} documents")
-    except Exception as e:
-        logger.error(f"Failed to load documents: {e}")
-        raise
+    logger.debug(f"Loaded {len(texts)} documents")
 
     texts = preprocess_texts(texts)
     save_file(texts, f"{output_dir}/preprocessed_texts.json")

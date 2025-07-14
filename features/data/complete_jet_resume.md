@@ -11,11 +11,11 @@
   - [Cloud Platforms](#cloud-platforms)
   - [Development Tools](#development-tools)
 - [Professional Experience](#professional-experience)
-  - [JulesAI (CIAS](#julesai-formerly-macanta-software-ltd)
+  - [JulesAI (formerly Macanta Software Ltd.)](#julesai-formerly-macanta-software-ltd)
   - [8WeekApp](#8weekapp)
   - [ADEC Innovations](#adec-innovations)
   - [Asia Pacific Digital](#asia-pacific-digital)
-  - [Entertainment Gateway Group](#entertainment-gateway-group-now-yondu)
+  - [Entertainment Gateway Group (now Yondu)](#entertainment-gateway-group-now-yondu)
 - [Projects](#projects)
   - [Mobile Applications](#mobile-applications)
     - [JABA AI](#jaba-ai)
@@ -147,7 +147,7 @@ _Jun 2012 - Nov 2014_
 - **Technologies**: React, React Native, Expo
 - **Links**:
   - Web: [https://jaba.live](https://jaba.live)
-  - iOS: [App Store](https://apps.apple.com/us app/jaba-ai/id6451218161)
+  - iOS: [App Store](https://apps.apple.com/us/app/jaba-ai/id6451218161)
 
 #### Graduapp
 
@@ -207,11 +207,11 @@ _Jun 2012 - Nov 2014_
 
 - **Achievements**:
   - Built pixel-perfect UI components from Photoshop mockups.
-- MoseKey Features\*\*: Responsive, reusable components.
+- **Key Features**: Responsive, reusable components.
 - **Technologies**: React, jQuery, WordPress
 - **Links**:
   - Web (ADEC Kenya): [https://www.adec-kenya.com](https://www.adec-kenya.com)
-  - Web (AMDATEX): [https://www.amdatex.com)
+  - Web (AMDATEX): [https://www.amdatex.com](https://www.amdatex.com)
 
 ## Notes
 

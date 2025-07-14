@@ -1,6 +1,6 @@
 # Web apps
 
-## Jules Procure
+## Jules Procure (JulesAI)
 
 ### Achievements
 
@@ -10,7 +10,7 @@
 - Key features: Contact dashboard, Data builder, Task calendar, Workflow boards, Form builders, Price list generator, Automated emails based on triggers, and more
 - Technologies used: React, React Native, AWS Lambdas, GraphQL, Docker, Serverless, Jest
 
-## Digital Cities PH
+## Digital Cities PH (ADEC Innovations)
 
 ### Achievements
 
@@ -19,7 +19,7 @@
 - Key features: Interactive map, Search, Filtering, Fast loading, SEO-friendly
 - Technologies used: React, GraphQL, React Static, Headless CMS
 
-## ADEC Kenya, AMDATEX
+## ADEC Kenya, AMDATEX (ADEC Innovations)
 
 ### Achievements
 

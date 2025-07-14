@@ -1127,7 +1127,8 @@ async def main():
         print(f"Level: {result['level'] or 'None'}")
         print(f"Selected Doc IDs: {result['selected_doc_ids']}")
 
-    context = group_results_by_url_for_llm_context(final_results, llm_model)
+    context = group_results_by_url_for_llm_context(
+        final_results, llm_model, max_tokens=max_tokens)
     save_file(context, f"{OUTPUT_DIR}/context.md")
     save_file({"num_tokens": count_tokens(llm_model, context)},
               f"{OUTPUT_DIR}/context_info.json")
