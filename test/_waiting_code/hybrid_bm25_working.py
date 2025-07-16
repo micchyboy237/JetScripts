@@ -13,6 +13,7 @@ from jet.logger import logger
 from jet.utils.commands import copy_to_clipboard
 from jet.vectors.reranker.bm25_helpers import HybridSearch, preprocess_texts, split_text_by_docs, transform_queries_to_ngrams
 from jet.wordnet.n_grams import extract_ngrams, count_ngrams
+from shared.data_types.job import JobData
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -53,16 +54,38 @@ if __name__ == "__main__":
     llm_model = "llama3.1"
     system = None
 
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_server/generated/search/top_anime_romantic_comedy_reddit_2024-2025/top_context_nodes.json"
-    data = load_file(data_file)
-    query = data["query"]
-    texts = [clean_text(node["text"]) for node in data["results"]]
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    data: list[JobData] = load_file(data_file)
+
+    texts = [
+        "\n".join([
+            item["title"],
+            item["details"],
+            "\n".join([
+                f"Tech: {tech}"
+                for tech in sorted(
+                    item["entities"]["technology_stack"],
+                    key=str.lower
+                )
+            ]),
+            "\n".join([
+                f"Tag: {tech}"
+                for tech in sorted(
+                    item["tags"],
+                    key=str.lower
+                )
+            ]),
+        ])
+        for item in data
+    ]
+    query = "React web"
+    # texts = [clean_text(node["text"]) for node in data["results"]]
     # texts = [sentence.strip() for d in data["results"]
     #          for sentence in clean_text(d["text"]).splitlines()]
     # texts = [sentence for text in texts for sentence in split_sentences(text)]
 
     hybrid_search = HybridSearch(model_name=embed_model)
-    hybrid_search.build_index(texts)
+    hybrid_search.build_index(texts, max_tokens=512)
     results = hybrid_search.search(query)
 
     results = results.copy()
