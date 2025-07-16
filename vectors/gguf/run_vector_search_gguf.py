@@ -2,7 +2,7 @@ from jet.code.markdown_utils import parse_markdown
 from jet.data.header_types import TextNode
 from jet.file.utils import load_file
 from jet.vectors.document_types import HeaderDocument
-from jet.vectors.gguf.vector_search import VectorSearch, get_detailed_instruct
+from jet.vectors.semantic_search.vector_search_gguf import VectorSearch, get_detailed_instruct
 
 
 if __name__ == "__main__":

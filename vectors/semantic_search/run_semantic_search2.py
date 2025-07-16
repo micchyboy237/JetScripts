@@ -2,7 +2,7 @@ import os
 import shutil
 from typing import Optional, TypedDict, List
 import numpy as np
-from jet.features.semantic_search import vector_search
+from jet.vectors.semantic_search.base import vector_search
 from jet.file.utils import load_file, save_file
 from jet.models.embeddings.base import generate_embeddings
 from jet.models.embeddings.chunking import chunk_docs_by_hierarchy, chunk_headers_by_hierarchy
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     # Create texts and map each text to its JobData ID
     texts = [
         "\n\n".join([
-            f" {item['title']}",
+            f"{item['title']}",
             f"{item['company']}",
             *[
                 f"{key}\n" +

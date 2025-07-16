@@ -3,7 +3,7 @@ import os
 import shutil
 from typing import Optional, TypedDict, List
 import numpy as np
-from jet.features.semantic_search import vector_search
+from jet.vectors.semantic_search.base import vector_search
 from jet.file.utils import load_file, save_file
 from jet.models.embeddings.base import generate_embeddings
 from jet.models.embeddings.chunking import chunk_docs_by_hierarchy
@@ -27,21 +27,64 @@ if __name__ == "__main__":
     query = "React web"
     top_k = None
     system = None
+    batch_size = 96
 
     doc_ids = [d["id"] for d in data]
-    texts = [
-        "\n\n".join([
+    # texts = [
+    #     "\n\n".join([
+    #         f"## Job Title\n{item['title']}",
+    #         f"## Details\n{item['details']}",
+    #         *[
+    #             f"## {key.replace('_', ' ').title()}\n" +
+    #             "\n".join([f"- {value}" for value in item["entities"][key]])
+    #             for key in item["entities"]
+    #         ],
+    #         f"## Tags\n" + "\n".join([f"- {tag}" for tag in item["tags"]]),
+    #     ])
+    #     for item in data
+    # ]
+    texts = []
+    for item in data:
+        if not item or not item.get("title") or not item.get("details"):
+            continue  # Skip if item is empty or missing required fields
+        text_parts = [
             f"## Job Title\n{item['title']}",
             f"## Details\n{item['details']}",
-            *[
-                f"## {key.replace('_', ' ').title()}\n" +
-                "\n".join([f"- {value}" for value in item["entities"][key]])
-                for key in item["entities"]
-            ],
-            f"## Tags\n" + "\n".join([f"- {tag}" for tag in item["tags"]]),
-        ])
-        for item in data
-    ]
+            f"## Company\n{item['company']}",
+        ]
+        # Entities
+        if item.get("entities"):
+            for key in item["entities"]:
+                values = item["entities"][key]
+                if values:
+                    text_parts.append(
+                        f"## {key.replace('_', ' ').title()}\n" +
+                        "\n".join([f"- {value}" for value in values])
+                    )
+        # Keywords
+        if item.get("keywords"):
+            text_parts.append(
+                f"## Keywords\n" +
+                "\n".join([f"- {keyword}" for keyword in item["keywords"]])
+            )
+        # Tags
+        if item.get("tags"):
+            text_parts.append(
+                f"## Tags\n" + "\n".join([f"- {tag}" for tag in item["tags"]])
+            )
+        # Domain
+        if item.get("domain"):
+            text_parts.append(f"## Domain\n- {item['domain']}")
+        # Salary
+        if item.get("salary"):
+            text_parts.append(f"## Salary\n- {item['salary']}")
+        # Job Type
+        if item.get("job_type"):
+            text_parts.append(f"## Job Type\n- {item['job_type']}")
+        # Hours per Week
+        if item.get("hours_per_week"):
+            text_parts.append(f"## Hours per Week\n- {item['hours_per_week']}")
+        texts.append("\n\n".join(text_parts))
     save_file(texts, f"{OUTPUT_DIR}/docs.json")
 
     tokenizer = get_tokenizer_fn(embed_model)
@@ -60,9 +103,10 @@ if __name__ == "__main__":
     chunk_ids = [chunk["id"] for chunk in chunks]
     chunk_metadatas = [chunk["metadata"] for chunk in chunks]
 
-    query_candidates = extract_query_candidates(query)
+    # query_candidates = extract_query_candidates(query)
+    query_candidates = [query]
     search_results = vector_search(
-        query_candidates, texts_to_search, embed_model, top_k=top_k, ids=chunk_ids, metadatas=chunk_metadatas)
+        query_candidates, texts_to_search, embed_model, top_k=top_k, ids=chunk_ids, metadatas=chunk_metadatas, batch_size=batch_size)
     save_file({
         "query": query,
         "candidates": query_candidates,
