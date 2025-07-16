@@ -1,8 +1,8 @@
 from jet.search.formatters import clean_string
 from jet.vectors.reranker.bm25 import get_bm25_similarities
-from jet.wordnet.gensim_scripts.phrase_detector import PhraseDetector
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
+from jet.wordnet.phrase_detector import PhraseDetector
 from jet.wordnet.words import get_words
 from jet.search.similarity import get_cosine_similarities, get_annoy_similarities
 from shared.data_types.job import JobData
@@ -57,7 +57,8 @@ if __name__ == '__main__':
 
     # Phrase search
 
-    detector = PhraseDetector(model_path, sentences, reset_cache=reset_cache)
+    detector = PhraseDetector(
+        sentences, model_path=model_path, reset_cache=reset_cache)
 
     results_generator = detector.detect_phrases(sentences)
     for result in results_generator:
