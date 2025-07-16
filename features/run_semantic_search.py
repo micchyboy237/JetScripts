@@ -1,3 +1,4 @@
+from collections import defaultdict
 import os
 import shutil
 from typing import Optional, TypedDict, List
@@ -5,7 +6,7 @@ import numpy as np
 from jet.features.semantic_search import vector_search
 from jet.file.utils import load_file, save_file
 from jet.models.embeddings.base import generate_embeddings
-from jet.models.embeddings.chunking import chunk_headers_by_hierarchy
+from jet.models.embeddings.chunking import chunk_docs_by_hierarchy
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.tokenizer.base import get_tokenizer_fn
@@ -26,24 +27,25 @@ if __name__ == "__main__":
     top_k = None
     system = None
 
+    doc_ids = [d["id"] for d in data]
     texts = [
         "\n\n".join([
-            f"## Job Title\n\n{item['title']}",
-            f"## Details\n\n{item['details']}",
+            f"## Job Title\n{item['title']}",
+            f"## Details\n{item['details']}",
             *[
-                f"## {key.replace('_', ' ').title()}\n\n" +
+                f"## {key.replace('_', ' ').title()}\n" +
                 "\n".join([f"- {value}" for value in item["entities"][key]])
                 for key in item["entities"]
             ],
-            f"## Tags\n\n" + "\n".join([f"- {tag}" for tag in item["tags"]]),
+            f"## Tags\n" + "\n".join([f"- {tag}" for tag in item["tags"]]),
         ])
         for item in data
     ]
     save_file(texts, f"{OUTPUT_DIR}/docs.json")
 
     tokenizer = get_tokenizer_fn(embed_model)
-    chunks = [chunk for text in texts for chunk in chunk_headers_by_hierarchy(
-        text, chunk_size, tokenizer)]
+    chunks = chunk_docs_by_hierarchy(
+        texts, chunk_size, tokenizer, ids=doc_ids)
     save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
 
     texts_to_search = [
@@ -54,11 +56,77 @@ if __name__ == "__main__":
         for chunk in chunks
     ]
 
-    search_results = vector_search(
-        query, texts_to_search, embed_model, top_k=top_k)
+    chunk_ids = [chunk["id"] for chunk in chunks]
+    chunk_metadatas = [chunk["metadata"] for chunk in chunks]
 
+    search_results = vector_search(
+        query, texts_to_search, embed_model, top_k=top_k, ids=chunk_ids, metadatas=chunk_metadatas)
     save_file({
         "query": query,
         "count": len(search_results),
         "results": search_results
     }, f"{OUTPUT_DIR}/search_results.json")
+
+    # Map search_results to chunks by id with rank and score
+    mapped_chunks_with_scores = []
+    chunk_dict = {chunk["id"]: chunk for chunk in chunks}
+    for result in search_results:
+        chunk = chunk_dict.get(result["id"], {})
+        mapped_chunk = {
+            "rank": result["rank"],
+            "score": result["score"],
+            **chunk,
+        }
+        mapped_chunks_with_scores.append(mapped_chunk)
+    save_file({
+        "query": query,
+        "count": len(mapped_chunks_with_scores),
+        "results": mapped_chunks_with_scores
+    }, f"{OUTPUT_DIR}/chunks_with_scores.json")
+
+    # Map mapped_chunks_with_scores to data by doc_id to id with rank and score
+    # Use highest chunk score for each doc
+    doc_scores = defaultdict(list)
+    data_dict = {d["id"]: d for d in data}
+    for chunk in mapped_chunks_with_scores:
+        doc_id = chunk.get("doc_id")
+        if doc_id is not None:
+            doc_scores[doc_id].append(chunk)
+
+    mapped_docs_with_scores = []
+    for doc_id, chunks in doc_scores.items():
+        # Find the chunk with the highest score for this doc
+        best_chunk = max(chunks, key=lambda c: c["score"])
+        doc = data_dict.get(doc_id, {})
+        # Merge chunk metadata with doc metadata (chunk metadata takes precedence if keys overlap)
+        merged_metadata = {}
+        doc_metadata = doc.get("metadata", {})
+        chunk_metadata = best_chunk.get("metadata", {})
+        merged_metadata.update(doc_metadata)
+        merged_metadata.update(chunk_metadata)
+        mapped_doc = {
+            "rank": best_chunk["rank"],
+            "score": best_chunk["score"],
+            **doc,
+            "metadata": merged_metadata,
+        }
+        mapped_docs_with_scores.append(mapped_doc)
+
+    # Sort docs by score descending, then by rank ascending
+    mapped_docs_with_scores.sort(key=lambda d: (-d["score"], d["rank"]))
+
+    save_file({
+        "query": query,
+        "count": len(mapped_docs_with_scores),
+        "results": mapped_docs_with_scores
+    }, f"{OUTPUT_DIR}/final_results.json")
+
+    save_file({
+        "query": query,
+        "results": mapped_docs_with_scores[:10]
+    }, f"{OUTPUT_DIR}/final_results_top_10.json")
+
+    save_file({
+        "query": query,
+        "results": mapped_docs_with_scores[:20]
+    }, f"{OUTPUT_DIR}/final_results_top_20.json")
