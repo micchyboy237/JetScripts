@@ -596,9 +596,10 @@ def compute_similarity(
     content_clean = preprocess_text(content_text) if content_text else ""
 
     combined_header = f"{parent_header_clean}\n{header_clean}".strip()
+    combined_header_clean = preprocess_text(combined_header)
 
     texts_to_embed = [text for text in [
-        combined_header, content_clean] if text]
+        combined_header_clean, content_clean] if text]
     similarities = {
         "query_vs_combined_header": 0.0,
         "query_vs_content": 0.0
@@ -616,13 +617,13 @@ def compute_similarity(
 
     computed_similarities = []
 
-    if combined_header:
+    if combined_header_clean:
         similarities["query_vs_combined_header"] = cosine_similarity(
             [query_embedding], [text_embeddings[0]])[0][0]
         computed_similarities.append(similarities["query_vs_combined_header"])
 
     if content_clean:
-        content_idx = 1 if combined_header else 0
+        content_idx = 1 if combined_header_clean else 0
         similarities["query_vs_content"] = cosine_similarity(
             [query_embedding], [text_embeddings[content_idx]])[0][0]
         computed_similarities.append(similarities["query_vs_content"])
@@ -1071,47 +1072,47 @@ async def main():
     save_file(reranked_results_by_keywords,
               f"{OUTPUT_DIR}/contexts_reranked_results.json")
 
-    # result_texts = [
-    #     f"{r["header"].lstrip('#').strip()}\n{r["content"]}" for r in reranked_results_by_keywords]
+    result_texts = [r["content"] for r in reranked_results_by_keywords]
 
-    # id_to_result = {r["merged_doc_id"]: r for r in reranked_results_by_keywords}
+    id_to_result = {r["merged_doc_id"]: r for r in reranked_results_by_keywords}
 
-    # ids = [r["merged_doc_id"] for r in reranked_results_by_keywords]
-    # grouped_results = group_similar_texts(
-    #     result_texts, threshold=0.8, model_name=embed_model, ids=ids)
+    ids = [r["merged_doc_id"] for r in reranked_results_by_keywords]
+    grouped_results = group_similar_texts(
+        result_texts, threshold=0.7, model_name=embed_model, ids=ids)
 
-    # # diverse_results = sort_by_mmr_diversity(result_texts, ids=ids)
+    # diverse_results = sort_by_mmr_diversity(result_texts, ids=ids)
 
-    # # Replace grouped_results ids by {id, rank, score, parent_header, header, content}
-    # contexts_grouped_results = []
-    # for group in grouped_results:
-    #     group_info = []
-    #     for idx, doc_id in enumerate(group):
-    #         r = id_to_result[doc_id]
-    #         group_info.append({
-    #             "id": doc_id,
-    #             "chunk_index": r.get("chunk_index"),
-    #             "rank": r.get("rank"),
-    #             "score": r.get("score"),
-    #             "num_tokens": r.get("num_tokens"),
-    #             "header": r.get("header"),
-    #             "content": r.get("content"),
-    #         })
-    #     contexts_grouped_results.append(group_info)
+    # Replace grouped_results ids by {id, rank, score, parent_header, header, content}
+    contexts_grouped_results = []
+    for group in grouped_results:
+        group_info = []
+        for idx, doc_id in enumerate(group):
+            r = id_to_result[doc_id]
+            group_info.append({
+                "id": doc_id,
+                "chunk_index": r.get("chunk_index"),
+                "rank": r.get("rank"),
+                "score": r.get("score"),
+                "num_tokens": r.get("num_tokens"),
+                "header": r.get("header"),
+                "content": r.get("content"),
+            })
+        contexts_grouped_results.append(group_info)
 
-    # save_file(contexts_grouped_results,
-    #           f"{OUTPUT_DIR}/contexts_grouped_results.json")
+    save_file(contexts_grouped_results,
+              f"{OUTPUT_DIR}/contexts_grouped_results.json")
 
-    # # Map back to sorted_results
-    # merged_results = []
-    # for group in grouped_results:
-    #     # Select the best document from each group based on combined score
-    #     best_result = select_best_from_group(group, id_to_result, top_n=2)
-    #     if best_result:
-    #         merged_results.extend(best_result)
+    # Map back to sorted_results
+    merged_results = []
+    for group in grouped_results:
+        # Select the best document from each group based on combined score
+        best_result = select_best_from_group(group, id_to_result, top_n=2)
+        if best_result:
+            merged_results.extend(best_result)
 
-    # final_results = merged_results
-    final_results = reranked_results_by_keywords
+    final_results = merged_results
+
+    # final_results = reranked_results_by_keywords
     save_file(final_results,
               f"{OUTPUT_DIR}/contexts_before_max_filter.json")
 
