@@ -1,37 +1,64 @@
-from jet.features.semantic_search import search_content
+import os
+import shutil
+from typing import Optional, TypedDict, List
+import numpy as np
+from jet.features.semantic_search import vector_search
+from jet.file.utils import load_file, save_file
+from jet.models.embeddings.base import generate_embeddings
+from jet.models.embeddings.chunking import chunk_headers_by_hierarchy
+from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
+from jet.models.model_types import EmbedModelType, LLMModelType
+from jet.models.tokenizer.base import get_tokenizer_fn
+from shared.data_types.job import JobData
 
-# Usage example
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
 if __name__ == "__main__":
-    query = 'List upcoming isekai anime this year (2024-2025).'
-    content = """## Naruto: Shippuuden Movie 6 - Road to Ninja
-Movie, 2012 Finished 1 ep, 109 min
-Action Adventure Fantasy
-Naruto: Shippuuden Movie 6 - Road to Ninja
-Returning home to Konohagakure, the young ninja celebrate defeating a group of supposed Akatsuki members. Naruto Uzumaki and Sakura Haruno, however, feel differently. Naruto is jealous of his comrades' congratulatory families, wishing for the presence of his own parents. Sakura, on the other hand, is angry at her embarrassing parents, and wishes for no parents at all. The two clash over their opposing ideals, but are faced with a more pressing matter when the masked Madara Uchiha suddenly appears and transports them to an alternate world. In this world, Sakura's parents are considered heroes--for they gave their lives to protect Konohagakure from the Nine-Tailed Fox attack 10 years ago. Consequently, Naruto's parents, Minato Namikaze and Kushina Uzumaki, are alive and well. Unable to return home or find the masked Madara, Naruto and Sakura stay in this new world and enjoy the changes they have always longed for. All seems well for the two ninja, until an unexpected threat emerges that pushes Naruto and Sakura to not only fight for the Konohagakure of the alternate world, but also to find a way back to their own. [Written by MAL Rewrite]
-Studio Pierrot
-Source Manga
-Theme Isekai
-Demographic Shounen
-7.68
-366K
-Add to My List"""
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
 
-    result = search_content(
-        query=query,
-        content=content,
-        threshold=0.2,
-        top_k=None,
-        min_length=25,
-        max_length=300,
-        max_result_tokens=300
-    )
+    data: list[JobData] = load_file(data_file)
+    embed_model: EmbedModelType = "all-MiniLM-L12-v2"
+    llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
+    chunk_size = 150
+    query = "React web"
+    top_k = None
+    system = None
 
-    print("\n=== Search Output Summary ===")
-    print(f"Mean Pooling Results Count: {len(result['mean_pooling_results'])}")
-    print(f"Mean Pooling Total Tokens: {result['mean_pooling_tokens']}")
-    print(f"CLS Token Results Count: {len(result['cls_token_results'])}")
-    print(f"CLS Token Total Tokens: {result['cls_token_tokens']}")
-    print("\nMean Pooling Text:")
-    print(result['mean_pooling_text'] or "No results")
-    print("\nCLS Token Text:")
-    print(result['cls_token_text'] or "No results")
+    texts = [
+        "\n\n".join([
+            f"## Job Title\n\n{item['title']}",
+            f"## Details\n\n{item['details']}",
+            *[
+                f"## {key.replace('_', ' ').title()}\n\n" +
+                "\n".join([f"- {value}" for value in item["entities"][key]])
+                for key in item["entities"]
+            ],
+            f"## Tags\n\n" + "\n".join([f"- {tag}" for tag in item["tags"]]),
+        ])
+        for item in data
+    ]
+    save_file(texts, f"{OUTPUT_DIR}/docs.json")
+
+    tokenizer = get_tokenizer_fn(embed_model)
+    chunks = [chunk for text in texts for chunk in chunk_headers_by_hierarchy(
+        text, chunk_size, tokenizer)]
+    save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
+
+    texts_to_search = [
+        "\n".join([
+            chunk["header"],
+            chunk["content"]
+        ])
+        for chunk in chunks
+    ]
+
+    search_results = vector_search(
+        query, texts_to_search, embed_model, top_k=top_k)
+
+    save_file({
+        "query": query,
+        "count": len(search_results),
+        "results": search_results
+    }, f"{OUTPUT_DIR}/search_results.json")
