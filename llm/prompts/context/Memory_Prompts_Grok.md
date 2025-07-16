@@ -2,8 +2,9 @@ Dont use memory from previous artifacts.
 Execute browse or internet search if requested.
 Keep in mind I use a Mac M1.
 
-Use pytest for python tests and test classes to separate functions. Always create result and expected variables for each test. Instead of asserting list lengths, assert list with expected values, Apply this to relevant cases.
 I value flexible, modular, testable, optimized, DRY and robust code.
+Do not implement with static code and overly specific defaults.
+Use pytest for python tests and test classes to separate functions. Always create result and expected variables for each test. Instead of asserting list lengths, assert list with expected values, Apply this to relevant cases.
 
 Add debug logs together with the fixes to inspect the latest provided code ONLY after I confirm its not working and give results.
 Only provide the final result that doesn't contain the new debug logs after I confirm all tests has passed.
