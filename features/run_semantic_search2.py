@@ -36,7 +36,7 @@ if __name__ == "__main__":
     # Create texts and map each text to its JobData ID
     texts = [
         "\n\n".join([
-            f"{item['title']}",
+            f" {item['title']}",
             f"{item['company']}",
             *[
                 f"{key}\n" +
@@ -54,10 +54,11 @@ if __name__ == "__main__":
         for item in data
     ]
     text_to_id = {i: item["id"] for i, item in enumerate(data)}
+    doc_ids = [d["id"] for d in data]
     save_file(texts, f"{OUTPUT_DIR}/docs.json")
 
     tokenizer = get_tokenizer_fn(embed_model)
-    chunks = chunk_docs_by_hierarchy(texts, chunk_size, tokenizer)
+    chunks = chunk_docs_by_hierarchy(texts, chunk_size, tokenizer, ids=doc_ids)
     save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
 
     # Map chunks to their source document ID

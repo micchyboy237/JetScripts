@@ -10,6 +10,7 @@ from jet.models.embeddings.chunking import chunk_docs_by_hierarchy
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.tokenizer.base import get_tokenizer_fn
+from jet.wordnet.keywords.helpers import extract_query_candidates
 from shared.data_types.job import JobData
 
 OUTPUT_DIR = os.path.join(
@@ -59,10 +60,12 @@ if __name__ == "__main__":
     chunk_ids = [chunk["id"] for chunk in chunks]
     chunk_metadatas = [chunk["metadata"] for chunk in chunks]
 
+    query_candidates = extract_query_candidates(query)
     search_results = vector_search(
-        query, texts_to_search, embed_model, top_k=top_k, ids=chunk_ids, metadatas=chunk_metadatas)
+        query_candidates, texts_to_search, embed_model, top_k=top_k, ids=chunk_ids, metadatas=chunk_metadatas)
     save_file({
         "query": query,
+        "candidates": query_candidates,
         "count": len(search_results),
         "results": search_results
     }, f"{OUTPUT_DIR}/search_results.json")
