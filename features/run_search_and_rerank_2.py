@@ -374,7 +374,7 @@ async def prepare_for_rag(urls: List[str], embed_model: EmbedModelType = 'all-Mi
             index.add(embedding_matrix)
 
             results = query_rag(index, embeddings, model, [], query,
-                                k=None, threshold=-0.0, use_reranking=False)
+                                k=None, threshold=-0.0, use_reranking=True)
             total_tokens += sum(result["num_tokens"] for result in results)
             high_score_tokens = sum(
                 result["num_tokens"]
@@ -664,7 +664,8 @@ def query_rag(
 
     if use_reranking:
         cross_encoder = CrossEncoderRegistry.load_model(cross_encoder_model)
-        pairs = [[query, embeddings[idx]["content"]] for idx in I[0]]
+        pairs = [
+            [query, f"{embeddings[idx]['header']}\n{embeddings[idx]['content']}"] for idx in I[0]]
         cross_scores = cross_encoder.predict(pairs)
         scores = cross_scores
         # Placeholder for cross-encoder case
