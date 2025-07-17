@@ -1,4 +1,5 @@
 from jet.code.markdown_utils._markdown_parser import parse_markdown
+from jet.models.embeddings.chunking import DocChunkResult
 from jet.wordnet.lemmatizer import lemmatize_text
 from jet.search.formatters import clean_string
 from jet.scrapers.utils import clean_newlines, clean_punctuations, clean_spaces
@@ -92,10 +93,12 @@ if __name__ == "__main__":
     )
     shutil.rmtree(output_dir, ignore_errors=True)
 
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/data/complete_jet_resume.md"
-    markdown_tokens = parse_markdown(
-        docs_file, merge_headers=False, merge_contents=True, ignore_links=False)
-    texts: List[str] = [d["content"] for d in markdown_tokens]
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/vectors/semantic_search/generated/run_semantic_search/chunks.json"
+    chunks: List[DocChunkResult] = load_file(docs_file)[:50]
+    # markdown_tokens = parse_markdown(
+    #     docs_file, merge_headers=False, merge_contents=True, ignore_links=False)
+    # texts: List[str] = [d["content"] for d in markdown_tokens]
+    texts = [f"{doc['header']}\n{doc['content']}" for doc in chunks]
 
     logger.debug(f"Loaded {len(texts)} documents")
 
