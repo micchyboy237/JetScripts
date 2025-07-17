@@ -60,7 +60,6 @@ def rerank_chunks(chunks: List[DocChunkResult], query: str, embed_model: EmbedMo
 
 
 if __name__ == '__main__':
-    query_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/top_isekai_anime_2025/query.md"
     docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/vectors/semantic_search/generated/run_semantic_search/chunks.json"
 
     docs: List[DocChunkResult] = load_file(docs_file)

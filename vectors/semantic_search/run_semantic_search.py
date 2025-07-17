@@ -97,42 +97,42 @@ if __name__ == "__main__":
         if not item or not item.get("title") or not item.get("details"):
             continue  # Skip if item is empty or missing required fields
         text_parts = [
-            f"## Job Title\n{item['title']}",
-            f"## Details\n{item['details']}",
-            f"## Company\n{item['company']}",
+            f"# Job Title\n{item['title']}",
+            f"Details:\n{item['details']}",
+            # f"## Company\n{item['company']}",
         ]
-        # Entities
-        if item.get("entities"):
-            for key in item["entities"]:
-                values = item["entities"][key]
-                if values:
-                    text_parts.append(
-                        f"## {key.replace('_', ' ').title()}\n" +
-                        "\n".join([f"- {value}" for value in values])
-                    )
+        # # Entities
+        # if item.get("entities"):
+        #     for key in item["entities"]:
+        #         values = item["entities"][key]
+        #         if values:
+        #             text_parts.append(
+        #                 f"## {key.replace('_', ' ').title()}\n" +
+        #                 "\n".join([f"- {value}" for value in values])
+        #             )
         # Keywords
         if item.get("keywords"):
             text_parts.append(
-                f"## Keywords\n" +
+                f"Keywords:\n" +
                 "\n".join([f"- {keyword}" for keyword in item["keywords"]])
             )
         # Tags
         if item.get("tags"):
             text_parts.append(
-                f"## Tags\n" + "\n".join([f"- {tag}" for tag in item["tags"]])
+                f"Tags:\n" + "\n".join([f"- {tag}" for tag in item["tags"]])
             )
-        # Domain
-        if item.get("domain"):
-            text_parts.append(f"## Domain\n- {item['domain']}")
-        # Salary
-        if item.get("salary"):
-            text_parts.append(f"## Salary\n- {item['salary']}")
-        # Job Type
-        if item.get("job_type"):
-            text_parts.append(f"## Job Type\n- {item['job_type']}")
-        # Hours per Week
-        if item.get("hours_per_week"):
-            text_parts.append(f"## Hours per Week\n- {item['hours_per_week']}")
+        # # Domain
+        # if item.get("domain"):
+        #     text_parts.append(f"## Domain\n- {item['domain']}")
+        # # Salary
+        # if item.get("salary"):
+        #     text_parts.append(f"## Salary\n- {item['salary']}")
+        # # Job Type
+        # if item.get("job_type"):
+        #     text_parts.append(f"## Job Type\n- {item['job_type']}")
+        # # Hours per Week
+        # if item.get("hours_per_week"):
+        #     text_parts.append(f"## Hours per Week\n- {item['hours_per_week']}")
         texts.append("\n\n".join(text_parts))
     save_file(texts, f"{OUTPUT_DIR}/docs.json")
 
