@@ -72,8 +72,8 @@ if __name__ == '__main__':
 
     for r in results[:10]:
         print("========================================")
-        print(f"Rerank Rank   : {r.get('rerank_rank')}")
-        print(f"Rerank Score  : {r.get('rerank_score'):.4f}")
+        print(f"Rerank Rank   : {r.get('rank')}")
+        print(f"Rerank Score  : {r.get('score'):.4f}")
         print(f"Header        : {r.get('header')}")
         # Print keywords compactly, showing text and score if available
         keywords = r.get('keywords', [])
@@ -94,8 +94,8 @@ if __name__ == '__main__':
         kw_str = ", ".join(
             f"{k['text']} ({k['score']:.4f})" if 'score' in k else k['text'] for k in keywords)
         logger.log(
-            f"{r.get('rerank_rank')}: ",
-            f"{r.get('rerank_score'):.4f}",
+            f"{r.get('rank')}: ",
+            f"{r.get('score'):.4f}",
             f" {r['header']}",
             f" | {kw_str}",
             colors=["ORANGE", "SUCCESS", "DEBUG", "GRAY"]
