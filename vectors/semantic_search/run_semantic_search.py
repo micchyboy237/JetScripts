@@ -6,65 +6,16 @@ import numpy as np
 from jet.vectors.semantic_search.base import vector_search
 from jet.file.utils import load_file, save_file
 from jet.models.embeddings.base import generate_embeddings
-from jet.models.embeddings.chunking import ChunkMetadata, DocChunkResult, chunk_docs_by_hierarchy
+from jet.models.embeddings.chunking import chunk_docs_by_hierarchy
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.tokenizer.base import get_tokenizer_fn
-from jet.wordnet.keywords.helpers import Keyword, SimilarityResult, extract_query_candidates
-from jet.wordnet.keywords.keyword_extraction import rerank_by_keywords
+from jet.wordnet.keywords.helpers import extract_query_candidates
 from shared.data_types.job import JobData
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-
-
-class RerankedChunk(DocChunkResult):
-    rank: int
-    score: float
-    keywords: List[Keyword]
-
-
-# Use with type checking (mypy will validate the structure)
-
-
-def rerank_chunks(chunks: List[DocChunkResult], query: str, embed_model: EmbedModelType = "all-MiniLM-L6-v2") -> tuple[List[RerankedChunk], List[str]]:
-    texts = [f"{doc['header']}\n{doc['content']}" for doc in chunks]
-
-    ids = [d["id"] for d in chunks]
-    id_to_result = {r["id"]: r for r in chunks}
-
-    seed_keywords = extract_query_candidates(query)
-    reranked_results = rerank_by_keywords(
-        texts=texts,
-        embed_model=embed_model,
-        ids=ids,
-        top_n=10,
-        # candidates=candidates,
-        seed_keywords=seed_keywords,
-        min_count=1,
-        # use_mmr=True,
-        # diversity=0.7,
-        threshold=0.7,
-    )
-
-    results: List[RerankedChunk] = []
-    # Map reranked results back to original doc dicts by id
-    for result in reranked_results:
-        doc_id = result["id"]
-        doc = id_to_result[doc_id]
-        mapped_result: RerankedChunk = {
-            "rank": result.get("rank"),
-            "score": result.get("score"),
-            **doc,
-            "keywords": result["keywords"],
-        }
-        results.append(mapped_result)
-
-    results = sorted(results, key=lambda x: x["score"], reverse=True)
-
-    return results, seed_keywords
-
 
 if __name__ == "__main__":
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
@@ -73,7 +24,7 @@ if __name__ == "__main__":
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
     chunk_size = 300
-    query = "React web"
+    query = "React.js web"
     top_k = None
     system = None
     batch_size = 32
@@ -92,95 +43,100 @@ if __name__ == "__main__":
     #     ])
     #     for item in data
     # ]
-    header_texts = [
-        f"## Job Title:\n{d["title"]}\nKeywords:\n{"\n".join(f"- {keyword}" for keyword in d["keywords"])}\nTags:\n{"\n".join(f"- {tag}" for tag in d["tags"])}" for d in data]
-    details_texts = [f"## Details\n{d['details']}" for d in data]
-    texts_matrix = [[header, details]
-                    for header, details in zip(header_texts, details_texts)]
+    texts = []
+    for item in data:
+        if not item or not item.get("title") or not item.get("details"):
+            continue  # Skip if item is empty or missing required fields
+        text_parts = [
+            f"## Job Title\n{item['title']}",
+            f"## Details\n{item['details']}",
+            f"## Company\n{item['company']}",
+        ]
+        # Entities
+        if item.get("entities"):
+            for key in item["entities"]:
+                values = item["entities"][key]
+                if values:
+                    text_parts.append(
+                        f"## {key.replace('_', ' ').title()}\n" +
+                        "\n".join([f"- {value}" for value in values])
+                    )
+        # Keywords
+        if item.get("keywords"):
+            text_parts.append(
+                f"## Keywords\n" +
+                "\n".join([f"- {keyword}" for keyword in item["keywords"]])
+            )
+        # Tags
+        if item.get("tags"):
+            text_parts.append(
+                f"## Tags\n" + "\n".join([f"- {tag}" for tag in item["tags"]])
+            )
+        # Domain
+        if item.get("domain"):
+            text_parts.append(f"## Domain\n- {item['domain']}")
+        # Salary
+        if item.get("salary"):
+            text_parts.append(f"## Salary\n- {item['salary']}")
+        # Job Type
+        if item.get("job_type"):
+            text_parts.append(f"## Job Type\n- {item['job_type']}")
+        # Hours per Week
+        if item.get("hours_per_week"):
+            text_parts.append(f"## Hours per Week\n- {item['hours_per_week']}")
+        texts.append("\n\n".join(text_parts))
+    save_file(texts, f"{OUTPUT_DIR}/docs.json")
 
-    seed_keywords = extract_query_candidates(query)
-    reranked_results = rerank_by_keywords(
-        texts=texts_matrix,
-        embed_model=embed_model,
-        ids=doc_ids,
-        top_n=10,
-        # candidates=candidates,
-        seed_keywords=seed_keywords,
-        min_count=1,
-        # threshold=0.7,
-        # use_mmr=True,
-        # diversity=0.7,
-    )
+    tokenizer = get_tokenizer_fn(embed_model)
+    chunks = chunk_docs_by_hierarchy(
+        texts, chunk_size, tokenizer, ids=doc_ids)
+    save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
 
-    # texts = []
-    # for item in data:
-    #     if not item or not item.get("title") or not item.get("details"):
-    #         continue  # Skip if item is empty or missing required fields
-    #     text_parts = [
-    #         f"# Job Title\n{item['title']}",
-    #         # f"## Details\n{item['details']}",
-    #         # f"## Company\n{item['company']}",
-    #     ]
+    texts_to_search = [
+        "\n".join([
+            chunk["parent_header"] or "",
+            chunk["header"],
+            chunk["content"]
+        ]).strip()
+        for chunk in chunks
+    ]
 
-    #     # text_parts.append("## Metadata")
-    #     # # Keywords
-    #     # if item.get("keywords"):
-    #     #     text_parts.append(
-    #     #         f"Keywords:\n" +
-    #     #         "\n".join([f"- {keyword}" for keyword in item["keywords"]])
-    #     #     )
-    #     # # Tags
-    #     # if item.get("tags"):
-    #     #     text_parts.append(
-    #     #         f"Tags:\n" + "\n".join([f"- {tag}" for tag in item["tags"]])
-    #     #     )
+    chunk_ids = [chunk["id"] for chunk in chunks]
+    chunk_metadatas = [chunk["metadata"] for chunk in chunks]
 
-    #     # # Entities
-    #     # if item.get("entities"):
-    #     #     for key in item["entities"]:
-    #     #         values = item["entities"][key]
-    #     #         if values:
-    #     #             text_parts.append(
-    #     #                 f"{key.replace('_', ' ').title()}:\n" +
-    #     #                 "\n".join([f"- {value}" for value in values])
-    #     #             )
-
-    #     # # Domain
-    #     # if item.get("domain"):
-    #     #     text_parts.append(f"## Domain\n- {item['domain']}")
-    #     # # Salary
-    #     # if item.get("salary"):
-    #     #     text_parts.append(f"## Salary\n- {item['salary']}")
-    #     # # Job Type
-    #     # if item.get("job_type"):
-    #     #     text_parts.append(f"## Job Type\n- {item['job_type']}")
-    #     # # Hours per Week
-    #     # if item.get("hours_per_week"):
-    #     #     text_parts.append(f"## Hours per Week\n- {item['hours_per_week']}")
-    #     texts.append("\n\n".join(text_parts))
-    # save_file(texts, f"{OUTPUT_DIR}/docs.json")
-
-    # tokenizer = get_tokenizer_fn(embed_model)
-    # chunks = chunk_docs_by_hierarchy(
-    #     texts, chunk_size, tokenizer, ids=doc_ids)
-    # save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
-
-    # reranked_results, seed_keywords = rerank_chunks(chunks, query, embed_model)
-
+    query_candidates = extract_query_candidates(query)
+    search_results = vector_search(
+        query_candidates, texts_to_search, embed_model, top_k=top_k, ids=chunk_ids, metadatas=chunk_metadatas, batch_size=batch_size)
     save_file({
         "query": query,
-        "seed_keywords": seed_keywords,
-        "model": embed_model,
-        "count": len(reranked_results),
-        "results": reranked_results
-    }, f"{OUTPUT_DIR}/reranked_results.json")
+        "candidates": query_candidates,
+        "count": len(search_results),
+        "results": search_results
+    }, f"{OUTPUT_DIR}/search_results.json")
+
+    # Map search_results to chunks by id with rank and score
+    mapped_chunks_with_scores = []
+    chunk_dict = {chunk["id"]: chunk for chunk in chunks}
+    for result in search_results:
+        chunk = chunk_dict.get(result["id"], {})
+        mapped_chunk = {
+            "rank": result["rank"],
+            "score": result["score"],
+            **chunk,
+        }
+        mapped_chunks_with_scores.append(mapped_chunk)
+    save_file({
+        "query": query,
+        "count": len(mapped_chunks_with_scores),
+        "results": mapped_chunks_with_scores
+    }, f"{OUTPUT_DIR}/chunks_with_scores.json")
 
     # Map mapped_chunks_with_scores to data by doc_id to id with rank and score
     # Use highest chunk score for each doc
     doc_scores = defaultdict(list)
     data_dict = {d["id"]: d for d in data}
-    for chunk in reranked_results:
-        doc_id = chunk.get("id")
+    for chunk in mapped_chunks_with_scores:
+        doc_id = chunk.get("doc_id")
         if doc_id is not None:
             doc_scores[doc_id].append(chunk)
 
@@ -208,22 +164,16 @@ if __name__ == "__main__":
 
     save_file({
         "query": query,
-        "seed_keywords": seed_keywords,
-        "model": embed_model,
         "count": len(mapped_docs_with_scores),
         "results": mapped_docs_with_scores
     }, f"{OUTPUT_DIR}/final_results.json")
 
     save_file({
         "query": query,
-        "seed_keywords": seed_keywords,
-        "model": embed_model,
         "results": mapped_docs_with_scores[:10]
     }, f"{OUTPUT_DIR}/final_results_top_10.json")
 
     save_file({
         "query": query,
-        "seed_keywords": seed_keywords,
-        "model": embed_model,
         "results": mapped_docs_with_scores[:20]
     }, f"{OUTPUT_DIR}/final_results_top_20.json")
