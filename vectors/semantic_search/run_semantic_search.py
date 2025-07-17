@@ -3,6 +3,7 @@ import os
 import shutil
 from typing import Optional, TypedDict, List
 import numpy as np
+from jet.logger import logger
 from jet.vectors.semantic_search.base import vector_search
 from jet.file.utils import load_file, save_file
 from jet.models.embeddings.base import generate_embeddings
@@ -19,7 +20,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == "__main__":
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
-
     data: list[JobData] = load_file(data_file)
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
@@ -30,19 +30,6 @@ if __name__ == "__main__":
     batch_size = 32
 
     doc_ids = [d["id"] for d in data]
-    # texts = [
-    #     "\n\n".join([
-    #         f"## Job Title\n{item['title']}",
-    #         f"## Details\n{item['details']}",
-    #         *[
-    #             f"## {key.replace('_', ' ').title()}\n" +
-    #             "\n".join([f"- {value}" for value in item["entities"][key]])
-    #             for key in item["entities"]
-    #         ],
-    #         f"## Tags\n" + "\n".join([f"- {tag}" for tag in item["tags"]]),
-    #     ])
-    #     for item in data
-    # ]
     texts = []
     for item in data:
         if not item or not item.get("title") or not item.get("details"):
@@ -104,16 +91,13 @@ if __name__ == "__main__":
 
     texts_to_search = [
         "\n".join([
-            # chunk["parent_header"] or "",
             chunk["header"],
             chunk["content"]
         ]).strip()
         for chunk in chunks
     ]
-
     chunk_ids = [chunk["id"] for chunk in chunks]
     chunk_metadatas = [chunk["metadata"] for chunk in chunks]
-
     query_candidates = extract_query_candidates(query)
     search_results = vector_search(
         query_candidates, texts_to_search, embed_model, top_k=top_k, ids=chunk_ids, metadatas=chunk_metadatas, batch_size=batch_size)
@@ -124,16 +108,23 @@ if __name__ == "__main__":
         "results": search_results
     }, f"{OUTPUT_DIR}/search_results.json")
 
-    # Map search_results to chunks by id with rank and score
     mapped_chunks_with_scores = []
     chunk_dict = {chunk["id"]: chunk for chunk in chunks}
     for result in search_results:
         chunk = chunk_dict.get(result["id"], {})
+        query_scores = result.get("metadata", {}).get("query_scores", {})
+        logger.debug(
+            f"Search result for chunk {result['id']}: score={result['score']}, query_scores={query_scores}")
+        if not query_scores:
+            logger.warning(
+                f"Empty query_scores in search result for chunk {result['id']}")
         mapped_chunk = {
             "rank": result["rank"],
             "score": result["score"],
             "matches": result["matches"],
             **chunk,
+            # Explicitly copy query_scores
+            "metadata": {"query_scores": query_scores, **chunk["metadata"]},
         }
         mapped_chunks_with_scores.append(mapped_chunk)
     save_file({
@@ -142,53 +133,68 @@ if __name__ == "__main__":
         "results": mapped_chunks_with_scores
     }, f"{OUTPUT_DIR}/chunks_with_scores.json")
 
-    # Map mapped_chunks_with_scores to data by doc_id to id with rank and score
-    # Use highest chunk score for each doc
     doc_scores = defaultdict(list)
     data_dict = {d["id"]: d for d in data}
     for chunk in mapped_chunks_with_scores:
         doc_id = chunk.get("doc_id")
         if doc_id is not None:
             doc_scores[doc_id].append(chunk)
+            logger.debug(
+                f"Added chunk {chunk['id']} to doc {doc_id}, query_scores={chunk['metadata']['query_scores']}")
 
     mapped_docs_with_scores = []
     for doc_id, chunks in doc_scores.items():
-        # Find the chunk with the highest score for this doc
+        # Aggregate max score for each query term across chunks
+        query_max_scores = defaultdict(float)
+        for chunk in chunks:
+            query_scores = chunk.get("metadata", {}).get("query_scores", {})
+            logger.debug(
+                f"Doc ID: {doc_id}, Chunk ID: {chunk.get('id')}, Query Scores: {query_scores}")
+            if not query_scores:
+                logger.warning(
+                    f"No query_scores found for chunk {chunk.get('id')} in doc {doc_id}")
+            for query_term, score in query_scores.items():
+                query_max_scores[query_term] = max(
+                    query_max_scores[query_term], score)
+        # Sum the max scores for the final document score
+        final_score = sum(query_max_scores.values())
+        logger.debug(
+            f"Doc ID: {doc_id}, Query Max Scores: {dict(query_max_scores)}, Final Score: {final_score}")
+        if final_score == 0:
+            logger.warning(f"Final score is 0 for doc {doc_id}")
+        # Use the chunk with the highest original score for rank and metadata
         best_chunk = max(chunks, key=lambda c: c["score"])
         doc = data_dict.get(doc_id, {})
-        # Merge chunk metadata with doc metadata (chunk metadata takes precedence if keys overlap)
         merged_metadata = {}
         doc_metadata = doc.get("metadata", {})
         chunk_metadata = best_chunk.get("metadata", {})
         merged_metadata.update(doc_metadata)
         merged_metadata.update(chunk_metadata)
+        # Store individual query scores in metadata
+        merged_metadata["query_scores"] = dict(query_max_scores)
         mapped_doc = {
             "rank": best_chunk["rank"],
-            "score": best_chunk["score"],
+            "score": final_score,
             **doc,
             "metadata": merged_metadata,
         }
         mapped_docs_with_scores.append(mapped_doc)
-
-    # Sort docs by score descending, then by rank ascending
     mapped_docs_with_scores.sort(key=lambda d: (-d["score"], d["rank"]))
-
+    logger.debug(
+        f"Top 5 mapped docs: {[{'id': d['id'], 'score': d['score'], 'query_scores': d['metadata']['query_scores']} for d in mapped_docs_with_scores[:5]]}")
     save_file({
         "query": query,
         "count": len(mapped_docs_with_scores),
         "results": mapped_docs_with_scores
     }, f"{OUTPUT_DIR}/final_results.json")
-
     save_file({
         "query": query,
         "results": mapped_docs_with_scores[:10]
     }, f"{OUTPUT_DIR}/final_results_top_10.json")
-
     save_file({
         "query": query,
         "results": mapped_docs_with_scores[:20]
     }, f"{OUTPUT_DIR}/final_results_top_20.json")
-
     high_score_results = [
         doc for doc in mapped_docs_with_scores if doc["score"] >= 0.7]
     save_file({
