@@ -21,7 +21,7 @@ class RerankedChunk(DocChunkResult):
     keywords: List[Keyword]
 
 
-def rerank_chunks(chunks: List[DocChunkResult], query: str, embed_model: EmbedModelType = "all-MiniLM-L6-v2") -> List[RerankedChunk]:
+def rerank_chunks(chunks: List[DocChunkResult], query: str, embed_model: EmbedModelType = "all-MiniLM-L6-v2") -> tuple[List[RerankedChunk], List[str]]:
     texts = [f"{doc['header']}\n{doc['content']}" for doc in chunks]
 
     ids = [d["id"] for d in chunks]
@@ -36,9 +36,9 @@ def rerank_chunks(chunks: List[DocChunkResult], query: str, embed_model: EmbedMo
         # candidates=candidates,
         seed_keywords=seed_keywords,
         min_count=1,
+        # threshold=0.7,
         # use_mmr=True,
         # diversity=0.7,
-        # threshold=0.7,
     )
 
     results: List[RerankedChunk] = []
@@ -56,7 +56,7 @@ def rerank_chunks(chunks: List[DocChunkResult], query: str, embed_model: EmbedMo
 
     results = sorted(results, key=lambda x: x["score"], reverse=True)
 
-    return results
+    return results, seed_keywords
 
 
 if __name__ == '__main__':
@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
 
-    results = rerank_chunks(docs, query, embed_model)
+    results, seed_keywords = rerank_chunks(docs, query, embed_model)
 
     for r in results[:10]:
         print("========================================")
@@ -102,6 +102,7 @@ if __name__ == '__main__':
 
     save_file({
         "query": query,
+        "seed_keywords": seed_keywords,
         "model": embed_model,
         "count": len(results),
         "results": results
