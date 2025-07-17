@@ -38,7 +38,7 @@ def rerank_chunks(chunks: List[DocChunkResult], query: str, embed_model: EmbedMo
         min_count=1,
         # use_mmr=True,
         # diversity=0.7,
-        threshold=0.7,
+        # threshold=0.7,
     )
 
     results: List[RerankedChunk] = []

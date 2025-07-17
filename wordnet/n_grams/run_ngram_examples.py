@@ -70,10 +70,9 @@ def preprocess_texts(texts: str | list[str]) -> list[str]:
         text = " ".join(filtered_text).lower()
 
         text = clean_newlines(text, max_newlines=1)
+        text = clean_punctuations(text)
         text = clean_spaces(text)
         text = clean_string(text)
-        text = clean_punctuations(text)
-        text = lemmatize_text(text)
 
         # Remove stopwords
         words = get_words(text)
