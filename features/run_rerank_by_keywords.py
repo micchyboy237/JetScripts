@@ -3,33 +3,30 @@ import json
 import re
 from typing import List
 from jet.file.utils import load_file, save_file
-from jet.models.embeddings.chunking import ChunkResult
+from jet.models.embeddings.chunking import DocChunkResult
 from jet.models.model_types import EmbedModelType
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
-from jet.wordnet.keywords.helpers import extract_query_candidates
+from jet.wordnet.keywords.helpers import Keyword, extract_query_candidates
 from jet.wordnet.keywords.keyword_extraction import rerank_by_keywords
 
 output_dir = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-if __name__ == '__main__':
-    query_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/top_isekai_anime_2025/query.md"
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/vectors/semantic_search/generated/run_semantic_search/chunks_with_scores.json"
 
-    docs: List[ChunkResult] = load_file(docs_file)["results"]
-    query = "React web"
+class RerankedChunk(DocChunkResult):
+    rank: int
+    score: float
+    keywords: List[Keyword]
 
-    embed_model: EmbedModelType = "all-MiniLM-L6-v2"
 
-    texts = [f"{doc['header']}\n{doc['content']}" for doc in docs]
+def rerank_chunks(chunks: List[DocChunkResult], query: str, embed_model: EmbedModelType = "all-MiniLM-L6-v2") -> List[RerankedChunk]:
+    texts = [f"{doc['header']}\n{doc['content']}" for doc in chunks]
 
-    ids = [d["id"] for d in docs]
-    id_to_result = {r["id"]: r for r in docs}
+    ids = [d["id"] for d in chunks]
+    id_to_result = {r["id"]: r for r in chunks}
 
-    # candidates = extract_query_candidates(
-    #     preprocess_text(query) + "\n" + "\n".join([d["header"].lstrip('#') for d in docs]))
     seed_keywords = extract_query_candidates(query)
     reranked_results = rerank_by_keywords(
         texts=texts,
@@ -41,22 +38,37 @@ if __name__ == '__main__':
         min_count=1,
         # use_mmr=True,
         # diversity=0.7,
+        threshold=0.7,
     )
 
-    results = []
+    results: List[RerankedChunk] = []
     # Map reranked results back to original doc dicts by id
     for result in reranked_results:
         doc_id = result["id"]
-        doc = id_to_result.get(doc_id, {})
-        mapped_result = {
-            "rerank_rank": result.get("rank"),
-            "rerank_score": result.get("score"),
+        doc = id_to_result[doc_id]
+        mapped_result: RerankedChunk = {
+            "rank": result.get("rank"),
+            "score": result.get("score"),
             **doc,
             "keywords": result["keywords"],
         }
         results.append(mapped_result)
 
-    results = sorted(results, key=lambda x: x["rerank_score"], reverse=True)
+    results = sorted(results, key=lambda x: x["score"], reverse=True)
+
+    return results
+
+
+if __name__ == '__main__':
+    query_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/top_isekai_anime_2025/query.md"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/vectors/semantic_search/generated/run_semantic_search/chunks.json"
+
+    docs: List[DocChunkResult] = load_file(docs_file)
+    query = "React web"
+
+    embed_model: EmbedModelType = "all-MiniLM-L6-v2"
+
+    results = rerank_chunks(docs, query, embed_model)
 
     for r in results[:10]:
         print("========================================")
@@ -91,7 +103,6 @@ if __name__ == '__main__':
 
     save_file({
         "query": query,
-        "seed_keywords": seed_keywords,
         "model": embed_model,
         "count": len(results),
         "results": results

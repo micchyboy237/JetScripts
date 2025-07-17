@@ -6,16 +6,65 @@ import numpy as np
 from jet.vectors.semantic_search.base import vector_search
 from jet.file.utils import load_file, save_file
 from jet.models.embeddings.base import generate_embeddings
-from jet.models.embeddings.chunking import chunk_docs_by_hierarchy
+from jet.models.embeddings.chunking import ChunkMetadata, DocChunkResult, chunk_docs_by_hierarchy
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.tokenizer.base import get_tokenizer_fn
-from jet.wordnet.keywords.helpers import extract_query_candidates
+from jet.wordnet.keywords.helpers import Keyword, SimilarityResult, extract_query_candidates
+from jet.wordnet.keywords.keyword_extraction import rerank_by_keywords
 from shared.data_types.job import JobData
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
+
+class RerankedChunk(DocChunkResult):
+    rank: int
+    score: float
+    keywords: List[Keyword]
+
+
+# Use with type checking (mypy will validate the structure)
+
+
+def rerank_chunks(chunks: List[DocChunkResult], query: str, embed_model: EmbedModelType = "all-MiniLM-L6-v2") -> List[RerankedChunk]:
+    texts = [f"{doc['header']}\n{doc['content']}" for doc in chunks]
+
+    ids = [d["id"] for d in chunks]
+    id_to_result = {r["id"]: r for r in chunks}
+
+    seed_keywords = extract_query_candidates(query)
+    reranked_results = rerank_by_keywords(
+        texts=texts,
+        embed_model=embed_model,
+        ids=ids,
+        top_n=10,
+        # candidates=candidates,
+        seed_keywords=seed_keywords,
+        min_count=1,
+        # use_mmr=True,
+        # diversity=0.7,
+        threshold=0.7,
+    )
+
+    results: List[RerankedChunk] = []
+    # Map reranked results back to original doc dicts by id
+    for result in reranked_results:
+        doc_id = result["id"]
+        doc = id_to_result[doc_id]
+        mapped_result: RerankedChunk = {
+            "rank": result.get("rank"),
+            "score": result.get("score"),
+            **doc,
+            "keywords": result["keywords"],
+        }
+        results.append(mapped_result)
+
+    results = sorted(results, key=lambda x: x["score"], reverse=True)
+
+    return results
+
 
 if __name__ == "__main__":
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
@@ -92,49 +141,18 @@ if __name__ == "__main__":
         texts, chunk_size, tokenizer, ids=doc_ids)
     save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
 
-    texts_to_search = [
-        "\n".join([
-            chunk["header"],
-            chunk["content"]
-        ])
-        for chunk in chunks
-    ]
-
-    chunk_ids = [chunk["id"] for chunk in chunks]
-    chunk_metadatas = [chunk["metadata"] for chunk in chunks]
-
-    query_candidates = extract_query_candidates(query)
-    search_results = vector_search(
-        query_candidates, texts_to_search, embed_model, top_k=top_k, ids=chunk_ids, metadatas=chunk_metadatas, batch_size=batch_size)
+    reranked_chunks = rerank_chunks(chunks, query, embed_model)
     save_file({
         "query": query,
-        "candidates": query_candidates,
-        "count": len(search_results),
-        "results": search_results
-    }, f"{OUTPUT_DIR}/search_results.json")
-
-    # Map search_results to chunks by id with rank and score
-    mapped_chunks_with_scores = []
-    chunk_dict = {chunk["id"]: chunk for chunk in chunks}
-    for result in search_results:
-        chunk = chunk_dict.get(result["id"], {})
-        mapped_chunk = {
-            "rank": result["rank"],
-            "score": result["score"],
-            **chunk,
-        }
-        mapped_chunks_with_scores.append(mapped_chunk)
-    save_file({
-        "query": query,
-        "count": len(mapped_chunks_with_scores),
-        "results": mapped_chunks_with_scores
-    }, f"{OUTPUT_DIR}/chunks_with_scores.json")
+        "count": len(reranked_chunks),
+        "results": reranked_chunks
+    }, f"{OUTPUT_DIR}/reranked_chunks.json")
 
     # Map mapped_chunks_with_scores to data by doc_id to id with rank and score
     # Use highest chunk score for each doc
     doc_scores = defaultdict(list)
     data_dict = {d["id"]: d for d in data}
-    for chunk in mapped_chunks_with_scores:
+    for chunk in reranked_chunks:
         doc_id = chunk.get("doc_id")
         if doc_id is not None:
             doc_scores[doc_id].append(chunk)
