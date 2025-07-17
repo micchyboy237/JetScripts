@@ -10,7 +10,6 @@ from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
 from jet.wordnet.keywords.helpers import extract_query_candidates
 from jet.wordnet.keywords.keyword_extraction import rerank_by_keywords
-from jet.wordnet.keywords.utils import preprocess_text
 
 output_dir = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -37,7 +36,7 @@ if __name__ == '__main__':
         embed_model=embed_model,
         ids=ids,
         top_n=10,
-        # candidates=candidates,
+        candidates=seed_keywords,
         seed_keywords=seed_keywords,
         min_count=1,
         # use_mmr=True,
@@ -92,7 +91,7 @@ if __name__ == '__main__':
 
     save_file({
         "query": query,
-        "candidates": candidates,
+        "seed_keywords": seed_keywords,
         "model": embed_model,
         "count": len(results),
         "results": results

@@ -6,9 +6,8 @@ from jet.models.model_types import EmbedModelType
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
-from jet.wordnet.keywords.helpers import extract_query_candidates
+from jet.wordnet.keywords.helpers import extract_query_candidates, preprocess_texts
 from jet.wordnet.keywords.keyword_extraction_cross_encoder import extract_keywords_cross_encoder
-from jet.wordnet.keywords.utils import preprocess_text
 
 output_dir = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -30,14 +29,15 @@ if __name__ == '__main__':
         _texts.append(d["header"].lstrip('#'))
         _texts.append(d["content"])
         text = "\n".join(_texts)
-        texts.append(preprocess_text(text))
+        texts.append(text)
+    texts = preprocess_texts(texts)
 
     ids = [d["merged_doc_id"] for d in contexts]
     id_to_result = {r["merged_doc_id"]: r for r in contexts}
 
     # candidates = extract_query_candidates(query)
     candidates = extract_query_candidates(
-        preprocess_text(query) + "\n" + "\n".join([preprocess_text(d["header"].lstrip('#')) for d in contexts]))
+        preprocess_texts(query)[0] + "\n" + "\n".join([preprocess_texts(d["header"].lstrip('#'))[0] for d in contexts]))
     # Filter out candidates that are only punctuation (e.g., ".", "!!", etc.)
     candidates = [c for c in candidates if re.search(r'\w', c)]
     reranked_results = extract_keywords_cross_encoder(
