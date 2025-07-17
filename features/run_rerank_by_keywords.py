@@ -29,19 +29,19 @@ if __name__ == '__main__':
     ids = [d["id"] for d in docs]
     id_to_result = {r["id"]: r for r in docs}
 
-    candidates = extract_query_candidates(query)
     # candidates = extract_query_candidates(
     #     preprocess_text(query) + "\n" + "\n".join([d["header"].lstrip('#') for d in docs]))
+    seed_keywords = extract_query_candidates(query)
     reranked_results = rerank_by_keywords(
         texts=texts,
         embed_model=embed_model,
         ids=ids,
         top_n=10,
         # candidates=candidates,
-        seed_keywords=candidates,
+        seed_keywords=seed_keywords,
         min_count=1,
-        use_mmr=True,
-        diversity=0.7,
+        # use_mmr=True,
+        # diversity=0.7,
     )
 
     results = []
