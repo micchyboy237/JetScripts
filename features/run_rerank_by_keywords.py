@@ -1,7 +1,9 @@
 import os
 import json
 import re
+from typing import List
 from jet.file.utils import load_file, save_file
+from jet.models.embeddings.chunking import ChunkResult
 from jet.models.model_types import EmbedModelType
 from jet.logger import logger
 from jet.transformers.formatters import format_json
@@ -15,37 +17,29 @@ output_dir = os.path.join(
 
 if __name__ == '__main__':
     query_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/top_isekai_anime_2025/query.md"
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/top_isekai_anime_2025/contexts_search_results.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/vectors/semantic_search/generated/run_semantic_search/chunks_with_scores.json"
 
-    query = load_file(query_file)
-    docs = load_file(docs_file)
+    docs: List[ChunkResult] = load_file(docs_file)["results"]
+    query = "React web"
 
-    embed_model: EmbedModelType = "all-MiniLM-L12-v2"
+    embed_model: EmbedModelType = "all-MiniLM-L6-v2"
 
-    texts = []
-    for d in docs:
-        _texts = []
-        if d["header"].lstrip('#') != (d["parent_header"] or "").lstrip('#'):
-            _texts.append((d["parent_header"] or "").lstrip('#'))
-        # _texts.append(d["header"].lstrip('#'))
-        _texts.append(d["content"])
-        text = "\n".join(_texts)
-        texts.append(preprocess_text(text))
+    texts = [f"{doc['header']}\n{doc['content']}" for doc in docs]
 
-    ids = [d["merged_doc_id"] for d in docs]
-    id_to_result = {r["merged_doc_id"]: r for r in docs}
+    ids = [d["id"] for d in docs]
+    id_to_result = {r["id"]: r for r in docs}
 
-    # candidates = extract_query_candidates(query)
-    candidates = extract_query_candidates(
-        preprocess_text(query) + "\n" + "\n".join([d["header"].lstrip('#') for d in docs]))
+    candidates = extract_query_candidates(query)
+    # candidates = extract_query_candidates(
+    #     preprocess_text(query) + "\n" + "\n".join([d["header"].lstrip('#') for d in docs]))
     reranked_results = rerank_by_keywords(
         texts=texts,
         embed_model=embed_model,
         ids=ids,
         top_n=10,
         # candidates=candidates,
-        # seed_keywords=candidates,
-        min_count=2,
+        seed_keywords=candidates,
+        min_count=1,
         use_mmr=True,
         diversity=0.7,
     )
@@ -55,12 +49,9 @@ if __name__ == '__main__':
     for result in reranked_results:
         doc_id = result["id"]
         doc = id_to_result.get(doc_id, {})
-        embed_score = doc.pop("score")
         mapped_result = {
             "rerank_rank": result.get("rank"),
             "rerank_score": result.get("score"),
-            "score": embed_score,
-            "average_score": ((result["score"] + embed_score) / 2),
             **doc,
             "keywords": result["keywords"],
         }
@@ -72,7 +63,6 @@ if __name__ == '__main__':
         print("========================================")
         print(f"Rerank Rank   : {r.get('rerank_rank')}")
         print(f"Rerank Score  : {r.get('rerank_score'):.4f}")
-        print(f"Embed Score   : {r.get('score'):.4f}")
         print(f"Header        : {r.get('header')}")
         # Print keywords compactly, showing text and score if available
         keywords = r.get('keywords', [])
@@ -87,7 +77,7 @@ if __name__ == '__main__':
         print("========================================\n")
 
     logger.gray("\nSummary:")
-    for r in results[:10]:
+    for r in results[:25]:
         # Use keywords from the current result
         keywords = r.get('keywords', [])
         kw_str = ", ".join(
@@ -103,5 +93,7 @@ if __name__ == '__main__':
     save_file({
         "query": query,
         "candidates": candidates,
+        "model": embed_model,
+        "count": len(results),
         "results": results
     }, f"{output_dir}/results.json")

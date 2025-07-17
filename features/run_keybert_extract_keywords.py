@@ -9,6 +9,7 @@ from jet.file.utils import load_file, save_file
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.vectors.document_types import HeaderDocument
 from jet.wordnet.keywords.helpers import extract_query_candidates, extract_keywords_with_candidates, extract_keywords_with_custom_vectorizer, extract_keywords_with_embeddings, extract_multi_doc_keywords, extract_single_doc_keywords, setup_keybert, SimilarityResult
+from jet.vectors.semantic_search.base import SearchResult
 
 
 class HeaderDoc(TypedDict):
@@ -22,19 +23,20 @@ class HeaderDoc(TypedDict):
 
 if __name__ == "__main__":
     """Main function demonstrating KeyBERT usage."""
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/top_isekai_anime_2025/pages/gamerant_com_new_isekai_anime_2025/docs.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/vectors/semantic_search/generated/run_semantic_search/chunks_with_scores.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
-    embed_model: EmbedModelType = "static-retrieval-mrl-en-v1"
+    embed_model: EmbedModelType = "all-MiniLM-L6-v2"
 
     # Load HeaderDoc objects
-    docs: List[HeaderDoc] = load_file(docs_file)
-    query = "Top isekai anime 2025."
+    docs = load_file(docs_file)
+    query = docs["query"]
+    results: List[SearchResult] = docs["results"][:20]
 
     # Map HeaderDoc to texts and ids
-    texts = [f"{doc['header']}\n{doc['content']}" for doc in docs]
-    ids = [doc['doc_id'] for doc in docs]
+    texts = [f"{doc['header']}\n{doc['content']}" for doc in results]
+    ids = [doc['id'] for doc in results]
 
     # Prepare single document for single_doc_keywords
     single_doc = "\n".join(texts)
@@ -45,7 +47,7 @@ if __name__ == "__main__":
     save_file(candidate_keywords, f"{output_dir}/candidate_keywords.json")
 
     # Setup KeyBERT model
-    kw_model = setup_keybert()
+    kw_model = setup_keybert(embed_model)
 
     print("\nExample 1: Single Document Keywords")
     keywords = extract_single_doc_keywords(

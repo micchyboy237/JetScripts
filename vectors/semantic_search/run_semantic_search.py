@@ -21,13 +21,13 @@ if __name__ == "__main__":
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
 
     data: list[JobData] = load_file(data_file)
-    embed_model: EmbedModelType = "all-MiniLM-L12-v2"
+    embed_model: EmbedModelType = "all-MiniLM-L6-v2"
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
-    chunk_size = 150
+    chunk_size = 300
     query = "React web"
     top_k = None
     system = None
-    batch_size = 96
+    batch_size = 32
 
     doc_ids = [d["id"] for d in data]
     # texts = [
@@ -103,8 +103,7 @@ if __name__ == "__main__":
     chunk_ids = [chunk["id"] for chunk in chunks]
     chunk_metadatas = [chunk["metadata"] for chunk in chunks]
 
-    # query_candidates = extract_query_candidates(query)
-    query_candidates = [query]
+    query_candidates = extract_query_candidates(query)
     search_results = vector_search(
         query_candidates, texts_to_search, embed_model, top_k=top_k, ids=chunk_ids, metadatas=chunk_metadatas, batch_size=batch_size)
     save_file({
