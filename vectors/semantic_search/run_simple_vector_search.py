@@ -3,28 +3,28 @@ from jet.vectors.semantic_search.vector_search_simple import VectorSearch
 
 if __name__ == "__main__":
     # Real-world demonstration
-    search_engine = VectorSearch()
+    search_engine = VectorSearch("nomic-embed-text")
 
     # Same sample documents
     sample_docs = [
-        "Fresh organic apples from local farms",
-        "Handpicked strawberries sweet and juicy",
-        "Premium quality oranges rich in vitamin C",
-        "Crisp lettuce perfect for salads",
-        "Organic bananas ripe and ready to eat"
+        "React.js",
+        "Web",
+        "Website",
+        "Front end",
+        "Back end",
+        "Client side",
+        "Server",
     ]
 
     search_engine.add_documents(sample_docs)
 
     # Same example queries
     queries = [
-        "organic fruit",
-        "sweet strawberries",
-        "fresh salad ingredients"
+        "React web",
     ]
 
     for query in queries:
-        results = search_engine.search(query)
+        results = search_engine.search(query, top_k=len(sample_docs))
         print(f"\nQuery: {query}")
         print("Top matches:")
         for doc, score in results:

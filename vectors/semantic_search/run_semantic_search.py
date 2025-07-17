@@ -97,19 +97,12 @@ if __name__ == "__main__":
         if not item or not item.get("title") or not item.get("details"):
             continue  # Skip if item is empty or missing required fields
         text_parts = [
-            f"# {item['title']}",
-            f"{item['details']}",
+            f"# Job Title\n{item['title']}",
+            # f"## Details\n{item['details']}",
             # f"## Company\n{item['company']}",
         ]
-        # # Entities
-        # if item.get("entities"):
-        #     for key in item["entities"]:
-        #         values = item["entities"][key]
-        #         if values:
-        #             text_parts.append(
-        #                 f"## {key.replace('_', ' ').title()}\n" +
-        #                 "\n".join([f"- {value}" for value in values])
-        #             )
+
+        # text_parts.append("## Metadata")
         # # Keywords
         # if item.get("keywords"):
         #     text_parts.append(
@@ -121,6 +114,17 @@ if __name__ == "__main__":
         #     text_parts.append(
         #         f"Tags:\n" + "\n".join([f"- {tag}" for tag in item["tags"]])
         #     )
+
+        # # Entities
+        # if item.get("entities"):
+        #     for key in item["entities"]:
+        #         values = item["entities"][key]
+        #         if values:
+        #             text_parts.append(
+        #                 f"{key.replace('_', ' ').title()}:\n" +
+        #                 "\n".join([f"- {value}" for value in values])
+        #             )
+
         # # Domain
         # if item.get("domain"):
         #     text_parts.append(f"## Domain\n- {item['domain']}")
