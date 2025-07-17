@@ -9,7 +9,7 @@ from jet.models.embeddings.base import generate_embeddings
 from jet.models.embeddings.chunking import chunk_docs_by_hierarchy
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
-from jet.models.tokenizer.base import get_tokenizer_fn
+from jet.models.tokenizer.base import count_tokens, get_tokenizer_fn
 from jet.wordnet.keywords.helpers import extract_query_candidates
 from shared.data_types.job import JobData
 
@@ -85,7 +85,17 @@ if __name__ == "__main__":
         if item.get("hours_per_week"):
             text_parts.append(f"## Hours per Week\n- {item['hours_per_week']}")
         texts.append("\n\n".join(text_parts))
-    save_file(texts, f"{OUTPUT_DIR}/docs.json")
+
+    texts_token_counts: List[int] = count_tokens(
+        embed_model, texts, prevent_total=True)
+    docs = [{
+        "id": doc["id"],
+        "posted_date": doc["posted_date"],
+        "link": doc["link"],
+        "num_tokens": num_tokens,
+        "text": text,
+    } for text, num_tokens, doc in zip(texts, texts_token_counts, data)]
+    save_file(docs, f"{OUTPUT_DIR}/docs.json")
 
     tokenizer = get_tokenizer_fn(embed_model)
     chunks = chunk_docs_by_hierarchy(
@@ -94,7 +104,7 @@ if __name__ == "__main__":
 
     texts_to_search = [
         "\n".join([
-            chunk["parent_header"] or "",
+            # chunk["parent_header"] or "",
             chunk["header"],
             chunk["content"]
         ]).strip()
@@ -122,6 +132,7 @@ if __name__ == "__main__":
         mapped_chunk = {
             "rank": result["rank"],
             "score": result["score"],
+            "matches": result["matches"],
             **chunk,
         }
         mapped_chunks_with_scores.append(mapped_chunk)
@@ -177,3 +188,11 @@ if __name__ == "__main__":
         "query": query,
         "results": mapped_docs_with_scores[:20]
     }, f"{OUTPUT_DIR}/final_results_top_20.json")
+
+    high_score_results = [
+        doc for doc in mapped_docs_with_scores if doc["score"] >= 0.7]
+    save_file({
+        "query": query,
+        "count": len(high_score_results),
+        "results": high_score_results
+    }, f"{OUTPUT_DIR}/final_results_high_scores.json")
