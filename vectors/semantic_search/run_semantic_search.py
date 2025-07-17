@@ -169,6 +169,8 @@ if __name__ == "__main__":
 
     save_file({
         "query": query,
+        "seed_keywords": seed_keywords,
+        "model": embed_model,
         "count": len(reranked_results),
         "results": reranked_results
     }, f"{OUTPUT_DIR}/reranked_results.json")
