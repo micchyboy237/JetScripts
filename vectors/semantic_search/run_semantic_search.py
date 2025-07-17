@@ -24,7 +24,7 @@ if __name__ == "__main__":
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
     chunk_size = 300
-    query = "React.js web"
+    query = "React.js web with Python AI development"
     top_k = None
     system = None
     batch_size = 32
