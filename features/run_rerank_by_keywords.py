@@ -36,7 +36,7 @@ if __name__ == '__main__':
         embed_model=embed_model,
         ids=ids,
         top_n=10,
-        candidates=seed_keywords,
+        # candidates=candidates,
         seed_keywords=seed_keywords,
         min_count=1,
         # use_mmr=True,
