@@ -16,7 +16,11 @@ from shared.data_types.job import JobData
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
+
+def format_sub_dir(text: str) -> str:
+    return text.lower().strip('.,!?').replace(' ', '_').replace('.', '_').replace(',', '_').replace('!', '_').replace('?', '_').strip()
+
 
 if __name__ == "__main__":
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
@@ -24,10 +28,14 @@ if __name__ == "__main__":
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
     chunk_size = 300
-    query = "React.js web with Python AI development"
+    # query = "React.js web with Python AI development"
+    query = "React Native"
     top_k = None
     system = None
     batch_size = 32
+
+    sub_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
+    shutil.rmtree(sub_dir, ignore_errors=True)
 
     doc_ids = [d["id"] for d in data]
     texts = []
@@ -82,15 +90,16 @@ if __name__ == "__main__":
         "num_tokens": num_tokens,
         "text": text,
     } for text, num_tokens, doc in zip(texts, texts_token_counts, data)]
-    save_file(docs, f"{OUTPUT_DIR}/docs.json")
+    save_file(docs, f"{sub_dir}/docs.json")
 
     tokenizer = get_tokenizer_fn(embed_model)
     chunks = chunk_docs_by_hierarchy(
         texts, chunk_size, tokenizer, ids=doc_ids)
-    save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
+    save_file(chunks, f"{sub_dir}/chunks.json")
 
     texts_to_search = [
         "\n".join([
+            chunk["parent_header"] or "",
             chunk["header"],
             chunk["content"]
         ]).strip()
@@ -106,7 +115,7 @@ if __name__ == "__main__":
         "candidates": query_candidates,
         "count": len(search_results),
         "results": search_results
-    }, f"{OUTPUT_DIR}/search_results.json")
+    }, f"{sub_dir}/search_results.json")
 
     mapped_chunks_with_scores = []
     chunk_dict = {chunk["id"]: chunk for chunk in chunks}
@@ -131,7 +140,7 @@ if __name__ == "__main__":
         "query": query,
         "count": len(mapped_chunks_with_scores),
         "results": mapped_chunks_with_scores
-    }, f"{OUTPUT_DIR}/chunks_with_scores.json")
+    }, f"{sub_dir}/chunks_with_scores.json")
 
     doc_scores = defaultdict(list)
     data_dict = {d["id"]: d for d in data}
@@ -162,7 +171,7 @@ if __name__ == "__main__":
             f"Doc ID: {doc_id}, Query Max Scores: {dict(query_max_scores)}, Final Score: {final_score}")
         if final_score == 0:
             logger.warning(f"Final score is 0 for doc {doc_id}")
-        # Use the chunk with the highest original score for rank and metadata
+        # Use the chunk with the highest original score for metadata
         best_chunk = max(chunks, key=lambda c: c["score"])
         doc = data_dict.get(doc_id, {})
         merged_metadata = {}
@@ -173,32 +182,40 @@ if __name__ == "__main__":
         # Store individual query scores in metadata
         merged_metadata["query_scores"] = dict(query_max_scores)
         mapped_doc = {
-            "rank": best_chunk["rank"],
             "score": final_score,
             **doc,
             "metadata": merged_metadata,
         }
         mapped_docs_with_scores.append(mapped_doc)
-    mapped_docs_with_scores.sort(key=lambda d: (-d["score"], d["rank"]))
+
+    # Sort by score (descending) and original chunk rank as tiebreaker for stability
+    mapped_docs_with_scores.sort(key=lambda d: (-d["score"], d.get("id", "")))
+    # Assign sequential ranks starting from 1
+    for rank, doc in enumerate(mapped_docs_with_scores, 1):
+        doc["rank"] = rank
+
+    # Log the final ranks and scores for verification
     logger.debug(
-        f"Top 5 mapped docs: {[{'id': d['id'], 'score': d['score'], 'query_scores': d['metadata']['query_scores']} for d in mapped_docs_with_scores[:5]]}")
+        f"Final mapped docs: {[{'id': d['id'], 'rank': d['rank'], 'score': d['score'], 'query_scores': d['metadata']['query_scores']} for d in mapped_docs_with_scores[:5]]}")
+
+    # Save results to files
     save_file({
         "query": query,
         "count": len(mapped_docs_with_scores),
         "results": mapped_docs_with_scores
-    }, f"{OUTPUT_DIR}/final_results.json")
+    }, f"{sub_dir}/final_results.json")
     save_file({
         "query": query,
         "results": mapped_docs_with_scores[:10]
-    }, f"{OUTPUT_DIR}/final_results_top_10.json")
+    }, f"{sub_dir}/final_results_top_10.json")
     save_file({
         "query": query,
         "results": mapped_docs_with_scores[:20]
-    }, f"{OUTPUT_DIR}/final_results_top_20.json")
+    }, f"{sub_dir}/final_results_top_20.json")
     high_score_results = [
         doc for doc in mapped_docs_with_scores if doc["score"] >= 0.7]
     save_file({
         "query": query,
         "count": len(high_score_results),
         "results": high_score_results
-    }, f"{OUTPUT_DIR}/final_results_high_scores.json")
+    }, f"{sub_dir}/final_results_high_scores.json")

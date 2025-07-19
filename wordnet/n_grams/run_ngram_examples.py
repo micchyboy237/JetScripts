@@ -31,7 +31,8 @@ from jet.wordnet.n_grams import (
 )
 import logging
 
-from jet.wordnet.pos_tagger import POSTagger
+# from jet.wordnet.pos_tagger import POSTagger
+from jet.wordnet.pos_tagger_light import POSTagger
 from jet.wordnet.words import get_words
 
 # Configure logging
