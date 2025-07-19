@@ -1,7 +1,7 @@
 from collections import defaultdict
 import os
 import shutil
-from typing import Optional, TypedDict, List
+from typing import Dict, Optional, TypedDict, List
 import numpy as np
 from jet.logger import logger
 from jet.vectors.semantic_search.base import vector_search
@@ -20,6 +20,77 @@ OUTPUT_DIR = os.path.join(
 
 def format_sub_dir(text: str) -> str:
     return text.lower().strip('.,!?').replace(' ', '_').replace('.', '_').replace(',', '_').replace('!', '_').replace('?', '_').strip()
+
+
+def aggregate_doc_scores(
+    chunks: List[dict],
+    data_dict: Dict[str, dict],
+    query_candidates: List[str]
+) -> List[dict]:
+    """Aggregate chunk scores into document scores and normalize by query candidate count."""
+    doc_scores = defaultdict(list)
+    for chunk in chunks:
+        doc_id = chunk.get("doc_id")
+        if doc_id is not None:
+            doc_scores[doc_id].append(chunk)
+            logger.debug(
+                f"Added chunk {chunk['id']} to doc {doc_id}, query_scores={chunk['metadata']['query_scores']}")
+
+    mapped_docs_with_scores = []
+    for doc_id, chunks in doc_scores.items():
+        query_max_scores = defaultdict(float)
+        all_matches = []
+        for chunk in chunks:
+            query_scores = chunk.get("metadata", {}).get("query_scores", {})
+            logger.debug(
+                f"Doc ID: {doc_id}, Chunk ID: {chunk.get('id')}, Query Scores: {query_scores}")
+            if not query_scores:
+                logger.warning(
+                    f"No query_scores found for chunk {chunk.get('id')} in doc {doc_id}")
+            for query_term, score in query_scores.items():
+                query_max_scores[query_term] = max(
+                    query_max_scores[query_term], score)
+            matches = chunk.get("matches", [])
+            if matches:
+                all_matches.extend(matches)
+
+        # Sort matches by start_idx, then by descending end_idx
+        all_matches.sort(key=lambda m: (m["start_idx"], -m["end_idx"]))
+
+        # Normalize final score by query candidates count
+        final_score = sum(query_max_scores.values()) / \
+            len(query_candidates) if query_candidates else 0
+        logger.debug(
+            f"Doc ID: {doc_id}, Query Max Scores: {dict(query_max_scores)}, Final Score: {final_score}")
+        if final_score == 0:
+            logger.warning(f"Final score is 0 for doc {doc_id}")
+
+        best_chunk = max(chunks, key=lambda c: c["score"])
+        doc = data_dict.get(doc_id, {})
+        merged_metadata = {}
+        doc_metadata = doc.get("metadata", {})
+        chunk_metadata = best_chunk.get("metadata", {})
+        merged_metadata.update(doc_metadata)
+        merged_metadata.update(chunk_metadata)
+        merged_metadata["query_scores"] = dict(query_max_scores)
+
+        mapped_doc = {
+            "score": final_score,
+            **doc,
+            "metadata": merged_metadata,
+            "matches": all_matches,
+        }
+        mapped_docs_with_scores.append(mapped_doc)
+
+    mapped_docs_with_scores.sort(key=lambda d: (-d["score"], d.get("id", "")))
+    for rank, doc in enumerate(mapped_docs_with_scores, 1):
+        reordered_doc = {
+            "rank": rank,
+            **{k: v for k, v in doc.items()}
+        }
+        mapped_docs_with_scores[rank - 1] = reordered_doc
+
+    return mapped_docs_with_scores
 
 
 if __name__ == "__main__":
@@ -133,7 +204,6 @@ if __name__ == "__main__":
             "score": result["score"],
             "matches": result["matches"],
             **chunk,
-            # Explicitly copy query_scores
             "metadata": {"query_scores": query_scores, **chunk["metadata"]},
         }
         mapped_chunks_with_scores.append(mapped_chunk)
@@ -143,75 +213,19 @@ if __name__ == "__main__":
         "results": mapped_chunks_with_scores
     }, f"{sub_dir}/chunks_with_scores.json")
 
-    doc_scores = defaultdict(list)
+    # Initialize data_dict before calling aggregate_doc_scores
     data_dict = {d["id"]: d for d in data}
-    for chunk in mapped_chunks_with_scores:
-        doc_id = chunk.get("doc_id")
-        if doc_id is not None:
-            doc_scores[doc_id].append(chunk)
-            logger.debug(
-                f"Added chunk {chunk['id']} to doc {doc_id}, query_scores={chunk['metadata']['query_scores']}")
+    logger.debug(f"Initialized data_dict with {len(data_dict)} documents")
 
-    mapped_docs_with_scores = []
-    for doc_id, chunks in doc_scores.items():
-        # Aggregate max score for each query term across chunks
-        query_max_scores = defaultdict(float)
-        all_matches = []
-        for chunk in chunks:
-            query_scores = chunk.get("metadata", {}).get("query_scores", {})
-            logger.debug(
-                f"Doc ID: {doc_id}, Chunk ID: {chunk.get('id')}, Query Scores: {query_scores}")
-            if not query_scores:
-                logger.warning(
-                    f"No query_scores found for chunk {chunk.get('id')} in doc {doc_id}")
-            for query_term, score in query_scores.items():
-                query_max_scores[query_term] = max(
-                    query_max_scores[query_term], score)
-            # Collect all matches from all chunks for this doc
-            matches = chunk.get("matches", [])
-            if matches:
-                all_matches.extend(matches)
-        # Sum the max scores for the final document score
-        final_score = sum(query_max_scores.values())
-        logger.debug(
-            f"Doc ID: {doc_id}, Query Max Scores: {dict(query_max_scores)}, Final Score: {final_score}")
-        if final_score == 0:
-            logger.warning(f"Final score is 0 for doc {doc_id}")
-        # Use the chunk with the highest original score for metadata
-        best_chunk = max(chunks, key=lambda c: c["score"])
-        doc = data_dict.get(doc_id, {})
-        merged_metadata = {}
-        doc_metadata = doc.get("metadata", {})
-        chunk_metadata = best_chunk.get("metadata", {})
-        merged_metadata.update(doc_metadata)
-        merged_metadata.update(chunk_metadata)
-        # Store individual query scores in metadata
-        merged_metadata["query_scores"] = dict(query_max_scores)
-        mapped_doc = {
-            "score": final_score,
-            **doc,
-            "metadata": merged_metadata,
-            "matches": all_matches,  # Include all matches from all chunks
-        }
-        mapped_docs_with_scores.append(mapped_doc)
+    # Call aggregate_doc_scores with debug logging
+    logger.debug(
+        f"Calling aggregate_doc_scores with {len(mapped_chunks_with_scores)} chunks and {len(query_candidates)} query candidates")
+    mapped_docs_with_scores = aggregate_doc_scores(
+        mapped_chunks_with_scores, data_dict, query_candidates)
+    logger.debug(f"Aggregated {len(mapped_docs_with_scores)} documents")
 
-    # Sort by score (descending) and original chunk rank as tiebreaker for stability
-    mapped_docs_with_scores.sort(key=lambda d: (-d["score"], d.get("id", "")))
-    # Assign sequential ranks starting from 1
-    for rank, doc in enumerate(mapped_docs_with_scores, 1):
-        # Rebuild dict with 'rank' at the top
-        reordered_doc = {
-            "rank": rank,
-            # Add any additional fields from `doc` that aren't already included
-            **{k: v for k, v in doc.items()}
-        }
-        mapped_docs_with_scores[rank - 1] = reordered_doc
-
-    # Log the final ranks and scores for verification
     logger.debug(
         f"Final mapped docs: {[{'id': d['id'], 'rank': d['rank'], 'score': d['score'], 'query_scores': d['metadata']['query_scores'], 'matches_count': len(d.get('matches', []))} for d in mapped_docs_with_scores[:5]]}")
-
-    # Save results to files
     save_file({
         "query": query,
         "count": len(mapped_docs_with_scores),
