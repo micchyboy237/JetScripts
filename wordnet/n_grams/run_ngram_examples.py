@@ -168,6 +168,5 @@ if __name__ == "__main__":
     )
 
     # Use nwise to generate sliding window n-grams
-    words = texts[0].lower().split()
-    nwise_ngrams = [" ".join(ngram) for ngram in nwise(words, n=2)]
+    nwise_ngrams = [" ".join(ngram) for ngram in nwise(texts[0].lower(), n=2)]
     save_file(nwise_ngrams, f"{output_dir}/nwise_ngrams.json")
