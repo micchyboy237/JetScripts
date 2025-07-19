@@ -108,6 +108,7 @@ if __name__ == "__main__":
     chunk_ids = [chunk["id"] for chunk in chunks]
     chunk_metadatas = [chunk["metadata"] for chunk in chunks]
     query_candidates = extract_query_candidates(query)
+    save_file(query_candidates, f"{sub_dir}/query_candidates.json")
     search_results = vector_search(
         query_candidates, texts_to_search, embed_model, top_k=top_k, ids=chunk_ids, metadatas=chunk_metadatas, batch_size=batch_size)
     save_file({
@@ -155,6 +156,7 @@ if __name__ == "__main__":
     for doc_id, chunks in doc_scores.items():
         # Aggregate max score for each query term across chunks
         query_max_scores = defaultdict(float)
+        all_matches = []
         for chunk in chunks:
             query_scores = chunk.get("metadata", {}).get("query_scores", {})
             logger.debug(
@@ -165,6 +167,10 @@ if __name__ == "__main__":
             for query_term, score in query_scores.items():
                 query_max_scores[query_term] = max(
                     query_max_scores[query_term], score)
+            # Collect all matches from all chunks for this doc
+            matches = chunk.get("matches", [])
+            if matches:
+                all_matches.extend(matches)
         # Sum the max scores for the final document score
         final_score = sum(query_max_scores.values())
         logger.debug(
@@ -185,6 +191,7 @@ if __name__ == "__main__":
             "score": final_score,
             **doc,
             "metadata": merged_metadata,
+            "matches": all_matches,  # Include all matches from all chunks
         }
         mapped_docs_with_scores.append(mapped_doc)
 
@@ -192,11 +199,17 @@ if __name__ == "__main__":
     mapped_docs_with_scores.sort(key=lambda d: (-d["score"], d.get("id", "")))
     # Assign sequential ranks starting from 1
     for rank, doc in enumerate(mapped_docs_with_scores, 1):
-        doc["rank"] = rank
+        # Rebuild dict with 'rank' at the top
+        reordered_doc = {
+            "rank": rank,
+            # Add any additional fields from `doc` that aren't already included
+            **{k: v for k, v in doc.items()}
+        }
+        mapped_docs_with_scores[rank - 1] = reordered_doc
 
     # Log the final ranks and scores for verification
     logger.debug(
-        f"Final mapped docs: {[{'id': d['id'], 'rank': d['rank'], 'score': d['score'], 'query_scores': d['metadata']['query_scores']} for d in mapped_docs_with_scores[:5]]}")
+        f"Final mapped docs: {[{'id': d['id'], 'rank': d['rank'], 'score': d['score'], 'query_scores': d['metadata']['query_scores'], 'matches_count': len(d.get('matches', []))} for d in mapped_docs_with_scores[:5]]}")
 
     # Save results to files
     save_file({
