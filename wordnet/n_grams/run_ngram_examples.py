@@ -94,8 +94,8 @@ if __name__ == "__main__":
     )
     shutil.rmtree(output_dir, ignore_errors=True)
 
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/vectors/semantic_search/generated/run_semantic_search/chunks.json"
-    chunks: List[DocChunkResult] = load_file(docs_file)[:50]
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/vectors/semantic_search/generated/run_semantic_search/react_native/search_results.json"
+    chunks: List[DocChunkResult] = load_file(docs_file)["results"][:50]
     # markdown_tokens = parse_markdown(
     #     docs_file, merge_headers=False, merge_contents=True, ignore_links=False)
     # texts: List[str] = [d["content"] for d in markdown_tokens]
