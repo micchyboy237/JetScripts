@@ -1,5 +1,6 @@
 from jet.code.markdown_utils._markdown_parser import parse_markdown
 from jet.models.embeddings.chunking import DocChunkResult
+from jet.wordnet.keywords.helpers import preprocess_texts
 from jet.wordnet.lemmatizer import lemmatize_text
 from jet.search.formatters import clean_string
 from jet.scrapers.utils import clean_newlines, clean_punctuations, clean_spaces
@@ -41,50 +42,6 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-
-def preprocess_texts(texts: str | list[str]) -> list[str]:
-    from tqdm import tqdm
-    from nltk.corpus import stopwords
-    import nltk
-
-    # Download stopwords if not already downloaded
-    try:
-        nltk.data.find('corpora/stopwords')
-    except LookupError:
-        nltk.download('stopwords')
-
-    if isinstance(texts, str):
-        texts = [texts]
-
-    # Lowercase
-    # texts = [text.lower() for text in texts]
-    preprocessed_texts: list[str] = texts.copy()
-    stop_words = set(stopwords.words('english'))
-
-    tagger = POSTagger()
-
-    for idx, text in enumerate(tqdm(preprocessed_texts, desc="Preprocessing texts")):
-        # Filter words by tags not in includes_pos
-        includes_pos = ["PROPN", "NOUN", "VERB", "ADJ", "ADV"]
-        pos_results = tagger.filter_pos(text, includes_pos)
-        filtered_text = [pos_result['word'] for pos_result in pos_results]
-        text = " ".join(filtered_text).lower()
-
-        text = clean_newlines(text, max_newlines=1)
-        text = clean_punctuations(text)
-        text = clean_spaces(text)
-        text = clean_string(text)
-
-        # Remove stopwords
-        words = get_words(text)
-        filtered_words = [
-            word for word in words if word.lower() not in stop_words]
-        text = ' '.join(filtered_words)
-
-        preprocessed_texts[idx] = text
-
-    return preprocessed_texts
 
 
 if __name__ == "__main__":
