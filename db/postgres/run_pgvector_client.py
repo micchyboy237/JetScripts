@@ -45,14 +45,14 @@ with PgVectorClient(
             "metadata": "example metadata",
             "score": 95.5,
             "is_active": True,
-            "details": {"key1": "value1", "key2": {"nested_key": 42}}
+            "details": {"key1": "value1", "key2": {"nested_key": 42}},
+            "custom_field": "test_value"  # Added to test flexible TableRow
         }
-        single_row_id = client.create_row(TABLE_NAME, single_row_data)
+        single_row = client.create_row(TABLE_NAME, single_row_data)
         logger.newline()
-        logger.debug(f"Created single row ID:")
-        logger.success(f"{single_row_id}")
-        save_file(single_row_data | {"id": single_row_id},
-                  f"{OUTPUT_DIR}/created_single_row.json")
+        logger.debug(f"Created single row:")
+        logger.success(f"{single_row}")
+        save_file(single_row, f"{OUTPUT_DIR}/created_single_row.json")
 
         # Example: Create multiple rows with embeddings, additional columns, and nested dicts
         multiple_rows_data = [
@@ -61,16 +61,17 @@ with PgVectorClient(
                 "metadata": f"row_{i}",
                 "score": 90.0 + i,
                 "is_active": i % 2 == 0,
-                "details": {"index": i, "data": {"value": f"test_{i}"}}
+                "details": {"index": i, "data": {"value": f"test_{i}"}},
+                # Added to test flexible TableRow
+                "custom_field": f"custom_{i}"
             } for i in range(3)
         ]
-        multiple_row_ids = client.create_rows(TABLE_NAME, multiple_rows_data)
+        multiple_rows = client.create_rows(TABLE_NAME, multiple_rows_data)
         logger.newline()
-        logger.debug(f"Created multiple row IDs:")
-        logger.success(f"{multiple_row_ids}")
+        logger.debug(f"Created multiple rows:")
+        logger.success(f"{multiple_rows}")
         save_file(
-            [{"id": id, **row}
-                for id, row in zip(multiple_row_ids, multiple_rows_data)],
+            multiple_rows,
             f"{OUTPUT_DIR}/created_multiple_rows.json"
         )
 
@@ -201,17 +202,16 @@ with PgVectorClient(
             "details": {"key1": "value1", "key2": {"nested_key": 42}},
             "custom_field": "test_value"  # Added to test flexible TableRow
         }
-        single_row_id = client.create_row(TABLE_NAME, single_row_data)
+        single_row = client.create_row(TABLE_NAME, single_row_data)
         logger.newline()
-        logger.debug(f"Created single row ID:")
-        logger.success(f"{single_row_id}")
-        save_file(single_row_data | {"id": single_row_id},
-                  f"{OUTPUT_DIR}/created_single_row.json")
+        logger.debug(f"Created single row:")
+        logger.success(f"{single_row}")
+        save_file(single_row, f"{OUTPUT_DIR}/created_single_row.json")
 
         # Example: Retrieve single row by ID
-        retrieved_row = client.get_row(TABLE_NAME, single_row_id)
+        retrieved_row = client.get_row(TABLE_NAME, single_row["id"])
         logger.newline()
-        logger.debug(f"Retrieved single row for ID {single_row_id}:")
+        logger.debug(f"Retrieved single row for ID {single_row['id']}:")
         logger.success(f"{retrieved_row}")
         save_file(retrieved_row, f"{OUTPUT_DIR}/retrieved_single_row.json")
 
@@ -227,13 +227,12 @@ with PgVectorClient(
                 "custom_field": f"custom_{i}"
             } for i in range(3)
         ]
-        multiple_row_ids = client.create_rows(TABLE_NAME, multiple_rows_data)
+        multiple_rows = client.create_rows(TABLE_NAME, multiple_rows_data)
         logger.newline()
-        logger.debug(f"Created multiple row IDs:")
-        logger.success(f"{multiple_row_ids}")
+        logger.debug(f"Created multiple rows:")
+        logger.success(f"{multiple_rows}")
         save_file(
-            [{"id": id, **row}
-                for id, row in zip(multiple_row_ids, multiple_rows_data)],
+            multiple_rows,
             f"{OUTPUT_DIR}/created_multiple_rows.json"
         )
 
@@ -252,7 +251,8 @@ with PgVectorClient(
         )
 
         # Example: Retrieve filtered rows by IDs (excluding embedding)
-        selected_ids = [single_row_id, multiple_row_ids[0], "non_existent_id"]
+        selected_ids = [single_row["id"],
+                        multiple_rows[0]["id"], "non_existent_id"]
         filtered_rows = client.get_rows(TABLE_NAME, ids=selected_ids)
         logger.newline()
         logger.debug(f"Filtered rows for IDs {selected_ids}:")
