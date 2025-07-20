@@ -208,6 +208,23 @@ with PgVectorClient(
         logger.success(f"{single_row}")
         save_file(single_row, f"{OUTPUT_DIR}/created_single_row.json")
 
+        # Example: Update a single row with new values
+        updated_single_row_data = {
+            "id": single_row["id"],
+            "embedding": np.random.rand(EMBEDDING_DIM).tolist(),
+            "metadata": "updated metadata",
+            "score": 98.0,
+            "is_active": False,
+            "details": {"key1": "updated_value1", "key2": {"nested_key": 100}},
+            "custom_field": "updated_test_value"
+        }
+        updated_single_row = client.update_row(
+            TABLE_NAME, single_row["id"], updated_single_row_data)
+        logger.newline()
+        logger.debug(f"Updated single row for ID {single_row['id']}:")
+        logger.success(f"{updated_single_row}")
+        save_file(updated_single_row, f"{OUTPUT_DIR}/updated_single_row.json")
+
         # Example: Retrieve single row by ID
         retrieved_row = client.get_row(TABLE_NAME, single_row["id"])
         logger.newline()
@@ -234,6 +251,28 @@ with PgVectorClient(
         save_file(
             multiple_rows,
             f"{OUTPUT_DIR}/created_multiple_rows.json"
+        )
+
+        # Example: Update multiple rows with new values
+        updated_multiple_rows_data = [
+            {
+                "id": row["id"],
+                "embedding": np.random.rand(EMBEDDING_DIM).tolist(),
+                "metadata": f"updated_row_{i}",
+                "score": 95.0 + i,
+                "is_active": (i % 2 != 0),
+                "details": {"index": i, "data": {"value": f"updated_test_{i}"}},
+                "custom_field": f"updated_custom_{i}"
+            } for i, row in enumerate(multiple_rows)
+        ]
+        updated_multiple_rows = client.update_rows(
+            TABLE_NAME, updated_multiple_rows_data)
+        logger.newline()
+        logger.debug(f"Updated multiple rows:")
+        logger.success(f"{updated_multiple_rows}")
+        save_file(
+            updated_multiple_rows,
+            f"{OUTPUT_DIR}/updated_multiple_rows.json"
         )
 
         # Example: Retrieve all rows (excluding embedding)
