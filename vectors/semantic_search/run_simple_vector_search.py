@@ -1,5 +1,12 @@
+import os
+import shutil
+from jet.file.utils import save_file
+from jet.logger.config import colorize_log
 from jet.vectors.semantic_search.vector_search_simple import VectorSearch
 
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == "__main__":
     # Real-world demonstration
@@ -7,17 +14,17 @@ if __name__ == "__main__":
 
     # Same sample documents
     sample_docs = [
-        "## Keywords\n- React.js\n- AWS\n- React Native\n- Node.js",
-        "## Technology Stack\n- React Native\n- React.js",
-        "## Keywords\n- React.js",
-        "## Technology Stack\n- React.js",
+        "Work From Home",
+        "WFH",
+        "Remote",
+        "Office based",
     ]
 
     search_engine.add_documents(sample_docs)
 
     # Same example queries
     queries = [
-        "React Native",
+        "work from home",
     ]
 
     for query in queries:
@@ -25,5 +32,12 @@ if __name__ == "__main__":
         print(f"\nQuery: {query}")
         print("Top matches:")
         for num, (doc, score) in enumerate(results, 1):
-            print(f"\n{num}. (Score: {score:.3f})")
+            print(f"\n{colorize_log(f"{num}.", "ORANGE")} (Score: {
+                  colorize_log(f"{score:.3f}", "SUCCESS")})")
             print(f"{doc}")
+
+    save_file({
+        "query": query,
+        "count": len(results),
+        "results": results
+    }, f"{OUTPUT_DIR}/results.json")
