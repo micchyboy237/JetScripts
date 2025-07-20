@@ -197,7 +197,7 @@ def merge_similar_docs(embeddings: List[Dict], similarity_threshold: float = 0.8
                 "doc_index": doc.get("doc_index", None)
             })
     save_file(merge_info, f"{OUTPUT_DIR}/merged_docs.json")
-    return mergedef_docs, merge_info
+    return merged_docs, merge_info
 
 
 def preprocess_text(
