@@ -182,7 +182,7 @@ def main():
             cleaned_rel_path = remove_parent_paths(rel_path)
 
             prefix = (
-                f"\n// {cleaned_rel_path}\n" if not filenames_only else f"{file}\n")
+                f"\n# {cleaned_rel_path}\n" if not filenames_only else f"{file}\n")
             if filenames_only:
                 clipboard_content += f"{prefix}"
             else:
