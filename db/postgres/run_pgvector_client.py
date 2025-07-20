@@ -185,12 +185,12 @@ with PgVectorClient(
         save_file(embedding_ids, f"{OUTPUT_DIR}/updated_embedding_ids.json")
 
         query_embedding = np.random.rand(EMBEDDING_DIM).tolist()
-        similar_embeddings = client.search_similar(
+        search_results = client.search(
             TABLE_NAME, query_embedding, top_k=3)
         logger.newline()
         logger.debug(f"Top 3 similar embeddings:")
-        logger.success(similar_embeddings)
-        save_file(similar_embeddings, f"{OUTPUT_DIR}/similar_embeddings.json")
+        logger.success(search_results)
+        save_file(search_results, f"{OUTPUT_DIR}/search_results.json")
 
         # Example: Create a single row with embedding, metadata, and nested dict
         single_row_data = {

@@ -73,7 +73,7 @@ if __name__ == '__main__':
         port=DEFAULT_PORT,
     ) as client:
         try:
-            similar_vectors = client.search_similar(
+            similar_vectors = client.search(
                 tablename, query_vector, top_k=top_k)
 
             results: list[SearchResult] = [
