@@ -22,8 +22,10 @@ if __name__ == "__main__":
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
     data: list[JobData] = load_file(data_file)
     data = data[:30]
-    embed_model: EmbedModelType = "mxbai-embed-large"
+
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
+    embed_model: EmbedModelType = "mxbai-embed-large"
+    dimensions = 512
     chunk_size = 300
     query = "React.js web with Python AI development"
     top_k = None
@@ -94,7 +96,7 @@ if __name__ == "__main__":
     chunk_metadatas = [chunk["metadata"] for chunk in chunks]
     query_candidates = extract_query_candidates(query)
     search_results = vector_search(
-        query_candidates, texts_to_search, embed_model, top_k=top_k, ids=chunk_ids, metadatas=chunk_metadatas, batch_size=batch_size)
+        query_candidates, texts_to_search, embed_model, top_k=top_k, ids=chunk_ids, metadatas=chunk_metadatas, batch_size=batch_size, truncate_dim=dimensions)
     save_file({
         "query": query,
         "candidates": query_candidates,
