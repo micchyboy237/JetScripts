@@ -7,7 +7,8 @@ TABLE_NAME = "embeddings"
 VECTOR_DIM = 3
 
 with PgVectorClient(
-    dbname="vector_db1"
+    dbname="vector_db1",
+    overwrite_db=True,
 ) as client:
     try:
         # Clear data
@@ -70,9 +71,9 @@ with PgVectorClient(
 
         # Insert multiple vectors with predefined IDs
         specific_vectors = {
-            "vec-1": np.random.rand(VECTOR_DIM).tolist(),
-            "vec-2": np.random.rand(VECTOR_DIM).tolist(),
-            "vec-3": np.random.rand(VECTOR_DIM).tolist(),
+            "vec-1": np.random.rand(VECTOR_DIM),
+            "vec-2": np.random.rand(VECTOR_DIM),
+            "vec-3": np.random.rand(VECTOR_DIM),
         }
         client.insert_vector_by_ids(TABLE_NAME, specific_vectors)
         logger.newline()
