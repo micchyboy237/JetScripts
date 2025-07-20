@@ -39,6 +39,41 @@ with PgVectorClient(
         save_file(table_metadata,
                   f"{OUTPUT_DIR}/table_metadata_after_creation.json")
 
+        # Example: Create a single row with embedding, metadata, and nested dict
+        single_row_data = {
+            "embedding": np.random.rand(EMBEDDING_DIM).tolist(),
+            "metadata": "example metadata",
+            "score": 95.5,
+            "is_active": True,
+            "details": {"key1": "value1", "key2": {"nested_key": 42}}
+        }
+        single_row_id = client.create_row(TABLE_NAME, single_row_data)
+        logger.newline()
+        logger.debug(f"Created single row ID:")
+        logger.success(f"{single_row_id}")
+        save_file(single_row_data | {"id": single_row_id},
+                  f"{OUTPUT_DIR}/created_single_row.json")
+
+        # Example: Create multiple rows with embeddings, additional columns, and nested dicts
+        multiple_rows_data = [
+            {
+                "embedding": np.random.rand(EMBEDDING_DIM).tolist(),
+                "metadata": f"row_{i}",
+                "score": 90.0 + i,
+                "is_active": i % 2 == 0,
+                "details": {"index": i, "data": {"value": f"test_{i}"}}
+            } for i in range(3)
+        ]
+        multiple_row_ids = client.create_rows(TABLE_NAME, multiple_rows_data)
+        logger.newline()
+        logger.debug(f"Created multiple row IDs:")
+        logger.success(f"{multiple_row_ids}")
+        save_file(
+            [{"id": id, **row}
+                for id, row in zip(multiple_row_ids, multiple_rows_data)],
+            f"{OUTPUT_DIR}/created_multiple_rows.json"
+        )
+
         embedding = np.random.rand(EMBEDDING_DIM).tolist()
         embedding_id = client.insert_embedding(TABLE_NAME, embedding)
         logger.newline()
@@ -119,7 +154,7 @@ with PgVectorClient(
         }
         specific_embeddings_list = {k: v.tolist() if hasattr(
             v, "tolist") else v for k, v in specific_embeddings.items()}
-        client.insert_embedding_by_ids(TABLE_NAME, specific_embeddings_list)
+        client.insert_embeddings_by_ids(TABLE_NAME, specific_embeddings_list)
         logger.newline()
         logger.debug(f"Inserted multiple embeddings with specific IDs:")
         logger.success(list(specific_embeddings.keys()))
@@ -157,6 +192,52 @@ with PgVectorClient(
         logger.success(similar_embeddings)
         save_file(similar_embeddings, f"{OUTPUT_DIR}/similar_embeddings.json")
 
+        # Example: Create a single row with embedding, metadata, and nested dict
+        single_row_data = {
+            "embedding": np.random.rand(EMBEDDING_DIM).tolist(),
+            "metadata": "example metadata",
+            "score": 95.5,
+            "is_active": True,
+            "details": {"key1": "value1", "key2": {"nested_key": 42}},
+            "custom_field": "test_value"  # Added to test flexible TableRow
+        }
+        single_row_id = client.create_row(TABLE_NAME, single_row_data)
+        logger.newline()
+        logger.debug(f"Created single row ID:")
+        logger.success(f"{single_row_id}")
+        save_file(single_row_data | {"id": single_row_id},
+                  f"{OUTPUT_DIR}/created_single_row.json")
+
+        # Example: Retrieve single row by ID
+        retrieved_row = client.get_row(TABLE_NAME, single_row_id)
+        logger.newline()
+        logger.debug(f"Retrieved single row for ID {single_row_id}:")
+        logger.success(f"{retrieved_row}")
+        save_file(retrieved_row, f"{OUTPUT_DIR}/retrieved_single_row.json")
+
+        # Example: Create multiple rows with embeddings, additional columns, and nested dicts
+        multiple_rows_data = [
+            {
+                "embedding": np.random.rand(EMBEDDING_DIM).tolist(),
+                "metadata": f"row_{i}",
+                "score": 90.0 + i,
+                "is_active": i % 2 == 0,
+                "details": {"index": i, "data": {"value": f"test_{i}"}},
+                # Added to test flexible TableRow
+                "custom_field": f"custom_{i}"
+            } for i in range(3)
+        ]
+        multiple_row_ids = client.create_rows(TABLE_NAME, multiple_rows_data)
+        logger.newline()
+        logger.debug(f"Created multiple row IDs:")
+        logger.success(f"{multiple_row_ids}")
+        save_file(
+            [{"id": id, **row}
+                for id, row in zip(multiple_row_ids, multiple_rows_data)],
+            f"{OUTPUT_DIR}/created_multiple_rows.json"
+        )
+
+        # Example: Retrieve all rows (excluding embedding)
         all_rows = client.get_rows(TABLE_NAME)
         logger.newline()
         logger.debug(f"All rows in {TABLE_NAME}:")
@@ -165,15 +246,13 @@ with PgVectorClient(
             {
                 "table": TABLE_NAME,
                 "count": len(all_rows),
-                "rows": [
-                    {"id": row["id"], "embedding": row["embedding"].tolist()}
-                    for row in all_rows
-                ]
+                "rows": all_rows  # Directly save all columns except embedding
             },
             f"{OUTPUT_DIR}/all_rows.json"
         )
 
-        selected_ids = [embedding_id, specific_id, "emb-1"]
+        # Example: Retrieve filtered rows by IDs (excluding embedding)
+        selected_ids = [single_row_id, multiple_row_ids[0], "non_existent_id"]
         filtered_rows = client.get_rows(TABLE_NAME, ids=selected_ids)
         logger.newline()
         logger.debug(f"Filtered rows for IDs {selected_ids}:")
@@ -183,10 +262,7 @@ with PgVectorClient(
                 "table": TABLE_NAME,
                 "count": len(filtered_rows),
                 "selected_ids": selected_ids,
-                "rows": [
-                    {"id": row["id"], "embedding": row["embedding"].tolist()}
-                    for row in filtered_rows
-                ]
+                "rows": filtered_rows  # Directly save all columns except embedding
             },
             f"{OUTPUT_DIR}/filtered_rows.json"
         )

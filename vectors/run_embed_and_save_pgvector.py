@@ -164,7 +164,7 @@ if __name__ == '__main__':
             # Insert multiple vectors
             vector_data: dict[str, list[float]] = {
                 item["id"]: item["embedding"] for item in vectors_with_ids}
-            client.insert_vector_by_ids(tablename, vector_data)
+            client.insert_embeddings_by_ids(tablename, vector_data)
         except Exception as e:
             logger.newline()
             logger.error(f"Embed and save failed:")
