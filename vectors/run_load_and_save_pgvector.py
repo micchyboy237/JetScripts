@@ -2,7 +2,7 @@ from typing import Any, TypedDict
 import numpy as np
 
 from jet.db.postgres.pgvector import PgVectorClient
-from jet.db.postgres.pgvector.config import (
+from jet.db.postgres.config import (
     DEFAULT_USER,
     DEFAULT_PASSWORD,
     DEFAULT_HOST,
