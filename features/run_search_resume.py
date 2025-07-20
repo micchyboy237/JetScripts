@@ -130,7 +130,7 @@ def preprocess_text(
     return text
 
 
-def compute_embeddings(chunks: List[ChunkResult], model: SentenceTransformer) -> tuple[np.ndarray, np.ndarray, List[dict]]:
+def compute_embeddings(chunks: List[ChunkResult], embed_model: EmbedModelType) -> tuple[np.ndarray, np.ndarray, List[dict]]:
     """Compute embeddings for header and content separately with file name as metadata."""
     header_texts = []
     content_texts = []
@@ -165,14 +165,14 @@ def cosine_similarity(query_embedding: np.ndarray, chunk_embeddings: np.ndarray)
     return dot_product / norms
 
 
-def search_resume(chunks: List[ChunkResult], query: str, embed_model: EmbedModelType = "all-MiniLM-L12-v2", top_k: int = 5) -> List[SearchResult]:
+def search_resume(chunks: List[ChunkResult], query: str, embed_model: EmbedModelType = "mxbai-embed-large", top_k: int = 5) -> List[SearchResult]:
     """Perform vector search on resume markdown files."""
     # Initialize model
-    model = SentenceTransformerRegistry.load_model(embed_model)
+    SentenceTransformerRegistry.load_model(embed_model)
 
     # Compute embeddings with metadata
     header_embeddings, content_embeddings, metadata = compute_embeddings(
-        chunks, model)
+        chunks, embed_model)
     query_embedding = generate_embeddings(
         [preprocess_text(query)], embed_model, return_format="numpy")[0]
 
@@ -592,20 +592,20 @@ if __name__ == '__main__':
     chunks = get_chunks(original_docs, chunk_size=chunk_size)
     save_file(chunks, f"{output_dir}/chunks.json")
 
-    # # Perform initial vector search
-    # logger.info(f"Performing vector search for query: {query}")
-    # results = search_resume(chunks, query, top_k=20)
-    # save_file(results, f"{output_dir}/search_results.json")
+    # Perform initial vector search
+    logger.info(f"Performing vector search for query: {query}")
+    results = search_resume(chunks, query, top_k=20)
+    save_file(results, f"{output_dir}/search_results.json")
 
     # # Rerank results using cross-encoder
     # logger.info("Reranking search results with cross-encoder")
-    # reranked_results = rerank_results(results, query)
-    # save_file(reranked_results, f"{output_dir}/reranked_results.json")
+    # results = rerank_results(results, query)
+    # save_file(results, f"{output_dir}/reranked_results.json")
 
-    # Perform cross-encoder search
-    logger.info(f"Performing cross-encoder search for query: {query}")
-    results = cross_encoder_search(chunks, query, top_k=20)
-    save_file(results, f"{output_dir}/search_results.json")
+    # # Perform cross-encoder search
+    # logger.info(f"Performing cross-encoder search for query: {query}")
+    # results = cross_encoder_search(chunks, query, top_k=20)
+    # save_file(results, f"{output_dir}/search_results.json")
 
     # Print top results
     for i, result in enumerate(results[:5], 1):

@@ -1,191 +1,207 @@
-# Resume
+# Resume: Jethro Reuel A. Estrada
 
-## Personal Information
+## 📌 Personal Details
 
 - **Full Name**: Jethro Reuel A. Estrada
-- **Preferred Name**: Jethro or Jet
+- **Preferred Name**: Jethro / Jet
 - **Location**: Las Piñas, Metro Manila, Philippines, 1740
-- **Age**: 34
 - **Gender**: Male
 - **Nationality**: Filipino
-- **Birthday**: December 1, 1990
-- **Languages**: English, Tagalog
-- **Education**: BS Degree in Computer Engineering, De La Salle University - Manila (2007 - 2012)
-- **Contact**:
-  - **Email**: [jethroestrada237@gmail.com](mailto:jethroestrada237@gmail.com)
-  - **Phone/WhatsApp**: [+639101662460](https://wa.me/639101662460)
+- **Date of Birth**: December 1, 1990
+- **Languages Spoken**: English, Tagalog
 
-## Professional Summary
+### 🎓 Education
 
-I am a dedicated Frontend Web/Mobile Developer and Full Stack Developer with extensive experience in React, React Native, and Node.js, complemented by proficiency in Firebase, AWS, MongoDB, and PostgreSQL. My focus is on building scalable, performance-oriented, and user-friendly applications. I am committed to contributing to organizational success through continuous learning, high coding standards, and leveraging my diverse technical expertise.
+- **Degree**: BS in Computer Engineering
+- **Institution**: De La Salle University – Manila (2007–2012)
 
-## Skills
+### 📞 Contact Information
 
-### Frontend Technologies
+- **Email**: [jethroestrada237@gmail.com](mailto:jethroestrada237@gmail.com)
+- **Phone / WhatsApp**: +63 910 166 2460 ([WhatsApp Link](https://wa.me/639101662460))
 
-- React
-- React Native
-- Vanilla JavaScript/CSS
-- Expo
-- GraphQL
-- Redux
-- Gatsby
-- TypeScript
+---
 
-### Backend Technologies
+## 🧠 Professional Summary
 
-- Node.js
-- Python
+Experienced **Frontend and Full Stack Developer** specializing in **React**, **React Native**, and **Node.js** with over a decade in building scalable, high-performance web and mobile applications. Adept in **cloud services (AWS, Firebase, GCP)**, **databases (PostgreSQL, MongoDB)**, and test-driven development. Focused on delivering user-centric solutions through clean, maintainable code and agile methodologies.
+
+---
+
+## 🛠️ Core Skills
+
+### Frontend Development
+
+- React, React Native, Expo, TypeScript, Redux, Gatsby, GraphQL, Vanilla JS/CSS
+
+### Backend & APIs
+
+- Node.js, Python
+- RESTful APIs, GraphQL APIs
 
 ### Databases
 
-- PostgreSQL
-- MongoDB
+- PostgreSQL, MongoDB
 
-### Cloud Platforms
+### Cloud & DevOps
 
-- Firebase
-- AWS
-- Google Cloud
+- Firebase, AWS, Google Cloud
+- Serverless, Docker, AWS Lambda
 
-### Development Tools
+### Testing & Automation
 
-- Photoshop
-- Jest (Unit Testing)
-- Cypress (Integration Testing)
-- Selenium (End-to-End Testing)
-- Git
-- Sentry Bug Tracker
-- Android Studio
-- Xcode
-- Fastlane
-- Serverless
-- ChatGPT
+- Jest
 
-## Professional Experience
+### Tools & Frameworks
+
+- Git, Fastlane, Sentry, Android Studio, Xcode
+
+---
+
+## 💼 Work Experience
 
 ### JulesAI (formerly Macanta Software Ltd.)
 
-**Web / Mobile Developer**  
-_Jul 2020 - Present_
+**Position**: Web / Mobile Developer  
+**Duration**: Jul 2020 – Present  
+**Tech Stack**: React, React Native, AWS
 
-- Developed a customizable white-label CRM system tailored to specific business workflows and requirements.
-- Continuously maintained and enhanced the system based on client feedback.
-- **Technologies**: React, React Native, AWS
+- Built white-label CRM platform customized to business workflows.
+- Led continuous maintenance and enhancement cycles based on user feedback.
+- Developed and maintained branded apps during company rebranding from Macanta to JulesAI.
+
+---
 
 ### 8WeekApp
 
-**Web / Mobile Developer**  
-_Jan 2019 - Jun 2020_
+**Position**: Web / Mobile Developer  
+**Duration**: Jan 2019 – Jun 2020  
+**Tech Stack**: React, React Native, Node.js, Firebase, MongoDB
 
-- Built Graduapp, a social networking app for students, parents, teachers, and schools, serving as an online journal for student experiences.
-- **Technologies**: React, React Native, Node.js, Firebase, MongoDB
+- Built “Graduapp,” a social learning app for schools, from scratch.
+- Engineered backend services, real-time feeds, and moderation features.
+
+---
 
 ### ADEC Innovations
 
-**Web / Mobile Developer**  
-_Nov 2016 - Jan 2019_
+**Position**: Web / Mobile Developer  
+**Duration**: Nov 2016 – Jan 2019  
+**Tech Stack**: React, Node.js, React Native, Firebase Firestore, GCP
 
-- Contributed to in-house and outsourced web and mobile application projects.
-- **Technologies**: React, React Native, Node.js, Firebase Firestore, Google Cloud Functions
+- Delivered multiple web/mobile apps for internal and external clients.
+- Used cloud functions and Firebase for real-time operations.
+
+---
 
 ### Asia Pacific Digital
 
-**Web / Mobile App Developer**  
-_Nov 2014 - Sep 2016_
+**Position**: Web / Mobile App Developer  
+**Duration**: Nov 2014 – Sep 2016  
+**Tech Stack**: AngularJS, Ionic, jQuery
 
-- Worked on various web and mobile projects.
-- **Technologies**: AngularJS, Ionic, jQuery
+- Contributed to a suite of mobile-first marketing and e-commerce apps.
+
+---
 
 ### Entertainment Gateway Group (now Yondu)
 
-**Web Developer**  
-_Jun 2012 - Nov 2014_
+**Position**: Web Developer  
+**Duration**: Jun 2012 – Nov 2014  
+**Tech Stack**: Java, JavaScript, jQuery
 
-- Developed features for an insurance web application.
-- **Technologies**: Java, JavaScript, jQuery
+- Implemented features for enterprise insurance web applications.
 
-## Projects
+---
 
-### Mobile Applications
+## 🚀 Notable Projects
 
-#### JABA AI
+### Projects @ JulesAI _(formerly Macanta Software Ltd.)_
 
-**JulesAI**
+#### 📱 JABA AI (Mobile)
 
+- **Role**: Lead Mobile/Web Developer
 - **Achievements**:
-  - Delivered the initial web app version under tight deadlines for an investor demo.
-  - Developed and deployed multiple iOS app versions to the App Store.
-- **Key Features**: Chatbot, TikTok/Instagram/YouTube video responses.
-- **Technologies**: React, React Native, Expo
+  - Delivered initial web version within 3 weeks for investor presentation.
+  - Deployed multiple iOS builds to App Store.
+- **Key Features**: AI chatbot, TikTok/Instagram/YouTube video response generator.
+- **Tech Stack**: React, React Native, Expo
 - **Links**:
-  - Web: [https://jaba.live](https://jaba.live)
-  - iOS: [App Store](https://apps.apple.com/us/app/jaba-ai/id6451218161)
+  - [Web App](https://jaba.live) _(Note: May be deprecated or rebranded)_
+  - [iOS App](https://apps.apple.com/us/app/jaba-ai/id6451218161)
 
-#### Graduapp
+---
 
-**8WeekApp**
+#### 🌐 Jules Procure (Web & Mobile CRM)
 
+- **Role**: Sole Frontend Developer
 - **Achievements**:
-  - Pioneered technology and architecture selection.
-  - Published on iOS and Android with an admin site for school administrators.
-- **Key Features**: Real-time feeds, tagging, comments, gallery, notifications.
-- **Technologies**: React, React Native, Node.js, Firebase, MongoDB, AWS, Redux, Jest
-- **Links**:
-  - Android: [Google Play](https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp)
-  - iOS: [App Store](https://apps.apple.com/us/app/graduapp/id1576401944)
+  - Built enterprise-grade CRM app from Figma mockups to production.
+  - Integrated AI workflows from JulesAI to enable rebranding and feature expansion.
+- **Key Features**: Contact dashboard, data builder, task calendar, workflow boards, form and pricing generators, automated triggers.
+- **Tech Stack**: React, React Native, GraphQL, AWS Lambdas, Serverless, Docker, Jest
+- **Link**:
+  - [Jules Procure](https://www.julesai.com/#procure)
 
-#### EZ Myoma
+---
 
-**ADEC Innovations**
+### Projects @ 8WeekApp
 
+#### 📱 Graduapp (Mobile & Admin Web)
+
+- **Role**: Full Stack Developer
 - **Achievements**:
-  - Developed an iOS and Android app for Zuellig Pharma to track uterine fibroid symptoms.
-  - Enabled doctors to monitor patient progress.
-- **Key Features**: Medication cycle tracking, calendar diary with patient notes, progress charts.
-- **Technologies**: React Native, Redux
+  - Designed and built the app architecture and tech stack.
+  - Deployed mobile apps and a web-based admin dashboard.
+- **Key Features**: Real-time feed, tagging, comments, gallery, push notifications, school admin dashboard.
+- **Tech Stack**: React, React Native, Node.js, Firebase, MongoDB, AWS, Redux, Jest
 - **Links**:
-  - Android: [Google Play](https://play.google.com/store/apps/details?id=com.ezmyoma)
+  - [Google Play](https://play.google.com/store/apps/details?id=com.eightweekapp.graduapp)
+  - [iOS App Store](https://apps.apple.com/us/app/graduapp/id1576401944)
 
-### Web Applications
+---
 
-#### Jules Procure
+### Projects @ ADEC Innovations
 
-**JulesAI**
+#### 📱 EZ Myoma (Mobile)
 
+- **Client**: Zuellig Pharma
+- **Role**: Mobile Developer
 - **Achievements**:
-  - Sole client-side developer, built enterprise web and mobile CRM apps from mockups to production.
-  - Impressed JulesAI CEO, leading to CRM acquisition and rebranding as Jules Procure.
-  - Integrated CRM with JulesAI’s workflow.
-- **Key Features**: Contact dashboard, data builder, task calendar, workflow boards, form builders, price list generator, automated trigger-based emails.
-- **Technologies**: React, React Native, AWS Lambdas, GraphQL, Docker, Serverless, Jest
-- **Links**:
-  - Web: [https://www.julesai.com/#procure](https://www.julesai.com/#procure)
+  - Developed a tracking app for women with uterine fibroids.
+  - Enabled doctors to remotely monitor patient health trends.
+- **Key Features**: Medication cycle tracking, calendar notes, progress tracking charts.
+- **Tech Stack**: React Native, Redux
+- **Link**:
+  - [Google Play](https://play.google.com/store/apps/details?id=com.ezmyoma)
 
-#### Digital Cities PH
+---
 
-**ADEC Innovations**
+#### 🌐 Digital Cities PH (Web)
 
+- **Role**: Lead Frontend Developer
 - **Achievements**:
-  - Led development of a portal showcasing Philippine provinces and cities.
-  - Created an interactive map with clickable regions for detailed descriptions and statistics.
-- **Key Features**: Interactive map, search, filtering, fast loading, SEO-friendly.
-- **Technologies**: React, GraphQL, React Static, Headless CMS
-- **Links**:
-  - Web: [https://www.digitalcitiesph.com](https://www.digitalcitiesph.com)
+  - Delivered a public-facing interactive map portal showcasing Philippine provinces and cities.
+- **Key Features**: Interactive region map, real-time search, filtering, fast load time, SEO optimization.
+- **Tech Stack**: React, GraphQL, React Static, Headless CMS
+- **Link**:
+  - [digitalcitiesph.com](https://www.digitalcitiesph.com)
 
-#### ADEC Kenya, AMDATEX
+---
 
-**ADEC Innovations**
+#### 🌐 ADEC Kenya & AMDATEX Websites
 
+- **Role**: Frontend Developer
 - **Achievements**:
-  - Built pixel-perfect UI components from Photoshop mockups.
-- **Key Features**: Responsive, reusable components.
-- **Technologies**: React, jQuery, WordPress
+  - Translated PSD designs into pixel-perfect, responsive UI components.
+- **Key Features**: Responsive layouts, component reuse across multiple pages.
+- **Tech Stack**: React, jQuery, WordPress
 - **Links**:
-  - Web (ADEC Kenya): [https://www.adec-kenya.com](https://www.adec-kenya.com)
-  - Web (AMDATEX): [https://www.amdatex.com](https://www.amdatex.com)
+  - [ADEC Kenya](https://www.adec-kenya.com)
+  - [AMDATEX](https://www.amdatex.com)
 
-## Notes
+---
 
-- Some portfolio links may be outdated or no longer active.
+## 📝 Notes
+
+> Some portfolio links may no longer be active due to project sunsetting, domain migration, or company rebranding.
