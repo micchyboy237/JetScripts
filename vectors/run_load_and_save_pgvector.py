@@ -67,7 +67,7 @@ if __name__ == '__main__':
                 item["id"]: item["embedding"] for item in vectors_with_ids}
             client.insert_vector_by_ids(tablename, vector_data)
 
-            all_items = client.get_vectors(tablename)
+            all_items = client.get_embeddings(tablename)
             logger.success(f"Done saving {len(all_items)} embeddings!")
 
         except Exception as e:

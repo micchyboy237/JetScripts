@@ -1,16 +1,16 @@
 import os
 import shutil
+import json
 from jet.file.utils import save_file
 from jet.logger import logger
 import numpy as np
 from jet.db.postgres.pgvector import PgVectorClient
 
-# Database configuration
 TABLE_NAME = "embeddings"
-VECTOR_DIM = 3
-
+EMBEDDING_DIM = 3
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 with PgVectorClient(
@@ -18,26 +18,20 @@ with PgVectorClient(
     overwrite_db=True,
 ) as client:
     try:
-        # Log database metadata at the start
         db_metadata = client.get_database_metadata()
         logger.newline()
         logger.debug("Database metadata:")
         logger.success(f"{db_metadata}")
         save_file(db_metadata, f"{OUTPUT_DIR}/db_metadata.json")
 
-        # Clear data
         client.delete_all_tables()
-
-        # Log all tables (should be empty after deletion)
         tables = client.get_all_tables()
         logger.newline()
         logger.debug("All tables after deletion:")
         logger.success(f"{tables}")
         save_file(tables, f"{OUTPUT_DIR}/tables_after_deletion.json")
 
-        client.create_table(TABLE_NAME, VECTOR_DIM)
-
-        # Log table metadata after creation
+        client.create_table(TABLE_NAME, EMBEDDING_DIM)
         table_metadata = client.get_table_metadata(TABLE_NAME)
         logger.newline()
         logger.debug(f"Metadata for table {TABLE_NAME}:")
@@ -45,51 +39,56 @@ with PgVectorClient(
         save_file(table_metadata,
                   f"{OUTPUT_DIR}/table_metadata_after_creation.json")
 
-        # Insert a single vector with a hash ID
-        vector = np.random.rand(VECTOR_DIM).tolist()
-        vector_id = client.insert_vector(TABLE_NAME, vector)
+        embedding = np.random.rand(EMBEDDING_DIM).tolist()
+        embedding_id = client.insert_embedding(TABLE_NAME, embedding)
         logger.newline()
-        logger.debug(f"Inserted vector ID:")
-        logger.success(f"{vector_id}")
-        save_file(vector_id, f"{OUTPUT_DIR}/inserted_vector_id.txt")
+        logger.debug(f"Inserted embedding ID:")
+        logger.success(f"{embedding_id}")
+        save_file(embedding_id, f"{OUTPUT_DIR}/inserted_embedding_id.txt")
 
-        # Retrieve the inserted vector by ID
-        retrieved_vector = client.get_vector_by_id(TABLE_NAME, vector_id)
+        retrieved_embedding = client.get_embedding_by_id(
+            TABLE_NAME, embedding_id)
         logger.newline()
-        logger.debug(f"Retrieved vector:")
-        logger.success(f"{retrieved_vector}")
-        save_file(retrieved_vector, f"{OUTPUT_DIR}/retrieved_vector.json")
+        logger.debug(f"Retrieved embedding:")
+        logger.success(f"{retrieved_embedding}")
+        save_file(retrieved_embedding.tolist() if retrieved_embedding is not None else None,
+                  f"{OUTPUT_DIR}/retrieved_embedding.json")
 
-        # Insert multiple vectors using batch insertion
-        vectors = [np.random.rand(VECTOR_DIM).tolist() for _ in range(3)]
-        vector_ids = client.insert_vectors(TABLE_NAME, vectors)
+        embeddings = [np.random.rand(EMBEDDING_DIM).tolist() for _ in range(3)]
+        embedding_ids = client.insert_embeddings(TABLE_NAME, embeddings)
         logger.newline()
-        logger.debug(f"Inserted multiple vector IDs:")
-        logger.success(f"{vector_ids}")
-        save_file(vector_ids, f"{OUTPUT_DIR}/inserted_vector_ids.json")
+        logger.debug(f"Inserted multiple embedding IDs:")
+        logger.success(f"{embedding_ids}")
+        save_file(embedding_ids, f"{OUTPUT_DIR}/inserted_embedding_ids.json")
 
-        # Retrieve multiple vectors by their IDs
-        retrieved_vectors = client.get_vectors_by_ids(TABLE_NAME, vector_ids)
+        all_embeddings = client.get_embeddings(TABLE_NAME)
         logger.newline()
-        logger.debug(f"Retrieved vectors:")
-        logger.success(f"{retrieved_vectors}")
-        save_file(retrieved_vectors, f"{OUTPUT_DIR}/retrieved_vectors.json")
+        logger.debug(f"All embeddings in the table:")
+        logger.success(f"{all_embeddings}")
+        save_file(
+            {k: v.tolist() for k, v in all_embeddings.items()},
+            f"{OUTPUT_DIR}/all_embeddings.json"
+        )
 
-        # Retrieve all vectors in the table
-        all_vectors = client.get_vectors(TABLE_NAME)
+        specific_id = "custom-123"
+
+        selected_ids = [embedding_id, specific_id, "emb-1"]
+        filtered_embeddings = client.get_embeddings(
+            TABLE_NAME, ids=selected_ids)
         logger.newline()
-        logger.debug(f"All vectors in the table:")
-        logger.success(f"{all_vectors}")
-        save_file(all_vectors, f"{OUTPUT_DIR}/all_vectors.json")
+        logger.debug(f"Filtered embeddings for IDs {selected_ids}:")
+        logger.success(f"{filtered_embeddings}")
+        save_file(
+            {k: v.tolist() for k, v in filtered_embeddings.items()},
+            f"{OUTPUT_DIR}/filtered_embeddings.json"
+        )
 
-        # Count the total number of vectors in the table
-        vector_count = client.count_vectors(TABLE_NAME)
+        embedding_count = client.count_embeddings(TABLE_NAME)
         logger.newline()
-        logger.debug(f"Total number of vectors:")
-        logger.success(f"{vector_count}")
-        save_file(vector_count, f"{OUTPUT_DIR}/vector_count.json")
+        logger.debug(f"Total number of embeddings:")
+        logger.success(f"{embedding_count}")
+        save_file(embedding_count, f"{OUTPUT_DIR}/embedding_count.json")
 
-        # Log table metadata after insertions
         table_metadata = client.get_table_metadata(TABLE_NAME)
         logger.newline()
         logger.debug(f"Updated metadata for table {TABLE_NAME}:")
@@ -97,97 +96,118 @@ with PgVectorClient(
         save_file(table_metadata,
                   f"{OUTPUT_DIR}/table_metadata_after_inserts.json")
 
-        # Insert a vector with a specific predefined ID
-        specific_id = "custom-123"
-        specific_vector = np.random.rand(VECTOR_DIM).tolist()
-        client.insert_vector_by_id(TABLE_NAME, specific_id, specific_vector)
+        specific_embedding = np.random.rand(EMBEDDING_DIM).tolist()
+        client.insert_embedding_by_id(
+            TABLE_NAME, specific_id, specific_embedding)
         logger.newline()
-        logger.debug(f"Inserted vector with specific ID:")
+        logger.debug(f"Inserted embedding with specific ID:")
         logger.success(f"{specific_id}")
         save_file(specific_id, f"{OUTPUT_DIR}/inserted_specific_id.txt")
 
-        # Retrieve the vector using the specific ID
-        retrieved_specific_vector = client.get_vector_by_id(
+        retrieved_specific_embedding = client.get_embedding_by_id(
             TABLE_NAME, specific_id)
         logger.newline()
-        logger.debug(f"Retrieved vector for ID {specific_id}:")
-        logger.success(f"{retrieved_specific_vector}")
-        save_file(retrieved_specific_vector,
-                  f"{OUTPUT_DIR}/retrieved_specific_vector.json")
+        logger.debug(f"Retrieved embedding for ID {specific_id}:")
+        logger.success(f"{retrieved_specific_embedding}")
+        save_file(retrieved_specific_embedding.tolist() if retrieved_specific_embedding is not None else None,
+                  f"{OUTPUT_DIR}/retrieved_specific_embedding.json")
 
-        # Insert multiple vectors with predefined IDs
-        specific_vectors = {
-            "vec-1": np.random.rand(VECTOR_DIM),
-            "vec-2": np.random.rand(VECTOR_DIM),
-            "vec-3": np.random.rand(VECTOR_DIM),
+        specific_embeddings = {
+            "emb-1": np.random.rand(EMBEDDING_DIM),
+            "emb-2": np.random.rand(EMBEDDING_DIM),
+            "emb-3": np.random.rand(EMBEDDING_DIM),
         }
-        # Convert np.ndarray to list for each value to match VectorInput
-        specific_vectors_list = {k: v.tolist() if hasattr(
-            v, "tolist") else v for k, v in specific_vectors.items()}
-        client.insert_vector_by_ids(TABLE_NAME, specific_vectors_list)
+        specific_embeddings_list = {k: v.tolist() if hasattr(
+            v, "tolist") else v for k, v in specific_embeddings.items()}
+        client.insert_embedding_by_ids(TABLE_NAME, specific_embeddings_list)
         logger.newline()
-        logger.debug(f"Inserted multiple vectors with specific IDs:")
-        logger.success(list(specific_vectors.keys()))
-        save_file(list(specific_vectors.keys()),
+        logger.debug(f"Inserted multiple embeddings with specific IDs:")
+        logger.success(list(specific_embeddings.keys()))
+        save_file(list(specific_embeddings.keys()),
                   f"{OUTPUT_DIR}/inserted_specific_ids.json")
 
-        # Retrieve the inserted specific vectors
-        retrieved_specific_vectors = client.get_vectors_by_ids(
-            TABLE_NAME, list(specific_vectors.keys()))
+        retrieved_specific_embeddings = client.get_embeddings(
+            TABLE_NAME, list(specific_embeddings.keys()))
         logger.newline()
-        logger.debug(f"Retrieved specific vectors:")
-        logger.success(retrieved_specific_vectors)
-        save_file(retrieved_specific_vectors,
-                  f"{OUTPUT_DIR}/retrieved_specific_vectors.json")
+        logger.debug(f"Retrieved specific embeddings:")
+        logger.success(retrieved_specific_embeddings)
+        save_file({k: v.tolist() for k, v in retrieved_specific_embeddings.items()},
+                  f"{OUTPUT_DIR}/retrieved_specific_embeddings.json")
 
-        # Update a single vector
-        new_vector = np.random.rand(VECTOR_DIM).tolist()
-        client.update_vector_by_id(TABLE_NAME, vector_id, new_vector)
+        new_embedding = np.random.rand(EMBEDDING_DIM).tolist()
+        client.update_embedding_by_id(TABLE_NAME, embedding_id, new_embedding)
         logger.newline()
-        logger.debug(f"Updated vector ID:")
-        logger.success(f"{vector_id}")
-        save_file(vector_id, f"{OUTPUT_DIR}/updated_vector_id.txt")
+        logger.debug(f"Updated embedding ID:")
+        logger.success(f"{embedding_id}")
+        save_file(embedding_id, f"{OUTPUT_DIR}/updated_embedding_id.txt")
 
-        # Update multiple vectors at once
-        updates = {vid: np.random.rand(VECTOR_DIM).tolist()
-                   for vid in vector_ids}
-        client.update_vector_by_ids(TABLE_NAME, updates)
+        updates = {eid: np.random.rand(EMBEDDING_DIM).tolist()
+                   for eid in embedding_ids}
+        client.update_embedding_by_ids(TABLE_NAME, updates)
         logger.newline()
-        logger.debug(f"Updated vectors with IDs:")
-        logger.success(vector_ids)
-        save_file(vector_ids, f"{OUTPUT_DIR}/updated_vector_ids.json")
+        logger.debug(f"Updated embeddings with IDs:")
+        logger.success(embedding_ids)
+        save_file(embedding_ids, f"{OUTPUT_DIR}/updated_embedding_ids.json")
 
-        # Search for top 3 most similar vectors
-        query_vector = np.random.rand(VECTOR_DIM).tolist()
-        similar_vectors = client.search_similar(
-            TABLE_NAME, query_vector, top_k=3)
+        query_embedding = np.random.rand(EMBEDDING_DIM).tolist()
+        similar_embeddings = client.search_similar(
+            TABLE_NAME, query_embedding, top_k=3)
         logger.newline()
-        logger.debug(f"Top 3 similar vectors:")
-        logger.success(similar_vectors)
-        save_file(similar_vectors, f"{OUTPUT_DIR}/similar_vectors.json")
+        logger.debug(f"Top 3 similar embeddings:")
+        logger.success(similar_embeddings)
+        save_file(similar_embeddings, f"{OUTPUT_DIR}/similar_embeddings.json")
 
-        # Log full database summary before cleanup
+        all_rows = client.get_rows(TABLE_NAME)
+        logger.newline()
+        logger.debug(f"All rows in {TABLE_NAME}:")
+        logger.success(f"{all_rows}")
+        save_file(
+            {
+                "table": TABLE_NAME,
+                "count": len(all_rows),
+                "rows": [
+                    {"id": row["id"], "embedding": row["embedding"].tolist()}
+                    for row in all_rows
+                ]
+            },
+            f"{OUTPUT_DIR}/all_rows.json"
+        )
+
+        selected_ids = [embedding_id, specific_id, "emb-1"]
+        filtered_rows = client.get_rows(TABLE_NAME, ids=selected_ids)
+        logger.newline()
+        logger.debug(f"Filtered rows for IDs {selected_ids}:")
+        logger.success(f"{filtered_rows}")
+        save_file(
+            {
+                "table": TABLE_NAME,
+                "count": len(filtered_rows),
+                "selected_ids": selected_ids,
+                "rows": [
+                    {"id": row["id"], "embedding": row["embedding"].tolist()}
+                    for row in filtered_rows
+                ]
+            },
+            f"{OUTPUT_DIR}/filtered_rows.json"
+        )
+
         db_summary = client.get_database_summary()
         logger.newline()
         logger.debug("Full database summary:")
         logger.success(f"{db_summary}")
         save_file(db_summary, f"{OUTPUT_DIR}/db_summary.json")
 
-        # Cleanup: Drop all rows in the table
         client.drop_all_rows(TABLE_NAME)
         logger.newline()
         logger.warning("Deleted all rows.")
 
-        # Cleanup: Drop all tables in the database
         client.delete_all_tables()
         logger.newline()
         logger.warning("Deleted all tables.")
 
-        # Test deleting the entire database
         client.delete_db(confirm=True)
         logger.newline()
         logger.warning("Deleted the entire database.")
-
     except Exception as e:
         logger.newline()
         logger.error(f"Transaction failed:\n{e}")
