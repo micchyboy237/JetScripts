@@ -25,10 +25,10 @@ async def run_pipeline() -> str:
     shutil.rmtree(output_dir, ignore_errors=True)
 
     # url = "http://example.com"
-    url = "https://www.iana.org/help/example-domains"
+    # url = "https://www.iana.org/help/example-domains"
     # url = "https://www.w3schools.com/html/"
     # url = "https://aniwatchtv.to"
-    # url = "https://jethro-estrada.web.app"
+    url = "https://jethro-estrada.web.app"
 
     await clone_after_render(url, output_dir, headless=False)
 
