@@ -1,6 +1,5 @@
 import os
 import shutil
-import sys
 from jet.scrapers.automation.site_clone import clone_site
 
 
@@ -12,6 +11,8 @@ if __name__ == '__main__':
     )
     shutil.rmtree(output_dir, ignore_errors=True)
 
-    url = sys.argv[1] if len(sys.argv) > 1 else 'https://example.com'
+    # url = "http://example.com"
+    url = "https://aniwatchtv.to"
+
     clone_site(url, f'{output_dir}/mirror')
     print('Done cloning:', url)

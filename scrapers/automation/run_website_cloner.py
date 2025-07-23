@@ -12,8 +12,11 @@ if __name__ == "__main__":
     )
     shutil.rmtree(output_dir, ignore_errors=True)
 
+    # url = "http://example.com"
+    url = "https://aniwatchtv.to"
+
     # Example usage
-    cloner = WebsiteCloner("https://example.com")
+    cloner = WebsiteCloner(url)
     content = cloner.fetch_website()
     html_output = cloner.generate_tailwind_html()
     print(html_output)

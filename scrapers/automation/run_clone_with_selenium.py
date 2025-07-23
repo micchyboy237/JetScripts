@@ -11,5 +11,8 @@ if __name__ == '__main__':
     )
     shutil.rmtree(output_dir, ignore_errors=True)
 
-    clone_after_render('https://example.com', output_dir)
+    # url = "http://example.com"
+    url = "https://aniwatchtv.to"
+
+    clone_after_render(url, output_dir)
     print('Done with Selenium clone')
