@@ -2,6 +2,10 @@ import asyncio
 import os
 from pathlib import Path
 import shutil
+import http.server
+import socketserver
+import webbrowser
+import time
 
 from jet.scrapers.automation.webpage_cloner import clone_after_render, generate_react_components, generate_entry_point
 
@@ -27,6 +31,17 @@ async def main():
     generate_entry_point(components, output_dir)
     print(f"Components generated in {output_dir}/components")
     print(f"Entry point generated at {output_dir}/index.html")
+
+    # Start HTTP server
+    port = 8000
+    Handler = http.server.SimpleHTTPRequestHandler
+    os.chdir(output_dir)  # Change to output_dir to serve files
+    with socketserver.TCPServer(("", port), Handler) as httpd:
+        print(f"Serving at http://localhost:{port} from {output_dir}")
+        # Open the browser with a cache-busting query parameter for hard refresh
+        webbrowser.open(f"http://localhost:{port}/?t={int(time.time())}")
+        httpd.serve_forever()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
