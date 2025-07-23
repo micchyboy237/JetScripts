@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import shutil
 
-from jet.scrapers.automation.webpage_cloner import clone_after_render, generate_react_components
+from jet.scrapers.automation.webpage_cloner import clone_after_render, generate_react_components, generate_entry_point
 
 
 async def main():
@@ -23,7 +23,10 @@ async def main():
     # Generate React components
     html_path = Path(output_dir) / "index.html"
     html_content = html_path.read_text(encoding="utf-8")
-    generate_react_components(html_content, output_dir)
+    components = generate_react_components(html_content, output_dir)
+    generate_entry_point(components, output_dir)
+    print(f"Components generated in {output_dir}/components")
+    print(f"Entry point generated at {output_dir}/index.html")
 
 if __name__ == "__main__":
     asyncio.run(main())
