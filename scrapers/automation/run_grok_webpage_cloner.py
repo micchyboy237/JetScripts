@@ -35,9 +35,6 @@ async def run_pipeline(url) -> str:
         os.path.splitext(os.path.basename(__file__))[0]
     )
 
-    if len(sys.argv) > 1:
-        url = sys.argv[1]
-
     parsed_url = urlparse(url)
     base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
 
@@ -87,5 +84,8 @@ if __name__ == "__main__":
     # url = "https://www.w3schools.com/html/"
     # url = "https://aniwatchtv.to"
     # url = "https://jethro-estrada.web.app"
+
+    if len(sys.argv) > 1:
+        url = sys.argv[1]
 
     asyncio.run(main(url))
