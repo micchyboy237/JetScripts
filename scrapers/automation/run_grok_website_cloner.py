@@ -17,7 +17,7 @@ async def main():
     url = "http://example.com"
 
     # Clone webpage
-    await clone_after_render(url, output_dir)
+    await clone_after_render(url, output_dir, headless=False)
 
     # Generate React components
     html_path = Path(output_dir) / "index.html"
