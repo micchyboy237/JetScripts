@@ -14,7 +14,8 @@ async def main():
     )
     shutil.rmtree(output_dir, ignore_errors=True)
 
-    url = "http://example.com"
+    # url = "http://example.com"
+    url = "https://aniwatchtv.to"
 
     # Clone webpage
     await clone_after_render(url, output_dir, headless=False)
