@@ -5,7 +5,10 @@ import http.server
 import socketserver
 import webbrowser
 import sys
+import re
+import string
 from pathlib import Path
+from urllib.parse import urlparse
 
 from jet.scrapers.automation.webpage_cloner import (
     clone_after_render,
@@ -15,6 +18,14 @@ from jet.scrapers.automation.webpage_cloner import (
 
 SCRIPT_DIR = os.path.dirname(__file__)
 PORT = 8000
+
+
+def format_sub_url_dir(url: str) -> str:
+    clean_url = re.sub(r'^(https?://|www\.)|(\?.*)', '', url)
+    trans_table = str.maketrans({p: '_' for p in string.punctuation})
+    formatted = clean_url.translate(trans_table).lower()
+    formatted = re.sub(r'_+', '_', formatted)
+    return formatted.strip('_')
 
 
 async def run_pipeline() -> str:
@@ -33,17 +44,24 @@ async def run_pipeline() -> str:
     if len(sys.argv) > 1:
         url = sys.argv[1]
 
-    await clone_after_render(url, output_dir, headless=False)
+    parsed_url = urlparse(url)
+    base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
 
-    html_path = Path(output_dir) / "index.html"
+    sub_url_dir = format_sub_url_dir(url)
+    sub_output_dir = os.path.join(output_dir, sub_url_dir)
+
+    await clone_after_render(url, sub_output_dir, headless=False)
+
+    html_path = Path(sub_output_dir) / "index.html"
     html_content = html_path.read_text(encoding="utf-8")
-    components = generate_react_components(html_content, output_dir)
-    generate_entry_point(components, output_dir)
+    components, font_urls = generate_react_components(
+        html_content, sub_output_dir, base_url=url)
+    generate_entry_point(components, sub_output_dir, font_urls)
 
-    print(f"Components generated in {output_dir}/components")
-    print(f"Entry point generated at {output_dir}/index.html")
+    print(f"Components generated in {sub_output_dir}/components")
+    print(f"Entry point generated at {sub_output_dir}/index.html")
 
-    return output_dir
+    return sub_output_dir
 
 
 async def serve_once(directory: str):
