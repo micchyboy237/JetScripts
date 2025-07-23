@@ -25,6 +25,7 @@ if __name__ == "__main__":
     # Same sample documents
     sample_docs = [
         "CV",
+        "Resme",
     ]
     search_engine.add_documents(sample_docs)
 

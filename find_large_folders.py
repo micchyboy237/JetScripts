@@ -121,8 +121,8 @@ if __name__ == "__main__":
                         help="Base directory to search for large folders. Defaults to current working directory.", default=os.getcwd())
     parser.add_argument("-s", "--min-size", type=int, default=100,
                         help="Minimum size (MB) to consider a folder large.")
-    parser.add_argument("-d", "--max-depth", type=int, default=1,
-                        help="Maximum depth to traverse forward. Defaults to 1. Set to 0 to list only immediate subdirectories.")
+    parser.add_argument("-d", "--max-depth", type=int, default=2,
+                        help="Maximum depth to traverse forward. Defaults to 2. Set to 0 to list only immediate subdirectories.")
     parser.add_argument("-i", "--includes", type=str, help="Comma-separated list of patterns to include.",
                         default="*cache*,*Cache*,*CACHE*,*tmp*,*Temp*,.TemporaryItems,Temporary Files,.Spotlight-V100,.fseventsd,.DS_Store,Logs,DerivedData")
     parser.add_argument("-e", "--excludes", type=str,
