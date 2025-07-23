@@ -4,6 +4,7 @@ import shutil
 import http.server
 import socketserver
 import webbrowser
+import sys
 from pathlib import Path
 
 from jet.scrapers.automation.webpage_cloner import (
@@ -25,10 +26,12 @@ async def run_pipeline() -> str:
     shutil.rmtree(output_dir, ignore_errors=True)
 
     # url = "http://example.com"
-    # url = "https://www.iana.org/help/example-domains"
+    url = "https://www.iana.org/help/example-domains"
     # url = "https://www.w3schools.com/html/"
     # url = "https://aniwatchtv.to"
-    url = "https://jethro-estrada.web.app"
+    # url = "https://jethro-estrada.web.app"
+    if len(sys.argv) > 1:
+        url = sys.argv[1]
 
     await clone_after_render(url, output_dir, headless=False)
 
