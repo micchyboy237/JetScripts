@@ -1,38 +1,21 @@
-from sentence_transformers import SentenceTransformer
-from sentence_transformers.util import cos_sim
-from sentence_transformers.quantization import quantize_embeddings
+import os
+import shutil
+from jet.code.markdown_utils._markdown_parser import parse_markdown
+from jet.file.utils import load_file, save_file
 
-# 1. Specify preffered dimensions
-dimensions = 512
 
-# 2. load model
-model = SentenceTransformer(
-    "mixedbread-ai/mxbai-embed-large-v1", truncate_dim=dimensions)
+md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/data/complete_jet_resume.md"
 
-# The prompt used for query retrieval tasks:
-# query_prompt = 'Represent this sentence for searching relevant passages: '
+md_content = load_file(md_file)
 
-query = "A man is eating a piece of bread"
-docs = [
-    "A man is eating food.",
-    "A man is eating pasta.",
-    "The girl is carrying a baby.",
-    "A man is riding a horse.",
-]
+results_ignore_links = parse_markdown(
+    md_content, ignore_links=True, merge_contents=False, merge_headers=False)
+results_with_links = parse_markdown(
+    md_content, ignore_links=False, merge_contents=False, merge_headers=False)
 
-# 2. Encode
-query_embedding = model.encode(query, prompt_name="query")
-# Equivalent Alternatives:
-# query_embedding = model.encode(query_prompt + query)
-# query_embedding = model.encode(query, prompt=query_prompt)
+output_dir = os.path.join(os.path.dirname(
+    __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(output_dir, ignore_errors=True)
 
-docs_embeddings = model.encode(docs)
-
-# # Optional: Quantize the embeddings
-# binary_query_embedding = quantize_embeddings(
-#     query_embedding, precision="ubinary")
-# binary_docs_embeddings = quantize_embeddings(
-#     docs_embeddings, precision="ubinary")
-
-similarities = cos_sim(query_embedding, docs_embeddings)
-print('similarities:', similarities)
+save_file(results_ignore_links, f"{output_dir}/results_ignore_links.json")
+save_file(results_with_links, f"{output_dir}/results_with_links.json")

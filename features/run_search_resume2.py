@@ -1,4 +1,5 @@
 import os
+import shutil
 import numpy as np
 
 from typing import List, Set, Tuple, TypedDict
@@ -14,12 +15,18 @@ os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
 # --- Configuration ---
 RESUME_PATH = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/data/complete_jet_resume.md"
-QUERY = "Tell me about yourself."
+
 CHUNK_SIZE = 300
 CHUNK_OVERLAP = 50
 MAX_CONTEXT_TOKENS = 900
 EMBEDDING_MODEL: EmbedModelType = "mxbai-embed-large"
 MODEL_NAME: LLMModelType = "qwen3-1.7b-4bit"
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__),
+    "generated",
+    os.path.splitext(os.path.basename(__file__))[0]
+)
 
 # --- Tokenizer ---
 tokenizer = get_tokenizer_fn(MODEL_NAME)
@@ -207,42 +214,45 @@ def get_response(query: str, context_chunks: List[str]) -> ResponseData:
     }
 
 
-def main():
-    output_dir = os.path.join(
-        os.path.dirname(__file__),
-        "generated",
-        os.path.splitext(os.path.basename(__file__))[0]
-    )
-    os.makedirs(output_dir, exist_ok=True)
+def format_sub_dir(text: str) -> str:
+    return text.lower().strip('.,!?').replace(' ', '_').replace('.', '_').replace(',', '_').replace('!', '_').replace('?', '_').strip()
+
+
+def main(query):
+    output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
+    shutil.rmtree(output_dir, ignore_errors=True)
 
     with open(RESUME_PATH, "r", encoding="utf-8") as f:
         resume_text = f.read()
 
     chunks = chunk_text(resume_text, CHUNK_SIZE, CHUNK_OVERLAP)
-    save_file({"query": QUERY, "chunks": chunks},
+    save_file({"query": query, "chunks": chunks},
               f"{output_dir}/raw_chunks.json")
 
-    search_results = rank_chunks_by_similarity(QUERY, chunks)
-    save_file({"query": QUERY, "search_results": search_results},
+    search_results = rank_chunks_by_similarity(query, chunks)
+    save_file({"query": query, "search_results": search_results},
               f"{output_dir}/search_results.json")
 
     top_chunks, total_tokens = select_relevant_chunks(
-        QUERY, search_results, chunks, MAX_CONTEXT_TOKENS)
-    save_file({"query": QUERY, "selected_chunks": top_chunks, "total_tokens": total_tokens},
+        query, search_results, chunks, MAX_CONTEXT_TOKENS)
+    save_file({"query": query, "selected_chunks": top_chunks, "total_tokens": total_tokens},
               f"{output_dir}/selected_chunks.json")
 
-    response_data = get_response(QUERY, top_chunks)
+    response_data = get_response(query, top_chunks)
     prompt_content = (
         f"# Prompts for Query\n\n"
-        f"## Query\n{QUERY}\n\n"
+        f"## Query\n{query}\n\n"
         f"## System Prompt\n{response_data['system_prompt']}\n\n"
         f"## User Prompt\n{response_data['user_prompt']}"
     )
     save_file(prompt_content, f"{output_dir}/prompts.md")
 
-    query_response = f"## Query\n\n{QUERY}\n\n## Response\n\n{response_data['response']}"
+    query_response = f"## Query\n\n{query}\n\n## Response\n\n{response_data['response']}"
     save_file(query_response, f"{output_dir}/query_response.md")
 
 
 if __name__ == "__main__":
-    main()
+    query = "Tell me about yourself."
+    main(query)
+    query = "Tell me about your recent achievements."
+    main(query)
