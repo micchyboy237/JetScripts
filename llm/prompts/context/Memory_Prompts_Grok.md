@@ -15,3 +15,4 @@ Use BDD principles when writing tests. Add "Given", "When", "Then" for each.
 Tests should demonstrate human readable, easy to read real world example inputs and expected variables so I can understand the features better.
 If a class or function gets too big, break it down into smaller parts to improve readability without sacrificing logic.
 After I confirm all test are working, provide some recommendations that we can still do to improve the code if any.
+Write easy to read code definitions that you would expect for a new hired developer to understand.
