@@ -12,9 +12,11 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 # Real-world demonstration
 if __name__ == "__main__":
     # 1. Specify preffered dimensions
-    # dimensions = None
-    dimensions = 512
+    dimensions = None
+    # dimensions = 512
     model_name: EmbedModelType = "mxbai-embed-large"
+    # model_name: EmbedModelType = "nomic-embed-text"
+    # model_name: EmbedModelType = "all-MiniLM-L6-v2"
     # Same example queries
     queries = [
         "Resume",
