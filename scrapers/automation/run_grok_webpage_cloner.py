@@ -4,6 +4,7 @@ import shutil
 import http.server
 import socketserver
 import webbrowser
+import sys
 import re
 import string
 from pathlib import Path
@@ -33,6 +34,9 @@ async def run_pipeline(url) -> str:
         "generated",
         os.path.splitext(os.path.basename(__file__))[0]
     )
+
+    if len(sys.argv) > 1:
+        url = sys.argv[1]
 
     parsed_url = urlparse(url)
     base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
@@ -69,22 +73,19 @@ async def serve_once(directory: str):
             print("Server stopped.")
 
 
-async def main():
-    urls = [
-        "http://example.com",
-        "https://www.iana.org/help/example-domains",
-        "https://www.w3schools.com/html/",
-        "https://aniwatchtv.to",
-        "https://jethro-estrada.web.app"
-    ]
+async def main(url):
     try:
-        for url in urls:
-            print(f"\nProcessing: {url}")
-            output_dir = await run_pipeline(url)
-            await serve_once(output_dir)
+        output_dir = await run_pipeline(url)
+        await serve_once(output_dir)
     except Exception as e:
         print(f"\n⚠️ Error occurred: {e}\n")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # url = "http://example.com"
+    url = "https://www.iana.org/help/example-domains"
+    # url = "https://www.w3schools.com/html/"
+    # url = "https://aniwatchtv.to"
+    # url = "https://jethro-estrada.web.app"
+
+    asyncio.run(main(url))
