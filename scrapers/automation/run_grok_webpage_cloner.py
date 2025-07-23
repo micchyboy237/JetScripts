@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import shutil
 
-from jet.scrapers.automation.grok_website_cloner import clone_after_render, generate_react_components
+from jet.scrapers.automation.webpage_cloner import clone_after_render, generate_react_components
 
 
 async def main():
