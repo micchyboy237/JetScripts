@@ -12,7 +12,7 @@ from jet.models.utils import resolve_model_value
 from mlx_lm import load
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
-from jet.scrapers.utils import extract_by_heading_hierarchy, extract_texts_by_hierarchy, extract_tree_with_text, extract_text_elements, get_leaf_nodes, get_significant_nodes, print_html
+from jet.scrapers.utils import extract_by_heading_hierarchy, extract_texts_by_hierarchy, extract_tree_with_text, extract_text_elements, get_leaf_nodes, get_parents_with_shared_class, get_significant_nodes, print_html
 from jet.search.formatters import clean_string
 from jet.transformers.formatters import format_html
 from jet.utils.commands import copy_to_clipboard
@@ -182,6 +182,10 @@ if __name__ == "__main__":
 
     leaf_nodes = get_leaf_nodes(tree_elements)
     save_file(leaf_nodes, f"{output_dir}/leaf_nodes.json")
+
+    parents_with_shared_class = get_parents_with_shared_class(tree_elements)
+    save_file(parents_with_shared_class,
+              f"{output_dir}/parents_with_shared_class.json")
 
     formatted_html = format_html(html_str)
     save_file(formatted_html, f"{output_dir}/formatted_html.html")
