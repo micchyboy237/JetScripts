@@ -12,7 +12,7 @@ from jet.models.utils import resolve_model_value
 from mlx_lm import load
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
-from jet.scrapers.utils import extract_by_heading_hierarchy, extract_texts_by_hierarchy, extract_tree_with_text, extract_text_elements, print_html
+from jet.scrapers.utils import extract_by_heading_hierarchy, extract_texts_by_hierarchy, extract_tree_with_text, extract_text_elements, get_leaf_nodes, get_significant_nodes, print_html
 from jet.search.formatters import clean_string
 from jet.transformers.formatters import format_html
 from jet.utils.commands import copy_to_clipboard
@@ -21,7 +21,7 @@ from jet.utils.commands import copy_to_clipboard
 if __name__ == "__main__":
     from jet.scrapers.preprocessor import html_to_markdown
 
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/latest_react_web_online_jobs_philippines/pages/www_onlinejobs_ph_jobseekers_search_c_javascript_react_js/page.html"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/automation/generated/run_grok_webpage_cloner/aniwatchtv_to/original.html"
     html_dir = os.path.dirname(html_file)
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(
@@ -37,9 +37,9 @@ if __name__ == "__main__":
 
     save_file(html_str, f"{output_dir}/doc.html")
 
-    # # Text elements
-    # text_elements = extract_text_elements(html_str)
-    # save_file(text_elements, f"{output_dir}/text_elements.json")
+    # Text elements
+    text_elements = extract_text_elements(html_str)
+    save_file(text_elements, f"{output_dir}/text_elements.json")
 
     # Headings
     headings = extract_texts_by_hierarchy(html_str, ignore_links=True)
@@ -176,6 +176,12 @@ if __name__ == "__main__":
     # Get the tree-like structure
     tree_elements = extract_tree_with_text(html_str)
     save_file(tree_elements, f"{output_dir}/tree_elements.json")
+
+    significant_nodes = get_significant_nodes(tree_elements)
+    save_file(significant_nodes, f"{output_dir}/significant_nodes.json")
+
+    leaf_nodes = get_leaf_nodes(tree_elements)
+    save_file(leaf_nodes, f"{output_dir}/leaf_nodes.json")
 
     formatted_html = format_html(html_str)
     save_file(formatted_html, f"{output_dir}/formatted_html.html")
