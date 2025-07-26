@@ -12,7 +12,7 @@ OUTPUT_DIR = os.path.join(
 
 
 def save_results(query: str, results: List[FileSearchResult], split_chunks: bool):
-    for num, result in enumerate(results, start=1):
+    for num, result in enumerate(results[:10], start=1):
         file_path = result["metadata"]["file_path"]
         start_idx = result["metadata"]["start_idx"]
         end_idx = result["metadata"]["end_idx"]
@@ -49,7 +49,7 @@ def main():
     threshold = 0.0  # Using default threshold
     chunk_size = 500
     chunk_overlap = 100
-    tokenizer = get_tokenizer_fn(llm_model)
+    tokenizer = get_tokenizer_fn(embed_model)
 
     def count_tokens(text):
         return len(tokenizer(text))

@@ -15,7 +15,7 @@ OUTPUT_DIR = os.path.join(
 
 def save_results(query: str, results: List[HeaderSearchResult], split_chunks: bool):
     print(f"Search results for '{query}' in these dirs:")
-    for num, result in enumerate(results, start=1):
+    for num, result in enumerate(results[:10], start=1):
         header = result["metadata"]["header"]
         parent_header = result["metadata"]["parent_header"]
         start_idx = result["metadata"]["start_idx"]
