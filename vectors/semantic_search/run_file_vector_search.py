@@ -25,9 +25,11 @@ def main():
     print(f"Search results for '{query}' in these dirs:")
     for d in directories:
         print(d)
-    for file_path, score in results:
+    for result in results:
+        file_path = result["metadata"]["file_path"]
+        score = result["score"]
         print(
-            f"Score: {colorize_log(f"{score:.3f}", "SUCCESS")} | File: {file_path}")
+            f"Score: {colorize_log(f'{score:.3f}', 'SUCCESS')} | File: {file_path}")
 
     save_file({
         "query": query,
