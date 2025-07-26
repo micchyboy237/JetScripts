@@ -12,9 +12,9 @@ def main():
     """Main function to demonstrate file search."""
     # Example usage
     directories = [
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_notes",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts",
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_notes",
     ]
     query = "test file"
     extensions = [".py"]
