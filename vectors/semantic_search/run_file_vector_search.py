@@ -17,7 +17,7 @@ def main():
         "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_notes",
     ]
     query = "test file"
-    extensions = {".py"}
+    extensions = [".py"]
     top_k = 10
     threshold = 0.0  # Using default threshold
 
