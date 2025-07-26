@@ -49,15 +49,17 @@ def main():
         sub_header_docs = derive_by_header_hierarchy(html)
         header_docs.extend(sub_header_docs)
 
+    save_file(header_docs, f"{OUTPUT_DIR}/header_docs.json")
+
     query = "Top isekai anime 2025."
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
     llm_model: LLMModelType = "qwen3-1.7b-4bit"
 
-    top_k = 10
+    top_k = len(header_docs)
     threshold = 0.0  # Using default threshold
     chunk_size = 500
     chunk_overlap = 100
-    tokenizer = get_tokenizer_fn(llm_model)
+    tokenizer = get_tokenizer_fn(embed_model)
 
     def count_tokens(text):
         return len(tokenizer(text))

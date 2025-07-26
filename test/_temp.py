@@ -1,8 +1,9 @@
 import shutil
 
 from jet.code.markdown_utils import parse_markdown
+from jet.code.markdown_utils._converters import convert_html_to_markdown
 from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_by_header_hierarchy
-from jet.file.utils import save_file
+from jet.file.utils import load_file, save_file
 from jet.utils.print_utils import print_dict_types
 
 import os
@@ -10,64 +11,15 @@ OUTPUT_DIR = os.path.join(os.path.dirname(
     __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-md_content_unordered_list_with_other_types = """
-
-
-Sample title
-
-# Project Overview
-
-Welcome to our **project**! This is an `introduction` to our work, featuring a [website](https://project.com).
-
-![Project Logo](https://project.com/logo.png)
-
-> **Note**: Always check the [docs](https://docs.project.com) for updates.
-
-
-- [ ] Task 1: Implement login
-- [x] Task 2: Add dashboard
-- Task 3: Optimize performance
-
-
-```python
-def greet(name: str) -> str:
-    return f"Hello, {name}!"
-```
-
-
-| Endpoint       | Method | Description           |
-|----------------|--------|-----------------------|
-| /api/users     | GET    | Fetch all users       |
-| /api/users/{id}| POST   | Create a new user     |
-
-
-Use `print("Hello")` for quick debugging.
-
-- List item 1
-    - Nested item
-- List item 2
-- List item 3
-
-1. Ordered item 1
-2. Ordered item 2
-3. Ordered item 3
-
-*Italic*, **bold**, and ***bold italic*** text are supported.
-
-<div class="alert">This is an HTML block.</div>
-<span class="badge">New</span> inline HTML.
-
-[^1]: This is a footnote reference.
-[^1]: Footnote definition here.
-
-<span class="badge">New</span> inline HTML
-"""
 
 if __name__ == "__main__":
-    markdown_tokens = base_parse_markdown(
-        md_content_unordered_list_with_other_types)
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/top_isekai_anime_2025/pages/gamerant_com_new_isekai_anime_2025/page.html"
+
+    md_content = convert_html_to_markdown(html_file)
+    save_file(md_content, f"{OUTPUT_DIR}/md_content.md")
+
+    markdown_tokens = base_parse_markdown(html_file)
     save_file(markdown_tokens, f"{OUTPUT_DIR}/markdown_tokens.json")
 
-    results = derive_by_header_hierarchy(
-        md_content_unordered_list_with_other_types)
+    results = derive_by_header_hierarchy(html_file)
     save_file(results, f"{OUTPUT_DIR}/results.json")
