@@ -7,6 +7,7 @@ import webbrowser
 import sys
 import re
 import string
+import socket
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -17,7 +18,19 @@ from jet.scrapers.automation.webpage_cloner import (
 )
 
 SCRIPT_DIR = os.path.dirname(__file__)
-PORT = 8000
+DEFAULT_PORT = 8000
+PORT_RANGE = range(8000, 8100)  # Range of ports to try
+
+
+def find_available_port(start_port: int, port_range: range) -> int:
+    for port in port_range:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(("", port))
+                return port
+            except OSError:
+                continue
+    raise RuntimeError("No available ports found in the specified range")
 
 
 def format_sub_url_dir(url: str) -> str:
@@ -60,8 +73,10 @@ async def run_pipeline(url) -> str:
 async def serve_once(directory: str):
     Handler = http.server.SimpleHTTPRequestHandler
     os.chdir(directory)
-    with socketserver.TCPServer(("", PORT), Handler) as httpd:
-        url = f"http://localhost:{PORT}/"
+
+    port = find_available_port(DEFAULT_PORT, PORT_RANGE)
+    with socketserver.TCPServer(("", port), Handler) as httpd:
+        url = f"http://localhost:{port}/"
         print(f"Serving at {url} from {directory}")
         webbrowser.open(url)  # Reuse existing tab if open
         try:
@@ -76,7 +91,6 @@ async def main(url):
         await serve_once(output_dir)
     except Exception as e:
         print(f"\n⚠️ Error occurred: {e}\n")
-
 
 if __name__ == "__main__":
     # url = "http://example.com"
