@@ -1,4 +1,3 @@
-
 import os
 from jet.file.utils import save_file
 from jet.logger.config import colorize_log
@@ -20,8 +19,10 @@ def main():
     query = "test file"
     extensions = {".py", ".txt"}
     top_k = 10
+    threshold = 0.0  # Using default threshold
 
-    results = search_files(directories, query, extensions, top_k=top_k)
+    results = list(search_files(directories, query, extensions,
+                   top_k=top_k, threshold=threshold))
     print(f"Search results for '{query}' in these dirs:")
     for d in directories:
         print(d)
