@@ -1,6 +1,7 @@
 import os
 from jet.file.utils import save_file
 from jet.logger.config import colorize_log
+from jet.models.model_types import EmbedModelType
 from jet.vectors.semantic_search.file_vector_search import search_files
 
 
@@ -14,15 +15,28 @@ def main():
     directories = [
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_notes",
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_notes",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/vectors",
     ]
-    query = "test file"
+
+    query = "BM25 reranking"
     extensions = [".py"]
     top_k = 10
     threshold = 0.0  # Using default threshold
+    embed_model: EmbedModelType = "all-MiniLM-L6-v2"
+    chunk_size = 500
+    chunk_overlap = 100
 
-    results = list(search_files(directories, query, extensions,
-                   top_k=top_k, threshold=threshold))
+    results = list(
+        search_files(
+            directories, query, extensions,
+            top_k=top_k,
+            threshold=threshold,
+            embed_model=embed_model,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+        )
+    )
     print(f"Search results for '{query}' in these dirs:")
     for d in directories:
         print(d)
