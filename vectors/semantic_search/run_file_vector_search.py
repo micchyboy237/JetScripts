@@ -17,7 +17,7 @@ def main():
         "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_notes",
     ]
     query = "test file"
-    extensions = {".py", ".txt"}
+    extensions = {".py"}
     top_k = 10
     threshold = 0.0  # Using default threshold
 
@@ -26,11 +26,13 @@ def main():
     print(f"Search results for '{query}' in these dirs:")
     for d in directories:
         print(d)
-    for result in results:
+    for num, result in enumerate(results, start=1):
         file_path = result["metadata"]["file_path"]
+        start_idx = result["metadata"]["start_idx"]
+        end_idx = result["metadata"]["end_idx"]
         score = result["score"]
         print(
-            f"Score: {colorize_log(f'{score:.3f}', 'SUCCESS')} | File: {file_path}")
+            f"{colorize_log(f"{num}.)", "ORANGE")} Score: {colorize_log(f'{score:.3f}', 'SUCCESS')} | Start - End: {start_idx} - {end_idx}\nFile: {file_path}")
 
     save_file({
         "query": query,
