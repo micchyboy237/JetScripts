@@ -63,6 +63,5 @@ if __name__ == "__main__":
     output_dir = os.path.join(os.path.dirname(
         __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-    headers_with_heirarchy = derive_by_header_hierarchy(md_content)
-    save_file(headers_with_heirarchy,
-              f"{output_dir}/headers_with_heirarchy.json")
+    results = derive_by_header_hierarchy(md_content)
+    save_file(results, f"{output_dir}/results.json")
