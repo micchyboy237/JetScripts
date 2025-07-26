@@ -30,9 +30,10 @@ def main():
         file_path = result["metadata"]["file_path"]
         start_idx = result["metadata"]["start_idx"]
         end_idx = result["metadata"]["end_idx"]
+        chunk_idx = result["metadata"]["chunk_idx"]
         score = result["score"]
         print(
-            f"{colorize_log(f"{num}.)", "ORANGE")} Score: {colorize_log(f'{score:.3f}', 'SUCCESS')} | Start - End: {start_idx} - {end_idx}\nFile: {file_path}")
+            f"{colorize_log(f"{num}.)", "ORANGE")} Score: {colorize_log(f'{score:.3f}', 'SUCCESS')} | Chunk: {chunk_idx} | Start - End: {start_idx} - {end_idx}\nFile: {file_path}")
 
     save_file({
         "query": query,
