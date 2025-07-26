@@ -35,6 +35,7 @@ def main():
             embed_model=embed_model,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
+            merge_chunks=True
         )
     )
     print(f"Search results for '{query}' in these dirs:")
@@ -45,9 +46,10 @@ def main():
         start_idx = result["metadata"]["start_idx"]
         end_idx = result["metadata"]["end_idx"]
         chunk_idx = result["metadata"]["chunk_idx"]
+        num_tokens = result["metadata"]["num_tokens"]
         score = result["score"]
         print(
-            f"{colorize_log(f"{num}.)", "ORANGE")} Score: {colorize_log(f'{score:.3f}', 'SUCCESS')} | Chunk: {chunk_idx} | Start - End: {start_idx} - {end_idx}\nFile: {file_path}")
+            f"{colorize_log(f"{num}.)", "ORANGE")} Score: {colorize_log(f'{score:.3f}', 'SUCCESS')} | Chunk: {chunk_idx} | Tokens: {num_tokens} | Start - End: {start_idx} - {end_idx}\nFile: {file_path}")
 
     save_file({
         "query": query,
