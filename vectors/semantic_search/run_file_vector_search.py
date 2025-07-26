@@ -2,7 +2,8 @@ import os
 from typing import List
 from jet.file.utils import save_file
 from jet.logger.config import colorize_log
-from jet.models.model_types import EmbedModelType
+from jet.models.model_types import EmbedModelType, LLMModelType
+from jet.models.tokenizer.base import get_tokenizer_fn
 from jet.vectors.semantic_search.file_vector_search import FileSearchResult, search_files
 
 
@@ -45,11 +46,16 @@ def main():
     query = "BM25 reranking"
     extensions = [".py"]
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
+    llm_model: LLMModelType = "qwen3-1.7b-4bit"
 
     top_k = 10
     threshold = 0.0  # Using default threshold
     chunk_size = 500
     chunk_overlap = 100
+    tokenizer = get_tokenizer_fn(llm_model)
+
+    def count_tokens(text):
+        return len(tokenizer(text))
 
     split_chunks = True
     with_split_chunks_results = list(
@@ -60,7 +66,8 @@ def main():
             embed_model=embed_model,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            split_chunks=split_chunks
+            split_chunks=split_chunks,
+            tokenizer=count_tokens
         )
     )
     save_results(query, directories, with_split_chunks_results, split_chunks)
@@ -74,7 +81,8 @@ def main():
             embed_model=embed_model,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            split_chunks=split_chunks
+            split_chunks=split_chunks,
+            tokenizer=count_tokens
         )
     )
     save_results(query, directories,
