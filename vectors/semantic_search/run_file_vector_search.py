@@ -26,6 +26,7 @@ def main():
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
     chunk_size = 500
     chunk_overlap = 100
+    split_chunks = False
 
     results = list(
         search_files(
@@ -35,7 +36,7 @@ def main():
             embed_model=embed_model,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            merge_chunks=True
+            split_chunks=split_chunks
         )
     )
     print(f"Search results for '{query}' in these dirs:")
