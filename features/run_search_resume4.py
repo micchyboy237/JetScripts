@@ -14,7 +14,7 @@ OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
 
-def save_results(query: str, results: List[HeaderSearchResult], split_chunks: bool, output_dir: str):
+def save_results(query: str, results: List[HeaderSearchResult], merge_chunks: bool, output_dir: str):
     print(f"Search results for '{query}' in these dirs:")
     for num, result in enumerate(results[:10], start=1):
         header = result["header"]
@@ -30,9 +30,9 @@ def save_results(query: str, results: List[HeaderSearchResult], split_chunks: bo
     save_file({
         "query": query,
         "count": len(results),
-        "merged": not split_chunks,
+        "merged": merge_chunks,
         "results": results
-    }, f"{output_dir}/results_{'split' if split_chunks else 'merged'}.json")
+    }, f"{output_dir}/results_{'merged' if merge_chunks else 'split'}.json")
 
 
 def format_sub_dir(text: str) -> str:
@@ -69,8 +69,8 @@ def main(query):
     def count_tokens(text):
         return len(tokenizer(text))
 
-    split_chunks = True
-    with_split_chunks_results = list(
+    merge_chunks = True
+    with_merge_chunks_results = list(
         search_headers(
             header_docs,
             query,
@@ -79,14 +79,14 @@ def main(query):
             embed_model=embed_model,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            split_chunks=split_chunks,
+            merge_chunks=merge_chunks,
             tokenizer=count_tokens
         )
     )
-    save_results(query,  with_split_chunks_results, split_chunks, output_dir)
+    save_results(query,  with_merge_chunks_results, merge_chunks, output_dir)
 
-    split_chunks = False
-    without_split_chunks_results = list(
+    merge_chunks = False
+    without_merge_chunks_results = list(
         search_headers(
             header_docs,
             query,
@@ -95,11 +95,11 @@ def main(query):
             embed_model=embed_model,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            split_chunks=split_chunks,
+            merge_chunks=merge_chunks,
             tokenizer=count_tokens
         )
     )
-    save_results(query, without_split_chunks_results, split_chunks, output_dir)
+    save_results(query, without_merge_chunks_results, merge_chunks, output_dir)
 
 
 if __name__ == "__main__":

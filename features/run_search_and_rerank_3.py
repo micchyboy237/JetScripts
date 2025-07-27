@@ -188,6 +188,16 @@ async def main(query):
     max_tokens = 2000
     use_cache = True
 
+    top_k = None
+    threshold = 0.0  # Using default threshold
+    chunk_size = 200
+    chunk_overlap = 50
+    tokenizer = get_tokenizer_fn(llm_model)
+    merge_chunks = False
+
+    def _count_tokens(text):
+        return len(tokenizer(text))
+
     query_output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
     shutil.rmtree(query_output_dir, ignore_errors=True)
 
@@ -203,6 +213,7 @@ async def main(query):
 
     html_list = []
     header_docs: List[HeaderDoc] = []
+    search_results: List[HeaderSearchResult] = []
 
     async for url, status, html in scrape_urls(urls, show_progress=True):
         if status == "completed" and html:
@@ -235,41 +246,38 @@ async def main(query):
             for doc in original_docs:
                 doc["source"] = url
 
+            sub_results = list(
+                search_headers(
+                    original_docs,
+                    query,
+                    top_k=top_k,
+                    threshold=threshold,
+                    embed_model=embed_model,
+                    chunk_size=chunk_size,
+                    chunk_overlap=chunk_overlap,
+                    tokenizer=_count_tokens,
+                    merge_chunks=merge_chunks
+                )
+            )
+
+            save_file(sub_results, f"{sub_output_dir}/search_results.json")
+
             header_docs.extend(original_docs)
+            search_results.extend(sub_results)
 
-    save_file(header_docs, f"{query_output_dir}/header_docs.json")
+    # Sort search_results by score then update rank
+    search_results = sorted(
+        search_results, key=lambda x: x["score"], reverse=True)
+    for i, result in enumerate(search_results, 1):
+        result["rank"] = i
 
-    top_k = len(header_docs)
-    threshold = 0.0  # Using default threshold
-    chunk_size = 200
-    chunk_overlap = 50
-    tokenizer = get_tokenizer_fn(llm_model)
-
-    def _count_tokens(text):
-        return len(tokenizer(text))
-
-    results = list(
-        search_headers(
-            header_docs,
-            query,
-            top_k=top_k,
-            threshold=threshold,
-            embed_model=embed_model,
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-            tokenizer=_count_tokens
-        )
-    )
-    save_file({
-        "query": query,
-        "count": len(results),
-        "results": results
-    }, f"{query_output_dir}/results.json")
+    save_file(header_docs, f"{query_output_dir}/docs.json")
+    save_file(search_results, f"{query_output_dir}/search_results.json")
 
     # Filter results so that their combined context does not exceed max_tokens
     filtered_results = []
     current_tokens = 0
-    for result in results:
+    for result in search_results:
         # Use the same context formatting as group_results_by_source_for_llm_context
         # to estimate token count for each result
         # We'll use the 'content' field if available, else str(result)

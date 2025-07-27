@@ -13,7 +13,7 @@ OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
 
-def save_results(query: str, results: List[HeaderSearchResult], split_chunks: bool):
+def save_results(query: str, results: List[HeaderSearchResult], merge_chunks: bool):
     print(f"Search results for '{query}' in these dirs:")
     for num, result in enumerate(results[:10], start=1):
         header = result["header"]
@@ -29,9 +29,9 @@ def save_results(query: str, results: List[HeaderSearchResult], split_chunks: bo
     save_file({
         "query": query,
         "count": len(results),
-        "merged": not split_chunks,
+        "merged": merge_chunks,
         "results": results
-    }, f"{OUTPUT_DIR}/results_{'split' if split_chunks else 'merged'}.json")
+    }, f"{OUTPUT_DIR}/results_{'merged' if merge_chunks else 'split'}.json")
 
 
 def main():
@@ -55,7 +55,7 @@ def main():
 
     save_file(header_docs, f"{OUTPUT_DIR}/header_docs.json")
 
-    top_k = len(header_docs)
+    top_k = None
     threshold = 0.0  # Using default threshold
     chunk_size = 250
     chunk_overlap = 50
@@ -64,8 +64,8 @@ def main():
     def count_tokens(text):
         return len(tokenizer(text))
 
-    split_chunks = True
-    with_split_chunks_results = list(
+    merge_chunks = True
+    with_merge_chunks_results = list(
         search_headers(
             header_docs,
             query,
@@ -74,14 +74,14 @@ def main():
             embed_model=embed_model,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            split_chunks=split_chunks,
+            merge_chunks=merge_chunks,
             tokenizer=count_tokens
         )
     )
-    save_results(query,  with_split_chunks_results, split_chunks)
+    save_results(query,  with_merge_chunks_results, merge_chunks)
 
-    split_chunks = False
-    without_split_chunks_results = list(
+    merge_chunks = False
+    without_merge_chunks_results = list(
         search_headers(
             header_docs,
             query,
@@ -90,11 +90,11 @@ def main():
             embed_model=embed_model,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            split_chunks=split_chunks,
+            merge_chunks=merge_chunks,
             tokenizer=count_tokens
         )
     )
-    save_results(query, without_split_chunks_results, split_chunks)
+    save_results(query, without_merge_chunks_results, merge_chunks)
 
 
 if __name__ == "__main__":
