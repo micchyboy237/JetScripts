@@ -192,11 +192,7 @@ async def main(query):
     threshold = 0.0  # Using default threshold
     chunk_size = 200
     chunk_overlap = 50
-    tokenizer = get_tokenizer_fn(llm_model)
     merge_chunks = False
-
-    def _count_tokens(text):
-        return len(tokenizer(text))
 
     query_output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
     shutil.rmtree(query_output_dir, ignore_errors=True)
@@ -255,7 +251,7 @@ async def main(query):
                     embed_model=embed_model,
                     chunk_size=chunk_size,
                     chunk_overlap=chunk_overlap,
-                    tokenizer=_count_tokens,
+                    tokenizer_model=llm_model,
                     merge_chunks=merge_chunks
                 )
             )

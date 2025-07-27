@@ -57,7 +57,7 @@ def main():
 
     top_k = None
     threshold = 0.0  # Using default threshold
-    chunk_size = 250
+    chunk_size = 200
     chunk_overlap = 50
 
     merge_chunks = True
