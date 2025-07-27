@@ -23,15 +23,15 @@ from jet.vectors.semantic_search.header_vector_search import HeaderSearchResult,
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-PROMPT_TEMPLATE = """
-You are an expert in analyzing and summarizing information. Given the following query and context, provide a concise and accurate response that addresses the query using the provided context. Focus on key details and avoid speculation.
+PROMPT_TEMPLATE = """\
+Context information is below.
+---------------------
+{context}
+---------------------
+
+Given the context information, answer the query.
 
 Query: {query}
-
-Context:
-{context}
-
-Response:
 """
 
 
