@@ -22,7 +22,7 @@ DB_CONFIG = {
     "dbname": "anime_db1",
     "user": "jethroestrada",
     "password": "",
-    "host": "jetairm1",
+    "host": "Jethros-MacBook-Air.local",
     "port": "5432"
 }
 

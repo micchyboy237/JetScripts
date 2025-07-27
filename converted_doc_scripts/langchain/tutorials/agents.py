@@ -57,7 +57,7 @@ initialize_ollama_settings()
 #     """
 
 #     results = search_searxng(
-#         query_url="http://jetairm1:3000/search",
+#         query_url="http://Jethros-MacBook-Air.local:3000/search",
 #         query=query,
 #         min_score=0,
 #         engines=["google"],

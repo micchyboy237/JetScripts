@@ -18,7 +18,7 @@ if __name__ == "__main__":
     # title = "I'll Become a Villainess Who Goes Down in History"
     # query = f"Anime \"{title}\" {search_keys_str}"
 
-    query = "List all ongoing and upcoming isekai anime 2025."
+    query = "Top isekai anime 2025."
 
     try:
         include_sites = [
@@ -38,15 +38,15 @@ if __name__ == "__main__":
             "yahoo",
         ]
         results: list[SearchResult] = search_searxng(
-            query_url="http://jetairm1:3000/search",
+            query_url="http://Jethros-MacBook-Air.local:3000/search",
             query=query,
             min_score=0.2,
             include_sites=include_sites,
             exclude_sites=exclude_sites,
             engines=engines,
-            config={
-                "port": 3101
-            },
+            # config={
+            #     "port": 3101
+            # },
         )
         copy_to_clipboard(results)
         logger.success(json.dumps(results, indent=2))

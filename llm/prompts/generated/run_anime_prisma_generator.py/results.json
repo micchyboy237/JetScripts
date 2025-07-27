@@ -1,7 +1,7 @@
 [
   {
     "filename": "Prepare_DB_Prisma_Schema.md",
-    "base_url": "http://jetairm1:11434/api/chat",
+    "base_url": "http://Jethros-MacBook-Air.local:11434/api/chat",
     "model": "codellama",
     "options": {
       "seed": -1,
@@ -35,7 +35,7 @@
   },
   {
     "filename": "Prepare_DB_Prisma_Schema.md",
-    "base_url": "http://jetairm1:11434/api/chat",
+    "base_url": "http://Jethros-MacBook-Air.local:11434/api/chat",
     "model": "qwen2.5-coder",
     "options": {
       "seed": -1,
@@ -69,7 +69,7 @@
   },
   {
     "filename": "Prepare_DB_Prisma_Schema.md",
-    "base_url": "http://jetairm1:11434/api/chat",
+    "base_url": "http://Jethros-MacBook-Air.local:11434/api/chat",
     "model": "codellama",
     "options": {
       "seed": -1,
@@ -103,7 +103,7 @@
   },
   {
     "filename": "Prepare_DB_Prisma_Schema.md",
-    "base_url": "http://jetairm1:11434/api/chat",
+    "base_url": "http://Jethros-MacBook-Air.local:11434/api/chat",
     "model": "codellama",
     "options": {
       "seed": -1,
@@ -137,7 +137,7 @@
   },
   {
     "filename": "Prepare_DB_Prisma_Schema.md",
-    "base_url": "http://jetairm1:11434/api/chat",
+    "base_url": "http://Jethros-MacBook-Air.local:11434/api/chat",
     "model": "codellama",
     "options": {
       "seed": -1,
@@ -171,7 +171,7 @@
   },
   {
     "filename": "Prepare_DB_Prisma_Schema.md",
-    "base_url": "http://jetairm1:11434/api/chat",
+    "base_url": "http://Jethros-MacBook-Air.local:11434/api/chat",
     "model": "codellama",
     "options": {
       "seed": -1,
@@ -205,7 +205,7 @@
   },
   {
     "filename": "Prepare_DB_Prisma_Schema.md",
-    "base_url": "http://jetairm1:11434/api/chat",
+    "base_url": "http://Jethros-MacBook-Air.local:11434/api/chat",
     "model": "codellama",
     "options": {
       "seed": -1,
@@ -239,7 +239,7 @@
   },
   {
     "filename": "Prepare_DB_Prisma_Schema.md",
-    "base_url": "http://jetairm1:11434/api/chat",
+    "base_url": "http://Jethros-MacBook-Air.local:11434/api/chat",
     "model": "codellama",
     "options": {
       "seed": -1,
@@ -273,7 +273,7 @@
   },
   {
     "filename": "Prepare_DB_Prisma_Schema.md",
-    "base_url": "http://jetairm1:11434/api/chat",
+    "base_url": "http://Jethros-MacBook-Air.local:11434/api/chat",
     "model": "codellama",
     "options": {
       "seed": -1,
@@ -307,7 +307,7 @@
   },
   {
     "filename": "Prepare_DB_Prisma_Schema.md",
-    "base_url": "http://jetairm1:11434/api/chat",
+    "base_url": "http://Jethros-MacBook-Air.local:11434/api/chat",
     "model": "codellama",
     "options": {
       "seed": -1,
