@@ -207,9 +207,8 @@ def preprocess_text(
     apply_lemmatization: bool = False
 ) -> str:
     if not text or not text.strip():
-        logger.debug(f"Empty or whitespace-only input text: '{text}'")
+        logger.warning(f"Empty or whitespace-only input text: '{text}'")
         return ""
-    logger.debug(f"Preprocessing text: '{text}'")
     text = re.sub(r'\s+', ' ', text.strip())
     for contraction, expanded in TEXT_CONTRACTIONS_EN.items():
         text = re.sub(r'\b' + contraction + r'\b',
@@ -223,7 +222,6 @@ def preprocess_text(
         logger.warning("Stopword removal not implemented in this version")
     if apply_lemmatization:
         logger.warning("Lemmatization not implemented in this version")
-    logger.debug(f"Preprocessed text: '{text}'")
     return text
 
 
@@ -336,8 +334,6 @@ async def prepare_for_rag(
                 if text_key in seen_texts:
                     continue
                 seen_texts.add(text_key)
-                if section["level"] is None:
-                    logger.debug(f"Chunk with None level: {section}")
                 documents.append(section)
             if not documents:
                 logger.warning(f"No documents collected for source: {source}.")

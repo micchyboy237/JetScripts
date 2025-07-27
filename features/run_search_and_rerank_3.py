@@ -185,7 +185,7 @@ async def main(query):
     """Main function to demonstrate file search."""
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
     llm_model: LLMModelType = "qwen3-1.7b-4bit"
-    max_tokens = 1500
+    max_tokens = 2000
     use_cache = True
 
     query_output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"

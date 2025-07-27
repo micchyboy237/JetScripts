@@ -13,9 +13,9 @@ from jet.transformers.object import make_serializable
 
 
 def match_patterns(file_path: str, patterns: List[str]) -> bool:
-    """Check if a file path matches any of the given patterns."""
-    normalized_path = os.path.normpath(file_path)
-    return any(fnmatch.fnmatch(normalized_path, f"*{os.path.normpath(p)}") for p in patterns)
+    """Check if a file path matches any of the given patterns (case-insensitive)."""
+    normalized_path = os.path.normpath(file_path).lower()
+    return any(fnmatch.fnmatch(normalized_path, f"*{os.path.normpath(p).lower()}") for p in patterns)
 
 
 def get_size(file_path):
@@ -119,12 +119,12 @@ if __name__ == "__main__":
         description="Find and optionally delete large folders.")
     parser.add_argument("-b", "--base-dir", type=str,
                         help="Base directory to search for large folders. Defaults to current working directory.", default=os.getcwd())
-    parser.add_argument("-s", "--min-size", type=int, default=100,
+    parser.add_argument("-s", "--min-size", type=int, default=50,
                         help="Minimum size (MB) to consider a folder large.")
     parser.add_argument("-d", "--max-depth", type=int, default=3,
                         help="Maximum depth to traverse forward. Defaults to 3. Set to 0 to list only immediate subdirectories.")
     parser.add_argument("-i", "--includes", type=str, help="Comma-separated list of patterns to include.",
-                        default="*cache*,*Cache*,*CACHE*,*tmp*,*Temp*,.TemporaryItems,Temporary Files,.Spotlight-V100,.fseventsd,.DS_Store,Logs,DerivedData")
+                        default="*cache*,*Cache*,*CACHE*,*tmp*,*Temp*,.TemporaryItems,Temporary Files,.Spotlight-V100,.fseventsd,.DS_Store,Logs,DerivedData,generated,node_modules,__pycache__,dist,build,.venv,.pytest_cache")
     parser.add_argument("-e", "--excludes", type=str,
                         help="Comma-separated list of patterns to exclude.", default="")
     parser.add_argument("-l", "--limit", type=int, default=None,
