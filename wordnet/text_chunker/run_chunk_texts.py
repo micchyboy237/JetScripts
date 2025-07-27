@@ -9,5 +9,6 @@ sample = "[ Resources ](/r/LangChain/?f=flair_name%3A%22Resources%22)\nI really 
 
 
 if __name__ == "__main__":
-    result = chunk_texts(sample, chunk_size=64, chunk_overlap=32)
+    result = chunk_texts(sample, chunk_size=64,
+                         chunk_overlap=32, model="all-MiniLM-L6-v2")
     save_file(result, f"{OUTPUT_DIR}/result.json")
