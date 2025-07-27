@@ -298,10 +298,13 @@ async def main():
     llm_response = mlx.chat(prompt, llm_model, temperature=0.7, verbose=True)
     save_file(llm_response["content"], f"{query_output_dir}/response.md")
 
+    input_tokens = count_tokens(llm_model, prompt)
+    output_tokens = count_tokens(llm_model, llm_response["content"])
+
     save_file({
-        "prompt_tokens": count_tokens(llm_model, prompt),
-        "context_tokens": count_tokens(llm_model, context),
-        "response_tokens": count_tokens(llm_model, llm_response["content"]),
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": input_tokens + output_tokens,
     }, f"{query_output_dir}/tokens_info.json")
 
 
