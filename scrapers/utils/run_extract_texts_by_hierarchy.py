@@ -17,3 +17,6 @@ if __name__ == "__main__":
 
     headings = extract_texts_by_hierarchy(html_str, ignore_links=True)
     save_file(headings, f"{output_dir}/headings.json")
+
+    heading_parents = [node.get_parent_node() for node in headings]
+    save_file(heading_parents, f"{output_dir}/heading_parents.json")
