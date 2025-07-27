@@ -171,8 +171,8 @@ if __name__ == "__main__":
         texts = [
             f"Document {idx + 1} | Tag ({node.tag}) | Depth ({node.depth})"
         ]
-        if node.parent:
-            texts.append(f"Parent ({node.parent})")
+        if node.parent_id:
+            texts.append(f"Parent ({node.parent_id})")
 
         child_texts = [child_node.text or " " for child_node in node.children]
 
