@@ -13,61 +13,35 @@ OUTPUT_DIR = os.path.join(os.path.dirname(
     __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-md_tokens: List[MarkdownToken] = [
-    {
-        "content": "Personal Information",
-        "level": 2,
-        "line": 1,
-        "type": "header",
-        "meta": {}
-    },
-    {
-        "content": "Contact Details",
-        "line": 2,
-        "type": "header",
-        "level": 2,
-        "meta": {}
-    },
-    {
-        "line": 3,
-        "meta": {
-            "items": [
-                {
-                    "text": "Full Name: Jethro Reuel A. Estrada",
-                    "task_item": False
-                }
-            ]
-        },
-        "type": "unordered_list",
-        "content": "",
-        "level": None
-    },
-    {
-        "content": "Personal Details",
-        "line": 4,
-        "type": "header",
-        "level": 2,
-        "meta": {}
-    },
-    {
-        "line": 5,
-        "meta": {
-            "items": [
-                {
-                    "text": "Gender: Male",
-                    "task_item": False
-                }
-            ]
-        },
-        "type": "unordered_list",
-        "content": "",
-        "level": None
-    },
-]
+md_content = """\
+## 📌 Personal Information
 
-expected =
+### Contact Details
+
+- **Full Name**: Jethro Reuel A. Estrada
+- **Preferred Name**: Jethro / Jet
+- **Email**: [jethroestrada237@gmail.com](mailto:jethroestrada237@gmail.com)
+- **Phone / WhatsApp**: +63 910 166 2460 ([WhatsApp Link](https://wa.me/639101662460))
+- **Location**: Las Piñas, Metro Manila, Philippines, 1740
+
+### Personal Details
+
+- **Gender**: Male
+- **Nationality**: Filipino
+- **Date of Birth**: December 1, 1990
+- **Languages Spoken**: English, Tagalog
+""".strip()
+
+
 if __name__ == "__main__":
-    results = prepend_missing_headers_by_type(md_tokens)
-    save_file(results, f"{OUTPUT_DIR}/results.json")
+    markdown_tokens = tokens = base_parse_markdown(
+        md_content, ignore_links=False)
+    save_file(markdown_tokens, f"{OUTPUT_DIR}/markdown_tokens.json")
 
-    assert results == expected
+    markdown_tokens_with_new_headers = tokens = prepend_missing_headers_by_type(
+        markdown_tokens)
+    save_file(markdown_tokens_with_new_headers,
+              f"{OUTPUT_DIR}/markdown_tokens_with_new_headers.json")
+
+    header_docs = derive_by_header_hierarchy(md_content)
+    save_file(header_docs, f"{OUTPUT_DIR}/header_docs.json")
