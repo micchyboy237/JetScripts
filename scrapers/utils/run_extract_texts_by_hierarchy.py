@@ -20,3 +20,12 @@ if __name__ == "__main__":
 
     heading_parents = [node.get_parent_node() for node in headings]
     save_file(heading_parents, f"{output_dir}/heading_parents.json")
+
+    tags_to_split_on = [
+        ("#", "h1"),
+        ("##", "h2"),
+        ("###", "h3"),
+    ]
+    custom_headings = extract_texts_by_hierarchy(
+        html_str, ignore_links=True, tags_to_split_on=tags_to_split_on)
+    save_file(custom_headings, f"{output_dir}/custom_headings.json")
