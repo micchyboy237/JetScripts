@@ -59,10 +59,6 @@ def main():
     threshold = 0.0  # Using default threshold
     chunk_size = 250
     chunk_overlap = 50
-    tokenizer = get_tokenizer_fn(llm_model)
-
-    def count_tokens(text):
-        return len(tokenizer(text))
 
     merge_chunks = True
     with_merge_chunks_results = list(
@@ -75,7 +71,7 @@ def main():
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             merge_chunks=merge_chunks,
-            tokenizer=count_tokens
+            tokenizer_model=llm_model
         )
     )
     save_results(query,  with_merge_chunks_results, merge_chunks)
@@ -91,7 +87,7 @@ def main():
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             merge_chunks=merge_chunks,
-            tokenizer=count_tokens
+            tokenizer_model=llm_model
         )
     )
     save_results(query, without_merge_chunks_results, merge_chunks)
