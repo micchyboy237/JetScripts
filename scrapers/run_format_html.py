@@ -4,7 +4,7 @@ from typing import List, Union
 from jet.code.html_utils import clean_html
 from jet.code.markdown_utils._converters import convert_html_to_markdown, convert_markdown_to_html
 from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
-from jet.code.markdown_utils._markdown_parser import parse_markdown
+from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_by_header_hierarchy, parse_markdown
 from jet.code.splitter_markdown_utils import get_md_header_contents
 from jet.models.embeddings.chunking import chunk_headers_by_hierarchy
 from jet.models.model_types import LLMModelType
@@ -12,7 +12,7 @@ from jet.models.utils import resolve_model_value
 from mlx_lm import load
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
-from jet.scrapers.utils import extract_by_heading_hierarchy, extract_texts_by_hierarchy, extract_tree_with_text, extract_text_elements, get_leaf_nodes, get_parents_with_shared_class, get_significant_nodes, print_html
+from jet.scrapers.utils import extract_by_heading_hierarchy, extract_text_nodes, extract_texts_by_hierarchy, extract_tree_with_text, extract_text_elements, flatten_tree_to_base_nodes, get_leaf_nodes, get_parents_with_shared_class, get_significant_nodes, print_html
 from jet.search.formatters import clean_string
 from jet.transformers.formatters import format_html
 from jet.utils.commands import copy_to_clipboard
@@ -21,7 +21,7 @@ from jet.utils.commands import copy_to_clipboard
 if __name__ == "__main__":
     from jet.scrapers.preprocessor import html_to_markdown
 
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_3/top_rag_strategies_reddit_2025/pages/www_reddit_com_r_langchain_comments_1ihc3n2_10_rag_papers_you_should_read_from_january_2025/page.html"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_3/top_rag_strategies_reddit_2025/pages/medium_com_aa779_rag_in_2025_7_proven_strategies_to_deploy_retrieval_augmented_generation_at_scale_d1f71dfbfbba/page.html"
     html_dir = os.path.dirname(html_file)
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(
@@ -37,9 +37,12 @@ if __name__ == "__main__":
 
     save_file(html_str, f"{output_dir}/doc.html")
 
-    # Text elements
-    text_elements = extract_text_elements(html_str)
-    save_file(text_elements, f"{output_dir}/text_elements.json")
+    # Texts
+    texts = extract_text_elements(html_str)
+    save_file(texts, f"{output_dir}/texts.json")
+
+    text_nodes = extract_text_nodes(html_str)
+    save_file(text_nodes, f"{output_dir}/text_nodes.json")
 
     # Headings
     headings = extract_texts_by_hierarchy(html_str, ignore_links=True)
@@ -90,12 +93,19 @@ if __name__ == "__main__":
     save_file(clean_html(doc_markdown_tokens_no_merge_html),
               f"{output_dir}/clean_doc_markdown_tokens_no_merge.json")
 
+    base_doc_markdown_tokens = base_parse_markdown(
+        doc_markdown, ignore_links=False)
+    save_file(base_doc_markdown_tokens,
+              f"{output_dir}/base_doc_markdown_tokens.json")
+
     doc_markdown_tokens = parse_markdown(doc_markdown, ignore_links=False)
     save_file(doc_markdown_tokens, f"{output_dir}/doc_markdown_tokens.json")
 
     doc_markdown_tokens_html_template = "<body>{body}</body>"
     doc_markdown_tokens_html_list = [convert_markdown_to_html(
         token["content"]) for token in doc_markdown_tokens]
+    save_file(doc_markdown_tokens_html_list,
+              f"{output_dir}/doc_markdown_tokens_html_list.json")
     doc_markdown_tokens_html = doc_markdown_tokens_html_template.format(
         body="\n".join(doc_markdown_tokens_html_list))
     doc_markdown_tokens_html = format_html(
@@ -177,8 +187,8 @@ if __name__ == "__main__":
     tree_elements = extract_tree_with_text(html_str)
     save_file(tree_elements, f"{output_dir}/tree_elements.json")
 
-    significant_nodes = get_significant_nodes(tree_elements)
-    save_file(significant_nodes, f"{output_dir}/significant_nodes.json")
+    flattened_nodes = flatten_tree_to_base_nodes(tree_elements)
+    save_file(flattened_nodes, f"{output_dir}/flattened_nodes.json")
 
     leaf_nodes = get_leaf_nodes(tree_elements)
     save_file(leaf_nodes, f"{output_dir}/leaf_nodes.json")
@@ -189,5 +199,32 @@ if __name__ == "__main__":
 
     formatted_html = format_html(html_str)
     save_file(formatted_html, f"{output_dir}/formatted_html.html")
+
+    significant_nodes = get_significant_nodes(tree_elements)
+    save_file(significant_nodes, f"{output_dir}/significant_nodes.json")
+
+    for num, significant_node in enumerate(significant_nodes, start=1):
+        sub_output_dir = f"{output_dir}/significant_node_{num}"
+        node_html = significant_node.html
+
+        save_file(node_html, f"{sub_output_dir}/node.html")
+
+        node_md_content = convert_html_to_markdown(node_html)
+        save_file(node_md_content, f"{sub_output_dir}/node.md")
+
+        analysis = analyze_markdown(node_md_content)
+        save_file(analysis, f"{sub_output_dir}/analysis.json")
+
+        markdown_tokens = base_parse_markdown(node_md_content)
+        save_file({
+            "count": len(markdown_tokens),
+            "tokens": markdown_tokens,
+        }, f"{sub_output_dir}/markdown_tokens.json")
+
+        header_docs = derive_by_header_hierarchy(node_md_content)
+        save_file({
+            "count": len(header_docs),
+            "documents": header_docs,
+        }, f"{sub_output_dir}/header_docs.json")
 
     print_html(html_str)

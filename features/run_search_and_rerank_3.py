@@ -5,6 +5,7 @@ import re
 import shutil
 import string
 from typing import DefaultDict, List, Set
+from jet.code.html_utils import preprocess_html
 from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
 from jet.code.markdown_utils._converters import convert_html_to_markdown
 from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
@@ -236,6 +237,8 @@ async def main(query):
                 query_output_dir, "pages", sub_source_dir)
 
             save_file(html, f"{sub_output_dir}/page.html")
+            save_file(preprocess_html(html),
+                      f"{sub_output_dir}/page_preprocessed.html")
 
             links = set(scrape_links(html, url))
             links = [link for link in links if (

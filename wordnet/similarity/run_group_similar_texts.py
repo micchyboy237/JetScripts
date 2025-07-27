@@ -10,12 +10,12 @@ from jet.wordnet.similarity import group_similar_texts
 
 
 if __name__ == '__main__':
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/top_isekai_anime_2025/docs.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_3/top_isekai_anime_2025/search_results.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     docs = load_file(docs_file)
-    docs = docs["documents"]
+    docs = docs["results"]
     documents = [
         f"{doc["header"].lstrip('#').strip()}\n{doc["content"]}" for doc in docs]
 
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     # Start timing
     start_time = time.time()
 
-    ids = [doc["doc_id"] for doc in docs]
+    ids = [doc["metadata"]["doc_id"] for doc in docs]
 
     grouped_similar_texts = group_similar_texts(
         documents, threshold=0.7, model_name=model_name, ids=ids)
@@ -37,5 +37,26 @@ if __name__ == '__main__':
     logger.log(f"group_similar_texts:",
                f"{execution_time:.2f}s", colors=["WHITE", "ORANGE"])
 
-    save_file({"execution_time": f"{execution_time:.2f}s", "count": len(grouped_similar_texts), "results": grouped_similar_texts},
+    # Map grouped_similar_texts (which contains lists of doc_ids) back to the original doc objects
+    doc_id_to_doc = {doc["metadata"]["doc_id"]: doc for doc in docs}
+    mapped_results = [
+        [
+            {
+                "rank": doc.get("rank"),
+                "score": doc.get("score"),
+                "header": doc.get("header"),
+                "content": doc.get("content"),
+                "metadata": {
+                    "doc_index": doc["metadata"].get("doc_index"),
+                    "doc_id": doc["metadata"].get("doc_id"),
+                    "source": doc["metadata"].get("source"),
+                    "num_tokens": doc["metadata"].get("num_tokens"),
+                }
+            }
+            for doc_id in group if (doc := doc_id_to_doc.get(doc_id))
+        ]
+        for group in grouped_similar_texts
+    ]
+
+    save_file({"execution_time": f"{execution_time:.2f}s", "count": len(grouped_similar_texts), "results": mapped_results},
               f"{output_dir}/results.json")
