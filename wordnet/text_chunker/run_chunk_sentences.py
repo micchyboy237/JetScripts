@@ -1,6 +1,6 @@
 import os
 from jet.file.utils import save_file
-from jet.wordnet.text_chunker import chunk_texts
+from jet.wordnet.text_chunker import chunk_sentences
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -9,5 +9,5 @@ sample = "[ Resources ](/r/LangChain/?f=flair_name%3A%22Resources%22)\nI really 
 
 
 if __name__ == "__main__":
-    result = chunk_texts(sample, chunk_size=64, chunk_overlap=32)
+    result = chunk_sentences(sample, chunk_size=2, sentence_overlap=1)
     save_file(result, f"{OUTPUT_DIR}/result.json")
