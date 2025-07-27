@@ -41,7 +41,7 @@ def main():
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
     llm_model: LLMModelType = "qwen3-1.7b-4bit"
 
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_3/pages"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_3/top_isekai_anime_2025/pages"
     # Recursively collect all .html files under docs_file
     html_files = []
     for root, dirs, files in os.walk(docs_file):
@@ -59,7 +59,7 @@ def main():
     threshold = 0.0  # Using default threshold
     chunk_size = 500
     chunk_overlap = 100
-    tokenizer = get_tokenizer_fn(embed_model)
+    tokenizer = get_tokenizer_fn(llm_model)
 
     def count_tokens(text):
         return len(tokenizer(text))
