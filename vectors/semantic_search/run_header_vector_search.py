@@ -37,11 +37,11 @@ def save_results(query: str, results: List[HeaderSearchResult], split_chunks: bo
 def main():
     """Main function to demonstrate file search."""
     # Example usage
-    query = "Top isekai anime 2025."
+    query = "top rag strategies reddit 2025"
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
     llm_model: LLMModelType = "qwen3-1.7b-4bit"
 
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_3/top_isekai_anime_2025/pages"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_3/top_rag_strategies_reddit_2025/pages"
     # Recursively collect all .html files under docs_file
     html_files = []
     for root, dirs, files in os.walk(docs_file):
@@ -57,8 +57,8 @@ def main():
 
     top_k = len(header_docs)
     threshold = 0.0  # Using default threshold
-    chunk_size = 500
-    chunk_overlap = 100
+    chunk_size = 250
+    chunk_overlap = 50
     tokenizer = get_tokenizer_fn(llm_model)
 
     def count_tokens(text):

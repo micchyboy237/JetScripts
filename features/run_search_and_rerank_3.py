@@ -8,7 +8,7 @@ from typing import DefaultDict, List, Set
 from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
 from jet.code.markdown_utils._converters import convert_html_to_markdown
 from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
-from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy, parse_markdown
+from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_by_header_hierarchy, parse_markdown
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
 from jet.logger.config import colorize_log
@@ -181,9 +181,8 @@ def group_results_by_source_for_llm_context(
     return result
 
 
-async def main():
+async def main(query):
     """Main function to demonstrate file search."""
-    query = "Top isekai anime 2025."
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
     llm_model: LLMModelType = "qwen3-1.7b-4bit"
     max_tokens = 1500
@@ -200,7 +199,7 @@ async def main():
 
     urls = [r["url"] for r in search_engine_results]
     # Limit urls
-    urls = urls[:2]
+    urls = urls[:5]
 
     html_list = []
     header_docs: List[HeaderDoc] = []
@@ -221,13 +220,12 @@ async def main():
             save_file(links, os.path.join(
                 sub_output_dir, "links.json"))
 
-            doc_markdown = convert_html_to_markdown(html)
+            doc_markdown = convert_html_to_markdown(html, ignore_links=False)
             save_file(doc_markdown, f"{sub_output_dir}/page.md")
 
             doc_analysis = analyze_markdown(doc_markdown)
             save_file(doc_analysis, f"{sub_output_dir}/analysis.json")
-            doc_markdown_tokens = parse_markdown(
-                doc_markdown, merge_headers=False, merge_contents=False, ignore_links=False)
+            doc_markdown_tokens = base_parse_markdown(doc_markdown)
             save_file(doc_markdown_tokens,
                       f"{sub_output_dir}/markdown_tokens.json")
 
@@ -309,4 +307,15 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    import argparse
+    p = argparse.ArgumentParser(
+        description="Run semantic search and processing pipeline.")
+    p.add_argument("query_pos", type=str, nargs="?",
+                   help="Search query as positional argument")
+    p.add_argument("-q", "--query", type=str,
+                   help="Search query using optional flag")
+    args = p.parse_args()
+
+    query = args.query if args.query else args.query_pos or "Top isekai anime 2025."
+
+    asyncio.run(main(query))
