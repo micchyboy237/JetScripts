@@ -1,3 +1,7 @@
+## Career Summary
+
+Experienced **Frontend and Full Stack Developer** specializing in **React**, **React Native**, and **Node.js** with over a decade of experience in building scalable, high-performance web and mobile applications. Proficient in **cloud services (AWS, Firebase, GCP)**, **databases (PostgreSQL, MongoDB)**, and test-driven development. Committed to delivering user-centric solutions using clean, maintainable code and agile methodologies.
+
 ## 📌 Personal Information
 
 ### Contact Details
@@ -20,10 +24,6 @@
 - **Degree**: BS in Computer Engineering
 - **Institution**: De La Salle University – Manila
 - **Duration**: 2007–2012
-
-## Skills Summary
-
-Experienced **Frontend and Full Stack Developer** specializing in **React**, **React Native**, and **Node.js** with over a decade of experience in building scalable, high-performance web and mobile applications. Proficient in **cloud services (AWS, Firebase, GCP)**, **databases (PostgreSQL, MongoDB)**, and test-driven development. Committed to delivering user-centric solutions using clean, maintainable code and agile methodologies.
 
 ## 🛠️ Technical Skills
 
