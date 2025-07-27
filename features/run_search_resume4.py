@@ -2,7 +2,7 @@ import os
 import shutil
 from typing import List
 from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
-from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
+from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_by_header_hierarchy, parse_markdown
 from jet.file.utils import load_file, save_file
 from jet.logger.config import colorize_log
 from jet.models.model_types import EmbedModelType, LLMModelType
@@ -17,8 +17,8 @@ OUTPUT_DIR = os.path.join(
 def save_results(query: str, results: List[HeaderSearchResult], split_chunks: bool, output_dir: str):
     print(f"Search results for '{query}' in these dirs:")
     for num, result in enumerate(results[:10], start=1):
-        header = result["metadata"]["header"]
-        parent_header = result["metadata"]["parent_header"]
+        header = result["header"]
+        parent_header = result["parent_header"]
         start_idx = result["metadata"]["start_idx"]
         end_idx = result["metadata"]["end_idx"]
         chunk_idx = result["metadata"]["chunk_idx"]
@@ -32,7 +32,7 @@ def save_results(query: str, results: List[HeaderSearchResult], split_chunks: bo
         "count": len(results),
         "merged": not split_chunks,
         "results": results
-    }, f"{OUTPUT_DIR}/results_{'split' if split_chunks else 'merged'}.json")
+    }, f"{output_dir}/results_{'split' if split_chunks else 'merged'}.json")
 
 
 def format_sub_dir(text: str) -> str:
@@ -47,8 +47,14 @@ def main(query):
 
     # Example usage
     md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/data/complete_jet_resume.md"
-    header_docs = derive_by_header_hierarchy(md_file)
 
+    md_content = load_file(md_file)
+    save_file(md_content, f"{output_dir}/md_content.md")
+
+    markdown_tokens = base_parse_markdown(md_content, ignore_links=False)
+    save_file(markdown_tokens, f"{output_dir}/markdown_tokens.json")
+
+    header_docs = derive_by_header_hierarchy(md_file)
     save_file(header_docs, f"{output_dir}/header_docs.json")
 
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"

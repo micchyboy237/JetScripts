@@ -1,5 +1,3 @@
-# Resume: Jethro Reuel A. Estrada
-
 ## 📌 Personal Information
 
 ### Contact Details
