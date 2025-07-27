@@ -51,7 +51,7 @@ if __name__ == "__main__":
     headings2 = get_md_header_contents(html_str)
     save_file(headings2, f"{output_dir}/headings2.json")
 
-    texts = [item["text"] for item in headings]
+    texts = [item.text for item in headings]
 
     # Load the model and tokenizer
     model_id = resolve_model_value(llm_model)
