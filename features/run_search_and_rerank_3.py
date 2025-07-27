@@ -18,6 +18,7 @@ from jet.models.tokenizer.base import get_tokenizer_fn, count_tokens
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.scrapers.utils import scrape_links, search_data
 from jet.vectors.semantic_search.header_vector_search import HeaderSearchResult, search_headers
+from jet.wordnet.analyzers.text_analysis import analyze_readability
 
 
 OUTPUT_DIR = os.path.join(
@@ -57,7 +58,7 @@ def group_results_by_source_for_llm_context(
             return text.lstrip('#').strip()
         return text
 
-    # Initialize tokenizer (using a default model assumption since llm_model is not provided)
+    # Initialize tokenizer
     tokenizer = get_tokenizer_fn(
         "qwen3-1.7b-4bit", add_special_tokens=False, remove_pad_tokens=True)
     separator = "\n\n"
@@ -72,76 +73,86 @@ def group_results_by_source_for_llm_context(
     for doc in sorted_docs:
         text = doc.get("content", "")
         source = doc["metadata"].get("source", "Unknown Source")
-        parent_header = doc.get("parent_header", "None")
-        header = doc.get("header", None)
-        level = doc["metadata"].get("level", 0)
-        parent_level = doc["metadata"].get("parent_level", None)
-
         if not isinstance(text, str):
             logger.debug(
                 f"Non-string content found for source: {source}, doc_index: {doc['metadata'].get('doc_index', 0)}, type: {type(text)}. Converting to string.")
             text = str(text) if text else ""
-
-        doc_tokens = doc["metadata"].get(
-            "num_tokens", len(tokenizer.encode(text)))
-        header_tokens = 0
-
-        if not grouped_temp[source]:
-            header_tokens += len(tokenizer.encode(
-                f"<!-- Source: {source} -->\n\n"))
-            header_tokens += separator_tokens if grouped_temp else 0
-
-        parent_header_key = strip_hashtags(
-            parent_header) if parent_header and parent_header != "None" else None
-        header_key = strip_hashtags(header) if header else None
-
-        if header_key and header_key not in seen_header_text[source] and level >= 0:
-            header_tokens += len(tokenizer.encode(f"{header}\n\n"))
-            seen_header_text[source].add(header_key)
-
         grouped_temp[source].append(doc)
 
     context_blocks = []
     for source, docs in grouped_temp.items():
         block = f"<!-- Source: {source} -->\n\n"
         seen_header_text_in_block = set()
-        docs = sorted(docs, key=lambda x: (
-            x["metadata"].get("doc_index", 0),
-            x["metadata"].get("chunk_idx", 0)
-        ))
-        for doc in docs:
-            header = doc.get("header", None)
-            parent_header = doc.get("parent_header", "None")
-            text = doc.get("content", "")
 
-            if not isinstance(text, str):
-                logger.debug(
-                    f"Non-string content in block for source: {source}, doc_index: {doc['metadata'].get('doc_index', 0)}, type: {type(text)}. Converting to string.")
-                text = str(text) if text else ""
+        # Group by doc_index and header to handle overlaps
+        grouped_by_header: DefaultDict[tuple[int, str],
+                                       List[HeaderSearchResult]] = defaultdict(list)
+        for doc in sorted(docs, key=lambda x: (x["metadata"].get("doc_index", 0), x["metadata"].get("start_idx", 0))):
+            doc_index = doc["metadata"].get("doc_index", 0)
+            header = doc.get("header", "") or ""
+            grouped_by_header[(doc_index, header)].append(doc)
 
-            doc_level = doc["metadata"].get(
-                "level", 0) if doc["metadata"].get("level") is not None else 0
-            parent_level = doc["metadata"].get("parent_level", None)
+        for (doc_index, header), chunks in grouped_by_header.items():
+            parent_header = chunks[0].get("parent_header", "None")
+            parent_level = chunks[0]["metadata"].get("parent_level", None)
+            doc_level = chunks[0]["metadata"].get(
+                "level", 0) if chunks[0]["metadata"].get("level") is not None else 0
             parent_header_key = strip_hashtags(
                 parent_header) if parent_header and parent_header != "None" else None
             header_key = strip_hashtags(header) if header else None
 
+            # Check for matching child headers to avoid redundant parent headers
             has_matching_child = any(
                 strip_hashtags(d.get("header", "")) == parent_header_key
                 for d in docs
                 if d.get("header") and d["metadata"].get("level", 0) >= 0
             )
+
+            # Add parent header if it hasn't been added and has no matching child
             if parent_header_key and parent_level is not None and not has_matching_child and parent_header_key not in seen_header_text_in_block:
-                parent_header_text = f"{parent_header}\n\n"
-                block += parent_header_text
+                block += f"{parent_header}\n\n"
                 seen_header_text_in_block.add(parent_header_key)
 
+            # Add header if it hasn't been added
             if header_key and header_key not in seen_header_text_in_block and doc_level >= 0:
-                subheader_text = f"{header}\n\n"
-                block += subheader_text
+                block += f"{header}\n\n"
                 seen_header_text_in_block.add(header_key)
+                seen_header_text[source].add(header_key)
 
-            block += text + "\n\n"
+            # Sort chunks by start_idx and merge overlapping or adjacent chunks
+            chunks.sort(key=lambda x: x["metadata"]["start_idx"])
+            merged_content = ""
+            start_idx = chunks[0]["metadata"]["start_idx"]
+            end_idx = chunks[0]["metadata"]["end_idx"]
+            current_content = chunks[0]["content"]
+            merged_content = current_content
+
+            for next_chunk in chunks[1:]:
+                next_start = next_chunk["metadata"]["start_idx"]
+                next_end = next_chunk["metadata"]["end_idx"]
+                next_content = next_chunk["content"]
+                if not isinstance(next_content, str):
+                    logger.debug(
+                        f"Non-string content in chunk for source: {source}, doc_index: {doc_index}, type: {type(next_content)}. Converting to string.")
+                    next_content = str(next_content) if next_content else ""
+
+                # Merge if chunks overlap or are adjacent
+                if next_start <= end_idx + 1:
+                    overlap = end_idx - next_start + 1 if next_start <= end_idx else 0
+                    additional_content = next_content[overlap:
+                                                      ] if overlap > 0 else next_content
+                    merged_content += additional_content
+                    end_idx = max(end_idx, next_end)
+                else:
+                    # Append merged content to block
+                    block += merged_content + "\n\n"
+                    # Start new merged chunk
+                    merged_content = next_content
+                    start_idx = next_start
+                    end_idx = next_end
+
+            # Append the last merged chunk
+            block += merged_content + "\n\n"
 
         block_tokens = len(tokenizer.encode(block))
         if block_tokens > len(tokenizer.encode(f"<!-- Source: {source} -->\n\n")):
@@ -204,12 +215,17 @@ async def main(query):
               f"{query_output_dir}/search_engine_results.json")
 
     urls = [r["url"] for r in search_engine_results]
-    # Limit urls
-    urls = urls[:5]
 
     html_list = []
     header_docs: List[HeaderDoc] = []
     search_results: List[HeaderSearchResult] = []
+
+    total_tokens = 0
+    total_high_score_tokens = 0
+    total_mtld_high_score_average = 0
+    HIGH_QUALITY_SCORE = 0.6
+    TARGET_HIGH_SCORE_TOKENS = max_tokens * 2
+    TARGET_TOKENS = 10000
 
     async for url, status, html in scrape_urls(urls, show_progress=True):
         if status == "completed" and html:
@@ -256,10 +272,53 @@ async def main(query):
                 )
             )
 
-            save_file(sub_results, f"{sub_output_dir}/search_results.json")
+            sub_total_tokens = sum(
+                result["metadata"]["num_tokens"] for result in sub_results)
+
+            sub_high_score_tokens = sum(
+                result["metadata"]["num_tokens"]
+                for result in sub_results
+                if (
+                    result["score"] >= HIGH_QUALITY_SCORE
+                    and result.get("mtld_category") != "very_low"
+                )
+            )
+            sub_mtld_high_score_values = [
+                analyze_readability(result["content"])["mtld"]
+                for result in sub_results
+                if (
+                    result["score"] >= HIGH_QUALITY_SCORE
+                    and analyze_readability(result["content"])["mtld_category"] != "very_low"
+                )
+            ]
+            sub_mtld_high_score_average = (
+                sum(sub_mtld_high_score_values) /
+                len(sub_mtld_high_score_values)
+                if sub_mtld_high_score_values else 0
+            )
+
+            save_file({
+                "query": query,
+                "url": url,
+                "count": len(sub_results),
+                "total_tokens": sub_total_tokens,
+                "high_score_tokens": sub_high_score_tokens,
+                "mtld_high_score_average": sub_mtld_high_score_average,
+                "results": sub_results,
+            }, f"{sub_output_dir}/search_results.json")
 
             header_docs.extend(original_docs)
             search_results.extend(sub_results)
+
+            total_tokens += sub_total_tokens
+            total_high_score_tokens += sub_high_score_tokens
+            total_mtld_high_score_average += round(
+                sub_mtld_high_score_average, 2)
+
+            if total_high_score_tokens >= TARGET_HIGH_SCORE_TOKENS or total_tokens >= TARGET_TOKENS:
+                logger.info(
+                    f"Stopping processing: {total_tokens} tokens collected from source: {url}.")
+                break
 
     # Sort search_results by score then update rank
     search_results = sorted(
@@ -267,8 +326,23 @@ async def main(query):
     for i, result in enumerate(search_results, 1):
         result["rank"] = i
 
-    save_file(header_docs, f"{query_output_dir}/docs.json")
-    save_file(search_results, f"{query_output_dir}/search_results.json")
+    save_file({
+        "query": query,
+        "count": len(header_docs),
+        "documents": header_docs
+    }, f"{query_output_dir}/docs.json")
+
+    searched_urls = list({result.get("metadata", {}).get(
+        "source") for result in search_results if result.get("metadata", {}).get("source")})
+    save_file({
+        "query": query,
+        "count": len(search_results),
+        "urls": searched_urls,
+        "total_tokens": total_tokens,
+        "total_high_score_tokens": total_high_score_tokens,
+        "total_mtld_high_score_average": total_mtld_high_score_average,
+        "results": search_results
+    }, f"{query_output_dir}/search_results.json")
 
     # Filter results so that their combined context does not exceed max_tokens
     filtered_results = []
