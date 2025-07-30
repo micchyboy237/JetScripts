@@ -7,7 +7,7 @@ from jet.file.utils import load_file, save_file
 from jet.models.model_types import EmbedModelType
 from jet.scrapers.utils import extract_texts_by_hierarchy
 from jet.wordnet.sentence import split_sentences
-from jet.wordnet.text_chunker import chunk_texts
+from jet.wordnet.text_chunker import chunk_texts, chunk_texts_with_data
 from shared.data_types.job import JobData
 from jet.models.tokenizer.base import count_tokens
 
@@ -51,3 +51,7 @@ if __name__ == "__main__":
         embed_model, chunks, prevent_total=True)
     save_file([{"tokens": tokens, "chunk": chunk} for tokens, chunk in zip(
         token_counts, chunks)], f"{output_dir}/chunks.json")
+
+    chunks_with_data = chunk_texts_with_data(md_content, chunk_size=64,
+                                             chunk_overlap=32, model=embed_model)
+    save_file(chunks_with_data, f"{output_dir}/chunks_with_data.json")
