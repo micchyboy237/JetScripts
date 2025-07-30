@@ -10,29 +10,32 @@ OUTPUT_DIR = os.path.join(
 
 if __name__ == "__main__":
     # Initialize searcher with custom word list
-    words = ["the", "quick", "brown", "fox", "jumps"]
+    # words = ["the", "quick", "brown", "fox", "jumps"]
+    words = None
     searcher = MispelledKeywordVectorSearch()
     searcher.build_index(words)
 
     # Test with single string
     query = "teh quik foxx jumpss"
-    results: List[SearchResult] = searcher.search(query, k=5)
+    results: List[SearchResult] = searcher.search(query)
     logger.success(format_json(results))
     save_file({
         "query": query,
         "count": len(results),
         "results": results
-    }, f"{OUTPUT_DIR}/example/single_string_results.json")
+    }, f"{OUTPUT_DIR}/single_string_results.json")
 
     # Test with list of documents
     documents = [
         "teh quick brown foxx",
-        "jummps over teh lazy dogg"
+        "jummps over teh lazy dogg",
+        "Helo, wrld! I am fien.",
+        "Shee is he or shee."
     ]
-    results: List[SearchResult] = searcher.search(documents, k=5)
+    results: List[SearchResult] = searcher.search(documents)
     logger.success(format_json(results))
     save_file({
         "query": documents,
         "count": len(results),
         "results": results
-    }, f"{OUTPUT_DIR}/example/document_list_results.json")
+    }, f"{OUTPUT_DIR}/document_list_results.json")
