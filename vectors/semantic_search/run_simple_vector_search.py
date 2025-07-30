@@ -22,6 +22,7 @@ if __name__ == "__main__":
         "Helo, wrld! I am fien.",
         "Helo, world! I am fien.",
         "Hello, wrld! I am fien.",
+        "Hello wrld! I am fien.",
     ]
 
     search_engine = VectorSearch(model_name, truncate_dim=dimensions)
