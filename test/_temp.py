@@ -1,111 +1,53 @@
 import os
-import re
-
-from typing import AsyncGenerator, List, Optional, Tuple, TypedDict
-from pyquery import PyQuery as pq
-
-from playwright.sync_api import sync_playwright
-
-
-class BaseNode:
-    """Base class for nodes with common attributes."""
-
-    def __init__(
-        self,
-        tag: str,
-        text: Optional[str],
-        depth: int,
-        id: str,
-        parent: Optional[str] = None,
-        class_names: List[str] = [],
-        link: Optional[str] = None,
-        line: int = 0
-    ):
-        self.tag = tag
-        self.text = text
-        self.depth = depth
-        self.id = id
-        self.parent = parent
-        self.class_names = class_names
-        self.link = link
-        self.line = line
+import shutil
+from typing import List
+from jet.code.markdown_utils._converters import convert_markdown_to_html
+from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_by_header_hierarchy
+from jet.file.utils import load_file, save_file
+from jet.models.model_types import EmbedModelType
+from jet.scrapers.utils import extract_texts_by_hierarchy
+from jet.wordnet.sentence import split_sentences
+from jet.wordnet.text_chunker import chunk_texts
+from shared.data_types.job import JobData
+from jet.models.tokenizer.base import count_tokens
 
 
-def extract_text_elements(source: str, excludes: list[str] = ["nav", "footer", "script", "style"], timeout_ms: int = 1000) -> List[str]:
-    """
-    Extracts a flattened list of text elements from the HTML document, ignoring specific elements like <style> and <script>.
-    Uses Playwright to render dynamic content if needed.
+jobs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
 
-    :param source: The HTML string or URL to parse.
-    :param excludes: A list of tag names to exclude (e.g., ["nav", "footer", "script", "style"]).
-    :param timeout_ms: Timeout for rendering the page (in ms) for dynamic content.
-    :return: A list of text elements found in the HTML.
-    """
-    if os.path.exists(source) and not source.startswith("file://"):
-        source = f"file://{source}"
+jobs: List[JobData] = load_file(jobs_file)
 
-    if re.match(r'^https?://', source) or re.match(r'^file://', source):
-        url = source
-        html = None
-    else:
-        url = None
-        html = source
+md_content = f"# Job Title: {jobs[0]["title"]}\n\n## Overview\n{jobs[0]["details"]}\nLink: {jobs[0]["link"]}"
 
-    # Use Playwright to render the page if URL is provided
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+if __name__ == "__main__":
+    output_dir = os.path.join(os.path.dirname(
+        __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    shutil.rmtree(output_dir, ignore_errors=True)
 
-        if url:
-            page.goto(url, wait_until="networkidle")
-        else:
-            page.set_content(html)
+    embed_model: EmbedModelType = "mxbai-embed-large"
 
-        page.wait_for_timeout(timeout_ms)
+    sentences = split_sentences(md_content)
+    token_counts: List[int] = count_tokens(
+        embed_model, sentences, prevent_total=True)
+    save_file([{"tokens": tokens, "sentence": sentence} for tokens, sentence in zip(
+        token_counts, sentences)], f"{output_dir}/sentences.json")
 
-        # Extract the content
-        page_content = page.content()
-        browser.close()
+    headers_with_heirarchy = derive_by_header_hierarchy(md_content)
+    save_file(headers_with_heirarchy,
+              f"{output_dir}/headers_with_heirarchy.json")
 
-    # Parse the content with PyQuery after Playwright has rendered it
-    doc = pq(page_content)
+    results_ignore_links = base_parse_markdown(md_content, ignore_links=True)
+    results_with_links = base_parse_markdown(md_content, ignore_links=False)
 
-    # Apply the exclusion logic before extracting text
-    exclude_elements(doc, excludes)
+    save_file(results_ignore_links, f"{output_dir}/results_ignore_links.json")
+    save_file(results_with_links, f"{output_dir}/results_with_links.json")
 
-    def extract_text(element) -> List[str]:
-        text = pq(element).text().strip()
+    html_str = convert_markdown_to_html(md_content)
+    headings = extract_texts_by_hierarchy(html_str, ignore_links=True)
+    save_file(headings, f"{output_dir}/headings.json")
 
-        valid_id_pattern = r'^[a-zA-Z_-]+$'
-        element_id = pq(element).attr('id')
-        element_class = pq(element).attr('class')
-        id = element_id if element_id and re.match(
-            valid_id_pattern, element_id) else None
-        class_names = [name for name in (element_class.split() if element_class else [])
-                       if re.match(valid_id_pattern, name)]
-
-        if text and len(pq(element).children()) == 0:
-            return [text]
-
-        text_elements = []
-        for child in pq(element).children():
-            text_elements.extend(extract_text(child))
-
-        return text_elements
-
-    # Start with the root element and gather all text elements in a flattened list
-    text_elements = extract_text(doc[0])
-
-    return text_elements
-
-
-def exclude_elements(doc: pq, excludes: List[str]) -> None:
-    """
-    Removes elements from the document that match the tags in the excludes list.
-
-    :param doc: The PyQuery object representing the HTML document.
-    :param excludes: A list of tag names to exclude (e.g., ["style", "script"]).
-    """
-    for tag in excludes:
-        for element in doc(tag):
-            pq(element).remove()
+    chunks = chunk_texts(md_content, chunk_size=64,
+                         chunk_overlap=32, model=embed_model)
+    token_counts: List[int] = count_tokens(
+        embed_model, chunks, prevent_total=True)
+    save_file([{"tokens": tokens, "chunk": chunk} for tokens, chunk in zip(
+        token_counts, chunks)], f"{output_dir}/chunks.json")
