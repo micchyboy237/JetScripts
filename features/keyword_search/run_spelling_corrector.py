@@ -10,14 +10,17 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == '__main__':
-    text_corrector = SpellingCorrector()
-    english_texts = [
+    misspelled_texts = [
         "Helo, wrld! I am fien.",
         "Shee is he or shee."
     ]
-    texts = english_texts
+    corrected_texts = [
+        "Hello, world! I am fine.",
+        "She is he or she."
+    ]
 
-    results_stream = text_corrector.autocorrect_texts(texts)
+    text_corrector = SpellingCorrector(base_sentences=corrected_texts)
+    results_stream = text_corrector.autocorrect_texts(misspelled_texts)
 
     autocorrect_results = []
     for result in results_stream:
@@ -25,13 +28,13 @@ if __name__ == '__main__':
         autocorrect_results.append(result)
 
     save_file({
-        "texts": texts,
+        "misspelled_texts": misspelled_texts,
         "count": len(autocorrect_results),
         "autocorrect_results": autocorrect_results
     }, f"{OUTPUT_DIR}/autocorrect_results.json")
 
     save_file({
-        "texts": texts,
+        "misspelled_texts": misspelled_texts,
         "count": len(text_corrector.unknown_words),
         "unknown_words": text_corrector.unknown_words
     }, f"{OUTPUT_DIR}/unknown_words.json")
