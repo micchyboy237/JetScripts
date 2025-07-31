@@ -269,7 +269,7 @@ async def main(query):
                     "header": header.header,
                     "content": header.content,
                     "level": header.level,
-                    "parent_headers": [header.parent_header] if header.parent_header else [],
+                    "parent_headers": header.parent_headers,
                     "parent_header": header.parent_header,
                     "parent_level": header.parent_level,
                     "source": url,
