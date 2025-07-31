@@ -18,6 +18,10 @@ if __name__ == "__main__":
     headings = extract_texts_by_hierarchy(html_str, ignore_links=True)
     save_file(headings, f"{output_dir}/headings.json")
 
+    headings_html_strings = [node.to_html() for node in headings]
+    save_file(headings_html_strings,
+              f"{output_dir}/headings_html_strings.json")
+
     heading_parents = [node.get_parent_node() for node in headings]
     save_file(heading_parents, f"{output_dir}/heading_parents.json")
 
@@ -29,3 +33,7 @@ if __name__ == "__main__":
     custom_headings = extract_texts_by_hierarchy(
         html_str, ignore_links=True, tags_to_split_on=tags_to_split_on)
     save_file(custom_headings, f"{output_dir}/custom_headings.json")
+
+    custom_headings_html_strings = [node.to_html() for node in custom_headings]
+    save_file(custom_headings_html_strings,
+              f"{output_dir}/custom_headings_html_strings.json")
