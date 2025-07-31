@@ -50,10 +50,11 @@ DEFAULT_QUERY_MESSAGE = """
 Write a reusable chunker class given this code. Use the file name for the class name.
 """.strip()
 
-DEFAULT_SYSTEM_MESSAGE = """
+DEFAULT_INSTRUCTIONS_MESSAGE = """
 """.strip()
 
-DEFAULT_INSTRUCTIONS_MESSAGE = """
+DEFAULT_SYSTEM_MESSAGE = """
+Dont use prior artifact knowledge and memory.
 """.strip()
 
 # For existing projects
