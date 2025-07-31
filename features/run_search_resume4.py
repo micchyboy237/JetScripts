@@ -46,7 +46,7 @@ def main(query):
     shutil.rmtree(output_dir, ignore_errors=True)
 
     # Example usage
-    md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/data/complete_jet_resume.md"
+    md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-resume/complete_jet_resume.md"
 
     md_content = load_file(md_file)
     save_file(md_content, f"{output_dir}/md_content.md")

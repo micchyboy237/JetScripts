@@ -566,7 +566,7 @@ def group_results_by_source_for_llm_context(
 if __name__ == '__main__':
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-    resume_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/data/complete_jet_resume.md"
+    resume_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-resume/complete_jet_resume.md"
 
     query = "Tell me about yourself."
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"

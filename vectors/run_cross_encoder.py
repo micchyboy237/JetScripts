@@ -77,7 +77,7 @@ def main() -> None:
     # Ensure output directory exists
     os.makedirs(CONFIG["output_dir"], exist_ok=True)
 
-    resume_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/data/complete_jet_resume.md"
+    resume_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-resume/complete_jet_resume.md"
     markdown_tokens = parse_markdown(
         resume_path, merge_headers=False, merge_contents=True, ignore_links=False)
     docs = [d["content"] for d in markdown_tokens]

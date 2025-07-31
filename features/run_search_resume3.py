@@ -18,7 +18,7 @@ from jet.wordnet.text_chunker import chunk_headers
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
 # --- Configuration ---
-RESUME_PATH = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/data/complete_jet_resume.md"
+RESUME_PATH = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-resume/complete_jet_resume.md"
 
 CHUNK_SIZE = 300
 CHUNK_OVERLAP = 50
