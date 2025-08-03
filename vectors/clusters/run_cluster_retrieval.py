@@ -249,7 +249,7 @@ def main():
     }, f"{OUTPUT_DIR}/chunked_docs.json")
 
     filtered_chunks_with_metadata = [
-        chunk["text"]
+        chunk
         for chunk in all_chunks_with_metadata
         if not chunk["metadata"]["ltr_ratio"]["is_link_heavy"]
         and chunk["metadata"]["text_analysis"]["mtld_category"] != "very_low"
