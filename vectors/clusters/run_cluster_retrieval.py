@@ -14,7 +14,7 @@ from jet.logger.config import colorize_log
 from jet.models.tokenizer.base import count_tokens, get_tokenizer_fn
 from jet.utils.text import format_sub_dir
 from jet.vectors.clusters.retrieval import ChunkSearchResult, RetrievalConfigDict, VectorRetriever
-from jet.wordnet.analyzers.text_analysis import analyze_text
+from jet.wordnet.analyzers.text_analysis import analyze_readability
 from jet.wordnet.text_chunker import chunk_texts_with_data
 
 OUTPUT_DIR = os.path.join(
@@ -208,7 +208,7 @@ def main():
                     "header": header,
                     "content": chunk_content,
                     "ltr_ratio": link_to_text_ratio(text),
-                    "text_analysis": analyze_text(text),
+                    "text_analysis": analyze_readability(text),
                     # "tokens": tokens,
                 }
             }
@@ -252,7 +252,7 @@ def main():
         chunk["text"]
         for chunk in all_chunks_with_metadata
         if not chunk["metadata"]["ltr_ratio"]["is_link_heavy"]
-        and chunk["metadata"]["analysis"]["mtld_category"] != "very_low"
+        and chunk["metadata"]["text_analysis"]["mtld_category"] != "very_low"
     ]
     save_file({
         "query": query,
