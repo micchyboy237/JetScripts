@@ -251,8 +251,8 @@ def main():
     filtered_chunks_with_metadata = [
         chunk
         for chunk in all_chunks_with_metadata
-        if not chunk["metadata"]["ltr_ratio"]["is_link_heavy"]
-        and chunk["metadata"]["text_analysis"]["mtld_category"] != "very_low"
+        if chunk["metadata"]["text_analysis"]["mtld_category"] != "very_low"
+        # and not chunk["metadata"]["ltr_ratio"]["is_link_heavy"]
     ]
     save_file({
         "query": query,
