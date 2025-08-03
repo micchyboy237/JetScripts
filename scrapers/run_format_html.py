@@ -21,7 +21,7 @@ from jet.utils.commands import copy_to_clipboard
 if __name__ == "__main__":
     from jet.scrapers.preprocessor import html_to_markdown
 
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_3/top_rag_strategies_reddit_2025/pages/medium_com_aa779_rag_in_2025_7_proven_strategies_to_deploy_retrieval_augmented_generation_at_scale_d1f71dfbfbba/page.html"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/top_isekai_anime_2025/pages/www_ranker_com_list_best_isekai_anime_2025_anna_lindwasser/page.html"
     html_dir = os.path.dirname(html_file)
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(

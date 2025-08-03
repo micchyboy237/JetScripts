@@ -1,7 +1,7 @@
 import json
 import os
 from typing import List, Optional, TypedDict
-from jet.vectors.cluster import cluster_texts
+from jet.vectors.clusters.base import cluster_texts
 import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer, util, CrossEncoder

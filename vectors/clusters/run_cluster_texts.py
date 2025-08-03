@@ -8,7 +8,7 @@ from sentence_transformers import SentenceTransformer
 import umap
 import hdbscan
 from sklearn.metrics import silhouette_score
-from jet.vectors.cluster import cluster_texts
+from jet.vectors.clusters.base import cluster_texts
 
 # Example usage
 if __name__ == "__main__":

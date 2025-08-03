@@ -263,6 +263,7 @@ async def main(query):
             original_docs: List[HeaderDoc] = []
             for i, header in enumerate(headers):
                 doc_markdown_tokens = base_parse_markdown(doc_markdown)
+                header_md_content = convert_html_to_markdown(header.html)
                 doc: HeaderDoc = {
                     "id": header.id,
                     "doc_index": i,
@@ -273,7 +274,7 @@ async def main(query):
                     "parent_header": header.parent_header,
                     "parent_level": header.parent_level,
                     "source": url,
-                    "tokens": base_parse_markdown(f"{header.header}\n{header.content}".strip()),
+                    "tokens": base_parse_markdown(header_md_content),
                 }
                 original_docs.append(doc)
 
