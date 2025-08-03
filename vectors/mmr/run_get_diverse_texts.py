@@ -22,13 +22,15 @@ def main() -> None:
     model = SentenceTransformerRegistry.load_model('all-MiniLM-L6-v2')
 
     # Simulated query and product descriptions
-    query = "smartphone with good camera"
+    query = "beach vacation with rich cultural attractions"
     texts = [
-        "Phone A: 48MP camera, 6.5-inch AMOLED, 128GB storage",
-        "Phone B: 50MP camera, 6.4-inch OLED, 256GB storage",
-        "Phone C: 12MP camera, 6-inch LCD, budget-friendly",
-        "Phone D: 16MP camera, 5000mAh battery, 6.2-inch display",
-        "Phone E: 20MP camera, compact 5.8-inch display, 64GB storage",
+        "Destination A: Pristine beaches with white sand, ancient temples, vibrant festivals, and local cuisine.",
+        "Destination B: Sandy beaches, historic ruins, cultural museums, and traditional dance performances.",
+        "Destination C: Tropical beachfront, coral reefs for snorkeling, modern art galleries, and luxury resorts.",
+        "Destination D: Golden beaches, UNESCO heritage sites, local artisan markets, and coastal hiking trails.",
+        "Destination E: Rugged mountain trails, alpine villages, folk music festivals, and scenic cable cars.",
+        "Destination F: Urban city with cultural landmarks, historic theaters, street food markets, and river cruises.",
+        "Destination G: Secluded beaches, minimal cultural sites, excellent diving spots, and eco-friendly lodges."
     ]
 
     # Generate embeddings
@@ -39,7 +41,7 @@ def main() -> None:
 
     # Parameters
     mmr_lambda = 0.5  # Balance relevance and diversity
-    num_results = 3   # Return top 3 diverse results
+    num_results = None   # Return all diverse results
     initial_indices = [0]  # Pre-select Phone A as a starting point
 
     # Run MMR
@@ -53,7 +55,7 @@ def main() -> None:
     )
 
     # Print results
-    print("Query: 'smartphone with good camera'")
+    print(f"Query: '{query}'")
     print(f"MMR Lambda: {mmr_lambda}, Number of results: {num_results}")
     print("Selected diverse product descriptions:")
     for result in results:
