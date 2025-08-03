@@ -29,7 +29,7 @@ def main(mode: ClusteringMode):
     ids = [doc["metadata"]["doc_id"] for doc in docs]
 
     grouped_similar_texts = group_similar_texts(
-        documents, threshold=0.7, model_name=model_name, ids=ids, mode=mode)
+        documents, model_name=model_name, ids=ids, mode=mode)
 
     # End timing
     end_time = time.time()
@@ -62,6 +62,25 @@ def main(mode: ClusteringMode):
 
     save_file({"execution_time": f"{execution_time:.2f}s", "count": len(grouped_similar_texts), "results": mapped_results},
               f"{mode_output_dir}/results.json")
+
+    clusters = []
+    for group in grouped_similar_texts:
+        # group is a list of doc_ids
+        docs_in_group = [doc_id_to_doc[doc_id]
+                         for doc_id in group if doc_id in doc_id_to_doc]
+        total_tokens = sum(doc["metadata"].get("num_tokens", 0)
+                           for doc in docs_in_group)
+        headers = [doc.get("header") for doc in docs_in_group]
+        clusters.append({
+            "count": len(group),
+            "total_tokens": total_tokens,
+            "headers": headers
+        })
+    save_file({
+        "count": len(clusters),
+        "total_tokens": sum(cluster["total_tokens"] for cluster in clusters),
+        "clusters": clusters,
+    }, f"{mode_output_dir}/clusters.json")
 
 
 if __name__ == '__main__':
