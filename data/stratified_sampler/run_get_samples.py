@@ -1,13 +1,13 @@
 
 import os
-from typing import List
-from jet.data.sample_diverse_texts import sample_diverse_texts
+from jet.data.stratified_sampler import ProcessedData, StratifiedSampler, filter_and_sort_sentences_by_ngrams
 from jet.file.utils import save_file
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+
 
 texts = [
     "Similar text 1",
@@ -17,9 +17,11 @@ texts = [
 ]
 
 if __name__ == "__main__":
-    diverse_result_texts: List[str] = sample_diverse_texts(texts, n=2, top_n=2)
+    num_samples = 2
+    sampler = StratifiedSampler(texts, num_samples=num_samples)
+    results = sampler.get_samples()
 
-    logger.gray(f"Results: ({len(diverse_result_texts)})")
-    logger.success(format_json(diverse_result_texts))
+    logger.gray(f"Results: ({len(results)})")
+    logger.success(format_json(results))
 
-    save_file(diverse_result_texts, f"{OUTPUT_DIR}/diverse_result_texts.json")
+    save_file(results, f"{OUTPUT_DIR}/results.json")
