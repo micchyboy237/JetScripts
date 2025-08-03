@@ -51,7 +51,7 @@ def main():
         query, top_chunks, generation_config={"verbose": True})
 
     save_file(top_chunks, f"{OUTPUT_DIR}/top_chunks.json")
-    save_file(f"# LLM Generation\n\n## Query\n\n{query}\n\n## Context\n\n{response["context"]}\n\n## Response\n\n{response["response"]}",
+    save_file(f"# LLM Generation\n\n## Prompt\n\n{response["prompt"]}\n\n## Response\n\n{response["response"]}",
               f"{OUTPUT_DIR}/llm_generation.md")
 
 
