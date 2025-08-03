@@ -247,6 +247,7 @@ async def main(query):
     all_started_urls = []
     all_completed_urls = []
     all_urls_with_high_scores = []
+    all_urls_with_low_scores = []
 
     async for url, status, html in scrape_urls(urls, show_progress=True):
         if status == "started":
@@ -325,7 +326,6 @@ async def main(query):
                 for result in filtered_sub_results
                 if (
                     result["score"] >= HIGH_QUALITY_SCORE
-                    and result.get("mtld_category") != "very_low"
                 )
             )
 
@@ -366,7 +366,10 @@ async def main(query):
 
             header_docs.extend(original_docs)
             search_results.extend(filtered_sub_results)
-            all_urls_with_high_scores.append(url)
+            if sub_high_score_tokens > 0:
+                all_urls_with_high_scores.append(url)
+            else:
+                all_urls_with_low_scores.append(url)
 
             headers_total_tokens += sub_total_tokens
             headers_high_score_tokens += sub_high_score_tokens
@@ -374,14 +377,27 @@ async def main(query):
                 sub_mtld_high_score_average, 2)
 
             if headers_high_score_tokens >= TARGET_HIGH_SCORE_TOKENS:
+                # Remove any sub_output_dir with zero high-score tokens before stopping
+                for url in all_completed_urls:
+                    sub_source_dir = format_sub_source_dir(url)
+                    sub_output_dir = os.path.join(
+                        query_output_dir, "pages", sub_source_dir)
+                    sub_results_path = f"{sub_output_dir}/search_results.json"
+                    if os.path.exists(sub_results_path):
+                        sub_results_data = load_file(sub_results_path)
+                        if sub_results_data.get("high_score_tokens", 0) == 0:
+                            shutil.rmtree(sub_output_dir, ignore_errors=True)
+                            logger.info(
+                                f"Removed {sub_output_dir} due to zero high-score tokens during final cleanup.")
                 logger.info(
                     f"Stopping processing: {headers_high_score_tokens} high-score tokens collected from source: {url}.")
                 break
 
     save_file({
-        "all_started_urls": all_started_urls,
-        "all_completed_urls": all_completed_urls,
-        "all_urls_with_high_scores": all_urls_with_high_scores,
+        "started_urls": all_started_urls,
+        "completed_urls": all_completed_urls,
+        "high_score_urls": all_urls_with_high_scores,
+        "low_score_urls": all_urls_with_low_scores,
         "expected_order": urls,
     }, f"{query_output_dir}/_scraped_url_order_logs.json")
 
@@ -525,7 +541,6 @@ if __name__ == "__main__":
                    help="Search query using optional flag")
     args = p.parse_args()
 
-    # query = args.query if args.query else args.query_pos or "Top isekai anime 2025."
-    query = "top rag strategies reddit 2025"
+    query = args.query if args.query else args.query_pos or "Top isekai anime 2025."
 
     asyncio.run(main(query))
