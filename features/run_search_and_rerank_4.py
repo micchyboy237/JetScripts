@@ -8,7 +8,7 @@ from typing import DefaultDict, List, Set
 from jet.code.html_utils import preprocess_html
 from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
 from jet.code.markdown_utils._converters import convert_html_to_markdown
-from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
+from jet.code.markdown_utils._markdown_analyzer import analyze_markdown, link_to_text_ratio
 from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_by_header_hierarchy, parse_markdown
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
@@ -51,8 +51,48 @@ def format_sub_source_dir(source: str) -> str:
     return formatted.strip('_')
 
 
+def sort_search_results_by_url_and_category(results: List[HeaderSearchResult], sorted_urls: List[str]):
+    """
+    Sorts results in two stages:
+    1. First, for all results with score >= 0.6, sort by url order in sorted_urls, then by score descending within each url.
+    2. Then, for all remaining results (score < 0.6), sort by score descending.
+    Returns the concatenated list.
+    """
+    # Stage 1: Get all results with score >= 0.6, grouped by url order
+    url_to_results = {url: [] for url in sorted_urls}
+    high_score_results = []
+    low_score_results = []
+    for r in results:
+        url = r["metadata"].get("source", "Unknown")
+        if r["score"] >= 0.6 and url in url_to_results:
+            url_to_results[url].append(r)
+        elif r["score"] >= 0.6:
+            # If url not in sorted_urls, treat as extra at end
+            high_score_results.append(r)
+        else:
+            low_score_results.append(r)
+
+    # Collect high score results in url order, sorting by score within each url
+    sorted_high_score = []
+    for url in sorted_urls:
+        url_group = url_to_results[url]
+        url_group_sorted = sorted(
+            url_group, key=lambda r: r["score"], reverse=True)
+        sorted_high_score.extend(url_group_sorted)
+    # Add any >=0.6 results whose url wasn't in sorted_urls, sorted by score
+    if high_score_results:
+        sorted_high_score.extend(
+            sorted(high_score_results, key=lambda r: r["score"], reverse=True))
+
+    # Stage 2: Remaining results (score < 0.6), sort by score descending
+    sorted_low_score = sorted(
+        low_score_results, key=lambda r: r["score"], reverse=True)
+
+    return sorted_high_score + sorted_low_score
+
+
 def group_results_by_source_for_llm_context(
-    documents: List[HeaderSearchResult]
+    results: List[HeaderSearchResult]
 ) -> str:
     def strip_hashtags(text: str) -> str:
         if text:
@@ -65,7 +105,7 @@ def group_results_by_source_for_llm_context(
     separator = "\n\n"
     separator_tokens = len(tokenizer.encode(separator))
     sorted_docs = sorted(
-        documents, key=lambda x: x.get("score", 0), reverse=True
+        results, key=lambda x: x["score"], reverse=True
     )
     grouped_temp: DefaultDict[str,
                               List[HeaderSearchResult]] = defaultdict(list)
@@ -164,29 +204,6 @@ def group_results_by_source_for_llm_context(
 
     result = "\n\n".join(context_blocks)
     final_token_count = len(tokenizer.encode(result))
-    contexts_data = {
-        "query": documents[0].get("query", "") if documents else "",
-        "count": len(documents),
-        "total_tokens": sum(doc["metadata"].get("num_tokens", 0) for doc in documents),
-        "results": [
-            {
-                "rank": doc.get("rank"),
-                "score": doc.get("score"),
-                "header": doc.get("header"),
-                "content": doc.get("content"),
-                "source": doc["metadata"].get("source"),
-                "parent_header": doc.get("parent_header"),
-                "parent_level": doc["metadata"].get("parent_level"),
-                "level": doc["metadata"].get("level"),
-                "doc_index": doc["metadata"].get("doc_index"),
-                "chunk_idx": doc["metadata"].get("chunk_idx"),
-                "num_tokens": doc["metadata"].get("num_tokens"),
-                "header_content_similarity": doc["metadata"].get("header_content_similarity"),
-                "headers_similarity": doc["metadata"].get("headers_similarity"),
-                "content_similarity": doc["metadata"].get("content_similarity"),
-            } for doc in documents
-        ]
-    }
     logger.debug(
         f"Grouped context created with {final_token_count} tokens for {len(grouped_temp)} sources")
     return result
@@ -220,12 +237,11 @@ async def main(query):
     header_docs: List[HeaderDoc] = []
     search_results: List[HeaderSearchResult] = []
 
-    total_tokens = 0
-    total_high_score_tokens = 0
-    total_mtld_high_score_average = 0
+    headers_total_tokens = 0
+    headers_high_score_tokens = 0
+    headers_mtld_high_score_average = 0
     HIGH_QUALITY_SCORE = 0.6
-    TARGET_HIGH_SCORE_TOKENS = max_tokens * 2
-    TARGET_TOKENS = 10000
+    TARGET_HIGH_SCORE_TOKENS = 4000
 
     async for url, status, html in scrape_urls(urls, show_progress=True):
         if status == "completed" and html:
@@ -254,29 +270,8 @@ async def main(query):
             save_file(doc_markdown_tokens,
                       f"{sub_output_dir}/markdown_tokens.json")
 
-            # headers: List[TextHierarchyResult] = await asyncio.to_thread(
-            #     extract_texts_by_hierarchy, html, ignore_links=True)
-            # save_file(headers, f"{sub_output_dir}/headers.json")
             original_docs: List[HeaderDoc] = derive_by_header_hierarchy(
                 doc_markdown)
-
-            # original_docs: List[HeaderDoc] = []
-            # for i, header in enumerate(headers):
-            #     doc_markdown_tokens = base_parse_markdown(doc_markdown)
-            #     header_md_content = convert_html_to_markdown(header.html)
-            #     doc: HeaderDoc = {
-            #         "id": header.id,
-            #         "doc_index": i,
-            #         "header": header.header,
-            #         "content": header.content,
-            #         "level": header.level,
-            #         "parent_headers": header.parent_headers,
-            #         "parent_header": header.parent_header,
-            #         "parent_level": header.parent_level,
-            #         "source": url,
-            #         "tokens": base_parse_markdown(header_md_content),
-            #     }
-            #     original_docs.append(doc)
 
             save_file(original_docs, f"{sub_output_dir}/docs.json")
 
@@ -297,20 +292,38 @@ async def main(query):
                 )
             )
 
+            # Add ltr_ratio using link_to_text_ratio on each result by content
+            filtered_sub_results = []
+            for result in sub_results:
+                ltr = link_to_text_ratio(result["content"])
+                # Store the full ltr_ratio dict for later use
+                result["metadata"]["ltr_ratio"] = ltr
+                mtld_result = analyze_readability(result["content"])
+                result["metadata"]["mtld"] = mtld_result["mtld"]
+                result["metadata"]["mtld_category"] = mtld_result["mtld_category"]
+                # result["metadata"]["text_analysis"] = mtld_result["averages"]
+                # Only include if mtld_category is not "very_low" AND ltr_ratio["is_link_heavy"] is False
+                if (
+                    result["metadata"]["mtld_category"] != "very_low"
+                    # and not result["metadata"]["ltr_ratio"]["is_link_heavy"]
+                ):
+                    filtered_sub_results.append(result)
+
             sub_total_tokens = sum(
-                result["metadata"]["num_tokens"] for result in sub_results)
+                result["metadata"]["num_tokens"] for result in filtered_sub_results)
 
             sub_high_score_tokens = sum(
                 result["metadata"]["num_tokens"]
-                for result in sub_results
+                for result in filtered_sub_results
                 if (
                     result["score"] >= HIGH_QUALITY_SCORE
                     and result.get("mtld_category") != "very_low"
                 )
             )
+
             sub_mtld_high_score_values = [
                 analyze_readability(result["content"])["mtld"]
-                for result in sub_results
+                for result in filtered_sub_results
                 if (
                     result["score"] >= HIGH_QUALITY_SCORE
                     and analyze_readability(result["content"])["mtld_category"] != "very_low"
@@ -322,27 +335,36 @@ async def main(query):
                 if sub_mtld_high_score_values else 0
             )
 
+            # Remove sub_output_dir if no high-score tokens are found
+            if sub_high_score_tokens == 0:
+                shutil.rmtree(sub_output_dir, ignore_errors=True)
+                logger.info(
+                    f"Removed {sub_output_dir} due to zero high-score tokens.")
+                continue  # Skip to the next URL
+
             save_file({
                 "query": query,
                 "url": url,
-                "count": len(sub_results),
+                "count": len(filtered_sub_results),
+                "mtld": analyze_readability(html)["mtld"],
+                "mtld_category": analyze_readability(html)["mtld_category"],
                 "total_tokens": sub_total_tokens,
                 "high_score_tokens": sub_high_score_tokens,
                 "mtld_high_score_average": sub_mtld_high_score_average,
-                "results": sub_results,
+                "results": filtered_sub_results,
             }, f"{sub_output_dir}/search_results.json")
 
             header_docs.extend(original_docs)
-            search_results.extend(sub_results)
+            search_results.extend(filtered_sub_results)
 
-            total_tokens += sub_total_tokens
-            total_high_score_tokens += sub_high_score_tokens
-            total_mtld_high_score_average += round(
+            headers_total_tokens += sub_total_tokens
+            headers_high_score_tokens += sub_high_score_tokens
+            headers_mtld_high_score_average += round(
                 sub_mtld_high_score_average, 2)
 
-            if total_high_score_tokens >= TARGET_HIGH_SCORE_TOKENS or total_tokens >= TARGET_TOKENS:
+            if headers_high_score_tokens >= TARGET_HIGH_SCORE_TOKENS:
                 logger.info(
-                    f"Stopping processing: {total_tokens} tokens collected from source: {url}.")
+                    f"Stopping processing: {headers_high_score_tokens} high-score tokens collected from source: {url}.")
                 break
 
     # Sort search_results by score then update rank
@@ -357,34 +379,102 @@ async def main(query):
         "documents": header_docs
     }, f"{query_output_dir}/docs.json")
 
-    searched_urls = list({result.get("metadata", {}).get(
-        "source") for result in search_results if result.get("metadata", {}).get("source")})
+    # Calculate high_score_tokens and header_count per URL
+    url_stats = defaultdict(
+        lambda: {"high_score_tokens": 0, "header_count": 0})
+    for result in search_results:
+        url = result["metadata"].get("source", "Unknown")
+        if result["score"] >= HIGH_QUALITY_SCORE and result.get("mtld_category") != "very_low":
+            url_stats[url]["high_score_tokens"] += result["metadata"].get(
+                "num_tokens", 0)
+            url_stats[url]["header_count"] += 1
+
+    # Filter URLs with high_score_tokens > 0 and format as list of dicts, sorted by high_score_tokens
+    sorted_urls = [
+        {"url": url, "high_score_tokens": stats["high_score_tokens"],
+            "header_count": stats["header_count"]}
+        for url, stats in sorted(
+            url_stats.items(),
+            key=lambda x: x[1]["high_score_tokens"],
+            reverse=True
+        )
+        if stats["high_score_tokens"] > 0
+    ]
+
     save_file({
         "query": query,
         "count": len(search_results),
-        "urls": searched_urls,
-        "total_tokens": total_tokens,
-        "total_high_score_tokens": total_high_score_tokens,
-        "total_mtld_high_score_average": total_mtld_high_score_average,
+        "urls": sorted_urls,
+        "headers_total_tokens": headers_total_tokens,
+        "headers_high_score_tokens": headers_high_score_tokens,
+        "headers_mtld_high_score_average": headers_mtld_high_score_average,
         "results": search_results
     }, f"{query_output_dir}/search_results.json")
 
-    # Filter results so that their combined context does not exceed max_tokens
-    filtered_results = []
-    current_tokens = 0
+    # Group results by URL and calculate total high_score_tokens per URL
+    url_high_score_tokens = defaultdict(int)
     for result in search_results:
-        content = f"{result['parent_header'] or ''}\n{result['header']}\n{result['content']}".strip(
-        )
-        tokens: int = count_tokens(llm_model, content)
+        url = result["metadata"].get("source", "Unknown")
+        if result["score"] >= HIGH_QUALITY_SCORE and result.get("mtld_category") != "very_low":
+            url_high_score_tokens[url] += result["metadata"].get(
+                "num_tokens", 0)
+
+    # Sort URLs by total high_score_tokens (descending)
+    sorted_urls = sorted(
+        url_high_score_tokens.keys(),
+        key=lambda url: url_high_score_tokens[url],
+        reverse=True
+    )
+
+    # Sort all results by score
+    current_tokens = 0
+    sorted_results = sort_search_results_by_url_and_category(
+        search_results, sorted_urls)
+    save_file({
+        "query": query,
+        "count": len(sorted_results),
+        "total_tokens": current_tokens,
+        "results": sorted_results
+    }, f"{query_output_dir}/sorted_search_results.json")
+
+    # Filter results based on score, MTLD, and link-to-text ratio
+    filtered_results = []
+    for result in sorted_results:
+        content = f"{result['header']}\n{result['content']}".strip()
+        tokens = count_tokens(llm_model, content)
         if current_tokens + tokens > max_tokens:
             break
         filtered_results.append(result)
         current_tokens += tokens
 
+    # Before saving contexts.json, compute filtered_urls based on filtered_results
+    filtered_url_stats = defaultdict(
+        lambda: {"high_score_tokens": 0, "header_count": 0})
+    for result in filtered_results:
+        url = result["metadata"].get("source", "Unknown")
+        if result["score"] >= HIGH_QUALITY_SCORE and result.get("mtld_category") != "very_low":
+            filtered_url_stats[url]["high_score_tokens"] += result["metadata"].get(
+                "num_tokens", 0)
+            filtered_url_stats[url]["header_count"] += 1
+
+    # Create filtered_urls list, sorted by high_score_tokens
+    filtered_urls = [
+        {"url": url, "high_score_tokens": stats["high_score_tokens"],
+            "header_count": stats["header_count"]}
+        for url, stats in sorted(
+            filtered_url_stats.items(),
+            key=lambda x: x[1]["high_score_tokens"],
+            reverse=True
+        )
+        if stats["high_score_tokens"] > 0
+    ]
+
+    # Update the save_file call for contexts.json to use filtered_urls
     save_file({
         "query": query,
         "count": len(filtered_results),
         "total_tokens": current_tokens,
+        "urls": filtered_urls,  # Use filtered_urls instead of sorted_urls
         "results": filtered_results
     }, f"{query_output_dir}/contexts.json")
 

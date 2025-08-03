@@ -1,10 +1,10 @@
 import os
 from typing import List, Tuple
+from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
 from jet.file.utils import load_file, save_file
 from jet.llm.llm_generator import LLMGenerator
 from jet.logger import logger
 from jet.logger.config import colorize_log
-from jet.scrapers.utils import extract_texts_by_hierarchy
 from jet.vectors.clusters.retrieval import RetrievalConfigDict, VectorRetriever
 
 OUTPUT_DIR = os.path.join(
@@ -25,9 +25,9 @@ def main():
         "threshold": None,
     }
 
-    header_docs = extract_texts_by_hierarchy(html, ignore_links=True)
+    header_docs = derive_by_header_hierarchy(html, ignore_links=True)
 
-    texts = [f"{doc.header}\n{doc.content}" for doc in header_docs]
+    texts = [f"{doc['header']}\n{doc['content']}" for doc in header_docs]
     query = "Top isekai anime 2025."
 
     save_file(texts, f"{OUTPUT_DIR}/texts.json")
