@@ -9,7 +9,7 @@ from jet.llm.llm_generator import LLMGenerator
 from jet.logger import logger
 from jet.logger.config import colorize_log
 from jet.models.tokenizer.base import count_tokens
-from jet.vectors.clusters.retrieval import RetrievalConfigDict, VectorRetriever
+from jet.vectors.clusters.retrieval import RetrievalConfig, VectorRetriever
 from jet.wordnet.text_chunker import chunk_texts
 
 OUTPUT_DIR = os.path.join(
@@ -21,7 +21,7 @@ def main():
     docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_4/top_isekai_anime_2025/docs.json"
     header_docs: List[HeaderDoc] = load_file(docs_file)["documents"]
 
-    config: RetrievalConfigDict = {
+    config: RetrievalConfig = {
         "model_name": 'all-MiniLM-L6-v2',
         "min_cluster_size": 2,
         "k_clusters": 3,
@@ -80,7 +80,7 @@ def main():
     retriever.load_or_compute_embeddings(texts)
     retriever.cluster_embeddings()
     retriever.build_index()
-    search_results = retriever.search_chunks(query)
+    search_chunk_results = retriever.search_chunks(query)
 
     # Save cluster assignments to clusters.json
     clusters = retriever.get_clusters()
@@ -89,29 +89,34 @@ def main():
         "clusters": clusters
     }, f"{OUTPUT_DIR}/clusters.json")
 
-    # Save centroid information and similarity scores to centroids.json
+    # Save centroid information and similarity scores
     centroids = retriever.get_centroids()
-    centroid_scores = retriever.search_centroids(query)
+    save_file({
+        "count": len(centroids),
+        "centroids": centroids
+    }, f"{OUTPUT_DIR}/centroids.json")
+
+    search_centroid_results = retriever.search_centroids(query)
     save_file({
         "query": query,
-        "count": len(centroids),
-        "centroids": centroid_scores
-    }, f"{OUTPUT_DIR}/search_centroids.json")
+        "count": len(search_centroid_results),
+        "centroids": search_centroid_results
+    }, f"{OUTPUT_DIR}/search_centroid_results.json")
 
     save_file({
         "query": query,
-        "count": len(search_results),
-        "results": search_results
-    }, f"{OUTPUT_DIR}/search_results.json")
+        "count": len(search_chunk_results),
+        "results": search_chunk_results
+    }, f"{OUTPUT_DIR}/search_chunk_results.json")
 
     logger.info("\nTop relevant chunks for RAG:")
-    for i, result in enumerate(search_results, 1):
+    for i, result in enumerate(search_chunk_results, 1):
         print(f"{colorize_log(f"{i}.", "ORANGE")} | {
               colorize_log(f"{result["score"]:.4f}", "SUCCESS")} | {colorize_log(f"{result["num_tokens"]}", "DEBUG")} | {result["text"][:50]}")
 
     generator = LLMGenerator()
     response = generator.generate_response(
-        query, search_results, generation_config={"verbose": True})
+        query, search_chunk_results, generation_config={"verbose": True})
 
     save_file(f"# LLM Generation\n\n## Prompt\n\n{response["prompt"]}\n\n## Response\n\n{response["response"]}",
               f"{OUTPUT_DIR}/llm_generation.md")
