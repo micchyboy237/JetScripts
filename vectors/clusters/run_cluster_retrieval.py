@@ -4,6 +4,7 @@ import os
 import shutil
 from typing import DefaultDict, List, Set, Tuple
 from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
+from jet.code.markdown_utils._preprocessors import link_to_text_ratio
 from jet.file.utils import load_file, save_file
 from jet.llm.llm_generator import LLMGenerator
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
@@ -13,6 +14,7 @@ from jet.logger.config import colorize_log
 from jet.models.tokenizer.base import count_tokens, get_tokenizer_fn
 from jet.utils.text import format_sub_dir
 from jet.vectors.clusters.retrieval import ChunkSearchResult, RetrievalConfigDict, VectorRetriever
+from jet.wordnet.analyzers.text_analysis import analyze_text
 from jet.wordnet.text_chunker import chunk_texts_with_data
 
 OUTPUT_DIR = os.path.join(
@@ -191,7 +193,7 @@ def main():
             header_doc_copy["id"] = chunk_copy.pop("id")
             chunk_content = chunk_copy.pop("content")
 
-            text = f"{header}\n{chunk_content}"
+            text = f"{header.lstrip('#').strip()}\n{chunk_content}"
 
             merged_data = {
                 **header_doc_copy,
@@ -205,6 +207,8 @@ def main():
                     "parent_header": parent_header,
                     "header": header,
                     "content": chunk_content,
+                    "ltr_ratio": link_to_text_ratio(text),
+                    "text_analysis": analyze_text(text),
                     # "tokens": tokens,
                 }
             }
@@ -244,12 +248,27 @@ def main():
         "chunks": chunked_docs
     }, f"{OUTPUT_DIR}/chunked_docs.json")
 
-    all_texts = [
+    filtered_chunks_with_metadata = [
         chunk["text"]
         for chunk in all_chunks_with_metadata
+        if not chunk["metadata"]["ltr_ratio"]["is_link_heavy"]
+        and chunk["metadata"]["analysis"]["mtld_category"] != "very_low"
     ]
-    all_ids = [chunk["id"] for chunk in all_chunks_with_metadata]
-    all_metadatas = [chunk["metadata"] for chunk in all_chunks_with_metadata]
+    save_file({
+        "query": query,
+        "model": embed_model,
+        "count": len(filtered_chunks_with_metadata),
+        "total_tokens": sum(chunk["metadata"]["num_tokens"] for chunk in filtered_chunks_with_metadata),
+        "chunks": filtered_chunks_with_metadata
+    }, f"{OUTPUT_DIR}/filtered_chunks_with_metadata.json")
+
+    all_texts = [
+        chunk["text"]
+        for chunk in filtered_chunks_with_metadata
+    ]
+    all_ids = [chunk["id"] for chunk in filtered_chunks_with_metadata]
+    all_metadatas = [chunk["metadata"]
+                     for chunk in filtered_chunks_with_metadata]
     token_counts_all_texts: List[int] = count_tokens(
         embed_model, all_texts, prevent_total=True)
     all_texts_for_clustering = [{
