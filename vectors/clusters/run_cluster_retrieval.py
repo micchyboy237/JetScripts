@@ -1,4 +1,9 @@
+import os
+from jet.file.utils import save_file
 from jet.vectors.clusters.retrieval import LLMGenerator, RetrievalConfig, VectorRetriever
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
 
 def main():
@@ -33,6 +38,10 @@ def main():
         print(f"{i}. {chunk} (Similarity: {score:.4f})")
     print("\nGenerated Response:")
     print(response)
+
+    save_file(top_chunks, f"{OUTPUT_DIR}/top_chunks.json")
+    save_file(f"# LLM Generation\n\n## Query\n\n{query}\n\n## Response\n\n{response}",
+              f"{OUTPUT_DIR}/llm_generation.md")
 
 
 if __name__ == "__main__":
