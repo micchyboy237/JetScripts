@@ -437,7 +437,6 @@ async def main(query):
         "started_urls": all_started_urls,
         "searched_urls": all_searched_urls,
         "high_score_urls": create_url_dict_list(all_urls_with_high_scores, search_results),
-        "low_score_urls": create_url_dict_list(all_urls_with_low_scores, search_results),
     }, f"{query_output_dir}/_scraped_url_order_logs.json")
 
     # Sort search_results by score then update rank
