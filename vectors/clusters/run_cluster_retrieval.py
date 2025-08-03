@@ -179,6 +179,8 @@ def main():
             header_doc_copy.pop("doc_index")
 
             header = header_doc_copy.pop("header")
+            level = header_doc_copy.pop("level")
+            parent_level = header_doc_copy.pop("parent_level")
             parent_header = header_doc_copy.pop("parent_header")
             parent_headers = header_doc_copy.pop("parent_headers")
 
@@ -197,6 +199,8 @@ def main():
                 "metadata": {
                     **chunk_copy,
                     "source": source,
+                    "parent_level": parent_level,
+                    "level": level,
                     "parent_headers": parent_headers,
                     "parent_header": parent_header,
                     "header": header,
@@ -245,6 +249,7 @@ def main():
         for chunk in all_chunks_with_metadata
     ]
     all_ids = [chunk["id"] for chunk in all_chunks_with_metadata]
+    all_metadatas = [chunk["metadata"] for chunk in all_chunks_with_metadata]
     token_counts_all_texts: List[int] = count_tokens(
         embed_model, all_texts, prevent_total=True)
     all_texts_for_clustering = [{
@@ -260,7 +265,8 @@ def main():
     }, f"{OUTPUT_DIR}/all_texts_for_clustering.json")
 
     retriever = VectorRetriever(config)
-    retriever.load_or_compute_embeddings(all_texts, ids=all_ids)
+    retriever.load_or_compute_embeddings(
+        all_texts, ids=all_ids, metadatas=all_metadatas)
     retriever.cluster_embeddings()
     retriever.build_index()
 
