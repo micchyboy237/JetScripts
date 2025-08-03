@@ -215,6 +215,7 @@ async def main(query):
     llm_model: LLMModelType = "qwen3-1.7b-4bit"
     max_tokens = 2000
     use_cache = True
+    urls_limit = 10
 
     top_k = None
     threshold = 0.0  # Using default threshold
@@ -231,7 +232,7 @@ async def main(query):
     save_file(search_engine_results,
               f"{query_output_dir}/search_engine_results.json")
 
-    urls = [r["url"] for r in search_engine_results]
+    urls = [r["url"] for r in search_engine_results][:urls_limit]
 
     html_list = []
     header_docs: List[HeaderDoc] = []
@@ -243,8 +244,15 @@ async def main(query):
     HIGH_QUALITY_SCORE = 0.6
     TARGET_HIGH_SCORE_TOKENS = 4000
 
+    all_started_urls = []
+    all_completed_urls = []
+    all_urls_with_high_scores = []
+
     async for url, status, html in scrape_urls(urls, show_progress=True):
-        if status == "completed" and html:
+        if status == "started":
+            all_started_urls.append(url)
+        elif status == "completed" and html:
+            all_completed_urls.append(url)
             html_list.append(html)
 
             sub_source_dir = format_sub_source_dir(url)
@@ -335,17 +343,19 @@ async def main(query):
                 if sub_mtld_high_score_values else 0
             )
 
-            # Remove sub_output_dir if no high-score tokens are found
-            if sub_high_score_tokens == 0:
-                shutil.rmtree(sub_output_dir, ignore_errors=True)
-                logger.info(
-                    f"Removed {sub_output_dir} due to zero high-score tokens.")
-                continue  # Skip to the next URL
+            # # Remove sub_output_dir if no high-score tokens are found
+            # if sub_high_score_tokens == 0:
+            #     shutil.rmtree(sub_output_dir, ignore_errors=True)
+            #     logger.info(
+            #         f"Removed {sub_output_dir} due to zero high-score tokens.")
+            #     continue  # Skip to the next URL
 
             save_file({
                 "query": query,
                 "url": url,
                 "count": len(filtered_sub_results),
+                "max_score": max((result["score"] for result in filtered_sub_results), default=0.0),
+                "min_score": min((result["score"] for result in filtered_sub_results), default=0.0),
                 "mtld": analyze_readability(html)["mtld"],
                 "mtld_category": analyze_readability(html)["mtld_category"],
                 "total_tokens": sub_total_tokens,
@@ -356,6 +366,7 @@ async def main(query):
 
             header_docs.extend(original_docs)
             search_results.extend(filtered_sub_results)
+            all_urls_with_high_scores.append(url)
 
             headers_total_tokens += sub_total_tokens
             headers_high_score_tokens += sub_high_score_tokens
@@ -366,6 +377,13 @@ async def main(query):
                 logger.info(
                     f"Stopping processing: {headers_high_score_tokens} high-score tokens collected from source: {url}.")
                 break
+
+    save_file({
+        "all_started_urls": all_started_urls,
+        "all_completed_urls": all_completed_urls,
+        "all_urls_with_high_scores": all_urls_with_high_scores,
+        "expected_order": urls,
+    }, f"{query_output_dir}/_scraped_url_order_logs.json")
 
     # Sort search_results by score then update rank
     search_results = sorted(
@@ -404,6 +422,8 @@ async def main(query):
     save_file({
         "query": query,
         "count": len(search_results),
+        "max_score": max((result["score"] for result in search_results), default=0.0),
+        "min_score": min((result["score"] for result in search_results), default=0.0),
         "urls": sorted_urls,
         "headers_total_tokens": headers_total_tokens,
         "headers_high_score_tokens": headers_high_score_tokens,
@@ -466,7 +486,6 @@ async def main(query):
             key=lambda x: x[1]["high_score_tokens"],
             reverse=True
         )
-        if stats["high_score_tokens"] > 0
     ]
 
     # Update the save_file call for contexts.json to use filtered_urls
@@ -506,6 +525,7 @@ if __name__ == "__main__":
                    help="Search query using optional flag")
     args = p.parse_args()
 
-    query = args.query if args.query else args.query_pos or "Top isekai anime 2025."
+    # query = args.query if args.query else args.query_pos or "Top isekai anime 2025."
+    query = "top rag strategies reddit 2025"
 
     asyncio.run(main(query))
