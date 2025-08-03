@@ -1,4 +1,4 @@
-from jet.wordnet.text_comparator import display_text_comparison
+from jet.wordnet.comparators.text_comparator import display_text_comparison
 
 
 if __name__ == "__main__":
