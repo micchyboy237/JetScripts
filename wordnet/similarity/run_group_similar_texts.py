@@ -5,21 +5,23 @@ from fastapi.utils import generate_unique_id
 from jet.file.utils import save_file, load_file
 from jet.logger import logger
 from jet.models.model_types import EmbedModelType
+from jet.vectors.clusters.cluster_types import ClusteringMode
 from jet.vectors.document_types import HeaderDocument
 from jet.wordnet.similarity import group_similar_texts
 
 
-if __name__ == '__main__':
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_3/top_isekai_anime_2025/search_results.json"
+def main(mode: ClusteringMode):
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/top_isekai_anime_2025/search_results.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    mode_output_dir = f"{output_dir}/{mode}"
 
     docs = load_file(docs_file)
     docs = docs["results"]
     documents = [
         f"{doc["header"].lstrip('#').strip()}\n{doc["content"]}" for doc in docs]
 
-    model_name: EmbedModelType = "all-MiniLM-L12-v2"
+    model_name: EmbedModelType = "all-MiniLM-L6-v2"
 
     # Start timing
     start_time = time.time()
@@ -27,7 +29,7 @@ if __name__ == '__main__':
     ids = [doc["metadata"]["doc_id"] for doc in docs]
 
     grouped_similar_texts = group_similar_texts(
-        documents, threshold=0.7, model_name=model_name, ids=ids)
+        documents, threshold=0.7, model_name=model_name, ids=ids, mode=mode)
 
     # End timing
     end_time = time.time()
@@ -59,4 +61,9 @@ if __name__ == '__main__':
     ]
 
     save_file({"execution_time": f"{execution_time:.2f}s", "count": len(grouped_similar_texts), "results": mapped_results},
-              f"{output_dir}/results.json")
+              f"{mode_output_dir}/results.json")
+
+
+if __name__ == '__main__':
+    main("agglomerative")
+    main("kmeans")

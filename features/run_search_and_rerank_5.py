@@ -21,6 +21,7 @@ from jet.scrapers.hrequests_utils import scrape_urls
 from jet.scrapers.utils import TextHierarchyResult, extract_texts_by_hierarchy, scrape_links, search_data
 from jet.vectors.semantic_search.header_vector_search import HeaderSearchResult, search_headers
 from jet.wordnet.analyzers.text_analysis import analyze_readability
+from jet.wordnet.similarity import group_similar_texts
 
 
 OUTPUT_DIR = os.path.join(
@@ -484,6 +485,30 @@ async def main(query):
         "headers_mtld_high_score_average": headers_mtld_high_score_average,
         "results": search_results
     }, f"{query_output_dir}/search_results.json")
+
+    # Cluster search results
+    # Prepare result_texts and result_ids for clustering
+    result_texts = [
+        f"{result['header'].lstrip('#').strip()}\n{result['content']}"
+        for result in search_results
+    ]
+    result_ids = [result["id"] for result in search_results]
+    clustered_search_results = group_similar_texts(
+        result_texts, model_name=embed_model, ids=result_ids)
+    # Map clustered_search_results (which contains lists of result_ids) back to the full search_results dicts
+    # id_to_result = {result["id"]: result for result in search_results}
+    id_to_result = {
+        result["id"]: f"{result["header"]}\n{result["content"]}" for result in search_results}
+    clustered_search_results = [
+        [id_to_result[result_id]
+            for result_id in cluster if result_id in id_to_result]
+        for cluster in clustered_search_results
+    ]
+    save_file({
+        "query": query,
+        "count": len(clustered_search_results),
+        "results": clustered_search_results
+    }, f"{query_output_dir}/clustered_search_results.json")
 
     # Group results by URL and calculate total high_score_tokens per URL
     url_high_score_tokens = defaultdict(int)
