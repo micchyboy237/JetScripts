@@ -37,6 +37,9 @@ Given the context information, answer the query.
 Query: {query}
 """
 
+HIGH_QUALITY_SCORE = 0.6
+TARGET_HIGH_SCORE_TOKENS = 4000
+
 
 def format_sub_dir(text: str) -> str:
     return text.lower().strip('.,!?').replace(' ', '_').replace('.', '_').replace(',', '_').replace('!', '_').replace('?', '_').strip()
@@ -55,19 +58,19 @@ def format_sub_source_dir(source: str) -> str:
 def sort_search_results_by_url_and_category(results: List[HeaderSearchResult], sorted_urls: List[str]):
     """
     Sorts results in two stages:
-    1. First, for all results with score >= 0.6, sort by url order in sorted_urls, then by score descending within each url.
-    2. Then, for all remaining results (score < 0.6), sort by score descending.
+    1. First, for all results with score >= HIGH_QUALITY_SCORE, sort by url order in sorted_urls, then by score descending within each url.
+    2. Then, for all remaining results (score < HIGH_QUALITY_SCORE), sort by score descending.
     Returns the concatenated list.
     """
-    # Stage 1: Get all results with score >= 0.6, grouped by url order
+    # Stage 1: Get all results with score >= HIGH_QUALITY_SCORE, grouped by url order
     url_to_results = {url: [] for url in sorted_urls}
     high_score_results = []
     low_score_results = []
     for r in results:
-        url = r["metadata"].get("source", "Unknown")
-        if r["score"] >= 0.6 and url in url_to_results:
+        url = r["metadata"]["source"]
+        if r["score"] >= HIGH_QUALITY_SCORE and url in url_to_results:
             url_to_results[url].append(r)
-        elif r["score"] >= 0.6:
+        elif r["score"] >= HIGH_QUALITY_SCORE:
             # If url not in sorted_urls, treat as extra at end
             high_score_results.append(r)
         else:
@@ -80,12 +83,12 @@ def sort_search_results_by_url_and_category(results: List[HeaderSearchResult], s
         url_group_sorted = sorted(
             url_group, key=lambda r: r["score"], reverse=True)
         sorted_high_score.extend(url_group_sorted)
-    # Add any >=0.6 results whose url wasn't in sorted_urls, sorted by score
+    # Add any >= HIGH_QUALITY_SCORE results whose url wasn't in sorted_urls, sorted by score
     if high_score_results:
         sorted_high_score.extend(
             sorted(high_score_results, key=lambda r: r["score"], reverse=True))
 
-    # Stage 2: Remaining results (score < 0.6), sort by score descending
+    # Stage 2: Remaining results (score < HIGH_QUALITY_SCORE), sort by score descending
     sorted_low_score = sorted(
         low_score_results, key=lambda r: r["score"], reverse=True)
 
@@ -210,6 +213,41 @@ def group_results_by_source_for_llm_context(
     return result
 
 
+# Helper function to create list of dicts for URLs
+def create_url_dict_list(urls: List[str], search_results: List[HeaderSearchResult]) -> List[dict]:
+    # Calculate stats per URL from search_results
+    url_stats = defaultdict(
+        lambda: {
+            "high_score_tokens": 0,
+            "high_score_headers": 0,
+            "headers": 0,
+            "max_score": float('-inf'),
+            "min_score": float('inf')
+        })
+    for result in search_results:
+        url = result["metadata"].get("source", "Unknown")
+        score = result["score"]
+        url_stats[url]["headers"] += 1
+        url_stats[url]["max_score"] = max(url_stats[url]["max_score"], score)
+        url_stats[url]["min_score"] = min(url_stats[url]["min_score"], score)
+        if result["score"] >= HIGH_QUALITY_SCORE and result.get("mtld_category") != "very_low":
+            url_stats[url]["high_score_tokens"] += result["metadata"].get(
+                "num_tokens", 0)
+            url_stats[url]["high_score_headers"] += 1
+
+    return [
+        {
+            "url": url,
+            "max_score": url_stats[url]["max_score"],
+            "min_score": url_stats[url]["min_score"],
+            "high_score_tokens": url_stats[url]["high_score_tokens"],
+            "high_score_headers": url_stats[url]["high_score_headers"],
+            "headers": url_stats[url]["headers"],
+        }
+        for url in urls
+    ]
+
+
 async def main(query):
     """Main function to demonstrate file search."""
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
@@ -242,11 +280,10 @@ async def main(query):
     headers_total_tokens = 0
     headers_high_score_tokens = 0
     headers_mtld_high_score_average = 0
-    HIGH_QUALITY_SCORE = 0.6
-    TARGET_HIGH_SCORE_TOKENS = 4000
 
     all_started_urls = []
     all_completed_urls = []
+    all_searched_urls = []
     all_urls_with_high_scores = []
     all_urls_with_low_scores = []
 
@@ -301,6 +338,7 @@ async def main(query):
                     merge_chunks=merge_chunks
                 )
             )
+            all_searched_urls.append(url)
 
             # Add ltr_ratio using link_to_text_ratio on each result by content
             filtered_sub_results = []
@@ -378,28 +416,28 @@ async def main(query):
                 sub_mtld_high_score_average, 2)
 
             if headers_high_score_tokens >= TARGET_HIGH_SCORE_TOKENS:
-                # Remove any sub_output_dir with zero high-score tokens before stopping
-                for url in all_completed_urls:
-                    sub_source_dir = format_sub_source_dir(url)
-                    sub_output_dir = os.path.join(
-                        query_output_dir, "pages", sub_source_dir)
-                    sub_results_path = f"{sub_output_dir}/search_results.json"
-                    if os.path.exists(sub_results_path):
-                        sub_results_data = load_file(sub_results_path)
-                        if sub_results_data.get("high_score_tokens", 0) == 0:
-                            shutil.rmtree(sub_output_dir, ignore_errors=True)
-                            logger.info(
-                                f"Removed {sub_output_dir} due to zero high-score tokens during final cleanup.")
                 logger.info(
                     f"Stopping processing: {headers_high_score_tokens} high-score tokens collected from source: {url}.")
                 break
 
+    # # Clean up url result dirs with 0 high score results
+    # for url in all_completed_urls:
+    #     sub_source_dir = format_sub_source_dir(url)
+    #     sub_output_dir = os.path.join(query_output_dir, "pages", sub_source_dir)
+    #     sub_results_path = f"{sub_output_dir}/search_results.json"
+    #     if os.path.exists(sub_results_path):
+    #         sub_results_data = load_file(sub_results_path)
+    #         if sub_results_data.get("high_score_tokens", 0) == 0:
+    #             shutil.rmtree(sub_output_dir, ignore_errors=True)
+    #             logger.info(
+    #                 f"Removed {sub_output_dir} due to zero high-score tokens during final cleanup.")
+
     save_file({
-        "started_urls": all_started_urls,
-        "completed_urls": all_completed_urls,
-        "high_score_urls": all_urls_with_high_scores,
-        "low_score_urls": all_urls_with_low_scores,
         "expected_order": urls,
+        "started_urls": all_started_urls,
+        "searched_urls": all_searched_urls,
+        "high_score_urls": create_url_dict_list(all_urls_with_high_scores, search_results),
+        "low_score_urls": create_url_dict_list(all_urls_with_low_scores, search_results),
     }, f"{query_output_dir}/_scraped_url_order_logs.json")
 
     # Sort search_results by score then update rank
