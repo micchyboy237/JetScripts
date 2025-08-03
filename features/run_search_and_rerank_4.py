@@ -8,8 +8,9 @@ from typing import DefaultDict, List, Set
 from jet.code.html_utils import preprocess_html
 from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
 from jet.code.markdown_utils._converters import convert_html_to_markdown
-from jet.code.markdown_utils._markdown_analyzer import analyze_markdown, link_to_text_ratio
+from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
 from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_by_header_hierarchy, parse_markdown
+from jet.code.markdown_utils._preprocessors import link_to_text_ratio
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
 from jet.logger.config import colorize_log

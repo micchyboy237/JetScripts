@@ -4,9 +4,9 @@ import shutil
 import string
 from jet.code.html_utils import clean_html, preprocess_html
 from jet.code.markdown_utils._converters import convert_html_to_markdown
-from jet.code.markdown_utils._markdown_analyzer import analyze_markdown, link_to_text_ratio
+from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
 from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy, parse_markdown
-from jet.code.markdown_utils._preprocessors import clean_markdown_links
+from jet.code.markdown_utils._preprocessors import clean_markdown_links, link_to_text_ratio
 from jet.code.splitter_markdown_utils import extract_markdown_links
 from jet.llm.mlx.templates.generate_labels import generate_labels
 from jet.llm.utils.mmr_diversity import sort_by_mmr_diversity
