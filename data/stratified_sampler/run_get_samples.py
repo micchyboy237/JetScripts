@@ -16,12 +16,35 @@ texts = [
     "Different writing 4",
 ]
 
+texts2 = [
+    ProcessedData(source="Global markets rise", target="Positive outlook",
+                  category_values=["positive", 1, 5.0, True], score=0.9),
+    ProcessedData(source="Tech stocks soar", target="Market boom",
+                  category_values=["positive", 2, 4.5, True], score=0.8),
+    ProcessedData(source="Economy slows down", target="Negative outlook",
+                  category_values=["negative", 3, 3.0, False], score=0.4),
+    ProcessedData(source="Markets face uncertainty", target="Cautious approach",
+                  category_values=["neutral", 4, 4.0, False], score=0.6),
+    ProcessedData(source="Stocks rebound quickly", target="Recovery",
+                  category_values=["positive", 5, 4.8, True], score=0.7),
+    ProcessedData(source="Financial crisis looms", target="Downturn",
+                  category_values=["negative", 6, 2.5, False], score=0.3)
+]
+
+
+def main(texts):
+    sampler = StratifiedSampler(texts, num_samples=None)
+    diverse_samples = sampler.get_samples()
+
+    logger.gray(f"Samples: ({len(diverse_samples)})")
+    logger.success(format_json(diverse_samples))
+
+    return diverse_samples
+
+
 if __name__ == "__main__":
-    num_samples = 2
-    sampler = StratifiedSampler(texts, num_samples=num_samples)
-    results = sampler.get_samples()
+    results = main(texts)
+    save_file(results, f"{OUTPUT_DIR}/diverse_texts.json")
 
-    logger.gray(f"Results: ({len(results)})")
-    logger.success(format_json(results))
-
-    save_file(results, f"{OUTPUT_DIR}/results.json")
+    results = main(texts2)
+    save_file(results, f"{OUTPUT_DIR}/diverse_texts_with_data.json")
