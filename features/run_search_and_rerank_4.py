@@ -187,7 +187,6 @@ def group_results_by_source_for_llm_context(
             } for doc in documents
         ]
     }
-    save_file(contexts_data, f"{OUTPUT_DIR}/contexts.json")
     logger.debug(
         f"Grouped context created with {final_token_count} tokens for {len(grouped_temp)} sources")
     return result
@@ -255,28 +254,29 @@ async def main(query):
             save_file(doc_markdown_tokens,
                       f"{sub_output_dir}/markdown_tokens.json")
 
-            headers: List[TextHierarchyResult] = await asyncio.to_thread(
-                extract_texts_by_hierarchy, html, ignore_links=True)
+            # headers: List[TextHierarchyResult] = await asyncio.to_thread(
+            #     extract_texts_by_hierarchy, html, ignore_links=True)
+            # save_file(headers, f"{sub_output_dir}/headers.json")
+            original_docs: List[HeaderDoc] = derive_by_header_hierarchy(
+                doc_markdown)
 
-            save_file(headers, f"{sub_output_dir}/headers.json")
-
-            original_docs: List[HeaderDoc] = []
-            for i, header in enumerate(headers):
-                doc_markdown_tokens = base_parse_markdown(doc_markdown)
-                header_md_content = convert_html_to_markdown(header.html)
-                doc: HeaderDoc = {
-                    "id": header.id,
-                    "doc_index": i,
-                    "header": header.header,
-                    "content": header.content,
-                    "level": header.level,
-                    "parent_headers": header.parent_headers,
-                    "parent_header": header.parent_header,
-                    "parent_level": header.parent_level,
-                    "source": url,
-                    "tokens": base_parse_markdown(header_md_content),
-                }
-                original_docs.append(doc)
+            # original_docs: List[HeaderDoc] = []
+            # for i, header in enumerate(headers):
+            #     doc_markdown_tokens = base_parse_markdown(doc_markdown)
+            #     header_md_content = convert_html_to_markdown(header.html)
+            #     doc: HeaderDoc = {
+            #         "id": header.id,
+            #         "doc_index": i,
+            #         "header": header.header,
+            #         "content": header.content,
+            #         "level": header.level,
+            #         "parent_headers": header.parent_headers,
+            #         "parent_header": header.parent_header,
+            #         "parent_level": header.parent_level,
+            #         "source": url,
+            #         "tokens": base_parse_markdown(header_md_content),
+            #     }
+            #     original_docs.append(doc)
 
             save_file(original_docs, f"{sub_output_dir}/docs.json")
 

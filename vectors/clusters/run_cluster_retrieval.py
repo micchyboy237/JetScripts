@@ -1,9 +1,10 @@
 import os
 from typing import List, Tuple
-from jet.file.utils import save_file
+from jet.file.utils import load_file, save_file
 from jet.llm.llm_generator import LLMGenerator
 from jet.logger import logger
 from jet.logger.config import colorize_log
+from jet.scrapers.utils import extract_texts_by_hierarchy
 from jet.vectors.clusters.retrieval import RetrievalConfigDict, VectorRetriever
 
 OUTPUT_DIR = os.path.join(
@@ -11,7 +12,9 @@ OUTPUT_DIR = os.path.join(
 
 
 def main():
-    """Runner script for retrieval and response generation."""
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_4/top_isekai_anime_2025/pages/www_ranker_com_list_best_isekai_anime_2025_anna_lindwasser/page.html"
+    html = load_file(html_file)
+
     config: RetrievalConfigDict = {
         "min_cluster_size": 2,
         "k_clusters": 2,
@@ -21,25 +24,21 @@ def main():
         "cache_file":  None,
         "threshold": None,
     }
-    corpus = [
-        "Machine learning is a method of data analysis that automates model building.",
-        "Supervised learning uses labeled data to train models for prediction.",
-        "Unsupervised learning finds patterns in data without predefined labels.",
-        "Deep learning is a subset of machine learning using neural networks.",
-        "Natural language processing enables machines to understand human language.",
-        "Computer vision allows machines to interpret and analyze visual data.",
-        "Reinforcement learning trains agents to make decisions by rewards.",
-        "Python is a popular language for machine learning and data science.",
-        "SQL is used for managing and querying structured databases.",
-        "Cloud computing provides scalable resources for machine learning tasks."
-    ]
-    query = "What is supervised learning in machine learning?"
+
+    header_docs = extract_texts_by_hierarchy(html, ignore_links=True)
+
+    texts = [f"{doc.header}\n{doc.content}" for doc in header_docs]
+    query = "Top isekai anime 2025."
+
+    save_file(texts, f"{OUTPUT_DIR}/texts.json")
 
     retriever = VectorRetriever(config)
-    retriever.load_or_compute_embeddings(corpus)
+    retriever.load_or_compute_embeddings(texts)
     retriever.cluster_embeddings()
     retriever.build_index()
     top_chunks = retriever.retrieve_chunks(query)
+
+    save_file(top_chunks, f"{OUTPUT_DIR}/top_chunks.json")
 
     logger.info("\nTop relevant chunks for RAG:")
     for i, (chunk, score) in enumerate(top_chunks, 1):
@@ -50,7 +49,6 @@ def main():
     response = generator.generate_response(
         query, top_chunks, generation_config={"verbose": True})
 
-    save_file(top_chunks, f"{OUTPUT_DIR}/top_chunks.json")
     save_file(f"# LLM Generation\n\n## Prompt\n\n{response["prompt"]}\n\n## Response\n\n{response["response"]}",
               f"{OUTPUT_DIR}/llm_generation.md")
 
