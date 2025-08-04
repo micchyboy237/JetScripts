@@ -263,7 +263,7 @@ async def main(query):
     urls_limit = 10
 
     top_k = None
-    threshold = HIGH_QUALITY_SCORE
+    threshold = 0.0
     chunk_size = 200
     chunk_overlap = 50
     merge_chunks = False

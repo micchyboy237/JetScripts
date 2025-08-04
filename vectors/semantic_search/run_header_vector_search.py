@@ -41,19 +41,9 @@ def main():
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
     llm_model: LLMModelType = "qwen3-1.7b-4bit"
 
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_3/top_rag_strategies_reddit_2025/pages"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_4/top_rag_strategies_reddit_2025/docs.json"
     # Recursively collect all .html files under docs_file
-    html_files = []
-    for root, dirs, files in os.walk(docs_file):
-        for file in files:
-            if file.lower().endswith('.html'):
-                html_files.append(os.path.join(root, file))
-    header_docs: List[HeaderDoc] = []
-    for html in html_files:
-        sub_header_docs = derive_by_header_hierarchy(html)
-        header_docs.extend(sub_header_docs)
-
-    save_file(header_docs, f"{OUTPUT_DIR}/header_docs.json")
+    header_docs: List[HeaderDoc] = load_file(docs_file)
 
     top_k = None
     threshold = 0.0  # Using default threshold
