@@ -3,6 +3,7 @@ import shutil
 import time
 from typing import List
 import numpy as np
+from jet.utils.text import format_sub_dir
 from jet.vectors.filters import select_diverse_texts, DiverseResult
 from fastapi.utils import generate_unique_id
 from jet.file.utils import save_file, load_file
@@ -16,12 +17,17 @@ from jet.wordnet.similarity import group_similar_texts
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 
 def load_and_process_common_data(embed_model: EmbedModelType) -> tuple[list[dict], list[str]]:
     """Load input documents and generate global diverse texts."""
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/top_isekai_anime_2025/search_results.json"
+    query_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/top_rag_strategies_reddit_2025/query.md"
+    query = load_file(query_file)
+    docs_file = f"/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/{format_sub_dir(query)}/search_results.json"
+
+    query_output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
+    shutil.rmtree(query_output_dir, ignore_errors=True)
+
     docs = load_file(docs_file)
     docs = docs["results"]
     documents = [
@@ -31,7 +37,7 @@ def load_and_process_common_data(embed_model: EmbedModelType) -> tuple[list[dict
         documents, embed_model, show_progress=True)
     all_doc_embeddings = np.ascontiguousarray(doc_embeddings)
 
-    doc_ids = [doc["metadata"]["doc_id"] for doc in docs]
+    doc_ids = [doc["id"] for doc in docs]
     diverse_results: List[DiverseResult] = select_diverse_texts(
         cluster_embeddings=all_doc_embeddings,
         cluster_texts=documents,
@@ -52,7 +58,7 @@ def load_and_process_common_data(embed_model: EmbedModelType) -> tuple[list[dict
             "text": result["text"],
             "score": result["score"]
         } for tokens, result in zip(token_counts, diverse_results)],
-    }, f"{OUTPUT_DIR}/diverse_results.json")
+    }, f"{query_output_dir}/diverse_results.json")
 
     # Select diverse headers for logging only
     doc_headers = [doc["header"].lstrip('#').strip() for doc in docs]
@@ -80,19 +86,19 @@ def load_and_process_common_data(embed_model: EmbedModelType) -> tuple[list[dict
             "text": result["text"],
             "score": result["score"]
         } for tokens, result in zip(token_counts, diverse_header_results)],
-    }, f"{OUTPUT_DIR}/diverse_headers.json")
+    }, f"{query_output_dir}/diverse_headers.json")
 
-    return docs, documents
+    return docs, documents, query_output_dir
 
 
-def main(mode: ClusteringMode, docs: list[dict], documents: list[str]):
-    mode_output_dir = f"{OUTPUT_DIR}/{mode}"
+def main(mode: ClusteringMode, docs: list[dict], documents: list[str], output_dir: str):
+    mode_output_dir = f"{output_dir}/{mode}"
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
 
     # Start timing
     start_time = time.time()
 
-    ids = [doc["metadata"]["doc_id"] for doc in docs]
+    ids = [doc["id"] for doc in docs]
 
     embeddings = generate_embeddings(
         documents, embed_model, show_progress=True)
@@ -110,7 +116,7 @@ def main(mode: ClusteringMode, docs: list[dict], documents: list[str]):
                f"{execution_time:.2f}s", colors=["WHITE", "ORANGE"])
 
     # Map grouped_similar_texts (which contains lists of doc_ids) back to the original doc objects
-    doc_id_to_doc = {doc["metadata"]["doc_id"]: doc for doc in docs}
+    doc_id_to_doc = {doc["id"]: doc for doc in docs}
     mapped_results = [
         [
             {
@@ -151,8 +157,8 @@ def main(mode: ClusteringMode, docs: list[dict], documents: list[str]):
         "clusters": clusters,
     }, f"{mode_output_dir}/clusters.json")
 
-    doc_id_to_embeddings = {doc["metadata"]["doc_id"]
-        : emb for doc, emb in zip(docs, embeddings)}
+    doc_id_to_embeddings = {
+        doc["id"]: emb for doc, emb in zip(docs, embeddings)}
 
     cluster_diverse_texts = []
     cluster_diverse_results = []
@@ -174,7 +180,7 @@ def main(mode: ClusteringMode, docs: list[dict], documents: list[str]):
             cluster_embeddings=cluster_embeddings,
             cluster_texts=cluster_texts,
             initial_text_idx=0,
-            diversity_threshold=0.7,
+            diversity_threshold=0.8,
             max_diverse_texts=len(cluster_texts),
             ids=cluster_ids
         )
@@ -199,6 +205,6 @@ def main(mode: ClusteringMode, docs: list[dict], documents: list[str]):
 
 if __name__ == '__main__':
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
-    docs, documents = load_and_process_common_data(embed_model)
-    main("agglomerative", docs, documents)
-    main("kmeans", docs, documents)
+    docs, documents, output_dir = load_and_process_common_data(embed_model)
+    main("agglomerative", docs, documents, output_dir)
+    main("kmeans", docs, documents, output_dir)
