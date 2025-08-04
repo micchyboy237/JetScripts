@@ -794,6 +794,6 @@ if __name__ == "__main__":
                    help="Search query using optional flag")
     args = p.parse_args()
 
-    query = args.query if args.query else args.query_pos or "Top isekai anime 2025."
+    query = args.query if args.query else args.query_pos or "2025 philippines online tiktok live selling registration steps"
 
     asyncio.run(main(query))
