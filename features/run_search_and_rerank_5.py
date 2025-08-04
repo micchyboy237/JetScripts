@@ -1,9 +1,11 @@
 import asyncio
-from collections import defaultdict
 import os
 import re
 import shutil
 import string
+import numpy as np
+
+from collections import defaultdict
 from typing import DefaultDict, List, Set
 from jet.code.html_utils import preprocess_html
 from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
@@ -14,11 +16,14 @@ from jet.code.markdown_utils._preprocessors import link_to_text_ratio
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
 from jet.logger.config import colorize_log
+from jet.models.embeddings.base import generate_embeddings
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.tokenizer.base import get_tokenizer_fn, count_tokens
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.scrapers.utils import TextHierarchyResult, extract_texts_by_hierarchy, scrape_links, search_data
+from jet.vectors.filters import select_diverse_texts
+from jet.vectors.filters.select_diverse_texts import DiverseResult
 from jet.vectors.semantic_search.header_vector_search import HeaderSearchResult, search_headers
 from jet.wordnet.analyzers.text_analysis import analyze_readability
 from jet.wordnet.similarity import group_similar_texts
@@ -486,61 +491,104 @@ async def main(query):
         "results": search_results
     }, f"{query_output_dir}/search_results.json")
 
-    # Cluster search results
-    # Prepare result_texts and result_ids for clustering
+    # # Cluster search results
+    # # Prepare result_texts and result_ids for clustering
+    # result_texts = [
+    #     f"{result['header'].lstrip('#').strip()}\n{result['content']}"
+    #     for result in search_results
+    # ]
+    # result_ids = [result["id"] for result in search_results]
+    # clustered_search_results = group_similar_texts(
+    #     result_texts, model_name=embed_model, ids=result_ids)
+    # # Map clustered_search_results (which contains lists of result_ids) back to the full search_results dicts
+    # # id_to_result = {result["id"]: result for result in search_results}
+    # id_to_result = {
+    #     result["id"]: f"{result["header"]}\n{result["content"]}" for result in search_results}
+    # clustered_search_results = [
+    #     [id_to_result[result_id]
+    #         for result_id in cluster if result_id in id_to_result]
+    #     for cluster in clustered_search_results
+    # ]
+    # save_file({
+    #     "query": query,
+    #     "count": len(clustered_search_results),
+    #     "results": clustered_search_results
+    # }, f"{query_output_dir}/clustered_search_results.json")
+
+    # # Group results by URL and calculate total high_score_tokens per URL
+    # url_high_score_tokens = defaultdict(int)
+    # for result in search_results:
+    #     url = result["metadata"].get("source", "Unknown")
+    #     if result["score"] >= HIGH_QUALITY_SCORE and result.get("mtld_category") != "very_low":
+    #         url_high_score_tokens[url] += result["metadata"].get(
+    #             "num_tokens", 0)
+
+    # # Sort URLs by total high_score_tokens (descending)
+    # sorted_urls = sorted(
+    #     url_high_score_tokens.keys(),
+    #     key=lambda url: url_high_score_tokens[url],
+    #     reverse=True
+    # )
+
+    # # Sort all results by score
+    # sorted_results = sort_search_results_by_url_and_category(
+    #     search_results, sorted_urls)
+    # total_tokens = sum(result["metadata"].get("num_tokens", 0)
+    #                    for result in sorted_results)
+    # save_file({
+    #     "query": query,
+    #     "count": len(sorted_results),
+    #     "total_tokens": total_tokens,
+    #     "results": sorted_results
+    # }, f"{query_output_dir}/sorted_search_results.json")
+
+    # Select diverse search results
     result_texts = [
         f"{result['header'].lstrip('#').strip()}\n{result['content']}"
         for result in search_results
     ]
-    result_ids = [result["id"] for result in search_results]
-    clustered_search_results = group_similar_texts(
-        result_texts, model_name=embed_model, ids=result_ids)
-    # Map clustered_search_results (which contains lists of result_ids) back to the full search_results dicts
-    # id_to_result = {result["id"]: result for result in search_results}
-    id_to_result = {
-        result["id"]: f"{result["header"]}\n{result["content"]}" for result in search_results}
-    clustered_search_results = [
-        [id_to_result[result_id]
-            for result_id in cluster if result_id in id_to_result]
-        for cluster in clustered_search_results
-    ]
-    save_file({
-        "query": query,
-        "count": len(clustered_search_results),
-        "results": clustered_search_results
-    }, f"{query_output_dir}/clustered_search_results.json")
+    doc_embeddings = generate_embeddings(
+        result_texts, embed_model, show_progress=True)
+    all_doc_embeddings = np.ascontiguousarray(doc_embeddings)
 
-    # Group results by URL and calculate total high_score_tokens per URL
-    url_high_score_tokens = defaultdict(int)
-    for result in search_results:
-        url = result["metadata"].get("source", "Unknown")
-        if result["score"] >= HIGH_QUALITY_SCORE and result.get("mtld_category") != "very_low":
-            url_high_score_tokens[url] += result["metadata"].get(
-                "num_tokens", 0)
-
-    # Sort URLs by total high_score_tokens (descending)
-    sorted_urls = sorted(
-        url_high_score_tokens.keys(),
-        key=lambda url: url_high_score_tokens[url],
-        reverse=True
+    doc_ids = [doc["metadata"]["doc_id"] for doc in search_results]
+    diverse_results: List[DiverseResult] = select_diverse_texts(
+        cluster_embeddings=all_doc_embeddings,
+        cluster_texts=result_texts,
+        initial_text_idx=0,
+        max_diverse_texts=len(result_texts),
+        ids=doc_ids
     )
-
-    # Sort all results by score
-    sorted_results = sort_search_results_by_url_and_category(
-        search_results, sorted_urls)
-    total_tokens = sum(result["metadata"].get("num_tokens", 0)
-                       for result in sorted_results)
+    diverse_texts = [result["text"] for result in diverse_results]
+    token_counts: List[int] = count_tokens(
+        embed_model, diverse_texts, prevent_total=True)
     save_file({
-        "query": query,
-        "count": len(sorted_results),
-        "total_tokens": total_tokens,
-        "results": sorted_results
-    }, f"{query_output_dir}/sorted_search_results.json")
+        "count": len(diverse_results),
+        "total_tokens": sum(token_counts),
+        "texts": [{
+            "id": result["id"],
+            "index": result["index"],
+            "tokens": tokens,
+            "text": result["text"],
+            "score": result["score"]
+        } for tokens, result in zip(token_counts, diverse_results)],
+    }, f"{query_output_dir}/diverse_search_results.json")
+
+    # Map diverse_results back to original search_results by doc_id
+    id_to_search_result = {result["metadata"]
+                           ["doc_id"]: result for result in search_results}
+    diverse_search_results = []
+    for result in diverse_results:
+        doc_id = result["id"]
+        mapped_result = dict(id_to_search_result[doc_id])
+        # Optionally, you can add the diverse score to the search result
+        mapped_result["diverse_score"] = result.get("score", None)
+        diverse_search_results.append(mapped_result)
 
     # Filter results based on score, MTLD, and link-to-text ratio
     current_tokens = 0
     filtered_results = []
-    for result in sorted_results:
+    for result in diverse_search_results:
         content = f"{result['header']}\n{result['content']}".strip()
         tokens = count_tokens(llm_model, content)
         if current_tokens + tokens > max_tokens:
