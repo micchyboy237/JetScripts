@@ -21,11 +21,11 @@ OUTPUT_DIR = os.path.join(
 
 def load_and_process_common_data(embed_model: EmbedModelType) -> tuple[list[dict], list[str]]:
     """Load input documents and generate global diverse texts."""
-    query_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/top_rag_strategies_reddit_2025/query.md"
-    query = load_file(query_file)
-    docs_file = f"/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/{format_sub_dir(query)}/search_results.json"
+    query = "Top isekai anime 2025."
+    query_sub_dir = format_sub_dir(query)
+    docs_file = f"/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/{query_sub_dir}/search_results.json"
 
-    query_output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
+    query_output_dir = f"{OUTPUT_DIR}/{query_sub_dir}"
     shutil.rmtree(query_output_dir, ignore_errors=True)
 
     docs = load_file(docs_file)
@@ -41,7 +41,6 @@ def load_and_process_common_data(embed_model: EmbedModelType) -> tuple[list[dict
     diverse_results: List[DiverseResult] = select_diverse_texts(
         cluster_embeddings=all_doc_embeddings,
         cluster_texts=documents,
-        initial_text_idx=0,
         max_diverse_texts=len(documents),
         ids=doc_ids
     )
@@ -69,7 +68,6 @@ def load_and_process_common_data(embed_model: EmbedModelType) -> tuple[list[dict
     diverse_header_results: List[DiverseResult] = select_diverse_texts(
         cluster_embeddings=all_doc_header_embeddings,
         cluster_texts=doc_headers,
-        initial_text_idx=0,
         max_diverse_texts=len(doc_headers),
         ids=doc_ids
     )
@@ -179,7 +177,6 @@ def main(mode: ClusteringMode, docs: list[dict], documents: list[str], output_di
         diverse_results: List[DiverseResult] = select_diverse_texts(
             cluster_embeddings=cluster_embeddings,
             cluster_texts=cluster_texts,
-            initial_text_idx=0,
             diversity_threshold=0.8,
             max_diverse_texts=len(cluster_texts),
             ids=cluster_ids

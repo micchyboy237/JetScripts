@@ -582,7 +582,6 @@ async def main(query):
         diverse_results: List[DiverseResult] = select_diverse_texts(
             cluster_embeddings=cluster_embeddings,
             cluster_texts=cluster_texts,
-            initial_text_idx=0,
             diversity_threshold=0.7,
             max_diverse_texts=len(cluster_texts),
             ids=cluster_ids
@@ -663,7 +662,6 @@ async def main(query):
     # diverse_results: List[DiverseResult] = select_diverse_texts(
     #     cluster_embeddings=all_doc_embeddings,
     #     cluster_texts=result_texts,
-    #     initial_text_idx=0,
     #     max_diverse_texts=len(result_texts),
     #     ids=doc_ids
     # )
