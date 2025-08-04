@@ -124,25 +124,41 @@ def group_results_by_source_for_llm_context(
         "qwen3-1.7b-4bit", add_special_tokens=False, remove_pad_tokens=True)
     separator = "\n\n"
     separator_tokens = len(tokenizer.encode(separator))
-    sorted_docs = sorted(
-        results, key=lambda x: x["score"], reverse=True
+
+    # Calculate high and medium score tokens per URL
+    url_score_tokens = defaultdict(
+        lambda: {"high_score_tokens": 0, "medium_score_tokens": 0}
     )
+    for result in results:
+        url = result["metadata"].get("source", "Unknown")
+        if result["score"] >= HIGH_QUALITY_SCORE:
+            url_score_tokens[url]["high_score_tokens"] += result["metadata"].get(
+                "num_tokens", 0)
+        elif result["score"] >= MEDIUM_QUALITY_SCORE:
+            url_score_tokens[url]["medium_score_tokens"] += result["metadata"].get(
+                "num_tokens", 0)
+
+    # Sort URLs by high_score_tokens, then medium_score_tokens (descending)
+    sorted_urls = sorted(
+        url_score_tokens.keys(),
+        key=lambda url: (url_score_tokens[url]["high_score_tokens"],
+                         url_score_tokens[url]["medium_score_tokens"]),
+        reverse=True
+    )
+
+    # Group results by URL and sort within each URL by score
     grouped_temp: DefaultDict[str,
                               List[HeaderSearchResult]] = defaultdict(list)
     seen_header_text: DefaultDict[str, Set[str]] = defaultdict(set)
-
-    for doc in sorted_docs:
-        text = doc.get("content", "")
-        source = doc["metadata"].get("source", "Unknown Source")
-        if not isinstance(text, str):
-            logger.debug(
-                f"Non-string content found for source: {source}, doc_index: {doc['metadata'].get('doc_index', 0)}, type: {type(text)}. Converting to string.")
-            text = str(text) if text else ""
-        grouped_temp[source].append(doc)
+    for result in results:
+        url = result["metadata"].get("source", "Unknown")
+        grouped_temp[url].append(result)
 
     context_blocks = []
-    for source, docs in grouped_temp.items():
-        block = f"<!-- Source: {source} -->\n\n"
+    for url in sorted_urls:
+        docs = sorted(grouped_temp[url],
+                      key=lambda x: x["score"], reverse=True)
+        block = f"<!-- Source: {url} -->\n\n"
         seen_header_text_in_block = set()
 
         # Group by doc_index and header to handle overlaps
@@ -178,7 +194,7 @@ def group_results_by_source_for_llm_context(
             if header_key and header_key not in seen_header_text_in_block and doc_level >= 0:
                 block += f"{header}\n\n"
                 seen_header_text_in_block.add(header_key)
-                seen_header_text[source].add(header_key)
+                seen_header_text[url].add(header_key)
 
             # Sort chunks by start_idx and merge overlapping or adjacent chunks
             chunks.sort(key=lambda x: x["metadata"]["start_idx"])
@@ -194,7 +210,7 @@ def group_results_by_source_for_llm_context(
                 next_content = next_chunk["content"]
                 if not isinstance(next_content, str):
                     logger.debug(
-                        f"Non-string content in chunk for source: {source}, doc_index: {doc_index}, type: {type(next_content)}. Converting to string.")
+                        f"Non-string content in chunk for source: {url}, doc_index: {doc_index}, type: {type(next_content)}. Converting to string.")
                     next_content = str(next_content) if next_content else ""
 
                 # Merge if chunks overlap or are adjacent
@@ -216,11 +232,11 @@ def group_results_by_source_for_llm_context(
             block += merged_content + "\n\n"
 
         block_tokens = len(tokenizer.encode(block))
-        if block_tokens > len(tokenizer.encode(f"<!-- Source: {source} -->\n\n")):
+        if block_tokens > len(tokenizer.encode(f"<!-- Source: {url} -->\n\n")):
             context_blocks.append(block.strip())
         else:
             logger.warning(
-                f"Empty block for {source} after processing; skipping.")
+                f"Empty block for {url} after processing; skipping.")
 
     result = "\n\n".join(context_blocks)
     final_token_count = len(tokenizer.encode(result))
@@ -613,6 +629,15 @@ async def main(query):
         # Optionally, you can add the diverse score to the search result
         mapped_result["diverse_score"] = result.get("score", None)
         diverse_search_results.append(mapped_result)
+
+    save_file({
+        "count": len(diverse_search_results),
+        "total_tokens": sum(token_counts),
+        "texts": [{
+            **result,
+            "tokens": tokens,
+        } for tokens, result in zip(token_counts, diverse_search_results)],
+    }, f"{query_output_dir}/diverse_search_results.json")
 
     # # Group results by URL and calculate total high_score_tokens and medium_score_tokens per URL
     # url_score_tokens = defaultdict(
