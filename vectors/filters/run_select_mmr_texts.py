@@ -1,10 +1,13 @@
 import os
+import shutil
 from jet.file.utils import save_file
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.vectors.filters.mmr import select_mmr_texts
+from jet.wordnet.n_grams import count_ngrams
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == "__main__":
     # Real-world example: Document snippets about machine learning
@@ -47,5 +50,12 @@ if __name__ == "__main__":
         print(
             f"ID: {result['id']}, Index: {result['index']}, Score: {result['score']:.4f}")
         print(f"Text: {result['text']}\n")
+
+    all_ngrams = count_ngrams(texts, min_words=1)
+    save_file(all_ngrams, f"{OUTPUT_DIR}/all_ngrams.json")
+
+    result_ngrams = count_ngrams(
+        [result["text"] for result in results], min_words=1)
+    save_file(result_ngrams, f"{OUTPUT_DIR}/result_ngrams.json")
 
     save_file(results, f"{OUTPUT_DIR}/results.json")

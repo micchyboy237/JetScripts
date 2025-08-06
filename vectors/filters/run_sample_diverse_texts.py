@@ -9,12 +9,30 @@ from jet.logger import logger
 from jet.models.model_types import EmbedModelType
 from jet.models.tokenizer.base import count_tokens
 from jet.transformers.formatters import format_json
-from jet.wordnet.n_grams import get_most_common_ngrams
+from jet.wordnet.n_grams import count_ngrams
 from jet.wordnet.text_chunker import chunk_texts_with_data
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
+
+def main(texts: List[str], min_words: int):
+    results: List[str] = sample_diverse_texts(texts, n=min_words)
+
+    logger.gray(f"Results: ({len(results)})")
+    logger.success(format_json(results))
+
+    sub_dir = f"{OUTPUT_DIR}/n_{min_words}"
+    all_ngrams = count_ngrams(texts, min_words=min_words)
+    save_file(all_ngrams,
+              f"{sub_dir}/all_ngrams.json")
+
+    result_ngrams = count_ngrams(results, min_words=min_words)
+    save_file(result_ngrams,
+              f"{sub_dir}/result_ngrams.json")
+
+    save_file(results, f"{sub_dir}/results.json")
 
 
 if __name__ == "__main__":
@@ -28,15 +46,5 @@ if __name__ == "__main__":
         "Data preprocessing is critical for effective machine learning models."
     ]
 
-    all_common_ngrams = get_most_common_ngrams(texts, min_words=1)
-    save_file(all_common_ngrams, f"{OUTPUT_DIR}/all_common_ngrams.json")
-
-    results: List[str] = sample_diverse_texts(texts)
-
-    logger.gray(f"Results: ({len(results)})")
-    logger.success(format_json(results))
-
-    result_common_ngrams = get_most_common_ngrams(results, min_words=1)
-    save_file(result_common_ngrams, f"{OUTPUT_DIR}/result_common_ngrams.json")
-
-    save_file(results, f"{OUTPUT_DIR}/results.json")
+    main(texts, 1)
+    main(texts, 2)

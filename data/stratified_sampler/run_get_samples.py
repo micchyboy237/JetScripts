@@ -10,10 +10,13 @@ OUTPUT_DIR = os.path.join(
 
 
 texts = [
-    "Similar text 1",
-    "Similar text 2",
-    "Different writing 3",
-    "Different writing 4",
+    "Machine learning is a method of data analysis that automates model building.",
+    "Deep learning, a subset of machine learning, uses neural networks for complex tasks.",
+    "Supervised learning involves training models on labeled datasets.",
+    "Unsupervised learning finds patterns in unlabeled data using clustering.",
+    "Python is a popular programming language for machine learning development.",
+    "Reinforcement learning optimizes decisions through trial and error.",
+    "Data preprocessing is critical for effective machine learning models."
 ]
 
 texts2 = [
