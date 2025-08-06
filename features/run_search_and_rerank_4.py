@@ -8,7 +8,6 @@ import numpy as np
 from collections import defaultdict
 from typing import DefaultDict, List, Set
 from jet.code.html_utils import preprocess_html
-from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
 from jet.code.markdown_utils._converters import convert_html_to_markdown
 from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
 from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_by_header_hierarchy, parse_markdown
@@ -20,6 +19,7 @@ from jet.models.embeddings.base import generate_embeddings
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.tokenizer.base import get_tokenizer_fn, count_tokens
+from jet.scrapers.header_hierarchy import HeaderDoc, extract_header_hierarchy
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.scrapers.utils import scrape_links, search_data
 from jet.vectors.filters import select_diverse_texts
@@ -358,9 +358,12 @@ async def main(query):
             save_file(doc_markdown_tokens,
                       f"{sub_output_dir}/markdown_tokens.json")
 
-            original_docs: List[HeaderDoc] = derive_by_header_hierarchy(
-                doc_markdown)
-
+            original_docs: List[HeaderDoc] = await asyncio.to_thread(
+                extract_header_hierarchy,
+                html,
+                excludes=["nav", "footer", "script", "style"],
+                timeout_ms=1000
+            )
             save_file(original_docs, f"{sub_output_dir}/docs.json")
 
             for doc in original_docs:
