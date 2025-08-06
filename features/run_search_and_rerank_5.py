@@ -18,7 +18,7 @@ from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRe
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.tokenizer.base import get_tokenizer_fn, count_tokens
 from jet.scrapers.hrequests_utils import scrape_urls
-from jet.scrapers.utils import TextHierarchyResult, extract_texts_by_hierarchy, scrape_links, search_data
+from jet.scrapers.utils import scrape_links, search_data
 from jet.vectors.semantic_search.header_vector_search import HeaderSearchResult, search_headers
 from jet.wordnet.analyzers.text_analysis import analyze_readability
 

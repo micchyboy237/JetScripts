@@ -12,7 +12,7 @@ from jet.models.utils import resolve_model_value
 from mlx_lm import load
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
-from jet.scrapers.utils import extract_by_heading_hierarchy, extract_text_nodes, extract_texts_by_hierarchy, extract_tree_with_text, extract_text_elements, flatten_tree_to_base_nodes, get_leaf_nodes, get_parents_with_common_class, get_significant_nodes, print_html
+from jet.scrapers.utils import extract_by_heading_hierarchy, extract_text_nodes, extract_tree_with_text, extract_text_elements, flatten_tree_to_base_nodes, get_leaf_nodes, get_parents_with_common_class, get_significant_nodes, print_html
 from jet.search.formatters import clean_string
 from jet.transformers.formatters import format_html
 from jet.utils.commands import copy_to_clipboard
@@ -48,14 +48,11 @@ if __name__ == "__main__":
     headings = extract_by_heading_hierarchy(html_str)
     save_file(headings, f"{output_dir}/headings.json")
 
-    headings2 = extract_texts_by_hierarchy(html_str)
+    headings2 = derive_by_header_hierarchy(html_str, ignore_links=True)
     save_file(headings2, f"{output_dir}/headings2.json")
 
-    headings3 = derive_by_header_hierarchy(html_str, ignore_links=True)
+    headings3 = get_md_header_contents(html_str, ignore_links=True)
     save_file(headings3, f"{output_dir}/headings3.json")
-
-    headings4 = get_md_header_contents(html_str, ignore_links=True)
-    save_file(headings4, f"{output_dir}/headings4.json")
 
     header_texts = []
     for idx, node in enumerate(headings):
