@@ -207,6 +207,9 @@ if __name__ == "__main__":
         sub_output_dir = f"{output_dir}/significant_node_{num}"
         node_html = significant_node.html
 
+        if not node_html:
+            continue
+
         save_file(node_html, f"{sub_output_dir}/node.html")
 
         node_md_content = convert_html_to_markdown(node_html)
