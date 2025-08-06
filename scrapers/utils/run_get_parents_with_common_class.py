@@ -42,8 +42,9 @@ if __name__ == "__main__":
                     for node in parents_with_common_tags_and_classes]
     save_file(all_contents, f"{output_dir}/all_contents.json")
 
-    all_headers = [node.get_headers()
-                   for node in parents_with_common_tags_and_classes]
+    all_headers = [node.get_header()
+                   for node in parents_with_common_tags_and_classes
+                   if node.get_header()]
     save_file(all_headers, f"{output_dir}/all_headers.json")
 
     all_html = [node.html for node in parents_with_common_tags_and_classes]
