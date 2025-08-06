@@ -1,4 +1,5 @@
 import os
+import shutil
 import time
 
 from fastapi.utils import generate_unique_id
@@ -9,15 +10,14 @@ from jet.vectors.clusters.cluster_types import ClusteringMode
 from jet.vectors.document_types import HeaderDocument
 from jet.wordnet.similarity import group_similar_texts
 
+OUTPUT_DIR = os.path.join(os.path.dirname(
+    __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
 
 def main(mode: ClusteringMode):
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/top_isekai_anime_2025/search_results.json"
-    output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-    mode_output_dir = f"{output_dir}/{mode}"
+    mode_output_dir = f"{OUTPUT_DIR}/{mode}"
 
-    docs = load_file(docs_file)
-    docs = docs["results"]
     documents = [
         f"{doc["header"].lstrip('#').strip()}\n{doc["content"]}" for doc in docs]
 
@@ -26,7 +26,7 @@ def main(mode: ClusteringMode):
     # Start timing
     start_time = time.time()
 
-    ids = [doc["metadata"]["doc_id"] for doc in docs]
+    ids = [doc["id"] for doc in docs]
 
     grouped_similar_texts = group_similar_texts(
         documents, model_name=model_name, ids=ids, mode=mode)
@@ -40,7 +40,7 @@ def main(mode: ClusteringMode):
                f"{execution_time:.2f}s", colors=["WHITE", "ORANGE"])
 
     # Map grouped_similar_texts (which contains ClusterResult with doc_ids) back to the original doc objects
-    doc_id_to_doc = {doc["metadata"]["doc_id"]: doc for doc in docs}
+    doc_id_to_doc = {doc["id"]: doc for doc in docs}
     mapped_results = [
         {
             "label": group["label"],
@@ -88,6 +88,17 @@ def main(mode: ClusteringMode):
 
 
 if __name__ == '__main__':
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/top_isekai_anime_2025/search_results.json"
+
+    docs = load_file(docs_file)
+    docs = docs["results"]
+
+    save_file({
+        "count": len(docs),
+        "total_tokens": sum(doc["metadata"]["num_tokens"] for doc in docs),
+        "documents": docs,
+    }, f"{OUTPUT_DIR}/documents.json")
+
     main("agglomerative")
     main("kmeans")
     main("dbscan")

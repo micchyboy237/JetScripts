@@ -12,7 +12,7 @@ from jet.models.utils import resolve_model_value
 from mlx_lm import load
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
-from jet.scrapers.utils import extract_by_heading_hierarchy, extract_text_nodes, extract_texts_by_hierarchy, extract_tree_with_text, extract_text_elements, flatten_tree_to_base_nodes, get_leaf_nodes, get_parents_with_shared_class, get_significant_nodes, print_html
+from jet.scrapers.utils import extract_by_heading_hierarchy, extract_text_nodes, extract_texts_by_hierarchy, extract_tree_with_text, extract_text_elements, flatten_tree_to_base_nodes, get_leaf_nodes, get_parents_with_common_class, get_significant_nodes, print_html
 from jet.search.formatters import clean_string
 from jet.transformers.formatters import format_html
 from jet.utils.commands import copy_to_clipboard
@@ -21,7 +21,7 @@ from jet.utils.commands import copy_to_clipboard
 if __name__ == "__main__":
     from jet.scrapers.preprocessor import html_to_markdown
 
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_4/top_isekai_anime_2025/pages/www_ranker_com_list_best_isekai_anime_2025_anna_lindwasser/page.html"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/top_isekai_anime_2025/pages/gamerant_com_new_isekai_anime_2025/page_preprocessed.html"
     html_dir = os.path.dirname(html_file)
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(
@@ -48,8 +48,11 @@ if __name__ == "__main__":
     headings = extract_texts_by_hierarchy(html_str, ignore_links=True)
     save_file(headings, f"{output_dir}/headings.json")
 
-    headings2 = get_md_header_contents(html_str)
+    headings2 = derive_by_header_hierarchy(html_str, ignore_links=True)
     save_file(headings2, f"{output_dir}/headings2.json")
+
+    headings3 = get_md_header_contents(html_str)
+    save_file(headings3, f"{output_dir}/headings3.json")
 
     texts = [item.text for item in headings]
 
@@ -193,9 +196,9 @@ if __name__ == "__main__":
     leaf_nodes = get_leaf_nodes(tree_elements)
     save_file(leaf_nodes, f"{output_dir}/leaf_nodes.json")
 
-    parents_with_shared_class = get_parents_with_shared_class(tree_elements)
-    save_file(parents_with_shared_class,
-              f"{output_dir}/parents_with_shared_class.json")
+    parents_with_common_class = get_parents_with_common_class(tree_elements)
+    save_file(parents_with_common_class,
+              f"{output_dir}/parents_with_common_class.json")
 
     formatted_html = format_html(html_str)
     save_file(formatted_html, f"{output_dir}/formatted_html.html")
