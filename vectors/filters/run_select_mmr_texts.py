@@ -1,7 +1,6 @@
 import os
-import numpy as np
-
 from jet.file.utils import save_file
+from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.vectors.filters.mmr import select_mmr_texts
 
 OUTPUT_DIR = os.path.join(
@@ -19,20 +18,15 @@ if __name__ == "__main__":
         "Data preprocessing is critical for effective machine learning models."
     ]
 
-    # Simulated embeddings (simplified 3D vectors for demonstration)
-    # In practice, these would come from a model like BERT or SentenceTransformer
-    embeddings = np.array([
-        [0.8, 0.4, 0.1],  # Machine learning overview
-        [0.7, 0.5, 0.2],  # Deep learning
-        [0.6, 0.3, 0.4],  # Supervised learning
-        [0.5, 0.2, 0.5],  # Unsupervised learning
-        [0.2, 0.9, 0.3],  # Python programming
-        [0.4, 0.3, 0.6],  # Reinforcement learning
-        [0.7, 0.4, 0.2]   # Data preprocessing
-    ])
+    # Query for embedding
+    query = "machine learning"
 
-    # Simulated query embedding for "machine learning"
-    query_embedding = np.array([0.8, 0.4, 0.2])
+    # Load SentenceTransformer model
+    model = SentenceTransformerRegistry.load_model('all-MiniLM-L6-v2')
+
+    # Generate embeddings for texts and query
+    embeddings = model.encode(texts, convert_to_numpy=True)
+    query_embedding = model.encode([query], convert_to_numpy=True)[0]
 
     # IDs for tracking (optional, will be generated if not provided)
     ids = [f"doc_{i}" for i in range(len(texts))]
