@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     for num, significant_node in enumerate(significant_nodes, start=1):
         sub_output_dir = f"{output_dir}/significant_node_{num}"
-        html = significant_node.html
+        html = significant_node.get_html()
 
         save_file(html, f"{sub_output_dir}/node.html")
 
