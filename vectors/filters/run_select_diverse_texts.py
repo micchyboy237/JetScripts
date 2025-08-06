@@ -113,24 +113,27 @@ def main(mode: ClusteringMode, docs: list[dict], documents: list[str], output_di
     logger.log(f"group_similar_texts:",
                f"{execution_time:.2f}s", colors=["WHITE", "ORANGE"])
 
-    # Map grouped_similar_texts (which contains lists of doc_ids) back to the original doc objects
+    # Map grouped_similar_texts (List[ClusterResult] with doc_ids) back to the original doc objects
     doc_id_to_doc = {doc["id"]: doc for doc in docs}
     mapped_results = [
-        [
-            {
-                "rank": doc.get("rank"),
-                "score": doc.get("score"),
-                "header": doc.get("header"),
-                "content": doc.get("content"),
-                "metadata": {
-                    "doc_index": doc["metadata"].get("doc_index"),
-                    "doc_id": doc["metadata"].get("doc_id"),
-                    "source": doc["metadata"].get("source"),
-                    "num_tokens": doc["metadata"].get("num_tokens"),
+        {
+            "label": group["label"],
+            "docs": [
+                {
+                    "rank": doc.get("rank"),
+                    "score": doc.get("score"),
+                    "header": doc.get("header"),
+                    "content": doc.get("content"),
+                    "metadata": {
+                        "doc_index": doc["metadata"].get("doc_index"),
+                        "doc_id": doc["metadata"].get("doc_id"),
+                        "source": doc["metadata"].get("source"),
+                        "num_tokens": doc["metadata"].get("num_tokens"),
+                    }
                 }
-            }
-            for doc_id in group if (doc := doc_id_to_doc.get(doc_id))
-        ]
+                for doc_id in group["texts"] if (doc := doc_id_to_doc.get(doc_id))
+            ]
+        }
         for group in grouped_similar_texts
     ]
 
@@ -140,12 +143,13 @@ def main(mode: ClusteringMode, docs: list[dict], documents: list[str], output_di
     clusters = []
     for group in grouped_similar_texts:
         docs_in_group = [doc_id_to_doc[doc_id]
-                         for doc_id in group if doc_id in doc_id_to_doc]
+                         for doc_id in group["texts"] if doc_id in doc_id_to_doc]
         total_tokens = sum(doc["metadata"].get("num_tokens", 0)
                            for doc in docs_in_group)
         headers = [doc.get("header") for doc in docs_in_group]
         clusters.append({
-            "count": len(group),
+            "label": group["label"],
+            "count": len(group["texts"]),
             "total_tokens": total_tokens,
             "headers": headers
         })
@@ -164,7 +168,7 @@ def main(mode: ClusteringMode, docs: list[dict], documents: list[str], output_di
         cluster_texts = []
         cluster_embeddings = []
         cluster_ids = []
-        for doc_id in group:
+        for doc_id in group["texts"]:
             header_doc = doc_id_to_doc[doc_id]
             text = f"{header_doc['header']}\n{header_doc['content']}"
             text_embeddings = doc_id_to_embeddings[doc_id]
@@ -183,7 +187,9 @@ def main(mode: ClusteringMode, docs: list[dict], documents: list[str], output_di
         )
         cluster_diverse_texts.extend([result["text"]
                                      for result in diverse_results])
-        cluster_diverse_results.extend(diverse_results)
+        cluster_diverse_results.extend([
+            {**result, "cluster_label": group["label"]} for result in diverse_results
+        ])
 
     token_counts: List[int] = count_tokens(
         embed_model, cluster_diverse_texts, prevent_total=True)
@@ -195,7 +201,8 @@ def main(mode: ClusteringMode, docs: list[dict], documents: list[str], output_di
             "index": result["index"],
             "tokens": tokens,
             "text": result["text"],
-            "score": result["score"]
+            "score": result["score"],
+            "cluster_label": result["cluster_label"]
         } for tokens, result in zip(token_counts, cluster_diverse_results)],
     }, f"{mode_output_dir}/diverse_cluster_results.json")
 
@@ -205,3 +212,5 @@ if __name__ == '__main__':
     docs, documents, output_dir = load_and_process_common_data(embed_model)
     main("agglomerative", docs, documents, output_dir)
     main("kmeans", docs, documents, output_dir)
+    main("dbscan", docs, documents, output_dir)
+    main("hdbscan", docs, documents, output_dir)
