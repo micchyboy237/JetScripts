@@ -24,11 +24,11 @@ if __name__ == "__main__":
     analysis = analyze_markdown(md_content)
     save_file(analysis, f"{output_dir}/analysis.json")
 
-    headings = derive_by_header_hierarchy(md_content, ignore_links=True)
+    headings = extract_texts_by_hierarchy(html_str, ignore_links=True)
     save_file(headings, f"{output_dir}/headings.json")
 
-    headings = extract_texts_by_hierarchy(html_str, ignore_links=True)
-    save_file(headings, f"{output_dir}/headings2.json")
+    # headings = derive_by_header_hierarchy(md_content, ignore_links=True)
+    # save_file(headings, f"{output_dir}/headings.json")
 
     # headings_html_strings = [node.html for node in headings]
     # save_file(headings_html_strings,
