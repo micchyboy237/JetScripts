@@ -1,23 +1,31 @@
-# Sample documents (similar to RAG task inputs)
 import json
-from visualization.plot_topics import process_documents_for_chart
+import argparse
+from jet.visualization.plot_topics import process_documents_for_chart
 
 
-documents = [
-    {"id": 1, "content": "Advances in artificial intelligence are transforming industries."},
-    {"id": 2, "content": "Stock market trends indicate a bullish economy."},
-    {"id": 3, "content": "Machine learning models improve prediction accuracy."},
-    {"id": 4, "content": "New vaccine developed for infectious disease."},
-    {"id": 5, "content": "Neural networks are key to modern AI systems."},
-    {"id": 6, "content": "Investment strategies for a volatile market."}
-]
+def main():
+    parser = argparse.ArgumentParser(
+        description="Generate topic visualization data from documents.")
+    parser.add_argument("--output-dir", default=".",
+                        help="Directory to save category counts CSV and Chart.js JSON")
+    parser.add_argument("--min-topic-size", type=int,
+                        default=2, help="Minimum topic size for BERTopic")
 
-# Generate Chart.js configuration
-chart_config = process_documents_for_chart(documents)
+    args = parser.parse_args()
 
-# Save to JSON for use in HTML
-with open("chart_config.json", "w") as f:
-    json.dump(chart_config, f, indent=2)
+    documents = [
+        {"id": 1, "content": "Advances in artificial intelligence are transforming industries."},
+        {"id": 2, "content": "Stock market trends indicate a bullish economy."},
+        {"id": 3, "content": "Machine learning models improve prediction accuracy."},
+        {"id": 4, "content": "New vaccine developed for infectious disease."},
+        {"id": 5, "content": "Neural networks are key to modern AI systems."},
+        {"id": 6, "content": "Investment strategies for a volatile market."}
+    ]
 
-# Print for reference
-print(json.dumps(chart_config, indent=2))
+    chart_config = process_documents_for_chart(
+        documents, args.output_dir, args.min_topic_size)
+    print(json.dumps(chart_config, indent=2))
+
+
+if __name__ == "__main__":
+    main()
