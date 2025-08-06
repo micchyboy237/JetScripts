@@ -8,7 +8,7 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == "__main__":
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/top_isekai_anime_2025/pages/www_ranker_com_list_best_isekai_anime_2025_anna_lindwasser/page.html"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/top_isekai_anime_2025/pages/gamerant_com_new_isekai_anime_2025/page_preprocessed.html"
 
     output_dir = OUTPUT_DIR
 
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     headings = extract_by_heading_hierarchy(html_str)
     save_file(headings, f"{output_dir}/headings.json")
 
-    headings_html_strings = [node.html for node in headings]
+    headings_html_strings = [node.get_html() for node in headings]
     save_file(headings_html_strings,
               f"{output_dir}/headings_html_strings.json")
 
