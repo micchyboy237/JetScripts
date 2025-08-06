@@ -45,14 +45,35 @@ if __name__ == "__main__":
     save_file(text_nodes, f"{output_dir}/text_nodes.json")
 
     # Headings
-    headings = extract_texts_by_hierarchy(html_str, ignore_links=True)
+    headings = extract_by_heading_hierarchy(html_str)
     save_file(headings, f"{output_dir}/headings.json")
 
-    headings2 = derive_by_header_hierarchy(html_str, ignore_links=True)
+    headings2 = extract_texts_by_hierarchy(html_str)
     save_file(headings2, f"{output_dir}/headings2.json")
 
-    headings3 = get_md_header_contents(html_str)
+    headings3 = derive_by_header_hierarchy(html_str, ignore_links=True)
     save_file(headings3, f"{output_dir}/headings3.json")
+
+    headings4 = get_md_header_contents(html_str, ignore_links=True)
+    save_file(headings4, f"{output_dir}/headings4.json")
+
+    header_texts = []
+    for idx, node in enumerate(headings):
+        texts = [
+            f"Document {idx + 1} | Tag ({node.tag}) | Depth ({node.depth})"
+        ]
+        if node.parent_id:
+            texts.append(f"Parent ({node.parent_id})")
+
+        child_texts = [
+            child_node.text or " " for child_node in node.get_children()]
+
+        texts.extend([
+            "Text:",
+            node.text + "\n" + ''.join(child_texts)
+        ])
+        header_texts.append("\n".join(texts))
+    save_file("\n\n---\n\n".join(header_texts), f"{output_dir}/headings.md")
 
     texts = [item.text for item in headings]
 
@@ -165,27 +186,6 @@ if __name__ == "__main__":
     chunked_markdown = "\n\n".join(grouped_markdown_parts)
     save_file(chunked_markdown, f"{output_dir}/chunked_markdown.md")
 
-    # By headings
-    header_elements = extract_by_heading_hierarchy(html_str)
-    save_file(header_elements, f"{output_dir}/headings_elements.json")
-
-    header_texts = []
-    for idx, node in enumerate(header_elements):
-        texts = [
-            f"Document {idx + 1} | Tag ({node.tag}) | Depth ({node.depth})"
-        ]
-        if node.parent_id:
-            texts.append(f"Parent ({node.parent_id})")
-
-        child_texts = [child_node.text or " " for child_node in node.children]
-
-        texts.extend([
-            "Text:",
-            node.text + "\n" + ''.join(child_texts)
-        ])
-        header_texts.append("\n".join(texts))
-    save_file("\n\n---\n\n".join(header_texts), f"{output_dir}/headings.md")
-
     # Get the tree-like structure
     tree_elements = extract_tree_with_text(html_str)
     save_file(tree_elements, f"{output_dir}/tree_elements.json")
@@ -203,34 +203,34 @@ if __name__ == "__main__":
     formatted_html = format_html(html_str)
     save_file(formatted_html, f"{output_dir}/formatted_html.html")
 
-    significant_nodes = get_significant_nodes(tree_elements)
-    save_file(significant_nodes, f"{output_dir}/significant_nodes.json")
+    # significant_nodes = get_significant_nodes(tree_elements)
+    # save_file(significant_nodes, f"{output_dir}/significant_nodes.json")
 
-    for num, significant_node in enumerate(significant_nodes, start=1):
-        sub_output_dir = f"{output_dir}/significant_node_{num}"
-        node_html = significant_node.html
+    # for num, significant_node in enumerate(significant_nodes, start=1):
+    #     sub_output_dir = f"{output_dir}/significant_node_{num}"
+    #     node_html = significant_node.get_html()
 
-        if not node_html:
-            continue
+    #     if not node_html:
+    #         continue
 
-        save_file(node_html, f"{sub_output_dir}/node.html")
+    #     save_file(node_html, f"{sub_output_dir}/node.html")
 
-        node_md_content = convert_html_to_markdown(node_html)
-        save_file(node_md_content, f"{sub_output_dir}/node.md")
+    #     node_md_content = convert_html_to_markdown(node_html)
+    #     save_file(node_md_content, f"{sub_output_dir}/node.md")
 
-        analysis = analyze_markdown(node_md_content)
-        save_file(analysis, f"{sub_output_dir}/analysis.json")
+    #     analysis = analyze_markdown(node_md_content)
+    #     save_file(analysis, f"{sub_output_dir}/analysis.json")
 
-        markdown_tokens = base_parse_markdown(node_md_content)
-        save_file({
-            "count": len(markdown_tokens),
-            "tokens": markdown_tokens,
-        }, f"{sub_output_dir}/markdown_tokens.json")
+    #     markdown_tokens = base_parse_markdown(node_md_content)
+    #     save_file({
+    #         "count": len(markdown_tokens),
+    #         "tokens": markdown_tokens,
+    #     }, f"{sub_output_dir}/markdown_tokens.json")
 
-        header_docs = derive_by_header_hierarchy(node_md_content)
-        save_file({
-            "count": len(header_docs),
-            "documents": header_docs,
-        }, f"{sub_output_dir}/header_docs.json")
+    #     header_docs = derive_by_header_hierarchy(node_md_content)
+    #     save_file({
+    #         "count": len(header_docs),
+    #         "documents": header_docs,
+    #     }, f"{sub_output_dir}/header_docs.json")
 
     print_html(html_str)
