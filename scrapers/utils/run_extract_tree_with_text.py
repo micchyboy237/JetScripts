@@ -25,5 +25,8 @@ if __name__ == "__main__":
     all_nodes = flatten_tree_to_base_nodes(tree_elements)
     save_file(all_nodes, f"{output_dir}/all_nodes.json")
 
-    all_html = [node.html for node in all_nodes]
+    all_links = [node.get_links() for node in all_nodes]
+    save_file(all_links, f"{output_dir}/all_links.json")
+
+    all_html = [node.get_html() for node in all_nodes]
     save_file(all_html, f"{output_dir}/all_html.json")
