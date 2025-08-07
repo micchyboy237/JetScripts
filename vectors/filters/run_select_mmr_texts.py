@@ -1,6 +1,8 @@
 import os
 import shutil
-from jet.file.utils import save_file
+from typing import List
+from jet.code.markdown_types.markdown_parsed_types import HeaderSearchResult
+from jet.file.utils import load_file, save_file
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.vectors.filters.mmr import select_mmr_texts
 from jet.wordnet.n_grams import count_ngrams
@@ -9,20 +11,26 @@ OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
+# Real-world example: Document snippets about machine learning
+texts = [
+    "Machine learning is a method of data analysis that automates model building.",
+    "Deep learning, a subset of machine learning, uses neural networks for complex tasks.",
+    "Supervised learning involves training models on labeled datasets.",
+    "Unsupervised learning finds patterns in unlabeled data using clustering.",
+    "Python is a popular programming language for machine learning development.",
+    "Reinforcement learning optimizes decisions through trial and error.",
+    "Data preprocessing is critical for effective machine learning models."
+]
+
 if __name__ == "__main__":
-    # Real-world example: Document snippets about machine learning
-    texts = [
-        "Machine learning is a method of data analysis that automates model building.",
-        "Deep learning, a subset of machine learning, uses neural networks for complex tasks.",
-        "Supervised learning involves training models on labeled datasets.",
-        "Unsupervised learning finds patterns in unlabeled data using clustering.",
-        "Python is a popular programming language for machine learning development.",
-        "Reinforcement learning optimizes decisions through trial and error.",
-        "Data preprocessing is critical for effective machine learning models."
-    ]
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/top_isekai_anime_2025/search_results.json"
+
+    docs = load_file(docs_file)
+    documents: List[HeaderSearchResult] = docs["results"][:20]
+    texts = [f"{doc["header"]}\n{doc["content"]}" for doc in documents]
 
     # Query for embedding
-    query = "machine learning"
+    query = "Top isekai anime 2025."
 
     # Load SentenceTransformer model
     model = SentenceTransformerRegistry.load_model('all-MiniLM-L6-v2')
@@ -40,7 +48,7 @@ if __name__ == "__main__":
         texts=texts,
         query_embedding=query_embedding,
         lambda_param=0.5,
-        max_texts=4,
+        max_texts=10,
         ids=ids
     )
 

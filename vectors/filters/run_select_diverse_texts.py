@@ -9,17 +9,18 @@ OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
+# Real-world example: Document snippets about machine learning
+texts = [
+    "Machine learning is a method of data analysis that automates model building.",
+    "Deep learning, a subset of machine learning, uses neural networks for complex tasks.",
+    "Supervised learning involves training models on labeled datasets.",
+    "Unsupervised learning finds patterns in unlabeled data using clustering.",
+    "Python is a popular programming language for machine learning development.",
+    "Reinforcement learning optimizes decisions through trial and error.",
+    "Data preprocessing is critical for effective machine learning models."
+]
+
 if __name__ == "__main__":
-    # Real-world example: Document snippets about machine learning
-    texts = [
-        "Machine learning is a method of data analysis that automates model building.",
-        "Deep learning, a subset of machine learning, uses neural networks for complex tasks.",
-        "Supervised learning involves training models on labeled datasets.",
-        "Unsupervised learning finds patterns in unlabeled data using clustering.",
-        "Python is a popular programming language for machine learning development.",
-        "Reinforcement learning optimizes decisions through trial and error.",
-        "Data preprocessing is critical for effective machine learning models."
-    ]
 
     # Query for embedding
     query = "machine learning"
