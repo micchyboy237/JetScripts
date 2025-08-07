@@ -553,7 +553,7 @@ async def main(query):
     ]
     result_ids = [result["id"] for result in search_results]
     grouped_similar_texts = group_similar_texts(
-        result_texts, model_name=embed_model, ids=result_ids, threshold=0.8)
+        result_texts, model_name=embed_model, ids=result_ids, threshold=0.7)
     # Map grouped_similar_texts (which contains lists of result_ids) back to the full search_results dicts
     id_to_result = {
         result["id"]: f"{result['header']}\n{result['content']}" for result in search_results}
