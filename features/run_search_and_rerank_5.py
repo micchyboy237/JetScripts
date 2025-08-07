@@ -732,7 +732,7 @@ async def main(query):
         embeddings=embeddings,
         texts=texts,
         query_embedding=query_embedding,
-        lambda_param=0.5,
+        lambda_param=0.7,
         max_texts=20,
         ids=ids
     )
