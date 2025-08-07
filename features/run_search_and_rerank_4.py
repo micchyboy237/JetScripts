@@ -11,15 +11,15 @@ from jet.code.markdown_utils._converters import convert_html_to_markdown
 from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
 from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_by_header_hierarchy, parse_markdown
 from jet.code.markdown_utils._preprocessors import clean_markdown_links, extract_markdown_links, link_to_text_ratio
+from jet.data.utils import generate_unique_id
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
 from jet.logger.config import colorize_log
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.tokenizer.base import get_tokenizer_fn, count_tokens
-from jet.scrapers.header_hierarchy import HtmlHeaderDoc, extract_header_hierarchy
 from jet.scrapers.hrequests_utils import scrape_urls
-from jet.scrapers.utils import scrape_links, search_data
+from jet.scrapers.utils import TreeNode, extract_by_heading_hierarchy, scrape_links, search_data
 from jet.vectors.semantic_search.header_vector_search import HeaderSearchResult, search_headers
 from jet.wordnet.analyzers.text_analysis import analyze_readability
 
@@ -275,7 +275,7 @@ async def main(query):
     urls = [r["url"] for r in search_engine_results][:urls_limit]
 
     html_list = []
-    header_docs: List[HtmlHeaderDoc] = []
+    header_docs: List[HeaderDoc] = []
     search_results: List[HeaderSearchResult] = []
 
     headers_total_tokens = 0
@@ -324,29 +324,30 @@ async def main(query):
             save_file(doc_markdown_tokens,
                       f"{sub_output_dir}/markdown_tokens.json")
 
-            html_header_docs: List[HtmlHeaderDoc] = await asyncio.to_thread(
-                extract_header_hierarchy,
-                html,
-                excludes=["nav", "footer", "script", "style"],
-                timeout_ms=1000
-            )
-            save_file(html_header_docs,
-                      f"{sub_output_dir}/html_header_docs.json")
+            nodes: List[TreeNode] = await asyncio.to_thread(extract_by_heading_hierarchy, html)
+            save_file(nodes, f"{sub_output_dir}/nodes.json")
 
-            original_docs: List[HeaderDoc] = [{
-                "id": doc["id"],
-                "doc_index": doc["doc_index"],
-                "header": doc["header"],
-                "content": doc["content"],
-                "level": doc["level"],
-                "parent_headers": doc["parent_headers"],
-                "parent_header": doc["parent_header"],
-                "parent_level": doc["parent_level"],
-                "source": url,
-                "tokens": parse_markdown(
-                    convert_html_to_markdown(doc["html"]), merge_headers=False, merge_contents=False, ignore_links=False),
-            } for doc in html_header_docs]
+            original_docs: List[HeaderDoc] = [
+                {
+                    "id": generate_unique_id(),
+                    "doc_index": nodes.index(node),
+                    "header": node.header,
+                    "content": node.content,
+                    "level": node.level,
+                    "parent_headers": node.parent_headers,
+                    "parent_header": node.parent_header,
+                    "parent_level": node.parent_level,
+                    "source": url,
+                    "tokens": base_parse_markdown(node.get_html()),
+                }
+                for node in nodes
+                if node.header and node.content
+            ]
+
             save_file(original_docs, f"{sub_output_dir}/docs.json")
+
+            for doc in original_docs:
+                doc["source"] = url
 
             sub_results = list(
                 search_headers(
