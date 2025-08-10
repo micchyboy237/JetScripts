@@ -106,8 +106,8 @@ def main():
     )
     parser.add_argument("chunk_dir", type=str,
                         help="Directory containing audio chunk files (e.g., generated/run_stream_mic)")
-    parser.add_argument("output_dir", type=str, default=OUTPUT_DIR,
-                        help="Directory to save merged audio and transcription")
+    parser.add_argument("--output-dir", type=str, default=OUTPUT_DIR,
+                        help=f"Directory to save merged audio and transcription (default: {OUTPUT_DIR})")
     parser.add_argument("--overlap-duration", type=float, default=1.0,
                         help="Overlap duration between chunks in seconds (default: 1.0)")
     parser.add_argument("--model-size", type=str, default="small",
