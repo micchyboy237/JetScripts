@@ -104,6 +104,8 @@ def main():
     parser = argparse.ArgumentParser(
         description="Merge and transcribe audio chunks from stream_mic.py."
     )
+    parser.add_argument("chunk_dir", type=str,
+                        help="Directory containing audio chunk files (e.g., generated/run_stream_mic)")
     parser.add_argument("output_dir", type=str, default=OUTPUT_DIR,
                         help="Directory to save merged audio and transcription")
     parser.add_argument("--overlap-duration", type=float, default=1.0,
@@ -113,7 +115,7 @@ def main():
     args = parser.parse_args()
 
     # Find all chunk files with consistent timestamp
-    chunk_dir = Path(f"{OUTPUT_DIR}/chunks")
+    chunk_dir = Path(args.chunk_dir)
     chunk_files = sorted([str(f)
                          for f in chunk_dir.glob("stream_chunk_*.wav")])
     if not chunk_files:
