@@ -138,8 +138,9 @@ async def main():
         else:
             logger.debug(f"Skipped saving chunk {chunk_index} due to silence")
             chunk_index += 1
+
     if all_chunks:
-        original_filename = f"{OUTPUT_DIR}/original_stream_{chunk_index:04d}.wav"
+        original_filename = f"{OUTPUT_DIR}/original_stream.wav"
         consolidated_chunks = [all_chunks[0]] + \
             [chunk[overlap_samples:] for chunk in all_chunks[1:]]
         original_audio = np.concatenate(consolidated_chunks, axis=0)

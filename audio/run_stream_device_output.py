@@ -45,6 +45,7 @@ async def main(device: Optional[Literal[tuple(get_available_input_devices())]] =
         model_size="small", sample_rate=None)
     prev_chunk_filename: Optional[str] = None
     accumulated_transcription = ""
+
     for chunk in stream_non_silent_audio(
         silence_threshold=silence_threshold,
         chunk_duration=0.5,
@@ -57,10 +58,13 @@ async def main(device: Optional[Literal[tuple(get_available_input_devices())]] =
         expected_min_duration = min_chunk_duration + overlap_duration
         if chunk_duration < expected_min_duration:
             logger.warning(
-                f"Chunk {chunk_index} duration {chunk_duration:.2f}s is less than minimum {expected_min_duration:.2f}s")
+                f"Chunk duration {chunk_duration:.2f}s is less than minimum {expected_min_duration:.2f}s, skipping")
+            continue  # Skip short chunks without incrementing chunk_index
         if chunk.shape[0] % int(SAMPLE_RATE * 0.5) != 0 and chunk.shape[0] < int(SAMPLE_RATE * expected_min_duration):
             logger.warning(
-                f"Chunk {chunk_index} has non-standard size: {chunk.shape[0]} samples")
+                f"Chunk has non-standard size: {chunk.shape[0]} samples, skipping")
+            continue  # Skip non-standard chunks without incrementing chunk_index
+
         all_chunks.append(chunk)
         chunk_filename, metadata = save_chunk(
             chunk, chunk_index, cumulative_duration, silence_threshold, overlap_samples, OUTPUT_DIR)
@@ -76,11 +80,21 @@ async def main(device: Optional[Literal[tuple(get_available_input_devices())]] =
                 end_overlap_duration=overlap_duration,
                 output_dir=f"{OUTPUT_DIR}/transcriptions"
             )
+            # Ensure transcription file is saved even if empty
             metadata["transcription"] = non_overlap_transcription if non_overlap_transcription else ""
+            os.makedirs(f"{OUTPUT_DIR}/transcriptions", exist_ok=True)
+            output_filename = f"transcription_{chunk_index:05d}.txt"
+            output_path = os.path.join(
+                f"{OUTPUT_DIR}/transcriptions", output_filename)
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(metadata["transcription"])
+            logger.info(f"Transcription saved to {output_path} (empty or not)")
+
             if non_overlap_transcription:
                 accumulated_transcription = (
                     accumulated_transcription + " " + non_overlap_transcription).strip()
             metadata["accumulated_transcription"] = accumulated_transcription
+
             if chunk_index > 0 and start_overlap_transcription and chunks_metadata:
                 prev_metadata = chunks_metadata[-1]
                 prev_end_overlap_samples = prev_metadata["end_overlap_samples"]
@@ -137,12 +151,14 @@ async def main(device: Optional[Literal[tuple(get_available_input_devices())]] =
                   f"transcription: {non_overlap_transcription if non_overlap_transcription else 'None'}, "
                   f"accumulated: {accumulated_transcription}")
             prev_chunk_filename = chunk_filename
-            chunk_index += 1
+            chunk_index += 1  # Increment only for saved chunks
         else:
-            logger.debug(f"Skipped saving chunk {chunk_index} due to silence")
-            chunk_index += 1
+            logger.debug(
+                f"Chunk {chunk_index} not saved due to silence, skipping transcription")
+            continue  # Skip transcription and index increment for discarded chunks
+
     if all_chunks:
-        original_filename = f"{OUTPUT_DIR}/original_stream_{chunk_index:04d}.wav"
+        original_filename = f"{OUTPUT_DIR}/original_stream.wav"
         consolidated_chunks = [all_chunks[0]] + \
             [chunk[overlap_samples:] for chunk in all_chunks[1:]]
         original_audio = np.concatenate(consolidated_chunks, axis=0)
