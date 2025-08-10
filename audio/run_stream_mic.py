@@ -1,10 +1,13 @@
+import asyncio
 import os
 import json
 from datetime import datetime
 import shutil
+import sys
 import numpy as np
 from typing import List, Dict, Tuple, Optional
 from pathlib import Path
+from jet.audio.audio_file_transcriber import AudioFileTranscriber
 from jet.audio.record_mic import save_wav_file, SAMPLE_RATE, detect_silence, calibrate_silence_threshold
 from jet.audio.stream_mic import save_chunk, stream_non_silent_audio
 from jet.logger import logger
@@ -16,7 +19,29 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 
-def main():
+async def transcribe_file(audio_file: str, output_dir: str):
+    transcriber = AudioFileTranscriber(
+        model_size="small", sample_rate=None)  # Explicitly set to None
+    logger.debug(f"Starting transcription for file: {audio_file}")
+    try:
+        result = await transcriber.transcribe_from_file(
+            audio_file, output_dir=output_dir)
+        logger.debug(f"Transcription result: {result}")
+        if result:
+            print("Transcription:", result)
+        else:
+            print("No audio captured or no transcription result.")
+            logger.debug("No transcription result returned.")
+    except KeyboardInterrupt:
+        print("\nStopped by user.")
+        logger.debug("Transcription stopped by user.")
+    except Exception as e:
+        print(f"Error during transcription: {e}", file=sys.stderr)
+        logger.error(f"Transcription failed: {e}")
+        sys.exit(1)
+
+
+async def main():
     """
     Stream non-silent audio from microphone, save trimmed non-silent chunks with overlaps to individual WAV files,
     and save a single original WAV file containing all non-silent chunks with overlaps consolidated.
@@ -100,6 +125,8 @@ def main():
         logger.info(
             f"Saved original stream to {original_filename}, duration: {original_duration:.2f}s")
 
+        await transcribe_file(original_filename, f"{OUTPUT_DIR}/transcriptions")
+
     metadata_file = os.path.join(OUTPUT_DIR, "chunks_info.json")
     with open(metadata_file, 'w') as f:
         json.dump({
@@ -119,4 +146,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
