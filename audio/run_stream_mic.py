@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+import shutil
 import numpy as np
 from typing import List
 from pathlib import Path
@@ -11,6 +12,7 @@ OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(
         os.path.basename(__file__))[0]
 )
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 
 def save_chunk(chunk: np.ndarray, chunk_index: int, timestamp: str) -> str:
