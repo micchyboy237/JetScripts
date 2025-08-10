@@ -29,7 +29,8 @@ def save_chunk(chunk: np.ndarray, chunk_index: int, timestamp: str, cumulative_d
         "duration_s": round(chunk_duration, 3),
         "timestamp": timestamp,
         "sample_count": len(chunk),
-        "start_time_s": round(cumulative_duration, 3)
+        "start_time_s": round(cumulative_duration, 3),
+        "end_time_s": round(cumulative_duration + chunk_duration, 3)
     }
     return chunk_filename, metadata
 
