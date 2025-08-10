@@ -1,114 +1,129 @@
-import logging
-from typing import List, Tuple
-from bs4 import BeautifulSoup
-import requests
-import nltk
-from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
-from nltk.stem import PorterStemmer
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.svm import SVC
-from sklearn.pipeline import Pipeline
+# src/recorder.py
+from typing import Optional
+import sounddevice as sd
+import soundfile as sf
 import numpy as np
-from typing import TypedDict
+from pathlib import Path
 
-# Download required NLTK data
-nltk.download('punkt', quiet=True)
-nltk.download('stopwords', quiet=True)
+def record_to_wav(
+    out_path: str,
+    duration_seconds: float,
+    samplerate: int = 16000,
+    channels: int = 1,
+) -> str:
+    """
+    Record audio from default microphone and save to a WAV file (16-bit PCM).
+    Returns the path to the saved file.
+    """
+    out = Path(out_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
 
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-
-class Document(TypedDict):
-    text: str
-    label: str
-
-
-def scrape_web_page(url: str) -> str:
-    """Scrape the main content from a web page."""
-    try:
-        response = requests.get(url, timeout=10)
-        if response.status_code != 200:
-            logger.error(
-                f"Failed to retrieve {url}. Status code: {response.status_code}")
-            return ""
-
-        soup = BeautifulSoup(response.text, 'html.parser')
-        # Remove common noise elements
-        for element in soup(['script', 'style', 'nav', 'footer', 'header']):
-            element.decompose()
-
-        text = soup.get_text(separator=' ', strip=True)
-        logger.info(f"Successfully scraped content from {url}")
-        return text
-    except Exception as e:
-        logger.error(f"Error scraping {url}: {str(e)}")
-        return ""
+    frames = int(duration_seconds * samplerate)
+    # sounddevice returns float32 in range [-1,1]
+    recording: np.ndarray = sd.rec(frames, samplerate=samplerate, channels=channels, dtype="float32")
+    sd.wait()
+    # Convert float32 [-1,1] to 16-bit PCM when writing via soundfile (it handles float to PCM)
+    sf.write(str(out), recording, samplerate, subtype="PCM_16")
+    return str(out)
 
 
-def preprocess_text(text: str) -> str:
-    """Preprocess text by tokenizing, removing stopwords, and stemming."""
-    tokens = word_tokenize(text.lower())
-    stop_words = set(stopwords.words('english'))
-    tokens = [token for token in tokens if token.isalnum()
-              and token not in stop_words]
+# src/transcriber.py
+from typing import Protocol
+from pathlib import Path
 
-    stemmer = PorterStemmer()
-    stemmed = [stemmer.stem(token) for token in tokens]
-    return ' '.join(stemmed)
+class Transcriber(Protocol):
+    def transcribe(self, wav_path: str) -> str:
+        """Transcribe audio from a wav file and return the text."""
+        ...
+
+# -------- Whisper implementation (optional, higher quality) ----------
+try:
+    import whisper  # type: ignore
+except Exception:
+    whisper = None  # type: ignore
+
+class WhisperTranscriber:
+    def __init__(self, model_name: str = "base"):
+        if whisper is None:
+            raise RuntimeError("whisper package is not installed. Install via `pip install -U openai-whisper` or from GitHub.")
+        self.model_name = model_name
+        self._model = None
+
+    def _ensure_model(self):
+        if self._model is None:
+            self._model = whisper.load_model(self.model_name)
+
+    def transcribe(self, wav_path: str) -> str:
+        self._ensure_model()
+        path = str(Path(wav_path))
+        # whisper returns dict with 'text'
+        result = self._model.transcribe(path)
+        return result.get("text", "").strip()
+
+# ---------- Vosk implementation (offline) ----------
+try:
+    from vosk import Model, KaldiRecognizer  # type: ignore
+    import json
+    import wave
+except Exception:
+    Model = None  # type: ignore
+
+class VoskTranscriber:
+    def __init__(self, model_path: str):
+        if Model is None:
+            raise RuntimeError("vosk not installed. pip install vosk and download a model.")
+        self.model = Model(model_path)
+
+    def transcribe(self, wav_path: str) -> str:
+        # expects WAV PCM mono
+        wf = wave.open(wav_path, "rb")
+        if wf.getnchannels() != 1:
+            raise ValueError("VoskTranscriber expects mono WAV input.")
+        rec = KaldiRecognizer(self.model, wf.getframerate())
+        results = []
+        while True:
+            data = wf.readframes(4000)
+            if len(data) == 0:
+                break
+            if rec.AcceptWaveform(data):
+                j = json.loads(rec.Result())
+                results.append(j.get("text", ""))
+        # final
+        final = json.loads(rec.FinalResult())
+        results.append(final.get("text", ""))
+        wf.close()
+        return " ".join(part for part in results if part).strip()
 
 
-def prepare_dataset() -> List[Document]:
-    """Create a synthetic dataset for demonstration."""
-    # In a real scenario, this would be loaded from a file or database
-    dataset = [
-        {"text": "This is a legitimate article about machine learning", "label": "normal"},
-        {"text": "Buy cheap products now! Click here for discounts", "label": "noise"},
-        {"text": "Deep learning models for text classification", "label": "normal"},
-        {"text": "Free offers! Visit our site for deals", "label": "noise"},
-    ]
-    return [
-        {"text": preprocess_text(doc["text"]), "label": doc["label"]}
-        for doc in dataset
-    ]
+# examples/run_transcription.py
+from pathlib import Path
+# from src.recorder import record_to_wav
+# from src.transcriber import WhisperTranscriber, VoskTranscriber
 
+OUT = Path("recordings")
+OUT.mkdir(exist_ok=True)
 
-def train_classifier(documents: List[Document]) -> Pipeline:
-    """Train an SVM classifier for noise detection."""
-    texts = [doc["text"] for doc in documents]
-    labels = [doc["label"] for doc in documents]
+def main_whisper():
+    wav = OUT / "sample_whisper.wav"
+    print("Recording 5 seconds...")
+    record_to_wav(str(wav), duration_seconds=5.0)
+    print("Transcribing with Whisper...")
+    t = WhisperTranscriber(model_name="small")  # choose model
+    text = t.transcribe(str(wav))
+    print("Transcription:", text)
 
-    pipeline = Pipeline([
-        ('tfidf', TfidfVectorizer(max_features=1000)),
-        ('svm', SVC(kernel='linear', probability=True))
-    ])
+def main_vosk(model_path: str):
+    wav = OUT / "sample_vosk.wav"
+    print("Recording 5 seconds...")
+    record_to_wav(str(wav), duration_seconds=5.0)
+    print("Transcribing with Vosk...")
+    t = VoskTranscriber(model_path)
+    text = t.transcribe(str(wav))
+    print("Transcription:", text)
 
-    pipeline.fit(texts, labels)
-    logger.info("Classifier trained successfully")
-    return pipeline
-
-
-def classify_document(classifier: Pipeline, text: str) -> str:
-    """Classify a document as noise or normal."""
-    processed_text = preprocess_text(text)
-    prediction = classifier.predict([processed_text])[0]
-    return prediction
-
-
-# Example usage
 if __name__ == "__main__":
-    # Prepare dataset
-    dataset = prepare_dataset()
-
-    # Train classifier
-    classifier = train_classifier(dataset)
-
-    # Example: Scrape and classify a web page
-    test_url = "http://quotes.toscrape.com"  # Example URL
-    scraped_text = scrape_web_page(test_url)
-    if scraped_text:
-        result = classify_document(classifier, scraped_text)
-        logger.info(f"Classification result for {test_url}: {result}")
+    # choose which backend to run
+    # main_whisper()
+    # or
+    # main_vosk("/path/to/vosk-model-small-en-us")
+    pass
