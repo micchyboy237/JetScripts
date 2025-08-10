@@ -6,16 +6,20 @@ from jet.audio.audio_file_transcriber import AudioFileTranscriber
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Transcribe an audio file using AudioFileTranscriber.")
+        description="Transcribe an audio file using AudioFileTranscriber."
+    )
     parser.add_argument("audio_file", type=str,
                         help="Path to the audio file to transcribe (e.g., WAV, MP3)")
+    parser.add_argument("output_dir", type=str, nargs='?', default=None,
+                        help="Optional directory to save transcription text file")
     args = parser.parse_args()
 
     transcriber = AudioFileTranscriber(model_size="small")
     print(f"Transcribing file: {args.audio_file}")
     try:
         result = asyncio.get_event_loop().run_until_complete(
-            transcriber.transcribe_from_file(args.audio_file)
+            transcriber.transcribe_from_file(
+                args.audio_file, output_dir=args.output_dir)
         )
         if result:
             print("Transcription:", result)
