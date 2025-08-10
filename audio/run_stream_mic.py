@@ -35,7 +35,7 @@ def main():
     saved_files: List[str] = []
     total_samples = 0
     min_chunk_duration = 1.0
-    overlap_duration = 0.2
+    overlap_duration = 1.0
 
     for chunk in stream_non_silent_audio(
         silence_threshold=None,
