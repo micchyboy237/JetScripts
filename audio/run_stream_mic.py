@@ -21,7 +21,7 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 async def transcribe_file(audio_file: str, output_dir: str):
     transcriber = AudioFileTranscriber(
-        model_size="small", sample_rate=None)  # Explicitly set to None
+        model_size="small", sample_rate=None)
     logger.debug(f"Starting transcription for file: {audio_file}")
     try:
         result = await transcriber.transcribe_from_file(
@@ -32,20 +32,22 @@ async def transcribe_file(audio_file: str, output_dir: str):
         else:
             print("No audio captured or no transcription result.")
             logger.debug("No transcription result returned.")
+        return result
     except KeyboardInterrupt:
         print("\nStopped by user.")
         logger.debug("Transcription stopped by user.")
+        return None
     except Exception as e:
         print(f"Error during transcription: {e}", file=sys.stderr)
         logger.error(f"Transcription failed: {e}")
-        sys.exit(1)
+        return None
 
 
 async def main():
     """
     Stream non-silent audio from microphone, save trimmed non-silent chunks with overlaps to individual WAV files,
-    and save a single original WAV file containing all non-silent chunks with overlaps consolidated.
-    Save metadata to chunks_info.json with start_time_s and end_time_s rounded to 3 decimal places.
+    transcribe each chunk, and save a single original WAV file containing all non-silent chunks with overlaps consolidated.
+    Save metadata to chunks_info.json with start_time_s, end_time_s, and transcription, rounded to 3 decimal places.
     """
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -57,10 +59,8 @@ async def main():
     min_chunk_duration = 1.0
     overlap_duration = 1.0
     overlap_samples = int(SAMPLE_RATE * overlap_duration)
-    all_chunks = []  # Accumulate all non-silent chunks for original WAV
-    # Match threshold used in stream_non_silent_audio
+    all_chunks = []
     silence_threshold = calibrate_silence_threshold()
-
     for chunk in stream_non_silent_audio(
         silence_threshold=silence_threshold,
         chunk_duration=0.5,
@@ -76,31 +76,28 @@ async def main():
         if chunk.shape[0] % int(SAMPLE_RATE * 0.5) != 0 and chunk.shape[0] < int(SAMPLE_RATE * expected_min_duration):
             logger.warning(
                 f"Chunk {chunk_index} has non-standard size: {chunk.shape[0]} samples")
-
-        # Always append chunk for original WAV to preserve full non-silent stream
         all_chunks.append(chunk)
-
-        # Save only non-silent, trimmed chunks as individual files, including overlaps
         chunk_filename, metadata = save_chunk(
             chunk, chunk_index, timestamp, cumulative_duration, silence_threshold, overlap_samples, OUTPUT_DIR)
         if chunk_filename and metadata:
             saved_files.append(chunk_filename)
+            # Transcribe the chunk and add transcription to metadata
+            transcription = await transcribe_file(chunk_filename, f"{OUTPUT_DIR}/transcriptions")
+            metadata["transcription"] = transcription if transcription else ""
             chunks_metadata.append(metadata)
-            # Adjust for overlap
             total_samples += metadata["sample_count"] - \
                 (overlap_samples if chunk_index > 0 else 0)
             cumulative_duration += metadata["duration_s"] - \
                 (overlap_duration if chunk_index > 0 else 0)
             print(f"Saved chunk {chunk_index} to {chunk_filename}, samples: {metadata['sample_count']}, "
-                  f"duration: {metadata['duration_s']:.2f}s, overlap: {overlap_duration:.2f}s")
+                  f"duration: {metadata['duration_s']:.2f}s, overlap: {overlap_duration:.2f}s, "
+                  f"transcription: {transcription if transcription else 'None'}")
             chunk_index += 1
         else:
             logger.debug(f"Skipped saving chunk {chunk_index} due to silence")
             chunk_index += 1
-
     if not saved_files:
         print("No non-silent audio chunks captured after trimming.")
-        # Still save original WAV if any chunks were yielded
         if all_chunks:
             original_filename = f"{OUTPUT_DIR}/original_stream_{timestamp}.wav"
             consolidated_chunks = [
@@ -115,7 +112,6 @@ async def main():
             original_duration = 0.0
             logger.warning("No chunks to save for original stream WAV")
     else:
-        # Save original WAV file with overlaps consolidated
         original_filename = f"{OUTPUT_DIR}/original_stream_{timestamp}.wav"
         consolidated_chunks = [all_chunks[0]] + \
             [chunk[overlap_samples:] for chunk in all_chunks[1:]]
@@ -124,9 +120,7 @@ async def main():
         original_duration = len(original_audio) / SAMPLE_RATE
         logger.info(
             f"Saved original stream to {original_filename}, duration: {original_duration:.2f}s")
-
         await transcribe_file(original_filename, f"{OUTPUT_DIR}/transcriptions")
-
     metadata_file = os.path.join(OUTPUT_DIR, "chunks_info.json")
     with open(metadata_file, 'w') as f:
         json.dump({
@@ -143,7 +137,6 @@ async def main():
     logger.info(f"Saved metadata to {metadata_file}")
     print(f"Streamed audio saved to {len(saved_files)} chunk files and original stream in {OUTPUT_DIR}, "
           f"total duration: {cumulative_duration:.2f}s (without overlaps)")
-
 
 if __name__ == "__main__":
     asyncio.run(main())
