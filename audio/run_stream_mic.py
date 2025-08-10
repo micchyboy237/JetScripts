@@ -5,7 +5,6 @@ import soundfile as sf
 import shutil
 import sys
 import numpy as np
-
 from datetime import datetime
 from typing import List, Dict, Tuple, Optional
 from pathlib import Path
@@ -25,10 +24,9 @@ async def main():
     """
     Stream non-silent audio from microphone, save trimmed non-silent chunks with overlaps to individual WAV files,
     transcribe each chunk with context, update previous transcriptions for consistency, and save a single original WAV file.
-    Save metadata to chunks_info.json with start_time_s, end_time_s, and transcription, rounded to 3 decimal places.
+    Save metadata to chunks_info.json with start_time_s, end_time_s, transcription, and accumulated_transcription, rounded to 3 decimal places.
     """
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     chunk_index = 0
     saved_files: List[str] = []
     chunks_metadata: List[Dict] = []
@@ -40,10 +38,8 @@ async def main():
     all_chunks = []
     silence_threshold = calibrate_silence_threshold()
     transcriber = AudioFileTranscriber(model_size="small", sample_rate=None)
-
-    # Track previous chunk for context
     prev_chunk_filename: Optional[str] = None
-
+    accumulated_transcription = ""
     for chunk in stream_non_silent_audio(
         silence_threshold=silence_threshold,
         chunk_duration=0.5,
@@ -61,10 +57,9 @@ async def main():
                 f"Chunk {chunk_index} has non-standard size: {chunk.shape[0]} samples")
         all_chunks.append(chunk)
         chunk_filename, metadata = save_chunk(
-            chunk, chunk_index, timestamp, cumulative_duration, silence_threshold, overlap_samples, OUTPUT_DIR)
+            chunk, chunk_index, cumulative_duration, silence_threshold, overlap_samples, OUTPUT_DIR)
         if chunk_filename and metadata:
             saved_files.append(chunk_filename)
-            # Transcribe with context from previous chunk (and next chunk if available)
             next_chunk_filename = saved_files[chunk_index +
                                               1] if chunk_index + 1 < len(saved_files) else None
             non_overlap_transcription, start_overlap_transcription, end_overlap_transcription = await transcriber.transcribe_with_context(
@@ -76,21 +71,21 @@ async def main():
                 output_dir=f"{OUTPUT_DIR}/transcriptions"
             )
             metadata["transcription"] = non_overlap_transcription if non_overlap_transcription else ""
-
-            # Update previous chunk's transcription if start overlap differs
+            if non_overlap_transcription:
+                accumulated_transcription = (
+                    accumulated_transcription + " " + non_overlap_transcription).strip()
+            metadata["accumulated_transcription"] = accumulated_transcription
             if chunk_index > 0 and start_overlap_transcription and chunks_metadata:
                 prev_metadata = chunks_metadata[-1]
                 prev_end_overlap_samples = prev_metadata["end_overlap_samples"]
                 prev_end_overlap_duration = prev_end_overlap_samples / SAMPLE_RATE
                 prev_transcription_file = os.path.join(
                     OUTPUT_DIR, f"transcriptions/transcription_{chunk_index - 1:05d}.txt")
-
-                # Re-transcribe previous chunk's end overlap for comparison
                 prev_audio, prev_sr = sf.read(prev_metadata["filename"])
-                prev_end_overlap = prev_audio[-prev_end_overlap_samples:
+                prev_end_overlap = prev_audio[- prev_end_overlap_samples:
                                               ] if prev_end_overlap_samples > 0 else np.array([])
                 if len(prev_end_overlap) > 0:
-                    temp_filename = f"{OUTPUT_DIR}/temp_prev_end_overlap_{chunk_index - 1}.wav"
+                    temp_filename = f"{OUTPUT_DIR}/temp_prev_end_overlap_{chunk_index - 1:04d}.wav"
                     save_wav_file(temp_filename, prev_end_overlap)
                     prev_end_transcription, _, _ = await transcriber.transcribe_with_context(
                         temp_filename,
@@ -101,7 +96,6 @@ async def main():
                     if prev_end_transcription and prev_end_transcription != start_overlap_transcription:
                         logger.info(
                             f"Updating previous chunk {chunk_index - 1} transcription due to overlap mismatch")
-                        # Update previous chunk's transcription to align with current chunk's start overlap
                         prev_non_overlap_samples = prev_metadata["sample_count"] - \
                             prev_end_overlap_samples
                         prev_non_overlap_duration = prev_non_overlap_samples / SAMPLE_RATE
@@ -122,11 +116,11 @@ async def main():
                         updated_prev_transcription = " ".join(
                             prev_non_overlap_text).strip() + " " + start_overlap_transcription
                         prev_metadata["transcription"] = updated_prev_transcription
+                        prev_metadata["accumulated_transcription"] = accumulated_transcription
                         with open(prev_transcription_file, "w", encoding="utf-8") as f:
                             f.write(updated_prev_transcription)
                         logger.debug(
                             f"Updated transcription for chunk {chunk_index - 1}: {updated_prev_transcription}")
-
             chunks_metadata.append(metadata)
             total_samples += metadata["sample_count"] - \
                 (overlap_samples if chunk_index > 0 else 0)
@@ -134,16 +128,15 @@ async def main():
                 (overlap_duration if chunk_index > 0 else 0)
             print(f"Saved chunk {chunk_index} to {chunk_filename}, samples: {metadata['sample_count']}, "
                   f"duration: {metadata['duration_s']:.2f}s, overlap: {overlap_duration:.2f}s, "
-                  f"transcription: {non_overlap_transcription if non_overlap_transcription else 'None'}")
+                  f"transcription: {non_overlap_transcription if non_overlap_transcription else 'None'}, "
+                  f"accumulated: {accumulated_transcription}")
             prev_chunk_filename = chunk_filename
             chunk_index += 1
         else:
             logger.debug(f"Skipped saving chunk {chunk_index} due to silence")
             chunk_index += 1
-
-    # Save consolidated original audio
     if all_chunks:
-        original_filename = f"{OUTPUT_DIR}/original_stream_{timestamp}.wav"
+        original_filename = f"{OUTPUT_DIR}/original_stream_{chunk_index:04d}.wav"
         consolidated_chunks = [all_chunks[0]] + \
             [chunk[overlap_samples:] for chunk in all_chunks[1:]]
         original_audio = np.concatenate(consolidated_chunks, axis=0)
@@ -151,8 +144,6 @@ async def main():
         original_duration = len(original_audio) / SAMPLE_RATE
         logger.info(
             f"Saved original stream to {original_filename}, duration: {original_duration:.2f}s")
-
-        # Transcribe original audio and verify consistency
         original_transcription = await transcriber.transcribe_from_file(original_filename, f"{OUTPUT_DIR}/transcriptions")
         concatenated_transcription = " ".join(
             meta["transcription"] for meta in chunks_metadata if meta["transcription"]
@@ -161,17 +152,13 @@ async def main():
             logger.warning(
                 f"Original transcription differs from concatenated chunk transcriptions. "
                 f"Original: '{original_transcription}', Concatenated: '{concatenated_transcription}'")
-            # Optionally, re-transcribe chunks to align with original transcription (not implemented here for simplicity)
     else:
         original_filename = ""
         original_duration = 0.0
         logger.warning("No chunks to save for original stream WAV")
-
-    # Save metadata
     metadata_file = os.path.join(OUTPUT_DIR, "chunks_info.json")
     with open(metadata_file, 'w') as f:
         json.dump({
-            "timestamp": timestamp,
             "total_chunks": len(saved_files),
             "total_duration_s": round(total_samples / SAMPLE_RATE, 3),
             "original_wav": {
@@ -183,7 +170,8 @@ async def main():
         }, f, indent=2)
     logger.info(f"Saved metadata to {metadata_file}")
     print(f"Streamed audio saved to {len(saved_files)} chunk files and original stream in {OUTPUT_DIR}, "
-          f"total duration: {cumulative_duration:.2f}s (without overlaps)")
+          f"total duration: {cumulative_duration:.2f}s (without overlaps), "
+          f"final accumulated transcription: {accumulated_transcription}")
 
 if __name__ == "__main__":
     asyncio.run(main())
