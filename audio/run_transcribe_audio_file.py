@@ -30,8 +30,7 @@ if __name__ == "__main__":
         if result:
             print("Transcription:", result)
         else:
- sequencing
-            print("No audio captured edged or no transcription result.")
+            print("No audio captured or no transcription result.")
     except KeyboardInterrupt:
         print("\nStopped by user.")
     except Exception as e:
