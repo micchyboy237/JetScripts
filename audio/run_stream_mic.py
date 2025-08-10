@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 from typing import List
 from pathlib import Path
-from jet.audio.record_mic import SAMPLE_RATE, save_wav_file
+from jet.audio.record_mic import save_wav_file, SAMPLE_RATE
 from jet.audio.stream_mic import stream_non_silent_audio
 from jet.logger import logger
 
@@ -17,8 +17,9 @@ def save_chunk(chunk: np.ndarray, chunk_index: int, timestamp: str) -> str:
     """Save an individual audio chunk to a WAV file."""
     chunk_filename = f"{OUTPUT_DIR}/stream_chunk_{timestamp}_{chunk_index:04d}.wav"
     save_wav_file(chunk_filename, chunk)
+    chunk_duration = len(chunk) / SAMPLE_RATE
     logger.debug(
-        f"Saved chunk {chunk_index} to {chunk_filename}, size: {len(chunk)} samples")
+        f"Saved chunk {chunk_index} to {chunk_filename}, size: {len(chunk)} samples, duration: {chunk_duration:.2f}s")
     return chunk_filename
 
 
@@ -31,20 +32,26 @@ def main():
     chunk_index = 0
     saved_files: List[str] = []
     total_samples = 0
+    min_chunk_duration = 1.0
 
     for chunk in stream_non_silent_audio(
         silence_threshold=None,
         chunk_duration=0.5,
-        silence_duration=2.0
+        silence_duration=2.0,
+        min_chunk_duration=min_chunk_duration
     ):
-        if chunk.shape[0] != int(SAMPLE_RATE * 0.5):
+        chunk_duration = len(chunk) / SAMPLE_RATE
+        if chunk_duration < min_chunk_duration:
             logger.warning(
-                f"Chunk {chunk_index} has unexpected size: {chunk.shape[0]} samples")
+                f"Chunk {chunk_index} duration {chunk_duration:.2f}s is less than minimum {min_chunk_duration}s")
+        if chunk.shape[0] % int(SAMPLE_RATE * 0.5) != 0:
+            logger.warning(
+                f"Chunk {chunk_index} has non-standard size: {chunk.shape[0]} samples")
         chunk_filename = save_chunk(chunk, chunk_index, timestamp)
         saved_files.append(chunk_filename)
         total_samples += chunk.shape[0]
         print(
-            f"Saved chunk {chunk_index} to {chunk_filename}, samples: {chunk.shape[0]}")
+            f"Saved chunk {chunk_index} to {chunk_filename}, samples: {chunk.shape[0]}, duration: {chunk_duration:.2f}s")
         chunk_index += 1
 
     if not saved_files:
