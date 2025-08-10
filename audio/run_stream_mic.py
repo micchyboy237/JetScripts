@@ -6,6 +6,7 @@ import numpy as np
 from typing import List, Dict
 from pathlib import Path
 from jet.audio.record_mic import save_wav_file, SAMPLE_RATE
+from jet.audio.stream_mic import stream_non_silent_audio
 from jet.logger import logger
 
 OUTPUT_DIR = os.path.join(
