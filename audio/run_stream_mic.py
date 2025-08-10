@@ -16,7 +16,7 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 
-def save_chunk(chunk: np.ndarray, chunk_index: int, timestamp: str) -> tuple[str, Dict]:
+def save_chunk(chunk: np.ndarray, chunk_index: int, timestamp: str, cumulative_duration: float) -> tuple[str, Dict]:
     """Save an individual audio chunk to a WAV file and return metadata."""
     chunk_filename = f"{OUTPUT_DIR}/stream_chunk_{timestamp}_{chunk_index:04d}.wav"
     save_wav_file(chunk_filename, chunk)
@@ -28,7 +28,8 @@ def save_chunk(chunk: np.ndarray, chunk_index: int, timestamp: str) -> tuple[str
         "filename": chunk_filename,
         "duration_s": round(chunk_duration, 3),
         "timestamp": timestamp,
-        "sample_count": len(chunk)
+        "sample_count": len(chunk),
+        "start_time_s": round(cumulative_duration, 3)
     }
     return chunk_filename, metadata
 
@@ -44,6 +45,7 @@ def main():
     saved_files: List[str] = []
     chunks_metadata: List[Dict] = []
     total_samples = 0
+    cumulative_duration = 0.0
     min_chunk_duration = 1.0
     overlap_duration = 1.0
 
@@ -62,10 +64,13 @@ def main():
         if chunk.shape[0] % int(SAMPLE_RATE * 0.5) != 0 and chunk.shape[0] < int(SAMPLE_RATE * expected_min_duration):
             logger.warning(
                 f"Chunk {chunk_index} has non-standard size: {chunk.shape[0]} samples")
-        chunk_filename, metadata = save_chunk(chunk, chunk_index, timestamp)
+        chunk_filename, metadata = save_chunk(
+            chunk, chunk_index, timestamp, cumulative_duration)
         saved_files.append(chunk_filename)
         chunks_metadata.append(metadata)
         total_samples += chunk.shape[0]
+        # Include full chunk duration, including overlap
+        cumulative_duration += chunk_duration
         print(f"Saved chunk {chunk_index} to {chunk_filename}, samples: {chunk.shape[0]}, duration: {chunk_duration:.2f}s, "
               f"overlap: {overlap_duration:.2f}s")
         chunk_index += 1
