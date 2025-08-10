@@ -15,7 +15,7 @@ OUTPUT_FILE = OUTPUT_DIR / \
 def main():
     """Main function to demonstrate recording."""
     duration_seconds = 5
-    process = record_mic_stream(duration_seconds, OUTPUT_FILE)
+    process = record_mic_stream(duration_seconds, OUTPUT_FILE, audio_index="1")
 
     if process:
         try:
