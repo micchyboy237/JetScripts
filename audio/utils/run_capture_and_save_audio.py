@@ -33,8 +33,8 @@ def main():
     parser.add_argument(
         "--file-prefix",
         type=str,
-        default="podcast",
-        help="Prefix for output WAV files (default: podcast)"
+        default="recording",
+        help="Prefix for output WAV files (default: recording)"
     )
     parser.add_argument(
         "--device-index",
