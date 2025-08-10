@@ -19,7 +19,6 @@ def main():
 
     if process:
         try:
-            # Wait for the process to complete or user to interrupt
             stdout, stderr = process.communicate()
             if process.returncode == 0:
                 print(f"✅ Receiving complete. Saved to {OUTPUT_FILE}")
@@ -35,3 +34,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+```

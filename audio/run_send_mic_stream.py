@@ -8,13 +8,12 @@ DEFAULT_PORT = "5000"
 def main():
     """Main function to demonstrate streaming."""
     duration_seconds = 0  # Stream indefinitely until stopped
-    dest_ip = DEFAULT_DEST_IP  # Update to receiver's IP for cross-device
+    dest_ip = DEFAULT_DEST_IP
     port = DEFAULT_PORT
     process = send_mic_stream(duration_seconds, dest_ip, port, audio_index="1")
 
     if process:
         try:
-            # Wait for the process to complete or user to interrupt
             stdout, stderr = process.communicate()
             if process.returncode == 0:
                 print("✅ Streaming complete")
