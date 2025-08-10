@@ -144,7 +144,20 @@ async def main():
         original_duration = len(original_audio) / SAMPLE_RATE
         logger.info(
             f"Saved original stream to {original_filename}, duration: {original_duration:.2f}s")
-        original_transcription = await transcriber.transcribe_from_file(original_filename, f"{OUTPUT_DIR}/transcriptions")
+        original_transcription = await transcriber.transcribe_from_file(
+            original_filename, f"{OUTPUT_DIR}/transcriptions")
+        if original_transcription:
+            base_name = os.path.splitext(
+                os.path.basename(original_filename))[0]
+            output_filename = f"transcription_{base_name}.txt"
+            output_path = os.path.join(
+                OUTPUT_DIR, "transcriptions", output_filename)
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(original_transcription)
+            logger.info(f"Original transcription saved to {output_path}")
+        else:
+            logger.warning(
+                "No transcription generated for original stream WAV")
         concatenated_transcription = " ".join(
             meta["transcription"] for meta in chunks_metadata if meta["transcription"]
         ).strip()
@@ -156,6 +169,7 @@ async def main():
         original_filename = ""
         original_duration = 0.0
         logger.warning("No chunks to save for original stream WAV")
+
     metadata_file = os.path.join(OUTPUT_DIR, "chunks_info.json")
     with open(metadata_file, 'w') as f:
         json.dump({
