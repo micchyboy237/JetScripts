@@ -1,10 +1,13 @@
+import subprocess
 import sys
 import argparse
 import threading
 import time
-from typing import Optional
+import signal
+from typing import Optional, List
 from jet.audio.e2e.send_mic_stream import send_mic_stream
 from jet.audio.transcription_utils import initialize_whisper_model, transcribe_audio_stream
+from jet.audio.utils import capture_and_save_audio
 from jet.logger import logger
 
 
@@ -35,11 +38,30 @@ def main(
     start_suffix = get_next_file_suffix(file_prefix)
     audio_file = f"{file_prefix}_{start_suffix:05d}.wav"
 
+    # Store processes for cleanup
+    processes: List[subprocess.Popen] = []
+
+    def signal_handler(sig, frame):
+        logger.info("Terminating FFmpeg processes and exiting...")
+        for process in processes:
+            process.terminate()
+            try:
+                process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                logger.warning(
+                    f"FFmpeg process {process.pid} did not terminate gracefully, killing...")
+                process.kill()
+        sys.exit(0)
+
+    # Set signal handler in the main thread
+    signal.signal(signal.SIGINT, signal_handler)
+
     # Start audio capture in a separate thread
     audio_thread = threading.Thread(
-        target=send_mic_stream,
-        args=(receiver_ip, port, sample_rate,
-              channels, file_prefix, device_index),
+        target=lambda: processes.append(
+            capture_and_save_audio(sample_rate, channels,
+                                   file_prefix, device_index)
+        ),
         daemon=True
     )
     audio_thread.start()
