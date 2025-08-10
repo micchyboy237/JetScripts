@@ -33,25 +33,28 @@ def main():
     saved_files: List[str] = []
     total_samples = 0
     min_chunk_duration = 1.0
+    overlap_duration = 0.2
 
     for chunk in stream_non_silent_audio(
         silence_threshold=None,
         chunk_duration=0.5,
         silence_duration=2.0,
-        min_chunk_duration=min_chunk_duration
+        min_chunk_duration=min_chunk_duration,
+        overlap_duration=overlap_duration
     ):
         chunk_duration = len(chunk) / SAMPLE_RATE
-        if chunk_duration < min_chunk_duration:
+        expected_min_duration = min_chunk_duration + overlap_duration
+        if chunk_duration < expected_min_duration:
             logger.warning(
-                f"Chunk {chunk_index} duration {chunk_duration:.2f}s is less than minimum {min_chunk_duration}s")
-        if chunk.shape[0] % int(SAMPLE_RATE * 0.5) != 0:
+                f"Chunk {chunk_index} duration {chunk_duration:.2f}s is less than minimum {expected_min_duration:.2f}s")
+        if chunk.shape[0] % int(SAMPLE_RATE * 0.5) != 0 and chunk.shape[0] < int(SAMPLE_RATE * expected_min_duration):
             logger.warning(
                 f"Chunk {chunk_index} has non-standard size: {chunk.shape[0]} samples")
         chunk_filename = save_chunk(chunk, chunk_index, timestamp)
         saved_files.append(chunk_filename)
         total_samples += chunk.shape[0]
-        print(
-            f"Saved chunk {chunk_index} to {chunk_filename}, samples: {chunk.shape[0]}, duration: {chunk_duration:.2f}s")
+        print(f"Saved chunk {chunk_index} to {chunk_filename}, samples: {chunk.shape[0]}, duration: {chunk_duration:.2f}s, "
+              f"overlap: {overlap_duration:.2f}s")
         chunk_index += 1
 
     if not saved_files:
@@ -60,7 +63,7 @@ def main():
 
     total_duration = total_samples / SAMPLE_RATE
     print(f"Streamed audio saved to {len(saved_files)} chunk files in {OUTPUT_DIR}, "
-          f"total duration: {total_duration:.2f}s")
+          f"total duration: {total_duration:.2f}s (including overlaps)")
 
 
 if __name__ == "__main__":
