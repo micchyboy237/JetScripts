@@ -10,6 +10,11 @@ from jet.audio.record_mic import SAMPLE_RATE, CHANNELS, DTYPE
 from jet.audio.audio_file_transcriber import AudioFileTranscriber
 from jet.logger import logger
 
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(
+        os.path.basename(__file__))[0]
+)
+
 
 def merge_audio_chunks(chunk_files: List[str], overlap_duration: float) -> Optional[np.ndarray]:
     """
@@ -99,9 +104,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Merge and transcribe audio chunks from stream_mic.py."
     )
-    parser.add_argument("chunk_dir", type=str,
-                        help="Directory containing audio chunk files (e.g., generated/run_stream_mic)")
-    parser.add_argument("output_dir", type=str,
+    parser.add_argument("output_dir", type=str, default=OUTPUT_DIR,
                         help="Directory to save merged audio and transcription")
     parser.add_argument("--overlap-duration", type=float, default=1.0,
                         help="Overlap duration between chunks in seconds (default: 1.0)")
@@ -110,7 +113,7 @@ def main():
     args = parser.parse_args()
 
     # Find all chunk files with consistent timestamp
-    chunk_dir = Path(args.chunk_dir)
+    chunk_dir = Path(f"{OUTPUT_DIR}/chunks")
     chunk_files = sorted([str(f)
                          for f in chunk_dir.glob("stream_chunk_*.wav")])
     if not chunk_files:
