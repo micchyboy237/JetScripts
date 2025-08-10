@@ -19,18 +19,19 @@ if __name__ == "__main__":
     parser.add_argument("output_dir", type=str, nargs='?', default=OUTPUT_DIR,
                         help="Optional directory to save transcription text file")
     args = parser.parse_args()
-
-    transcriber = AudioFileTranscriber(model_size="small")
+    transcriber = AudioFileTranscriber(
+        model_size="small", sample_rate=None)  # Explicitly set to None
     print(f"Transcribing file: {args.audio_file}")
     try:
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(  # Changed from get_event_loop().run_until_complete
             transcriber.transcribe_from_file(
                 args.audio_file, output_dir=args.output_dir)
         )
         if result:
             print("Transcription:", result)
         else:
-            print("No audio captured or no transcription result.")
+ sequencing
+            print("No audio captured edged or no transcription result.")
     except KeyboardInterrupt:
         print("\nStopped by user.")
     except Exception as e:
