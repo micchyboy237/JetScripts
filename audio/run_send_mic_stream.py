@@ -1,11 +1,10 @@
-import argparse
 import sys
-
+import argparse
 from jet.audio.e2e.send_mic_stream import send_mic_stream
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Send microphone audio via RTP and save segmented WAV files.")
+        description="Run microphone audio streaming and save segmented WAV files.")
     parser.add_argument("--receiver-ip", type=str, default=None,
                         help="IP address of the RTP receiver (optional)")
     parser.add_argument("--port", type=int, default=None,
@@ -15,9 +14,13 @@ if __name__ == "__main__":
     parser.add_argument("--channels", type=int, default=2, choices=[
                         1, 2], help="Number of audio channels (1=mono, 2=stereo, default: 2)")
     parser.add_argument("--segment-time", type=int, default=30,
-                        help="Duration of each WAV segment in seconds (default: 30)")
+                        help="Maximum duration of each WAV segment in seconds (default: 30)")
     parser.add_argument("--file-prefix", type=str, default="recording",
                         help="Prefix for output WAV files (default: recording)")
+    parser.add_argument("--device-index", type=str, default="1",
+                        help="avfoundation device index for microphone (default: 1)")
+    parser.add_argument("--min-duration", type=float, default=1.0,
+                        help="Minimum duration of audio to save a segment (seconds, default: 1.0)")
 
     args = parser.parse_args()
 
@@ -31,5 +34,7 @@ if __name__ == "__main__":
         args.sample_rate,
         args.channels,
         args.segment_time,
-        args.file_prefix
+        args.file_prefix,
+        args.device_index,
+        args.min_duration
     )
