@@ -6,7 +6,6 @@ import numpy as np
 from typing import List, Dict
 from pathlib import Path
 from jet.audio.record_mic import save_wav_file, SAMPLE_RATE
-from jet.audio.stream_mic import stream_non_silent_audio
 from jet.logger import logger
 
 OUTPUT_DIR = os.path.join(
@@ -26,10 +25,13 @@ def save_chunk(chunk: np.ndarray, chunk_index: int, timestamp: str, cumulative_d
     metadata = {
         "chunk_index": chunk_index,
         "filename": chunk_filename,
+        # Ensure 3-decimal-place accuracy
         "duration_s": round(chunk_duration, 3),
         "timestamp": timestamp,
         "sample_count": len(chunk),
+        # Ensure 3-decimal-place accuracy
         "start_time_s": round(cumulative_duration, 3),
+        # Ensure 3-decimal-place accuracy
         "end_time_s": round(cumulative_duration + chunk_duration, 3)
     }
     return chunk_filename, metadata
@@ -38,7 +40,7 @@ def save_chunk(chunk: np.ndarray, chunk_index: int, timestamp: str, cumulative_d
 def main():
     """
     Stream non-silent audio from microphone and save each chunk to individual WAV files.
-    Save metadata to chunks_info.json.
+    Save metadata to chunks_info.json with start_time_s and end_time_s rounded to 3 decimal places.
     """
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -86,6 +88,7 @@ def main():
         json.dump({
             "timestamp": timestamp,
             "total_chunks": len(saved_files),
+            # Ensure 3-decimal-place accuracy
             "total_duration_s": round(total_samples / SAMPLE_RATE, 3),
             "chunks": chunks_metadata
         }, f, indent=2)
