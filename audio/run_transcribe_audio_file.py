@@ -1,8 +1,14 @@
 import asyncio
+import os
+import shutil
 import sys
 import argparse
 
 from jet.audio.audio_file_transcriber import AudioFileTranscriber
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+# shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -10,7 +16,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("audio_file", type=str,
                         help="Path to the audio file to transcribe (e.g., WAV, MP3)")
-    parser.add_argument("output_dir", type=str, nargs='?', default=None,
+    parser.add_argument("output_dir", type=str, nargs='?', default=OUTPUT_DIR,
                         help="Optional directory to save transcription text file")
     args = parser.parse_args()
 
