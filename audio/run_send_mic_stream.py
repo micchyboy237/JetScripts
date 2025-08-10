@@ -1,6 +1,6 @@
 import sys
 
-from jet.audio.e2e import send_mic_stream
+from jet.audio.e2e.send_mic_stream import send_mic_stream
 
 
 if __name__ == "__main__":
