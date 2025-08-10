@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import List, Dict, Literal, Tuple, Optional
 from pathlib import Path
 from jet.audio.audio_file_transcriber import AudioFileTranscriber
+from jet.audio.audio_context_transcriber import AudioContextTranscriber
 from jet.audio.record_mic import save_wav_file, SAMPLE_RATE, detect_silence, calibrate_silence_threshold
 from jet.audio.stream_mic import get_available_input_devices, save_chunk, stream_non_silent_audio
 from jet.logger import logger
@@ -40,6 +41,8 @@ async def main(device: Optional[Literal[tuple(get_available_input_devices())]] =
     all_chunks = []
     silence_threshold = calibrate_silence_threshold()
     transcriber = AudioFileTranscriber(model_size="small", sample_rate=None)
+    transcriber_context = AudioContextTranscriber(
+        model_size="small", sample_rate=None)
     prev_chunk_filename: Optional[str] = None
     accumulated_transcription = ""
     for chunk in stream_non_silent_audio(
@@ -65,7 +68,7 @@ async def main(device: Optional[Literal[tuple(get_available_input_devices())]] =
             saved_files.append(chunk_filename)
             next_chunk_filename = saved_files[chunk_index +
                                               1] if chunk_index + 1 < len(saved_files) else None
-            non_overlap_transcription, start_overlap_transcription, end_overlap_transcription = await transcriber.transcribe_with_context(
+            non_overlap_transcription, start_overlap_transcription, end_overlap_transcription = await transcriber_context.transcribe_with_context(
                 chunk_filename,
                 prev_file_path=prev_chunk_filename,
                 next_file_path=next_chunk_filename,
@@ -90,7 +93,7 @@ async def main(device: Optional[Literal[tuple(get_available_input_devices())]] =
                 if len(prev_end_overlap) > 0:
                     temp_filename = f"{OUTPUT_DIR}/temp_prev_end_overlap_{chunk_index - 1:04d}.wav"
                     save_wav_file(temp_filename, prev_end_overlap)
-                    prev_end_transcription, _, _ = await transcriber.transcribe_with_context(
+                    prev_end_transcription, _, _ = await transcriber_context.transcribe_with_context(
                         temp_filename,
                         start_overlap_duration=0.0,
                         end_overlap_duration=0.0
