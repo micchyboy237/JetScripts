@@ -1,10 +1,12 @@
 import asyncio
 import os
 from typing import Optional
-from jet.llm.audio.transcribe_utils import transcribe_file_async, combine_audio_files_async
-from jet.llm.audio.tts_engine import AdvancedTTSEngine
+from jet.audio.tts_engine import AdvancedTTSEngine
+from jet.audio.transcribe_utils import transcribe_file_async, combine_audio_files_async
+from jet.llm.mlx.base import MLX
+from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
+from jet.models.model_types import LLMModelType
 from jet.wordnet.sentence import split_sentences
-from jet.llm.ollama.base import Ollama
 from jet.logger import CustomLogger
 from tqdm import tqdm
 
@@ -15,24 +17,37 @@ logger = CustomLogger(log_file, overwrite=True)
 
 
 class Agent:
-    def __init__(self, name: Optional[str], system_prompt: str, model: str = "llama3.1", session_id: str = "", output_dir: str = None) -> None:
+    def __init__(self, name: Optional[str], system_prompt: str, model: LLMModelType = "qwen3-1.7b-4bit", overwrite_db: bool = False, session_id: Optional[str] = None, output_dir: Optional[str] = None) -> None:
         if name is None:
             raise ValueError("Agent name must be provided or set in subclass")
         self.name: str = name
-        self.ollama: Ollama = Ollama(
-            model=model, system=system_prompt, session_id=session_id, temperature=0.3)
-        self.chat_history = self.ollama.chat_history
+        self.llm: MLX = MLXModelRegistry.load_model(
+            model=model,
+            session_id=session_id,
+            with_history=True,
+            overwrite_db=overwrite_db,
+            dbname="job_interview_db1",
+        )
+        self.chat_history = self.llm.history
         self.tts = AdvancedTTSEngine(
             rate=200 if name == "Emma" else 180, output_dir=output_dir)
         self.output_dir = output_dir or script_dir
 
-    async def generate_response(self, external_message: str) -> tuple[str, Optional[asyncio.Task]]:
+        self.system_prompt = system_prompt
+
+    async def generate_response(self, external_message: str, **kwargs) -> tuple[str, Optional[asyncio.Task]]:
         content = ""
         buffer = ""
         audio_files = []
-        async for chunk in self.ollama.stream_chat(query=external_message):
-            content += chunk
-            buffer += chunk
+        generation_config = {
+            "messages": external_message,
+            "system_prompt": self.system_prompt,
+            "verbose": True,
+            **kwargs
+        }
+        for chunk in self.llm.stream_chat(**generation_config):
+            content += chunk["content"]
+            buffer += chunk["content"]
             sentences = split_sentences(buffer)
             if len(sentences) > 1:
                 for sentence in sentences[:-1]:
@@ -71,7 +86,7 @@ class Agent:
 
 
 class Interviewer(Agent):
-    def __init__(self, model: str = "llama3.1", name: Optional[str] = None, output_dir: str = None, **kwargs) -> None:
+    def __init__(self, model: LLMModelType = "qwen3-1.7b-4bit", name: Optional[str] = None, output_dir: str = None, **kwargs) -> None:
         name = name or "Emma"
         system_prompt = (
             f"You are {name}, a professional job interviewer for a software engineering position. "
@@ -95,7 +110,7 @@ class Interviewer(Agent):
 
 
 class Applicant(Agent):
-    def __init__(self, model: str = "llama3.1", name: Optional[str] = None, output_dir: str = None, **kwargs) -> None:
+    def __init__(self, model: LLMModelType = "qwen3-1.7b-4bit", name: Optional[str] = None, output_dir: str = None, **kwargs) -> None:
         name = name or "Liam"
         system_prompt = (
             f"You are {name}, a job applicant applying for a software engineering position. "
@@ -108,9 +123,10 @@ class Applicant(Agent):
 
 
 async def main(max_rounds: int = 10):
+    overwrite_db = True
     output_dir = os.path.join(script_dir, "generated", "audio_output")
-    interviewer = Interviewer(output_dir=output_dir)
-    applicant = Applicant(output_dir=output_dir)
+    interviewer = Interviewer(output_dir=output_dir, overwrite_db=overwrite_db)
+    applicant = Applicant(output_dir=output_dir, overwrite_db=overwrite_db)
     playback_overlap = 0.5
     tasks = []
     question = "Start the interview."

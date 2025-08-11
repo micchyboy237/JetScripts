@@ -7,12 +7,26 @@ OUTPUT_DIR = os.path.join(os.path.dirname(
     __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
+DEFAULT_AUDIO_FILE = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/mocks/sample_16k.wav"
+
 if __name__ == "__main__":
     import sys
+    import argparse
     from pathlib import Path
 
+    parser = argparse.ArgumentParser(
+        description="Transcribe a large audio file with overlap.")
+    parser.add_argument(
+        "audio_file",
+        nargs="?",
+        default=DEFAULT_AUDIO_FILE,
+        type=str,
+        help=f"Path to the audio file to transcribe (default: {DEFAULT_AUDIO_FILE})"
+    )
+    args = parser.parse_args()
+
     # Path to the downloaded audio file
-    audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/mocks/sample_16k.wav"
+    audio_file = args.audio_file
     audio_file = Path(audio_file)
     model_size = "small"  # Using small model
     device = "cpu"  # Default to CPU for compatibility with Mac M1
