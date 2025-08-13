@@ -10,13 +10,15 @@ from jet.video.youtube.youtube_scrape_info import find_audio, transcribe_youtube
 
 OUTPUT_DIR = os.path.join(os.path.dirname(
     __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+# shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 
 async def main():
     audio_format = 'mp3'
     audio_dir = f'{OUTPUT_DIR}'
     video_url = 'https://www.youtube.com/watch?v=7qr6DK6P0uQ'
+    chunk_duration = 300
+    model_size = "small"
 
     print(f"Extracting video info from:\n{video_url}")
     extractor = YoutubeInfoExtractor(video_url)
@@ -39,11 +41,13 @@ async def main():
         audio_path = audio_paths[0]
         print(f"Reuse existing audio file:\n{audio_path}")
 
+    if not audio_path:
+        raise RuntimeError("Audio file could not be found or downloaded.")
+
     print(f"Transcribing audio")
-    transcriptions_output_file = f"{audio_dir}/transcriptions.json"
-    for transcription in transcribe_youtube_video_info_and_chapters(video_url, audio_path, info, audio_dir):
-        with open(transcriptions_output_file, 'a', encoding='utf-8') as f:
-            f.write(json.dumps(transcription) + '\n')
+    transcribe_youtube_video_info_and_chapters(
+        video_url, audio_path, info, audio_dir, chunk_duration=chunk_duration, model_size=model_size
+    )
 
 if __name__ == '__main__':
     asyncio.run(main())
