@@ -26,7 +26,7 @@ class Agent:
             session_id=session_id,
             with_history=True,
             overwrite_db=overwrite_db,
-            dbname="job_interview_db1",
+            dbname="job_interview_tts_db1",
         )
         self.chat_history = self.llm.history
         self.tts = AdvancedTTSEngine(
@@ -46,8 +46,8 @@ class Agent:
             **kwargs
         }
         for chunk in self.llm.stream_chat(**generation_config):
-            content += chunk["content"]
-            buffer += chunk["content"]
+            content += chunk["choices"][0]["message"]["content"]
+            buffer += chunk["choices"][0]["message"]["content"]
             sentences = split_sentences(buffer)
             if len(sentences) > 1:
                 for sentence in sentences[:-1]:

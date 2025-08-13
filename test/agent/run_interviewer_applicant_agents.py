@@ -1,9 +1,12 @@
 import asyncio
 import os
 from typing import Optional
-from jet.data.utils import generate_unique_hash
-from jet.llm.ollama.base import Ollama
+from jet.data.utils import generate_unique_id
+from jet.llm.mlx.base import MLX
+from jet.llm.mlx.chat_history import ChatHistory
 from jet.logger import CustomLogger
+from jet.models.model_types import LLMModelType
+from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(
@@ -12,17 +15,29 @@ logger = CustomLogger(log_file, overwrite=True)
 
 
 class Agent:
-    def __init__(self, name: str, system_prompt: str, model: str = "llama3.1", session_id: str = "") -> None:
+    def __init__(self, name: str, system_prompt: str, model: LLMModelType = "qwen3-1.7b-4bit", session_id: str = "", overwrite_db: bool = False) -> None:
         self.name: str = name
-        self.ollama: Ollama = Ollama(
-            model=model, system=system_prompt, session_id=session_id, temperature=0.3)
-        self.chat_history = self.ollama.chat_history
+        self.llm: MLX = MLXModelRegistry.load_model(
+            model=model,
+            session_id=session_id,
+            with_history=True,
+            overwrite_db=overwrite_db,
+            dbname="job_interview_db1",
+        )
+        self.chat_history = self.llm.history
+        self.system_prompt = system_prompt
 
-    async def generate_response(self, external_message: str) -> str:
-        """Generate a response using Ollama's stream_chat."""
+    def generate_response(self, external_message: str, **kwargs) -> str:
+        """Generate a response using MLX's stream_chat."""
+        generation_config = {
+            "messages": external_message,
+            "system_prompt": self.system_prompt,
+            "verbose": True,
+            **kwargs
+        }
         content = ""
-        async for chunk in self.ollama.stream_chat(query=external_message):
-            content += chunk
+        for chunk in self.llm.stream_chat(**generation_config):
+            content += chunk["choices"][0]["message"]["content"]
         return content
 
     def clear_history(self) -> None:
@@ -31,7 +46,7 @@ class Agent:
 
 
 class Interviewer(Agent):
-    def __init__(self, model: str = "llama3.1", **kwargs) -> None:
+    def __init__(self, model: LLMModelType = "qwen3-1.7b-4bit", **kwargs) -> None:
         super().__init__(
             name="Interviewer",
             system_prompt=(
@@ -55,16 +70,22 @@ class Interviewer(Agent):
             **kwargs
         )
 
-    async def generate_response(self, query: str) -> str:
+    def generate_response(self, query: str, **kwargs) -> str:
         """Generate a response based on the agenda in the system prompt and chat history."""
+        generation_config = {
+            "messages": query,
+            "system_prompt": self.system_prompt,
+            "verbose": True,
+            **kwargs
+        }
         content = ""
-        async for chunk in self.ollama.stream_chat(query=query):
-            content += chunk
+        for chunk in self.llm.stream_chat(**generation_config):
+            content += chunk["choices"][0]["message"]["content"]
         return content
 
 
 class Applicant(Agent):
-    def __init__(self, model: str = "llama3.1", **kwargs) -> None:
+    def __init__(self, model: LLMModelType = "qwen3-1.7b-4bit", **kwargs) -> None:
         super().__init__(
             name="Applicant",
             system_prompt=(
@@ -78,12 +99,18 @@ class Applicant(Agent):
         )
 
 
+def get_turn_count(history: ChatHistory) -> int:
+    """Return the number of turns, excluding the system message."""
+    messages = history.get_messages()
+    return len([msg for msg in messages if msg["role"] != "system"])
+
+
 class Conversation:
     def __init__(self, agent1: Interviewer, agent2: Applicant, max_turns: int = 16) -> None:
         self.agent1: Interviewer = agent1  # Interviewer
         self.agent2: Applicant = agent2  # Applicant
         self.max_turns: int = max_turns
-        self.current_turn: int = agent1.chat_history.get_turn_count()
+        self.current_turn: int = get_turn_count(agent1.chat_history)
 
         # Determine the current agent based on the last message in the chat history
         messages = agent1.chat_history.get_messages()
@@ -98,7 +125,7 @@ class Conversation:
         """Switch the current agent between agent1 and agent2."""
         self.current_agent = self.agent2 if self.current_agent == self.agent1 else self.agent1
 
-    async def run(self) -> None:
+    def run(self) -> None:
         """Run the conversation for the specified number of turns."""
         logger.orange("Starting Job Interview Conversation...\n")
 
@@ -106,7 +133,7 @@ class Conversation:
         if self.current_turn == 0:
             # No messages, dynamically generate Interviewer's first question
             logger.info("Turn 1: Interviewer generating initial prompt")
-            response = await self.agent1.generate_response("__START__")
+            response = self.agent1.generate_response("__START__")
         else:
             # Resume from the last message
             response = messages[-1]["content"]
@@ -126,7 +153,7 @@ class Conversation:
         while self.current_turn < self.max_turns:
             logger.info(
                 f"Turn {self.current_turn + 1}: {self.current_agent.name}")
-            response = await self.current_agent.generate_response(response)
+            response = self.current_agent.generate_response(response)
 
             if self.current_turn + 1 >= self.max_turns and self.current_agent == self.agent1:
                 response += " [TERMINATE]"
@@ -145,26 +172,31 @@ class Conversation:
             self.agent1.clear_history()
             self.agent2.clear_history()
             self.current_agent = self.agent1  # Reset to Interviewer
-            self.current_turn = self.agent1.chat_history.get_turn_count()
+            self.current_turn = get_turn_count(self.agent1.chat_history)
 
 
-async def main() -> None:
+def main() -> None:
+    overwrite_db = True
+
     # Generate unique session IDs for each agent
-    interviewer_session_id: str = generate_unique_hash()
-    applicant_session_id: str = generate_unique_hash()
+    interviewer_session_id: str = generate_unique_id()
+    applicant_session_id: str = generate_unique_id()
     max_turns = 20
 
     logger.success(f"Interviewer session id:\n{interviewer_session_id}\n")
     logger.success(f"Applicant session id:\n{applicant_session_id}\n")
 
     # Initialize agents with different session IDs
-    interviewer: Interviewer = Interviewer(session_id=interviewer_session_id)
-    applicant: Applicant = Applicant(session_id=applicant_session_id)
+    interviewer: Interviewer = Interviewer(
+        session_id=interviewer_session_id, overwrite_db=overwrite_db)
+    applicant: Applicant = Applicant(
+        session_id=applicant_session_id, overwrite_db=overwrite_db)
 
     # Create and run conversation
     conversation: Conversation = Conversation(
         interviewer, applicant, max_turns=max_turns)
-    await conversation.run()
+    conversation.run()
+
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
