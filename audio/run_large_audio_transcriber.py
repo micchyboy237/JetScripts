@@ -7,7 +7,7 @@ OUTPUT_DIR = os.path.join(os.path.dirname(
     __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-DEFAULT_AUDIO_FILE = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/mocks/sample_16k.wav"
+DEFAULT_AUDIO_FILE = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/video/generated/run_youtube_scrape_info/sen__legarda_sa_kwento_ni_bamban_mayor_guo__paulit_ulit_parang_memoryado/audio.mp3"
 
 if __name__ == "__main__":
     import sys
@@ -62,8 +62,7 @@ if __name__ == "__main__":
                 "start_time": start_time,
                 "end_time": end_time
             })
-
-        save_file(segments, f"{OUTPUT_DIR}/segments.json")
+            save_file(segments, f"{OUTPUT_DIR}/segments.json")
 
     except FileNotFoundError as e:
         print(f"Error: {str(e)}")
