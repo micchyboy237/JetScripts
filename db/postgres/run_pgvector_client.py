@@ -14,7 +14,7 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 with PgVectorClient(
-    dbname="test_db1",
+    dbname="test_vector_db1",
     overwrite_db=True,
 ) as client:
     try:
@@ -74,6 +74,47 @@ with PgVectorClient(
             multiple_rows,
             f"{OUTPUT_DIR}/created_multiple_rows.json"
         )
+
+        # Example: Create or update rows (some existing, some new)
+        create_or_update_rows_data = [
+            # Update existing row (using ID from single_row)
+            {
+                "id": single_row["id"],
+                "embedding": np.random.rand(EMBEDDING_DIM).tolist(),
+                "metadata": "updated metadata",
+                "score": 98.0,
+                "is_active": False,
+                "details": {"key1": "updated_value1", "key2": {"nested_key": 100}},
+                "custom_field": "updated_test_value"
+            },
+            # Update existing row (using ID from multiple_rows[0])
+            {
+                "id": multiple_rows[0]["id"],
+                "embedding": np.random.rand(EMBEDDING_DIM).tolist(),
+                "metadata": "updated_row_0",
+                "score": 95.0,
+                "is_active": False,
+                "details": {"index": 0, "data": {"value": "updated_test_0"}},
+                "custom_field": "updated_custom_0"
+            },
+            # Create new row
+            {
+                "id": "new-row-1",
+                "embedding": np.random.rand(EMBEDDING_DIM).tolist(),
+                "metadata": "new row metadata",
+                "score": 92.5,
+                "is_active": True,
+                "details": {"key1": "new_value1", "key2": {"nested_key": 200}},
+                "custom_field": "new_test_value"
+            }
+        ]
+        created_or_updated_rows = client.create_or_update_rows(
+            TABLE_NAME, create_or_update_rows_data)
+        logger.newline()
+        logger.debug(f"Created or updated rows:")
+        logger.success(f"{created_or_updated_rows}")
+        save_file(created_or_updated_rows,
+                  f"{OUTPUT_DIR}/created_or_updated_rows.json")
 
         embedding = np.random.rand(EMBEDDING_DIM).tolist()
         embedding_id = client.insert_embedding(TABLE_NAME, embedding)
@@ -284,7 +325,7 @@ with PgVectorClient(
             {
                 "table": TABLE_NAME,
                 "count": len(all_rows),
-                "rows": all_rows  # Directly save all columns except embedding
+                "rows": all_rows
             },
             f"{OUTPUT_DIR}/all_rows.json"
         )
@@ -301,7 +342,7 @@ with PgVectorClient(
                 "table": TABLE_NAME,
                 "count": len(filtered_rows),
                 "selected_ids": selected_ids,
-                "rows": filtered_rows  # Directly save all columns except embedding
+                "rows": filtered_rows
             },
             f"{OUTPUT_DIR}/filtered_rows.json"
         )
