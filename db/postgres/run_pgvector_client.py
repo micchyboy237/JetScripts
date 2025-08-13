@@ -5,6 +5,7 @@ from jet.file.utils import save_file
 from jet.logger import logger
 import numpy as np
 from jet.db.postgres.pgvector import PgVectorClient
+from psycopg.rows import dict_row
 
 TABLE_NAME = "embeddings"
 EMBEDDING_DIM = 3
@@ -172,6 +173,29 @@ with PgVectorClient(
         logger.success(f"{table_metadata}")
         save_file(table_metadata,
                   f"{OUTPUT_DIR}/table_metadata_after_inserts.json")
+
+        # Example: Check if created_at and updated_at columns exist
+        with client.conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                "SELECT column_name, data_type FROM information_schema.columns "
+                "WHERE table_schema = 'public' AND table_name = %s;",
+                (TABLE_NAME,)
+            )
+            columns = cur.fetchall()
+            column_types = {col["column_name"]: col["data_type"]
+                            for col in columns}
+        logger.newline()
+        logger.debug(f"Column schema for table {TABLE_NAME}:")
+        logger.success(f"{column_types}")
+        save_file(column_types, f"{OUTPUT_DIR}/table_column_schema.json")
+        assert "created_at" in column_types, "Expected created_at column in table schema"
+        assert column_types["created_at"] == "timestamp with time zone", (
+            f"Expected created_at to be TIMESTAMPTZ, got {column_types['created_at']}"
+        )
+        assert "updated_at" in column_types, "Expected updated_at column in table schema"
+        assert column_types["updated_at"] == "timestamp with time zone", (
+            f"Expected updated_at to be TIMESTAMPTZ, got {column_types['updated_at']}"
+        )
 
         specific_embedding = np.random.rand(EMBEDDING_DIM).tolist()
         client.insert_embedding_by_id(

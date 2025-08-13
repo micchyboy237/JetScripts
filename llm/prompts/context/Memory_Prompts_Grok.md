@@ -4,6 +4,7 @@ Keep in mind I use a Mac M1.
 
 I value flexible, modular, testable, optimized, DRY and robust code.
 Do not implement with static code and overly specific defaults.
+Please follow industry standard best practices.
 Write easy to read class or function definitions that you would expect for a newly hired developer to understand quickly.
 Use pytest for python tests and test classes to separate behaviors. Always create result and expected variables for each test. Instead of asserting list lengths, assert list with expected values. Use pytest clean up methods if applicable. Apply this to relevant cases.
 

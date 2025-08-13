@@ -9,8 +9,10 @@ OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-DBNAME = "job_interview_db1"
-TABLE_NAME = "messages"
+DBNAME = "jobs_db1"
+TABLE_NAME = "embeddings_data"
+# DBNAME = "job_interview_db1"
+# TABLE_NAME = "messages"
 
 with PostgresClient(
     dbname=DBNAME,
