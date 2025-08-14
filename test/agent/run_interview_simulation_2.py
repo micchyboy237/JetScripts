@@ -1,6 +1,5 @@
-from typing import Generator, List, Optional, Tuple
-from jet.llm.mlx.base import MLX
-from jet.models.model_types import CompletionResponse
+from typing import Generator, List, Tuple
+from jet.models.model_types import CompletionResponse, RoleMapping
 from jet.logger import logger
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 import mlx.core as mx
@@ -34,12 +33,10 @@ class KnowledgeBase:
 class InterviewerAgent:
     """Agent that simulates an interviewer with RAG and resume knowledge."""
 
-    def __init__(self, knowledge_base: KnowledgeBase, model_name: str = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125", log_dir: Optional[str] = None):
+    def __init__(self, knowledge_base: KnowledgeBase, model_name: str = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125"):
         """Initialize with MLX model and knowledge base."""
-        # self.model, self.tokenizer = load(model_name)
         registry = MLXModelRegistry()
-        self.model = registry.load_model(model_name, log_dir=log_dir)
-        # self.model = MLX(model_name, log_dir=log_dir)
+        self.model = registry.load_model(model_name)
         self.tokenizer = self.model.tokenizer
         self.knowledge_base = knowledge_base
         self.system_prompt = (
@@ -49,35 +46,41 @@ class InterviewerAgent:
             "3) Ask about teamwork and problem-solving, "
             "4) Ask if the candidate has questions or concerns. "
             "Use the provided resume and job context to ask specific, relevant questions. "
-            "End with '[TERMINATE]' if the candidate has no further questions."
         )
+        self.role_mapping: RoleMapping = {
+            "system": "Interviewer Brief: ",
+            "user": "Applicant Response: ",
+            "assistant": "Interviewer: ",
+            "stop": "[TERMINATE]"
+        }
 
-    # def generate_response(self, chat_history: List[Tuple[str, str]]) -> Generator[GenerationResponse, None, None]:
     def generate_response(self, chat_history: List[Tuple[str, str]]) -> Generator[CompletionResponse, None, None]:
         """Generate interviewer's response using RAG with resume context."""
-        history_str = "\n".join(
-            [f"{role}: {msg}" for role, msg in chat_history])
-        query = history_str or "software engineer resume skills"
+        if not chat_history:
+            # Use system prompt as initial context for the first turn
+            query = ""
+            history_str = ""
+        elif chat_history[-1][0] != "system":
+            role, query = chat_history[-1]
+            history_str = "Chat History:\n" + "\n".join(
+                [f"{role}: {msg}" for role, msg in chat_history])
+
+        # query = history_str or "software engineer resume skills"
         context = self.knowledge_base.retrieve(query)
         prompt = (
-            f"{self.system_prompt}\n\nContext (resume and job details): {'; '.join(context)}\n\n"
-            f"Chat History:\n{history_str}\n\nInterviewer:"
+            f"Context (resume and job details): {'; '.join(context)}\n\n"
+            f"{history_str}"
         )
-        # sampler = make_sampler(temp=0.7)
-        # yield from stream_generate(self.model, self.tokenizer, prompt=prompt,
-        #                            max_tokens=100, sampler=sampler)
-        yield from self.model.stream_generate(prompt, max_tokens=100, temperature=0.7)
+        yield from self.model.stream_chat(prompt, system_prompt=self.system_prompt, role_mapping=self.role_mapping, max_tokens=150, temperature=0.7)
 
 
 class ApplicantAgent:
     """Agent that simulates an applicant with RAG."""
 
-    def __init__(self, knowledge_base: KnowledgeBase, model_name: str = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125", log_dir: Optional[str] = None):
+    def __init__(self, knowledge_base: KnowledgeBase, model_name: str = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125"):
         """Initialize with MLX model and knowledge base."""
-        # self.model, self.tokenizer = load(model_name)
         registry = MLXModelRegistry()
-        self.model = registry.load_model(model_name, log_dir=log_dir)
-        # self.model = MLX(model_name, log_dir=log_dir)
+        self.model = registry.load_model(model_name)
         self.tokenizer = self.model.tokenizer
         self.knowledge_base = knowledge_base
         self.system_prompt = (
@@ -85,34 +88,43 @@ class ApplicantAgent:
             "Respond concisely and professionally, using the provided resume context to tailor your answers. "
             "In the final stage, if asked about questions, respond with 'I have no further questions.'"
         )
+        self.role_mapping: RoleMapping = {
+            "system": "Applicant Brief: ",
+            "user": "Interviewer Question: ",
+            "assistant": "Applicant: ",
+            "stop": "[TERMINATE]"
+        }
 
-    # def generate_response(self, chat_history: List[Tuple[str, str]]) -> Generator[GenerationResponse, None, None]:
     def generate_response(self, chat_history: List[Tuple[str, str]]) -> Generator[CompletionResponse, None, None]:
         """Generate applicant's response using RAG."""
+        if not chat_history:
+            # Use system prompt as initial context for the first turn
+            query = ""
+            history_str = ""
+        elif chat_history[-1][0] != "system":
+            role, query = chat_history[-1]
+            history_str = "Chat History:\n" + "\n".join(
+                [f"{role}: {msg}" for role, msg in chat_history])
+
         history_str = "\n".join(
             [f"{role}: {msg}" for role, msg in chat_history])
-        query = history_str.split(
-            "\n")[-1] if history_str else "software engineer skills"
+        # query = history_str.split(
+        # "\n")[-1] if history_str else "software engineer skills"
         context = self.knowledge_base.retrieve(query)
         prompt = (
-            f"{self.system_prompt}\n\nContext (resume and job details): {'; '.join(context)}\n\n"
-            f"Chat History:\n{history_str}\n\nApplicant:"
+            f"Context (resume and job details): {'; '.join(context)}\n\n"
+            f"Chat History:\n{history_str}"
         )
-        # sampler = make_sampler(temp=0.7)
-        # yield from stream_generate(self.model, self.tokenizer, prompt=prompt,
-        #                            max_tokens=100, sampler=sampler)
-        yield from self.model.stream_generate(prompt, max_tokens=100, temperature=0.7)
+        yield from self.model.stream_chat(prompt, system_prompt=self.system_prompt, role_mapping=self.role_mapping, max_tokens=150, temperature=0.7)
 
 
 class Conversation:
     """Manages the back-and-forth interaction between interviewer and applicant."""
 
-    def __init__(self, knowledge_base: KnowledgeBase, max_turns: int = 8, output_dir: Optional[str] = None):
+    def __init__(self, knowledge_base: KnowledgeBase, max_turns: int = 8):
         """Initialize conversation with knowledge base and max turns."""
-        self.interviewer = InterviewerAgent(
-            knowledge_base, log_dir=f"{output_dir}/interviewer" if output_dir else None)
-        self.applicant = ApplicantAgent(
-            knowledge_base, log_dir=f"{output_dir}/applicant" if output_dir else None)
+        self.interviewer = InterviewerAgent(knowledge_base)
+        self.applicant = ApplicantAgent(knowledge_base)
         self.chat_history: List[Tuple[str, str]] = []
         self.max_turns = max_turns
 
@@ -122,17 +134,17 @@ class Conversation:
             if turn % 2 == 0:
                 text = ""
                 for response in self.interviewer.generate_response(self.chat_history):
-                    logger.teal(response["choices"][0]["text"], flush=True)
-                    text += response["choices"][0]["text"]
+                    logger.teal(response["choices"][0]
+                                ["message"]["content"], flush=True)
+                    text += response["choices"][0]["message"]["content"]
                 self.chat_history.append(("Interviewer", text))
                 yield "Interviewer", text
-                if "[TERMINATE]" in text:
-                    break
             else:
                 text = ""
                 for response in self.applicant.generate_response(self.chat_history):
-                    logger.teal(response["choices"][0]["text"], flush=True)
-                    text += response["choices"][0]["text"]
+                    logger.teal(response["choices"][0]
+                                ["message"]["content"], flush=True)
+                    text += response["choices"][0]["message"]["content"]
                 self.chat_history.append(("Applicant", text))
                 yield "Applicant", text
 
@@ -154,7 +166,7 @@ if __name__ == "__main__":
         "Teamwork is critical for collaborative software development."
     ]
     knowledge_base = KnowledgeBase(documents)
-    conversation = Conversation(knowledge_base, output_dir=output_dir)
+    conversation = Conversation(knowledge_base)
 
     history = conversation.run()
     interview = []
