@@ -2,6 +2,7 @@ import os
 from typing import List
 from jet.file.utils import save_file
 from jet.logger.config import colorize_log
+from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.tokenizer.base import get_tokenizer_fn
 from jet.vectors.semantic_search.file_vector_search import FileSearchResult, search_files
@@ -37,22 +38,34 @@ def main():
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_notes",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/vectors",
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/vectors",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/open-webui",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/rag-all-techniques",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/mlx-examples",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/mpi4py",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/rag-cookbooks",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/haystack-cookbook",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/ragas",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/RAG_Techniques",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/haystack-cookbook",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_07_2025/ai-agents-for-beginners",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogen",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogenhub",
     ]
 
-    query = "BM25 reranking"
-    extensions = [".py"]
-    embed_model: EmbedModelType = "all-MiniLM-L6-v2"
+    query = "Agents"
+    extensions = [".md"]
+    embed_model: EmbedModelType = "static-retrieval-mrl-en-v1"
     llm_model: LLMModelType = "qwen3-1.7b-4bit"
 
-    top_k = 10
+    top_k = None
     threshold = 0.0  # Using default threshold
-    chunk_size = 500
+    chunk_size = 1000
     chunk_overlap = 100
-    tokenizer = get_tokenizer_fn(embed_model)
+    tokenizer = SentenceTransformerRegistry.get_tokenizer(embed_model)
 
     def count_tokens(text):
-        return len(tokenizer(text))
+        return len(tokenizer.encode(text))
 
     split_chunks = True
 
@@ -69,7 +82,8 @@ def main():
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             split_chunks=split_chunks,
-            tokenizer=count_tokens
+            tokenizer=count_tokens,
+            excludes=["**/.venv/*", "**/.pytest_cache/*", "**/node_modules/*"],
         )
     )
     save_results(query, with_split_chunks_results, split_chunks)
@@ -84,7 +98,8 @@ def main():
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             split_chunks=split_chunks,
-            tokenizer=count_tokens
+            tokenizer=count_tokens,
+            excludes=["**/.venv/*", "**/.pytest_cache/*", "**/node_modules/*"],
         )
     )
     save_results(query, without_split_chunks_results, split_chunks)
