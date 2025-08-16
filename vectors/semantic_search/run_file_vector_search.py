@@ -1,3 +1,4 @@
+import argparse
 import os
 from typing import List
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
@@ -8,6 +9,7 @@ from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.tokenizer.base import get_tokenizer_fn
 from jet.utils.language import detect_lang
 from jet.utils.text import format_sub_dir
+from jet.vectors.reranker.bm25 import rerank_bm25
 from jet.vectors.semantic_search.file_vector_search import FileSearchResult, merge_results, search_files
 
 
@@ -27,22 +29,19 @@ def print_results(query: str, results: List[FileSearchResult], split_chunks: boo
             f"{colorize_log(f"{num}.)", "ORANGE")} Score: {colorize_log(f'{score:.3f}', 'SUCCESS')} | Chunk: {chunk_idx} | Tokens: {num_tokens} | Start - End: {start_idx} - {end_idx}\nFile: {file_path}")
 
 
-def main():
+def rerank_results(query: str, results: List[FileSearchResult]):
+    texts = [result["text"] for result in results]
+    ids = [str(idx) for idx, _ in enumerate(texts)]
+    metadatas = [result["metadata"] for result in results]
+
+    query_candidates, reranked_results = rerank_bm25(
+        query, texts, ids=ids, metadatas=metadatas)
+
+    return query_candidates, reranked_results
+
+
+def main(query, directories):
     """Main function to demonstrate file search."""
-    query = "MLX Tools or Function Call"
-    directories = [
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts",
-
-        # "/Users/jethroestrada/Desktop/External_Projects/AI",
-
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx-lm",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx-embeddings",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx-vlm",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/mlx-examples",
-    ]
-
     output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
 
     extensions = [".py"]
@@ -96,7 +95,7 @@ def main():
         "count": len(with_split_chunks_results),
         "merged": not split_chunks,
         "results": with_split_chunks_results
-    }, f"{output_dir}/results_{'split' if split_chunks else 'merged'}.json")
+    }, f"{output_dir}/search_results_split.json")
 
     split_chunks = False
     without_split_chunks_results = merge_results(
@@ -107,8 +106,70 @@ def main():
         "count": len(without_split_chunks_results),
         "merged": not split_chunks,
         "results": without_split_chunks_results
-    }, f"{output_dir}/results_{'split' if split_chunks else 'merged'}.json")
+    }, f"{output_dir}/search_results_merged.json")
+
+    # Rerank
+
+    query_candidates, reranked_results = rerank_results(
+        query, with_split_chunks_results)
+    save_file({
+        "query": query,
+        "candidates": query_candidates,
+        "count": len(reranked_results),
+        "results": reranked_results
+    }, f"{output_dir}/example/reranked_results_split.json")
+
+    query_candidates, reranked_results = rerank_results(
+        query, without_split_chunks_results)
+    save_file({
+        "query": query,
+        "candidates": query_candidates,
+        "count": len(reranked_results),
+        "results": reranked_results
+    }, f"{output_dir}/example/reranked_results_merged.json")
+
+
+def parse_arguments():
+    """Parse command line arguments for query and directories.
+
+    Usage:
+        Positional: python file_search.py "query" /path1 /path2
+        Named: python file_search.py --query "query" --directories /path1 /path2
+        Mixed: python file_search.py "query" --directories /path1
+        Default: python file_search.py
+
+    Sample Commands:
+        1. python file_search.py "neural network" /Users/jethroestrada/Desktop/AI/mlx
+        2. python file_search.py --query "embedding model" --directories /Users/jethroestrada/Desktop/AI/mlx
+        3. python file_search.py "function call" /Users/jethroestrada/Desktop/AI/mlx-lm
+
+    Notes:
+        - Defaults to "MLX Tools or Function Call" and predefined directories if not provided.
+        - Positional args must precede named args.
+    """
+    parser = argparse.ArgumentParser(
+        description="File search with query and directories")
+    parser.add_argument("query", type=str, nargs="?",
+                        default="MLX Tools or Function Call", help="Search query")
+    parser.add_argument("directories", type=str, nargs="*", default=[
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx-lm",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx-embeddings",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx-vlm",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/mlx-examples",
+    ], help="Search directories")
+    parser.add_argument("--query", type=str, dest="query_flag",
+                        default=None, help="Alternative query input")
+    parser.add_argument("--directories", type=str, nargs="+", dest="directories_flag",
+                        default=None, help="Alternative directories input")
+
+    args = parser.parse_args()
+    query = args.query_flag if args.query_flag is not None else args.query
+    directories = args.directories_flag if args.directories_flag is not None else args.directories
+
+    return argparse.Namespace(query=query, directories=directories)
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_arguments()
+    main(args.query, args.directories)
