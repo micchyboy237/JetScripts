@@ -36,7 +36,7 @@ def main():
     embed_model: EmbedModelType = "static-retrieval-mrl-en-v1"
     llm_model: LLMModelType = "qwen3-1.7b-4bit"
 
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_4/top_rag_strategies_reddit_2025/docs.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/top_rag_strategies_reddit_2025/docs.json"
     # Recursively collect all .html files under docs_file
     header_docs: List[HeaderDoc] = load_file(docs_file)["documents"]
 

@@ -60,6 +60,30 @@ def format_sub_source_dir(source: str) -> str:
     return formatted.strip('_')
 
 
+def sort_urls_by_high_and_medium_score_tokens(results: List[HeaderSearchResult]) -> List[str]:
+    # Group results by URL and calculate total medium_score_tokens per URL
+    url_medium_score_tokens = defaultdict(int)
+    for result in results:
+        url = result["metadata"].get("source", "Unknown")
+        if result["score"] >= MEDIUM_QUALITY_SCORE and result.get("mtld_category") != "very_low":
+            url_medium_score_tokens[url] += result["metadata"].get(
+                "num_tokens", 0)
+
+    # Calculate high and medium score tokens per URL
+    url_score_tokens = defaultdict(
+        lambda: {"high_score_tokens": 0, "medium_score_tokens": 0}
+    )
+
+    sorted_urls = sorted(
+        url_score_tokens.keys(),
+        key=lambda url: (url_score_tokens[url]["high_score_tokens"],
+                         url_score_tokens[url]["medium_score_tokens"]),
+        reverse=True
+    )
+
+    return sorted_urls
+
+
 def sort_search_results_by_url_and_category(results: List[HeaderSearchResult], sorted_urls: List[str]):
     """
     Sorts results in three stages:
@@ -182,8 +206,15 @@ def group_results_by_source_for_llm_context(
                 if d.get("header") and d["metadata"].get("level", 0) >= 0
             )
 
-            # Add parent header if it hasn't been added and has no matching child
-            if parent_header_key and parent_level is not None and not has_matching_child and parent_header_key not in seen_header_text_in_block:
+            # Check if parent_header appears as a header in any other chunk within the same source
+            has_matching_child = any(
+                strip_hashtags(d.get("header", "")) == parent_header_key
+                for d in docs
+                if d.get("header") and strip_hashtags(d.get("header", "")) != header_key
+            )
+
+            # Add parent header only if it appears as a header in another chunk and hasn't been added
+            if parent_header_key and parent_level is not None and has_matching_child and parent_header_key not in seen_header_text_in_block:
                 block += f"{parent_header}\n\n"
                 seen_header_text_in_block.add(parent_header_key)
 
@@ -539,10 +570,26 @@ async def main(query):
         "results": search_results
     }, f"{query_output_dir}/search_results.json")
 
+    # Sort URLs by high_score_tokens, then medium_score_tokens (descending)
+    sorted_urls = sort_urls_by_high_and_medium_score_tokens(search_results)
+
+    # Sort all results by score
+    sorted_results = sort_search_results_by_url_and_category(
+        search_results, sorted_urls)
+    total_tokens = sum(result["metadata"].get("num_tokens", 0)
+                       for result in sorted_results)
+
+    save_file({
+        "query": query,
+        "count": len(sorted_results),
+        "total_tokens": total_tokens,
+        "results": sorted_results
+    }, f"{query_output_dir}/sorted_search_results.json")
+
     # Filter search_results directly based on score, MTLD, and link-to-text ratio
     current_tokens = 0
     filtered_results = []
-    for result in search_results:
+    for result in sorted_results:
         content = f"{result['header']}\n{result['content']}"
         tokens = count_tokens(llm_model, content)
         if current_tokens + tokens > max_tokens:

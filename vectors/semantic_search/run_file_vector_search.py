@@ -1,5 +1,6 @@
 import os
 from typing import List
+from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.file.utils import save_file
 from jet.logger.config import colorize_log
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
@@ -62,6 +63,9 @@ def main():
     def count_tokens(text):
         return len(tokenizer.encode(text))
 
+    def preprocess_text(text):
+        return clean_markdown_links(text)
+
     split_chunks = True
 
     print(f"Search results for '{query}' in these dirs:")
@@ -78,7 +82,13 @@ def main():
             chunk_overlap=chunk_overlap,
             split_chunks=split_chunks,
             tokenizer=count_tokens,
+            preprocess=preprocess_text,
             excludes=["**/.venv/*", "**/.pytest_cache/*", "**/node_modules/*"],
+            weights={
+                "dir": 0.325,
+                "name": 0.325,
+                "content": 0.35,
+            }
         )
     )
     with_split_chunks_results = [
