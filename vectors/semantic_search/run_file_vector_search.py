@@ -38,11 +38,14 @@ def rerank_results(query: str, results: List[FileSearchResult]):
     query_candidates, reranked_results = rerank_bm25(
         query, texts, ids=ids, metadatas=metadatas)
 
-    # Add embed_score from original results to each reranked_result
+    # Add embed_score and embed_rank from original results to each reranked_result
     id_to_embed_score = {id_: result.get(
         "score", None) for id_, result in zip(ids, results)}
+    # Compute embed_rank based on original order (1-based)
+    id_to_embed_rank = {id_: rank for rank, id_ in enumerate(ids, start=1)}
     for reranked in reranked_results:
         reranked["embed_score"] = id_to_embed_score.get(reranked["id"], None)
+        reranked["embed_rank"] = id_to_embed_rank.get(reranked["id"], None)
 
     return query_candidates, reranked_results
 
