@@ -12,7 +12,8 @@ if __name__ == "__main__":
     query = "RAG agents"
     texts = [doc["code"] for doc in docs]
 
-    query_candidates, reranked_results = rerank_bm25(query, texts)
+    query_candidates, reranked_results = rerank_bm25(
+        query, texts, ids=[str(idx) for idx, _ in enumerate(texts)])
 
     save_file({
         "query": query,
