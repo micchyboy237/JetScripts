@@ -11,9 +11,11 @@ if __name__ == "__main__":
 
     query = "RAG agents"
     texts = [doc["text"] for doc in docs]
+    ids = [str(idx) for idx, _ in enumerate(texts)]
+    metadatas = [doc["metadata"] for doc in docs]
 
     query_candidates, reranked_results = rerank_bm25(
-        query, texts, ids=[str(idx) for idx, _ in enumerate(texts)])
+        query, texts, ids=ids, metadatas=metadatas)
 
     save_file({
         "query": query,
