@@ -5,6 +5,7 @@ from jet.logger.config import colorize_log
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.tokenizer.base import get_tokenizer_fn
+from jet.utils.language import detect_lang
 from jet.vectors.semantic_search.file_vector_search_dynamic import FileSearchResult, merge_results, search_files
 
 
@@ -80,6 +81,10 @@ def main():
             excludes=["**/.venv/*", "**/.pytest_cache/*", "**/node_modules/*"],
         )
     )
+    with_split_chunks_results = [
+        result for result in with_split_chunks_results
+        if detect_lang(result["text"])["lang"] == "en"
+    ]
     print_results(query, with_split_chunks_results, split_chunks)
     save_file({
         "query": query,
