@@ -2,8 +2,12 @@ from IPython.display import display
 from PIL import Image
 from autogen.agentchat import AssistantAgent, UserProxyAgent
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
+from jet.logger import CustomLogger
 import autogen
 import io
+import os
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

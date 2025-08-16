@@ -1,3 +1,4 @@
+from jet.logger import CustomLogger
 from openai import Ollama
 from typing import List, Dict, Tuple, Any
 from urllib.parse import quote_plus
@@ -7,7 +8,9 @@ import numpy as np
 import os
 import re
 import requests
+import shutil
 import time
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

@@ -2,6 +2,7 @@ from autogen import ConversableAgent
 from autogen.coding import CodeBlock, LocalCommandLineCodeExecutor
 from autogen.coding.func_with_reqs import Alias, ImportFromModule, with_requirements
 from autogen.coding.func_with_reqs import with_requirements
+from jet.logger import CustomLogger
 from pandas import DataFrame
 from pandas import DataFrame as df
 from pathlib import Path
@@ -10,6 +11,8 @@ from {LocalCommandLineCodeExecutor.FUNCTIONS_MODULE} import load_data
 import os
 import pandas
 import pandas as pd
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

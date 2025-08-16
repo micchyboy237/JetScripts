@@ -4,12 +4,15 @@ from autogen.agentchat.contrib.agent_optimizer import AgentOptimizer
 from autogen.agentchat.contrib.math_user_proxy_agent import MathUserProxyAgent
 from autogen.code_utils import extract_code
 from autogen.math_utils import get_answer
+from jet.logger import CustomLogger
 from openai import BadRequestError
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 import autogen
 import copy
 import json
 import os
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

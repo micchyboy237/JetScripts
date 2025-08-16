@@ -9,14 +9,17 @@ from autogen_ext.models.openai import OllamaChatCompletionClient
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+from jet.logger import CustomLogger
 from pytz import timezone  # type: ignore
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
 import requests
+import shutil
 import time
 import yfinance as yf
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

@@ -4,8 +4,12 @@ from autogen_core import CancellationToken
 from autogen_core.code_executor import CodeBlock
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from jet.logger import CustomLogger
 from pathlib import Path
+import os
+import shutil
 import venv
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

@@ -47,6 +47,7 @@ from autogen_ext.models.cache import ChatCompletionCache, CHAT_CACHE_VALUE_TYPE
 from autogen_ext.models.openai import AzureOllamaChatCompletionClient
 from autogen_ext.models.openai import OllamaChatCompletionClient
 from diskcache import Cache
+from jet.logger import CustomLogger
 from pathlib import Path
 from typing import Any, Dict, List, Literal
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -54,7 +55,9 @@ from typing import Sequence
 import asyncio
 import json
 import os
+import shutil
 import tempfile
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

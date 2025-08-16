@@ -1,4 +1,5 @@
 from PIL import Image
+from jet.logger import CustomLogger
 from openai import Ollama
 import base64
 import fitz
@@ -9,6 +10,7 @@ import os
 import re
 import shutil
 import tempfile
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

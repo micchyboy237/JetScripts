@@ -1,14 +1,18 @@
+from jet.logger import CustomLogger
 from openai import Ollama     # Client library for Nebius API interaction
 from sklearn.metrics.pairwise import cosine_similarity # For calculating similarity score
 from tqdm.notebook import tqdm # Library for displaying progress bars
 import faiss                  # Library for fast vector similarity search
 import itertools              # For creating parameter combinations easily
 import numpy as np            # Numerical library for vector operations
+import os
 import os                     # For accessing environment variables (like API keys)
 import pandas as pd           # Data manipulation library for tables (DataFrames)
 import re                     # For regular expressions (text cleaning)
+import shutil
 import time                   # For timing operations
 import warnings               # For controlling warning messages
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

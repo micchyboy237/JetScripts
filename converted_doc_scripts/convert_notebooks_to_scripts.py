@@ -150,6 +150,10 @@ def move_all_imports_on_top(code: str) -> str:
 
 def add_jet_logger(code: str):
     import_code = """\
+import os
+import shutil
+from jet.logger import CustomLogger
+
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)

@@ -1,6 +1,7 @@
 from autogen.agentchat.contrib.agent_eval.agent_eval import generate_criteria, quantify_criteria
 from autogen.agentchat.contrib.agent_eval.criterion import Criterion
 from autogen.agentchat.contrib.agent_eval.task import Task
+from jet.logger import CustomLogger
 from pathlib import Path
 import autogen
 import json
@@ -8,6 +9,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import scipy.stats as stats
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

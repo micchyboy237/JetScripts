@@ -1,3 +1,4 @@
+from jet.logger import CustomLogger
 from openai import Ollama
 from rank_bm25 import BM25Okapi
 from sklearn.metrics.pairwise import cosine_similarity
@@ -6,7 +7,9 @@ import json
 import numpy as np
 import os
 import re
+import shutil
 import time
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

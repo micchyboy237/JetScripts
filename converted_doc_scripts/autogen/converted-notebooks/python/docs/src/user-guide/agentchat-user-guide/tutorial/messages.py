@@ -3,7 +3,11 @@ from autogen_agentchat.messages import MultiModalMessage
 from autogen_agentchat.messages import TextMessage
 from autogen_core import Image as AGImage
 from io import BytesIO
+from jet.logger import CustomLogger
+import os
 import requests
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

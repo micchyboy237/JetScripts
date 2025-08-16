@@ -1,6 +1,10 @@
 from autogen.agentchat.contrib.web_surfer import WebSurferAgent  # noqa: E402
+from jet.logger import CustomLogger
 import autogen  # noqa: E402
+import os
 import os  # noqa: E402
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

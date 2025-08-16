@@ -22,11 +22,15 @@ from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 from autogen_ext.models.openai import OllamaChatCompletionClient
 from autogen_ext.tools.code_execution import PythonCodeExecutionTool
 from dataclasses import dataclass
+from jet.logger import CustomLogger
 from typing import List
 from typing_extensions import Annotated
 import asyncio
 import json
+import os
 import random
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

@@ -4,6 +4,7 @@ from autogen_core import AgentId, MessageContext, RoutedAgent, SingleThreadedAge
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from jet.llm.ollama.base import Ollama
 from jet.llm.ollama.base import OllamaEmbedding
+from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core.agent import ReActAgent
 from llama_index.core.agent.runner.base import AgentRunner
@@ -20,6 +21,8 @@ from llama_index.tools.wikipedia import WikipediaToolSpec
 from pydantic import BaseModel
 from typing import List, Optional
 import os
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

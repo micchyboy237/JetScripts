@@ -3,12 +3,15 @@ from autogen import AssistantAgent
 from autogen import ConversableAgent
 from autogen.coding import DockerCommandLineCodeExecutor
 from autogen.coding import LocalCommandLineCodeExecutor
+from jet.logger import CustomLogger
 import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pprint
+import shutil
 import tempfile
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

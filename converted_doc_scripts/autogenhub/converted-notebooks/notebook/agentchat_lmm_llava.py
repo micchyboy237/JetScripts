@@ -1,6 +1,7 @@
 from PIL import Image
 from autogen import Agent, AssistantAgent, ConversableAgent, UserProxyAgent
 from autogen.agentchat.contrib.llava_agent import LLaVAAgent, llava_call
+from jet.logger import CustomLogger
 from termcolor import colored
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 import autogen
@@ -10,7 +11,9 @@ import os
 import random
 import replicate
 import requests
+import shutil
 import time
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

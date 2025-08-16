@@ -1,5 +1,9 @@
+from jet.logger import CustomLogger
 import GalleryPage from '../src/components/GalleryPage';
+import os
+import shutil
 import {findAllNotebooks} from '../src/components/NotebookUtils';
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

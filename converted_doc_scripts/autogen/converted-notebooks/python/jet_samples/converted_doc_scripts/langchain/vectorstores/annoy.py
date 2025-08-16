@@ -1,11 +1,15 @@
 from annoy import AnnoyIndex
+from jet.logger import CustomLogger
 from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Annoy
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import CharacterTextSplitter
+import os
+import shutil
 import uuid
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

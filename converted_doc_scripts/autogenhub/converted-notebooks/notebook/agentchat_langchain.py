@@ -1,3 +1,4 @@
+from jet.logger import CustomLogger
 from langchain.agents import create_spark_sql_agent
 from langchain.agents.agent_toolkits import SparkSQLToolkit
 from langchain.chat_models import ChatOllama
@@ -10,6 +11,8 @@ from typing import Optional, Type
 import autogen
 import math
 import os
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

@@ -7,7 +7,11 @@ from autogen_agentchat.ui import Console
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.models.openai import OllamaChatCompletionClient
 from autogen_ext.teams.magentic_one import MagenticOne
+from jet.logger import CustomLogger
 import asyncio
+import os
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

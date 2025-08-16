@@ -4,11 +4,15 @@ from autogen.agentchat.contrib.capabilities.vision_capability import VisionCapab
 from autogen.agentchat.contrib.img_utils import get_pil_image, pil_to_data_uri
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 from autogen.code_utils import content_str
+from jet.logger import CustomLogger
 from typing import Annotated, Literal
 from typing import Literal
 from typing_extensions import Annotated
 import autogen
 import json
+import os
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

@@ -1,9 +1,12 @@
+from jet.logger import CustomLogger
 from openai import Ollama
 from tqdm import tqdm
 import fitz
 import json
 import numpy as np
 import os
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

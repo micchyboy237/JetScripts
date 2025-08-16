@@ -3,9 +3,12 @@ from autogen.code_utils import create_virtual_env
 from autogen.coding import CodeBlock, DockerCommandLineCodeExecutor
 from autogen.coding import CodeBlock, LocalCommandLineCodeExecutor
 from autogen.coding import DockerCommandLineCodeExecutor
+from jet.logger import CustomLogger
 from pathlib import Path
 import os
 import pprint
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

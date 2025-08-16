@@ -1,3 +1,4 @@
+from jet.logger import CustomLogger
 from llama_index.core import (
 SimpleDirectoryReader,
 VectorStoreIndex,
@@ -35,6 +36,8 @@ column,
 from typing import Sequence, List
 import json
 import os
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

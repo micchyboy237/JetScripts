@@ -2,11 +2,14 @@ from autogen.agentchat.assistant_agent import AssistantAgent  # noqa E402
 from autogen.agentchat.conversable_agent import ConversableAgent  # noqa E402
 from autogen.agentchat.groupchat import GroupChat  # noqa E402
 from autogen.graph_utils import visualize_speaker_transitions_dict  # noqa E402
+from jet.logger import CustomLogger
 import autogen  # noqa E402
 import matplotlib.pyplot as plt  # noqa E402
 import networkx as nx  # noqa E402
 import os
 import random  # noqa E402
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

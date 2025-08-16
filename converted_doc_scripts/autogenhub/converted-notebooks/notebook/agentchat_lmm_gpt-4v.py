@@ -4,6 +4,7 @@ from autogen.agentchat.contrib.capabilities.vision_capability import VisionCapab
 from autogen.agentchat.contrib.img_utils import get_pil_image, pil_to_data_uri
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 from autogen.code_utils import content_str
+from jet.logger import CustomLogger
 from termcolor import colored
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 import autogen
@@ -13,7 +14,9 @@ import numpy as np
 import os
 import random
 import requests
+import shutil
 import time
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

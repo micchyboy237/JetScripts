@@ -4,11 +4,14 @@ from autogen.agentchat.contrib.img_utils import _to_pil, get_image_data
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
+from jet.logger import CustomLogger
 from termcolor import colored
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 import autogen
 import chromadb
 import os
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

@@ -3,6 +3,7 @@ from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalCon
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 from autogen.coding import LocalCommandLineCodeExecutor
 from flaml import AutoML
+from jet.logger import CustomLogger
 from sklearn.datasets import fetch_california_housing
 from sklearn.datasets import make_regression
 from sklearn.linear_model import LinearRegression
@@ -13,9 +14,12 @@ import flaml.visualization as fviz
 import httpx
 import matplotlib.pyplot as plt
 import numpy as np
+import os
+import shutil
 import tempfile
 import time
 import types
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

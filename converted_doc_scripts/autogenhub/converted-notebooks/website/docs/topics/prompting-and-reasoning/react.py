@@ -2,9 +2,12 @@ from autogen import AssistantAgent, UserProxyAgent, config_list_from_json, regis
 from autogen.agentchat.contrib.capabilities import teachability
 from autogen.cache import Cache
 from autogen.coding import DockerCommandLineCodeExecutor, LocalCommandLineCodeExecutor
+from jet.logger import CustomLogger
 from tavily import TavilyClient
 from typing import Annotated
 import os
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

@@ -1,11 +1,15 @@
 from autogen.code_utils import extract_code
 from eventlet.timeout import Timeout
 from gurobipy import GRB
+from jet.logger import CustomLogger
 from termcolor import colored
 from typing import Union
 import autogen
+import os
 import re
 import requests  # for loading the example source code
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

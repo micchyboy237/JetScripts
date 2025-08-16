@@ -13,12 +13,15 @@ from autogen_ext.models.openai import OllamaChatCompletionClient
 from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
 from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential
+from jet.logger import CustomLogger
 from pathlib import Path
 from semantic_kernel import Kernel
 from semantic_kernel.connectors.ai.anthropic import AnthropicChatCompletion, AnthropicChatPromptExecutionSettings
 from semantic_kernel.memory.null_memory import NullMemory
 import logging
 import os
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

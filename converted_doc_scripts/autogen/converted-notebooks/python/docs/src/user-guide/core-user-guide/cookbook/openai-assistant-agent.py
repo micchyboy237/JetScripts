@@ -3,6 +3,7 @@ from jet.transformers.formatters import format_json
 from autogen_core import AgentId, MessageContext, RoutedAgent, message_handler
 from autogen_core import SingleThreadedAgentRuntime
 from dataclasses import dataclass
+from jet.logger import CustomLogger
 from openai import AsyncAssistantEventHandler, AsyncClient
 from openai.types.beta.thread import ToolResources, ToolResourcesFileSearch
 from openai.types.beta.threads import Message, Text, TextDelta
@@ -15,6 +16,8 @@ import logging
 import openai
 import os
 import requests
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

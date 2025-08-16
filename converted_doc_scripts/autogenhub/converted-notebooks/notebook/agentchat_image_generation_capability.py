@@ -4,10 +4,13 @@ from autogen.agentchat.contrib import img_utils
 from autogen.agentchat.contrib.capabilities import generate_images
 from autogen.cache import Cache
 from autogen.oai import openai_utils
+from jet.logger import CustomLogger
 from typing import Dict, Optional
 import autogen
 import os
 import re
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

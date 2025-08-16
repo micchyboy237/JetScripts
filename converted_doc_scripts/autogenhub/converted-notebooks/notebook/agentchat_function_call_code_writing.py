@@ -1,9 +1,12 @@
 from fastapi import FastAPI
+from jet.logger import CustomLogger
 from spread_calculation import calculate_daily_spread
 from typing_extensions import Annotated
 import autogen
 import os
+import shutil
 import yfinance as yf
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

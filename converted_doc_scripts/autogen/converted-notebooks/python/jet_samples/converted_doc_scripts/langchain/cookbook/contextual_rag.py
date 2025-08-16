@@ -1,4 +1,5 @@
 from jet.llm.ollama.base_langchain import AzureChatOllama, AzureOllamaEmbeddings
+from jet.logger import CustomLogger
 from langchain.docstore.document import Document
 from langchain.document_loaders import TextLoader
 from langchain.prompts import PromptTemplate
@@ -17,9 +18,11 @@ import numpy as np
 import os
 import pandas as pd
 import re
+import shutil
 import tqdm as tqdm
 import uuid
 import warnings
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

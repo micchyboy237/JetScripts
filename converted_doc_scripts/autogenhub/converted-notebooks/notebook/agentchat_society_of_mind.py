@@ -1,5 +1,9 @@
 from autogen.agentchat.contrib.society_of_mind_agent import SocietyOfMindAgent  # noqa: E402
+from jet.logger import CustomLogger
 import autogen  # noqa: E402
+import os
+import shutil
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

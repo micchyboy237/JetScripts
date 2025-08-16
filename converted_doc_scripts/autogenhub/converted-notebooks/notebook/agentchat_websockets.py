@@ -6,11 +6,15 @@ from datetime import datetime
 from fastapi import FastAPI  # noqa: E402
 from fastapi.responses import HTMLResponse  # noqa: E402
 from http.server import HTTPServer, SimpleHTTPRequestHandler  # noqa: E402
+from jet.logger import CustomLogger
 from pathlib import Path  # noqa: E402
 from tempfile import TemporaryDirectory
 from websockets.sync.client import connect as ws_connect
 import autogen
+import os
+import shutil
 import uvicorn  # noqa: E402
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
