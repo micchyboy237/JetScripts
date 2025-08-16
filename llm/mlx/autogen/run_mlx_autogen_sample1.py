@@ -2,7 +2,8 @@
 # This scenario will simulate querying a database for user details, and then using the AssistantAgent to handle the task.
 
 import json
-import logging
+import os
+import shutil
 
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import AssistantAgent
@@ -14,12 +15,18 @@ from autogen_core.models import (
 )
 from autogen_core.models._model_client import ModelFamily
 from autogen_core.tools import FunctionTool
+from jet.file.utils import save_file
 from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 # Simulate a database query tool
+
+
 async def query_user_data(user_id: str) -> str:
     # In real-world, this would involve querying a database
     user_data = {
@@ -36,7 +43,8 @@ async def greet_user(user_id: str) -> str:
 
 
 async def main():
-    model_client = MLXChatCompletionClient(model="qwen3-1.7b-4bit")
+    model_client = MLXChatCompletionClient(
+        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
     tools = [
         FunctionTool(query_user_data, description="Query User Data"),
         FunctionTool(greet_user, description="Greet User"),
@@ -53,6 +61,7 @@ async def main():
 
     # Output the result
     logger.success("Result messages:", format_json(result))
+    save_file(result, f"{OUTPUT_DIR}/task_result.json")
 
 if __name__ == "__main__":
     import asyncio
