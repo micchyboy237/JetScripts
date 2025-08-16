@@ -267,8 +267,6 @@ if __name__ == "__main__":
     """Main function to run all advanced examples."""
     client = MLX()
 
-    logger.info("\n=== Chat with Tools Example ===")
-    chat_with_tools_example(client)
     logger.info("\n=== Encode/Decode Example ===")
     encode_decode_example(client)
     logger.info("\n=== Chat with Logit Bias Example ===")
@@ -277,6 +275,8 @@ if __name__ == "__main__":
     advanced_chat_with_logprobs_example(client)
     logger.info("\n=== Chat with Role Mapping Example ===")
     chat_with_role_mapping_example(client)
+    logger.info("\n=== Chat with Tools Example ===")
+    chat_with_tools_example(client)
     logger.info("\n=== Streaming Chat with Stop Tokens Example ===")
     streaming_chat_with_stop_example(client)
     logger.info("\n=== Streaming Chat with Temperature Example ===")
