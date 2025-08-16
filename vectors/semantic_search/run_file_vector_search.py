@@ -29,9 +29,10 @@ def print_results(query: str, results: List[FileSearchResult], split_chunks: boo
 
 def main():
     """Main function to demonstrate file search."""
-    query = "MLX Tool Call"
+    query = "MLX Tool or Function Call"
     directories = [
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects",
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts",
         # "/Users/jethroestrada/Desktop/External_Projects/AI",
     ]
 
