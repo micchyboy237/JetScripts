@@ -7,6 +7,7 @@ from jet.models.model_registry.transformers.sentence_transformer_registry import
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.tokenizer.base import get_tokenizer_fn
 from jet.utils.language import detect_lang
+from jet.utils.text import format_sub_dir
 from jet.vectors.semantic_search.file_vector_search import FileSearchResult, merge_results, search_files
 
 
@@ -28,29 +29,15 @@ def print_results(query: str, results: List[FileSearchResult], split_chunks: boo
 
 def main():
     """Main function to demonstrate file search."""
-    # Example usage
+    query = "MLX Autogen"
     directories = [
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_notes",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/vectors",
-        "/Users/jethroestrada/Desktop/External_Projects/AI",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/open-webui",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/rag-all-techniques",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/mlx-examples",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/mpi4py",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/rag-cookbooks",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/haystack-cookbook",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/ragas",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/RAG_Techniques",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/haystack-cookbook",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_07_2025/ai-agents-for-beginners",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogen",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogenhub",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI",
     ]
 
-    query = "RAG Agents"
-    extensions = [".md"]
+    output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
+
+    extensions = [".py"]
     embed_model: EmbedModelType = "static-retrieval-mrl-en-v1"
     llm_model: LLMModelType = "qwen3-1.7b-4bit"
 
@@ -101,7 +88,7 @@ def main():
         "count": len(with_split_chunks_results),
         "merged": not split_chunks,
         "results": with_split_chunks_results
-    }, f"{OUTPUT_DIR}/results_{'split' if split_chunks else 'merged'}.json")
+    }, f"{output_dir}/results_{'split' if split_chunks else 'merged'}.json")
 
     split_chunks = False
     without_split_chunks_results = merge_results(
@@ -112,7 +99,7 @@ def main():
         "count": len(without_split_chunks_results),
         "merged": not split_chunks,
         "results": without_split_chunks_results
-    }, f"{OUTPUT_DIR}/results_{'split' if split_chunks else 'merged'}.json")
+    }, f"{output_dir}/results_{'split' if split_chunks else 'merged'}.json")
 
 
 if __name__ == "__main__":

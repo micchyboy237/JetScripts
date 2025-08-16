@@ -14,7 +14,7 @@ from autogen_core.models import (
 )
 from autogen_core.models._model_client import ModelFamily
 from autogen_core.tools import FunctionTool
-from autogen_ext.models.ollama import OllamaChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 
@@ -36,7 +36,7 @@ async def greet_user(user_id: str) -> str:
 
 
 async def main():
-    model_client = OllamaChatCompletionClient(model="llama3.2")
+    model_client = MLXChatCompletionClient(model="qwen3-1.7b-4bit")
 
     agent = AssistantAgent(
         "user_data_agent",
