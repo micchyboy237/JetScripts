@@ -4,7 +4,6 @@ from autogen.agentchat.contrib.agent_optimizer import AgentOptimizer
 from autogen.agentchat.contrib.math_user_proxy_agent import MathUserProxyAgent
 from autogen.code_utils import extract_code
 from autogen.math_utils import get_answer
-from jet.logger import CustomLogger
 from openai import BadRequestError
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 import autogen
@@ -12,8 +11,10 @@ import copy
 import json
 import os
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 

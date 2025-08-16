@@ -4,7 +4,6 @@ from autogen.agentchat.contrib.img_utils import _to_pil, get_image_data
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
-from jet.logger import CustomLogger
 from termcolor import colored
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 from vertexai.generative_models import HarmBlockThreshold, HarmCategory
@@ -13,8 +12,10 @@ import chromadb
 import google.auth
 import os
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 

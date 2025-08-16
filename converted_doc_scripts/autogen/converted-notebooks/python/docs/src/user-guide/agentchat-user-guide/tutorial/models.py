@@ -13,7 +13,6 @@ from autogen_ext.models.openai import OllamaChatCompletionClient
 from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
 from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential
-from jet.logger import CustomLogger
 from pathlib import Path
 from semantic_kernel import Kernel
 from semantic_kernel.connectors.ai.anthropic import AnthropicChatCompletion, AnthropicChatPromptExecutionSettings
@@ -21,8 +20,10 @@ from semantic_kernel.memory.null_memory import NullMemory
 import logging
 import os
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 

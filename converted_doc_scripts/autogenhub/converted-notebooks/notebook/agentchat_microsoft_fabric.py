@@ -3,7 +3,6 @@ from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalCon
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 from autogen.coding import LocalCommandLineCodeExecutor
 from flaml import AutoML
-from jet.logger import CustomLogger
 from sklearn.datasets import fetch_california_housing
 from sklearn.datasets import make_regression
 from sklearn.linear_model import LinearRegression
@@ -14,13 +13,14 @@ import flaml.visualization as fviz
 import httpx
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import tempfile
 import time
 import types
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
