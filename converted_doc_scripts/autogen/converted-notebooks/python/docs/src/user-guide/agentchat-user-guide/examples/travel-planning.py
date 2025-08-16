@@ -1,22 +1,23 @@
 import asyncio
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.ui import Console
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from jet.logger import CustomLogger
 import os
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# Travel Planning 
+# Travel Planning
 
-In this example, we'll walk through the process of creating a sophisticated travel planning system using AgentChat. Our travel planner will utilize multiple AI agents, each with a specific role, to collaboratively create a comprehensive travel itinerary.  
+In this example, we'll walk through the process of creating a sophisticated travel planning system using AgentChat. Our travel planner will utilize multiple AI agents, each with a specific role, to collaboratively create a comprehensive travel itinerary.
 
 First, let us import the necessary modules.
 """
@@ -24,13 +25,14 @@ logger.info("# Travel Planning")
 
 
 """
-### Defining Agents 
+### Defining Agents
 
 In the next section we will define the agents that will be used in the travel planning team.
 """
 logger.info("### Defining Agents")
 
-model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+model_client = MLXChatCompletionClient(
+    model="mlx-community/Llama-3.2-3B-Instruct-4bit")
 
 planner_agent = AssistantAgent(
     "planner_agent",
@@ -62,18 +64,20 @@ travel_summary_agent = AssistantAgent(
 
 termination = TextMentionTermination("TERMINATE")
 group_chat = RoundRobinGroupChat(
-    [planner_agent, local_agent, language_agent, travel_summary_agent], termination_condition=termination
+    [planner_agent, local_agent, language_agent,
+        travel_summary_agent], termination_condition=termination
 )
+
+
 async def run_async_code_21ea603f():
     await Console(group_chat.run_stream(task="Plan a 3 day trip to Nepal."))
-    return 
- = asyncio.run(run_async_code_21ea603f())
-logger.success(format_json())
+    return
+asyncio.run(run_async_code_21ea603f())
+
 
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
-logger.success(format_json())
+    return
+asyncio.run(run_async_code_0349fda4())
 
 logger.info("\n\n[DONE]", bright=True)
