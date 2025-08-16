@@ -610,22 +610,14 @@ if __name__ == "__main__":
         "/Users/jethroestrada/Desktop/External_Projects/AI/eval_agents",
         "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025",
         "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples_07_2025",
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/all-rag-techniques",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/RAG_Techniques/all_rag_techniques",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/RAG_Techniques/evaluation",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/rag-cookbooks",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/RAG_Techniques/all_rag_techniques",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples_07_2025/ai-agents-for-beginners",
     ]
-    include_files = [
-        # "memgraph.ipynb",
-        # "22_Big_data_with_KG.ipynb",
-    ]
-    exclude_files = [
-        # "migrating_memory/",
-    ]
+    include_files = []
+    exclude_files = []
     extension_mappings = [
         {"ext": [".ipynb"], "output_base_dir": "converted-notebooks"},
         {"ext": [".md", ".mdx"], "output_base_dir": "converted-markdowns"},
@@ -647,10 +639,18 @@ if __name__ == "__main__":
             continue
         for ext_mapping in extension_mappings:
             extensions = ext_mapping["ext"]
+            # Calculate relative path from matching_repo_dir to input_base_dir
+            repo_path = os.path.join(
+                [base for base in repo_base_dir if input_base_dir.startswith(
+                    os.path.join(base, matching_repo_dir))][0],
+                matching_repo_dir
+            )
+            relative_path = os.path.relpath(input_base_dir, repo_path)
             output_dir = os.path.join(
                 output_base_dir,
                 matching_repo_dir,
-                os.path.basename(input_base_dir),
+                ext_mapping["output_base_dir"],
+                relative_path,
             )
             files = scrape_code(
                 input_base_dir,
