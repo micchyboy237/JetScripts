@@ -1,4 +1,5 @@
 import os
+import shutil
 from typing import List
 from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
 from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
@@ -11,6 +12,7 @@ from jet.vectors.semantic_search.header_vector_search import HeaderSearchResult,
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 
 def save_results(query: str, results: List[HeaderSearchResult], merge_chunks: bool):
