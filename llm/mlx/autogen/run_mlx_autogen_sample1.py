@@ -44,16 +44,19 @@ async def greet_user(user_id: str) -> str:
 
 async def main():
     model_client = MLXChatCompletionClient(
-        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
-    tools = [
-        FunctionTool(query_user_data, description="Query User Data"),
-        FunctionTool(greet_user, description="Greet User"),
-    ]
+        model="llama-3.2-3b-instruct-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    query_user_data_tool = FunctionTool(
+        query_user_data, description="Query User Data")
+    greet_user_tool = FunctionTool(greet_user, description="Greet User")
 
     agent = AssistantAgent(
         "user_data_agent",
         model_client=model_client,
-        tools=tools,
+        tools=[
+            query_user_data_tool,
+            greet_user_tool
+        ],
+        reflect_on_tool_use=True,
     )
 
     # Run the agent with the user_id task
