@@ -614,7 +614,9 @@ if __name__ == "__main__":
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples_07_2025/ai-agents-for-beginners",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogen",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogenhub",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_07_2025/ai-agents-for-beginners",
     ]
     include_files = []
     exclude_files = []

@@ -1,0 +1,121 @@
+from autogen import UserProxyAgent
+from autogen.coding import DockerCommandLineCodeExecutor
+from jet.logger import CustomLogger
+from pathlib import Path
+import TabItem from '@theme/TabItem';
+import Tabs from '@theme/Tabs';
+import os
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+logger = CustomLogger(log_file, overwrite=True)
+logger.info(f"Logs: {log_file}")
+
+"""
+
+# Installation
+
+## Create a virtual environment (optional)
+
+When installing AutoGen locally, we recommend using a virtual environment for the installation. This will ensure that the dependencies for AutoGen are isolated from the rest of your system.
+
+<Tabs>
+  <TabItem value="venv" label="venv" default>
+
+    Create and activate:
+
+    ```bash
+    python3 -m venv autogen
+    source autogen/bin/activate
+    ```
+
+    To deactivate later, run:
+
+    ```bash
+    deactivate
+    ```
+
+  </TabItem>
+  <TabItem value="conda" label="Conda">
+
+    [Install Conda](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html) if you have not already.
+
+
+    Create and activate:
+
+    ```bash
+    conda create -n autogen python=3.10
+    conda activate autogen
+    ```
+
+    To deactivate later, run:
+
+    ```bash
+    conda deactivate
+    ```
+
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+
+    [Install Poetry](https://python-poetry.org/docs/#installation) if you have not already.
+
+    Create and activate:
+    ```bash
+    poetry init
+    poetry shell
+
+    poetry add autogen
+    ```
+
+    To deactivate later, run:
+
+    ```bash
+    exit
+    ```
+
+  </TabItem>
+</Tabs>
+
+## Install AutoGen
+
+AutoGen requires **Python version >= 3.8, < 3.13**. It can be installed from pip:
+"""
+logger.info("# Installation")
+
+pip install autogen
+
+"""
+:::info
+
+`openai>=1` is required.
+
+:::
+
+## Install Docker for Code Execution
+
+We recommend using Docker for code execution.
+To install Docker, follow the instructions for your operating system on the [Docker website](https://docs.docker.com/get-docker/).
+
+A simple example of how to use Docker for code execution is shown below:
+"""
+logger.info("## Install Docker for Code Execution")
+
+
+work_dir = Path("coding")
+work_dir.mkdir(exist_ok=True)
+
+with DockerCommandLineCodeExecutor(work_dir=work_dir) as code_executor:
+    user_proxy = UserProxyAgent(
+        name="user_proxy",
+        code_execution_config={"executor": code_executor},
+    )
+
+"""
+To learn more about code executors, see the [code executors tutorial](/docs/tutorial/code-executors).
+
+You might have seen a different way of defining the executors without creating the
+executor object, please refer to FAQ for this [legacy code executor](/docs/FAQ#legacy-code-executor).
+"""
+logger.info("To learn more about code executors, see the [code executors tutorial](/docs/tutorial/code-executors).")
+
+logger.info("\n\n[DONE]", bright=True)

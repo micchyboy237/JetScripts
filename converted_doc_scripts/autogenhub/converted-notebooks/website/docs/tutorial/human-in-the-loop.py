@@ -1,0 +1,183 @@
+from autogen import ConversableAgent
+from jet.logger import CustomLogger
+import os
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+logger = CustomLogger(log_file, overwrite=True)
+logger.info(f"Logs: {log_file}")
+
+"""
+# Allowing Human Feedback in Agents
+
+In the last two chapters we introduced the `ConversableAgent` class and showed how you can use it to create autonomous (`human_input_mode=NEVER`) agents that can accomplish tasks. We also showed how to properly terminate a conversation between agents.
+
+But many applications may require putting humans in-the-loop with agents. For example, to allow human feedback to steer agents in the right direction, specify goals, etc. In this chapter, we will show how AutoGen supports human intervention.
+
+In AutoGen's `ConversableAgent`, the human-in-the-loop component sits in front
+of the auto-reply components. It can intercept the incoming messages and
+decide whether to pass them to the auto-reply components or to provide
+human feedback. The figure below illustrates the design.
+
+```{=mdx}
+![Human in the loop](./assets/human-in-the-loop.png)
+```
+
+The human-in-the-loop component can be customized through the `human_input_mode` parameter.
+We will show you how to use it in the following sections.
+
+## Human Input Modes
+
+Currently AutoGen supports three modes for human input. The mode is specified through
+the `human_input_mode` argument of the `ConversableAgent`. The three modes are:
+
+1. `NEVER`: human input is never requested.
+2. `TERMINATE` (default): human input is only requested when a termination condition is
+    met. Note that in this mode if the human chooses to intercept and reply, the conversation continues
+    and the counter used by `max_consecutive_auto_reply` is reset.
+3. `ALWAYS`: human input is always requested and the human can choose to skip and trigger an auto-reply,
+    intercept and provide feedback, or terminate the conversation. Note that in this mode
+    termination based on `max_consecutive_auto_reply` is ignored.
+
+The previous chapters already showed many examples of the cases when `human_input_mode` is `NEVER`. 
+Below we show one such example again and then show the differences when this mode is set to `ALWAYS` and `TERMINATE` instead.
+
+## Human Input Mode = `NEVER`
+
+In this mode, human input is never requested and the termination conditions
+are used to terminate.
+This mode is useful when you want your agents to act fully autonomously.
+
+Here is an example of using this mode to run a simple guess-a-number game between
+two agents, the termination message is set to check for the 
+number that is the correct guess.
+"""
+logger.info("# Allowing Human Feedback in Agents")
+
+
+
+agent_with_number = ConversableAgent(
+    "agent_with_number",
+    system_message="You are playing a game of guess-my-number. You have the "
+    "number 53 in your mind, and I will try to guess it. "
+    "If I guess too high, say 'too high', if I guess too low, say 'too low'. ",
+#     llm_config={"config_list": [{"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}]},
+    is_termination_msg=lambda msg: "53" in msg["content"],  # terminate if the number is guessed by the other agent
+    human_input_mode="NEVER",  # never ask for human input
+)
+
+agent_guess_number = ConversableAgent(
+    "agent_guess_number",
+    system_message="I have a number in my mind, and you will try to guess it. "
+    "If I say 'too high', you should guess a lower number. If I say 'too low', "
+    "you should guess a higher number. ",
+#     llm_config={"config_list": [{"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}]},
+    human_input_mode="NEVER",
+)
+
+result = agent_with_number.initiate_chat(
+    agent_guess_number,
+    message="I have a number between 1 and 100. Guess it!",
+)
+
+"""
+Yay! The game is over. The guessing agent got the number correctly 
+using binary search -- very efficient!
+You can see that the conversation was terminated after the guessing agent
+said the correct number, which triggered 
+the message-based termination condition.
+
+## Human Input Mode = `ALWAYS`
+
+In this mode, human input is always requested and the human can choose to skip,
+intercept , or terminate the conversation.
+Let us see this mode in action by playing the same game as before with the agent with the number, but this time
+participating in the game as a human.
+We will be the agent that is guessing the number, and play against the agent
+with the number from before.
+"""
+logger.info("## Human Input Mode = `ALWAYS`")
+
+human_proxy = ConversableAgent(
+    "human_proxy",
+    llm_config=False,  # no LLM used for human proxy
+    human_input_mode="ALWAYS",  # always ask for human input
+)
+
+result = human_proxy.initiate_chat(
+    agent_with_number,  # this is the same agent with the number as before
+    message="10",
+)
+
+"""
+If you run the code above, you will be prompt to enter a response
+each time it is your turn to speak. You can see the human in the conversation
+was not very good at guessing the number... but hey the agent was nice enough
+to give out the number in the end.
+
+## Human Input Mode = `TERMINATE`
+
+In this mode, human input is only requested when a termination condition is
+met. **If the human chooses to intercept and reply, the counter will be reset**; if 
+the human chooses to skip, the automatic reply mechanism will be used; if the human
+chooses to terminate, the conversation will be terminated.
+
+Let us see this mode in action by playing the same game again, but this time
+the guessing agent will only have two chances to guess the number, and if it 
+fails, the human will be asked to provide feedback,
+and the guessing agent gets two more chances.
+If the correct number is guessed eventually, the conversation will be terminated.
+"""
+logger.info("## Human Input Mode = `TERMINATE`")
+
+agent_with_number = ConversableAgent(
+    "agent_with_number",
+    system_message="You are playing a game of guess-my-number. "
+    "In the first game, you have the "
+    "number 53 in your mind, and I will try to guess it. "
+    "If I guess too high, say 'too high', if I guess too low, say 'too low'. ",
+#     llm_config={"config_list": [{"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}]},
+    max_consecutive_auto_reply=1,  # maximum number of consecutive auto-replies before asking for human input
+    is_termination_msg=lambda msg: "53" in msg["content"],  # terminate if the number is guessed by the other agent
+    human_input_mode="TERMINATE",  # ask for human input until the game is terminated
+)
+
+agent_guess_number = ConversableAgent(
+    "agent_guess_number",
+    system_message="I have a number in my mind, and you will try to guess it. "
+    "If I say 'too high', you should guess a lower number. If I say 'too low', "
+    "you should guess a higher number. ",
+#     llm_config={"config_list": [{"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}]},
+    human_input_mode="NEVER",
+)
+
+result = agent_with_number.initiate_chat(
+    agent_guess_number,
+    message="I have a number between 1 and 100. Guess it!",
+)
+
+"""
+In the previous conversation,
+
+1. When the agent guessed "74", the human said "It is too high my friend."
+2. When the agent guessed "55", the human said "still too high, but you are very close."
+3. When the agent guessed "54", the human said "Almost there!"
+
+Each time after one auto-reply from the agent with the number,
+the human was asked to provide feedback.
+Once the human provided feedback, the counter was reset.
+The conversation was terminated after the agent correctly guessed "53".
+
+## Summary
+
+In this chapter, we showed you how to use the human-in-the-loop component
+to provide human feedback to agent and to terminate conversation.
+We also showed you the different human input modes and how they affect
+the behavior of the human-in-the-loop component.
+
+The next chapter will be all about code executor -- the most powerful
+component second only to LLMs.
+"""
+logger.info("## Summary")
+
+logger.info("\n\n[DONE]", bright=True)

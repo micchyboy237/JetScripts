@@ -2,13 +2,14 @@
 
 import json
 
+from jet.models.model_types import LLMModelType
 from mlx_lm import generate, stream_generate, load
 from mlx_lm.models.cache import make_prompt_cache
 from jet.transformers.formatters import format_json
 from jet.logger import logger
 
 # Specify the checkpoint
-checkpoint = "mlx-community/Llama-3.2-3B-Instruct-4bit"
+checkpoint: LLMModelType = "mlx-community/Llama-3.2-3B-Instruct-4bit"
 
 # Load the corresponding model and tokenizer
 model, tokenizer = load(path_or_hf_repo=checkpoint)

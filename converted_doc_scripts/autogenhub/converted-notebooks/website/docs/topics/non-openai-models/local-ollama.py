@@ -1,0 +1,379 @@
+from autogen import AssistantAgent, UserProxyAgent
+from autogen.coding import LocalCommandLineCodeExecutor
+from jet.logger import CustomLogger
+from pathlib import Path
+from typing import Literal
+from typing_extensions import Annotated
+import autogen
+import json
+import os
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+logger = CustomLogger(log_file, overwrite=True)
+logger.info(f"Logs: {log_file}")
+
+"""
+# Ollama
+
+[Ollama](https://ollama.com/) is a local inference engine that enables you to run open-weight LLMs in your environment. It has native support for a large number of models such as Google's Gemma, Meta's Llama 2/3/3.1, Microsoft's Phi 3, Mistral.AI's Mistral/Mixtral, and Cohere's Command R models.
+
+Note: Previously, to use Ollama with AutoGen you required LiteLLM. Now it can be used directly and supports tool calling.
+
+## Features
+
+When using this Ollama client class, messages are tailored to accommodate the specific requirements of Ollama's API and this includes message role sequences, support for function/tool calling, and token usage.
+
+## Installing Ollama
+
+For Mac and Windows, [download Ollama](https://ollama.com/download).
+
+For Linux:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+## Downloading models for Ollama
+
+Ollama has a library of models to choose from, see them [here](https://ollama.com/library).
+
+Before you can use a model, you need to download it (using the name of the model from the library):
+
+```bash
+ollama pull llama3.1
+```
+
+To view the models you have downloaded and can use:
+
+```bash
+ollama list
+```
+
+## Getting started with AutoGen and Ollama
+
+When installing AutoGen, you need to install the `pyautogen` package with the Ollama library.
+
+``` bash
+pip install pyautogen[ollama]
+```
+
+See the sample `OAI_CONFIG_LIST` below showing how the Ollama client class is used by specifying the `api_type` as `ollama`.
+
+```python
+[
+    {
+        "model": "llama3.1",
+        "api_type": "ollama"
+    },
+    {
+        "model": "llama3.1:8b-instruct-q6_K",
+        "api_type": "ollama"
+    },
+    {
+        "model": "mistral-nemo",
+        "api_type": "ollama"
+    }
+]
+```
+
+If you need to specify the URL for your Ollama install, use the `client_host` key in your config as per the below example:
+
+```python
+[
+    {
+        "model": "llama3.1",
+        "api_type": "ollama",
+        "client_host": "http://192.168.0.1:11434"
+    }
+]
+```
+
+## API parameters
+
+The following Ollama parameters can be added to your config. See [this link](https://github.com/ollama/ollama/blob/main/docs/api.md#parameters) for further information on them.
+
+- num_predict (integer): -1 is infinite, -2 is fill context, 128 is default
+- repeat_penalty (float)
+- seed (integer)
+- stream (boolean)
+- temperature (float)
+- top_k (int)
+- top_p (float)
+
+Example:
+```python
+[
+    {
+        "model": "llama3.1:instruct",
+        "api_type": "ollama",
+        "num_predict": -1,
+        "repeat_penalty": 1.1,
+        "seed": 42,
+        "stream": False,
+        "temperature": 1,
+        "top_k": 50,
+        "top_p": 0.8
+    }
+]
+```
+
+## Two-Agent Coding Example
+
+In this example, we run a two-agent chat with an AssistantAgent (primarily a coding agent) to generate code to count the number of prime numbers between 1 and 10,000 and then it will be executed.
+
+We'll use Meta's Llama 3.1 model which is suitable for coding.
+
+In this example we will specify the URL for the Ollama installation using `client_host`.
+"""
+logger.info("# Ollama")
+
+config_list = [
+    {
+        "model": "llama3.1:8b",
+        "api_type": "ollama",
+        "stream": False,
+        "client_host": "http://192.168.0.1:11434",
+    }
+]
+
+"""
+Importantly, we have tweaked the system message so that the model doesn't return the termination keyword, which we've changed to FINISH, with the code block.
+"""
+logger.info("Importantly, we have tweaked the system message so that the model doesn't return the termination keyword, which we've changed to FINISH, with the code block.")
+
+
+
+workdir = Path("coding")
+workdir.mkdir(exist_ok=True)
+code_executor = LocalCommandLineCodeExecutor(work_dir=workdir)
+
+
+user_proxy_agent = UserProxyAgent(
+    name="User",
+    code_execution_config={"executor": code_executor},
+    is_termination_msg=lambda msg: "FINISH" in msg.get("content"),
+)
+
+system_message = """You are a helpful AI assistant who writes code and the user
+executes it. Solve tasks using your python coding skills.
+In the following cases, suggest python code (in a python coding block) for the
+user to execute. When using code, you must indicate the script type in the code block.
+You only need to create one working sample.
+Do not suggest incomplete code which requires users to modify it.
+Don't use a code block if it's not intended to be executed by the user. Don't
+include multiple code blocks in one response. Do not ask users to copy and
+paste the result. Instead, use 'print' function for the output when relevant.
+Check the execution result returned by the user.
+
+If the result indicates there is an error, fix the error.
+
+IMPORTANT: If it has executed successfully, ONLY output 'FINISH'."""
+
+assistant_agent = AssistantAgent(
+    name="Ollama Assistant",
+    system_message=system_message,
+    llm_config={"config_list": config_list},
+)
+
+"""
+We can now start the chat.
+"""
+logger.info("We can now start the chat.")
+
+chat_result = user_proxy_agent.initiate_chat(
+    assistant_agent,
+    message="Provide code to count the number of prime numbers from 1 to 10000.",
+)
+
+"""
+## Tool Calling - Native vs Manual
+
+Ollama supports native tool calling (Ollama v0.3.1 library onward). If you install AutoGen with `pip install pyautogen[ollama]` you will be able to use native tool calling.
+
+The parameter `native_tool_calls` in your configuration allows you to specify if you want to use Ollama's native tool calling (default) or manual tool calling.
+
+```python
+[
+    {
+        "model": "llama3.1",
+        "api_type": "ollama",
+        "client_host": "http://192.168.0.1:11434",
+        "native_tool_calls": True # Use Ollama's native tool calling, False for manual
+    }
+]
+```
+
+Native tool calling only works with certain models and an exception will be thrown if you try to use it with an unsupported model.
+
+Manual tool calling allows you to use tool calling with any Ollama model. It incorporates guided tool calling messages into the prompt that guide the LLM through the process of selecting a tool and then evaluating the result of the tool. As to be expected, the ability to follow instructions and return formatted JSON is highly dependent on the model.
+
+You can tailor the manual tool calling messages by adding these parameters to your configuration:
+
+- `manual_tool_call_instruction`
+- `manual_tool_call_step1`
+- `manual_tool_call_step2`
+
+To use manual tool calling set `native_tool_calls` to `False`.
+
+## Reducing repetitive tool calls
+
+By incorporating tools into a conversation, LLMs can often continually recommend them to be called, even after they've been called and a result returned. This can lead to a never ending cycle of tool calls.
+
+To remove the chance of an LLM recommending a tool call, an additional parameter called `hide_tools` can be used to specify when tools are hidden from the LLM. The string values for the parameter are:
+
+- 'never': tools are never hidden
+- 'if_all_run': tools are hidden if all tools have been called
+- 'if_any_run': tools are hidden if any tool has been called
+
+This can be used with native or manual tool calling, an example of a configuration is shown below.
+
+```python
+[
+    {
+        "model": "llama3.1",
+        "api_type": "ollama",
+        "client_host": "http://192.168.0.1:11434",
+        "native_tool_calls": True,
+        "hide_tools": "if_any_run" # Hide tools once any tool has been called
+    }
+]
+```
+
+## Tool Call Example
+
+In this example, instead of writing code, we will have an agent assist with some trip planning using multiple tool calling.
+
+Again, we'll use Meta's versatile Llama 3.1.
+
+Native Ollama tool calling will be used and we'll utilise the `hide_tools` parameter to hide the tools once all have been called.
+"""
+logger.info("## Tool Calling - Native vs Manual")
+
+
+
+
+config_list = [
+    {
+        "model": "llama3.1:8b",
+        "api_type": "ollama",
+        "stream": False,
+        "client_host": "http://192.168.0.1:11434",
+        "hide_tools": "if_any_run",
+    }
+]
+
+"""
+We'll create our agents. Importantly, we're using native Ollama tool calling and to help guide it we add the JSON to the system_message so that the number fields aren't wrapped in quotes (becoming strings).
+"""
+logger.info("We'll create our agents. Importantly, we're using native Ollama tool calling and to help guide it we add the JSON to the system_message so that the number fields aren't wrapped in quotes (becoming strings).")
+
+chatbot = autogen.AssistantAgent(
+    name="chatbot",
+    system_message="""For currency exchange and weather forecasting tasks,
+        only use the functions you have been provided with.
+        Example of the return JSON is:
+        {
+            "parameter_1_name": 100.00,
+            "parameter_2_name": "ABC",
+            "parameter_3_name": "DEF",
+        }.
+        Another example of the return JSON is:
+        {
+            "parameter_1_name": "GHI",
+            "parameter_2_name": "ABC",
+            "parameter_3_name": "DEF",
+            "parameter_4_name": 123.00,
+        }.
+        Output 'HAVE FUN!' when an answer has been provided.""",
+    llm_config={"config_list": config_list},
+)
+
+user_proxy = autogen.UserProxyAgent(
+    name="user_proxy",
+    is_termination_msg=lambda x: x.get("content", "") and "HAVE FUN!" in x.get("content", ""),
+    human_input_mode="NEVER",
+    max_consecutive_auto_reply=1,
+)
+
+"""
+Create and register our functions (tools). See the [tutorial chapter on tool use](/docs/tutorial/tool-use) 
+for more information.
+"""
+logger.info("Create and register our functions (tools). See the [tutorial chapter on tool use](/docs/tutorial/tool-use)")
+
+CurrencySymbol = Literal["USD", "EUR"]
+
+
+
+def exchange_rate(base_currency: CurrencySymbol, quote_currency: CurrencySymbol) -> float:
+    if base_currency == quote_currency:
+        return 1.0
+    elif base_currency == "USD" and quote_currency == "EUR":
+        return 1 / 1.1
+    elif base_currency == "EUR" and quote_currency == "USD":
+        return 1.1
+    else:
+        raise ValueError(f"Unknown currencies {base_currency}, {quote_currency}")
+
+
+
+
+@user_proxy.register_for_execution()
+@chatbot.register_for_llm(description="Currency exchange calculator.")
+def currency_calculator(
+    base_amount: Annotated[
+        float,
+        "Amount of currency in base_currency. Type is float, not string, return value should be a number only, e.g. 987.65.",
+    ],
+    base_currency: Annotated[CurrencySymbol, "Base currency"] = "USD",
+    quote_currency: Annotated[CurrencySymbol, "Quote currency"] = "EUR",
+) -> str:
+    quote_amount = exchange_rate(base_currency, quote_currency) * base_amount
+    return f"{format(quote_amount, '.2f')} {quote_currency}"
+
+
+
+
+def get_current_weather(location, unit="fahrenheit"):
+    """Get the weather for some location"""
+    if "chicago" in location.lower():
+        return json.dumps({"location": "Chicago", "temperature": "13", "unit": unit})
+    elif "san francisco" in location.lower():
+        return json.dumps({"location": "San Francisco", "temperature": "55", "unit": unit})
+    elif "new york" in location.lower():
+        return json.dumps({"location": "New York", "temperature": "11", "unit": unit})
+    else:
+        return json.dumps({"location": location, "temperature": "unknown"})
+
+
+
+
+@user_proxy.register_for_execution()
+@chatbot.register_for_llm(description="Weather forecast for US cities.")
+def weather_forecast(
+    location: Annotated[str, "City name"],
+) -> str:
+    weather_details = get_current_weather(location=location)
+    weather = json.loads(weather_details)
+    return f"{weather['location']} will be {weather['temperature']} degrees {weather['unit']}"
+
+"""
+And run it!
+"""
+logger.info("And run it!")
+
+res = user_proxy.initiate_chat(
+    chatbot,
+    message="What's the weather in New York and can you tell me how much is 123.45 EUR in USD so I can spend it on my holiday? Throw a few holiday tips in as well.",
+    summary_method="reflection_with_llm",
+)
+
+logger.debug(f"LLM SUMMARY: {res.summary['content']}")
+
+"""
+Great, we can see that Llama 3.1 has helped choose the right functions, their parameters, and then summarised them for us.
+"""
+logger.info("Great, we can see that Llama 3.1 has helped choose the right functions, their parameters, and then summarised them for us.")
+
+logger.info("\n\n[DONE]", bright=True)

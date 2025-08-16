@@ -1,0 +1,134 @@
+from autogen import UserProxyAgent
+from autogen import config_list_from_json
+from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
+from jet.logger import CustomLogger
+import os
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+logger = CustomLogger(log_file, overwrite=True)
+logger.info(f"Logs: {log_file}")
+
+"""
+---
+title: AutoGen Meets GPTs
+authors: gagb
+tags: [openai-assistant]
+---
+
+![Ollama Assistant](img/teaser.jpg)
+<p align="center"><em>AutoGen enables collaboration among multiple ChatGPTs for complex tasks.</em></p>
+
+
+## TL;DR
+Ollama assistants are now integrated into AutoGen via [`GPTAssistantAgent`](https://github.com/autogenhub/autogen/blob/main/autogen/agentchat/contrib/gpt_assistant_agent.py).
+This enables multiple Ollama assistants, which form the backend of the now popular GPTs, to collaborate and tackle complex tasks.
+Checkout example notebooks for reference:
+* [Basic example](https://github.com/autogenhub/autogen/blob/main/notebook/agentchat_oai_assistant_twoagents_basic.ipynb)
+* [Code interpreter](https://github.com/autogenhub/autogen/blob/main/notebook/agentchat_oai_code_interpreter.ipynb)
+* [Function calls](https://github.com/autogenhub/autogen/blob/main/notebook/agentchat_oai_assistant_function_call.ipynb)
+
+
+## Introduction
+Earlier last week, Ollama introduced [GPTs](https://openai.com/blog/introducing-gpts), giving users ability to create custom ChatGPTs tailored for them.
+*But what if these individual GPTs could collaborate to do even more?*
+Fortunately, because of AutoGen, this is now a reality!
+AutoGen has been pioneering agents and supporting [multi-agent workflows](https://aka.ms/autogen-pdf) since earlier this year, and now (starting with version 0.2.0b5) we are introducing compatibility with the [Assistant API](https://openai.com/blog/introducing-gpts), which is currently in beta preview.
+
+To accomplish this, we've added a new (experimental) agent called the `GPTAssistantAgent` that
+lets you seamlessly add these new Ollama assistants into AutoGen-based multi-agent workflows.
+This integration shows great potential and synergy, and we plan to continue enhancing it.
+
+## Installation
+"""
+logger.info("## TL;DR")
+
+pip install autogen
+
+"""
+## Basic Example
+
+Here's a basic example that uses a `UserProxyAgent` to allow an interface
+with the `GPTAssistantAgent`.
+
+
+First, import the new agent and setup `config_list`:
+"""
+logger.info("## Basic Example")
+
+
+config_list = config_list_from_json("OAI_CONFIG_LIST")
+
+"""
+Then simply define the Ollama assistant agent and give it the task!
+"""
+logger.info("Then simply define the Ollama assistant agent and give it the task!")
+
+gpt_assistant = GPTAssistantAgent(
+    name="assistant",
+    llm_config={
+        "config_list": config_list,
+        "assistant_id": None
+    })
+
+user_proxy = UserProxyAgent(name="user_proxy",
+    code_execution_config={
+        "work_dir": "coding"
+    },
+    human_input_mode="NEVER")
+
+user_proxy.initiate_chat(gpt_assistant, message="Print hello world")
+
+"""
+`GPTAssistantAgent` supports both creating new Ollama assistants or reusing existing assistants
+(e.g, by providing an `assistant_id`).
+
+
+## Code Interpreter Example
+
+`GPTAssistantAgent` allows you to specify an Ollama tools
+(e.g., function calls, code interpreter, etc). The example below enables an assistant
+ that can use Ollama code interpreter to solve tasks.
+"""
+logger.info("## Code Interpreter Example")
+
+gpt_assistant = GPTAssistantAgent(
+    name="assistant",
+    llm_config={
+        "config_list": config_list,
+        "assistant_id": None,
+        "tools": [
+            {
+                "type": "code_interpreter"
+            }
+        ],
+    })
+
+user_proxy = UserProxyAgent(name="user_proxy",
+    code_execution_config={
+        "work_dir": "coding"
+    },
+    human_input_mode="NEVER")
+
+user_proxy.initiate_chat(gpt_assistant, message="Print hello world")
+
+"""
+Checkout more examples [here](https://github.com/autogenhub/autogen/tree/main/notebook).
+
+## Limitations and Future Work
+
+- Group chat managers using GPT assistant are pending.
+- GPT assistants with multimodal capabilities haven't been released yet but we are committed to support them.
+
+## Acknowledgements
+
+`GPTAssistantAgent` was made possible through collaboration with
+[@IANTHEREAL](https://github.com/IANTHEREAL),
+[Jiale Liu](https://leoljl.github.io),
+[Yiran Wu](https://github.com/yiranwu0),
+[Qingyun Wu](https://qingyun-wu.github.io/),
+[Chi Wang](https://github.com/sonichi), and many other AutoGen maintainers.
+"""
+logger.info("## Limitations and Future Work")
+
+logger.info("\n\n[DONE]", bright=True)
