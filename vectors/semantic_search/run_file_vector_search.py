@@ -109,24 +109,24 @@ def main(query, directories):
     }, f"{output_dir}/search_results_merged.json")
 
     # Rerank
-
+    top_n = 50
     query_candidates, reranked_results = rerank_results(
-        query, with_split_chunks_results)
+        query, with_split_chunks_results[:top_n])
     save_file({
         "query": query,
         "candidates": query_candidates,
         "count": len(reranked_results),
         "results": reranked_results
-    }, f"{output_dir}/example/reranked_results_split.json")
+    }, f"{output_dir}/reranked_results_split.json")
 
     query_candidates, reranked_results = rerank_results(
-        query, without_split_chunks_results)
+        query, without_split_chunks_results[:top_n])
     save_file({
         "query": query,
         "candidates": query_candidates,
         "count": len(reranked_results),
         "results": reranked_results
-    }, f"{output_dir}/example/reranked_results_merged.json")
+    }, f"{output_dir}/reranked_results_merged.json")
 
 
 def parse_arguments():
