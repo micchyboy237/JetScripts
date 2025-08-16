@@ -29,7 +29,7 @@ def print_results(query: str, results: List[FileSearchResult], split_chunks: boo
 
 def main():
     """Main function to demonstrate file search."""
-    query = "MLX Autogen"
+    query = "MLX Tool Call"
     directories = [
         "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects",
         # "/Users/jethroestrada/Desktop/External_Projects/AI",
