@@ -236,7 +236,7 @@ A: Yes, you can view the generated messages in the debug console of the web UI, 
 A: We are constantly working to improve AutoGen Studio. For the latest updates, please refer to the [AutoGen Studio Readme](https://github.com/autogenhub/build-with-autogen/blob/main/samples/apps/autogen-studio). For additional support, please open an issue on [GitHub](https://github.com/autogenhub/autogen) or ask questions on [Discord](https://aka.ms/autogen-dc).
 
 **Q: Can I use Other Models with AutoGen Studio?**
-Yes. AutoGen standardizes on the openai model api format, and you can use any api server that offers an openai compliant endpoint. In the AutoGen Studio UI, each agent has an `llm_config` field where you can input your model endpoint details including `model name`, `api key`, `base url`, `model type` and `api version`. For Azure Ollama models, you can find these details in the Azure portal. Note that for Azure Ollama, the `model name` is the deployment id or engine, and the `model type` is "azure".
+Yes. AutoGen standardizes on the openai model api format, and you can use any api server that offers an openai compliant endpoint. In the AutoGen Studio UI, each agent has an `llm_config` field where you can input your model endpoint details including `model name`, `api key`, `base url`, `model type` and `api version`. For Azure MLX models, you can find these details in the Azure portal. Note that for Azure MLX, the `model name` is the deployment id or engine, and the `model type` is "azure".
 For other OSS models, we recommend using a server such as vllm to instantiate an openai compliant endpoint.
 
 **Q: The Server Starts But I Can't Access the UI**

@@ -23,11 +23,11 @@ We are excited to announce the release of **AutoGen.Net 0.0.16**. This release i
 3. **Add ReAct sample** ([#2978](https://github.com/microsoft/autogen/issues/2978)) - Added a new sample demonstrating the ReAct pattern.
 4. **Support tools Anthropic Models** ([#2771](https://github.com/microsoft/autogen/issues/2771)) - Introduced support for tools like `AnthropicClient`, `AnthropicClientAgent`, and `AnthropicMessageConnector`.
 5. **Propose Orchestrator for managing group chat/agentic workflow** ([#2695](https://github.com/microsoft/autogen/issues/2695)) - Introduced a customizable orchestrator interface for managing group chats and agent workflows.
-6. **Run Agent as Web API** ([#2519](https://github.com/microsoft/autogen/issues/2519)) - Introduced the ability to start an Ollama-chat-compatible web API from an arbitrary agent.
+6. **Run Agent as Web API** ([#2519](https://github.com/microsoft/autogen/issues/2519)) - Introduced the ability to start an MLX-chat-compatible web API from an arbitrary agent.
 
 ## 🐛 Bug Fixes
 1. **SourceGenerator doesn't work when function's arguments are empty** ([#2976](https://github.com/microsoft/autogen/issues/2976)) - Fixed an issue where the SourceGenerator failed when function arguments were empty.
-2. **Add content field in ToolCallMessage** ([#2975](https://github.com/microsoft/autogen/issues/2975)) - Added a content property in `ToolCallMessage` to handle text content returned by the Ollama model during tool calls.
+2. **Add content field in ToolCallMessage** ([#2975](https://github.com/microsoft/autogen/issues/2975)) - Added a content property in `ToolCallMessage` to handle text content returned by the MLX model during tool calls.
 3. **AutoGen.SourceGenerator doesn’t encode `"` in structural comments** ([#2872](https://github.com/microsoft/autogen/issues/2872)) - Fixed an issue where structural comments containing `"` were not properly encoded, leading to compilation errors.
 
 ## 🚀 Improvements

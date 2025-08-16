@@ -15,7 +15,7 @@ logger.info(f"Logs: {log_file}")
 
 Here are a few examples of how middleware is used in AutoGen.Net:
 - @AutoGen.AssistantAgent is essentially an agent with @AutoGen.Core.FunctionCallMiddleware, @AutoGen.HumanInputMiddleware and default reply middleware.
-- @AutoGen.Ollama.GPTAgent is essentially an @AutoGen.Ollama.OllamaChatAgent with @AutoGen.Core.FunctionCallMiddleware and @AutoGen.Ollama.OllamaChatRequestMessageConnector.
+- @AutoGen.MLX.GPTAgent is essentially an @AutoGen.MLX.MLXChatAgent with @AutoGen.Core.FunctionCallMiddleware and @AutoGen.MLX.MLXChatRequestMessageConnector.
 
 ## Use middleware in an agent
 To use middleware in an existing agent, you can either create a @AutoGen.Core.MiddlewareAgent on top of the original agent or register middleware functions to the original agent.
@@ -35,7 +35,7 @@ The example below shows how to short-circuit the inner agent
 > When multiple middleware functions are registered, the order of middleware functions is first registered, last invoked.
 
 ## Streaming middleware
-You can also modify the behavior of @AutoGen.Core.IStreamingAgent.GenerateStreamingReplyAsync* by registering streaming middleware to it. One example is @AutoGen.Ollama.OllamaChatRequestMessageConnector which converts `StreamingChatCompletionsUpdate` to one of `AutoGen.Core.TextMessageUpdate` or `AutoGen.Core.ToolCallMessageUpdate`.
+You can also modify the behavior of @AutoGen.Core.IStreamingAgent.GenerateStreamingReplyAsync* by registering streaming middleware to it. One example is @AutoGen.MLX.MLXChatRequestMessageConnector which converts `StreamingChatCompletionsUpdate` to one of `AutoGen.Core.TextMessageUpdate` or `AutoGen.Core.ToolCallMessageUpdate`.
 
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/MiddlewareAgentCodeSnippet.cs?name=register_streaming_middleware)]
 """

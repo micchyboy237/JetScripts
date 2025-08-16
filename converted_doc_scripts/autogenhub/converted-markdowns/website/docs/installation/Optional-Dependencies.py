@@ -16,7 +16,7 @@ logger.info(f"Logs: {log_file}")
 
 ## Different LLMs
 
-AutoGen installs Ollama package by default. To use LLMs by other providers, you can install the following packages:
+AutoGen installs MLX package by default. To use LLMs by other providers, you can install the following packages:
 """
 logger.info("# Optional Dependencies")
 

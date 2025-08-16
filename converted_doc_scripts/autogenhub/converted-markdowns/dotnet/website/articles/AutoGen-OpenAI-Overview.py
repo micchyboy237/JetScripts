@@ -11,20 +11,20 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-## AutoGen.Ollama Overview
+## AutoGen.MLX Overview
 
-AutoGen.Ollama provides the following agents over openai models:
-- @AutoGen.Ollama.OllamaChatAgent: A slim wrapper agent over `OllamaClient`. This agent only support `IMessage<ChatRequestMessage>` message type. To support more message types like @AutoGen.Core.TextMessage, register the agent with @AutoGen.Ollama.OllamaChatRequestMessageConnector.
-- @AutoGen.Ollama.GPTAgent: An agent that build on top of @AutoGen.Ollama.OllamaChatAgent with more message types support like @AutoGen.Core.TextMessage, @AutoGen.Core.ImageMessage, @AutoGen.Core.MultiModalMessage and function call support. Essentially, it is equivalent to @AutoGen.Ollama.OllamaChatAgent with @AutoGen.Core.FunctionCallMiddleware and @AutoGen.Ollama.OllamaChatRequestMessageConnector registered.
+AutoGen.MLX provides the following agents over openai models:
+- @AutoGen.MLX.MLXChatAgent: A slim wrapper agent over `MLXClient`. This agent only support `IMessage<ChatRequestMessage>` message type. To support more message types like @AutoGen.Core.TextMessage, register the agent with @AutoGen.MLX.MLXChatRequestMessageConnector.
+- @AutoGen.MLX.GPTAgent: An agent that build on top of @AutoGen.MLX.MLXChatAgent with more message types support like @AutoGen.Core.TextMessage, @AutoGen.Core.ImageMessage, @AutoGen.Core.MultiModalMessage and function call support. Essentially, it is equivalent to @AutoGen.MLX.MLXChatAgent with @AutoGen.Core.FunctionCallMiddleware and @AutoGen.MLX.MLXChatRequestMessageConnector registered.
 
-### Get start with AutoGen.Ollama
+### Get start with AutoGen.MLX
 
-To get start with AutoGen.Ollama, firstly, follow the [installation guide](Installation.md) to make sure you add the AutoGen feed correctly. Then add `AutoGen.Ollama` package to your project file.
+To get start with AutoGen.MLX, firstly, follow the [installation guide](Installation.md) to make sure you add the AutoGen feed correctly. Then add `AutoGen.MLX` package to your project file.
 """
-logger.info("## AutoGen.Ollama Overview")
+logger.info("## AutoGen.MLX Overview")
 
 <ItemGroup>
-    <PackageReference Include="AutoGen.Ollama" Version="AUTOGEN_VERSION" />
+    <PackageReference Include="AutoGen.MLX" Version="AUTOGEN_VERSION" />
 </ItemGroup>
 
 logger.info("\n\n[DONE]", bright=True)

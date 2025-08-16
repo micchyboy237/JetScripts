@@ -24,10 +24,10 @@ logger.info("# AgentChat Chess Game")
 pip install "chess"
 
 """
-To use Ollama models or models hosted on Ollama-compatible API endpoints,
+To use MLX models or models hosted on MLX-compatible API endpoints,
 you need to install the `autogen-ext[openai]` package. You can install it with the following command:
 """
-logger.info("To use Ollama models or models hosted on Ollama-compatible API endpoints,")
+logger.info("To use MLX models or models hosted on MLX-compatible API endpoints,")
 
 pip install "autogen-ext[openai]"
 
@@ -42,21 +42,21 @@ pip install -U autogen-agentchat pyyaml
 Create a new file named `model_config.yaml` in the the same directory as the script
 to configure the model you want to use.
 
-For example, to use `gpt-4o` model from Ollama, you can use the following configuration:
+For example, to use `gpt-4o` model from MLX, you can use the following configuration:
 """
 logger.info("Create a new file named `model_config.yaml` in the the same directory as the script")
 
-provider: autogen_ext.models.openai.OllamaChatCompletionClient
+provider: jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient
 config:
   model: gpt-4o
 #   api_key: replace with your API key or skip it if you have environment variable OPENAI_API_KEY set
 
 """
-To use `o3-mini-2025-01-31` model from Ollama, you can use the following configuration:
+To use `o3-mini-2025-01-31` model from MLX, you can use the following configuration:
 """
-logger.info("To use `o3-mini-2025-01-31` model from Ollama, you can use the following configuration:")
+logger.info("To use `o3-mini-2025-01-31` model from MLX, you can use the following configuration:")
 
-provider: autogen_ext.models.openai.OllamaChatCompletionClient
+provider: jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient
 config:
   model: o3-mini-2025-01-31
 #   api_key: replace with your API key or skip it if you have environment variable OPENAI_API_KEY set
@@ -67,7 +67,7 @@ you can use the following configuration:
 """
 logger.info("To use a locally hosted DeepSeek-R1:8b model using Ollama throught its compatibility endpoint,")
 
-provider: autogen_ext.models.openai.OllamaChatCompletionClient
+provider: jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient
 config:
   model: deepseek-r1:8b
   base_url: http://localhost:11434/v1

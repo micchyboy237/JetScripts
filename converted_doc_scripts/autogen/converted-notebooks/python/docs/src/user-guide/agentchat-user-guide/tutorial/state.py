@@ -6,7 +6,7 @@ from autogen_agentchat.messages import TextMessage
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.ui import Console
 from autogen_core import CancellationToken
-from autogen_ext.models.openai import OllamaChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 import json
 import os
@@ -36,7 +36,7 @@ an {py:class}`~autogen_agentchat.agents.AssistantAgent`.
 logger.info("# Managing State")
 
 
-model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 assistant_agent = AssistantAgent(
     name="assistant_agent",
@@ -69,7 +69,7 @@ agent_state = asyncio.run(run_async_code_5d9ca148())
 logger.success(format_json(agent_state))
 logger.debug(agent_state)
 
-model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 new_assistant_agent = AssistantAgent(
     name="assistant_agent",
@@ -112,7 +112,7 @@ We will begin by creating a simple {py:class}`~autogen_agentchat.teams.RoundRobi
 """
 logger.info("## Saving and Loading Teams")
 
-model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 assistant_agent = AssistantAgent(
     name="assistant_agent",

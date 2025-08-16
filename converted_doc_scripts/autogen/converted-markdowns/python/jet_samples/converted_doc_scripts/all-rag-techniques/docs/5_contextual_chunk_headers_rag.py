@@ -1,5 +1,5 @@
 from jet.logger import CustomLogger
-from openai import Ollama
+from openai import MLX
 from tqdm import tqdm
 import fitz
 import json
@@ -68,12 +68,12 @@ def extract_text_from_pdf(pdf_path):
     return all_text  # Return the extracted text
 
 """
-## Setting Up the Ollama API Client
-We initialize the Ollama client to generate embeddings and responses.
+## Setting Up the MLX API Client
+We initialize the MLX client to generate embeddings and responses.
 """
-logger.info("## Setting Up the Ollama API Client")
+logger.info("## Setting Up the MLX API Client")
 
-client = Ollama(
+client = MLX(
     base_url="https://api.studio.nebius.com/v1/",
 #     api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
 )

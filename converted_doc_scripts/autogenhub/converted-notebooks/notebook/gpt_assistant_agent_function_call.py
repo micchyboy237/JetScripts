@@ -19,7 +19,7 @@ logger.info(f"Logs: {log_file}")
 """
 # From Dad Jokes To Sad Jokes: Function Calling with GPTAssistantAgent
 
-Autogen allows `GPTAssistantAgent` to be augmented with "tools" — pre-defined functions or capabilities — that extend its ability to handle specific tasks, similar to how one might natively utilize tools in the [Ollama Assistant's API](https://platform.openai.com/docs/assistants/tools).
+Autogen allows `GPTAssistantAgent` to be augmented with "tools" — pre-defined functions or capabilities — that extend its ability to handle specific tasks, similar to how one might natively utilize tools in the [MLX Assistant's API](https://platform.openai.com/docs/assistants/tools).
 
 In this notebook, we create a basic Multi-Agent System using Autogen's `GPTAssistantAgent` to convert Dad jokes on a specific topic into Sad jokes. It consists of a "Dad" agent which has the ability to search the [Dad Joke API](https://icanhazdadjoke.com/api) and a "Sad Joker" agent which converts the Dad jokes into Sad jokes. The Sad Joker then writes the sad jokes into a txt file.
 
@@ -136,7 +136,7 @@ user_proxy = UserProxyAgent(
 ### The Dad Agent
 We create the Dad agent using `GPTAssistantAgent`, in order for us to enable the Dad to use the `get_dad_jokes` function we need to provide it the function's specification in our `llm_config`.
 
-We format the `tools` within our `llm_config` in the same format as provided in the [Ollama Assistant tools docs](https://platform.openai.com/docs/assistants/tools/function-calling).
+We format the `tools` within our `llm_config` in the same format as provided in the [MLX Assistant tools docs](https://platform.openai.com/docs/assistants/tools/function-calling).
 """
 logger.info("### The Dad Agent")
 

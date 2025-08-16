@@ -22,7 +22,7 @@ logger.info(f"Logs: {log_file}")
 
 [Cohere](https://cohere.com/) is a cloud based platform serving their own LLMs, in particular the Command family of models.
 
-Cohere's API differs from Ollama's, which is the native API used by AutoGen, so to use Cohere's LLMs you need to use this library.
+Cohere's API differs from MLX's, which is the native API used by AutoGen, so to use Cohere's LLMs you need to use this library.
 
 You will need a Cohere account and create an API key. [See their website for further details](https://cohere.com/).
 
@@ -48,15 +48,15 @@ See the sample `OAI_CONFIG_LIST` below showing how the Cohere client class is us
 [
     {
         "model": "gpt-35-turbo",
-        "api_key": "your Ollama Key goes here",
+        "api_key": "your MLX Key goes here",
     },
     {
         "model": "gpt-4-vision-preview",
-        "api_key": "your Ollama Key goes here",
+        "api_key": "your MLX Key goes here",
     },
     {
         "model": "dalle",
-        "api_key": "your Ollama Key goes here",
+        "api_key": "your MLX Key goes here",
     },
     {
         "model": "command-r-plus",

@@ -1,7 +1,7 @@
 from PIL import Image
 from collections import defaultdict
 from jet.logger import CustomLogger
-from openai import Ollama
+from openai import MLX
 from typing import List, Dict, Tuple, Any
 import fitz  # PyMuPDF
 import heapq
@@ -45,12 +45,12 @@ logger.info("# Graph RAG: Graph-Enhanced Retrieval-Augmented Generation")
 
 
 """
-## Setting Up the Ollama API Client
-We initialize the Ollama client to generate embeddings and responses.
+## Setting Up the MLX API Client
+We initialize the MLX client to generate embeddings and responses.
 """
-logger.info("## Setting Up the Ollama API Client")
+logger.info("## Setting Up the MLX API Client")
 
-client = Ollama(
+client = MLX(
     base_url="https://api.studio.nebius.com/v1/",
 #     api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
 )
@@ -151,7 +151,7 @@ logger.info("## Knowledge Graph Construction")
 
 def extract_concepts(text):
     """
-    Extract key concepts from text using Ollama's API.
+    Extract key concepts from text using MLX's API.
 
     Args:
         text (str): Text to extract concepts from

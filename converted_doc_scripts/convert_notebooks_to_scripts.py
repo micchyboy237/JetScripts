@@ -17,22 +17,23 @@ REPLACE_OLLAMA_MAP = {
     "llama-index-embeddings-openai": "llama-index-embeddings-ollama",
     "llama_index.llms.openai": "jet.llm.ollama.base",
     "llama_index.embeddings.openai": "jet.llm.ollama.base",
+    "autogen_ext.models.openai": "jet.llm.mlx.autogen_ext.mlx_chat_completion_client",
     "langchain_openai": "jet.llm.ollama.base_langchain",
     "langchain_anthropic": "jet.llm.ollama.base_langchain",
     "langchain_ollama": "jet.llm.ollama.base_langchain",
-    "OpenAIEmbeddings": "OllamaEmbeddings",
-    "OpenAIEmbedding": "OllamaEmbedding",
-    "ChatOpenAI": "ChatOllama",
-    "ChatAnthropic": "ChatOllama",
-    "OpenAI": "Ollama",
-    "(\"gpt-4\")": "(model=\"llama3.1\")",
-    "('gpt-4')": "(model=\"llama3.1\")",
-    "(\"gpt-3.5\")": "(model=\"llama3.2\")",
-    "(\'gpt-3.5\')": "(model=\"llama3.2\")",
+    "OpenAIEmbeddings": "MLXEmbeddings",
+    "OpenAIEmbedding": "MLXEmbedding",
+    "ChatOpenAI": "ChatMLX",
+    "ChatAnthropic": "ChatMLX",
+    "OpenAI": "MLX",
+    "(\"gpt-4\")": "(model=\"llama-3.2-3b-instruct\")",
+    "('gpt-4')": "(model=\"llama-3.2-3b-instruct\")",
+    "(\"gpt-3.5\")": "(model=\"llama-3.2-1b-instruct\")",
+    "(\'gpt-3.5\')": "(model=\"llama-3.2-1b-instruct\")",
     "openai:": "ollama:",
     "anthropic:": "ollama:",
-    "gpt-4o-mini": "llama3.1",
-    "claude-3-5-sonnet-latest": "llama3.1",
+    "gpt-4o-mini": "llama-3.2-3b-instruct",
+    "claude-3-5-sonnet-latest": "llama-3.2-3b-instruct",
     "text-embedding-3-small": "mxbai-embed-large",
 }
 
@@ -186,12 +187,12 @@ def update_code_with_ollama(code: str) -> str:
     updated_code = re.sub(r'Ollama\s*\((.*?)\)', r'Ollama(\1)', updated_code)
     updated_code = re.sub(
         r'model=["\']gpt-4[^"\']*["\']',
-        'model="llama3.1", request_timeout=300.0, context_window=4096',
+        'model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"',
         updated_code
     )
     updated_code = re.sub(
         r'model=["\']gpt-3\.5[^"\']*["\']',
-        'model="llama3.2", request_timeout=300.0, context_window=4096',
+        'model="llama-3.2-1b-instruct", log_dir=f"{OUTPUT_DIR}/chats"',
         updated_code
     )
     updated_code = re.sub(
@@ -201,7 +202,7 @@ def update_code_with_ollama(code: str) -> str:
     )
     updated_code = re.sub(
         r'ChatOllama\s*\((.*?)\)',
-        r'ChatOllama(model="llama3.1")',
+        r'ChatOllama(model="llama-3.2-3b-instruct")',
         updated_code
     )
     updated_code = re.sub(

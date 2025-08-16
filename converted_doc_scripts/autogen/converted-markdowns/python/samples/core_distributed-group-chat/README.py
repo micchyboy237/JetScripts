@@ -13,7 +13,7 @@ logger.info(f"Logs: {log_file}")
 """
 # Distributed Group Chat
 
-This example runs a gRPC server using [GrpcWorkerAgentRuntimeHost](../../src/autogen_core/application/_worker_runtime_host.py) and instantiates three distributed runtimes using [GrpcWorkerAgentRuntime](../../src/autogen_core/application/_worker_runtime.py). These runtimes connect to the gRPC server as hosts and facilitate a round-robin distributed group chat. This example leverages the [Azure Ollama Service](https://azure.microsoft.com/en-us/products/ai-services/openai-service) to implement writer and editor LLM agents. Agents are instructed to provide concise answers, as the primary goal of this example is to showcase the distributed runtime rather than the quality of agent responses.
+This example runs a gRPC server using [GrpcWorkerAgentRuntimeHost](../../src/autogen_core/application/_worker_runtime_host.py) and instantiates three distributed runtimes using [GrpcWorkerAgentRuntime](../../src/autogen_core/application/_worker_runtime.py). These runtimes connect to the gRPC server as hosts and facilitate a round-robin distributed group chat. This example leverages the [Azure MLX Service](https://azure.microsoft.com/en-us/products/ai-services/openai-service) to implement writer and editor LLM agents. Agents are instructed to provide concise answers, as the primary goal of this example is to showcase the distributed runtime rather than the quality of agent responses.
 
 ## Setup
 
@@ -29,7 +29,7 @@ pip install "autogen-ext[openai,azure,chainlit,rich]" "pyyaml"
 """
 ### General Configuration
 
-In the `config.yaml` file, you can configure the `client_config` section to connect the code to the Azure Ollama Service.
+In the `config.yaml` file, you can configure the `client_config` section to connect the code to the Azure MLX Service.
 
 ### Authentication
 

@@ -33,7 +33,7 @@ var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 
 var helloWorldAgent = new HelloWorldAgent();
-app.UseAgentAsOllamaChatCompletionEndpoint(helloWorldAgent);
+app.UseAgentAsMLXChatCompletionEndpoint(helloWorldAgent);
 
 app.Run();
 
@@ -74,9 +74,9 @@ autogenstudio ui
 
 ![The Model Tab](../images/articles/UseAutoGenAsModelinAGStudio/TheModelTab.png)
 
-### Step 5.2: Select "Ollama model" card
+### Step 5.2: Select "MLX model" card
 
-![Open AI model Card](../images/articles/UseAutoGenAsModelinAGStudio/Step5.2OllamaModel.png)
+![Open AI model Card](../images/articles/UseAutoGenAsModelinAGStudio/Step5.2MLXModel.png)
 
 ### Step 5.3: Fill the model name and url
 

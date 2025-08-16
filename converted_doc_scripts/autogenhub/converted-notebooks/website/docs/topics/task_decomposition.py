@@ -377,8 +377,8 @@ def autobuild_reply(recipient, messages, sender, config):
     last_msg = messages[-1]["content"]
     builder = agent_builder.AgentBuilder(
         config_file_or_env="/Users/ekzhu/autogen/OAI_CONFIG_LIST",
-        builder_model="llama3.1", request_timeout=300.0, context_window=4096,
-        agent_model="llama3.1", request_timeout=300.0, context_window=4096,
+        builder_model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+        agent_model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     )
     agent_list, agent_configs = builder.build(
         last_msg, default_llm_config={"config_list": config_list, "cache_seed": None}

@@ -14,18 +14,18 @@ logger.info(f"Logs: {log_file}")
 # Release Notes for AutoGen.Net v0.2.0 🚀
 
 ## New Features 🌟
-- **Ollama Structural Format Output**: Added support for structural output format in the Ollama integration. You can check out the example [here](https://github.com/microsoft/autogen/blob/main/dotnet/samples/AutoGen.Ollama.Sample/Structural_Output.cs) ([#3482](https://github.com/microsoft/autogen/issues/3482)).
+- **MLX Structural Format Output**: Added support for structural output format in the MLX integration. You can check out the example [here](https://github.com/microsoft/autogen/blob/main/dotnet/samples/AutoGen.MLX.Sample/Structural_Output.cs) ([#3482](https://github.com/microsoft/autogen/issues/3482)).
 - **Structural Output Configuration**: Introduced a property for overriding the structural output schema when generating replies with `GenerateReplyOption` ([#3436](https://github.com/microsoft/autogen/issues/3436)).
 
 ## Bug Fixes 🐛
 - **Fixed Error Code 500**: Resolved an issue where an error occurred when the message history contained multiple different tool calls with the `name` field ([#3437](https://github.com/microsoft/autogen/issues/3437)).
 
 ## Improvements 🔧
-- **Leverage Ollama V2.0 in AutoGen.Ollama  package**: The `AutoGen.Ollama` package now uses Ollama v2.0, providing improved functionality and performance. In the meantime, the original `AutoGen.Ollama` is still available and can be accessed by `AutoGen.Ollama.V1`. This allows users who prefer to continue to use `Azure.AI.Ollama v1` package in their project. ([#3193](https://github.com/microsoft/autogen/issues/3193)).
-- **Deprecation of GPTAgent**: `GPTAgent` has been deprecated in favor of `OllamaChatAgent` and `OllamaMessageConnector` ([#3404](https://github.com/microsoft/autogen/issues/3404)).
+- **Leverage MLX V2.0 in AutoGen.MLX  package**: The `AutoGen.MLX` package now uses MLX v2.0, providing improved functionality and performance. In the meantime, the original `AutoGen.MLX` is still available and can be accessed by `AutoGen.MLX.V1`. This allows users who prefer to continue to use `Azure.AI.MLX v1` package in their project. ([#3193](https://github.com/microsoft/autogen/issues/3193)).
+- **Deprecation of GPTAgent**: `GPTAgent` has been deprecated in favor of `MLXChatAgent` and `MLXMessageConnector` ([#3404](https://github.com/microsoft/autogen/issues/3404)).
 
 ## Documentation 📚
-- **Tool Call Instructions**: Added detailed documentation on using tool calls with `ollama` and `OllamaChatAgent` ([#3248](https://github.com/microsoft/autogen/issues/3248)).
+- **Tool Call Instructions**: Added detailed documentation on using tool calls with `ollama` and `MLXChatAgent` ([#3248](https://github.com/microsoft/autogen/issues/3248)).
 
 ### Migration Guides 🔄
 
@@ -40,29 +40,29 @@ var agent = new GPTAgent(...);
 **After:**
 """
 
-var agent = new OllamaChatAgent(...)
+var agent = new MLXChatAgent(...)
     .RegisterMessageConnector();
 
 """
-#### For Using Azure.AI.Ollama v2.0 ([#3193](https://github.com/microsoft/autogen/issues/3193)):
-**Previous way of creating `OllamaChatAgent`:**
+#### For Using Azure.AI.MLX v2.0 ([#3193](https://github.com/microsoft/autogen/issues/3193)):
+**Previous way of creating `MLXChatAgent`:**
 """
-logger.info("#### For Using Azure.AI.Ollama v2.0 ([#3193](https://github.com/microsoft/autogen/issues/3193)):")
+logger.info("#### For Using Azure.AI.MLX v2.0 ([#3193](https://github.com/microsoft/autogen/issues/3193)):")
 
-var openAIClient = new OllamaClient(apiKey);
-var openAIClientAgent = new OllamaChatAgent(
+var openAIClient = new MLXClient(apiKey);
+var openAIClientAgent = new MLXChatAgent(
             openAIClient: openAIClient,
-            model: "llama3.1",
+            model: "llama-3.2-3b-instruct",
             // Other parameters...
             );
 
 """
-**New way of creating `OllamaChatAgent`:**
+**New way of creating `MLXChatAgent`:**
 """
 
-var openAIClient = new OllamaClient(apiKey);
-var openAIClientAgent = new OllamaChatAgent(
-            chatClient: openAIClient.GetChatClient("llama3.1"),
+var openAIClient = new MLXClient(apiKey);
+var openAIClientAgent = new MLXChatAgent(
+            chatClient: openAIClient.GetChatClient("llama-3.2-3b-instruct"),
             // Other parameters...
             );
 

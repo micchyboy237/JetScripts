@@ -2,8 +2,8 @@ import asyncio
 from jet.transformers.formatters import format_json
 from autogen_core import AgentId, MessageContext, RoutedAgent, SingleThreadedAgentRuntime, message_handler
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from jet.llm.ollama.base import Ollama
-from jet.llm.ollama.base import OllamaEmbedding
+from jet.llm.ollama.base import MLX
+from jet.llm.ollama.base import MLXEmbedding
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core.agent import ReActAgent
@@ -15,8 +15,8 @@ MessageRole,
 from llama_index.core.chat_engine.types import AgentChatResponse
 from llama_index.core.memory import ChatSummaryMemoryBuffer
 from llama_index.core.memory.types import BaseMemory
-from llama_index.embeddings.azure_openai import AzureOllamaEmbedding
-from llama_index.llms.azure_openai import AzureOllama
+from llama_index.embeddings.azure_openai import AzureMLXEmbedding
+from llama_index.llms.azure_openai import AzureMLX
 from llama_index.tools.wikipedia import WikipediaToolSpec
 from pydantic import BaseModel
 from typing import List, Optional
@@ -130,13 +130,13 @@ Setting up LlamaIndex.
 """
 logger.info("Setting up LlamaIndex.")
 
-llm = Ollama(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+llm = MLX(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     temperature=0.0,
 #     api_key=os.getenv("OPENAI_API_KEY"),
 )
 
-embed_model = OllamaEmbedding(
+embed_model = MLXEmbedding(
     model="text-embedding-ada-002",
 #     api_key=os.getenv("OPENAI_API_KEY"),
 )

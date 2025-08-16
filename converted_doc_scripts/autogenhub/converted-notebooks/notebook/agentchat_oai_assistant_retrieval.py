@@ -14,12 +14,12 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# RAG Ollama Assistants in AutoGen
+# RAG MLX Assistants in AutoGen
 
-This notebook shows an example of the [`GPTAssistantAgent`](https://github.com/autogenhub/autogen/blob/main/autogen/agentchat/contrib/gpt_assistant_agent.py) with retrieval augmented generation. `GPTAssistantAgent` is an experimental AutoGen agent class that leverages the [Ollama Assistant API](https://platform.openai.com/docs/assistants/overview) for conversational capabilities,  working with
+This notebook shows an example of the [`GPTAssistantAgent`](https://github.com/autogenhub/autogen/blob/main/autogen/agentchat/contrib/gpt_assistant_agent.py) with retrieval augmented generation. `GPTAssistantAgent` is an experimental AutoGen agent class that leverages the [MLX Assistant API](https://platform.openai.com/docs/assistants/overview) for conversational capabilities,  working with
 `UserProxyAgent` in AutoGen.
 """
-logger.info("# RAG Ollama Assistants in AutoGen")
+logger.info("# RAG MLX Assistants in AutoGen")
 
 
 

@@ -11,18 +11,18 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-The following example shows how to create an @AutoGen.Ollama.OllamaChatAgent and chat with it.
+The following example shows how to create an @AutoGen.MLX.MLXChatAgent and chat with it.
 
 Firsly, import the required namespaces:
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/OllamaCodeSnippet.cs?name=using_statement)]
+[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/MLXCodeSnippet.cs?name=using_statement)]
 
-Then, create an @AutoGen.Ollama.OllamaChatAgent and chat with it:
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/OllamaCodeSnippet.cs?name=create_openai_chat_agent)]
+Then, create an @AutoGen.MLX.MLXChatAgent and chat with it:
+[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/MLXCodeSnippet.cs?name=create_openai_chat_agent)]
 
-@AutoGen.Ollama.OllamaChatAgent also supports streaming chat via @AutoGen.Core.IAgent.GenerateStreamingReplyAsync*.
+@AutoGen.MLX.MLXChatAgent also supports streaming chat via @AutoGen.Core.IAgent.GenerateStreamingReplyAsync*.
 
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/OllamaCodeSnippet.cs?name=create_openai_chat_agent_streaming)]
+[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/MLXCodeSnippet.cs?name=create_openai_chat_agent_streaming)]
 """
-logger.info("The following example shows how to create an @AutoGen.Ollama.OllamaChatAgent and chat with it.")
+logger.info("The following example shows how to create an @AutoGen.MLX.MLXChatAgent and chat with it.")
 
 logger.info("\n\n[DONE]", bright=True)

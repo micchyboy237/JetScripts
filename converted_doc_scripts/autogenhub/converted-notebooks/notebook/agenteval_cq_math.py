@@ -35,7 +35,7 @@ For more detailed explanations, please refer to the accompanying [blog post](htt
 
 ## Requirements
 
-AutoGen requires `Python>=3.8`. To run this notebook example, please install pyautogen, Docker, and Ollama:
+AutoGen requires `Python>=3.8`. To run this notebook example, please install pyautogen, Docker, and MLX:
 """
 logger.info("# Demonstrating the `AgentEval` framework using the task of solving math problems as an example")
 

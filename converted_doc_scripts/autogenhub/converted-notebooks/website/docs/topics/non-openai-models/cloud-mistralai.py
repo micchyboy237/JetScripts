@@ -24,13 +24,13 @@ logger.info(f"Logs: {log_file}")
 
 [Mistral AI](https://mistral.ai/) is a cloud based platform serving their own LLMs, like Mistral, Mixtral, and Codestral.
 
-Although AutoGen can be used with Mistral AI's API directly by changing the `base_url` to their url, it does not cater for some differences between messaging and, with their API being more strict than Ollama's, it is recommended to use the Mistral AI Client class as shown in this notebook.
+Although AutoGen can be used with Mistral AI's API directly by changing the `base_url` to their url, it does not cater for some differences between messaging and, with their API being more strict than MLX's, it is recommended to use the Mistral AI Client class as shown in this notebook.
 
 You will need a Mistral.AI account and create an API key. [See their website for further details](https://mistral.ai/).
 
 ## Features
 
-When using this client class, messages are automatically tailored to accommodate the specific requirements of Mistral AI's API (such as role orders), which have become more strict than Ollama's API.
+When using this client class, messages are automatically tailored to accommodate the specific requirements of Mistral AI's API (such as role orders), which have become more strict than MLX's API.
 
 Additionally, this client class provides support for function/tool calling and will track token usage and cost correctly as per Mistral AI's API costs (as of June 2024).
 
@@ -50,15 +50,15 @@ See the sample `OAI_CONFIG_LIST` below showing how the Mistral AI client class i
 [
     {
         "model": "gpt-35-turbo",
-        "api_key": "your Ollama Key goes here",
+        "api_key": "your MLX Key goes here",
     },
     {
         "model": "gpt-4-vision-preview",
-        "api_key": "your Ollama Key goes here",
+        "api_key": "your MLX Key goes here",
     },
     {
         "model": "dalle",
-        "api_key": "your Ollama Key goes here",
+        "api_key": "your MLX Key goes here",
     },
     {
         "model": "open-mistral-7b",

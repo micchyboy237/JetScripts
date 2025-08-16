@@ -28,7 +28,7 @@ logger.info(f"Logs: {log_file}")
 - For old PR, check the blocker: reviewer or PR creator. Try to unblock. Get additional help when needed.
 - When requesting changes, make sure you can check back in time because it blocks merging.
 - Make sure all the checks are passed.
-- For changes that require running Ollama tests, make sure the Ollama tests pass too. Running these tests requires approval.
+- For changes that require running MLX tests, make sure the MLX tests pass too. Running these tests requires approval.
 - In general, suggest small PRs instead of a giant PR.
 - For documentation change, request snapshot of the compiled website, or compile by yourself to verify the format.
 - For new contributors who have not signed the contributing agreement, remind them to sign before reviewing.

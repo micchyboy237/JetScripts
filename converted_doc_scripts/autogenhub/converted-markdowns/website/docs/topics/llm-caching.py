@@ -36,7 +36,7 @@ The cache can also be passed directly to the model client's create call.
 """
 logger.info("The cache can also be passed directly to the model client's create call.")
 
-client = OllamaWrapper(...)
+client = MLXWrapper(...)
 with Cache.disk() as cache:
     client.create(..., cache=cache)
 
@@ -80,10 +80,10 @@ assistant = AssistantAgent(
 )
 
 """
-## Difference between `cache_seed` and Ollama's `seed` parameter
+## Difference between `cache_seed` and MLX's `seed` parameter
 
-Ollama v1.1 introduced a new parameter `seed`. The difference between AutoGen's `cache_seed` and Ollama's `seed` is AutoGen uses an explicit request cache to guarantee the exactly same output is produced for the same input and when cache is hit, no Ollama API call will be made. Ollama's `seed` is a best-effort deterministic sampling with no guarantee of determinism. When using Ollama's `seed` with `cache_seed` set to `None`, even for the same input, an Ollama API call will be made and there is no guarantee for getting exactly the same output.
+MLX v1.1 introduced a new parameter `seed`. The difference between AutoGen's `cache_seed` and MLX's `seed` is AutoGen uses an explicit request cache to guarantee the exactly same output is produced for the same input and when cache is hit, no MLX API call will be made. MLX's `seed` is a best-effort deterministic sampling with no guarantee of determinism. When using MLX's `seed` with `cache_seed` set to `None`, even for the same input, an MLX API call will be made and there is no guarantee for getting exactly the same output.
 """
-logger.info("## Difference between `cache_seed` and Ollama's `seed` parameter")
+logger.info("## Difference between `cache_seed` and MLX's `seed` parameter")
 
 logger.info("\n\n[DONE]", bright=True)

@@ -13,7 +13,7 @@ logger.info(f"Logs: {log_file}")
 """
 In semantic kernel, a kernel plugin is a collection of kernel functions that can be invoked during LLM calls. Semantic kernel provides a list of built-in plugins, like [core plugins](https://github.com/microsoft/semantic-kernel/tree/main/dotnet/src/Plugins/Plugins.Core), [web search plugin](https://github.com/microsoft/semantic-kernel/tree/main/dotnet/src/Plugins/Plugins.Web) and many more. You can also create your own plugins and use them in semantic kernel. Kernel plugins greatly extend the capabilities of semantic kernel and can be used to perform various tasks like web search, image search, text summarization, etc.
 
-`AutoGen.SemanticKernel` provides a middleware called @AutoGen.SemanticKernel.KernelPluginMiddleware that allows you to use semantic kernel plugins in other AutoGen agents like @AutoGen.Ollama.OllamaChatAgent. The following example shows how to define a simple plugin with a single `GetWeather` function and use it in @AutoGen.Ollama.OllamaChatAgent.
+`AutoGen.SemanticKernel` provides a middleware called @AutoGen.SemanticKernel.KernelPluginMiddleware that allows you to use semantic kernel plugins in other AutoGen agents like @AutoGen.MLX.MLXChatAgent. The following example shows how to define a simple plugin with a single `GetWeather` function and use it in @AutoGen.MLX.MLXChatAgent.
 
 > [!NOTE]
 > You can find the complete sample code [here](https://github.com/microsoft/autogen/blob/main/dotnet/samples/AutoGen.SemanticKernel.Sample/Use_Kernel_Functions_With_Other_Agent.cs)
@@ -27,15 +27,15 @@ In this step, we create a simple plugin with a single `GetWeather` function that
 
 [!code-csharp[](../../../samples/AutoGen.SemanticKernel.Sample/Use_Kernel_Functions_With_Other_Agent.cs?name=Create_plugin)]
 
-### Step 3: create OllamaChatAgent and use the plugin
+### Step 3: create MLXChatAgent and use the plugin
 
-In this step, we firstly create a @AutoGen.SemanticKernel.KernelPluginMiddleware and register the previous plugin with it. The `KernelPluginMiddleware` will load the plugin and make the functions available for use in other agents. Followed by creating an @AutoGen.Ollama.OllamaChatAgent and register it with the `KernelPluginMiddleware`.
+In this step, we firstly create a @AutoGen.SemanticKernel.KernelPluginMiddleware and register the previous plugin with it. The `KernelPluginMiddleware` will load the plugin and make the functions available for use in other agents. Followed by creating an @AutoGen.MLX.MLXChatAgent and register it with the `KernelPluginMiddleware`.
 
 [!code-csharp[](../../../samples/AutoGen.SemanticKernel.Sample/Use_Kernel_Functions_With_Other_Agent.cs?name=Use_plugin)]
 
-### Step 4: chat with OllamaChatAgent
+### Step 4: chat with MLXChatAgent
 
-In this final step, we start the chat with the @AutoGen.Ollama.OllamaChatAgent by asking the weather in Seattle. The `OllamaChatAgent` will use the `GetWeather` function from the plugin to get the weather information for Seattle.
+In this final step, we start the chat with the @AutoGen.MLX.MLXChatAgent by asking the weather in Seattle. The `MLXChatAgent` will use the `GetWeather` function from the plugin to get the weather information for Seattle.
 
 [!code-csharp[](../../../samples/AutoGen.SemanticKernel.Sample/Use_Kernel_Functions_With_Other_Agent.cs?name=Send_message)]
 """

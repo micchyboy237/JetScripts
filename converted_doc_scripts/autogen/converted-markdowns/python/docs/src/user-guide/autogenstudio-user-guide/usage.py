@@ -2,8 +2,8 @@ from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.conditions import  TextMentionTermination
 from autogen_agentchat.teams import BaseGroupChat
 from autogen_agentchat.teams import RoundRobinGroupChat
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from autogenstudio.teammanager import TeamManager
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 import json
 import os
@@ -36,7 +36,7 @@ After defining a team, users can test directly in the team builder view or attac
 
 ## Setting Up an API Key
 
-# Most of your agents will require an API key. You can set up an environment variable `OPENAI_API_KEY` (assuming you are using Ollama models) and AutoGen will automatically use this for any Ollama model clients you specify for your agents or teams. Alternatively you can specify the api key as part of the team or agent configuration.
+# Most of your agents will require an API key. You can set up an environment variable `OPENAI_API_KEY` (assuming you are using MLX models) and AutoGen will automatically use this for any MLX model clients you specify for your agents or teams. Alternatively you can specify the api key as part of the team or agent configuration.
 
 See the section below on how to build an agent team either using the visual builder or by directly editing the JSON configuration.
 
@@ -81,8 +81,8 @@ logger.info("# Usage")
 
 agent = AssistantAgent(
         name="weather_agent",
-        model_client=OllamaChatCompletionClient(
-            model="llama3.1",
+        model_client=MLXChatCompletionClient(
+            model="llama-3.2-3b-instruct",
         ),
     )
 
@@ -113,13 +113,13 @@ logger.debug(config.model_dump_json())
         "config": {
           "name": "weather_agent",
           "model_client": {
-            "provider": "autogen_ext.models.openai.OllamaChatCompletionClient",
+            "provider": "jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient",
             "component_type": "model",
             "version": 1,
             "component_version": 1,
-            "description": "Chat completion client for Ollama hosted models.",
-            "label": "OllamaChatCompletionClient",
-            "config": { "model": "llama3.1" }
+            "description": "Chat completion client for MLX hosted models.",
+            "label": "MLXChatCompletionClient",
+            "config": { "model": "llama-3.2-3b-instruct" }
           },
           "tools": [],
           "handoffs": [],
@@ -153,7 +153,7 @@ logger.debug(config.model_dump_json())
 }
 
 """
-# This example shows a team with a single agent, using the `RoundRobinGroupChat` type and a `TextMentionTermination` condition. You will also notice that the model client is an `OllamaChatCompletionClient` model client where only the model name is specified. In this case, the API key is assumed to be set as an environment variable `OPENAI_API_KEY`. You can also specify the API key as part of the model client configuration.
+# This example shows a team with a single agent, using the `RoundRobinGroupChat` type and a `TextMentionTermination` condition. You will also notice that the model client is an `MLXChatCompletionClient` model client where only the model name is specified. In this case, the API key is assumed to be set as an environment variable `OPENAI_API_KEY`. You can also specify the API key as part of the model client configuration.
 
 To understand the full configuration of an model clients, you can refer to the [AutoGen Model Clients documentation](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/components/model-clients.html).
 
@@ -161,7 +161,7 @@ Note that you can similarly define your model client in Python and call `dump_co
 
 Finally, you can use the `load_component()` method to load a team configuration from a JSON file:
 """
-# logger.info("This example shows a team with a single agent, using the `RoundRobinGroupChat` type and a `TextMentionTermination` condition. You will also notice that the model client is an `OllamaChatCompletionClient` model client where only the model name is specified. In this case, the API key is assumed to be set as an environment variable `OPENAI_API_KEY`. You can also specify the API key as part of the model client configuration.")
+# logger.info("This example shows a team with a single agent, using the `RoundRobinGroupChat` type and a `TextMentionTermination` condition. You will also notice that the model client is an `MLXChatCompletionClient` model client where only the model name is specified. In this case, the API key is assumed to be set as an environment variable `OPENAI_API_KEY`. You can also specify the API key as part of the model client configuration.")
 
 team_config = json.load(open("team.json"))
 team = BaseGroupChat.load_component(team_config)

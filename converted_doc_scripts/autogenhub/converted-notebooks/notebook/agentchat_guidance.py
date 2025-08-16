@@ -25,7 +25,7 @@ logger.info("# Using Guidance with AutoGen")
 
 
 llm_config = config_list_from_json("OAI_CONFIG_LIST")[0]  # use the first config
-gpt = models.Ollama("gpt-4", api_key=llm_config.get("api_key"))
+gpt = models.MLX("gpt-4", api_key=llm_config.get("api_key"))
 
 """
 The example below uses guidance to create a `guidance_coder` agent that only responds with valid code blocks.
@@ -42,7 +42,7 @@ def is_valid_code_block(code):
 
 
 def generate_structured_response(recipient, messages, sender, config):
-    gpt = models.Ollama("gpt-4", api_key=llm_config.get("api_key"), echo=False)
+    gpt = models.MLX("gpt-4", api_key=llm_config.get("api_key"), echo=False)
 
     with system():
         lm = gpt + recipient.system_message
@@ -109,7 +109,7 @@ response_prompt_instructions = """The label must be a JSON of the format:
 
 
 def generate_structured_response(recipient, messages, sender, config):
-    gpt = models.Ollama("gpt-4", api_key=llm_config.get("api_key"), echo=False)
+    gpt = models.MLX("gpt-4", api_key=llm_config.get("api_key"), echo=False)
 
     with system():
         lm = gpt + recipient.system_message

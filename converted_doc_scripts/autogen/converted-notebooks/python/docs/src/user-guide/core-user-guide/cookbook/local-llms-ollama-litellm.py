@@ -16,8 +16,8 @@ ChatCompletionClient,
 SystemMessage,
 UserMessage,
 )
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from dataclasses import dataclass
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -61,9 +61,9 @@ Set up out local LLM model client.
 """
 logger.info("Set up out local LLM model client.")
 
-def get_model_client() -> OllamaChatCompletionClient:  # type: ignore
-    "Mimic Ollama API using Local LLM Server."
-    return OllamaChatCompletionClient(
+def get_model_client() -> MLXChatCompletionClient:  # type: ignore
+    "Mimic MLX API using Local LLM Server."
+    return MLXChatCompletionClient(
         model="llama3.2:1b",
         api_key="NotRequiredSinceWeAreLocal",
         base_url="http://0.0.0.0:4000",

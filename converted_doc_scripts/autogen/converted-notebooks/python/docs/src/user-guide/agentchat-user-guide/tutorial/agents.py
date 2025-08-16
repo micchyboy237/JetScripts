@@ -8,9 +8,9 @@ from autogen_agentchat.ui import Console
 from autogen_core import Image
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.tools import FunctionTool
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
 from io import BytesIO
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from pydantic import BaseModel
 from typing import Literal
@@ -61,8 +61,8 @@ async def web_search(query: str) -> str:
     return "AutoGen is a programming framework for building multi-agent applications."
 
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 agent = AssistantAgent(
     name="assistant",
@@ -175,7 +175,7 @@ To address this limitation, modern LLMs can now accept a list of available tool 
 (descriptions of tools and their arguments) and generate a tool call message. 
 This capability is known as **Tool Calling** or **Function Calling** and 
 is becoming a popular pattern in building intelligent agent-based applications.
-Refer to the documentation from [Ollama](https://platform.openai.com/docs/guides/function-calling) 
+Refer to the documentation from [MLX](https://platform.openai.com/docs/guides/function-calling) 
 and [Anthropic](https://docs.anthropic.com/en/docs/build-with-claude/tool-use) for more information about tool calling in LLMs.
 
 In AgentChat, the {py:class}`~autogen_agentchat.agents.AssistantAgent` can use tools to perform specific actions.
@@ -243,7 +243,7 @@ fetch_mcp_server = StdioServerParams(command="uvx", args=["mcp-server-fetch"])
 
 async def async_func_7():
     async with McpWorkbench(fetch_mcp_server) as workbench:  # type: ignore
-        model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+        model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
         fetch_agent = AssistantAgent(
             name="fetcher", model_client=model_client, workbench=workbench, reflect_on_tool_use=True
         )
@@ -287,13 +287,13 @@ These tools cannot run concurrently as agents and teams maintain internal state
 that would conflict with parallel execution.
 ```
 
-For {py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient` and {py:class}`~autogen_ext.models.openai.AzureOllamaChatCompletionClient`,
+For {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient` and {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXChatCompletionClient`,
 set `parallel_tool_calls=False` to disable parallel tool calls.
 """
 logger.info("### Agent as a Tool")
 
-model_client_no_parallel_tool_call = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+model_client_no_parallel_tool_call = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     parallel_tool_calls=False,  # type: ignore
 )
 agent_no_parallel_tool_call = AssistantAgent(
@@ -362,7 +362,7 @@ class AgentResponse(BaseModel):
     response: Literal["happy", "sad", "neutral"]
 
 
-model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 agent = AssistantAgent(
     "assistant",
     model_client=model_client,
@@ -402,7 +402,7 @@ Please check with your model provider to see if this is supported.
 """
 logger.info("## Streaming Tokens")
 
-model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 streaming_assistant = AssistantAgent(
     name="assistant",
@@ -452,7 +452,7 @@ The following preset agents are available:
 
 - {py:class}`~autogen_agentchat.agents.UserProxyAgent`: An agent that takes user input returns it as responses.
 - {py:class}`~autogen_agentchat.agents.CodeExecutorAgent`: An agent that can execute code.
-- {py:class}`~autogen_ext.agents.openai.OllamaAssistantAgent`: An agent that is backed by an Ollama Assistant, with ability to use custom tools.
+- {py:class}`~autogen_ext.agents.openai.MLXAssistantAgent`: An agent that is backed by an MLX Assistant, with ability to use custom tools.
 - {py:class}`~autogen_ext.agents.web_surfer.MultimodalWebSurfer`: A multi-modal agent that can search the web and visit web pages for information.
 - {py:class}`~autogen_ext.agents.file_surfer.FileSurfer`: An agent that can search and browse local files for information.
 - {py:class}`~autogen_ext.agents.video_surfer.VideoSurfer`: An agent that can watch videos for information.

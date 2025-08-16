@@ -48,15 +48,15 @@ See the sample `OAI_CONFIG_LIST` below showing how the Together.AI client class 
 [
     {
         "model": "gpt-35-turbo",
-        "api_key": "your Ollama Key goes here",
+        "api_key": "your MLX Key goes here",
     },
     {
         "model": "gpt-4-vision-preview",
-        "api_key": "your Ollama Key goes here",
+        "api_key": "your MLX Key goes here",
     },
     {
         "model": "dalle",
-        "api_key": "your Ollama Key goes here",
+        "api_key": "your MLX Key goes here",
     },
     {
         "model": "google/gemma-7b-it",

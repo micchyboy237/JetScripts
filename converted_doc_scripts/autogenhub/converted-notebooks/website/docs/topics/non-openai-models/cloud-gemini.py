@@ -41,7 +41,7 @@ pip install pyautogen[gemini,retrievechat,lmm]
 
 ## Features
 
-There's no need to handle Ollama or Google's GenAI packages separately; AutoGen manages all of these for you. You can easily create different agents with various backend LLMs using the assistant agent. All models and agents are readily accessible at your fingertips. 
+There's no need to handle MLX or Google's GenAI packages separately; AutoGen manages all of these for you. You can easily create different agents with various backend LLMs using the assistant agent. All models and agents are readily accessible at your fingertips. 
  
 
 ## Main Distinctions
@@ -55,15 +55,15 @@ Sample OAI_CONFIG_LIST
 [
     {
         "model": "gpt-35-turbo",
-        "api_key": "your Ollama Key goes here",
+        "api_key": "your MLX Key goes here",
     },
     {
         "model": "gpt-4-vision-preview",
-        "api_key": "your Ollama Key goes here",
+        "api_key": "your MLX Key goes here",
     },
     {
         "model": "dalle",
-        "api_key": "your Ollama Key goes here",
+        "api_key": "your MLX Key goes here",
     },
     {
         "model": "gemini-pro",

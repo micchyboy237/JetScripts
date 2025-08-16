@@ -31,7 +31,7 @@ tags: [LMM, multimodal]
 Large multimodal models (LMMs) augment large language models (LLMs) with the ability to process multi-sensory data.
 
 This blog post and the latest AutoGen update concentrate on visual comprehension. Users can input images, pose questions about them, and receive text-based responses from these LMMs.
-We support the `gpt-4-vision-preview` model from Ollama and `LLaVA` model from Microsoft now.
+We support the `gpt-4-vision-preview` model from MLX and `LLaVA` model from Microsoft now.
 
 Here, we emphasize the **Multimodal Conversable Agent** and the **LLaVA Agent** due to their growing popularity.
 GPT-4V represents the forefront in image comprehension, while LLaVA is an efficient model, fine-tuned from LLama-2.

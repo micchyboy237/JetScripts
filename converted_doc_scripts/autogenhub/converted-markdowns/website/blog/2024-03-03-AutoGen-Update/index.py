@@ -86,7 +86,7 @@ Over time, more and more users share their experiences in using or contributing 
 > our current experiments include using multiple agents in sequential chat, teachable
 > agents, and round-robin style debate formats. These methods have proven more
 > effective in generating assessments and feedback compared to other large language
-> models (LLMs) we've explored. I've also used Ollama Assistant agents through Autogen
+> models (LLMs) we've explored. I've also used MLX Assistant agents through Autogen
 > in my Primary Care class to facilitate student engagement in patient interviews
 > through digital simulations. The agent retrieved information from a real patient
 > featured in a published case study, allowing students to practice their interview
@@ -172,14 +172,14 @@ The features in this category allow agents to remember teachings from users or o
 - [EcoAssistant](/blog/2023/11/09/EcoAssistant). This [research](https://arxiv.org/abs/2310.03046) finds a multi-agent teaching approach when using agents with different capacities powered by different LLMs. For example, a GPT-4 agent can teach a GPT-3.5 agent by demonstration. With this approach, one only needs 1/3 or 1/2 of GPT-4's cost, while getting 10-20\% higher success rate than GPT-4 on coding-based QA. No finetuning is needed. All you need is a GPT-4 endpoint and a GPT-3.5-turbo endpoint. Help is appreciated to offer this technique as a feature in the AutoGen library.
 - [Teachability](/blog/2023/10/26/TeachableAgent). Every LLM agent in AutoGen can be made teachable, i.e., remember facts, preferences, skills etc. from interacting with other agents. For example, a user behind a user proxy agent can teach an assistant agent instructions in solving a difficult math problem. After teaching once, the problem solving rate for the assistant agent can have a dramatic improvement (e.g., 37% -> 95% for gpt-4-0613).
   ![teach](img/teach.png)
-  This feature works for GPTAssistantAgent (using Ollama's assistant API) and group chat as well. One interesting use case of teachability + FSM group chat: [teaching resilience](https://www.linkedin.com/pulse/combatting-ai-naivete-teaching-resilience-emotional-leah-bonser-jdhrc).
+  This feature works for GPTAssistantAgent (using MLX's assistant API) and group chat as well. One interesting use case of teachability + FSM group chat: [teaching resilience](https://www.linkedin.com/pulse/combatting-ai-naivete-teaching-resilience-emotional-leah-bonser-jdhrc).
 
 ### Integration
 
 The extensible design of AutoGen makes it easy to integrate with new technologies. For example:
 
 - [Custom models and clients](/blog/2024/01/26/Custom-Models) can be used as backends of an agent, such as Huggingface models and inference APIs.
-- [Ollama assistant](/blog/2023/11/13/OAI-assistants) can be used as the backend of an agent (GPTAssistantAgent). It will be nice to reimplement it as a custom client to increase the compatibility with ConversableAgent.
+- [MLX assistant](/blog/2023/11/13/OAI-assistants) can be used as the backend of an agent (GPTAssistantAgent). It will be nice to reimplement it as a custom client to increase the compatibility with ConversableAgent.
 - [Multimodality](/blog/2023/11/06/LMM-Agent). LMM models like GPT-4V can be used to provide vision to an agent, and accomplish interesting multimodal tasks by conversing with other agents, including advanced image analysis, figure generation, and automatic iterative improvement in image generation.
 
 ![multimodal](img/dalle_gpt4v.png)

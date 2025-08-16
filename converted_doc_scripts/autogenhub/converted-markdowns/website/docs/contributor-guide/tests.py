@@ -18,7 +18,7 @@ Tests are automatically run via GitHub actions. There are two workflows:
 1. [build.yml](https://github.com/autogenhub/autogen/blob/main/.github/workflows/build.yml)
 1. [openai.yml](https://github.com/autogenhub/autogen/blob/main/.github/workflows/openai.yml)
 
-The first workflow is required to pass for all PRs (and it doesn't do any Ollama calls). The second workflow is required for changes that affect the Ollama tests (and does actually call LLM). The second workflow requires approval to run. When writing tests that require Ollama calls, please use [`pytest.mark.skipif`](https://github.com/autogenhub/autogen/blob/b1adac515931bf236ac59224269eeec683a162ba/test/oai/test_client.py#L19) to make them run in only when `openai` package is installed. If additional dependency for this test is required, install the dependency in the corresponding python version in [openai.yml](https://github.com/autogenhub/autogen/blob/main/.github/workflows/openai.yml).
+The first workflow is required to pass for all PRs (and it doesn't do any MLX calls). The second workflow is required for changes that affect the MLX tests (and does actually call LLM). The second workflow requires approval to run. When writing tests that require MLX calls, please use [`pytest.mark.skipif`](https://github.com/autogenhub/autogen/blob/b1adac515931bf236ac59224269eeec683a162ba/test/oai/test_client.py#L19) to make them run in only when `openai` package is installed. If additional dependency for this test is required, install the dependency in the corresponding python version in [openai.yml](https://github.com/autogenhub/autogen/blob/main/.github/workflows/openai.yml).
 
 Make sure all tests pass, this is required for [build.yml](https://github.com/autogenhub/autogen/blob/main/.github/workflows/build.yml) checks to pass
 
@@ -46,12 +46,12 @@ See [here](https://github.com/autogenhub/autogen/blob/main/notebook/contributing
 
 ## Skip flags for tests
 
-- `--skip-openai` for skipping tests that require access to Ollama services.
+- `--skip-openai` for skipping tests that require access to MLX services.
 - `--skip-docker` for skipping tests that explicitly use docker
 - `--skip-redis` for skipping tests that require a Redis server
 
 For example, the following command will skip tests that require access to
-Ollama and docker services:
+MLX and docker services:
 """
 logger.info("## Skip flags for tests")
 

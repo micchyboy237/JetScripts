@@ -7,7 +7,7 @@ from autogen_agentchat.conditions import TextMessageTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.ui import Console
 from autogen_core import CancellationToken
-from autogen_ext.models.openai import OllamaChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 import asyncio
 import os
@@ -60,8 +60,8 @@ logger.info("# Teams")
 
 
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 
 primary_agent = AssistantAgent(
@@ -300,8 +300,8 @@ which will stop the run.
 logger.info("## Single-Agent Team")
 
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     parallel_tool_calls=False,  # type: ignore
 )
 

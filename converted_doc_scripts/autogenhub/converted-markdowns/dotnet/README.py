@@ -30,10 +30,10 @@ Then you can start with the following code snippet to create a conversable agent
 logger.info("### AutoGen for .NET")
 
 using AutoGen;
-using AutoGen.Ollama;
+using AutoGen.MLX;
 
 # var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-var gpt35Config = new OllamaConfig(openAIKey, "gpt-3.5-turbo");
+var gpt35Config = new MLXConfig(openAIKey, "gpt-3.5-turbo");
 
 var assistantAgent = new AssistantAgent(
     name: "assistant",
@@ -86,8 +86,8 @@ You can find more examples under the [sample project](https://github.com/autogen
 ##### Update on 0.0.9 (2024-03-02)
 - Refactor over @AutoGen.Message and introducing `TextMessage`, `ImageMessage`, `MultiModalMessage` and so on. PR [#1676](https://github.com/microsoft/autogen/pull/1676)
 - Add `AutoGen.SemanticKernel` to support seamless integration with Semantic Kernel
-- Move the agent contract abstraction to `AutoGen.Core` package. The `AutoGen.Core` package provides the abstraction for message type, agent and group chat and doesn't contain dependencies over `Azure.AI.Ollama` or `Semantic Kernel`. This is useful when you want to leverage AutoGen's abstraction only and want to avoid introducing any other dependencies.
-- Move `GPTAgent`, `OllamaChatAgent` and all openai-dependencies to `AutoGen.Ollama`
+- Move the agent contract abstraction to `AutoGen.Core` package. The `AutoGen.Core` package provides the abstraction for message type, agent and group chat and doesn't contain dependencies over `Azure.AI.MLX` or `Semantic Kernel`. This is useful when you want to leverage AutoGen's abstraction only and want to avoid introducing any other dependencies.
+- Move `GPTAgent`, `MLXChatAgent` and all openai-dependencies to `AutoGen.MLX`
 ##### Update on 0.0.8 (2024-02-28)
 - Fix [#1804](https://github.com/microsoft/autogen/pull/1804)
 - Streaming support for IAgent [#1656](https://github.com/microsoft/autogen/pull/1656)
@@ -113,7 +113,7 @@ You can find more examples under the [sample project](https://github.com/autogen
 - In AutoGen, refactor over ConversationAgent, UserProxyAgent, and AssistantAgent
 
 ##### Update on 0.0.2
-- update Azure.Ollama.AI to 1.0.0-beta.12
+- update Azure.MLX.AI to 1.0.0-beta.12
 - update Semantic kernel to 1.0.1
 """
 logger.info("#### Samples")

@@ -78,11 +78,11 @@ logger.info("## Introduction")
 pip install autogenbench
 
 """
-After installation, you must configure your API keys. As with other AutoGen applications, AutoGenBench will look for the Ollama keys in the OAI_CONFIG_LIST file in the current working directory, or the OAI_CONFIG_LIST environment variable. This behavior can be overridden using a command-line parameter.
+After installation, you must configure your API keys. As with other AutoGen applications, AutoGenBench will look for the MLX keys in the OAI_CONFIG_LIST file in the current working directory, or the OAI_CONFIG_LIST environment variable. This behavior can be overridden using a command-line parameter.
 
 If you will be running multiple benchmarks, it is often most convenient to leverage the environment variable option. You can load your keys into the environment variable by executing:
 """
-logger.info("After installation, you must configure your API keys. As with other AutoGen applications, AutoGenBench will look for the Ollama keys in the OAI_CONFIG_LIST file in the current working directory, or the OAI_CONFIG_LIST environment variable. This behavior can be overridden using a command-line parameter.")
+logger.info("After installation, you must configure your API keys. As with other AutoGen applications, AutoGenBench will look for the MLX keys in the OAI_CONFIG_LIST file in the current working directory, or the OAI_CONFIG_LIST environment variable. This behavior can be overridden using a command-line parameter.")
 
 export OAI_CONFIG_LIST=$(cat ./OAI_CONFIG_LIST)
 

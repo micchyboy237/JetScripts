@@ -22,7 +22,7 @@ Simple installation and CLI:
    gitty --repo microsoft/autogen issue 5212
    ```
 
-*Important*: Install the dependencies and set Ollama API key:
+*Important*: Install the dependencies and set MLX API key:
 
    ```bash
    uv sync --all-extras

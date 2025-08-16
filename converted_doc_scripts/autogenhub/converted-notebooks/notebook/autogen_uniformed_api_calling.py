@@ -1,4 +1,4 @@
-from autogen import OllamaWrapper
+from autogen import MLXWrapper
 from jet.logger import CustomLogger
 import autogen
 import os
@@ -21,8 +21,8 @@ Through setting up a configuration file, you can easily switch between different
 In this notebook, we will show you how to use AutoGen to call different LLMs and create LLM agents from them.
 
 Currently, we support the following model families:
-- [Ollama](https://platform.openai.com/docs/overview)
-- [Azure Ollama](https://azure.microsoft.com/en-us/products/ai-services/openai-service/?ef_id=_k_CjwKCAjwps-zBhAiEiwALwsVYdbpVkqA3IbY7WnxtrjNSefBnTfrijwRAFaYd8uuLCjeWsPdfZmxUBoC_ZAQAvD_BwE_k_&OCID=AIDcmm5edswduu_SEM__k_CjwKCAjwps-zBhAiEiwALwsVYdbpVkqA3IbY7WnxtrjNSefBnTfrijwRAFaYd8uuLCjeWsPdfZmxUBoC_ZAQAvD_BwE_k_&gad_source=1&gclid=CjwKCAjwps-zBhAiEiwALwsVYdbpVkqA3IbY7WnxtrjNSefBnTfrijwRAFaYd8uuLCjeWsPdfZmxUBoC_ZAQAvD_BwE)
+- [MLX](https://platform.openai.com/docs/overview)
+- [Azure MLX](https://azure.microsoft.com/en-us/products/ai-services/openai-service/?ef_id=_k_CjwKCAjwps-zBhAiEiwALwsVYdbpVkqA3IbY7WnxtrjNSefBnTfrijwRAFaYd8uuLCjeWsPdfZmxUBoC_ZAQAvD_BwE_k_&OCID=AIDcmm5edswduu_SEM__k_CjwKCAjwps-zBhAiEiwALwsVYdbpVkqA3IbY7WnxtrjNSefBnTfrijwRAFaYd8uuLCjeWsPdfZmxUBoC_ZAQAvD_BwE_k_&gad_source=1&gclid=CjwKCAjwps-zBhAiEiwALwsVYdbpVkqA3IbY7WnxtrjNSefBnTfrijwRAFaYd8uuLCjeWsPdfZmxUBoC_ZAQAvD_BwE)
 - [Anthropic Claude](https://docs.anthropic.com/en/docs/welcome)
 - [Google Gemini](https://ai.google.dev/gemini-api/docs)
 - [Mistral](https://docs.mistral.ai/) (API to open and closed-source models)
@@ -36,7 +36,7 @@ You can also [plug in your local deployed LLM](https://autogenhub.github.io/auto
 ## Install required packages
 
 You may want to install AutoGen with options to different LLMs. Here we install AutoGen with all the supported LLMs.
-By default, AutoGen is installed with Ollama support.
+By default, AutoGen is installed with MLX support.
     
 ```bash
 pip install autogen[gemini,anthropic,mistral,together]
@@ -52,13 +52,13 @@ Generally, you just need to specify the `model`, `api_key` and `api_type` from t
 ```python
 [
     {   
-        # using Ollama
+        # using MLX
         "model": "gpt-35-turbo-1106", 
         "api_key": "YOUR_API_KEY"
         # default api_type is openai
     },
     {
-        # using Azure Ollama
+        # using Azure MLX
         "model": "gpt-4-turbo-1106",
         "api_key": "YOUR_API_KEY",
         "api_type": "azure",
@@ -115,8 +115,8 @@ logger.info("# A Uniform interface to call different LLMs")
 
 def model_call_example_function(model: str, message: str, cache_seed: int = 41, print_cost: bool = False):
     """
-    A helper function that demonstrates how to call different models using the OllamaWrapper class.
-    Note the name `OllamaWrapper` is not accurate, as now it is a wrapper for multiple models, not just Ollama.
+    A helper function that demonstrates how to call different models using the MLXWrapper class.
+    Note the name `MLXWrapper` is not accurate, as now it is a wrapper for multiple models, not just MLX.
     This might be changed in the future.
     """
     config_list = autogen.config_list_from_json(
@@ -125,7 +125,7 @@ def model_call_example_function(model: str, message: str, cache_seed: int = 41, 
             "model": [model],
         },
     )
-    client = OllamaWrapper(config_list=config_list)
+    client = MLXWrapper(config_list=config_list)
     response = client.create(messages=[{"role": "user", "content": message}], cache_seed=cache_seed)
 
     logger.debug(f"Response from model {model}: {response.choices[0].message.content}")

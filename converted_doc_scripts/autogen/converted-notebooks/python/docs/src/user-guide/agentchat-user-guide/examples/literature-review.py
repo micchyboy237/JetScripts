@@ -5,9 +5,9 @@ from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.ui import Console
 from autogen_core.tools import FunctionTool
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 import arxiv
 import os
@@ -141,7 +141,7 @@ Next, we will define the agents that will perform the tasks.
 """
 logger.info("## Defining Agents")
 
-model_client = OllamaChatCompletionClient(model="llama3.1")
+model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
 
 google_search_agent = AssistantAgent(
     name="Google_Search_Agent",

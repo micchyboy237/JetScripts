@@ -27,14 +27,14 @@ You will be using the following features of AgentChat:
 
 ## Setup
 
-Install the required packages with Ollama support:
+Install the required packages with MLX support:
 """
 logger.info("# AgentChat App with FastAPI")
 
 pip install -U "autogen-agentchat" "autogen-ext[openai]" "fastapi" "uvicorn[standard]" "PyYAML"
 
 """
-To use models other than Ollama, see the [Models](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/models.html) documentation.
+To use models other than MLX, see the [Models](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/models.html) documentation.
 
 Create a new file named `model_config.yaml` in the same directory as this README file to configure your model settings.
 See `model_config_template.yaml` for an example.

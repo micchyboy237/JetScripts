@@ -1,5 +1,5 @@
 from jet.logger import CustomLogger
-from openai import Ollama
+from openai import MLX
 from tqdm import tqdm
 import fitz
 import json
@@ -94,12 +94,12 @@ def chunk_text(text, n, overlap):
     return chunks  # Return the list of text chunks
 
 """
-## Setting Up the Ollama API Client
-We initialize the Ollama client to generate embeddings and responses.
+## Setting Up the MLX API Client
+We initialize the MLX client to generate embeddings and responses.
 """
-logger.info("## Setting Up the Ollama API Client")
+logger.info("## Setting Up the MLX API Client")
 
-client = Ollama(
+client = MLX(
     base_url="https://api.studio.nebius.com/v1/",
 #     api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
 )
@@ -159,14 +159,14 @@ logger.info("## Creating Embeddings for Text")
 
 def create_embeddings(text, model="BAAI/bge-en-icl"):
     """
-    Creates embeddings for the given text using the specified Ollama model.
+    Creates embeddings for the given text using the specified MLX model.
 
     Args:
     text (str): The input text for which embeddings are to be created.
     model (str): The model to be used for creating embeddings.
 
     Returns:
-    dict: The response from the Ollama API containing the embeddings.
+    dict: The response from the MLX API containing the embeddings.
     """
     response = client.embeddings.create(
         model=model,
@@ -555,14 +555,14 @@ logger.info("## Creating Embeddings for Text Chunks")
 
 def create_embeddings(text, model="BAAI/bge-en-icl"):
     """
-    Creates embeddings for the given text using the specified Ollama model.
+    Creates embeddings for the given text using the specified MLX model.
 
     Args:
     text (str): The input text for which embeddings are to be created.
     model (str): The model to be used for creating embeddings. Default is "BAAI/bge-en-icl".
 
     Returns:
-    dict: The response from the Ollama API containing the embeddings.
+    dict: The response from the MLX API containing the embeddings.
     """
     response = client.embeddings.create(
         model=model,

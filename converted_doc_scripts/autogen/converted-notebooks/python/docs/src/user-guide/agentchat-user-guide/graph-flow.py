@@ -9,7 +9,7 @@ GraphFlow,
 )
 from autogen_agentchat.teams import DiGraphBuilder, GraphFlow
 from autogen_agentchat.ui import Console
-from autogen_ext.models.openai import OllamaChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -70,7 +70,7 @@ Note, the flow automatically computes all the source and leaf nodes of the graph
 logger.info("# GraphFlow (Workflows)")
 
 
-client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 writer = AssistantAgent("writer", model_client=client, system_message="Draft a short paragraph on climate change.")
 
@@ -102,7 +102,7 @@ Execution starts at the **writer**, fans out to **editor1** and **editor2** simu
 logger.info("### Parallel Flow with Join")
 
 
-client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 writer = AssistantAgent("writer", model_client=client, system_message="Draft a short paragraph on climate change.")
 
@@ -162,7 +162,7 @@ You can use {py:class}`~autogen_agentchat.agents.MessageFilterAgent` together wi
 logger.info("## Message Filtering")
 
 
-client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 researcher = AssistantAgent(
     "researcher", model_client=client, system_message="Summarize key facts about climate change."
@@ -210,7 +210,7 @@ This example demonstrates:
 logger.info("## 🔁 Advanced Example: Conditional Loop + Filtered Summary")
 
 
-model_client = OllamaChatCompletionClient(model="llama3.1")
+model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
 
 generator = AssistantAgent("generator", model_client=model_client, system_message="Generate a list of creative ideas.")
 reviewer = AssistantAgent(
@@ -269,7 +269,7 @@ This example shows a review loop where both the initial input (A) and the feedba
 logger.info("## 🔁 Advanced Example: Cycles With Activation Group Examples")
 
 
-client = OllamaChatCompletionClient(model="llama3.1")
+client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
 
 agent_a = AssistantAgent("A", model_client=client, system_message="Start the process and provide initial input.")
 agent_b = AssistantAgent(

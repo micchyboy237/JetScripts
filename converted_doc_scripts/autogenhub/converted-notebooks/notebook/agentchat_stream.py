@@ -54,19 +54,19 @@ The config list looks like the following:
 config_list = [
     {
         'model': 'gpt-4',
-        'api_key': '<your Ollama API key here>',
+        'api_key': '<your MLX API key here>',
     },
     {
         'model': 'gpt-3.5-turbo',
-        'api_key': '<your Azure Ollama API key here>',
-        'base_url': '<your Azure Ollama API base here>',
+        'api_key': '<your Azure MLX API key here>',
+        'base_url': '<your Azure MLX API base here>',
         'api_type': 'azure',
         'api_version': '2024-02-01',
     },
     {
         'model': 'gpt-3.5-turbo-16k',
-        'api_key': '<your Azure Ollama API key here>',
-        'base_url': '<your Azure Ollama API base here>',
+        'api_key': '<your Azure MLX API key here>',
+        'base_url': '<your Azure MLX API base here>',
         'api_type': 'azure',
         'api_version': '2024-02-01',
     },

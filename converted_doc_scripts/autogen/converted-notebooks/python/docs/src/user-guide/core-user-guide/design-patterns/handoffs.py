@@ -19,7 +19,7 @@ SystemMessage,
 UserMessage,
 )
 from autogen_core.tools import FunctionTool, Tool
-from autogen_ext.models.openai import OllamaChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from pydantic import BaseModel
 from typing import List, Tuple
@@ -39,11 +39,11 @@ logger.info(f"Logs: {log_file}")
 """
 # Handoffs
 
-Handoff is a multi-agent design pattern introduced by Ollama in an experimental project called [Swarm](https://github.com/openai/swarm).
+Handoff is a multi-agent design pattern introduced by MLX in an experimental project called [Swarm](https://github.com/openai/swarm).
 The key idea is to let agent delegate tasks to other agents using a special tool call.
 
 We can use the AutoGen Core API to implement the handoff pattern using event-driven agents.
-Using AutoGen (v0.4+) provides the following advantages over the Ollama implementation and the previous version (v0.2):
+Using AutoGen (v0.4+) provides the following advantages over the MLX implementation and the previous version (v0.2):
 
 1. It can scale to distributed environment by using distributed agent runtime.
 2. It affords the flexibility of bringing your own agent implementation.
@@ -60,7 +60,7 @@ much more quickly.
 
 ## Scenario
 
-This scenario is modified based on the [Ollama example](https://github.com/openai/openai-cookbook/blob/main/examples/Orchestrating_agents.ipynb).
+This scenario is modified based on the [MLX example](https://github.com/openai/openai-cookbook/blob/main/examples/Orchestrating_agents.ipynb).
 
 Consider a customer service scenario where a customer is trying to get a refund for a product, or purchase a new product from a chatbot.
 The chatbot is a multi-agent team consisting of three AI agents and one human agent:
@@ -423,8 +423,8 @@ escalate_to_human_tool = FunctionTool(escalate_to_human, description="Only call 
 We have defined the AI agents, the Human Agent, the User Agent, the tools, and the topic types.
 Now we can create the team of agents.
 
-For the AI agents, we use the {py:class}`~autogen_ext.models.OllamaChatCompletionClient`
-and `llama3.1` model.
+For the AI agents, we use the {py:class}`~autogen_ext.models.MLXChatCompletionClient`
+and `llama-3.2-3b-instruct` model.
 
 After creating the agent runtime, we register each of the agent by providing
 an agent type and a factory method to create agent instance.
@@ -441,8 +441,8 @@ logger.info("## Creating the team")
 
 runtime = SingleThreadedAgentRuntime()
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1",
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct",
 )
 
 async def async_func_6():

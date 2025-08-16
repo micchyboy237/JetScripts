@@ -49,9 +49,9 @@ assistant = autogen.AssistantAgent(
     name="assistant",
     llm_config={
         "cache_seed": 41,  # seed for caching and reproducibility
-        "config_list": config_list,  # a list of Ollama API configurations
+        "config_list": config_list,  # a list of MLX API configurations
         "temperature": 0,  # temperature for sampling
-    },  # configuration for autogen's enhanced inference API which is compatible with Ollama API
+    },  # configuration for autogen's enhanced inference API which is compatible with MLX API
 )
 
 user_proxy = autogen.UserProxyAgent(

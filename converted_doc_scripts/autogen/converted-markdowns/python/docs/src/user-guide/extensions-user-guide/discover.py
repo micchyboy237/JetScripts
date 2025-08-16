@@ -53,10 +53,10 @@ Find community samples and examples of how to use AutoGen
 | Name | Package | Description |
 |---|---|---|
 | [autogen-watsonx-client](https://github.com/tsinggggg/autogen-watsonx-client)  | [PyPi](https://pypi.org/project/autogen-watsonx-client/) | Model client for [IBM watsonx.ai](https://www.ibm.com/products/watsonx-ai) |
-| [autogen-openaiext-client](https://github.com/vballoli/autogen-openaiext-client)  | [PyPi](https://pypi.org/project/autogen-openaiext-client/) | Model client for other LLMs like Gemini, etc. through the Ollama API |
+| [autogen-openaiext-client](https://github.com/vballoli/autogen-openaiext-client)  | [PyPi](https://pypi.org/project/autogen-openaiext-client/) | Model client for other LLMs like Gemini, etc. through the MLX API |
 | [autogen-ext-mcp](https://github.com/richard-gyiko/autogen-ext-mcp) | [PyPi](https://pypi.org/project/autogen-ext-mcp/) | Tool adapter for Model Context Protocol server tools |
 | [autogen-ext-email](https://github.com/masquerlin/autogen-ext-email) | [PyPi](https://pypi.org/project/autogen-ext-email/) | A Email agent for generating email and sending |
-| [autogen-oaiapi](https://github.com/SongChiYoung/autogen-oaiapi)  | [PyPi](https://pypi.org/project/autogen-oaiapi/) | an Ollama-style API server built on top of AutoGen |
+| [autogen-oaiapi](https://github.com/SongChiYoung/autogen-oaiapi)  | [PyPi](https://pypi.org/project/autogen-oaiapi/) | an MLX-style API server built on top of AutoGen |
 | [autogen-contextplus](https://github.com/SongChiYoung/autogen-contextplus)  | [PyPi](https://pypi.org/project/autogen-contextplus/) | Enhanced model_context implementations, with features such as automatic summarization and truncation of model context. |
 | [autogen-ext-yepcode](https://github.com/yepcode/autogen-ext-yepcode)  | [PyPi](https://pypi.org/project/autogen-ext-yepcode/) | Enables agents to securely execute code in isolated remote sandboxes using [YepCode](https://yepcode.io)’s serverless runtime. |
 

@@ -1,6 +1,6 @@
 from autogen.agentchat.contrib.llamaindex_conversable_agent import LLamaIndexConversableAgent
-from jet.llm.ollama.base import Ollama
-from jet.llm.ollama.base import OllamaEmbedding
+from jet.llm.ollama.base import MLX
+from jet.llm.ollama.base import MLXEmbedding
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core.agent import ReActAgent
@@ -46,13 +46,13 @@ config_list = autogen.config_list_from_json(
 logger.info("## Set Llamaindex")
 
 
-llm = Ollama(
-    model="llama3.2", request_timeout=300.0, context_window=4096,
+llm = MLX(
+    model="llama-3.2-1b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     temperature=0.0,
     api_key=os.environ.get("OPENAPI_API_KEY", ""),
 )
 
-embed_model = OllamaEmbedding(
+embed_model = MLXEmbedding(
     model="text-embedding-ada-002",
     temperature=0.0,
     api_key=os.environ.get("OPENAPI_API_KEY", ""),

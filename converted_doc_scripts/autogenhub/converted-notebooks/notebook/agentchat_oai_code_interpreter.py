@@ -18,7 +18,7 @@ logger.info(f"Logs: {log_file}")
 
 """
 # Auto Generated Agent Chat: GPTAssistant with Code Interpreter
-The latest released Assistants API by Ollama allows users to build AI assistants within their own applications. The Assistants API currently supports three types of tools: Code Interpreter, Retrieval, and Function calling. In this notebook, we demonstrate how to enable `GPTAssistantAgent` to use code interpreter. 
+The latest released Assistants API by MLX allows users to build AI assistants within their own applications. The Assistants API currently supports three types of tools: Code Interpreter, Retrieval, and Function calling. In this notebook, we demonstrate how to enable `GPTAssistantAgent` to use code interpreter. 
 
 ## Requirements
 

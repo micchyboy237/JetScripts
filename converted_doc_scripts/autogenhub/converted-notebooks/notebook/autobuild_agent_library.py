@@ -97,7 +97,7 @@ Then we can prompt a `gpt-4` model to generate each agent's system message as we
 """
 logger.info("Then we can prompt a `gpt-4` model to generate each agent's system message as well as the description:")
 
-build_manager = autogen.OllamaWrapper(config_list=config_list)
+build_manager = autogen.MLXWrapper(config_list=config_list)
 sys_msg_list = []
 
 for pos in position_list:
@@ -163,7 +163,7 @@ Then, we can call the `build_from_library` from the AgentBuilder to generate a l
 logger.info("Then, we can call the `build_from_library` from the AgentBuilder to generate a list of agents from the library and let them complete the user's `execution_task` in a group chat.")
 
 new_builder = AgentBuilder(
-    config_file_or_env=config_file_or_env, builder_model="llama3.1", request_timeout=300.0, context_window=4096, agent_model="llama3.1", request_timeout=300.0, context_window=4096
+    config_file_or_env=config_file_or_env, builder_model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", agent_model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"
 )
 agent_list, _ = new_builder.build_from_library(building_task, library_path_or_json, llm_config)
 start_task(
@@ -179,7 +179,7 @@ We also support using embedding similarity to select agents. You can use a [Sent
 logger.info("## Build agents from library (by description-task similarity)")
 
 new_builder = AgentBuilder(
-    config_file_or_env=config_file_or_env, builder_model="llama3.1", request_timeout=300.0, context_window=4096, agent_model="llama3.1", request_timeout=300.0, context_window=4096
+    config_file_or_env=config_file_or_env, builder_model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", agent_model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"
 )
 agent_list, _ = new_builder.build_from_library(
     building_task, library_path_or_json, llm_config, embedding_model="all-mpnet-base-v2"

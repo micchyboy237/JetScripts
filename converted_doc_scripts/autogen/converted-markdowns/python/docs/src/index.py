@@ -1,7 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
-from autogen_ext.models.openai import OllamaChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 import asyncio
 import os
@@ -108,7 +108,7 @@ logger.info("A programming framework for building conversational single and mult
 
 
 async def main() -> None:
-    agent = AssistantAgent("assistant", OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096))
+    agent = AssistantAgent("assistant", MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"))
     async def run_async_code_ade8da1c():
         logger.debug(await agent.run(task="Say 'Hello World!'"))
         return 
@@ -163,7 +163,7 @@ Implementations of Core and AgentChat components that interface with external se
 You can find and use community extensions or create your own. Examples of built-in extensions:
 
 * {py:class}`~autogen_ext.tools.mcp.McpWorkbench` for using Model-Context Protocol (MCP) servers.
-* {py:class}`~autogen_ext.agents.openai.OllamaAssistantAgent` for using Assistant API.
+* {py:class}`~autogen_ext.agents.openai.MLXAssistantAgent` for using Assistant API.
 * {py:class}`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor` for running model-generated code in a Docker container.
 * {py:class}`~autogen_ext.runtimes.grpc.GrpcWorkerAgentRuntime` for distributed agents.
 

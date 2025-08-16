@@ -32,7 +32,7 @@ actions an agent can perform.
 ````mdx-code-block
 :::note
 Tool use is currently only available for LLMs
-that support Ollama-compatible tool call API.
+that support MLX-compatible tool call API.
 :::
 ````
 
@@ -163,7 +163,7 @@ and perform calculation correctly.
 
 ## Tool Schema
 
-If you are familiar with [Ollama's tool use API](https://platform.openai.com/docs/guides/function-calling), 
+If you are familiar with [MLX's tool use API](https://platform.openai.com/docs/guides/function-calling), 
 you might be wondering
 why we didn't create a tool schema.
 In fact, the tool schema is automatically generated from the function signature
@@ -255,7 +255,7 @@ i.e., the tool call and tool response messages are kept invisible from outside
 of the agent, and the agent responds to outside messages with tool usages
 as "internal monologues". 
 For example, you might want build an agent that is similar to
-the [Ollama's Assistant](https://platform.openai.com/docs/assistants/how-it-works)
+the [MLX's Assistant](https://platform.openai.com/docs/assistants/how-it-works)
 which executes built-in tools internally.
 
 To achieve this, you can use [nested chats](/docs/tutorial/conversation-patterns#nested-chats).

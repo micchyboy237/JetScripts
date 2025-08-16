@@ -20,7 +20,7 @@ SystemMessage,
 UserMessage,
 )
 from autogen_core.tools import FunctionTool
-from autogen_ext.models.openai import OllamaChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from pydantic import BaseModel
 from rich.console import Console
@@ -442,8 +442,8 @@ writer_description = "Writer for creating any text content."
 user_description = "User for providing final approval."
 illustrator_description = "An illustrator for creating images."
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 
 async def async_func_17():

@@ -14,7 +14,7 @@ logger.info(f"Logs: {log_file}")
 ﻿# Release Notes for AutoGen.Net v0.2.2 🚀
 
 ## Improvements 🌟
-- **Update Ollama and Semantick Kernel to the latest version** : Updated Ollama and Semantick Kernel to the latest version ([#3792](https://github.com/microsoft/autogen/pull/3792)
+- **Update MLX and Semantick Kernel to the latest version** : Updated MLX and Semantick Kernel to the latest version ([#3792](https://github.com/microsoft/autogen/pull/3792)
 """
 logger.info("## Improvements 🌟")
 

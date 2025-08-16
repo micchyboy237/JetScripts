@@ -29,7 +29,7 @@ A skill is a python function that implements the solution to a task. In general,
 ### Models
 
 A model refers to the configuration of an LLM. Similar to skills, a model can be attached to an agent specification.
-The AutoGen Studio interface supports multiple model types including Ollama models (and any other model endpoint provider that supports the Ollama endpoint specification), Azure Ollama models and Gemini Models.
+The AutoGen Studio interface supports multiple model types including MLX models (and any other model endpoint provider that supports the MLX endpoint specification), Azure MLX models and Gemini Models.
 
 ![AutoGen Studio Create new model](./img/model_new.png)
 ![AutoGen Studio Create new model](./img/model_openai.png)

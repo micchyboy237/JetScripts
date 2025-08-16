@@ -1,4 +1,4 @@
-from jet.llm.ollama.base_langchain import AzureChatOllama, AzureOllamaEmbeddings
+from jet.llm.ollama.base_langchain import AzureChatMLX, AzureMLXEmbeddings
 from jet.logger import CustomLogger
 from langchain.docstore.document import Document
 from langchain.document_loaders import TextLoader
@@ -97,13 +97,13 @@ l
 """
 logger.info("#")
 
-llm = AzureChatOllama(
+llm = AzureChatMLX(
     deployment_name="gpt-4-32k-0613",
     openai_api_version="2023-08-01-preview",
     temperature=0.0,
 )
 
-embeddings = AzureOllamaEmbeddings(
+embeddings = AzureMLXEmbeddings(
     deployment="text-embedding-ada-002",
     api_version="2023-08-01-preview",
 )

@@ -48,7 +48,7 @@ logger.info("# Task-Centric Memory Code Samples")
 pip install -U "autogen-agentchat" "autogen-ext[openai]" "autogen-ext[task-centric-memory]"
 
 """
-# Assign your Ollama key to the environment variable OPENAI_API_KEY,
+# Assign your MLX key to the environment variable OPENAI_API_KEY,
 or else modify `utils/client.py` as appropriate for the model you choose.
 
 

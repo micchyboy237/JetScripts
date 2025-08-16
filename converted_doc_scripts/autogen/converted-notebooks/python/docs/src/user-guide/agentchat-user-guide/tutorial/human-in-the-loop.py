@@ -7,7 +7,7 @@ from autogen_agentchat.conditions import HandoffTermination, TextMentionTerminat
 from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.ui import Console
-from autogen_ext.models.openai import OllamaChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -85,7 +85,7 @@ in a {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat` for a poetry gener
 logger.info("# Human-in-the-Loop")
 
 
-model_client = OllamaChatCompletionClient(model="llama3.1")
+model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
 assistant = AssistantAgent("assistant", model_client=model_client)
 user_proxy = UserProxyAgent("user_proxy", input_func=input)  # Use input() to get user input from console.
 
@@ -190,7 +190,7 @@ with a maximum of 1 turn:
 logger.info("# Create user proxy with custom input function")
 
 
-model_client = OllamaChatCompletionClient(model="llama3.1")
+model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
 assistant = AssistantAgent("assistant", model_client=model_client)
 
 team = RoundRobinGroupChat([assistant], max_turns=1)
@@ -233,8 +233,8 @@ to use the handoff feature.
 logger.info("### Using Termination Conditions")
 
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 
 lazy_agent = AssistantAgent(

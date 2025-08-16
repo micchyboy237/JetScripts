@@ -1,8 +1,8 @@
 from autogen_agentchat.teams import BaseGroupChat
 from autogen_core.models import ModelInfo
 from autogen_ext.models.anthropic import AnthropicChatCompletionClient
-from autogen_ext.models.openai import AzureOllamaChatCompletionClient, OllamaChatCompletionClient
 from autogenstudio.teammanager import TeamManager
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import AzureMLXChatCompletionClient, MLXChatCompletionClient
 from jet.logger import CustomLogger
 import json
 import os
@@ -36,20 +36,20 @@ Yes. AutoGen standardizes on the openai model api format, and you can use any ap
 
 AutoGen Studio is based on declaritive specifications which applies to models as well. Agents can include a model_client field which specifies the model endpoint details including `model`, `api_key`, `base_url`, `model type`. Note, you can define your [model client](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/components/model-clients.html) in python and dump it to a json file for use in AutoGen Studio.
 
-In the following sample, we will define an Ollama, AzureOllama and a local model client in python and dump them to a json file.
+In the following sample, we will define an MLX, AzureMLX and a local model client in python and dump them to a json file.
 """
 logger.info("# FAQ")
 
 
-model_client=OllamaChatCompletionClient(
-            model="llama3.1",
+model_client=MLXChatCompletionClient(
+            model="llama-3.2-3b-instruct",
         )
 logger.debug(model_client.dump_component().model_dump_json())
 
 
-az_model_client = AzureOllamaChatCompletionClient(
+az_model_client = AzureMLXChatCompletionClient(
     azure_deployment="{your-azure-deployment}",
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     api_version="2024-06-01",
     azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
     api_key="sk-...",
@@ -62,7 +62,7 @@ anthropic_client = AnthropicChatCompletionClient(
     )
 logger.debug(anthropic_client.dump_component().model_dump_json())
 
-mistral_vllm_model = OllamaChatCompletionClient(
+mistral_vllm_model = MLXChatCompletionClient(
         model="TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
         base_url="http://localhost:1234/v1",
         model_info=ModelInfo(vision=False, function_calling=True, json_output=False, family="unknown", structured_output=True),
@@ -70,32 +70,32 @@ mistral_vllm_model = OllamaChatCompletionClient(
 logger.debug(mistral_vllm_model.dump_component().model_dump_json())
 
 """
-Ollama
+MLX
 """
-logger.info("Ollama")
+logger.info("MLX")
 
 {
-  "provider": "autogen_ext.models.openai.OllamaChatCompletionClient",
+  "provider": "jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient",
   "component_type": "model",
   "version": 1,
   "component_version": 1,
-  "description": "Chat completion client for Ollama hosted models.",
-  "label": "OllamaChatCompletionClient",
-  "config": { "model": "llama3.1" }
+  "description": "Chat completion client for MLX hosted models.",
+  "label": "MLXChatCompletionClient",
+  "config": { "model": "llama-3.2-3b-instruct" }
 }
 
 """
-Azure Ollama
+Azure MLX
 """
-logger.info("Azure Ollama")
+logger.info("Azure MLX")
 
 {
-  "provider": "autogen_ext.models.openai.AzureOllamaChatCompletionClient",
+  "provider": "jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXChatCompletionClient",
   "component_type": "model",
   "version": 1,
   "component_version": 1,
-  "description": "Chat completion client for Azure Ollama hosted models.",
-  "label": "AzureOllamaChatCompletionClient",
+  "description": "Chat completion client for Azure MLX hosted models.",
+  "label": "AzureMLXChatCompletionClient",
   "config": {
     "model": "gpt-4o",
     "api_key": "sk-...",
@@ -126,17 +126,17 @@ logger.info("Anthropic")
 }
 
 """
-Have a local model server like Ollama, vLLM or LMStudio that provide an Ollama compliant endpoint? You can use that as well.
+Have a local model server like Ollama, vLLM or LMStudio that provide an MLX compliant endpoint? You can use that as well.
 """
-logger.info("Have a local model server like Ollama, vLLM or LMStudio that provide an Ollama compliant endpoint? You can use that as well.")
+logger.info("Have a local model server like Ollama, vLLM or LMStudio that provide an MLX compliant endpoint? You can use that as well.")
 
 {
-  "provider": "autogen_ext.models.openai.OllamaChatCompletionClient",
+  "provider": "jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient",
   "component_type": "model",
   "version": 1,
   "component_version": 1,
-  "description": "Chat completion client for Ollama hosted models.",
-  "label": "OllamaChatCompletionClient",
+  "description": "Chat completion client for MLX hosted models.",
+  "label": "MLXChatCompletionClient",
   "config": {
     "model": "TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
     "model_info": {

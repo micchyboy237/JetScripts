@@ -24,9 +24,9 @@ logger.info(f"Logs: {log_file}")
 
 ![DBRX launch](https://www.databricks.com/en-blog-assets/static/2fe1a0af1ee0f6605024a810b604079c/dbrx-blog-header-optimized.png)
 
-In March 2024, Databricks released [DBRX](https://www.databricks.com/blog/introducing-dbrx-new-state-art-open-llm), a general-purpose LLM that sets a new standard for open LLMs. While available as an open-source model on Hugging Face ([databricks/dbrx-instruct](https://huggingface.co/databricks/dbrx-instruct/tree/main) and [databricks/dbrx-base](https://huggingface.co/databricks/dbrx-base) ), customers of Databricks can also tap into the [Foundation Model APIs](https://docs.databricks.com/en/machine-learning/model-serving/score-foundation-models.html#query-a-chat-completion-model), which make DBRX available through an Ollama-compatible, autoscaling REST API.
+In March 2024, Databricks released [DBRX](https://www.databricks.com/blog/introducing-dbrx-new-state-art-open-llm), a general-purpose LLM that sets a new standard for open LLMs. While available as an open-source model on Hugging Face ([databricks/dbrx-instruct](https://huggingface.co/databricks/dbrx-instruct/tree/main) and [databricks/dbrx-base](https://huggingface.co/databricks/dbrx-base) ), customers of Databricks can also tap into the [Foundation Model APIs](https://docs.databricks.com/en/machine-learning/model-serving/score-foundation-models.html#query-a-chat-completion-model), which make DBRX available through an MLX-compatible, autoscaling REST API.
 
-[Autogen](https://autogenhub.github.io/autogen/docs/Use-Cases/agent_chat) is becoming a popular standard for agent creation. Built to support any "LLM as a service" that implements the Ollama SDK, it can easily be extended to integrate with powerful open source models. 
+[Autogen](https://autogenhub.github.io/autogen/docs/Use-Cases/agent_chat) is becoming a popular standard for agent creation. Built to support any "LLM as a service" that implements the MLX SDK, it can easily be extended to integrate with powerful open source models. 
 
 This notebook will demonstrate a few basic examples of Autogen with DBRX, including the use of  `AssistantAgent`, `UserProxyAgent`, and `ConversableAgent`. These demos are not intended to be exhaustive - feel free to use them as a base to build upon!
 

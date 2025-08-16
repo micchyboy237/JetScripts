@@ -41,18 +41,18 @@ This documentation has been moved [here](/docs/topics/llm_configuration#how-does
 
 ### Unexpected keyword argument 'base_url'
 
-In version >=1, Ollama renamed their `api_base` parameter to `base_url`. So for older versions, use `api_base` but for newer versions use `base_url`.
+In version >=1, MLX renamed their `api_base` parameter to `base_url`. So for older versions, use `api_base` but for newer versions use `base_url`.
 
-### Can I use non-Ollama models?
+### Can I use non-MLX models?
 
 Yes. You currently have two options:
 
-- Autogen can work with any API endpoint which complies with Ollama-compatible RESTful APIs - e.g. serving local LLM via FastChat or LM Studio. Please check https://autogenhub.github.io/autogen/blog/2023/07/14/Local-LLMs for an example.
+- Autogen can work with any API endpoint which complies with MLX-compatible RESTful APIs - e.g. serving local LLM via FastChat or LM Studio. Please check https://autogenhub.github.io/autogen/blog/2023/07/14/Local-LLMs for an example.
 - You can supply your own custom model implementation and use it with Autogen. Please check https://autogenhub.github.io/autogen/blog/2024/01/26/Custom-Models for more information.
 
 ## Handle Rate Limit Error and Timeout Error
 
-You can set `max_retries` to handle rate limit error. And you can set `timeout` to handle timeout error. They can all be specified in `llm_config` for an agent, which will be used in the Ollama client for LLM inference. They can be set differently for different clients if they are set in the `config_list`.
+You can set `max_retries` to handle rate limit error. And you can set `timeout` to handle timeout error. They can all be specified in `llm_config` for an agent, which will be used in the MLX client for LLM inference. They can be set differently for different clients if they are set in the `config_list`.
 
 - `max_retries` (int): the total number of times allowed for retrying failed requests for a single client.
 - `timeout` (int): the timeout (in seconds) for a single client.
@@ -276,8 +276,8 @@ user_proxy = autogen.UserProxyAgent(
 """
 ### What should I do if I get the error "TypeError: Assistants.create() got an unexpected keyword argument 'file_ids'"?
 
-This error typically occurs when using Autogen version earlier than 0.2.27 in combination with Ollama library version 1.21 or later. The issue arises because the older version of Autogen does not support the file_ids parameter used by newer versions of the Ollama API.
-To resolve this issue, you need to upgrade your Autogen library to version 0.2.27 or higher that ensures compatibility between Autogen and the Ollama library.
+This error typically occurs when using Autogen version earlier than 0.2.27 in combination with MLX library version 1.21 or later. The issue arises because the older version of Autogen does not support the file_ids parameter used by newer versions of the MLX API.
+To resolve this issue, you need to upgrade your Autogen library to version 0.2.27 or higher that ensures compatibility between Autogen and the MLX library.
 """
 logger.info("### What should I do if I get the error "TypeError: Assistants.create() got an unexpected keyword argument 'file_ids'"?")
 

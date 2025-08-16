@@ -4,8 +4,8 @@ from autogen_core import AgentId, MessageContext, RoutedAgent, SingleThreadedAge
 from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
 from autogen_ext.experimental.task_centric_memory import MemoryController
 from autogen_ext.experimental.task_centric_memory.utils import PageLogger
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from dataclasses import dataclass
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from typing import List
 import asyncio
@@ -54,7 +54,7 @@ logger.info("## Quickstart")
 
 
 async def main() -> None:
-   client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+   client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
    logger = PageLogger(config={"level": "DEBUG", "path": "./pagelogs/quickstart"})  # Optional, but very useful.
    memory_controller = MemoryController(reset=True, client=client, logger=logger)
 
@@ -153,7 +153,7 @@ class MemoryEnabledAgent(RoutedAgent):
 
 
 async def main() -> None:
-   client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+   client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
    logger = PageLogger(config={"level": "DEBUG", "path": "./pagelogs/quickstart2"})  # Optional, but very useful.
    memory_controller = MemoryController(reset=True, client=client, logger=logger)
 

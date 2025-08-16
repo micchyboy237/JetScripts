@@ -34,7 +34,7 @@ More information could be found in:
 
 ## Introduction
 In the traditional ML pipeline, we train a model by updating its weights according to the loss on the training set, while in the era of LLM agents, how should we train an agent?
-Here, we take an initial step towards the agent training. Inspired by the [function calling](https://platform.openai.com/docs/guides/function-calling) capabilities provided by Ollama,
+Here, we take an initial step towards the agent training. Inspired by the [function calling](https://platform.openai.com/docs/guides/function-calling) capabilities provided by MLX,
 we draw an analogy between model weights and agent functions/skills, and update an agent’s functions/skills based on its historical performance on a training set.
 Specifically, we propose to use the function calling capabilities to formulate the actions that optimize the agents’ functions as a set of function calls, to support iteratively **adding, revising, and removing** existing functions.
 We also include two strategies, roll-back, and early-stop, to streamline the training process to overcome the performance-decreasing problem when training.
@@ -108,7 +108,7 @@ After EPOCH iterations, the agents are expected to obtain better functions that 
 ## The implementation technology behind the AgentOptimizer
 
 To obtain stable and structured function signatures and code implementations from AgentOptimizer,
-we leverage the function calling capabilities provided by Ollama to formulate the actions that manipulate the functions as a set of function calls.
+we leverage the function calling capabilities provided by MLX to formulate the actions that manipulate the functions as a set of function calls.
 Specifically, we introduce three function calls to manipulate the current functions at each step: `add_function`, `remove_function`, and `revise_function`.
 These calls add, remove, and revise functions in the existing function list, respectively.
 This practice could fully leverage the function calling capabilities of GPT-4 and output structured functions with more stable signatures and code implementation.
@@ -203,7 +203,7 @@ REMOVE_FUNC = {
 ## Limitation & Future work
 
 1. Currently, it only supports optimizing the one typical user_proxy and assistant agents pair. We will make this feature more general to support other agent types in future work.
-2. The current implementation of AgentOptimizer is effective solely on the Ollama GPT-4 model. Extending this feature/concept to other LLMs is the next step.
+2. The current implementation of AgentOptimizer is effective solely on the MLX GPT-4 model. Extending this feature/concept to other LLMs is the next step.
 """
 logger.info("## Limitation & Future work")
 

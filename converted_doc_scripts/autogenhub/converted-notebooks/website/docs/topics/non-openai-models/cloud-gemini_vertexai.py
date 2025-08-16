@@ -252,8 +252,8 @@ user_proxy.initiate_chat(
 )
 
 """
-# Use Gemini via the Ollama Library in Autogen
-Using Gemini via the Ollama library is also possible once you are already authenticated. <br/>
+# Use Gemini via the MLX Library in Autogen
+Using Gemini via the MLX library is also possible once you are already authenticated. <br/>
 Run `gcloud auth application-default login` to set up application default credentials locally for the example below.<br/>
 Also set the Google cloud project on the CLI if you have not done so far: <br/>
 ```bash
@@ -267,7 +267,7 @@ You can read more on the topic in the [official Google docs](https://cloud.googl
 <br/>
 Note, that you will need to refresh your token regularly, by default every 1 hour.
 """
-logger.info("# Use Gemini via the Ollama Library in Autogen")
+logger.info("# Use Gemini via the MLX Library in Autogen")
 
 
 scopes = ["https://www.googleapis.com/auth/cloud-platform"]

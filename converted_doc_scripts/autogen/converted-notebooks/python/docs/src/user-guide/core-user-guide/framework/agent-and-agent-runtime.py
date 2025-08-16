@@ -4,8 +4,8 @@ from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.messages import TextMessage
 from autogen_core import AgentId, MessageContext, RoutedAgent, message_handler
 from autogen_core import SingleThreadedAgentRuntime
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from dataclasses import dataclass
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -105,7 +105,7 @@ logger.info("## Using an AgentChat Agent")
 class MyAssistant(RoutedAgent):
     def __init__(self, name: str) -> None:
         super().__init__(name)
-        model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+        model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
         self._delegate = AssistantAgent(name, model_client=model_client)
 
     @message_handler

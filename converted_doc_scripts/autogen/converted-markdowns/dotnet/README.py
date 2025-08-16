@@ -36,10 +36,10 @@ Then you can start with the following code snippet to create a conversable agent
 logger.info("# AutoGen for .NET")
 
 using AutoGen;
-using AutoGen.Ollama;
+using AutoGen.MLX;
 
 # var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-var gpt35Config = new OllamaConfig(openAIKey, "gpt-3.5-turbo");
+var gpt35Config = new MLXConfig(openAIKey, "gpt-3.5-turbo");
 
 var assistantAgent = new AssistantAgent(
     name: "assistant",

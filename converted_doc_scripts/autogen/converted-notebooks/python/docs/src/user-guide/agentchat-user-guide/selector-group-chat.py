@@ -5,7 +5,7 @@ from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermi
 from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
 from autogen_agentchat.teams import SelectorGroupChat
 from autogen_agentchat.ui import Console
-from autogen_ext.models.openai import OllamaChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from typing import List, Sequence
 import os
@@ -100,7 +100,7 @@ so it is recommended to provide meaningful names and descriptions.
 """
 logger.info("Let's create the specialized agents using the {py:class}`~autogen_agentchat.agents.AssistantAgent` class.")
 
-model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 planning_agent = AssistantAgent(
     "PlanningAgent",
@@ -450,7 +450,7 @@ Also, we are keeping the selector prompt and system messages as simple as possib
 """
 logger.info("## Using Reasoning Models")
 
-model_client = OllamaChatCompletionClient(model="o3-mini")
+model_client = MLXChatCompletionClient(model="o3-mini")
 
 web_search_agent = AssistantAgent(
     "WebSearchAgent",
@@ -501,7 +501,7 @@ logger.success(format_json())
 """
 ```{tip}
 For more guidance on how to prompt reasoning models, see the
-Azure AI Services Blog on [Prompt Engineering for Ollama's O1 and O3-mini Reasoning Models](https://techcommunity.microsoft.com/blog/azure-ai-services-blog/prompt-engineering-for-openai%E2%80%99s-o1-and-o3-mini-reasoning-models/4374010)
+Azure AI Services Blog on [Prompt Engineering for MLX's O1 and O3-mini Reasoning Models](https://techcommunity.microsoft.com/blog/azure-ai-services-blog/prompt-engineering-for-openai%E2%80%99s-o1-and-o3-mini-reasoning-models/4374010)
 ```
 """
 logger.info("For more guidance on how to prompt reasoning models, see the")

@@ -48,7 +48,7 @@ Below is a comprehensive summary table consolidating the features and use cases 
 
 - Each document focuses on a unique enhancement to the RAG framework, addressing specific challenges such as retrieval accuracy, context preservation, query complexity, or multi-modal data integration.
 - The use cases reflect the practical applications of each technique, ranging from educational tools and prototyping to advanced systems for enterprise, research, or real-time applications.
-- Common components across documents include PDF text extraction (often using PyMuPDF), embedding creation (typically with Ollama API), simple vector stores, and response generation/evaluation, tailored to the specific technique.
+- Common components across documents include PDF text extraction (often using PyMuPDF), embedding creation (typically with MLX API), simple vector stores, and response generation/evaluation, tailored to the specific technique.
 
 This table provides a holistic view of the RAG techniques, enabling users to select the most appropriate method based on their dataset, query types, and performance goals.
 """

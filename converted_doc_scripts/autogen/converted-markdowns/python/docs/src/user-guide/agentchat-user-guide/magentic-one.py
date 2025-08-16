@@ -5,8 +5,8 @@ from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import MagenticOneGroupChat
 from autogen_agentchat.ui import Console
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from autogen_ext.teams.magentic_one import MagenticOne
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 import asyncio
 import os
@@ -79,7 +79,7 @@ logger.info("If you haven't done so already, go through the AgentChat tutorial t
 
 
 async def main() -> None:
-    model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
     assistant = AssistantAgent(
         "Assistant",
@@ -115,7 +115,7 @@ The example code may download files from the internet, execute code, and interac
 
 
 async def main() -> None:
-    model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
     surfer = MultimodalWebSurfer(
         "WebSurfer",
@@ -152,7 +152,7 @@ def approval_func(request: ApprovalRequest) -> ApprovalResponse:
 
 
 async def example_usage():
-    client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+    client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
     m1 = MagenticOne(client=client, approval_func=approval_func)
     task = "Write a Python script to fetch data from an API."
     async def run_async_code_53d18d93():
@@ -187,7 +187,7 @@ Overall, Magentic-One consists of the following agents:
 
 Together, Magentic-One’s agents provide the Orchestrator with the tools and capabilities that it needs to solve a broad variety of open-ended problems, as well as the ability to autonomously adapt to, and act in, dynamic and ever-changing web and file-system environments.
 
-While the default multimodal LLM we use for all agents is GPT-4o, Magentic-One is model agnostic and can incorporate heterogonous models to support different capabilities or meet different cost requirements when getting tasks done. For example, it can use different LLMs and SLMs and their specialized versions to power different agents. We recommend a strong reasoning model for the Orchestrator agent such as GPT-4o. In a different configuration of Magentic-One, we also experiment with using Ollama o1-preview for the outer loop of the Orchestrator and for the Coder, while other agents continue to use GPT-4o.
+While the default multimodal LLM we use for all agents is GPT-4o, Magentic-One is model agnostic and can incorporate heterogonous models to support different capabilities or meet different cost requirements when getting tasks done. For example, it can use different LLMs and SLMs and their specialized versions to power different agents. We recommend a strong reasoning model for the Orchestrator agent such as GPT-4o. In a different configuration of Magentic-One, we also experiment with using MLX o1-preview for the outer loop of the Orchestrator and for the Coder, while other agents continue to use GPT-4o.
 
 ## Citation
 

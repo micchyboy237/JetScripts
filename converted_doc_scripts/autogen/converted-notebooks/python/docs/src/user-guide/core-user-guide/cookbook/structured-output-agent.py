@@ -1,7 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from autogen_core.models import UserMessage
-from autogen_ext.models.openai import AzureOllamaChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import AzureMLXChatCompletionClient
 from jet.logger import CustomLogger
 from pydantic import BaseModel
 from typing import Optional
@@ -20,12 +20,12 @@ logger.info(f"Logs: {log_file}")
 """
 # Structured output using GPT-4o models
 
-This cookbook demonstrates how to obtain structured output using GPT-4o models. The Ollama beta client SDK provides a parse helper that allows you to use your own Pydantic model, eliminating the need to define a JSON schema. This approach is recommended for supported models.
+This cookbook demonstrates how to obtain structured output using GPT-4o models. The MLX beta client SDK provides a parse helper that allows you to use your own Pydantic model, eliminating the need to define a JSON schema. This approach is recommended for supported models.
 
 Currently, this feature is supported for:
 
-- llama3.1 on Ollama
-- gpt-4o-2024-08-06 on Ollama
+- llama-3.2-3b-instruct on MLX
+- gpt-4o-2024-08-06 on MLX
 - gpt-4o-2024-08-06 on Azure
 
 Let's define a simple message type that carries explanation and output for a Math problem
@@ -58,7 +58,7 @@ def get_env_variable(name: str) -> str:
     return value
 
 
-client = AzureOllamaChatCompletionClient(
+client = AzureMLXChatCompletionClient(
     azure_deployment=get_env_variable("AZURE_OPENAI_DEPLOYMENT_NAME"),
     model=get_env_variable("AZURE_OPENAI_MODEL"),
     api_version=get_env_variable("AZURE_OPENAI_API_VERSION"),

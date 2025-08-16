@@ -64,7 +64,7 @@ With this new release and package name, we are officially switching to the Apach
 
 <!-- :fire: Nov 24: pyautogen [v0.2](https://github.com/microsoft/autogen/releases/tag/v0.2.0) is released with many updates and new features compared to v0.1.1. It switches to using openai-python v1. Please read the [migration guide](https://autogenhub.github.io/autogen/docs/Installation#python). -->
 
-<!-- :fire: Nov 11: Ollama's Assistants are available in AutoGen and interoperatable with other AutoGen agents! Checkout our [blogpost](https://autogenhub.github.io/autogen/blog/2023/11/13/OAI-assistants) for details and examples. -->
+<!-- :fire: Nov 11: MLX's Assistants are available in AutoGen and interoperatable with other AutoGen agents! Checkout our [blogpost](https://autogenhub.github.io/autogen/blog/2023/11/13/OAI-assistants) for details and examples. -->
 
 :tada: Nov 8, 2023: AutoGen is selected into [Open100: Top 100 Open Source achievements](https://www.benchcouncil.org/evaluation/opencs/annual.html) 35 days after spinoff from [FLAML](https://github.com/microsoft/FLAML).
 
@@ -79,7 +79,7 @@ With this new release and package name, we are officially switching to the Apach
 :tada: Mar 29, 2023: AutoGen is first created in [FLAML](https://github.com/microsoft/FLAML).
 
 <!--
-:fire: FLAML is highlighted in Ollama's [cookbook](https://github.com/openai/openai-cookbook#related-resources-from-around-the-web).
+:fire: FLAML is highlighted in MLX's [cookbook](https://github.com/openai/openai-cookbook#related-resources-from-around-the-web).
 
 :fire: [autogen](https://autogenhub.github.io/autogen/) is released with support for ChatGPT and GPT-4, based on [Cost-Effective Hyperparameter Optimization for Large Language Model Generation Inference](https://arxiv.org/abs/2303.04673).
 
@@ -124,7 +124,7 @@ The easiest way to start playing is
  2. Copy OAI_CONFIG_LIST_sample to ./notebook folder, name to OAI_CONFIG_LIST, and set the correct configuration.
  3. Start playing with the notebooks!
 
-*NOTE*: OAI_CONFIG_LIST_sample lists GPT-4 as the default model, as this represents our current recommendation, and is known to work well with AutoGen. If you use a model other than GPT-4, you may need to revise various system prompts (especially if using weaker models like GPT-3.5-turbo). Moreover, if you use models other than those hosted by Ollama or Azure, you may incur additional risks related to alignment and safety. Proceed with caution if updating this default.
+*NOTE*: OAI_CONFIG_LIST_sample lists GPT-4 as the default model, as this represents our current recommendation, and is known to work well with AutoGen. If you use a model other than GPT-4, you may need to revise various system prompts (especially if using weaker models like GPT-3.5-turbo). Moreover, if you use models other than those hosted by MLX or Azure, you may incur additional risks related to alignment and safety. Proceed with caution if updating this default.
 
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">

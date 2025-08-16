@@ -86,19 +86,19 @@ pip install -U "autogen-agentchat"
 Python 3.10 or later is required.
 
 """
-## Install Ollama for Model Client
+## Install MLX for Model Client
 
-To use the Ollama and Azure Ollama models, you need to install the following
+To use the MLX and Azure MLX models, you need to install the following
 extensions:
 """
-logger.info("## Install Ollama for Model Client")
+logger.info("## Install MLX for Model Client")
 
 pip install "autogen-ext[openai]"
 
 """
-If you are using Azure Ollama with AAD authentication, you need to install the following:
+If you are using Azure MLX with AAD authentication, you need to install the following:
 """
-logger.info("If you are using Azure Ollama with AAD authentication, you need to install the following:")
+logger.info("If you are using Azure MLX with AAD authentication, you need to install the following:")
 
 pip install "autogen-ext[azure]"
 

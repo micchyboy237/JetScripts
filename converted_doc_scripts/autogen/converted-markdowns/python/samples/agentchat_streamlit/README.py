@@ -24,10 +24,10 @@ logger.info("# Streamlit AgentChat Sample Application")
 pip install streamlit
 
 """
-To use Azure Ollama models or models hosted on Ollama-compatible API endpoints,
+To use Azure MLX models or models hosted on MLX-compatible API endpoints,
 you need to install the `autogen-ext[openai,azure]` package. You can install it with the following command:
 """
-logger.info("To use Azure Ollama models or models hosted on Ollama-compatible API endpoints,")
+logger.info("To use Azure MLX models or models hosted on MLX-compatible API endpoints,")
 
 pip install "autogen-ext[openai,azure]"
 
@@ -35,14 +35,14 @@ pip install "autogen-ext[openai,azure]"
 Create a new file named `model_config.yml` in the the same directory as the script
 to configure the model you want to use.
 
-For example, to use `llama3.1` model from Azure Ollama, you can use the following configuration:
+For example, to use `llama-3.2-3b-instruct` model from Azure MLX, you can use the following configuration:
 """
 logger.info("Create a new file named `model_config.yml` in the the same directory as the script")
 
-provider: autogen_ext.models.openai.AzureOllamaChatCompletionClient
+provider: jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXChatCompletionClient
 config:
-  azure_deployment: "llama3.1"
-  model: llama3.1
+  azure_deployment: "llama-3.2-3b-instruct"
+  model: llama-3.2-3b-instruct
   api_version: REPLACE_WITH_MODEL_API_VERSION
   azure_endpoint: REPLACE_WITH_MODEL_ENDPOINT
   api_key: REPLACE_WITH_MODEL_API_KEY

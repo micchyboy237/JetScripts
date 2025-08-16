@@ -11,7 +11,7 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-This tutorial shows how to perform image chat with an agent using the @AutoGen.Ollama.OllamaChatAgent as an example.
+This tutorial shows how to perform image chat with an agent using the @AutoGen.MLX.MLXChatAgent as an example.
 
 > [!NOTE]
 > To chat image with an agent, the model behind the agent needs to support image input. Here is a partial list of models that support image input:
@@ -39,9 +39,9 @@ dotnet add package AutoGen
 
 [!code-csharp[Using Statements](../../samples/AgentChat/Autogen.Basic.Sample/GettingStart/Image_Chat_With_Agent.cs?name=Using)]
 
-## Step 3: Create an @AutoGen.Ollama.OllamaChatAgent
+## Step 3: Create an @AutoGen.MLX.MLXChatAgent
 
-[!code-csharp[Create an OllamaChatAgent](../../samples/AgentChat/Autogen.Basic.Sample/GettingStart/Image_Chat_With_Agent.cs?name=Create_Agent)]
+[!code-csharp[Create an MLXChatAgent](../../samples/AgentChat/Autogen.Basic.Sample/GettingStart/Image_Chat_With_Agent.cs?name=Create_Agent)]
 
 ## Step 4: Prepare Image Message
 

@@ -109,7 +109,7 @@ If the new model client is in the config list but not registered by the time the
 
 A custom model class can be created in many ways, but needs to adhere to the `ModelClient` protocol and response structure which is defined in `client.py` and shown below.
 
-The response protocol is currently using the minimum required fields from the autogen codebase that match the Ollama response structure. Any response protocol that matches the Ollama response structure will probably be more resilient to future changes, but we are starting off with minimum requirements to make adpotion of this feature easier.
+The response protocol is currently using the minimum required fields from the autogen codebase that match the MLX response structure. Any response protocol that matches the MLX response structure will probably be more resilient to future changes, but we are starting off with minimum requirements to make adpotion of this feature easier.
 """
 logger.info("## Protocol details")
 
@@ -125,7 +125,7 @@ class ModelClient(Protocol):
         - cost
         - model
 
-    This class is used to create a client that can be used by OllamaWrapper.
+    This class is used to create a client that can be used by MLXWrapper.
     The response returned from create must adhere to the ModelClientResponseProtocol but can be extended however needed.
     The message_retrieval method must be implemented to return a list of str or a list of messages from the response.
     """
@@ -151,7 +151,7 @@ class ModelClient(Protocol):
         """
         Retrieve and return a list of strings or a list of Choice.Message from the response.
 
-        NOTE: if a list of Choice.Message is returned, it currently needs to contain the fields of Ollama's ChatCompletion Message object,
+        NOTE: if a list of Choice.Message is returned, it currently needs to contain the fields of MLX's ChatCompletion Message object,
         since that is expected for function or tool calling in the rest of the codebase at the moment, unless a custom agent is being used.
         """
         ...
@@ -171,7 +171,7 @@ If something doesn't work then run through the checklist:
 
 - Make sure you have followed the client protocol and client response protocol when creating the custom model class
   - `create()` method: `ModelClientResponseProtocol` must be followed when returning an inference response during `create` call.
-  - `message_retrieval()` method: returns a list of strings or a list of message objects. If a list of message objects is returned, they currently must contain the fields of Ollama's ChatCompletion Message object, since that is expected for function or tool calling in the rest of the codebase at the moment, unless a custom agent is being used.
+  - `message_retrieval()` method: returns a list of strings or a list of message objects. If a list of message objects is returned, they currently must contain the fields of MLX's ChatCompletion Message object, since that is expected for function or tool calling in the rest of the codebase at the moment, unless a custom agent is being used.
   - `cost()`method: returns an integer, and if you don't care about cost tracking you can just return `0`.
   - `get_usage()`: returns a dictionary, and if you don't care about usage tracking you can just return an empty dictionary `{}`.
 - Make sure you have a corresponding entry in the `OAI_CONFIG_LIST` and that that entry has the `"model_client_cls":"<custom-model-class-name>"` field.

@@ -28,7 +28,7 @@ logger.info(f"Logs: {log_file}")
 ###### Bug Fixes
 - [Issue 2735](https://github.com/microsoft/autogen/issues/2735) Fix tool call issue in AutoGen.Mistral package.
 - [Issue 2722](https://github.com/microsoft/autogen/issues/2722) Fix parallel funciton call in function call middleware.
-- [Issue 2633](https://github.com/microsoft/autogen/issues/2633) Set up `name` field in `OllamaChatMessageConnector`
+- [Issue 2633](https://github.com/microsoft/autogen/issues/2633) Set up `name` field in `MLXChatMessageConnector`
 - [Issue 2660](https://github.com/microsoft/autogen/issues/2660) Fix dotnet interactive restoring issue when system language is Chinese
 - [Issue 2687](https://github.com/microsoft/autogen/issues/2687) Add `global::` prefix to generated code to avoid conflict with user-defined types. 
 ##### Update on 0.0.13 (2024-05-09)
@@ -49,7 +49,7 @@ logger.info(f"Logs: {log_file}")
 ##### Update on 0.0.11 (2024-04-10)
 - Add link to Discord channel in nuget's readme.md
 - Document improvements
-- In `AutoGen.Ollama`, update `Azure.AI.Ollama` to 1.0.0-beta.15 and add support for json mode and deterministic output in `OllamaChatAgent` [Issue #2346](https://github.com/microsoft/autogen/issues/2346)
+- In `AutoGen.MLX`, update `Azure.AI.MLX` to 1.0.0-beta.15 and add support for json mode and deterministic output in `MLXChatAgent` [Issue #2346](https://github.com/microsoft/autogen/issues/2346)
 - In `AutoGen.SemanticKernel`, update `SemanticKernel` package to 1.7.1
 - [API Breaking Change] Rename `PrintMessageMiddlewareExtension.RegisterPrintFormatMessageHook' to `PrintMessageMiddlewareExtension.RegisterPrintMessage`.
 ##### Update on 0.0.10 (2024-03-12)
@@ -59,8 +59,8 @@ logger.info(f"Logs: {log_file}")
 ##### Update on 0.0.9 (2024-03-02)
 - Refactor over @AutoGen.Message and introducing `TextMessage`, `ImageMessage`, `MultiModalMessage` and so on. PR [#1676](https://github.com/microsoft/autogen/pull/1676)
 - Add `AutoGen.SemanticKernel` to support seamless integration with Semantic Kernel
-- Move the agent contract abstraction to `AutoGen.Core` package. The `AutoGen.Core` package provides the abstraction for message type, agent and group chat and doesn't contain dependencies over `Azure.AI.Ollama` or `Semantic Kernel`. This is useful when you want to leverage AutoGen's abstraction only and want to avoid introducing any other dependencies.
-- Move `GPTAgent`, `OllamaChatAgent` and all openai-dependencies to `AutoGen.Ollama`
+- Move the agent contract abstraction to `AutoGen.Core` package. The `AutoGen.Core` package provides the abstraction for message type, agent and group chat and doesn't contain dependencies over `Azure.AI.MLX` or `Semantic Kernel`. This is useful when you want to leverage AutoGen's abstraction only and want to avoid introducing any other dependencies.
+- Move `GPTAgent`, `MLXChatAgent` and all openai-dependencies to `AutoGen.MLX`
 ##### Update on 0.0.8 (2024-02-28)
 - Fix [#1804](https://github.com/microsoft/autogen/pull/1804)
 - Streaming support for IAgent [#1656](https://github.com/microsoft/autogen/pull/1656)
@@ -86,7 +86,7 @@ logger.info(f"Logs: {log_file}")
 - In AutoGen, refactor over ConversationAgent, UserProxyAgent, and AssistantAgent
 
 ##### Update on 0.0.2
-- update Azure.Ollama.AI to 1.0.0-beta.12
+- update Azure.MLX.AI to 1.0.0-beta.12
 - update Semantic kernel to 1.0.1
 """
 logger.info("##### Update on 0.0.15 (2024-06-13) Milestone: [AutoGen.Net 0.0.15](https://github.com/microsoft/autogen/milestone/3)")

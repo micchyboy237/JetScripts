@@ -1,5 +1,5 @@
 from jet.logger import CustomLogger
-from openai import Ollama
+from openai import MLX
 from typing import List, Dict, Tuple, Any
 from urllib.parse import quote_plus
 import fitz  # PyMuPDF
@@ -42,12 +42,12 @@ logger.info("# Corrective RAG (CRAG) Implementation")
 
 
 """
-## Setting Up the Ollama API Client
-We initialize the Ollama client to generate embeddings and responses.
+## Setting Up the MLX API Client
+We initialize the MLX client to generate embeddings and responses.
 """
-logger.info("## Setting Up the Ollama API Client")
+logger.info("## Setting Up the MLX API Client")
 
-client = Ollama(
+client = MLX(
     base_url="https://api.studio.nebius.com/v1/",
 #     api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
 )
@@ -198,7 +198,7 @@ logger.info("## Creating Embeddings")
 
 def create_embeddings(texts, model="mxbai-embed-large"):
     """
-    Create vector embeddings for text inputs using Ollama's embedding models.
+    Create vector embeddings for text inputs using MLX's embedding models.
 
     Embeddings are dense vector representations of text that capture semantic meaning,
     allowing for similarity comparisons. In RAG systems, embeddings are essential
@@ -293,7 +293,7 @@ def evaluate_document_relevance(query, document):
 
     try:
         response = client.chat.completions.create(
-            model="llama3.2", request_timeout=300.0, context_window=4096,  # Specify the model to use
+            model="llama-3.2-1b-instruct", log_dir=f"{OUTPUT_DIR}/chats",  # Specify the model to use
             messages=[
                 {"role": "system", "content": system_prompt},  # System message to guide the assistant
                 {"role": "user", "content": user_prompt}  # User message with the query and document
@@ -399,7 +399,7 @@ def rewrite_search_query(query):
 
     try:
         response = client.chat.completions.create(
-            model="llama3.2", request_timeout=300.0, context_window=4096,  # Specify the model to use
+            model="llama-3.2-1b-instruct", log_dir=f"{OUTPUT_DIR}/chats",  # Specify the model to use
             messages=[
                 {"role": "system", "content": system_prompt},  # System message to guide the assistant
                 {"role": "user", "content": f"Original query: {query}\n\nRewritten query:"}  # User message with the original query
@@ -453,7 +453,7 @@ def refine_knowledge(text):
 
     try:
         response = client.chat.completions.create(
-            model="llama3.2", request_timeout=300.0, context_window=4096,  # Specify the model to use
+            model="llama-3.2-1b-instruct", log_dir=f"{OUTPUT_DIR}/chats",  # Specify the model to use
             messages=[
                 {"role": "system", "content": system_prompt},  # System message to guide the assistant
                 {"role": "user", "content": f"Text to refine:\n\n{text}"}  # User message with the text to refine
@@ -595,7 +595,7 @@ def generate_response(query, knowledge, sources):
 
     try:
         response = client.chat.completions.create(
-            model="llama3.1", request_timeout=300.0, context_window=4096,  # Using GPT-4 for high-quality responses
+            model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",  # Using GPT-4 for high-quality responses
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -654,7 +654,7 @@ def evaluate_crag_response(query, response, reference_answer=None):
 
     try:
         evaluation_response = client.chat.completions.create(
-            model="llama3.1", request_timeout=300.0, context_window=4096,
+            model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -762,7 +762,7 @@ def compare_responses(query, crag_response, standard_response, reference_answer=
 
     try:
         response = client.chat.completions.create(
-            model="llama3.1", request_timeout=300.0, context_window=4096,
+            model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -862,7 +862,7 @@ def generate_overall_analysis(results):
 
     try:
         response = client.chat.completions.create(
-            model="llama3.1", request_timeout=300.0, context_window=4096,
+            model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}

@@ -19,7 +19,7 @@ title: Exploring Pragmatic Patterns in Agentic Systems - Nov 04, 2024
 
 ### Biography of the speakers:
 
-Ilan Bigio is an engineer on the Developer Experience team at Ollama.
+Ilan Bigio is an engineer on the Developer Experience team at MLX.
 
 ### Abstract:
 

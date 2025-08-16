@@ -16,14 +16,14 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# Conversational Chess using non-Ollama clients
+# Conversational Chess using non-MLX clients
 
-This notebook provides tips for using non-Ollama models when using functions/tools.
+This notebook provides tips for using non-MLX models when using functions/tools.
 
 The code is based on [this notebook](/docs/notebooks/agentchat_nested_chats_chess),
 which provides a detailed look at nested chats for tool use. Please refer to that
 notebook for more on nested chats as this will be concentrated on tweaks to
-improve performance with non-Ollama models.
+improve performance with non-MLX models.
 
 The notebook represents a chess game between two players with a nested chat to
 determine the available moves and select a move to make.
@@ -43,13 +43,13 @@ As this involves function calling, we use larger, more capable, models from thes
 The nested chat will be supported be a board proxy agent who is set up to execute
 the tools and manage the game.
 
-Tips to improve performance with these non-Ollama models will be noted throughout **in bold**.
+Tips to improve performance with these non-MLX models will be noted throughout **in bold**.
 
 ## Installation
 
 First, you need to install the `pyautogen` and `chess` packages to use AutoGen. We'll include Anthropic and Together.AI libraries.
 """
-logger.info("# Conversational Chess using non-Ollama clients")
+logger.info("# Conversational Chess using non-MLX clients")
 
 # ! pip install -qqq pyautogen[anthropic,together] chess
 

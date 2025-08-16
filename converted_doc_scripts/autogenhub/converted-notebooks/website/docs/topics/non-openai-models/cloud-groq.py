@@ -22,7 +22,7 @@ logger.info(f"Logs: {log_file}")
 
 [Groq](https://groq.com/) is a cloud based platform serving a number of popular open weight models at high inference speeds. Models include Meta's Llama 3, Mistral AI's Mixtral, and Google's Gemma.
 
-Although Groq's API is aligned well with Ollama's, which is the native API used by AutoGen, this library provides the ability to set specific parameters as well as track API costs.
+Although Groq's API is aligned well with MLX's, which is the native API used by AutoGen, this library provides the ability to set specific parameters as well as track API costs.
 
 You will need a Groq account and create an API key. [See their website for further details](https://groq.com/).
 
@@ -34,15 +34,15 @@ See the sample `OAI_CONFIG_LIST` below showing how the Groq client class is used
 [
     {
         "model": "gpt-35-turbo",
-        "api_key": "your Ollama Key goes here",
+        "api_key": "your MLX Key goes here",
     },
     {
         "model": "gpt-4-vision-preview",
-        "api_key": "your Ollama Key goes here",
+        "api_key": "your MLX Key goes here",
     },
     {
         "model": "dalle",
-        "api_key": "your Ollama Key goes here",
+        "api_key": "your MLX Key goes here",
     },
     {
         "model": "llama3-8b-8192",

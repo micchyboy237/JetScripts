@@ -2,8 +2,8 @@ import asyncio
 from jet.transformers.formatters import format_json
 from autogen_core import AgentId, MessageContext, RoutedAgent, SingleThreadedAgentRuntime, message_handler
 from autogen_core.models import ChatCompletionClient, SystemMessage, UserMessage
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from dataclasses import dataclass
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from typing import List
 import asyncio
@@ -185,7 +185,7 @@ task = (
 """
 Let's set up the runtime with 3 layers of worker agents, each layer consisting of 3 worker agents.
 We only need to register a single worker agent types, "worker", because we are using
-the same model client configuration (i.e., llama3.1) for all worker agents.
+the same model client configuration (i.e., llama-3.2-3b-instruct) for all worker agents.
 If you want to use different models, you will need to register multiple worker agent types,
 one for each model, and update the `worker_agent_types` list in the orchestrator agent's
 factory function.
@@ -198,7 +198,7 @@ for more information on agent lifecycle.
 logger.info("Let's set up the runtime with 3 layers of worker agents, each layer consisting of 3 worker agents.")
 
 runtime = SingleThreadedAgentRuntime()
-model_client = OllamaChatCompletionClient(model="llama3.1")
+model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
 async def run_async_code_a3cbf129():
     await WorkerAgent.register(runtime, "worker", lambda: WorkerAgent(model_client=model_client))
     return 

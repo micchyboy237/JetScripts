@@ -1,5 +1,5 @@
 from jet.logger import CustomLogger
-from opentelemetry.instrumentation.openai import OllamaInstrumentor
+from opentelemetry.instrumentation.openai import MLXInstrumentor
 import os
 import shutil
 
@@ -44,7 +44,7 @@ Enable the instrumentation:
 logger.info("Enable the instrumentation:")
 
 
-OllamaInstrumentor().instrument()
+MLXInstrumentor().instrument()
 
 """
 Now running your code will send traces including the LLM calls to your telemetry backend (Aspire in our case).

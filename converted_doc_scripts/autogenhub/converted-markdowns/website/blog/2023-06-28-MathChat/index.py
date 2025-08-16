@@ -68,7 +68,7 @@ We evaluate the improvement brought by MathChat.
 
 For the experiment, we focus on the level-5 problems from the MATH dataset, which are composed of high school competition problems. These problems include the application of theorems and complex equation derivation and are challenging even for undergraduate students. We evaluate 6 of 7 categories from the dataset (excluding Geometry): Prealgebra, Algebra, Number Theory, Counting and Probability, Intermediate Algebra, and Precalculus.
 
-We evaluate GPT-4 and use the default configuration of the Ollama API. To access the final performance, we manually compare the final answer with the correct answer. For the vanilla prompt, Program Synthesis, and MathChat, we have GPT-4 enclose the final answer in _\boxed_{}, and we take the return of the function in PoT as the final answer.
+We evaluate GPT-4 and use the default configuration of the MLX API. To access the final performance, we manually compare the final answer with the correct answer. For the vanilla prompt, Program Synthesis, and MathChat, we have GPT-4 enclose the final answer in _\boxed_{}, and we take the return of the function in PoT as the final answer.
 
 We also evaluate the following methods for comparison:
 

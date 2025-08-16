@@ -1,5 +1,5 @@
 from jet.logger import CustomLogger
-from openai import Ollama
+from openai import MLX
 from typing import Annotated, List
 import autogen
 import os
@@ -35,7 +35,7 @@ For more information, please refer to the [installation guide](/docs/installatio
 ````
 
 ## Set your API Endpoint
-# It is recommended to store your Ollama API key in the environment variable. For example, store it in `OPENAI_API_KEY`.
+# It is recommended to store your MLX API key in the environment variable. For example, store it in `OPENAI_API_KEY`.
 """
 logger.info("# Translating Video audio using Whisper and GPT-3.5-turbo")
 
@@ -84,10 +84,10 @@ user_proxy = autogen.UserProxyAgent(
 
 
 def translate_text(input_text, source_language, target_language):
-    client = Ollama(api_key=key)
+    client = MLX(api_key=key)
 
     response = client.chat.completions.create(
-        model="llama3.2", request_timeout=300.0, context_window=4096,
+        model="llama-3.2-1b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
             {

@@ -151,7 +151,7 @@ agentops.end_session("Success")
 You can see your run in action at [app.agentops.ai](https://app.agentops.ai). In this example, the AgentOps dashboard will show:
 - Agents talking to each other
 - Each use of the `calculator` tool
-- Each call to Ollama for LLM use
+- Each call to MLX for LLM use
 
 ![Session Drilldown](https://github.com/AgentOps-AI/agentops/blob/main/docs/images/external/app_screenshots/session-replay.png?raw=true)
 """

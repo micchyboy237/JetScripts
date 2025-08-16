@@ -19,7 +19,7 @@ AutoGen.SemanticKernel is a package that provides seamless integration with Sema
 
 AutoGen.SemanticKernel also provides the following middleware:
 - @AutoGen.SemanticKernel.SemanticKernelChatMessageContentConnector: A connector that convert the message from AutoGen built-in message types to `ChatMessageContent` and vice versa. At the current stage, it only supports conversation between @AutoGen.Core.TextMessage, @AutoGen.Core.ImageMessage and @AutoGen.Core.MultiModalMessage. Function call message type like @AutoGen.Core.ToolCallMessage and @AutoGen.Core.ToolCallResultMessage are not supported yet.
-- @AutoGen.SemanticKernel.KernelPluginMiddleware: A middleware that allows you to use semantic kernel plugins in other AutoGen agents like @AutoGen.Ollama.OllamaChatAgent.
+- @AutoGen.SemanticKernel.KernelPluginMiddleware: A middleware that allows you to use semantic kernel plugins in other AutoGen agents like @AutoGen.MLX.MLXChatAgent.
 
 ### Get start with AutoGen.SemanticKernel
 

@@ -10,8 +10,8 @@ message_handler,
 type_subscription,
 )
 from autogen_core.models import ChatCompletionClient, SystemMessage, UserMessage
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from dataclasses import dataclass
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -224,8 +224,8 @@ Because we used the {py:class}`~autogen_core.type_subscription` decorator, the r
 """
 logger.info("## Workflow")
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1",
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct",
 )
 
 runtime = SingleThreadedAgentRuntime()

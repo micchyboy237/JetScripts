@@ -8,11 +8,11 @@ from autogen_ext.auth.azure import AzureTokenProvider
 from autogen_ext.models.anthropic import AnthropicChatCompletionClient
 from autogen_ext.models.azure import AzureAIChatCompletionClient
 from autogen_ext.models.ollama import OllamaChatCompletionClient
-from autogen_ext.models.openai import AzureOllamaChatCompletionClient
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
 from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import AzureMLXChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from pathlib import Path
 from semantic_kernel import Kernel
@@ -33,7 +33,7 @@ logger.info(f"Logs: {log_file}")
 """
 # Models
 
-In many cases, agents need access to LLM model services such as Ollama, Azure Ollama, or local models. Since there are many different providers with different APIs, `autogen-core` implements a protocol for model clients and `autogen-ext` implements a set of model clients for popular model services. AgentChat can use these model clients to interact with model services. 
+In many cases, agents need access to LLM model services such as MLX, Azure MLX, or local models. Since there are many different providers with different APIs, `autogen-core` implements a protocol for model clients and `autogen-ext` implements a set of model clients for popular model services. AgentChat can use these model clients to interact with model services. 
 
 This section provides a quick overview of available model clients.
 For more details on how to use them directly, please refer to [Model Clients](../../core-user-guide/components/model-clients.ipynb) in the Core API documentation.
@@ -57,22 +57,22 @@ logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
 
 """
-## Ollama
+## MLX
 
-To access Ollama models, install the `openai` extension, which allows you to use the {py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient`.
+To access MLX models, install the `openai` extension, which allows you to use the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient`.
 """
-logger.info("## Ollama")
+logger.info("## MLX")
 
 pip install "autogen-ext[openai]"
 
 """
-You will also need to obtain an [API key](https://platform.openai.com/account/api-keys) from Ollama.
+You will also need to obtain an [API key](https://platform.openai.com/account/api-keys) from MLX.
 """
-logger.info("You will also need to obtain an [API key](https://platform.openai.com/account/api-keys) from Ollama.")
+logger.info("You will also need to obtain an [API key](https://platform.openai.com/account/api-keys) from MLX.")
 
 
-openai_model_client = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+openai_model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 
 """
@@ -99,15 +99,15 @@ logger.success(format_json())
 
 """
 ```{note}
-You can use this client with models hosted on Ollama-compatible endpoints, however, we have not tested this functionality.
-See {py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient` for more information.
+You can use this client with models hosted on MLX-compatible endpoints, however, we have not tested this functionality.
+See {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient` for more information.
 ```
 
-## Azure Ollama
+## Azure MLX
 
-Similarly, install the `azure` and `openai` extensions to use the {py:class}`~autogen_ext.models.openai.AzureOllamaChatCompletionClient`.
+Similarly, install the `azure` and `openai` extensions to use the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXChatCompletionClient`.
 """
-logger.info("## Azure Ollama")
+logger.info("## Azure MLX")
 
 pip install "autogen-ext[openai,azure]"
 
@@ -116,7 +116,7 @@ To use the client, you need to provide your deployment id, Azure Cognitive Servi
 For authentication, you can either provide an API key or an Azure Active Directory (AAD) token credential.
 
 The following code snippet shows how to use AAD authentication.
-The identity used must be assigned the [Cognitive Services Ollama User](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/role-based-access-control#cognitive-services-openai-user) role.
+The identity used must be assigned the [Cognitive Services MLX User](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/role-based-access-control#cognitive-services-openai-user) role.
 """
 logger.info("To use the client, you need to provide your deployment id, Azure Cognitive Services endpoint, api version, and model capabilities.")
 
@@ -126,7 +126,7 @@ token_provider = AzureTokenProvider(
     "https://cognitiveservices.azure.com/.default",
 )
 
-az_model_client = AzureOllamaChatCompletionClient(
+az_model_client = AzureMLXChatCompletionClient(
     azure_deployment="{your-azure-deployment}",
     model="{model-name, such as gpt-4o}",
     api_version="2024-06-01",
@@ -266,11 +266,11 @@ logger.success(format_json())
 """
 ## Gemini (experimental)
 
-Gemini currently offers [an Ollama-compatible API (beta)](https://ai.google.dev/gemini-api/docs/openai).
-So you can use the {py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient` with the Gemini API.
+Gemini currently offers [an MLX-compatible API (beta)](https://ai.google.dev/gemini-api/docs/openai).
+So you can use the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient` with the Gemini API.
 
 ```{note}
-While some model providers may offer Ollama-compatible APIs, they may still have minor differences.
+While some model providers may offer MLX-compatible APIs, they may still have minor differences.
 For example, the `finish_reason` field may be different in the response.
 
 ```
@@ -278,7 +278,7 @@ For example, the `finish_reason` field may be different in the response.
 logger.info("## Gemini (experimental)")
 
 
-model_client = OllamaChatCompletionClient(
+model_client = MLXChatCompletionClient(
     model="gemini-1.5-flash-8b",
 )
 
@@ -303,7 +303,7 @@ Also, as Gemini adds new models, you may need to define the models capabilities 
 
 ```python 
 
-model_client = OllamaChatCompletionClient(
+model_client = MLXChatCompletionClient(
     model="gemini-2.0-flash-lite",
     model_info=ModelInfo(vision=True, function_calling=True, json_output=True, family="unknown", structured_output=True)
     # api_key="GEMINI_API_KEY",
@@ -316,10 +316,10 @@ await model_client.close()
 
 ## Llama API (experimental)
 
-[Llama API](https://llama.developer.meta.com?utm_source=partner-autogen&utm_medium=readme) is the Meta's first party API offering. It currently offers an [Ollama compatible endpoint](https://llama.developer.meta.com/docs/features/compatibility).
-So you can use the {py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient` with the Llama API.
+[Llama API](https://llama.developer.meta.com?utm_source=partner-autogen&utm_medium=readme) is the Meta's first party API offering. It currently offers an [MLX compatible endpoint](https://llama.developer.meta.com/docs/features/compatibility).
+So you can use the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient` with the Llama API.
 
-This endpoint fully supports the following Ollama client library features:
+This endpoint fully supports the following MLX client library features:
 * Chat completions
 * Model selection
 * Temperature/sampling
@@ -332,7 +332,7 @@ logger.info("# api_key="GEMINI_API_KEY",")
 
 
 
-model_client = OllamaChatCompletionClient(
+model_client = MLXChatCompletionClient(
     model="Llama-4-Scout-17B-16E-Instruct-FP8",
 )
 
@@ -352,7 +352,7 @@ async def run_async_code_0349fda4():
  = asyncio.run(run_async_code_0349fda4())
 logger.success(format_json())
 
-model_client = OllamaChatCompletionClient(
+model_client = MLXChatCompletionClient(
     model="Llama-4-Maverick-17B-128E-Instruct-FP8",
 )
 image = Image.from_file(Path("test.png"))

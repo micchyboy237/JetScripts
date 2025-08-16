@@ -82,9 +82,9 @@ pprint.plogger.debug(processed_messages)
 {'content': 'very very very very very very long string', 'role': 'user'}]
 
 """
-By applying the `MessageHistoryLimiter`, we can see that we were able to limit the context history to the 3 most recent messages. However, if the splitting point is between a "tool_calls" and "tool" pair, the complete pair will be included to obey the Ollama API call constraints.
+By applying the `MessageHistoryLimiter`, we can see that we were able to limit the context history to the 3 most recent messages. However, if the splitting point is between a "tool_calls" and "tool" pair, the complete pair will be included to obey the MLX API call constraints.
 """
-logger.info("By applying the `MessageHistoryLimiter`, we can see that we were able to limit the context history to the 3 most recent messages. However, if the splitting point is between a "tool_calls" and "tool" pair, the complete pair will be included to obey the Ollama API call constraints.")
+logger.info("By applying the `MessageHistoryLimiter`, we can see that we were able to limit the context history to the 3 most recent messages. However, if the splitting point is between a "tool_calls" and "tool" pair, the complete pair will be included to obey the MLX API call constraints.")
 
 max_msg_transfrom = transforms.MessageHistoryLimiter(max_messages=3)
 
@@ -206,9 +206,9 @@ logger.info("The first run will be the default implementation, where the agent d
 test(assistant, user_proxy)
 
 """
-Running this test will result in an error due to the large number of tokens sent to Ollama's gpt 3.5.
+Running this test will result in an error due to the large number of tokens sent to MLX's gpt 3.5.
 """
-logger.info("Running this test will result in an error due to the large number of tokens sent to Ollama's gpt 3.5.")
+logger.info("Running this test will result in an error due to the large number of tokens sent to MLX's gpt 3.5.")
 
 user_proxy (to assistant):
 
@@ -234,9 +234,9 @@ context_handling.add_to_agent(assistant)
 test(assistant, user_proxy)
 
 """
-The following console output shows that the agent is now able to handle the large number of tokens sent to Ollama's gpt 3.5.
+The following console output shows that the agent is now able to handle the large number of tokens sent to MLX's gpt 3.5.
 """
-logger.info("The following console output shows that the agent is now able to handle the large number of tokens sent to Ollama's gpt 3.5.")
+logger.info("The following console output shows that the agent is now able to handle the large number of tokens sent to MLX's gpt 3.5.")
 
 user_proxy (to assistant):
 
@@ -282,7 +282,7 @@ If not, you can type "TERMINATE" to end our conversation.
 
 You can create custom transformations by implementing the `MessageTransform` protocol, which provides flexibility to handle various use cases. One practical application is to create a custom transformation that redacts sensitive information, such as API keys, passwords, or personal data, from the chat history or logs. This ensures that confidential data is not inadvertently exposed, enhancing the security and privacy of your conversational AI system.
 
-We will demonstrate this by implementing a custom transformation called `MessageRedact` that detects and redacts Ollama API keys from the conversation history. This transformation is particularly useful when you want to prevent accidental leaks of API keys, which could compromise the security of your system.
+We will demonstrate this by implementing a custom transformation called `MessageRedact` that detects and redacts MLX API keys from the conversation history. This transformation is particularly useful when you want to prevent accidental leaks of API keys, which could compromise the security of your system.
 """
 logger.info("# filename: plot_quadratic.py")
 
@@ -308,7 +308,7 @@ class MessageRedact:
     def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
         keys_redacted = self._count_redacted(post_transform_messages) - self._count_redacted(pre_transform_messages)
         if keys_redacted > 0:
-            return f"Redacted {keys_redacted} Ollama API keys.", True
+            return f"Redacted {keys_redacted} MLX API keys.", True
         return "", False
 
     def _count_redacted(self, messages: List[Dict]) -> int:
@@ -360,7 +360,7 @@ user_proxy (to assistant):
 What are the two API keys that I just provided
 
 --------------------------------------------------------------------------------
-Redacted 2 Ollama API keys.
+Redacted 2 MLX API keys.
 assistant (to user_proxy):
 
 As an AI, I must inform you that it is not safe to share API keys publicly as they can be used to access your private data or services that can incur costs. Given that you've typed "REDACTED" instead of the actual keys, it seems you are aware of the privacy concerns and are likely testing my response or simulating an exchange without exposing real credentials, which is a good practice for privacy and security reasons.
@@ -375,6 +375,6 @@ user_proxy (to assistant):
 
 
 --------------------------------------------------------------------------------
-Redacted 2 Ollama API keys.
+Redacted 2 MLX API keys.
 
 logger.info("\n\n[DONE]", bright=True)

@@ -14,10 +14,10 @@ logger.info(f"Logs: {log_file}")
 """
 # vLLM
 [vLLM](https://github.com/vllm-project/vllm) is a locally run proxy and inference server,
-providing an Ollama-compatible API. As it performs both the proxy and the inferencing,
+providing an MLX-compatible API. As it performs both the proxy and the inferencing,
 you don't need to install an additional inference server.
 
-Note: vLLM does not support Ollama's [Function Calling](https://platform.openai.com/docs/guides/function-calling)
+Note: vLLM does not support MLX's [Function Calling](https://platform.openai.com/docs/guides/function-calling)
 (usable with AutoGen). However, it is in development and may be available by the time you
 read this.
 
@@ -97,7 +97,7 @@ By default, vLLM will run on 'http://0.0.0.0:8000'.
 ## Using vLLM with AutoGen
 
 Now that we have the URL for the vLLM proxy server, you can use it within AutoGen in the same
-way as Ollama or cloud-based proxy servers.
+way as MLX or cloud-based proxy servers.
 
 As you are running this proxy server locally, no API key is required. As ```api_key``` is a mandatory
 field for configurations within AutoGen we put a dummy value in it, as per the example below.

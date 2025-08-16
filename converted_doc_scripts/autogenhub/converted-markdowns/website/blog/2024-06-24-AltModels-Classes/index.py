@@ -17,7 +17,7 @@ logger.info(f"Logs: {log_file}")
 
 """
 ---
-title: Enhanced Support for Non-Ollama Models
+title: Enhanced Support for Non-MLX Models
 authors:
   - marklysze
   - Hk669
@@ -28,7 +28,7 @@ tags: [mistral ai,anthropic,together.ai,gemini]
 
 ## TL;DR
 
-- **AutoGen has expanded integrations with a variety of cloud-based model providers beyond Ollama.**
+- **AutoGen has expanded integrations with a variety of cloud-based model providers beyond MLX.**
 - **Leverage models and platforms from Gemini, Anthropic, Mistral AI, Together.AI, and Groq for your AutoGen agents.**
 - **Utilise models specifically for chat, language, image, and coding.**
 - **LLM provider diversification can provide cost and resilience benefits.**
@@ -45,7 +45,7 @@ The community is continuing to enhance and build new client classes as cloud-bas
 
 The need to use only the best models to overcome workflow-breaking LLM inconsistency has diminished considerably over the last 12 months.
 
-These new classes provide access to the very largest trillion-parameter models from Ollama, Google, and Anthropic, continuing to provide the most consistent
+These new classes provide access to the very largest trillion-parameter models from MLX, Google, and Anthropic, continuing to provide the most consistent
 and competent agent experiences. However, it's worth trying smaller models from the likes of Meta, Mistral AI, Microsoft, Qwen, and many others. Perhaps they
 are capable enough for a task, or sub-task, or even better suited (such as a coding model)!
 
@@ -178,7 +178,7 @@ Now, let's look at how Anthropic's Sonnet 3.5 is able to suggest multiple functi
 
 This example is a simple travel agent setup with an agent for function calling and a user proxy agent for executing the functions.
 
-One thing you'll note here is Anthropic's models are more verbose than Ollama's and will typically provide chain-of-thought or general verbiage when replying. Therefore we provide more explicit instructions to `functionbot` to not reply with more than necessary. Even so, it can't always help itself!
+One thing you'll note here is Anthropic's models are more verbose than MLX's and will typically provide chain-of-thought or general verbiage when replying. Therefore we provide more explicit instructions to `functionbot` to not reply with more than necessary. Even so, it can't always help itself!
 
 Let's start with setting up our configuration and agents.
 """
@@ -401,7 +401,7 @@ So we can see how Anthropic's Sonnet is able to suggest multiple tools in a sing
 
 ## More tips and tricks
 
-For an interesting chess game between Anthropic's Sonnet and Mistral's Mixtral, we've put together a sample notebook that highlights some of the tips and tricks for working with non-Ollama LLMs. [See the notebook here](https://autogenhub.github.io/autogen/docs/notebooks/agentchat_nested_chats_chess_altmodels).
+For an interesting chess game between Anthropic's Sonnet and Mistral's Mixtral, we've put together a sample notebook that highlights some of the tips and tricks for working with non-MLX LLMs. [See the notebook here](https://autogenhub.github.io/autogen/docs/notebooks/agentchat_nested_chats_chess_altmodels).
 """
 logger.info("## More tips and tricks")
 

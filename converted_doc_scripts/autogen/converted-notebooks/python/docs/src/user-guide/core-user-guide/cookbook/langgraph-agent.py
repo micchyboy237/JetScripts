@@ -3,7 +3,7 @@ from jet.transformers.formatters import format_json
 from autogen_core import AgentId, MessageContext, RoutedAgent, SingleThreadedAgentRuntime, message_handler
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from dataclasses import dataclass
-from jet.llm.ollama.base_langchain import AzureChatOllama, ChatOllama
+from jet.llm.ollama.base_langchain import AzureChatMLX, ChatMLX
 from jet.logger import CustomLogger
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import tool  # pyright: ignore
@@ -68,7 +68,7 @@ Define the agent using LangGraph's API.
 logger.info("Define the agent using LangGraph's API.")
 
 class LangGraphToolUseAgent(RoutedAgent):
-    def __init__(self, description: str, model: ChatOllama, tools: List[Callable[..., Any]]) -> None:  # pyright: ignore
+    def __init__(self, description: str, model: ChatMLX, tools: List[Callable[..., Any]]) -> None:  # pyright: ignore
         super().__init__(description)
         self._model = model.bind_tools(tools)  # pyright: ignore
 
@@ -143,8 +143,8 @@ await LangGraphToolUseAgent.register(
     "langgraph_tool_use_agent",
     lambda: LangGraphToolUseAgent(
         "Tool use agent",
-        ChatOllama(
-            model="llama3.1", request_timeout=300.0, context_window=4096,
+        ChatMLX(
+            model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
         ),
         [get_weather],
     ),

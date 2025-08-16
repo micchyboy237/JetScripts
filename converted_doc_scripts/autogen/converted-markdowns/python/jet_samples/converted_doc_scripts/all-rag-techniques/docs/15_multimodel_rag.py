@@ -1,6 +1,6 @@
 from PIL import Image
 from jet.logger import CustomLogger
-from openai import Ollama
+from openai import MLX
 import base64
 import fitz
 import io
@@ -42,12 +42,12 @@ logger.info("# Multi-Modal RAG with Image Captioning")
 
 
 """
-## Setting Up the Ollama API Client
-We initialize the Ollama client to generate embeddings and responses.
+## Setting Up the MLX API Client
+We initialize the MLX client to generate embeddings and responses.
 """
-logger.info("## Setting Up the Ollama API Client")
+logger.info("## Setting Up the MLX API Client")
 
-client = Ollama(
+client = MLX(
     base_url="https://api.studio.nebius.com/v1/",
 #     api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
 )
@@ -180,9 +180,9 @@ def chunk_text(text_data, chunk_size=1000, overlap=200):
     return chunked_data  # Return the list of chunked data
 
 """
-## Image Captioning with Ollama Vision
+## Image Captioning with MLX Vision
 """
-logger.info("## Image Captioning with Ollama Vision")
+logger.info("## Image Captioning with MLX Vision")
 
 def encode_image(image_path):
     """
@@ -204,7 +204,7 @@ def encode_image(image_path):
 
 def generate_image_caption(image_path):
     """
-    Generate a caption for an image using Ollama's vision capabilities.
+    Generate a caption for an image using MLX's vision capabilities.
 
     Args:
         image_path (str): Path to the image file

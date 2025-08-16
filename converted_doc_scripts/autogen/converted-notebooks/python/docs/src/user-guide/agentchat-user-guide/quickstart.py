@@ -2,7 +2,7 @@ import asyncio
 from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
-from autogen_ext.models.openai import OllamaChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -29,18 +29,18 @@ logger.info("# Quickstart")
 pip install -U "autogen-agentchat" "autogen-ext[openai,azure]"
 
 """
-This example uses an Ollama model, however, you can use other models as well.
+This example uses an MLX model, however, you can use other models as well.
 Simply update the `model_client` with the desired model or model client class.
 
-To use Azure Ollama models and AAD authentication,
+To use Azure MLX models and AAD authentication,
 you can follow the instructions [here](./tutorial/models.ipynb#azure-openai).
 To use other models, see [Models](./tutorial/models.ipynb).
 """
-logger.info("This example uses an Ollama model, however, you can use other models as well.")
+logger.info("This example uses an MLX model, however, you can use other models as well.")
 
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 
 

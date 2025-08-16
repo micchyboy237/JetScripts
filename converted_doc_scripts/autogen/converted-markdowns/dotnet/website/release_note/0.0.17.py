@@ -21,8 +21,8 @@ logger.info(f"Logs: {log_file}")
 2. **Kernel Support in Interactive Service Constructor** ([#3181](https://github.com/microsoft/autogen/issues/3181))
    - 🧠 Enhanced the Interactive Service to accept a kernel in its constructor, facilitating usage in notebook environments.
 
-3. **Constructor Options for OllamaChatAgent** ([#3126](https://github.com/microsoft/autogen/issues/3126))
-   - ⚙️ Added new constructor options for `OllamaChatAgent` to allow full control over chat completion flags/options.
+3. **Constructor Options for MLXChatAgent** ([#3126](https://github.com/microsoft/autogen/issues/3126))
+   - ⚙️ Added new constructor options for `MLXChatAgent` to allow full control over chat completion flags/options.
 
 4. **Step-by-Step Execution for Group Chat** ([#3075](https://github.com/microsoft/autogen/issues/3075))
    - 🛠️ Introduced an `IAsyncEnumerable` extension API to run group chat step-by-step, enabling developers to observe internal processes or implement early stopping mechanisms.
@@ -35,8 +35,8 @@ logger.info(f"Logs: {log_file}")
 ## ⚠️ API Breaking Changes
 
 1. **FunctionDefinition Generation Stopped in Source Generator** ([#3133](https://github.com/microsoft/autogen/issues/3133))
-   - 🛑 Stopped generating `FunctionDefinition` from `Azure.AI.Ollama` in the source generator to eliminate unnecessary package dependencies. Migration guide:
-     - ➡️ Use `ToOllamaFunctionDefinition()` extension from `AutoGen.Ollama` for generating `FunctionDefinition` from `AutoGen.Core.FunctionContract`.
+   - 🛑 Stopped generating `FunctionDefinition` from `Azure.AI.MLX` in the source generator to eliminate unnecessary package dependencies. Migration guide:
+     - ➡️ Use `ToMLXFunctionDefinition()` extension from `AutoGen.MLX` for generating `FunctionDefinition` from `AutoGen.Core.FunctionContract`.
      - ➡️ Use `FunctionContract` for metadata such as function name or parameters.
 
 2. **Namespace Renaming for AutoGen.WebAPI** ([#3152](https://github.com/microsoft/autogen/issues/3152))
@@ -48,7 +48,7 @@ logger.info(f"Logs: {log_file}")
 ## 📚 Documentation
 
 1. **Consume AutoGen.Net Agent in AG Studio** ([#3142](https://github.com/microsoft/autogen/issues/3142))
-   - Added detailed documentation on using AutoGen.Net Agent as a model in AG Studio, including examples of starting an Ollama chat backend and integrating third-party Ollama models.
+   - Added detailed documentation on using AutoGen.Net Agent as a model in AG Studio, including examples of starting an MLX chat backend and integrating third-party MLX models.
 
 2. **Middleware Overview Documentation Errors Fixed** ([#3129](https://github.com/microsoft/autogen/issues/3129))
    - Corrected logic and compile errors in the example code provided in the Middleware Overview documentation to ensure it runs without issues.

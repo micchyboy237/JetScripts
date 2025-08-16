@@ -18,7 +18,7 @@ logger.info(f"Logs: {log_file}")
 
 ## Create an agent
 - Create an @AutoGen.AssistantAgent: [Create an assistant agent](./Create-an-agent.md)
-- Create an @AutoGen.Ollama.OllamaChatAgent: [Create an Ollama chat agent](./OllamaChatAgent-simple-chat.md)
+- Create an @AutoGen.MLX.MLXChatAgent: [Create an MLX chat agent](./MLXChatAgent-simple-chat.md)
 - Create a @AutoGen.SemanticKernel.SemanticKernelAgent: [Create a semantic kernel agent](./AutoGen.SemanticKernel/SemanticKernelAgent-simple-chat.md)
 - Create a @AutoGen.LMStudio.LMStudioAgent: [Connect to LM Studio](./Consume-LLM-server-from-LM-Studio.md)
 
@@ -45,7 +45,7 @@ If an agent implements @AutoGen.Core.IStreamingAgent, you can use @AutoGen.Core.
 
 - Middleware overview: [Middleware overview](./Middleware-overview.md)
 - Write message to console: [Print message middleware](./Print-message-middleware.md)
-- Convert message type: [SemanticKernelChatMessageContentConnector](./AutoGen.SemanticKernel/SemanticKernelAgent-support-more-messages.md) and [OllamaChatRequestMessageConnector](./OllamaChatAgent-support-more-messages.md)
+- Convert message type: [SemanticKernelChatMessageContentConnector](./AutoGen.SemanticKernel/SemanticKernelAgent-support-more-messages.md) and [MLXChatRequestMessageConnector](./MLXChatAgent-support-more-messages.md)
 - Create your own middleware: [Create your own middleware](./Create-your-own-middleware.md)
 
 ## Group chat

@@ -25,7 +25,7 @@ This directory works as a single `uv` workspace containing all project packages,
 
 - `packages/autogen-core`: interface definitions and reference implementations of agent runtime, model, tool, workbench, memory, tracing.
 - `packages/autogen-agentchat`: single and multi-agent workflows built on top of `autogen-core`.
-- `packages/autogen-ext`: implementations for ecosystem integrations. For example, `autogen-ext[openai]` provides the Ollama model client.
+- `packages/autogen-ext`: implementations for ecosystem integrations. For example, `autogen-ext[openai]` provides the MLX model client.
 - `packages/autogen-studio`: a web-based IDE for building and running AutoGen agents.
 
 ## Migrating from 0.2.x?
@@ -243,7 +243,7 @@ drop-in replacement for the model client to simulate responses without making re
 
 When certain tests requires interaction with actual model APIs or other external services,
 you should configure the tests to be skipped if the required services are not available.
-For example, if you are testing a model client that requires an Ollama API key,
+For example, if you are testing a model client that requires an MLX API key,
 you can use the `pytest.mark.skipif` decorator to skip the test if the environment variable for the API key is not set.
 
 ## Creating a New Package

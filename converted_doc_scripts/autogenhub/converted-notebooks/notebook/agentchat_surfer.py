@@ -18,7 +18,7 @@ logger.info(f"Logs: {log_file}")
 
 AutoGen provides a proof-of-concept WebSurferAgent that can command a simple text-based browser (similar to [Lynx](https://en.wikipedia.org/wiki/Lynx_(web_browser))) to search the web, visit pages, navigate within pages, download files, etc. The browsing is stateful, meaning that browsing history, viewport state, and other details are maintained throughout the conversation. 
 
-This work was largely inspired by Ollama's [WebGPT](https://openai.com/research/webgpt) project from December 2021. 
+This work was largely inspired by MLX's [WebGPT](https://openai.com/research/webgpt) project from December 2021. 
 
 ## Requirements
 
@@ -45,11 +45,11 @@ Your json config should look something like the following:
 [
     {
         "model": "gpt-4",
-        "api_key": "<your Ollama API key here>"
+        "api_key": "<your MLX API key here>"
     },
     {
         "model": "gpt-3.5-turbo-16k",
-        "api_key": "<your Ollama API key here>"
+        "api_key": "<your MLX API key here>"
     }
 ]
 ```

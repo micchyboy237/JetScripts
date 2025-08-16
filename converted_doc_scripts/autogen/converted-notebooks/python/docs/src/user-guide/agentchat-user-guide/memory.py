@@ -13,7 +13,7 @@ SentenceTransformerEmbeddingFunctionConfig,
 from autogen_ext.memory.chromadb import ChromaDBVectorMemory, PersistentChromaDBVectorMemoryConfig
 from autogen_ext.memory.mem0 import Mem0Memory
 from autogen_ext.memory.redis import RedisMemory, RedisMemoryConfig
-from autogen_ext.models.openai import OllamaChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from logging import WARNING, getLogger
 from pathlib import Path
@@ -82,8 +82,8 @@ async def get_weather(city: str, units: str = "imperial") -> str:
 
 assistant_agent = AssistantAgent(
     name="assistant_agent",
-    model_client=OllamaChatCompletionClient(
-        model="llama3.1", request_timeout=300.0, context_window=4096,
+    model_client=MLXChatCompletionClient(
+        model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     ),
     tools=[get_weather],
     memory=[user_memory],
@@ -133,7 +133,7 @@ Currently the following example memory stores are available as part of the {py:c
 
 - `autogen_ext.memory.chromadb.ChromaDBVectorMemory`: A memory store that uses a vector database to store and retrieve information.
 
-- `autogen_ext.memory.chromadb.SentenceTransformerEmbeddingFunctionConfig`: A configuration class for the SentenceTransformer embedding function used by the `ChromaDBVectorMemory` store. Note that other embedding functions such as `autogen_ext.memory.openai.OllamaEmbeddingFunctionConfig` can also be used with the `ChromaDBVectorMemory` store.
+- `autogen_ext.memory.chromadb.SentenceTransformerEmbeddingFunctionConfig`: A configuration class for the SentenceTransformer embedding function used by the `ChromaDBVectorMemory` store. Note that other embedding functions such as `autogen_ext.memory.openai.MLXEmbeddingFunctionConfig` can also be used with the `ChromaDBVectorMemory` store.
 
 - `autogen_ext.memory.redis.RedisMemory`: A memory store that uses a Redis vector database to store and retrieve information.
 """
@@ -169,8 +169,8 @@ with tempfile.TemporaryDirectory() as tmpdir:
         )
     )
 
-    model_client = OllamaChatCompletionClient(
-        model="llama3.1", request_timeout=300.0, context_window=4096,
+    model_client = MLXChatCompletionClient(
+        model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     )
 
     assistant_agent = AssistantAgent(
@@ -242,8 +242,8 @@ await redis_memory.add(
     )
 )
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 
 assistant_agent = AssistantAgent(
@@ -419,7 +419,7 @@ async def run_async_code_97c54031():
 logger.success(format_json())
 
 rag_assistant = AssistantAgent(
-    name="rag_assistant", model_client=OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096), memory=[rag_memory]
+    name="rag_assistant", model_client=MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"), memory=[rag_memory]
 )
 
 stream = rag_assistant.run_stream(task="What is AgentChat?")
@@ -476,8 +476,8 @@ await mem0_memory.add(
 
 assistant_agent = AssistantAgent(
     name="assistant_agent",
-    model_client=OllamaChatCompletionClient(
-        model="llama3.1", request_timeout=300.0, context_window=4096,
+    model_client=MLXChatCompletionClient(
+        model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     ),
     tools=[get_weather],
     memory=[mem0_memory],

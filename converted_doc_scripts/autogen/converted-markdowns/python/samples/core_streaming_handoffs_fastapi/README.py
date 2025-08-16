@@ -51,7 +51,7 @@ pip install "fastapi" "uvicorn[standard]" "autogen-core" "autogen-ext[openai]" "
 """
 ## Configuration
 
-Create a new file named `model_config.yaml` in the same directory as this README file to configure your language model settings (e.g., Azure Ollama details). Use `model_config_template.yaml` as a starting point.
+Create a new file named `model_config.yaml` in the same directory as this README file to configure your language model settings (e.g., Azure MLX details). Use `model_config_template.yaml` as a starting point.
 
 **Note**: For production, manage API keys securely using environment variables or other secrets management tools instead of hardcoding them in the configuration file.
 

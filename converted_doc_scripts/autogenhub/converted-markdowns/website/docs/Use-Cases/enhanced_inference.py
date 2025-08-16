@@ -1,4 +1,4 @@
-from autogen import OllamaWrapper
+from autogen import MLXWrapper
 from jet.logger import CustomLogger
 import autogen
 import autogen.runtime_logging
@@ -17,7 +17,7 @@ logger.info(f"Logs: {log_file}")
 """
 # Enhanced Inference
 
-`autogen.OllamaWrapper` provides enhanced LLM inference for `openai>=1`.
+`autogen.MLXWrapper` provides enhanced LLM inference for `openai>=1`.
 `autogen.Completion` is a drop-in replacement of `openai.Completion` and `openai.ChatCompletion` for enhanced LLM inference using `openai<1`.
 There are a number of benefits of using `autogen` to perform inference: performance tuning, API unification, caching, error handling, multi-config inference, result filtering, templating and so on.
 
@@ -123,26 +123,26 @@ The tuned config can be used to perform inference.
 
 ## API unification
 
-`autogen.OllamaWrapper.create()` can be used to create completions for both chat and non-chat models, and both Ollama API and Azure Ollama API.
+`autogen.MLXWrapper.create()` can be used to create completions for both chat and non-chat models, and both MLX API and Azure MLX API.
 """
 logger.info("## API unification")
 
-client = OllamaWrapper()
-response = client.create(messages=[{"role": "user", "content": "2+2="}], model="llama3.2", request_timeout=300.0, context_window=4096)
+client = MLXWrapper()
+response = client.create(messages=[{"role": "user", "content": "2+2="}], model="llama-3.2-1b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 logger.debug(client.extract_text_or_completion_object(response))
 logger.debug(response.cost)
-client = OllamaWrapper(api_key=..., base_url=..., api_version=..., api_type="azure")
-response = client.create(prompt="2+2=", model="llama3.2", request_timeout=300.0, context_window=4096)
+client = MLXWrapper(api_key=..., base_url=..., api_version=..., api_type="azure")
+response = client.create(prompt="2+2=", model="llama-3.2-1b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 logger.debug(client.extract_text_or_completion_object(response))
 
 """
 For local LLMs, one can spin up an endpoint using a package like [FastChat](https://github.com/lm-sys/FastChat), and then use the same API to send a request. See [here](/blog/2023/07/14/Local-LLMs) for examples on how to make inference with local LLMs.
 
-For custom model clients, one can register the client with `autogen.OllamaWrapper.register_model_client` and then use the same API to send a request. See [here](/blog/2024/01/26/Custom-Models) for examples on how to make inference with custom model clients.
+For custom model clients, one can register the client with `autogen.MLXWrapper.register_model_client` and then use the same API to send a request. See [here](/blog/2024/01/26/Custom-Models) for examples on how to make inference with custom model clients.
 
 ## Usage Summary
 
-The `OllamaWrapper` from `autogen` tracks token counts and costs of your API calls. Use the `create()` method to initiate requests and `print_usage_summary()` to retrieve a detailed usage report, including total cost and token usage for both cached and actual requests.
+The `MLXWrapper` from `autogen` tracks token counts and costs of your API calls. Use the `create()` method to initiate requests and `print_usage_summary()` to retrieve a detailed usage report, including total cost and token usage for both cached and actual requests.
 
 - `mode=["actual", "total"]` (default): print usage summary for all completions and non-caching completions.
 - `mode='actual'`: only print non-cached usage.
@@ -155,8 +155,8 @@ Example usage:
 logger.info("## Usage Summary")
 
 
-client = OllamaWrapper()
-client.create(messages=[{"role": "user", "content": "Python learning tips."}], model="llama3.2", request_timeout=300.0, context_window=4096)
+client = MLXWrapper()
+client.create(messages=[{"role": "user", "content": "Python learning tips."}], model="llama-3.2-1b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 client.print_usage_summary()  # Display usage
 client.clear_usage_summary()  # Reset usage data
 
@@ -185,7 +185,7 @@ One can pass a list of configurations of different models/endpoints to mitigate 
 """
 logger.info("## Caching")
 
-client = OllamaWrapper(
+client = MLXWrapper(
     config_list=[
         {
             "model": "gpt-4",
@@ -211,12 +211,12 @@ client = OllamaWrapper(
 )
 
 """
-`client.create()` will try querying Azure Ollama gpt-4, Ollama gpt-3.5-turbo, a locally hosted llama2-chat-7B, and phi-2 using a custom model client class named `CustomModelClient`, one by one,
+`client.create()` will try querying Azure MLX gpt-4, MLX gpt-3.5-turbo, a locally hosted llama2-chat-7B, and phi-2 using a custom model client class named `CustomModelClient`, one by one,
 until a valid result is returned. This can speed up the development process where the rate limit is a bottleneck. An error will be raised if the last choice fails. So make sure the last choice in the list has the best availability.
 
 For convenience, we provide a number of utility functions to load config lists.
 - `get_config_list`: Generates configurations for API calls, primarily from provided API keys.
-- `config_list_openai_aoai`: Constructs a list of configurations using both Azure Ollama and Ollama endpoints, sourcing API keys from environment variables or local files.
+- `config_list_openai_aoai`: Constructs a list of configurations using both Azure MLX and MLX endpoints, sourcing API keys from environment variables or local files.
 - `config_list_from_json`: Loads configurations from a JSON structure, either from an environment variable or a local JSON file, with the flexibility of filtering configurations based on given criteria.
 - `config_list_from_models`: Creates configurations based on a provided list of models, useful when targeting specific models without manually specifying each configuration.
 - `config_list_from_dotenv`: Constructs a configuration list from a `.env` file, offering a consolidated way to manage multiple API configurations and keys from a single file.
@@ -230,7 +230,7 @@ Another type of error is that the returned response does not satisfy a requireme
 logger.info("### Logic error")
 
 def valid_json_filter(response, **_):
-    for text in OllamaWrapper.extract_text_or_completion_object(response):
+    for text in MLXWrapper.extract_text_or_completion_object(response):
         try:
             json.loads(text)
             return True
@@ -238,7 +238,7 @@ def valid_json_filter(response, **_):
             pass
     return False
 
-client = OllamaWrapper(
+client = MLXWrapper(
     config_list=[{"model": "text-ada-001"}, {"model": "gpt-3.5-turbo-instruct"}, {"model": "text-davinci-003"}],
 )
 response = client.create(
@@ -341,10 +341,10 @@ autogen.runtime_logging.stop()
 """
 #### LLM Runs
 
-AutoGen logging supports Ollama's llm message schema. Each LLM run is saved in `chat_completions` table includes:
+AutoGen logging supports MLX's llm message schema. Each LLM run is saved in `chat_completions` table includes:
 - session_id: an unique identifier for the logging session
 - invocation_id: an unique identifier for the logging record
-- client_id: an unique identifier for the Azure Ollama/Ollama client
+- client_id: an unique identifier for the Azure MLX/MLX client
 - request: detailed llm request, see below for an example
 - response: detailed llm response, see below for an example
 - cost: total cost for the request and response

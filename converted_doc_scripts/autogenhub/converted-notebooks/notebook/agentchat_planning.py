@@ -35,7 +35,7 @@ logger.info("# Auto Generated Agent Chat: Collaborative Task Solving with Coding
 
 The [`config_list_from_json`](https://autogenhub.github.io/autogen/docs/reference/oai/openai_utils#config_list_from_json) function loads a list of configurations from an environment variable or a json file. It first looks for an environment variable with a specified name. The value of the environment variable needs to be a valid json string. If that variable is not found, it looks for a json file with the same name. It filters the configs by filter_dict.
 
-It's OK to have only the Ollama API key, or only the Azure Ollama API key + base.
+It's OK to have only the MLX API key, or only the Azure MLX API key + base.
 """
 logger.info("## Set your API Endpoint")
 
@@ -53,22 +53,22 @@ The config list looks like the following:
 config_list = [
     {
         'model': 'gpt-4',
-        'api_key': '<your Ollama API key here>',
-    },  # Ollama API endpoint for gpt-4
+        'api_key': '<your MLX API key here>',
+    },  # MLX API endpoint for gpt-4
     {
         'model': 'gpt-4',
-        'api_key': '<your Azure Ollama API key here>',
-        'base_url': '<your Azure Ollama API base here>',
+        'api_key': '<your Azure MLX API key here>',
+        'base_url': '<your Azure MLX API base here>',
         'api_type': 'azure',
         'api_version': '2024-02-01',
-    },  # Azure Ollama API endpoint for gpt-4
+    },  # Azure MLX API endpoint for gpt-4
     {
         'model': 'gpt-4-32k',
-        'api_key': '<your Azure Ollama API key here>',
-        'base_url': '<your Azure Ollama API base here>',
+        'api_key': '<your Azure MLX API key here>',
+        'base_url': '<your Azure MLX API base here>',
         'api_type': 'azure',
         'api_version': '2024-02-01',
-    },  # Azure Ollama API endpoint for gpt-4-32k
+    },  # Azure MLX API endpoint for gpt-4-32k
 ]
 ```
 

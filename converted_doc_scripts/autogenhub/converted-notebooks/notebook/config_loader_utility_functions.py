@@ -20,7 +20,7 @@ Managing API configurations can be tricky, especially when dealing with multiple
 
 ## Storing API keys
 
-1. Obtain API keys from Ollama and optionally from Azure Ollama(or other provider).
+1. Obtain API keys from MLX and optionally from Azure MLX (or other provider).
 2. Store them securely using either:
 #     - Environment Variables: `export OPENAI_API_KEY='your-key'` in your shell.
     - Text File: Save the key in a `key_openai.txt` file.
@@ -31,7 +31,7 @@ Managing API configurations can be tricky, especially when dealing with multiple
 There are several utility functions for loading LLM config lists that may be useful depending on the situation.
 
 - [`get_config_list`](#get_config_list): Generates configurations for API calls, primarily from provided API keys.
-- [`config_list_openai_aoai`](#config_list_openai_aoai): Constructs a list of configurations using both Azure Ollama and Ollama endpoints, sourcing API keys from environment variables or local files.
+- [`config_list_openai_aoai`](#config_list_openai_aoai): Constructs a list of configurations using both Azure MLX and MLX endpoints, sourcing API keys from environment variables or local files.
 - [`config_list_from_json`](#config_list_from_json): Loads configurations from a JSON structure, either from an environment variable or a local JSON file, with the flexibility of filtering configurations based on given criteria.
 - [`config_list_from_models`](#config_list_from_models): Creates configurations based on a provided list of models, useful when targeting specific models without manually specifying each configuration.
 - [`config_list_from_dotenv`](#config_list_from_dotenv): Constructs a configuration list from a `.env` file, offering a consolidated way to manage multiple API configurations and keys from a single file.
@@ -55,16 +55,16 @@ logger.debug(config_list)
 """
 ### config_list_openai_aoai
 
-This method creates a list of configurations using Azure Ollama endpoints and Ollama endpoints. It tries to extract API keys and bases from environment variables or local text files.
+This method creates a list of configurations using Azure MLX endpoints and MLX endpoints. It tries to extract API keys and bases from environment variables or local text files.
 
 Steps:
-- Store Ollama API key in:
+- Store MLX API key in:
 #     - Environment variable: `OPENAI_API_KEY`
     - or Local file: `key_openai.txt`
-- Store Azure Ollama API key in:
+- Store Azure MLX API key in:
 #     - Environment variable: `AZURE_OPENAI_API_KEY`
     - or Local file: `key_aoai.txt` (Supports multiple keys, one per line)
-- Store Azure Ollama API base in:
+- Store Azure MLX API base in:
     - Environment variable: `AZURE_OPENAI_API_BASE`
     - or Local file: `base_aoai.txt` (Supports multiple bases, one per line)
 """
@@ -122,7 +122,7 @@ config_list = autogen.config_list_from_json(
 """
 ### config_list_from_models
 
-This method creates configurations based on a provided list of models. It's useful when you have specific models in mind and don't want to manually specify each configuration. The [`config_list_from_models`](/docs/reference/oai/openai_utils#config_list_from_models) function tries to create a list of configurations using Azure Ollama endpoints and Ollama endpoints for the provided list of models. It assumes the api keys and api bases are stored in the corresponding environment variables or local txt files. It's okay to only have the Ollama API key, OR only the Azure Ollama API key + base. For Azure the model name refers to the Ollama Studio deployment name.
+This method creates configurations based on a provided list of models. It's useful when you have specific models in mind and don't want to manually specify each configuration. The [`config_list_from_models`](/docs/reference/oai/openai_utils#config_list_from_models) function tries to create a list of configurations using Azure MLX endpoints and MLX endpoints for the provided list of models. It assumes the api keys and api bases are stored in the corresponding environment variables or local txt files. It's okay to only have the MLX API key, OR only the Azure MLX API key + base. For Azure the model name refers to the MLX Studio deployment name.
 
 Steps:
 - Similar to method 1, store API keys and bases either in environment variables or `.txt` files.
@@ -141,7 +141,7 @@ config_list = autogen.config_list_from_models(
 """
 ### config_list_from_dotenv
 
-If you are interested in keeping all of your keys in a single location like a `.env` file rather than using a configuration specifically for Ollama, you can use `config_list_from_dotenv`. This allows you to conveniently create a config list without creating a complex `OAI_CONFIG_LIST` file.
+If you are interested in keeping all of your keys in a single location like a `.env` file rather than using a configuration specifically for MLX, you can use `config_list_from_dotenv`. This allows you to conveniently create a config list without creating a complex `OAI_CONFIG_LIST` file.
 
 The `model_api_key_map` parameter is a dictionary that maps model names to the environment variable names in the `.env` file where their respective API keys are stored. It lets the code know which API key to use for each model. 
 

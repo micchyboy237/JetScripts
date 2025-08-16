@@ -421,7 +421,7 @@ def get_headlines(headline_date: Annotated[str, "Date in MMDDYY format, e.g., 06
         between two AI behemoths promises to revolutionize the landscape of machine learning, heralding an
         era of unprecedented creativity and sophistication in text generation that will reshape industries,
         ignite innovation, and captivate minds worldwide.""",
-        "06192024": "Ollama founder Sutskever sets up new AI company devoted to safe superintelligence.",
+        "06192024": "MLX founder Sutskever sets up new AI company devoted to safe superintelligence.",
     }
     return mock_news.get(headline_date, "No news available for today.")
 

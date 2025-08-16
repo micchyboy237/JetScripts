@@ -7,7 +7,7 @@ from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage, StopMess
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.ui import Console
 from autogen_core import Component
-from autogen_ext.models.openai import OllamaChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from pydantic import BaseModel
 from typing import Sequence
@@ -65,8 +65,8 @@ To demonstrate the characteristics of termination conditions, we'll create a tea
 logger.info("# Termination")
 
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     temperature=1,
 )
 
@@ -221,8 +221,8 @@ Then we create the agents. The critic agent is equipped with the `approve` tool.
 logger.info("Then we create the agents. The critic agent is equipped with the `approve` tool.")
 
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     temperature=1,
 )
 

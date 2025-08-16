@@ -2,8 +2,8 @@ import asyncio
 from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 import asyncio
 import os
@@ -55,13 +55,13 @@ pip install -U "autogenstudio"
 
 ### Hello World
 
-Create an assistant agent using Ollama's GPT-4o model. See [other supported models](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/models.html).
+Create an assistant agent using MLX's GPT-4o model. See [other supported models](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/models.html).
 """
 logger.info("## Quickstart")
 
 
 async def main() -> None:
-    model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
     agent = AssistantAgent("assistant", model_client=model_client)
     async def run_async_code_ade8da1c():
         logger.debug(await agent.run(task="Say 'Hello World!'"))
@@ -86,7 +86,7 @@ logger.info("### MCP Server")
 
 
 async def main() -> None:
-    model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
     server_params = StdioServerParams(
         command="npx",
         args=[
@@ -137,7 +137,7 @@ The _framework_ uses a layered and extensible design. Layers have clearly divide
 
 - [Core API](./python/packages/autogen-core/) implements message passing, event-driven agents, and local and distributed runtime for flexibility and power. It also support cross-language support for .NET and Python.
 - [AgentChat API](./python/packages/autogen-agentchat/) implements a simpler but opinionated API for rapid prototyping. This API is built on top of the Core API and is closest to what users of v0.2 are familiar with and supports common multi-agent patterns such as two-agent chat or group chats.
-- [Extensions API](./python/packages/autogen-ext/) enables first- and third-party extensions continuously expanding framework capabilities. It support specific implementation of LLM clients (e.g., Ollama, AzureOllama), and capabilities such as code execution.
+- [Extensions API](./python/packages/autogen-ext/) enables first- and third-party extensions continuously expanding framework capabilities. It support specific implementation of LLM clients (e.g., MLX, AzureMLX), and capabilities such as code execution.
 
 The ecosystem also supports two essential _developer tools_:
 

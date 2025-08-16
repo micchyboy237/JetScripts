@@ -32,7 +32,7 @@ Licensed under the MIT License.
 AutoGen offers a cost-effective hyperparameter optimization technique [EcoOptiGen](https://arxiv.org/abs/2303.04673) for tuning Large Language Models. The study finds that tuning hyperparameters can significantly improve the utility of LLMs.
 Please find documentation about this feature [here](/docs/Use-Cases/AutoGen#enhanced-inference).
 
-In this notebook, we tune Ollama ChatGPT (both GPT-3.5 and GPT-4) models for math problem solving. We use [the MATH benchmark](https://crfm.stanford.edu/helm/latest/?group=math_chain_of_thought) for measuring mathematical problem solving on competition math problems with chain-of-thoughts style reasoning.
+In this notebook, we tune MLX ChatGPT (both GPT-3.5 and GPT-4) models for math problem solving. We use [the MATH benchmark](https://crfm.stanford.edu/helm/latest/?group=math_chain_of_thought) for measuring mathematical problem solving on competition math problems with chain-of-thoughts style reasoning.
 
 Related link: [Blogpost](https://autogenhub.github.io/autogen/blog/2023/04/21/LLM-tuning-math) based on this experiment.
 
@@ -48,9 +48,9 @@ logger.info("# Use AutoGen to Tune ChatGPT")
 
 
 """
-AutoGen has provided an API for hyperparameter optimization of Ollama ChatGPT models: `autogen.ChatCompletion.tune` and to make a request with the tuned config: `autogen.ChatCompletion.create`. First, we import autogen:
+AutoGen has provided an API for hyperparameter optimization of MLX ChatGPT models: `autogen.ChatCompletion.tune` and to make a request with the tuned config: `autogen.ChatCompletion.create`. First, we import autogen:
 """
-logger.info("AutoGen has provided an API for hyperparameter optimization of Ollama ChatGPT models: `autogen.ChatCompletion.tune` and to make a request with the tuned config: `autogen.ChatCompletion.create`. First, we import autogen:")
+logger.info("AutoGen has provided an API for hyperparameter optimization of MLX ChatGPT models: `autogen.ChatCompletion.tune` and to make a request with the tuned config: `autogen.ChatCompletion.create`. First, we import autogen:")
 
 
 
@@ -58,13 +58,13 @@ logger.info("AutoGen has provided an API for hyperparameter optimization of Olla
 """
 ### Set your API Endpoint
 
-The [`config_list_openai_aoai`](https://autogenhub.github.io/autogen/docs/reference/oai/openai_utils#config_list_openai_aoai) function tries to create a list of  Azure Ollama endpoints and Ollama endpoints. It assumes the api keys and api bases are stored in the corresponding environment variables or local txt files:
+The [`config_list_openai_aoai`](https://autogenhub.github.io/autogen/docs/reference/oai/openai_utils#config_list_openai_aoai) function tries to create a list of  Azure MLX endpoints and MLX endpoints. It assumes the api keys and api bases are stored in the corresponding environment variables or local txt files:
 
-# - Ollama API key: os.environ["OPENAI_API_KEY"] or `openai_api_key_file="key_openai.txt"`.
-# - Azure Ollama API key: os.environ["AZURE_OPENAI_API_KEY"] or `aoai_api_key_file="key_aoai.txt"`. Multiple keys can be stored, one per line.
-- Azure Ollama API base: os.environ["AZURE_OPENAI_API_BASE"] or `aoai_api_base_file="base_aoai.txt"`. Multiple bases can be stored, one per line.
+# - MLX API key: os.environ["OPENAI_API_KEY"] or `openai_api_key_file="key_openai.txt"`.
+# - Azure MLX API key: os.environ["AZURE_OPENAI_API_KEY"] or `aoai_api_key_file="key_aoai.txt"`. Multiple keys can be stored, one per line.
+- Azure MLX API base: os.environ["AZURE_OPENAI_API_BASE"] or `aoai_api_base_file="base_aoai.txt"`. Multiple bases can be stored, one per line.
 
-It's OK to have only the Ollama API key, or only the Azure Ollama API key + base.
+It's OK to have only the MLX API key, or only the Azure MLX API key + base.
 """
 logger.info("### Set your API Endpoint")
 
@@ -74,19 +74,19 @@ config_list = autogen.config_list_openai_aoai()
 The config list looks like the following:
 ```python
 config_list = [
-    {'api_key': '<your Ollama API key here>'},  # only if Ollama API key is found
+    {'api_key': '<your MLX API key here>'},  # only if MLX API key is found
     {
-        'api_key': '<your first Azure Ollama API key here>',
-        'base_url': '<your first Azure Ollama API base here>',
+        'api_key': '<your first Azure MLX API key here>',
+        'base_url': '<your first Azure MLX API base here>',
         'api_type': 'azure',
         'api_version': '2024-02-01',
-    },  # only if at least one Azure Ollama API key is found
+    },  # only if at least one Azure MLX API key is found
     {
-        'api_key': '<your second Azure Ollama API key here>',
-        'base_url': '<your second Azure Ollama API base here>',
+        'api_key': '<your second Azure MLX API key here>',
+        'base_url': '<your second Azure MLX API base here>',
         'api_type': 'azure',
         'api_version': '2024-02-01',
-    },  # only if the second Azure Ollama API key is found
+    },  # only if the second Azure MLX API key is found
 ]
 ```
 
@@ -142,7 +142,7 @@ Before we start tuning, we must define the success metric we want to optimize. F
 
 ## Use the tuning data to find a good configuration
 
-For (local) reproducibility and cost efficiency, we cache responses from Ollama with a controllable seed.
+For (local) reproducibility and cost efficiency, we cache responses from MLX with a controllable seed.
 """
 logger.info("## Define Success Metric")
 
@@ -195,7 +195,7 @@ config, analysis = autogen.ChatCompletion.tune(
     inference_budget=0.02,  # the inference budget (dollar per instance)
     optimization_budget=1,  # the optimization budget (dollar in total)
     num_samples=20,
-    model="llama3.2", request_timeout=300.0, context_window=4096,  # comment to tune both gpt-3.5-turbo and gpt-4
+    model="llama-3.2-1b-instruct", log_dir=f"{OUTPUT_DIR}/chats",  # comment to tune both gpt-3.5-turbo and gpt-4
     prompt=prompts,  # the prompt templates to choose from
     config_list=config_list,  # the endpoint list
     allow_format_str_template=True,  # whether to allow format string template

@@ -1,5 +1,5 @@
 from jet.logger import CustomLogger
-from openai import Ollama
+from openai import MLX
 from rank_bm25 import BM25Okapi
 from sklearn.metrics.pairwise import cosine_similarity
 import fitz
@@ -49,12 +49,12 @@ logger.info("# Fusion Retrieval: Combining Vector and Keyword Search")
 
 
 """
-## Setting Up the Ollama API Client
-We initialize the Ollama client to generate embeddings and responses.
+## Setting Up the MLX API Client
+We initialize the MLX client to generate embeddings and responses.
 """
-logger.info("## Setting Up the Ollama API Client")
+logger.info("## Setting Up the MLX API Client")
 
-client = Ollama(
+client = MLX(
     base_url="https://api.studio.nebius.com/v1/",
 #     api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
 )

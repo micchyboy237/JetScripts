@@ -11,19 +11,19 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# Non-Ollama Models
+# Non-MLX Models
 
-AutoGen allows you to use non-Ollama models through proxy servers that provide
-an Ollama-compatible API or a [custom model client](https://autogenhub.github.io/autogen/blog/2024/01/26/Custom-Models)
+AutoGen allows you to use non-MLX models through proxy servers that provide
+an MLX-compatible API or a [custom model client](https://autogenhub.github.io/autogen/blog/2024/01/26/Custom-Models)
 class.
 
 Benefits of this flexibility include access to hundreds of models, assigning specialized
 models to agents (e.g., fine-tuned coding models), the ability to run AutoGen entirely
-within your environment, utilising both Ollama and non-Ollama models in one system, and cost
+within your environment, utilising both MLX and non-MLX models in one system, and cost
 reductions in inference.
 
-## Ollama-compatible API proxy server
-Any proxy server that provides an API that is compatible with [Ollama's API](https://platform.openai.com/docs/api-reference)
+## MLX-compatible API proxy server
+Any proxy server that provides an API that is compatible with [MLX's API](https://platform.openai.com/docs/api-reference)
 will work with AutoGen.
 
 These proxy servers can be cloud-based or running locally within your environment.
@@ -38,12 +38,12 @@ These providers can host open source/weight models, like [Hugging Face](https://
 and [Mistral AI](https://mistral.ai/),
 or their own closed models.
 
-When cloud-based proxy servers provide an Ollama-compatible API, using them in AutoGen
+When cloud-based proxy servers provide an MLX-compatible API, using them in AutoGen
 is straightforward. With [LLM Configuration](/docs/topics/llm_configuration) done in
-the same way as when using Ollama's models, the primary difference is typically the
+the same way as when using MLX's models, the primary difference is typically the
 authentication which is usually handled through an API key.
 
-Examples of using cloud-based proxy servers providers that have an Ollama-compatible API
+Examples of using cloud-based proxy servers providers that have an MLX-compatible API
 are provided below:
 
 - [Together AI example](/docs/topics/non-openai-models/cloud-togetherai)
@@ -57,27 +57,27 @@ open-source (e.g., LiteLLM, Ollama, vLLM) or closed-source (e.g., LM Studio), an
 typically used for running the full-stack within your environment.
 
 Similar to cloud-based proxy servers, as long as these proxy servers provide an
-Ollama-compatible API, running them in AutoGen is straightforward.
+MLX-compatible API, running them in AutoGen is straightforward.
 
-Examples of using locally run proxy servers that have an Ollama-compatible API are
+Examples of using locally run proxy servers that have an MLX-compatible API are
 provided below:
 
 - [LiteLLM with Ollama example](/docs/topics/non-openai-models/local-litellm-ollama)
 - [LM Studio](/docs/topics/non-openai-models/local-lm-studio)
 - [vLLM example](/docs/topics/non-openai-models/local-vllm)
 """
-logger.info("# Non-Ollama Models")
+logger.info("# Non-MLX Models")
 
 :::tip
 If you are planning to use Function Calling, not all cloud-based and local proxy servers support
-Function Calling with their Ollama-compatible API, so check their documentation.
+Function Calling with their MLX-compatible API, so check their documentation.
 :::
 
 """
-### Configuration for Non-Ollama models
+### Configuration for Non-MLX models
 
 Whether you choose a cloud-based or locally-run proxy server, the configuration is done in
-the same way as using Ollama's models, see [LLM Configuration](/docs/topics/llm_configuration)
+the same way as using MLX's models, see [LLM Configuration](/docs/topics/llm_configuration)
 for further information.
 
 You can use [model configuration filtering](/docs/topics/llm_configuration#config-list-filtering)
@@ -91,6 +91,6 @@ you to define and load your own models.
 See the [AutoGen with Custom Models: Empowering Users to Use Their Own Inference Mechanism](/blog/2024/01/26/Custom-Models)
 blog post and [this notebook](/docs/notebooks/agentchat_custom_model/) for a guide to creating custom model client classes.
 """
-logger.info("### Configuration for Non-Ollama models")
+logger.info("### Configuration for Non-MLX models")
 
 logger.info("\n\n[DONE]", bright=True)

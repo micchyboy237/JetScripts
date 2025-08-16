@@ -1,5 +1,5 @@
-from autogen_ext.models.openai import AzureOllamaChatCompletionClient
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import AzureMLXChatCompletionClient
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -13,17 +13,17 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# Azure Ollama with AAD Auth
+# Azure MLX with AAD Auth
 
-This guide will show you how to use the Azure Ollama client with Azure Active Directory (AAD) authentication.
+This guide will show you how to use the Azure MLX client with Azure Active Directory (AAD) authentication.
 
-The identity used must be assigned the [**Cognitive Services Ollama User**](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/role-based-access-control#cognitive-services-openai-user) role.
+The identity used must be assigned the [**Cognitive Services MLX User**](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/role-based-access-control#cognitive-services-openai-user) role.
 
 ## Install Azure Identity client
 
 The Azure identity client is used to authenticate with Azure Active Directory.
 """
-logger.info("# Azure Ollama with AAD Auth")
+logger.info("# Azure MLX with AAD Auth")
 
 pip install azure-identity
 
@@ -37,7 +37,7 @@ token_provider = get_bearer_token_provider(
     DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
 )
 
-client = AzureOllamaChatCompletionClient(
+client = AzureMLXChatCompletionClient(
     azure_deployment="{your-azure-deployment}",
     model="{model-name, such as gpt-4o}",
     api_version="2024-02-01",

@@ -17,9 +17,9 @@ logger.info(f"Logs: {log_file}")
 
 AutoGen.Net provides the following packages, you can choose to install one or more of them based on your needs:
 
-- `AutoGen`: The one-in-all package. This package has dependencies over `AutoGen.Core`, `AutoGen.Ollama`, `AutoGen.LMStudio`, `AutoGen.SemanticKernel` and `AutoGen.SourceGenerator`.
+- `AutoGen`: The one-in-all package. This package has dependencies over `AutoGen.Core`, `AutoGen.MLX`, `AutoGen.LMStudio`, `AutoGen.SemanticKernel` and `AutoGen.SourceGenerator`.
 - `AutoGen.Core`: The core package, this package provides the abstraction for message type, agent and group chat.
-- `AutoGen.Ollama`: This package provides the integration agents over openai models.
+- `AutoGen.MLX`: This package provides the integration agents over openai models.
 - `AutoGen.Mistral`: This package provides the integration agents for Mistral.AI models.
 - `AutoGen.Ollama`: This package provides the integration agents for [Ollama](https://ollama.com/).
 - `AutoGen.Anthropic`: This package provides the integration agents for [Anthropic](https://www.anthropic.com/api)
@@ -33,8 +33,8 @@ AutoGen.Net provides the following packages, you can choose to install one or mo
 >[!Note]
 > Help me choose
 > - If you just want to install one package and enjoy the core features of AutoGen, choose `AutoGen`.
-> - If you want to leverage AutoGen's abstraction only and want to avoid introducing any other dependencies, like `Azure.AI.Ollama` or `Semantic Kernel`, choose `AutoGen.Core`. You will need to implement your own agent, but you can still use AutoGen core features like group chat, built-in message type, workflow and middleware.
->- If you want to use AutoGen with openai, choose `AutoGen.Ollama`, similarly, choose `AutoGen.LMStudio` or `AutoGen.SemanticKernel` if you want to use agents from LM Studio or semantic kernel.
+> - If you want to leverage AutoGen's abstraction only and want to avoid introducing any other dependencies, like `Azure.AI.MLX` or `Semantic Kernel`, choose `AutoGen.Core`. You will need to implement your own agent, but you can still use AutoGen core features like group chat, built-in message type, workflow and middleware.
+>- If you want to use AutoGen with openai, choose `AutoGen.MLX`, similarly, choose `AutoGen.LMStudio` or `AutoGen.SemanticKernel` if you want to use agents from LM Studio or semantic kernel.
 >- If you just want the type-safe source generation for function call and don't want any other features, which even include the AutoGen's abstraction, choose `AutoGen.SourceGenerator`.
 
 Then, install the package using the following command:

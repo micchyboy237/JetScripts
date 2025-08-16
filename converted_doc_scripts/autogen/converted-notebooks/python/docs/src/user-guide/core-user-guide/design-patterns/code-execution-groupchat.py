@@ -12,8 +12,8 @@ SystemMessage,
 UserMessage,
 )
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from dataclasses import dataclass
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from typing import List
 import os
@@ -148,8 +148,8 @@ runtime = SingleThreadedAgentRuntime()
 
 async def async_func_10():
     async with DockerCommandLineCodeExecutor(work_dir=work_dir) as executor:  # type: ignore[syntax]
-        model_client = OllamaChatCompletionClient(
-            model="llama3.1", request_timeout=300.0, context_window=4096,
+        model_client = MLXChatCompletionClient(
+            model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
         )
         await Assistant.register(
             runtime,

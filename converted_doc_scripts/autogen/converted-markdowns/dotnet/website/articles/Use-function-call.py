@@ -22,7 +22,7 @@ Typically, there are three ways to pass a function definition to an agent to ena
 > To use function call, the underlying LLM model must support function call as well for the best experience. If the model does not support function call, it's likely that the function call will be ignored and the model will reply with a normal response even if a function call is passed to it.
 
 ## Pass function definitions when creating an agent
-In some agents like @AutoGen.AssistantAgent or @AutoGen.Ollama.GPTAgent, you can pass function definitions when creating the agent
+In some agents like @AutoGen.AssistantAgent or @AutoGen.MLX.GPTAgent, you can pass function definitions when creating the agent
 
 Suppose the `TypeSafeFunctionCall` is defined in the following code snippet:
 [!code-csharp[TypeSafeFunctionCall](../../samples/AgentChat/Autogen.Basic.Sample/CodeSnippet/TypeSafeFunctionCallCodeSnippet.cs?name=weather_report)]

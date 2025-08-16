@@ -20,7 +20,7 @@ logger.info(f"Logs: {log_file}")
 
 AutoGen offers conversable agents powered by LLM, tool, or human, which can be used to perform tasks collectively via automated chat. This framework allows tool use and human participation through multi-agent conversation. Please find documentation about this feature [here](https://autogenhub.github.io/autogen/docs/Use-Cases/agent_chat).
 
-In this notebook, we demonstrate how to use `AssistantAgent` and `UserProxyAgent` to make function calls with the new feature of Ollama models (in model version 0613). A specified prompt and function configs must be passed to `AssistantAgent` to initialize the agent. The corresponding functions must be passed to `UserProxyAgent`, which will execute any function calls made by `AssistantAgent`. Besides this requirement of matching descriptions with functions, we recommend checking the system message in the `AssistantAgent` to ensure the instructions align with the function call descriptions.
+In this notebook, we demonstrate how to use `AssistantAgent` and `UserProxyAgent` to make function calls with the new feature of MLX models (in model version 0613). A specified prompt and function configs must be passed to `AssistantAgent` to initialize the agent. The corresponding functions must be passed to `UserProxyAgent`, which will execute any function calls made by `AssistantAgent`. Besides this requirement of matching descriptions with functions, we recommend checking the system message in the `AssistantAgent` to ensure the instructions align with the function call descriptions.
 
 ## Requirements
 
@@ -56,21 +56,21 @@ The config list looks like the following:
 config_list = [
     {
         'model': 'gpt-3.5-turbo',
-        'api_key': '<your Ollama API key here>',
+        'api_key': '<your MLX API key here>',
         'tags': ['tool', '3.5-tool'],
     },
     {
         'model': 'gpt-3.5-turbo',
-        'api_key': '<your Azure Ollama API key here>',
-        'base_url': '<your Azure Ollama API base here>',
+        'api_key': '<your Azure MLX API key here>',
+        'base_url': '<your Azure MLX API base here>',
         'api_type': 'azure',
         'api_version': '2024-02-01',
         'tags': ['tool', '3.5-tool'],
     },
     {
         'model': 'gpt-3.5-turbo-16k',
-        'api_key': '<your Azure Ollama API key here>',
-        'base_url': '<your Azure Ollama API base here>',
+        'api_key': '<your Azure MLX API key here>',
+        'base_url': '<your Azure MLX API base here>',
         'api_type': 'azure',
         'api_version': '2024-02-01',
         'tags': ['tool', '3.5-tool'],
@@ -82,7 +82,7 @@ You can set the value of config_list in any way you prefer. Please refer to this
 
 ## Making Function Calls
 
-In this example, we demonstrate function call execution with `AssistantAgent` and `UserProxyAgent`. With the default system prompt of `AssistantAgent`, we allow the LLM assistant to perform tasks with code, and the `UserProxyAgent` would extract code blocks from the LLM response and execute them. With the new "function_call" feature, we define functions and specify the description of the function in the Ollama config for the `AssistantAgent`. Then we register the functions in `UserProxyAgent`.
+In this example, we demonstrate function call execution with `AssistantAgent` and `UserProxyAgent`. With the default system prompt of `AssistantAgent`, we allow the LLM assistant to perform tasks with code, and the `UserProxyAgent` would extract code blocks from the LLM response and execute them. With the new "function_call" feature, we define functions and specify the description of the function in the MLX config for the `AssistantAgent`. Then we register the functions in `UserProxyAgent`.
 """
 logger.info("## Making Function Calls")
 
@@ -130,14 +130,14 @@ def currency_calculator(
     return f"{quote_amount} {quote_currency}"
 
 """
-The decorator `@chatbot.register_for_llm()` reads the annotated signature of the function `currency_calculator` and generates the following JSON schema used by Ollama API to suggest calling the function. We can check the JSON schema generated as follows:
+The decorator `@chatbot.register_for_llm()` reads the annotated signature of the function `currency_calculator` and generates the following JSON schema used by MLX API to suggest calling the function. We can check the JSON schema generated as follows:
 """
-logger.info("The decorator `@chatbot.register_for_llm()` reads the annotated signature of the function `currency_calculator` and generates the following JSON schema used by Ollama API to suggest calling the function. We can check the JSON schema generated as follows:")
+logger.info("The decorator `@chatbot.register_for_llm()` reads the annotated signature of the function `currency_calculator` and generates the following JSON schema used by MLX API to suggest calling the function. We can check the JSON schema generated as follows:")
 
 chatbot.llm_config["tools"]
 
 """
-The decorator `@user_proxy.register_for_execution()` maps the name of the function to be proposed by Ollama API to the actual implementation. The function mapped is wrapped since we also automatically handle serialization of the output of function as follows:
+The decorator `@user_proxy.register_for_execution()` maps the name of the function to be proposed by MLX API to the actual implementation. The function mapped is wrapped since we also automatically handle serialization of the output of function as follows:
 
 - string are untouched, and
 
@@ -145,7 +145,7 @@ The decorator `@user_proxy.register_for_execution()` maps the name of the functi
 
 We can check the correctness of function map by using `._origin` property of the wrapped function as follows:
 """
-logger.info("The decorator `@user_proxy.register_for_execution()` maps the name of the function to be proposed by Ollama API to the actual implementation. The function mapped is wrapped since we also automatically handle serialization of the output of function as follows:")
+logger.info("The decorator `@user_proxy.register_for_execution()` maps the name of the function to be proposed by MLX API to the actual implementation. The function mapped is wrapped since we also automatically handle serialization of the output of function as follows:")
 
 assert user_proxy.function_map["currency_calculator"]._origin == currency_calculator
 

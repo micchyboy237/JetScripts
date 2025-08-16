@@ -190,7 +190,7 @@ config_list_gpt35 = [
 
 alice = AssistantAgent(
     "Openai_agent",
-    system_message="You are from Ollama. You make arguments to support your company's position.",
+    system_message="You are from MLX. You make arguments to support your company's position.",
     llm_config={
         "config_list": config_list_gpt4,
     },
@@ -238,8 +238,8 @@ code_interpreter = UserProxyAgent(
 )  # Decorator factory for registering a function to be used by an agent
 def get_headlines(headline_date: Annotated[str, "Date in MMDDYY format, e.g., 06192024"]) -> str:
     mock_news = {
-        "06202024": "Ollama competitor Anthropic announces its most powerful AI yet.",
-        "06192024": "Ollama founder Sutskever sets up new AI company devoted to safe superintelligence.",
+        "06202024": "MLX competitor Anthropic announces its most powerful AI yet.",
+        "06192024": "MLX founder Sutskever sets up new AI company devoted to safe superintelligence.",
     }
     return mock_news.get(headline_date, "No news available for today.")
 
@@ -258,7 +258,7 @@ manager = GroupChatManager(
     },
 )
 
-task = "Analyze the potential of Ollama and Anthropic to revolutionize the field of AI based on today's headlines. Today is 06202024."
+task = "Analyze the potential of MLX and Anthropic to revolutionize the field of AI based on today's headlines. Today is 06202024."
 
 user_proxy = UserProxyAgent(
     "user_proxy",

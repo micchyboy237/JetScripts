@@ -27,24 +27,24 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# Ollama Assistant Agent
+# MLX Assistant Agent
 
 [Open AI Assistant](https://platform.openai.com/docs/assistants/overview) 
-and [Azure Ollama Assistant](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/assistant)
+and [Azure MLX Assistant](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/assistant)
 are server-side APIs for building
 agents.
 They can be used to build agents in AutoGen. This cookbook demonstrates how to
-to use Ollama Assistant to create an agent that can run code and Q&A over document.
+to use MLX Assistant to create an agent that can run code and Q&A over document.
 
 ## Message Protocol
 
 First, we need to specify the message protocol for the agent backed by 
-Ollama Assistant. The message protocol defines the structure of messages
+MLX Assistant. The message protocol defines the structure of messages
 handled and published by the agent. 
 For illustration, we define a simple
 message protocol of 4 message types: `Message`, `Reset`, `UploadForCodeInterpreter` and `UploadForFileSearch`.
 """
-logger.info("# Ollama Assistant Agent")
+logger.info("# MLX Assistant Agent")
 
 
 
@@ -86,9 +86,9 @@ the local path to the file to be uploaded.
 Next, we define the agent class.
 The agent class constructor has the following arguments: `description`,
 `client`, `assistant_id`, `thread_id`, and `assistant_event_handler_factory`.
-The `client` argument is the Ollama async client object, and the
+The `client` argument is the MLX async client object, and the
 `assistant_event_handler_factory` is for creating an assistant event handler
-to handle Ollama Assistant events.
+to handle MLX Assistant events.
 This can be used to create streaming output from the assistant.
 
 The agent class has the following message handlers:
@@ -110,15 +110,15 @@ logger.info("## Defining the Agent")
 
 
 
-class OllamaAssistantAgent(RoutedAgent):
-    """An agent implementation that uses the Ollama Assistant API to generate
+class MLXAssistantAgent(RoutedAgent):
+    """An agent implementation that uses the MLX Assistant API to generate
     responses.
 
     Args:
         description (str): The description of the agent.
-        client (openai.AsyncClient): The client to use for the Ollama API.
-        assistant_id (str): The assistant ID to use for the Ollama API.
-        thread_id (str): The thread ID to use for the Ollama API.
+        client (openai.AsyncClient): The client to use for the MLX API.
+        assistant_id (str): The assistant ID to use for the MLX API.
+        thread_id (str): The thread ID to use for the MLX API.
         assistant_event_handler_factory (Callable[[], AsyncAssistantEventHandler], optional):
             A factory function to create an async assistant event handler. Defaults to None.
             If provided, the agent will use the streaming mode with the event handler.
@@ -291,7 +291,7 @@ class OllamaAssistantAgent(RoutedAgent):
         )
 
 """
-The agent class is a thin wrapper around the Ollama Assistant API to implement
+The agent class is a thin wrapper around the MLX Assistant API to implement
 the message protocol. More features, such as multi-modal message handling,
 can be added by extending the message protocol.
 
@@ -375,7 +375,7 @@ logger.info("## Using the Agent")
 
 
 oai_assistant = openai.beta.assistants.create(
-    model="llama3.1",
+    model="llama-3.2-3b-instruct",
     description="An AI assistant that helps with everyday tasks.",
     instructions="Help the user with their task.",
     tools=[{"type": "code_interpreter"}, {"type": "file_search"}],
@@ -395,11 +395,11 @@ logger.info("Then, we create a runtime, and register an agent factory function f
 
 
 runtime = SingleThreadedAgentRuntime()
-await OllamaAssistantAgent.register(
+await MLXAssistantAgent.register(
     runtime,
     "assistant",
-    lambda: OllamaAssistantAgent(
-        description="Ollama Assistant Agent",
+    lambda: MLXAssistantAgent(
+        description="MLX Assistant Agent",
         client=openai.AsyncClient(),
         assistant_id=oai_assistant.id,
         thread_id=thread.id,
@@ -564,8 +564,8 @@ async def run_async_code_b7ca34d4():
 logger.success(format_json())
 
 """
-That's it! We have successfully built an agent backed by Ollama Assistant.
+That's it! We have successfully built an agent backed by MLX Assistant.
 """
-logger.info("That's it! We have successfully built an agent backed by Ollama Assistant.")
+logger.info("That's it! We have successfully built an agent backed by MLX Assistant.")
 
 logger.info("\n\n[DONE]", bright=True)

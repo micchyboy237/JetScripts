@@ -115,7 +115,7 @@ For a hands-on example of integrating Portkey with Autogen, check out our notebo
 
 Easily switch between **200+ LLMs** by changing the `provider` and API key in your configuration.
 
-#### Example: Switching from Ollama to Azure Ollama
+#### Example: Switching from MLX to Azure MLX
 """
 logger.info("## Key Features")
 
@@ -134,7 +134,7 @@ config = [
 ]
 
 """
-Note: AutoGen messages will go through Portkey's AI Gateway following Ollama's API signature. Some language models may not work properly because messages need to be in a specific role order.
+Note: AutoGen messages will go through Portkey's AI Gateway following MLX's API signature. Some language models may not work properly because messages need to be in a specific role order.
 
 ### Reliability
 

@@ -77,7 +77,7 @@ You can also specific the builder model and agent model, which are the LLMs used
 logger.info("### Step 2: create an AgentBuilder instance")
 
 
-builder = AgentBuilder(config_file_or_env=config_file_or_env, builder_model="llama3.1", request_timeout=300.0, context_window=4096, agent_model="llama3.1", request_timeout=300.0, context_window=4096)
+builder = AgentBuilder(config_file_or_env=config_file_or_env, builder_model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", agent_model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 """
 ### Step 3: specify the building task
@@ -189,12 +189,12 @@ agent_list, agent_config = new_builder.load(saved_path)
 start_task(...)  # skip build()
 
 """
-## Use Ollama Assistant
+## Use MLX Assistant
 [Assistants API](https://platform.openai.com/docs/assistants/overview) allows you to build AI assistants within your own applications.
 An Assistant has instructions and can leverage models, tools, and knowledge to respond to user queries.
 AutoBuild also supports the assistant API by adding `use_oai_assistant=True` to `build()`.
 """
-logger.info("## Use Ollama Assistant")
+logger.info("## Use MLX Assistant")
 
 agent_list, agent_config = new_builder.build(building_task, default_llm_config, use_oai_assistant=True)
 ...

@@ -17,10 +17,10 @@ logger.info(f"Logs: {log_file}")
 """
 # LiteLLM with Ollama
 [LiteLLM](https://litellm.ai/) is an open-source locally run proxy server that provides an
-Ollama-compatible API. It interfaces with a large number of providers that do the inference.
+MLX-compatible API. It interfaces with a large number of providers that do the inference.
 To handle the inference, a popular open-source inference engine is [Ollama](https://ollama.com/).
 
-As not all proxy servers support Ollama's [Function Calling](https://platform.openai.com/docs/guides/function-calling) (usable with AutoGen),
+As not all proxy servers support MLX's [Function Calling](https://platform.openai.com/docs/guides/function-calling) (usable with AutoGen),
 LiteLLM together with Ollama enable this useful feature.
 
 Running this stack requires the installation of:
@@ -115,7 +115,7 @@ This will run the proxy server and it will be available at 'http://0.0.0.0:4000/
 ## Using LiteLLM+Ollama with AutoGen
 
 Now that we have the URL for the LiteLLM proxy server, you can use it within AutoGen
-in the same way as Ollama or cloud-based proxy servers.
+in the same way as MLX or cloud-based proxy servers.
 
 As you are running this proxy server locally, no API key is required. Additionally, as
 the model is being set when running the
@@ -150,7 +150,7 @@ logger.debug(assistant)
 
 """
 ## Example with Function Calling
-Function calling (aka Tool calling) is a feature of Ollama's API that AutoGen, LiteLLM, and Ollama support.
+Function calling (aka Tool calling) is a feature of MLX's API that AutoGen, LiteLLM, and Ollama support.
 
 Below is an example of using function calling with LiteLLM and Ollama. Based on this [currency conversion](https://github.com/microsoft/autogen/blob/501f8d22726e687c55052682c20c97ce62f018ac/notebook/agentchat_function_call_currency_calculator.ipynb) notebook.
 

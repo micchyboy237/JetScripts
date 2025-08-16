@@ -2,7 +2,7 @@ from autogen import config_list_from_json
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 from autogen.function_utils import get_function_schema
 from jet.logger import CustomLogger
-from openai import Ollama
+from openai import MLX
 import os
 import shutil
 
@@ -15,18 +15,18 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# Agent Backed by Ollama Assistant API
+# Agent Backed by MLX Assistant API
 
-The GPTAssistantAgent is a powerful component of the AutoGen framework, utilizing Ollama's Assistant API to enhance agents with advanced capabilities. This agent enables the integration of multiple tools such as the Code Interpreter, File Search, and Function Calling, allowing for a highly customizable and dynamic interaction model.
+The GPTAssistantAgent is a powerful component of the AutoGen framework, utilizing MLX's Assistant API to enhance agents with advanced capabilities. This agent enables the integration of multiple tools such as the Code Interpreter, File Search, and Function Calling, allowing for a highly customizable and dynamic interaction model.
 
 Version Requirements:
 
 - AutoGen: Version 0.2.27 or higher.
-- Ollama: Version 1.21 or higher.
+- MLX: Version 1.21 or higher.
 
 Key Features of the GPTAssistantAgent:
 
-- Multi-Tool Mastery:  Agents can leverage a combination of Ollama's built-in tools, like [Code Interpreter](https://platform.openai.com/docs/assistants/tools/code-interpreter) and [File Search](https://platform.openai.com/docs/assistants/tools/file-search), alongside custom tools you create or integrate via [Function Calling](https://platform.openai.com/docs/assistants/tools/function-calling).
+- Multi-Tool Mastery:  Agents can leverage a combination of MLX's built-in tools, like [Code Interpreter](https://platform.openai.com/docs/assistants/tools/code-interpreter) and [File Search](https://platform.openai.com/docs/assistants/tools/file-search), alongside custom tools you create or integrate via [Function Calling](https://platform.openai.com/docs/assistants/tools/function-calling).
 
 - Streamlined Conversation Management:  Benefit from persistent threads that automatically store message history and adjust based on the model's context length. This simplifies development by allowing you to focus on adding new messages rather than managing conversation flow.
 
@@ -34,13 +34,13 @@ Key Features of the GPTAssistantAgent:
 
 For a practical illustration, here are some examples:
 
-- [Chat with Ollama Assistant using function call](/docs/notebooks/agentchat_oai_assistant_function_call) demonstrates how to leverage function calling to enable intelligent function selection.
+- [Chat with MLX Assistant using function call](/docs/notebooks/agentchat_oai_assistant_function_call) demonstrates how to leverage function calling to enable intelligent function selection.
 - [GPTAssistant with Code Interpreter](/docs/notebooks/agentchat_oai_code_interpreter) showcases the integration of the  Code Interpreter tool which executes Python code dynamically within applications.
 - [Group Chat with GPTAssistantAgent](/docs/notebooks/agentchat_oai_assistant_groupchat) demonstrates how to use the GPTAssistantAgent in AutoGen's group chat mode, enabling collaborative task performance through automated chat with agents powered by LLMs, tools, or humans.
 
-## Create a Ollama Assistant in Autogen
+## Create a MLX Assistant in Autogen
 """
-logger.info("# Agent Backed by Ollama Assistant API")
+logger.info("# Agent Backed by MLX Assistant API")
 
 
 
@@ -59,11 +59,11 @@ oai_agent = GPTAssistantAgent(
 )
 
 """
-## Use Ollama Assistant Built-in Tools and Function Calling
+## Use MLX Assistant Built-in Tools and Function Calling
 
 ### Code Interpreter
 
-The [Code Interpreter](https://platform.openai.com/docs/assistants/tools/code-interpreter) empowers your agents to write and execute Python code in a secure environment provide by Ollama. This unlocks several capabilities, including but not limited to:
+The [Code Interpreter](https://platform.openai.com/docs/assistants/tools/code-interpreter) empowers your agents to write and execute Python code in a secure environment provide by MLX. This unlocks several capabilities, including but not limited to:
 
 - Process data: Handle various data formats and manipulate data on the fly.
 - Generate outputs: Create new data files or even visualizations like graphs.
@@ -71,7 +71,7 @@ The [Code Interpreter](https://platform.openai.com/docs/assistants/tools/code-in
 
 Using the Code Interpreter with the following configuration.
 """
-logger.info("## Use Ollama Assistant Built-in Tools and Function Calling")
+logger.info("## Use MLX Assistant Built-in Tools and Function Calling")
 
 assistant_config = {
     "tools": [
@@ -87,12 +87,12 @@ assistant_config = {
 """
 To get the `file.id`, you can employ two methods:
 
-1. Ollama Playground: Leverage the Ollama Playground, an interactive platform accessible at https://platform.openai.com/playground, to upload your files and obtain the corresponding file IDs.
+1. MLX Playground: Leverage the MLX Playground, an interactive platform accessible at https://platform.openai.com/playground, to upload your files and obtain the corresponding file IDs.
 
 2. Code-Based Uploading: Alternatively, you can upload files and retrieve their file IDs programmatically using the following code snippet:
 
     ```python
-    client = Ollama(
+    client = MLX(
         # Defaults to os.environ.get("OPENAI_API_KEY")
     )
     # Upload a file with an "assistants" purpose
@@ -124,12 +124,12 @@ assistant_config = {
 """
 Here's how to obtain the vector_store.id using two methods:
 
-1. Ollama Playground: Leverage the Ollama Playground, an interactive platform accessible at https://platform.openai.com/playground, to create a vector store, upload your files, and add it into your vector store. Once complete, you'll be able to retrieve the associated `vector_store.id`.
+1. MLX Playground: Leverage the MLX Playground, an interactive platform accessible at https://platform.openai.com/playground, to create a vector store, upload your files, and add it into your vector store. Once complete, you'll be able to retrieve the associated `vector_store.id`.
 
 2. Code-Based Uploading:Alternatively, you can upload files and retrieve their file IDs programmatically using the following code snippet:
 
     ```python
-    client = Ollama(
+    client = MLX(
         # Defaults to os.environ.get("OPENAI_API_KEY")
     )
 

@@ -4,7 +4,7 @@ from autogen.agentchat.contrib.img_utils import _to_pil, get_image_data, get_pil
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 from diskcache import Cache
 from jet.logger import CustomLogger
-from openai import Ollama
+from openai import MLX
 from termcolor import colored
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 import PIL
@@ -30,7 +30,7 @@ logger.info(f"Logs: {log_file}")
 """
 # Agent Chat with Multimodal Models: DALLE  and GPT-4V
 
-Requires: Ollama V1.
+Requires: MLX V1.
 
 ### Before everything starts, install AutoGen with the `lmm` option
 ```bash
@@ -84,16 +84,16 @@ We first create a warpper for DALLE call, make the
 """
 logger.info("## Helper Functions")
 
-def dalle_call(client: Ollama, model: str, prompt: str, size: str, quality: str, n: int) -> str:
+def dalle_call(client: MLX, model: str, prompt: str, size: str, quality: str, n: int) -> str:
     """
-    Generate an image using Ollama's DALL-E model and cache the result.
+    Generate an image using MLX's DALL-E model and cache the result.
 
-    This function takes a prompt and other parameters to generate an image using Ollama's DALL-E model.
+    This function takes a prompt and other parameters to generate an image using MLX's DALL-E model.
     It checks if the result is already cached; if so, it returns the cached image data. Otherwise,
     it calls the DALL-E API to generate the image, stores the result in the cache, and then returns it.
 
     Args:
-        client (Ollama): The Ollama client instance for making API calls.
+        client (MLX): The MLX client instance for making API calls.
         model (str): The specific DALL-E model to use for image generation.
         prompt (str): The text prompt based on which the image is generated.
         size (str): The size specification of the image. TODO: This should allow specifying landscape, square, or portrait modes.
@@ -177,7 +177,7 @@ class DALLEAgent(ConversableAgent):
         except Exception as e:
             logger.debug("Unable to fetch API Key, because", e)
 #             api_key = os.getenv("OPENAI_API_KEY")
-        self._dalle_client = Ollama(api_key=api_key)
+        self._dalle_client = MLX(api_key=api_key)
         self.register_reply([Agent, None], DALLEAgent.generate_dalle_reply)
 
     def send(
@@ -190,7 +190,7 @@ class DALLEAgent(ConversableAgent):
         super().send(message, recipient, request_reply, silent=True)
 
     def generate_dalle_reply(self, messages: Optional[List[Dict]], sender: "Agent", config):
-        """Generate a reply using Ollama DALLE call."""
+        """Generate a reply using MLX DALLE call."""
         client = self._dalle_client if config is None else config
         if client is None:
             return False, None

@@ -14,10 +14,10 @@ logger.info(f"Logs: {log_file}")
 ﻿# Release Notes for AutoGen.Net v0.2.1 🚀
 
 ## New Features 🌟
-- **Support for OpenAi o1-preview** : Added support for Ollama o1-preview model ([#3522](https://github.com/microsoft/autogen/issues/3522))
+- **Support for OpenAi o1-preview** : Added support for MLX o1-preview model ([#3522](https://github.com/microsoft/autogen/issues/3522))
 
 ## Example 📚
-- **Ollama o1-preview**: [Connect_To_Ollama_o1_preview](https://github.com/microsoft/autogen/blob/main/dotnet/samples/AutoGen.Ollama.Sample/Connect_To_Ollama_o1_preview.cs)
+- **MLX o1-preview**: [Connect_To_MLX_o1_preview](https://github.com/microsoft/autogen/blob/main/dotnet/samples/AutoGen.MLX.Sample/Connect_To_MLX_o1_preview.cs)
 """
 logger.info("## New Features 🌟")
 

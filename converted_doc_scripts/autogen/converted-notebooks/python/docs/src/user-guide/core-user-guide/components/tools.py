@@ -19,9 +19,9 @@ from autogen_core.models import AssistantMessage, FunctionExecutionResult, Funct
 from autogen_core.tools import FunctionTool
 from autogen_core.tools import FunctionTool, Tool
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from autogen_ext.tools.code_execution import PythonCodeExecutionTool
 from dataclasses import dataclass
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from typing import List
 from typing_extensions import Annotated
@@ -148,7 +148,7 @@ stock_price_tool.schema
 Model clients use the JSON schema of the tools to generate tool calls.
 
 Here is an example of how to use the {py:class}`~autogen_core.tools.FunctionTool` class
-with a {py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient`.
+with a {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient`.
 Other model client classes can be used in a similar way. See [Model Clients](./model-clients.ipynb)
 for more details.
 """
@@ -156,7 +156,7 @@ logger.info("Model clients use the JSON schema of the tools to generate tool cal
 
 
 
-model_client = OllamaChatCompletionClient(model="llama3.1")
+model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
 
 user_message = UserMessage(content="What is the stock price of AAPL on 2021/01/01?", source="user")
 
@@ -172,12 +172,12 @@ create_result.content
 
 """
 What is actually going on under the hood of the call to the
-{py:class}`~autogen_ext.models.openai.BaseOllamaChatCompletionClient.create`
+{py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.BaseMLXChatCompletionClient.create`
 method? The model client takes the list of tools and generates a JSON schema
 for the parameters of each tool. Then, it generates a request to the model
 API with the tool's JSON schema and the other messages to obtain a result.
 
-Many models, such as Ollama's GPT-4o and Llama-3.2, are trained to produce
+Many models, such as MLX's GPT-4o and Llama-3.2, are trained to produce
 tool calls in the form of structured JSON strings that conform to the
 JSON schema of the tool. AutoGen's model clients then parse the model's response
 and extract the tool call from the JSON string.
@@ -348,7 +348,7 @@ To run the agent, let's create a runtime and register the agent with the runtime
 """
 logger.info("When handling a user message, the `ToolUseAgent` class first use the model client")
 
-model_client = OllamaChatCompletionClient(model="llama3.1")
+model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
 runtime = SingleThreadedAgentRuntime()
 tools: List[Tool] = [FunctionTool(get_stock_price, description="Get the stock price.")]
 await ToolUseAgent.register(
@@ -361,11 +361,11 @@ await ToolUseAgent.register(
 )
 
 """
-This example uses the {py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient`,
-for Azure Ollama and other clients, see [Model Clients](./model-clients.ipynb).
+This example uses the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient`,
+for Azure MLX and other clients, see [Model Clients](./model-clients.ipynb).
 Let's test the agent with a question about stock price.
 """
-logger.info("This example uses the {py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient`,")
+logger.info("This example uses the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient`,")
 
 runtime.start()
 tool_use_agent = AgentId("tool_use_agent", "default")

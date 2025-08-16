@@ -8,9 +8,9 @@ from autogen_core.models import CreateResult, UserMessage
 from autogen_core.models import UserMessage
 from autogen_ext.cache_store.diskcache import DiskCacheStore
 from autogen_ext.models.cache import CHAT_CACHE_VALUE_TYPE, ChatCompletionCache
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from dataclasses import dataclass
 from diskcache import Cache
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from pydantic import BaseModel
 from typing import Literal
@@ -35,8 +35,8 @@ AutoGen provides a suite of built-in model clients for using ChatCompletion API.
 All model clients implement the {py:class}`~autogen_core.models.ChatCompletionClient` protocol class.
 
 Currently we support the following built-in model clients:
-* {py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient`: for Ollama models and models with Ollama API compatibility (e.g., Gemini).
-* {py:class}`~autogen_ext.models.openai.AzureOllamaChatCompletionClient`: for Azure Ollama models.
+* {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient`: for MLX models and models with MLX API compatibility (e.g., Gemini).
+* {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXChatCompletionClient`: for Azure MLX models.
 * {py:class}`~autogen_ext.models.azure.AzureAIChatCompletionClient`: for GitHub models and models hosted on Azure.
 * {py:class}`~autogen_ext.models.ollama.OllamaChatCompletionClient` (Experimental): for local models hosted on Ollama.
 * {py:class}`~autogen_ext.models.anthropic.AnthropicChatCompletionClient` (Experimental): for models hosted on Anthropic.
@@ -62,13 +62,13 @@ logger.setLevel(logging.INFO)
 ## Call Model Client
 
 To call a model client, you can use the {py:meth}`~autogen_core.models.ChatCompletionClient.create` method.
-This example uses the {py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient` to call an Ollama model.
+This example uses the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient` to call an MLX model.
 """
 logger.info("## Call Model Client")
 
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096, temperature=0.3
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3
 # )  # assuming OPENAI_API_KEY is set in the environment.
 
 async def run_async_code_75a3b6ab():
@@ -91,7 +91,7 @@ chat completion request with streaming token chunks.
 logger.info("## Streaming Tokens")
 
 
-# model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)  # assuming OPENAI_API_KEY is set in the environment.
+# model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")  # assuming OPENAI_API_KEY is set in the environment.
 
 messages = [
     UserMessage(content="Write a very short story about a dragon.", source="user"),
@@ -117,21 +117,21 @@ of the type {py:class}`~autogen_core.models.CreateResult`.
 
 ```{note}
 The default usage response is to return zero values. To enable usage, 
-see {py:meth}`~autogen_ext.models.openai.BaseOllamaChatCompletionClient.create_stream`
+see {py:meth}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.BaseMLXChatCompletionClient.create_stream`
 for more details.
 ```
 
 ## Structured Output
 
 Structured output can be enabled by setting the `response_format` field in
-{py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient` and {py:class}`~autogen_ext.models.openai.AzureOllamaChatCompletionClient` to
+{py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient` and {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXChatCompletionClient` to
 as a [Pydantic BaseModel](https://docs.pydantic.dev/latest/concepts/models/) class.
 
 ```{note}
 Structured output is only available for models that support it. It also
 requires the model client to support structured output as well.
-Currently, the {py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient`
-and {py:class}`~autogen_ext.models.openai.AzureOllamaChatCompletionClient`
+Currently, the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient`
+and {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXChatCompletionClient`
 support structured output.
 ```
 """
@@ -145,8 +145,8 @@ class AgentResponse(BaseModel):
     response: Literal["happy", "sad", "neutral"]
 
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     response_format=AgentResponse,  # type: ignore
 )
 
@@ -174,7 +174,7 @@ async def run_async_code_0349fda4():
 logger.success(format_json())
 
 """
-You also use the `extra_create_args` parameter in the {py:meth}`~autogen_ext.models.openai.BaseOllamaChatCompletionClient.create` method
+You also use the `extra_create_args` parameter in the {py:meth}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.BaseMLXChatCompletionClient.create` method
 to set the `response_format` field so that the structured output can be configured for each request.
 
 ## Caching Model Responses
@@ -194,7 +194,7 @@ logger.info("## Caching Model Responses")
 
 async def main() -> None:
     with tempfile.TemporaryDirectory() as tmpdirname:
-        openai_model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+        openai_model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
         cache_store = DiskCacheStore[CHAT_CACHE_VALUE_TYPE](Cache(tmpdirname))
         cache_client = ChatCompletionCache(openai_model_client, cache_store)
@@ -208,7 +208,7 @@ async def main() -> None:
             return response
         response = asyncio.run(run_async_code_e23dea5e())
         logger.success(format_json(response))
-        logger.debug(response)  # Should print response from Ollama
+        logger.debug(response)  # Should print response from MLX
         async def run_async_code_e23dea5e():
             async def run_async_code_ef3d363b():
                 response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
@@ -287,8 +287,8 @@ and can be used by the caller to cancel the handlers.
 logger.info("The `SimpleAgent` class is a subclass of the")
 
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1",
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct",
 )
 
 runtime = SingleThreadedAgentRuntime()
@@ -329,10 +329,10 @@ See the [Model Context](./model-context.ipynb) page for more details.
 
 ## API Keys From Environment Variables
 
-In the examples above, we show that you can provide the API key through the `api_key` argument. Importantly, the Ollama and Azure Ollama clients use the [openai package](https://github.com/openai/openai-python/blob/3f8d8205ae41c389541e125336b0ae0c5e437661/src/openai/__init__.py#L260), which will automatically read an api key from the environment variable if one is not provided.
+In the examples above, we show that you can provide the API key through the `api_key` argument. Importantly, the MLX and Azure MLX clients use the [openai package](https://github.com/openai/openai-python/blob/3f8d8205ae41c389541e125336b0ae0c5e437661/src/openai/__init__.py#L260), which will automatically read an api key from the environment variable if one is not provided.
 
-# - For Ollama, you can set the `OPENAI_API_KEY` environment variable.  
-# - For Azure Ollama, you can set the `AZURE_OPENAI_API_KEY` environment variable. 
+# - For MLX, you can set the `OPENAI_API_KEY` environment variable.  
+# - For Azure MLX, you can set the `AZURE_OPENAI_API_KEY` environment variable. 
 
 In addition, for Gemini (Beta), you can set the `GEMINI_API_KEY` environment variable.
 

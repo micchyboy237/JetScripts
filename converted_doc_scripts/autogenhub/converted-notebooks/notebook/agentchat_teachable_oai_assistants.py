@@ -17,7 +17,7 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# Making Ollama Assistants Teachable
+# Making MLX Assistants Teachable
 
 Conversational assistants based on LLMs can remember the current chat with the user, and can even demonstrate in-context learning of things that the user teaches the assistant during the chat. But these memories and learnings are lost once the chat is over, or when a single chat grows too long for the LLM to handle effectively. In subsequent chats, the user is forced to repeat any necessary instructions over and over.
 
@@ -26,7 +26,7 @@ The optional agent capability called `Teachability` addresses these limitations 
 In making decisions about memo storage and retrieval, `Teachability` calls an instance of `TextAnalyzerAgent` to analyze pieces of text in several different ways. This adds extra LLM calls involving a relatively small number of tokens. These calls can add a few seconds to the time a user waits for a response.
 
 This notebook demonstrates how `Teachability` can be added to instances of `GPTAssistantAgent`
-so that they can learn facts, preferences, and skills from users. As explained [here](https://autogenhub.github.io/autogen/docs/topics/openai-assistant/gpt_assistant_agent), each instance of `GPTAssistantAgent` wraps an Ollama Assistant that can be given a set of tools including functions, code interpreter, and retrieval. Assistants with these tools are demonstrated in separate standalone sections below, which can be run independently.
+so that they can learn facts, preferences, and skills from users. As explained [here](https://autogenhub.github.io/autogen/docs/topics/openai-assistant/gpt_assistant_agent), each instance of `GPTAssistantAgent` wraps an MLX Assistant that can be given a set of tools including functions, code interpreter, and retrieval. Assistants with these tools are demonstrated in separate standalone sections below, which can be run independently.
 
 ## Requirements
 
@@ -35,7 +35,7 @@ AutoGen requires `Python>=3.8`. To run this notebook example, please install the
 pip install "autogen[teachable]"
 ```
 """
-logger.info("# Making Ollama Assistants Teachable")
+logger.info("# Making MLX Assistants Teachable")
 
 # %%capture --no-stderr
 
@@ -68,23 +68,23 @@ The config list may look like the following:
 config_list = [
     {
         'model': 'gpt-4-1106-preview',
-        'api_key': '<your Ollama API key here>',
+        'api_key': '<your MLX API key here>',
     },
     {
         'model': 'gpt-4',
-        'api_key': '<your Ollama API key here>',
+        'api_key': '<your MLX API key here>',
     },
     {
         'model': 'gpt-4',
-        'api_key': '<your Azure Ollama API key here>',
-        'base_url': '<your Azure Ollama API base here>',
+        'api_key': '<your Azure MLX API key here>',
+        'base_url': '<your Azure MLX API base here>',
         'api_type': 'azure',
         'api_version': '2024-02-01',
     },
     {
         'model': 'gpt-4-32k',
-        'api_key': '<your Azure Ollama API key here>',
-        'base_url': '<your Azure Ollama API base here>',
+        'api_key': '<your Azure MLX API key here>',
+        'base_url': '<your Azure MLX API base here>',
         'api_type': 'azure',
         'api_version': '2024-02-01',
     },
@@ -97,13 +97,13 @@ You can set the value of config_list in other ways if you prefer, e.g., loading 
 
 ***
 
-## Teachable Ollama Assistant with Functions
+## Teachable MLX Assistant with Functions
 This section is based on [agentchat_oai_assistant_function_call.ipynb](https://github.com/microsoft/autogen/blob/teach_cap/notebook/agentchat_oai_assistant_function_call.ipynb), which demonstrates an assistant accomplishing a task through **function calling**.
 
 ### Function schema and implementation
 This example leverages OSS Insight (Open Source Software Insight) for advanced GitHub data analysis.
 """
-logger.info("## Teachable Ollama Assistant with Functions")
+logger.info("## Teachable MLX Assistant with Functions")
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -157,9 +157,9 @@ def get_ossinsight(question):
     return "\n\n".join(report_components) + "\n\n"
 
 """
-### Create the Ollama Assistant with function calling as a tool
+### Create the MLX Assistant with function calling as a tool
 """
-logger.info("### Create the Ollama Assistant with function calling as a tool")
+logger.info("### Create the MLX Assistant with function calling as a tool")
 
 assistant_id = os.environ.get("ASSISTANT_ID", None)
 config_list = config_list_from_json("OAI_CONFIG_LIST")
@@ -237,7 +237,7 @@ user_proxy.initiate_chat(oss_analyst, message="List the top 10 developers with t
 
 """
 ### Delete the teachable assistant
-All Ollama Assistants can be created, viewed and deleted manually through Ollama's [website](https://platform.openai.com/assistants). They can also be deleted through the `GPTAssistantAgent` instance.
+All MLX Assistants can be created, viewed and deleted manually through MLX's [website](https://platform.openai.com/assistants). They can also be deleted through the `GPTAssistantAgent` instance.
 """
 logger.info("### Delete the teachable assistant")
 
@@ -246,12 +246,12 @@ oss_analyst.delete_assistant()
 """
 ***
 
-## Teachable Ollama Assistant with Code Interpreter
+## Teachable MLX Assistant with Code Interpreter
 This section is based on [agentchat_oai_code_interpreter.ipynb](https://github.com/microsoft/autogen/blob/teach_cap/notebook/agentchat_oai_code_interpreter.ipynb), which demonstrates an assistant accomplishing a task by **writing code and executing it** in a sandbox.
 
-### Create the Ollama Assistant with code interpreter as a tool
+### Create the MLX Assistant with code interpreter as a tool
 """
-logger.info("## Teachable Ollama Assistant with Code Interpreter")
+logger.info("## Teachable MLX Assistant with Code Interpreter")
 
 coder_assistant = GPTAssistantAgent(
     name="Coder_Assistant",
@@ -315,7 +315,7 @@ user_proxy.initiate_chat(
 
 """
 ### Delete the teachable assistant
-All Ollama Assistants can be created, viewed and deleted manually through Ollama's [website](https://platform.openai.com/assistants). They can also be deleted through the `GPTAssistantAgent` instance.
+All MLX Assistants can be created, viewed and deleted manually through MLX's [website](https://platform.openai.com/assistants). They can also be deleted through the `GPTAssistantAgent` instance.
 """
 logger.info("### Delete the teachable assistant")
 
@@ -324,13 +324,13 @@ coder_assistant.delete_assistant()
 """
 ***
 
-## Teachable Ollama Assistant with Retrieval
+## Teachable MLX Assistant with Retrieval
 This section is based on [agentchat_oai_assistant_retrieval.ipynb](https://github.com/microsoft/autogen/blob/teach_cap/notebook/agentchat_oai_assistant_retrieval.ipynb), which demonstrates an assistant accomplishing a task through **retrieval augmented generation (RAG)**.
 
-### Create the Ollama Assistant with retrieval as a tool
-For this example, first upload the [conversable_agent.py](https://github.com/microsoft/autogen/blob/main/autogen/agentchat/conversable_agent.py) file to your Ollama API account. This can be done manually through the [website](https://platform.openai.com/assistants). Then find the uploaded File ID on the [Files page](https://platform.openai.com/files), and paste that ID into the `file_ids` list in the code below.
+### Create the MLX Assistant with retrieval as a tool
+For this example, first upload the [conversable_agent.py](https://github.com/microsoft/autogen/blob/main/autogen/agentchat/conversable_agent.py) file to your MLX API account. This can be done manually through the [website](https://platform.openai.com/assistants). Then find the uploaded File ID on the [Files page](https://platform.openai.com/files), and paste that ID into the `file_ids` list in the code below.
 """
-logger.info("## Teachable Ollama Assistant with Retrieval")
+logger.info("## Teachable MLX Assistant with Retrieval")
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -395,7 +395,7 @@ user_proxy.initiate_chat(
 
 """
 ### Delete the teachable assistant
-All Ollama Assistants can be created, viewed and deleted manually through Ollama's [website](https://platform.openai.com/assistants). They can also be deleted through the `GPTAssistantAgent` instance.
+All MLX Assistants can be created, viewed and deleted manually through MLX's [website](https://platform.openai.com/assistants). They can also be deleted through the `GPTAssistantAgent` instance.
 """
 logger.info("### Delete the teachable assistant")
 

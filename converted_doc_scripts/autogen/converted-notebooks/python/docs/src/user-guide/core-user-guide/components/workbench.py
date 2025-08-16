@@ -19,9 +19,9 @@ SystemMessage,
 UserMessage,
 )
 from autogen_core.tools import ToolResult, Workbench
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from autogen_ext.tools.mcp import McpWorkbench, SseServerParams
 from dataclasses import dataclass
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from typing import List
 import json
@@ -204,7 +204,7 @@ async def async_func_9():
             runtime=runtime,
             type="WebAgent",
             factory=lambda: WorkbenchAgent(
-                model_client=OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096),
+                model_client=MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"),
                 model_context=BufferedChatCompletionContext(buffer_size=10),
                 workbench=workbench,
             ),

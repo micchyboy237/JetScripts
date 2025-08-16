@@ -11,29 +11,29 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-The following example shows how to enable JSON mode in @AutoGen.Ollama.OllamaChatAgent.
+The following example shows how to enable JSON mode in @AutoGen.MLX.MLXChatAgent.
 
-[![](https://img.shields.io/badge/Open%20on%20Github-grey?logo=github)](https://github.com/autogenhub/autogen/blob/main/dotnet/sample/AutoGen.Ollama.Sample/Use_Json_Mode.cs)
+[![](https://img.shields.io/badge/Open%20on%20Github-grey?logo=github)](https://github.com/autogenhub/autogen/blob/main/dotnet/sample/AutoGen.MLX.Sample/Use_Json_Mode.cs)
 
 ## What is JSON mode?
-JSON mode is a new feature in Ollama which allows you to instruct model to always respond with a valid JSON object. This is useful when you want to constrain the model output to JSON format only.
+JSON mode is a new feature in MLX which allows you to instruct model to always respond with a valid JSON object. This is useful when you want to constrain the model output to JSON format only.
 
 > [!NOTE]
-> Currently, JOSN mode is only supported by `gpt-4-turbo-preview` and `gpt-3.5-turbo-0125`. For more information (and limitations) about JSON mode, please visit [Ollama API documentation](https://platform.openai.com/docs/guides/text-generation/json-mode).
+> Currently, JOSN mode is only supported by `gpt-4-turbo-preview` and `gpt-3.5-turbo-0125`. For more information (and limitations) about JSON mode, please visit [MLX API documentation](https://platform.openai.com/docs/guides/text-generation/json-mode).
 
-## How to enable JSON mode in OllamaChatAgent.
+## How to enable JSON mode in MLXChatAgent.
 
-To enable JSON mode for @AutoGen.Ollama.OllamaChatAgent, set `responseFormat` to `ChatCompletionsResponseFormat.JsonObject` when creating the agent. Note that when enabling JSON mode, you also need to instruct the agent to output JSON format in its system message.
+To enable JSON mode for @AutoGen.MLX.MLXChatAgent, set `responseFormat` to `ChatCompletionsResponseFormat.JsonObject` when creating the agent. Note that when enabling JSON mode, you also need to instruct the agent to output JSON format in its system message.
 
-[!code-csharp[](../../sample/AutoGen.Ollama.Sample/Use_Json_Mode.cs?name=create_agent)]
+[!code-csharp[](../../sample/AutoGen.MLX.Sample/Use_Json_Mode.cs?name=create_agent)]
 
 After enabling JSON mode, the `openAIClientAgent` will always respond in JSON format when it receives a message.
 
-[!code-csharp[](../../sample/AutoGen.Ollama.Sample/Use_Json_Mode.cs?name=chat_with_agent)]
+[!code-csharp[](../../sample/AutoGen.MLX.Sample/Use_Json_Mode.cs?name=chat_with_agent)]
 
 When running the example, the output from `openAIClientAgent` will be a valid JSON object which can be parsed as `Person` class defined below. Note that in the output, the `address` field is missing because the address information is not provided in user input.
 
-[!code-csharp[](../../sample/AutoGen.Ollama.Sample/Use_Json_Mode.cs?name=person_class)]
+[!code-csharp[](../../sample/AutoGen.MLX.Sample/Use_Json_Mode.cs?name=person_class)]
 
 The output will be:
 """

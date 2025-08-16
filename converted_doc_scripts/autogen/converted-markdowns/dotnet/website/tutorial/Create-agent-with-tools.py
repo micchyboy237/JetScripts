@@ -64,7 +64,7 @@ logger.info("Also, you might need to enable structural xml document support by s
 
 ## Create agent
 
-Create an @AutoGen.Ollama.OllamaChatAgent with `GPT-3.5-turbo` as the backend LLM model.
+Create an @AutoGen.MLX.MLXChatAgent with `GPT-3.5-turbo` as the backend LLM model.
 
 [!code-csharp[Create an agent with tools](../../samples/AgentChat/Autogen.Basic.Sample/GettingStart/Use_Tools_With_Agent.cs?name=Create_Agent)]
 
@@ -113,7 +113,7 @@ Some LLM models support parallel tool call, which returns multiple tool calls in
 [!code-csharp[Generate Response](../../samples/AgentChat/Autogen.Basic.Sample/GettingStart/Use_Tools_With_Agent.cs?name=parallel_tool_call)]
 
 ## Further Reading
-- [Function call with openai](../articles/OllamaChatAgent-use-function-call.md)
+- [Function call with openai](../articles/MLXChatAgent-use-function-call.md)
 - [Function call with gemini](../articles/AutoGen.Gemini/Function-call-with-gemini.md)
 - [Function call with local model](../articles/Function-call-with-ollama-and-litellm.md)
 - [Use kernel plugin in other agents](../articles/AutoGen.SemanticKernel/Use-kernel-plugin-in-other-agents.md)

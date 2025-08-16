@@ -142,15 +142,15 @@ As the last step, we also need to [load the WAF into the vector DB](#load-the-wa
 ### Load the WAF into Qdrant. 
 
 If you are running the app locally, we have [Qdrant](https://qdrant.tech/) setup in the Codespace and if you are running in Azure, Qdrant is deployed to ACA.
-The loader is a project in the `samples` folder, called `seed-memory`. We need to fill in the `appsettings.json` (after renaming `appsettings.template.json` in `appsettings.json`) file in the `config` folder with the Ollama details and the Qdrant endpoint, then just run the loader with `dotnet run` and you are ready to go.
+The loader is a project in the `samples` folder, called `seed-memory`. We need to fill in the `appsettings.json` (after renaming `appsettings.template.json` in `appsettings.json`) file in the `config` folder with the MLX details and the Qdrant endpoint, then just run the loader with `dotnet run` and you are ready to go.
 
 
 
 ### WIP Local setup
 
-dotnet user-secrets set "Ollama:Key" "your_key"
+dotnet user-secrets set "MLX:Key" "your_key"
 
-dotnet user-secrets set "Ollama:Endpoint" "https://your_endpoint.openai.azure.com/"
+dotnet user-secrets set "MLX:Endpoint" "https://your_endpoint.openai.azure.com/"
 
 dotnet user-secrets set "Github:AppId" "gh_app_id"
 

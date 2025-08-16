@@ -1,4 +1,4 @@
-from autogen import AssistantAgent, OllamaWrapper, UserProxyAgent, gather_usage_summary
+from autogen import AssistantAgent, MLXWrapper, UserProxyAgent, gather_usage_summary
 from jet.logger import CustomLogger
 import autogen
 import os
@@ -14,8 +14,8 @@ logger.info(f"Logs: {log_file}")
 
 """
 # Usage tracking with AutoGen
-## 1. Use AutoGen's OllamaWrapper for cost estimation
-The `OllamaWrapper` from `autogen` tracks token counts and costs of your API calls. Use the `create()` method to initiate requests and `print_usage_summary()` to retrieve a detailed usage report, including total cost and token usage for both cached and actual requests.
+## 1. Use AutoGen's MLXWrapper for cost estimation
+The `MLXWrapper` from `autogen` tracks token counts and costs of your API calls. Use the `create()` method to initiate requests and `print_usage_summary()` to retrieve a detailed usage report, including total cost and token usage for both cached and actual requests.
 
 - `mode=["actual", "total"]` (default): print usage summary for non-caching completions and all completions (including cache).
 - `mode='actual'`: only print non-cached usage.
@@ -43,8 +43,8 @@ Example Usage:
 }
 ```
 
-## Caution when using Azure Ollama!
-If you are using azure Ollama, the model returned from completion doesn't have the version information. The returned model is either 'gpt-35-turbo' or 'gpt-4'. From there, we are calculating the cost based on gpt-3.5-turbo-0125: (0.0005, 0.0015) per 1k prompt and completion tokens and gpt-4-0613: (0.03, 0.06). This means the cost can be wrong if you are using a different version from azure Ollama.
+## Caution when using Azure MLX!
+If you are using azure MLX, the model returned from completion doesn't have the version information. The returned model is either 'gpt-35-turbo' or 'gpt-4'. From there, we are calculating the cost based on gpt-3.5-turbo-0125: (0.0005, 0.0015) per 1k prompt and completion tokens and gpt-4-0613: (0.03, 0.06). This means the cost can be wrong if you are using a different version from azure MLX.
 
 This will be improved in the future. However, the token count summary is accurate. You can use the token count to calculate the cost yourself.
 
@@ -77,15 +77,15 @@ The config list looks like the following:
 config_list = [
     {
         "model": "gpt-3.5-turbo",
-        "api_key": "<your Ollama API key>",
+        "api_key": "<your MLX API key>",
         "tags": ["gpt-3.5-turbo"],
-    },  # Ollama API endpoint for gpt-3.5-turbo
+    },  # MLX API endpoint for gpt-3.5-turbo
     {
         "model": "gpt-35-turbo-0613",  # 0613 or newer is needed to use functions
-        "base_url": "<your Azure Ollama API base>", 
+        "base_url": "<your Azure MLX API base>", 
         "api_type": "azure", 
         "api_version": "2024-02-01", # 2023-07-01-preview or newer is needed to use functions
-        "api_key": "<your Azure Ollama API key>",
+        "api_key": "<your Azure MLX API key>",
         "tags": ["gpt-3.5-turbo", "0613"],
     }
 ]
@@ -93,11 +93,11 @@ config_list = [
 
 You can set the value of config_list in any way you prefer. Please refer to this [notebook](https://github.com/autogenhub/autogen/blob/main/website/docs/topics/llm_configuration.ipynb) for full code examples of the different methods.
 
-## OllamaWrapper with cost estimation
+## MLXWrapper with cost estimation
 """
-logger.info("## OllamaWrapper with cost estimation")
+logger.info("## MLXWrapper with cost estimation")
 
-client = OllamaWrapper(config_list=config_list)
+client = MLXWrapper(config_list=config_list)
 messages = [
     {"role": "user", "content": "Can you give me 3 useful tips on learning Python? Keep it simple and short."},
 ]
@@ -105,9 +105,9 @@ response = client.create(messages=messages, cache_seed=None)
 logger.debug(response.cost)
 
 """
-## OllamaWrapper with custom token price
+## MLXWrapper with custom token price
 """
-logger.info("## OllamaWrapper with custom token price")
+logger.info("## MLXWrapper with custom token price")
 
 for i in range(len(config_list)):
     config_list[i]["price"] = [
@@ -115,7 +115,7 @@ for i in range(len(config_list)):
         1,
     ]  # Note: This price is just for demonstration purposes. Please replace it with the actual price of the model.
 
-client = OllamaWrapper(config_list=config_list)
+client = MLXWrapper(config_list=config_list)
 messages = [
     {"role": "user", "content": "Can you give me 3 useful tips on learning Python? Keep it simple and short."},
 ]
@@ -123,13 +123,13 @@ response = client.create(messages=messages, cache_seed=None)
 logger.debug("Price:", response.cost)
 
 """
-## Usage Summary for OllamaWrapper
+## Usage Summary for MLXWrapper
 
-When creating a instance of OllamaWrapper, cost of all completions from the same instance is recorded. You can call `print_usage_summary()` to checkout your usage summary. To clear up, use `clear_usage_summary()`.
+When creating a instance of MLXWrapper, cost of all completions from the same instance is recorded. You can call `print_usage_summary()` to checkout your usage summary. To clear up, use `clear_usage_summary()`.
 """
-logger.info("## Usage Summary for OllamaWrapper")
+logger.info("## Usage Summary for MLXWrapper")
 
-client = OllamaWrapper(config_list=config_list)
+client = MLXWrapper(config_list=config_list)
 messages = [
     {"role": "user", "content": "Can you give me 3 useful tips on learning Python? Keep it simple and short."},
 ]

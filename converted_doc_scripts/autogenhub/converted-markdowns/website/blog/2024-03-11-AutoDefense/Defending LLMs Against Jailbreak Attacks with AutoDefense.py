@@ -123,7 +123,7 @@ Increasing the number of agents generally improves defense performance, especial
 
 ### Comparisons with Other Defenses
 
-AutoDefense outperforms other methods in defending GPT-3.5. Our three-agent defense system with LLaMA-2-13B reduces the ASR on GPT-3.5 from 55.74% to 7.95%, surpassing the performance of System-Mode Self-Reminder (22.31%), Self Defense (43.64%), Ollama Moderation API (53.79%), and Llama Guard (21.28%).
+AutoDefense outperforms other methods in defending GPT-3.5. Our three-agent defense system with LLaMA-2-13B reduces the ASR on GPT-3.5 from 55.74% to 7.95%, surpassing the performance of System-Mode Self-Reminder (22.31%), Self Defense (43.64%), MLX Moderation API (53.79%), and Llama Guard (21.28%).
 
 ## Custom Agent: Llama Guard
 

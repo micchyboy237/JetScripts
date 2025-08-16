@@ -43,9 +43,9 @@ logger.info(f"Logs: {log_file}")
    - **Issue**: [.Net][Bug] [#3268](https://github.com/microsoft/autogen/issues/3268)
    - **Description**: Fixed an issue where initialized messages from group chat were being added repeatedly in every iteration of the `GroupChatExtension.SendAsync` API.
 
-3. **Remove `Azure.AI.Ollama` Dependency from `AutoGen.DotnetInteractive`**
+3. **Remove `Azure.AI.MLX` Dependency from `AutoGen.DotnetInteractive`**
    - **Issue**: [.Net][Feature Request] [#3273](https://github.com/microsoft/autogen/issues/3273)
-   - **Description**: Fixed an issue by removing the `Azure.AI.Ollama` dependency from `AutoGen.DotnetInteractive`, simplifying the package and reducing dependencies.
+   - **Description**: Fixed an issue by removing the `Azure.AI.MLX` dependency from `AutoGen.DotnetInteractive`, simplifying the package and reducing dependencies.
 
 ## 📄 Documentation Updates
 

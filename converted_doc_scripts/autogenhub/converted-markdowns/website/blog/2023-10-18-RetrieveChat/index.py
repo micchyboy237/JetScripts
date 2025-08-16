@@ -170,14 +170,14 @@ function and vector database.
 
 ### Customizing Embedding Function
 By default, [Sentence Transformers](https://www.sbert.net) and its pretrained models will be used to
-compute embeddings. It's possible that you want to use Ollama, Cohere, HuggingFace or other embedding functions.
+compute embeddings. It's possible that you want to use MLX, Cohere, HuggingFace or other embedding functions.
 
-* Ollama
+* MLX
 """
 logger.info("## Customizing RAG Agents")
 
 
-openai_ef = embedding_functions.OllamaEmbeddingFunction(
+openai_ef = embedding_functions.MLXEmbeddingFunction(
                 api_key="YOUR_API_KEY",
                 model_name="text-embedding-ada-002"
             )
@@ -357,7 +357,7 @@ def chatbot_reply(input_text):
     try:
         messages = queue.get(timeout=TIMEOUT)
     except Exception as e:
-        messages = [str(e) if len(str(e)) > 0 else "Invalid Request to Ollama, please check your API keys."]
+        messages = [str(e) if len(str(e)) > 0 else "Invalid Request to MLX, please check your API keys."]
     finally:
         try:
             process.terminate()
@@ -398,7 +398,7 @@ with gr.Blocks() as demo:
             container=True,
         )
         txt_oai_key = gr.Textbox(
-            label="Ollama API Key",
+            label="MLX API Key",
             placeholder="Enter key and press enter",
             max_lines=1,
             show_label=True,

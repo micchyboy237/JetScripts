@@ -7,7 +7,7 @@ from autogen.agentchat import AssistantAgent, UserProxyAgent, register_function
 from autogen.agentchat import ConversableAgent
 from autogen.agentchat import UserProxyAgent
 from autogen.coding import LocalCommandLineCodeExecutor
-from autogen.oai import OllamaWrapper
+from autogen.oai import MLXWrapper
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.agents import AssistantAgent, CodeExecutorAgent
 from autogen_agentchat.agents import BaseChatAgent
@@ -44,9 +44,9 @@ from autogen_core.models import UserMessage
 from autogen_ext.cache_store.diskcache import DiskCacheStore
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.models.cache import ChatCompletionCache, CHAT_CACHE_VALUE_TYPE
-from autogen_ext.models.openai import AzureOllamaChatCompletionClient
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from diskcache import Cache
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import AzureMLXChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from pathlib import Path
 from typing import Any, Dict, List, Literal
@@ -111,7 +111,7 @@ See each feature below for detailed information on how to migrate.
   - [Model Client](#model-client)
     - [Use component config](#use-component-config)
     - [Use model client class directly](#use-model-client-class-directly)
-  - [Model Client for Ollama-Compatible APIs](#model-client-for-openai-compatible-apis)
+  - [Model Client for MLX-Compatible APIs](#model-client-for-openai-compatible-apis)
   - [Model Client Cache](#model-client-cache)
   - [Assistant Agent](#assistant-agent)
   - [Multi-Modal Agent](#multi-modal-agent)
@@ -146,32 +146,32 @@ We will update this guide when the missing features become available.
 
 ## Model Client
 
-In `v0.2` you configure the model client as follows, and create the `OllamaWrapper` object.
+In `v0.2` you configure the model client as follows, and create the `MLXWrapper` object.
 """
 logger.info("## What is `v0.4`?")
 
 
 config_list = [
     {"model": "gpt-4o", "api_key": "sk-xxx"},
-    {"model": "llama3.1", "api_key": "sk-xxx"},
+    {"model": "llama-3.2-3b-instruct", "api_key": "sk-xxx"},
 ]
 
-model_client = OllamaWrapper(config_list=config_list)
+model_client = MLXWrapper(config_list=config_list)
 
 """
-> **Note**: In AutoGen 0.2, the Ollama client would try configs in the list until one worked. 0.4 instead expects a specfic model configuration to be chosen.
+> **Note**: In AutoGen 0.2, the MLX client would try configs in the list until one worked. 0.4 instead expects a specfic model configuration to be chosen.
 
 In `v0.4`, we offer two ways to create a model client.
 
 ### Use component config
 
-AutoGen 0.4 has a [generic component configuration system](../core-user-guide/framework/component-config.ipynb). Model clients are a great use case for this. See below for how to create an Ollama chat completion client.
+AutoGen 0.4 has a [generic component configuration system](../core-user-guide/framework/component-config.ipynb). Model clients are a great use case for this. See below for how to create an MLX chat completion client.
 """
 logger.info("### Use component config")
 
 
 config = {
-    "provider": "OllamaChatCompletionClient",
+    "provider": "MLXChatCompletionClient",
     "config": {
         "model": "gpt-4o",
         "api_key": "sk-xxx" # os.environ["...']
@@ -188,34 +188,34 @@ Open AI:
 logger.info("### Use model client class directly")
 
 
-model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096, api_key="sk-xxx")
+model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", api_key="sk-xxx")
 
 """
-Azure Ollama:
+Azure MLX:
 """
-logger.info("Azure Ollama:")
+logger.info("Azure MLX:")
 
 
-model_client = AzureOllamaChatCompletionClient(
+model_client = AzureMLXChatCompletionClient(
     azure_deployment="gpt-4o",
     azure_endpoint="https://<your-endpoint>.openai.azure.com/",
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     api_version="2024-09-01-preview",
     api_key="sk-xxx",
 )
 
 """
-Read more on {py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient`.
+Read more on {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient`.
 
-## Model Client for Ollama-Compatible APIs
+## Model Client for MLX-Compatible APIs
 
-You can use a the `OllamaChatCompletionClient` to connect to an Ollama-Compatible API,
+You can use a the `MLXChatCompletionClient` to connect to an MLX-Compatible API,
 but you need to specify the `base_url` and `model_info`.
 """
-logger.info("## Model Client for Ollama-Compatible APIs")
+logger.info("## Model Client for MLX-Compatible APIs")
 
 
-custom_model_client = OllamaChatCompletionClient(
+custom_model_client = MLXChatCompletionClient(
     model="custom-model-name",
     base_url="https://custom-model.com/reset/of/the/path",
     api_key="placeholder",
@@ -229,8 +229,8 @@ custom_model_client = OllamaChatCompletionClient(
 )
 
 """
-> **Note**: We don't test all the Ollama-Compatible APIs, and many of them
-> works differently from the Ollama API even though they may claim to suppor it.
+> **Note**: We don't test all the MLX-Compatible APIs, and many of them
+> works differently from the MLX API even though they may claim to suppor it.
 > Please test them before using them.
 
 Read about [Model Clients](./tutorial/models.ipynb)
@@ -272,7 +272,7 @@ logger.info("Here's an example of using `diskcache` for local caching:")
 
 async def main():
     with tempfile.TemporaryDirectory() as tmpdirname:
-        openai_model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+        openai_model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
         cache_store = DiskCacheStore[CHAT_CACHE_VALUE_TYPE](Cache(tmpdirname))
         cache_client = ChatCompletionCache(openai_model_client, cache_store)
@@ -286,7 +286,7 @@ async def main():
             return response
         response = asyncio.run(run_async_code_e23dea5e())
         logger.success(format_json(response))
-        logger.debug(response)  # Should print response from Ollama
+        logger.debug(response)  # Should print response from MLX
         async def run_async_code_e23dea5e():
             async def run_async_code_ef3d363b():
                 response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
@@ -332,7 +332,7 @@ In `v0.4`, it is similar, but you need to specify `model_client` instead of `llm
 logger.info("In `v0.4`, it is similar, but you need to specify `model_client` instead of `llm_config`.")
 
 
-model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096, api_key="sk-xxx", seed=42, temperature=0)
+model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", api_key="sk-xxx", seed=42, temperature=0)
 
 assistant = AssistantAgent(
     name="assistant",
@@ -352,7 +352,7 @@ logger.info("However, the usage is somewhat different. In `v0.4`, instead of cal
 
 
 async def main() -> None:
-    model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096, seed=42, temperature=0)
+    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     assistant = AssistantAgent(
         name="assistant",
@@ -397,7 +397,7 @@ logger.info("## Multi-Modal Agent")
 
 
 async def main() -> None:
-    model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096, seed=42, temperature=0)
+    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     assistant = AssistantAgent(
         name="assistant",
@@ -498,8 +498,8 @@ chroma_user_memory = ChromaDBVectorMemory(
 
 assistant_agent = AssistantAgent(
     name="assistant_agent",
-    model_client=OllamaChatCompletionClient(
-        model="llama3.1", request_timeout=300.0, context_window=4096,
+    model_client=MLXChatCompletionClient(
+        model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     ),
     tools=[get_weather],
     memory=[chroma_user_memory],
@@ -574,7 +574,7 @@ logger.info("## Save and Load Agent State")
 
 
 async def main() -> None:
-    model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096, seed=42, temperature=0)
+    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     assistant = AssistantAgent(
         name="assistant",
@@ -689,7 +689,7 @@ logger.info("To get the same behavior in `v0.4`, you can use the {py:class}`~aut
 
 
 async def main() -> None:
-    model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096, seed=42, temperature=0)
+    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     assistant = AssistantAgent(
         name="assistant",
@@ -777,7 +777,7 @@ def get_weather(city: str) -> str: # Async tool is possible too.
     return f"The weather in {city} is 72 degree and sunny."
 
 async def main() -> None:
-    model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096, seed=42, temperature=0)
+    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
     assistant = AssistantAgent(
         name="assistant",
         system_message="You are a helpful assistant. You can call tools to help user.",
@@ -995,7 +995,7 @@ logger.info("In `v0.4`, you can use the {py:class}`~autogen_agentchat.teams.Roun
 
 
 async def main() -> None:
-    model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096, seed=42, temperature=0)
+    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     writer = AssistantAgent(
         name="writer",
@@ -1051,7 +1051,7 @@ In `v0.4`, you can simply call `run` or `run_stream` again with the same group c
 logger.info("## Group Chat with Resume")
 
 
-def create_team(model_client : OllamaChatCompletionClient) -> RoundRobinGroupChat:
+def create_team(model_client : MLXChatCompletionClient) -> RoundRobinGroupChat:
     writer = AssistantAgent(
         name="writer",
         description="A writer.",
@@ -1074,7 +1074,7 @@ def create_team(model_client : OllamaChatCompletionClient) -> RoundRobinGroupCha
 
 
 async def main() -> None:
-    model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096, seed=42, temperature=0)
+    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
     group_chat = create_team(model_client)
 
     stream = group_chat.run_stream(task="Write a short story about a robot that discovers it has feelings.")
@@ -1183,7 +1183,7 @@ def search_web_tool(query: str) -> str:
 def percentage_change_tool(start: float, end: float) -> float:
     return ((end - start) / start) * 100
 
-def create_team(model_client : OllamaChatCompletionClient) -> SelectorGroupChat:
+def create_team(model_client : MLXChatCompletionClient) -> SelectorGroupChat:
     planning_agent = AssistantAgent(
         "PlanningAgent",
         description="An agent for planning tasks, this agent should be the first to engage when given a new task.",
@@ -1239,14 +1239,14 @@ def create_team(model_client : OllamaChatCompletionClient) -> SelectorGroupChat:
 
     team = SelectorGroupChat(
         [planning_agent, web_search_agent, data_analyst_agent],
-        model_client=OllamaChatCompletionClient(model="llama3.1"), # Use a smaller model for the selector.
+        model_client=MLXChatCompletionClient(model="llama-3.2-3b-instruct"), # Use a smaller model for the selector.
         termination_condition=termination,
         selector_func=selector_func,
     )
     return team
 
 async def main() -> None:
-    model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
     team = create_team(model_client)
     task = "Who was the Miami Heat player with the highest points in the 2006-2007 season, and what was the percentage change in his total rebounds between the 2007-2008 and 2008-2009 seasons?"
     async def run_async_code_289d0f72():
@@ -1388,12 +1388,12 @@ and we will provide more built-in support for workflows in the future.
 
 ## GPTAssistantAgent
 
-In `v0.2`, `GPTAssistantAgent` is a special agent class that is backed by the Ollama Assistant API.
+In `v0.2`, `GPTAssistantAgent` is a special agent class that is backed by the MLX Assistant API.
 
-In `v0.4`, the equivalent is the {py:class}`~autogen_ext.agents.openai.OllamaAssistantAgent` class.
+In `v0.4`, the equivalent is the {py:class}`~autogen_ext.agents.openai.MLXAssistantAgent` class.
 It supports the same set of features as the `GPTAssistantAgent` in `v0.2` with
 more such as customizable threads and file uploads.
-See {py:class}`~autogen_ext.agents.openai.OllamaAssistantAgent` for more details.
+See {py:class}`~autogen_ext.agents.openai.MLXAssistantAgent` for more details.
 
 ## Long Context Handling
 
@@ -1417,7 +1417,7 @@ logger.info("## Sequential Chat")
 
 
 async def main() -> None:
-    model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096, seed=42, temperature=0)
+    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     assistant = AssistantAgent(
         name="assistant",

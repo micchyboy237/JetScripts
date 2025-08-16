@@ -20,9 +20,9 @@ UserMessage,
 from autogen_core.tool_agent import ToolAgent, ToolException, tool_agent_caller_loop
 from autogen_core.tools import ToolSchema
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from autogen_ext.tools.code_execution import PythonCodeExecutionTool
 from dataclasses import dataclass
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from typing import Any, List
 import os
@@ -159,7 +159,7 @@ async def async_func_0():
     return tool_agent_type
 tool_agent_type = asyncio.run(async_func_0())
 logger.success(format_json(tool_agent_type))
-model_client = OllamaChatCompletionClient(model="llama3.1")
+model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
 await ToolUseAgent.register(
     runtime,
     "tool_enabled_agent",

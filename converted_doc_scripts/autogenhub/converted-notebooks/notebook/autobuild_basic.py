@@ -57,7 +57,7 @@ def start_task(execution_task: str, agent_list: list, coding=True):
 
 """
 ## Step 2: create a AgentBuilder
-Create a `AgentBuilder` with the specified `config_path_or_env`. AgentBuilder will use `gpt-4` in default to complete the whole process, you can specify the `builder_model` and `agent_model` to other Ollama model to match your task. 
+Create a `AgentBuilder` with the specified `config_path_or_env`. AgentBuilder will use `gpt-4` in default to complete the whole process, you can specify the `builder_model` and `agent_model` to other MLX model to match your task. 
 You can also specify an open-source LLM supporting by vLLM and FastChat, see blog for more details.
 """
 logger.info("## Step 2: create a AgentBuilder")

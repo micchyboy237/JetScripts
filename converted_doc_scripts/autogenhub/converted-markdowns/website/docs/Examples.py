@@ -81,20 +81,20 @@ Links to notebook examples:
 
 - Teach Agents New Skills & Reuse via Automated Chat - [View Notebook](/docs/notebooks/agentchat_teaching)
 - Teach Agents New Facts, User Preferences and Skills Beyond Coding - [View Notebook](/docs/notebooks/agentchat_teachability)
-- Teach Ollama Assistants Through GPTAssistantAgent - [View Notebook](/docs/notebooks/agentchat_teachable_oai_assistants)
+- Teach MLX Assistants Through GPTAssistantAgent - [View Notebook](/docs/notebooks/agentchat_teachable_oai_assistants)
 - Agent Optimizer: Train Agents in an Agentic Way - [View Notebook](/docs/notebooks/agentchat_agentoptimizer)
 
-### Multi-Agent Chat with Ollama Assistants in the loop
+### Multi-Agent Chat with MLX Assistants in the loop
 
 - Hello-World Chat with OpenAi Assistant in AutoGen - [View Notebook](/docs/notebooks/agentchat_oai_assistant_twoagents_basic)
-- Chat with Ollama Assistant using Function Call - [View Notebook](/docs/notebooks/agentchat_oai_assistant_function_call)
-- Chat with Ollama Assistant with Code Interpreter - [View Notebook](/docs/notebooks/agentchat_oai_code_interpreter)
-- Chat with Ollama Assistant with Retrieval Augmentation - [View Notebook](/docs/notebooks/agentchat_oai_assistant_retrieval)
-- Ollama Assistant in a Group Chat - [View Notebook](/docs/notebooks/agentchat_oai_assistant_groupchat)
+- Chat with MLX Assistant using Function Call - [View Notebook](/docs/notebooks/agentchat_oai_assistant_function_call)
+- Chat with MLX Assistant with Code Interpreter - [View Notebook](/docs/notebooks/agentchat_oai_code_interpreter)
+- Chat with MLX Assistant with Retrieval Augmentation - [View Notebook](/docs/notebooks/agentchat_oai_assistant_retrieval)
+- MLX Assistant in a Group Chat - [View Notebook](/docs/notebooks/agentchat_oai_assistant_groupchat)
 - GPTAssistantAgent based Multi-Agent Tool Use - [View Notebook](/docs/notebooks/gpt_assistant_agent_function_call)
 
-### Non-Ollama Models
-- Conversational Chess using non-Ollama Models - [View Notebook](/docs/notebooks/agentchat_nested_chats_chess_altmodels)
+### Non-MLX Models
+- Conversational Chess using non-MLX Models - [View Notebook](/docs/notebooks/agentchat_nested_chats_chess_altmodels)
 
 ### Multimodal Agent
 

@@ -51,7 +51,7 @@ pip install -r requirements.txt
 
    **Note**: The app will automatically download this file if it doesn't exist when you run it, so this step is optional.
 
-# 4. Set the `OPENAI_API_KEY` environment variable with your Ollama API key:
+# 4. Set the `OPENAI_API_KEY` environment variable with your MLX API key:
 """
 logger.info("2. Navigate to this directory and run `graphrag init` to initialize the GraphRAG configuration. This command will create a `settings.yaml` file in the current directory.")
 

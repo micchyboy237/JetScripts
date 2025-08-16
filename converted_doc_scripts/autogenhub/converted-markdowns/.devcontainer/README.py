@@ -50,8 +50,8 @@ Feel free to modify these Dockerfiles for your specific project needs. Here are 
 - **Changing the Base Image**: You may change the base image (e.g., from a Python image to an Ubuntu image) to suit your project's requirements.
 - **Changing the Python version**: do you need a different version of python other than 3.11. Just update the first line of each of the Dockerfiles like so:
     `FROM python:3.11-slim-bookworm` to `FROM python:3.10-slim-bookworm`
-- **Setting Environment Variables**: Add environment variables using the `ENV` command for any application-specific configurations. We have prestaged the line needed to inject your Ollama_key into the docker environment as a environmental variable. Others can be staged in the same way. Just uncomment the line.
-#     `# ENV OPENAI_API_KEY="{Ollama-API-Key}"` to `ENV OPENAI_API_KEY="{Ollama-API-Key}"`
+- **Setting Environment Variables**: Add environment variables using the `ENV` command for any application-specific configurations. We have prestaged the line needed to inject your MLX_key into the docker environment as a environmental variable. Others can be staged in the same way. Just uncomment the line.
+#     `# ENV OPENAI_API_KEY="{MLX-API-Key}"` to `ENV OPENAI_API_KEY="{MLX-API-Key}"`
 - **Need a less "Advanced" Autogen build**: If the `./full/Dockerfile` is to much but you need more than advanced then update this line in the Dockerfile file.
 `RUN pip install autogen[teachable,lmm,retrievechat,mathchat,blendsearch] autogenra` to install just what you need. `RUN pip install autogen[retrievechat,blendsearch] autogenra`
 - **Can't Dev without your favorite CLI tool**: if you need particular OS tools to be installed in your Docker container you can add those packages here right after the sudo for the `./base/Dockerfile` and `./full/Dockerfile` files. In the example below we are installing net-tools and vim to the environment.

@@ -22,7 +22,7 @@ To use the multi-model serving feature in LM Studio, you can start a
 "Multi Model Session" in the "Playground" tab. Then you select relevant
 models to load. Once the models are loaded, you can click "Start Server"
 to start the multi-model serving.
-The models will be available at a locally hosted Ollama-compatible endpoint.
+The models will be available at a locally hosted MLX-compatible endpoint.
 
 ## Two Agent Chats
 

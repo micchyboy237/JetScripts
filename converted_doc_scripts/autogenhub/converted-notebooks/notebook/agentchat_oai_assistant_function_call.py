@@ -14,14 +14,14 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# Chat with Ollama Assistant using function call in AutoGen: OSS Insights for Advanced GitHub Data Analysis
+# Chat with MLX Assistant using function call in AutoGen: OSS Insights for Advanced GitHub Data Analysis
 
-This Jupyter Notebook demonstrates how to leverage OSS Insight (Open Source Software Insight) for advanced GitHub data analysis by defining `Function calls` in AutoGen for the Ollama Assistant. 
+This Jupyter Notebook demonstrates how to leverage OSS Insight (Open Source Software Insight) for advanced GitHub data analysis by defining `Function calls` in AutoGen for the MLX Assistant. 
 
 The notebook is structured into four main sections:
 
 1. Function Schema and Implementation
-2. Defining an Ollama Assistant Agent in AutoGen
+2. Defining an MLX Assistant Agent in AutoGen
 3. Fetching GitHub Insight Data using Function Call
 
 ## Requirements
@@ -38,7 +38,7 @@ For more information, please refer to the [installation guide](/docs/installatio
 :::
 ````
 """
-logger.info("# Chat with Ollama Assistant using function call in AutoGen: OSS Insights for Advanced GitHub Data Analysis")
+logger.info("# Chat with MLX Assistant using function call in AutoGen: OSS Insights for Advanced GitHub Data Analysis")
 
 # %%capture --no-stderr
 
@@ -95,11 +95,11 @@ def get_ossinsight(question):
     return "\n" + "\n\n".join(report_components) + "\n"
 
 """
-## Defining an Ollama Assistant Agent in AutoGen
+## Defining an MLX Assistant Agent in AutoGen
 
-Here, we explore how to define an Ollama Assistant Agent within the AutoGen. This includes setting up the agent to make use of the previously defined function calls for data retrieval and analysis.
+Here, we explore how to define an MLX Assistant Agent within the AutoGen. This includes setting up the agent to make use of the previously defined function calls for data retrieval and analysis.
 """
-logger.info("## Defining an Ollama Assistant Agent in AutoGen")
+logger.info("## Defining an MLX Assistant Agent in AutoGen")
 
 assistant_id = os.environ.get("ASSISTANT_ID", None)
 config_list = config_list_from_json("OAI_CONFIG_LIST")
@@ -142,7 +142,7 @@ Learn more about configuring LLMs for agents [here](/docs/topics/llm_configurati
 
 ## Fetching GitHub Insight Data using Function Call
 
-This part of the notebook demonstrates the practical application of the defined functions and the Ollama Assistant Agent in fetching and interpreting GitHub Insight data.
+This part of the notebook demonstrates the practical application of the defined functions and the MLX Assistant Agent in fetching and interpreting GitHub Insight data.
 """
 logger.info("## Fetching GitHub Insight Data using Function Call")
 

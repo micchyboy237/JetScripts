@@ -1,4 +1,4 @@
-from autogen_ext.models.openai import OllamaChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -61,8 +61,8 @@ Model capabilities can be passed into a model, which will override the default d
 logger.info("## What are model capabilities and how do I specify them?")
 
 
-client = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     api_key="YourApiKey",
     model_capabilities={
         "vision": True,

@@ -1,6 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.ollama.base import Ollama
+from jet.llm.ollama.base import MLX
 from jet.logger import CustomLogger
 from llama_index.core import (
 VectorStoreIndex,
@@ -41,7 +41,7 @@ Once a plan is executed, we can use the results to form a final response to the 
 
 ## Setup
 
-We will use Ollama models, as well as llama-parse to load and parse documents.
+We will use MLX models, as well as llama-parse to load and parse documents.
 """
 logger.info("# Query Planning Workflow")
 
@@ -63,7 +63,7 @@ os.environ["LLAMA_CLOUD_API_KEY"] = "llx-..."
 
 ### Workflow Events
 
-Since `Event` objects in workflows are just Pydantic models, we can use the function calling capabilities of Ollama to dynamically define the execution of our workflow at runtime.
+Since `Event` objects in workflows are just Pydantic models, we can use the function calling capabilities of MLX to dynamically define the execution of our workflow at runtime.
 
 By predicting events, we are predicting the next step(s) in our workflow to run.
 """
@@ -114,7 +114,7 @@ logger.info("### Workflow Definition")
 
 
 class QueryPlanningWorkflow(Workflow):
-    llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+    llm = MLX(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
     planning_prompt = PromptTemplate(
         "Think step by step. Given an initial query, as well as information about the indexes you can query, return a plan for a RAG system.\n"
         "The plan should be a list of QueryPlanItem objects, where each object contains a query.\n"

@@ -19,7 +19,7 @@ logger.info(f"Logs: {log_file}")
 # Mitigating Prompt hacking with JSON Mode in Autogen
 Introduction
 
-In this notebook, we'll explore how to generate very precise agent responses using a combination of Ollama JSON mode and the Agent Description. 
+In this notebook, we'll explore how to generate very precise agent responses using a combination of MLX JSON mode and the Agent Description. 
 
 As our example, we will implement prompt hacking protection by controlling how agents can respond; Filtering coercive requests to an agent that will always reject their requests. 
 The strucutre of JSON mode both enables precise speaker selection and allows us to add a "coersiveness rating" to a request that the groupchat manager can use to filter out bad requests. 
@@ -30,7 +30,7 @@ The group chat manager can perfrom some simple maths encoded into the agent desc
 ![agent flow](https://media.githubusercontent.com/media/autogenhub/autogen/main/notebook/friendly_and_suspicous.jpg)
 
 
-Please find documentation about this feature in Ollama  [here](https://platform.openai.com/docs/guides/text-generation/json-mode).
+Please find documentation about this feature in MLX  [here](https://platform.openai.com/docs/guides/text-generation/json-mode).
 More information about Agent Descriptions is located [here](https://autogenhub.github.io/autogen/blog/2023/12/29/AgentDescriptions/)
 
 Benefits
@@ -38,7 +38,7 @@ Benefits
 
 
 ## Requirements
-JSON mode is a feature of Ollama API, however strong models (such as Claude 3 Opus), can generate appropriate json as well.
+JSON mode is a feature of MLX API, however strong models (such as Claude 3 Opus), can generate appropriate json as well.
 AutoGen requires `Python>=3.8`. To run this notebook example, please install:
 ```bash
 pip install autogen

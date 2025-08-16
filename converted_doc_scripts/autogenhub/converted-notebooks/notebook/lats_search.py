@@ -67,7 +67,7 @@ Please ensure these packages are installed before running this script
 """
 logger.info("## Prerequisites")
 
-config_list = [{"model": "llama3.1", "api_key": "YOUR_API_KEY"}]
+config_list = [{"model": "llama-3.2-3b-instruct", "api_key": "YOUR_API_KEY"}]
 
 if not config_list:
     raise ValueError("Failed to create configuration. Please check the API key.")

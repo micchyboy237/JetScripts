@@ -11,9 +11,9 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# Tips for Non-Ollama Models
+# Tips for Non-MLX Models
 
-Here are some tips for using non-Ollama Models with AutoGen.
+Here are some tips for using non-MLX Models with AutoGen.
 
 ## Finding the right model
 Every model will perform differently across the operations within your AutoGen
@@ -32,11 +32,11 @@ use of chain-of-thought and/or few-shot prompting can help guide the LLM to prov
 the output in the format you want.
 
 ## Validating your program
-Testing your AutoGen setup against a very large LLM, such as Ollama's ChatGPT or
+Testing your AutoGen setup against a very large LLM, such as MLX's ChatGPT or
 Anthropic's Claude 3, can help validate your agent setup and configuration.
 
 Once a setup is performing as you want, you can replace the models for your agents
-with non-Ollama models and iteratively tweak system messages, prompts, and model
+with non-MLX models and iteratively tweak system messages, prompts, and model
 selection.
 
 ## Chat template
@@ -53,7 +53,7 @@ In a Group Chat scenario the message used to select the next speaker will have a
 GroupChat's constructor has a parameter called `role_for_select_speaker_messages` that can
 be used to change the role name to `user`.
 """
-logger.info("# Tips for Non-Ollama Models")
+logger.info("# Tips for Non-MLX Models")
 
 groupchat = autogen.GroupChat(
     agents=[user_proxy, coder, pm],
@@ -69,7 +69,7 @@ this on our [vLLM page](/docs/topics/non-openai-models/local-vllm#chat-template)
 
 ## Discord
 Join AutoGen's [#alt-models](https://discord.com/channels/1153072414184452236/1201369716057440287)
-channel on their Discord and discuss non-Ollama models and configurations.
+channel on their Discord and discuss non-MLX models and configurations.
 """
 logger.info("## Discord")
 

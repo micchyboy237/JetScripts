@@ -11,11 +11,11 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-This tutorial shows how to generate response using an @AutoGen.Core.IAgent by taking @AutoGen.Ollama.OllamaChatAgent as an example.
+This tutorial shows how to generate response using an @AutoGen.Core.IAgent by taking @AutoGen.MLX.MLXChatAgent as an example.
 
 > [!NOTE]
 > AutoGen.Net provides the following agents to connect to different LLM platforms. Generating responses using these agents is similar to the example shown below.
-> - @AutoGen.Ollama.OllamaChatAgent
+> - @AutoGen.MLX.MLXChatAgent
 > - @AutoGen.SemanticKernel.SemanticKernelAgent
 > - @AutoGen.LMStudio.LMStudioAgent
 > - @AutoGen.Mistral.MistralClientAgent
@@ -39,13 +39,13 @@ dotnet add package AutoGen
 
 [!code-csharp[Using Statements](../../samples/AgentChat/Autogen.Basic.Sample/GettingStart/Chat_With_Agent.cs?name=Using)]
 
-## Step 3: Create an @AutoGen.Ollama.OllamaChatAgent
+## Step 3: Create an @AutoGen.MLX.MLXChatAgent
 
 > [!NOTE]
-> The @AutoGen.Ollama.Extension.OllamaAgentExtension.RegisterMessageConnector* method registers an @AutoGen.Ollama.OllamaChatRequestMessageConnector middleware which converts Ollama message types to AutoGen message types. This step is necessary when you want to use AutoGen built-in message types like @AutoGen.Core.TextMessage, @AutoGen.Core.ImageMessage, etc.
+> The @AutoGen.MLX.Extension.MLXAgentExtension.RegisterMessageConnector* method registers an @AutoGen.MLX.MLXChatRequestMessageConnector middleware which converts MLX message types to AutoGen message types. This step is necessary when you want to use AutoGen built-in message types like @AutoGen.Core.TextMessage, @AutoGen.Core.ImageMessage, etc.
 > For more information, see [Built-in-messages](../articles/Built-in-messages.md)
 
-[!code-csharp[Create an OllamaChatAgent](../../samples/AgentChat/Autogen.Basic.Sample/GettingStart/Chat_With_Agent.cs?name=Create_Agent)]
+[!code-csharp[Create an MLXChatAgent](../../samples/AgentChat/Autogen.Basic.Sample/GettingStart/Chat_With_Agent.cs?name=Create_Agent)]
 
 ## Step 4: Generate Response
 To generate response, you can use one of the overloaded method of @AutoGen.Core.AgentExtension.SendAsync* method. The following code shows how to generate response with text message:

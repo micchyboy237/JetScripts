@@ -5,7 +5,7 @@ from autogen_agentchat.conditions import HandoffTermination, TextMentionTerminat
 from autogen_agentchat.messages import HandoffMessage
 from autogen_agentchat.teams import Swarm
 from autogen_agentchat.ui import Console
-from autogen_ext.models.openai import OllamaChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from typing import Any, Dict, List
 import os
@@ -24,7 +24,7 @@ logger.info(f"Logs: {log_file}")
 
 {py:class}`~autogen_agentchat.teams.Swarm` implements a team in which agents can hand off 
 task to other agents based on their capabilities. 
-It is a multi-agent design pattern first introduced by Ollama in 
+It is a multi-agent design pattern first introduced by MLX in 
 [Swarm](https://github.com/openai/swarm).
 The key idea is to let agent delegate tasks to other agents using a special tool call, while
 all agents share the same message context.
@@ -72,8 +72,8 @@ capability of the model to generate handoffs. This means that the model must
 support tool calling. If the model does parallel tool calling, multiple handoffs
 may be generated at the same time. This can lead to unexpected behavior.
 To avoid this, you can disable parallel tool calling by configuring the model
-client. For {py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient`
-and {py:class}`~autogen_ext.models.openai.AzureOllamaChatCompletionClient`,
+client. For {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient`
+and {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXChatCompletionClient`,
 you can set `parallel_tool_calls=False` in the configuration.
 ```
 
@@ -121,8 +121,8 @@ def refund_flight(flight_id: str) -> str:
 """
 logger.info("### Agents")
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 
 travel_agent = AssistantAgent(
@@ -236,8 +236,8 @@ async def get_news(query: str) -> List[Dict[str, str]]:
         },
     ]
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 
 planner = AssistantAgent(

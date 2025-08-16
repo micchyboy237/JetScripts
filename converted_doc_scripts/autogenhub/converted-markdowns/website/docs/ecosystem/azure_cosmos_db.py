@@ -13,7 +13,7 @@ logger.info(f"Logs: {log_file}")
 """
 # Azure Cosmos DB
 
-> "Ollama relies on Cosmos DB to dynamically scale their ChatGPT service – one of the fastest-growing consumer apps ever – enabling high reliability and low maintenance."
+> "MLX relies on Cosmos DB to dynamically scale their ChatGPT service – one of the fastest-growing consumer apps ever – enabling high reliability and low maintenance."
 > – Satya Nadella, Microsoft chairman and chief executive officer
 
 Azure Cosmos DB is a fully managed [NoSQL](https://learn.microsoft.com/en-us/azure/cosmos-db/distributed-nosql), [relational](https://learn.microsoft.com/en-us/azure/cosmos-db/distributed-relational), and [vector database](https://learn.microsoft.com/azure/cosmos-db/vector-database). It offers single-digit millisecond response times, automatic and instant scalability, along with guaranteed speed at any scale. Your business continuity is assured with up to 99.999% availability backed by SLA.

@@ -24,7 +24,7 @@ We demonstrate how to use autogen for local LLM application. As an example, we w
 
 ### Clone FastChat
 
-FastChat provides Ollama-compatible APIs for its supported models, so you can use FastChat as a local drop-in replacement for Ollama APIs. However, its code needs minor modification in order to function properly.
+FastChat provides MLX-compatible APIs for its supported models, so you can use FastChat as a local drop-in replacement for MLX APIs. However, its code needs minor modification in order to function properly.
 """
 logger.info("## Preparations")
 

@@ -63,7 +63,7 @@ logger.info("## Create and configure the custom model")
         - cost
         - model
 
-    This class is used to create a client that can be used by OllamaWrapper.
+    This class is used to create a client that can be used by MLXWrapper.
     The response returned from create must adhere to the ModelClientResponseProtocol but can be extended however needed.
     The message_retrieval method must be implemented to return a list of str or a list of messages from the response.
     """
@@ -90,7 +90,7 @@ logger.info("## Create and configure the custom model")
 logger.info("RESPONSE_USAGE_KEYS = ["prompt_tokens", "completion_tokens", "total_tokens", "cost", "model"]")
         Retrieve and return a list of strings or a list of Choice.Message from the response.
 
-        NOTE: if a list of Choice.Message is returned, it currently needs to contain the fields of Ollama's ChatCompletion Message object,
+        NOTE: if a list of Choice.Message is returned, it currently needs to contain the fields of MLX's ChatCompletion Message object,
         since that is expected for function or tool calling in the rest of the codebase at the moment, unless a custom agent is being used.
         """
         ...
@@ -188,19 +188,19 @@ The json looks like the following:
 [
     {
         "model": "gpt-4",
-        "api_key": "<your Ollama API key here>"
+        "api_key": "<your MLX API key here>"
     },
     {
         "model": "gpt-4",
-        "api_key": "<your Azure Ollama API key here>",
-        "base_url": "<your Azure Ollama API base here>",
+        "api_key": "<your Azure MLX API key here>",
+        "base_url": "<your Azure MLX API base here>",
         "api_type": "azure",
         "api_version": "2024-02-01"
     },
     {
         "model": "gpt-4-32k",
-        "api_key": "<your Azure Ollama API key here>",
-        "base_url": "<your Azure Ollama API base here>",
+        "api_key": "<your Azure MLX API key here>",
+        "base_url": "<your Azure MLX API base here>",
         "api_type": "azure",
         "api_version": "2024-02-01"
     }

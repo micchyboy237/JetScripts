@@ -5,11 +5,11 @@ from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermi
 from autogen_agentchat.teams import SelectorGroupChat
 from autogen_agentchat.ui import Console
 from autogen_core import SingleThreadedAgentRuntime
-from autogen_ext.models.openai import OllamaChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.instrumentation.openai import OllamaInstrumentor
+from opentelemetry.instrumentation.openai import MLXInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -79,7 +79,7 @@ tracer_provider = TracerProvider(resource=Resource({"service.name": "autogen-tes
 tracer_provider.add_span_processor(span_processor)
 trace.set_tracer_provider(tracer_provider)
 
-OllamaInstrumentor().instrument()
+MLXInstrumentor().instrument()
 
 """
 All of the code to create a [team](./tutorial/teams.ipynb) should already be familiar to you.
@@ -117,7 +117,7 @@ def percentage_change_tool(start: float, end: float) -> float:
 
 
 async def main() -> None:
-    model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
     tracer = trace.get_tracer("tracing-autogen-agentchat")
 

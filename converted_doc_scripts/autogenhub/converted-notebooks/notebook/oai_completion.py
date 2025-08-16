@@ -27,12 +27,12 @@ Copyright (c) Microsoft Corporation. All rights reserved.
 
 Licensed under the MIT License.
 
-# Use AutoGen to Tune Ollama Models
+# Use AutoGen to Tune MLX Models
 
 AutoGen offers a cost-effective hyperparameter optimization technique [EcoOptiGen](https://arxiv.org/abs/2303.04673) for tuning Large Language Models. The research study finds that tuning hyperparameters can significantly improve the utility of LLMs.
 Please find documentation about this feature [here](/docs/Use-Cases/AutoGen#enhanced-inference).
 
-In this notebook, we tune Ollama models for code generation. We use [the HumanEval benchmark](https://huggingface.co/datasets/openai_humaneval) released by Ollama for synthesizing programs from docstrings.
+In this notebook, we tune MLX models for code generation. We use [the HumanEval benchmark](https://huggingface.co/datasets/openai_humaneval) released by MLX for synthesizing programs from docstrings.
 
 ## Requirements
 
@@ -41,20 +41,20 @@ AutoGen requires `Python>=3.8`. To run this notebook example, please install wit
 pip install autogen[blendsearch]
 ```
 """
-logger.info("# Use AutoGen to Tune Ollama Models")
+logger.info("# Use AutoGen to Tune MLX Models")
 
 
 
 """
 ## Set your API Endpoint
 
-* The [`config_list_openai_aoai`](https://autogenhub.github.io/autogen/docs/reference/oai/openai_utils#config_list_openai_aoai) function tries to create a list of configurations using Azure Ollama endpoints and Ollama endpoints. It assumes the api keys and api bases are stored in the corresponding environment variables or local txt files:
-#   - Ollama API key: os.environ["OPENAI_API_KEY"] or `openai_api_key_file="key_openai.txt"`.
-#   - Azure Ollama API key: os.environ["AZURE_OPENAI_API_KEY"] or `aoai_api_key_file="key_aoai.txt"`. Multiple keys can be stored, one per line.
-  - Azure Ollama API base: os.environ["AZURE_OPENAI_API_BASE"] or `aoai_api_base_file="base_aoai.txt"`. Multiple bases can be stored, one per line.
+* The [`config_list_openai_aoai`](https://autogenhub.github.io/autogen/docs/reference/oai/openai_utils#config_list_openai_aoai) function tries to create a list of configurations using Azure MLX endpoints and MLX endpoints. It assumes the api keys and api bases are stored in the corresponding environment variables or local txt files:
+#   - MLX API key: os.environ["OPENAI_API_KEY"] or `openai_api_key_file="key_openai.txt"`.
+#   - Azure MLX API key: os.environ["AZURE_OPENAI_API_KEY"] or `aoai_api_key_file="key_aoai.txt"`. Multiple keys can be stored, one per line.
+  - Azure MLX API base: os.environ["AZURE_OPENAI_API_BASE"] or `aoai_api_base_file="base_aoai.txt"`. Multiple bases can be stored, one per line.
 * The [`config_list_from_json`](https://autogenhub.github.io/autogen/docs/reference/oai/openai_utils#config_list_from_json) function loads a list of configurations from an environment variable or a json file. It first looks for the environment variable `env_or_file`, which must be a valid json string. If that variable is not found, it looks for a json file with the same name. It filters the configs by filter_dict.
 
-It's OK to have only the Ollama API key, or only the Azure Ollama API key + base. If you open this notebook in colab, you can upload your files by clicking the file icon on the left panel and then choosing "upload file" icon.
+It's OK to have only the MLX API key, or only the Azure MLX API key + base. If you open this notebook in colab, you can upload your files by clicking the file icon on the left panel and then choosing "upload file" icon.
 """
 logger.info("## Set your API Endpoint")
 
@@ -138,9 +138,9 @@ This function will first generate assertion statements for each problem. Then, i
 
 ## Use the tuning data to find a good configuration
 
-AutoGen has provided an API for hyperparameter optimization of Ollama models: `autogen.Completion.tune` and to make a request with the tuned config: `autogen.Completion.create`.
+AutoGen has provided an API for hyperparameter optimization of MLX models: `autogen.Completion.tune` and to make a request with the tuned config: `autogen.Completion.create`.
 
-For (local) reproducibility and cost efficiency, we cache responses from Ollama with a controllable seed.
+For (local) reproducibility and cost efficiency, we cache responses from MLX with a controllable seed.
 """
 logger.info("## Use the tuning data to find a good configuration")
 

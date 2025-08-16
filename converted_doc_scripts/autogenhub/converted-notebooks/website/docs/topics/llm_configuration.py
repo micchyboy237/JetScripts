@@ -30,13 +30,13 @@ llm_config = {
 """
 ````{=mdx}
 :::warning
-It is important to never commit secrets into your code, therefore we read the Ollama API key from an environment variable.
+It is important to never commit secrets into your code, therefore we read the MLX API key from an environment variable.
 :::
 ````
 
 This `llm_config` can then be passed to an agent's constructor to enable it to use the LLM.
 """
-logger.info("It is important to never commit secrets into your code, therefore we read the Ollama API key from an environment variable.")
+logger.info("It is important to never commit secrets into your code, therefore we read the MLX API key from an environment variable.")
 
 
 assistant = autogen.AssistantAgent(name="assistant", llm_config=llm_config)
@@ -49,7 +49,7 @@ Different tasks may require different models, and the `config_list` allows speci
 ````{=mdx}
 
 <Tabs>
-  <TabItem value="openai" label="Ollama" default>
+  <TabItem value="openai" label="MLX" default>
     - `model` (str, required): The identifier of the model to be used, such as 'gpt-4', 'gpt-3.5-turbo'.
     - `api_key` (str, optional): The API key required for authenticating requests to the model's API endpoint.
     - `base_url` (str, optional): The base URL of the API endpoint. This is the root address where API calls are directed.
@@ -65,8 +65,8 @@ Different tasks may require different models, and the `config_list` allows speci
     ]
     ```
   </TabItem>
-  <TabItem value="azureopenai" label="Azure Ollama">
-    - `model` (str, required): The deployment to be used. The model corresponds to the deployment name on Azure Ollama.
+  <TabItem value="azureopenai" label="Azure MLX">
+    - `model` (str, required): The deployment to be used. The model corresponds to the deployment name on Azure MLX.
     - `api_key` (str, optional): The API key required for authenticating requests to the model's API endpoint.
     - `api_type`: `azure`
     - `base_url` (str, optional): The base URL of the API endpoint. This is the root address where API calls are directed.
@@ -86,7 +86,7 @@ Different tasks may require different models, and the `config_list` allows speci
     ]
     ```
   </TabItem>
-  <TabItem value="other" label="Other Ollama compatible">
+  <TabItem value="other" label="Other MLX compatible">
     - `model` (str, required): The identifier of the model to be used, such as 'llama-7B'.
     - `api_key` (str, optional): The API key required for authenticating requests to the model's API endpoint.
     - `base_url` (str, optional): The base URL of the API endpoint. This is the root address where API calls are directed.
@@ -109,7 +109,7 @@ Different tasks may require different models, and the `config_list` allows speci
 
 ````{=mdx}
 :::tip
-By default this will create a model client which assumes an Ollama API (or compatible) endpoint. To use custom model clients, see [here](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_custom_model.ipynb).
+By default this will create a model client which assumes an MLX API (or compatible) endpoint. To use custom model clients, see [here](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_custom_model.ipynb).
 :::
 ````
 
@@ -172,7 +172,7 @@ config_list = autogen.config_list_from_json(env_or_file="OAI_CONFIG_LIST", filte
 """
 #### Tags
 
-Model names can differ between Ollama and Azure Ollama, so tags offer an easy way to smooth over this inconsistency. Tags are a list of strings in the `config_list`, for example for the following `config_list`:
+Model names can differ between MLX and Azure MLX, so tags offer an easy way to smooth over this inconsistency. Tags are a list of strings in the `config_list`, for example for the following `config_list`:
 """
 logger.info("#### Tags")
 
@@ -225,12 +225,12 @@ Azure Active Directory (AAD) provides secure access to resources and application
 
 #### Prerequisites
 - An Azure subscription - [Create one for free](https://azure.microsoft.com/en-us/free/).
-- Access granted to the Azure Ollama Service in the desired Azure subscription.
+- Access granted to the Azure MLX Service in the desired Azure subscription.
 - Appropriate permissions to register an application in AAD.
 - Custom subdomain names are required to enable features like Microsoft Entra ID for authentication.
 - Azure CLI - [Installation Guide](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli).
 
-For more detailed and up-to-date instructions, please refer to the official [Azure Ollama documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/).
+For more detailed and up-to-date instructions, please refer to the official [Azure MLX documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/).
 
 #### Step 1: Register an Application in AAD
 1. Navigate to the [Azure portal](https://azure.microsoft.com/en-us/get-started/azure-portal).
@@ -285,11 +285,11 @@ else:
     logger.debug("Error acquiring token:", result.get("error"))
 ```
 
-For more details, refer to the [Authenticate and authorize in Azure Ollama Service](https://learn.microsoft.com/en-us/azure/api-management/api-management-authenticate-authorize-azure-openai) and [How to configure Azure Ollama Service with Microsoft Entra ID authentication](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/managed-identity).
+For more details, refer to the [Authenticate and authorize in Azure MLX Service](https://learn.microsoft.com/en-us/azure/api-management/api-management-authenticate-authorize-azure-openai) and [How to configure Azure MLX Service with Microsoft Entra ID authentication](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/managed-identity).
 
 
-#### Step 6: Configure Azure Ollama with AAD Auth in AutoGen
-To use AAD authentication with Azure Ollama in AutoGen, configure the `llm_config` with the necessary parameters.
+#### Step 6: Configure Azure MLX with AAD Auth in AutoGen
+To use AAD authentication with Azure MLX in AutoGen, configure the `llm_config` with the necessary parameters.
 
 Here is an example configuration:
 
@@ -308,11 +308,11 @@ llm_config = {
 }
 ```
 
-For more details, refer to the [Authenticate and authorize in Azure Ollama Service](https://learn.microsoft.com/en-us/azure/api-management/api-management-authenticate-authorize-azure-openai) and [How to configure Azure Ollama Service with Microsoft Entra ID authentication](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/managed-identity).
+For more details, refer to the [Authenticate and authorize in Azure MLX Service](https://learn.microsoft.com/en-us/azure/api-management/api-management-authenticate-authorize-azure-openai) and [How to configure Azure MLX Service with Microsoft Entra ID authentication](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/managed-identity).
 
 In this configuration:
-- `model`: The Azure Ollama deployment name.
-- `base_url`: The base URL of the Azure Ollama endpoint.
+- `model`: The Azure MLX deployment name.
+- `base_url`: The base URL of the Azure MLX endpoint.
 - `api_type`: Should be set to "azure".
 - `api_version`: The API version to use.
 - `azure_ad_token_provider`: Set to "DEFAULT" to use the default token provider.
@@ -330,7 +330,7 @@ If you encounter issues, check the following:
 - Verify the permissions granted to your application.
 - Check network connectivity and Azure service status.
 
-This documentation provides a complete guide to configure and use AAD authentication with Azure Ollama in the AutoGen.
+This documentation provides a complete guide to configure and use AAD authentication with Azure MLX in the AutoGen.
 
 ## Other configuration parameters
 
@@ -342,7 +342,7 @@ Besides the `config_list`, there are other parameters that can be used to config
 
 ### Extra model client parameters
 
-It is also possible to passthrough parameters through to the Ollama client. Parameters that correspond to the [`Ollama` client](https://github.com/openai/openai-python/blob/d231d1fa783967c1d3a1db3ba1b52647fff148ac/src/openai/_client.py#L67) or the [`Ollama` completions create API](https://github.com/openai/openai-python/blob/d231d1fa783967c1d3a1db3ba1b52647fff148ac/src/openai/resources/completions.py#L35) can be supplied.
+It is also possible to passthrough parameters through to the MLX client. Parameters that correspond to the [`MLX` client](https://github.com/openai/openai-python/blob/d231d1fa783967c1d3a1db3ba1b52647fff148ac/src/openai/_client.py#L67) or the [`MLX` completions create API](https://github.com/openai/openai-python/blob/d231d1fa783967c1d3a1db3ba1b52647fff148ac/src/openai/resources/completions.py#L35) can be supplied.
 
 This is commonly used for things like `temperature`, or `timeout`.
 
@@ -373,7 +373,7 @@ llm_config = {
 ## Other helpers for loading a config list
 
 - [`get_config_list`](/docs/reference/oai/openai_utils#get_config_list): Generates configurations for API calls, primarily from provided API keys.
-- [`config_list_openai_aoai`](/docs/reference/oai/openai_utils#config_list_openai_aoai): Constructs a list of configurations using both Azure Ollama and Ollama endpoints, sourcing API keys from environment variables or local files.
+- [`config_list_openai_aoai`](/docs/reference/oai/openai_utils#config_list_openai_aoai): Constructs a list of configurations using both Azure MLX and MLX endpoints, sourcing API keys from environment variables or local files.
 - [`config_list_from_models`](/docs/reference/oai/openai_utils#config_list_from_models): Creates configurations based on a provided list of models, useful when targeting specific models without manually specifying each configuration.
 - [`config_list_from_dotenv`](/docs/reference/oai/openai_utils#config_list_from_dotenv): Constructs a configuration list from a `.env` file, offering a consolidated way to manage multiple API configurations and keys from a single file.
 

@@ -5,7 +5,7 @@ from autogen_agentchat.conditions import MaxMessageTermination
 from autogen_agentchat.conditions import MaxMessageTermination, StopMessageTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
-from autogen_ext.models.openai import OllamaChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -64,8 +64,8 @@ In the example below, we will define an agent in python, export this to a dictio
 logger.info("## Agent Example")
 
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 agent = AssistantAgent(
     name="assistant",
@@ -106,8 +106,8 @@ In the example below, we will define a team in python, export this to a dictiona
 logger.info("## Team Example")
 
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1", request_timeout=300.0, context_window=4096,
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 agent = AssistantAgent(
     name="assistant",

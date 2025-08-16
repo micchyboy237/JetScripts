@@ -16,9 +16,9 @@ logger.info(f"Logs: {log_file}")
 # Implement Swarm with AutoGen GroupChat
 
 
-AutoGen offers conversable agents powered by LLM, tool or human, which can be used to perform tasks collectively via automated chat. Recently, Ollama has released a [Swarm](https://github.com/openai/swarm) framework that focuses on making agent coordination and execution lightweight. In autogen, the groupchat allows customized speaker selection, which can be used to achieve the same orchestration pattern. This feature is also supported by our research paper [StateFlow: Enhancing LLM Task-Solving through State-Driven Workflows](https://autogen-ai.github.io/autogen/blog/2024/02/29/StateFlow).
+AutoGen offers conversable agents powered by LLM, tool or human, which can be used to perform tasks collectively via automated chat. Recently, MLX has released a [Swarm](https://github.com/openai/swarm) framework that focuses on making agent coordination and execution lightweight. In autogen, the groupchat allows customized speaker selection, which can be used to achieve the same orchestration pattern. This feature is also supported by our research paper [StateFlow: Enhancing LLM Task-Solving through State-Driven Workflows](https://autogen-ai.github.io/autogen/blog/2024/02/29/StateFlow).
 
-In this notebook, we implement the [airline customer service example](https://github.com/openai/swarm/tree/main/examples/airline) from Ollama Swarm.
+In this notebook, we implement the [airline customer service example](https://github.com/openai/swarm/tree/main/examples/airline) from MLX Swarm.
 
 ````{=mdx}
 :::info Requirements

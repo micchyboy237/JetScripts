@@ -1,5 +1,5 @@
 from jet.logger import CustomLogger
-from openai import Ollama
+from openai import MLX
 import fitz
 import json
 import numpy as np
@@ -67,12 +67,12 @@ extracted_text = extract_text_from_pdf(pdf_path)
 logger.debug(extracted_text[:500])
 
 """
-## Setting Up the Ollama API Client
-We initialize the Ollama client to generate embeddings and responses.
+## Setting Up the MLX API Client
+We initialize the MLX client to generate embeddings and responses.
 """
-logger.info("## Setting Up the Ollama API Client")
+logger.info("## Setting Up the MLX API Client")
 
-client = Ollama(
+client = MLX(
     base_url="https://api.studio.nebius.com/v1/",
 #     api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
 )
@@ -85,7 +85,7 @@ logger.info("## Creating Sentence-Level Embeddings")
 
 def get_embedding(text, model="BAAI/bge-en-icl"):
     """
-    Creates an embedding for the given text using Ollama.
+    Creates an embedding for the given text using MLX.
 
     Args:
     text (str): Input text.

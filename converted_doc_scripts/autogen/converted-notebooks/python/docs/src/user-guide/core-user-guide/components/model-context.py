@@ -3,8 +3,8 @@ from jet.transformers.formatters import format_json
 from autogen_core import AgentId, MessageContext, RoutedAgent, SingleThreadedAgentRuntime, message_handler
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import AssistantMessage, ChatCompletionClient, SystemMessage, UserMessage
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from dataclasses import dataclass
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -74,8 +74,8 @@ Now let's try to ask follow up questions after the first one.
 """
 logger.info("Now let's try to ask follow up questions after the first one.")
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.1",
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct",
 )
 
 runtime = SingleThreadedAgentRuntime()

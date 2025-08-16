@@ -1,5 +1,5 @@
 from jet.logger import CustomLogger
-from openai import Ollama
+from openai import MLX
 from typing import Dict, List, Tuple, Optional, Union
 import json
 import matplotlib.pyplot as plt
@@ -18,7 +18,7 @@ logger.info(f"Logs: {log_file}")
 """
 # Simple RAG with RL
 
-[![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/release/python-370/) [![Nebius AI](https://img.shields.io/badge/Nebius%20AI-LLM-brightgreen)](https://cloud.nebius.ai/services/llm-embedding) [![Ollama](https://img.shields.io/badge/Ollama-API-lightgrey)](https://openai.com/) [![Medium](https://img.shields.io/badge/Medium-Blog-black?logo=medium)](https://medium.com/@fareedkhandev/maximizing-simple-rag-performance-using-rl-rewards-in-python-d4c14cbadf59)
+[![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/release/python-370/) [![Nebius AI](https://img.shields.io/badge/Nebius%20AI-LLM-brightgreen)](https://cloud.nebius.ai/services/llm-embedding) [![MLX](https://img.shields.io/badge/MLX-API-lightgrey)](https://openai.com/) [![Medium](https://img.shields.io/badge/Medium-Blog-black?logo=medium)](https://medium.com/@fareedkhandev/maximizing-simple-rag-performance-using-rl-rewards-in-python-d4c14cbadf59)
 
 A simple RAG works in three simple steps:
 
@@ -56,7 +56,7 @@ The actual problem is to generate an answer to a given question using the provid
 
 ## Setting Up the Environment
 
-First, we need to import the necessary libraries and set up the environment. We will be using HuggingFace Models hosted under **Nebius** platform. Obviously, you can use your own models as long as they are compatible with Ollama's API.
+First, we need to import the necessary libraries and set up the environment. We will be using HuggingFace Models hosted under **Nebius** platform. Obviously, you can use your own models as long as they are compatible with MLX's API.
 """
 logger.info("# Simple RAG with RL")
 
@@ -70,7 +70,7 @@ Next, we need to initialize the client responsible for response and embedding ge
 """
 logger.info("Next, we need to initialize the client responsible for response and embedding generation.")
 
-client = Ollama(
+client = MLX(
     base_url="https://api.studio.nebius.com/v1/",  # Base URL for (eg. ollama api, anyother llm api provider)
 #     api_key= os.environ["OPENAI_API_KEY"]  # API key for authentication
 )
@@ -191,7 +191,7 @@ logger.info("## Document Embedding Generation")
 
 def generate_embeddings_batch(chunks_batch: List[str], model: str = "BAAI/bge-en-icl") -> List[List[float]]:
     """
-    Generate embeddings for a batch of text chunks using the Ollama client.
+    Generate embeddings for a batch of text chunks using the MLX client.
 
     Args:
         chunks_batch (List[str]): A batch of text chunks to generate embeddings for.
@@ -208,9 +208,9 @@ def generate_embeddings_batch(chunks_batch: List[str], model: str = "BAAI/bge-en
     return embeddings
 
 """
-Next, we will define a function to generate embeddings for all text chunks in batches. This function will take a list of text chunks as input and generate embeddings for each batch of chunks using the Ollama client. The function will return a list of embeddings corresponding to all the text chunks.
+Next, we will define a function to generate embeddings for all text chunks in batches. This function will take a list of text chunks as input and generate embeddings for each batch of chunks using the MLX client. The function will return a list of embeddings corresponding to all the text chunks.
 """
-logger.info("Next, we will define a function to generate embeddings for all text chunks in batches. This function will take a list of text chunks as input and generate embeddings for each batch of chunks using the Ollama client. The function will return a list of embeddings corresponding to all the text chunks.")
+logger.info("Next, we will define a function to generate embeddings for all text chunks in batches. This function will take a list of text chunks as input and generate embeddings for each batch of chunks using the MLX client. The function will return a list of embeddings corresponding to all the text chunks.")
 
 def generate_embeddings(chunks: List[str], batch_size: int = 10) -> np.ndarray:
     """
@@ -384,7 +384,7 @@ for idx, chunk in enumerate(relevant_chunks):
 """
 ## LLM Response Generation
 
-When we have a query and a set of relevant document chunks, we can use a large language model (LLM) to generate a response based on the query and the retrieved information. In this section, we will use the Ollama API to generate a response to a query by providing the query text and the relevant document chunks as context to the LLM.
+When we have a query and a set of relevant document chunks, we can use a large language model (LLM) to generate a response based on the query and the retrieved information. In this section, we will use the MLX API to generate a response to a query by providing the query text and the relevant document chunks as context to the LLM.
 
 First we need a function to construct the input prompt for the LLM, which includes the query text and the relevant document chunks as context.
 """
@@ -413,9 +413,9 @@ def construct_prompt(query: str, context_chunks: List[str]) -> str:
     return prompt
 
 """
-To generate an LLM response, we need to implement a function that takes the constructed input prompt and sends it to the Ollama API for response generation.
+To generate an LLM response, we need to implement a function that takes the constructed input prompt and sends it to the MLX API for response generation.
 """
-logger.info("To generate an LLM response, we need to implement a function that takes the constructed input prompt and sends it to the Ollama API for response generation.")
+logger.info("To generate an LLM response, we need to implement a function that takes the constructed input prompt and sends it to the MLX API for response generation.")
 
 def generate_response(
     prompt: str,
@@ -426,7 +426,7 @@ def generate_response(
     top_k: int = 50
 ) -> str:
     """
-    Generate a response from the Ollama chat model based on the constructed prompt.
+    Generate a response from the MLX chat model based on the constructed prompt.
 
     Args:
         prompt (str): The input prompt to provide to the chat model.

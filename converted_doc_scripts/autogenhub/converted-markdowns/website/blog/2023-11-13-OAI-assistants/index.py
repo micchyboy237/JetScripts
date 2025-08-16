@@ -20,13 +20,13 @@ authors: gagb
 tags: [openai-assistant]
 ---
 
-![Ollama Assistant](img/teaser.jpg)
+![MLX Assistant](img/teaser.jpg)
 <p align="center"><em>AutoGen enables collaboration among multiple ChatGPTs for complex tasks.</em></p>
 
 
 ## TL;DR
-Ollama assistants are now integrated into AutoGen via [`GPTAssistantAgent`](https://github.com/autogenhub/autogen/blob/main/autogen/agentchat/contrib/gpt_assistant_agent.py).
-This enables multiple Ollama assistants, which form the backend of the now popular GPTs, to collaborate and tackle complex tasks.
+MLX assistants are now integrated into AutoGen via [`GPTAssistantAgent`](https://github.com/autogenhub/autogen/blob/main/autogen/agentchat/contrib/gpt_assistant_agent.py).
+This enables multiple MLX assistants, which form the backend of the now popular GPTs, to collaborate and tackle complex tasks.
 Checkout example notebooks for reference:
 * [Basic example](https://github.com/autogenhub/autogen/blob/main/notebook/agentchat_oai_assistant_twoagents_basic.ipynb)
 * [Code interpreter](https://github.com/autogenhub/autogen/blob/main/notebook/agentchat_oai_code_interpreter.ipynb)
@@ -34,13 +34,13 @@ Checkout example notebooks for reference:
 
 
 ## Introduction
-Earlier last week, Ollama introduced [GPTs](https://openai.com/blog/introducing-gpts), giving users ability to create custom ChatGPTs tailored for them.
+Earlier last week, MLX introduced [GPTs](https://openai.com/blog/introducing-gpts), giving users ability to create custom ChatGPTs tailored for them.
 *But what if these individual GPTs could collaborate to do even more?*
 Fortunately, because of AutoGen, this is now a reality!
 AutoGen has been pioneering agents and supporting [multi-agent workflows](https://aka.ms/autogen-pdf) since earlier this year, and now (starting with version 0.2.0b5) we are introducing compatibility with the [Assistant API](https://openai.com/blog/introducing-gpts), which is currently in beta preview.
 
 To accomplish this, we've added a new (experimental) agent called the `GPTAssistantAgent` that
-lets you seamlessly add these new Ollama assistants into AutoGen-based multi-agent workflows.
+lets you seamlessly add these new MLX assistants into AutoGen-based multi-agent workflows.
 This integration shows great potential and synergy, and we plan to continue enhancing it.
 
 ## Installation
@@ -64,9 +64,9 @@ logger.info("## Basic Example")
 config_list = config_list_from_json("OAI_CONFIG_LIST")
 
 """
-Then simply define the Ollama assistant agent and give it the task!
+Then simply define the MLX assistant agent and give it the task!
 """
-logger.info("Then simply define the Ollama assistant agent and give it the task!")
+logger.info("Then simply define the MLX assistant agent and give it the task!")
 
 gpt_assistant = GPTAssistantAgent(
     name="assistant",
@@ -84,15 +84,15 @@ user_proxy = UserProxyAgent(name="user_proxy",
 user_proxy.initiate_chat(gpt_assistant, message="Print hello world")
 
 """
-`GPTAssistantAgent` supports both creating new Ollama assistants or reusing existing assistants
+`GPTAssistantAgent` supports both creating new MLX assistants or reusing existing assistants
 (e.g, by providing an `assistant_id`).
 
 
 ## Code Interpreter Example
 
-`GPTAssistantAgent` allows you to specify an Ollama tools
+`GPTAssistantAgent` allows you to specify an MLX tools
 (e.g., function calls, code interpreter, etc). The example below enables an assistant
- that can use Ollama code interpreter to solve tasks.
+ that can use MLX code interpreter to solve tasks.
 """
 logger.info("## Code Interpreter Example")
 

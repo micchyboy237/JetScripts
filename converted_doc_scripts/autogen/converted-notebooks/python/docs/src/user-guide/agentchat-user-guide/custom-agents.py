@@ -15,9 +15,9 @@ from autogen_core import CancellationToken
 from autogen_core import CancellationToken, Component
 from autogen_core.model_context import UnboundedChatCompletionContext
 from autogen_core.models import AssistantMessage, RequestUsage, UserMessage
-from autogen_ext.models.openai import OllamaChatCompletionClient
 from google import genai
 from google.genai import types
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from pydantic import BaseModel
 from typing import AsyncGenerator, List, Sequence
@@ -188,7 +188,7 @@ async def run_number_agents() -> None:
 
     selector_group_chat = SelectorGroupChat(
         [add_agent, multiply_agent, subtract_agent, divide_agent, identity_agent],
-        model_client=OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096),
+        model_client=MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"),
         termination_condition=termination_condition,
         allow_repeated_speaker=True,  # Allow the same agent to speak multiple times, necessary for this task.
         selector_prompt=(
@@ -339,7 +339,7 @@ Now, let us explore how to use this custom agent as part of a team in AgentChat.
 logger.info("In the example above, we have chosen to provide `model`, `api_key` and `system_message` as arguments - you can choose to provide any other arguments that are required by the model client you are using or fits with your application design.")
 
 
-model_client = OllamaChatCompletionClient(model="llama3.1")
+model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
 
 primary_agent = AssistantAgent(
     "primary",

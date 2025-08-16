@@ -182,7 +182,7 @@ except Exception as e:
 
 You can use the `MessageTransform` protocol to create custom message transformations that redact sensitive data from the chat history. This is particularly useful when you want to ensure that sensitive information, such as API keys, passwords, or personal data, is not exposed in the chat history or logs.
 
-Now, we will create a custom message transform to detect any Ollama API key and redact it.
+Now, we will create a custom message transform to detect any MLX API key and redact it.
 """
 logger.info("## Handling Sensitive Data")
 
@@ -206,7 +206,7 @@ class MessageRedact:
     def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
         keys_redacted = self._count_redacted(post_transform_messages) - self._count_redacted(pre_transform_messages)
         if keys_redacted > 0:
-            return f"Redacted {keys_redacted} Ollama API keys.", True
+            return f"Redacted {keys_redacted} MLX API keys.", True
         return "", False
 
     def _count_redacted(self, messages: List[Dict]) -> int:
