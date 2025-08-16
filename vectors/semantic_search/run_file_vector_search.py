@@ -5,14 +5,14 @@ from jet.logger.config import colorize_log
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.tokenizer.base import get_tokenizer_fn
-from jet.vectors.semantic_search.file_vector_search import FileSearchResult, search_files
+from jet.vectors.semantic_search.file_vector_search import FileSearchResult, merge_results, search_files
 
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
 
-def save_results(query: str, results: List[FileSearchResult], split_chunks: bool):
+def print_results(query: str, results: List[FileSearchResult], split_chunks: bool):
     for num, result in enumerate(results[:10], start=1):
         file_path = result["metadata"]["file_path"]
         start_idx = result["metadata"]["start_idx"]
@@ -23,13 +23,6 @@ def save_results(query: str, results: List[FileSearchResult], split_chunks: bool
         print(
             f"{colorize_log(f"{num}.)", "ORANGE")} Score: {colorize_log(f'{score:.3f}', 'SUCCESS')} | Chunk: {chunk_idx} | Tokens: {num_tokens} | Start - End: {start_idx} - {end_idx}\nFile: {file_path}")
 
-    save_file({
-        "query": query,
-        "count": len(results),
-        "merged": not split_chunks,
-        "results": results
-    }, f"{OUTPUT_DIR}/results_{'split' if split_chunks else 'merged'}.json")
-
 
 def main():
     """Main function to demonstrate file search."""
@@ -39,6 +32,7 @@ def main():
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_notes",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/vectors",
+        "/Users/jethroestrada/Desktop/External_Projects/AI",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/open-webui",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/rag-all-techniques",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/mlx-examples",
@@ -49,11 +43,11 @@ def main():
         # "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025/RAG_Techniques",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/haystack-cookbook",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_07_2025/ai-agents-for-beginners",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogen",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogenhub",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogen",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogenhub",
     ]
 
-    query = "Agents"
+    query = "RAG Agents"
     extensions = [".md"]
     embed_model: EmbedModelType = "static-retrieval-mrl-en-v1"
     llm_model: LLMModelType = "qwen3-1.7b-4bit"
@@ -86,23 +80,24 @@ def main():
             excludes=["**/.venv/*", "**/.pytest_cache/*", "**/node_modules/*"],
         )
     )
-    save_results(query, with_split_chunks_results, split_chunks)
+    print_results(query, with_split_chunks_results, split_chunks)
+    save_file({
+        "query": query,
+        "count": len(with_split_chunks_results),
+        "merged": not split_chunks,
+        "results": with_split_chunks_results
+    }, f"{OUTPUT_DIR}/results_{'split' if split_chunks else 'merged'}.json")
 
     split_chunks = False
-    without_split_chunks_results = list(
-        search_files(
-            directories, query, extensions,
-            top_k=top_k,
-            threshold=threshold,
-            embed_model=embed_model,
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-            split_chunks=split_chunks,
-            tokenizer=count_tokens,
-            excludes=["**/.venv/*", "**/.pytest_cache/*", "**/node_modules/*"],
-        )
-    )
-    save_results(query, without_split_chunks_results, split_chunks)
+    without_split_chunks_results = merge_results(
+        with_split_chunks_results, tokenizer=count_tokens)
+    print_results(query, without_split_chunks_results, split_chunks)
+    save_file({
+        "query": query,
+        "count": len(without_split_chunks_results),
+        "merged": not split_chunks,
+        "results": without_split_chunks_results
+    }, f"{OUTPUT_DIR}/results_{'split' if split_chunks else 'merged'}.json")
 
 
 if __name__ == "__main__":
