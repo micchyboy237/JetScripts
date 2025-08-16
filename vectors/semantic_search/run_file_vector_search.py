@@ -2,6 +2,7 @@ import argparse
 import os
 from typing import List
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
+from jet.data.utils import generate_unique_id
 from jet.file.utils import save_file
 from jet.logger.config import colorize_log
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
@@ -31,11 +32,17 @@ def print_results(query: str, results: List[FileSearchResult], split_chunks: boo
 
 def rerank_results(query: str, results: List[FileSearchResult]):
     texts = [result["text"] for result in results]
-    ids = [str(idx) for idx, _ in enumerate(texts)]
+    ids = [generate_unique_id() for _ in texts]
     metadatas = [result["metadata"] for result in results]
 
     query_candidates, reranked_results = rerank_bm25(
         query, texts, ids=ids, metadatas=metadatas)
+
+    # Add embed_score from original results to each reranked_result
+    id_to_embed_score = {id_: result.get(
+        "score", None) for id_, result in zip(ids, results)}
+    for reranked in reranked_results:
+        reranked["embed_score"] = id_to_embed_score.get(reranked["id"], None)
 
     return query_candidates, reranked_results
 
