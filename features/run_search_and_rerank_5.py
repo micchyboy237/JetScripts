@@ -8,7 +8,7 @@ import numpy as np
 from collections import defaultdict
 from typing import DefaultDict, List, Set
 from jet.code.html_utils import preprocess_html
-from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
+from jet.code.markdown_types.markdown_parsed_types import HeaderDoc, HeaderSearchResult
 from jet.code.markdown_utils._converters import convert_html_to_markdown
 from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
 from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_by_header_hierarchy, parse_markdown
@@ -23,13 +23,8 @@ from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.tokenizer.base import get_tokenizer_fn, count_tokens
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.scrapers.utils import scrape_links, search_data
-from jet.vectors.filters import select_diverse_texts
-from jet.vectors.filters.mmr import select_mmr_texts
-from jet.vectors.filters.select_diverse_texts import DiverseResult
-from jet.vectors.semantic_search.header_vector_search import HeaderSearchResult, search_headers
+from jet.vectors.semantic_search.header_vector_search import search_headers
 from jet.wordnet.analyzers.text_analysis import analyze_readability
-from jet.wordnet.similarity import group_similar_texts
-
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -321,7 +316,7 @@ async def main(query):
 
     headers_total_tokens = 0
     headers_high_score_tokens = 0
-    headers_medium_score_tokens = 0  # New variable to track medium-score tokens
+    headers_medium_score_tokens = 0
     headers_mtld_score_average = 0
 
     all_started_urls = []
@@ -408,7 +403,7 @@ async def main(query):
                 )
             )
 
-            sub_medium_score_tokens = sum(  # New calculation for medium-score tokens
+            sub_medium_score_tokens = sum(
                 result["metadata"]["num_tokens"]
                 for result in filtered_sub_results
                 if (
@@ -441,7 +436,6 @@ async def main(query):
                 "mtld_category": analyze_readability(html)["mtld_category"],
                 "total_tokens": sub_total_tokens,
                 "high_score_tokens": sub_high_score_tokens,
-                # Add medium_score_tokens to output
                 "medium_score_tokens": sub_medium_score_tokens,
                 "mtld_score_average": sub_mtld_score_average,
                 "results": filtered_sub_results,
@@ -456,7 +450,7 @@ async def main(query):
 
             headers_total_tokens += sub_total_tokens
             headers_high_score_tokens += sub_high_score_tokens
-            headers_medium_score_tokens += sub_medium_score_tokens  # Track medium-score tokens
+            headers_medium_score_tokens += sub_medium_score_tokens
             headers_mtld_score_average += round(
                 sub_mtld_score_average, 2)
 
@@ -545,264 +539,55 @@ async def main(query):
         "results": search_results
     }, f"{query_output_dir}/search_results.json")
 
-    # # Cluster search results
-    # # Prepare result_texts and result_ids for clustering
-    # result_texts = [
-    #     clean_markdown_links(
-    #         f"{result['header'].lstrip('#').strip()}\n{result['content']}")
-    #     # f"{result['header'].lstrip('#').strip()}\n{result['content']}"
-    #     for result in search_results
-    # ]
-    # result_ids = [result["id"] for result in search_results]
-    # grouped_similar_texts = group_similar_texts(
-    #     result_texts, model_name=embed_model, ids=result_ids, threshold=0.7)
-    # # Map grouped_similar_texts (which contains lists of result_ids) back to the full search_results dicts
-    # id_to_result = {
-    #     result["id"]: f"{result['header']}\n{result['content']}" for result in search_results}
-    # clustered_search_results = [
-    #     [id_to_result[result_id]
-    #         # Access 'texts' field
-    #         for result_id in cluster["texts"] if result_id in id_to_result]
-    #     for cluster in grouped_similar_texts
-    # ]
-    # save_file({
-    #     "query": query,
-    #     "count": len(clustered_search_results),
-    #     "results": clustered_search_results
-    # }, f"{query_output_dir}/clustered_search_results.json")
-
-    # # Select diverse texts on each cluster
-    # documents = [
-    #     f"{doc['header'].lstrip('#').strip()}\n{doc['content']}" for doc in search_results]
-
-    # embeddings = generate_embeddings(
-    #     documents, embed_model, show_progress=True)
-
-    # doc_id_to_doc = {doc["id"]: doc for doc in search_results}
-    # doc_id_to_embeddings = {doc["id"]: emb for doc,
-    #                         emb in zip(search_results, embeddings)}
-
-    # diverse_cluster_texts = []
-    # diverse_cluster_results = []
-    # for cluster in grouped_similar_texts:  # Iterate over ClusterResult dictionaries
-    #     cluster_texts = []
-    #     cluster_embeddings = []
-    #     cluster_ids = []
-    #     for doc_id in cluster["texts"]:  # Access 'texts' field
-    #         header_doc = doc_id_to_doc[doc_id]
-    #         text = f"{header_doc['header']}\n{header_doc['content']}"
-    #         text_embeddings = doc_id_to_embeddings[doc_id]
-    #         cluster_texts.append(text)
-    #         cluster_embeddings.append(text_embeddings)
-    #         cluster_ids.append(doc_id)
-
-    #     cluster_embeddings = np.ascontiguousarray(cluster_embeddings)
-
-    #     diverse_results: List[DiverseResult] = select_diverse_texts(
-    #         cluster_embeddings,
-    #         cluster_texts,
-    #         diversity_threshold=0.7,
-    #         max_texts=len(cluster_texts),
-    #         ids=cluster_ids
-    #     )
-    #     diverse_cluster_texts.extend([result["text"]
-    #                                   for result in diverse_results])
-    #     diverse_cluster_results.extend(diverse_results)
-
-    # token_counts: List[int] = count_tokens(
-    #     embed_model, diverse_cluster_texts, prevent_total=True)
-    # save_file({
-    #     "count": len(diverse_cluster_texts),
-    #     "total_tokens": sum(token_counts),
-    #     "texts": [{
-    #         "id": result["id"],
-    #         "index": result["index"],
-    #         "tokens": tokens,
-    #         "text": result["text"],
-    #         "score": result["score"]
-    #     } for tokens, result in zip(token_counts, diverse_cluster_results)],
-    # }, f"{query_output_dir}/diverse_cluster_results.json")
-
-    # # Map diverse_results back to original search_results by doc_id
-    # id_to_search_result = {doc["id"]: doc for doc in search_results}
-    # diverse_search_results = []
-    # for result in diverse_cluster_results:
-    #     doc_id = result["id"]
-    #     mapped_result = dict(id_to_search_result[doc_id])
-    #     # Optionally, you can add the diverse score to the search result
-    #     mapped_result["diverse_score"] = result.get("score", None)
-    #     diverse_search_results.append(mapped_result)
-
-    # save_file({
-    #     "count": len(diverse_search_results),
-    #     "total_tokens": sum(token_counts),
-    #     "texts": [{
-    #         **result,
-    #         "tokens": tokens,
-    #     } for tokens, result in zip(token_counts, diverse_search_results)],
-    # }, f"{query_output_dir}/diverse_search_results.json")
-
-    # # Group results by URL and calculate total high_score_tokens and medium_score_tokens per URL
-    # url_score_tokens = defaultdict(
-    #     lambda: {"high_score_tokens": 0, "medium_score_tokens": 0})
-    # for result in search_results:
-    #     url = result["metadata"].get("source", "Unknown")
-    #     if result["score"] >= HIGH_QUALITY_SCORE:
-    #         url_score_tokens[url]["high_score_tokens"] += result["metadata"].get(
-    #             "num_tokens", 0)
-    #     elif result["score"] >= MEDIUM_QUALITY_SCORE:
-    #         url_score_tokens[url]["medium_score_tokens"] += result["metadata"].get(
-    #             "num_tokens", 0)
-
-    # # Sort URLs by total high_score_tokens (descending), with medium_score_tokens as tiebreaker
-    # sorted_urls = sorted(
-    #     url_score_tokens.keys(),
-    #     key=lambda url: (url_score_tokens[url]["high_score_tokens"],
-    #                      url_score_tokens[url]["medium_score_tokens"]),
-    #     reverse=True
-    # )
-    # save_file(sorted_urls, f"{query_output_dir}/sorted_urls.json")
-
-    # # Sort all results by score
-    # sorted_results = sort_search_results_by_url_and_category(
-    #     search_results, sorted_urls)
-    # total_tokens = sum(result["metadata"].get("num_tokens", 0)
-    #                    for result in sorted_results)
-    # save_file({
-    #     "query": query,
-    #     "count": len(sorted_results),
-    #     "total_tokens": total_tokens,
-    #     "high_score_tokens": sum(url_score_tokens[url]["high_score_tokens"] for url in sorted_urls),
-    #     "medium_score_tokens": sum(url_score_tokens[url]["medium_score_tokens"] for url in sorted_urls),
-    #     "results": sorted_results
-    # }, f"{query_output_dir}/sorted_search_results.json")
-
-    # # Select diverse search results
-    # result_texts = [
-    #     f"{result['header'].lstrip('#').strip()}\n{result['content']}"
-    #     for result in search_results
-    # ]
-    # doc_embeddings = generate_embeddings(
-    #     result_texts, embed_model, show_progress=True)
-    # all_doc_embeddings = np.ascontiguousarray(doc_embeddings)
-
-    # doc_ids = [doc["metadata"]["doc_id"] for doc in search_results]
-    # diverse_results: List[DiverseResult] = select_diverse_texts(
-    #     cluster_embeddings=all_doc_embeddings,
-    #     cluster_texts=result_texts,
-    #     max_diverse_texts=len(result_texts),
-    #     ids=doc_ids
-    # )
-    # diverse_texts = [result["text"] for result in diverse_results]
-    # token_counts: List[int] = count_tokens(
-    #     embed_model, diverse_texts, prevent_total=True)
-    # save_file({
-    #     "count": len(diverse_results),
-    #     "total_tokens": sum(token_counts),
-    #     "texts": [{
-    #         "id": result["id"],
-    #         "index": result["index"],
-    #         "tokens": tokens,
-    #         "text": result["text"],
-    #         "score": result["score"]
-    #     } for tokens, result in zip(token_counts, diverse_results)],
-    # }, f"{query_output_dir}/diverse_search_results.json")
-
-    # # Map diverse_results back to original search_results by doc_id
-    # id_to_search_result = {result["metadata"]
-    #                        ["doc_id"]: result for result in search_results}
-    # diverse_search_results = []
-    # for result in diverse_results:
-    #     doc_id = result["id"]
-    #     mapped_result = dict(id_to_search_result[doc_id])
-    #     # Optionally, you can add the diverse score to the search result
-    #     mapped_result["diverse_score"] = result.get("score", None)
-    #     diverse_search_results.append(mapped_result)
-
-    # Generate embeddings for texts and query
-    model = SentenceTransformerRegistry.load_model(embed_model)
-    search_result_texts = [
-        f"{result["header"]}\n{result["content"]}" for result in search_results]
-    texts = search_result_texts[:20]
-    ids = [result["id"]
-           for result in search_results[:20]]  # Slice ids to match texts
-    embeddings = generate_embeddings(texts, model, show_progress=True)
-    query_embedding = generate_embeddings(query, model)
-    diverse_search_results = select_mmr_texts(
-        embeddings=embeddings,
-        texts=texts,
-        query_embedding=query_embedding,
-        lambda_param=0.7,
-        max_texts=20,
-        ids=ids
-    )
-    diverse_token_counts: List[int] = count_tokens(
-        llm_model, [r["text"] for r in diverse_search_results], prevent_total=True)
-
-    save_file({
-        "count": len(diverse_search_results),
-        "total_tokens": sum(diverse_token_counts),
-        "texts": [{
-            **result,
-            "tokens": tokens,
-        } for tokens, result in zip(diverse_token_counts, diverse_search_results)],
-    }, f"{query_output_dir}/diverse_search_results.json")
-
-    # Map diverse_results back to original search_results by id
-    id_to_search_result = {result["id"]: result for result in search_results}
-
-    # Filter results based on score, MTLD, and link-to-text ratio
+    # Filter search_results directly based on score, MTLD, and link-to-text ratio
     current_tokens = 0
     filtered_results = []
-    for result in diverse_search_results:
-        content = result['text']
-        doc_id = result["id"]
-        mapped_search_result = id_to_search_result[doc_id]
-
+    for result in search_results:
+        content = f"{result['header']}\n{result['content']}"
         tokens = count_tokens(llm_model, content)
         if current_tokens + tokens > max_tokens:
             break
-        filtered_results.append(mapped_search_result)
+        filtered_results.append(result)
         current_tokens += tokens
 
-    # Before saving contexts.json, compute filtered_urls based on filtered_results
+    # Compute filtered_urls based on filtered_results
     filtered_url_stats = defaultdict(
-        lambda: {"high_score_tokens": 0, "medium_score_tokens": 0, "header_count": 0})
+        lambda: {'high_score_tokens': 0, 'medium_score_tokens': 0, 'header_count': 0})
     for result in filtered_results:
-        url = result["metadata"]["source"]
-        if result["score"] >= HIGH_QUALITY_SCORE:
-            filtered_url_stats[url]["high_score_tokens"] += result["metadata"].get(
-                "num_tokens", 0)
-            filtered_url_stats[url]["header_count"] += 1
-        elif result["score"] >= MEDIUM_QUALITY_SCORE:
-            filtered_url_stats[url]["medium_score_tokens"] += result["metadata"].get(
-                "num_tokens", 0)
-            filtered_url_stats[url]["header_count"] += 1
+        url = result['metadata']['source']
+        if result['score'] >= HIGH_QUALITY_SCORE:
+            filtered_url_stats[url]['high_score_tokens'] += result['metadata'].get(
+                'num_tokens', 0)
+            filtered_url_stats[url]['header_count'] += 1
+        elif result['score'] >= MEDIUM_QUALITY_SCORE:
+            filtered_url_stats[url]['medium_score_tokens'] += result['metadata'].get(
+                'num_tokens', 0)
+            filtered_url_stats[url]['header_count'] += 1
 
     # Create filtered_urls list, sorted by high_score_tokens then medium_score_tokens
     filtered_urls = [
         {
-            "url": url,
-            "high_score_tokens": stats["high_score_tokens"],
-            "medium_score_tokens": stats["medium_score_tokens"],
-            "header_count": stats["header_count"]
+            'url': url,
+            'high_score_tokens': stats['high_score_tokens'],
+            'medium_score_tokens': stats['medium_score_tokens'],
+            'header_count': stats['header_count']
         }
         for url, stats in sorted(
             filtered_url_stats.items(),
-            key=lambda x: (x[1]["high_score_tokens"],
-                           x[1]["medium_score_tokens"]),
+            key=lambda x: (x[1]['high_score_tokens'],
+                           x[1]['medium_score_tokens']),
             reverse=True
         )
     ]
 
-    # Update the save_file call for contexts.json to use filtered_urls
+    # Save contexts.json with filtered_urls
     save_file({
-        "query": query,
-        "count": len(filtered_results),
-        "total_tokens": current_tokens,
-        "urls": filtered_urls,  # Use filtered_urls instead of sorted_urls
-        "results": filtered_results
-    }, f"{query_output_dir}/contexts.json")
+        'query': query,
+        'count': len(filtered_results),
+        'total_tokens': current_tokens,
+        'urls': filtered_urls,
+        'results': filtered_results
+    }, f'{query_output_dir}/contexts.json')
 
     context = group_results_by_source_for_llm_context(filtered_results)
     save_file(context, f"{query_output_dir}/context.md")
