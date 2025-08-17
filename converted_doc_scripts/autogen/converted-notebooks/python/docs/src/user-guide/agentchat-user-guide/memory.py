@@ -2,6 +2,7 @@ import asyncio
 
 import redis
 from jet.llm.mlx.memory import MemoryManager
+from jet.llm.mlx.memory_list import MemoryList
 from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
@@ -59,7 +60,7 @@ In the following example, we will use ListMemory to maintain a memory bank of us
 logger.info("## Memory and RAG")
 
 
-user_memory = ListMemory()
+user_memory = MemoryList()
 
 
 async def run_async_code_daf84d7d():
