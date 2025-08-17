@@ -15,7 +15,7 @@ from autogen_ext.memory.mem0 import Mem0Memory
 from autogen_ext.memory.redis import RedisMemory, RedisMemoryConfig
 from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
-from logging import WARNING, getLogger
+from logging import WARNING
 from pathlib import Path
 from typing import List
 import aiofiles
@@ -224,9 +224,6 @@ See {py:class}`~autogen_ext.memory.redis.RedisMemory` for instructions to run Re
 logger.info("### Redis Memory")
 
 
-logger = getLogger()
-logger.setLevel(WARNING)
-
 redis_memory = RedisMemory(
     config=RedisMemoryConfig(
         redis_url="redis://localhost:6379",
@@ -315,23 +312,16 @@ class SimpleDocumentIndexer:
     async def _fetch_content(self, source: str) -> str:
         """Fetch content from URL or file."""
         if source.startswith(("http://", "https://")):
-            async def async_func_18():
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(source) as response:
-                        return await response.text()
-                return result
-
-            result = asyncio.run(async_func_18())
-            logger.success(format_json(result))
+            async with aiohttp.ClientSession() as session:
+                async with session.get(source) as response:
+                    content = await response.text()
+                    logger.success(format_json(content))
+                    return content
         else:
-            async def async_func_22():
-                async with aiofiles.open(source, "r", encoding="utf-8") as f:
-                    return await f.read()
-
-                return result
-
-            result = asyncio.run(async_func_22())
-            logger.success(format_json(result))
+            async with aiofiles.open(source, "r", encoding="utf-8") as f:
+                content = await f.read()
+                logger.success(format_json(content))
+                return content
 
     def _strip_html(self, text: str) -> str:
         """Remove HTML tags and normalize whitespace."""
@@ -353,14 +343,7 @@ class SimpleDocumentIndexer:
 
         for source in sources:
             try:
-                async def run_async_code_d15c91d4():
-                    async def run_async_code_1895f1ac():
-                        content = await self._fetch_content(source)
-                        return content
-                    contentasyncio.run(run_async_code_1895f1ac())
-                    logger.success(format_json(content))
-                    return content
-                contentasyncio.run(run_async_code_d15c91d4())
+                content = await self._fetch_content(source)
                 logger.success(format_json(content))
 
                 if "<" in content and ">" in content:
@@ -416,14 +399,7 @@ async def index_autogen_docs() -> None:
         "https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/termination.html",
     ]
 
-    async def run_async_code_f92b8ce7():
-        async def run_async_code_afe31688():
-            chunks: int = await indexer.index_documents(sources)
-            return chunks
-        chunks: int = asyncio.run(run_async_code_afe31688())
-        logger.success(format_json(chunks))
-        return chunks
-    chunks: int = asyncio.run(run_async_code_f92b8ce7())
+    chunks: int = await indexer.index_documents(sources)
     logger.success(format_json(chunks))
     logger.debug(
         f"Indexed {chunks} chunks from {len(sources)} AutoGen documents")
