@@ -28,7 +28,7 @@ if os.path.exists(OUTPUT_DIR):
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 config = RedisConfigParams(
-    port=3102
+    port=6379
 )
 
 MODEL = "codellama"
