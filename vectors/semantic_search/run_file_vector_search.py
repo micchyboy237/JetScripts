@@ -162,14 +162,9 @@ def parse_arguments():
     parser = argparse.ArgumentParser(
         description="File search with query and directories")
     parser.add_argument("query", type=str, nargs="?",
-                        default="MLX Tools or Function Call", help="Search query")
-    parser.add_argument("directories", type=str, nargs="*", default=[
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx-lm",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx-embeddings",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mlx-vlm",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025/mlx-examples",
-    ], help="Search directories")
+                        default="AI Agents", help="Search query")
+    parser.add_argument("directories", type=str, nargs="*",
+                        default=["/Users/jethroestrada/Desktop/External_Projects/AI"], help="Search directories")
     parser.add_argument("--query", type=str, dest="query_flag",
                         default=None, help="Alternative query input")
     parser.add_argument("--directories", type=str, nargs="+", dest="directories_flag",
