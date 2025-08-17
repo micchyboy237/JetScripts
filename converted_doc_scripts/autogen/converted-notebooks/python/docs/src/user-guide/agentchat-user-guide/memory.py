@@ -1,8 +1,7 @@
 import asyncio
 
 import redis
-from jet.llm.mlx.memory import MemoryManager
-from jet.llm.mlx.memory_list import MemoryList
+from jet.llm.mlx.memory import MemoryManager, MemoryList
 from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
