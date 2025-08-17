@@ -5,8 +5,7 @@ from jet.llm.mlx.memory import MemoryManager
 from autogen_core.memory import MemoryContent, MemoryMimeType
 from autogen_core.models import UserMessage
 
-from jet.llm.mlx.memory_context import ConcreteChatCompletionContext
-from jet.llm.mlx.memory_list import MemoryList
+from jet.llm.mlx.memory import ConcreteChatCompletionContext, MemoryList
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
