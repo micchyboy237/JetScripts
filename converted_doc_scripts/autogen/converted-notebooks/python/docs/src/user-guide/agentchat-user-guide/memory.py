@@ -495,15 +495,19 @@ mem0_memory = MemoryManager(
 
 async def run_async_code_4f7b2c1d():
     await mem0_memory.add(
-        content="The weather should be in metric units",
-        mime_type=MemoryMimeType.TEXT,
-        metadata={"category": "preferences", "type": "units"},
+        MemoryContent(
+            content="The weather should be in metric units",
+            mime_type=MemoryMimeType.TEXT,
+            metadata={"category": "preferences", "type": "units"},
+        )
     )
 
     await mem0_memory.add(
-        content="Meal recipe must be vegan",
-        mime_type=MemoryMimeType.TEXT,
-        metadata={"category": "preferences", "type": "dietary"},
+        MemoryContent(
+            content="Meal recipe must be vegan",
+            mime_type=MemoryMimeType.TEXT,
+            metadata={"category": "preferences", "type": "dietary"},
+        )
     )
     return
 asyncio.run(run_async_code_4f7b2c1d())

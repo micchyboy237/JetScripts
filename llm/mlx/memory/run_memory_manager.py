@@ -9,20 +9,11 @@ from jet.llm.mlx.memory import MemoryManager
 from autogen_core.memory import MemoryContent, MemoryMimeType
 from autogen_core.models import UserMessage
 
+from jet.llm.mlx.memory_context import ConcreteChatCompletionContext
+
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-
-
-class ConcreteChatCompletionContext(ChatCompletionContext):
-    """Concrete implementation of ChatCompletionContext."""
-
-    def __init__(self, messages: List[LLMMessage]):
-        super().__init__(messages)
-
-    def get_messages(self) -> List[LLMMessage]:
-        """Return the list of messages in the context."""
-        return self._messages
 
 
 async def main():
