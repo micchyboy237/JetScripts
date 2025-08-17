@@ -147,7 +147,8 @@ Next, we will define the agents that will perform the tasks.
 """
 logger.info("## Defining Agents")
 
-model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 google_search_agent = AssistantAgent(
     name="Google_Search_Agent",
