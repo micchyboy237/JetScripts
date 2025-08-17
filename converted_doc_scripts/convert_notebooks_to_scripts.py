@@ -12,7 +12,7 @@ from jet.code.rst_code_extractor import rst_to_code_blocks
 from jet.logger import logger
 from jet.utils.file import search_files
 
-REPLACE_OLLAMA_MAP = {
+REPLACE_MLX_MAP = {
     "llama-index-llms-openai": "llama-index-llms-ollama",
     "llama-index-embeddings-openai": "llama-index-embeddings-ollama",
     "llama_index.llms.openai": "jet.llm.ollama.base",
@@ -68,7 +68,7 @@ def generate_unique_function_name(line):
 
 def replace_code_line(line: str):
     updated_line = line
-    for old_line, new_line in {**REPLACE_OLLAMA_MAP, **REPLACE_PATHS_MAP}.items():
+    for old_line, new_line in {**REPLACE_MLX_MAP, **REPLACE_PATHS_MAP}.items():
         if old_line in line:
             updated_line = updated_line.replace(old_line, new_line)
     return updated_line
@@ -92,11 +92,6 @@ def comment_line(line: str):
     if has_keyword and not line.strip().startswith('#'):
         updated_line = "# " + line
     return updated_line
-
-
-def add_ollama_initializer_code(code: str):
-    initializer_code = "from jet.llm.ollama.base import initialize_ollama_settings\ninitialize_ollama_settings()"
-    return "\n\n".join([initializer_code, code])
 
 
 def add_general_initializer_code(code: str):
@@ -181,7 +176,7 @@ def update_code_with_ollama(code: str) -> str:
     updated_code = "\n".join(updated_lines)
     updated_code = re.sub(
         r'from llama_index\.llms\.openai import OpenAI',
-        'from jet.llm.ollama.base import Ollama',
+        'from jet.llm.mlx.base import MLX',
         updated_code
     )
     updated_code = re.sub(r'Ollama\s*\((.*?)\)', r'Ollama(\1)', updated_code)
@@ -220,6 +215,32 @@ def update_code_with_ollama(code: str) -> str:
     return updated_code
 
 
+def convert_js_to_python_syntax(code: str) -> str:
+    """Convert JavaScript-like syntax to Python syntax."""
+    lines = code.splitlines()
+    updated_lines = []
+    for line in lines:
+        updated_line = line
+        # Convert // comments to #
+        updated_line = re.sub(r'^\s*//(.*)$', r'#\1', updated_line)
+        # Convert const/let/var to Python variable declaration (remove keywords)
+        updated_line = re.sub(r'\b(const|let|var)\s+', '', updated_line)
+        # Convert arrow functions to Python lambda (basic conversion)
+        updated_line = re.sub(
+            r'\(\s*([^)]*)\s*\)\s*=>\s*', r'lambda \1: ', updated_line)
+        # Convert JavaScript array methods to Python equivalents
+        updated_line = updated_line.replace(
+            '.map(', '.map(lambda x: ')  # Basic map conversion
+        updated_line = updated_line.replace(
+            '.filter(', '.filter(lambda x: ')  # Basic filter conversion
+        updated_line = updated_line.replace(
+            '.forEach(', 'for x in ')  # Basic forEach to for loop
+        # Replace semicolons at end of line
+        updated_line = re.sub(r';$', '', updated_line)
+        updated_lines.append(updated_line)
+    return "\n".join(updated_lines)
+
+
 def read_notebook_file(file, with_markdown=False):
     if not file.endswith('.ipynb'):
         raise ValueError("File must have .ipynb extension")
@@ -252,8 +273,8 @@ def read_notebook_file(file, with_markdown=False):
 
 def read_markdown_file(file):
     from jet.code.markdown_code_extractor import MarkdownCodeExtractor
-    if not (file.endswith('.md') or file.endswith('.mdx')):
-        raise ValueError("File must have .md or .mdx extension")
+    if not file.endswith('.md'):
+        raise ValueError("File must have .md extension")
     with open(file, 'r', encoding='utf-8') as f:
         source = f.read()
     extractor = MarkdownCodeExtractor()
@@ -265,6 +286,40 @@ def read_markdown_file(file):
         code_lines = []
         for line in lines:
             if type != 'text':
+                line = convert_js_to_python_syntax(line)
+                if line.strip().startswith('#'):
+                    continue
+                if not line.endswith('\n'):
+                    line += '\n'
+            else:
+                if not line.endswith('\n'):
+                    line += '\n'
+                if line.strip().startswith('pip install') and not line.strip().startswith('#'):
+                    line = "# " + line
+            code_lines.append(line)
+        source_groups.append({
+            "type": "code" if type != "text" else "text",
+            "code": "".join(code_lines).strip()
+        })
+    return source_groups
+
+
+def read_markdown_extended_file(file):
+    from jet.code.markdown_code_extractor import MarkdownCodeExtractor
+    if not file.endswith('.mdx'):
+        raise ValueError("File must have .mdx extension")
+    with open(file, 'r', encoding='utf-8') as f:
+        source = f.read()
+    extractor = MarkdownCodeExtractor()
+    code_blocks = extractor.extract_code_blocks(source, with_text=True)
+    source_groups = []
+    for code_block in code_blocks:
+        type = code_block["language"]
+        lines = code_block["code"].splitlines()
+        code_lines = []
+        for line in lines:
+            if type != 'text':
+                line = convert_js_to_python_syntax(line)
                 if line.strip().startswith('#'):
                     continue
                 if not line.endswith('\n'):
@@ -506,8 +561,10 @@ def scrape_code(
             if file.endswith('.ipynb'):
                 source_groups = read_notebook_file(
                     file, with_markdown=with_markdown)
-            elif file.endswith(('.md', '.mdx')):
+            elif file.endswith('.md'):
                 source_groups = read_markdown_file(file)
+            elif file.endswith('.mdx'):
+                source_groups = read_markdown_extended_file(file)
             elif file.endswith('.rst'):
                 source_groups = read_rst_file(file)
             else:
@@ -620,15 +677,17 @@ if __name__ == "__main__":
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogen",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogenhub",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_07_2025/ai-agents-for-beginners",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogen",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogenhub",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mem0",
     ]
     include_files = []
     exclude_files = []
     extension_mappings = [
         {"ext": [".ipynb"], "output_base_dir": "converted-notebooks"},
-        {"ext": [".md", ".mdx"], "output_base_dir": "converted-markdowns"},
+        # {"ext": [".md"], "output_base_dir": "converted-markdown-docs"},
+        {"ext": [".mdx"], "output_base_dir": "converted-markdown-extended"},
     ]
     all_extensions = [
         ext for mapping in extension_mappings for ext in mapping["ext"]]
@@ -645,6 +704,12 @@ if __name__ == "__main__":
         if not matching_repo_dir:
             logger.error(f"No matching repo dir: \"{matching_repo_dir}\"")
             continue
+
+        output_dir = os.path.join(
+            output_base_dir,
+            matching_repo_dir,
+        )
+
         for ext_mapping in extension_mappings:
             extensions = ext_mapping["ext"]
             # Calculate relative path from matching_repo_dir to input_base_dir
@@ -654,11 +719,11 @@ if __name__ == "__main__":
                 matching_repo_dir
             )
             relative_path = os.path.relpath(input_base_dir, repo_path)
-            output_dir = os.path.join(
-                output_base_dir,
-                matching_repo_dir,
+
+            relative_output_dir = os.path.join(
+                output_dir,
                 ext_mapping["output_base_dir"],
-                relative_path,
+                relative_path
             )
             files = scrape_code(
                 input_base_dir,
@@ -667,11 +732,11 @@ if __name__ == "__main__":
                 exclude_files=exclude_files,
                 with_markdown=True,
                 with_ollama=True,
-                output_dir=output_dir,
+                output_dir=relative_output_dir,
             )
             if files:
                 logger.log(
-                    "Saved", f"({len(files)})", "files to", output_dir,
+                    "Saved", f"({len(files)})", "files to", relative_output_dir,
                     colors=["WHITE", "SUCCESS", "WHITE", "BRIGHT_SUCCESS"],
                 )
             else:

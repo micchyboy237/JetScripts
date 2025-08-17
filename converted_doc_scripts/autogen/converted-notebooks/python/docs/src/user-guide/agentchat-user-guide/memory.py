@@ -487,7 +487,7 @@ logger.info("## Mem0Memory Example")
 
 
 mem0_memory = Mem0Memory(
-    is_cloud=True,
+    is_cloud=False,
     limit=5,  # Maximum number of memories to retrieve
 )
 

@@ -627,7 +627,8 @@ if __name__ == "__main__":
     exclude_files = []
     extension_mappings = [
         {"ext": [".ipynb"], "output_base_dir": "converted-notebooks"},
-        {"ext": [".md", ".mdx"], "output_base_dir": "converted-markdowns"},
+        # {"ext": [".md"], "output_base_dir": "converted-markdown-docs"},
+        {"ext": [".mdx"], "output_base_dir": "converted-markdown-extended"},
     ]
     all_extensions = [
         ext for mapping in extension_mappings for ext in mapping["ext"]]

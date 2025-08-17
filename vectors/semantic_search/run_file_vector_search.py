@@ -78,7 +78,9 @@ def main(query, directories):
 
     with_split_chunks_results = list(
         search_files(
-            directories, query, extensions,
+            directories,
+            query,
+            extensions,
             top_k=top_k,
             threshold=threshold,
             embed_model=embed_model,
