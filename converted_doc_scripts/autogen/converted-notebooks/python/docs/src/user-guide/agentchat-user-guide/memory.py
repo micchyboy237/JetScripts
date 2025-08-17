@@ -158,21 +158,24 @@ with tempfile.TemporaryDirectory() as tmpdir:
             ),
         )
     )
-    await chroma_user_memory.add(
-        MemoryContent(
-            content="The weather should be in metric units",
-            mime_type=MemoryMimeType.TEXT,
-            metadata={"category": "preferences", "type": "units"},
-        )
-    )
 
-    await chroma_user_memory.add(
-        MemoryContent(
-            content="Meal recipe must be vegan",
-            mime_type=MemoryMimeType.TEXT,
-            metadata={"category": "preferences", "type": "dietary"},
+    async def run_async_code_1a2b3c4d():
+        await chroma_user_memory.add(
+            MemoryContent(
+                content="The weather should be in metric units",
+                mime_type=MemoryMimeType.TEXT,
+                metadata={"category": "preferences", "type": "units"},
+            )
         )
-    )
+        await chroma_user_memory.add(
+            MemoryContent(
+                content="Meal recipe must be vegan",
+                mime_type=MemoryMimeType.TEXT,
+                metadata={"category": "preferences", "type": "dietary"},
+            )
+        )
+        return
+    asyncio.run(run_async_code_1a2b3c4d())
 
     model_client = MLXChatCompletionClient(
         model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
@@ -232,21 +235,24 @@ redis_memory = RedisMemory(
     )
 )
 
-await redis_memory.add(
-    MemoryContent(
-        content="The weather should be in metric units",
-        mime_type=MemoryMimeType.TEXT,
-        metadata={"category": "preferences", "type": "units"},
-    )
-)
 
-await redis_memory.add(
-    MemoryContent(
-        content="Meal recipe must be vegan",
-        mime_type=MemoryMimeType.TEXT,
-        metadata={"category": "preferences", "type": "dietary"},
+async def run_async_code_8a3f1b2c():
+    await redis_memory.add(
+        MemoryContent(
+            content="The weather should be in metric units",
+            mime_type=MemoryMimeType.TEXT,
+            metadata={"category": "preferences", "type": "units"},
+        )
     )
-)
+    await redis_memory.add(
+        MemoryContent(
+            content="Meal recipe must be vegan",
+            mime_type=MemoryMimeType.TEXT,
+            metadata={"category": "preferences", "type": "dietary"},
+        )
+    )
+    return
+asyncio.run(run_async_code_8a3f1b2c())
 
 model_client = MLXChatCompletionClient(
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
@@ -413,12 +419,12 @@ async def index_autogen_docs() -> None:
     async def run_async_code_f92b8ce7():
         async def run_async_code_afe31688():
             chunks: int = await indexer.index_documents(sources)
-            return chunks: int
-        chunks: intasyncio.run(run_async_code_afe31688())
-        logger.success(format_json(chunks: int))
-        return chunks: int
-    chunks: intasyncio.run(run_async_code_f92b8ce7())
-    logger.success(format_json(chunks: int))
+            return chunks
+        chunks: int = asyncio.run(run_async_code_afe31688())
+        logger.success(format_json(chunks))
+        return chunks
+    chunks: int = asyncio.run(run_async_code_f92b8ce7())
+    logger.success(format_json(chunks))
     logger.debug(
         f"Indexed {chunks} chunks from {len(sources)} AutoGen documents")
 
@@ -471,21 +477,25 @@ mem0_memory = Mem0Memory(
     limit=5,  # Maximum number of memories to retrieve
 )
 
-await mem0_memory.add(
-    MemoryContent(
-        content="The weather should be in metric units",
-        mime_type=MemoryMimeType.TEXT,
-        metadata={"category": "preferences", "type": "units"},
-    )
-)
 
-await mem0_memory.add(
-    MemoryContent(
-        content="Meal recipe must be vegan",
-        mime_type=MemoryMimeType.TEXT,
-        metadata={"category": "preferences", "type": "dietary"},
+async def run_async_code_4f7b2c1d():
+    await mem0_memory.add(
+        MemoryContent(
+            content="The weather should be in metric units",
+            mime_type=MemoryMimeType.TEXT,
+            metadata={"category": "preferences", "type": "units"},
+        )
     )
-)
+
+    await mem0_memory.add(
+        MemoryContent(
+            content="Meal recipe must be vegan",
+            mime_type=MemoryMimeType.TEXT,
+            metadata={"category": "preferences", "type": "dietary"},
+        )
+    )
+    return
+asyncio.run(run_async_code_4f7b2c1d())
 
 assistant_agent = AssistantAgent(
     name="assistant_agent",
