@@ -22,9 +22,6 @@ def multiply(a: float, b: float):
         a: The first number to multiply
         b: The second number to multiply
     """
-    logger.info(f"multiply() called with a={a}, b={b}")
-    a = float(a)
-    b = float(b)
     return a * b
 
 
@@ -69,13 +66,20 @@ tool_result = tools[tool_call["name"]](**tool_call["arguments"])
 
 logger.success(f"tool_result: {tool_result}")
 
-# Put the tool result in the prompt
-messages = [{"role": "tool", "name": tool_call["name"], "content": tool_result}]
+# Put the tool result in the prompt, including original user query for context
+messages = [
+    {"role": "user", "content": prompt},
+    {"role": "tool", "name": tool_call["name"], "content": str(tool_result)}
+]
 prompt = tokenizer.apply_chat_template(
     messages,
     add_generation_prompt=True,
     enable_thinking=False,
 )
+
+# Create a new prompt cache to avoid context carryover
+prompt_cache = make_prompt_cache(model)
+
 
 # Generate the final response:
 # Expected response: A string confirming the result, e.g., "The result of multiplying 12234585 and 48838483920 is 597573619473103572720."
