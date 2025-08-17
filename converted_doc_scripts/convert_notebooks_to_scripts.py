@@ -680,7 +680,8 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_07_2025/ai-agents-for-beginners",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogen",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogenhub",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mem0",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mem0",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents",
     ]
     include_files = []
     exclude_files = []

@@ -3,11 +3,11 @@ from jet.transformers.formatters import format_json
 from autogen_core import DefaultTopicId, SingleThreadedAgentRuntime
 from autogen_core import MessageContext, RoutedAgent, TopicId, default_subscription, message_handler
 from autogen_core.models import (
-AssistantMessage,
-ChatCompletionClient,
-LLMMessage,
-SystemMessage,
-UserMessage,
+    AssistantMessage,
+    ChatCompletionClient,
+    LLMMessage,
+    SystemMessage,
+    UserMessage,
 )
 from dataclasses import dataclass
 from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
@@ -54,7 +54,6 @@ Before we define the agents, we need to first define the message protocol for th
 logger.info("# Reflection")
 
 
-
 @dataclass
 class CodeWritingTask:
     task: str
@@ -81,6 +80,7 @@ class CodeReviewResult:
     session_id: str
     approved: bool
 
+
 """
 The above set of messages defines the protocol for our example reflection design pattern:
 - The application sends a `CodeWritingTask` message to the coder agent
@@ -101,14 +101,15 @@ Now, let's define the agents for the reflection design pattern.
 logger.info("## Agents")
 
 
-
 """
 We use the [Broadcast](../framework/message-and-communication.ipynb#broadcast) API
 to implement the design pattern. The agents implements the pub/sub model.
 The coder agent subscribes to the `CodeWritingTask` and `CodeReviewResult` messages,
 and publishes the `CodeReviewTask` and `CodeWritingResult` messages.
 """
-logger.info("We use the [Broadcast](../framework/message-and-communication.ipynb#broadcast) API")
+logger.info(
+    "We use the [Broadcast](../framework/message-and-communication.ipynb#broadcast) API")
+
 
 @default_subscription
 class CoderAgent(RoutedAgent):
@@ -135,15 +136,19 @@ Code: <Your code>
             )
         ]
         self._model_client = model_client
-        self._session_memory: Dict[str, List[CodeWritingTask | CodeReviewTask | CodeReviewResult]] = {}
+        self._session_memory: Dict[str, List[CodeWritingTask |
+                                             CodeReviewTask | CodeReviewResult]] = {}
 
     @message_handler
     async def handle_code_writing_task(self, message: CodeWritingTask, ctx: MessageContext) -> None:
         session_id = str(uuid.uuid4())
         self._session_memory.setdefault(session_id, []).append(message)
+
         async def async_func_31():
             response = await self._model_client.create(
-                self._system_messages + [UserMessage(content=message.task, source=self.metadata["type"])],
+                self._system_messages +
+                [UserMessage(content=message.task,
+                             source=self.metadata["type"])],
                 cancellation_token=ctx.cancellation_token,
             )
             return response
@@ -160,10 +165,7 @@ Code: <Your code>
             code=code_block,
         )
         self._session_memory[session_id].append(code_review_task)
-        async def run_async_code_79f05178():
-            await self.publish_message(code_review_task, topic_id=TopicId("default", self.id.key))
-            return 
-         = asyncio.run(run_async_code_79f05178())
+        await self.publish_message(code_review_task, topic_id=TopicId("default", self.id.key))
         logger.success(format_json())
 
     @message_handler
@@ -194,13 +196,16 @@ Code: <Your code>
             messages: List[LLMMessage] = [*self._system_messages]
             for m in self._session_memory[message.session_id]:
                 if isinstance(m, CodeReviewResult):
-                    messages.append(UserMessage(content=m.review, source="Reviewer"))
+                    messages.append(UserMessage(
+                        content=m.review, source="Reviewer"))
                 elif isinstance(m, CodeReviewTask):
-                    messages.append(AssistantMessage(content=m.code_writing_scratchpad, source="Coder"))
+                    messages.append(AssistantMessage(
+                        content=m.code_writing_scratchpad, source="Coder"))
                 elif isinstance(m, CodeWritingTask):
                     messages.append(UserMessage(content=m.task, source="User"))
                 else:
                     raise ValueError(f"Unexpected message type: {m}")
+
             async def run_async_code_40f82ec8():
                 async def run_async_code_8cdf6c99():
                     response = await self._model_client.create(messages, cancellation_token=ctx.cancellation_token)
@@ -221,10 +226,8 @@ Code: <Your code>
                 code=code_block,
             )
             self._session_memory[message.session_id].append(code_review_task)
-            async def run_async_code_ccb46436():
-                await self.publish_message(code_review_task, topic_id=TopicId("default", self.id.key))
-                return 
-             = asyncio.run(run_async_code_ccb46436())
+
+            await self.publish_message(code_review_task, topic_id=TopicId("default", self.id.key))
             logger.success(format_json())
 
     def _extract_code_block(self, markdown_text: str) -> Union[str, None]:
@@ -233,6 +236,7 @@ Code: <Your code>
         if match:
             return match.group(2)
         return None
+
 
 """
 A few things to note about `CoderAgent`:
@@ -246,6 +250,7 @@ to pass to the model client.
 The reviewer agent subscribes to the `CodeReviewTask` message and publishes the `CodeReviewResult` message.
 """
 logger.info("A few things to note about `CoderAgent`:")
+
 
 @default_subscription
 class ReviewerAgent(RoutedAgent):
@@ -267,7 +272,8 @@ Respond using the following JSON format:
 """,
             )
         ]
-        self._session_memory: Dict[str, List[CodeReviewTask | CodeReviewResult]] = {}
+        self._session_memory: Dict[str,
+                                   List[CodeReviewTask | CodeReviewResult]] = {}
         self._model_client = model_client
 
     @message_handler
@@ -275,7 +281,8 @@ Respond using the following JSON format:
         previous_feedback = ""
         if message.session_id in self._session_memory:
             previous_review = next(
-                (m for m in reversed(self._session_memory[message.session_id]) if isinstance(m, CodeReviewResult)),
+                (m for m in reversed(self._session_memory[message.session_id]) if isinstance(
+                    m, CodeReviewResult)),
                 None,
             )
             if previous_review is not None:
@@ -292,9 +299,11 @@ Previous feedback:
 
 Please review the code. If previous feedback was provided, see if it was addressed.
 """
+
         async def async_func_45():
             response = await self._model_client.create(
-                self._system_messages + [UserMessage(content=prompt, source=self.metadata["type"])],
+                self._system_messages +
+                [UserMessage(content=prompt, source=self.metadata["type"])],
                 cancellation_token=ctx.cancellation_token,
                 json_output=True,
             )
@@ -303,7 +312,8 @@ Please review the code. If previous feedback was provided, see if it was address
         logger.success(format_json(response))
         assert isinstance(response.content, str)
         review = json.loads(response.content)
-        review_text = "Code review:\n" + "\n".join([f"{k}: {v}" for k, v in review.items()])
+        review_text = "Code review:\n" + \
+            "\n".join([f"{k}: {v}" for k, v in review.items()])
         approved = review["approval"].lower().strip() == "approve"
         result = CodeReviewResult(
             review=review_text,
@@ -311,11 +321,10 @@ Please review the code. If previous feedback was provided, see if it was address
             approved=approved,
         )
         self._session_memory[message.session_id].append(result)
-        async def run_async_code_99ee3843():
-            await self.publish_message(result, topic_id=TopicId("default", self.id.key))
-            return 
-         = asyncio.run(run_async_code_99ee3843())
+
+        await self.publish_message(result, topic_id=TopicId("default", self.id.key))
         logger.success(format_json())
+
 
 """
 The `ReviewerAgent` uses JSON-mode when making an LLM inference request, and
@@ -343,38 +352,50 @@ logger.info("## Running the Design Pattern")
 
 
 runtime = SingleThreadedAgentRuntime()
-model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+
+
 async def run_async_code_eafbbfcd():
     await ReviewerAgent.register(runtime, "ReviewerAgent", lambda: ReviewerAgent(model_client=model_client))
-    return 
- = asyncio.run(run_async_code_eafbbfcd())
-logger.success(format_json())
+    return
+asyncio.run(run_async_code_eafbbfcd())
+
+
 async def run_async_code_35c0db72():
     await CoderAgent.register(runtime, "CoderAgent", lambda: CoderAgent(model_client=model_client))
-    return 
- = asyncio.run(run_async_code_35c0db72())
-logger.success(format_json())
+    return
+asyncio.run(run_async_code_35c0db72())
+
 runtime.start()
-await runtime.publish_message(
-    message=CodeWritingTask(task="Write a function to find the sum of all even numbers in a list."),
-    topic_id=DefaultTopicId(),
-)
+
+
+async def run_async_code_7e2b1c4a():
+    await runtime.publish_message(
+        message=CodeWritingTask(
+            task="Write a function to find the sum of all even numbers in a list."),
+        topic_id=DefaultTopicId(),
+    )
+asyncio.run(run_async_code_7e2b1c4a())
+
 
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+    return
+asyncio.run(run_async_code_b7ca34d4())
+
+
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
-logger.success(format_json())
+    return
+asyncio.run(run_async_code_0349fda4())
+
 
 """
 The log messages show the interaction between the coder and reviewer agents.
 The final output shows the code snippet generated by the coder agent and the critique generated by the reviewer agent.
 """
-logger.info("The log messages show the interaction between the coder and reviewer agents.")
+logger.info(
+    "The log messages show the interaction between the coder and reviewer agents.")
 
 logger.info("\n\n[DONE]", bright=True)
