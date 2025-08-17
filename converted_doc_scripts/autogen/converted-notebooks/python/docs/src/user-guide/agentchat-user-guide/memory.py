@@ -1,4 +1,6 @@
 import asyncio
+
+import redis
 from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
@@ -224,9 +226,11 @@ See {py:class}`~autogen_ext.memory.redis.RedisMemory` for instructions to run Re
 logger.info("### Redis Memory")
 
 
+# Initialize RedisMemory
+logger.debug("Initializing RedisMemory for debugging")
 redis_memory = RedisMemory(
     config=RedisMemoryConfig(
-        redis_url="redis://localhost:6379",
+        redis_url="redis://localhost:6379/0",  # Explicitly specify DB 0
         index_name="chat_history",
         prefix="memory",
     )
@@ -234,21 +238,55 @@ redis_memory = RedisMemory(
 
 
 async def run_async_code_8a3f1b2c():
-    await redis_memory.add(
-        MemoryContent(
-            content="The weather should be in metric units",
-            mime_type=MemoryMimeType.TEXT,
-            metadata={"category": "preferences", "type": "units"},
+    try:
+        logger.debug(
+            "RedisMemory initialized with redis_url=redis://localhost:6379/0, index_name=chat_history")
+
+        # Verify Redis connection
+        client = redis.Redis.from_url(
+            "redis://localhost:6379/0", decode_responses=True)
+        client.ping()
+        logger.debug("Redis connection successful (ping)")
+
+        # Check if chat_history index exists
+        indexes = client.execute_command("FT._LIST")
+        logger.debug(f"Redis indexes: {indexes}")
+        if "chat_history" not in indexes:
+            logger.warning("chat_history index not found")
+
+        # Add entries
+        logger.debug("Adding 'The weather should be in metric units'")
+        await redis_memory.add(
+            MemoryContent(
+                content="The weather should be in metric units",
+                mime_type=MemoryMimeType.TEXT,
+                metadata={"category": "preferences", "type": "units"},
+            )
         )
-    )
-    await redis_memory.add(
-        MemoryContent(
-            content="Meal recipe must be vegan",
-            mime_type=MemoryMimeType.TEXT,
-            metadata={"category": "preferences", "type": "dietary"},
+        logger.debug("Added first entry")
+
+        logger.debug("Adding 'Meal recipe must be vegan'")
+        await redis_memory.add(
+            MemoryContent(
+                content="Meal recipe must be vegan",
+                mime_type=MemoryMimeType.TEXT,
+                metadata={"category": "preferences", "type": "dietary"},
+            )
         )
-    )
-    return
+        logger.debug("Added second entry")
+
+        # Verify data immediately after adding
+        keys = client.keys("memory*")
+        logger.debug(f"Keys found after adding: {keys}")
+        for key in keys:
+            data = client.hgetall(key)
+            logger.debug(f"Data for key {key}: {data}")
+
+        client.close()
+        return
+    except Exception as e:
+        logger.error(f"Error in run_async_code_8a3f1b2c: {str(e)}")
+        raise
 asyncio.run(run_async_code_8a3f1b2c())
 
 model_client = MLXChatCompletionClient(
