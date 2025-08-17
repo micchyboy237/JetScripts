@@ -489,6 +489,7 @@ logger.info("## Mem0Memory Example")
 
 mem0_memory = MemoryManager(
     limit=5,  # Maximum number of memories to retrieve
+    log_dir=f"{OUTPUT_DIR}/chats"
 )
 
 
