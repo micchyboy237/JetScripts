@@ -61,15 +61,22 @@ tool_close = "</tool_call>"
 start_tool = response.find(tool_open) + len(tool_open)
 end_tool = response.find(tool_close)
 tool_call = json.loads(response[start_tool:end_tool].strip())
+# Debug: Log the types and values of arguments
+logger.debug(f"tool_call arguments: {tool_call['arguments']}")
+logger.debug(
+    f"Type of a: {type(tool_call['arguments']['a'])}, Value: {tool_call['arguments']['a']}")
+logger.debug(
+    f"Type of b: {type(tool_call['arguments']['b'])}, Value: {tool_call['arguments']['b']}")
 # Expected tool_result: The product of 12234585 and 48838483920, which is 597573619473103572720
 tool_result = tools[tool_call["name"]](**tool_call["arguments"])
 
 logger.success(f"tool_result: {tool_result}")
 
-# Put the tool result in the prompt, including original user query for context
+# Put the tool result in the prompt with explicit instruction
 messages = [
-    {"role": "user", "content": prompt},
-    {"role": "tool", "name": tool_call["name"], "content": str(tool_result)}
+    {"role": "user", "content": "Multiply 12234585 and 48838483920."},
+    {"role": "tool", "name": tool_call["name"], "content": str(tool_result)},
+    {"role": "system", "content": "Confirm the result of the multiplication in a clear sentence."}
 ]
 prompt = tokenizer.apply_chat_template(
     messages,
@@ -79,7 +86,6 @@ prompt = tokenizer.apply_chat_template(
 
 # Create a new prompt cache to avoid context carryover
 prompt_cache = make_prompt_cache(model)
-
 
 # Generate the final response:
 # Expected response: A string confirming the result, e.g., "The result of multiplying 12234585 and 48838483920 is 597573619473103572720."
