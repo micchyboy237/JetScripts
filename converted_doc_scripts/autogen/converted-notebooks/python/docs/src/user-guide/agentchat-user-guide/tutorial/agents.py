@@ -153,7 +153,7 @@ async def run_async_code_b1f495c8():
     await assistant_run_stream()
     return
 asyncio.run(run_async_code_b1f495c8())
-logger.success(format_json())
+
 
 """
 The {py:meth}`~autogen_agentchat.agents.BaseChatAgent.run_stream` method
@@ -391,7 +391,7 @@ async def run_async_code_0349fda4():
     await model_client.close()
     return
 asyncio.run(run_async_code_0349fda4())
-logger.success(format_json())
+
 
 """
 ## Streaming Tokens
