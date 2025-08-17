@@ -78,11 +78,9 @@ We can use the {py:meth}`~autogen_agentchat.agents.BaseChatAgent.run` method to 
 """
 logger.info("## Getting Result")
 
+
 async def run_async_code_57d6bc29():
-    async def run_async_code_f092f592():
-        result = await agent.run(task="Find information on AutoGen")
-        return result
-    result = asyncio.run(run_async_code_f092f592())
+    result = await agent.run(task="Find information on AutoGen")
     logger.success(format_json(result))
     return result
 result = asyncio.run(run_async_code_57d6bc29())
@@ -116,11 +114,13 @@ by providing the input as a {py:class}`~autogen_agentchat.messages.MultiModalMes
 logger.info("## Multi-Modal Input")
 
 
-
-pil_image = PIL.Image.open(BytesIO(requests.get("https://picsum.photos/300/200").content))
+pil_image = PIL.Image.open(
+    BytesIO(requests.get("https://picsum.photos/300/200").content))
 img = Image(pil_image)
-multi_modal_message = MultiModalMessage(content=["Can you describe the content of this image?", img], source="user")
+multi_modal_message = MultiModalMessage(
+    content=["Can you describe the content of this image?", img], source="user")
 img
+
 
 async def run_async_code_f33c45f0():
     async def run_async_code_53821a35():
@@ -143,6 +143,7 @@ as they appear to the console.
 """
 logger.info("## Streaming Messages")
 
+
 async def assistant_run_stream() -> None:
 
     await Console(
@@ -153,8 +154,8 @@ async def assistant_run_stream() -> None:
 
 async def run_async_code_b1f495c8():
     await assistant_run_stream()
-    return 
- = asyncio.run(run_async_code_b1f495c8())
+    return
+asyncio.run(run_async_code_b1f495c8())
 logger.success(format_json())
 
 """
@@ -167,15 +168,15 @@ gather information and responded based on the search results.
 
 ## Using Tools and Workbench
 
-Large Language Models (LLMs) are typically limited to generating text or code responses. 
+Large Language Models (LLMs) are typically limited to generating text or code responses.
 However, many complex tasks benefit from the ability to use external tools that perform specific actions,
 such as fetching data from APIs or databases.
 
-To address this limitation, modern LLMs can now accept a list of available tool schemas 
-(descriptions of tools and their arguments) and generate a tool call message. 
-This capability is known as **Tool Calling** or **Function Calling** and 
+To address this limitation, modern LLMs can now accept a list of available tool schemas
+(descriptions of tools and their arguments) and generate a tool call message.
+This capability is known as **Tool Calling** or **Function Calling** and
 is becoming a popular pattern in building intelligent agent-based applications.
-Refer to the documentation from [MLX](https://platform.openai.com/docs/guides/function-calling) 
+Refer to the documentation from [MLX](https://platform.openai.com/docs/guides/function-calling)
 and [Anthropic](https://docs.anthropic.com/en/docs/build-with-claude/tool-use) for more information about tool calling in LLMs.
 
 In AgentChat, the {py:class}`~autogen_agentchat.agents.AssistantAgent` can use tools to perform specific actions.
@@ -220,13 +221,13 @@ The schema is automatically generated.
 logger.info("## Using Tools and Workbench")
 
 
-
 async def web_search_func(query: str) -> str:
     """Find information on the web"""
     return "AutoGen is a programming framework for building multi-agent applications."
 
 
-web_search_function_tool = FunctionTool(web_search_func, description="Find information on the web")
+web_search_function_tool = FunctionTool(
+    web_search_func, description="Find information on the web")
 web_search_function_tool.schema
 
 """
@@ -241,13 +242,15 @@ logger.info("### Model Context Protocol (MCP) Workbench")
 
 fetch_mcp_server = StdioServerParams(command="uvx", args=["mcp-server-fetch"])
 
+
 async def async_func_7():
     async with McpWorkbench(fetch_mcp_server) as workbench:  # type: ignore
-        model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+        model_client = MLXChatCompletionClient(
+            model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
         fetch_agent = AssistantAgent(
             name="fetcher", model_client=model_client, workbench=workbench, reflect_on_tool_use=True
         )
-        
+
         async def run_async_code_29f8686c():
             result = await fetch_agent.run(task="Summarize the content of https://en.wikipedia.org/wiki/Seattle")
             return result
@@ -255,7 +258,7 @@ async def async_func_7():
         logger.success(format_json(result))
         assert isinstance(result.messages[-1], TextMessage)
         logger.debug(result.messages[-1].content)
-        
+
         await model_client.close()
     return result
 
@@ -323,7 +326,8 @@ agent_loop = AssistantAgent(
     model_client=model_client_no_parallel_tool_call,
     tools=[web_search],
     system_message="Use tools to solve tasks.",
-    max_tool_iterations=10,  # At most 10 iterations of tool calls before stopping the loop.
+    # At most 10 iterations of tool calls before stopping the loop.
+    max_tool_iterations=10,
 )
 
 """
@@ -355,20 +359,20 @@ See the example below for how to use structured output with the assistant agent.
 logger.info("## Structured Output")
 
 
-
-
 class AgentResponse(BaseModel):
     thoughts: str
     response: Literal["happy", "sad", "neutral"]
 
 
-model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 agent = AssistantAgent(
     "assistant",
     model_client=model_client,
     system_message="Categorize the input as happy, sad, or neutral following the JSON format.",
     output_content_type=AgentResponse,
 )
+
 
 async def run_async_code_7dde39b8():
     async def run_async_code_7375d2d9():
@@ -384,10 +388,12 @@ assert isinstance(result.messages[-1], StructuredMessage)
 assert isinstance(result.messages[-1].content, AgentResponse)
 logger.debug("Thought: ", result.messages[-1].content.thoughts)
 logger.debug("Response: ", result.messages[-1].content.response)
+
+
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
+    return
+asyncio.run(run_async_code_0349fda4())
 logger.success(format_json())
 
 """
@@ -402,7 +408,8 @@ Please check with your model provider to see if this is supported.
 """
 logger.info("## Streaming Tokens")
 
-model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+model_client = MLXChatCompletionClient(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 streaming_assistant = AssistantAgent(
     name="assistant",
@@ -411,8 +418,14 @@ streaming_assistant = AssistantAgent(
     model_client_stream=True,  # Enable streaming tokens.
 )
 
-async for message in streaming_assistant.run_stream(task="Name two cities in South America"):  # type: ignore
-    logger.debug(message)
+# type: ignore
+
+
+async def run_async_code_8e2f1a7c():
+    async for message in streaming_assistant.run_stream(task="Name two cities in South America"):
+        logger.debug(message)
+    return
+asyncio.run(run_async_code_8e2f1a7c())
 
 """
 You can see the streaming chunks in the output above.
@@ -442,7 +455,8 @@ agent = AssistantAgent(
     model_client=model_client,
     tools=[web_search],
     system_message="Use tools to solve tasks.",
-    model_context=BufferedChatCompletionContext(buffer_size=5),  # Only use the last 5 messages in the context.
+    # Only use the last 5 messages in the context.
+    model_context=BufferedChatCompletionContext(buffer_size=5),
 )
 
 """
