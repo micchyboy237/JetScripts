@@ -144,15 +144,11 @@ Code: <Your code>
         session_id = str(uuid.uuid4())
         self._session_memory.setdefault(session_id, []).append(message)
 
-        async def async_func_31():
-            response = await self._model_client.create(
-                self._system_messages +
-                [UserMessage(content=message.task,
-                             source=self.metadata["type"])],
-                cancellation_token=ctx.cancellation_token,
-            )
-            return response
-        response = asyncio.run(async_func_31())
+        response = await self._model_client.create(
+            self._system_messages +
+            [UserMessage(content=message.task, source=self.metadata["type"])],
+            cancellation_token=ctx.cancellation_token,
+        )
         logger.success(format_json(response))
         assert isinstance(response.content, str)
         code_block = self._extract_code_block(response.content)
@@ -206,14 +202,7 @@ Code: <Your code>
                 else:
                     raise ValueError(f"Unexpected message type: {m}")
 
-            async def run_async_code_40f82ec8():
-                async def run_async_code_8cdf6c99():
-                    response = await self._model_client.create(messages, cancellation_token=ctx.cancellation_token)
-                    return response
-                response = asyncio.run(run_async_code_8cdf6c99())
-                logger.success(format_json(response))
-                return response
-            response = asyncio.run(run_async_code_40f82ec8())
+            response = await self._model_client.create(messages, cancellation_token=ctx.cancellation_token)
             logger.success(format_json(response))
             assert isinstance(response.content, str)
             code_block = self._extract_code_block(response.content)
@@ -294,21 +283,19 @@ The code is:
 {message.code}
 ```
 
+
 Previous feedback:
 {previous_feedback}
 
 Please review the code. If previous feedback was provided, see if it was addressed.
 """
 
-        async def async_func_45():
-            response = await self._model_client.create(
-                self._system_messages +
-                [UserMessage(content=prompt, source=self.metadata["type"])],
-                cancellation_token=ctx.cancellation_token,
-                json_output=True,
-            )
-            return response
-        response = asyncio.run(async_func_45())
+        response = await self._model_client.create(
+            self._system_messages +
+            [UserMessage(content=prompt, source=self.metadata["type"])],
+            cancellation_token=ctx.cancellation_token,
+            json_output=True,
+        )
         logger.success(format_json(response))
         assert isinstance(response.content, str)
         review = json.loads(response.content)
@@ -351,44 +338,27 @@ We publish a `CodeWritingTask` message to the default topic to start the reflect
 logger.info("## Running the Design Pattern")
 
 
-runtime = SingleThreadedAgentRuntime()
-model_client = MLXChatCompletionClient(
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+async def main():
+    runtime = SingleThreadedAgentRuntime()
+    model_client = MLXChatCompletionClient(
+        model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
-
-async def run_async_code_eafbbfcd():
     await ReviewerAgent.register(runtime, "ReviewerAgent", lambda: ReviewerAgent(model_client=model_client))
-    return
-asyncio.run(run_async_code_eafbbfcd())
-
-
-async def run_async_code_35c0db72():
     await CoderAgent.register(runtime, "CoderAgent", lambda: CoderAgent(model_client=model_client))
-    return
-asyncio.run(run_async_code_35c0db72())
 
-runtime.start()
+    runtime.start()
 
-
-async def run_async_code_7e2b1c4a():
     await runtime.publish_message(
         message=CodeWritingTask(
             task="Write a function to find the sum of all even numbers in a list."),
         topic_id=DefaultTopicId(),
     )
-asyncio.run(run_async_code_7e2b1c4a())
 
-
-async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return
-asyncio.run(run_async_code_b7ca34d4())
-
-
-async def run_async_code_0349fda4():
     await model_client.close()
-    return
-asyncio.run(run_async_code_0349fda4())
+
+if __name__ == "__main__":
+    asyncio.run(main())
 
 
 """
