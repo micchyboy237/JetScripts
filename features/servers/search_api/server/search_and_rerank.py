@@ -9,7 +9,7 @@ import asyncio
 from urllib.parse import unquote, urlparse
 from jet.features.nltk_search import get_pos_tag, search_by_pos
 from jet.llm.mlx.helpers.base import get_system_date_prompt
-from jet.llm.mlx.mlx_types import EmbedModelType, LLMModelType
+from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.llm.mlx.tasks.utils import load_model_components
 from jet.logger import logger
 from jet.scrapers.hrequests_utils import scrape_urls

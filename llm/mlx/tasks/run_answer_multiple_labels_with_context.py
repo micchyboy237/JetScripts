@@ -1,7 +1,7 @@
 import os
 from jet.file.utils import save_file
 from jet.llm.mlx.tasks.answer_multiple_labels_with_context import QuestionContext, answer_multiple_labels_with_context, AnswerResult
-from jet.llm.mlx.mlx_types import LLMModelType
+from jet.models.model_types import LLMModelType
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 

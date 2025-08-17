@@ -9,7 +9,7 @@ from jet.wordnet.sentence import count_sentences, split_sentences
 import pytest
 import os
 from typing import Union, Dict, List, TypedDict
-from jet.llm.mlx.mlx_types import CompletionResponse, LLMModelType
+from jet.models.model_types import CompletionResponse, LLMModelType
 from jet.llm.mlx.token_utils import get_tokenizer
 from transformers import PreTrainedTokenizer
 from mlx_lm.tokenizer_utils import TokenizerWrapper

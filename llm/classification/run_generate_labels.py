@@ -1,5 +1,5 @@
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.mlx_types import LLMModelKey
+from jet.models.model_types import LLMModelKey
 from jet.llm.ollama.base import Ollama
 from jet.logger import logger
 from jet.transformers.formatters import format_json

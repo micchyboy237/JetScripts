@@ -1,7 +1,7 @@
 from jet.llm.mlx.tasks.text_classification import text_classification
 from jet.logger import logger
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.mlx_types import LLMModelType
+from jet.models.model_types import LLMModelType
 from typing import List
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 from jet.llm.mlx.tasks.anaphora_resolution import AnaphoraResolutionResult, anaphora_resolution
-from jet.llm.mlx.mlx_types import LLMModelType
+from jet.models.model_types import LLMModelType
 from jet.logger import logger
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-from jet.llm.mlx.mlx_types import LLMModelType
+from jet.models.model_types import LLMModelType
 from jet.llm.mlx.models import resolve_model
 from mlx_lm import load, generate
 import mlx.core as mx

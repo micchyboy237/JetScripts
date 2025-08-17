@@ -1,5 +1,5 @@
 from jet.llm.mlx.tasks.answer_multiple_choice_with_key import answer_multiple_choice_with_key, AnswerResult
-from jet.llm.mlx.mlx_types import LLMModelType
+from jet.models.model_types import LLMModelType
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 

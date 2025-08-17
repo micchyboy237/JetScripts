@@ -1,7 +1,7 @@
 from jet.llm.mlx.tasks.instruction_response import instruction_response
 from jet.logger import logger
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.mlx_types import LLMModelType
+from jet.models.model_types import LLMModelType
 
 if __name__ == "__main__":
     model: LLMModelType = "llama-3.2-3b-instruct-4bit"

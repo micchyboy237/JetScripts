@@ -1,5 +1,5 @@
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.mlx_types import LLMModelKey
+from jet.models.model_types import LLMModelKey
 import mlx.core as mx
 import numpy as np
 from mpi4py import MPI

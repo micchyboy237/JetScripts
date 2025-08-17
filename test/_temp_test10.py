@@ -1,5 +1,5 @@
 from jet.llm.mlx.helpers import load_model
-from jet.llm.mlx.mlx_types import LLMModelType
+from jet.models.model_types import LLMModelType
 import pytest
 import mlx.core as mx
 import mlx.nn as nn

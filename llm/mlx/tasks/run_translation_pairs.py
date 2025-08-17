@@ -1,5 +1,5 @@
 from jet.llm.mlx.tasks.translation_pairs import TranslationResult, translation_pairs
-from jet.llm.mlx.mlx_types import LLMModelType
+from jet.models.model_types import LLMModelType
 from jet.logger import logger
 
 if __name__ == "__main__":

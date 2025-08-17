@@ -1,5 +1,5 @@
 from jet.llm.mlx.tasks.yes_no_answer import AnswerResult, answer_yes_no
-from jet.llm.mlx.mlx_types import LLMModelType
+from jet.models.model_types import LLMModelType
 from jet.logger import logger
 
 if __name__ == "__main__":

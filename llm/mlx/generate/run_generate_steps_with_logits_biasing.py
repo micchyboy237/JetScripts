@@ -1,5 +1,5 @@
 from jet.llm.mlx.helpers import load_model
-from jet.llm.mlx.mlx_types import LLMModelType, MLXTokenizer
+from jet.models.model_types import LLMModelType, MLXTokenizer
 from jet.llm.mlx.models import resolve_model
 from mlx_lm import load, generate
 from transformers import PreTrainedTokenizer

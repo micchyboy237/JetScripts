@@ -1,6 +1,6 @@
 import os
 import shutil
-from jet.llm.mlx.mlx_types import EmbedModelType
+from jet.models.model_types import EmbedModelType
 from jet.llm.utils.link_searcher import search_links
 from jet.file.utils import load_file, save_file
 from jet.llm.utils.search_docs import search_docs

@@ -6,7 +6,7 @@ import re
 from jet.code.splitter_markdown_utils import get_md_header_docs
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.helpers.base import rewrite_query
-from jet.llm.mlx.mlx_types import LLMModelType
+from jet.models.model_types import LLMModelType
 from jet.file.utils import load_file, save_file
 from jet.llm.utils.search_docs import search_docs
 from jet.scrapers.hrequests_utils import scrape_urls, sync_scrape_url

@@ -2,7 +2,7 @@ import os
 import shutil
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.generation import chat
-from jet.llm.mlx.mlx_types import LLMModelType
+from jet.models.model_types import LLMModelType
 from jet.file.utils import save_file
 from jet.transformers.formatters import format_json
 from jet.logger import logger

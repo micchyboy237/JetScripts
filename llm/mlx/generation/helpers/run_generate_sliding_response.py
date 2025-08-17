@@ -2,7 +2,7 @@
 
 
 from jet.llm.mlx.helpers.generate_sliding_response import generate_sliding_response
-from jet.llm.mlx.mlx_types import LLMModelType
+from jet.models.model_types import LLMModelType
 
 # Sample system instruction and markdown context
 SYSTEM_INSTRUCTION = """

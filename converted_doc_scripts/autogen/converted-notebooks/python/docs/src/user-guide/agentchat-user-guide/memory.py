@@ -1,6 +1,7 @@
 import asyncio
 
 import redis
+from jet.llm.mlx.memory import MemoryManager
 from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
@@ -486,27 +487,22 @@ In the following example, we'll demonstrate how to use `Mem0Memory` to maintain 
 logger.info("## Mem0Memory Example")
 
 
-mem0_memory = Mem0Memory(
-    is_cloud=False,
+mem0_memory = MemoryManager(
     limit=5,  # Maximum number of memories to retrieve
 )
 
 
 async def run_async_code_4f7b2c1d():
     await mem0_memory.add(
-        MemoryContent(
-            content="The weather should be in metric units",
-            mime_type=MemoryMimeType.TEXT,
-            metadata={"category": "preferences", "type": "units"},
-        )
+        content="The weather should be in metric units",
+        mime_type=MemoryMimeType.TEXT,
+        metadata={"category": "preferences", "type": "units"},
     )
 
     await mem0_memory.add(
-        MemoryContent(
-            content="Meal recipe must be vegan",
-            mime_type=MemoryMimeType.TEXT,
-            metadata={"category": "preferences", "type": "dietary"},
-        )
+        content="Meal recipe must be vegan",
+        mime_type=MemoryMimeType.TEXT,
+        metadata={"category": "preferences", "type": "dietary"},
     )
     return
 asyncio.run(run_async_code_4f7b2c1d())

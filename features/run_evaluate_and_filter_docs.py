@@ -3,7 +3,7 @@ import shutil
 from jet.features.nltk_search import search_by_pos
 from jet.file.utils import load_file, save_file
 from jet.llm.mlx.tasks.eval.evaluate_multiple_contexts_relevance import evaluate_multiple_contexts_relevance, ContextRelevanceResult
-from jet.llm.mlx.mlx_types import LLMModelType
+from jet.models.model_types import LLMModelType
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 from jet.vectors.hybrid_reranker import search_documents

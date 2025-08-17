@@ -1,6 +1,6 @@
 from typing import List
 from jet.llm.mlx.tasks.fact_check import fact_check
-from jet.llm.mlx.mlx_types import LLMModelType
+from jet.models.model_types import LLMModelType
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 

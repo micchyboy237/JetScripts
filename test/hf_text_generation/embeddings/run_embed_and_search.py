@@ -1,7 +1,7 @@
 import json
 import time
 from jet.file.utils import save_file
-from jet.llm.mlx.mlx_types import EmbedModelKey
+from jet.models.model_types import EmbedModelKey
 from jet.llm.mlx.models import AVAILABLE_EMBED_MODELS, resolve_model
 from jet.logger import logger
 import mlx_embeddings
