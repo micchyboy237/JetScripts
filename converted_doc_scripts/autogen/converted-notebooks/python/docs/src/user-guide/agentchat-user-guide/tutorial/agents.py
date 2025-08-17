@@ -123,10 +123,7 @@ img
 
 
 async def run_async_code_f33c45f0():
-    async def run_async_code_53821a35():
-        result = await agent.run(task=multi_modal_message)
-        return result
-    result = asyncio.run(run_async_code_53821a35())
+    result = await agent.run(task=multi_modal_message)
     logger.success(format_json(result))
     return result
 result = asyncio.run(run_async_code_f33c45f0())
