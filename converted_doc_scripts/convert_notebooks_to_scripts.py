@@ -681,7 +681,8 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogen",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogenhub",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mem0",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index",
     ]
     include_files = []
     exclude_files = []
