@@ -395,14 +395,16 @@ last_updates() {
 git_stats() {
     local base_dir="."
     local extensions=""
-    local type="both"
     local depth=""
+    local mode=""
+    local type_filter=""
 
     while [[ $# -gt 0 ]]; do
         case $1 in
             -e) extensions="$2"; shift 2;;
-            -t) type="$2"; shift 2;;
             -d) depth="$2"; shift 2;;
+            -m) mode="$2"; shift 2;;
+            -t) type_filter="$2"; shift 2;;
             *) base_dir="$1"; shift;;
         esac
     done
@@ -410,18 +412,22 @@ git_stats() {
     local args=()
     args+=("$base_dir")
     [[ -n "$extensions" ]] && args+=("-e" "$extensions")
-    [[ -n "$type" ]] && args+=("-t" "$type")
     [[ -n "$depth" ]] && args+=("-d" "$depth")
+    [[ -n "$mode" ]] && args+=("-m" "$mode")
+    [[ -n "$type_filter" ]] && args+=("-t" "$type_filter")
 
     python /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_notes/python_scripts/git_stats.py "${args[@]}"
 
-    # Example:
+    # Examples:
     # git_stats
     # git_stats -e ".py,.md"
     # git_stats -t files
-    # git_stats -d 2
-    # git_stats -e ".py,.md" -t files
-    # git_stats -e ".py,.md" -t folders -d 3
+    # git_stats -t dirs
+    # git_stats -m auto
+    # git_stats -m file
+    # git_stats -e ".py,.md" -t dirs -m git -d 3
+    # git_stats -e ".py,.md" -t dirs -m auto -d 3
+    # git_stats -e ".py,.md" -t files -m file
 }
 
 # Function to check memory usage of specific Python processes
