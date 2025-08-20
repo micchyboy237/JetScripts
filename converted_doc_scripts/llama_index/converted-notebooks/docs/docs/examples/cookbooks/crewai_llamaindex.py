@@ -1,5 +1,6 @@
 from crewai import Agent, Task, Crew, Process
 from crewai_tools import LlamaIndexTool
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -128,7 +129,7 @@ docs = reader.load_data()
 
 docs[1].get_content()
 
-llm = MLX(model="qwen3-1.7b-4bit")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 index = VectorStoreIndex.from_documents(docs)
 query_engine = index.as_query_engine(similarity_top_k=5, llm=llm)
 

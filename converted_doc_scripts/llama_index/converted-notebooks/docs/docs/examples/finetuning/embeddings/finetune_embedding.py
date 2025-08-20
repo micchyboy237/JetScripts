@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -121,12 +122,12 @@ logger.info("### Generate synthetic queries")
 
 
 train_dataset = generate_qa_embedding_pairs(
-    llm=MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
     nodes=train_nodes,
     output_path="train_dataset.json",
 )
 val_dataset = generate_qa_embedding_pairs(
-    llm=MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
     nodes=val_nodes,
     output_path="val_dataset.json",
 )

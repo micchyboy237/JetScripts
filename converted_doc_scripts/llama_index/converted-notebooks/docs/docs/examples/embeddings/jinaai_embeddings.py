@@ -1,5 +1,6 @@
 from IPython.display import Markdown, display
 from PIL import Image
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -222,7 +223,7 @@ documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Project
 logger.info("#### Build index")
 
 your_openai_key = "YOUR_OPENAI_KEY"
-llm = MLX(api_key=your_openai_key)
+llm = MLXLlamaIndexLLMAdapter(api_key=your_openai_key)
 embed_model = JinaEmbedding(
     api_key=jinaai_api_key,
     model="jina-embeddings-v3",

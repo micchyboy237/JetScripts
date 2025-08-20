@@ -7,6 +7,7 @@ from datetime import datetime
 from google import genai
 from google.genai import types
 from google.genai.types import CreateCachedContentConfig, Content, Part
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.bridge.pydantic import BaseModel

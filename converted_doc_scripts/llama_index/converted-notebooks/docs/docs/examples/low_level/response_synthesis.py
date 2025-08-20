@@ -1,6 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from dataclasses import dataclass
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -141,7 +142,7 @@ We first try to synthesize the response using a single input prompt + LLM call.
 logger.info("## Building Response Synthesis with LLMs")
 
 
-llm = MLX(model="text-davinci-003")
+llm = MLXLlamaIndexLLMAdapter(model="text-davinci-003")
 
 qa_prompt = PromptTemplate(
     """\

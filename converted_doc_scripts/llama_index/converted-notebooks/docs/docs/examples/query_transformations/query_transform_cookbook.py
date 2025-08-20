@@ -1,4 +1,5 @@
 from IPython.display import Markdown, display
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -136,7 +137,7 @@ Queries:
 """
 query_gen_prompt = PromptTemplate(query_gen_str)
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 
 def generate_queries(query: str, llm, num_queries: int = 4):
@@ -165,7 +166,7 @@ logger.info("### Query Rewriting (using QueryTransform)")
 
 
 hyde = HyDEQueryTransform(include_original=True)
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 query_bundle = hyde.run("What is Bel?")
 
@@ -186,7 +187,7 @@ We run through an example using the `MLXQuestionGenerator`, which depends on fun
 logger.info("## Sub-Questions")
 
 
-llm = MLX()
+llm = MLXLlamaIndexLLMAdapter()
 question_gen = MLXQuestionGenerator.from_defaults(llm=llm)
 
 display_prompt_dict(question_gen.get_prompts())
@@ -267,7 +268,7 @@ Next we get the output from the model.
 """
 logger.info("Next we get the output from the model.")
 
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 response = llm.chat(input_msgs)
 

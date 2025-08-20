@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -119,7 +120,7 @@ embed_model = TogetherEmbedding(
     model_name="togethercomputer/m2-bert-80M-32k-retrieval", api_key=api_key
 )
 
-llm = MLX(temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 """
 ### Create Document Store 

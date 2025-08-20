@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -101,7 +102,7 @@ else:
 EMBEDDING_MODEL = "mxbai-embed-large"
 GENERATION_MODEL = "qwen3-1.7b-4bit-mini"
 
-llm = MLX(model=GENERATION_MODEL)
+llm = MLXLlamaIndexLLMAdapter(model=GENERATION_MODEL)
 embed_model = MLXEmbedding(model=EMBEDDING_MODEL)
 
 Settings.llm = llm

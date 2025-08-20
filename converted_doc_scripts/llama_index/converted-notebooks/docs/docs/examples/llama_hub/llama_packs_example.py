@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader
@@ -106,7 +107,7 @@ Let's go into `voyage_pack` and create a copy.
 
 1. For demo purposes we'll copy `voyage_pack` into `voyage_pack_copy`.
 2. Go into `voyage_pack_copy/base.py` and look at the `VoyageQueryEnginePack` class definition. This is where all the core logic lives. As you can see the pack class itself is a very light base abstraction. You're free to copy/paste the code as you wish.
-3. Go into the line in the `__init__` where it do `llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")` and instead change it to `llm = Anthropic()` (which defaults to claude-2).
+3. Go into the line in the `__init__` where it do `llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")` and instead change it to `llm = Anthropic()` (which defaults to claude-2).
 # 4. Do `from llama_index.llms import Anthropic` and ensure that `ANTHROPIC_API_KEY` is set in your env variable.
 5. Now you can use!
 

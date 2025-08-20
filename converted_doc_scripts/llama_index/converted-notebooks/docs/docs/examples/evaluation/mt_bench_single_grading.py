@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -72,8 +73,8 @@ evaluator_dataset.to_pandas()[:5]
 logger.info("### Define Our Evaluators")
 
 
-llm_gpt4 = MLX(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
-llm_gpt35 = MLX(temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm_gpt4 = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm_gpt35 = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 llm_gemini = Gemini(model="models/gemini-pro", temperature=0)
 
 

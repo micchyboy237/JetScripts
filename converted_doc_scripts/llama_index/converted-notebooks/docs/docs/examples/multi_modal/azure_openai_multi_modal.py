@@ -1,4 +1,5 @@
 from IPython.display import HTML
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.llms import (
@@ -73,7 +74,7 @@ gave to your model when you deployed it in Azure MLX Studio.
 logger.info("## Initialize `AzureMLX` and Load Images from URLs")
 
 
-azure_openai_llm = AzureMLX(
+azure_openai_llm = AzureMLXLlamaIndexLLMAdapter(
     engine="my-qwen3-1.7b-4bit-mini",
     model="qwen3-1.7b-4bit-mini",
     max_new_tokens=300,
@@ -84,7 +85,7 @@ Alternatively, you can also skip setting environment variables, and pass the par
 """
 logger.info("Alternatively, you can also skip setting environment variables, and pass the parameters in directly via constructor.")
 
-azure_openai_llm = AzureMLX(
+azure_openai_llm = AzureMLXLlamaIndexLLMAdapter(
     azure_endpoint="https://YOUR_URL.openai.azure.com/",
     engine="my-qwen3-1.7b-4bit-mini",
     api_version="2024-02-15-preview",

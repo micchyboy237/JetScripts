@@ -1,4 +1,5 @@
 from IPython.display import Image
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.llms import ChatMessage
@@ -103,7 +104,7 @@ Unlike normal `MLX`, you need to pass a `engine` argument in addition to `model`
 """
 logger.info("Unlike normal `MLX`, you need to pass a `engine` argument in addition to `model`. The `engine` is the name of your model deployment you selected in Azure MLX Studio. See previous section on "find your setup information" for more details.")
 
-llm = AzureMLX(
+llm = AzureMLXLlamaIndexLLMAdapter(
     engine="simon-llm", model="gpt-35-turbo-16k", temperature=0.0
 )
 
@@ -112,7 +113,7 @@ Alternatively, you can also skip setting environment variables, and pass the par
 """
 logger.info("Alternatively, you can also skip setting environment variables, and pass the parameters in directly via constructor.")
 
-llm = AzureMLX(
+llm = AzureMLXLlamaIndexLLMAdapter(
     engine="my-custom-llm",
     model="gpt-35-turbo-16k",
     temperature=0.0,
@@ -158,7 +159,7 @@ Rather than adding same parameters to each chat or completion call, you can set 
 """
 logger.info("Rather than adding same parameters to each chat or completion call, you can set them at a per-instance level with `additional_kwargs`.")
 
-llm = AzureMLX(
+llm = AzureMLXLlamaIndexLLMAdapter(
     engine="simon-llm",
     model="gpt-35-turbo-16k",
     temperature=0.0,

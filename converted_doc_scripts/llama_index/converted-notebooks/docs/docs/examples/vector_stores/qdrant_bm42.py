@@ -1,4 +1,5 @@
 from fastembed import SparseTextEmbedding
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -173,7 +174,7 @@ logger.info("## Test out the Index")
 
 chat_engine = index.as_chat_engine(
     chat_mode="condense_plus_context",
-    llm=MLX(model="qwen3-1.7b-4bit", api_key="sk-proj-..."),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", api_key="sk-proj-..."),
 )
 
 response = chat_engine.chat("What training hardware was used for Llama2?")

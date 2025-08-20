@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -42,7 +43,7 @@ logger.info("# HotpotQADistractor Demo")
 # !pip install llama-index
 
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 embed_model = resolve_embed_model(
     "local:sentence-transformers/all-MiniLM-L6-v2"
 )

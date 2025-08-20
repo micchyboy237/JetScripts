@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -201,7 +202,7 @@ logger.info("Given this prompt template, lets define and index some few-shot tex
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-Settings.llm = MLX(model="qwen3-1.7b-4bit-mini")
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
 Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
 
 example_nodes = [

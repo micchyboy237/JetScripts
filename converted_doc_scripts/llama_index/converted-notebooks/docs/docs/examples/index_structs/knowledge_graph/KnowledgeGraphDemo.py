@@ -1,4 +1,5 @@
 from IPython.display import Markdown, display
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -62,7 +63,7 @@ documents = SimpleDirectoryReader(
     "../../../../examples/paul_graham_essay/data"
 ).load_data()
 
-llm = MLX(temperature=0, model="text-davinci-002")
+llm = MLXLlamaIndexLLMAdapter(temperature=0, model="text-davinci-002")
 Settings.llm = llm
 Settings.chunk_size = 512
 

@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -74,7 +75,7 @@ def send_hello(destination: str, message: str) -> str:
 
 hello_tool = FunctionTool.from_defaults(fn=send_hello, callback=callback)
 
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 agent = FunctionAgent(tools=[hello_tool])
 
 async def run_async_code_29baf944():

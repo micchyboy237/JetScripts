@@ -1,6 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from copy import deepcopy
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -109,7 +110,7 @@ async def aprocess_doc(doc, include_summary: bool = True):
     summary_index = SummaryIndex.from_documents([doc])
     query_str = "Give a one-sentence concise summary of this issue."
     query_engine = summary_index.as_query_engine(
-        service_context=ServiceContext.from_defaults(llm=MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats"))
+        service_context=ServiceContext.from_defaults(llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats"))
     )
     summary_txt = str(query_engine.query(query_str))
 

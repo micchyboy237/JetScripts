@@ -1,4 +1,5 @@
 from dataclasses import fields
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -100,7 +101,7 @@ Let's try this prompt on a set of toy questions and see what the output brings.
 logger.info("Let's try this prompt on a set of toy questions and see what the output brings.")
 
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 def get_formatted_prompt(query_str):
     fmt_prompt = router_prompt0.format(
@@ -401,7 +402,7 @@ router_query_engine = RouterQueryEngine(
     choice_descriptions=choices,
     verbose=True,
     router_prompt=router_prompt1,
-    llm=MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
 )
 
 """

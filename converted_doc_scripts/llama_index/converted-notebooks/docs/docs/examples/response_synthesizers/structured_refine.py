@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -58,7 +59,7 @@ logger.info("## Summarize")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 
 summarizer = get_response_synthesizer(
@@ -106,7 +107,7 @@ In that case, the `Refine` module will automatically switch to using a structure
 """
 logger.info("## Non Function-calling LLMs")
 
-instruct_llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+instruct_llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 
 summarizer = get_response_synthesizer(

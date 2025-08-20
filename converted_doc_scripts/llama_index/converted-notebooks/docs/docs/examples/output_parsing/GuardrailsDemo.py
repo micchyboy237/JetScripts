@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -115,7 +116,7 @@ guard = gd.Guard.from_pydantic(output_class=Explanation, prompt=prompt)
 
 output_parser = GuardrailsOutputParser(guard)
 
-llm = MLX(output_parser=output_parser)
+llm = MLXLlamaIndexLLMAdapter(output_parser=output_parser)
 
 
 fmt_qa_tmpl = output_parser.format(DEFAULT_TEXT_QA_PROMPT_TMPL)

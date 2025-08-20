@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -68,7 +69,7 @@ logger.info("## Default Settings")
 # os.environ["OPENAI_API_KEY"] = "YOUR_API_KEY"
 
 
-Settings.llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
 
 """
@@ -119,7 +120,7 @@ to be used in a production setting without heavy sandboxing or virtual machines.
 """
 logger.info("## Create Pandas Query Engines")
 
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 df_query_engines = [
     PandasQueryEngine(table_df, llm=llm) for table_df in table_dfs

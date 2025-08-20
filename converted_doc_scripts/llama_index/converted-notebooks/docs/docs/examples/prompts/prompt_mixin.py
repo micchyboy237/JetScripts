@@ -1,4 +1,5 @@
 from IPython.display import Markdown, display
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -52,7 +53,7 @@ logger.info("# Accessing/Customizing Prompts within Higher-Level Modules")
 
 
 Settings.embed_model = MLXEmbedding(model_name="mxbai-embed-large")
-Settings.llm = MLX(model="qwen3-1.7b-4bit-mini")
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
 
 """
 ## Setup: Load Data, Build Index, and Get Query Engine

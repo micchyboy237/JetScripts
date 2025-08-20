@@ -1,6 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from google.colab import userdata
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -117,7 +118,7 @@ We can now create an `AgentWorkFlow` that uses the tools that we have imported.
 logger.info("We can now create an `AgentWorkFlow` that uses the tools that we have imported.")
 
 
-llm = MLX(model="qwen3-1.7b-4bit")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 
 workflow = AgentWorkflow.from_tools_or_functions(
     playwright_agent_tool_list

@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -169,7 +170,7 @@ class ReActAgent(Workflow):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.tools = tools or []
-        self.llm = llm or MLX()
+        self.llm = llm or MLXLlamaIndexLLMAdapter()
         self.formatter = ReActChatFormatter.from_defaults(
             context=extra_context or ""
         )
@@ -436,7 +437,7 @@ tools = [
 ]
 
 agent = ReActAgent(
-    llm=MLX(model="qwen3-1.7b-4bit"), tools=tools, timeout=120, verbose=True
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"), tools=tools, timeout=120, verbose=True
 )
 
 async def run_async_code_e75b1b7f():
@@ -503,7 +504,7 @@ We can also access the streaming response from the LLM, using the `handler` obje
 logger.info("## Streaming")
 
 agent = ReActAgent(
-    llm=MLX(model="qwen3-1.7b-4bit"), tools=tools, timeout=120, verbose=False
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"), tools=tools, timeout=120, verbose=False
 )
 
 handler = agent.run(input="Hello! Tell me a joke.")

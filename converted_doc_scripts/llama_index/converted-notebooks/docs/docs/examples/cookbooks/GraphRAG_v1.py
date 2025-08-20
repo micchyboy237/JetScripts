@@ -2,6 +2,7 @@ import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import Markdown, display
 from graspologic.partition import hierarchical_leiden
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -150,7 +151,7 @@ logger.info("## Setup API Key and LLM")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 """
 ## GraphRAGExtractor
@@ -389,7 +390,7 @@ class GraphRAGStore(SimplePropertyGraphStore):
             ),
             ChatMessage(role="user", content=text),
         ]
-        response = MLX().chat(messages)
+        response = MLXLlamaIndexLLMAdapter().chat(messages)
         clean_response = re.sub(r"^assistant:\s*", "", str(response)).strip()
         return clean_response
 

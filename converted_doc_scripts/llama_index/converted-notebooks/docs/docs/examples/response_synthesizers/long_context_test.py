@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -112,7 +113,7 @@ logger.info("### Define Experiment Loop")
 async def run_experiments(
     doc, position_percentiles, context_str, query, llm, response_mode="compact"
 ):
-    eval_llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    eval_llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
     correctness_evaluator = CorrectnessEvaluator(llm=eval_llm)
     eval_scores = {}
@@ -143,7 +144,7 @@ async def run_experiments(
 
 position_percentiles = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 async def async_func_36():
     eval_scores_gpt4 = await run_experiments(
@@ -158,7 +159,7 @@ async def async_func_36():
 eval_scores_gpt4 = asyncio.run(async_func_36())
 logger.success(format_json(eval_scores_gpt4))
 
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 async def async_func_46():
     eval_scores_gpt4_ts = await run_experiments(
         [uber_doc],

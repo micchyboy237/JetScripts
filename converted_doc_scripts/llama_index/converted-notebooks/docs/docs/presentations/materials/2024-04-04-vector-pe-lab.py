@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -65,7 +66,7 @@ logger.info("#### Notebook Setup & Dependency Installation")
 logger.info("## Motivation")
 
 
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 response = llm.complete("What is Vector Institute all about?")
 
@@ -257,7 +258,7 @@ Provide the names sponsor companies according to their tiers.
 program = MLXPydanticProgram.from_defaults(
     output_cls=VectorSponsors,
     prompt_template_str=prompt_template_str,
-    llm=MLX("gpt-4-turbo-preview"),
+    llm=MLXLlamaIndexLLMAdapter("gpt-4-turbo-preview"),
     verbose=True,
 )
 

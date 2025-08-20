@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Settings
@@ -61,7 +62,7 @@ api_key = "<api-key>"
 azure_endpoint = "https://<your-resource-name>.openai.azure.com/"
 api_version = "2023-07-01-preview"
 
-llm = AzureMLX(
+llm = AzureMLXLlamaIndexLLMAdapter(
     model="gpt-35-turbo-16k",
     deployment_name="my-custom-llm",
     api_key=api_key,

@@ -2,6 +2,7 @@ from IPython.display import Markdown, display
 from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import (
@@ -78,7 +79,7 @@ logger.info("## Setup Azure MLX")
 aoai_endpoint = "YOUR_AZURE_OPENAI_ENDPOINT"
 aoai_api_version = "2024-10-21"
 
-llm = AzureMLX(
+llm = AzureMLXLlamaIndexLLMAdapter(
     model="YOUR_AZURE_OPENAI_COMPLETION_MODEL_NAME",
     deployment_name="YOUR_AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME",
     api_key=aoai_api_key,

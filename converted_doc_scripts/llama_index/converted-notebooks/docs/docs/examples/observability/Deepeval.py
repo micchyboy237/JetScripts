@@ -2,6 +2,7 @@ import asyncio
 from jet.transformers.formatters import format_json
 from deepeval.integrations.llama_index import FunctionAgent
 from deepeval.integrations.llama_index import instrument_llama_index
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -79,7 +80,7 @@ def multiply(a: float, b: float) -> float:
 
 agent = FunctionAgent(
     tools=[multiply],
-    llm=MLX(model="qwen3-1.7b-4bit-mini"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"),
     system_prompt="You are a helpful assistant that can perform calculations.",
 )
 
@@ -129,7 +130,7 @@ def multiply(a: float, b: float) -> float:
 
 agent = FunctionAgent(
     tools=[multiply],
-    llm=MLX(model="qwen3-1.7b-4bit-mini"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"),
     system_prompt="You are a helpful assistant that can perform calculations.",
     metric_collection="test_collection_1",
 )

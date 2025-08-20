@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -65,7 +66,7 @@ logger.info("## Global Models")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-Settings.llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.2)
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.2)
 Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
 
 """
@@ -160,7 +161,7 @@ logger.debug(str(response))
 """
 #### LLMSingleSelector
 
-Use MLX(or any other LLM) to parse generated JSON under the hood to select a sub-index for routing.
+Use MLXLlamaIndexLLMAdapter(or any other LLM) to parse generated JSON under the hood to select a sub-index for routing.
 """
 logger.info("#### LLMSingleSelector")
 

@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from langchain.agents import initialize_agent
@@ -97,7 +98,7 @@ Note that we need to use Structured Tools from LangChain.
 logger.info("### Initialize LangChain Agent")
 
 
-llm = ChatMLX(temperature=0, model_name="gpt-3.5-turbo", streaming=True)
+llm = ChatMLXLlamaIndexLLMAdapter(temperature=0, model_name="gpt-3.5-turbo", streaming=True)
 
 agent = initialize_agent(
     [lc_tool],

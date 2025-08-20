@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -81,7 +82,7 @@ logger.info("## Setup Vector Index over this Data")
 
 
 
-Settings.llm = MLX(model="qwen3-1.7b-4bit-mini")
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
 Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
 
 

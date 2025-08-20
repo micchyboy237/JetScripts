@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -276,7 +277,7 @@ def split_spoken_visual_query(query):
     Divide the following query into two distinct parts: one for spoken content and one for visual content. The spoken content should refer to any narration, dialogue, or verbal explanations and The visual content should refer to any images, videos, or graphical representations. Format the response strictly as:\nSpoken: <spoken_query>\nVisual: <visual_query>\n\nQuery: {query}
     """
     prompt = transformation_prompt.format(query=query)
-    response = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats").complete(prompt)
+    response = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats").complete(prompt)
     divided_query = response.text.strip().split("\n")
     spoken_query = divided_query[0].replace("Spoken:", "").strip()
     scene_query = divided_query[1].replace("Visual:", "").strip()

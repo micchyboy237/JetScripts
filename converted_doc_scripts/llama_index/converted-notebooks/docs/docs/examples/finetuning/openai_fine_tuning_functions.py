@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -104,7 +105,7 @@ class Album(BaseModel):
 finetuning_handler = MLXFineTuningHandler()
 callback_manager = CallbackManager([finetuning_handler])
 
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", callback_manager=callback_manager)
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", callback_manager=callback_manager)
 
 
 prompt_template_str = """\
@@ -258,17 +259,17 @@ callback_manager = CallbackManager([finetuning_handler])
 
 Settings.chunk_size = chunk_size
 
-gpt_4_llm = MLX(
+gpt_4_llm = MLXLlamaIndexLLMAdapter(
     model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3, callback_manager=callback_manager
 )
 
-gpt_35_llm = MLX(
+gpt_35_llm = MLXLlamaIndexLLMAdapter(
     model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
     temperature=0.3,
     callback_manager=callback_manager,
 )
 
-eval_llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0)
+eval_llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0)
 
 """
 ### Generate Dataset

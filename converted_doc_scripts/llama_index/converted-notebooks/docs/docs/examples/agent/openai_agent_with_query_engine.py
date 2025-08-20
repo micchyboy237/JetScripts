@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -48,7 +49,7 @@ logger.info("# Agent with Query Engine Tools")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-Settings.llm = MLX(model="qwen3-1.7b-4bit-mini")
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
 Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
 
 
@@ -124,7 +125,7 @@ For other LLMs, we can use the `ReActAgent`.
 logger.info("## Setup Agent")
 
 
-agent = FunctionAgent(tools=query_engine_tools, llm=MLX(model="qwen3-1.7b-4bit"))
+agent = FunctionAgent(tools=query_engine_tools, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"))
 
 ctx = Context(agent)
 

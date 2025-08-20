@@ -1,6 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from collections import defaultdict
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -98,7 +99,7 @@ node_parser = SentenceWindowNodeParser.from_defaults(
 
 text_splitter = SentenceSplitter()
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.1)
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.1)
 embed_model = HuggingFaceEmbedding(
     model_name="sentence-transformers/all-mpnet-base-v2", max_length=512
 )
@@ -261,7 +262,7 @@ num_nodes_eval = 30
 sample_eval_nodes = random.sample(base_nodes[:200], num_nodes_eval)
 dataset_generator = DatasetGenerator(
     sample_eval_nodes,
-    llm=MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
     show_progress=True,
     num_questions_per_chunk=2,
 )
@@ -292,10 +293,10 @@ logger.info("### Compare Results")
 
 
 
-evaluator_c = CorrectnessEvaluator(llm=MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"))
+evaluator_c = CorrectnessEvaluator(llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"))
 evaluator_s = SemanticSimilarityEvaluator()
-evaluator_r = RelevancyEvaluator(llm=MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"))
-evaluator_f = FaithfulnessEvaluator(llm=MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"))
+evaluator_r = RelevancyEvaluator(llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"))
+evaluator_f = FaithfulnessEvaluator(llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"))
 
 
 max_samples = 30

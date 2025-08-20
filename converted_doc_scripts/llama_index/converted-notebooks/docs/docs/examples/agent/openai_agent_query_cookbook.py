@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -110,7 +111,7 @@ os.environ["PINECONE_API_KEY"] = "..."
 # os.environ["OPENAI_API_KEY"] = "..."
 
 
-Settings.llm = MLX(model="qwen3-1.7b-4bit-mini")
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
 Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
 
 
@@ -337,7 +338,7 @@ logger.info("#### Initialize Agent")
 
 agent = FunctionAgent(
     tools=[auto_retrieve_tool],
-    llm=MLX(model="qwen3-1.7b-4bit"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"),
     system_prompt=(
         "You are a helpful assistant that can answer questions about celebrities by writing a filtered query to a vector database. "
         "Unless the user is asking to compare things, you generally only need to make one call to the retriever."
@@ -488,7 +489,7 @@ index = pc.Index("quickstart-sql")
 index.delete(deleteAll=True)
 
 
-Settings.llm = MLX(temperature=0, model="qwen3-1.7b-4bit-mini")
+Settings.llm = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit-mini")
 Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
 Settings.node_parser = TokenTextSplitter(chunk_size=1024)
 
@@ -553,7 +554,7 @@ logger.info("#### Initialize Agent")
 
 agent = FunctionAgent(
     tools=[sql_tool, vector_tool],
-    llm=MLX(model="qwen3-1.7b-4bit"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"),
 )
 
 ctx = Context(agent)

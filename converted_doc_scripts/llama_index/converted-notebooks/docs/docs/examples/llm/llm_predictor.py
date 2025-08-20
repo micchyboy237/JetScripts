@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -46,7 +47,7 @@ logger.info("# LLM Predictor")
 logger.info("## LangChain LLM")
 
 
-llm = LangChainLLM(ChatMLX())
+llm = LangChainLLM(ChatMLXLlamaIndexLLMAdapter())
 
 async def run_async_code_285ba199():
     async def run_async_code_64abf00b():
@@ -75,7 +76,7 @@ for token in stream:
 logger.info("## MLX LLM")
 
 
-llm = MLX()
+llm = MLXLlamaIndexLLMAdapter()
 
 async def run_async_code_13458201():
     async def run_async_code_bcef382e():

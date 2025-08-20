@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -216,7 +217,7 @@ vector_auto_retriever = VectorIndexAutoRetriever(
 )
 
 retriever_query_engine = RetrieverQueryEngine.from_args(
-    vector_auto_retriever, llm=MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    vector_auto_retriever, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 )
 
 
@@ -242,7 +243,7 @@ logger.info("### Define SQLAutoVectorQueryEngine")
 
 
 query_engine = SQLAutoVectorQueryEngine(
-    sql_tool, vector_tool, llm=MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    sql_tool, vector_tool, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 )
 
 response = query_engine.query(

@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -79,7 +80,7 @@ To construct a `DiffPrivateSimpleDatasetPack` object, we need to supply:
 """
 logger.info("### InstantiatePack")
 
-llm = MLX(
+llm = MLXLlamaIndexLLMAdapter(
     model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
     max_tokens=1,
     logprobs=True,

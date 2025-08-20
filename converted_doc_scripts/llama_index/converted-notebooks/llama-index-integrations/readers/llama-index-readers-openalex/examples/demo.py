@@ -1,4 +1,5 @@
 from IPython.display import Markdown
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_hub.openalex import OpenAlexReader
@@ -36,7 +37,7 @@ query = "biases in large language models"
 
 works = openalex_reader.load_data(query, full_text=False)
 service_context = ServiceContext.from_defaults(
-    llm=MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0)
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0)
 )
 index = VectorStoreIndex.from_documents(works, service_context=service_context)
 

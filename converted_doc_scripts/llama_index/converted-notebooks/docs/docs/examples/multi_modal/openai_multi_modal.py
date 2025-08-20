@@ -2,6 +2,7 @@ import asyncio
 from jet.transformers.formatters import format_json
 from PIL import Image
 from io import BytesIO
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -74,7 +75,7 @@ image_urls = [
     "https://i2-prod.mirror.co.uk/incoming/article7160664.ece/ALTERNATES/s1200d/FIFA-Ballon-dOr-Gala-2015.jpg",
 ]
 
-openai_llm = MLX(model="qwen3-1.7b-4bit", max_new_tokens=300)
+openai_llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", max_new_tokens=300)
 
 
 img_response = requests.get(image_urls[0])

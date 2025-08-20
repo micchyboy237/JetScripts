@@ -2,6 +2,7 @@ import asyncio
 from jet.transformers.formatters import format_json
 from datasets import load_dataset
 from huggingface_hub import notebook_login
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -501,7 +502,7 @@ logger.info("### Baseline Evaluation")
 # os.environ["OPENAI_API_KEY"] = "sk-"
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 
-gpt4 = MLX(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+gpt4 = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 evaluator_gpt4_pairwise = PairwiseComparisonEvaluator(llm=gpt4)
 
@@ -599,7 +600,7 @@ rerank = SentenceTransformerRerank(
     model="cross-encoder/ms-marco-MiniLM-L-12-v2", top_n=3
 )
 
-gpt4 = MLX(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+gpt4 = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 evaluator_gpt4_pairwise = PairwiseComparisonEvaluator(llm=gpt4)
 
@@ -700,7 +701,7 @@ rerank = SentenceTransformerRerank(
 )
 
 
-gpt4 = MLX(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+gpt4 = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 evaluator_gpt4_pairwise = PairwiseComparisonEvaluator(llm=gpt4)
 

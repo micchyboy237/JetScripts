@@ -1,4 +1,5 @@
 from azure.cosmos import CosmosClient, PartitionKey
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -56,7 +57,7 @@ The first step is to configure the llm and the embeddings model. These models wi
 """
 logger.info("# Setup Azure MLX")
 
-llm = AzureMLX(
+llm = AzureMLXLlamaIndexLLMAdapter(
     model="AZURE_OPENAI_MODEL",
     deployment_name="AZURE_OPENAI_DEPLOYMENT_NAME",
     azure_endpoint="AZURE_OPENAI_BASE",

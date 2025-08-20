@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -69,7 +70,7 @@ logger.info("## Workflow basics")
 class MLXGenerator(Workflow):
     @step
     async def generate(self, ev: StartEvent) -> StopEvent:
-        llm = MLX(model="qwen3-1.7b-4bit")
+        llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
         async def run_async_code_1d3fbc16():
             async def run_async_code_904d8add():
                 response = llm.complete(ev.query)

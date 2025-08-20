@@ -1,4 +1,5 @@
 from guidance.llms import MLX as GuidanceMLX
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import QueryBundle
@@ -52,7 +53,7 @@ logger.info("# Guidance for Sub-Question Query Engine")
 
 
 question_gen = GuidanceQuestionGenerator.from_defaults(
-    guidance_llm=GuidanceMLX("text-davinci-003"), verbose=False
+    guidance_llm=GuidanceMLXLlamaIndexLLMAdapter("text-davinci-003"), verbose=False
 )
 
 """

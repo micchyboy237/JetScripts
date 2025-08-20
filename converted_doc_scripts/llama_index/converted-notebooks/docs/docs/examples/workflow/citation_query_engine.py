@@ -1,6 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import Markdown, display
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -272,7 +273,7 @@ class CitationQueryEngineWorkflow(Workflow):
         self, ctx: Context, ev: CreateCitationsEvent
     ) -> StopEvent:
         """Return a streaming response using the retrieved nodes."""
-        llm = MLX(model="qwen3-1.7b-4bit-mini")
+        llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
         async def run_async_code_a66b93bf():
             async def run_async_code_7e418399():
                 query = await ctx.store.get("query", default=None)

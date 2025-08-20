@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -51,7 +52,7 @@ class JokeEvent(Event):
 
 
 class JokeFlow(Workflow):
-    llm = MLX(api_key=api_key)
+    llm = MLXLlamaIndexLLMAdapter(api_key=api_key)
 
     @step
     async def generate_joke(self, ev: StartEvent) -> JokeEvent:

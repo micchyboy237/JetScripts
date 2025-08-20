@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -151,7 +152,7 @@ With all that out of the way, let's spring into action. First, we will download 
 logger.info("With all that out of the way, let's spring into action. First, we will download the reference pdf document and create the set of questions against it.")
 
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3)
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3)
 
 
 train_dataset_generator = DatasetGenerator.from_documents(
@@ -290,7 +291,7 @@ main_finetuning_handler = MLXFineTuningHandler()
 callback_manager = CallbackManager([main_finetuning_handler])
 Settings.callback_manager = callback_manager
 
-llm_4 = MLX(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", callback_manager=callback_manager)
+llm_4 = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", callback_manager=callback_manager)
 
 gpt4_judge = PairwiseComparisonEvaluator(llm=llm_4)
 
@@ -473,7 +474,7 @@ for data_entry in tqdm.tqdm(test_dataset):
     judgement["source"] = final_eval_result.pairwise_source
     data_entry["evaluations"] += [judgement]
 
-gpt_3p5_llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+gpt_3p5_llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 gpt_3p5_judge = PairwiseComparisonEvaluator(llm=gpt_3p5_llm)
 

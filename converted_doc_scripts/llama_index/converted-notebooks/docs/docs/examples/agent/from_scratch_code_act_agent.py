@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -245,7 +246,7 @@ class CodeActAgent(Workflow):
         super().__init__(**workflow_kwargs)
         self.fns = fns or []
         self.code_execute_fn = code_execute_fn
-        self.llm = llm or MLX(model="qwen3-1.7b-4bit-mini")
+        self.llm = llm or MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
 
         self.fn_str = "\n\n".join(
             f'def {fn.__name__}{str(inspect.signature(fn))}:\n    """ {fn.__doc__} """\n    ...'
@@ -375,7 +376,7 @@ logger.info("## Testing the CodeAct Agent")
 agent = CodeActAgent(
     fns=[add, subtract, multiply, divide],
     code_execute_fn=code_executor.execute,
-    llm=MLX(model="qwen3-1.7b-4bit-mini", api_key="sk-..."),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini", api_key="sk-..."),
 )
 
 ctx = Context(agent)

@@ -8,6 +8,7 @@ from aimon_llamaindex.evaluators import GuidelineEvaluator
 from aimon_llamaindex.evaluators import HallucinationEvaluator
 from datasets import load_dataset
 from google.colab import userdata
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -151,7 +152,7 @@ Configure the Large Language Model. Here we choose MLX's `qwen3-1.7b-4bit-mini` 
 logger.info("## Building the LLM Application")
 
 
-llm = MLX(
+llm = MLXLlamaIndexLLMAdapter(
     model="qwen3-1.7b-4bit-mini",
     temperature=0.4,
     system_prompt="""

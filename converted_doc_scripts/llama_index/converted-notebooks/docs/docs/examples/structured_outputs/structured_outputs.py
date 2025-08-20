@@ -2,6 +2,7 @@ import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import clear_output
 from copy import deepcopy
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -56,7 +57,7 @@ logger.info("# Examples of Structured Data Extraction in LlamaIndex")
 # nest_asyncio.apply()
 
 
-llm = MLX(model="qwen3-1.7b-4bit")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 embed_model = MLXEmbedding(model="mxbai-embed-large")
 Settings.llm = llm
 Settings.embed_model = embed_model
@@ -169,7 +170,7 @@ chat_prompt_tmpl = ChatPromptTemplate(
     ]
 )
 
-llm = MLX(model="qwen3-1.7b-4bit")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 album = llm.structured_predict(
     Album, chat_prompt_tmpl, movie_name="Lord of the Rings"
 )

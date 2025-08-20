@@ -1,4 +1,5 @@
 from dataclasses import fields
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR

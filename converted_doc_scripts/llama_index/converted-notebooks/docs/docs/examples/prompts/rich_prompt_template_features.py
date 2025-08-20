@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -92,7 +93,7 @@ logger.info("## Prompts with Images and Audio")
 # !wget https://cdn.pixabay.com/photo/2016/07/07/16/46/dice-1502706_640.jpg -O image.png
 
 
-llm = MLX(model="qwen3-1.7b-4bit-mini", api_key="sk-...")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini", api_key="sk-...")
 
 prompt = RichPromptTemplate(
     """
@@ -120,7 +121,7 @@ Describe the following audio:
 )
 messages = prompt.format_messages(audio_path="./audio.wav")
 
-llm = MLX(model="qwen3-1.7b-4bit-audio-preview", api_key="sk-...")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-audio-preview", api_key="sk-...")
 response = llm.chat(messages)
 logger.debug(response.message.content)
 

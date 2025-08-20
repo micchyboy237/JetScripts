@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -82,7 +83,7 @@ NOTE: You should be using a *local* LLM model for PII masking. The example shown
 logger.info("### Option 2: Use LLM for PII Masking")
 
 
-processor = PIINodePostprocessor(llm=MLX())
+processor = PIINodePostprocessor(llm=MLXLlamaIndexLLMAdapter())
 
 
 new_nodes = processor.postprocess_nodes([NodeWithScore(node=node)])

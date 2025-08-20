@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -78,7 +79,7 @@ raptor_pack = RaptorPack(
     embed_model=MLXEmbedding(
         model="mxbai-embed-large"
     ),  # used for embedding clusters
-    llm=MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.1),  # used for generating summaries
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.1),  # used for generating summaries
     vector_store=vector_store,  # used for storage
     similarity_top_k=2,  # top k for each layer, or overall top-k for collapsed
     mode="collapsed",  # sets default mode
@@ -115,7 +116,7 @@ retriever = RaptorRetriever(
     embed_model=MLXEmbedding(
         model="mxbai-embed-large"
     ),  # used for embedding clusters
-    llm=MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.1),  # used for generating summaries
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.1),  # used for generating summaries
     vector_store=vector_store,  # used for storage
     similarity_top_k=2,  # top k for each layer, or overall top-k for collapsed
     mode="tree_traversal",  # sets default mode
@@ -128,7 +129,7 @@ logger.info("## Query Engine")
 
 
 query_engine = RetrieverQueryEngine.from_args(
-    retriever, llm=MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.1)
+    retriever, llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.1)
 )
 
 response = query_engine.query("What baselines was RAPTOR compared against?")

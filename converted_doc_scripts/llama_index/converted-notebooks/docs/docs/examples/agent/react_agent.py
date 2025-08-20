@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -69,7 +70,7 @@ def add(a: int, b: int) -> int:
 logger.info("## Run Some Queries")
 
 
-llm = MLX(model="qwen3-1.7b-4bit-mini")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
 agent = ReActAgent(tools=[multiply, add], llm=llm)
 
 ctx = Context(agent)

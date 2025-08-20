@@ -1,4 +1,5 @@
 from IPython.display import Markdown, display
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -107,7 +108,7 @@ We first define our `SQLDatabase` abstraction (a light wrapper around SQLAlchemy
 logger.info("### Define SQL Database")
 
 
-llm = MLX(temperature=0.1, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(temperature=0.1, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 sql_database = SQLDatabase(engine, include_tables=["city_stats"])
 

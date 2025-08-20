@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -58,7 +59,7 @@ In this example, we will use `MLX` as our LLM. For all LLMs, check out the [exam
 logger.info("## Setup")
 
 
-llm = MLX(model="qwen3-1.7b-4bit-mini", api_key="sk-...")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini", api_key="sk-...")
 
 """
 To make our agent more useful, we can give it tools/actions to use. In this case, we'll use Tavily to implement a tool that can search the web for information. You can get a free API key from [Tavily](https://tavily.com/).

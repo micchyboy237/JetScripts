@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -148,7 +149,7 @@ logger.info("### Using the Search and Retrieve documents tools in an Agent")
 
 agent = FunctionAgent(
     tools=exa_tool_list,
-    llm=MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
 )
 
 async def run_async_code_6efac94f():
@@ -180,7 +181,7 @@ tools = exa_tool.to_tool_list(
 
 agent = FunctionAgent(
     tools=tools,
-    llm=MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
 )
 
 async def run_async_code_98fa2491():
@@ -226,7 +227,7 @@ logger.info("## Creating the Agent")
 
 agent = FunctionAgent(
     tools=[*wrapped_retrieve.to_tool_list(), date_tool],
-    llm=MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
 )
 
 logger.debug(

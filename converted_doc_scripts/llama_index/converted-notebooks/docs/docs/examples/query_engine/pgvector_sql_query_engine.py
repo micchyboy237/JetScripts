@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -214,7 +215,7 @@ logger.info("### Setup LLM, Embedding Model, and Misc.")
 
 sql_database = SQLDatabase(engine, include_tables=["sec_text_chunk"])
 
-Settings.llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 Settings.embed_model = embed_model
 
 

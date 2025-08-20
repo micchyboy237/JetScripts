@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -104,7 +105,7 @@ for wiki_title in wiki_titles:
 logger.info("### Parse Data")
 
 
-Settings.llm = MLX(temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+Settings.llm = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 Settings.chunk_size = 512
 
 city_nodes = {}
@@ -152,7 +153,7 @@ In this example, we use this program to parse gold medal counts.
 """
 logger.info("## Use `MultiValueEvaporateProgram`")
 
-Settings.llm = MLX(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+Settings.llm = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 Settings.chunk_size = 1024
 Settings.chunk_overlap = 0
 

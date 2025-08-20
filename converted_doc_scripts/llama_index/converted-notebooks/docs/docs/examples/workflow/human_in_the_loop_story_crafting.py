@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -105,7 +106,7 @@ closing PLOT. Since it is a closing plot, DO NOT GENERATE a new set of actions.
 Use the provided data model to structure your output.
 """
 
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 segment = llm.structured_predict(
     Segment,
     PromptTemplate(SEGMENT_GENERATION_TEMPLATE),
@@ -165,7 +166,7 @@ class HumanChoiceEvent(Event):
 class ChooseYourOwnAdventureWorkflow(Workflow):
     def __init__(self, max_steps: int = 3, **kwargs):
         super().__init__(**kwargs)
-        self.llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+        self.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
         self.max_steps = max_steps
 
     @step

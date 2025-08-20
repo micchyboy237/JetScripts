@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -68,7 +69,7 @@ def create_agent(
     tool_spec = FinanceAgentToolSpec(
         polygon_api_key, finnhub_api_key, alpha_vantage_api_key, newsapi_api_key
     )
-    llm = MLX(temperature=0, model=GPT_MODEL_NAME, api_key=openai_api_key)
+    llm = MLXLlamaIndexLLMAdapter(temperature=0, model=GPT_MODEL_NAME, api_key=openai_api_key)
     return FunctionAgent(
         tools=tool_spec.to_tool_list(),
         llm=llm,

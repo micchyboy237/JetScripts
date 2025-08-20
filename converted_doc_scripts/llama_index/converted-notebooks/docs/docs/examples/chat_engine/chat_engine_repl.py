@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -54,7 +55,7 @@ Use ChatGPT ("gpt-3.5-turbo")
 logger.info("### Customize LLM")
 
 
-llm = MLX(temperature=0.0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(temperature=0.0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 
 chat_engine = SimpleChatEngine.from_defaults(llm=llm)
@@ -66,7 +67,7 @@ chat_engine.chat_repl()
 logger.info("## Streaming Support")
 
 
-llm = MLX(temperature=0.0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(temperature=0.0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 
 chat_engine = SimpleChatEngine.from_defaults(llm=llm)

@@ -1,5 +1,6 @@
 from datasets import load_dataset
 from google.colab import userdata
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -65,7 +66,7 @@ dataset_df.head(5)
 
 
 embed_model = MLXEmbedding(model="mxbai-embed-large", dimensions=256)
-llm = MLX()
+llm = MLXLlamaIndexLLMAdapter()
 
 Settings.llm = llm
 Settings.embed_model = embed_model

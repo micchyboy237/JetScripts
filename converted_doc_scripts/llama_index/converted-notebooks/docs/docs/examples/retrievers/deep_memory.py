@@ -1,6 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from bs4 import BeautifulSoup
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -142,7 +143,7 @@ def create_modules(vector_store, docs=[], populate_vector_store=True):
     for idx, node in enumerate(nodes):
         node.id_ = f"node_{idx}"
 
-    llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     return storage_context, nodes, llm
 

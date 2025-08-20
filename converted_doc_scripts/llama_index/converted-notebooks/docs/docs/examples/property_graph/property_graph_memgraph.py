@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -123,7 +124,7 @@ index = PropertyGraphIndex.from_documents(
     embed_model=MLXEmbedding(model_name="text-embedding-ada-002"),
     kg_extractors=[
         SchemaLLMPathExtractor(
-            llm=MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.0)
+            llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.0)
         )
     ],
     property_graph_store=graph_store,
@@ -176,7 +177,7 @@ If you have an existing graph (either created with LlamaIndex or otherwise), we 
 """
 logger.info("## Loading from an existing graph")
 
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.0)
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.0)
 kg_extractors = [SchemaLLMPathExtractor(llm=llm)]
 
 index = PropertyGraphIndex.from_existing(

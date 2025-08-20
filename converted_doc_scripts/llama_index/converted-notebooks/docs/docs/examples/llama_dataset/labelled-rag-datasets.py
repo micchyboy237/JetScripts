@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -152,7 +153,7 @@ The `RagDatasetGenerator` can be built over a set of documents to generate `Labe
 logger.info("The `RagDatasetGenerator` can be built over a set of documents to generate `LabelledRagDataExample`'s.")
 
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3)
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3)
 
 dataset_generator = RagDatasetGenerator.from_documents(
     documents,

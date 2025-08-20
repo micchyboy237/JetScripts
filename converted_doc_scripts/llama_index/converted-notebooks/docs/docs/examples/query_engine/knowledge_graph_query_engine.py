@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -76,7 +77,7 @@ logging.basicConfig(
 
 
 
-Settings.llm = MLX(temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+Settings.llm = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 Settings.chunk_size = 512
 
 """
@@ -89,7 +90,7 @@ api_key = "<api-key>"
 azure_endpoint = "https://<your-resource-name>.openai.azure.com/"
 api_version = "2023-07-01-preview"
 
-llm = AzureMLX(
+llm = AzureMLXLlamaIndexLLMAdapter(
     model="gpt-35-turbo-16k",
     deployment_name="my-custom-llm",
     api_key=api_key,

@@ -1,5 +1,6 @@
 from IPython.display import Markdown, display
 from PIL import Image
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -119,7 +120,7 @@ documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Project
 """
 logger.info("### With `int8` embedding_type")
 
-llm = MLX(
+llm = MLXLlamaIndexLLMAdapter(
     model="command-nightly",
 #     api_key="<YOUR_OPENAI_API_KEY>",
 )

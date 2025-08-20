@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -54,7 +55,7 @@ logger.info("# MLX Agent Workarounds for Lengthy Tool Descriptions")
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-llm = MLX(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 """
 ## Download Data
@@ -217,7 +218,7 @@ logger.info("Second, we must concatenate our tool names and descriptions alongsi
 
 agent = FunctionAgent(
     tools=[query_plan_tool],
-    llm=MLX(temperature=0, model="qwen3-1.7b-4bit"),
+    llm=MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit"),
 )
 
 query = "What were the risk factors in sept 2022?"

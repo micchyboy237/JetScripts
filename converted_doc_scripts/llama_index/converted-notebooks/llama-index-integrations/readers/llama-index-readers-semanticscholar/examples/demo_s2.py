@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_hub.semanticscholar.base import SemanticScholarReader
@@ -41,7 +42,7 @@ s2reader = SemanticScholarReader()
 
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 service_context = ServiceContext.from_defaults(
-    llm=MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0)
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0)
 )
 
 query_space = "large language models"

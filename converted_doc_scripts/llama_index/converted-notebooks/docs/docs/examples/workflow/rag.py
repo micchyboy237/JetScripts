@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -195,7 +196,7 @@ class RAGWorkflow(Workflow):
     @step
     async def rerank(self, ctx: Context, ev: RetrieverEvent) -> RerankEvent:
         ranker = LLMRerank(
-            choice_batch_size=5, top_n=3, llm=MLX(model="qwen3-1.7b-4bit-mini")
+            choice_batch_size=5, top_n=3, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
         )
         async def run_async_code_2e7c416d():
             logger.debug(await ctx.store.get("query", default=None), flush=True)
@@ -215,7 +216,7 @@ class RAGWorkflow(Workflow):
     @step
     async def synthesize(self, ctx: Context, ev: RerankEvent) -> StopEvent:
         """Return a streaming response using reranked nodes."""
-        llm = MLX(model="qwen3-1.7b-4bit-mini")
+        llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
         summarizer = CompactAndRefine(llm=llm, streaming=True, verbose=True)
         async def run_async_code_a66b93bf():
             async def run_async_code_7e418399():

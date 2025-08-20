@@ -1,6 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import display, HTML
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import (
@@ -197,7 +198,7 @@ display(HTML(f'<p style="font-size:20px">{response.response}</p>'))
 """
 ### LLMSingleSelector
 
-Utilize MLX(or another LLM) to internally interpret the generated JSON and determine a sub-index for routing.
+Utilize MLXLlamaIndexLLMAdapter(or another LLM) to internally interpret the generated JSON and determine a sub-index for routing.
 """
 logger.info("### LLMSingleSelector")
 

@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -63,7 +64,7 @@ logger.info("# How to Build a Chatbot")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-Settings.llm = MLX(model="qwen3-1.7b-4bit-mini")
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
 Settings.embed_model = MLXEmbedding(model_name="text-embedding-3-large")
 Settings.chunk_size = 512
 Settings.chunk_overlap = 64
@@ -207,7 +208,7 @@ Finally, we call `FunctionAgent` to create the agent, passing in the list of too
 logger.info("Finally, we call `FunctionAgent` to create the agent, passing in the list of tools we defined above.")
 
 
-agent = FunctionAgent(tools=tools, llm=MLX(model="qwen3-1.7b-4bit"))
+agent = FunctionAgent(tools=tools, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"))
 
 """
 ### Testing the Agent
@@ -275,7 +276,7 @@ Now that we have the chatbot setup, it only takes a few more steps to setup a ba
 """
 logger.info("### Setting up the Chatbot Loop")
 
-agent = FunctionAgent(tools=tools, llm=MLX(model="qwen3-1.7b-4bit"))
+agent = FunctionAgent(tools=tools, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"))
 ctx = Context(agent)
 
 while True:

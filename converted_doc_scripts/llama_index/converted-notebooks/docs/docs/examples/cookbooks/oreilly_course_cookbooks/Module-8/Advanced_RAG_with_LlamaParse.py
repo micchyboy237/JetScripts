@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -76,7 +77,7 @@ logger.info("#### Setting LLM and Embedding Model")
 
 
 embed_model = MLXEmbedding(model="mxbai-embed-large")
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 Settings.llm = llm
 Settings.embed_model = embed_model
@@ -100,7 +101,7 @@ logger.debug(documents[0].text[:1000] + "...")
 
 
 node_parser = MarkdownElementNodeParser(
-    llm=MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats"), num_workers=8
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats"), num_workers=8
 )
 
 nodes = node_parser.get_nodes_from_documents(documents)

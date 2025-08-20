@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -147,7 +148,7 @@ logger.info("Define Global LLM + Embeddings")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-llm = MLX(model="qwen3-1.7b-4bit")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 Settings.llm = llm
 Settings.embed_model = MLXEmbedding(
     model="mxbai-embed-large", embed_batch_size=256
@@ -215,7 +216,7 @@ async def build_agent_per_doc(nodes, file_base):
         ),
     ]
 
-    function_llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    function_llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
     agent = FunctionAgent(
         tools=query_engine_tools,
         llm=function_llm,
@@ -312,7 +313,7 @@ logger.debug(all_tools[0].metadata)
 
 
 
-llm = MLX(model_name="qwen3-1.7b-4bit")
+llm = MLXLlamaIndexLLMAdapter(model_name="qwen3-1.7b-4bit")
 
 obj_index = ObjectIndex.from_objects(
     all_tools,
@@ -333,7 +334,7 @@ class CustomObjectRetriever(ObjectRetriever):
     ):
         self._retriever = retriever
         self._object_node_mapping = object_node_mapping
-        self._llm = llm or MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+        self._llm = llm or MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
         self._node_postprocessors = node_postprocessors or []
 
     def retrieve(self, query_bundle):

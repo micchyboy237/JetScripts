@@ -1,6 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import Markdown, display
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -111,7 +112,7 @@ logger.info("### 3. Chat With an LLM")
 # os.environ["OPENAI_API_KEY"] = getpass()
 
 
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 async def run_async_code_0a0dbd7f():
     async def run_async_code_db1ba9e6():

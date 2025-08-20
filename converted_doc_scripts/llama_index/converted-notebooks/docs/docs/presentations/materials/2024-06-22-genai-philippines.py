@@ -1,4 +1,5 @@
 from googleapiclient import discovery
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -130,7 +131,7 @@ logger.info("## Example: A Gang of LLMs Tell A Story")
 anthropic_llm = Anthropic(model="claude-3-opus-20240229")
 cohere_llm = Cohere(model="command")
 mistral_llm = MistralAI(model="mistral-large-latest")
-openai_llm = MLX(model="qwen3-1.7b-4bit")
+openai_llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 
 theme = "over-the-top pizza toppings"
 start = anthropic_llm.complete(
@@ -432,7 +433,7 @@ response = agent_without_memory.chat(
 """
 logger.info("#### With memory")
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 agent_worker = FunctionCallingAgentWorker.from_tools(
     [multiply_tool, mystery_tool], llm=openai_llm, verbose=True
 )
@@ -584,9 +585,9 @@ logger.info("### Build Agent To Reduce Toxicity of Harmful Text")
 
 verbose = True
 critique_agent_worker = FunctionCallingAgentWorker.from_tools(
-    tools=[pespective_tool], llm=MLX("gpt-3.5-turbo"), verbose=verbose
+    tools=[pespective_tool], llm=MLXLlamaIndexLLMAdapter("gpt-3.5-turbo"), verbose=verbose
 )
-correction_llm = MLX("gpt-4-turbo-preview")
+correction_llm = MLXLlamaIndexLLMAdapter("gpt-4-turbo-preview")
 
 
 def stopping_callable(critique_str: str) -> bool:

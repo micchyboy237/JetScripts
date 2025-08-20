@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -132,7 +133,7 @@ class FuncationCallingAgent(Workflow):
         super().__init__(*args, **kwargs)
         self.tools = tools or []
 
-        self.llm = llm or MLX()
+        self.llm = llm or MLXLlamaIndexLLMAdapter()
         assert self.llm.metadata.is_function_calling_model
 
     @step
@@ -338,7 +339,7 @@ tools = [
 ]
 
 agent = FuncationCallingAgent(
-    llm=MLX(model="qwen3-1.7b-4bit-mini"), tools=tools, timeout=120, verbose=True
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"), tools=tools, timeout=120, verbose=True
 )
 
 async def run_async_code_e75b1b7f():
@@ -403,7 +404,7 @@ Using the `handler` returned from the `.run()` method, we can also access the st
 logger.info("## Streaming")
 
 agent = FuncationCallingAgent(
-    llm=MLX(model="qwen3-1.7b-4bit-mini"), tools=tools, timeout=120, verbose=False
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"), tools=tools, timeout=120, verbose=False
 )
 
 handler = agent.run(input="Hello! Write me a short story about a cat.")

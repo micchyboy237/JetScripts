@@ -66,6 +66,7 @@ COMMENT_LINE_KEYWORDS = [
 
 PROJECT_INITIALIZER_CODE_MAP = {
     "llama_index": """
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.core.settings import Settings
 from jet.models.config import MODELS_CACHE_DIR
@@ -75,6 +76,12 @@ Settings.embed_model = HuggingFaceEmbedding(
     cache_folder=MODELS_CACHE_DIR,
 )
 """
+}
+
+PROJECT_LLM_MAP = {
+    "llama_index": {
+        "MLX(": "MLXLlamaIndexLLMAdapter("
+    }
 }
 
 
@@ -101,6 +108,23 @@ def replace_async_calls(line: str):
             updated_line = updated_line.replace("await ", "")
             updated_line = updated_line.replace("async ", "")
     return updated_line
+
+
+def replace_project_specific_lines(code: str, input_base_dir: str):
+    code_lines = code.splitlines()
+    updated_lines = []
+    path_parts = [part for part in input_base_dir.replace(
+        "\\", "/").split("/") if part]
+    for line in code_lines:
+        updated_line = line
+        for project, mappings in PROJECT_LLM_MAP.items():
+            if project in path_parts:
+                for old_value, new_value in mappings.items():
+                    if old_value in updated_line:
+                        updated_line = updated_line.replace(
+                            old_value, new_value)
+        updated_lines.append(updated_line)
+    return "\n".join(updated_lines)
 
 
 def comment_line(line: str):
@@ -629,6 +653,8 @@ def scrape_code(
                 if with_mlx:
                     source_code = update_code_with_mlx(source_code)
                     source_code = add_project_specific_initializer_code(
+                        source_code, input_base_dir)
+                    source_code = replace_project_specific_lines(
                         source_code, input_base_dir)
                     source_code = add_general_initializer_code(source_code)
                     source_code = add_jet_logger(source_code)

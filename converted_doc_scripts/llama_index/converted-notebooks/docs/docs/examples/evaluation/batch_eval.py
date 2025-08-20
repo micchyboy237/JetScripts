@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -60,7 +61,7 @@ Using GPT-4 here for evaluation
 """
 logger.info("Using GPT-4 here for evaluation")
 
-gpt4 = MLX(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+gpt4 = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 faithfulness_gpt4 = FaithfulnessEvaluator(llm=gpt4)
 relevancy_gpt4 = RelevancyEvaluator(llm=gpt4)
@@ -68,7 +69,7 @@ correctness_gpt4 = CorrectnessEvaluator(llm=gpt4)
 
 documents = SimpleDirectoryReader("./test_wiki_data/").load_data()
 
-llm = MLX(temperature=0.3, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(temperature=0.3, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 splitter = SentenceSplitter(chunk_size=512)
 vector_index = VectorStoreIndex.from_documents(
     documents, transformations=[splitter]

@@ -1,6 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from datetime import date
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -134,7 +135,7 @@ In this example, we want to classify incoming contracts. They can either be `Aff
 """
 logger.info("## Contract classification")
 
-llm = MLX(model="qwen3-1.7b-4bit-mini")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
 
 classification_prompt = """You are a legal document classification assistant.
 Your task is to identify the most likely contract type based on the content of the first 10 pages of a contract.
@@ -434,7 +435,7 @@ class KnowledgeGraphBuilder(Workflow):
         self.affiliate_extract_agent = affiliate_extract_agent
         self.branding_extract_agent = branding_extract_agent
         self.classification_prompt = classification_prompt
-        self.llm = MLX(model="qwen3-1.7b-4bit-mini")
+        self.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
 
     @step
     async def parse_file(

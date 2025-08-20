@@ -1,6 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import Markdown, display
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -73,7 +74,7 @@ First, lets run the pack by using nodes from the included `CodeHierarchyNodePars
 """
 logger.info("## Initial Demo")
 
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.2)
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.2)
 
 documents = SimpleDirectoryReader(
     input_files=[Path("../llama_index/packs/code_hierarchy/code_hierarchy.py")],
@@ -279,7 +280,7 @@ Note that this requires some complex reasoning, and works best with GPT-4-like L
 logger.info("Now lets finally actually make an agent!")
 
 
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.1)
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.1)
 
 agent = FunctionAgent(
     tools=[tool],

@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -109,7 +110,7 @@ for idx, node in enumerate(base_nodes):
 
 
 embed_model = resolve_embed_model("local:BAAI/bge-small-en")
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 """
 ## Baseline Retriever
@@ -240,7 +241,7 @@ for node_id, metadata in node_to_metadata.items():
 all_nodes_dict = {n.node_id: n for n in all_nodes}
 
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 vector_index_metadata = VectorStoreIndex(all_nodes)
 
@@ -291,7 +292,7 @@ logger.info("## Evaluation")
 # nest_asyncio.apply()
 
 eval_dataset = generate_question_context_pairs(
-    base_nodes, MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    base_nodes, MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 )
 
 eval_dataset.save_json(f"{GENERATED_DIR}/llama2_eval_dataset.json")

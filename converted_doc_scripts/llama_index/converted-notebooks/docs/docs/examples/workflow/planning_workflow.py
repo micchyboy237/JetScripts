@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -124,7 +125,7 @@ logger.info("### Workflow Definition")
 
 
 class QueryPlanningWorkflow(Workflow):
-    llm = MLX(model="qwen3-1.7b-4bit")
+    llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
     planning_prompt = PromptTemplate(
         "Think step by step. Given an initial query, as well as information about the indexes you can query, return a plan for a RAG system.\n"
         "The plan should be a list of QueryPlanItem objects, where each object contains a query.\n"

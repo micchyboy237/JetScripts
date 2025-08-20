@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -108,7 +109,7 @@ QUESTION_GEN_PROMPT = (
 )
 
 
-gpt_35_llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3)
+gpt_35_llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3)
 
 dataset_generator = DatasetGenerator.from_documents(
     documents,
@@ -181,7 +182,7 @@ logger.info("### Get GPT-4 Evaluations On The Mistral and LLama-2 Answers")
 
 finetuning_handler = MLXFineTuningHandler()
 callback_manager = CallbackManager([finetuning_handler])
-gpt_4_llm = MLX(
+gpt_4_llm = MLXLlamaIndexLLMAdapter(
     temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", callback_manager=callback_manager
 )
 
@@ -289,7 +290,7 @@ for data_entry in tqdm.tqdm(test_dataset):
     judgement["text"] = eval_result.response
     data_entry["evaluations"] += [judgement]
 
-gpt_3p5_llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+gpt_3p5_llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 gpt_3p5_judge = CorrectnessEvaluator(llm=gpt_3p5_llm)
 

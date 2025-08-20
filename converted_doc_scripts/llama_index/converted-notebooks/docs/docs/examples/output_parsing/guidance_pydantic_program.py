@@ -1,4 +1,5 @@
 from guidance.llms import MLX
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.settings import Settings
@@ -71,7 +72,7 @@ program = GuidancePydanticProgram(
         "Generate an example album, with an artist and a list of songs. Using"
         " the movie {{movie_name}} as inspiration"
     ),
-    guidance_llm=MLX("text-davinci-003"),
+    guidance_llm=MLXLlamaIndexLLMAdapter("text-davinci-003"),
     verbose=True,
 )
 

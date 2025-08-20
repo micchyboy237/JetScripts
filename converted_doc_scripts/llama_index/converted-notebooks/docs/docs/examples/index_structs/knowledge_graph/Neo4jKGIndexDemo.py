@@ -1,4 +1,5 @@
 from IPython.display import Markdown, display
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -54,7 +55,7 @@ logger.info("# Neo4j Graph Store")
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-llm = MLX(temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 Settings.llm = llm
 Settings.chunk_size = 512
 
@@ -72,7 +73,7 @@ openai.api_version = "2022-12-01"
 # os.environ["OPENAI_API_KEY"] = "<your-openai-key>"
 # openai.api_key = os.getenv("OPENAI_API_KEY")
 
-llm = AzureMLX(
+llm = AzureMLXLlamaIndexLLMAdapter(
     deployment_name="<foo-bar-deployment>",
     temperature=0,
     openai_api_version=openai.api_version,

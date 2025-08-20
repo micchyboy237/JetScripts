@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -186,7 +187,7 @@ logger.info("### Using the Dappier AI Recommendations tool in an Agent")
 
 agent = FunctionAgent(
     tools=dappier_tool_list,
-    llm=MLX(model="qwen3-1.7b-4bit"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"),
 )
 
 logger.debug(

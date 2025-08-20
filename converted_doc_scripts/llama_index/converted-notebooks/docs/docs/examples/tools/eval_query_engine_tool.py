@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -63,7 +64,7 @@ logger.info("## Initialize and Set LLM and Local Embedding Model")
 Settings.embed_model = HuggingFaceEmbedding(
     model_name="BAAI/bge-small-en-v1.5"
 )
-Settings.llm = MLX()
+Settings.llm = MLXLlamaIndexLLMAdapter()
 
 """
 ## Download and Index Data
@@ -171,7 +172,7 @@ query_engine_tools = [
 logger.info("## Setup MLX Agent")
 
 
-agent = FunctionAgent(tools=query_engine_tools, llm=MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"))
+agent = FunctionAgent(tools=query_engine_tools, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"))
 
 """
 ## Query Engine Passes Evaluation

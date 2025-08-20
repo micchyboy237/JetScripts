@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -51,7 +52,7 @@ linkup_tool = LinkupToolSpec(
 
 agent = FunctionAgent(
     tools=linkup_tool.to_tool_list(),
-    llm=MLX(model="qwen3-1.7b-4bit"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"),
 )
 
 async def run_async_code_49b34829():

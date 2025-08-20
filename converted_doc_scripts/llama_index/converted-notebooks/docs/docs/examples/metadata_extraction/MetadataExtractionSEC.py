@@ -1,4 +1,5 @@
 from copy import deepcopy
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -74,7 +75,7 @@ logger.info("# Extracting Metadata for Better Document Indexing and Understandin
 # os.environ["OPENAI_API_KEY"] = "YOUR_API_KEY_HERE"
 
 
-llm = MLX(temperature=0.1, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", max_tokens=512)
+llm = MLXLlamaIndexLLMAdapter(temperature=0.1, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", max_tokens=512)
 
 """
 We create a node parser that extracts the document title and hypothetical question embeddings relevant to the document chunk.
@@ -187,7 +188,7 @@ index_no_metadata = VectorStoreIndex(
     nodes=nodes_no_metadata,
 )
 engine_no_metadata = index_no_metadata.as_query_engine(
-    similarity_top_k=10, llm=MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    similarity_top_k=10, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 )
 
 final_engine_no_metadata = SubQuestionQueryEngine.from_defaults(
@@ -227,7 +228,7 @@ logger.debug(
 index = VectorStoreIndex(
     nodes=uber_nodes + lyft_nodes,
 )
-engine = index.as_query_engine(similarity_top_k=10, llm=MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"))
+engine = index.as_query_engine(similarity_top_k=10, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"))
 
 final_engine = SubQuestionQueryEngine.from_defaults(
     query_engine_tools=[

@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -60,7 +61,7 @@ logger.info("# GPT Builder Demo")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-llm = MLX(model="qwen3-1.7b-4bit")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 Settings.llm = llm
 Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
 
@@ -171,7 +172,7 @@ agent_cache = {}
 
 async def create_system_prompt(task: str):
     """Create system prompt for another agent given an input task."""
-    llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
     fmt_messages = GEN_SYS_PROMPT_TMPL.format_messages(task=task)
     async def run_async_code_c369b841():
         async def run_async_code_34e15407():
@@ -201,7 +202,7 @@ async def get_tools(task: str):
 
 def create_agent(system_prompt: str, tool_names: List[str]):
     """Create an agent given a system prompt and an input set of tools."""
-    llm = MLX(model="qwen3-1.7b-4bit")
+    llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
     try:
         input_tools = [tool_dict[tn] for tn in tool_names]
 
@@ -233,7 +234,7 @@ prefix_msgs = [ChatMessage(role="system", content=GPT_BUILDER_SYS_STR)]
 builder_agent = FunctionAgent(
     tools=[system_prompt_tool, get_tools_tool, create_agent_tool],
     prefix_messages=prefix_msgs,
-    llm=MLX(model="qwen3-1.7b-4bit"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"),
     verbose=True,
 )
 

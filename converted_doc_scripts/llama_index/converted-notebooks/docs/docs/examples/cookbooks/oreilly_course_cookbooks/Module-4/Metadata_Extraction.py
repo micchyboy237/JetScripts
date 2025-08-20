@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -70,7 +71,7 @@ logger.info("## Setup API Key")
 logger.info("## Define LLM")
 
 
-llm = MLX(temperature=0.1, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", max_tokens=512)
+llm = MLXLlamaIndexLLMAdapter(temperature=0.1, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", max_tokens=512)
 Settings.llm = llm
 
 """

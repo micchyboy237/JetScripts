@@ -1,4 +1,5 @@
 from IPython.display import Markdown, display
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -99,7 +100,7 @@ logger.debug(fmt_qa_tmpl)
 logger.info("#### Query Index")
 
 
-llm = MLX(output_parser=output_parser)
+llm = MLXLlamaIndexLLMAdapter(output_parser=output_parser)
 
 query_engine = index.as_query_engine(
     llm=llm,

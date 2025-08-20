@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -74,7 +75,7 @@ logger.info("## Fixture Setup")
 pc = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
 index = pc.Index("llama2-paper")  # this was previously created in my pinecone account
 
-Settings.llm = MLX()
+Settings.llm = MLXLlamaIndexLLMAdapter()
 Settings.embed_model = MLXEmbedding()
 
 vector_store = PineconeVectorStore(pinecone_index=index)

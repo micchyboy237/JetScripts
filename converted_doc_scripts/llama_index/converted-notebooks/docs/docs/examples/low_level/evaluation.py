@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -66,7 +67,7 @@ logger.info("# Building Evaluation from Scratch")
 documents = loader.load(file_path="./data/llama2.pdf")
 
 
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 node_parser = SentenceSplitter(chunk_size=1024)
 
 nodes = node_parser.get_nodes_from_documents(documents)
@@ -87,7 +88,7 @@ We define the functions that we will use for dataset generation:
 logger.info("## Dataset Generation")
 
 
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 """
 We define `generate_answers_for_questions` to generate answers from questions given context.
@@ -293,7 +294,7 @@ Now let's try running this on some sample inputs with a chat model (GPT-4).
 """
 logger.info("Now let's try running this on some sample inputs with a chat model (GPT-4).")
 
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 query_str = (
     "What is the specific name given to the fine-tuned LLMs optimized for"

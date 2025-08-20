@@ -2,6 +2,7 @@ import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import Audio
 from IPython.display import clear_output
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -61,7 +62,7 @@ logger.info("## Basic Usage")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-llm = MLX(
+llm = MLXLlamaIndexLLMAdapter(
     model="qwen3-1.7b-4bit-mini",
 )
 
@@ -126,7 +127,7 @@ for r in resp:
 logger.info("## Configure Model")
 
 
-llm = MLX(model="qwen3-1.7b-4bit")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 
 resp = llm.complete("Paul Graham is ")
 
@@ -154,7 +155,7 @@ logger.info("## Image Support")
 # !wget https://cdn.pixabay.com/photo/2016/07/07/16/46/dice-1502706_640.jpg -O image.png
 
 
-llm = MLX(model="qwen3-1.7b-4bit")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 
 messages = [
     ChatMessage(
@@ -180,7 +181,7 @@ logger.info("## Audio Support")
 
 
 
-llm = MLX(
+llm = MLXLlamaIndexLLMAdapter(
     model="qwen3-1.7b-4bit-audio-preview",
     modalities=["text", "audio"],
     audio_config={"voice": "alloy", "format": "wav"},
@@ -221,7 +222,7 @@ messages = [
     )
 ]
 
-llm = MLX(
+llm = MLXLlamaIndexLLMAdapter(
     model="qwen3-1.7b-4bit-audio-preview",
     modalities=["text"],
 )
@@ -262,7 +263,7 @@ Since this seems to increase latency, it defaults to false.
 logger.info("The `strict` parameter tells MLX whether or not to use constrained sampling when generating tool calls/structured outputs. This means that the generated tool call schema will always contain the expected fields.")
 
 
-llm = MLX(model="qwen3-1.7b-4bit-mini", strict=True)
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini", strict=True)
 response = llm.predict_and_call(
     [tool],
     "Pick a random song for me",
@@ -274,7 +275,7 @@ We can also do multiple function calling.
 """
 logger.info("We can also do multiple function calling.")
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 response = llm.predict_and_call(
     [tool],
     "Generate five songs from the Beatles",
@@ -363,7 +364,7 @@ class Restaurant(BaseModel):
     menu_items: List[MenuItem]
 
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 prompt_tmpl = PromptTemplate(
     "Generate a restaurant in a given city {city_name}"
 )
@@ -400,7 +401,7 @@ restaurant_obj
 logger.info("## Async")
 
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 async def run_async_code_c3ecd675():
     async def run_async_code_a989c387():
@@ -432,7 +433,7 @@ Async function calling is also supported.
 """
 logger.info("Async function calling is also supported.")
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 async def run_async_code_d4d0bf51():
     async def run_async_code_bf5a731b():
         response = llm.predict_and_call([tool], "Generate a song")
@@ -451,7 +452,7 @@ If desired, you can have separate LLM instances use separate API keys.
 logger.info("## Set API Key at a per-instance level")
 
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", api_key="BAD_KEY")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", api_key="BAD_KEY")
 resp = llm.complete("Paul Graham is ")
 logger.debug(resp)
 
@@ -462,12 +463,12 @@ Rather than adding same parameters to each chat or completion call, you can set 
 logger.info("## Additional kwargs")
 
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", additional_kwargs={"user": "your_user_id"})
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", additional_kwargs={"user": "your_user_id"})
 resp = llm.complete("Paul Graham is ")
 logger.debug(resp)
 
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", additional_kwargs={"user": "your_user_id"})
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", additional_kwargs={"user": "your_user_id"})
 messages = [
     ChatMessage(
         role="system", content="You are a pirate with a colorful personality"

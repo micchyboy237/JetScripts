@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -54,7 +55,7 @@ logger.info("# Multi-Agent Report Generation with AgentWorkflow")
 # %pip install llama-index
 
 
-llm = MLX(model="qwen3-1.7b-4bit", api_key="sk-...")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", api_key="sk-...")
 
 """
 ## System Design

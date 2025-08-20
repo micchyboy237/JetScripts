@@ -1,6 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from enum import Enum
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXResponses
 from jet.logger import CustomLogger
@@ -181,7 +182,7 @@ logger.info("## Create a Function Calling Agent")
 
 weaviate_agent = fresh_setup_weaviate(client)
 
-llm = MLX(model="qwen3-1.7b-4bit-mini")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
 
 
 def write_to_weaviate_collection(urls=list[str]):

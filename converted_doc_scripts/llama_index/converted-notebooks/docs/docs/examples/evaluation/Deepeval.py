@@ -9,6 +9,7 @@ from deepeval.integrations.llama_index import FunctionAgent
 from deepeval.integrations.llama_index import instrument_llama_index
 from deepeval.metrics import AnswerRelevancyMetric
 from dotenv import load_dotenv
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -87,7 +88,7 @@ answer_relevancy_metric = AnswerRelevancyMetric()
 
 agent = FunctionAgent(
     tools=[multiply],
-    llm=MLX(model="qwen3-1.7b-4bit-mini"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"),
     system_prompt="You are a helpful assistant that can perform calculations.",
     metrics=[answer_relevancy_metric],
 )
@@ -166,7 +167,7 @@ def multiply(a: float, b: float) -> float:
 answer_relevancy_metric = AnswerRelevancyMetric()
 agent = FunctionAgent(
     tools=[multiply],
-    llm=MLX(model="qwen3-1.7b-4bit-mini"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"),
     system_prompt="You are a helpful assistant that can perform calculations.",
     metrics=[answer_relevancy_metric],
 )
@@ -204,7 +205,7 @@ def multiply(a: float, b: float) -> float:
 answer_relevancy_metric = AnswerRelevancyMetric()
 agent = FunctionAgent(
     tools=[multiply],
-    llm=MLX(model="qwen3-1.7b-4bit-mini"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"),
     system_prompt="You are a helpful assistant that can perform calculations.",
     metrics=[answer_relevancy_metric],
 )
@@ -245,7 +246,7 @@ def multiply(a: float, b: float) -> float:
 
 agent = FunctionAgent(
     tools=[multiply],
-    llm=MLX(model="qwen3-1.7b-4bit-mini"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"),
     system_prompt="You are a helpful assistant that can perform calculations.",
     metric_collection="test_collection_1",
 )

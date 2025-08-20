@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -95,7 +96,7 @@ logger.info("We choose using qwen3-1.7b-4bit and local embedding model intfloat/
 # %pip install llama-index-embeddings-huggingface
 
 
-Settings.llm = MLX(model="qwen3-1.7b-4bit", temperature=0.3)
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", temperature=0.3)
 Settings.embed_model = HuggingFaceEmbedding(
     model_name="intfloat/multilingual-e5-large"
 )

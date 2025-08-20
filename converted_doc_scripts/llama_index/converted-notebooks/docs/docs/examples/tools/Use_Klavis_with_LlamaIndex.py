@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -90,7 +91,7 @@ youtube_mcp_server_url = youtube_mcp_instance.server_url
 logger.info("#### Step 2 - using Llamaindex to create AI Agent with the MCP Server")
 
 
-# llm = MLX(model="qwen3-1.7b-4bit-mini", api_key=os.getenv("OPENAI_API_KEY"))
+# llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini", api_key=os.getenv("OPENAI_API_KEY"))
 
 async def async_func_8():
     youtube_tools = await aget_tools_from_mcp_url(
@@ -165,7 +166,7 @@ logger.debug(
 logger.info("#### Step 2 - using LlamaIndex to create Multi-Agent Workflow with the MCP Servers")
 
 
-# llm = MLX(model="qwen3-1.7b-4bit-mini", api_key=os.getenv("OPENAI_API_KEY"))
+# llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini", api_key=os.getenv("OPENAI_API_KEY"))
 
 youtube_mcp_server_url = youtube_mcp_instance.server_url
 gmail_mcp_server_url = gmail_mcp_instance.server_url

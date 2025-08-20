@@ -1,6 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from collections import defaultdict
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -160,7 +161,7 @@ docstore.add_documents(nodes)
 
 storage_context = StorageContext.from_defaults(docstore=docstore)
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 
 base_index = VectorStoreIndex(
@@ -226,7 +227,7 @@ logger.info("## Evaluation")
 
 # nest_asyncio.apply()
 
-eval_llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+eval_llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 dataset_generator = DatasetGenerator(
     root_nodes[:20],
     llm=eval_llm,

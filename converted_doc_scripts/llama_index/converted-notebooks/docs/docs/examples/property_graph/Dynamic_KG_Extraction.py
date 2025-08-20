@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -59,7 +60,7 @@ logger.info("## Set up LLM Backend")
 
 # os.environ["OPENAI_API_KEY"] = "sk-proj-..."
 
-llm = MLX(temperature=0.0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(temperature=0.0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 Settings.llm = llm
 Settings.chunk_size = 2048

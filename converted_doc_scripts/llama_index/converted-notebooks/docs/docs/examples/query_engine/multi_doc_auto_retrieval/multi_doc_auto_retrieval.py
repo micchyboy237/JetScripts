@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -164,7 +165,7 @@ async def aprocess_doc(doc, include_summary: bool = True):
     summary_index = SummaryIndex.from_documents([doc])
     query_str = "Give a one-sentence concise summary of this issue."
     query_engine = summary_index.as_query_engine(
-        llm=MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+        llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
     )
     async def run_async_code_7ae48189():
         async def run_async_code_9eb79949():
@@ -370,7 +371,7 @@ We plug into RetrieverQueryEngine to synthesize a result.
 logger.info("### Plug into `RetrieverQueryEngine`")
 
 
-llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 query_engine = RetrieverQueryEngine.from_args(retriever, llm=llm)
 

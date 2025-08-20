@@ -1,6 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import Markdown, display
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -130,7 +131,7 @@ prometheus_llm = HuggingFaceInferenceAPI(
 
 
 
-Settings.llm = MLX()
+Settings.llm = MLXLlamaIndexLLMAdapter()
 Settings.embed_model = MLXEmbedding()
 Settings.chunk_size = 512
 

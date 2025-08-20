@@ -1,4 +1,5 @@
 from cleanlab_tlm import TrustworthyRAG, Eval, get_default_evals
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -68,7 +69,7 @@ logger.info("Initialize the MLX client using its API key.")
 
 # os.environ["OPENAI_API_KEY"] = "<your-openai-api-key>"
 
-llm = MLX(model="qwen3-1.7b-4bit-mini")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
 embed_model = MLXEmbedding(embed_batch_size=10)
 
 """

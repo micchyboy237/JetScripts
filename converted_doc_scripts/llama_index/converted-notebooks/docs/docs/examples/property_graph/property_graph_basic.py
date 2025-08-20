@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -72,7 +73,7 @@ logger.info("## Construction")
 
 index = PropertyGraphIndex.from_documents(
     documents,
-    llm=MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3),
     embed_model=MLXEmbedding(model_name="mxbai-embed-large"),
     show_progress=True,
 )
@@ -111,7 +112,7 @@ index = PropertyGraphIndex.from_documents(
     kg_extractors=[
         ImplicitPathExtractor(),
         SimpleLLMPathExtractor(
-            llm=MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3),
+            llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3),
             num_workers=4,
             max_paths_per_chunk=10,
         ),
@@ -208,7 +209,7 @@ logger.info("Then to load:")
 index = PropertyGraphIndex.from_existing(
     SimplePropertyGraphStore.from_persist_dir("./storage"),
     vector_store=ChromaVectorStore(chroma_collection=collection),
-    llm=MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3),
 )
 
 """

@@ -1,6 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from google.colab import userdata
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -185,7 +186,7 @@ class ComplicatedWorkflow(Workflow):
         logger.success(format_json(llm))
         if llm is None:
             async def run_async_code_a06fd549():
-                await ctx.store.set("llm", MLX(model="qwen3-1.7b-4bit", temperature=0.1))
+                await ctx.store.set("llm", MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", temperature=0.1))
                 return 
              = asyncio.run(run_async_code_a06fd549())
             logger.success(format_json())

@@ -1,4 +1,5 @@
 from directory import DirectoryTree, Node
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -193,7 +194,7 @@ Generate 4 albums about spring, summer, fall, and winter.
 """
 program = MLXPydanticProgram.from_defaults(
     output_cls=Album,
-    llm=MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
     prompt_template_str=prompt_template_str,
     allow_multiple=True,
     verbose=True,

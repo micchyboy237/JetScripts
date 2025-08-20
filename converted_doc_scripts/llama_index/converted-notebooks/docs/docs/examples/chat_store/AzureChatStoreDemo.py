@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Settings
@@ -62,7 +63,7 @@ In staying with the Azure theme, let's define our Azure MLX embedding and LLM mo
 """
 logger.info("# Define our models")
 
-Settings.llm = AzureMLX(
+Settings.llm = AzureMLXLlamaIndexLLMAdapter(
     model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
     deployment_name="gpt-4",
     api_key="",

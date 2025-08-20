@@ -1,5 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -183,7 +184,7 @@ playwright_tool_list = playwright_tool.to_tool_list()
 
 agent = FunctionAgent(
     tools=playwright_tool_list,
-    llm=MLX(model="qwen3-1.7b-4bit"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"),
 )
 
 logger.debug(
@@ -199,7 +200,7 @@ logger.info("## Using the playwright tool with agent workflow")
 
 
 
-llm = MLX(model="qwen3-1.7b-4bit")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 
 workflow = AgentWorkflow.from_tools_or_functions(
     playwright_tool_list,

@@ -1,6 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from collections import defaultdict
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -131,7 +132,7 @@ Here we try out different chunk sizes: 128, 256, 512, and 1024.
 """
 logger.info("Here we try out different chunk sizes: 128, 256, 512, and 1024.")
 
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 chunk_sizes = [128, 256, 512, 1024]
 nodes_list = []
 vector_indices = []
@@ -278,7 +279,7 @@ logger.info("## Evaluation")
 
 # nest_asyncio.apply()
 
-eval_llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+eval_llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 dataset_generator = DatasetGenerator(
     nodes_list[-1],
     llm=eval_llm,

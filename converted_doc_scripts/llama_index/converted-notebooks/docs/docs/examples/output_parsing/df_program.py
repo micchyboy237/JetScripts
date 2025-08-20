@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -63,7 +64,7 @@ logger.info("# DataFrame Structured Data Extraction")
 
 program = MLXPydanticProgram.from_defaults(
     output_cls=DataFrame,
-    llm=MLX(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
     prompt_template_str=(
         "Please extract the following query into a structured data according"
         " to: {input_str}.Please extract both the set of column names and a"
@@ -85,7 +86,7 @@ response_obj
 
 program = MLXPydanticProgram.from_defaults(
     output_cls=DataFrameRowsOnly,
-    llm=MLX(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
     prompt_template_str=(
         "Please extract the following text into a structured data:"
         " {input_str}. The column names are the following: ['Name', 'Age',"

@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.agent import ReActAgent
@@ -48,7 +49,7 @@ azure_code_interpreter_spec = AzureCodeInterpreterToolSpec(
     local_save_path="local-file-path-to-save-intermediate-data",
 )
 
-llm = AzureMLX(
+llm = AzureMLXLlamaIndexLLMAdapter(
     model="gpt-35-turbo",
     deployment_name="gpt-35-deploy",
     api_key=api_key,

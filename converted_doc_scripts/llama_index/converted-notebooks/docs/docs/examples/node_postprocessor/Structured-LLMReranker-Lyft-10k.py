@@ -1,6 +1,7 @@
 from IPython.display import Markdown, display
 from IPython.display import display, HTML
 from copy import deepcopy
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -66,7 +67,7 @@ logger.info("## Download Data")
 logger.info("## Load Data, Build Index")
 
 
-Settings.llm = MLX(temperature=0, model="qwen3-1.7b-4bit-mini")
+Settings.llm = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit-mini")
 
 Settings.chunk_overlap = 0
 Settings.chunk_size = 128

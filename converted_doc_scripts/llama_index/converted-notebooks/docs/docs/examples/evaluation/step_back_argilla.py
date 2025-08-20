@@ -1,6 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from argilla_llama_index import ArgillaHandler
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -319,7 +320,7 @@ Now, let's create a LlamaIndex index out of this document. As the highest-rated 
 """
 logger.info("Now, let's create a LlamaIndex index out of this document. As the highest-rated context for the original and step-back query will be included in the final prompt, we will lower the chuck size and use a `SentenceSplitter`")
 
-Settings.llm = MLX(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.8)
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.8)
 
 transformations = [
     SentenceSplitter(chunk_size=256, chunk_overlap=75),

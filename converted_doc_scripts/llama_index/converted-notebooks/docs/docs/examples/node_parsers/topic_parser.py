@@ -1,3 +1,4 @@
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
@@ -60,7 +61,7 @@ To respond to user queries, we implement a U-retrieve strategy that combines top
 
 Our medical graph RAG provides Intrinsic source citation can enhance LLM transparency, interpretability, and verifiability. The results provides the provenance, or source grounding information, as it generates each response, and demonstrates that an answer is grounded in the dataset. Having the cited source for each assertion readily available also enables a human user to quickly and accurately audit the LLM’s output directly against the original source material. It is super useful in the field of medicine that security is very important, and each of the reasoning should be evidence-based. By using such a method, we construct an evidence-based Medical LLM that the clinician could easiely check the source of the reasoning and calibrate the model response to ensure the safty usage of llm in the clinical senarios.
 
-To evaluate our medical graph RAG, we implemented the method on several popular open and closed-source LLMs, including ChatGPT MLX(2023a) and LLaMA Touvron et al. (2023), testing them across mainstream medical Q&A benchmarks such as PubMedQA Jin et al. (2019), MedMCQA Pal et al. (2022), and USMLE Kung et al. (2023). For the RAG process, we supplied a comprehensive medical dictionary as the foundational knowledge layer, the UMLS medical knowledge graph Lindberg et al. (1993) as the foundamental layer detailing semantic relationships, and a curated MedC-K dataset Wu et al. (2023) —comprising the latest medical papers and books—as the intermediate level of data to simulate user-provided private data. Our experiments demonstrate that our model significantly enhances the performance of general-purpose LLMs on medical questions. Remarkably, it even surpasses many fine-tuned or specially trained LLMs on medical corpora, solely using the RAG approach without additional training.
+To evaluate our medical graph RAG, we implemented the method on several popular open and closed-source LLMs, including ChatGPT MLXLlamaIndexLLMAdapter(2023a) and LLaMA Touvron et al. (2023), testing them across mainstream medical Q&A benchmarks such as PubMedQA Jin et al. (2019), MedMCQA Pal et al. (2022), and USMLE Kung et al. (2023). For the RAG process, we supplied a comprehensive medical dictionary as the foundational knowledge layer, the UMLS medical knowledge graph Lindberg et al. (1993) as the foundamental layer detailing semantic relationships, and a curated MedC-K dataset Wu et al. (2023) —comprising the latest medical papers and books—as the intermediate level of data to simulate user-provided private data. Our experiments demonstrate that our model significantly enhances the performance of general-purpose LLMs on medical questions. Remarkably, it even surpasses many fine-tuned or specially trained LLMs on medical corpora, solely using the RAG approach without additional training.
 """
 
 
@@ -78,7 +79,7 @@ logger.info("## Setup LLM And Embedding Model")
 
 
 embed_model = MLXEmbedding()
-llm = MLX(model="qwen3-1.7b-4bit-mini")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
 
 """
 ## Define TopicNodeParser
