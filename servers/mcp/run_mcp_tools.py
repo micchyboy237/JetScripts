@@ -183,24 +183,9 @@ async def query_llm(
     tool_request_messages = format_tool_request_messages(
         prompt, tools, previous_messages=previous_messages)
     all_messages += tool_request_messages
-
-    # Populate base_tools with async tool functions
-    base_tools = {tool["name"]: await create_tool_function(tool_info=tool) for tool in tools}
-
     log_dir = f"{output_dir}/chats"
     llm_response_text = generate_response(
         all_messages, model, log_dir, tools=tools)
-
-    tool_calls = parse_tool_call(llm_response_text)
-    tool_results = []
-    if isinstance(tool_calls, list):
-        for tool_call in tool_calls:
-            tool_result = await base_tools[tool_call["tool"]](**tool_call["arguments"])
-            tool_results.append(tool_result)
-    else:
-        tool_result = await base_tools[tool_calls["tool"]](**tool_calls["arguments"])
-        tool_results = [tool_result]
-    save_file(tool_results, f"{output_dir}/tool_results.json")
 
     tool_requests = await query_tool_requests(llm_response_text)
     logger.gray(f"\nTool Requests ({len(tool_requests)})")
@@ -211,6 +196,11 @@ async def query_llm(
     logger.gray(f"\nTool Responses ({len(tool_responses)})")
     logger.success(format_json(tool_responses))
     save_file(tool_responses, f"{output_dir}/tool_responses.json")
+
+    # Store tool results for consistency with existing output
+    tool_results = [response["structuredContent"]
+                    for response in tool_responses]
+    save_file(tool_results, f"{output_dir}/tool_results.json")
 
     llm_tool_response_texts = []
     llm_tool_response_tool_results = []
@@ -225,15 +215,16 @@ async def query_llm(
         tool_calls = parse_tool_call(tool_response_text)
         save_file(
             tool_calls, f"{output_dir}/llm_tool_response_tool_calls.json")
-
         if isinstance(tool_calls, list):
             for tool_call in tool_calls:
-                tool_result = await base_tools[tool_call["tool"]](**tool_call["arguments"])
-                llm_tool_response_tool_results.append(tool_result)
-        else:
-            tool_result = await base_tools[tool_calls["tool"]](**tool_calls["arguments"])
-            llm_tool_response_tool_results = [tool_result]
-
+                # Use query_tool_responses for consistency
+                sub_tool_response = await query_tool_responses([tool_call], tools, mcp_server_path)
+                llm_tool_response_tool_results.extend(
+                    [r["structuredContent"] for r in sub_tool_response])
+        elif tool_calls:
+            sub_tool_response = await query_tool_responses([tool_calls], tools, mcp_server_path)
+            llm_tool_response_tool_results.extend(
+                [r["structuredContent"] for r in sub_tool_response])
         save_file(llm_tool_response_tool_results,
                   f"{output_dir}/llm_tool_response_tool_results.json")
 
