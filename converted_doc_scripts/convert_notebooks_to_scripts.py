@@ -20,7 +20,6 @@ REPLACE_MLX_MAP = {
     "llama-index-embeddings-openai": "llama-index-embeddings-ollama",
     "llama_index.llms.openai": "jet.llm.mlx.base",
     "llama_index.embeddings.openai": "jet.llm.mlx.base",
-    "autogen_ext.models.openai": "jet.llm.mlx.autogen_ext.mlx_chat_completion_client",
     "langchain_openai": "jet.llm.mlx.base_langchain",
     "langchain_anthropic": "jet.llm.mlx.base_langchain",
     "langchain_ollama": "jet.llm.mlx.base_langchain",
@@ -81,7 +80,12 @@ Settings.embed_model = HuggingFaceEmbedding(
 PROJECT_LLM_MAP = {
     "llama_index": {
         "MLX(": "MLXLlamaIndexLLMAdapter("
-    }
+    },
+    "autogen": {
+        "jet.llm.mlx.base": "jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter",
+        "autogen_ext.models.openai": "jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter",
+        "MLX(": "MLXAutogenChatLLMAdapter(",
+    },
 }
 
 
@@ -745,7 +749,9 @@ if __name__ == "__main__":
         "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index",
     ]
     include_files = []
-    exclude_files = []
+    exclude_files = [
+        "reflection.py"
+    ]
     extension_mappings = [
         {"ext": [".ipynb"], "output_base_dir": "converted-notebooks"},
         # {"ext": [".md"], "output_base_dir": "converted-markdown-docs"},
