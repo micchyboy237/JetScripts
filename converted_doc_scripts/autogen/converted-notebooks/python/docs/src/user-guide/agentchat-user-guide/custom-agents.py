@@ -189,7 +189,8 @@ async def run_number_agents() -> None:
 
     selector_group_chat = SelectorGroupChat(
         [add_agent, multiply_agent, subtract_agent, divide_agent, identity_agent],
-        model_client=MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit"),
+        model_client=MLXAutogenChatLLMAdapter(
+            model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
         termination_condition=termination_condition,
         # Allow the same agent to speak multiple times, necessary for this task.
         allow_repeated_speaker=True,
@@ -328,7 +329,8 @@ Now, let us explore how to use this custom agent as part of a team in AgentChat.
 logger.info("In the example above, we have chosen to provide `model`, `api_key` and `system_message` as arguments - you can choose to provide any other arguments that are required by the model client you are using or fits with your application design.")
 
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+model_client = MLXAutogenChatLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 primary_agent = AssistantAgent(
     "primary",

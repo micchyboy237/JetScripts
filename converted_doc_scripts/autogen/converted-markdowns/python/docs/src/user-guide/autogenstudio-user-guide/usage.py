@@ -82,7 +82,7 @@ logger.info("# Usage")
 agent = AssistantAgent(
     name="weather_agent",
     model_client=MLXAutogenChatLLMAdapter(
-        model="llama-3.2-3b-instruct",
+        model="qwen3-1.7b-4bit",
     ),
 )
 
@@ -120,7 +120,7 @@ logger.debug(config.model_dump_json())
                         "component_version": 1,
                         "description": "Chat completion client for MLX hosted models.",
                         "label": "MLXAutogenChatLLMAdapter",
-                        "config": {"model": "llama-3.2-3b-instruct"}
+                        "config": {"model": "qwen3-1.7b-4bit"}
                     },
                     "tools": [],
                     "handoffs": [],

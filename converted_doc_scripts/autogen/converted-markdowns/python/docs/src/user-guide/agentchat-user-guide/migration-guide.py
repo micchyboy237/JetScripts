@@ -153,7 +153,7 @@ logger.info("## What is `v0.4`?")
 
 config_list = [
     {"model": "gpt-4o", "api_key": "sk-xxx"},
-    {"model": "llama-3.2-3b-instruct", "api_key": "sk-xxx"},
+    {"model": "qwen3-1.7b-4bit", "api_key": "sk-xxx"},
 ]
 
 model_client = MLXWrapper(config_list=config_list)
@@ -189,7 +189,7 @@ logger.info("### Use model client class directly")
 
 
 model_client = MLXAutogenChatLLMAdapter(
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", api_key="sk-xxx")
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", api_key="sk-xxx")
 
 """
 Azure MLX:
@@ -200,7 +200,7 @@ logger.info("Azure MLX:")
 model_client = AzureMLXAutogenChatLLMAdapter(
     azure_deployment="gpt-4o",
     azure_endpoint="https://<your-endpoint>.openai.azure.com/",
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
     api_version="2024-09-01-preview",
     api_key="sk-xxx",
 )
@@ -273,7 +273,7 @@ logger.info("Here's an example of using `diskcache` for local caching:")
 async def main():
     with tempfile.TemporaryDirectory() as tmpdirname:
         openai_model_client = MLXAutogenChatLLMAdapter(
-            model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+            model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
         cache_store = DiskCacheStore[CHAT_CACHE_VALUE_TYPE](Cache(tmpdirname))
         cache_client = ChatCompletionCache(openai_model_client, cache_store)
@@ -335,7 +335,7 @@ In `v0.4`, it is similar, but you need to specify `model_client` instead of `llm
 logger.info("In `v0.4`, it is similar, but you need to specify `model_client` instead of `llm_config`.")
 
 
-model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", api_key="sk-xxx", seed=42, temperature=0)
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", api_key="sk-xxx", seed=42, temperature=0)
 
 assistant = AssistantAgent(
     name="assistant",
@@ -355,7 +355,7 @@ logger.info("However, the usage is somewhat different. In `v0.4`, instead of cal
 
 
 async def main() -> None:
-    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
+    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     assistant = AssistantAgent(
         name="assistant",
@@ -400,7 +400,7 @@ logger.info("## Multi-Modal Agent")
 
 
 async def main() -> None:
-    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
+    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     assistant = AssistantAgent(
         name="assistant",
@@ -502,7 +502,7 @@ chroma_user_memory = ChromaDBVectorMemory(
 assistant_agent = AssistantAgent(
     name="assistant_agent",
     model_client=MLXAutogenChatLLMAdapter(
-        model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
     ),
     tools=[get_weather],
     memory=[chroma_user_memory],
@@ -577,7 +577,7 @@ logger.info("## Save and Load Agent State")
 
 
 async def main() -> None:
-    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
+    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     assistant = AssistantAgent(
         name="assistant",
@@ -692,7 +692,7 @@ logger.info("To get the same behavior in `v0.4`, you can use the {py:class}`~aut
 
 
 async def main() -> None:
-    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
+    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     assistant = AssistantAgent(
         name="assistant",
@@ -780,7 +780,7 @@ def get_weather(city: str) -> str: # Async tool is possible too.
     return f"The weather in {city} is 72 degree and sunny."
 
 async def main() -> None:
-    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
+    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
     assistant = AssistantAgent(
         name="assistant",
         system_message="You are a helpful assistant. You can call tools to help user.",
@@ -998,7 +998,7 @@ logger.info("In `v0.4`, you can use the {py:class}`~autogen_agentchat.teams.Roun
 
 
 async def main() -> None:
-    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
+    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     writer = AssistantAgent(
         name="writer",
@@ -1077,7 +1077,7 @@ def create_team(model_client : MLXAutogenChatLLMAdapter) -> RoundRobinGroupChat:
 
 
 async def main() -> None:
-    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
+    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
     group_chat = create_team(model_client)
 
     stream = group_chat.run_stream(task="Write a short story about a robot that discovers it has feelings.")
@@ -1242,14 +1242,14 @@ def create_team(model_client : MLXAutogenChatLLMAdapter) -> SelectorGroupChat:
 
     team = SelectorGroupChat(
         [planning_agent, web_search_agent, data_analyst_agent],
-        model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct"), # Use a smaller model for the selector.
+        model_client=MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit"), # Use a smaller model for the selector.
         termination_condition=termination,
         selector_func=selector_func,
     )
     return team
 
 async def main() -> None:
-    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
     team = create_team(model_client)
     task = "Who was the Miami Heat player with the highest points in the 2006-2007 season, and what was the percentage change in his total rebounds between the 2007-2008 and 2008-2009 seasons?"
     async def run_async_code_289d0f72():
@@ -1420,7 +1420,7 @@ logger.info("## Sequential Chat")
 
 
 async def main() -> None:
-    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
+    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     assistant = AssistantAgent(
         name="assistant",

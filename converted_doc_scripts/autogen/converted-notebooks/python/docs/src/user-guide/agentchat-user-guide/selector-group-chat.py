@@ -58,7 +58,6 @@ In this section, we will demonstrate how to use {py:class}`~autogen_agentchat.te
 logger.info("# Selector Group Chat")
 
 
-
 """
 ### Agents
 
@@ -73,6 +72,7 @@ This system uses three specialized agents:
 The tools `search_web_tool` and `percentage_change_tool` are external tools that the agents can use to perform their tasks.
 """
 logger.info("### Agents")
+
 
 def search_web_tool(query: str) -> str:
     if "2006-2007" in query:
@@ -92,14 +92,17 @@ def search_web_tool(query: str) -> str:
 def percentage_change_tool(start: float, end: float) -> float:
     return ((end - start) / start) * 100
 
+
 """
 Let's create the specialized agents using the {py:class}`~autogen_agentchat.agents.AssistantAgent` class.
 It is important to note that the agents' {py:attr}`~autogen_agentchat.base.ChatAgent.name` and {py:attr}`~autogen_agentchat.base.ChatAgent.description` attributes are used by the model to determine the next speaker,
 so it is recommended to provide meaningful names and descriptions.
 """
-logger.info("Let's create the specialized agents using the {py:class}`~autogen_agentchat.agents.AssistantAgent` class.")
+logger.info(
+    "Let's create the specialized agents using the {py:class}`~autogen_agentchat.agents.AssistantAgent` class.")
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+model_client = MLXAutogenChatLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 planning_agent = AssistantAgent(
     "PlanningAgent",
@@ -239,15 +242,18 @@ team = SelectorGroupChat(
     model_client=model_client,
     termination_condition=termination,
     selector_prompt=selector_prompt,
-    allow_repeated_speaker=True,  # Allow an agent to speak multiple turns in a row.
+    # Allow an agent to speak multiple turns in a row.
+    allow_repeated_speaker=True,
 )
 
 """
 Now we run the team with a task to find information about an NBA player.
 """
-logger.info("Now we run the team with a task to find information about an NBA player.")
+logger.info(
+    "Now we run the team with a task to find information about an NBA player.")
 
 task = "Who was the Miami Heat player with the highest points in the 2006-2007 season, and what was the percentage change in his total rebounds between the 2007-2008 and 2008-2009 seasons?"
+
 
 async def run_async_code_ac2575cc():
     await Console(team.run_stream(task=task))
@@ -274,6 +280,7 @@ Custom selector functions are not [serialized](https://microsoft.github.io/autog
 """
 logger.info("## Custom Selector Function")
 
+
 def selector_func(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> str | None:
     if messages[-1].source != planning_agent.name:
         return planning_agent.name
@@ -291,6 +298,7 @@ team = SelectorGroupChat(
     allow_repeated_speaker=True,
     selector_func=selector_func,
 )
+
 
 async def run_async_code_ac2575cc():
     await Console(team.run_stream(task=task))
@@ -324,6 +332,7 @@ Returning `None` or an empty list `[]` from the custom candidate function will r
 """
 logger.info("## Custom Candidate Function")
 
+
 def candidate_func(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str]:
     if messages[-1].source == "user":
         return [planning_agent.name]
@@ -336,7 +345,8 @@ def candidate_func(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> List
         if data_analyst_agent.name in last_message.to_text():
             participants.append(data_analyst_agent.name)
         if participants:
-            return participants  # SelectorGroupChat will select from the remaining two agents.
+            # SelectorGroupChat will select from the remaining two agents.
+            return participants
 
     previous_set_of_agents = set(message.source for message in messages)
     if web_search_agent.name in previous_set_of_agents and data_analyst_agent.name in previous_set_of_agents:
@@ -354,6 +364,7 @@ team = SelectorGroupChat(
     termination_condition=termination,
     candidate_func=candidate_func,
 )
+
 
 async def run_async_code_ac2575cc():
     await Console(team.run_stream(task=task))
@@ -377,7 +388,8 @@ the planning agent tries again, until the user approves.
 """
 logger.info("## User Feedback")
 
-user_proxy_agent = UserProxyAgent("UserProxyAgent", description="A proxy for the user to approve or disapprove tasks.")
+user_proxy_agent = UserProxyAgent(
+    "UserProxyAgent", description="A proxy for the user to approve or disapprove tasks.")
 
 
 def selector_func_with_user_proxy(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> str | None:
@@ -404,6 +416,7 @@ team = SelectorGroupChat(
     selector_func=selector_func_with_user_proxy,
     allow_repeated_speaker=True,
 )
+
 
 async def run_async_code_ac2575cc():
     await Console(team.run_stream(task=task))
@@ -472,10 +485,12 @@ When the task is complete, let the user approve or disapprove the task.
 team = SelectorGroupChat(
     [web_search_agent, data_analyst_agent, user_proxy_agent],
     model_client=model_client,
-    termination_condition=termination,  # Use the same termination condition as before.
+    # Use the same termination condition as before.
+    termination_condition=termination,
     selector_prompt=selector_prompt,
     allow_repeated_speaker=True,
 )
+
 
 async def run_async_code_ac2575cc():
     await Console(team.run_stream(task=task))

@@ -79,7 +79,7 @@ logger.info("If you haven't done so already, go through the AgentChat tutorial t
 
 
 async def main() -> None:
-    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
     assistant = AssistantAgent(
         "Assistant",
@@ -115,7 +115,7 @@ The example code may download files from the internet, execute code, and interac
 
 
 async def main() -> None:
-    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
     surfer = MultimodalWebSurfer(
         "WebSurfer",
@@ -152,7 +152,7 @@ def approval_func(request: ApprovalRequest) -> ApprovalResponse:
 
 
 async def example_usage():
-    client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+    client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
     m1 = MagenticOne(client=client, approval_func=approval_func)
     task = "Write a Python script to fetch data from an API."
     async def run_async_code_53d18d93():

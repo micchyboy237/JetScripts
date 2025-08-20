@@ -34,36 +34,37 @@ logger.info(f"Logs: {log_file}")
 """
 logger.info("# Release Notes for AutoGen.Net v0.2.0 🚀")
 
-var agent = new GPTAgent(...);
+var agent = new GPTAgent(...)
 
 """
 **After:**
 """
 
 var agent = new MLXChatAgent(...)
-    .RegisterMessageConnector();
+.RegisterMessageConnector()
 
 """
 #### For Using Azure.AI.MLX v2.0 ([#3193](https://github.com/microsoft/autogen/issues/3193)):
 **Previous way of creating `MLXChatAgent`:**
 """
-logger.info("#### For Using Azure.AI.MLX v2.0 ([#3193](https://github.com/microsoft/autogen/issues/3193)):")
+logger.info(
+    "#### For Using Azure.AI.MLX v2.0 ([#3193](https://github.com/microsoft/autogen/issues/3193)):")
 
-var openAIClient = new MLXClient(apiKey);
+var openAIClient = new MLXClient(apiKey)
 var openAIClientAgent = new MLXChatAgent(
-            openAIClient: openAIClient,
-            model: "llama-3.2-3b-instruct",
-            // Other parameters...
-            );
+    openAIClient: openAIClient,
+    model: "qwen3-1.7b-4bit",
+    // Other parameters...
+)
 
 """
 **New way of creating `MLXChatAgent`:**
 """
 
-var openAIClient = new MLXClient(apiKey);
+var openAIClient = new MLXClient(apiKey)
 var openAIClientAgent = new MLXChatAgent(
-            chatClient: openAIClient.GetChatClient("llama-3.2-3b-instruct"),
-            // Other parameters...
-            );
+    chatClient: openAIClient.GetChatClient("qwen3-1.7b-4bit"),
+    // Other parameters...
+)
 
 logger.info("\n\n[DONE]", bright=True)

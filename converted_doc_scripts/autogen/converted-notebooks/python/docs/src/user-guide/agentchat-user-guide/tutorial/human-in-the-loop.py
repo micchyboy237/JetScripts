@@ -84,7 +84,8 @@ in a {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat` for a poetry gener
 logger.info("# Human-in-the-Loop")
 
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+model_client = MLXAutogenChatLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 assistant = AssistantAgent("assistant", model_client=model_client)
 # Use input() to get user input from console.
 user_proxy = UserProxyAgent("user_proxy", input_func=input)
@@ -191,7 +192,8 @@ with a maximum of 1 turn:
 logger.info("# Create user proxy with custom input function")
 
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+model_client = MLXAutogenChatLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 assistant = AssistantAgent("assistant", model_client=model_client)
 
 team = RoundRobinGroupChat([assistant], max_turns=1)

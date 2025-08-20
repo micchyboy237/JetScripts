@@ -146,7 +146,8 @@ Next, we will define the agents that will perform the tasks.
 """
 logger.info("## Defining Agents")
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+model_client = MLXAutogenChatLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 google_search_agent = AssistantAgent(
     name="Google_Search_Agent",

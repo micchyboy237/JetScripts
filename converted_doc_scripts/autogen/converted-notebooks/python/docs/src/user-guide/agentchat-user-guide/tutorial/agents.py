@@ -78,6 +78,7 @@ We can use the {py:meth}`~autogen_agentchat.agents.BaseChatAgent.run` method to 
 """
 logger.info("## Getting Result")
 
+
 async def run_async_code_57d6bc29():
     result = await agent.run(task="Find information on AutoGen")
     return result
@@ -112,11 +113,13 @@ by providing the input as a {py:class}`~autogen_agentchat.messages.MultiModalMes
 logger.info("## Multi-Modal Input")
 
 
-
-pil_image = PIL.Image.open(BytesIO(requests.get("https://picsum.photos/300/200").content))
+pil_image = PIL.Image.open(
+    BytesIO(requests.get("https://picsum.photos/300/200").content))
 img = Image(pil_image)
-multi_modal_message = MultiModalMessage(content=["Can you describe the content of this image?", img], source="user")
+multi_modal_message = MultiModalMessage(
+    content=["Can you describe the content of this image?", img], source="user")
 img
+
 
 async def run_async_code_f33c45f0():
     result = await agent.run(task=multi_modal_message)
@@ -134,6 +137,7 @@ and use {py:class}`~autogen_agentchat.ui.Console` to print the messages
 as they appear to the console.
 """
 logger.info("## Streaming Messages")
+
 
 async def assistant_run_stream() -> None:
 
@@ -212,13 +216,13 @@ The schema is automatically generated.
 logger.info("## Using Tools and Workbench")
 
 
-
 async def web_search_func(query: str) -> str:
     """Find information on the web"""
     return "AutoGen is a programming framework for building multi-agent applications."
 
 
-web_search_function_tool = FunctionTool(web_search_func, description="Find information on the web")
+web_search_function_tool = FunctionTool(
+    web_search_func, description="Find information on the web")
 web_search_function_tool.schema
 
 """
@@ -233,13 +237,15 @@ logger.info("### Model Context Protocol (MCP) Workbench")
 
 fetch_mcp_server = StdioServerParams(command="uvx", args=["mcp-server-fetch"])
 
+
 async def async_func_7():
     async with McpWorkbench(fetch_mcp_server) as workbench:  # type: ignore
-        model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+        model_client = MLXAutogenChatLLMAdapter(
+            model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
         fetch_agent = AssistantAgent(
             name="fetcher", model_client=model_client, workbench=workbench, reflect_on_tool_use=True
         )
-        
+
         async def run_async_code_29f8686c():
             result = await fetch_agent.run(task="Summarize the content of https://en.wikipedia.org/wiki/Seattle")
             return result
@@ -247,7 +253,7 @@ async def async_func_7():
         logger.success(format_json(result))
         assert isinstance(result.messages[-1], TextMessage)
         logger.debug(result.messages[-1].content)
-        
+
         async def run_async_code_eecbf04a():
             await model_client.close()
         asyncio.run(run_async_code_eecbf04a())
@@ -314,7 +320,8 @@ agent_loop = AssistantAgent(
     model_client=model_client_no_parallel_tool_call,
     tools=[web_search],
     system_message="Use tools to solve tasks.",
-    max_tool_iterations=10,  # At most 10 iterations of tool calls before stopping the loop.
+    # At most 10 iterations of tool calls before stopping the loop.
+    max_tool_iterations=10,
 )
 
 """
@@ -346,20 +353,20 @@ See the example below for how to use structured output with the assistant agent.
 logger.info("## Structured Output")
 
 
-
-
 class AgentResponse(BaseModel):
     thoughts: str
     response: Literal["happy", "sad", "neutral"]
 
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+model_client = MLXAutogenChatLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 agent = AssistantAgent(
     "assistant",
     model_client=model_client,
     system_message="Categorize the input as happy, sad, or neutral following the JSON format.",
     output_content_type=AgentResponse,
 )
+
 
 async def run_async_code_7dde39b8():
     result = await Console(agent.run_stream(task="I am happy."))
@@ -371,6 +378,8 @@ assert isinstance(result.messages[-1], StructuredMessage)
 assert isinstance(result.messages[-1].content, AgentResponse)
 logger.debug("Thought: ", result.messages[-1].content.thoughts)
 logger.debug("Response: ", result.messages[-1].content.response)
+
+
 async def run_async_code_0349fda4():
     await model_client.close()
 asyncio.run(run_async_code_0349fda4())
@@ -387,7 +396,8 @@ Please check with your model provider to see if this is supported.
 """
 logger.info("## Streaming Tokens")
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+model_client = MLXAutogenChatLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 streaming_assistant = AssistantAgent(
     name="assistant",
@@ -396,7 +406,8 @@ streaming_assistant = AssistantAgent(
     model_client_stream=True,  # Enable streaming tokens.
 )
 
-async for message in streaming_assistant.run_stream(task="Name two cities in South America"):  # type: ignore
+# type: ignore
+async for message in streaming_assistant.run_stream(task="Name two cities in South America"):
     logger.debug(message)
 
 """
@@ -427,7 +438,8 @@ agent = AssistantAgent(
     model_client=model_client,
     tools=[web_search],
     system_message="Use tools to solve tasks.",
-    model_context=BufferedChatCompletionContext(buffer_size=5),  # Only use the last 5 messages in the context.
+    # Only use the last 5 messages in the context.
+    model_context=BufferedChatCompletionContext(buffer_size=5),
 )
 
 """

@@ -42,14 +42,14 @@ logger.info("# FAQ")
 
 
 model_client = MLXAutogenChatLLMAdapter(
-    model="llama-3.2-3b-instruct",
+    model="qwen3-1.7b-4bit",
 )
 logger.debug(model_client.dump_component().model_dump_json())
 
 
 az_model_client = AzureMLXAutogenChatLLMAdapter(
     azure_deployment="{your-azure-deployment}",
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
     api_version="2024-06-01",
     azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
     api_key="sk-...",
@@ -82,7 +82,7 @@ logger.info("MLX")
     "component_version": 1,
     "description": "Chat completion client for MLX hosted models.",
     "label": "MLXAutogenChatLLMAdapter",
-    "config": {"model": "llama-3.2-3b-instruct"}
+    "config": {"model": "qwen3-1.7b-4bit"}
 }
 
 """

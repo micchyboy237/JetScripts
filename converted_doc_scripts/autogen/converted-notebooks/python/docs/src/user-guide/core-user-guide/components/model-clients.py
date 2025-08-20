@@ -86,7 +86,7 @@ chat completion request with streaming token chunks.
 logger.info("## Streaming Tokens")
 
 
-# model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")  # assuming OPENAI_API_KEY is set in the environment.
+# model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")  # assuming OPENAI_API_KEY is set in the environment.
 
 messages=[
     UserMessage(content="Write a very short story about a dragon.",
@@ -185,7 +185,8 @@ logger.info("## Caching Model Responses")
 
 async def main() -> None:
     with tempfile.TemporaryDirectory() as tmpdirname:
-        openai_model_client=MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+        openai_model_client=MLXAutogenChatLLMAdapter(
+            model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
         cache_store=DiskCacheStore[CHAT_CACHE_VALUE_TYPE](Cache(tmpdirname))
         cache_client=ChatCompletionCache(openai_model_client, cache_store)

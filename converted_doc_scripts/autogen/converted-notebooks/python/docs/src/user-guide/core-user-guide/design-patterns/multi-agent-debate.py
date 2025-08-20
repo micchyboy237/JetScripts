@@ -276,7 +276,8 @@ logger.info("## Setting Up a Debate")
 
 runtime = SingleThreadedAgentRuntime()
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+model_client = MLXAutogenChatLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 
 async def async_func_4():
@@ -396,7 +397,8 @@ logger.info("## Solving Math Problems")
 
 async def run_debate():
     # Initialize model client
-    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+    model_client = MLXAutogenChatLLMAdapter(
+        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
     # Initialize runtime
     runtime = SingleThreadedAgentRuntime()

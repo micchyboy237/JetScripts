@@ -63,7 +63,7 @@ logger.info("## Quickstart")
 
 async def main() -> None:
     model_client = MLXAutogenChatLLMAdapter(
-        model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
     agent = AssistantAgent("assistant", model_client=model_client)
 
     async def run_async_code_ade8da1c():
@@ -89,7 +89,7 @@ logger.info("### MCP Server")
 
 
 async def main() -> None:
-    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
     server_params = StdioServerParams(
         command="npx",
         args=[

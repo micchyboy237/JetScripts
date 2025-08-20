@@ -167,7 +167,8 @@ async def async_func_0():
     return tool_agent_type
 tool_agent_type = asyncio.run(async_func_0())
 logger.success(format_json(tool_agent_type))
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+model_client = MLXAutogenChatLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 
 async def async_func_9():

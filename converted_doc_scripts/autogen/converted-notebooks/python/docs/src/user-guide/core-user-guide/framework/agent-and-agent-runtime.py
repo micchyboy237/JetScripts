@@ -71,8 +71,6 @@ the following agent handles a simple message type `MyMessageType` and prints the
 logger.info("# Agent and Agent Runtime")
 
 
-
-
 @dataclass
 class MyMessageType:
     content: str
@@ -85,6 +83,7 @@ class MyAgent(RoutedAgent):
     @message_handler
     async def handle_my_message_type(self, message: MyMessageType, ctx: MessageContext) -> None:
         logger.debug(f"{self.id.type} received message: {message.content}")
+
 
 """
 This agent only handles `MyMessageType` and messages will be delivered to `handle_my_message_type` method. Developers can have multiple message handlers for different message types by using {py:meth}`~autogen_core.message_handler` decorator and setting the type hint for the `message` variable in the handler function. You can also leverage [python typing union](https://docs.python.org/3/library/typing.html#typing.Union) for the `message` variable in one message handler function if it better suits agent's logic.
@@ -100,20 +99,22 @@ in AgentChat.
 logger.info("## Using an AgentChat Agent")
 
 
-
 class MyAssistant(RoutedAgent):
     def __init__(self, name: str) -> None:
         super().__init__(name)
-        model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+        model_client = MLXAutogenChatLLMAdapter(
+            model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
         self._delegate = AssistantAgent(name, model_client=model_client)
 
     @message_handler
     async def handle_my_message_type(self, message: MyMessageType, ctx: MessageContext) -> None:
         logger.debug(f"{self.id.type} received message: {message.content}")
         response = await self._delegate.on_messages(
-            [TextMessage(content=message.content, source="user")], ctx.cancellation_token
+            [TextMessage(content=message.content, source="user")
+             ], ctx.cancellation_token
         )
         logger.debug(f"{self.id.type} responded: {response.chat_message}")
+
 
 """
 For how to use model client, see the [Model Client](../components/model-clients.ipynb) section.
@@ -155,9 +156,13 @@ logger.info("## Registering Agent Type")
 
 
 runtime = SingleThreadedAgentRuntime()
+
+
 async def run_async_code_6f198638():
     await MyAgent.register(runtime, "my_agent", lambda: MyAgent())
 asyncio.run(run_async_code_6f198638())
+
+
 async def run_async_code_c108382a():
     await MyAssistant.register(runtime, "my_assistant", lambda: MyAssistant("my_assistant"))
 asyncio.run(run_async_code_c108382a())
@@ -168,17 +173,25 @@ using an {py:class}`~autogen_core.AgentId`.
 The runtime will create the instance the first time it delivers a
 message to this instance.
 """
-logger.info("Once an agent type is registered, we can send a direct message to an agent instance")
+logger.info(
+    "Once an agent type is registered, we can send a direct message to an agent instance")
+
 
 async def run_async_code_bf004966():
     runtime.start()  # Start processing messages in the background.
 asyncio.run(run_async_code_bf004966())
+
+
 async def run_async_code_a7edcc41():
     await runtime.send_message(MyMessageType("Hello, World!"), AgentId("my_agent", "default"))
 asyncio.run(run_async_code_a7edcc41())
+
+
 async def run_async_code_46d144ab():
     await runtime.send_message(MyMessageType("Hello, World!"), AgentId("my_assistant", "default"))
 asyncio.run(run_async_code_46d144ab())
+
+
 async def run_async_code_32e9588a():
     await runtime.stop()  # Stop processing messages in the background.
 asyncio.run(run_async_code_32e9588a())
@@ -200,9 +213,12 @@ To stop the background task immediately, use the {py:meth}`~autogen_core.SingleT
 """
 logger.info("## Running the Single-Threaded Agent Runtime")
 
+
 async def run_async_code_1e6ac0a6():
     runtime.start()
 asyncio.run(run_async_code_1e6ac0a6())
+
+
 async def run_async_code_e8c0530d():
     await runtime.stop()  # This will return immediately but will not cancel
 asyncio.run(run_async_code_e8c0530d())
@@ -216,19 +232,26 @@ there are no unprocessed messages and no agent is handling messages --
 the batch may considered complete.
 You can achieve this by using the {py:meth}`~autogen_core.SingleThreadedAgentRuntime.stop_when_idle` method:
 """
-logger.info("You can resume the background task by calling {py:meth}`~autogen_core.SingleThreadedAgentRuntime.start` again.")
+logger.info(
+    "You can resume the background task by calling {py:meth}`~autogen_core.SingleThreadedAgentRuntime.start` again.")
+
 
 async def run_async_code_1e6ac0a6():
     runtime.start()
 asyncio.run(run_async_code_1e6ac0a6())
+
+
 async def run_async_code_28f4a243():
-    await runtime.stop_when_idle()  # This will block until the runtime is idle.
+    # This will block until the runtime is idle.
+    await runtime.stop_when_idle()
 asyncio.run(run_async_code_28f4a243())
 
 """
 To close the runtime and release resources, use the {py:meth}`~autogen_core.SingleThreadedAgentRuntime.close` method:
 """
-logger.info("To close the runtime and release resources, use the {py:meth}`~autogen_core.SingleThreadedAgentRuntime.close` method:")
+logger.info(
+    "To close the runtime and release resources, use the {py:meth}`~autogen_core.SingleThreadedAgentRuntime.close` method:")
+
 
 async def run_async_code_aff70de8():
     await runtime.close()
@@ -237,6 +260,7 @@ asyncio.run(run_async_code_aff70de8())
 """
 Other runtime implementations will have their own ways of running the runtime.
 """
-logger.info("Other runtime implementations will have their own ways of running the runtime.")
+logger.info(
+    "Other runtime implementations will have their own ways of running the runtime.")
 
 logger.info("\n\n[DONE]", bright=True)

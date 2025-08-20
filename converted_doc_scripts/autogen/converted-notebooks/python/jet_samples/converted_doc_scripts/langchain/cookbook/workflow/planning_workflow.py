@@ -3,18 +3,18 @@ from jet.transformers.formatters import format_json
 from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLX
 from jet.logger import CustomLogger
 from llama_index.core import (
-VectorStoreIndex,
-StorageContext,
-load_index_from_storage,
+    VectorStoreIndex,
+    StorageContext,
+    load_index_from_storage,
 )
 from llama_index.core.prompts import PromptTemplate
 from llama_index.core.tools import QueryEngineTool
 from llama_index.core.workflow import (
-Workflow,
-StopEvent,
-StartEvent,
-Context,
-step,
+    Workflow,
+    StopEvent,
+    StartEvent,
+    Context,
+    step,
 )
 from llama_index.core.workflow import Event
 from llama_parse import LlamaParse
@@ -70,7 +70,6 @@ By predicting events, we are predicting the next step(s) in our workflow to run.
 logger.info("## Workflow Definition")
 
 
-
 class QueryPlanItem(Event):
     """A single step in an execution plan for a RAG system."""
 
@@ -87,10 +86,12 @@ class QueryPlan(BaseModel):
         description="A list of the QueryPlanItem objects in the plan."
     )
 
+
 """
 In addition to the query plan, we also need some workflow events to collect the results of the query plan items.
 """
 logger.info("In addition to the query plan, we also need some workflow events to collect the results of the query plan items.")
+
 
 class QueryPlanItemResult(Event):
     """The result of a query plan item"""
@@ -104,6 +105,7 @@ class ExecutedPlanEvent(Event):
 
     result: str
 
+
 """
 ### Workflow Definition
 
@@ -112,9 +114,9 @@ Now we can define our workflow. We will use an iterative process where we plan, 
 logger.info("### Workflow Definition")
 
 
-
 class QueryPlanningWorkflow(Workflow):
-    llm = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+    llm = MLXAutogenChatLLMAdapter(
+        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
     planning_prompt = PromptTemplate(
         "Think step by step. Given an initial query, as well as information about the indexes you can query, return a plan for a RAG system.\n"
         "The plan should be a list of QueryPlanItem objects, where each object contains a query.\n"
@@ -142,6 +144,7 @@ class QueryPlanningWorkflow(Workflow):
             async def run_async_code_3e5e5ef8():
                 await ctx.set("tools", {t.metadata.name: t for t in tools})
             asyncio.run(run_async_code_3e5e5ef8())
+
             async def run_async_code_82309c4a():
                 await ctx.set("original_query", query)
             asyncio.run(run_async_code_82309c4a())
@@ -152,6 +155,7 @@ class QueryPlanningWorkflow(Workflow):
                     for i, tool in enumerate(tools)
                 ]
             )
+
             async def run_async_code_aafa39ba():
                 await ctx.set("context", context_str)
             asyncio.run(run_async_code_aafa39ba())
@@ -172,6 +176,7 @@ class QueryPlanningWorkflow(Workflow):
             )
 
             num_items = len(query_plan.items)
+
             async def run_async_code_d04b7e35():
                 await ctx.set("num_items", num_items)
             asyncio.run(run_async_code_d04b7e35())
@@ -201,6 +206,7 @@ class QueryPlanningWorkflow(Workflow):
                     return context_str
                 context_str = asyncio.run(run_async_code_38553142())
                 logger.success(format_json(context_str))
+
                 async def async_func_75():
                     query_plan = await self.llm.astructured_predict(
                         QueryPlan,
@@ -217,6 +223,7 @@ class QueryPlanningWorkflow(Workflow):
                 )
 
                 num_items = len(query_plan.items)
+
                 async def run_async_code_36a89fbc():
                     await ctx.set("num_items", num_items)
                 asyncio.run(run_async_code_36a89fbc())
@@ -267,6 +274,7 @@ class QueryPlanningWorkflow(Workflow):
             ]
         )
         return ExecutedPlanEvent(result=aggregated_result)
+
 
 """
 ## Loading Data
@@ -330,6 +338,7 @@ async for event in handler.stream_events():
     if hasattr(event, "msg"):
         logger.debug(event.msg)
 
+
 async def run_async_code_57881a8e():
     result = await handler
     return result
@@ -346,6 +355,7 @@ handler = workflow.run(
 async for event in handler.stream_events():
     if hasattr(event, "msg"):
         logger.debug(event.msg)
+
 
 async def run_async_code_57881a8e():
     result = await handler

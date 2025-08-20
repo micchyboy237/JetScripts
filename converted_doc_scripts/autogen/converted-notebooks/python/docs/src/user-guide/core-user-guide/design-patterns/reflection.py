@@ -341,7 +341,7 @@ logger.info("## Running the Design Pattern")
 async def main():
     runtime = SingleThreadedAgentRuntime()
     model_client = MLXAutogenChatLLMAdapter(
-        model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
     await ReviewerAgent.register(runtime, "ReviewerAgent", lambda: ReviewerAgent(model_client=model_client))
     await CoderAgent.register(runtime, "CoderAgent", lambda: CoderAgent(model_client=model_client))

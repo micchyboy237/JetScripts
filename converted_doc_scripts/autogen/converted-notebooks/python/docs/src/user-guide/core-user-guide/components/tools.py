@@ -151,7 +151,8 @@ logger.info(
     "Model clients use the JSON schema of the tools to generate tool calls.")
 
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+model_client = MLXAutogenChatLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 user_message = UserMessage(
     content="What is the stock price of AAPL on 2021/01/01?", source="user")
@@ -348,7 +349,8 @@ To run the agent, let's create a runtime and register the agent with the runtime
 logger.info(
     "When handling a user message, the `ToolUseAgent` class first use the model client")
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+model_client = MLXAutogenChatLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 runtime = SingleThreadedAgentRuntime()
 tools: List[Tool] = [FunctionTool(
     get_stock_price, description="Get the stock price.")]

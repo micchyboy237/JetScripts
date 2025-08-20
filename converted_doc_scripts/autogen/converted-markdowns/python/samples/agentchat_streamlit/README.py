@@ -43,7 +43,7 @@ logger.info(
 
 provider: jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXAutogenChatLLMAdapter
 config:
-    azure_deployment: "llama-3.2-3b-instruct"
+    azure_deployment: "qwen3-1.7b-4bit"
     model: llama-3.2-3b-instruct
     api_version: REPLACE_WITH_MODEL_API_VERSION
     azure_endpoint: REPLACE_WITH_MODEL_ENDPOINT

@@ -54,7 +54,7 @@ logger.info("## Quickstart")
 
 async def main() -> None:
    client = MLXAutogenChatLLMAdapter(
-       model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+       model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
    # Optional, but very useful.
    logger = PageLogger(
        config={"level": "DEBUG", "path": "./pagelogs/quickstart"})
@@ -156,7 +156,7 @@ class MemoryEnabledAgent(RoutedAgent):
 
 
 async def main() -> None:
-   client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+   client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
    logger = PageLogger(config={"level": "DEBUG", "path": "./pagelogs/quickstart2"})  # Optional, but very useful.
    memory_controller = MemoryController(reset=True, client=client, logger=logger)
 

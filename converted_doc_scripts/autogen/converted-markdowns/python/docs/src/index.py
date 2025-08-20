@@ -110,7 +110,7 @@ logger.info(
 
 async def main() -> None:
     agent = AssistantAgent("assistant", MLXAutogenChatLLMAdapter(
-        model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"))
+        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"))
 
     async def run_async_code_ade8da1c():
         logger.debug(await agent.run(task="Say 'Hello World!'"))

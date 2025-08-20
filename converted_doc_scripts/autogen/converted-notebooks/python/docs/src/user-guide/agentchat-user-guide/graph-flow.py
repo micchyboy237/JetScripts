@@ -221,7 +221,8 @@ This example demonstrates:
 logger.info("## 🔁 Advanced Example: Conditional Loop + Filtered Summary")
 
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+model_client = MLXAutogenChatLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 generator = AssistantAgent("generator", model_client=model_client,
                            system_message="Generate a list of creative ideas.")
@@ -283,7 +284,8 @@ This example shows a review loop where both the initial input (A) and the feedba
 logger.info("## 🔁 Advanced Example: Cycles With Activation Group Examples")
 
 
-client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+client = MLXAutogenChatLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 agent_a = AssistantAgent("A", model_client=client,
                          system_message="Start the process and provide initial input.")

@@ -191,7 +191,8 @@ logger.info(
     "Let's set up the runtime with 3 layers of worker agents, each layer consisting of 3 worker agents.")
 
 runtime = SingleThreadedAgentRuntime()
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+model_client = MLXAutogenChatLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 
 async def run_async_code_a3cbf129():
