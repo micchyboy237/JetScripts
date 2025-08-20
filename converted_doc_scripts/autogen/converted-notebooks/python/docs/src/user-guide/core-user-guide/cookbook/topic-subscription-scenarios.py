@@ -1,16 +1,16 @@
 import asyncio
 from autogen_core import (
-MessageContext,
-RoutedAgent,
-SingleThreadedAgentRuntime,
-TopicId,
-TypeSubscription,
-message_handler,
+    MessageContext,
+    RoutedAgent,
+    SingleThreadedAgentRuntime,
+    TopicId,
+    TypeSubscription,
+    message_handler,
 )
 from autogen_core._default_subscription import DefaultSubscription
 from autogen_core._default_topic import DefaultTopicId
 from autogen_core.models import (
-SystemMessage,
+    SystemMessage,
 )
 from dataclasses import dataclass
 from enum import Enum
@@ -61,7 +61,6 @@ Each scenario represents a different approach to message distribution and agent 
 logger.info("## Topic and Subscription Example Scenarios")
 
 
-
 class TaxSpecialty(str, Enum):
     PLANNING = "planning"
     DISPUTE_RESOLUTION = "dispute_resolution"
@@ -93,13 +92,16 @@ class TaxSpecialist(RoutedAgent):
 
     @message_handler
     async def handle_message(self, message: ClientRequest, ctx: MessageContext) -> None:
-        logger.debug(f"\n{'='*50}\nTax specialist {self.id} with specialty {self.specialty}:\n{message.content}")
+        logger.debug(
+            f"\n{'='*50}\nTax specialist {self.id} with specialty {self.specialty}:\n{message.content}")
         if ctx.topic_id is None:
             raise ValueError("Topic ID is required for broadcasting")
         await self.publish_message(
-            message=RequestAssessment(content=f"I can handle this request in {self.specialty}."),
+            message=RequestAssessment(
+                content=f"I can handle this request in {self.specialty}."),
             topic_id=ctx.topic_id,
         )
+
 
 """
 ### 1. Single-Tenant, Single Scope of Publishing
@@ -138,56 +140,50 @@ In our tax specialist company, this scenario implies:
 """
 logger.info("### 1. Single-Tenant, Single Scope of Publishing")
 
+
 async def run_single_tenant_single_scope() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     specialist_agent_type_1 = "TaxSpecialist_1"
     specialist_agent_type_2 = "TaxSpecialist_2"
-    async def async_func_5():
-        await TaxSpecialist.register(
-            runtime=runtime,
-            type=specialist_agent_type_1,
-            factory=lambda: TaxSpecialist(
-                description="A tax specialist 1",
-                specialty=TaxSpecialty.PLANNING,
-                system_messages=[SystemMessage(content="You are a tax specialist.")],
-            ),
-        )
-    asyncio.run(async_func_5())
 
-    async def async_func_15():
-        await TaxSpecialist.register(
-            runtime=runtime,
-            type=specialist_agent_type_2,
-            factory=lambda: TaxSpecialist(
-                description="A tax specialist 2",
-                specialty=TaxSpecialty.DISPUTE_RESOLUTION,
-                system_messages=[SystemMessage(content="You are a tax specialist.")],
-            ),
-        )
-    asyncio.run(async_func_15())
+    # Register agents
+    await TaxSpecialist.register(
+        runtime=runtime,
+        type=specialist_agent_type_1,
+        factory=lambda: TaxSpecialist(
+            description="A tax specialist 1",
+            specialty=TaxSpecialty.PLANNING,
+            system_messages=[SystemMessage(
+                content="You are a tax specialist.")],
+        ),
+    )
+    await TaxSpecialist.register(
+        runtime=runtime,
+        type=specialist_agent_type_2,
+        factory=lambda: TaxSpecialist(
+            description="A tax specialist 2",
+            specialty=TaxSpecialty.DISPUTE_RESOLUTION,
+            system_messages=[SystemMessage(
+                content="You are a tax specialist.")],
+        ),
+    )
 
-    async def run_async_code_26809051():
-        await runtime.add_subscription(DefaultSubscription(agent_type=specialist_agent_type_1))
-    asyncio.run(run_async_code_26809051())
-    async def run_async_code_56d331b8():
-        await runtime.add_subscription(DefaultSubscription(agent_type=specialist_agent_type_2))
-    asyncio.run(run_async_code_56d331b8())
+    # Add subscriptions
+    await runtime.add_subscription(DefaultSubscription(agent_type=specialist_agent_type_1))
+    await runtime.add_subscription(DefaultSubscription(agent_type=specialist_agent_type_2))
 
-    async def run_async_code_772b732b():
-        runtime.start()
-    asyncio.run(run_async_code_772b732b())
-    async def run_async_code_51965411():
-        await runtime.publish_message(ClientRequest("I need to have my tax for 2024 prepared."), topic_id=DefaultTopicId())
-    asyncio.run(run_async_code_51965411())
-    async def run_async_code_3b466eef():
-        await runtime.stop_when_idle()
-    asyncio.run(run_async_code_3b466eef())
+    # Start runtime
+    runtime.start()
 
+    # Publish message
+    await runtime.publish_message(ClientRequest("I need to have my tax for 2024 prepared."), topic_id=DefaultTopicId())
 
-async def run_async_code_b44d9695():
-    await run_single_tenant_single_scope()
-asyncio.run(run_async_code_b44d9695())
+    # Stop runtime when idle
+    await runtime.stop_when_idle()
+
+# Run the scenario
+asyncio.run(run_single_tenant_single_scope())
 
 """
 ### 2. Multi-Tenant, Single Scope of Publishing
@@ -228,55 +224,45 @@ In this scenario:
 """
 logger.info("### 2. Multi-Tenant, Single Scope of Publishing")
 
+
 async def run_multi_tenant_single_scope() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     tenants = ["ClientABC", "ClientXYZ"]
 
+    # Register agents and subscriptions
     for specialty in TaxSpecialty:
         specialist_agent_type = f"TaxSpecialist_{specialty.value}"
-        async def async_func_7():
-            await TaxSpecialist.register(
-                runtime=runtime,
-                type=specialist_agent_type,
-                factory=lambda specialty=specialty: TaxSpecialist(  # type: ignore
-                    description=f"A tax specialist in {specialty.value}.",
-                    specialty=specialty,
-                    system_messages=[SystemMessage(content=f"You are a tax specialist in {specialty.value}.")],
-                ),
-            )
-        asyncio.run(async_func_7())
-        specialist_subscription = DefaultSubscription(agent_type=specialist_agent_type)
-        async def run_async_code_d34a487f():
-            await runtime.add_subscription(specialist_subscription)
-        asyncio.run(run_async_code_d34a487f())
+        await TaxSpecialist.register(
+            runtime=runtime,
+            type=specialist_agent_type,
+            factory=lambda specialty=specialty: TaxSpecialist(
+                description=f"A tax specialist in {specialty.value}.",
+                specialty=specialty,
+                system_messages=[SystemMessage(
+                    content=f"You are a tax specialist in {specialty.value}.")],
+            ),
+        )
+        specialist_subscription = DefaultSubscription(
+            agent_type=specialist_agent_type)
+        await runtime.add_subscription(specialist_subscription)
 
-    async def run_async_code_772b732b():
-        runtime.start()
-    asyncio.run(run_async_code_772b732b())
+    # Start runtime
+    runtime.start()
 
+    # Publish messages for each tenant
     for tenant in tenants:
-        topic_source = tenant  # The topic source is the client name
-        topic_id = DefaultTopicId(source=topic_source)
-        async def async_func_24():
-            await runtime.publish_message(
-                ClientRequest(f"{tenant} requires tax services."),
-                topic_id=topic_id,
-            )
-        asyncio.run(async_func_24())
+        topic_id = DefaultTopicId(source=tenant)
+        await runtime.publish_message(
+            ClientRequest(f"{tenant} requires tax services."),
+            topic_id=topic_id,
+        )
 
-    async def run_async_code_acb6afe5():
-        await asyncio.sleep(1)
-    asyncio.run(run_async_code_acb6afe5())
+    # Stop runtime when idle
+    await runtime.stop_when_idle()
 
-    async def run_async_code_3b466eef():
-        await runtime.stop_when_idle()
-    asyncio.run(run_async_code_3b466eef())
-
-
-async def run_async_code_72a9c1c9():
-    await run_multi_tenant_single_scope()
-asyncio.run(run_async_code_72a9c1c9())
+# Run the scenario
+asyncio.run(run_multi_tenant_single_scope())
 
 """
 ### 3. Single-Tenant, Multiple Scopes of Publishing
@@ -318,47 +304,43 @@ In this scenario:
 """
 logger.info("### 3. Single-Tenant, Multiple Scopes of Publishing")
 
+
 async def run_single_tenant_multiple_scope() -> None:
     runtime = SingleThreadedAgentRuntime()
+
+    # Register agents and subscriptions
     for specialty in TaxSpecialty:
         specialist_agent_type = f"TaxSpecialist_{specialty.value}"
         await TaxSpecialist.register(
             runtime=runtime,
             type=specialist_agent_type,
-            factory=lambda specialty=specialty: TaxSpecialist(  # type: ignore
+            factory=lambda specialty=specialty: TaxSpecialist(
                 description=f"A tax specialist in {specialty.value}.",
                 specialty=specialty,
-                system_messages=[SystemMessage(content=f"You are a tax specialist in {specialty.value}.")],
+                system_messages=[SystemMessage(
+                    content=f"You are a tax specialist in {specialty.value}.")],
             ),
         )
-        specialist_subscription = TypeSubscription(topic_type=specialty.value, agent_type=specialist_agent_type)
+        specialist_subscription = TypeSubscription(
+            topic_type=specialty.value, agent_type=specialist_agent_type)
         await runtime.add_subscription(specialist_subscription)
 
-    async def run_async_code_772b732b():
-        runtime.start()
-    asyncio.run(run_async_code_772b732b())
+    # Start runtime
+    runtime.start()
 
+    # Publish messages for each specialty
     for specialty in TaxSpecialty:
         topic_id = TopicId(type=specialty.value, source="default")
-        async def async_func_20():
-            await runtime.publish_message(
-                ClientRequest(f"I need assistance with {specialty.value} taxes."),
-                topic_id=topic_id,
-            )
-        asyncio.run(async_func_20())
+        await runtime.publish_message(
+            ClientRequest(f"I need assistance with {specialty.value} taxes."),
+            topic_id=topic_id,
+        )
 
-    async def run_async_code_acb6afe5():
-        await asyncio.sleep(1)
-    asyncio.run(run_async_code_acb6afe5())
+    # Stop runtime when idle
+    await runtime.stop_when_idle()
 
-    async def run_async_code_3b466eef():
-        await runtime.stop_when_idle()
-    asyncio.run(run_async_code_3b466eef())
-
-
-async def run_async_code_86fc9be7():
-    await run_single_tenant_multiple_scope()
-asyncio.run(run_async_code_86fc9be7())
+# Run the scenario
+asyncio.run(run_single_tenant_multiple_scope())
 
 """
 ### 4. Multi-Tenant, Multiple Scopes of Publishing
@@ -401,57 +383,49 @@ In this scenario:
 """
 logger.info("### 4. Multi-Tenant, Multiple Scopes of Publishing")
 
+
 async def run_multi_tenant_multiple_scope() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     tenants = ["ClientABC", "ClientXYZ"]
 
+    # Register agents and subscriptions
     for specialty in TaxSpecialty:
         specialist_agent_type = f"TaxSpecialist_{specialty.value}"
-        async def async_func_7():
-            await TaxSpecialist.register(
-                runtime=runtime,
-                type=specialist_agent_type,
-                factory=lambda specialty=specialty: TaxSpecialist(  # type: ignore
-                    description=f"A tax specialist in {specialty.value}.",
-                    specialty=specialty,
-                    system_messages=[SystemMessage(content=f"You are a tax specialist in {specialty.value}.")],
-                ),
-            )
-        asyncio.run(async_func_7())
+        await TaxSpecialist.register(
+            runtime=runtime,
+            type=specialist_agent_type,
+            factory=lambda specialty=specialty: TaxSpecialist(
+                description=f"A tax specialist in {specialty.value}.",
+                specialty=specialty,
+                system_messages=[SystemMessage(
+                    content=f"You are a tax specialist in {specialty.value}.")],
+            ),
+        )
         for tenant in tenants:
             specialist_subscription = TypeSubscription(
                 topic_type=f"{tenant}_{specialty.value}", agent_type=specialist_agent_type
             )
-            async def run_async_code_353886c4():
-                await runtime.add_subscription(specialist_subscription)
-            asyncio.run(run_async_code_353886c4())
+            await runtime.add_subscription(specialist_subscription)
 
-    async def run_async_code_772b732b():
-        runtime.start()
-    asyncio.run(run_async_code_772b732b())
+    # Start runtime
+    runtime.start()
 
+    # Publish messages for each tenant and specialty
     for tenant in tenants:
         for specialty in TaxSpecialty:
-            topic_id = TopicId(type=f"{tenant}_{specialty.value}", source=tenant)
-            async def async_func_27():
-                await runtime.publish_message(
-                    ClientRequest(f"{tenant} needs assistance with {specialty.value} taxes."),
-                    topic_id=topic_id,
-                )
-            asyncio.run(async_func_27())
+            topic_id = TopicId(
+                type=f"{tenant}_{specialty.value}", source=tenant)
+            await runtime.publish_message(
+                ClientRequest(
+                    f"{tenant} needs assistance with {specialty.value} taxes."),
+                topic_id=topic_id,
+            )
 
-    async def run_async_code_acb6afe5():
-        await asyncio.sleep(1)
-    asyncio.run(run_async_code_acb6afe5())
+    # Stop runtime when idle
+    await runtime.stop_when_idle()
 
-    async def run_async_code_3b466eef():
-        await runtime.stop_when_idle()
-    asyncio.run(run_async_code_3b466eef())
-
-
-async def run_async_code_39f3bcbf():
-    await run_multi_tenant_multiple_scope()
-asyncio.run(run_async_code_39f3bcbf())
+# Run the scenario
+asyncio.run(run_multi_tenant_multiple_scope())
 
 logger.info("\n\n[DONE]", bright=True)
