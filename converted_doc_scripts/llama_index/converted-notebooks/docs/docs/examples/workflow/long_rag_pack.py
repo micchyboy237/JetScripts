@@ -421,7 +421,7 @@ logger.success(format_json(result))
 
 async def async_func_16():
     res = await wf.run(
-        query_str="How can Pittsburgh become a startup hub, and what are the two types of moderates?",
+        query_str="What are all the options and price?",
         query_eng=result["query_engine"],
     )
     return res

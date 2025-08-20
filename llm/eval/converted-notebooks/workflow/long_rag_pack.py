@@ -1,6 +1,8 @@
+from jet.models.config import MODELS_CACHE_DIR
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import asyncio
-from jet.llm.ollama.base import Ollama
-from jet.transformers.formatters import format_json
+import shutil
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from llama_index.core.workflow import (
     Workflow,
     step,
@@ -25,9 +27,21 @@ from llama_index.core.schema import BaseNode, TextNode
 from typing import List, Dict, Optional, Set, FrozenSet
 import os
 import nest_asyncio
-from jet.logger import logger
-from jet.llm.ollama.base import initialize_ollama_settings
-initialize_ollama_settings()
+from jet.logger import CustomLogger
+
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger = CustomLogger(log_file, overwrite=True)
+logger.info(f"Logs: {log_file}")
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
 
 # LongRAG Workflow
 
@@ -363,10 +377,11 @@ async def run_workflow():
     # Running the Workflow
 
     wf = LongRAGWorkflow(timeout=60)
-    llm = Ollama(model="llama3.1")
+    llm = MLXLlamaIndexLLMAdapter(
+        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
     data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
 
-    query = "How can Pittsburgh become a startup hub, and what are the two types of moderates?"
+    query = "Write all your accomplishments"
 
     result = await wf.run(
         data_dir=data_dir,
