@@ -1,0 +1,41 @@
+from jet.logger import CustomLogger
+from langchain.embeddings import HuggingFaceEmbeddings
+from llama_index.embeddings.langchain import LangchainEmbedding
+import os
+import shutil
+
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger = CustomLogger(log_file, overwrite=True)
+logger.info(f"Logs: {log_file}")
+
+"""
+# LangChain Embeddings
+
+This guide shows you how to use embedding models from [LangChain](https://python.langchain.com/docs/integrations/text_embedding/).
+
+<a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/embeddings/Langchain.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
+If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
+"""
+logger.info("# LangChain Embeddings")
+
+# %pip install llama-index-embeddings-langchain
+
+# !pip install llama-index
+
+
+lc_embed_model = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-mpnet-base-v2"
+)
+embed_model = LangchainEmbedding(lc_embed_model)
+
+embeddings = embed_model.get_text_embedding(
+    "It is raining cats and dogs here!"
+)
+logger.debug(len(embeddings), embeddings[:10])
+
+logger.info("\n\n[DONE]", bright=True)

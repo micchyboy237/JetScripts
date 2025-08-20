@@ -12,28 +12,32 @@ from jet.code.rst_code_extractor import rst_to_code_blocks
 from jet.logger import logger
 from jet.utils.file import search_files
 
+LARGE_MODEL = "qwen3-1.7b-4bit"
+SMALL_MODEL = "qwen3-0.6b-4bit"
+
 REPLACE_MLX_MAP = {
     "llama-index-llms-openai": "llama-index-llms-ollama",
     "llama-index-embeddings-openai": "llama-index-embeddings-ollama",
-    "llama_index.llms.openai": "jet.llm.ollama.base",
-    "llama_index.embeddings.openai": "jet.llm.ollama.base",
+    "llama_index.llms.openai": "jet.llm.mlx.base",
+    "llama_index.embeddings.openai": "jet.llm.mlx.base",
     "autogen_ext.models.openai": "jet.llm.mlx.autogen_ext.mlx_chat_completion_client",
-    "langchain_openai": "jet.llm.ollama.base_langchain",
-    "langchain_anthropic": "jet.llm.ollama.base_langchain",
-    "langchain_ollama": "jet.llm.ollama.base_langchain",
+    "langchain_openai": "jet.llm.mlx.base_langchain",
+    "langchain_anthropic": "jet.llm.mlx.base_langchain",
+    "langchain_ollama": "jet.llm.mlx.base_langchain",
     "OpenAIEmbeddings": "MLXEmbeddings",
     "OpenAIEmbedding": "MLXEmbedding",
     "ChatOpenAI": "ChatMLX",
     "ChatAnthropic": "ChatMLX",
     "OpenAI": "MLX",
-    "(\"gpt-4\")": "(model=\"llama-3.2-3b-instruct\")",
-    "('gpt-4')": "(model=\"llama-3.2-3b-instruct\")",
-    "(\"gpt-3.5\")": "(model=\"llama-3.2-1b-instruct\")",
-    "(\'gpt-3.5\')": "(model=\"llama-3.2-1b-instruct\")",
+    "(\"gpt-4\")": "(model=\"qwen3-1.7b-4bit\", log_dir=f\"{OUTPUT_DIR}/chats\")",
+    "(\"gpt-4o\")": "(model=\"qwen3-1.7b-4bit\", log_dir=f\"{OUTPUT_DIR}/chats\")",
+    "(\"gpt-4o-mini\")": "(model=\"qwen3-1.7b-4bit\", log_dir=f\"{OUTPUT_DIR}/chats\")",
+    "(\"gpt-3.5\")": "(model=\"qwen3-0.6b-4bit\", log_dir=f\"{OUTPUT_DIR}/chats\")",
     "openai:": "ollama:",
     "anthropic:": "ollama:",
-    "gpt-4o-mini": "llama-3.2-3b-instruct",
-    "claude-3-5-sonnet-latest": "llama-3.2-3b-instruct",
+    "gpt-4o": "qwen3-1.7b-4bit",
+    "gpt-4o-mini": "qwen3-0.6b-4bit",
+    "claude-3-5-sonnet-latest": "qwen3-1.7b-4bit",
     "text-embedding-3-small": "mxbai-embed-large",
 }
 
@@ -57,7 +61,7 @@ COMMENT_LINE_KEYWORDS = [
     "ANTHROPIC_API_KEY",
     "getpass",
     "import nest_asyncio",
-    "nest_asyncio.apply()"
+    "nest_asyncio.apply()",
 ]
 
 
@@ -165,7 +169,7 @@ def replace_print_with_jet_logger(code: str):
     return code.replace("print(", "logger.debug(")
 
 
-def update_code_with_ollama(code: str) -> str:
+def update_code_with_mlx(code: str) -> str:
     code_lines = code.splitlines()
     updated_lines = []
     for line in code_lines:
@@ -179,15 +183,15 @@ def update_code_with_ollama(code: str) -> str:
         'from jet.llm.mlx.base import MLX',
         updated_code
     )
-    updated_code = re.sub(r'Ollama\s*\((.*?)\)', r'Ollama(\1)', updated_code)
+    updated_code = re.sub(r'MLX\s*\((.*?)\)', r'MLX(\1)', updated_code)
     updated_code = re.sub(
-        r'model=["\']gpt-4[^"\']*["\']',
-        'model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"',
+        r'(?:model|llm)=["\']gpt-4[^"\']*["\']',
+        'model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"',
         updated_code
     )
     updated_code = re.sub(
-        r'model=["\']gpt-3\.5[^"\']*["\']',
-        'model="llama-3.2-1b-instruct", log_dir=f"{OUTPUT_DIR}/chats"',
+        r'(?:model|llm)=["\']gpt-3\.5[^"\']*["\']',
+        'model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats"',
         updated_code
     )
     updated_code = re.sub(
@@ -197,7 +201,7 @@ def update_code_with_ollama(code: str) -> str:
     )
     updated_code = re.sub(
         r'ChatOllama\s*\((.*?)\)',
-        r'ChatOllama(model="llama-3.2-3b-instruct")',
+        r'ChatOllama(model="qwen3-1.7b-4bit")',
         updated_code
     )
     updated_code = re.sub(
@@ -595,7 +599,7 @@ def scrape_code(
                 source_code = "\n\n".join(group['code']
                                           for group in source_groups)
                 if with_ollama:
-                    source_code = update_code_with_ollama(source_code)
+                    source_code = update_code_with_mlx(source_code)
                     source_code = add_general_initializer_code(source_code)
                     source_code = add_jet_logger(source_code)
                     source_code = move_all_imports_on_top(source_code)

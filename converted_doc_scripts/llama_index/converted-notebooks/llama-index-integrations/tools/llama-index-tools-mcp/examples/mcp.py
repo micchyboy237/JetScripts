@@ -1,0 +1,253 @@
+import asyncio
+from jet.transformers.formatters import format_json
+from jet.llm.mlx.base import MLX
+from jet.logger import CustomLogger
+from llama_index.core.agent.workflow import FunctionAgent, ToolCallResult, ToolCall
+from llama_index.core.workflow import Context
+from llama_index.tools.mcp import (
+get_tools_from_mcp_url,
+aget_tools_from_mcp_url,
+)
+from llama_index.tools.mcp import BasicMCPClient
+from llama_index.tools.mcp import BasicMCPClient, McpToolSpec
+from llama_index.tools.mcp import McpToolSpec
+import dotenv
+import os
+import shutil
+
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger = CustomLogger(log_file, overwrite=True)
+logger.info(f"Logs: {log_file}")
+
+"""
+# MCP ToolSpec
+
+This tool connects to MCP Servers and allows an Agent to call the tools provided by MCP Servers.
+
+This idea is migrated from [Integrate MCP tools into LlamaIndex](https://psiace.me/posts/integrate-mcp-tools-into-llamaindex/).
+
+To run this example, you need to edit the .env file to set the correct values for the [IPInfo API Token](https://ipinfo.io/signup) and a [MLX API key](https://platform.openai.com/api-keys).
+
+```bash
+# get the code
+git clone https://github.com/run-llama/llama_index
+cd llama_index/llama-index-integrations/tools/llama-index-tools-mcp/examples
+
+# install dependencies
+pip install ipinfo
+
+cp .env.example .env
+# NOTE: edit the .env file to have the correct values!
+
+# run the server
+python mcp_server.py --server_type=sse
+```
+
+In this example, we will create a toy example with an agent that can query the ip info of the user.
+
+It's built using the `AgentWorkflow` class from LlamaIndex. If that's new to you, you can [read more about it](https://docs.llamaindex.ai/en/stable/examples/agent/agent_workflow_basic/)!
+"""
+logger.info("# MCP ToolSpec")
+
+
+dotenv.load_dotenv()
+
+llm = MLX(model="qwen3-1.7b-4bit")
+
+
+SYSTEM_PROMPT = """\
+You are an AI assistant.
+
+Before you help a user, you need to fetch the ip info first, to help you follow the laws of the country.
+"""
+
+
+async def get_agent(tools: McpToolSpec):
+    async def run_async_code_1dd5b7d2():
+        async def run_async_code_9bcf3dac():
+            tools = await tools.to_tool_list_async()
+            return tools
+        tools = asyncio.run(run_async_code_9bcf3dac())
+        logger.success(format_json(tools))
+        return tools
+    tools = asyncio.run(run_async_code_1dd5b7d2())
+    logger.success(format_json(tools))
+    agent = FunctionAgent(
+        name="Agent",
+        description="An agent that can fetch the ip info of the user.",
+        tools=tools,
+        llm=llm,
+        system_prompt=SYSTEM_PROMPT,
+    )
+    return agent
+
+
+async def handle_user_message(
+    message_content: str,
+    agent: FunctionAgent,
+    agent_context: Context,
+    verbose: bool = False,
+):
+    handler = agent.run(message_content, ctx=agent_context)
+    async for event in handler.stream_events():
+        if verbose and type(event) == ToolCall:
+            logger.debug(f"Calling tool {event.tool_name} with kwargs {event.tool_kwargs}")
+        elif verbose and type(event) == ToolCallResult:
+            logger.debug(f"Tool {event.tool_name} returned {event.tool_output}")
+
+    async def run_async_code_2cbcd794():
+        async def run_async_code_cab044ff():
+            response = await handler
+            return response
+        response = asyncio.run(run_async_code_cab044ff())
+        logger.success(format_json(response))
+        return response
+    response = asyncio.run(run_async_code_2cbcd794())
+    logger.success(format_json(response))
+    return str(response)
+
+
+mcp_client = BasicMCPClient("http://127.0.0.1:8000/sse")
+mcp_tool = McpToolSpec(client=mcp_client)
+
+async def run_async_code_41ad2e6d():
+    async def run_async_code_4d945d38():
+        agent = await get_agent(mcp_tool)
+        return agent
+    agent = asyncio.run(run_async_code_4d945d38())
+    logger.success(format_json(agent))
+    return agent
+agent = asyncio.run(run_async_code_41ad2e6d())
+logger.success(format_json(agent))
+
+agent_context = Context(agent)
+
+while True:
+    user_input = input("Enter your message: ")
+    if user_input == "exit":
+        break
+    logger.debug("User: ", user_input)
+    async def run_async_code_23d69ab2():
+        async def run_async_code_6fca8706():
+            response = await handle_user_message(user_input, agent, agent_context, verbose=True)
+            return response
+        response = asyncio.run(run_async_code_6fca8706())
+        logger.success(format_json(response))
+        return response
+    response = asyncio.run(run_async_code_23d69ab2())
+    logger.success(format_json(response))
+    logger.debug("Agent: ", response)
+
+"""
+Here, we can see the agent is calling the `fetch_ipinfo` tool to get the ip info! This tool is running remotely on the mcp server.
+
+The `MCPToolSpec` is connecting to the MCP server and creating `FunctionTool`s for each tool that is registered on the MCP server.
+"""
+logger.info("Here, we can see the agent is calling the `fetch_ipinfo` tool to get the ip info! This tool is running remotely on the mcp server.")
+
+async def run_async_code_43f34912():
+    async def run_async_code_d56ec714():
+        tools = await mcp_tool.to_tool_list_async()
+        return tools
+    tools = asyncio.run(run_async_code_d56ec714())
+    logger.success(format_json(tools))
+    return tools
+tools = asyncio.run(run_async_code_43f34912())
+logger.success(format_json(tools))
+for tool in tools:
+    logger.debug(tool.metadata.name, tool.metadata.description)
+
+"""
+You can also limit the tools that the `MCPToolSpec` will create by passing a list of tool names to the `MCPToolSpec` constructor.
+"""
+logger.info("You can also limit the tools that the `MCPToolSpec` will create by passing a list of tool names to the `MCPToolSpec` constructor.")
+
+mcp_tool = McpToolSpec(client=mcp_client, allowed_tools=["some fake tool"])
+async def run_async_code_43f34912():
+    async def run_async_code_d56ec714():
+        tools = await mcp_tool.to_tool_list_async()
+        return tools
+    tools = asyncio.run(run_async_code_d56ec714())
+    logger.success(format_json(tools))
+    return tools
+tools = asyncio.run(run_async_code_43f34912())
+logger.success(format_json(tools))
+for tool in tools:
+    logger.debug(tool.metadata.name, tool.metadata.description)
+
+"""
+---
+
+**Alternatively**, 
+
+You can directly use the `get_tools_from_mcp_url` or `aget_tools_from_mcp_url` functions to get a list of `FunctionTool`s from an MCP server.
+"""
+logger.info("You can directly use the `get_tools_from_mcp_url` or `aget_tools_from_mcp_url` functions to get a list of `FunctionTool`s from an MCP server.")
+
+
+async def run_async_code_47f02869():
+    async def run_async_code_815d0a30():
+        tools = await aget_tools_from_mcp_url("http://127.0.0.1:8000/sse")
+        return tools
+    tools = asyncio.run(run_async_code_815d0a30())
+    logger.success(format_json(tools))
+    return tools
+tools = asyncio.run(run_async_code_47f02869())
+logger.success(format_json(tools))
+
+"""
+By default, this will use our `BasicMCPClient`, which will run a command or connect to the URL and return the tools.
+
+You can also pass in a custom `ClientSession` to use a different client.
+
+You can also specify a list of allowed tools to filter the tools that are returned.
+"""
+logger.info("By default, this will use our `BasicMCPClient`, which will run a command or connect to the URL and return the tools.")
+
+
+client = BasicMCPClient("http://127.0.0.1:8000/sse")
+
+async def async_func_4():
+    tools = await aget_tools_from_mcp_url(
+        "http://127.0.0.1:8000/sse",
+        client=client,
+        allowed_tools=["fetch_ipinfo"],
+    )
+    return tools
+tools = asyncio.run(async_func_4())
+logger.success(format_json(tools))
+
+"""
+Then create the agent directly using the obtained list of `FunctionTool`s.
+"""
+logger.info("Then create the agent directly using the obtained list of `FunctionTool`s.")
+
+agent = FunctionAgent(
+    name="Agent",
+    description="An agent that can fetch the ip info of the user.",
+    tools=tools,
+    llm=llm,
+    system_prompt=SYSTEM_PROMPT,
+)
+
+while True:
+    user_input = input("Enter your message: ")
+    if user_input == "exit":
+        break
+    logger.debug("User: ", user_input)
+    async def run_async_code_23d69ab2():
+        async def run_async_code_6fca8706():
+            response = await handle_user_message(user_input, agent, agent_context, verbose=True)
+            return response
+        response = asyncio.run(run_async_code_6fca8706())
+        logger.success(format_json(response))
+        return response
+    response = asyncio.run(run_async_code_23d69ab2())
+    logger.success(format_json(response))
+    logger.debug("Agent: ", response)
+
+logger.info("\n\n[DONE]", bright=True)

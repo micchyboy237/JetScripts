@@ -1,0 +1,97 @@
+from IPython.display import Markdown, display
+from jet.logger import CustomLogger
+from llama_index.core import (
+SimpleDirectoryReader,
+VectorStoreIndex,
+StorageContext,
+)
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.vector_stores.awadb import AwaDBVectorStore
+import logging
+import openai
+import os
+import shutil
+import sys
+
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger = CustomLogger(log_file, overwrite=True)
+logger.info(f"Logs: {log_file}")
+
+"""
+<a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/vector_stores/AwadbDemo.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
+# Awadb Vector Store
+
+If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
+"""
+logger.info("# Awadb Vector Store")
+
+# %pip install llama-index-embeddings-huggingface
+# %pip install llama-index-vector-stores-awadb
+
+# !pip install llama-index
+
+"""
+## Creating an Awadb index
+"""
+logger.info("## Creating an Awadb index")
+
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
+
+"""
+#### Load documents, build the VectorStoreIndex
+"""
+logger.info("#### Load documents, build the VectorStoreIndex")
+
+
+openai.api_key = ""
+
+"""
+#### Download Data
+"""
+logger.info("#### Download Data")
+
+# !mkdir -p 'data/paul_graham/'
+# !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
+
+"""
+#### Load Data
+"""
+logger.info("#### Load Data")
+
+documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+
+
+embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-en-v1.5")
+
+vector_store = AwaDBVectorStore()
+storage_context = StorageContext.from_defaults(vector_store=vector_store)
+
+index = VectorStoreIndex.from_documents(
+    documents, storage_context=storage_context, embed_model=embed_model
+)
+
+"""
+#### Query Index
+"""
+logger.info("#### Query Index")
+
+query_engine = index.as_query_engine()
+response = query_engine.query("What did the author do growing up?")
+
+display(Markdown(f"<b>{response}</b>"))
+
+query_engine = index.as_query_engine()
+response = query_engine.query(
+    "What did the author do after his time at Y Combinator?"
+)
+
+display(Markdown(f"<b>{response}</b>"))
+
+logger.info("\n\n[DONE]", bright=True)

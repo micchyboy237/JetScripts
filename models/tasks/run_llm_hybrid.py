@@ -53,7 +53,7 @@ if __name__ == "__main__":
     ids = [doc.id for doc in docs]
 
     model_path = "/Users/jethroestrada/.cache/huggingface/hub/models--Qwen--Qwen3-Embedding-0.6B-GGUF/snapshots/8aa0010e73a1075e99dfc213a475a60fd971bbe7/Qwen3-Embedding-0.6B-f16.gguf"
-    model_name = "mlx-community/Qwen3-0.6B-4bit"
+    model_name = "mlx-community/Qwen3-0.6B-4bit-DWQ-053125"
 
     n_ctx = calculate_n_ctx(model_name, documents)
 
