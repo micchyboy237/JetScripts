@@ -224,9 +224,7 @@ Because we used the {py:class}`~autogen_core.type_subscription` decorator, the r
 """
 logger.info("## Workflow")
 
-model_client = MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit",
-)
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 runtime = SingleThreadedAgentRuntime()
 
