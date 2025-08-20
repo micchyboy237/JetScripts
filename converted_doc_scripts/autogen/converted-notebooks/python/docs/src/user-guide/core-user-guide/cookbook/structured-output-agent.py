@@ -24,14 +24,13 @@ This cookbook demonstrates how to obtain structured output using GPT-4o models. 
 
 Currently, this feature is supported for:
 
-- qwen3-1.7b-4bit-mini on MLX
+- qwen3-1.7b-4bit on MLX
 - qwen3-1.7b-4bit-2024-08-06 on MLX
 - qwen3-1.7b-4bit-2024-08-06 on Azure
 
 Let's define a simple message type that carries explanation and output for a Math problem
 """
 logger.info("# Structured output using GPT-4o models")
-
 
 
 class MathReasoning(BaseModel):
@@ -49,8 +48,6 @@ os.environ["AZURE_OPENAI_DEPLOYMENT_NAME"] = "qwen3-1.7b-4bit-2024-08-06"
 os.environ["AZURE_OPENAI_API_VERSION"] = "2024-08-01-preview"
 
 
-
-
 def get_env_variable(name: str) -> str:
     value = os.getenv(name)
     if value is None:
@@ -63,12 +60,13 @@ client = AzureMLXAutogenChatLLMAdapter(
     model=get_env_variable("AZURE_OPENAI_MODEL"),
     api_version=get_env_variable("AZURE_OPENAI_API_VERSION"),
     azure_endpoint=get_env_variable("AZURE_OPENAI_ENDPOINT"),
-#     api_key=get_env_variable("AZURE_OPENAI_API_KEY"),
+    #     api_key=get_env_variable("AZURE_OPENAI_API_KEY"),
 )
 
 messages = [
     UserMessage(content="What is 16 + 32?", source="user"),
 ]
+
 
 async def run_async_code_52c87188():
     response = await client.create(messages=messages, extra_create_args={"response_format": MathReasoning})
@@ -76,7 +74,8 @@ async def run_async_code_52c87188():
 response = asyncio.run(run_async_code_52c87188())
 logger.success(format_json(response))
 
-response_content: Optional[str] = response.content if isinstance(response.content, str) else None
+response_content: Optional[str] = response.content if isinstance(
+    response.content, str) else None
 if response_content is None:
     raise ValueError("Response content is not a valid JSON string")
 

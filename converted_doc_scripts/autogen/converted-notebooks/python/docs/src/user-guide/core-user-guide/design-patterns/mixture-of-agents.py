@@ -166,7 +166,7 @@ class OrchestratorAgent(RoutedAgent):
 """
 ## Running Mixture of Agents
 
-Let's run the mixture of agents on a math task. You can change the task to make it more challenging, for example, by trying tasks from the [International Mathematical Olympiad](https://www.imo-official.org/problems.aspx).
+Run the entire mixture of agents workflow in a single async function to ensure all operations use the same event loop.
 """
 logger.info("## Running Mixture of Agents")
 
@@ -174,63 +174,39 @@ task = (
     "I have 432 cookies, and divide them 3:4:2 between Alice, Bob, and Charlie. How many cookies does each person get?"
 )
 
-"""
-Let's set up the runtime with 3 layers of worker agents, each layer consisting of 3 worker agents.
-We only need to register a single worker agent types, "worker", because we are using
-the same model client configuration (i.e., qwen3-1.7b-4bit-mini) for all worker agents.
-If you want to use different models, you will need to register multiple worker agent types,
-one for each model, and update the `worker_agent_types` list in the orchestrator agent's
-factory function.
 
-The instances of worker agents are automatically created when the orchestrator agent
-dispatches tasks to them.
-See [Agent Identity and Lifecycle](../core-concepts/agent-identity-and-lifecycle.md)
-for more information on agent lifecycle.
-"""
-logger.info(
-    "Let's set up the runtime with 3 layers of worker agents, each layer consisting of 3 worker agents.")
+async def run_mixture_of_agents():
+    # Initialize model client
+    model_client = MLXAutogenChatLLMAdapter(
+        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
-runtime = SingleThreadedAgentRuntime()
-model_client = MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    # Initialize runtime
+    runtime = SingleThreadedAgentRuntime()
 
-
-async def run_async_code_a3cbf129():
+    # Register agents
     await WorkerAgent.register(runtime, "worker", lambda: WorkerAgent(model_client=model_client))
-asyncio.run(run_async_code_a3cbf129())
-
-
-async def async_func_3():
     await OrchestratorAgent.register(
         runtime,
         "orchestrator",
         lambda: OrchestratorAgent(model_client=model_client, worker_agent_types=[
                                   "worker"] * 3, num_layers=3),
     )
-asyncio.run(async_func_3())
 
-
-async def run_async_code_1e6ac0a6():
+    # Start runtime
     runtime.start()
-asyncio.run(run_async_code_1e6ac0a6())
 
-
-async def run_async_code_5d35fbb3():
+    # Send task to orchestrator
     result = await runtime.send_message(UserTask(task=task), AgentId("orchestrator", "default"))
-    return result
-result = asyncio.run(run_async_code_5d35fbb3())
-logger.success(format_json(result))
+    logger.success(format_json(result))
+    logger.debug(f"{'-'*80}\nFinal result:\n{result.result}")
 
-
-async def run_async_code_b7ca34d4():
+    # Stop runtime when idle
     await runtime.stop_when_idle()
-asyncio.run(run_async_code_b7ca34d4())
 
-
-async def run_async_code_0349fda4():
+    # Close model client
     await model_client.close()
-asyncio.run(run_async_code_0349fda4())
 
-logger.debug(f"{'-'*80}\nFinal result:\n{result.result}")
+# Run the workflow
+asyncio.run(run_mixture_of_agents())
 
 logger.info("\n\n[DONE]", bright=True)

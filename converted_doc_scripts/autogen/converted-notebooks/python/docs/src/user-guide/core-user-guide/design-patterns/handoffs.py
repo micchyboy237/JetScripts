@@ -424,7 +424,7 @@ We have defined the AI agents, the Human Agent, the User Agent, the tools, and t
 Now we can create the team of agents.
 
 For the AI agents, we use the {py:class}`~autogen_ext.models.MLXAutogenChatLLMAdapter`
-and `qwen3-1.7b-4bit-mini` model.
+and `qwen3-1.7b-4bit` model.
 
 After creating the agent runtime, we register each of the agent by providing
 an agent type and a factory method to create agent instance.
