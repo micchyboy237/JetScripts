@@ -21,23 +21,22 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# Managing State
+# Managing State 
 
 So far, we have discussed how to build components in a multi-agent application - agents, teams, termination conditions. In many cases, it is useful to save the state of these components to disk and load them back later. This is particularly useful in a web application where stateless endpoints respond to requests and need to load the state of the application from persistent storage.
 
-In this notebook, we will discuss how to save and load the state of agents, teams, and termination conditions.
-
+In this notebook, we will discuss how to save and load the state of agents, teams, and termination conditions. 
+ 
 
 ## Saving and Loading Agents
 
-We can get the state of an agent by calling {py:meth}`~autogen_agentchat.agents.AssistantAgent.save_state` method on
+We can get the state of an agent by calling {py:meth}`~autogen_agentchat.agents.AssistantAgent.save_state` method on 
 an {py:class}`~autogen_agentchat.agents.AssistantAgent`.
 """
 logger.info("# Managing State")
 
 
-model_client = MLXAutogenChatLLMAdapter(
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit-2024-08-06")
 
 assistant_agent = AssistantAgent(
     name="assistant_agent",
@@ -45,36 +44,26 @@ assistant_agent = AssistantAgent(
     model_client=model_client,
 )
 
-
 async def async_func_16():
     response = await assistant_agent.on_messages(
-        [TextMessage(content="Write a 3 line poem on lake tangayika",
-                     source="user")], CancellationToken()
+        [TextMessage(content="Write a 3 line poem on lake tangayika", source="user")], CancellationToken()
     )
     return response
 response = asyncio.run(async_func_16())
 logger.success(format_json(response))
 logger.debug(response.chat_message)
-
-
 async def run_async_code_0349fda4():
     await model_client.close()
-    return
- = asyncio.run(run_async_code_0349fda4())
-logger.success(format_json())
+asyncio.run(run_async_code_0349fda4())
 
 async def run_async_code_5d9ca148():
-    async def run_async_code_87962345():
-        agent_state = await assistant_agent.save_state()
-        return agent_state
-    agent_state = asyncio.run(run_async_code_87962345())
-    logger.success(format_json(agent_state))
+    agent_state = await assistant_agent.save_state()
     return agent_state
 agent_state = asyncio.run(run_async_code_5d9ca148())
 logger.success(format_json(agent_state))
 logger.debug(agent_state)
 
-model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit-2024-08-06")
 
 new_assistant_agent = AssistantAgent(
     name="assistant_agent",
@@ -83,9 +72,7 @@ new_assistant_agent = AssistantAgent(
 )
 async def run_async_code_60b630b2():
     await new_assistant_agent.load_state(agent_state)
-    return 
- = asyncio.run(run_async_code_60b630b2())
-logger.success(format_json())
+asyncio.run(run_async_code_60b630b2())
 
 async def async_func_34():
     response = await new_assistant_agent.on_messages(
@@ -97,9 +84,7 @@ logger.success(format_json(response))
 logger.debug(response.chat_message)
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
-logger.success(format_json())
+asyncio.run(run_async_code_0349fda4())
 
 """
 ```{note}
@@ -117,7 +102,7 @@ We will begin by creating a simple {py:class}`~autogen_agentchat.teams.RoundRobi
 """
 logger.info("## Saving and Loading Teams")
 
-model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit-2024-08-06")
 
 assistant_agent = AssistantAgent(
     name="assistant_agent",
@@ -130,16 +115,10 @@ stream = agent_team.run_stream(task="Write a beautiful poem 3-line about lake ta
 
 async def run_async_code_71db6073():
     await Console(stream)
-    return 
- = asyncio.run(run_async_code_71db6073())
-logger.success(format_json())
+asyncio.run(run_async_code_71db6073())
 
 async def run_async_code_3b76751f():
-    async def run_async_code_caa5fd86():
-        team_state = await agent_team.save_state()
-        return team_state
-    team_state = asyncio.run(run_async_code_caa5fd86())
-    logger.success(format_json(team_state))
+    team_state = await agent_team.save_state()
     return team_state
 team_state = asyncio.run(run_async_code_3b76751f())
 logger.success(format_json(team_state))
@@ -151,15 +130,11 @@ logger.info("If we reset the team (simulating instantiation of the team),  and a
 
 async def run_async_code_4e849c8a():
     await agent_team.reset()
-    return 
- = asyncio.run(run_async_code_4e849c8a())
-logger.success(format_json())
+asyncio.run(run_async_code_4e849c8a())
 stream = agent_team.run_stream(task="What was the last line of the poem you wrote?")
 async def run_async_code_71db6073():
     await Console(stream)
-    return 
- = asyncio.run(run_async_code_71db6073())
-logger.success(format_json())
+asyncio.run(run_async_code_71db6073())
 
 """
 Next, we load the state of the team and ask the same question. We see that the team is able to accurately return the last line of the poem it wrote.
@@ -170,15 +145,11 @@ logger.debug(team_state)
 
 async def run_async_code_0a74f6a5():
     await agent_team.load_state(team_state)
-    return 
- = asyncio.run(run_async_code_0a74f6a5())
-logger.success(format_json())
+asyncio.run(run_async_code_0a74f6a5())
 stream = agent_team.run_stream(task="What was the last line of the poem you wrote?")
 async def run_async_code_71db6073():
     await Console(stream)
-    return 
- = asyncio.run(run_async_code_71db6073())
-logger.success(format_json())
+asyncio.run(run_async_code_71db6073())
 
 """
 ## Persisting State (File or Database)
@@ -198,19 +169,13 @@ with open("coding/team_state.json", "r") as f:
 new_agent_team = RoundRobinGroupChat([assistant_agent], termination_condition=MaxMessageTermination(max_messages=2))
 async def run_async_code_9386460e():
     await new_agent_team.load_state(team_state)
-    return 
- = asyncio.run(run_async_code_9386460e())
-logger.success(format_json())
+asyncio.run(run_async_code_9386460e())
 stream = new_agent_team.run_stream(task="What was the last line of the poem you wrote?")
 async def run_async_code_71db6073():
     await Console(stream)
-    return 
- = asyncio.run(run_async_code_71db6073())
-logger.success(format_json())
+asyncio.run(run_async_code_71db6073())
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
-logger.success(format_json())
+asyncio.run(run_async_code_0349fda4())
 
 logger.info("\n\n[DONE]", bright=True)

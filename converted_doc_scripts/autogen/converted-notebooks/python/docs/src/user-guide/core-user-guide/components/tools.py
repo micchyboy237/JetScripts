@@ -62,23 +62,15 @@ logger.info("# Tools")
 
 
 code_executor = DockerCommandLineCodeExecutor()
-
-
 async def run_async_code_e817eaa6():
     await code_executor.start()
-    return
- = asyncio.run(run_async_code_e817eaa6())
-logger.success(format_json())
+asyncio.run(run_async_code_e817eaa6())
 code_execution_tool = PythonCodeExecutionTool(code_executor)
 cancellation_token = CancellationToken()
 
 code = "logger.debug('Hello, world!')"
 async def run_async_code_1f3d02b5():
-    async def run_async_code_82b07b81():
-        result = await code_execution_tool.run_json({"code": code}, cancellation_token)
-        return result
-    result = asyncio.run(run_async_code_82b07b81())
-    logger.success(format_json(result))
+    result = await code_execution_tool.run_json({"code": code}, cancellation_token)
     return result
 result = asyncio.run(run_async_code_1f3d02b5())
 logger.success(format_json(result))
@@ -123,11 +115,7 @@ stock_price_tool = FunctionTool(get_stock_price, description="Get the stock pric
 
 cancellation_token = CancellationToken()
 async def run_async_code_628fd77c():
-    async def run_async_code_72e42ab1():
-        result = await stock_price_tool.run_json({"ticker": "AAPL", "date": "2021/01/01"}, cancellation_token)
-        return result
-    result = asyncio.run(run_async_code_72e42ab1())
-    logger.success(format_json(result))
+    result = await stock_price_tool.run_json({"ticker": "AAPL", "date": "2021/01/01"}, cancellation_token)
     return result
 result = asyncio.run(run_async_code_628fd77c())
 logger.success(format_json(result))
@@ -150,7 +138,7 @@ stock_price_tool.schema
 Model clients use the JSON schema of the tools to generate tool calls.
 
 Here is an example of how to use the {py:class}`~autogen_core.tools.FunctionTool` class
-with a {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter`.
+with a {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenChatLLMAdapter`.
 Other model client classes can be used in a similar way. See [Model Clients](./model-clients.ipynb)
 for more details.
 """
@@ -158,7 +146,7 @@ logger.info("Model clients use the JSON schema of the tools to generate tool cal
 
 
 
-model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit-mini")
 
 user_message = UserMessage(content="What is the stock price of AAPL on 2021/01/01?", source="user")
 
@@ -174,7 +162,7 @@ create_result.content
 
 """
 What is actually going on under the hood of the call to the
-{py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.BaseMLXAutogenChatLLMAdapter.create`
+{py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.BaseMLXAutogenChatLLMAdapter.create`
 method? The model client takes the list of tools and generates a JSON schema
 for the parameters of each tool. Then, it generates a request to the model
 API with the tool's JSON schema and the other messages to obtain a result.
@@ -196,11 +184,7 @@ logger.info("What is actually going on under the hood of the call to the")
 assert isinstance(create_result.content, list)
 arguments = json.loads(create_result.content[0].arguments)  # type: ignore
 async def run_async_code_680d56f7():
-    async def run_async_code_6c3c8087():
-        tool_result = await stock_price_tool.run_json(arguments, cancellation_token)
-        return tool_result
-    tool_result = asyncio.run(run_async_code_6c3c8087())
-    logger.success(format_json(tool_result))
+    tool_result = await stock_price_tool.run_json(arguments, cancellation_token)
     return tool_result
 tool_result = asyncio.run(run_async_code_680d56f7())
 logger.success(format_json(tool_result))
@@ -230,20 +214,14 @@ messages = [
     FunctionExecutionResultMessage(content=[exec_result]),  # function execution result message
 ]
 async def run_async_code_9d837451():
-    async def run_async_code_adb24ff0():
-        create_result = await model_client.create(messages=messages, cancellation_token=cancellation_token)  # type: ignore
-        return create_result
-    create_result = asyncio.run(run_async_code_adb24ff0())
-    logger.success(format_json(create_result))
+    create_result = await model_client.create(messages=messages, cancellation_token=cancellation_token)  # type: ignore
     return create_result
 create_result = asyncio.run(run_async_code_9d837451())
 logger.success(format_json(create_result))
 logger.debug(create_result.content)
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
-logger.success(format_json())
+asyncio.run(run_async_code_0349fda4())
 
 """
 ## Tool-Equipped Agent
@@ -326,11 +304,7 @@ class ToolUseAgent(RoutedAgent):
         try:
             arguments = json.loads(call.arguments)
             async def run_async_code_05473541():
-                async def run_async_code_5d3ee7b4():
-                    result = await tool.run_json(arguments, cancellation_token)
-                    return result
-                result = asyncio.run(run_async_code_5d3ee7b4())
-                logger.success(format_json(result))
+                result = await tool.run_json(arguments, cancellation_token)
                 return result
             result = asyncio.run(run_async_code_05473541())
             logger.success(format_json(result))
@@ -350,46 +324,40 @@ To run the agent, let's create a runtime and register the agent with the runtime
 """
 logger.info("When handling a user message, the `ToolUseAgent` class first use the model client")
 
-model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit-mini")
 runtime = SingleThreadedAgentRuntime()
 tools: List[Tool] = [FunctionTool(get_stock_price, description="Get the stock price.")]
-await ToolUseAgent.register(
-    runtime,
-    "tool_use_agent",
-    lambda: ToolUseAgent(
-        model_client=model_client,
-        tool_schema=tools,
-    ),
-)
+async def async_func_3():
+    await ToolUseAgent.register(
+        runtime,
+        "tool_use_agent",
+        lambda: ToolUseAgent(
+            model_client=model_client,
+            tool_schema=tools,
+        ),
+    )
+asyncio.run(async_func_3())
 
 """
-This example uses the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter`,
+This example uses the {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenChatLLMAdapter`,
 for Azure MLX and other clients, see [Model Clients](./model-clients.ipynb).
 Let's test the agent with a question about stock price.
 """
-logger.info("This example uses the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter`,")
+logger.info("This example uses the {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenChatLLMAdapter`,")
 
 runtime.start()
 tool_use_agent = AgentId("tool_use_agent", "default")
 async def run_async_code_7e95725f():
-    async def run_async_code_df4fcb36():
-        response = await runtime.send_message(Message("What is the stock price of NVDA on 2024/06/01?"), tool_use_agent)
-        return response
-    response = asyncio.run(run_async_code_df4fcb36())
-    logger.success(format_json(response))
+    response = await runtime.send_message(Message("What is the stock price of NVDA on 2024/06/01?"), tool_use_agent)
     return response
 response = asyncio.run(run_async_code_7e95725f())
 logger.success(format_json(response))
 logger.debug(response.content)
 async def run_async_code_4aaa8dea():
     await runtime.stop()
-    return 
- = asyncio.run(run_async_code_4aaa8dea())
-logger.success(format_json())
+asyncio.run(run_async_code_4aaa8dea())
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
-logger.success(format_json())
+asyncio.run(run_async_code_0349fda4())
 
 logger.info("\n\n[DONE]", bright=True)

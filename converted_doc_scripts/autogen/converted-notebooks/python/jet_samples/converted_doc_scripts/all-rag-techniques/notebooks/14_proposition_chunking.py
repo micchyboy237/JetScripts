@@ -104,7 +104,7 @@ We initialize the MLX client to generate embeddings and responses.
 """
 logger.info("## Setting Up the MLX API Client")
 
-client = MLX(
+client = MLXAutogenChatLLMAdapter(
     base_url="https://api.studio.nebius.com/v1/",
 #     api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
 )

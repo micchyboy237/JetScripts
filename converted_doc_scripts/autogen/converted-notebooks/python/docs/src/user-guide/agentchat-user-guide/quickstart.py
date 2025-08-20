@@ -1,5 +1,4 @@
 import asyncio
-from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
 from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
@@ -26,7 +25,7 @@ First, we need to install the AgentChat and Extension packages.
 """
 logger.info("# Quickstart")
 
-pip install - U "autogen-agentchat" "autogen-ext[openai,azure]"
+pip install -U "autogen-agentchat" "autogen-ext[openai,azure]"
 
 """
 This example uses an MLX model, however, you can use other models as well.
@@ -36,12 +35,11 @@ To use Azure MLX models and AAD authentication,
 you can follow the instructions [here](./tutorial/models.ipynb#azure-openai).
 To use other models, see [Models](./tutorial/models.ipynb).
 """
-logger.info(
-    "This example uses an MLX model, however, you can use other models as well.")
+logger.info("This example uses an MLX model, however, you can use other models as well.")
 
 
 model_client = MLXAutogenChatLLMAdapter(
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+    model="qwen3-1.7b-4bit",
 )
 
 
@@ -61,23 +59,13 @@ agent = AssistantAgent(
 
 
 async def main() -> None:
-    async def run_async_code_654bf0df():
-        await Console(agent.run_stream(task="What is the weather in New York?"))
-        return
-     = asyncio.run(run_async_code_654bf0df())
-    logger.success(format_json())
-    async def run_async_code_3902376f():
-        await model_client.close()
-        return 
-     = asyncio.run(run_async_code_3902376f())
-    logger.success(format_json())
+    await Console(agent.run_stream(task="What is the weather in New York?"))
+    await model_client.close()
 
 
 async def run_async_code_ba09313d():
     await main()
-    return 
- = asyncio.run(run_async_code_ba09313d())
-logger.success(format_json())
+asyncio.run(run_async_code_ba09313d())
 
 """
 ## What's Next?

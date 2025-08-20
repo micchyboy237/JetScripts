@@ -1,5 +1,4 @@
 import asyncio
-from jet.transformers.formatters import format_json
 from autogen_core import (
 DefaultInterventionHandler,
 DefaultTopicId,
@@ -65,11 +64,7 @@ class AnAgent(RoutedAgent):
     async def on_new_message(self, message: Message, ctx: MessageContext) -> None:
         self.received += 1
         if self.received > 3:
-            async def run_async_code_55b7b45d():
-                await self.publish_message(Termination(reason="Reached maximum number of messages"), DefaultTopicId())
-                return 
-             = asyncio.run(run_async_code_55b7b45d())
-            logger.success(format_json())
+            await self.publish_message(Termination(reason="Reached maximum number of messages"), DefaultTopicId())
 
 """
 Next, we create an InterventionHandler that will detect the termination message and act on it. This one hooks into publishes and when it encounters `Termination` it alters its internal state to indicate that termination has been requested.
@@ -103,38 +98,26 @@ runtime = SingleThreadedAgentRuntime(intervention_handlers=[termination_handler]
 
 async def run_async_code_b1b3e265():
     await AnAgent.register(runtime, "my_agent", AnAgent)
-    return 
- = asyncio.run(run_async_code_b1b3e265())
-logger.success(format_json())
+asyncio.run(run_async_code_b1b3e265())
 
 runtime.start()
 
 async def run_async_code_536bba2d():
     await runtime.publish_message(Message("hello"), DefaultTopicId())
-    return 
- = asyncio.run(run_async_code_536bba2d())
-logger.success(format_json())
+asyncio.run(run_async_code_536bba2d())
 async def run_async_code_536bba2d():
     await runtime.publish_message(Message("hello"), DefaultTopicId())
-    return 
- = asyncio.run(run_async_code_536bba2d())
-logger.success(format_json())
+asyncio.run(run_async_code_536bba2d())
 async def run_async_code_536bba2d():
     await runtime.publish_message(Message("hello"), DefaultTopicId())
-    return 
- = asyncio.run(run_async_code_536bba2d())
-logger.success(format_json())
+asyncio.run(run_async_code_536bba2d())
 async def run_async_code_536bba2d():
     await runtime.publish_message(Message("hello"), DefaultTopicId())
-    return 
- = asyncio.run(run_async_code_536bba2d())
-logger.success(format_json())
+asyncio.run(run_async_code_536bba2d())
 
 async def run_async_code_f9bf1c78():
     await runtime.stop_when(lambda: termination_handler.has_terminated)
-    return 
- = asyncio.run(run_async_code_f9bf1c78())
-logger.success(format_json())
+asyncio.run(run_async_code_f9bf1c78())
 
 logger.debug(termination_handler.termination_value)
 

@@ -64,11 +64,7 @@ You can use union types to handle multiple message types.
 logger.info("Create a function closure for outputting the final result to the queue.")
 
 async def output_result(_agent: ClosureContext, message: FinalResult, ctx: MessageContext) -> None:
-    async def run_async_code_b3b51e6f():
-        await queue.put(message)
-        return 
-     = asyncio.run(run_async_code_b3b51e6f())
-    logger.success(format_json())
+    await queue.put(message)
 
 """
 Let's create a runtime and register a {py:class}`~autogen_core.components.ClosureAgent` that will publish the final result to the queue.
@@ -76,9 +72,11 @@ Let's create a runtime and register a {py:class}`~autogen_core.components.Closur
 logger.info("Let's create a runtime and register a {py:class}`~autogen_core.components.ClosureAgent` that will publish the final result to the queue.")
 
 runtime = SingleThreadedAgentRuntime()
-await ClosureAgent.register_closure(
-    runtime, "output_result", output_result, subscriptions=lambda: [DefaultSubscription()]
-)
+async def async_func_1():
+    await ClosureAgent.register_closure(
+        runtime, "output_result", output_result, subscriptions=lambda: [DefaultSubscription()]
+    )
+asyncio.run(async_func_1())
 
 """
 We can simulate the collection of final results by publishing them directly to the runtime.
@@ -88,19 +86,13 @@ logger.info("We can simulate the collection of final results by publishing them 
 runtime.start()
 async def run_async_code_6e97825e():
     await runtime.publish_message(FinalResult("Result 1"), DefaultTopicId())
-    return 
- = asyncio.run(run_async_code_6e97825e())
-logger.success(format_json())
+asyncio.run(run_async_code_6e97825e())
 async def run_async_code_baba95bc():
     await runtime.publish_message(FinalResult("Result 2"), DefaultTopicId())
-    return 
- = asyncio.run(run_async_code_baba95bc())
-logger.success(format_json())
+asyncio.run(run_async_code_baba95bc())
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 """
 We can take a look at the queue to see the final result.
@@ -109,11 +101,7 @@ logger.info("We can take a look at the queue to see the final result.")
 
 while not queue.empty():
     async def run_async_code_e348b90b():
-        async def run_async_code_6fecdaa7():
-            logger.debug((result := await queue.get()).value)
-            return logger.debug((result :
-        logger.debug((result : = asyncio.run(run_async_code_6fecdaa7())
-        logger.success(format_json(logger.debug((result :))
+        logger.debug((result := await queue.get()).value)
         return logger.debug((result :
     logger.debug((result : = asyncio.run(run_async_code_e348b90b())
     logger.success(format_json(logger.debug((result :))

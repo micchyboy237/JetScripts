@@ -2,8 +2,8 @@ import asyncio
 from jet.transformers.formatters import format_json
 from autogen_core import AgentId, MessageContext, RoutedAgent, SingleThreadedAgentRuntime, message_handler
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from jet.llm.ollama.base import MLX
-from jet.llm.ollama.base import MLXEmbedding
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLX
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXEmbedding
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core.agent import ReActAgent
@@ -85,21 +85,13 @@ class LlamaIndexAgent(RoutedAgent):
             history_messages = self._memory.get(input=message.content)
 
             async def run_async_code_18a7ce8b():
-                async def run_async_code_b31f23d7():
-                    response = self._llama_index_agent.chat(message=message.content, history_messages=history_messages)  # pyright: ignore
-                    return response
-                response = asyncio.run(run_async_code_b31f23d7())
-                logger.success(format_json(response))
+                response = self._llama_index_agent.chat(message=message.content, history_messages=history_messages)  # pyright: ignore
                 return response
             response = asyncio.run(run_async_code_18a7ce8b())
             logger.success(format_json(response))
         else:
             async def run_async_code_27beff32():
-                async def run_async_code_9df9aa3b():
-                    response = self._llama_index_agent.chat(message=message.content)  # pyright: ignore
-                    return response
-                response = asyncio.run(run_async_code_9df9aa3b())
-                logger.success(format_json(response))
+                response = self._llama_index_agent.chat(message=message.content)  # pyright: ignore
                 return response
             response = asyncio.run(run_async_code_27beff32())
             logger.success(format_json(response))
@@ -130,8 +122,8 @@ Setting up LlamaIndex.
 """
 logger.info("Setting up LlamaIndex.")
 
-llm = MLX(
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+llm = MLXAutogenChatLLMAdapter(
+    model="qwen3-1.7b-4bit",
     temperature=0.0,
 #     api_key=os.getenv("OPENAI_API_KEY"),
 )
@@ -160,20 +152,22 @@ that will create the agent.
 logger.info("Now let's test the agent. First we need to create an agent runtime and")
 
 runtime = SingleThreadedAgentRuntime()
-await LlamaIndexAgent.register(
-    runtime,
-    "chat_agent",
-    lambda: LlamaIndexAgent(
-        description="Llama Index Agent",
-        llama_index_agent=ReActAgent.from_tools(
-            tools=[wikipedia_tool],
-            llm=llm,
-            max_iterations=8,
-            memory=ChatSummaryMemoryBuffer(llm=llm, token_limit=16000),
-            verbose=True,
+async def async_func_1():
+    await LlamaIndexAgent.register(
+        runtime,
+        "chat_agent",
+        lambda: LlamaIndexAgent(
+            description="Llama Index Agent",
+            llama_index_agent=ReActAgent.from_tools(
+                tools=[wikipedia_tool],
+                llm=llm,
+                max_iterations=8,
+                memory=ChatSummaryMemoryBuffer(llm=llm, token_limit=16000),
+                verbose=True,
+            ),
         ),
-    ),
-)
+    )
+asyncio.run(async_func_1())
 agent = AgentId("chat_agent", "default")
 
 """
@@ -190,11 +184,7 @@ logger.info("Send a direct message to the agent, and print the response.")
 
 message = Message(content="What are the best movies from studio Ghibli?")
 async def run_async_code_97c7fd34():
-    async def run_async_code_8ec7cda9():
-        response = await runtime.send_message(message, agent)
-        return response
-    response = asyncio.run(run_async_code_8ec7cda9())
-    logger.success(format_json(response))
+    response = await runtime.send_message(message, agent)
     return response
 response = asyncio.run(run_async_code_97c7fd34())
 logger.success(format_json(response))
@@ -212,8 +202,6 @@ logger.info("Stop the agent runtime.")
 
 async def run_async_code_4aaa8dea():
     await runtime.stop()
-    return 
- = asyncio.run(run_async_code_4aaa8dea())
-logger.success(format_json())
+asyncio.run(run_async_code_4aaa8dea())
 
 logger.info("\n\n[DONE]", bright=True)

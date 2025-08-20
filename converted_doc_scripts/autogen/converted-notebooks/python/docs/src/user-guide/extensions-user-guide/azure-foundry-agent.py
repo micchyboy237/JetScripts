@@ -55,29 +55,25 @@ dotenv.load_dotenv()
 
 
 async def bing_example() -> None:
-    async def async_func_14():
-        async with DefaultAzureCredential() as credential:  # type: ignore
-            async with AIProjectClient(  # type: ignore
-                credential=credential, endpoint=os.getenv("AZURE_PROJECT_ENDPOINT", "")
-            ) as project_client:
-                async def run_async_code_c03899a1():
-                    conn = await project_client.connections.get(name=os.getenv("BING_CONNECTION_NAME", ""))
-                    return conn
-                conn = asyncio.run(run_async_code_c03899a1())
-                logger.success(format_json(conn))
-            
-                bing_tool = BingGroundingTool(conn.id)
-                agent_with_bing_grounding = AzureAIAgent(
-                    name="bing_agent",
-                    description="An AI assistant with Bing grounding",
-                    project_client=project_client,
-                    deployment_name="gpt-4o",
-                    instructions="You are a helpful assistant.",
-                    tools=bing_tool.definitions,
-                    metadata={"source": "AzureAIAgent"},
-                )
-            
-            
+    async with DefaultAzureCredential() as credential:  # type: ignore
+        async with AIProjectClient(  # type: ignore
+            credential=credential, endpoint=os.getenv("AZURE_PROJECT_ENDPOINT", "")
+        ) as project_client:
+            conn = await project_client.connections.get(name=os.getenv("BING_CONNECTION_NAME", ""))
+
+            bing_tool = BingGroundingTool(conn.id)
+            agent_with_bing_grounding = AzureAIAgent(
+                name="bing_agent",
+                description="An AI assistant with Bing grounding",
+                project_client=project_client,
+                deployment_name="qwen3-1.7b-4bit",
+                instructions="You are a helpful assistant.",
+                tools=bing_tool.definitions,
+                metadata={"source": "AzureAIAgent"},
+            )
+
+
+            async def async_func_32():
                 result = await agent_with_bing_grounding.on_messages(
                     messages=[
                         TextMessage(
@@ -88,18 +84,15 @@ async def bing_example() -> None:
                     cancellation_token=CancellationToken(),
                     message_limit=5,
                 )
-                logger.debug(result)
-            
-            
-        return result
+                return result
+            result = asyncio.run(async_func_32())
+            logger.success(format_json(result))
+            logger.debug(result)
 
-    result = asyncio.run(async_func_14())
-    logger.success(format_json(result))
+
 async def run_async_code_68d3df3d():
     await bing_example()
-    return 
- = asyncio.run(run_async_code_68d3df3d())
-logger.success(format_json())
+asyncio.run(run_async_code_68d3df3d())
 
 """
 Note that you can also provide other Azure Backed [tools](https://learn.microsoft.com/en-us/azure/ai-services/agents/how-to/tools/overview) and local client side functions to the agent.

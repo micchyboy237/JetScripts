@@ -11,7 +11,7 @@ from autogen_ext.models.ollama import OllamaChatCompletionClient
 from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
 from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import AzureMLXAutogenChatLLMAdapter
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import AzureMLXAutogenChatLLMAdapter
 from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from pathlib import Path
@@ -33,7 +33,7 @@ logger.info(f"Logs: {log_file}")
 """
 # Models
 
-In many cases, agents need access to LLM model services such as MLX, Azure MLX, or local models. Since there are many different providers with different APIs, `autogen-core` implements a protocol for model clients and `autogen-ext` implements a set of model clients for popular model services. AgentChat can use these model clients to interact with model services.
+In many cases, agents need access to LLM model services such as MLX, Azure MLX, or local models. Since there are many different providers with different APIs, `autogen-core` implements a protocol for model clients and `autogen-ext` implements a set of model clients for popular model services. AgentChat can use these model clients to interact with model services. 
 
 This section provides a quick overview of available model clients.
 For more details on how to use them directly, please refer to [Model Clients](../../core-user-guide/components/model-clients.ipynb) in the Core API documentation.
@@ -50,6 +50,7 @@ The logger name is {py:attr}`autogen_core.EVENT_LOGGER_NAME`, and the event type
 logger.info("# Models")
 
 
+
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 logger.addHandler(logging.StreamHandler())
@@ -58,7 +59,7 @@ logger.setLevel(logging.INFO)
 """
 ## MLX
 
-To access MLX models, install the `openai` extension, which allows you to use the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter`.
+To access MLX models, install the `openai` extension, which allows you to use the {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenChatLLMAdapter`.
 """
 logger.info("## MLX")
 
@@ -67,12 +68,11 @@ pip install "autogen-ext[openai]"
 """
 You will also need to obtain an [API key](https://platform.openai.com/account/api-keys) from MLX.
 """
-logger.info(
-    "You will also need to obtain an [API key](https://platform.openai.com/account/api-keys) from MLX.")
+logger.info("You will also need to obtain an [API key](https://platform.openai.com/account/api-keys) from MLX.")
 
 
 openai_model_client = MLXAutogenChatLLMAdapter(
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+    model="qwen3-1.7b-4bit-2024-08-06",
 )
 
 """
@@ -82,32 +82,24 @@ logger.info("To test the model client, you can use the following code:")
 
 
 async def run_async_code_6c382726():
-    async def run_async_code_e750dad5():
-        result = await openai_model_client.create([UserMessage(content="What is the capital of France?", source="user")])
-        return result
-    result = asyncio.run(run_async_code_e750dad5())
-    logger.success(format_json(result))
+    result = await openai_model_client.create([UserMessage(content="What is the capital of France?", source="user")])
     return result
 result = asyncio.run(run_async_code_6c382726())
 logger.success(format_json(result))
 logger.debug(result)
-
-
 async def run_async_code_72fad18f():
     await openai_model_client.close()
-    return
- = asyncio.run(run_async_code_72fad18f())
-logger.success(format_json())
+asyncio.run(run_async_code_72fad18f())
 
 """
 ```{note}
 You can use this client with models hosted on MLX-compatible endpoints, however, we have not tested this functionality.
-See {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter` for more information.
+See {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenChatLLMAdapter` for more information.
 ```
 
 ## Azure MLX
 
-Similarly, install the `azure` and `openai` extensions to use the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXAutogenChatLLMAdapter`.
+Similarly, install the `azure` and `openai` extensions to use the {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.AzureMLXAutogenChatLLMAdapter`.
 """
 logger.info("## Azure MLX")
 
@@ -130,27 +122,21 @@ token_provider = AzureTokenProvider(
 
 az_model_client = AzureMLXAutogenChatLLMAdapter(
     azure_deployment="{your-azure-deployment}",
-    model="{model-name, such as gpt-4o}",
+    model="{model-name, such as qwen3-1.7b-4bit}",
     api_version="2024-06-01",
     azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
     azure_ad_token_provider=token_provider,  # Optional if you choose key-based authentication.
 )
 
 async def run_async_code_759f2e10():
-    async def run_async_code_383d527f():
-        result = await az_model_client.create([UserMessage(content="What is the capital of France?", source="user")])
-        return result
-    result = asyncio.run(run_async_code_383d527f())
-    logger.success(format_json(result))
+    result = await az_model_client.create([UserMessage(content="What is the capital of France?", source="user")])
     return result
 result = asyncio.run(run_async_code_759f2e10())
 logger.success(format_json(result))
 logger.debug(result)
 async def run_async_code_8aa14161():
     await az_model_client.close()
-    return 
- = asyncio.run(run_async_code_8aa14161())
-logger.success(format_json())
+asyncio.run(run_async_code_8aa14161())
 
 """
 See [here](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/managed-identity#chat-completions) for how to use the Azure client directly or for more information.
@@ -187,20 +173,14 @@ client = AzureAIChatCompletionClient(
 )
 
 async def run_async_code_2defc511():
-    async def run_async_code_eab808f6():
-        result = await client.create([UserMessage(content="What is the capital of France?", source="user")])
-        return result
-    result = asyncio.run(run_async_code_eab808f6())
-    logger.success(format_json(result))
+    result = await client.create([UserMessage(content="What is the capital of France?", source="user")])
     return result
 result = asyncio.run(run_async_code_2defc511())
 logger.success(format_json(result))
 logger.debug(result)
 async def run_async_code_c4f3b18a():
     await client.close()
-    return 
- = asyncio.run(run_async_code_c4f3b18a())
-logger.success(format_json())
+asyncio.run(run_async_code_c4f3b18a())
 
 """
 ## Anthropic (experimental)
@@ -215,23 +195,17 @@ logger.info("## Anthropic (experimental)")
 
 anthropic_client = AnthropicChatCompletionClient(model="claude-3-7-sonnet-20250219")
 async def run_async_code_f147f07d():
-    async def run_async_code_66cce63a():
-        result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])
-        return result
-    result = asyncio.run(run_async_code_66cce63a())
-    logger.success(format_json(result))
+    result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])
     return result
 result = asyncio.run(run_async_code_f147f07d())
 logger.success(format_json(result))
 logger.debug(result)
 async def run_async_code_d246b63f():
     await anthropic_client.close()
-    return 
- = asyncio.run(run_async_code_d246b63f())
-logger.success(format_json())
+asyncio.run(run_async_code_d246b63f())
 
 """
-## Ollama(experimental)
+## Ollama (experimental)
 
 [Ollama](https://ollama.com/) is a local model server that can run models locally on your machine.
 
@@ -242,7 +216,7 @@ For some tasks they may not perform as well and the output may be suprising.
 
 To use Ollama, install the `ollama` extension and use the {py:class}`~autogen_ext.models.ollama.OllamaChatCompletionClient`.
 """
-logger.info("## Ollama(experimental)")
+logger.info("## Ollama (experimental)")
 
 pip install -U "autogen-ext[ollama]"
 
@@ -250,26 +224,20 @@ pip install -U "autogen-ext[ollama]"
 ollama_model_client = OllamaChatCompletionClient(model="llama3.2")
 
 async def run_async_code_76d47701():
-    async def run_async_code_99ca494a():
-        response = await ollama_model_client.create([UserMessage(content="What is the capital of France?", source="user")])
-        return response
-    response = asyncio.run(run_async_code_99ca494a())
-    logger.success(format_json(response))
+    response = await ollama_model_client.create([UserMessage(content="What is the capital of France?", source="user")])
     return response
 response = asyncio.run(run_async_code_76d47701())
 logger.success(format_json(response))
 logger.debug(response)
 async def run_async_code_d4cf5a76():
     await ollama_model_client.close()
-    return 
- = asyncio.run(run_async_code_d4cf5a76())
-logger.success(format_json())
+asyncio.run(run_async_code_d4cf5a76())
 
 """
 ## Gemini (experimental)
 
 Gemini currently offers [an MLX-compatible API (beta)](https://ai.google.dev/gemini-api/docs/openai).
-So you can use the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter` with the Gemini API.
+So you can use the {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenChatLLMAdapter` with the Gemini API.
 
 ```{note}
 While some model providers may offer MLX-compatible APIs, they may still have minor differences.
@@ -285,20 +253,14 @@ model_client = MLXAutogenChatLLMAdapter(
 )
 
 async def run_async_code_536a0273():
-    async def run_async_code_f25cb54e():
-        response = await model_client.create([UserMessage(content="What is the capital of France?", source="user")])
-        return response
-    response = asyncio.run(run_async_code_f25cb54e())
-    logger.success(format_json(response))
+    response = await model_client.create([UserMessage(content="What is the capital of France?", source="user")])
     return response
 response = asyncio.run(run_async_code_536a0273())
 logger.success(format_json(response))
 logger.debug(response)
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
-logger.success(format_json())
+asyncio.run(run_async_code_0349fda4())
 
 """
 Also, as Gemini adds new models, you may need to define the models capabilities via the model_info field. For example, to use `gemini-2.0-flash-lite` or a similar new model, you can use the following code:
@@ -319,7 +281,7 @@ await model_client.close()
 ## Llama API (experimental)
 
 [Llama API](https://llama.developer.meta.com?utm_source=partner-autogen&utm_medium=readme) is the Meta's first party API offering. It currently offers an [MLX compatible endpoint](https://llama.developer.meta.com/docs/features/compatibility).
-So you can use the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter` with the Llama API.
+So you can use the {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenChatLLMAdapter` with the Llama API.
 
 This endpoint fully supports the following MLX client library features:
 * Chat completions
@@ -339,20 +301,14 @@ model_client = MLXAutogenChatLLMAdapter(
 )
 
 async def run_async_code_20a5ddd0():
-    async def run_async_code_e16b4331():
-        response = await model_client.create([UserMessage(content="Write me a poem", source="user")])
-        return response
-    response = asyncio.run(run_async_code_e16b4331())
-    logger.success(format_json(response))
+    response = await model_client.create([UserMessage(content="Write me a poem", source="user")])
     return response
 response = asyncio.run(run_async_code_20a5ddd0())
 logger.success(format_json(response))
 logger.debug(response)
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
-logger.success(format_json())
+asyncio.run(run_async_code_0349fda4())
 
 model_client = MLXAutogenChatLLMAdapter(
     model="Llama-4-Maverick-17B-128E-Instruct-FP8",
@@ -360,20 +316,14 @@ model_client = MLXAutogenChatLLMAdapter(
 image = Image.from_file(Path("test.png"))
 
 async def run_async_code_de33fdf0():
-    async def run_async_code_fd56e21e():
-        response = await model_client.create([UserMessage(content=["What is in this image", image], source="user")])
-        return response
-    response = asyncio.run(run_async_code_fd56e21e())
-    logger.success(format_json(response))
+    response = await model_client.create([UserMessage(content=["What is in this image", image], source="user")])
     return response
 response = asyncio.run(run_async_code_de33fdf0())
 logger.success(format_json(response))
 logger.debug(response)
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
-logger.success(format_json())
+asyncio.run(run_async_code_0349fda4())
 
 """
 ## Semantic Kernel Adapter
@@ -431,9 +381,7 @@ logger.success(format_json(model_result))
 logger.debug(model_result)
 async def run_async_code_7ddc9cc5():
     await anthropic_model_client.close()
-    return 
- = asyncio.run(run_async_code_7ddc9cc5())
-logger.success(format_json())
+asyncio.run(run_async_code_7ddc9cc5())
 
 """
 Read more about the [Semantic Kernel Adapter](../../../reference/python/autogen_ext.models.semantic_kernel.rst).

@@ -1,7 +1,4 @@
 import asyncio
-
-import redis
-from jet.llm.mlx.memory import MemoryManager, MemoryList
 from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
@@ -9,16 +6,16 @@ from autogen_core.memory import ListMemory, MemoryContent, MemoryMimeType
 from autogen_core.memory import Memory, MemoryContent, MemoryMimeType
 from autogen_core.memory import MemoryContent, MemoryMimeType
 from autogen_ext.memory.chromadb import (
-    ChromaDBVectorMemory,
-    PersistentChromaDBVectorMemoryConfig,
-    SentenceTransformerEmbeddingFunctionConfig,
+ChromaDBVectorMemory,
+PersistentChromaDBVectorMemoryConfig,
+SentenceTransformerEmbeddingFunctionConfig,
 )
 from autogen_ext.memory.chromadb import ChromaDBVectorMemory, PersistentChromaDBVectorMemoryConfig
 from autogen_ext.memory.mem0 import Mem0Memory
 from autogen_ext.memory.redis import RedisMemory, RedisMemoryConfig
 from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
-from logging import WARNING
+from logging import WARNING, getLogger
 from pathlib import Path
 from typing import List
 import aiofiles
@@ -59,18 +56,14 @@ In the following example, we will use ListMemory to maintain a memory bank of us
 logger.info("## Memory and RAG")
 
 
-user_memory = MemoryList()
-
+user_memory = ListMemory()
 
 async def run_async_code_daf84d7d():
     await user_memory.add(MemoryContent(content="The weather should be in metric units", mime_type=MemoryMimeType.TEXT))
-    return
 asyncio.run(run_async_code_daf84d7d())
-
 
 async def run_async_code_4e246ca5():
     await user_memory.add(MemoryContent(content="Meal recipe must be vegan", mime_type=MemoryMimeType.TEXT))
-    return
 asyncio.run(run_async_code_4e246ca5())
 
 
@@ -86,49 +79,37 @@ async def get_weather(city: str, units: str = "imperial") -> str:
 assistant_agent = AssistantAgent(
     name="assistant_agent",
     model_client=MLXAutogenChatLLMAdapter(
-        model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+        model="qwen3-1.7b-4bit-2024-08-06",
     ),
     tools=[get_weather],
     memory=[user_memory],
 )
 
 stream = assistant_agent.run_stream(task="What is the weather in New York?")
-
-
 async def run_async_code_71db6073():
     await Console(stream)
-    return
 asyncio.run(run_async_code_71db6073())
-
 
 """
 We can inspect that the `assistant_agent` model_context is actually updated with the retrieved memory entries.  The `transform` method is used to format the retrieved memory entries into a string that can be used by the agent.  In this case, we simply concatenate the content of each memory entry into a single string.
 """
 logger.info("We can inspect that the `assistant_agent` model_context is actually updated with the retrieved memory entries.  The `transform` method is used to format the retrieved memory entries into a string that can be used by the agent.  In this case, we simply concatenate the content of each memory entry into a single string.")
 
-
 async def run_async_code_16b72f9b():
     await assistant_agent._model_context.get_messages()
-    return
 asyncio.run(run_async_code_16b72f9b())
-
 
 """
 We see above that the weather is returned in Centigrade as stated in the user preferences. 
 
 Similarly, assuming we ask a separate question about generating a meal plan, the agent is able to retrieve relevant information from the memory store and provide a personalized (vegan) response.
 """
-logger.info(
-    "We see above that the weather is returned in Centigrade as stated in the user preferences.")
+logger.info("We see above that the weather is returned in Centigrade as stated in the user preferences.")
 
 stream = assistant_agent.run_stream(task="Write brief meal recipe with broth")
-
-
 async def run_async_code_71db6073():
     await Console(stream)
-    return
 asyncio.run(run_async_code_71db6073())
-
 
 """
 ## Custom Memory Stores (Vector DBs, etc.)
@@ -149,6 +130,7 @@ Currently the following example memory stores are available as part of the {py:c
 logger.info("## Custom Memory Stores (Vector DBs, etc.)")
 
 
+
 with tempfile.TemporaryDirectory() as tmpdir:
     chroma_user_memory = ChromaDBVectorMemory(
         config=PersistentChromaDBVectorMemoryConfig(
@@ -161,8 +143,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
             ),
         )
     )
-
-    async def run_async_code_1a2b3c4d():
+    async def async_func_24():
         await chroma_user_memory.add(
             MemoryContent(
                 content="The weather should be in metric units",
@@ -170,6 +151,9 @@ with tempfile.TemporaryDirectory() as tmpdir:
                 metadata={"category": "preferences", "type": "units"},
             )
         )
+    asyncio.run(async_func_24())
+
+    async def async_func_32():
         await chroma_user_memory.add(
             MemoryContent(
                 content="Meal recipe must be vegan",
@@ -177,11 +161,10 @@ with tempfile.TemporaryDirectory() as tmpdir:
                 metadata={"category": "preferences", "type": "dietary"},
             )
         )
-        return
-    asyncio.run(run_async_code_1a2b3c4d())
+    asyncio.run(async_func_32())
 
     model_client = MLXAutogenChatLLMAdapter(
-        model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+        model="qwen3-1.7b-4bit",
     )
 
     assistant_agent = AssistantAgent(
@@ -191,30 +174,22 @@ with tempfile.TemporaryDirectory() as tmpdir:
         memory=[chroma_user_memory],
     )
 
-    stream = assistant_agent.run_stream(
-        task="What is the weather in New York?")
-
+    stream = assistant_agent.run_stream(task="What is the weather in New York?")
     async def run_async_code_8cdf6b5b():
         await Console(stream)
-        return
     asyncio.run(run_async_code_8cdf6b5b())
 
     async def run_async_code_3902376f():
         await model_client.close()
-        return
     asyncio.run(run_async_code_3902376f())
-
     async def run_async_code_5b1f6c7c():
         await chroma_user_memory.close()
-        return
     asyncio.run(run_async_code_5b1f6c7c())
-
 
 """
 Note that you can also serialize the ChromaDBVectorMemory and save it to disk.
 """
-logger.info(
-    "Note that you can also serialize the ChromaDBVectorMemory and save it to disk.")
+logger.info("Note that you can also serialize the ChromaDBVectorMemory and save it to disk.")
 
 chroma_user_memory.dump_component().model_dump_json()
 
@@ -227,71 +202,40 @@ See {py:class}`~autogen_ext.memory.redis.RedisMemory` for instructions to run Re
 logger.info("### Redis Memory")
 
 
-# Initialize RedisMemory
-logger.debug("Initializing RedisMemory for debugging")
+
+logger = getLogger()
+logger.setLevel(WARNING)
+
 redis_memory = RedisMemory(
     config=RedisMemoryConfig(
-        redis_url="redis://localhost:6379/0",  # Explicitly specify DB 0
+        redis_url="redis://localhost:6379",
         index_name="chat_history",
         prefix="memory",
     )
 )
 
-
-async def run_async_code_8a3f1b2c():
-    try:
-        logger.debug(
-            "RedisMemory initialized with redis_url=redis://localhost:6379/0, index_name=chat_history")
-
-        # Verify Redis connection
-        client = redis.Redis.from_url(
-            "redis://localhost:6379/0", decode_responses=True)
-        client.ping()
-        logger.debug("Redis connection successful (ping)")
-
-        # Check if chat_history index exists
-        indexes = client.execute_command("FT._LIST")
-        logger.debug(f"Redis indexes: {indexes}")
-        if "chat_history" not in indexes:
-            logger.warning("chat_history index not found")
-
-        # Add entries
-        logger.debug("Adding 'The weather should be in metric units'")
-        await redis_memory.add(
-            MemoryContent(
-                content="The weather should be in metric units",
-                mime_type=MemoryMimeType.TEXT,
-                metadata={"category": "preferences", "type": "units"},
-            )
+async def async_func_19():
+    await redis_memory.add(
+        MemoryContent(
+            content="The weather should be in metric units",
+            mime_type=MemoryMimeType.TEXT,
+            metadata={"category": "preferences", "type": "units"},
         )
-        logger.debug("Added first entry")
+    )
+asyncio.run(async_func_19())
 
-        logger.debug("Adding 'Meal recipe must be vegan'")
-        await redis_memory.add(
-            MemoryContent(
-                content="Meal recipe must be vegan",
-                mime_type=MemoryMimeType.TEXT,
-                metadata={"category": "preferences", "type": "dietary"},
-            )
+async def async_func_27():
+    await redis_memory.add(
+        MemoryContent(
+            content="Meal recipe must be vegan",
+            mime_type=MemoryMimeType.TEXT,
+            metadata={"category": "preferences", "type": "dietary"},
         )
-        logger.debug("Added second entry")
-
-        # Verify data immediately after adding
-        keys = client.keys("memory*")
-        logger.debug(f"Keys found after adding: {keys}")
-        for key in keys:
-            data = client.hgetall(key)
-            logger.debug(f"Data for key {key}: {data}")
-
-        client.close()
-        return
-    except Exception as e:
-        logger.error(f"Error in run_async_code_8a3f1b2c: {str(e)}")
-        raise
-asyncio.run(run_async_code_8a3f1b2c())
+    )
+asyncio.run(async_func_27())
 
 model_client = MLXAutogenChatLLMAdapter(
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+    model="qwen3-1.7b-4bit",
 )
 
 assistant_agent = AssistantAgent(
@@ -302,25 +246,16 @@ assistant_agent = AssistantAgent(
 )
 
 stream = assistant_agent.run_stream(task="What is the weather in New York?")
-
-
 async def run_async_code_71db6073():
     await Console(stream)
-    return
 asyncio.run(run_async_code_71db6073())
-
 
 async def run_async_code_0349fda4():
     await model_client.close()
-    return
 asyncio.run(run_async_code_0349fda4())
-
-
 async def run_async_code_952685a8():
     await redis_memory.close()
-    return
 asyncio.run(run_async_code_952685a8())
-
 
 """
 ## RAG Agent: Putting It All Together
@@ -341,6 +276,8 @@ To begin, let's create a simple document indexer that we will used to load docum
 logger.info("## RAG Agent: Putting It All Together")
 
 
+
+
 class SimpleDocumentIndexer:
     """Basic document indexer for AutoGen Memory."""
 
@@ -353,14 +290,10 @@ class SimpleDocumentIndexer:
         if source.startswith(("http://", "https://")):
             async with aiohttp.ClientSession() as session:
                 async with session.get(source) as response:
-                    content = await response.text()
-                    logger.success(format_json(content))
-                    return content
+                    return await response.text()
         else:
             async with aiofiles.open(source, "r", encoding="utf-8") as f:
-                content = await f.read()
-                logger.success(format_json(content))
-                return content
+                return await f.read()
 
     def _strip_html(self, text: str) -> str:
         """Remove HTML tags and normalize whitespace."""
@@ -372,7 +305,7 @@ class SimpleDocumentIndexer:
         """Split text into fixed-size chunks."""
         chunks: list[str] = []
         for i in range(0, len(text), self.chunk_size):
-            chunk = text[i: i + self.chunk_size]
+            chunk = text[i : i + self.chunk_size]
             chunks.append(chunk.strip())
         return chunks
 
@@ -382,7 +315,10 @@ class SimpleDocumentIndexer:
 
         for source in sources:
             try:
-                content = await self._fetch_content(source)
+                async def run_async_code_d15c91d4():
+                    content = await self._fetch_content(source)
+                    return content
+                content = asyncio.run(run_async_code_d15c91d4())
                 logger.success(format_json(content))
 
                 if "<" in content and ">" in content:
@@ -391,12 +327,13 @@ class SimpleDocumentIndexer:
                 chunks = self._split_text(content)
 
                 for i, chunk in enumerate(chunks):
-                    await self.memory.add(
-                        MemoryContent(
-                            content=chunk, mime_type=MemoryMimeType.TEXT, metadata={
-                                "source": source, "chunk_index": i}
+                    async def async_func_53():
+                        await self.memory.add(
+                            MemoryContent(
+                                content=chunk, mime_type=MemoryMimeType.TEXT, metadata={"source": source, "chunk_index": i}
+                            )
                         )
-                    )
+                    asyncio.run(async_func_53())
 
                 total_chunks += len(chunks)
 
@@ -405,12 +342,12 @@ class SimpleDocumentIndexer:
 
         return total_chunks
 
-
 """
 Now let's use our indexer with ChromaDBVectorMemory to build a complete RAG agent:
 """
-logger.info(
-    "Now let's use our indexer with ChromaDBVectorMemory to build a complete RAG agent:")
+logger.info("Now let's use our indexer with ChromaDBVectorMemory to build a complete RAG agent:")
+
+
 
 
 rag_memory = ChromaDBVectorMemory(
@@ -422,10 +359,8 @@ rag_memory = ChromaDBVectorMemory(
     )
 )
 
-
 async def run_async_code_aacd10ef():
     await rag_memory.clear()  # Clear existing memory
-    return
 asyncio.run(run_async_code_aacd10ef())
 
 
@@ -437,37 +372,26 @@ async def index_autogen_docs() -> None:
         "https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/teams.html",
         "https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/termination.html",
     ]
-
     chunks: int = await indexer.index_documents(sources)
-    logger.success(format_json(chunks))
-    logger.debug(
-        f"Indexed {chunks} chunks from {len(sources)} AutoGen documents")
+    logger.debug(f"Indexed {chunks} chunks from {len(sources)} AutoGen documents")
 
 
 async def run_async_code_97c54031():
     await index_autogen_docs()
-    return
 asyncio.run(run_async_code_97c54031())
 
-
 rag_assistant = AssistantAgent(
-    name="rag_assistant", model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"), memory=[rag_memory]
+    name="rag_assistant", model_client=MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit"), memory=[rag_memory]
 )
 
 stream = rag_assistant.run_stream(task="What is AgentChat?")
-
-
 async def run_async_code_71db6073():
     await Console(stream)
-    return
 asyncio.run(run_async_code_71db6073())
-
 
 async def run_async_code_cc18dab4():
     await rag_memory.close()
-    return
 asyncio.run(run_async_code_cc18dab4())
-
 
 """
 This implementation provides a RAG agent that can answer questions based on AutoGen documentation. When a question is asked, the Memory system  retrieves relevant chunks and adds them to the context, enabling the assistant to generate informed responses.
@@ -487,13 +411,12 @@ In the following example, we'll demonstrate how to use `Mem0Memory` to maintain 
 logger.info("## Mem0Memory Example")
 
 
-mem0_memory = MemoryManager(
+mem0_memory = Mem0Memory(
+    is_cloud=True,
     limit=5,  # Maximum number of memories to retrieve
-    log_dir=f"{OUTPUT_DIR}/chats"
 )
 
-
-async def run_async_code_4f7b2c1d():
+async def async_func_11():
     await mem0_memory.add(
         MemoryContent(
             content="The weather should be in metric units",
@@ -501,7 +424,9 @@ async def run_async_code_4f7b2c1d():
             metadata={"category": "preferences", "type": "units"},
         )
     )
+asyncio.run(async_func_11())
 
+async def async_func_19():
     await mem0_memory.add(
         MemoryContent(
             content="Meal recipe must be vegan",
@@ -509,26 +434,21 @@ async def run_async_code_4f7b2c1d():
             metadata={"category": "preferences", "type": "dietary"},
         )
     )
-    return
-asyncio.run(run_async_code_4f7b2c1d())
+asyncio.run(async_func_19())
 
 assistant_agent = AssistantAgent(
     name="assistant_agent",
     model_client=MLXAutogenChatLLMAdapter(
-        model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+        model="qwen3-1.7b-4bit-2024-08-06",
     ),
     tools=[get_weather],
     memory=[mem0_memory],
 )
 
 stream = assistant_agent.run_stream(task="What are my dietary preferences?")
-
-
 async def run_async_code_71db6073():
     await Console(stream)
-    return
 asyncio.run(run_async_code_71db6073())
-
 
 """
 The example above demonstrates how Mem0Memory can be used with an assistant agent. The memory integration ensures that:

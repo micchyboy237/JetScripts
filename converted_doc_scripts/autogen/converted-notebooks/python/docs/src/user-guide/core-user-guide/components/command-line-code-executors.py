@@ -1,5 +1,4 @@
 import asyncio
-from jet.transformers.formatters import format_json
 from autogen_core import CancellationToken
 from autogen_core.code_executor import CodeBlock
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
@@ -69,10 +68,7 @@ async def async_func_9():
                 cancellation_token=CancellationToken(),
             )
         )
-    return result
-
-result = asyncio.run(async_func_9())
-logger.success(format_json(result))
+asyncio.run(async_func_9())
 
 """
 ### Combining an Application in Docker with a Docker based executor
@@ -111,12 +107,14 @@ work_dir.mkdir(exist_ok=True)
 
 local_executor = LocalCommandLineCodeExecutor(work_dir=work_dir)
 logger.debug(
-    await local_executor.execute_code_blocks(
-        code_blocks=[
-            CodeBlock(language="python", code="logger.debug('Hello, World!')"),
-        ],
-        cancellation_token=CancellationToken(),
-    )
+    async def async_func_11():
+        await local_executor.execute_code_blocks(
+            code_blocks=[
+                CodeBlock(language="python", code="logger.debug('Hello, World!')"),
+            ],
+            cancellation_token=CancellationToken(),
+        )
+    asyncio.run(async_func_11())
 )
 
 """
@@ -137,12 +135,14 @@ venv_builder.create(venv_dir)
 venv_context = venv_builder.ensure_directories(venv_dir)
 
 local_executor = LocalCommandLineCodeExecutor(work_dir=work_dir, virtual_env_context=venv_context)
-await local_executor.execute_code_blocks(
-    code_blocks=[
-        CodeBlock(language="bash", code="pip install matplotlib"),
-    ],
-    cancellation_token=CancellationToken(),
-)
+async def async_func_16():
+    await local_executor.execute_code_blocks(
+        code_blocks=[
+            CodeBlock(language="bash", code="pip install matplotlib"),
+        ],
+        cancellation_token=CancellationToken(),
+    )
+asyncio.run(async_func_16())
 
 """
 As we can see, the code has executed successfully, and the installation has been isolated to the newly created virtual environment, without affecting our global environment.

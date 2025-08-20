@@ -1,5 +1,4 @@
 import asyncio
-from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
@@ -34,8 +33,7 @@ In the next section we will define the agents that will be used in the travel pl
 """
 logger.info("### Defining Agents")
 
-model_client = MLXAutogenChatLLMAdapter(
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
 
 planner_agent = AssistantAgent(
     "planner_agent",
@@ -67,20 +65,14 @@ travel_summary_agent = AssistantAgent(
 
 termination = TextMentionTermination("TERMINATE")
 group_chat = RoundRobinGroupChat(
-    [planner_agent, local_agent, language_agent,
-        travel_summary_agent], termination_condition=termination
+    [planner_agent, local_agent, language_agent, travel_summary_agent], termination_condition=termination
 )
-
-
 async def run_async_code_21ea603f():
     await Console(group_chat.run_stream(task="Plan a 3 day trip to Nepal."))
-    return
 asyncio.run(run_async_code_21ea603f())
-
 
 async def run_async_code_0349fda4():
     await model_client.close()
-    return
 asyncio.run(run_async_code_0349fda4())
 
 logger.info("\n\n[DONE]", bright=True)

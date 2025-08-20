@@ -1,4 +1,4 @@
-from jet.llm.ollama.base_langchain import AzureChatMLX, AzureMLXEmbeddings
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter_langchain import AzureChatMLX, AzureMLXEmbeddings
 from jet.logger import CustomLogger
 from langchain.docstore.document import Document
 from langchain.document_loaders import TextLoader
@@ -97,7 +97,7 @@ l
 """
 logger.info("#")
 
-llm = AzureChatMLX(
+llm = AzureChatMLXAutogenChatLLMAdapter(
     deployment_name="gpt-4-32k-0613",
     openai_api_version="2023-08-01-preview",
     temperature=0.0,

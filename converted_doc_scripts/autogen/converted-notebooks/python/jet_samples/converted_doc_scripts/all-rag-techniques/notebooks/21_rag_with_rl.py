@@ -70,7 +70,7 @@ Next, we need to initialize the client responsible for response and embedding ge
 """
 logger.info("Next, we need to initialize the client responsible for response and embedding generation.")
 
-client = MLX(
+client = MLXAutogenChatLLMAdapter(
     base_url="https://api.studio.nebius.com/v1/",  # Base URL for (eg. ollama api, anyother llm api provider)
 #     api_key= os.environ["OPENAI_API_KEY"]  # API key for authentication
 )

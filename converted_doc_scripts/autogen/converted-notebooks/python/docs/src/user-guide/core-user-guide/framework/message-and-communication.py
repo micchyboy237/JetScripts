@@ -1,5 +1,4 @@
 import asyncio
-from jet.transformers.formatters import format_json
 from autogen_core import AgentId, MessageContext, RoutedAgent, SingleThreadedAgentRuntime, message_handler
 from autogen_core import DefaultTopicId, default_subscription
 from autogen_core import MessageContext, RoutedAgent, SingleThreadedAgentRuntime, message_handler
@@ -101,9 +100,7 @@ logger.info("Create the agent runtime and register the agent type (see [Agent an
 runtime = SingleThreadedAgentRuntime()
 async def run_async_code_36f0602b():
     await MyAgent.register(runtime, "my_agent", lambda: MyAgent("My Agent"))
-    return 
- = asyncio.run(run_async_code_36f0602b())
-logger.success(format_json())
+asyncio.run(run_async_code_36f0602b())
 
 """
 Test this agent with `TextMessage` and `ImageMessage`.
@@ -114,19 +111,13 @@ runtime.start()
 agent_id = AgentId("my_agent", "default")
 async def run_async_code_65728bc7():
     await runtime.send_message(TextMessage(content="Hello, World!", source="User"), agent_id)
-    return 
- = asyncio.run(run_async_code_65728bc7())
-logger.success(format_json())
+asyncio.run(run_async_code_65728bc7())
 async def run_async_code_d2579f5c():
     await runtime.send_message(ImageMessage(url="https://example.com/image.jpg", source="User"), agent_id)
-    return 
- = asyncio.run(run_async_code_d2579f5c())
-logger.success(format_json())
+asyncio.run(run_async_code_d2579f5c())
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 """
 The runtime automatically creates an instance of `MyAgent` with the 
@@ -175,36 +166,24 @@ logger.info("The above agent uses the `source` field of the message to determine
 runtime = SingleThreadedAgentRuntime()
 async def run_async_code_6be75fb9():
     await RoutedBySenderAgent.register(runtime, "my_agent", lambda: RoutedBySenderAgent("Routed by sender agent"))
-    return 
- = asyncio.run(run_async_code_6be75fb9())
-logger.success(format_json())
+asyncio.run(run_async_code_6be75fb9())
 runtime.start()
 agent_id = AgentId("my_agent", "default")
 async def run_async_code_b412f69c():
     await runtime.send_message(TextMessage(content="Hello, World!", source="user1-test"), agent_id)
-    return 
- = asyncio.run(run_async_code_b412f69c())
-logger.success(format_json())
+asyncio.run(run_async_code_b412f69c())
 async def run_async_code_371f44d3():
     await runtime.send_message(TextMessage(content="Hello, World!", source="user2-test"), agent_id)
-    return 
- = asyncio.run(run_async_code_371f44d3())
-logger.success(format_json())
+asyncio.run(run_async_code_371f44d3())
 async def run_async_code_0d4929b3():
     await runtime.send_message(ImageMessage(url="https://example.com/image.jpg", source="user1-test"), agent_id)
-    return 
- = asyncio.run(run_async_code_0d4929b3())
-logger.success(format_json())
+asyncio.run(run_async_code_0d4929b3())
 async def run_async_code_8393cd12():
     await runtime.send_message(ImageMessage(url="https://example.com/image.jpg", source="user2-test"), agent_id)
-    return 
- = asyncio.run(run_async_code_8393cd12())
-logger.success(format_json())
+asyncio.run(run_async_code_8393cd12())
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 """
 In the above example, the first `ImageMessage` is not handled because the `source` field
@@ -263,15 +242,7 @@ class OuterAgent(RoutedAgent):
     @message_handler
     async def on_my_message(self, message: Message, ctx: MessageContext) -> None:
         logger.debug(f"Received message: {message.content}")
-        async def run_async_code_1e87dda9():
-            async def run_async_code_2c7c8da7():
-                response = await self.send_message(Message(f"Hello from outer, {message.content}"), self.inner_agent_id)
-                return response
-            response = asyncio.run(run_async_code_2c7c8da7())
-            logger.success(format_json(response))
-            return response
-        response = asyncio.run(run_async_code_1e87dda9())
-        logger.success(format_json(response))
+        response = await self.send_message(Message(f"Hello from outer, {message.content}"), self.inner_agent_id)
         logger.debug(f"Received inner response: {response.content}")
 
 """
@@ -285,26 +256,18 @@ logger.info("Upone receving a message, the `OuterAgent` sends a direct message t
 runtime = SingleThreadedAgentRuntime()
 async def run_async_code_046817ed():
     await InnerAgent.register(runtime, "inner_agent", lambda: InnerAgent("InnerAgent"))
-    return 
- = asyncio.run(run_async_code_046817ed())
-logger.success(format_json())
+asyncio.run(run_async_code_046817ed())
 async def run_async_code_9808e8a3():
     await OuterAgent.register(runtime, "outer_agent", lambda: OuterAgent("OuterAgent", "inner_agent"))
-    return 
- = asyncio.run(run_async_code_9808e8a3())
-logger.success(format_json())
+asyncio.run(run_async_code_9808e8a3())
 runtime.start()
 outer_agent_id = AgentId("outer_agent", "default")
 async def run_async_code_a4db0dab():
     await runtime.send_message(Message(content="Hello, World!"), outer_agent_id)
-    return 
- = asyncio.run(run_async_code_a4db0dab())
-logger.success(format_json())
+asyncio.run(run_async_code_a4db0dab())
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 """
 Both outputs are produced by the `OuterAgent`'s message handler, however the second output is based on the response from the `InnerAgent`.
@@ -400,30 +363,24 @@ runtime = SingleThreadedAgentRuntime()
 
 async def run_async_code_4a2f2009():
     await ReceivingAgent.register(runtime, "receiving_agent", lambda: ReceivingAgent("Receiving Agent"))
-    return 
- = asyncio.run(run_async_code_4a2f2009())
-logger.success(format_json())
+asyncio.run(run_async_code_4a2f2009())
 
 async def run_async_code_cc9a18fe():
     await BroadcastingAgent.register(runtime, "broadcasting_agent", lambda: BroadcastingAgent("Broadcasting Agent"))
-    return 
- = asyncio.run(run_async_code_cc9a18fe())
-logger.success(format_json())
+asyncio.run(run_async_code_cc9a18fe())
 async def run_async_code_d59b1ddb():
     await runtime.add_subscription(TypeSubscription(topic_type="default", agent_type="broadcasting_agent"))
-    return 
- = asyncio.run(run_async_code_d59b1ddb())
-logger.success(format_json())
+asyncio.run(run_async_code_d59b1ddb())
 
 runtime.start()
-await runtime.publish_message(
-    Message("Hello, World! From the runtime!"), topic_id=TopicId(type="default", source="default")
-)
+async def async_func_10():
+    await runtime.publish_message(
+        Message("Hello, World! From the runtime!"), topic_id=TopicId(type="default", source="default")
+    )
+asyncio.run(async_func_10())
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 """
 As shown in the above example, you can also publish directly to a topic
@@ -474,25 +431,21 @@ agent type uses the same agent type that is being registered in the same context
 logger.info("When the runtime calls {py:meth}`~autogen_core.BaseAgent.register` to register the agent type,")
 
 runtime = SingleThreadedAgentRuntime()
-await BroadcastingAgentDefaultTopic.register(
-    runtime, "broadcasting_agent", lambda: BroadcastingAgentDefaultTopic("Broadcasting Agent")
-)
+async def async_func_1():
+    await BroadcastingAgentDefaultTopic.register(
+        runtime, "broadcasting_agent", lambda: BroadcastingAgentDefaultTopic("Broadcasting Agent")
+    )
+asyncio.run(async_func_1())
 async def run_async_code_4a2f2009():
     await ReceivingAgent.register(runtime, "receiving_agent", lambda: ReceivingAgent("Receiving Agent"))
-    return 
- = asyncio.run(run_async_code_4a2f2009())
-logger.success(format_json())
+asyncio.run(run_async_code_4a2f2009())
 runtime.start()
 async def run_async_code_4ef5053d():
     await runtime.publish_message(Message("Hello, World! From the runtime!"), topic_id=DefaultTopicId())
-    return 
- = asyncio.run(run_async_code_4ef5053d())
-logger.success(format_json())
+asyncio.run(run_async_code_4ef5053d())
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 """
 ```{note}

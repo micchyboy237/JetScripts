@@ -152,21 +152,12 @@ class MLXAssistantAgent(RoutedAgent):
                 )
             )
         )
-        async def async_func_52():
-            async with self._client.beta.threads.runs.stream(
-                thread_id=self._thread_id,
-                assistant_id=self._assistant_id,
-                event_handler=self._assistant_event_handler_factory(),
-            return result
-
-        result = asyncio.run(async_func_52())
-        logger.success(format_json(result))
+        async with self._client.beta.threads.runs.stream(
+            thread_id=self._thread_id,
+            assistant_id=self._assistant_id,
+            event_handler=self._assistant_event_handler_factory(),
         ) as stream:
-            async def run_async_code_2bca98b1():
-                await ctx.cancellation_token.link_future(asyncio.ensure_future(stream.until_done()))
-                return 
-             = asyncio.run(run_async_code_2bca98b1())
-            logger.success(format_json())
+            await ctx.cancellation_token.link_future(asyncio.ensure_future(stream.until_done()))
 
         async def async_func_59():
             messages = await ctx.cancellation_token.link_future(
@@ -189,66 +180,37 @@ class MLXAssistantAgent(RoutedAgent):
         all_msgs: List[str] = []
         while True:
             if not all_msgs:
-                async def async_func_76():
-                    msgs = await ctx.cancellation_token.link_future(
-                        asyncio.ensure_future(self._client.beta.threads.messages.list(self._thread_id))
-                    )
-                    return msgs
-                msgs = asyncio.run(async_func_76())
-                logger.success(format_json(msgs))
+                msgs = await ctx.cancellation_token.link_future(
+                    asyncio.ensure_future(self._client.beta.threads.messages.list(self._thread_id))
+                )
             else:
-                async def async_func_80():
-                    msgs = await ctx.cancellation_token.link_future(
-                        asyncio.ensure_future(self._client.beta.threads.messages.list(self._thread_id, after=all_msgs[-1]))
-                    )
-                    return msgs
-                msgs = asyncio.run(async_func_80())
-                logger.success(format_json(msgs))
+                msgs = await ctx.cancellation_token.link_future(
+                    asyncio.ensure_future(self._client.beta.threads.messages.list(self._thread_id, after=all_msgs[-1]))
+                )
             for msg in msgs.data:
                 all_msgs.append(msg.id)
             if not msgs.has_next_page():
                 break
         for msg_id in all_msgs:
-            async def async_func_88():
-                status = await ctx.cancellation_token.link_future(
-                    asyncio.ensure_future(
-                        self._client.beta.threads.messages.delete(message_id=msg_id, thread_id=self._thread_id)
-                    )
+            status = await ctx.cancellation_token.link_future(
+                asyncio.ensure_future(
+                    self._client.beta.threads.messages.delete(message_id=msg_id, thread_id=self._thread_id)
                 )
-                return status
-            status = asyncio.run(async_func_88())
-            logger.success(format_json(status))
+            )
             assert status.deleted is True
 
     @message_handler()
     async def on_upload_for_code_interpreter(self, message: UploadForCodeInterpreter, ctx: MessageContext) -> None:
         """Handle an upload for code interpreter. This method uploads a file and updates the thread with the file."""
-        async def async_func_98():
-            async with aiofiles.open(message.file_path, mode="rb") as f:
-                async def run_async_code_54c4de1b():
-                    file_content = await ctx.cancellation_token.link_future(asyncio.ensure_future(f.read()))
-                    return file_content
-                file_content = asyncio.run(run_async_code_54c4de1b())
-                logger.success(format_json(file_content))
-            return result
-
-        result = asyncio.run(async_func_98())
-        logger.success(format_json(result))
+        async with aiofiles.open(message.file_path, mode="rb") as f:
+            file_content = await ctx.cancellation_token.link_future(asyncio.ensure_future(f.read()))
         file_name = os.path.basename(message.file_path)
-        async def async_func_101():
-            file = await ctx.cancellation_token.link_future(
-                asyncio.ensure_future(self._client.files.create(file=(file_name, file_content), purpose="assistants"))
-            )
-            return file
-        file = asyncio.run(async_func_101())
-        logger.success(format_json(file))
-        async def async_func_104():
-            thread = await ctx.cancellation_token.link_future(
-                asyncio.ensure_future(self._client.beta.threads.retrieve(thread_id=self._thread_id))
-            )
-            return thread
-        thread = asyncio.run(async_func_104())
-        logger.success(format_json(thread))
+        file = await ctx.cancellation_token.link_future(
+            asyncio.ensure_future(self._client.files.create(file=(file_name, file_content), purpose="assistants"))
+        )
+        thread = await ctx.cancellation_token.link_future(
+            asyncio.ensure_future(self._client.beta.threads.retrieve(thread_id=self._thread_id))
+        )
         tool_resources: ToolResources = thread.tool_resources if thread.tool_resources else ToolResources()
         assert tool_resources.code_interpreter is not None
         if tool_resources.code_interpreter.file_ids:
@@ -269,17 +231,8 @@ class MLXAssistantAgent(RoutedAgent):
     @message_handler()
     async def on_upload_for_file_search(self, message: UploadForFileSearch, ctx: MessageContext) -> None:
         """Handle an upload for file search. This method uploads a file and updates the vector store."""
-        async def async_func_127():
-            async with aiofiles.open(message.file_path, mode="rb") as file:
-                async def run_async_code_ba12f2f2():
-                    file_content = await ctx.cancellation_token.link_future(asyncio.ensure_future(file.read()))
-                    return file_content
-                file_content = asyncio.run(run_async_code_ba12f2f2())
-                logger.success(format_json(file_content))
-            return result
-
-        result = asyncio.run(async_func_127())
-        logger.success(format_json(result))
+        async with aiofiles.open(message.file_path, mode="rb") as file:
+            file_content = await ctx.cancellation_token.link_future(asyncio.ensure_future(file.read()))
         file_name = os.path.basename(message.file_path)
         await ctx.cancellation_token.link_future(
             asyncio.ensure_future(
@@ -352,15 +305,7 @@ class EventHandler(AsyncAssistantEventHandler):
             text_content.value = text_content.value.replace(annotation.text, f"[{index}]")
             if file_citation := getattr(annotation, "file_citation", None):
                 client = AsyncClient()
-                async def run_async_code_f83d80c4():
-                    async def run_async_code_66d8f968():
-                        cited_file = await client.files.retrieve(file_citation.file_id)
-                        return cited_file
-                    cited_file = asyncio.run(run_async_code_66d8f968())
-                    logger.success(format_json(cited_file))
-                    return cited_file
-                cited_file = asyncio.run(run_async_code_f83d80c4())
-                logger.success(format_json(cited_file))
+                cited_file = await client.files.retrieve(file_citation.file_id)
                 citations.append(f"[{index}] {cited_file.filename}")
         if citations:
             logger.debug("\n".join(citations))
@@ -375,7 +320,7 @@ logger.info("## Using the Agent")
 
 
 oai_assistant = openai.beta.assistants.create(
-    model="llama-3.2-3b-instruct",
+    model="qwen3-1.7b-4bit-mini",
     description="An AI assistant that helps with everyday tasks.",
     instructions="Help the user with their task.",
     tools=[{"type": "code_interpreter"}, {"type": "file_search"}],
@@ -395,17 +340,19 @@ logger.info("Then, we create a runtime, and register an agent factory function f
 
 
 runtime = SingleThreadedAgentRuntime()
-await MLXAssistantAgent.register(
-    runtime,
-    "assistant",
-    lambda: MLXAssistantAgent(
-        description="MLX Assistant Agent",
-        client=openai.AsyncClient(),
-        assistant_id=oai_assistant.id,
-        thread_id=thread.id,
-        assistant_event_handler_factory=lambda: EventHandler(),
-    ),
-)
+async def async_func_3():
+    await MLXAssistantAgent.register(
+        runtime,
+        "assistant",
+        lambda: MLXAssistantAgent(
+            description="MLX Assistant Agent",
+            client=openai.AsyncClient(),
+            assistant_id=oai_assistant.id,
+            thread_id=thread.id,
+            assistant_event_handler_factory=lambda: EventHandler(),
+        ),
+    )
+asyncio.run(async_func_3())
 agent = AgentId("assistant", "default")
 
 """
@@ -425,14 +372,10 @@ logger.info("Let's send a greeting message to the agent, and see the response st
 runtime.start()
 async def run_async_code_6407d14a():
     await runtime.send_message(TextMessage(content="Hello, how are you today!", source="user"), agent)
-    return 
- = asyncio.run(run_async_code_6407d14a())
-logger.success(format_json())
+asyncio.run(run_async_code_6407d14a())
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 """
 ## Assistant with Code Interpreter
@@ -445,14 +388,10 @@ logger.info("## Assistant with Code Interpreter")
 runtime.start()
 async def run_async_code_30a4d357():
     await runtime.send_message(TextMessage(content="What is 1332322 x 123212?", source="user"), agent)
-    return 
- = asyncio.run(run_async_code_30a4d357())
-logger.success(format_json())
+asyncio.run(run_async_code_30a4d357())
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 """
 Let's get some data from Seattle Open Data portal. We will be using the
@@ -474,14 +413,10 @@ logger.info("Let's send the file to the agent using an `UploadForCodeInterpreter
 runtime.start()
 async def run_async_code_5fd06a41():
     await runtime.send_message(UploadForCodeInterpreter(file_path="seattle_city_wages.csv"), agent)
-    return 
- = asyncio.run(run_async_code_5fd06a41())
-logger.success(format_json())
+asyncio.run(run_async_code_5fd06a41())
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 """
 We can now ask some questions about the data to the agent.
@@ -491,26 +426,18 @@ logger.info("We can now ask some questions about the data to the agent.")
 runtime.start()
 async def run_async_code_36dcec0b():
     await runtime.send_message(TextMessage(content="Take a look at the uploaded CSV file.", source="user"), agent)
-    return 
- = asyncio.run(run_async_code_36dcec0b())
-logger.success(format_json())
+asyncio.run(run_async_code_36dcec0b())
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 runtime.start()
 async def run_async_code_f819bab5():
     await runtime.send_message(TextMessage(content="What are the top-10 salaries?", source="user"), agent)
-    return 
- = asyncio.run(run_async_code_f819bab5())
-logger.success(format_json())
+asyncio.run(run_async_code_f819bab5())
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 """
 ## Assistant with File Search
@@ -530,14 +457,14 @@ Send the file to the agent using an `UploadForFileSearch` message.
 logger.info("Send the file to the agent using an `UploadForFileSearch` message.")
 
 runtime.start()
-await runtime.send_message(
-    UploadForFileSearch(file_path="third_anglo_afghan_war.html", vector_store_id=vector_store.id), agent
-)
+async def async_func_1():
+    await runtime.send_message(
+        UploadForFileSearch(file_path="third_anglo_afghan_war.html", vector_store_id=vector_store.id), agent
+    )
+asyncio.run(async_func_1())
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 """
 Let's ask some questions about the document to the agent. Before asking,
@@ -548,20 +475,18 @@ logger.info("Let's ask some questions about the document to the agent. Before as
 runtime.start()
 async def run_async_code_4488944a():
     await runtime.send_message(Reset(), agent)
-    return 
- = asyncio.run(run_async_code_4488944a())
-logger.success(format_json())
-await runtime.send_message(
-    TextMessage(
-        content="When and where was the treaty of Rawalpindi signed? Answer using the document provided.", source="user"
-    ),
-    agent,
-)
+asyncio.run(run_async_code_4488944a())
+async def async_func_2():
+    await runtime.send_message(
+        TextMessage(
+            content="When and where was the treaty of Rawalpindi signed? Answer using the document provided.", source="user"
+        ),
+        agent,
+    )
+asyncio.run(async_func_2())
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 """
 That's it! We have successfully built an agent backed by MLX Assistant.

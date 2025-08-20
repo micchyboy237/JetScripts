@@ -84,6 +84,7 @@ PROJECT_LLM_MAP = {
     "autogen": {
         "jet.llm.mlx.base": "jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter",
         "autogen_ext.models.openai": "jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter",
+        "MLXChatCompletionClient": "MLXAutogenChatLLMAdapter",
         "MLX(": "MLXAutogenChatLLMAdapter(",
     },
 }
@@ -430,8 +431,17 @@ def wrap_await_code_singleline_args(code: str) -> str:
     result_lines = []
     paren_depth = 0
     skip_until_closing_paren = False
+    in_async_def = False
     for line_idx, line in enumerate(lines):
         stripped_line = line.strip()
+        # Check if we're in an async function definition
+        if stripped_line.startswith("async def"):
+            in_async_def = True
+        elif in_async_def and not stripped_line:  # Empty line after async def
+            in_async_def = False
+        elif in_async_def and not line.startswith(" "):  # Non-indented line
+            in_async_def = False
+
         paren_depth += stripped_line.count("(") - stripped_line.count(")")
         if skip_until_closing_paren:
             result_lines.append(line)
@@ -443,12 +453,12 @@ def wrap_await_code_singleline_args(code: str) -> str:
             result_lines.append(line)
             continue
         match = re.match(r'(.*?)(?=\s*= await)', line)
-        if match and "await" in line and paren_depth == 0:
-            text_before_await = match.group(1).strip()
-            await_leading_spaces = len(line) - len(line.lstrip())
+        text_before_await = match.group(1).strip() if match else ""
+        await_leading_spaces = len(line) - len(line.lstrip())
+        function_name = generate_unique_function_name(line)
+        indent = " " * await_leading_spaces
+        if "await" in line and paren_depth == 0 and not in_async_def:
             if text_before_await:
-                function_name = generate_unique_function_name(line)
-                indent = " " * await_leading_spaces
                 async_wrapped_code = "\n".join([
                     f"{indent}async def {function_name}():",
                     f"{indent}    {line.strip()}",
@@ -456,24 +466,37 @@ def wrap_await_code_singleline_args(code: str) -> str:
                     f"{indent}{text_before_await} = asyncio.run({function_name}())",
                     f"{indent}logger.success(format_json({text_before_await}))",
                 ])
-                result_lines.append(async_wrapped_code)
             else:
-                result_lines.append(line)
+                async_wrapped_code = "\n".join([
+                    f"{indent}async def {function_name}():",
+                    f"{indent}    {line.strip()}",
+                    f"{indent}asyncio.run({function_name}())",
+                ])
+            result_lines.append(async_wrapped_code)
         else:
             result_lines.append(line)
-    return "\n".join(result_lines)
+    final_code = "\n".join(result_lines)
+    return final_code
 
 
 def wrap_await_code_multiline_args(code: str) -> str:
     lines = code.splitlines()
     updated_lines = []
     line_idx = 0
+    in_async_def = False
     while line_idx < len(lines):
         line = lines[line_idx].rstrip()
-        if line.strip().startswith("async with"):
+        # Check if we're in an async function definition
+        if line.strip().startswith("async def"):
+            in_async_def = True
+        elif in_async_def and not line.strip():  # Empty line after async def
+            in_async_def = False
+        elif in_async_def and not line.startswith(" "):  # Non-indented line
+            in_async_def = False
+
+        if line.strip().startswith("async with") and not in_async_def:
             leading_spaces = len(line) - len(line.lstrip())
             async_fn_name = f"async_func_{line_idx}"
-            variable = "result"
             async_block = [
                 f"{' ' * leading_spaces}async def {async_fn_name}():"]
             async_block.append(f"{' ' * (leading_spaces + 4)}{line.strip()}")
@@ -490,51 +513,42 @@ def wrap_await_code_multiline_args(code: str) -> str:
                 async_block.append(f"{adjusted_indent}{next_line.lstrip()}")
                 line_idx += 1
             async_block.append(
-                f"{' ' * (leading_spaces + 4)}return {variable}")
-            async_block.append("")
-            async_block.append(
-                f"{' ' * leading_spaces}{variable} = asyncio.run({async_fn_name}())")
-            async_block.append(
-                f"{' ' * leading_spaces}logger.success(format_json({variable}))")
+                f"{' ' * leading_spaces}asyncio.run({async_fn_name}())")
             updated_lines.extend(async_block)
             continue
-        if "await" in line and line.strip().endswith("("):
+        if "await" in line and line.strip().endswith("(") and not in_async_def:
             match = re.match(r'(.*?)\s*=\s*await', line)
+            leading_spaces = len(line) - len(line.lstrip())
+            async_fn_name = f"async_func_{line_idx}"
+            async_block = [
+                f"{' ' * leading_spaces}async def {async_fn_name}():"]
+            async_block.append(f"{' ' * (leading_spaces + 4)}{line.strip()}")
+            open_parens = 1
+            line_idx += 1
+            while line_idx < len(lines) and open_parens > 0:
+                next_line = lines[line_idx].rstrip()
+                next_leading_spaces = len(next_line) - len(next_line.lstrip())
+                relative_indent = next_leading_spaces - leading_spaces
+                if relative_indent < 0:
+                    relative_indent = 0
+                adjusted_indent = ' ' * (leading_spaces + 4 + relative_indent)
+                async_block.append(f"{adjusted_indent}{next_line.lstrip()}")
+                open_parens += next_line.count("(") - next_line.count(")")
+                line_idx += 1
             if match:
                 variable = match.group(1).strip()
-                leading_spaces = len(line) - len(line.lstrip())
-                async_fn_name = f"async_func_{line_idx}"
-                async_block = [
-                    f"{' ' * leading_spaces}async def {async_fn_name}():"]
-                async_block.append(
-                    f"{' ' * (leading_spaces + 4)}{line.strip()}")
-                open_parens = 1
-                line_idx += 1
-                while line_idx < len(lines) and open_parens > 0:
-                    next_line = lines[line_idx].rstrip()
-                    next_leading_spaces = len(
-                        next_line) - len(next_line.lstrip())
-                    relative_indent = next_leading_spaces - leading_spaces
-                    if relative_indent < 0:
-                        relative_indent = 0
-                    adjusted_indent = ' ' * \
-                        (leading_spaces + 4 + relative_indent)
-                    async_block.append(
-                        f"{adjusted_indent}{next_line.lstrip()}")
-                    open_parens += next_line.count("(") - next_line.count(")")
-                    line_idx += 1
                 async_block.append(
                     f"{' ' * (leading_spaces + 4)}return {variable}")
                 async_block.append(
                     f"{' ' * leading_spaces}{variable} = asyncio.run({async_fn_name}())")
                 async_block.append(
                     f"{' ' * leading_spaces}logger.success(format_json({variable}))")
-                updated_lines.extend(async_block)
             else:
-                updated_lines.append(line)
-                line_idx += 1
+                async_block.append(
+                    f"{' ' * leading_spaces}asyncio.run({async_fn_name}())")
+            updated_lines.extend(async_block)
             continue
-        if "await" in line:
+        if "await" in line and not in_async_def:
             match = re.match(r'(.*?)(?=\s*= await)', line)
             text_before_await = match.group(1).strip() if match else ""
             leading_spaces = len(line) - len(line.lstrip())
@@ -542,16 +556,24 @@ def wrap_await_code_multiline_args(code: str) -> str:
             async_block = [
                 f"{' ' * leading_spaces}async def {async_fn_name}():",
                 f"{' ' * (leading_spaces + 4)}{line.strip()}",
-                f"{' ' * (leading_spaces + 4)}return {text_before_await}",
-                f"{' ' * leading_spaces}{text_before_await} = asyncio.run({async_fn_name}())",
-                f"{' ' * leading_spaces}logger.success(format_json({text_before_await}))",
             ]
+            if text_before_await:
+                async_block.append(
+                    f"{' ' * (leading_spaces + 4)}return {text_before_await}")
+                async_block.append(
+                    f"{' ' * leading_spaces}{text_before_await} = asyncio.run({async_fn_name}())")
+                async_block.append(
+                    f"{' ' * leading_spaces}logger.success(format_json({text_before_await}))")
+            else:
+                async_block.append(
+                    f"{' ' * leading_spaces}asyncio.run({async_fn_name}())")
             updated_lines.extend(async_block)
             line_idx += 1
             continue
         updated_lines.append(line)
         line_idx += 1
-    return "\n".join(updated_lines)
+    final_code = "\n".join(updated_lines)
+    return final_code
 
 
 def wrap_triple_double_quoted_comments_in_log(code: str) -> str:
@@ -742,15 +764,15 @@ if __name__ == "__main__":
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_07_2025/ai-agents-for-beginners",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogen",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogen",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogenhub",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/mem0",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents/GenAI_Agents",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index",
     ]
     include_files = []
     exclude_files = [
-        "reflection.py"
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/autogen/converted-notebooks/python/docs/src/user-guide/core-user-guide/design-patterns/reflection.py"
     ]
     extension_mappings = [
         {"ext": [".ipynb"], "output_base_dir": "converted-notebooks"},

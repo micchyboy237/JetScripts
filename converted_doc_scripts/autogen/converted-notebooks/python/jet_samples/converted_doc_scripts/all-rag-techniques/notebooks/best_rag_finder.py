@@ -282,7 +282,7 @@ try:
     if not NEBIUS_API_KEY:
         raise ValueError("Nebius API Key is missing. Cannot initialize client.")
 
-    client = MLX(
+    client = MLXAutogenChatLLMAdapter(
         api_key=NEBIUS_API_KEY,     # Pass the API key loaded earlier
         base_url=NEBIUS_BASE_URL  # Specify the Nebius API endpoint
     )

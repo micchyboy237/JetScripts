@@ -1,5 +1,4 @@
 import asyncio
-from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
@@ -38,10 +37,10 @@ logger.info(f"Logs: {log_file}")
 """
 # Custom Agents
 
-You may have agents with behaviors that do not fall into a preset.
+You may have agents with behaviors that do not fall into a preset. 
 In such cases, you can build custom agents.
 
-All agents in AgentChat inherit from {py:class}`~autogen_agentchat.agents.BaseChatAgent`
+All agents in AgentChat inherit from {py:class}`~autogen_agentchat.agents.BaseChatAgent` 
 class and implement the following abstract methods and attributes:
 
 - {py:meth}`~autogen_agentchat.agents.BaseChatAgent.on_messages`: The abstract method that defines the behavior of the agent in response to messages. This method is called when the agent is asked to provide a response in {py:meth}`~autogen_agentchat.agents.BaseChatAgent.run`. It returns a {py:class}`~autogen_agentchat.base.Response` object.
@@ -61,6 +60,8 @@ In this example, we create a simple agent that counts down from a given number t
 and produces a stream of messages with the current count.
 """
 logger.info("# Custom Agents")
+
+
 
 
 class CountDownAgent(BaseChatAgent):
@@ -106,9 +107,7 @@ async def run_countdown_agent() -> None:
 
 async def run_async_code_66eebead():
     await run_countdown_agent()
-    return
- = asyncio.run(run_async_code_66eebead())
-logger.success(format_json())
+asyncio.run(run_async_code_66eebead())
 
 """
 ## ArithmeticAgent
@@ -186,7 +185,7 @@ async def run_number_agents() -> None:
 
     selector_group_chat = SelectorGroupChat(
         [add_agent, multiply_agent, subtract_agent, divide_agent, identity_agent],
-        model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"),
+        model_client=MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit"),
         termination_condition=termination_condition,
         allow_repeated_speaker=True,  # Allow the same agent to speak multiple times, necessary for this task.
         selector_prompt=(
@@ -203,16 +202,12 @@ async def run_number_agents() -> None:
     stream = selector_group_chat.run_stream(task=task)
     async def run_async_code_8cdf6b5b():
         await Console(stream)
-        return 
-     = asyncio.run(run_async_code_8cdf6b5b())
-    logger.success(format_json())
+    asyncio.run(run_async_code_8cdf6b5b())
 
 
 async def run_async_code_c9fbdd41():
     await run_number_agents()
-    return 
- = asyncio.run(run_async_code_c9fbdd41())
-logger.success(format_json())
+asyncio.run(run_async_code_c9fbdd41())
 
 """
 From the output, we can see that the agents have successfully transformed the input integer
@@ -272,11 +267,7 @@ class GeminiAssistantAgent(BaseChatAgent):
         self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         for msg in messages:
-            async def run_async_code_89f7e876():
-                await self._model_context.add_message(msg.to_model_message())
-                return 
-             = asyncio.run(run_async_code_89f7e876())
-            logger.success(format_json())
+            await self._model_context.add_message(msg.to_model_message())
 
         history = [
             (msg.source if hasattr(msg, "source") else "system")
@@ -285,9 +276,7 @@ class GeminiAssistantAgent(BaseChatAgent):
             + "\n"
             async def run_async_code_e4f0a5f2():
                 for msg in await self._model_context.get_messages()
-                return 
-             = asyncio.run(run_async_code_e4f0a5f2())
-            logger.success(format_json())
+            asyncio.run(run_async_code_e4f0a5f2())
         ]
         response = self._model_client.models.generate_content(
             model=self._model,
@@ -305,9 +294,7 @@ class GeminiAssistantAgent(BaseChatAgent):
 
         async def run_async_code_d88081c7():
             await self._model_context.add_message(AssistantMessage(content=response.text, source=self.name))
-            return 
-         = asyncio.run(run_async_code_d88081c7())
-        logger.success(format_json())
+        asyncio.run(run_async_code_d88081c7())
 
         yield Response(
             chat_message=TextMessage(content=response.text, source=self.name, models_usage=usage),
@@ -316,18 +303,12 @@ class GeminiAssistantAgent(BaseChatAgent):
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Reset the assistant by clearing the model context."""
-        async def run_async_code_0bffd68f():
-            await self._model_context.clear()
-            return 
-         = asyncio.run(run_async_code_0bffd68f())
-        logger.success(format_json())
+        await self._model_context.clear()
 
 gemini_assistant = GeminiAssistantAgent("gemini_assistant")
 async def run_async_code_cf2fcabe():
     await Console(gemini_assistant.run_stream(task="What is the capital of New York?"))
-    return 
- = asyncio.run(run_async_code_cf2fcabe())
-logger.success(format_json())
+asyncio.run(run_async_code_cf2fcabe())
 
 """
 In the example above, we have chosen to provide `model`, `api_key` and `system_message` as arguments - you can choose to provide any other arguments that are required by the model client you are using or fits with your application design. 
@@ -337,7 +318,7 @@ Now, let us explore how to use this custom agent as part of a team in AgentChat.
 logger.info("In the example above, we have chosen to provide `model`, `api_key` and `system_message` as arguments - you can choose to provide any other arguments that are required by the model client you are using or fits with your application design.")
 
 
-model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit-mini")
 
 primary_agent = AssistantAgent(
     "primary",
@@ -357,14 +338,10 @@ team = RoundRobinGroupChat([primary_agent, gemini_critic_agent], termination_con
 
 async def run_async_code_af0676fa():
     await Console(team.run_stream(task="Write a Haiku poem with 4 lines about the fall season."))
-    return 
- = asyncio.run(run_async_code_af0676fa())
-logger.success(format_json())
+asyncio.run(run_async_code_af0676fa())
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
-logger.success(format_json())
+asyncio.run(run_async_code_0349fda4())
 
 """
 In section above, we show several very important concepts:
@@ -427,11 +404,7 @@ class GeminiAssistantAgent(BaseChatAgent, Component[GeminiAssistantAgentConfig])
         self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         for msg in messages:
-            async def run_async_code_89f7e876():
-                await self._model_context.add_message(msg.to_model_message())
-                return 
-             = asyncio.run(run_async_code_89f7e876())
-            logger.success(format_json())
+            await self._model_context.add_message(msg.to_model_message())
 
         history = [
             (msg.source if hasattr(msg, "source") else "system")
@@ -440,9 +413,7 @@ class GeminiAssistantAgent(BaseChatAgent, Component[GeminiAssistantAgentConfig])
             + "\n"
             async def run_async_code_e4f0a5f2():
                 for msg in await self._model_context.get_messages()
-                return 
-             = asyncio.run(run_async_code_e4f0a5f2())
-            logger.success(format_json())
+            asyncio.run(run_async_code_e4f0a5f2())
         ]
 
         response = self._model_client.models.generate_content(
@@ -461,9 +432,7 @@ class GeminiAssistantAgent(BaseChatAgent, Component[GeminiAssistantAgentConfig])
 
         async def run_async_code_d88081c7():
             await self._model_context.add_message(AssistantMessage(content=response.text, source=self.name))
-            return 
-         = asyncio.run(run_async_code_d88081c7())
-        logger.success(format_json())
+        asyncio.run(run_async_code_d88081c7())
 
         yield Response(
             chat_message=TextMessage(content=response.text, source=self.name, models_usage=usage),
@@ -472,11 +441,7 @@ class GeminiAssistantAgent(BaseChatAgent, Component[GeminiAssistantAgentConfig])
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Reset the assistant by clearing the model context."""
-        async def run_async_code_0bffd68f():
-            await self._model_context.clear()
-            return 
-         = asyncio.run(run_async_code_0bffd68f())
-        logger.success(format_json())
+        await self._model_context.clear()
 
     @classmethod
     def _from_config(cls, config: GeminiAssistantAgentConfig) -> Self:

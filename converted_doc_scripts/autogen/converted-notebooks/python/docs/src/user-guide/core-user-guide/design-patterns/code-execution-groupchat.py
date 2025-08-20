@@ -1,5 +1,4 @@
 import asyncio
-from jet.transformers.formatters import format_json
 from IPython.display import Image
 from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, default_subscription, message_handler
 from autogen_core import SingleThreadedAgentRuntime
@@ -34,7 +33,7 @@ logger.info(f"Logs: {log_file}")
 
 In this section we explore creating custom agents to handle code generation and execution. These tasks can be handled using the provided Agent implementations found here {py:meth}`~autogen_agentchat.agents.AssistantAgent`, {py:meth}`~autogen_agentchat.agents.CodeExecutorAgent`; but this guide will show you how to implement custom, lightweight agents that can replace their functionality. This simple example implements two agents that create a plot of Tesla's and Nvidia's stock returns.
 
-We first define the agent classes and their respective procedures for
+We first define the agent classes and their respective procedures for 
 handling messages.
 We create two agent classes: `Assistant` and `Executor`. The `Assistant`
 agent writes code and the `Executor` agent executes the code.
@@ -46,6 +45,8 @@ Code generated in this example is run within a [Docker](https://www.docker.com/)
 ```
 """
 logger.info("# Code Execution")
+
+
 
 
 @dataclass
@@ -67,28 +68,11 @@ Always save figures to file in the current directory. Do not use plt.show(). All
 
     @message_handler
     async def handle_message(self, message: Message, ctx: MessageContext) -> None:
-        self._chat_history.append(UserMessage(
-            content=message.content, source="user"))
-
-        async def run_async_code_56942d43():
-            async def run_async_code_815da746():
-                result = await self._model_client.create(self._chat_history)
-                return result
-            result = asyncio.run(run_async_code_815da746())
-            logger.success(format_json(result))
-            return result
-        result = asyncio.run(run_async_code_56942d43())
-        logger.success(format_json(result))
+        self._chat_history.append(UserMessage(content=message.content, source="user"))
+        result = await self._model_client.create(self._chat_history)
         logger.debug(f"\n{'-'*80}\nAssistant:\n{result.content}")
-        self._chat_history.append(AssistantMessage(
-            content=result.content, source="assistant"))  # type: ignore
-
-        async def run_async_code_ac73baad():
-            # type: ignore
-            await self.publish_message(Message(content=result.content), DefaultTopicId())
-            return
-         = asyncio.run(run_async_code_ac73baad())
-        logger.success(format_json())
+        self._chat_history.append(AssistantMessage(content=result.content, source="assistant"))  # type: ignore
+        await self.publish_message(Message(content=result.content), DefaultTopicId())  # type: ignore
 
 
 def extract_markdown_code_blocks(markdown_text: str) -> List[CodeBlock]:
@@ -112,19 +96,11 @@ class Executor(RoutedAgent):
     async def handle_message(self, message: Message, ctx: MessageContext) -> None:
         code_blocks = extract_markdown_code_blocks(message.content)
         if code_blocks:
-            async def async_func_62():
-                result = await self._code_executor.execute_code_blocks(
-                    code_blocks, cancellation_token=ctx.cancellation_token
-                )
-                return result
-            result = asyncio.run(async_func_62())
-            logger.success(format_json(result))
+            result = await self._code_executor.execute_code_blocks(
+                code_blocks, cancellation_token=ctx.cancellation_token
+            )
             logger.debug(f"\n{'-'*80}\nExecutor:\n{result.output}")
-            async def run_async_code_bdefc4e6():
-                await self.publish_message(Message(content=result.output), DefaultTopicId())
-                return 
-             = asyncio.run(run_async_code_bdefc4e6())
-            logger.success(format_json())
+            await self.publish_message(Message(content=result.output), DefaultTopicId())
 
 """
 You might have already noticed, the agents' logic, whether it is using model or code executor,
@@ -152,7 +128,7 @@ runtime = SingleThreadedAgentRuntime()
 async def async_func_10():
     async with DockerCommandLineCodeExecutor(work_dir=work_dir) as executor:  # type: ignore[syntax]
         model_client = MLXAutogenChatLLMAdapter(
-            model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+            model="qwen3-1.7b-4bit",
         )
         await Assistant.register(
             runtime,
@@ -166,12 +142,13 @@ async def async_func_10():
             Message("Create a plot of NVIDA vs TSLA stock returns YTD from 2024-01-01."), DefaultTopicId()
         )
         
-        await runtime.stop_when_idle()
-        await model_client.close()
-    return result
-
-result = asyncio.run(async_func_10())
-logger.success(format_json(result))
+        async def run_async_code_6a36839b():
+            await runtime.stop_when_idle()
+        asyncio.run(run_async_code_6a36839b())
+        async def run_async_code_eecbf04a():
+            await model_client.close()
+        asyncio.run(run_async_code_eecbf04a())
+asyncio.run(async_func_10())
 
 """
 From the agent's output, we can see the plot of Tesla's and Nvidia's stock returns

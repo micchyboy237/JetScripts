@@ -1,5 +1,4 @@
 import asyncio
-from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
 from autogen_agentchat.base import Handoff
@@ -50,13 +49,13 @@ and include it in the team before running the team.
 The team will decide when to call the {py:class}`~autogen_agentchat.agents.UserProxyAgent`
 to ask for feedback from the user.
 
-For example in a {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat` team,
+For example in a {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat` team, 
 the {py:class}`~autogen_agentchat.agents.UserProxyAgent` is called in the order
 in which it is passed to the team, while in a {py:class}`~autogen_agentchat.teams.SelectorGroupChat`
-team, the selector prompt or selector function determines when the
+team, the selector prompt or selector function determines when the 
 {py:class}`~autogen_agentchat.agents.UserProxyAgent` is called.
 
-The following diagram illustrates how you can use
+The following diagram illustrates how you can use 
 {py:class}`~autogen_agentchat.agents.UserProxyAgent`
 to get feedback from the user during a team's run:
 
@@ -85,29 +84,21 @@ in a {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat` for a poetry gener
 logger.info("# Human-in-the-Loop")
 
 
-model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit-mini")
 assistant = AssistantAgent("assistant", model_client=model_client)
-# Use input() to get user input from console.
-user_proxy = UserProxyAgent("user_proxy", input_func=input)
+user_proxy = UserProxyAgent("user_proxy", input_func=input)  # Use input() to get user input from console.
 
 termination = TextMentionTermination("APPROVE")
 
-team = RoundRobinGroupChat([assistant, user_proxy],
-                           termination_condition=termination)
+team = RoundRobinGroupChat([assistant, user_proxy], termination_condition=termination)
 
 stream = team.run_stream(task="Write a 4-line poem about the ocean.")
-
-
 async def run_async_code_71db6073():
     await Console(stream)
-    return
- = asyncio.run(run_async_code_71db6073())
-logger.success(format_json())
+asyncio.run(run_async_code_71db6073())
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
-logger.success(format_json())
+asyncio.run(run_async_code_0349fda4())
 
 """
 From the console output, you can see the team solicited feedback from the user
@@ -194,7 +185,7 @@ with a maximum of 1 turn:
 logger.info("# Create user proxy with custom input function")
 
 
-model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit-mini")
 assistant = AssistantAgent("assistant", model_client=model_client)
 
 team = RoundRobinGroupChat([assistant], max_turns=1)
@@ -204,17 +195,13 @@ while True:
     stream = team.run_stream(task=task)
     async def run_async_code_8cdf6b5b():
         await Console(stream)
-        return 
-     = asyncio.run(run_async_code_8cdf6b5b())
-    logger.success(format_json())
+    asyncio.run(run_async_code_8cdf6b5b())
     task = input("Enter your feedback (type 'exit' to leave): ")
     if task.lower().strip() == "exit":
         break
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
-logger.success(format_json())
+asyncio.run(run_async_code_0349fda4())
 
 """
 You can see that the team stopped immediately after one agent responded.
@@ -238,7 +225,7 @@ logger.info("### Using Termination Conditions")
 
 
 model_client = MLXAutogenChatLLMAdapter(
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+    model="qwen3-1.7b-4bit",
 )
 
 lazy_agent = AssistantAgent(
@@ -256,9 +243,7 @@ lazy_agent_team = RoundRobinGroupChat([lazy_agent], termination_condition=handof
 task = "What is the weather in New York?"
 async def run_async_code_3b0e12b4():
     await Console(lazy_agent_team.run_stream(task=task), output_stats=True)
-    return 
- = asyncio.run(run_async_code_3b0e12b4())
-logger.success(format_json())
+asyncio.run(run_async_code_3b0e12b4())
 
 """
 You can see the team stopped due to the handoff message was detected.
@@ -268,9 +253,7 @@ logger.info("You can see the team stopped due to the handoff message was detecte
 
 async def run_async_code_69ec9576():
     await Console(lazy_agent_team.run_stream(task="The weather in New York is sunny."))
-    return 
- = asyncio.run(run_async_code_69ec9576())
-logger.success(format_json())
+asyncio.run(run_async_code_69ec9576())
 
 """
 You can see the team continued after the user provided the information.

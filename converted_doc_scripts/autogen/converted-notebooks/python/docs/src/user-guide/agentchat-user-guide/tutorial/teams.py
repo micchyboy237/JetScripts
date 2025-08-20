@@ -31,9 +31,9 @@ We'll first show you how to create and run a team. We'll then explain how to obs
 
 AgentChat supports several team presets:
 
-- {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat`: A team that runs a group chat with participants taking turns in a round-robin fashion (covered on this page). [Tutorial](#creating-a-team)
+- {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat`: A team that runs a group chat with participants taking turns in a round-robin fashion (covered on this page). [Tutorial](#creating-a-team) 
 - {py:class}`~autogen_agentchat.teams.SelectorGroupChat`: A team that selects the next speaker using a ChatCompletion model after each message. [Tutorial](../selector-group-chat.ipynb)
-- {py:class}`~autogen_agentchat.teams.MagenticOneGroupChat`: A  generalist multi-agent system for solving open-ended web and file-based tasks across a variety of domains. [Tutorial](../magentic-one.md)
+- {py:class}`~autogen_agentchat.teams.MagenticOneGroupChat`: A  generalist multi-agent system for solving open-ended web and file-based tasks across a variety of domains. [Tutorial](../magentic-one.md) 
 - {py:class}`~autogen_agentchat.teams.Swarm`: A team that uses {py:class}`~autogen_agentchat.messages.HandoffMessage` to signal transitions between agents. [Tutorial](../swarm.ipynb)
 
 ```{note}
@@ -59,8 +59,9 @@ The two-agent team implements the _reflection_ pattern, a multi-agent design pat
 logger.info("# Teams")
 
 
+
 model_client = MLXAutogenChatLLMAdapter(
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+    model="qwen3-1.7b-4bit-2024-08-06",
 )
 
 primary_agent = AssistantAgent(
@@ -77,8 +78,7 @@ critic_agent = AssistantAgent(
 
 text_termination = TextMentionTermination("APPROVE")
 
-team = RoundRobinGroupChat(
-    [primary_agent, critic_agent], termination_condition=text_termination)
+team = RoundRobinGroupChat([primary_agent, critic_agent], termination_condition=text_termination)
 
 """
 ## Running a Team
@@ -88,13 +88,8 @@ to start the team with a task.
 """
 logger.info("## Running a Team")
 
-
 async def run_async_code_9817a56b():
-    async def run_async_code_c3be6668():
-        result = await team.run(task="Write a short poem about the fall season.")
-        return result
-    result = asyncio.run(run_async_code_c3be6668())
-    logger.success(format_json(result))
+    result = await team.run(task="Write a short poem about the fall season.")
     return result
 result = asyncio.run(run_async_code_9817a56b())
 logger.success(format_json(result))
@@ -113,12 +108,9 @@ Similar to the agent's {py:meth}`~autogen_agentchat.agents.BaseChatAgent.on_mess
 """
 logger.info("## Observing a Team")
 
-
 async def run_async_code_12a0d807():
     await team.reset()  # Reset the team for a new task.
-    return
- = asyncio.run(run_async_code_12a0d807())
-logger.success(format_json())
+asyncio.run(run_async_code_12a0d807())
 async for message in team.run_stream(task="Write a short poem about the fall season."):  # type: ignore
     if isinstance(message, TaskResult):
         logger.debug("Stop Reason:", message.stop_reason)
@@ -134,14 +126,10 @@ logger.info("As demonstrated in the example above, you can determine the reason 
 
 async def run_async_code_12a0d807():
     await team.reset()  # Reset the team for a new task.
-    return 
- = asyncio.run(run_async_code_12a0d807())
-logger.success(format_json())
+asyncio.run(run_async_code_12a0d807())
 async def run_async_code_0fe78289():
     await Console(team.run_stream(task="Write a short poem about the fall season."))  # Stream the messages to the console.
-    return 
- = asyncio.run(run_async_code_0fe78289())
-logger.success(format_json())
+asyncio.run(run_async_code_0fe78289())
 
 """
 ## Resetting a Team
@@ -153,9 +141,7 @@ logger.info("## Resetting a Team")
 
 async def run_async_code_512f84bd():
     await team.reset()  # Reset the team for the next run.
-    return 
- = asyncio.run(run_async_code_512f84bd())
-logger.success(format_json())
+asyncio.run(run_async_code_512f84bd())
 
 """
 It is usually a good idea to reset the team if the next task is not related to the previous task.
@@ -187,17 +173,13 @@ run = asyncio.create_task(Console(team.run_stream(task="Write a short poem about
 
 async def run_async_code_80bd3181():
     await asyncio.sleep(0.1)
-    return 
- = asyncio.run(run_async_code_80bd3181())
-logger.success(format_json())
+asyncio.run(run_async_code_80bd3181())
 
 external_termination.set()
 
 async def run_async_code_41cf4617():
     await run
-    return 
- = asyncio.run(run_async_code_41cf4617())
-logger.success(format_json())
+asyncio.run(run_async_code_41cf4617())
 
 """
 From the ouput above, you can see the team stopped because the external termination condition was met,
@@ -216,9 +198,7 @@ logger.info("## Resuming a Team")
 
 async def run_async_code_9aa6c87a():
     await Console(team.run_stream())  # Resume the team to continue the last task.
-    return 
- = asyncio.run(run_async_code_9aa6c87a())
-logger.success(format_json())
+asyncio.run(run_async_code_9aa6c87a())
 
 """
 You can see the team resumed from where it left off in the output above,
@@ -231,9 +211,7 @@ logger.info("You can see the team resumed from where it left off in the output a
 
 async def run_async_code_8cb8974a():
     await Console(team.run_stream(task="将这首诗用中文唐诗风格写一遍。"))
-    return 
- = asyncio.run(run_async_code_8cb8974a())
-logger.success(format_json())
+asyncio.run(run_async_code_8cb8974a())
 
 """
 ## Aborting a Team
@@ -262,11 +240,7 @@ cancellation_token.cancel()
 
 try:
     async def run_async_code_b0a1b711():
-        async def run_async_code_564a14d8():
-            result = await run  # This will raise a CancelledError.
-            return result
-        result = asyncio.run(run_async_code_564a14d8())
-        logger.success(format_json(result))
+        result = await run  # This will raise a CancelledError.
         return result
     result = asyncio.run(run_async_code_b0a1b711())
     logger.success(format_json(result))
@@ -303,7 +277,7 @@ logger.info("## Single-Agent Team")
 
 
 model_client = MLXAutogenChatLLMAdapter(
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+    model="qwen3-1.7b-4bit",
     parallel_tool_calls=False,  # type: ignore
 )
 
@@ -332,9 +306,7 @@ async for message in team.run_stream(task="Increment the number 5 to 10."):  # t
 
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
-logger.success(format_json())
+asyncio.run(run_async_code_0349fda4())
 
 """
 The key is to focus on the termination condition.

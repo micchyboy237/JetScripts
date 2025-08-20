@@ -73,39 +73,27 @@ class Processor(RoutedAgent):
     @message_handler
     async def on_task(self, message: Task, ctx: MessageContext) -> None:
         logger.debug(f"{self._description} starting task {message.task_id}")
-        async def run_async_code_7ea9ad21():
-            await asyncio.sleep(2)  # Simulate work
-            return 
-         = asyncio.run(run_async_code_7ea9ad21())
-        logger.success(format_json())
+        await asyncio.sleep(2)  # Simulate work
         logger.debug(f"{self._description} finished task {message.task_id}")
 
 runtime = SingleThreadedAgentRuntime()
 
 async def run_async_code_76c5019e():
     await Processor.register(runtime, "agent_1", lambda: Processor("Agent 1"))
-    return 
- = asyncio.run(run_async_code_76c5019e())
-logger.success(format_json())
+asyncio.run(run_async_code_76c5019e())
 async def run_async_code_5fb8b73c():
     await Processor.register(runtime, "agent_2", lambda: Processor("Agent 2"))
-    return 
- = asyncio.run(run_async_code_5fb8b73c())
-logger.success(format_json())
+asyncio.run(run_async_code_5fb8b73c())
 
 runtime.start()
 
 async def run_async_code_fcb7a2df():
     await runtime.publish_message(Task(task_id="task-1"), topic_id=DefaultTopicId())
-    return 
- = asyncio.run(run_async_code_fcb7a2df())
-logger.success(format_json())
+asyncio.run(run_async_code_fcb7a2df())
 
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 """
 ## Multiple messages & Multiple Processors
@@ -126,19 +114,13 @@ class UrgentProcessor(RoutedAgent):
     @message_handler
     async def on_task(self, message: Task, ctx: MessageContext) -> None:
         logger.debug(f"Urgent processor starting task {message.task_id}")
-        async def run_async_code_d6cb8372():
-            await asyncio.sleep(1)  # Simulate work
-            return 
-         = asyncio.run(run_async_code_d6cb8372())
-        logger.success(format_json())
+        await asyncio.sleep(1)  # Simulate work
         logger.debug(f"Urgent processor finished task {message.task_id}")
 
         task_response = TaskResponse(task_id=message.task_id, result="Results by Urgent Processor")
         async def run_async_code_50686831():
             await self.publish_message(task_response, topic_id=task_results_topic_id)
-            return 
-         = asyncio.run(run_async_code_50686831())
-        logger.success(format_json())
+        asyncio.run(run_async_code_50686831())
 
 
 @type_subscription(topic_type="normal")
@@ -146,19 +128,13 @@ class NormalProcessor(RoutedAgent):
     @message_handler
     async def on_task(self, message: Task, ctx: MessageContext) -> None:
         logger.debug(f"Normal processor starting task {message.task_id}")
-        async def run_async_code_9c00a783():
-            await asyncio.sleep(3)  # Simulate work
-            return 
-         = asyncio.run(run_async_code_9c00a783())
-        logger.success(format_json())
+        await asyncio.sleep(3)  # Simulate work
         logger.debug(f"Normal processor finished task {message.task_id}")
 
         task_response = TaskResponse(task_id=message.task_id, result="Results by Normal Processor")
         async def run_async_code_50686831():
             await self.publish_message(task_response, topic_id=task_results_topic_id)
-            return 
-         = asyncio.run(run_async_code_50686831())
-        logger.success(format_json())
+        asyncio.run(run_async_code_50686831())
 
 """
 After registering the agents, we can publish messages to the "urgent" and "normal" topics:
@@ -169,33 +145,23 @@ runtime = SingleThreadedAgentRuntime()
 
 async def run_async_code_09ab7aa1():
     await UrgentProcessor.register(runtime, "urgent_processor", lambda: UrgentProcessor("Urgent Processor"))
-    return 
- = asyncio.run(run_async_code_09ab7aa1())
-logger.success(format_json())
+asyncio.run(run_async_code_09ab7aa1())
 async def run_async_code_bf59fa7f():
     await NormalProcessor.register(runtime, "normal_processor", lambda: NormalProcessor("Normal Processor"))
-    return 
- = asyncio.run(run_async_code_bf59fa7f())
-logger.success(format_json())
+asyncio.run(run_async_code_bf59fa7f())
 
 runtime.start()
 
 async def run_async_code_48008583():
     await runtime.publish_message(Task(task_id="normal-1"), topic_id=TopicId(type="normal", source="default"))
-    return 
- = asyncio.run(run_async_code_48008583())
-logger.success(format_json())
+asyncio.run(run_async_code_48008583())
 async def run_async_code_d438797b():
     await runtime.publish_message(Task(task_id="urgent-1"), topic_id=TopicId(type="urgent", source="default"))
-    return 
- = asyncio.run(run_async_code_d438797b())
-logger.success(format_json())
+asyncio.run(run_async_code_d438797b())
 
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 """
 #### Collecting Results
@@ -210,46 +176,36 @@ queue = asyncio.Queue[TaskResponse]()
 
 
 async def collect_result(_agent: ClosureContext, message: TaskResponse, ctx: MessageContext) -> None:
-    async def run_async_code_b3b51e6f():
-        await queue.put(message)
-        return 
-     = asyncio.run(run_async_code_b3b51e6f())
-    logger.success(format_json())
+    await queue.put(message)
 
 
 runtime.start()
 
 CLOSURE_AGENT_TYPE = "collect_result_agent"
-await ClosureAgent.register_closure(
-    runtime,
-    CLOSURE_AGENT_TYPE,
-    collect_result,
-    subscriptions=lambda: [TypeSubscription(topic_type=TASK_RESULTS_TOPIC_TYPE, agent_type=CLOSURE_AGENT_TYPE)],
-)
+async def async_func_10():
+    await ClosureAgent.register_closure(
+        runtime,
+        CLOSURE_AGENT_TYPE,
+        collect_result,
+        subscriptions=lambda: [TypeSubscription(topic_type=TASK_RESULTS_TOPIC_TYPE, agent_type=CLOSURE_AGENT_TYPE)],
+    )
+asyncio.run(async_func_10())
 
 async def run_async_code_48008583():
     await runtime.publish_message(Task(task_id="normal-1"), topic_id=TopicId(type="normal", source="default"))
-    return 
- = asyncio.run(run_async_code_48008583())
-logger.success(format_json())
+asyncio.run(run_async_code_48008583())
 async def run_async_code_d438797b():
     await runtime.publish_message(Task(task_id="urgent-1"), topic_id=TopicId(type="urgent", source="default"))
-    return 
- = asyncio.run(run_async_code_d438797b())
-logger.success(format_json())
+asyncio.run(run_async_code_d438797b())
 
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 while not queue.empty():
     async def run_async_code_f95c1127():
         logger.debug(await queue.get())
-        return 
-     = asyncio.run(run_async_code_f95c1127())
-    logger.success(format_json())
+    asyncio.run(run_async_code_f95c1127())
 
 """
 ## Direct Messages
@@ -272,11 +228,7 @@ class WorkerAgent(RoutedAgent):
     @message_handler
     async def on_task(self, message: Task, ctx: MessageContext) -> TaskResponse:
         logger.debug(f"{self.id} starting task {message.task_id}")
-        async def run_async_code_7ea9ad21():
-            await asyncio.sleep(2)  # Simulate work
-            return 
-         = asyncio.run(run_async_code_7ea9ad21())
-        logger.success(format_json())
+        await asyncio.sleep(2)  # Simulate work
         logger.debug(f"{self.id} finished task {message.task_id}")
         return TaskResponse(task_id=message.task_id, result=f"Results by {self.id}")
 
@@ -309,24 +261,16 @@ runtime = SingleThreadedAgentRuntime()
 
 async def run_async_code_838c40cf():
     await WorkerAgent.register(runtime, "worker", lambda: WorkerAgent("Worker Agent"))
-    return 
- = asyncio.run(run_async_code_838c40cf())
-logger.success(format_json())
+asyncio.run(run_async_code_838c40cf())
 async def run_async_code_9204bbe6():
     await DelegatorAgent.register(runtime, "delegator", lambda: DelegatorAgent("Delegator Agent", "worker"))
-    return 
- = asyncio.run(run_async_code_9204bbe6())
-logger.success(format_json())
+asyncio.run(run_async_code_9204bbe6())
 
 runtime.start()
 
 delegator = AgentId("delegator", "default")
 async def run_async_code_294c285f():
-    async def run_async_code_03f6bb7c():
-        response = await runtime.send_message(Task(task_id="main-task"), recipient=delegator)
-        return response
-    response = asyncio.run(run_async_code_03f6bb7c())
-    logger.success(format_json(response))
+    response = await runtime.send_message(Task(task_id="main-task"), recipient=delegator)
     return response
 response = asyncio.run(run_async_code_294c285f())
 logger.success(format_json(response))
@@ -334,9 +278,7 @@ logger.success(format_json(response))
 logger.debug(f"Final result: {response.result}")
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 """
 ## Additional Resources

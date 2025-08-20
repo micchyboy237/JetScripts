@@ -1,5 +1,4 @@
 import asyncio
-from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base import TerminatedException, TerminationCondition
 from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
@@ -24,7 +23,7 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# Termination
+# Termination 
 
 In the previous section, we explored how to define agents, and organize them into teams that can solve tasks. However, a run can go on forever, and in many cases, we need to know _when_ to stop them. This is the role of the termination condition.
 
@@ -33,7 +32,7 @@ AgentChat supports several termination condition by providing a base {py:class}`
 A termination condition is a callable that takes a sequence of {py:class}`~autogen_agentchat.messages.BaseAgentEvent` or {py:class}`~autogen_agentchat.messages.BaseChatMessage` objects **since the last time the condition was called**, and returns a {py:class}`~autogen_agentchat.messages.StopMessage` if the conversation should be terminated, or `None` otherwise.
 Once a termination condition has been reached, it must be reset by calling {py:meth}`~autogen_agentchat.base.TerminationCondition.reset` before it can be used again.
 
-Some important things to note about termination conditions:
+Some important things to note about termination conditions: 
 - They are stateful but reset automatically after each run ({py:meth}`~autogen_agentchat.base.TaskRunner.run` or {py:meth}`~autogen_agentchat.base.TaskRunner.run_stream`) is finished.
 - They can be combined using the AND and OR operators.
 
@@ -45,7 +44,7 @@ While a response may contain multiple inner messages, the team calls its termina
 So the condition is called with the "delta sequence" of messages since the last time it was called.
 ```
 
-Built-In Termination Conditions:
+Built-In Termination Conditions: 
 1. {py:class}`~autogen_agentchat.conditions.MaxMessageTermination`: Stops after a specified number of messages have been produced, including both agent and task messages.
 2. {py:class}`~autogen_agentchat.conditions.TextMentionTermination`: Stops when specific text or string is mentioned in a message (e.g., "TERMINATE").
 3. {py:class}`~autogen_agentchat.conditions.TokenUsageTermination`: Stops when a certain number of prompt or completion tokens are used. This requires the agents to report token usage in their messages.
@@ -66,7 +65,7 @@ logger.info("# Termination")
 
 
 model_client = MLXAutogenChatLLMAdapter(
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+    model="qwen3-1.7b-4bit",
     temperature=1,
 )
 
@@ -88,15 +87,11 @@ Let's explore how termination conditions automatically reset after each `run` or
 logger.info("Let's explore how termination conditions automatically reset after each `run` or `run_stream` call, allowing the team to resume its conversation from where it left off.")
 
 max_msg_termination = MaxMessageTermination(max_messages=3)
-round_robin_team = RoundRobinGroupChat(
-    [primary_agent, critic_agent], termination_condition=max_msg_termination)
-
+round_robin_team = RoundRobinGroupChat([primary_agent, critic_agent], termination_condition=max_msg_termination)
 
 async def run_async_code_f4dc020b():
     await Console(round_robin_team.run_stream(task="Write a unique, Haiku about the weather in Paris"))
-    return
- = asyncio.run(run_async_code_f4dc020b())
-logger.success(format_json())
+asyncio.run(run_async_code_f4dc020b())
 
 """
 The conversation stopped after reaching the maximum message limit. Since the primary agent didn't get to respond to the feedback, let's continue the conversation.
@@ -105,9 +100,7 @@ logger.info("The conversation stopped after reaching the maximum message limit. 
 
 async def run_async_code_2f58f4ee():
     await Console(round_robin_team.run_stream())
-    return 
- = asyncio.run(run_async_code_2f58f4ee())
-logger.success(format_json())
+asyncio.run(run_async_code_2f58f4ee())
 
 """
 The team continued from where it left off, allowing the primary agent to respond to the feedback.
@@ -126,9 +119,7 @@ round_robin_team = RoundRobinGroupChat([primary_agent, critic_agent], terminatio
 
 async def run_async_code_f4dc020b():
     await Console(round_robin_team.run_stream(task="Write a unique, Haiku about the weather in Paris"))
-    return 
- = asyncio.run(run_async_code_f4dc020b())
-logger.success(format_json())
+asyncio.run(run_async_code_f4dc020b())
 
 """
 The conversation stopped after the critic agent approved the message, although it could have also stopped if 10 messages were generated.
@@ -224,7 +215,7 @@ logger.info("Then we create the agents. The critic agent is equipped with the `a
 
 
 model_client = MLXAutogenChatLLMAdapter(
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+    model="qwen3-1.7b-4bit",
     temperature=1,
 )
 
@@ -252,14 +243,10 @@ round_robin_team = RoundRobinGroupChat([primary_agent, critic_agent], terminatio
 
 async def run_async_code_f4dc020b():
     await Console(round_robin_team.run_stream(task="Write a unique, Haiku about the weather in Paris"))
-    return 
- = asyncio.run(run_async_code_f4dc020b())
-logger.success(format_json())
+asyncio.run(run_async_code_f4dc020b())
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
-logger.success(format_json())
+asyncio.run(run_async_code_0349fda4())
 
 """
 You can see that the conversation stopped when the critic agent approved the message using the `approve` function call.

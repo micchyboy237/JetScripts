@@ -1,6 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.ollama.base import MLX
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLX
 from jet.logger import CustomLogger
 from llama_index.core import (
 VectorStoreIndex,
@@ -114,7 +114,7 @@ logger.info("### Workflow Definition")
 
 
 class QueryPlanningWorkflow(Workflow):
-    llm = MLX(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+    llm = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
     planning_prompt = PromptTemplate(
         "Think step by step. Given an initial query, as well as information about the indexes you can query, return a plan for a RAG system.\n"
         "The plan should be a list of QueryPlanItem objects, where each object contains a query.\n"
@@ -141,14 +141,10 @@ class QueryPlanningWorkflow(Workflow):
 
             async def run_async_code_3e5e5ef8():
                 await ctx.set("tools", {t.metadata.name: t for t in tools})
-                return 
-             = asyncio.run(run_async_code_3e5e5ef8())
-            logger.success(format_json())
+            asyncio.run(run_async_code_3e5e5ef8())
             async def run_async_code_82309c4a():
                 await ctx.set("original_query", query)
-                return 
-             = asyncio.run(run_async_code_82309c4a())
-            logger.success(format_json())
+            asyncio.run(run_async_code_82309c4a())
 
             context_str = "\n".join(
                 [
@@ -158,9 +154,7 @@ class QueryPlanningWorkflow(Workflow):
             )
             async def run_async_code_aafa39ba():
                 await ctx.set("context", context_str)
-                return 
-             = asyncio.run(run_async_code_aafa39ba())
-            logger.success(format_json())
+            asyncio.run(run_async_code_aafa39ba())
 
             async def async_func_48():
                 query_plan = await self.llm.astructured_predict(
@@ -180,18 +174,12 @@ class QueryPlanningWorkflow(Workflow):
             num_items = len(query_plan.items)
             async def run_async_code_d04b7e35():
                 await ctx.set("num_items", num_items)
-                return 
-             = asyncio.run(run_async_code_d04b7e35())
-            logger.success(format_json())
+            asyncio.run(run_async_code_d04b7e35())
             for item in query_plan.items:
                 ctx.send_event(item)
         else:
             async def run_async_code_e0f74e62():
-                async def run_async_code_fc9a1e52():
-                    query = await ctx.get("original_query")
-                    return query
-                query = asyncio.run(run_async_code_fc9a1e52())
-                logger.success(format_json(query))
+                query = await ctx.get("original_query")
                 return query
             query = asyncio.run(run_async_code_e0f74e62())
             logger.success(format_json(query))
@@ -209,11 +197,7 @@ class QueryPlanningWorkflow(Workflow):
 
             if "PLAN" in decision:
                 async def run_async_code_38553142():
-                    async def run_async_code_758a42af():
-                        context_str = await ctx.get("context")
-                        return context_str
-                    context_str = asyncio.run(run_async_code_758a42af())
-                    logger.success(format_json(context_str))
+                    context_str = await ctx.get("context")
                     return context_str
                 context_str = asyncio.run(run_async_code_38553142())
                 logger.success(format_json(context_str))
@@ -235,9 +219,7 @@ class QueryPlanningWorkflow(Workflow):
                 num_items = len(query_plan.items)
                 async def run_async_code_36a89fbc():
                     await ctx.set("num_items", num_items)
-                    return 
-                 = asyncio.run(run_async_code_36a89fbc())
-                logger.success(format_json())
+                asyncio.run(run_async_code_36a89fbc())
                 for item in query_plan.items:
                     ctx.send_event(item)
             else:
@@ -247,15 +229,7 @@ class QueryPlanningWorkflow(Workflow):
     async def execute_item(
         self, ctx: Context, ev: QueryPlanItem
     ) -> QueryPlanItemResult:
-        async def run_async_code_fcabf0a1():
-            async def run_async_code_c41f58bd():
-                tools = await ctx.get("tools")
-                return tools
-            tools = asyncio.run(run_async_code_c41f58bd())
-            logger.success(format_json(tools))
-            return tools
-        tools = asyncio.run(run_async_code_fcabf0a1())
-        logger.success(format_json(tools))
+        tools = await ctx.get("tools")
         tool = tools[ev.name]
 
         ctx.write_event_to_stream(
@@ -265,11 +239,7 @@ class QueryPlanningWorkflow(Workflow):
         )
 
         async def run_async_code_15392bf8():
-            async def run_async_code_3d000336():
-                result = await tool.acall(ev.query)
-                return result
-            result = asyncio.run(run_async_code_3d000336())
-            logger.success(format_json(result))
+            result = await tool.acall(ev.query)
             return result
         result = asyncio.run(run_async_code_15392bf8())
         logger.success(format_json(result))
@@ -284,15 +254,7 @@ class QueryPlanningWorkflow(Workflow):
     async def aggregate_results(
         self, ctx: Context, ev: QueryPlanItemResult
     ) -> ExecutedPlanEvent:
-        async def run_async_code_58149645():
-            async def run_async_code_9c432b4a():
-                num_items = await ctx.get("num_items")
-                return num_items
-            num_items = asyncio.run(run_async_code_9c432b4a())
-            logger.success(format_json(num_items))
-            return num_items
-        num_items = asyncio.run(run_async_code_58149645())
-        logger.success(format_json(num_items))
+        num_items = await ctx.get("num_items")
         results = ctx.collect_events(ev, [QueryPlanItemResult] * num_items)
 
         if results is None:
@@ -332,11 +294,7 @@ for file in files:
         index = load_index_from_storage(storage_context)
     else:
         async def run_async_code_b727ad17():
-            async def run_async_code_cc507c01():
-                documents = await parser.aload_data(folder + file)
-                return documents
-            documents = asyncio.run(run_async_code_cc507c01())
-            logger.success(format_json(documents))
+            documents = await parser.aload_data(folder + file)
             return documents
         documents = asyncio.run(run_async_code_b727ad17())
         logger.success(format_json(documents))
@@ -373,11 +331,7 @@ async for event in handler.stream_events():
         logger.debug(event.msg)
 
 async def run_async_code_57881a8e():
-    async def run_async_code_92ff2ffa():
-        result = await handler
-        return result
-    result = asyncio.run(run_async_code_92ff2ffa())
-    logger.success(format_json(result))
+    result = await handler
     return result
 result = asyncio.run(run_async_code_57881a8e())
 logger.success(format_json(result))
@@ -394,11 +348,7 @@ async for event in handler.stream_events():
         logger.debug(event.msg)
 
 async def run_async_code_57881a8e():
-    async def run_async_code_92ff2ffa():
-        result = await handler
-        return result
-    result = asyncio.run(run_async_code_92ff2ffa())
-    logger.success(format_json(result))
+    result = await handler
     return result
 result = asyncio.run(run_async_code_57881a8e())
 logger.success(format_json(result))

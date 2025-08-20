@@ -43,7 +43,7 @@ logger.info("# Component config")
 
 config = {
     "provider": "openai_chat_completion_client",
-    "config": {"model": "gpt-4o"},
+    "config": {"model": "qwen3-1.7b-4bit"},
 }
 
 client = ChatCompletionClient.load_component(config)

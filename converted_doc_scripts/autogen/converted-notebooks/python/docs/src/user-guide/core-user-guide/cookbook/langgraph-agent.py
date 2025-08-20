@@ -3,7 +3,7 @@ from jet.transformers.formatters import format_json
 from autogen_core import AgentId, MessageContext, RoutedAgent, SingleThreadedAgentRuntime, message_handler
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from dataclasses import dataclass
-from jet.llm.ollama.base_langchain import AzureChatMLX, ChatMLX
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter_langchain import AzureChatMLX, ChatMLX
 from jet.logger import CustomLogger
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import tool  # pyright: ignore
@@ -81,15 +81,7 @@ class LangGraphToolUseAgent(RoutedAgent):
 
         async def call_model(state: MessagesState):  # type: ignore
             messages = state["messages"]
-            async def run_async_code_984bb2f3():
-                async def run_async_code_74d3f8e8():
-                    response = await self._model.ainvoke(messages)
-                    return response
-                response = asyncio.run(run_async_code_74d3f8e8())
-                logger.success(format_json(response))
-                return response
-            response = asyncio.run(run_async_code_984bb2f3())
-            logger.success(format_json(response))
+            response = await self._model.ainvoke(messages)
             return {"messages": [response]}
 
         tool_node = ToolNode(tools)  # pyright: ignore
@@ -112,21 +104,17 @@ class LangGraphToolUseAgent(RoutedAgent):
 
     @message_handler
     async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
-        async def async_func_37():
-            final_state = await self._app.ainvoke(
-                {
-                    "messages": [
-                        SystemMessage(
-                            content="You are a helpful AI assistant. You can use tools to help answer questions."
-                        ),
-                        HumanMessage(content=message.content),
-                    ]
-                },
-                config={"configurable": {"thread_id": 42}},
-            )
-            return final_state
-        final_state = asyncio.run(async_func_37())
-        logger.success(format_json(final_state))
+        final_state = await self._app.ainvoke(
+            {
+                "messages": [
+                    SystemMessage(
+                        content="You are a helpful AI assistant. You can use tools to help answer questions."
+                    ),
+                    HumanMessage(content=message.content),
+                ]
+            },
+            config={"configurable": {"thread_id": 42}},
+        )
         response = Message(content=final_state["messages"][-1].content)
         return response
 
@@ -138,17 +126,19 @@ that will create the agent.
 logger.info("Now let's test the agent. First we need to create an agent runtime and")
 
 runtime = SingleThreadedAgentRuntime()
-await LangGraphToolUseAgent.register(
-    runtime,
-    "langgraph_tool_use_agent",
-    lambda: LangGraphToolUseAgent(
-        "Tool use agent",
-        ChatMLX(
-            model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
+async def async_func_1():
+    await LangGraphToolUseAgent.register(
+        runtime,
+        "langgraph_tool_use_agent",
+        lambda: LangGraphToolUseAgent(
+            "Tool use agent",
+            ChatMLXAutogenChatLLMAdapter(
+                model="qwen3-1.7b-4bit",
+            ),
+            [get_weather],
         ),
-        [get_weather],
-    ),
-)
+    )
+asyncio.run(async_func_1())
 agent = AgentId("langgraph_tool_use_agent", key="default")
 
 """
@@ -164,11 +154,7 @@ Send a direct message to the agent, and print the response.
 logger.info("Send a direct message to the agent, and print the response.")
 
 async def run_async_code_272b50c8():
-    async def run_async_code_a4af7f9f():
-        response = await runtime.send_message(Message("What's the weather in SF?"), agent)
-        return response
-    response = asyncio.run(run_async_code_a4af7f9f())
-    logger.success(format_json(response))
+    response = await runtime.send_message(Message("What's the weather in SF?"), agent)
     return response
 response = asyncio.run(run_async_code_272b50c8())
 logger.success(format_json(response))
@@ -181,8 +167,6 @@ logger.info("Stop the agent runtime.")
 
 async def run_async_code_4aaa8dea():
     await runtime.stop()
-    return 
- = asyncio.run(run_async_code_4aaa8dea())
-logger.success(format_json())
+asyncio.run(run_async_code_4aaa8dea())
 
 logger.info("\n\n[DONE]", bright=True)

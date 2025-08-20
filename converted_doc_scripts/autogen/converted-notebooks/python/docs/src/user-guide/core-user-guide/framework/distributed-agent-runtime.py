@@ -1,5 +1,4 @@
 import asyncio
-from jet.transformers.formatters import format_json
 from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, default_subscription, message_handler
 from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
 from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntimeHost
@@ -83,11 +82,7 @@ class MyAgent(RoutedAgent):
             return
         content = f"{self._name}: Hello x {self._counter}"
         logger.debug(content)
-        async def run_async_code_23a5c76b():
-            await self.publish_message(MyMessage(content=content), DefaultTopicId())
-            return 
-         = asyncio.run(run_async_code_23a5c76b())
-        logger.success(format_json())
+        await self.publish_message(MyMessage(content=content), DefaultTopicId())
 
 """
 Now we can set up the worker agent runtimes.
@@ -105,38 +100,26 @@ logger.info("Now we can set up the worker agent runtimes.")
 worker1 = GrpcWorkerAgentRuntime(host_address="localhost:50051")
 async def run_async_code_a6eb5afe():
     await worker1.start()
-    return 
- = asyncio.run(run_async_code_a6eb5afe())
-logger.success(format_json())
+asyncio.run(run_async_code_a6eb5afe())
 async def run_async_code_f4ee874a():
     await MyAgent.register(worker1, "worker1", lambda: MyAgent("worker1"))
-    return 
- = asyncio.run(run_async_code_f4ee874a())
-logger.success(format_json())
+asyncio.run(run_async_code_f4ee874a())
 
 worker2 = GrpcWorkerAgentRuntime(host_address="localhost:50051")
 async def run_async_code_52d4db3a():
     await worker2.start()
-    return 
- = asyncio.run(run_async_code_52d4db3a())
-logger.success(format_json())
+asyncio.run(run_async_code_52d4db3a())
 async def run_async_code_0364a1f9():
     await MyAgent.register(worker2, "worker2", lambda: MyAgent("worker2"))
-    return 
- = asyncio.run(run_async_code_0364a1f9())
-logger.success(format_json())
+asyncio.run(run_async_code_0364a1f9())
 
 async def run_async_code_e605d63a():
     await worker2.publish_message(MyMessage(content="Hello!"), DefaultTopicId())
-    return 
- = asyncio.run(run_async_code_e605d63a())
-logger.success(format_json())
+asyncio.run(run_async_code_e605d63a())
 
 async def run_async_code_8f25ae0d():
     await asyncio.sleep(5)
-    return 
- = asyncio.run(run_async_code_8f25ae0d())
-logger.success(format_json())
+asyncio.run(run_async_code_8f25ae0d())
 
 """
 We can see each agent published exactly 5 messages.
@@ -147,14 +130,10 @@ logger.info("We can see each agent published exactly 5 messages.")
 
 async def run_async_code_30e5da06():
     await worker1.stop()
-    return 
- = asyncio.run(run_async_code_30e5da06())
-logger.success(format_json())
+asyncio.run(run_async_code_30e5da06())
 async def run_async_code_353412df():
     await worker2.stop()
-    return 
- = asyncio.run(run_async_code_353412df())
-logger.success(format_json())
+asyncio.run(run_async_code_353412df())
 
 """
 We can call {py:meth}`~autogen_ext.runtimes.grpc.GrpcWorkerAgentRuntimeHost.stop`
@@ -164,9 +143,7 @@ logger.info("We can call {py:meth}`~autogen_ext.runtimes.grpc.GrpcWorkerAgentRun
 
 async def run_async_code_7b26c344():
     await host.stop()
-    return 
- = asyncio.run(run_async_code_7b26c344())
-logger.success(format_json())
+asyncio.run(run_async_code_7b26c344())
 
 """
 ## Cross-Language Runtimes

@@ -75,11 +75,7 @@ with tempfile.TemporaryDirectory() as temp_dir:
 
     code_blocks = [CodeBlock(code="import sys; logger.debug('hello world!')", language="python")]
     async def run_async_code_0a5a8bfd():
-        async def run_async_code_1382bdfc():
-            code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
-            return code_result
-        code_result = asyncio.run(run_async_code_1382bdfc())
-        logger.success(format_json(code_result))
+        code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
         return code_result
     code_result = asyncio.run(run_async_code_0a5a8bfd())
     logger.success(format_json(code_result))
@@ -99,18 +95,12 @@ with tempfile.TemporaryDirectory() as temp_dir:
     async def async_func_6():
         async with await open_file(os.path.join(temp_dir, test_file_1), "w") as f:  # type: ignore[syntax]
             await f.write(test_file_1_contents)
-        return result
-
-    result = asyncio.run(async_func_6())
-    logger.success(format_json(result))
+    asyncio.run(async_func_6())
     async def async_func_8():
         async with await open_file(os.path.join(temp_dir, test_file_2), "w") as f:  # type: ignore[syntax]
             await f.write(test_file_2_contents)
             
-        return result
-
-    result = asyncio.run(async_func_8())
-    logger.success(format_json(result))
+    asyncio.run(async_func_8())
     assert os.path.isfile(os.path.join(temp_dir, test_file_1))
     assert os.path.isfile(os.path.join(temp_dir, test_file_2))
 
@@ -119,16 +109,10 @@ with tempfile.TemporaryDirectory() as temp_dir:
     )
     async def run_async_code_a1bf142d():
         await executor.upload_files([test_file_1, test_file_2], cancellation_token)
-        return 
-     = asyncio.run(run_async_code_a1bf142d())
-    logger.success(format_json())
+    asyncio.run(run_async_code_a1bf142d())
 
     async def run_async_code_2dc6a69f():
-        async def run_async_code_9e45292e():
-            file_list = await executor.get_file_list(cancellation_token)
-            return file_list
-        file_list = asyncio.run(run_async_code_9e45292e())
-        logger.success(format_json(file_list))
+        file_list = await executor.get_file_list(cancellation_token)
         return file_list
     file_list = asyncio.run(run_async_code_2dc6a69f())
     logger.success(format_json(file_list))
@@ -147,11 +131,7 @@ with open("{test_file_2}") as f:
         )
     ]
     async def run_async_code_0a5a8bfd():
-        async def run_async_code_1382bdfc():
-            code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
-            return code_result
-        code_result = asyncio.run(run_async_code_1382bdfc())
-        logger.success(format_json(code_result))
+        code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
         return code_result
     code_result = asyncio.run(run_async_code_0a5a8bfd())
     logger.success(format_json(code_result))
@@ -189,22 +169,14 @@ with open("{test_file_2}", "w") as f:
         ),
     ]
     async def run_async_code_0a5a8bfd():
-        async def run_async_code_1382bdfc():
-            code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
-            return code_result
-        code_result = asyncio.run(run_async_code_1382bdfc())
-        logger.success(format_json(code_result))
+        code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
         return code_result
     code_result = asyncio.run(run_async_code_0a5a8bfd())
     logger.success(format_json(code_result))
     assert code_result.exit_code == 0
 
     async def run_async_code_2dc6a69f():
-        async def run_async_code_9e45292e():
-            file_list = await executor.get_file_list(cancellation_token)
-            return file_list
-        file_list = asyncio.run(run_async_code_9e45292e())
-        logger.success(format_json(file_list))
+        file_list = await executor.get_file_list(cancellation_token)
         return file_list
     file_list = asyncio.run(run_async_code_2dc6a69f())
     logger.success(format_json(file_list))
@@ -213,36 +185,20 @@ with open("{test_file_2}", "w") as f:
 
     async def run_async_code_b5f2163a():
         await executor.download_files([test_file_1, test_file_2], cancellation_token)
-        return 
-     = asyncio.run(run_async_code_b5f2163a())
-    logger.success(format_json())
+    asyncio.run(run_async_code_b5f2163a())
 
     assert os.path.isfile(os.path.join(temp_dir, test_file_1))
     async def async_func_34():
         async with await open_file(os.path.join(temp_dir, test_file_1), "r") as f:  # type: ignore[syntax]
-            async def run_async_code_8f4f39b7():
-                content = await f.read()
-                return content
-            content = asyncio.run(run_async_code_8f4f39b7())
-            logger.success(format_json(content))
+            content = await f.read()
             assert test_file_1_contents in content
-        return result
-
-    result = asyncio.run(async_func_34())
-    logger.success(format_json(result))
+    asyncio.run(async_func_34())
     assert os.path.isfile(os.path.join(temp_dir, test_file_2))
     async def async_func_38():
         async with await open_file(os.path.join(temp_dir, test_file_2), "r") as f:  # type: ignore[syntax]
-            async def run_async_code_8f4f39b7():
-                content = await f.read()
-                return content
-            content = asyncio.run(run_async_code_8f4f39b7())
-            logger.success(format_json(content))
+            content = await f.read()
             assert test_file_2_contents in content
-        return result
-
-    result = asyncio.run(async_func_38())
-    logger.success(format_json(result))
+    asyncio.run(async_func_38())
 
 """
 ### New Sessions
@@ -259,11 +215,7 @@ executor = ACADynamicSessionsCodeExecutor(
 
 code_blocks = [CodeBlock(code="x = 'abcdefg'", language="python")]
 async def run_async_code_feb2652e():
-    async def run_async_code_0a5a8bfd():
-        code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
-        return code_result
-    code_result = asyncio.run(run_async_code_0a5a8bfd())
-    logger.success(format_json(code_result))
+    code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
     return code_result
 code_result = asyncio.run(run_async_code_feb2652e())
 logger.success(format_json(code_result))
@@ -271,11 +223,7 @@ assert code_result.exit_code == 0
 
 code_blocks = [CodeBlock(code="logger.debug(x)", language="python")]
 async def run_async_code_feb2652e():
-    async def run_async_code_0a5a8bfd():
-        code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
-        return code_result
-    code_result = asyncio.run(run_async_code_0a5a8bfd())
-    logger.success(format_json(code_result))
+    code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
     return code_result
 code_result = asyncio.run(run_async_code_feb2652e())
 logger.success(format_json(code_result))
@@ -283,16 +231,10 @@ assert code_result.exit_code == 0 and "abcdefg" in code_result.output
 
 async def run_async_code_fa0bf6d3():
     await executor.restart()
-    return 
- = asyncio.run(run_async_code_fa0bf6d3())
-logger.success(format_json())
+asyncio.run(run_async_code_fa0bf6d3())
 code_blocks = [CodeBlock(code="logger.debug(x)", language="python")]
 async def run_async_code_feb2652e():
-    async def run_async_code_0a5a8bfd():
-        code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
-        return code_result
-    code_result = asyncio.run(run_async_code_0a5a8bfd())
-    logger.success(format_json(code_result))
+    code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
     return code_result
 code_result = asyncio.run(run_async_code_feb2652e())
 logger.success(format_json(code_result))

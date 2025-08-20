@@ -1,7 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from autogen_core.models import UserMessage
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import AzureMLXAutogenChatLLMAdapter
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import AzureMLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from pydantic import BaseModel
 from typing import Optional
@@ -24,13 +24,14 @@ This cookbook demonstrates how to obtain structured output using GPT-4o models. 
 
 Currently, this feature is supported for:
 
-- llama-3.2-3b-instruct on MLX
-- gpt-4o-2024-08-06 on MLX
-- gpt-4o-2024-08-06 on Azure
+- qwen3-1.7b-4bit-mini on MLX
+- qwen3-1.7b-4bit-2024-08-06 on MLX
+- qwen3-1.7b-4bit-2024-08-06 on Azure
 
 Let's define a simple message type that carries explanation and output for a Math problem
 """
 logger.info("# Structured output using GPT-4o models")
+
 
 
 class MathReasoning(BaseModel):
@@ -44,8 +45,10 @@ class MathReasoning(BaseModel):
 
 os.environ["AZURE_OPENAI_ENDPOINT"] = "https://YOUR_ENDPOINT_DETAILS.openai.azure.com/"
 # os.environ["AZURE_OPENAI_API_KEY"] = "YOUR_API_KEY"
-os.environ["AZURE_OPENAI_DEPLOYMENT_NAME"] = "gpt-4o-2024-08-06"
+os.environ["AZURE_OPENAI_DEPLOYMENT_NAME"] = "qwen3-1.7b-4bit-2024-08-06"
 os.environ["AZURE_OPENAI_API_VERSION"] = "2024-08-01-preview"
+
+
 
 
 def get_env_variable(name: str) -> str:
@@ -60,26 +63,20 @@ client = AzureMLXAutogenChatLLMAdapter(
     model=get_env_variable("AZURE_OPENAI_MODEL"),
     api_version=get_env_variable("AZURE_OPENAI_API_VERSION"),
     azure_endpoint=get_env_variable("AZURE_OPENAI_ENDPOINT"),
-    #     api_key=get_env_variable("AZURE_OPENAI_API_KEY"),
+#     api_key=get_env_variable("AZURE_OPENAI_API_KEY"),
 )
 
 messages = [
     UserMessage(content="What is 16 + 32?", source="user"),
 ]
 
-
 async def run_async_code_52c87188():
-    async def run_async_code_ca70b240():
-        response = await client.create(messages=messages, extra_create_args={"response_format": MathReasoning})
-        return response
-    response = asyncio.run(run_async_code_ca70b240())
-    logger.success(format_json(response))
+    response = await client.create(messages=messages, extra_create_args={"response_format": MathReasoning})
     return response
 response = asyncio.run(run_async_code_52c87188())
 logger.success(format_json(response))
 
-response_content: Optional[str] = response.content if isinstance(
-    response.content, str) else None
+response_content: Optional[str] = response.content if isinstance(response.content, str) else None
 if response_content is None:
     raise ValueError("Response content is not a valid JSON string")
 

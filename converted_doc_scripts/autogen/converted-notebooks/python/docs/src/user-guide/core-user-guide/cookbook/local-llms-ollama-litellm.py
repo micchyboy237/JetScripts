@@ -37,8 +37,8 @@ In this notebook we'll create two agents, Joe and Cathy who like to tell jokes t
 
 Follow the guide at https://microsoft.github.io/autogen/docs/topics/non-openai-models/local-litellm-ollama/ to understand how to install LiteLLM and Ollama.
 
-We encourage going through the link, but if you're in a hurry and using Linux, run these:
-
+We encourage going through the link, but if you're in a hurry and using Linux, run these:  
+  
 ```
 curl -fsSL https://ollama.com/install.sh | sh
 
@@ -46,7 +46,7 @@ ollama pull llama3.2:1b
 
 pip install 'litellm[proxy]'
 litellm --model ollama/llama3.2:1b
-```
+```  
 
 This will run the proxy server and it will be available at 'http://0.0.0.0:4000/'.
 
@@ -55,11 +55,11 @@ To get started, let's import some classes.
 logger.info("# Local LLMs with LiteLLM & Ollama")
 
 
+
 """
 Set up out local LLM model client.
 """
 logger.info("Set up out local LLM model client.")
-
 
 def get_model_client() -> MLXAutogenChatLLMAdapter:  # type: ignore
     "Mimic MLX API using Local LLM Server."
@@ -74,17 +74,14 @@ def get_model_client() -> MLXAutogenChatLLMAdapter:  # type: ignore
         },
     )
 
-
 """
 Define a simple message class
 """
 logger.info("Define a simple message class")
 
-
 @dataclass
 class Message:
     content: str
-
 
 """
 Now, the Agent.
@@ -92,7 +89,6 @@ Now, the Agent.
 We define the role of the Agent using the `SystemMessage` and set up a condition for termination.
 """
 logger.info("Now, the Agent.")
-
 
 @default_subscription
 class Assistant(RoutedAgent):
@@ -112,21 +108,8 @@ class Assistant(RoutedAgent):
     @message_handler
     async def handle_message(self, message: Message, ctx: MessageContext) -> None:
         self.count += 1
-
-        async def run_async_code_37101ad6():
-            await self._model_context.add_message(UserMessage(content=message.content, source="user"))
-            return
-         = asyncio.run(run_async_code_37101ad6())
-        logger.success(format_json())
-        async def run_async_code_1c23b3c9():
-            async def run_async_code_458a185b():
-                result = await self._model_client.create(self._system_messages + await self._model_context.get_messages())
-                return result
-            result = asyncio.run(run_async_code_458a185b())
-            logger.success(format_json(result))
-            return result
-        result = asyncio.run(run_async_code_1c23b3c9())
-        logger.success(format_json(result))
+        await self._model_context.add_message(UserMessage(content=message.content, source="user"))
+        result = await self._model_client.create(self._system_messages + await self._model_context.get_messages())
 
         logger.debug(f"\n{self.name}: {message.content}")
 
@@ -135,14 +118,10 @@ class Assistant(RoutedAgent):
 
         async def run_async_code_ddaf37cd():
             await self._model_context.add_message(AssistantMessage(content=result.content, source="assistant"))  # type: ignore
-            return 
-         = asyncio.run(run_async_code_ddaf37cd())
-        logger.success(format_json())
+        asyncio.run(run_async_code_ddaf37cd())
         async def run_async_code_ac73baad():
             await self.publish_message(Message(content=result.content), DefaultTopicId())  # type: ignore
-            return 
-         = asyncio.run(run_async_code_ac73baad())
-        logger.success(format_json())
+        asyncio.run(run_async_code_ac73baad())
 
 """
 Set up the agents.
@@ -179,21 +158,19 @@ Let's run everything!
 logger.info("Let's run everything!")
 
 runtime.start()
-await runtime.send_message(
-    Message("Joe, tell me a joke."),
-    recipient=AgentId(joe, "default"),
-    sender=AgentId(cathy, "default"),
-)
+async def async_func_1():
+    await runtime.send_message(
+        Message("Joe, tell me a joke."),
+        recipient=AgentId(joe, "default"),
+        sender=AgentId(cathy, "default"),
+    )
+asyncio.run(async_func_1())
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
-logger.success(format_json())
+asyncio.run(run_async_code_0349fda4())
 
 logger.info("\n\n[DONE]", bright=True)

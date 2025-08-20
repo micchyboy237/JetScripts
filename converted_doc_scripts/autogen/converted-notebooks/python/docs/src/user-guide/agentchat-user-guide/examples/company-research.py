@@ -1,5 +1,4 @@
 import asyncio
-from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
@@ -65,9 +64,8 @@ pip install yfinance matplotlib pytz numpy pandas python-dotenv requests bs4
 """
 logger.info("## Defining Tools")
 
+def google_search(query: str, num_results: int = 2, max_chars: int = 500) -> list:  # type: ignore[type-arg]
 
-# type: ignore[type-arg]
-def google_search(query: str, num_results: int = 2, max_chars: int = 500) -> list:
 
     load_dotenv()
 
@@ -75,12 +73,10 @@ def google_search(query: str, num_results: int = 2, max_chars: int = 500) -> lis
     search_engine_id = os.getenv("GOOGLE_SEARCH_ENGINE_ID")
 
     if not api_key or not search_engine_id:
-        raise ValueError(
-            "API key or Search Engine ID not found in environment variables")
+        raise ValueError("API key or Search Engine ID not found in environment variables")
 
     url = "https://customsearch.googleapis.com/customsearch/v1"
-    params = {"key": str(api_key), "cx": str(
-        search_engine_id), "q": str(query), "num": str(num_results)}
+    params = {"key": str(api_key), "cx": str(search_engine_id), "q": str(query), "num": str(num_results)}
 
     response = requests.get(url, params=params)
 
@@ -110,8 +106,7 @@ def google_search(query: str, num_results: int = 2, max_chars: int = 500) -> lis
     for item in results:
         body = get_page_content(item["link"])
         enriched_results.append(
-            {"title": item["title"], "link": item["link"],
-                "snippet": item["snippet"], "body": body}
+            {"title": item["title"], "link": item["link"], "snippet": item["snippet"], "body": body}
         )
         time.sleep(1)  # Be respectful to the servers
 
@@ -119,6 +114,7 @@ def google_search(query: str, num_results: int = 2, max_chars: int = 500) -> lis
 
 
 def analyze_stock(ticker: str) -> dict:  # type: ignore[type-arg]
+
 
     stock = yf.Ticker(ticker)
 
@@ -176,10 +172,8 @@ def analyze_stock(ticker: str) -> dict:  # type: ignore[type-arg]
 
     plt.figure(figsize=(12, 6))
     plt.plot(hist.index, hist["Close"], label="Close Price")
-    plt.plot(hist.index, hist["Close"].rolling(
-        window=50).mean(), label="50-day MA")
-    plt.plot(hist.index, hist["Close"].rolling(
-        window=200).mean(), label="200-day MA")
+    plt.plot(hist.index, hist["Close"].rolling(window=50).mean(), label="50-day MA")
+    plt.plot(hist.index, hist["Close"].rolling(window=200).mean(), label="200-day MA")
     plt.title(f"{ticker} Stock Price (Past Year)")
     plt.xlabel("Date")
     plt.ylabel("Price ($)")
@@ -194,12 +188,10 @@ def analyze_stock(ticker: str) -> dict:  # type: ignore[type-arg]
 
     return result
 
-
 google_search_tool = FunctionTool(
     google_search, description="Search Google for information, returns results with a snippet and body content"
 )
-stock_analysis_tool = FunctionTool(
-    analyze_stock, description="Analyze stock data and generate a plot")
+stock_analysis_tool = FunctionTool(analyze_stock, description="Analyze stock data and generate a plot")
 
 """
 ## Defining Agents
@@ -208,8 +200,7 @@ Next, we will define the agents that will perform the tasks. We will create a `s
 """
 logger.info("## Defining Agents")
 
-model_client = MLXAutogenChatLLMAdapter(
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
 
 search_agent = AssistantAgent(
     name="Google_Search_Agent",
@@ -241,8 +232,7 @@ Finally, let's create a team of the three agents and set them to work on researc
 """
 logger.info("## Creating the Team")
 
-team = RoundRobinGroupChat(
-    [stock_analysis_agent, search_agent, report_agent], max_turns=3)
+team = RoundRobinGroupChat([stock_analysis_agent, search_agent, report_agent], max_turns=3)
 
 """
 We use `max_turns=3` to limit the number of turns to exactly the same number of agents in the team. This effectively makes the agents work in a sequential manner.
@@ -250,17 +240,12 @@ We use `max_turns=3` to limit the number of turns to exactly the same number of 
 logger.info("We use `max_turns=3` to limit the number of turns to exactly the same number of agents in the team. This effectively makes the agents work in a sequential manner.")
 
 stream = team.run_stream(task="Write a financial report on American airlines")
-
-
 async def run_async_code_71db6073():
     await Console(stream)
-    return
 asyncio.run(run_async_code_71db6073())
-
 
 async def run_async_code_0349fda4():
     await model_client.close()
-    return
 asyncio.run(run_async_code_0349fda4())
 
 logger.info("\n\n[DONE]", bright=True)

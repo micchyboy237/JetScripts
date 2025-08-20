@@ -1,5 +1,4 @@
 import asyncio
-from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.teams import SelectorGroupChat
@@ -72,12 +71,10 @@ In the following section, we will review how to enable tracing with an AutoGen G
 logger.info("# Tracing and Observability")
 
 
-otel_exporter = OTLPSpanExporter(
-    endpoint="http://localhost:4317", insecure=True)
+otel_exporter = OTLPSpanExporter(endpoint="http://localhost:4317", insecure=True)
 span_processor = BatchSpanProcessor(otel_exporter)
 
-tracer_provider = TracerProvider(resource=Resource(
-    {"service.name": "autogen-test-agentchat"}))
+tracer_provider = TracerProvider(resource=Resource({"service.name": "autogen-test-agentchat"}))
 tracer_provider.add_span_processor(span_processor)
 trace.set_tracer_provider(tracer_provider)
 
@@ -95,8 +92,8 @@ To disable the agent runtime telemetry, you can set the `trace_provider` to
 Additionally, you can set the environment variable `AUTOGEN_DISABLE_RUNTIME_TRACING` to `true` to disable the agent runtime telemetry if you don't have access to the runtime constructor. For example, if you are using `ComponentConfig`.
 ```
 """
-logger.info(
-    "All of the code to create a [team](./tutorial/teams.ipynb) should already be familiar to you.")
+logger.info("All of the code to create a [team](./tutorial/teams.ipynb) should already be familiar to you.")
+
 
 
 def search_web_tool(query: str) -> str:
@@ -119,8 +116,7 @@ def percentage_change_tool(start: float, end: float) -> float:
 
 
 async def main() -> None:
-    model_client = MLXAutogenChatLLMAdapter(
-        model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
 
     tracer = trace.get_tracer("tracing-autogen-agentchat")
 
@@ -189,8 +185,7 @@ async def main() -> None:
         task = "Who was the Miami Heat player with the highest points in the 2006-2007 season, and what was the percentage change in his total rebounds between the 2007-2008 and 2008-2009 seasons?"
 
         runtime = SingleThreadedAgentRuntime(
-            # Disable telemetry for runtime.
-            tracer_provider=trace.NoOpTracerProvider(),
+            tracer_provider=trace.NoOpTracerProvider(),  # Disable telemetry for runtime.
         )
         runtime.start()
 
@@ -202,30 +197,21 @@ async def main() -> None:
             allow_repeated_speaker=True,
             runtime=runtime,
         )
-
         async def run_async_code_63a12af3():
             await Console(team.run_stream(task=task))
-            return
-         = asyncio.run(run_async_code_63a12af3())
-        logger.success(format_json())
+        asyncio.run(run_async_code_63a12af3())
 
         async def run_async_code_e62ddb21():
             await runtime.stop()
-            return 
-         = asyncio.run(run_async_code_e62ddb21())
-        logger.success(format_json())
+        asyncio.run(run_async_code_e62ddb21())
 
     async def run_async_code_3902376f():
         await model_client.close()
-        return 
-     = asyncio.run(run_async_code_3902376f())
-    logger.success(format_json())
+    asyncio.run(run_async_code_3902376f())
 
 async def run_async_code_ba09313d():
     await main()
-    return 
- = asyncio.run(run_async_code_ba09313d())
-logger.success(format_json())
+asyncio.run(run_async_code_ba09313d())
 
 """
 You can then use the Jaeger UI to view the traces collected from the application run above.  

@@ -1,5 +1,4 @@
 import asyncio
-from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.agents import AssistantAgent, MessageFilterAgent, MessageFilterConfig, PerSourceFilter
 from autogen_agentchat.conditions import MaxMessageTermination
@@ -28,13 +27,13 @@ logger.info(f"Logs: {log_file}")
 In this section you'll learn how to create an _multi-agent workflow_ using {py:class}`~autogen_agentchat.teams.GraphFlow`, or simply "flow" for short.
 It uses structured execution and precisely controls how agents interact to accomplish a task.
 
-We'll first show you how to create and run a flow. We'll then explain how to observe and debug flow behavior,
+We'll first show you how to create and run a flow. We'll then explain how to observe and debug flow behavior, 
 and discuss important operations for managing execution.
 
 AutoGen AgentChat provides a team for directed graph execution:
 
 - {py:class}`~autogen_agentchat.teams.GraphFlow`: A team that follows a {py:class}`~autogen_agentchat.teams.DiGraph`
-to control the execution flow between agents.
+to control the execution flow between agents. 
 Supports sequential, parallel, conditional, and looping behaviors.
 
 ```{note}
@@ -42,12 +41,12 @@ Supports sequential, parallel, conditional, and looping behaviors.
 
 Use Graph when you need strict control over the order in which agents act, or when different outcomes must lead to different next steps.
 Start with a simple team such as {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat` or {py:class}`~autogen_agentchat.teams.SelectorGroupChat`
-if ad-hoc conversation flow is sufficient.
+if ad-hoc conversation flow is sufficient. 
 Transition to a structured workflow when your task requires deterministic control,
 conditional branching, or handling complex multi-step processes with cycles.
 ```
 
-> **Warning:** {py:class}`~autogen_agentchat.teams.GraphFlow` is an **experimental feature**.
+> **Warning:** {py:class}`~autogen_agentchat.teams.GraphFlow` is an **experimental feature**. 
 Its API, behavior, and capabilities are **subject to change** in future releases.
 
 ## Creating and Running a Flow
@@ -63,21 +62,18 @@ Each node in the graph represents an agent, and edges define the allowed executi
 
 ### Sequential Flow
 
-We will begin by creating a simple workflow where a **writer** drafts a paragraph and a **reviewer** provides feedback. This graph terminates after the reviewer comments on the writer.
+We will begin by creating a simple workflow where a **writer** drafts a paragraph and a **reviewer** provides feedback. This graph terminates after the reviewer comments on the writer. 
 
 Note, the flow automatically computes all the source and leaf nodes of the graph and the execution starts at all the source nodes in the graph and completes execution when no nodes are left to execute.
 """
 logger.info("# GraphFlow (Workflows)")
 
 
-client = MLXAutogenChatLLMAdapter(
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
-writer = AssistantAgent("writer", model_client=client,
-                        system_message="Draft a short paragraph on climate change.")
+writer = AssistantAgent("writer", model_client=client, system_message="Draft a short paragraph on climate change.")
 
-reviewer = AssistantAgent("reviewer", model_client=client,
-                          system_message="Review the draft and suggest improvements.")
+reviewer = AssistantAgent("reviewer", model_client=client, system_message="Review the draft and suggest improvements.")
 
 builder = DiGraphBuilder()
 builder.add_node(writer).add_node(reviewer)
@@ -105,17 +101,13 @@ Execution starts at the **writer**, fans out to **editor1** and **editor2** simu
 logger.info("### Parallel Flow with Join")
 
 
-client = MLXAutogenChatLLMAdapter(
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
-writer = AssistantAgent("writer", model_client=client,
-                        system_message="Draft a short paragraph on climate change.")
+writer = AssistantAgent("writer", model_client=client, system_message="Draft a short paragraph on climate change.")
 
-editor1 = AssistantAgent("editor1", model_client=client,
-                         system_message="Edit the paragraph for grammar.")
+editor1 = AssistantAgent("editor1", model_client=client, system_message="Edit the paragraph for grammar.")
 
-editor2 = AssistantAgent("editor2", model_client=client,
-                         system_message="Edit the paragraph for style.")
+editor2 = AssistantAgent("editor2", model_client=client, system_message="Edit the paragraph for style.")
 
 final_reviewer = AssistantAgent(
     "final_reviewer",
@@ -124,8 +116,7 @@ final_reviewer = AssistantAgent(
 )
 
 builder = DiGraphBuilder()
-builder.add_node(writer).add_node(editor1).add_node(
-    editor2).add_node(final_reviewer)
+builder.add_node(writer).add_node(editor1).add_node(editor2).add_node(final_reviewer)
 
 builder.add_edge(writer, editor1)
 builder.add_edge(writer, editor2)
@@ -140,12 +131,9 @@ flow = GraphFlow(
     graph=graph,
 )
 
-
 async def run_async_code_11628adb():
     await Console(flow.run_stream(task="Write a short paragraph about climate change."))
-    return
- = asyncio.run(run_async_code_11628adb())
-logger.success(format_json())
+asyncio.run(run_async_code_11628adb())
 
 """
 ## Message Filtering
@@ -171,7 +159,7 @@ You can use {py:class}`~autogen_agentchat.agents.MessageFilterAgent` together wi
 logger.info("## Message Filtering")
 
 
-client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 researcher = AssistantAgent(
     "researcher", model_client=client, system_message="Summarize key facts about climate change."
@@ -204,9 +192,7 @@ flow = GraphFlow(
 
 async def run_async_code_4d74d6c5():
     await Console(flow.run_stream(task="Summarize key facts about climate change."))
-    return 
- = asyncio.run(run_async_code_4d74d6c5())
-logger.success(format_json())
+asyncio.run(run_async_code_4d74d6c5())
 
 """
 ## 🔁 Advanced Example: Conditional Loop + Filtered Summary
@@ -219,7 +205,7 @@ This example demonstrates:
 logger.info("## 🔁 Advanced Example: Conditional Loop + Filtered Summary")
 
 
-model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit-mini")
 
 generator = AssistantAgent("generator", model_client=model_client, system_message="Generate a list of creative ideas.")
 reviewer = AssistantAgent(
@@ -260,9 +246,7 @@ flow = GraphFlow(
 
 async def run_async_code_a9317e94():
     await Console(flow.run_stream(task="Brainstorm ways to reduce plastic waste."))
-    return 
- = asyncio.run(run_async_code_a9317e94())
-logger.success(format_json())
+asyncio.run(run_async_code_a9317e94())
 
 """
 ## 🔁 Advanced Example: Cycles With Activation Group Examples
@@ -278,7 +262,7 @@ This example shows a review loop where both the initial input (A) and the feedba
 logger.info("## 🔁 Advanced Example: Cycles With Activation Group Examples")
 
 
-client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct")
+client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit-mini")
 
 agent_a = AssistantAgent("A", model_client=client, system_message="Start the process and provide initial input.")
 agent_b = AssistantAgent(

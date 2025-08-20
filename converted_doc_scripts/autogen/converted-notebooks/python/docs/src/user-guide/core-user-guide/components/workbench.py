@@ -51,6 +51,7 @@ Here is an example of how to create an agent using {py:class}`~autogen_core.tool
 logger.info("# Workbench (and MCP)")
 
 
+
 @dataclass
 class Message:
     content: str
@@ -61,19 +62,14 @@ class WorkbenchAgent(RoutedAgent):
         self, model_client: ChatCompletionClient, model_context: ChatCompletionContext, workbench: Workbench
     ) -> None:
         super().__init__("An agent with a workbench")
-        self._system_messages: List[LLMMessage] = [
-            SystemMessage(content="You are a helpful AI assistant.")]
+        self._system_messages: List[LLMMessage] = [SystemMessage(content="You are a helpful AI assistant.")]
         self._model_client = model_client
         self._model_context = model_context
         self._workbench = workbench
 
     @message_handler
     async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
-        async def run_async_code_37101ad6():
-            await self._model_context.add_message(UserMessage(content=message.content, source="user"))
-            return
-         = asyncio.run(run_async_code_37101ad6())
-        logger.success(format_json())
+        await self._model_context.add_message(UserMessage(content=message.content, source="user"))
         logger.debug("---------User Message-----------")
         logger.debug(message.content)
 
@@ -96,9 +92,7 @@ class WorkbenchAgent(RoutedAgent):
 
             async def run_async_code_f5c8f2a6():
                 await self._model_context.add_message(AssistantMessage(content=create_result.content, source="assistant"))
-                return 
-             = asyncio.run(run_async_code_f5c8f2a6())
-            logger.success(format_json())
+            asyncio.run(run_async_code_f5c8f2a6())
 
             logger.debug("---------Function Call Results-----------")
             results: List[ToolResult] = []
@@ -113,19 +107,21 @@ class WorkbenchAgent(RoutedAgent):
                 results.append(result)
                 logger.debug(result)
 
-            await self._model_context.add_message(
-                FunctionExecutionResultMessage(
-                    content=[
-                        FunctionExecutionResult(
-                            call_id=call.id,
-                            content=result.to_text(),
-                            is_error=result.is_error,
-                            name=result.name,
-                        )
-                        for call, result in zip(create_result.content, results, strict=False)
-                    ]
+            async def async_func_67():
+                await self._model_context.add_message(
+                    FunctionExecutionResultMessage(
+                        content=[
+                            FunctionExecutionResult(
+                                call_id=call.id,
+                                content=result.to_text(),
+                                is_error=result.is_error,
+                                name=result.name,
+                            )
+                            for call, result in zip(create_result.content, results, strict=False)
+                        ]
+                    )
                 )
-            )
+            asyncio.run(async_func_67())
 
             async def async_func_81():
                 create_result = await self._model_client.create(
@@ -144,9 +140,7 @@ class WorkbenchAgent(RoutedAgent):
 
         async def run_async_code_7ed40722():
             await self._model_context.add_message(AssistantMessage(content=create_result.content, source="assistant"))
-            return 
-         = asyncio.run(run_async_code_7ed40722())
-        logger.success(format_json())
+        asyncio.run(run_async_code_7ed40722())
 
         return Message(content=create_result.content)
 
@@ -204,7 +198,7 @@ async def async_func_9():
             runtime=runtime,
             type="WebAgent",
             factory=lambda: WorkbenchAgent(
-                model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"),
+                model_client=MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
                 model_context=BufferedChatCompletionContext(buffer_size=10),
                 workbench=workbench,
             ),
@@ -217,10 +211,9 @@ async def async_func_9():
             recipient=AgentId("WebAgent", "default"),
         )
         
-        await runtime.stop()
-    return result
-
-result = asyncio.run(async_func_9())
-logger.success(format_json(result))
+        async def run_async_code_e62ddb21():
+            await runtime.stop()
+        asyncio.run(run_async_code_e62ddb21())
+asyncio.run(async_func_9())
 
 logger.info("\n\n[DONE]", bright=True)

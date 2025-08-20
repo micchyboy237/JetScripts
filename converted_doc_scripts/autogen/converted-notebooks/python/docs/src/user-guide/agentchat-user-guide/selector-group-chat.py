@@ -1,5 +1,4 @@
 import asyncio
-from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
 from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
@@ -59,6 +58,7 @@ In this section, we will demonstrate how to use {py:class}`~autogen_agentchat.te
 logger.info("# Selector Group Chat")
 
 
+
 """
 ### Agents
 
@@ -66,14 +66,13 @@ logger.info("# Selector Group Chat")
 
 This system uses three specialized agents:
 
-- **Planning Agent**: The strategic coordinator that breaks down complex tasks into manageable subtasks.
+- **Planning Agent**: The strategic coordinator that breaks down complex tasks into manageable subtasks. 
 - **Web Search Agent**: An information retrieval specialist that interfaces with the `search_web_tool`.
 - **Data Analyst Agent**: An agent specialist in performing calculations equipped with `percentage_change_tool`.
 
 The tools `search_web_tool` and `percentage_change_tool` are external tools that the agents can use to perform their tasks.
 """
 logger.info("### Agents")
-
 
 def search_web_tool(query: str) -> str:
     if "2006-2007" in query:
@@ -93,17 +92,14 @@ def search_web_tool(query: str) -> str:
 def percentage_change_tool(start: float, end: float) -> float:
     return ((end - start) / start) * 100
 
-
 """
 Let's create the specialized agents using the {py:class}`~autogen_agentchat.agents.AssistantAgent` class.
 It is important to note that the agents' {py:attr}`~autogen_agentchat.base.ChatAgent.name` and {py:attr}`~autogen_agentchat.base.ChatAgent.description` attributes are used by the model to determine the next speaker,
 so it is recommended to provide meaningful names and descriptions.
 """
-logger.info(
-    "Let's create the specialized agents using the {py:class}`~autogen_agentchat.agents.AssistantAgent` class.")
+logger.info("Let's create the specialized agents using the {py:class}`~autogen_agentchat.agents.AssistantAgent` class.")
 
-model_client = MLXAutogenChatLLMAdapter(
-    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
 
 planning_agent = AssistantAgent(
     "PlanningAgent",
@@ -243,24 +239,19 @@ team = SelectorGroupChat(
     model_client=model_client,
     termination_condition=termination,
     selector_prompt=selector_prompt,
-    # Allow an agent to speak multiple turns in a row.
-    allow_repeated_speaker=True,
+    allow_repeated_speaker=True,  # Allow an agent to speak multiple turns in a row.
 )
 
 """
 Now we run the team with a task to find information about an NBA player.
 """
-logger.info(
-    "Now we run the team with a task to find information about an NBA player.")
+logger.info("Now we run the team with a task to find information about an NBA player.")
 
 task = "Who was the Miami Heat player with the highest points in the 2006-2007 season, and what was the percentage change in his total rebounds between the 2007-2008 and 2008-2009 seasons?"
 
-
 async def run_async_code_ac2575cc():
     await Console(team.run_stream(task=task))
-    return
- = asyncio.run(run_async_code_ac2575cc())
-logger.success(format_json())
+asyncio.run(run_async_code_ac2575cc())
 
 """
 As we can see, after the Web Search Agent conducts the necessary searches and the Data Analyst Agent completes the necessary calculations, we find that Dwayne Wade was the Miami Heat player with the highest points in the 2006-2007 season, and the percentage change in his total rebounds between the 2007-2008 and 2008-2009 seasons is 85.98%!
@@ -291,9 +282,7 @@ def selector_func(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> str |
 
 async def run_async_code_a5b70700():
     await team.reset()
-    return 
- = asyncio.run(run_async_code_a5b70700())
-logger.success(format_json())
+asyncio.run(run_async_code_a5b70700())
 team = SelectorGroupChat(
     [planning_agent, web_search_agent, data_analyst_agent],
     model_client=model_client,
@@ -305,9 +294,7 @@ team = SelectorGroupChat(
 
 async def run_async_code_ac2575cc():
     await Console(team.run_stream(task=task))
-    return 
- = asyncio.run(run_async_code_ac2575cc())
-logger.success(format_json())
+asyncio.run(run_async_code_ac2575cc())
 
 """
 You can see from the conversation log that the Planning Agent always speaks immediately after the specialized agents.
@@ -360,9 +347,7 @@ def candidate_func(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> List
 
 async def run_async_code_a5b70700():
     await team.reset()
-    return 
- = asyncio.run(run_async_code_a5b70700())
-logger.success(format_json())
+asyncio.run(run_async_code_a5b70700())
 team = SelectorGroupChat(
     [planning_agent, web_search_agent, data_analyst_agent],
     model_client=model_client,
@@ -372,9 +357,7 @@ team = SelectorGroupChat(
 
 async def run_async_code_ac2575cc():
     await Console(team.run_stream(task=task))
-    return 
- = asyncio.run(run_async_code_ac2575cc())
-logger.success(format_json())
+asyncio.run(run_async_code_ac2575cc())
 
 """
 You can see from the conversation log that the Planning Agent returns to conversation once the Web Search Agent and Data Analyst Agent took their turns and it finds that the task was not finished as expected so it called the WebSearchAgent again to get rebound values and then called DataAnalysetAgent to get the percentage change.
@@ -412,9 +395,7 @@ def selector_func_with_user_proxy(messages: Sequence[BaseAgentEvent | BaseChatMe
 
 async def run_async_code_a5b70700():
     await team.reset()
-    return 
- = asyncio.run(run_async_code_a5b70700())
-logger.success(format_json())
+asyncio.run(run_async_code_a5b70700())
 team = SelectorGroupChat(
     [planning_agent, web_search_agent, data_analyst_agent, user_proxy_agent],
     model_client=model_client,
@@ -426,9 +407,7 @@ team = SelectorGroupChat(
 
 async def run_async_code_ac2575cc():
     await Console(team.run_stream(task=task))
-    return 
- = asyncio.run(run_async_code_ac2575cc())
-logger.success(format_json())
+asyncio.run(run_async_code_ac2575cc())
 
 """
 Now, the user's feedback is incorporated into the conversation flow,
@@ -436,7 +415,7 @@ and the user can approve or reject the planning agent's decisions.
 
 ## Using Reasoning Models
 
-So far in the examples, we have used a `gpt-4o` model. Models like `gpt-4o`
+So far in the examples, we have used a `qwen3-1.7b-4bit` model. Models like `qwen3-1.7b-4bit`
 and `gemini-1.5-flash` are great at following instructions, so you can
 have relatively detailed instructions in the selector prompt for the team and the 
 system messages for each agent to guide their behavior.
@@ -500,9 +479,7 @@ team = SelectorGroupChat(
 
 async def run_async_code_ac2575cc():
     await Console(team.run_stream(task=task))
-    return 
- = asyncio.run(run_async_code_ac2575cc())
-logger.success(format_json())
+asyncio.run(run_async_code_ac2575cc())
 
 """
 ```{tip}

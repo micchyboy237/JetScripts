@@ -1,5 +1,4 @@
 import asyncio
-from jet.transformers.formatters import format_json
 from autogen_core import AgentId, SingleThreadedAgentRuntime
 from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, default_subscription, message_handler
 from dataclasses import dataclass
@@ -50,11 +49,7 @@ class Modifier(RoutedAgent):
     async def handle_message(self, message: Message, ctx: MessageContext) -> None:
         val = self._modify_val(message.content)
         logger.debug(f"{'-'*80}\nModifier:\nModified {message.content} to {val}")
-        async def run_async_code_c5daa115():
-            await self.publish_message(Message(content=val), DefaultTopicId())  # type: ignore
-            return 
-         = asyncio.run(run_async_code_c5daa115())
-        logger.success(format_json())
+        await self.publish_message(Message(content=val), DefaultTopicId())  # type: ignore
 
 
 @default_subscription
@@ -67,11 +62,7 @@ class Checker(RoutedAgent):
     async def handle_message(self, message: Message, ctx: MessageContext) -> None:
         if not self._run_until(message.content):
             logger.debug(f"{'-'*80}\nChecker:\n{message.content} passed the check, continue.")
-            async def run_async_code_1f17ec1d():
-                await self.publish_message(Message(content=message.content), DefaultTopicId())
-                return 
-             = asyncio.run(run_async_code_1f17ec1d())
-            logger.success(format_json())
+            await self.publish_message(Message(content=message.content), DefaultTopicId())
         else:
             logger.debug(f"{'-'*80}\nChecker:\n{message.content} failed the check, stopping.")
 
@@ -99,29 +90,29 @@ logger.info("You might have already noticed, the agents' logic, whether it is us
 
 runtime = SingleThreadedAgentRuntime()
 
-await Modifier.register(
-    runtime,
-    "modifier",
-    lambda: Modifier(modify_val=lambda x: x - 1),
-)
+async def async_func_4():
+    await Modifier.register(
+        runtime,
+        "modifier",
+        lambda: Modifier(modify_val=lambda x: x - 1),
+    )
+asyncio.run(async_func_4())
 
-await Checker.register(
-    runtime,
-    "checker",
-    lambda: Checker(run_until=lambda x: x <= 1),
-)
+async def async_func_10():
+    await Checker.register(
+        runtime,
+        "checker",
+        lambda: Checker(run_until=lambda x: x <= 1),
+    )
+asyncio.run(async_func_10())
 
 runtime.start()
 async def run_async_code_e1e147d5():
     await runtime.send_message(Message(10), AgentId("checker", "default"))
-    return 
- = asyncio.run(run_async_code_e1e147d5())
-logger.success(format_json())
+asyncio.run(run_async_code_e1e147d5())
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-    return 
- = asyncio.run(run_async_code_b7ca34d4())
-logger.success(format_json())
+asyncio.run(run_async_code_b7ca34d4())
 
 """
 From the agent's output, we can see the value was successfully decremented from 10 to 1 as the modifier and checker conditions dictate.
