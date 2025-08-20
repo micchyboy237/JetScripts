@@ -223,6 +223,8 @@ async def query_llm(
                   f"{output_dir}/llm_tool_response_texts.json")
 
         tool_calls = parse_tool_call(tool_response_text)
+        save_file(
+            tool_calls, f"{output_dir}/llm_tool_response_tool_calls.json")
 
         if isinstance(tool_calls, list):
             for tool_call in tool_calls:
