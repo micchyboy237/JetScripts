@@ -1,4 +1,4 @@
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -42,8 +42,10 @@ extra_grpc_config = [
 ]
 
 
-host = GrpcWorkerAgentRuntimeHost(address=host_address, extra_grpc_config=extra_grpc_config)
-worker1 = GrpcWorkerAgentRuntime(host_address=host_address, extra_grpc_config=extra_grpc_config)
+host = GrpcWorkerAgentRuntimeHost(
+    address=host_address, extra_grpc_config=extra_grpc_config)
+worker1 = GrpcWorkerAgentRuntime(
+    host_address=host_address, extra_grpc_config=extra_grpc_config)
 
 """
 **Note**: When `GrpcWorkerAgentRuntime` creates a host connection for the clients, it uses `DEFAULT_GRPC_CONFIG` from `HostConnection` class as default set of values which will can be overriden if you pass parameters with the same name using `extra_grpc_config`.
@@ -61,7 +63,7 @@ Model capabilities can be passed into a model, which will override the default d
 logger.info("## What are model capabilities and how do I specify them?")
 
 
-client = MLXChatCompletionClient(
+client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     api_key="YourApiKey",
     model_capabilities={

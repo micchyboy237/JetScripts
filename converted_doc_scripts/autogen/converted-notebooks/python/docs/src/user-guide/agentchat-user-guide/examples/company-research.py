@@ -8,7 +8,7 @@ from autogen_core.tools import FunctionTool
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from pytz import timezone  # type: ignore
 import matplotlib.pyplot as plt
@@ -208,7 +208,7 @@ Next, we will define the agents that will perform the tasks. We will create a `s
 """
 logger.info("## Defining Agents")
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 search_agent = AssistantAgent(

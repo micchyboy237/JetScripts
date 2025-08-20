@@ -32,7 +32,7 @@ Extras:
 - `langchain` needed for {py:class}`~autogen_ext.tools.langchain.LangChainToolAdapter`
 - `azure` needed for {py:class}`~autogen_ext.code_executors.azure.ACADynamicSessionsCodeExecutor`
 - `docker` needed for {py:class}`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor`
-- `openai` needed for {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient`
+- `openai` needed for {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter`
 """
 logger.info("Extras:")
 

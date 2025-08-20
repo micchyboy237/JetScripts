@@ -16,7 +16,7 @@ from autogen_ext.memory.chromadb import (
 from autogen_ext.memory.chromadb import ChromaDBVectorMemory, PersistentChromaDBVectorMemoryConfig
 from autogen_ext.memory.mem0 import Mem0Memory
 from autogen_ext.memory.redis import RedisMemory, RedisMemoryConfig
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from logging import WARNING
 from pathlib import Path
@@ -85,7 +85,7 @@ async def get_weather(city: str, units: str = "imperial") -> str:
 
 assistant_agent = AssistantAgent(
     name="assistant_agent",
-    model_client=MLXChatCompletionClient(
+    model_client=MLXAutogenChatLLMAdapter(
         model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     ),
     tools=[get_weather],
@@ -180,7 +180,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
         return
     asyncio.run(run_async_code_1a2b3c4d())
 
-    model_client = MLXChatCompletionClient(
+    model_client = MLXAutogenChatLLMAdapter(
         model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     )
 
@@ -290,7 +290,7 @@ async def run_async_code_8a3f1b2c():
         raise
 asyncio.run(run_async_code_8a3f1b2c())
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 
@@ -451,7 +451,7 @@ asyncio.run(run_async_code_97c54031())
 
 
 rag_assistant = AssistantAgent(
-    name="rag_assistant", model_client=MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"), memory=[rag_memory]
+    name="rag_assistant", model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"), memory=[rag_memory]
 )
 
 stream = rag_assistant.run_stream(task="What is AgentChat?")
@@ -514,7 +514,7 @@ asyncio.run(run_async_code_4f7b2c1d())
 
 assistant_agent = AssistantAgent(
     name="assistant_agent",
-    model_client=MLXChatCompletionClient(
+    model_client=MLXAutogenChatLLMAdapter(
         model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     ),
     tools=[get_weather],

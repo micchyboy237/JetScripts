@@ -7,7 +7,7 @@ from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage, StopMess
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.ui import Console
 from autogen_core import Component
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from pydantic import BaseModel
 from typing import Sequence
@@ -24,7 +24,7 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# Termination 
+# Termination
 
 In the previous section, we explored how to define agents, and organize them into teams that can solve tasks. However, a run can go on forever, and in many cases, we need to know _when_ to stop them. This is the role of the termination condition.
 
@@ -33,7 +33,7 @@ AgentChat supports several termination condition by providing a base {py:class}`
 A termination condition is a callable that takes a sequence of {py:class}`~autogen_agentchat.messages.BaseAgentEvent` or {py:class}`~autogen_agentchat.messages.BaseChatMessage` objects **since the last time the condition was called**, and returns a {py:class}`~autogen_agentchat.messages.StopMessage` if the conversation should be terminated, or `None` otherwise.
 Once a termination condition has been reached, it must be reset by calling {py:meth}`~autogen_agentchat.base.TerminationCondition.reset` before it can be used again.
 
-Some important things to note about termination conditions: 
+Some important things to note about termination conditions:
 - They are stateful but reset automatically after each run ({py:meth}`~autogen_agentchat.base.TaskRunner.run` or {py:meth}`~autogen_agentchat.base.TaskRunner.run_stream`) is finished.
 - They can be combined using the AND and OR operators.
 
@@ -45,7 +45,7 @@ While a response may contain multiple inner messages, the team calls its termina
 So the condition is called with the "delta sequence" of messages since the last time it was called.
 ```
 
-Built-In Termination Conditions: 
+Built-In Termination Conditions:
 1. {py:class}`~autogen_agentchat.conditions.MaxMessageTermination`: Stops after a specified number of messages have been produced, including both agent and task messages.
 2. {py:class}`~autogen_agentchat.conditions.TextMentionTermination`: Stops when specific text or string is mentioned in a message (e.g., "TERMINATE").
 3. {py:class}`~autogen_agentchat.conditions.TokenUsageTermination`: Stops when a certain number of prompt or completion tokens are used. This requires the agents to report token usage in their messages.
@@ -65,7 +65,7 @@ To demonstrate the characteristics of termination conditions, we'll create a tea
 logger.info("# Termination")
 
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     temperature=1,
 )
@@ -88,11 +88,13 @@ Let's explore how termination conditions automatically reset after each `run` or
 logger.info("Let's explore how termination conditions automatically reset after each `run` or `run_stream` call, allowing the team to resume its conversation from where it left off.")
 
 max_msg_termination = MaxMessageTermination(max_messages=3)
-round_robin_team = RoundRobinGroupChat([primary_agent, critic_agent], termination_condition=max_msg_termination)
+round_robin_team = RoundRobinGroupChat(
+    [primary_agent, critic_agent], termination_condition=max_msg_termination)
+
 
 async def run_async_code_f4dc020b():
     await Console(round_robin_team.run_stream(task="Write a unique, Haiku about the weather in Paris"))
-    return 
+    return
  = asyncio.run(run_async_code_f4dc020b())
 logger.success(format_json())
 
@@ -221,7 +223,7 @@ Then we create the agents. The critic agent is equipped with the `approve` tool.
 logger.info("Then we create the agents. The critic agent is equipped with the `approve` tool.")
 
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     temperature=1,
 )

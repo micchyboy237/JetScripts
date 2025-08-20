@@ -5,7 +5,7 @@ from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermi
 from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
 from autogen_agentchat.teams import SelectorGroupChat
 from autogen_agentchat.ui import Console
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from typing import List, Sequence
 import os
@@ -59,7 +59,6 @@ In this section, we will demonstrate how to use {py:class}`~autogen_agentchat.te
 logger.info("# Selector Group Chat")
 
 
-
 """
 ### Agents
 
@@ -67,13 +66,14 @@ logger.info("# Selector Group Chat")
 
 This system uses three specialized agents:
 
-- **Planning Agent**: The strategic coordinator that breaks down complex tasks into manageable subtasks. 
+- **Planning Agent**: The strategic coordinator that breaks down complex tasks into manageable subtasks.
 - **Web Search Agent**: An information retrieval specialist that interfaces with the `search_web_tool`.
 - **Data Analyst Agent**: An agent specialist in performing calculations equipped with `percentage_change_tool`.
 
 The tools `search_web_tool` and `percentage_change_tool` are external tools that the agents can use to perform their tasks.
 """
 logger.info("### Agents")
+
 
 def search_web_tool(query: str) -> str:
     if "2006-2007" in query:
@@ -93,14 +93,17 @@ def search_web_tool(query: str) -> str:
 def percentage_change_tool(start: float, end: float) -> float:
     return ((end - start) / start) * 100
 
+
 """
 Let's create the specialized agents using the {py:class}`~autogen_agentchat.agents.AssistantAgent` class.
 It is important to note that the agents' {py:attr}`~autogen_agentchat.base.ChatAgent.name` and {py:attr}`~autogen_agentchat.base.ChatAgent.description` attributes are used by the model to determine the next speaker,
 so it is recommended to provide meaningful names and descriptions.
 """
-logger.info("Let's create the specialized agents using the {py:class}`~autogen_agentchat.agents.AssistantAgent` class.")
+logger.info(
+    "Let's create the specialized agents using the {py:class}`~autogen_agentchat.agents.AssistantAgent` class.")
 
-model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+model_client = MLXAutogenChatLLMAdapter(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 planning_agent = AssistantAgent(
     "PlanningAgent",
@@ -240,19 +243,22 @@ team = SelectorGroupChat(
     model_client=model_client,
     termination_condition=termination,
     selector_prompt=selector_prompt,
-    allow_repeated_speaker=True,  # Allow an agent to speak multiple turns in a row.
+    # Allow an agent to speak multiple turns in a row.
+    allow_repeated_speaker=True,
 )
 
 """
 Now we run the team with a task to find information about an NBA player.
 """
-logger.info("Now we run the team with a task to find information about an NBA player.")
+logger.info(
+    "Now we run the team with a task to find information about an NBA player.")
 
 task = "Who was the Miami Heat player with the highest points in the 2006-2007 season, and what was the percentage change in his total rebounds between the 2007-2008 and 2008-2009 seasons?"
 
+
 async def run_async_code_ac2575cc():
     await Console(team.run_stream(task=task))
-    return 
+    return
  = asyncio.run(run_async_code_ac2575cc())
 logger.success(format_json())
 
@@ -450,7 +456,7 @@ Also, we are keeping the selector prompt and system messages as simple as possib
 """
 logger.info("## Using Reasoning Models")
 
-model_client = MLXChatCompletionClient(model="o3-mini")
+model_client = MLXAutogenChatLLMAdapter(model="o3-mini")
 
 web_search_agent = AssistantAgent(
     "WebSearchAgent",

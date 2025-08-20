@@ -1,9 +1,9 @@
 from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.conditions import  TextMentionTermination
+from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.teams import BaseGroupChat
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogenstudio.teammanager import TeamManager
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 import json
 import os
@@ -80,13 +80,14 @@ logger.info("# Usage")
 
 
 agent = AssistantAgent(
-        name="weather_agent",
-        model_client=MLXChatCompletionClient(
-            model="llama-3.2-3b-instruct",
-        ),
-    )
+    name="weather_agent",
+    model_client=MLXAutogenChatLLMAdapter(
+        model="llama-3.2-3b-instruct",
+    ),
+)
 
-agent_team = RoundRobinGroupChat([agent], termination_condition=TextMentionTermination("TERMINATE"))
+agent_team = RoundRobinGroupChat(
+    [agent], termination_condition=TextMentionTermination("TERMINATE"))
 config = agent_team.dump_component()
 logger.debug(config.model_dump_json())
 
@@ -95,65 +96,65 @@ logger.debug(config.model_dump_json())
 """
 
 {
-  "provider": "autogen_agentchat.teams.RoundRobinGroupChat",
-  "component_type": "team",
-  "version": 1,
-  "component_version": 1,
-  "description": "A team that runs a group chat with participants taking turns in a round-robin fashion\n    to publish a message to all.",
-  "label": "RoundRobinGroupChat",
-  "config": {
-    "participants": [
-      {
-        "provider": "autogen_agentchat.agents.AssistantAgent",
-        "component_type": "agent",
-        "version": 1,
-        "component_version": 1,
-        "description": "An agent that provides assistance with tool use.",
-        "label": "AssistantAgent",
-        "config": {
-          "name": "weather_agent",
-          "model_client": {
-            "provider": "jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient",
-            "component_type": "model",
+    "provider": "autogen_agentchat.teams.RoundRobinGroupChat",
+    "component_type": "team",
+    "version": 1,
+    "component_version": 1,
+    "description": "A team that runs a group chat with participants taking turns in a round-robin fashion\n    to publish a message to all.",
+    "label": "RoundRobinGroupChat",
+    "config": {
+        "participants": [
+            {
+                "provider": "autogen_agentchat.agents.AssistantAgent",
+                "component_type": "agent",
+                "version": 1,
+                "component_version": 1,
+                "description": "An agent that provides assistance with tool use.",
+                "label": "AssistantAgent",
+                "config": {
+                    "name": "weather_agent",
+                    "model_client": {
+                        "provider": "jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter",
+                        "component_type": "model",
+                        "version": 1,
+                        "component_version": 1,
+                        "description": "Chat completion client for MLX hosted models.",
+                        "label": "MLXAutogenChatLLMAdapter",
+                        "config": {"model": "llama-3.2-3b-instruct"}
+                    },
+                    "tools": [],
+                    "handoffs": [],
+                    "model_context": {
+                        "provider": "autogen_core.model_context.UnboundedChatCompletionContext",
+                        "component_type": "chat_completion_context",
+                        "version": 1,
+                        "component_version": 1,
+                        "description": "An unbounded chat completion context that keeps a view of the all the messages.",
+                        "label": "UnboundedChatCompletionContext",
+                        "config": {}
+                    },
+                    "description": "An agent that provides assistance with ability to use tools.",
+                    "system_message": "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
+                    "model_client_stream": false,
+                    "reflect_on_tool_use": false,
+                    "tool_call_summary_format": "{result}"
+                }
+            }
+        ],
+        "termination_condition": {
+            "provider": "autogen_agentchat.conditions.TextMentionTermination",
+            "component_type": "termination",
             "version": 1,
             "component_version": 1,
-            "description": "Chat completion client for MLX hosted models.",
-            "label": "MLXChatCompletionClient",
-            "config": { "model": "llama-3.2-3b-instruct" }
-          },
-          "tools": [],
-          "handoffs": [],
-          "model_context": {
-            "provider": "autogen_core.model_context.UnboundedChatCompletionContext",
-            "component_type": "chat_completion_context",
-            "version": 1,
-            "component_version": 1,
-            "description": "An unbounded chat completion context that keeps a view of the all the messages.",
-            "label": "UnboundedChatCompletionContext",
-            "config": {}
-          },
-          "description": "An agent that provides assistance with ability to use tools.",
-          "system_message": "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
-          "model_client_stream": false,
-          "reflect_on_tool_use": false,
-          "tool_call_summary_format": "{result}"
+            "description": "Terminate the conversation if a specific text is mentioned.",
+            "label": "TextMentionTermination",
+            "config": {"text": "TERMINATE"}
         }
-      }
-    ],
-    "termination_condition": {
-      "provider": "autogen_agentchat.conditions.TextMentionTermination",
-      "component_type": "termination",
-      "version": 1,
-      "component_version": 1,
-      "description": "Terminate the conversation if a specific text is mentioned.",
-      "label": "TextMentionTermination",
-      "config": { "text": "TERMINATE" }
     }
-  }
 }
 
 """
-# This example shows a team with a single agent, using the `RoundRobinGroupChat` type and a `TextMentionTermination` condition. You will also notice that the model client is an `MLXChatCompletionClient` model client where only the model name is specified. In this case, the API key is assumed to be set as an environment variable `OPENAI_API_KEY`. You can also specify the API key as part of the model client configuration.
+# This example shows a team with a single agent, using the `RoundRobinGroupChat` type and a `TextMentionTermination` condition. You will also notice that the model client is an `MLXAutogenChatLLMAdapter` model client where only the model name is specified. In this case, the API key is assumed to be set as an environment variable `OPENAI_API_KEY`. You can also specify the API key as part of the model client configuration.
 
 To understand the full configuration of an model clients, you can refer to the [AutoGen Model Clients documentation](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/components/model-clients.html).
 
@@ -161,7 +162,7 @@ Note that you can similarly define your model client in Python and call `dump_co
 
 Finally, you can use the `load_component()` method to load a team configuration from a JSON file:
 """
-# logger.info("This example shows a team with a single agent, using the `RoundRobinGroupChat` type and a `TextMentionTermination` condition. You will also notice that the model client is an `MLXChatCompletionClient` model client where only the model name is specified. In this case, the API key is assumed to be set as an environment variable `OPENAI_API_KEY`. You can also specify the API key as part of the model client configuration.")
+# logger.info("This example shows a team with a single agent, using the `RoundRobinGroupChat` type and a `TextMentionTermination` condition. You will also notice that the model client is an `MLXAutogenChatLLMAdapter` model client where only the model name is specified. In this case, the API key is assumed to be set as an environment variable `OPENAI_API_KEY`. You can also specify the API key as part of the model client configuration.")
 
 team_config = json.load(open("team.json"))
 team = BaseGroupChat.load_component(team_config)
@@ -203,7 +204,8 @@ logger.info("## Gallery - Sharing and Reusing Components")
 
 
 tm = TeamManager()
-result_stream = tm.run(task="What is the weather in New York?", team_config="team.json") # or tm.run_stream(..)
+result_stream = tm.run(task="What is the weather in New York?",
+                       team_config="team.json")  # or tm.run_stream(..)
 
 """
 To export team configurations, use the export button in Team Builder to generate a JSON file for Python application use.

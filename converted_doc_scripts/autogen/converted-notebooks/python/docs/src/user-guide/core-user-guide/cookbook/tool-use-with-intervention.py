@@ -22,7 +22,7 @@ from autogen_core.tools import ToolSchema
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 from autogen_ext.tools.code_execution import PythonCodeExecutionTool
 from dataclasses import dataclass
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from typing import Any, List
 import os
@@ -45,21 +45,24 @@ an intervention hanlder, and prompt the user for permission to execute the tool.
 logger.info("# User Approval for Tool Execution using Intervention Handler")
 
 
-
 """
 Let's define a simple message type that carries a string content.
 """
 logger.info("Let's define a simple message type that carries a string content.")
 
+
 @dataclass
 class Message:
     content: str
+
 
 """
 Let's create a simple tool use agent that is capable of using tools through a
 {py:class}`~autogen_core.tool_agent.ToolAgent`.
 """
-logger.info("Let's create a simple tool use agent that is capable of using tools through a")
+logger.info(
+    "Let's create a simple tool use agent that is capable of using tools through a")
+
 
 class ToolUseAgent(RoutedAgent):
     """An agent that uses tools to perform tasks. It executes the tools
@@ -82,7 +85,9 @@ class ToolUseAgent(RoutedAgent):
     @message_handler
     async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
         """Handle a user message, execute the model and tools, and returns the response."""
-        session: List[LLMMessage] = [UserMessage(content=message.content, source="User")]
+        session: List[LLMMessage] = [UserMessage(
+            content=message.content, source="User")]
+
         async def async_func_22():
             output_messages = await tool_agent_caller_loop(
                 self,
@@ -99,6 +104,7 @@ class ToolUseAgent(RoutedAgent):
         assert isinstance(final_response, str)
         return Message(content=final_response)
 
+
 """
 The tool use agent sends tool call requests to the tool agent to execute tools,
 so we can intercept the messages sent by the tool use agent to the tool agent
@@ -107,7 +113,9 @@ to prompt the user for permission to execute the tool.
 Let's create an intervention handler that intercepts the messages and prompts
 user for before allowing the tool execution.
 """
-logger.info("The tool use agent sends tool call requests to the tool agent to execute tools,")
+logger.info(
+    "The tool use agent sends tool call requests to the tool agent to execute tools,")
+
 
 class ToolInterventionHandler(DefaultInterventionHandler):
     async def on_send(
@@ -118,15 +126,19 @@ class ToolInterventionHandler(DefaultInterventionHandler):
                 f"Function call: {message.name}\nArguments: {message.arguments}\nDo you want to execute the tool? (y/n): "
             )
             if user_input.strip().lower() != "y":
-                raise ToolException(content="User denied tool execution.", call_id=message.id, name=message.name)
+                raise ToolException(
+                    content="User denied tool execution.", call_id=message.id, name=message.name)
         return message
+
 
 """
 Now, we can create a runtime with the intervention handler registered.
 """
-logger.info("Now, we can create a runtime with the intervention handler registered.")
+logger.info(
+    "Now, we can create a runtime with the intervention handler registered.")
 
-runtime = SingleThreadedAgentRuntime(intervention_handlers=[ToolInterventionHandler()])
+runtime = SingleThreadedAgentRuntime(
+    intervention_handlers=[ToolInterventionHandler()])
 
 """
 In this example, we will use a tool for Python code execution.
@@ -147,6 +159,7 @@ Register the agents with tools and tool schema.
 """
 logger.info("Register the agents with tools and tool schema.")
 
+
 async def async_func_0():
     tool_agent_type = await ToolAgent.register(
         runtime,
@@ -159,13 +172,14 @@ async def async_func_0():
     return tool_agent_type
 tool_agent_type = asyncio.run(async_func_0())
 logger.success(format_json(tool_agent_type))
-model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
+model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct")
 await ToolUseAgent.register(
     runtime,
     "tool_enabled_agent",
     lambda: ToolUseAgent(
         description="Tool Use Agent",
-        system_messages=[SystemMessage(content="You are a helpful AI Assistant. Use your tools to solve problems.")],
+        system_messages=[SystemMessage(
+            content="You are a helpful AI Assistant. Use your tools to solve problems.")],
         model_client=model_client,
         tool_schema=[python_tool.schema],
         tool_agent_type=tool_agent_type,
@@ -176,11 +190,13 @@ await ToolUseAgent.register(
 Run the agents by starting the runtime and sending a message to the tool use agent.
 The intervention handler will prompt you for permission to execute the tool.
 """
-logger.info("Run the agents by starting the runtime and sending a message to the tool use agent.")
+logger.info(
+    "Run the agents by starting the runtime and sending a message to the tool use agent.")
+
 
 async def run_async_code_21307994():
     await docker_executor.start()
-    return 
+    return
  = asyncio.run(run_async_code_21307994())
 logger.success(format_json())
 runtime.start()

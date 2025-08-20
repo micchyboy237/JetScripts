@@ -13,7 +13,7 @@ UserMessage,
 )
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 from dataclasses import dataclass
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from typing import List
 import os
@@ -34,7 +34,7 @@ logger.info(f"Logs: {log_file}")
 
 In this section we explore creating custom agents to handle code generation and execution. These tasks can be handled using the provided Agent implementations found here {py:meth}`~autogen_agentchat.agents.AssistantAgent`, {py:meth}`~autogen_agentchat.agents.CodeExecutorAgent`; but this guide will show you how to implement custom, lightweight agents that can replace their functionality. This simple example implements two agents that create a plot of Tesla's and Nvidia's stock returns.
 
-We first define the agent classes and their respective procedures for 
+We first define the agent classes and their respective procedures for
 handling messages.
 We create two agent classes: `Assistant` and `Executor`. The `Assistant`
 agent writes code and the `Executor` agent executes the code.
@@ -46,8 +46,6 @@ Code generated in this example is run within a [Docker](https://www.docker.com/)
 ```
 """
 logger.info("# Code Execution")
-
-
 
 
 @dataclass
@@ -69,7 +67,9 @@ Always save figures to file in the current directory. Do not use plt.show(). All
 
     @message_handler
     async def handle_message(self, message: Message, ctx: MessageContext) -> None:
-        self._chat_history.append(UserMessage(content=message.content, source="user"))
+        self._chat_history.append(UserMessage(
+            content=message.content, source="user"))
+
         async def run_async_code_56942d43():
             async def run_async_code_815da746():
                 result = await self._model_client.create(self._chat_history)
@@ -80,10 +80,13 @@ Always save figures to file in the current directory. Do not use plt.show(). All
         result = asyncio.run(run_async_code_56942d43())
         logger.success(format_json(result))
         logger.debug(f"\n{'-'*80}\nAssistant:\n{result.content}")
-        self._chat_history.append(AssistantMessage(content=result.content, source="assistant"))  # type: ignore
+        self._chat_history.append(AssistantMessage(
+            content=result.content, source="assistant"))  # type: ignore
+
         async def run_async_code_ac73baad():
-            await self.publish_message(Message(content=result.content), DefaultTopicId())  # type: ignore
-            return 
+            # type: ignore
+            await self.publish_message(Message(content=result.content), DefaultTopicId())
+            return
          = asyncio.run(run_async_code_ac73baad())
         logger.success(format_json())
 
@@ -148,7 +151,7 @@ runtime = SingleThreadedAgentRuntime()
 
 async def async_func_10():
     async with DockerCommandLineCodeExecutor(work_dir=work_dir) as executor:  # type: ignore[syntax]
-        model_client = MLXChatCompletionClient(
+        model_client = MLXAutogenChatLLMAdapter(
             model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
         )
         await Assistant.register(

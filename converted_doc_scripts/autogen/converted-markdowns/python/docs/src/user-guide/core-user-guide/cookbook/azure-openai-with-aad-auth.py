@@ -1,5 +1,5 @@
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import AzureMLXChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import AzureMLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -37,7 +37,7 @@ token_provider = get_bearer_token_provider(
     DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
 )
 
-client = AzureMLXChatCompletionClient(
+client = AzureMLXAutogenChatLLMAdapter(
     azure_deployment="{your-azure-deployment}",
     model="{model-name, such as gpt-4o}",
     api_version="2024-02-01",
@@ -49,6 +49,6 @@ client = AzureMLXChatCompletionClient(
 
 """
 
-See [here](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/managed-identity#chat-completions) for how to use the Azure client directly or for more info.
+See[here](https: // learn.microsoft.com/en-us/azure/ai-services/openai/how-to/managed-identity  # chat-completions) for how to use the Azure client directly or for more info.
 
 logger.info("\n\n[DONE]", bright=True)

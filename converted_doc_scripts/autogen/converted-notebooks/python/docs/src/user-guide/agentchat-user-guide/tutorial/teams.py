@@ -7,7 +7,7 @@ from autogen_agentchat.conditions import TextMessageTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.ui import Console
 from autogen_core import CancellationToken
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 import asyncio
 import os
@@ -31,9 +31,9 @@ We'll first show you how to create and run a team. We'll then explain how to obs
 
 AgentChat supports several team presets:
 
-- {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat`: A team that runs a group chat with participants taking turns in a round-robin fashion (covered on this page). [Tutorial](#creating-a-team) 
+- {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat`: A team that runs a group chat with participants taking turns in a round-robin fashion (covered on this page). [Tutorial](#creating-a-team)
 - {py:class}`~autogen_agentchat.teams.SelectorGroupChat`: A team that selects the next speaker using a ChatCompletion model after each message. [Tutorial](../selector-group-chat.ipynb)
-- {py:class}`~autogen_agentchat.teams.MagenticOneGroupChat`: A  generalist multi-agent system for solving open-ended web and file-based tasks across a variety of domains. [Tutorial](../magentic-one.md) 
+- {py:class}`~autogen_agentchat.teams.MagenticOneGroupChat`: A  generalist multi-agent system for solving open-ended web and file-based tasks across a variety of domains. [Tutorial](../magentic-one.md)
 - {py:class}`~autogen_agentchat.teams.Swarm`: A team that uses {py:class}`~autogen_agentchat.messages.HandoffMessage` to signal transitions between agents. [Tutorial](../swarm.ipynb)
 
 ```{note}
@@ -59,8 +59,7 @@ The two-agent team implements the _reflection_ pattern, a multi-agent design pat
 logger.info("# Teams")
 
 
-
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 
@@ -78,7 +77,8 @@ critic_agent = AssistantAgent(
 
 text_termination = TextMentionTermination("APPROVE")
 
-team = RoundRobinGroupChat([primary_agent, critic_agent], termination_condition=text_termination)
+team = RoundRobinGroupChat(
+    [primary_agent, critic_agent], termination_condition=text_termination)
 
 """
 ## Running a Team
@@ -87,6 +87,7 @@ Let's call the {py:meth}`~autogen_agentchat.teams.BaseGroupChat.run` method
 to start the team with a task.
 """
 logger.info("## Running a Team")
+
 
 async def run_async_code_9817a56b():
     async def run_async_code_c3be6668():
@@ -112,9 +113,10 @@ Similar to the agent's {py:meth}`~autogen_agentchat.agents.BaseChatAgent.on_mess
 """
 logger.info("## Observing a Team")
 
+
 async def run_async_code_12a0d807():
     await team.reset()  # Reset the team for a new task.
-    return 
+    return
  = asyncio.run(run_async_code_12a0d807())
 logger.success(format_json())
 async for message in team.run_stream(task="Write a short poem about the fall season."):  # type: ignore
@@ -300,7 +302,7 @@ which will stop the run.
 logger.info("## Single-Agent Team")
 
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     parallel_tool_calls=False,  # type: ignore
 )

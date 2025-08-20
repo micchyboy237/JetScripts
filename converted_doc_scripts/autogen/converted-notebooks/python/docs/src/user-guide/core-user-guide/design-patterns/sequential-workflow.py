@@ -11,7 +11,7 @@ type_subscription,
 )
 from autogen_core.models import ChatCompletionClient, SystemMessage, UserMessage
 from dataclasses import dataclass
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -45,13 +45,12 @@ We will implement this workflow using publish-subscribe messaging.
 Please read about [Topic and Subscription](../core-concepts/topic-and-subscription.md) for the core concepts
 and [Broadcast Messaging](../framework/message-and-communication.ipynb#broadcast) for the the API usage.
 
-In this pipeline, agents communicate with each other by publishing their completed work as messages to the topic of the 
-next agent in the sequence. For example, when the `ConceptExtractor` finishes analyzing the product description, it 
-publishes its findings to the `"WriterAgent"` topic, which the `WriterAgent` is subscribed to. This pattern continues through 
+In this pipeline, agents communicate with each other by publishing their completed work as messages to the topic of the
+next agent in the sequence. For example, when the `ConceptExtractor` finishes analyzing the product description, it
+publishes its findings to the `"WriterAgent"` topic, which the `WriterAgent` is subscribed to. This pattern continues through
 each step of the pipeline, with each agent publishing to the topic that the next agent in line subscribed to.
 """
 logger.info("# Sequential Workflow")
-
 
 
 """
@@ -61,9 +60,11 @@ The message protocol for this example workflow is a simple text message that age
 """
 logger.info("## Message Protocol")
 
+
 @dataclass
 class Message:
     content: str
+
 
 """
 ## Topics
@@ -88,6 +89,7 @@ The concept extractor agent comes up with the initial bullet points for the prod
 """
 logger.info("## Agents")
 
+
 @type_subscription(topic_type=concept_extractor_topic_type)
 class ConceptExtractorAgent(RoutedAgent):
     def __init__(self, model_client: ChatCompletionClient) -> None:
@@ -105,9 +107,11 @@ class ConceptExtractorAgent(RoutedAgent):
     @message_handler
     async def handle_user_description(self, message: Message, ctx: MessageContext) -> None:
         prompt = f"Product description: {message.content}"
+
         async def async_func_17():
             llm_result = await self._model_client.create(
-                messages=[self._system_message, UserMessage(content=prompt, source=self.id.key)],
+                messages=[self._system_message, UserMessage(
+                    content=prompt, source=self.id.key)],
                 cancellation_token=ctx.cancellation_token,
             )
             return llm_result
@@ -119,7 +123,7 @@ class ConceptExtractorAgent(RoutedAgent):
 
         async def run_async_code_af659285():
             await self.publish_message(Message(response), topic_id=TopicId(writer_topic_type, source=self.id.key))
-            return 
+            return
          = asyncio.run(run_async_code_af659285())
         logger.success(format_json())
 
@@ -224,7 +228,7 @@ Because we used the {py:class}`~autogen_core.type_subscription` decorator, the r
 """
 logger.info("## Workflow")
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct",
 )
 

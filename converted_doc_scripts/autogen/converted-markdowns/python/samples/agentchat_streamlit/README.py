@@ -27,7 +27,8 @@ pip install streamlit
 To use Azure MLX models or models hosted on MLX-compatible API endpoints,
 you need to install the `autogen-ext[openai,azure]` package. You can install it with the following command:
 """
-logger.info("To use Azure MLX models or models hosted on MLX-compatible API endpoints,")
+logger.info(
+    "To use Azure MLX models or models hosted on MLX-compatible API endpoints,")
 
 pip install "autogen-ext[openai,azure]"
 
@@ -37,15 +38,16 @@ to configure the model you want to use.
 
 For example, to use `llama-3.2-3b-instruct` model from Azure MLX, you can use the following configuration:
 """
-logger.info("Create a new file named `model_config.yml` in the the same directory as the script")
+logger.info(
+    "Create a new file named `model_config.yml` in the the same directory as the script")
 
-provider: jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXChatCompletionClient
+provider: jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXAutogenChatLLMAdapter
 config:
-  azure_deployment: "llama-3.2-3b-instruct"
-  model: llama-3.2-3b-instruct
-  api_version: REPLACE_WITH_MODEL_API_VERSION
-  azure_endpoint: REPLACE_WITH_MODEL_ENDPOINT
-  api_key: REPLACE_WITH_MODEL_API_KEY
+    azure_deployment: "llama-3.2-3b-instruct"
+    model: llama-3.2-3b-instruct
+    api_version: REPLACE_WITH_MODEL_API_VERSION
+    azure_endpoint: REPLACE_WITH_MODEL_ENDPOINT
+    api_key: REPLACE_WITH_MODEL_API_KEY
 
 """
 For more information on how to configure the model and use other providers,

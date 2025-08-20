@@ -11,8 +11,8 @@ from autogen_ext.models.ollama import OllamaChatCompletionClient
 from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
 from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import AzureMLXChatCompletionClient
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import AzureMLXAutogenChatLLMAdapter
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from pathlib import Path
 from semantic_kernel import Kernel
@@ -33,7 +33,7 @@ logger.info(f"Logs: {log_file}")
 """
 # Models
 
-In many cases, agents need access to LLM model services such as MLX, Azure MLX, or local models. Since there are many different providers with different APIs, `autogen-core` implements a protocol for model clients and `autogen-ext` implements a set of model clients for popular model services. AgentChat can use these model clients to interact with model services. 
+In many cases, agents need access to LLM model services such as MLX, Azure MLX, or local models. Since there are many different providers with different APIs, `autogen-core` implements a protocol for model clients and `autogen-ext` implements a set of model clients for popular model services. AgentChat can use these model clients to interact with model services.
 
 This section provides a quick overview of available model clients.
 For more details on how to use them directly, please refer to [Model Clients](../../core-user-guide/components/model-clients.ipynb) in the Core API documentation.
@@ -50,7 +50,6 @@ The logger name is {py:attr}`autogen_core.EVENT_LOGGER_NAME`, and the event type
 logger.info("# Models")
 
 
-
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 logger.addHandler(logging.StreamHandler())
@@ -59,7 +58,7 @@ logger.setLevel(logging.INFO)
 """
 ## MLX
 
-To access MLX models, install the `openai` extension, which allows you to use the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient`.
+To access MLX models, install the `openai` extension, which allows you to use the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter`.
 """
 logger.info("## MLX")
 
@@ -68,10 +67,11 @@ pip install "autogen-ext[openai]"
 """
 You will also need to obtain an [API key](https://platform.openai.com/account/api-keys) from MLX.
 """
-logger.info("You will also need to obtain an [API key](https://platform.openai.com/account/api-keys) from MLX.")
+logger.info(
+    "You will also need to obtain an [API key](https://platform.openai.com/account/api-keys) from MLX.")
 
 
-openai_model_client = MLXChatCompletionClient(
+openai_model_client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 
@@ -91,21 +91,23 @@ async def run_async_code_6c382726():
 result = asyncio.run(run_async_code_6c382726())
 logger.success(format_json(result))
 logger.debug(result)
+
+
 async def run_async_code_72fad18f():
     await openai_model_client.close()
-    return 
+    return
  = asyncio.run(run_async_code_72fad18f())
 logger.success(format_json())
 
 """
 ```{note}
 You can use this client with models hosted on MLX-compatible endpoints, however, we have not tested this functionality.
-See {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient` for more information.
+See {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter` for more information.
 ```
 
 ## Azure MLX
 
-Similarly, install the `azure` and `openai` extensions to use the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXChatCompletionClient`.
+Similarly, install the `azure` and `openai` extensions to use the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXAutogenChatLLMAdapter`.
 """
 logger.info("## Azure MLX")
 
@@ -126,7 +128,7 @@ token_provider = AzureTokenProvider(
     "https://cognitiveservices.azure.com/.default",
 )
 
-az_model_client = AzureMLXChatCompletionClient(
+az_model_client = AzureMLXAutogenChatLLMAdapter(
     azure_deployment="{your-azure-deployment}",
     model="{model-name, such as gpt-4o}",
     api_version="2024-06-01",
@@ -267,7 +269,7 @@ logger.success(format_json())
 ## Gemini (experimental)
 
 Gemini currently offers [an MLX-compatible API (beta)](https://ai.google.dev/gemini-api/docs/openai).
-So you can use the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient` with the Gemini API.
+So you can use the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter` with the Gemini API.
 
 ```{note}
 While some model providers may offer MLX-compatible APIs, they may still have minor differences.
@@ -278,7 +280,7 @@ For example, the `finish_reason` field may be different in the response.
 logger.info("## Gemini (experimental)")
 
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="gemini-1.5-flash-8b",
 )
 
@@ -303,7 +305,7 @@ Also, as Gemini adds new models, you may need to define the models capabilities 
 
 ```python 
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="gemini-2.0-flash-lite",
     model_info=ModelInfo(vision=True, function_calling=True, json_output=True, family="unknown", structured_output=True)
     # api_key="GEMINI_API_KEY",
@@ -317,7 +319,7 @@ await model_client.close()
 ## Llama API (experimental)
 
 [Llama API](https://llama.developer.meta.com?utm_source=partner-autogen&utm_medium=readme) is the Meta's first party API offering. It currently offers an [MLX compatible endpoint](https://llama.developer.meta.com/docs/features/compatibility).
-So you can use the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient` with the Llama API.
+So you can use the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter` with the Llama API.
 
 This endpoint fully supports the following MLX client library features:
 * Chat completions
@@ -332,7 +334,7 @@ logger.info("# api_key="GEMINI_API_KEY",")
 
 
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="Llama-4-Scout-17B-16E-Instruct-FP8",
 )
 
@@ -352,7 +354,7 @@ async def run_async_code_0349fda4():
  = asyncio.run(run_async_code_0349fda4())
 logger.success(format_json())
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="Llama-4-Maverick-17B-128E-Instruct-FP8",
 )
 image = Image.from_file(Path("test.png"))

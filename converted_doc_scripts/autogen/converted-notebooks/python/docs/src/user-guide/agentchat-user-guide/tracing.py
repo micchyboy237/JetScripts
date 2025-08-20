@@ -5,7 +5,7 @@ from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermi
 from autogen_agentchat.teams import SelectorGroupChat
 from autogen_agentchat.ui import Console
 from autogen_core import SingleThreadedAgentRuntime
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -72,10 +72,12 @@ In the following section, we will review how to enable tracing with an AutoGen G
 logger.info("# Tracing and Observability")
 
 
-otel_exporter = OTLPSpanExporter(endpoint="http://localhost:4317", insecure=True)
+otel_exporter = OTLPSpanExporter(
+    endpoint="http://localhost:4317", insecure=True)
 span_processor = BatchSpanProcessor(otel_exporter)
 
-tracer_provider = TracerProvider(resource=Resource({"service.name": "autogen-test-agentchat"}))
+tracer_provider = TracerProvider(resource=Resource(
+    {"service.name": "autogen-test-agentchat"}))
 tracer_provider.add_span_processor(span_processor)
 trace.set_tracer_provider(tracer_provider)
 
@@ -93,8 +95,8 @@ To disable the agent runtime telemetry, you can set the `trace_provider` to
 Additionally, you can set the environment variable `AUTOGEN_DISABLE_RUNTIME_TRACING` to `true` to disable the agent runtime telemetry if you don't have access to the runtime constructor. For example, if you are using `ComponentConfig`.
 ```
 """
-logger.info("All of the code to create a [team](./tutorial/teams.ipynb) should already be familiar to you.")
-
+logger.info(
+    "All of the code to create a [team](./tutorial/teams.ipynb) should already be familiar to you.")
 
 
 def search_web_tool(query: str) -> str:
@@ -117,7 +119,8 @@ def percentage_change_tool(start: float, end: float) -> float:
 
 
 async def main() -> None:
-    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+    model_client = MLXAutogenChatLLMAdapter(
+        model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
     tracer = trace.get_tracer("tracing-autogen-agentchat")
 
@@ -186,7 +189,8 @@ async def main() -> None:
         task = "Who was the Miami Heat player with the highest points in the 2006-2007 season, and what was the percentage change in his total rebounds between the 2007-2008 and 2008-2009 seasons?"
 
         runtime = SingleThreadedAgentRuntime(
-            tracer_provider=trace.NoOpTracerProvider(),  # Disable telemetry for runtime.
+            # Disable telemetry for runtime.
+            tracer_provider=trace.NoOpTracerProvider(),
         )
         runtime.start()
 
@@ -198,9 +202,10 @@ async def main() -> None:
             allow_repeated_speaker=True,
             runtime=runtime,
         )
+
         async def run_async_code_63a12af3():
             await Console(team.run_stream(task=task))
-            return 
+            return
          = asyncio.run(run_async_code_63a12af3())
         logger.success(format_json())
 

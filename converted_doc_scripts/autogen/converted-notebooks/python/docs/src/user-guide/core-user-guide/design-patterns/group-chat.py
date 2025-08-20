@@ -20,7 +20,7 @@ SystemMessage,
 UserMessage,
 )
 from autogen_core.tools import FunctionTool
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from pydantic import BaseModel
 from rich.console import Console
@@ -45,8 +45,8 @@ logger.info(f"Logs: {log_file}")
 # Group Chat
 
 Group chat is a design pattern where a group of agents share a common thread
-of messages: they all subscribe and publish to the same topic. 
-Each participant agent is specialized for a particular task, 
+of messages: they all subscribe and publish to the same topic.
+Each participant agent is specialized for a particular task,
 such as writer, illustrator, and editor
 in a collaborative writing task.
 You can also include an agent to represent a human user to help guide the
@@ -57,10 +57,10 @@ is sequential -- only one agent is working at a time.
 Under the hood, the order of turns is maintained by a Group Chat Manager agent,
 which selects the next agent to speak upon receiving a message.
 The exact algorithm for selecting the next agent can vary based on your
-application requirements. 
+application requirements.
 Typically, a round-robin algorithm or a selector with an LLM model is used.
 
-Group chat is useful for dynamically decomposing a complex task into smaller ones 
+Group chat is useful for dynamically decomposing a complex task into smaller ones
 that can be handled by specialized agents with well-defined roles.
 It is also possible to nest group chats into a hierarchy with each participant
 a recursive group chat.
@@ -86,9 +86,6 @@ We will be using the [rich](https://github.com/Textualize/rich) library to displ
 logger.info("# Group Chat")
 
 
-
-
-
 """
 ## Message Protocol
 
@@ -104,12 +101,14 @@ The following diagram illustrates steps 2 to 4 above.
 """
 logger.info("## Message Protocol")
 
+
 class GroupChatMessage(BaseModel):
     body: UserMessage
 
 
 class RequestToSpeak(BaseModel):
     pass
+
 
 """
 ## Base Group Chat Agent
@@ -118,6 +117,7 @@ Let's first define the agent class that only uses LLM models to generate text.
 This is will be used as the base class for all AI agents in the group chat.
 """
 logger.info("## Base Group Chat Agent")
+
 
 class BaseGroupChatAgent(RoutedAgent):
     """A group chat participant using an LLM."""
@@ -139,7 +139,8 @@ class BaseGroupChatAgent(RoutedAgent):
     async def handle_message(self, message: GroupChatMessage, ctx: MessageContext) -> None:
         self._chat_history.extend(
             [
-                UserMessage(content=f"Transferred to {message.body.source}", source="system"),
+                UserMessage(
+                    content=f"Transferred to {message.body.source}", source="system"),
                 message.body,
             ]
         )
@@ -148,8 +149,10 @@ class BaseGroupChatAgent(RoutedAgent):
     async def handle_request_to_speak(self, message: RequestToSpeak, ctx: MessageContext) -> None:
         Console().logger.debug(Markdown(f"### {self.id.type}: "))
         self._chat_history.append(
-            UserMessage(content=f"Transferred to {self.id.type}, adopt the persona immediately.", source="system")
+            UserMessage(
+                content=f"Transferred to {self.id.type}, adopt the persona immediately.", source="system")
         )
+
         async def run_async_code_1b41af29():
             async def run_async_code_c1d3ff7b():
                 completion = await self._model_client.create([self._system_message] + self._chat_history)
@@ -160,12 +163,15 @@ class BaseGroupChatAgent(RoutedAgent):
         completion = asyncio.run(run_async_code_1b41af29())
         logger.success(format_json(completion))
         assert isinstance(completion.content, str)
-        self._chat_history.append(AssistantMessage(content=completion.content, source=self.id.type))
+        self._chat_history.append(AssistantMessage(
+            content=completion.content, source=self.id.type))
         Console().logger.debug(Markdown(completion.content))
         await self.publish_message(
-            GroupChatMessage(body=UserMessage(content=completion.content, source=self.id.type)),
+            GroupChatMessage(body=UserMessage(
+                content=completion.content, source=self.id.type)),
             topic_id=DefaultTopicId(type=self._group_chat_topic_type),
         )
+
 
 """
 ## Writer and Editor Agents
@@ -174,6 +180,7 @@ Using the base class, we can define the writer and editor agents with
 different system messages.
 """
 logger.info("## Writer and Editor Agents")
+
 
 class WriterAgent(BaseGroupChatAgent):
     def __init__(self, description: str, group_chat_topic_type: str, model_client: ChatCompletionClient) -> None:
@@ -195,6 +202,7 @@ class EditorAgent(BaseGroupChatAgent):
             "Approve if the task is completed and the draft and illustration meets user's requirements.",
         )
 
+
 """
 ## Illustrator Agent with Image Generation
 
@@ -204,6 +212,7 @@ We set up the image generator as a tool using {py:class}`~autogen_core.tools.Fun
 wrapper, and use a model client to make the tool call.
 """
 logger.info("## Illustrator Agent with Image Generation")
+
 
 class IllustratorAgent(BaseGroupChatAgent):
     def __init__(
@@ -229,6 +238,7 @@ class IllustratorAgent(BaseGroupChatAgent):
         self, character_appearence: str, style_attributes: str, worn_and_carried: str, scenario: str
     ) -> str:
         prompt = f"Digital painting of a {character_appearence} character with {style_attributes}. Wearing {worn_and_carried}, {scenario}."
+
         async def async_func_24():
             response = await self._image_client.images.generate(
                 prompt=prompt, model="dall-e-3", response_format="b64_json", size="1024x1024"
@@ -239,11 +249,14 @@ class IllustratorAgent(BaseGroupChatAgent):
         return response.data[0].b64_json  # type: ignore
 
     @message_handler
-    async def handle_request_to_speak(self, message: RequestToSpeak, ctx: MessageContext) -> None:  # type: ignore
+    # type: ignore
+    async def handle_request_to_speak(self, message: RequestToSpeak, ctx: MessageContext) -> None:
         Console().logger.debug(Markdown(f"### {self.id.type}: "))
         self._chat_history.append(
-            UserMessage(content=f"Transferred to {self.id.type}, adopt the persona immediately.", source="system")
+            UserMessage(
+                content=f"Transferred to {self.id.type}, adopt the persona immediately.", source="system")
         )
+
         async def async_func_35():
             completion = await self._model_client.create(
                 [self._system_message] + self._chat_history,
@@ -261,6 +274,7 @@ class IllustratorAgent(BaseGroupChatAgent):
         for tool_call in completion.content:
             arguments = json.loads(tool_call.arguments)
             Console().logger.debug(arguments)
+
             async def run_async_code_9dce6c63():
                 async def run_async_code_ff9fba43():
                     result = await self._image_gen_tool.run_json(arguments, ctx.cancellation_token)
@@ -270,14 +284,17 @@ class IllustratorAgent(BaseGroupChatAgent):
                 return result
             result = asyncio.run(run_async_code_9dce6c63())
             logger.success(format_json(result))
-            image = Image.from_base64(self._image_gen_tool.return_value_as_string(result))
+            image = Image.from_base64(
+                self._image_gen_tool.return_value_as_string(result))
             image = Image.from_pil(image.image.resize((256, 256)))
             display(image.image)  # type: ignore
             images.append(image)
         await self.publish_message(
-            GroupChatMessage(body=UserMessage(content=images, source=self.id.type)),
+            GroupChatMessage(body=UserMessage(
+                content=images, source=self.id.type)),
             DefaultTopicId(type=self._group_chat_topic_type),
         )
+
 
 """
 ## User Agent
@@ -291,6 +308,7 @@ and subscribe to responses from the frontend.
 """
 logger.info("## User Agent")
 
+
 class UserAgent(RoutedAgent):
     def __init__(self, description: str, group_chat_topic_type: str) -> None:
         super().__init__(description=description)
@@ -302,25 +320,28 @@ class UserAgent(RoutedAgent):
 
     @message_handler
     async def handle_request_to_speak(self, message: RequestToSpeak, ctx: MessageContext) -> None:
-        user_input = input("Enter your message, type 'APPROVE' to conclude the task: ")
+        user_input = input(
+            "Enter your message, type 'APPROVE' to conclude the task: ")
         Console().logger.debug(Markdown(f"### User: \n{user_input}"))
         await self.publish_message(
-            GroupChatMessage(body=UserMessage(content=user_input, source=self.id.type)),
+            GroupChatMessage(body=UserMessage(
+                content=user_input, source=self.id.type)),
             DefaultTopicId(type=self._group_chat_topic_type),
         )
+
 
 """
 ## Group Chat Manager
 
 Lastly, we define the `GroupChatManager` agent which manages the group chat
 and selects the next agent to speak using an LLM.
-The group chat manager checks if the editor has approved the draft by 
+The group chat manager checks if the editor has approved the draft by
 looking for the `"APPORVED"` keyword in the message. If the editor has approved
 the draft, the group chat manager stops selecting the next speaker, and the group chat ends.
 
 The group chat manager's constructor takes a list of participants' topic types
 as an argument.
-To prompt the next speaker to work, 
+To prompt the next speaker to work,
 the `GroupChatManager` agent publishes a `RequestToSpeak` message to the next participant's topic.
 
 In this example, we also make sure the group chat manager always picks a different
@@ -328,6 +349,7 @@ participant to speak next, by keeping track of the previous speaker.
 This helps to ensure the group chat is not dominated by a single participant.
 """
 logger.info("## Group Chat Manager")
+
 
 class GroupChatManager(RoutedAgent):
     def __init__(
@@ -394,6 +416,7 @@ Read the above conversation. Then select the next role from {participants} to pl
                 ),
             )
         )
+
         async def run_async_code_ea600906():
             async def run_async_code_ec3f3246():
                 completion = await self._model_client.create([system_message], cancellation_token=ctx.cancellation_token)
@@ -409,9 +432,10 @@ Read the above conversation. Then select the next role from {participants} to pl
             if topic_type.lower() in completion.content.lower():
                 selected_topic_type = topic_type
                 self._previous_participant_topic_type = selected_topic_type
+
                 async def run_async_code_5843036a():
                     await self.publish_message(RequestToSpeak(), DefaultTopicId(type=selected_topic_type))
-                    return 
+                    return
                  = asyncio.run(run_async_code_5843036a())
                 logger.success(format_json())
                 return
@@ -442,7 +466,7 @@ writer_description = "Writer for creating any text content."
 user_description = "User for providing final approval."
 illustrator_description = "An illustrator for creating images."
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 

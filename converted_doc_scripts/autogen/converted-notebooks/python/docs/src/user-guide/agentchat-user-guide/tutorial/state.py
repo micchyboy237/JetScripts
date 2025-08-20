@@ -6,7 +6,7 @@ from autogen_agentchat.messages import TextMessage
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.ui import Console
 from autogen_core import CancellationToken
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 import json
 import os
@@ -21,22 +21,23 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# Managing State 
+# Managing State
 
 So far, we have discussed how to build components in a multi-agent application - agents, teams, termination conditions. In many cases, it is useful to save the state of these components to disk and load them back later. This is particularly useful in a web application where stateless endpoints respond to requests and need to load the state of the application from persistent storage.
 
-In this notebook, we will discuss how to save and load the state of agents, teams, and termination conditions. 
- 
+In this notebook, we will discuss how to save and load the state of agents, teams, and termination conditions.
+
 
 ## Saving and Loading Agents
 
-We can get the state of an agent by calling {py:meth}`~autogen_agentchat.agents.AssistantAgent.save_state` method on 
+We can get the state of an agent by calling {py:meth}`~autogen_agentchat.agents.AssistantAgent.save_state` method on
 an {py:class}`~autogen_agentchat.agents.AssistantAgent`.
 """
 logger.info("# Managing State")
 
 
-model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+model_client = MLXAutogenChatLLMAdapter(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 assistant_agent = AssistantAgent(
     name="assistant_agent",
@@ -44,17 +45,21 @@ assistant_agent = AssistantAgent(
     model_client=model_client,
 )
 
+
 async def async_func_16():
     response = await assistant_agent.on_messages(
-        [TextMessage(content="Write a 3 line poem on lake tangayika", source="user")], CancellationToken()
+        [TextMessage(content="Write a 3 line poem on lake tangayika",
+                     source="user")], CancellationToken()
     )
     return response
 response = asyncio.run(async_func_16())
 logger.success(format_json(response))
 logger.debug(response.chat_message)
+
+
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
+    return
  = asyncio.run(run_async_code_0349fda4())
 logger.success(format_json())
 
@@ -69,7 +74,7 @@ agent_state = asyncio.run(run_async_code_5d9ca148())
 logger.success(format_json(agent_state))
 logger.debug(agent_state)
 
-model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 new_assistant_agent = AssistantAgent(
     name="assistant_agent",
@@ -112,7 +117,7 @@ We will begin by creating a simple {py:class}`~autogen_agentchat.teams.RoundRobi
 """
 logger.info("## Saving and Loading Teams")
 
-model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 assistant_agent = AssistantAgent(
     name="assistant_agent",

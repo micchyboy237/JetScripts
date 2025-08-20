@@ -5,7 +5,7 @@ from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage,
 from autogen_ext.experimental.task_centric_memory import MemoryController
 from autogen_ext.experimental.task_centric_memory.utils import PageLogger
 from dataclasses import dataclass
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from typing import List
 import asyncio
@@ -37,7 +37,7 @@ Install AutoGen and its extension package as follows:
 """
 logger.info("# Task-Centric Memory")
 
-pip install -U "autogen-agentchat" "autogen-ext[openai]" "autogen-ext[task-centric-memory]"
+pip install - U "autogen-agentchat" "autogen-ext[openai]" "autogen-ext[task-centric-memory]"
 
 """
 ## Quickstart
@@ -52,15 +52,18 @@ as illustrated by the diagram to the right.
 logger.info("## Quickstart")
 
 
-
 async def main() -> None:
-   client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
-   logger = PageLogger(config={"level": "DEBUG", "path": "./pagelogs/quickstart"})  # Optional, but very useful.
-   memory_controller = MemoryController(reset=True, client=client, logger=logger)
+   client = MLXAutogenChatLLMAdapter(
+       model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+   # Optional, but very useful.
+   logger = PageLogger(
+       config={"level": "DEBUG", "path": "./pagelogs/quickstart"})
+   memory_controller = MemoryController(
+       reset=True, client=client, logger=logger)
 
    async def run_async_code_72bc812c():
        await memory_controller.add_memo(task="What color do I like?", insight="Deep blue is my favorite color")
-       return 
+       return
     = asyncio.run(run_async_code_72bc812c())
    logger.success(format_json())
    async def run_async_code_ddbe4b6e():
@@ -153,7 +156,7 @@ class MemoryEnabledAgent(RoutedAgent):
 
 
 async def main() -> None:
-   client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+   client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
    logger = PageLogger(config={"level": "DEBUG", "path": "./pagelogs/quickstart2"})  # Optional, but very useful.
    memory_controller = MemoryController(reset=True, client=client, logger=logger)
 

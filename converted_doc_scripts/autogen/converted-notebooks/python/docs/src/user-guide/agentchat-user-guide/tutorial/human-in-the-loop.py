@@ -7,7 +7,7 @@ from autogen_agentchat.conditions import HandoffTermination, TextMentionTerminat
 from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.ui import Console
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -50,13 +50,13 @@ and include it in the team before running the team.
 The team will decide when to call the {py:class}`~autogen_agentchat.agents.UserProxyAgent`
 to ask for feedback from the user.
 
-For example in a {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat` team, 
+For example in a {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat` team,
 the {py:class}`~autogen_agentchat.agents.UserProxyAgent` is called in the order
 in which it is passed to the team, while in a {py:class}`~autogen_agentchat.teams.SelectorGroupChat`
-team, the selector prompt or selector function determines when the 
+team, the selector prompt or selector function determines when the
 {py:class}`~autogen_agentchat.agents.UserProxyAgent` is called.
 
-The following diagram illustrates how you can use 
+The following diagram illustrates how you can use
 {py:class}`~autogen_agentchat.agents.UserProxyAgent`
 to get feedback from the user during a team's run:
 
@@ -85,18 +85,22 @@ in a {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat` for a poetry gener
 logger.info("# Human-in-the-Loop")
 
 
-model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
+model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct")
 assistant = AssistantAgent("assistant", model_client=model_client)
-user_proxy = UserProxyAgent("user_proxy", input_func=input)  # Use input() to get user input from console.
+# Use input() to get user input from console.
+user_proxy = UserProxyAgent("user_proxy", input_func=input)
 
 termination = TextMentionTermination("APPROVE")
 
-team = RoundRobinGroupChat([assistant, user_proxy], termination_condition=termination)
+team = RoundRobinGroupChat([assistant, user_proxy],
+                           termination_condition=termination)
 
 stream = team.run_stream(task="Write a 4-line poem about the ocean.")
+
+
 async def run_async_code_71db6073():
     await Console(stream)
-    return 
+    return
  = asyncio.run(run_async_code_71db6073())
 logger.success(format_json())
 async def run_async_code_0349fda4():
@@ -190,7 +194,7 @@ with a maximum of 1 turn:
 logger.info("# Create user proxy with custom input function")
 
 
-model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
+model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct")
 assistant = AssistantAgent("assistant", model_client=model_client)
 
 team = RoundRobinGroupChat([assistant], max_turns=1)
@@ -233,7 +237,7 @@ to use the handoff feature.
 logger.info("### Using Termination Conditions")
 
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 

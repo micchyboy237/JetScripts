@@ -17,7 +17,7 @@ from autogen_core.model_context import UnboundedChatCompletionContext
 from autogen_core.models import AssistantMessage, RequestUsage, UserMessage
 from google import genai
 from google.genai import types
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from pydantic import BaseModel
 from typing import AsyncGenerator, List, Sequence
@@ -38,10 +38,10 @@ logger.info(f"Logs: {log_file}")
 """
 # Custom Agents
 
-You may have agents with behaviors that do not fall into a preset. 
+You may have agents with behaviors that do not fall into a preset.
 In such cases, you can build custom agents.
 
-All agents in AgentChat inherit from {py:class}`~autogen_agentchat.agents.BaseChatAgent` 
+All agents in AgentChat inherit from {py:class}`~autogen_agentchat.agents.BaseChatAgent`
 class and implement the following abstract methods and attributes:
 
 - {py:meth}`~autogen_agentchat.agents.BaseChatAgent.on_messages`: The abstract method that defines the behavior of the agent in response to messages. This method is called when the agent is asked to provide a response in {py:meth}`~autogen_agentchat.agents.BaseChatAgent.run`. It returns a {py:class}`~autogen_agentchat.base.Response` object.
@@ -61,8 +61,6 @@ In this example, we create a simple agent that counts down from a given number t
 and produces a stream of messages with the current count.
 """
 logger.info("# Custom Agents")
-
-
 
 
 class CountDownAgent(BaseChatAgent):
@@ -108,7 +106,7 @@ async def run_countdown_agent() -> None:
 
 async def run_async_code_66eebead():
     await run_countdown_agent()
-    return 
+    return
  = asyncio.run(run_async_code_66eebead())
 logger.success(format_json())
 
@@ -188,7 +186,7 @@ async def run_number_agents() -> None:
 
     selector_group_chat = SelectorGroupChat(
         [add_agent, multiply_agent, subtract_agent, divide_agent, identity_agent],
-        model_client=MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"),
+        model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"),
         termination_condition=termination_condition,
         allow_repeated_speaker=True,  # Allow the same agent to speak multiple times, necessary for this task.
         selector_prompt=(
@@ -339,7 +337,7 @@ Now, let us explore how to use this custom agent as part of a team in AgentChat.
 logger.info("In the example above, we have chosen to provide `model`, `api_key` and `system_message` as arguments - you can choose to provide any other arguments that are required by the model client you are using or fits with your application design.")
 
 
-model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
+model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct")
 
 primary_agent = AssistantAgent(
     "primary",

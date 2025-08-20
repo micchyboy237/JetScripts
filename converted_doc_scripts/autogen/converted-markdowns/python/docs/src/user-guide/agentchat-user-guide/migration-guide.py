@@ -45,8 +45,8 @@ from autogen_ext.cache_store.diskcache import DiskCacheStore
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.models.cache import ChatCompletionCache, CHAT_CACHE_VALUE_TYPE
 from diskcache import Cache
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import AzureMLXChatCompletionClient
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import AzureMLXAutogenChatLLMAdapter
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from pathlib import Path
 from typing import Any, Dict, List, Literal
@@ -80,8 +80,8 @@ logger.info("# Migration Guide for v0.2 to v0.4")
 
 We no longer have admin access to the `pyautogen` PyPI package, and
 the releases from that package are no longer from Microsoft since version 0.2.34.
-To continue use the `v0.2` version of AutoGen, install it using `autogen-agentchat~=0.2`.
-Please read our [clarification statement](https://github.com/microsoft/autogen/discussions/4217) regarding forks.
+To continue use the `v0.2` version of AutoGen, install it using `autogen-agentchat~ = 0.2`.
+Please read our[clarification statement](https: // github.com/microsoft/autogen/discussions/4217) regarding forks.
 
 """
 ## What is `v0.4`?
@@ -171,10 +171,10 @@ logger.info("### Use component config")
 
 
 config = {
-    "provider": "MLXChatCompletionClient",
+    "provider": "MLXAutogenChatLLMAdapter",
     "config": {
         "model": "gpt-4o",
-        "api_key": "sk-xxx" # os.environ["...']
+        "api_key": "sk-xxx"  # os.environ["...']
     }
 }
 
@@ -188,7 +188,8 @@ Open AI:
 logger.info("### Use model client class directly")
 
 
-model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", api_key="sk-xxx")
+model_client = MLXAutogenChatLLMAdapter(
+    model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", api_key="sk-xxx")
 
 """
 Azure MLX:
@@ -196,7 +197,7 @@ Azure MLX:
 logger.info("Azure MLX:")
 
 
-model_client = AzureMLXChatCompletionClient(
+model_client = AzureMLXAutogenChatLLMAdapter(
     azure_deployment="gpt-4o",
     azure_endpoint="https://<your-endpoint>.openai.azure.com/",
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
@@ -205,17 +206,17 @@ model_client = AzureMLXChatCompletionClient(
 )
 
 """
-Read more on {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient`.
+Read more on {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter`.
 
 ## Model Client for MLX-Compatible APIs
 
-You can use a the `MLXChatCompletionClient` to connect to an MLX-Compatible API,
+You can use a the `MLXAutogenChatLLMAdapter` to connect to an MLX-Compatible API,
 but you need to specify the `base_url` and `model_info`.
 """
 logger.info("## Model Client for MLX-Compatible APIs")
 
 
-custom_model_client = MLXChatCompletionClient(
+custom_model_client = MLXAutogenChatLLMAdapter(
     model="custom-model-name",
     base_url="https://custom-model.com/reset/of/the/path",
     api_key="placeholder",
@@ -258,9 +259,10 @@ In `v0.4`, the cache is not enabled by default, to use it you need to use a
 
 You can use a {py:class}`~autogen_ext.cache_store.diskcache.DiskCacheStore` or {py:class}`~autogen_ext.cache_store.redis.RedisStore` to store the cache.
 """
-logger.info("In `v0.4`, the cache is not enabled by default, to use it you need to use a")
+logger.info(
+    "In `v0.4`, the cache is not enabled by default, to use it you need to use a")
 
-pip install -U "autogen-ext[openai, diskcache, redis]"
+pip install - U "autogen-ext[openai, diskcache, redis]"
 
 """
 Here's an example of using `diskcache` for local caching:
@@ -268,11 +270,10 @@ Here's an example of using `diskcache` for local caching:
 logger.info("Here's an example of using `diskcache` for local caching:")
 
 
-
-
 async def main():
     with tempfile.TemporaryDirectory() as tmpdirname:
-        openai_model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+        openai_model_client = MLXAutogenChatLLMAdapter(
+            model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
         cache_store = DiskCacheStore[CHAT_CACHE_VALUE_TYPE](Cache(tmpdirname))
         cache_client = ChatCompletionCache(openai_model_client, cache_store)
@@ -287,6 +288,7 @@ async def main():
         response = asyncio.run(run_async_code_e23dea5e())
         logger.success(format_json(response))
         logger.debug(response)  # Should print response from MLX
+
         async def run_async_code_e23dea5e():
             async def run_async_code_ef3d363b():
                 response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
@@ -297,9 +299,10 @@ async def main():
         response = asyncio.run(run_async_code_e23dea5e())
         logger.success(format_json(response))
         logger.debug(response)  # Should print cached response
+
         async def run_async_code_54283016():
             await openai_model_client.close()
-            return 
+            return
          = asyncio.run(run_async_code_54283016())
         logger.success(format_json())
 
@@ -332,7 +335,7 @@ In `v0.4`, it is similar, but you need to specify `model_client` instead of `llm
 logger.info("In `v0.4`, it is similar, but you need to specify `model_client` instead of `llm_config`.")
 
 
-model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", api_key="sk-xxx", seed=42, temperature=0)
+model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", api_key="sk-xxx", seed=42, temperature=0)
 
 assistant = AssistantAgent(
     name="assistant",
@@ -352,7 +355,7 @@ logger.info("However, the usage is somewhat different. In `v0.4`, instead of cal
 
 
 async def main() -> None:
-    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
+    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     assistant = AssistantAgent(
         name="assistant",
@@ -397,7 +400,7 @@ logger.info("## Multi-Modal Agent")
 
 
 async def main() -> None:
-    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
+    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     assistant = AssistantAgent(
         name="assistant",
@@ -498,7 +501,7 @@ chroma_user_memory = ChromaDBVectorMemory(
 
 assistant_agent = AssistantAgent(
     name="assistant_agent",
-    model_client=MLXChatCompletionClient(
+    model_client=MLXAutogenChatLLMAdapter(
         model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     ),
     tools=[get_weather],
@@ -574,7 +577,7 @@ logger.info("## Save and Load Agent State")
 
 
 async def main() -> None:
-    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
+    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     assistant = AssistantAgent(
         name="assistant",
@@ -689,7 +692,7 @@ logger.info("To get the same behavior in `v0.4`, you can use the {py:class}`~aut
 
 
 async def main() -> None:
-    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
+    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     assistant = AssistantAgent(
         name="assistant",
@@ -777,7 +780,7 @@ def get_weather(city: str) -> str: # Async tool is possible too.
     return f"The weather in {city} is 72 degree and sunny."
 
 async def main() -> None:
-    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
+    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
     assistant = AssistantAgent(
         name="assistant",
         system_message="You are a helpful assistant. You can call tools to help user.",
@@ -995,7 +998,7 @@ logger.info("In `v0.4`, you can use the {py:class}`~autogen_agentchat.teams.Roun
 
 
 async def main() -> None:
-    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
+    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     writer = AssistantAgent(
         name="writer",
@@ -1051,7 +1054,7 @@ In `v0.4`, you can simply call `run` or `run_stream` again with the same group c
 logger.info("## Group Chat with Resume")
 
 
-def create_team(model_client : MLXChatCompletionClient) -> RoundRobinGroupChat:
+def create_team(model_client : MLXAutogenChatLLMAdapter) -> RoundRobinGroupChat:
     writer = AssistantAgent(
         name="writer",
         description="A writer.",
@@ -1074,7 +1077,7 @@ def create_team(model_client : MLXChatCompletionClient) -> RoundRobinGroupChat:
 
 
 async def main() -> None:
-    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
+    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
     group_chat = create_team(model_client)
 
     stream = group_chat.run_stream(task="Write a short story about a robot that discovers it has feelings.")
@@ -1183,7 +1186,7 @@ def search_web_tool(query: str) -> str:
 def percentage_change_tool(start: float, end: float) -> float:
     return ((end - start) / start) * 100
 
-def create_team(model_client : MLXChatCompletionClient) -> SelectorGroupChat:
+def create_team(model_client : MLXAutogenChatLLMAdapter) -> SelectorGroupChat:
     planning_agent = AssistantAgent(
         "PlanningAgent",
         description="An agent for planning tasks, this agent should be the first to engage when given a new task.",
@@ -1239,14 +1242,14 @@ def create_team(model_client : MLXChatCompletionClient) -> SelectorGroupChat:
 
     team = SelectorGroupChat(
         [planning_agent, web_search_agent, data_analyst_agent],
-        model_client=MLXChatCompletionClient(model="llama-3.2-3b-instruct"), # Use a smaller model for the selector.
+        model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct"), # Use a smaller model for the selector.
         termination_condition=termination,
         selector_func=selector_func,
     )
     return team
 
 async def main() -> None:
-    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
     team = create_team(model_client)
     task = "Who was the Miami Heat player with the highest points in the 2006-2007 season, and what was the percentage change in his total rebounds between the 2007-2008 and 2008-2009 seasons?"
     async def run_async_code_289d0f72():
@@ -1417,7 +1420,7 @@ logger.info("## Sequential Chat")
 
 
 async def main() -> None:
-    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
+    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", seed=42, temperature=0)
 
     assistant = AssistantAgent(
         name="assistant",

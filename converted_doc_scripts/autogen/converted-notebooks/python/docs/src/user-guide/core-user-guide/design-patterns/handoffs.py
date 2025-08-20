@@ -19,7 +19,7 @@ SystemMessage,
 UserMessage,
 )
 from autogen_core.tools import FunctionTool, Tool
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from pydantic import BaseModel
 from typing import List, Tuple
@@ -81,7 +81,6 @@ Let's implement this scenario using AutoGen Core. First, we need to import the n
 logger.info("# Handoffs")
 
 
-
 """
 ## Message Protocol
 
@@ -93,6 +92,7 @@ We are using event-driven pub-sub communication, so these message types will be 
 - `AgentResponse` is a message published by the AI agents and the Human Agent, it also contains the chat history as well as a topic type for the customer to reply to.
 """
 logger.info("## Message Protocol")
+
 
 class UserLogin(BaseModel):
     pass
@@ -106,10 +106,11 @@ class AgentResponse(BaseModel):
     reply_to_topic_type: str
     context: List[LLMMessage]
 
+
 """
 ## AI Agent
 
-We start with the `AIAgent` class, which is the class for all AI agents 
+We start with the `AIAgent` class, which is the class for all AI agents
 (i.e., Triage, Sales, and Issue and Repair Agents) in the multi-agent chatbot.
 An `AIAgent` uses a {py:class}`~autogen_core.models.ChatCompletionClient`
 to generate responses.
@@ -128,6 +129,7 @@ by publishing to the `user_topic_type`.
 """
 logger.info("## AI Agent")
 
+
 class AIAgent(RoutedAgent):
     def __init__(
         self,
@@ -144,7 +146,8 @@ class AIAgent(RoutedAgent):
         self._model_client = model_client
         self._tools = dict([(tool.name, tool) for tool in tools])
         self._tool_schema = [tool.schema for tool in tools]
-        self._delegate_tools = dict([(tool.name, tool) for tool in delegate_tools])
+        self._delegate_tools = dict([(tool.name, tool)
+                                    for tool in delegate_tools])
         self._delegate_tool_schema = [tool.schema for tool in delegate_tools]
         self._agent_topic_type = agent_topic_type
         self._user_topic_type = user_topic_type
@@ -160,7 +163,8 @@ class AIAgent(RoutedAgent):
             return llm_result
         llm_result = asyncio.run(async_func_23())
         logger.success(format_json(llm_result))
-        logger.debug(f"{'-'*80}\n{self.id.type}:\n{llm_result.content}", flush=True)
+        logger.debug(
+            f"{'-'*80}\n{self.id.type}:\n{llm_result.content}", flush=True)
         while isinstance(llm_result.content, list) and all(isinstance(m, FunctionCall) for m in llm_result.content):
             tool_call_results: List[FunctionExecutionResult] = []
             delegate_targets: List[Tuple[str, UserTask]] = []
@@ -176,9 +180,11 @@ class AIAgent(RoutedAgent):
                         return result
                     result = asyncio.run(run_async_code_89cda9aa())
                     logger.success(format_json(result))
-                    result_as_str = self._tools[call.name].return_value_as_string(result)
+                    result_as_str = self._tools[call.name].return_value_as_string(
+                        result)
                     tool_call_results.append(
-                        FunctionExecutionResult(call_id=call.id, content=result_as_str, is_error=False, name=call.name)
+                        FunctionExecutionResult(
+                            call_id=call.id, content=result_as_str, is_error=False, name=call.name)
                     )
                 elif call.name in self._delegate_tools:
                     async def run_async_code_55556d0a():
@@ -190,7 +196,8 @@ class AIAgent(RoutedAgent):
                         return result
                     result = asyncio.run(run_async_code_55556d0a())
                     logger.success(format_json(result))
-                    topic_type = self._delegate_tools[call.name].return_value_as_string(result)
+                    topic_type = self._delegate_tools[call.name].return_value_as_string(
+                        result)
                     delegate_messages = list(message.context) + [
                         AssistantMessage(content=[call], source=self.id.type),
                         FunctionExecutionResultMessage(
@@ -204,15 +211,18 @@ class AIAgent(RoutedAgent):
                             ]
                         ),
                     ]
-                    delegate_targets.append((topic_type, UserTask(context=delegate_messages)))
+                    delegate_targets.append(
+                        (topic_type, UserTask(context=delegate_messages)))
                 else:
                     raise ValueError(f"Unknown tool: {call.name}")
             if len(delegate_targets) > 0:
                 for topic_type, task in delegate_targets:
-                    logger.debug(f"{'-'*80}\n{self.id.type}:\nDelegating to {topic_type}", flush=True)
+                    logger.debug(
+                        f"{'-'*80}\n{self.id.type}:\nDelegating to {topic_type}", flush=True)
+
                     async def run_async_code_9a354ae7():
                         await self.publish_message(task, topic_id=TopicId(topic_type, source=self.id.key))
-                        return 
+                        return
                      = asyncio.run(run_async_code_9a354ae7())
                     logger.success(format_json())
             if len(tool_call_results) > 0:
@@ -423,7 +433,7 @@ escalate_to_human_tool = FunctionTool(escalate_to_human, description="Only call 
 We have defined the AI agents, the Human Agent, the User Agent, the tools, and the topic types.
 Now we can create the team of agents.
 
-For the AI agents, we use the {py:class}`~autogen_ext.models.MLXChatCompletionClient`
+For the AI agents, we use the {py:class}`~autogen_ext.models.MLXAutogenChatLLMAdapter`
 and `llama-3.2-3b-instruct` model.
 
 After creating the agent runtime, we register each of the agent by providing
@@ -441,7 +451,7 @@ logger.info("## Creating the team")
 
 runtime = SingleThreadedAgentRuntime()
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct",
 )
 

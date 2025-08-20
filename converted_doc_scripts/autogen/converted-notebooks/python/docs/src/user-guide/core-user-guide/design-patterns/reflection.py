@@ -1,4 +1,5 @@
 import asyncio
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.transformers.formatters import format_json
 from autogen_core import DefaultTopicId, SingleThreadedAgentRuntime
 from autogen_core import MessageContext, RoutedAgent, TopicId, default_subscription, message_handler
@@ -10,7 +11,6 @@ from autogen_core.models import (
     UserMessage,
 )
 from dataclasses import dataclass
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
 from jet.logger import CustomLogger
 from typing import Dict, List, Union
 import json
@@ -340,7 +340,7 @@ logger.info("## Running the Design Pattern")
 
 async def main():
     runtime = SingleThreadedAgentRuntime()
-    model_client = MLXChatCompletionClient(
+    model_client = MLXAutogenChatLLMAdapter(
         model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
     await ReviewerAgent.register(runtime, "ReviewerAgent", lambda: ReviewerAgent(model_client=model_client))

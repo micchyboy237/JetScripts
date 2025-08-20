@@ -6,7 +6,7 @@ from autogen_agentchat.teams import MagenticOneGroupChat
 from autogen_agentchat.ui import Console
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.teams.magentic_one import MagenticOne
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 import asyncio
 import os
@@ -48,11 +48,11 @@ logger.info("# Magentic-One")
 
 Using Magentic-One involves interacting with a digital world designed for humans, which carries inherent risks. To minimize these risks, consider the following precautions:
 
-1. **Use Containers**: Run all tasks in docker containers to isolate the agents and prevent direct system attacks.
-2. **Virtual Environment**: Use a virtual environment to run the agents and prevent them from accessing sensitive data.
-3. **Monitor Logs**: Closely monitor logs during and after execution to detect and mitigate risky behavior.
-4. **Human Oversight**: Run the examples with a human in the loop to supervise the agents and prevent unintended consequences.
-5. **Limit Access**: Restrict the agents' access to the internet and other resources to prevent unauthorized actions.
+1. ** Use Containers**: Run all tasks in docker containers to isolate the agents and prevent direct system attacks.
+2. ** Virtual Environment**: Use a virtual environment to run the agents and prevent them from accessing sensitive data.
+3. ** Monitor Logs**: Closely monitor logs during and after execution to detect and mitigate risky behavior.
+4. ** Human Oversight**: Run the examples with a human in the loop to supervise the agents and prevent unintended consequences.
+5. ** Limit Access**: Restrict the agents' access to the internet and other resources to prevent unauthorized actions.
 6. **Safeguard Data**: Ensure that the agents do not have access to sensitive data or resources that could be compromised. Do not share sensitive information with the agents.
 Be aware that agents may occasionally attempt risky actions, such as recruiting humans for help or accepting cookie agreements without human involvement. Always ensure agents are monitored and operate within a controlled environment to prevent unintended consequences. Moreover, be cautious that Magentic-One may be susceptible to prompt injection attacks from webpages.
 
@@ -79,7 +79,7 @@ logger.info("If you haven't done so already, go through the AgentChat tutorial t
 
 
 async def main() -> None:
-    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
     assistant = AssistantAgent(
         "Assistant",
@@ -115,7 +115,7 @@ The example code may download files from the internet, execute code, and interac
 
 
 async def main() -> None:
-    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
     surfer = MultimodalWebSurfer(
         "WebSurfer",
@@ -152,7 +152,7 @@ def approval_func(request: ApprovalRequest) -> ApprovalResponse:
 
 
 async def example_usage():
-    client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+    client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
     m1 = MagenticOne(client=client, approval_func=approval_func)
     task = "Write a Python script to fetch data from an API."
     async def run_async_code_53d18d93():

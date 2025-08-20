@@ -3,7 +3,7 @@ from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
 from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 import asyncio
 import os
@@ -41,14 +41,15 @@ AutoGen requires **Python 3.10 or later**.
 """
 logger.info("# AutoGen")
 
-pip install -U "autogen-agentchat" "autogen-ext[openai]"
+pip install - U "autogen-agentchat" "autogen-ext[openai]"
 
 """
 The current stable version is v0.4. If you are upgrading from AutoGen v0.2, please refer to the [Migration Guide](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/migration-guide.html) for detailed instructions on how to update your code and configurations.
 """
-logger.info("The current stable version is v0.4. If you are upgrading from AutoGen v0.2, please refer to the [Migration Guide](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/migration-guide.html) for detailed instructions on how to update your code and configurations.")
+logger.info(
+    "The current stable version is v0.4. If you are upgrading from AutoGen v0.2, please refer to the [Migration Guide](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/migration-guide.html) for detailed instructions on how to update your code and configurations.")
 
-pip install -U "autogenstudio"
+pip install - U "autogenstudio"
 
 """
 ## Quickstart
@@ -61,11 +62,13 @@ logger.info("## Quickstart")
 
 
 async def main() -> None:
-    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+    model_client = MLXAutogenChatLLMAdapter(
+        model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
     agent = AssistantAgent("assistant", model_client=model_client)
+
     async def run_async_code_ade8da1c():
         logger.debug(await agent.run(task="Say 'Hello World!'"))
-        return 
+        return
      = asyncio.run(run_async_code_ade8da1c())
     logger.success(format_json())
     async def run_async_code_3902376f():
@@ -86,7 +89,7 @@ logger.info("### MCP Server")
 
 
 async def main() -> None:
-    model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
     server_params = StdioServerParams(
         command="npx",
         args=[

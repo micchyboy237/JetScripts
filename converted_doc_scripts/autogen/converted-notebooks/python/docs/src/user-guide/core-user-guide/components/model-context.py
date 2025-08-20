@@ -4,7 +4,7 @@ from autogen_core import AgentId, MessageContext, RoutedAgent, SingleThreadedAge
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import AssistantMessage, ChatCompletionClient, SystemMessage, UserMessage
 from dataclasses import dataclass
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -33,24 +33,26 @@ Let's see an example that uses
 logger.info("## Model Context")
 
 
-
 @dataclass
 class Message:
     content: str
 
+
 class SimpleAgentWithContext(RoutedAgent):
     def __init__(self, model_client: ChatCompletionClient) -> None:
         super().__init__("A simple agent")
-        self._system_messages = [SystemMessage(content="You are a helpful AI assistant.")]
+        self._system_messages = [SystemMessage(
+            content="You are a helpful AI assistant.")]
         self._model_client = model_client
         self._model_context = BufferedChatCompletionContext(buffer_size=5)
 
     @message_handler
     async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
         user_message = UserMessage(content=message.content, source="user")
+
         async def run_async_code_b30e0c76():
             await self._model_context.add_message(user_message)
-            return 
+            return
          = asyncio.run(run_async_code_b30e0c76())
         logger.success(format_json())
         async def async_func_22():
@@ -74,7 +76,7 @@ Now let's try to ask follow up questions after the first one.
 """
 logger.info("Now let's try to ask follow up questions after the first one.")
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct",
 )
 

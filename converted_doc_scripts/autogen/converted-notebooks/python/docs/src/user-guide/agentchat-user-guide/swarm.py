@@ -5,7 +5,7 @@ from autogen_agentchat.conditions import HandoffTermination, TextMentionTerminat
 from autogen_agentchat.messages import HandoffMessage
 from autogen_agentchat.teams import Swarm
 from autogen_agentchat.ui import Console
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from typing import Any, Dict, List
 import os
@@ -22,9 +22,9 @@ logger.info(f"Logs: {log_file}")
 """
 # Swarm
 
-{py:class}`~autogen_agentchat.teams.Swarm` implements a team in which agents can hand off 
-task to other agents based on their capabilities. 
-It is a multi-agent design pattern first introduced by MLX in 
+{py:class}`~autogen_agentchat.teams.Swarm` implements a team in which agents can hand off
+task to other agents based on their capabilities.
+It is a multi-agent design pattern first introduced by MLX in
 [Swarm](https://github.com/openai/swarm).
 The key idea is to let agent delegate tasks to other agents using a special tool call, while
 all agents share the same message context.
@@ -41,7 +41,7 @@ in the Core API documentation and implement your own version of the Swarm patter
 ## How Does It Work?
 
 At its core, the {py:class}`~autogen_agentchat.teams.Swarm` team is a group chat
-where agents take turn to generate a response. 
+where agents take turn to generate a response.
 Similar to {py:class}`~autogen_agentchat.teams.SelectorGroupChat`
 and {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat`, participant agents
 broadcast their responses so all agents share the same message context.
@@ -72,8 +72,8 @@ capability of the model to generate handoffs. This means that the model must
 support tool calling. If the model does parallel tool calling, multiple handoffs
 may be generated at the same time. This can lead to unexpected behavior.
 To avoid this, you can disable parallel tool calling by configuring the model
-client. For {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient`
-and {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXChatCompletionClient`,
+client. For {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter`
+and {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXAutogenChatLLMAdapter`,
 you can set `parallel_tool_calls=False` in the configuration.
 ```
 
@@ -106,22 +106,23 @@ Additionally, we let the user interact with the agents, when agents handoff to `
 logger.info("# Swarm")
 
 
-
 """
 ### Tools
 """
 logger.info("### Tools")
 
+
 def refund_flight(flight_id: str) -> str:
     """Refund a flight"""
     return f"Flight {flight_id} refunded"
+
 
 """
 ### Agents
 """
 logger.info("### Agents")
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 
@@ -147,8 +148,10 @@ flights_refunder = AssistantAgent(
     When the transaction is complete, handoff to the travel agent to finalize.""",
 )
 
-termination = HandoffTermination(target="user") | TextMentionTermination("TERMINATE")
-team = Swarm([travel_agent, flights_refunder], termination_condition=termination)
+termination = HandoffTermination(
+    target="user") | TextMentionTermination("TERMINATE")
+team = Swarm([travel_agent, flights_refunder],
+             termination_condition=termination)
 
 task = "I need to refund my flight."
 
@@ -170,7 +173,8 @@ async def run_team_stream() -> None:
 
         async def async_func_39():
             task_result = await Console(
-                team.run_stream(task=HandoffMessage(source="user", target=last_message.source, content=user_message))
+                team.run_stream(task=HandoffMessage(
+                    source="user", target=last_message.source, content=user_message))
             )
             return task_result
         task_result = asyncio.run(async_func_39())
@@ -180,7 +184,7 @@ async def run_team_stream() -> None:
 
 async def run_async_code_6a718861():
     await run_team_stream()
-    return 
+    return
  = asyncio.run(run_async_code_6a718861())
 logger.success(format_json())
 async def run_async_code_0349fda4():
@@ -236,7 +240,7 @@ async def get_news(query: str) -> List[Dict[str, str]]:
         },
     ]
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 

@@ -21,7 +21,7 @@ from autogen_core.tools import FunctionTool, Tool
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 from autogen_ext.tools.code_execution import PythonCodeExecutionTool
 from dataclasses import dataclass
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from typing import List
 from typing_extensions import Annotated
@@ -62,9 +62,11 @@ logger.info("# Tools")
 
 
 code_executor = DockerCommandLineCodeExecutor()
+
+
 async def run_async_code_e817eaa6():
     await code_executor.start()
-    return 
+    return
  = asyncio.run(run_async_code_e817eaa6())
 logger.success(format_json())
 code_execution_tool = PythonCodeExecutionTool(code_executor)
@@ -148,7 +150,7 @@ stock_price_tool.schema
 Model clients use the JSON schema of the tools to generate tool calls.
 
 Here is an example of how to use the {py:class}`~autogen_core.tools.FunctionTool` class
-with a {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient`.
+with a {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter`.
 Other model client classes can be used in a similar way. See [Model Clients](./model-clients.ipynb)
 for more details.
 """
@@ -156,7 +158,7 @@ logger.info("Model clients use the JSON schema of the tools to generate tool cal
 
 
 
-model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
+model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct")
 
 user_message = UserMessage(content="What is the stock price of AAPL on 2021/01/01?", source="user")
 
@@ -172,7 +174,7 @@ create_result.content
 
 """
 What is actually going on under the hood of the call to the
-{py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.BaseMLXChatCompletionClient.create`
+{py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.BaseMLXAutogenChatLLMAdapter.create`
 method? The model client takes the list of tools and generates a JSON schema
 for the parameters of each tool. Then, it generates a request to the model
 API with the tool's JSON schema and the other messages to obtain a result.
@@ -348,7 +350,7 @@ To run the agent, let's create a runtime and register the agent with the runtime
 """
 logger.info("When handling a user message, the `ToolUseAgent` class first use the model client")
 
-model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
+model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct")
 runtime = SingleThreadedAgentRuntime()
 tools: List[Tool] = [FunctionTool(get_stock_price, description="Get the stock price.")]
 await ToolUseAgent.register(
@@ -361,11 +363,11 @@ await ToolUseAgent.register(
 )
 
 """
-This example uses the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient`,
+This example uses the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter`,
 for Azure MLX and other clients, see [Model Clients](./model-clients.ipynb).
 Let's test the agent with a question about stock price.
 """
-logger.info("This example uses the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient`,")
+logger.info("This example uses the {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter`,")
 
 runtime.start()
 tool_use_agent = AgentId("tool_use_agent", "default")

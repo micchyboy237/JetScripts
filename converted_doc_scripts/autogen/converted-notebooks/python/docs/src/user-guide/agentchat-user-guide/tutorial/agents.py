@@ -10,7 +10,7 @@ from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.tools import FunctionTool
 from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
 from io import BytesIO
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from pydantic import BaseModel
 from typing import Literal
@@ -61,7 +61,7 @@ async def web_search(query: str) -> str:
     return "AutoGen is a programming framework for building multi-agent applications."
 
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
 )
 agent = AssistantAgent(
@@ -242,7 +242,7 @@ fetch_mcp_server = StdioServerParams(command="uvx", args=["mcp-server-fetch"])
 
 async def async_func_7():
     async with McpWorkbench(fetch_mcp_server) as workbench:  # type: ignore
-        model_client = MLXChatCompletionClient(
+        model_client = MLXAutogenChatLLMAdapter(
             model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
         fetch_agent = AssistantAgent(
             name="fetcher", model_client=model_client, workbench=workbench, reflect_on_tool_use=True
@@ -287,12 +287,12 @@ These tools cannot run concurrently as agents and teams maintain internal state
 that would conflict with parallel execution.
 ```
 
-For {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXChatCompletionClient` and {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXChatCompletionClient`,
+For {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.MLXAutogenChatLLMAdapter` and {py:class}`~jet.llm.mlx.autogen_ext.mlx_chat_completion_client.AzureMLXAutogenChatLLMAdapter`,
 set `parallel_tool_calls=False` to disable parallel tool calls.
 """
 logger.info("### Agent as a Tool")
 
-model_client_no_parallel_tool_call = MLXChatCompletionClient(
+model_client_no_parallel_tool_call = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats",
     parallel_tool_calls=False,  # type: ignore
 )
@@ -361,7 +361,7 @@ class AgentResponse(BaseModel):
     response: Literal["happy", "sad", "neutral"]
 
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 agent = AssistantAgent(
     "assistant",
@@ -405,7 +405,7 @@ Please check with your model provider to see if this is supported.
 """
 logger.info("## Streaming Tokens")
 
-model_client = MLXChatCompletionClient(
+model_client = MLXAutogenChatLLMAdapter(
     model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 streaming_assistant = AssistantAgent(

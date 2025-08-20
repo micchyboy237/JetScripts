@@ -21,7 +21,7 @@ UserMessage,
 from autogen_core.tools import ToolResult, Workbench
 from autogen_ext.tools.mcp import McpWorkbench, SseServerParams
 from dataclasses import dataclass
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from typing import List
 import json
@@ -51,7 +51,6 @@ Here is an example of how to create an agent using {py:class}`~autogen_core.tool
 logger.info("# Workbench (and MCP)")
 
 
-
 @dataclass
 class Message:
     content: str
@@ -62,7 +61,8 @@ class WorkbenchAgent(RoutedAgent):
         self, model_client: ChatCompletionClient, model_context: ChatCompletionContext, workbench: Workbench
     ) -> None:
         super().__init__("An agent with a workbench")
-        self._system_messages: List[LLMMessage] = [SystemMessage(content="You are a helpful AI assistant.")]
+        self._system_messages: List[LLMMessage] = [
+            SystemMessage(content="You are a helpful AI assistant.")]
         self._model_client = model_client
         self._model_context = model_context
         self._workbench = workbench
@@ -71,7 +71,7 @@ class WorkbenchAgent(RoutedAgent):
     async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
         async def run_async_code_37101ad6():
             await self._model_context.add_message(UserMessage(content=message.content, source="user"))
-            return 
+            return
          = asyncio.run(run_async_code_37101ad6())
         logger.success(format_json())
         logger.debug("---------User Message-----------")
@@ -204,7 +204,7 @@ async def async_func_9():
             runtime=runtime,
             type="WebAgent",
             factory=lambda: WorkbenchAgent(
-                model_client=MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"),
+                model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats"),
                 model_context=BufferedChatCompletionContext(buffer_size=10),
                 workbench=workbench,
             ),

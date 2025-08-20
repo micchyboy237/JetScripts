@@ -5,7 +5,7 @@ from autogen_agentchat.messages import TextMessage
 from autogen_core import AgentId, MessageContext, RoutedAgent, message_handler
 from autogen_core import SingleThreadedAgentRuntime
 from dataclasses import dataclass
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -22,7 +22,7 @@ logger.info(f"Logs: {log_file}")
 # Agent and Agent Runtime
 
 In this and the following section, we focus on the core concepts of AutoGen:
-agents, agent runtime, messages, and communication -- 
+agents, agent runtime, messages, and communication --
 the foundational building blocks for an multi-agent applications.
 
 ```{note}
@@ -55,7 +55,7 @@ Instead, they are created by the runtime when needed and managed by the runtime.
 
 If you are already familiar with [AgentChat](../../agentchat-user-guide/index.md),
 it is important to note that AgentChat's agents such as
-{py:class}`~autogen_agentchat.agents.AssistantAgent` are created by application 
+{py:class}`~autogen_agentchat.agents.AssistantAgent` are created by application
 and thus not directly managed by the runtime. To use an AgentChat agent in Core,
 you need to create a wrapper Core agent that delegates messages to the AgentChat agent
 and let the runtime manage the wrapper agent.
@@ -72,8 +72,6 @@ the following agent handles a simple message type `MyMessageType` and prints the
 logger.info("# Agent and Agent Runtime")
 
 
-
-
 @dataclass
 class MyMessageType:
     content: str
@@ -86,6 +84,7 @@ class MyAgent(RoutedAgent):
     @message_handler
     async def handle_my_message_type(self, message: MyMessageType, ctx: MessageContext) -> None:
         logger.debug(f"{self.id.type} received message: {message.content}")
+
 
 """
 This agent only handles `MyMessageType` and messages will be delivered to `handle_my_message_type` method. Developers can have multiple message handlers for different message types by using {py:meth}`~autogen_core.message_handler` decorator and setting the type hint for the `message` variable in the handler function. You can also leverage [python typing union](https://docs.python.org/3/library/typing.html#typing.Union) for the `message` variable in one message handler function if it better suits agent's logic.
@@ -101,24 +100,27 @@ in AgentChat.
 logger.info("## Using an AgentChat Agent")
 
 
-
 class MyAssistant(RoutedAgent):
     def __init__(self, name: str) -> None:
         super().__init__(name)
-        model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+        model_client = MLXAutogenChatLLMAdapter(
+            model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
         self._delegate = AssistantAgent(name, model_client=model_client)
 
     @message_handler
     async def handle_my_message_type(self, message: MyMessageType, ctx: MessageContext) -> None:
         logger.debug(f"{self.id.type} received message: {message.content}")
+
         async def async_func_14():
             response = await self._delegate.on_messages(
-                [TextMessage(content=message.content, source="user")], ctx.cancellation_token
+                [TextMessage(content=message.content, source="user")
+                             ], ctx.cancellation_token
             )
             return response
         response = asyncio.run(async_func_14())
         logger.success(format_json(response))
         logger.debug(f"{self.id.type} responded: {response.chat_message}")
+
 
 """
 For how to use model client, see the [Model Client](../components/model-clients.ipynb) section.
@@ -132,27 +134,27 @@ You can implement your own agents or use another agent framework.
 To make agents available to the runtime, developers can use the
 {py:meth}`~autogen_core.BaseAgent.register` class method of the
 {py:class}`~autogen_core.BaseAgent` class.
-The process of registration associates an agent type, which is uniquely identified by a string, 
+The process of registration associates an agent type, which is uniquely identified by a string,
 and a factory function
 that creates an instance of the agent type of the given class.
-The factory function is used to allow automatic creation of agent instances 
+The factory function is used to allow automatic creation of agent instances
 when they are needed.
 
 Agent type ({py:class}`~autogen_core.AgentType`) is not the same as the agent class. In this example,
 the agent type is `AgentType("my_agent")` or `AgentType("my_assistant")` and the agent class is the Python class `MyAgent` or `MyAssistantAgent`.
-The factory function is expected to return an instance of the agent class 
+The factory function is expected to return an instance of the agent class
 on which the {py:meth}`~autogen_core.BaseAgent.register` class method is invoked.
 Read [Agent Identity and Lifecycles](../core-concepts/agent-identity-and-lifecycle.md)
 to learn more about agent type and identity.
 
 ```{note}
-Different agent types can be registered with factory functions that return 
-the same agent class. For example, in the factory functions, 
+Different agent types can be registered with factory functions that return
+the same agent class. For example, in the factory functions,
 variations of the constructor parameters
 can be used to create different instances of the same agent class.
 ```
 
-To register our agent types with the 
+To register our agent types with the
 {py:class}`~autogen_core.SingleThreadedAgentRuntime`,
 the following code can be used:
 """
@@ -160,9 +162,11 @@ logger.info("## Registering Agent Type")
 
 
 runtime = SingleThreadedAgentRuntime()
+
+
 async def run_async_code_6f198638():
     await MyAgent.register(runtime, "my_agent", lambda: MyAgent())
-    return 
+    return
  = asyncio.run(run_async_code_6f198638())
 logger.success(format_json())
 async def run_async_code_c108382a():

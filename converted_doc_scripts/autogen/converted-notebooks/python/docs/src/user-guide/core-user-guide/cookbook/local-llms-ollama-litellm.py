@@ -17,7 +17,7 @@ SystemMessage,
 UserMessage,
 )
 from dataclasses import dataclass
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -37,8 +37,8 @@ In this notebook we'll create two agents, Joe and Cathy who like to tell jokes t
 
 Follow the guide at https://microsoft.github.io/autogen/docs/topics/non-openai-models/local-litellm-ollama/ to understand how to install LiteLLM and Ollama.
 
-We encourage going through the link, but if you're in a hurry and using Linux, run these:  
-  
+We encourage going through the link, but if you're in a hurry and using Linux, run these:
+
 ```
 curl -fsSL https://ollama.com/install.sh | sh
 
@@ -46,7 +46,7 @@ ollama pull llama3.2:1b
 
 pip install 'litellm[proxy]'
 litellm --model ollama/llama3.2:1b
-```  
+```
 
 This will run the proxy server and it will be available at 'http://0.0.0.0:4000/'.
 
@@ -55,15 +55,15 @@ To get started, let's import some classes.
 logger.info("# Local LLMs with LiteLLM & Ollama")
 
 
-
 """
 Set up out local LLM model client.
 """
 logger.info("Set up out local LLM model client.")
 
-def get_model_client() -> MLXChatCompletionClient:  # type: ignore
+
+def get_model_client() -> MLXAutogenChatLLMAdapter:  # type: ignore
     "Mimic MLX API using Local LLM Server."
-    return MLXChatCompletionClient(
+    return MLXAutogenChatLLMAdapter(
         model="llama3.2:1b",
         api_key="NotRequiredSinceWeAreLocal",
         base_url="http://0.0.0.0:4000",
@@ -74,14 +74,17 @@ def get_model_client() -> MLXChatCompletionClient:  # type: ignore
         },
     )
 
+
 """
 Define a simple message class
 """
 logger.info("Define a simple message class")
 
+
 @dataclass
 class Message:
     content: str
+
 
 """
 Now, the Agent.
@@ -89,6 +92,7 @@ Now, the Agent.
 We define the role of the Agent using the `SystemMessage` and set up a condition for termination.
 """
 logger.info("Now, the Agent.")
+
 
 @default_subscription
 class Assistant(RoutedAgent):
@@ -108,9 +112,10 @@ class Assistant(RoutedAgent):
     @message_handler
     async def handle_message(self, message: Message, ctx: MessageContext) -> None:
         self.count += 1
+
         async def run_async_code_37101ad6():
             await self._model_context.add_message(UserMessage(content=message.content, source="user"))
-            return 
+            return
          = asyncio.run(run_async_code_37101ad6())
         logger.success(format_json())
         async def run_async_code_1c23b3c9():

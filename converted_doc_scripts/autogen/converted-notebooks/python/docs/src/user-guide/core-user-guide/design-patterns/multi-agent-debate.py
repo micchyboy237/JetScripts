@@ -17,7 +17,7 @@ SystemMessage,
 UserMessage,
 )
 from dataclasses import dataclass
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from typing import Dict, List
 import os
@@ -35,8 +35,8 @@ logger.info(f"Logs: {log_file}")
 """
 # Multi-Agent Debate
 
-Multi-Agent Debate is a multi-agent design pattern that simulates a multi-turn interaction 
-where in each turn, agents exchange their responses with each other, and refine 
+Multi-Agent Debate is a multi-agent design pattern that simulates a multi-turn interaction
+where in each turn, agents exchange their responses with each other, and refine
 their responses based on the responses from other agents.
 
 This example shows an implementation of the multi-agent debate pattern for solving
@@ -64,7 +64,6 @@ Read about [Topics and Subscriptions](../core-concepts/topic-and-subscription.md
 logger.info("# Multi-Agent Debate")
 
 
-
 """
 ## Message Protocol
 
@@ -73,6 +72,7 @@ First, we define the messages used by the agents.
 and `FinalSolverResponse` is the message published by the solver agents in the final round.
 """
 logger.info("## Message Protocol")
+
 
 @dataclass
 class Question:
@@ -102,6 +102,7 @@ class IntermediateSolverResponse:
 class FinalSolverResponse:
     answer: str
 
+
 """
 ## Solver Agent
 
@@ -120,6 +121,7 @@ solver agents subscribe to the default topic, which is used by the aggregator ag
 to collect the final responses from the solver agents.
 """
 logger.info("## Solver Agent")
+
 
 @default_subscription
 class MathSolver(RoutedAgent):
@@ -147,7 +149,9 @@ class MathSolver(RoutedAgent):
 
     @message_handler
     async def handle_request(self, message: SolverRequest, ctx: MessageContext) -> None:
-        self._history.append(UserMessage(content=message.content, source="user"))
+        self._history.append(UserMessage(
+            content=message.content, source="user"))
+
         async def run_async_code_27958a41():
             async def run_async_code_3135ca92():
                 model_result = await self._model_client.create(self._system_messages + self._history)
@@ -158,8 +162,10 @@ class MathSolver(RoutedAgent):
         model_result = asyncio.run(run_async_code_27958a41())
         logger.success(format_json(model_result))
         assert isinstance(model_result.content, str)
-        self._history.append(AssistantMessage(content=model_result.content, source=self.metadata["type"]))
-        logger.debug(f"{'-'*80}\nSolver {self.id} round {self._round}:\n{model_result.content}")
+        self._history.append(AssistantMessage(
+            content=model_result.content, source=self.metadata["type"]))
+        logger.debug(
+            f"{'-'*80}\nSolver {self.id} round {self._round}:\n{model_result.content}")
         match = re.search(r"\{\{(\-?\d+(\.\d+)?)\}\}", model_result.content)
         if match is None:
             raise ValueError("The model response does not contain the answer.")
@@ -168,7 +174,7 @@ class MathSolver(RoutedAgent):
         if self._round == self._max_round:
             async def run_async_code_1bfbe7e4():
                 await self.publish_message(FinalSolverResponse(answer=answer), topic_id=DefaultTopicId())
-                return 
+                return
              = asyncio.run(run_async_code_1bfbe7e4())
             logger.success(format_json())
         else:
@@ -285,7 +291,7 @@ logger.info("## Setting Up a Debate")
 
 runtime = SingleThreadedAgentRuntime()
 
-model_client = MLXChatCompletionClient(model="llama-3.2-3b-instruct")
+model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct")
 
 await MathSolver.register(
     runtime,
