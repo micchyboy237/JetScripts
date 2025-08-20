@@ -1,6 +1,7 @@
 from copy import deepcopy
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
 from llama_index.core.extractors import (
@@ -18,7 +19,9 @@ from llama_index.core.question_gen.prompts import (
 DEFAULT_SUB_QUESTION_PROMPT_TMPL,
 )
 from llama_index.core.schema import MetadataMode
+from llama_index.core.settings import Settings
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.extractors.entity import EntityExtractor
 import openai
 import os
@@ -35,6 +38,13 @@ logger.info(f"Logs: {log_file}")
 file_name = os.path.splitext(os.path.basename(__file__))[0]
 GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/metadata_extraction/MetadataExtractionSEC.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>

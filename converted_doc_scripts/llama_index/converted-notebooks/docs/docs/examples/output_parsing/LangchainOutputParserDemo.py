@@ -1,12 +1,15 @@
 from IPython.display import Markdown, display
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.output_parsers import LangchainOutputParser
 from llama_index.core.prompts.default_prompts import (
 DEFAULT_TEXT_QA_PROMPT_TMPL,
 )
+from llama_index.core.settings import Settings
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import logging
 import os
 import shutil
@@ -19,6 +22,13 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/output_parsing/LangchainOutputParserDemo.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>

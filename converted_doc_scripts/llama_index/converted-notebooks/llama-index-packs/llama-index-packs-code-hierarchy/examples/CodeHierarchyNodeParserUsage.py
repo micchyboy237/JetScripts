@@ -3,12 +3,15 @@ from jet.transformers.formatters import format_json
 from IPython.display import Markdown, display
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.agent.workflow import FunctionAgent
 from llama_index.core.schema import NodeRelationship
+from llama_index.core.settings import Settings
 from llama_index.core.text_splitter import CodeSplitter
 from llama_index.core.tools import QueryEngineTool
 from llama_index.core.workflow import Context
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.packs.code_hierarchy import CodeHierarchyAgentPack
 from llama_index.packs.code_hierarchy import CodeHierarchyKeywordQueryEngine
 from llama_index.packs.code_hierarchy import CodeHierarchyNodeParser
@@ -23,6 +26,13 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 # %load_ext autoreload
 # %autoreload 2

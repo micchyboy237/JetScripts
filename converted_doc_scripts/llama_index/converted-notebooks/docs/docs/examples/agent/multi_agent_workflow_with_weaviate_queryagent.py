@@ -4,8 +4,10 @@ from enum import Enum
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXResponses
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.agent.workflow import FunctionAgent
 from llama_index.core.llms import ChatMessage
+from llama_index.core.settings import Settings
 from llama_index.core.tools import FunctionTool
 from llama_index.core.workflow import (
 StartEvent,
@@ -15,6 +17,7 @@ step,
 Event,
 Context,
 )
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.readers.web import SimpleWebPageReader
 from llama_index.utils.workflow import draw_all_possible_flows
 from pydantic import BaseModel, Field
@@ -34,6 +37,13 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 # Multi-Agent Workflow with Weaviate QueryAgent

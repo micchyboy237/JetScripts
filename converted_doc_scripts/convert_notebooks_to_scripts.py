@@ -64,6 +64,19 @@ COMMENT_LINE_KEYWORDS = [
     "nest_asyncio.apply()",
 ]
 
+PROJECT_INITIALIZER_CODE_MAP = {
+    "llama_index": """
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.core.settings import Settings
+from jet.models.config import MODELS_CACHE_DIR
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+"""
+}
+
 
 def generate_unique_function_name(line):
     unique_hash = hashlib.md5(line.encode('utf-8')).hexdigest()[:8]
@@ -96,6 +109,21 @@ def comment_line(line: str):
     if has_keyword and not line.strip().startswith('#'):
         updated_line = "# " + line
     return updated_line
+
+
+def add_project_specific_initializer_code(code: str, input_base_dir: str):
+    # Split input_base_dir into its path components
+    path_parts = [part for part in input_base_dir.replace(
+        "\\", "/").split("/") if part]
+    initializer_code = ""
+    for key, value in PROJECT_INITIALIZER_CODE_MAP.items():
+        # Check if any part of the path matches the key
+        if key in path_parts:
+            initializer_code += value.strip() + "\n"
+    if initializer_code:
+        # Place initializer code at the top of the code
+        return initializer_code + "\n\n" + code
+    return code
 
 
 def add_general_initializer_code(code: str):
@@ -545,7 +573,7 @@ def scrape_code(
     include_files: list[str] = [],
     exclude_files: list[str] = [],
     with_markdown: bool = True,
-    with_ollama: bool = True,
+    with_mlx: bool = True,
     output_dir: Optional[str] = None,
     types: list[Literal['text', 'python']] = [],
 ):
@@ -598,8 +626,10 @@ def scrape_code(
                             source_group['code'])
                 source_code = "\n\n".join(group['code']
                                           for group in source_groups)
-                if with_ollama:
+                if with_mlx:
                     source_code = update_code_with_mlx(source_code)
+                    source_code = add_project_specific_initializer_code(
+                        source_code, input_base_dir)
                     source_code = add_general_initializer_code(source_code)
                     source_code = add_jet_logger(source_code)
                     source_code = move_all_imports_on_top(source_code)
@@ -737,7 +767,7 @@ if __name__ == "__main__":
                 include_files=include_files,
                 exclude_files=exclude_files,
                 with_markdown=True,
-                with_ollama=True,
+                with_mlx=True,
                 output_dir=relative_output_dir,
             )
             if files:

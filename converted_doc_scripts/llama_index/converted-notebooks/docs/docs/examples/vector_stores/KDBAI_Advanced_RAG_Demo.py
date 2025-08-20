@@ -1,6 +1,7 @@
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import (
 Settings,
 SimpleDirectoryReader,
@@ -9,6 +10,8 @@ VectorStoreIndex,
 )
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.retrievers import VectorIndexRetriever
+from llama_index.core.settings import Settings
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.kdbai import KDBAIVectorStore
 import datetime
 import kdbai_client as kdbai
@@ -26,6 +29,13 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 # Advanced RAG with temporal filters using LlamaIndex and KDB.AI vector store

@@ -1,10 +1,12 @@
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Document
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.indices.property_graph import PropertyGraphIndex
+from llama_index.core.settings import Settings
 from llama_index.core.storage.storage_context import StorageContext
 from llama_index.core.vector_stores.simple import SimpleVectorStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
@@ -19,6 +21,13 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 # NebulaGraph Property Graph Index

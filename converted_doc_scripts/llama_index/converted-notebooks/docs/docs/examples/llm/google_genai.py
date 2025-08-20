@@ -8,12 +8,15 @@ from google import genai
 from google.genai import types
 from google.genai.types import CreateCachedContentConfig, Content, Part
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.bridge.pydantic import BaseModel
 from llama_index.core.llms import ChatMessage
 from llama_index.core.llms import ChatMessage, TextBlock, ImageBlock
 from llama_index.core.llms import DocumentBlock
 from llama_index.core.prompts import PromptTemplate
+from llama_index.core.settings import Settings
 from llama_index.core.tools import FunctionTool
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.google_genai import GoogleGenAI
 from pprint import pprint
 from typing import List
@@ -29,6 +32,13 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/llm/gemini.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>

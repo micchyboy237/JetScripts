@@ -1,5 +1,6 @@
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import ComposableGraph
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
@@ -7,7 +8,9 @@ from llama_index.core import StorageContext
 from llama_index.core import SummaryIndex
 from llama_index.core import VectorStoreIndex, SimpleKeywordTableIndex
 from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core.settings import Settings
 from llama_index.core.storage.docstore import SimpleDocumentStore
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import logging
 import os
 import shutil
@@ -20,6 +23,13 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 # Docstore Demo

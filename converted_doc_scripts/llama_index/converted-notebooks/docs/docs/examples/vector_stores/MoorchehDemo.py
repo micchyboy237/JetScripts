@@ -1,6 +1,7 @@
 from IPython.display import Markdown, display
 from google.colab import userdata
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import (
 VectorStoreIndex,
 SimpleDirectoryReader,
@@ -10,6 +11,7 @@ Settings,
 from llama_index.core.base.embeddings.base_sparse import BaseSparseEmbedding
 from llama_index.core.bridge.pydantic import PrivateAttr
 from llama_index.core.schema import BaseNode, MetadataMode, TextNode
+from llama_index.core.settings import Settings
 from llama_index.core.vector_stores.types import (
 BasePydanticVectorStore,
 MetadataFilters,
@@ -29,6 +31,7 @@ legacy_metadata_dict_to_node,
 metadata_dict_to_node,
 node_to_metadata_dict,
 )
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from moorcheh_sdk import MoorchehClient
 from typing import Any, Callable, Dict, List, Optional, cast
 import logging
@@ -43,6 +46,13 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 # Moorcheh Vector Store Demo

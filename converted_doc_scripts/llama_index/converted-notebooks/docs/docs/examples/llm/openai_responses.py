@@ -3,11 +3,14 @@ from jet.transformers.formatters import format_json
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXResponses
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.llms import ChatMessage
 from llama_index.core.llms import ChatMessage, ImageBlock, TextBlock
 from llama_index.core.llms import ChatMessage, TextBlock, ImageBlock
 from llama_index.core.prompts import PromptTemplate
+from llama_index.core.settings import Settings
 from llama_index.core.tools import FunctionTool
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from pydantic import BaseModel
 from typing import List
 import base64
@@ -21,6 +24,13 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/llm/openai_responses.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>

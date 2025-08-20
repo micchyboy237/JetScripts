@@ -2,6 +2,7 @@ import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import display, HTML
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import (
 VectorStoreIndex,
 SummaryIndex,
@@ -22,8 +23,10 @@ from llama_index.core.selectors.pydantic_selectors import (
 PydanticMultiSelector,
 PydanticSingleSelector,
 )
+from llama_index.core.settings import Settings
 from llama_index.core.text_splitter import SentenceSplitter
 from llama_index.core.tools.query_engine import QueryEngineTool, ToolMetadata
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import logging
 import openai
 import os
@@ -41,6 +44,13 @@ logger.info(f"Logs: {log_file}")
 file_name = os.path.splitext(os.path.basename(__file__))[0]
 GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 # Router QueryEngine and SubQuestion QueryEngine

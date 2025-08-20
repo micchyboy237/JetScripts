@@ -4,6 +4,7 @@ from IPython.display import Markdown, display
 from graspologic.partition import hierarchical_leiden
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Document
 from llama_index.core import PropertyGraphIndex
 from llama_index.core import Settings
@@ -29,6 +30,8 @@ DEFAULT_KG_TRIPLET_EXTRACT_PROMPT,
 )
 from llama_index.core.query_engine import CustomQueryEngine
 from llama_index.core.schema import TransformComponent, BaseNode
+from llama_index.core.settings import Settings
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from typing import Any, List, Callable, Optional, Union, Dict
 import asyncio
 import json
@@ -45,6 +48,13 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/cookbooks/GraphRAG_v1.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>

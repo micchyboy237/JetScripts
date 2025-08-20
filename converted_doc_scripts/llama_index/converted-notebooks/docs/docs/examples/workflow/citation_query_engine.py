@@ -4,6 +4,7 @@ from IPython.display import Markdown, display
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.prompts import PromptTemplate
@@ -17,6 +18,7 @@ NodeWithScore,
 TextNode,
 )
 from llama_index.core.schema import NodeWithScore
+from llama_index.core.settings import Settings
 from llama_index.core.workflow import (
 Context,
 Workflow,
@@ -25,6 +27,7 @@ StopEvent,
 step,
 )
 from llama_index.core.workflow import Event
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from typing import Union, List
 import asyncio
 import os
@@ -41,6 +44,13 @@ logger.info(f"Logs: {log_file}")
 file_name = os.path.splitext(os.path.basename(__file__))[0]
 GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/workflow/citation_query_engine.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>

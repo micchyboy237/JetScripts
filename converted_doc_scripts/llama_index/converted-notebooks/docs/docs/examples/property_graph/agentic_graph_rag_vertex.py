@@ -4,6 +4,7 @@ from IPython.display import Markdown, display
 from google.colab import auth
 from graspologic.partition import hierarchical_leiden
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import (
 StorageContext,
 Settings,
@@ -38,6 +39,7 @@ DEFAULT_KG_TRIPLET_EXTRACT_PROMPT,
 from llama_index.core.query_engine import CustomQueryEngine
 from llama_index.core.schema import TextNode
 from llama_index.core.schema import TransformComponent, BaseNode
+from llama_index.core.settings import Settings
 from llama_index.core.tools import FunctionTool
 from llama_index.core.tools import QueryEngineTool
 from llama_index.core.vector_stores import FilterCondition
@@ -47,6 +49,7 @@ MetadataFilters,
 MetadataFilter,
 FilterOperator,
 )
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.embeddings.vertex import VertexTextEmbedding
 from llama_index.llms.vertex import Vertex
 from llama_index.vector_stores.vertexaivectorsearch import VertexAIVectorStore
@@ -70,6 +73,13 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/property_graph/agentic_graph_rag_vertex.ipynb)

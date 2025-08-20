@@ -1,4 +1,5 @@
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader, StorageContext
 from llama_index.core import SummaryIndex
@@ -6,7 +7,9 @@ from llama_index.core import VectorStoreIndex, SimpleKeywordTableIndex
 from llama_index.core import load_index_from_storage
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.response.notebook_utils import display_response
+from llama_index.core.settings import Settings
 from llama_index.embeddings.azure_openai import AzureMLXEmbedding
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.azure_openai import AzureMLX
 from llama_index.storage.docstore.azure import AzureDocumentStore
 from llama_index.storage.index_store.azure import AzureIndexStore
@@ -23,6 +26,13 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 # Demo: Azure Table Storage as a Docstore

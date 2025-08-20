@@ -2,9 +2,11 @@ import asyncio
 from jet.transformers.formatters import format_json
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.llms import ChatMessage
 from llama_index.core.llms.function_calling import FunctionCallingLLM
 from llama_index.core.memory import ChatMemoryBuffer
+from llama_index.core.settings import Settings
 from llama_index.core.tools import FunctionTool
 from llama_index.core.tools import ToolSelection, ToolOutput
 from llama_index.core.tools.types import BaseTool
@@ -17,6 +19,7 @@ step,
 )
 from llama_index.core.workflow import Context
 from llama_index.core.workflow import Event
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from typing import Any, List
 import asyncio
 import os
@@ -29,6 +32,13 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 # Workflow for a Function Calling Agent

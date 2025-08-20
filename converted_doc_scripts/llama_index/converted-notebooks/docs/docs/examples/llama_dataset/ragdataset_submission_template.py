@@ -2,6 +2,7 @@ import asyncio
 from jet.transformers.formatters import format_json
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
 from llama_index.core.llama_dataset import (
@@ -13,6 +14,8 @@ from llama_index.core.llama_dataset import LabelledRagDataExample, CreatedBy, Cr
 from llama_index.core.llama_dataset import LabelledRagDataset
 from llama_index.core.llama_dataset.generator import RagDatasetGenerator
 from llama_index.core.llama_pack import download_llama_pack
+from llama_index.core.settings import Settings
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import json
 import os
 import pandas as pd
@@ -29,6 +32,13 @@ logger.info(f"Logs: {log_file}")
 file_name = os.path.splitext(os.path.basename(__file__))[0]
 GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/llama_dataset/ragdataset_submission_template.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>

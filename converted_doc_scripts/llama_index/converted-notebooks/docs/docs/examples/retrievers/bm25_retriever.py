@@ -1,6 +1,7 @@
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Document
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
@@ -9,6 +10,7 @@ from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.response.notebook_utils import display_source_node
 from llama_index.core.retrievers import QueryFusionRetriever
+from llama_index.core.settings import Settings
 from llama_index.core.storage.docstore import SimpleDocumentStore
 from llama_index.core.vector_stores.types import (
 MetadataFilters,
@@ -16,6 +18,7 @@ MetadataFilter,
 FilterOperator,
 FilterCondition,
 )
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.retrievers.bm25 import BM25Retriever
 from llama_index.vector_stores.chroma import ChromaVectorStore
 import Stemmer
@@ -30,6 +33,13 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/retrievers/bm25_retriever.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>

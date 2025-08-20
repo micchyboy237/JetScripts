@@ -3,6 +3,7 @@ from jet.transformers.formatters import format_json
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import PromptTemplate
 from llama_index.core import QueryBundle
 from llama_index.core import VectorStoreIndex
@@ -10,6 +11,8 @@ from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.schema import NodeWithScore
+from llama_index.core.settings import Settings
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.retrievers.bm25 import BM25Retriever
 from pathlib import Path
 from tqdm.asyncio import tqdm
@@ -29,6 +32,13 @@ logger.info(f"Logs: {log_file}")
 file_name = os.path.splitext(os.path.basename(__file__))[0]
 GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/low_level/fusion_retriever.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>

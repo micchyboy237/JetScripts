@@ -3,6 +3,7 @@ from jet.transformers.formatters import format_json
 from IPython.display import display, Markdown
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
 from llama_index.core.llms import LLM
@@ -15,13 +16,14 @@ from llama_index.core.settings import Settings
 from llama_index.core.vector_stores.simple import BasePydanticVectorStore
 from llama_index.core.vector_stores.types import VectorStoreQuery
 from llama_index.core.workflow import (
-Workflow,
-step,
-StartEvent,
-StopEvent,
-Context,
+    Workflow,
+    step,
+    StartEvent,
+    StopEvent,
+    Context,
 )
 from llama_index.core.workflow import Event
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from typing import Iterable
 from typing import List, Dict, Optional, Set, FrozenSet
 import asyncio
@@ -35,6 +37,13 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 # LongRAG Workflow
@@ -74,8 +83,8 @@ These helper functions will help us split documents into smaller pieces and grou
 logger.info("## Helper Functions")
 
 
-
-DEFAULT_CHUNK_SIZE = 4096  # optionally splits documents into CHUNK_SIZE, then regroups them to demonstrate grouping algorithm
+# optionally splits documents into CHUNK_SIZE, then regroups them to demonstrate grouping algorithm
+DEFAULT_CHUNK_SIZE = 4096
 DEFAULT_MAX_GROUP_SIZE = 20  # maximum number of documents in a group
 DEFAULT_SMALL_CHUNK_SIZE = 512  # small chunk size for generating embeddings
 DEFAULT_TOP_K = 8  # top k for retrieving
@@ -163,13 +172,13 @@ def get_grouped_docs(
 
     return ret_nodes
 
+
 """
 ## Making the Retriever
 
 LongRAG needs a custom retriever, which is shown below:
 """
 logger.info("## Making the Retriever")
-
 
 
 class LongRAGRetriever(BaseRetriever):
@@ -240,6 +249,7 @@ class LongRAGRetriever(BaseRetriever):
 
         return top_parents
 
+
 """
 ## Designing the Workflow
 
@@ -254,8 +264,6 @@ We define an event that passes the long and small retrieval units into the retri
 logger.info("## Designing the Workflow")
 
 
-
-
 class LoadNodeEvent(Event):
     """Event for loading nodes."""
 
@@ -265,11 +273,11 @@ class LoadNodeEvent(Event):
     similarity_top_k: int
     llm: LLM
 
+
 """
 After defining our events, we can write our workflow and steps:
 """
 logger.info("After defining our events, we can write our workflow and steps:")
-
 
 
 class LongRAGWorkflow(Workflow):
@@ -308,7 +316,8 @@ class LongRAGWorkflow(Workflow):
                 )  # split documents into chunks of chunk_size
                 grouped_nodes = get_grouped_docs(
                     nodes
-                )  # get list of nodes after grouping (groups are combined into one node), these are long retrieval units
+                    # get list of nodes after grouping (groups are combined into one node), these are long retrieval units
+                )
             else:
                 grouped_nodes = docs
 
@@ -377,6 +386,7 @@ class LongRAGWorkflow(Workflow):
         result = query_eng.query(query_str)
         return StopEvent(result=result)
 
+
 """
 Walkthrough:
 - There are 2 entry points: one for ingesting and indexing and another for querying.
@@ -391,7 +401,8 @@ logger.info("## Running the Workflow")
 
 wf = LongRAGWorkflow(timeout=60)
 llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
-data_dir = "data"
+data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/llama_index/converted-notebooks/docs/docs/examples/workflow/data"
+
 
 async def async_func_6():
     result = await wf.run(

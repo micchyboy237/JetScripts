@@ -3,6 +3,7 @@ from jet.transformers.formatters import format_json
 from jet.llm.mlx.base import MLX
 from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
+from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import (
 VectorStoreIndex,
 load_index_from_storage,
@@ -22,6 +23,8 @@ from llama_index.core.node_parser import SimpleNodeParser
 from llama_index.core.param_tuner.base import TunedResult, RunResult
 from llama_index.core.readers.file.base import SimpleDirectoryReader
 from llama_index.core.schema import IndexNode
+from llama_index.core.settings import Settings
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.experimental.param_tuner import AsyncParamTuner
 from llama_index.experimental.param_tuner import ParamTuner
 from llama_index.experimental.param_tuner import RayTuneParamTuner
@@ -42,6 +45,13 @@ logger.info(f"Logs: {log_file}")
 file_name = os.path.splitext(os.path.basename(__file__))[0]
 GENERATED_DIR = os.path.join("results", file_name)
 os.makedirs(GENERATED_DIR, exist_ok=True)
+
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=model_name,
+    cache_folder=MODELS_CACHE_DIR,
+)
+
 
 """
 # [WIP] Hyperparameter Optimization for RAG
