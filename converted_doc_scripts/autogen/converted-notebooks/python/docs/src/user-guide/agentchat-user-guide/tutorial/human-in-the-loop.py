@@ -84,18 +84,24 @@ in a {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat` for a poetry gener
 logger.info("# Human-in-the-Loop")
 
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit-mini")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
 assistant = AssistantAgent("assistant", model_client=model_client)
-user_proxy = UserProxyAgent("user_proxy", input_func=input)  # Use input() to get user input from console.
+# Use input() to get user input from console.
+user_proxy = UserProxyAgent("user_proxy", input_func=input)
 
 termination = TextMentionTermination("APPROVE")
 
-team = RoundRobinGroupChat([assistant, user_proxy], termination_condition=termination)
+team = RoundRobinGroupChat([assistant, user_proxy],
+                           termination_condition=termination)
 
 stream = team.run_stream(task="Write a 4-line poem about the ocean.")
+
+
 async def run_async_code_71db6073():
     await Console(stream)
 asyncio.run(run_async_code_71db6073())
+
+
 async def run_async_code_0349fda4():
     await model_client.close()
 asyncio.run(run_async_code_0349fda4())
@@ -185,7 +191,7 @@ with a maximum of 1 turn:
 logger.info("# Create user proxy with custom input function")
 
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit-mini")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
 assistant = AssistantAgent("assistant", model_client=model_client)
 
 team = RoundRobinGroupChat([assistant], max_turns=1)
@@ -193,12 +199,15 @@ team = RoundRobinGroupChat([assistant], max_turns=1)
 task = "Write a 4-line poem about the ocean."
 while True:
     stream = team.run_stream(task=task)
+
     async def run_async_code_8cdf6b5b():
         await Console(stream)
     asyncio.run(run_async_code_8cdf6b5b())
     task = input("Enter your feedback (type 'exit' to leave): ")
     if task.lower().strip() == "exit":
         break
+
+
 async def run_async_code_0349fda4():
     await model_client.close()
 asyncio.run(run_async_code_0349fda4())
@@ -238,9 +247,12 @@ lazy_agent = AssistantAgent(
 handoff_termination = HandoffTermination(target="user")
 text_termination = TextMentionTermination("TERMINATE")
 
-lazy_agent_team = RoundRobinGroupChat([lazy_agent], termination_condition=handoff_termination | text_termination)
+lazy_agent_team = RoundRobinGroupChat(
+    [lazy_agent], termination_condition=handoff_termination | text_termination)
 
 task = "What is the weather in New York?"
+
+
 async def run_async_code_3b0e12b4():
     await Console(lazy_agent_team.run_stream(task=task), output_stats=True)
 asyncio.run(run_async_code_3b0e12b4())
@@ -249,7 +261,9 @@ asyncio.run(run_async_code_3b0e12b4())
 You can see the team stopped due to the handoff message was detected.
 Let's continue the team by providing the information the agent needs.
 """
-logger.info("You can see the team stopped due to the handoff message was detected.")
+logger.info(
+    "You can see the team stopped due to the handoff message was detected.")
+
 
 async def run_async_code_69ec9576():
     await Console(lazy_agent_team.run_stream(task="The weather in New York is sunny."))
@@ -266,6 +280,7 @@ with the `target` set to the next agent you want to run.
 See [Swarm](../swarm.ipynb) for more details.
 ```
 """
-logger.info("You can see the team continued after the user provided the information.")
+logger.info(
+    "You can see the team continued after the user provided the information.")
 
 logger.info("\n\n[DONE]", bright=True)

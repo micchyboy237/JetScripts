@@ -9,7 +9,7 @@ from llama_index.core.extractors import DocumentContextExtractor
 from llama_index.core.node_parser import TokenTextSplitter
 from llama_index.core.settings import Settings
 from llama_index.core.storage.docstore.simple_docstore import (
-SimpleDocumentStore,
+    SimpleDocumentStore,
 )
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import os
@@ -61,7 +61,7 @@ logger.info("# Setup an LLM")
 
 
 # OPENAI_API_KEY = "sk-..."
-# llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini", api_key=OPENAI_API_KEY)
+# llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", api_key=OPENAI_API_KEY)
 Settings.llm = llm
 
 """

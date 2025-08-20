@@ -53,7 +53,7 @@ logger.info("# ReAct Agent with Query Engine (RAG) Tools")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
 
 
@@ -131,7 +131,7 @@ logger.info("## Setup ReAct Agent")
 
 agent = ReActAgent(
     tools=query_engine_tools,
-    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"),
 )
 
 
@@ -153,6 +153,7 @@ async for ev in handler.stream_events():
     if isinstance(ev, AgentStream):
         logger.debug(f"{ev.delta}", end="", flush=True)
 
+
 async def run_async_code_78ff5c2b():
     async def run_async_code_2cbcd794():
         response = await handler
@@ -173,6 +174,7 @@ handler = agent.run(
 async for ev in handler.stream_events():
     if isinstance(ev, AgentStream):
         logger.debug(f"{ev.delta}", end="", flush=True)
+
 
 async def run_async_code_78ff5c2b():
     async def run_async_code_2cbcd794():

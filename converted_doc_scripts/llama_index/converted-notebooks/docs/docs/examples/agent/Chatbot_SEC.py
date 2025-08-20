@@ -64,7 +64,7 @@ logger.info("# How to Build a Chatbot")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 Settings.embed_model = MLXEmbedding(model_name="text-embedding-3-large")
 Settings.chunk_size = 512
 Settings.chunk_overlap = 64
@@ -87,7 +87,8 @@ First we install the necessary packages:
 
 Then we can use the `UnstructuredReader` to parse the HTML files into a list of `Document` objects.
 """
-logger.info("To parse the HTML files into formatted text, we use the [Unstructured](https://github.com/Unstructured-IO/unstructured) library. Thanks to [LlamaHub](https://llamahub.ai/), we can directly integrate with Unstructured, allowing conversion of any text into a Document format that LlamaIndex can ingest.")
+logger.info(
+    "To parse the HTML files into formatted text, we use the [Unstructured](https://github.com/Unstructured-IO/unstructured) library. Thanks to [LlamaHub](https://llamahub.ai/), we can directly integrate with Unstructured, allowing conversion of any text into a Document format that LlamaIndex can ingest.")
 
 
 years = [2022, 2021, 2020, 2019]
@@ -113,7 +114,6 @@ to ask questions about the 10-K filing of a given year.
 We build each index and save it to disk.
 """
 logger.info("### Setting up Vector Indices for each year")
-
 
 
 index_set = {}
@@ -152,7 +152,8 @@ To address this, we can use a [Sub Question Query Engine](https://gpt-index.read
 LlamaIndex provides some wrappers around indices (and query engines) so that they can be used by query engines and agents. First we define a `QueryEngineTool` for each vector index.
 Each tool has a name and a description; these are what the LLM agent sees to decide which tool to choose.
 """
-logger.info("### Setting up a Sub Question Query Engine to Synthesize Answers Across 10-K Filings")
+logger.info(
+    "### Setting up a Sub Question Query Engine to Synthesize Answers Across 10-K Filings")
 
 
 individual_query_engine_tools = [
@@ -198,17 +199,20 @@ query_engine_tool = QueryEngineTool.from_defaults(
 """
 Then, we combine the Tools we defined above into a single list of tools for the agent:
 """
-logger.info("Then, we combine the Tools we defined above into a single list of tools for the agent:")
+logger.info(
+    "Then, we combine the Tools we defined above into a single list of tools for the agent:")
 
 tools = individual_query_engine_tools + [query_engine_tool]
 
 """
 Finally, we call `FunctionAgent` to create the agent, passing in the list of tools we defined above.
 """
-logger.info("Finally, we call `FunctionAgent` to create the agent, passing in the list of tools we defined above.")
+logger.info(
+    "Finally, we call `FunctionAgent` to create the agent, passing in the list of tools we defined above.")
 
 
-agent = FunctionAgent(tools=tools, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"))
+agent = FunctionAgent(
+    tools=tools, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"))
 
 """
 ### Testing the Agent
@@ -221,6 +225,7 @@ logger.info("### Testing the Agent")
 
 
 ctx = Context(agent)
+
 
 async def run_async_code_dfb2c107():
     async def run_async_code_19c790e9():
@@ -237,7 +242,9 @@ logger.debug(str(response))
 If we test it with a query regarding the 10-k of a given year, the agent will use
 the relevant vector index Tool.
 """
-logger.info("If we test it with a query regarding the 10-k of a given year, the agent will use")
+logger.info(
+    "If we test it with a query regarding the 10-k of a given year, the agent will use")
+
 
 async def async_func_0():
     response = await agent.run(
@@ -258,6 +265,7 @@ cross_query_str = (
     " years. Give answer in bullet points."
 )
 
+
 async def run_async_code_6546a213():
     async def run_async_code_a5a5f6a7():
         response = await agent.run(cross_query_str, ctx=ctx)
@@ -276,13 +284,15 @@ Now that we have the chatbot setup, it only takes a few more steps to setup a ba
 """
 logger.info("### Setting up the Chatbot Loop")
 
-agent = FunctionAgent(tools=tools, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"))
+agent = FunctionAgent(
+    tools=tools, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"))
 ctx = Context(agent)
 
 while True:
     text_input = input("User: ")
     if text_input == "exit":
         break
+
     async def run_async_code_d18017d8():
         async def run_async_code_b19fb72c():
             response = await agent.run(text_input, ctx=ctx)

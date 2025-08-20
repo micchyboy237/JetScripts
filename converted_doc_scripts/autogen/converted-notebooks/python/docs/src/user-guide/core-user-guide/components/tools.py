@@ -1,19 +1,19 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from autogen_core import (
-AgentId,
-FunctionCall,
-MessageContext,
-RoutedAgent,
-SingleThreadedAgentRuntime,
-message_handler,
+    AgentId,
+    FunctionCall,
+    MessageContext,
+    RoutedAgent,
+    SingleThreadedAgentRuntime,
+    message_handler,
 )
 from autogen_core import CancellationToken
 from autogen_core.models import (
-ChatCompletionClient,
-LLMMessage,
-SystemMessage,
-UserMessage,
+    ChatCompletionClient,
+    LLMMessage,
+    SystemMessage,
+    UserMessage,
 )
 from autogen_core.models import AssistantMessage, FunctionExecutionResult, FunctionExecutionResultMessage, UserMessage
 from autogen_core.tools import FunctionTool
@@ -62,6 +62,8 @@ logger.info("# Tools")
 
 
 code_executor = DockerCommandLineCodeExecutor()
+
+
 async def run_async_code_e817eaa6():
     await code_executor.start()
 asyncio.run(run_async_code_e817eaa6())
@@ -69,6 +71,8 @@ code_execution_tool = PythonCodeExecutionTool(code_executor)
 cancellation_token = CancellationToken()
 
 code = "logger.debug('Hello, world!')"
+
+
 async def run_async_code_1f3d02b5():
     result = await code_execution_tool.run_json({"code": code}, cancellation_token)
     return result
@@ -105,15 +109,16 @@ For example, a simple tool to obtain the stock price of a company might look lik
 logger.info("## Custom Function Tools")
 
 
-
-
 async def get_stock_price(ticker: str, date: Annotated[str, "Date in YYYY/MM/DD"]) -> float:
     return random.uniform(10, 200)
 
 
-stock_price_tool = FunctionTool(get_stock_price, description="Get the stock price.")
+stock_price_tool = FunctionTool(
+    get_stock_price, description="Get the stock price.")
 
 cancellation_token = CancellationToken()
+
+
 async def run_async_code_628fd77c():
     result = await stock_price_tool.run_json({"ticker": "AAPL", "date": "2021/01/01"}, cancellation_token)
     return result
@@ -142,18 +147,22 @@ with a {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenC
 Other model client classes can be used in a similar way. See [Model Clients](./model-clients.ipynb)
 for more details.
 """
-logger.info("Model clients use the JSON schema of the tools to generate tool calls.")
+logger.info(
+    "Model clients use the JSON schema of the tools to generate tool calls.")
 
 
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit-mini")
-
-user_message = UserMessage(content="What is the stock price of AAPL on 2021/01/01?", source="user")
+user_message = UserMessage(
+    content="What is the stock price of AAPL on 2021/01/01?", source="user")
 
 cancellation_token = CancellationToken()
+
+
 async def async_func_10():
     create_result = await model_client.create(
-        messages=[user_message], tools=[stock_price_tool], cancellation_token=cancellation_token
+        messages=[user_message], tools=[
+            stock_price_tool], cancellation_token=cancellation_token
     )
     return create_result
 create_result = asyncio.run(async_func_10())
@@ -183,6 +192,8 @@ logger.info("What is actually going on under the hood of the call to the")
 
 assert isinstance(create_result.content, list)
 arguments = json.loads(create_result.content[0].arguments)  # type: ignore
+
+
 async def run_async_code_680d56f7():
     tool_result = await stock_price_tool.run_json(arguments, cancellation_token)
     return tool_result
@@ -199,7 +210,8 @@ The result of the tool call is wrapped in a {py:class}`~autogen_core.models.Func
 object, which contains the result of the tool execution and the ID of the tool that was called.
 The model client can use this information to generate a reflection on the result of the tool execution.
 """
-logger.info("Now you can make another model client call to have the model generate a reflection")
+logger.info(
+    "Now you can make another model client call to have the model generate a reflection")
 
 exec_result = FunctionExecutionResult(
     call_id=create_result.content[0].id,  # type: ignore
@@ -210,15 +222,22 @@ exec_result = FunctionExecutionResult(
 
 messages = [
     user_message,
-    AssistantMessage(content=create_result.content, source="assistant"),  # assistant message with tool call
-    FunctionExecutionResultMessage(content=[exec_result]),  # function execution result message
+    # assistant message with tool call
+    AssistantMessage(content=create_result.content, source="assistant"),
+    # function execution result message
+    FunctionExecutionResultMessage(content=[exec_result]),
 ]
+
+
 async def run_async_code_9d837451():
-    create_result = await model_client.create(messages=messages, cancellation_token=cancellation_token)  # type: ignore
+    # type: ignore
+    create_result = await model_client.create(messages=messages, cancellation_token=cancellation_token)
     return create_result
 create_result = asyncio.run(run_async_code_9d837451())
 logger.success(format_json(create_result))
 logger.debug(create_result.content)
+
+
 async def run_async_code_0349fda4():
     await model_client.close()
 asyncio.run(run_async_code_0349fda4())
@@ -237,8 +256,6 @@ For "pre-built" agents that can use tools, please refer to the [AgentChat API](.
 logger.info("## Tool-Equipped Agent")
 
 
-
-
 @dataclass
 class Message:
     content: str
@@ -247,13 +264,15 @@ class Message:
 class ToolUseAgent(RoutedAgent):
     def __init__(self, model_client: ChatCompletionClient, tool_schema: List[Tool]) -> None:
         super().__init__("An agent with tools")
-        self._system_messages: List[LLMMessage] = [SystemMessage(content="You are a helpful AI assistant.")]
+        self._system_messages: List[LLMMessage] = [
+            SystemMessage(content="You are a helpful AI assistant.")]
         self._model_client = model_client
         self._tools = tool_schema
 
     @message_handler
     async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
-        session: List[LLMMessage] = self._system_messages + [UserMessage(content=message.content, source="user")]
+        session: List[LLMMessage] = self._system_messages + \
+            [UserMessage(content=message.content, source="user")]
 
         async def async_func_39():
             create_result = await self._model_client.create(
@@ -271,7 +290,8 @@ class ToolUseAgent(RoutedAgent):
             isinstance(call, FunctionCall) for call in create_result.content
         )
 
-        session.append(AssistantMessage(content=create_result.content, source="assistant"))
+        session.append(AssistantMessage(
+            content=create_result.content, source="assistant"))
 
         async def async_func_53():
             results = await asyncio.gather(
@@ -298,11 +318,13 @@ class ToolUseAgent(RoutedAgent):
     async def _execute_tool_call(
         self, call: FunctionCall, cancellation_token: CancellationToken
     ) -> FunctionExecutionResult:
-        tool = next((tool for tool in self._tools if tool.name == call.name), None)
+        tool = next(
+            (tool for tool in self._tools if tool.name == call.name), None)
         assert tool is not None
 
         try:
             arguments = json.loads(call.arguments)
+
             async def run_async_code_05473541():
                 result = await tool.run_json(arguments, cancellation_token)
                 return result
@@ -314,6 +336,7 @@ class ToolUseAgent(RoutedAgent):
         except Exception as e:
             return FunctionExecutionResult(call_id=call.id, content=str(e), is_error=True, name=tool.name)
 
+
 """
 When handling a user message, the `ToolUseAgent` class first use the model client
 to generate a list of function calls to the tools, and then run the tools
@@ -322,11 +345,15 @@ The reflection is then returned to the user as the agent's response.
 
 To run the agent, let's create a runtime and register the agent with the runtime.
 """
-logger.info("When handling a user message, the `ToolUseAgent` class first use the model client")
+logger.info(
+    "When handling a user message, the `ToolUseAgent` class first use the model client")
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit-mini")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
 runtime = SingleThreadedAgentRuntime()
-tools: List[Tool] = [FunctionTool(get_stock_price, description="Get the stock price.")]
+tools: List[Tool] = [FunctionTool(
+    get_stock_price, description="Get the stock price.")]
+
+
 async def async_func_3():
     await ToolUseAgent.register(
         runtime,
@@ -343,21 +370,29 @@ This example uses the {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adap
 for Azure MLX and other clients, see [Model Clients](./model-clients.ipynb).
 Let's test the agent with a question about stock price.
 """
-logger.info("This example uses the {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenChatLLMAdapter`,")
+logger.info(
+    "This example uses the {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenChatLLMAdapter`,")
+
 
 async def run_async_code_1e6ac0a6():
     runtime.start()
 asyncio.run(run_async_code_1e6ac0a6())
 tool_use_agent = AgentId("tool_use_agent", "default")
+
+
 async def run_async_code_7e95725f():
     response = await runtime.send_message(Message("What is the stock price of NVDA on 2024/06/01?"), tool_use_agent)
     return response
 response = asyncio.run(run_async_code_7e95725f())
 logger.success(format_json(response))
 logger.debug(response.content)
+
+
 async def run_async_code_4aaa8dea():
     await runtime.stop()
 asyncio.run(run_async_code_4aaa8dea())
+
+
 async def run_async_code_0349fda4():
     await model_client.close()
 asyncio.run(run_async_code_0349fda4())

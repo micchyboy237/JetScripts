@@ -63,7 +63,7 @@ os.environ[
 # ] = "YOUR_OPENAI_API_KEY"  # Replace with your actual MLX API key
 os.environ[
     "KLAVIS_API_KEY"
-] = "YOUR_KLAVIS_API_KEY"  # Replace with your actual Klavis API key
+]= "YOUR_KLAVIS_API_KEY"  # Replace with your actual Klavis API key
 
 """
 ## Case 1: YouTube AI Agent
@@ -74,34 +74,35 @@ os.environ[
 """
 logger.info("## Case 1: YouTube AI Agent")
 
-klavis_client = Klavis(api_key=os.getenv("KLAVIS_API_KEY"))
+klavis_client= Klavis(api_key=os.getenv("KLAVIS_API_KEY"))
 
-youtube_mcp_instance = klavis_client.mcp_server.create_server_instance(
+youtube_mcp_instance= klavis_client.mcp_server.create_server_instance(
     server_name=McpServerName.YOUTUBE,
     user_id="1234",
     platform_name="Klavis",
     connection_type=ConnectionType.STREAMABLE_HTTP,
 )
 
-youtube_mcp_server_url = youtube_mcp_instance.server_url
+youtube_mcp_server_url= youtube_mcp_instance.server_url
 
 """
 #### Step 2 - using Llamaindex to create AI Agent with the MCP Server
 """
-logger.info("#### Step 2 - using Llamaindex to create AI Agent with the MCP Server")
+logger.info(
+    "#### Step 2 - using Llamaindex to create AI Agent with the MCP Server")
 
 
-# llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini", api_key=os.getenv("OPENAI_API_KEY"))
+# llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", api_key=os.getenv("OPENAI_API_KEY"))
 
 async def async_func_8():
-    youtube_tools = await aget_tools_from_mcp_url(
+    youtube_tools= await aget_tools_from_mcp_url(
         youtube_mcp_server_url, client=BasicMCPClient(youtube_mcp_server_url)
     )
     return youtube_tools
-youtube_tools = asyncio.run(async_func_8())
+youtube_tools= asyncio.run(async_func_8())
 logger.success(format_json(youtube_tools))
 
-youtube_agent = FunctionAgent(
+youtube_agent= FunctionAgent(
     name="youtube_agent",
     description="Agent using MCP-based tools",
     tools=youtube_tools,
@@ -114,14 +115,14 @@ youtube_agent = FunctionAgent(
 """
 logger.info("#### Step 3 - Run your AI Agent to summarize your favorite video!")
 
-YOUTUBE_VIDEO_URL = "https://www.youtube.com/watch?v=MmiveeGxfX0&t=528s"  # pick a video you like!
+YOUTUBE_VIDEO_URL= "https://www.youtube.com/watch?v=MmiveeGxfX0&t=528s"  # pick a video you like!
 
 async def async_func_2():
-    response = await youtube_agent.run(
+    response= await youtube_agent.run(
         f"Summarize this video: {YOUTUBE_VIDEO_URL}"
     )
     return response
-response = asyncio.run(async_func_2())
+response= asyncio.run(async_func_2())
 logger.success(format_json(response))
 logger.debug(response)
 
@@ -137,16 +138,16 @@ logger.debug(response)
 logger.info("## Case 2: Multi-Agent Workflow")
 
 
-klavis_client = Klavis(api_key=os.getenv("KLAVIS_API_KEY"))
+klavis_client= Klavis(api_key=os.getenv("KLAVIS_API_KEY"))
 
-youtube_mcp_instance = klavis_client.mcp_server.create_server_instance(
+youtube_mcp_instance= klavis_client.mcp_server.create_server_instance(
     server_name=McpServerName.YOUTUBE,
     user_id="1234",
     platform_name="Klavis",
     connection_type=ConnectionType.STREAMABLE_HTTP,
 )
 
-gmail_mcp_instance = klavis_client.mcp_server.create_server_instance(
+gmail_mcp_instance= klavis_client.mcp_server.create_server_instance(
     server_name=McpServerName.GMAIL,
     user_id="1234",
     platform_name="Klavis",
@@ -163,30 +164,31 @@ logger.debug(
 """
 #### Step 2 - using LlamaIndex to create Multi-Agent Workflow with the MCP Servers
 """
-logger.info("#### Step 2 - using LlamaIndex to create Multi-Agent Workflow with the MCP Servers")
+logger.info(
+    "#### Step 2 - using LlamaIndex to create Multi-Agent Workflow with the MCP Servers")
 
 
-# llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini", api_key=os.getenv("OPENAI_API_KEY"))
+# llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", api_key=os.getenv("OPENAI_API_KEY"))
 
-youtube_mcp_server_url = youtube_mcp_instance.server_url
-gmail_mcp_server_url = gmail_mcp_instance.server_url
+youtube_mcp_server_url= youtube_mcp_instance.server_url
+gmail_mcp_server_url= gmail_mcp_instance.server_url
 
 async def async_func_13():
-    youtube_tools = await aget_tools_from_mcp_url(
+    youtube_tools= await aget_tools_from_mcp_url(
         youtube_mcp_server_url, client=BasicMCPClient(youtube_mcp_server_url)
     )
     return youtube_tools
-youtube_tools = asyncio.run(async_func_13())
+youtube_tools= asyncio.run(async_func_13())
 logger.success(format_json(youtube_tools))
 async def async_func_16():
-    gmail_tools = await aget_tools_from_mcp_url(
+    gmail_tools= await aget_tools_from_mcp_url(
         gmail_mcp_server_url, client=BasicMCPClient(gmail_mcp_server_url)
     )
     return gmail_tools
-gmail_tools = asyncio.run(async_func_16())
+gmail_tools= asyncio.run(async_func_16())
 logger.success(format_json(gmail_tools))
 
-youtube_agent = FunctionAgent(
+youtube_agent= FunctionAgent(
     name="youtube_agent",
     description="Agent that can summarize YouTube videos",
     tools=youtube_tools,
@@ -195,7 +197,7 @@ youtube_agent = FunctionAgent(
     can_handoff_to=["gmail_agent"],
 )
 
-gmail_agent = FunctionAgent(
+gmail_agent= FunctionAgent(
     name="gmail_agent",
     description="Agent that can send emails via Gmail",
     tools=gmail_tools,
@@ -203,7 +205,7 @@ gmail_agent = FunctionAgent(
     system_prompt="You are an email assistant. Use MCP tools to send emails via Gmail.",
 )
 
-workflow = AgentWorkflow(
+workflow= AgentWorkflow(
     agents=[youtube_agent, gmail_agent],
     root_agent="youtube_agent",
 )
@@ -215,15 +217,15 @@ logger.debug("🤖 Multi-agent workflow created with YouTube and Gmail agents!")
 """
 logger.info("#### Step 3 - run the workflow!")
 
-YOUTUBE_VIDEO_URL = "https://www.youtube.com/watch?v=MmiveeGxfX0&t=528s"  # pick a video you like!
-EMAIL_RECIPIENT = "zihaolin@klavis.ai"  # Replace with your email
+YOUTUBE_VIDEO_URL= "https://www.youtube.com/watch?v=MmiveeGxfX0&t=528s"  # pick a video you like!
+EMAIL_RECIPIENT= "zihaolin@klavis.ai"  # Replace with your email
 
 async def async_func_3():
-    resp = await workflow.run(
+    resp= await workflow.run(
         user_msg=f"Summarize this video {YOUTUBE_VIDEO_URL} and send it to {EMAIL_RECIPIENT}"
     )
     return resp
-resp = asyncio.run(async_func_3())
+resp= asyncio.run(async_func_3())
 logger.success(format_json(resp))
 logger.debug("\n✅ Report:\n", resp.response.content)
 

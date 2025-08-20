@@ -70,7 +70,6 @@ logger.info("### [Optional] Set up observability with Llamatrace")
 # %pip install "openinference-instrumentation-llama-index>=3.0.0" "opentelemetry-proto>=1.12.0" opentelemetry-exporter-otlp opentelemetry-sdk
 
 
-
 PHOENIX_API_KEY = "<YOUR-PHOENIX-API-KEY>"
 os.environ["OTEL_EXPORTER_OTLP_HEADERS"] = f"api_key={PHOENIX_API_KEY}"
 
@@ -118,7 +117,6 @@ The other steps will use the built-in `StartEvent` and `StopEvent` events.
 logger.info("## Designing the Workflow")
 
 
-
 class RetrieverEvent(Event):
     """Result of running retrieval"""
 
@@ -130,16 +128,15 @@ class RerankEvent(Event):
 
     nodes: list[NodeWithScore]
 
+
 """
 ### The Workflow Itself
 
-With our events defined, we can construct our workflow and steps. 
+With our events defined, we can construct our workflow and steps.
 
 Note that the workflow automatically validates itself using type annotations, so the type annotations on our steps are very helpful!
 """
 logger.info("### The Workflow Itself")
-
-
 
 
 class RAGWorkflow(Workflow):
@@ -172,7 +169,7 @@ class RAGWorkflow(Workflow):
 
         async def run_async_code_810a43cd():
             await ctx.store.set("query", query)
-            return 
+            return
          = asyncio.run(run_async_code_810a43cd())
         logger.success(format_json())
 
@@ -196,7 +193,7 @@ class RAGWorkflow(Workflow):
     @step
     async def rerank(self, ctx: Context, ev: RetrieverEvent) -> RerankEvent:
         ranker = LLMRerank(
-            choice_batch_size=5, top_n=3, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+            choice_batch_size=5, top_n=3, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
         )
         async def run_async_code_2e7c416d():
             logger.debug(await ctx.store.get("query", default=None), flush=True)
@@ -216,7 +213,7 @@ class RAGWorkflow(Workflow):
     @step
     async def synthesize(self, ctx: Context, ev: RerankEvent) -> StopEvent:
         """Return a streaming response using reranked nodes."""
-        llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+        llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
         summarizer = CompactAndRefine(llm=llm, streaming=True, verbose=True)
         async def run_async_code_a66b93bf():
             async def run_async_code_7e418399():

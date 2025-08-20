@@ -48,8 +48,8 @@ logger.info("# DeepEval: Evaluation and Observability for LlamaIndex")
 """
 Login with your [Confident API key](https://confident-ai.com/) and configure DeepEval as instrument LlamaIndex:
 """
-logger.info("Login with your [Confident API key](https://confident-ai.com/) and configure DeepEval as instrument LlamaIndex:")
-
+logger.info(
+    "Login with your [Confident API key](https://confident-ai.com/) and configure DeepEval as instrument LlamaIndex:")
 
 
 deepeval.login("<your-confident-api-key>")
@@ -62,8 +62,6 @@ instrument_llama_index(instrument.get_dispatcher())
 ⚠️ **Note**: DeepEval may not work reliably in Jupyter notebooks due to event loop conflicts. It is recommended to run examples in a standalone Python script instead.
 """
 logger.info("### Example Agent")
-
-
 
 
 deepeval.login("<your-confident-api-key>")
@@ -80,7 +78,7 @@ def multiply(a: float, b: float) -> float:
 
 agent = FunctionAgent(
     tools=[multiply],
-    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"),
     system_prompt="You are a helpful assistant that can perform calculations.",
 )
 
@@ -114,8 +112,6 @@ You can use DeepEval to evaluate your LlamaIndex agents on Confident AI.
 logger.info("### Online Evaluations")
 
 
-
-
 deepeval.login("<your-confident-api-key>")
 
 instrument_llama_index(instrument.get_dispatcher())
@@ -130,7 +126,7 @@ def multiply(a: float, b: float) -> float:
 
 agent = FunctionAgent(
     tools=[multiply],
-    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"),
     system_prompt="You are a helpful assistant that can perform calculations.",
     metric_collection="test_collection_1",
 )

@@ -82,7 +82,8 @@ logger.debug(fmt_prompt)
 """
 We can also use `format_messages` to format the prompt into `ChatMessage` objects.
 """
-logger.info("We can also use `format_messages` to format the prompt into `ChatMessage` objects.")
+logger.info(
+    "We can also use `format_messages` to format the prompt into `ChatMessage` objects.")
 
 fmt_prompt = partial_prompt_tmpl.format_messages(
     context_str="In this work, we develop and release Llama 2, a collection of pretrained and fine-tuned large language models (LLMs) ranging in scale from 7 billion to 70 billion parameters",
@@ -196,13 +197,14 @@ SQL:
 """
 Given this prompt template, lets define and index some few-shot text-to-sql examples.
 """
-logger.info("Given this prompt template, lets define and index some few-shot text-to-sql examples.")
+logger.info(
+    "Given this prompt template, lets define and index some few-shot text-to-sql examples.")
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
 
 example_nodes = [
@@ -222,7 +224,6 @@ retriever = index.as_retriever(similarity_top_k=1)
 With our retriever, we can create our prompt template with function mappings to dynamically inject few-shot examples based on the query.
 """
 logger.info("With our retriever, we can create our prompt template with function mappings to dynamically inject few-shot examples based on the query.")
-
 
 
 def get_examples_fn(**kwargs):

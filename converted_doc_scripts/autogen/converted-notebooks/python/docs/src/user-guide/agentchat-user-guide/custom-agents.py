@@ -62,8 +62,6 @@ and produces a stream of messages with the current count.
 logger.info("# Custom Agents")
 
 
-
-
 class CountDownAgent(BaseChatAgent):
     def __init__(self, name: str, count: int = 3):
         super().__init__(name, "A simple agent that counts down.")
@@ -125,8 +123,6 @@ and returns a response with the result.
 logger.info("## ArithmeticAgent")
 
 
-
-
 class ArithmeticAgent(BaseChatAgent):
     def __init__(self, name: str, description: str, operator_func: Callable[[int], int]) -> None:
         super().__init__(name, description=description)
@@ -148,6 +144,7 @@ class ArithmeticAgent(BaseChatAgent):
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         pass
+
 
 """
 ```{note}
@@ -172,14 +169,21 @@ and set the appropriate selector settings:
 - allow the same agent to be selected consecutively to allow for repeated operations, and
 - customize the selector prompt to tailor the model's response to the specific task.
 """
-logger.info("The `on_messages` method may be called with an empty list of messages, in which")
+logger.info(
+    "The `on_messages` method may be called with an empty list of messages, in which")
+
 
 async def run_number_agents() -> None:
-    add_agent = ArithmeticAgent("add_agent", "Adds 1 to the number.", lambda x: x + 1)
-    multiply_agent = ArithmeticAgent("multiply_agent", "Multiplies the number by 2.", lambda x: x * 2)
-    subtract_agent = ArithmeticAgent("subtract_agent", "Subtracts 1 from the number.", lambda x: x - 1)
-    divide_agent = ArithmeticAgent("divide_agent", "Divides the number by 2 and rounds down.", lambda x: x // 2)
-    identity_agent = ArithmeticAgent("identity_agent", "Returns the number as is.", lambda x: x)
+    add_agent = ArithmeticAgent(
+        "add_agent", "Adds 1 to the number.", lambda x: x + 1)
+    multiply_agent = ArithmeticAgent(
+        "multiply_agent", "Multiplies the number by 2.", lambda x: x * 2)
+    subtract_agent = ArithmeticAgent(
+        "subtract_agent", "Subtracts 1 from the number.", lambda x: x - 1)
+    divide_agent = ArithmeticAgent(
+        "divide_agent", "Divides the number by 2 and rounds down.", lambda x: x // 2)
+    identity_agent = ArithmeticAgent(
+        "identity_agent", "Returns the number as is.", lambda x: x)
 
     termination_condition = MaxMessageTermination(10)
 
@@ -187,7 +191,8 @@ async def run_number_agents() -> None:
         [add_agent, multiply_agent, subtract_agent, divide_agent, identity_agent],
         model_client=MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit"),
         termination_condition=termination_condition,
-        allow_repeated_speaker=True,  # Allow the same agent to speak multiple times, necessary for this task.
+        # Allow the same agent to speak multiple times, necessary for this task.
+        allow_repeated_speaker=True,
         selector_prompt=(
             "Available roles:\n{roles}\nTheir job descriptions:\n{participants}\n"
             "Current conversation history:\n{history}\n"
@@ -196,10 +201,12 @@ async def run_number_agents() -> None:
     )
 
     task: List[BaseChatMessage] = [
-        TextMessage(content="Apply the operations to turn the given number into 25.", source="user"),
+        TextMessage(
+            content="Apply the operations to turn the given number into 25.", source="user"),
         TextMessage(content="10", source="user"),
     ]
     stream = selector_group_chat.run_stream(task=task)
+
     async def run_async_code_8cdf6b5b():
         await Console(stream)
     asyncio.run(run_async_code_8cdf6b5b())
@@ -230,8 +237,6 @@ pip install google-genai
 logger.info("## Using Custom Model Clients in Custom Agents")
 
 
-
-
 class GeminiAssistantAgent(BaseChatAgent):
     def __init__(
         self,
@@ -259,7 +264,8 @@ class GeminiAssistantAgent(BaseChatAgent):
                 final_response = message
 
         if final_response is None:
-            raise AssertionError("The stream should have returned the final result.")
+            raise AssertionError(
+                "The stream should have returned the final result.")
 
         return final_response
 
@@ -297,7 +303,8 @@ class GeminiAssistantAgent(BaseChatAgent):
         asyncio.run(run_async_code_d88081c7())
 
         yield Response(
-            chat_message=TextMessage(content=response.text, source=self.name, models_usage=usage),
+            chat_message=TextMessage(
+                content=response.text, source=self.name, models_usage=usage),
             inner_messages=[],
         )
 
@@ -305,7 +312,10 @@ class GeminiAssistantAgent(BaseChatAgent):
         """Reset the assistant by clearing the model context."""
         await self._model_context.clear()
 
+
 gemini_assistant = GeminiAssistantAgent("gemini_assistant")
+
+
 async def run_async_code_cf2fcabe():
     await Console(gemini_assistant.run_stream(task="What is the capital of New York?"))
 asyncio.run(run_async_code_cf2fcabe())
@@ -318,7 +328,7 @@ Now, let us explore how to use this custom agent as part of a team in AgentChat.
 logger.info("In the example above, we have chosen to provide `model`, `api_key` and `system_message` as arguments - you can choose to provide any other arguments that are required by the model client you are using or fits with your application design.")
 
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit-mini")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
 
 primary_agent = AssistantAgent(
     "primary",
@@ -334,11 +344,15 @@ gemini_critic_agent = GeminiAssistantAgent(
 
 termination = TextMentionTermination("APPROVE") | MaxMessageTermination(10)
 
-team = RoundRobinGroupChat([primary_agent, gemini_critic_agent], termination_condition=termination)
+team = RoundRobinGroupChat(
+    [primary_agent, gemini_critic_agent], termination_condition=termination)
+
 
 async def run_async_code_af0676fa():
     await Console(team.run_stream(task="Write a Haiku poem with 4 lines about the fall season."))
 asyncio.run(run_async_code_af0676fa())
+
+
 async def run_async_code_0349fda4():
     await model_client.close()
 asyncio.run(run_async_code_0349fda4())
@@ -358,8 +372,6 @@ The declarative class can be serialized to a JSON format using the `dump_compone
 logger.info("## Making the Custom Agent Declarative")
 
 
-
-
 class GeminiAssistantAgentConfig(BaseModel):
     name: str
     description: str = "An agent that provides assistance with ability to use tools."
@@ -367,7 +379,8 @@ class GeminiAssistantAgentConfig(BaseModel):
     system_message: str | None = None
 
 
-class GeminiAssistantAgent(BaseChatAgent, Component[GeminiAssistantAgentConfig]):  # type: ignore[no-redef]
+# type: ignore[no-redef]
+class GeminiAssistantAgent(BaseChatAgent, Component[GeminiAssistantAgentConfig]):
     component_config_schema = GeminiAssistantAgentConfig
 
     def __init__(
@@ -396,7 +409,8 @@ class GeminiAssistantAgent(BaseChatAgent, Component[GeminiAssistantAgentConfig])
                 final_response = message
 
         if final_response is None:
-            raise AssertionError("The stream should have returned the final result.")
+            raise AssertionError(
+                "The stream should have returned the final result.")
 
         return final_response
 
@@ -435,7 +449,8 @@ class GeminiAssistantAgent(BaseChatAgent, Component[GeminiAssistantAgentConfig])
         asyncio.run(run_async_code_d88081c7())
 
         yield Response(
-            chat_message=TextMessage(content=response.text, source=self.name, models_usage=usage),
+            chat_message=TextMessage(
+                content=response.text, source=self.name, models_usage=usage),
             inner_messages=[],
         )
 
@@ -456,6 +471,7 @@ class GeminiAssistantAgent(BaseChatAgent, Component[GeminiAssistantAgentConfig])
             model=self._model,
             system_message=self._system_message,
         )
+
 
 """
 Now that we have the required methods implemented, we can now load and dump the custom agent to and from a JSON format, and then load the agent from the JSON format.

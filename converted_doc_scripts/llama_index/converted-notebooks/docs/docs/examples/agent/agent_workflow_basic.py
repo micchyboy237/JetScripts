@@ -59,12 +59,13 @@ In this example, we will use `MLX` as our LLM. For all LLMs, check out the [exam
 logger.info("## Setup")
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini", api_key="sk-...")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", api_key="sk-...")
 
 """
 To make our agent more useful, we can give it tools/actions to use. In this case, we'll use Tavily to implement a tool that can search the web for information. You can get a free API key from [Tavily](https://tavily.com/).
 """
-logger.info("To make our agent more useful, we can give it tools/actions to use. In this case, we'll use Tavily to implement a tool that can search the web for information. You can get a free API key from [Tavily](https://tavily.com/).")
+logger.info(
+    "To make our agent more useful, we can give it tools/actions to use. In this case, we'll use Tavily to implement a tool that can search the web for information. You can get a free API key from [Tavily](https://tavily.com/).")
 
 # %pip install tavily-python
 
@@ -77,13 +78,13 @@ When creating a tool, its very important to:
 logger.info("When creating a tool, its very important to:")
 
 
-
 async def search_web(query: str) -> str:
     """Useful for using the web to answer questions."""
     client = AsyncTavilyClient(api_key="tvly-...")
+
     async def run_async_code_2ae1754f():
         return str(await client.search(query))
-        return 
+        return
      = asyncio.run(run_async_code_2ae1754f())
     logger.success(format_json())
 

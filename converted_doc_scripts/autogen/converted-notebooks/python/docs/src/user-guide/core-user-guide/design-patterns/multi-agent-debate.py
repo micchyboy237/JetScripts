@@ -1,19 +1,19 @@
 import asyncio
 from autogen_core import (
-DefaultTopicId,
-MessageContext,
-RoutedAgent,
-SingleThreadedAgentRuntime,
-TypeSubscription,
-default_subscription,
-message_handler,
+    DefaultTopicId,
+    MessageContext,
+    RoutedAgent,
+    SingleThreadedAgentRuntime,
+    TypeSubscription,
+    default_subscription,
+    message_handler,
 )
 from autogen_core.models import (
-AssistantMessage,
-ChatCompletionClient,
-LLMMessage,
-SystemMessage,
-UserMessage,
+    AssistantMessage,
+    ChatCompletionClient,
+    LLMMessage,
+    SystemMessage,
+    UserMessage,
 )
 from dataclasses import dataclass
 from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
@@ -63,7 +63,6 @@ Read about [Topics and Subscriptions](../core-concepts/topic-and-subscription.md
 logger.info("# Multi-Agent Debate")
 
 
-
 """
 ## Message Protocol
 
@@ -72,6 +71,7 @@ First, we define the messages used by the agents.
 and `FinalSolverResponse` is the message published by the solver agents in the final round.
 """
 logger.info("## Message Protocol")
+
 
 @dataclass
 class Question:
@@ -101,6 +101,7 @@ class IntermediateSolverResponse:
 class FinalSolverResponse:
     answer: str
 
+
 """
 ## Solver Agent
 
@@ -119,6 +120,7 @@ solver agents subscribe to the default topic, which is used by the aggregator ag
 to collect the final responses from the solver agents.
 """
 logger.info("## Solver Agent")
+
 
 @default_subscription
 class MathSolver(RoutedAgent):
@@ -146,11 +148,14 @@ class MathSolver(RoutedAgent):
 
     @message_handler
     async def handle_request(self, message: SolverRequest, ctx: MessageContext) -> None:
-        self._history.append(UserMessage(content=message.content, source="user"))
+        self._history.append(UserMessage(
+            content=message.content, source="user"))
         model_result = await self._model_client.create(self._system_messages + self._history)
         assert isinstance(model_result.content, str)
-        self._history.append(AssistantMessage(content=model_result.content, source=self.metadata["type"]))
-        logger.debug(f"{'-'*80}\nSolver {self.id} round {self._round}:\n{model_result.content}")
+        self._history.append(AssistantMessage(
+            content=model_result.content, source=self.metadata["type"]))
+        logger.debug(
+            f"{'-'*80}\nSolver {self.id} round {self._round}:\n{model_result.content}")
         match = re.search(r"\{\{(\-?\d+(\.\d+)?)\}\}", model_result.content)
         if match is None:
             raise ValueError("The model response does not contain the answer.")
@@ -186,8 +191,13 @@ class MathSolver(RoutedAgent):
                 "Your final answer should be a single numerical number, "
                 "in the form of {{answer}}, at the end of your response."
             )
-            await self.send_message(SolverRequest(content=prompt, question=message.question), self.id)
+            # Replace send_message with publish_message to maintain topology
+            await self.publish_message(
+                SolverRequest(content=prompt, question=message.question),
+                topic_id=DefaultTopicId(type=self._topic_type)
+            )
             self._buffer.pop(message.round)
+
 
 """
 ## Aggregator Agent
@@ -208,6 +218,7 @@ and have the both the solver and aggregator publish and subscribe to that topic 
 """
 logger.info("## Aggregator Agent")
 
+
 @default_subscription
 class MathAggregator(RoutedAgent):
     def __init__(self, num_solvers: int) -> None:
@@ -217,25 +228,30 @@ class MathAggregator(RoutedAgent):
 
     @message_handler
     async def handle_question(self, message: Question, ctx: MessageContext) -> None:
-        logger.debug(f"{'-'*80}\nAggregator {self.id} received question:\n{message.content}")
+        logger.debug(
+            f"{'-'*80}\nAggregator {self.id} received question:\n{message.content}")
         prompt = (
             f"Can you solve the following math problem?\n{message.content}\n"
             "Explain your reasoning. Your final answer should be a single numerical number, "
             "in the form of {{answer}}, at the end of your response."
         )
-        logger.debug(f"{'-'*80}\nAggregator {self.id} publishes initial solver request.")
+        logger.debug(
+            f"{'-'*80}\nAggregator {self.id} publishes initial solver request.")
         await self.publish_message(SolverRequest(content=prompt, question=message.content), topic_id=DefaultTopicId())
 
     @message_handler
     async def handle_final_solver_response(self, message: FinalSolverResponse, ctx: MessageContext) -> None:
         self._buffer.append(message)
         if len(self._buffer) == self._num_solvers:
-            logger.debug(f"{'-'*80}\nAggregator {self.id} received all final answers from {self._num_solvers} solvers.")
+            logger.debug(
+                f"{'-'*80}\nAggregator {self.id} received all final answers from {self._num_solvers} solvers.")
             answers = [resp.answer for resp in self._buffer]
             majority_answer = max(set(answers), key=answers.count)
             await self.publish_message(Answer(content=majority_answer), topic_id=DefaultTopicId())
             self._buffer.clear()
-            logger.debug(f"{'-'*80}\nAggregator {self.id} publishes final answer:\n{majority_answer}")
+            logger.debug(
+                f"{'-'*80}\nAggregator {self.id} publishes final answer:\n{majority_answer}")
+
 
 """
 ## Setting Up a Debate
@@ -260,7 +276,8 @@ logger.info("## Setting Up a Debate")
 
 runtime = SingleThreadedAgentRuntime()
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit-mini")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+
 
 async def async_func_4():
     await MathSolver.register(
@@ -274,6 +291,8 @@ async def async_func_4():
         ),
     )
 asyncio.run(async_func_4())
+
+
 async def async_func_14():
     await MathSolver.register(
         runtime,
@@ -286,6 +305,8 @@ async def async_func_14():
         ),
     )
 asyncio.run(async_func_14())
+
+
 async def async_func_24():
     await MathSolver.register(
         runtime,
@@ -298,6 +319,8 @@ async def async_func_24():
         ),
     )
 asyncio.run(async_func_24())
+
+
 async def async_func_34():
     await MathSolver.register(
         runtime,
@@ -310,6 +333,8 @@ async def async_func_34():
         ),
     )
 asyncio.run(async_func_34())
+
+
 async def run_async_code_24b0fde2():
     await MathAggregator.register(runtime, "MathAggregator", lambda: MathAggregator(num_solvers=4))
 asyncio.run(run_async_code_24b0fde2())
@@ -318,32 +343,45 @@ asyncio.run(run_async_code_24b0fde2())
 Now we will create the solver agent topology using {py:class}`~autogen_core.components.TypeSubscription`,
 which maps each solver agent's publishing topic type to its neighbors' agent types.
 """
-logger.info("Now we will create the solver agent topology using {py:class}`~autogen_core.components.TypeSubscription`,")
+logger.info(
+    "Now we will create the solver agent topology using {py:class}`~autogen_core.components.TypeSubscription`,")
+
 
 async def run_async_code_67a46a42():
     await runtime.add_subscription(TypeSubscription("MathSolverA", "MathSolverD"))
 asyncio.run(run_async_code_67a46a42())
+
+
 async def run_async_code_d1698d92():
     await runtime.add_subscription(TypeSubscription("MathSolverA", "MathSolverB"))
 asyncio.run(run_async_code_d1698d92())
 
+
 async def run_async_code_cf3fff1c():
     await runtime.add_subscription(TypeSubscription("MathSolverB", "MathSolverA"))
 asyncio.run(run_async_code_cf3fff1c())
+
+
 async def run_async_code_08105e28():
     await runtime.add_subscription(TypeSubscription("MathSolverB", "MathSolverC"))
 asyncio.run(run_async_code_08105e28())
 
+
 async def run_async_code_2526e699():
     await runtime.add_subscription(TypeSubscription("MathSolverC", "MathSolverB"))
 asyncio.run(run_async_code_2526e699())
+
+
 async def run_async_code_103bf518():
     await runtime.add_subscription(TypeSubscription("MathSolverC", "MathSolverD"))
 asyncio.run(run_async_code_103bf518())
 
+
 async def run_async_code_0906cda7():
     await runtime.add_subscription(TypeSubscription("MathSolverD", "MathSolverC"))
 asyncio.run(run_async_code_0906cda7())
+
+
 async def run_async_code_ab7cbd64():
     await runtime.add_subscription(TypeSubscription("MathSolverD", "MathSolverA"))
 asyncio.run(run_async_code_ab7cbd64())
@@ -351,24 +389,85 @@ asyncio.run(run_async_code_ab7cbd64())
 """
 ## Solving Math Problems
 
-Now let's run the debate to solve a math problem.
-We publish a `SolverRequest` to the default topic, 
-and the aggregator agent will start the debate.
+Run the entire debate in a single async function to ensure all operations use the same event loop.
 """
 logger.info("## Solving Math Problems")
 
-question = "Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. How many clips did Natalia sell altogether in April and May?"
-async def run_async_code_1e6ac0a6():
+
+async def run_debate():
+    # Initialize model client
+    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+
+    # Initialize runtime
+    runtime = SingleThreadedAgentRuntime()
+
+    # Register solver agents
+    await MathSolver.register(
+        runtime,
+        "MathSolverA",
+        lambda: MathSolver(
+            model_client=model_client,
+            topic_type="MathSolverA",
+            num_neighbors=2,
+            max_round=3,
+        ),
+    )
+    await MathSolver.register(
+        runtime,
+        "MathSolverB",
+        lambda: MathSolver(
+            model_client=model_client,
+            topic_type="MathSolverB",
+            num_neighbors=2,
+            max_round=3,
+        ),
+    )
+    await MathSolver.register(
+        runtime,
+        "MathSolverC",
+        lambda: MathSolver(
+            model_client=model_client,
+            topic_type="MathSolverC",
+            num_neighbors=2,
+            max_round=3,
+        ),
+    )
+    await MathSolver.register(
+        runtime,
+        "MathSolverD",
+        lambda: MathSolver(
+            model_client=model_client,
+            topic_type="MathSolverD",
+            num_neighbors=2,
+            max_round=3,
+        ),
+    )
+    await MathAggregator.register(runtime, "MathAggregator", lambda: MathAggregator(num_solvers=4))
+
+    # Set up solver agent topology
+    await runtime.add_subscription(TypeSubscription("MathSolverA", "MathSolverD"))
+    await runtime.add_subscription(TypeSubscription("MathSolverA", "MathSolverB"))
+    await runtime.add_subscription(TypeSubscription("MathSolverB", "MathSolverA"))
+    await runtime.add_subscription(TypeSubscription("MathSolverB", "MathSolverC"))
+    await runtime.add_subscription(TypeSubscription("MathSolverC", "MathSolverB"))
+    await runtime.add_subscription(TypeSubscription("MathSolverC", "MathSolverD"))
+    await runtime.add_subscription(TypeSubscription("MathSolverD", "MathSolverC"))
+    await runtime.add_subscription(TypeSubscription("MathSolverD", "MathSolverA"))
+
+    # Start runtime
     runtime.start()
-asyncio.run(run_async_code_1e6ac0a6())
-async def run_async_code_33e3430c():
+
+    # Publish math problem
+    question = "Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. How many clips did Natalia sell altogether in April and May?"
     await runtime.publish_message(Question(content=question), DefaultTopicId())
-asyncio.run(run_async_code_33e3430c())
-async def run_async_code_b7ca34d4():
+
+    # Stop runtime when idle
     await runtime.stop_when_idle()
-asyncio.run(run_async_code_b7ca34d4())
-async def run_async_code_0349fda4():
+
+    # Close model client
     await model_client.close()
-asyncio.run(run_async_code_0349fda4())
+
+# Run the debate
+asyncio.run(run_debate())
 
 logger.info("\n\n[DONE]", bright=True)

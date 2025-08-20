@@ -70,7 +70,6 @@ AIMon API key can be obtained [here](https://docs.aimon.ai/quickstart#1-api-key)
 # logger.info("Configure your `OPENAI_API_KEY` and `AIMON_API_KEY` in Google Collab secrets and provide them notebook access. We will use MLX for the LLM and embedding generation models. We will use AIMon for continuous monitoring of quality issues.")
 
 
-
 # os.environ["OPENAI_API_KEY"] = userdata.get("OPENAI_API_KEY")
 
 """
@@ -90,7 +89,6 @@ This function helps extract transcripts and converts them into a list of objects
 logger.info("This function helps extract transcripts and converts them into a list of objects of type `llama_index.core.Document`.")
 
 
-
 def extract_and_create_documents(transcripts):
     documents = []
 
@@ -108,12 +106,13 @@ def extract_and_create_documents(transcripts):
 transcripts = [meeting["transcript"] for meeting in meetingbank["train"]]
 documents = extract_and_create_documents(
     transcripts[:5]
-)  ## Using only 5 transcripts to keep this example fast and concise.
+)  # Using only 5 transcripts to keep this example fast and concise.
 
 """
 Set up an embedding model. We will be using the `mxbai-embed-large` model here.
 """
-logger.info("Set up an embedding model. We will be using the `mxbai-embed-large` model here.")
+logger.info(
+    "Set up an embedding model. We will be using the `mxbai-embed-large` model here.")
 
 
 embedding_model = MLXEmbedding(
@@ -153,7 +152,7 @@ logger.info("## Building the LLM Application")
 
 
 llm = MLXLlamaIndexLLMAdapter(
-    model="qwen3-1.7b-4bit-mini",
+    model="qwen3-1.7b-4bit",
     temperature=0.4,
     system_prompt="""
                     Please be professional and polite.
@@ -176,7 +175,8 @@ user_instructions = [
 """
 Update the LLM's system prompt with the user's instructions defined dynamically
 """
-logger.info("Update the LLM's system prompt with the user's instructions defined dynamically")
+logger.info(
+    "Update the LLM's system prompt with the user's instructions defined dynamically")
 
 llm.system_prompt += (
     f"Please comply to the following instructions {user_instructions}."
@@ -207,7 +207,8 @@ Using AIMon’s Instruction Adherence Model (a.k.a. Guideline Evaluator)
 
 This model evaluates if generated text adheres to given instructions, ensuring that LLMs follow the user’s guidelines and intent across various tasks for more accurate and relevant outputs.
 """
-logger.info("Using AIMon’s Instruction Adherence Model (a.k.a. Guideline Evaluator)")
+logger.info(
+    "Using AIMon’s Instruction Adherence Model (a.k.a. Guideline Evaluator)")
 
 
 guideline_evaluator = GuidelineEvaluator(aimon_client)

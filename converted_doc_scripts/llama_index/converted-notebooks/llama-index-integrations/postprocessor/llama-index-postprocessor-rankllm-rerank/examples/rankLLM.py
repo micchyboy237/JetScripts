@@ -76,7 +76,8 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 # os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+Settings.llm = MLXLlamaIndexLLMAdapter(
+    temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 Settings.chunk_size = 512
 
 """
@@ -185,8 +186,6 @@ use_azure_ollama: bool = Field(
 logger.info("## Retrieval + RankLLM Reranking")
 
 
-
-
 def get_retrieved_nodes(
     query_str,
     vector_top_k=10,
@@ -207,7 +206,8 @@ def get_retrieved_nodes(
         reranker = RankLLMRerank(
             model=model, top_n=reranker_top_n, window_size=window_size
         )
-        retrieved_nodes = reranker.postprocess_nodes(retrieved_nodes, query_bundle)
+        retrieved_nodes = reranker.postprocess_nodes(
+            retrieved_nodes, query_bundle)
 
         del reranker
         torch.cuda.empty_cache()
@@ -226,6 +226,7 @@ def visualize_retrieved_nodes(nodes) -> None:
         result_dicts.append(result_dict)
 
     pretty_logger.debug(pd.DataFrame(result_dicts))
+
 
 """
 ## Retrieval top 3 results without reranking
@@ -292,7 +293,7 @@ new_nodes = get_retrieved_nodes(
     vector_top_k=10,
     reranker_top_n=3,
     with_reranker=True,
-    model="qwen3-1.7b-4bit-mini",
+    model="qwen3-1.7b-4bit",
 )
 
 visualize_retrieved_nodes(new_nodes)
@@ -303,8 +304,6 @@ visualize_retrieved_nodes(new_nodes)
 ## Sliding window example with RankZephyr.
 """
 logger.info("### The correct result is ranked 1st after RankGPT rerank.")
-
-
 
 
 def get_retrieved_nodes_mixed(
@@ -329,9 +328,11 @@ def get_retrieved_nodes_mixed(
             top_n=reranker_top_n,
             model=model,
         )
-        retrieved_nodes = reranker.postprocess_nodes(retrieved_nodes, query_bundle)
+        retrieved_nodes = reranker.postprocess_nodes(
+            retrieved_nodes, query_bundle)
 
     return retrieved_nodes
+
 
 """
 ### After retrieving the top 50 results and reversing the order, the correct result is ranked 47th/50.
@@ -354,7 +355,8 @@ visualize_retrieved_nodes(new_nodes)
 
 The sliding window size is 20, with a step size of 10.
 """
-logger.info("### Retrieve and Rerank reversed top 50 results using RankZephyr and return top 3")
+logger.info(
+    "### Retrieve and Rerank reversed top 50 results using RankZephyr and return top 3")
 
 new_nodes = get_retrieved_nodes_mixed(
     "Which date did Paul Gauguin arrive in Arles?",

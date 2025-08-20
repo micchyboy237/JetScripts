@@ -6,21 +6,21 @@ from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_cloud_services.extract import (
-ExtractConfig,
-ExtractMode,
-LlamaExtract,
-SourceText,
+    ExtractConfig,
+    ExtractMode,
+    LlamaExtract,
+    SourceText,
 )
 from llama_cloud_services.parse import LlamaParse
 from llama_index.core.llms import ChatMessage
 from llama_index.core.settings import Settings
 from llama_index.core.workflow import (
-Workflow,
-Event,
-Context,
-StartEvent,
-StopEvent,
-step,
+    Workflow,
+    Event,
+    Context,
+    StartEvent,
+    StopEvent,
+    step,
 )
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from neo4j import AsyncGraphDatabase
@@ -72,7 +72,6 @@ logger.info("# Building a Knowledge Graph with LlamaCloud & Neo4J")
 # from getpass import getpass
 
 
-
 """
 # Download Sample Contract
 
@@ -116,6 +115,7 @@ parser = LlamaParse(parse_mode="parse_page_without_llm")
 
 pdf_path = "CybergyHoldingsInc_Affliate Agreement.pdf"
 
+
 async def run_async_code_bf48884c():
     async def run_async_code_e1e182e5():
         results = await parser.aparse(pdf_path)
@@ -135,7 +135,7 @@ In this example, we want to classify incoming contracts. They can either be `Aff
 """
 logger.info("## Contract classification")
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 
 classification_prompt = """You are a legal document classification assistant.
 Your task is to identify the most likely contract type based on the content of the first 10 pages of a contract.
@@ -160,7 +160,6 @@ Output Format:
 <Reason>brief_justification</Reason>
 <ContractType>chosen_type_from_list</ContractType>
 """
-
 
 
 def extract_reason_and_contract_type(text):
@@ -200,6 +199,7 @@ contract_types = ["Affiliate_Agreements", "Co_Branding"]
 
 file_content = " ".join([el.text for el in results.pages[:10]])
 
+
 async def run_async_code_e3fa66cd():
     async def run_async_code_89a28349():
         classification = await classify_contract(file_content, contract_types)
@@ -220,6 +220,7 @@ Here we define two Pydantic models: `Location` captures structured address infor
 """
 logger.info("## Setting Up LlamaExtract")
 
+
 class Location(BaseModel):
     """Location information with structured address components."""
 
@@ -236,10 +237,12 @@ class Party(BaseModel):
         None, description="Party location details"
     )
 
+
 """
 Remember we have multiple contract types, so we need to define specific extraction schemas for each type and create a mapping system to dynamically select the appropriate schema based on our classification result.
 """
 logger.info("Remember we have multiple contract types, so we need to define specific extraction schemas for each type and create a mapping system to dynamically select the appropriate schema based on our classification result.")
+
 
 class BaseContract(BaseModel):
     """Base contract class with common fields."""
@@ -319,6 +322,7 @@ agent = extractor.create_agent(
     ),
 )
 
+
 async def async_func_78():
     result = await agent.aextract(
         files=SourceText(
@@ -370,6 +374,7 @@ MERGE (p)-[:HAS_LOCATION]->(l:Location)
 SET l += party.location
 """
 
+
 async def async_func_22():
     response = await neo4j_driver.execute_query(
         import_query, contract=result.data, path=pdf_path
@@ -400,7 +405,6 @@ cobranding_extraction_agent = extractor.create_agent(
         extraction_mode=ExtractMode.BALANCED,
     ),
 )
-
 
 
 class ClassifyDocEvent(Event):
@@ -435,7 +439,7 @@ class KnowledgeGraphBuilder(Workflow):
         self.affiliate_extract_agent = affiliate_extract_agent
         self.branding_extract_agent = branding_extract_agent
         self.classification_prompt = classification_prompt
-        self.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+        self.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 
     @step
     async def parse_file(
@@ -547,6 +551,7 @@ class KnowledgeGraphBuilder(Workflow):
     MERGE (p)-[:HAS_LOCATION]->(l:Location)
     SET l += party.location
     """
+
         async def async_func_137():
             response = await neo4j_driver.execute_query(
                 import_query, contract=ev.data, path=ev.file_path
@@ -556,6 +561,7 @@ class KnowledgeGraphBuilder(Workflow):
         logger.success(format_json(response))
         return StopEvent(response.summary.counters)
 
+
 knowledge_graph_builder = KnowledgeGraphBuilder(
     parser=parser,
     affiliate_extract_agent=affiliage_extraction_agent,
@@ -564,6 +570,7 @@ knowledge_graph_builder = KnowledgeGraphBuilder(
     timeout=None,
     verbose=True,
 )
+
 
 async def async_func_151():
     response = await knowledge_graph_builder.run(

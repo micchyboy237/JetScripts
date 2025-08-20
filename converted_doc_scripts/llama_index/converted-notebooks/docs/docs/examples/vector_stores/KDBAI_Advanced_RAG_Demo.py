@@ -4,10 +4,10 @@ from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import (
-Settings,
-SimpleDirectoryReader,
-StorageContext,
-VectorStoreIndex,
+    Settings,
+    SimpleDirectoryReader,
+    StorageContext,
+    VectorStoreIndex,
 )
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.retrievers import VectorIndexRetriever
@@ -62,7 +62,8 @@ In order to successfully run this sample, note the following steps depending on 
 
 -***Colab / Hosted Environment:*** Open this notebook in Colab and run through the cells.
 """
-logger.info("# Advanced RAG with temporal filters using LlamaIndex and KDB.AI vector store")
+logger.info(
+    "# Advanced RAG with temporal filters using LlamaIndex and KDB.AI vector store")
 
 # !pip install llama-index llama-index-llms-ollama llama-index-embeddings-ollama llama-index-readers-file llama-index-vector-stores-kdbai
 # !pip install kdbai_client pandas
@@ -73,8 +74,6 @@ logger.info("# Advanced RAG with temporal filters using LlamaIndex and KDB.AI ve
 logger.info("## Import dependencies")
 
 # from getpass import getpass
-
-
 
 
 OUTDIR = "pdf"
@@ -91,31 +90,31 @@ logger.info("#### Set MLX API key and choose the LLM and Embedding model to use:
 #     else getpass("MLX API Key: ")
 )
 
-# from getpass import getpass
+    # from getpass import getpass
 
-# if "OPENAI_API_KEY" in os.environ:
-#     KDBAI_API_KEY = os.environ["OPENAI_API_KEY"]
-else:
-#     OPENAI_API_KEY = getpass("OPENAI API KEY: ")
-#     os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+    # if "OPENAI_API_KEY" in os.environ:
+    #     KDBAI_API_KEY = os.environ["OPENAI_API_KEY"]
+    else:
+    #     OPENAI_API_KEY = getpass("OPENAI API KEY: ")
+    #     os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
-EMBEDDING_MODEL = "mxbai-embed-large"
-GENERATION_MODEL = "qwen3-1.7b-4bit-mini"
+    EMBEDDING_MODEL= "mxbai-embed-large"
+    GENERATION_MODEL= "qwen3-1.7b-4bit"
 
-llm = MLXLlamaIndexLLMAdapter(model=GENERATION_MODEL)
-embed_model = MLXEmbedding(model=EMBEDDING_MODEL)
+    llm= MLXLlamaIndexLLMAdapter(model=GENERATION_MODEL)
+    embed_model= MLXEmbedding(model=EMBEDDING_MODEL)
 
-Settings.llm = llm
-Settings.embed_model = embed_model
+    Settings.llm= llm
+    Settings.embed_model= embed_model
 
-"""
+    """
 ## Create KDB.AI session and table
 """
-logger.info("## Create KDB.AI session and table")
+    logger.info("## Create KDB.AI session and table")
 
-# from getpass import getpass
+    # from getpass import getpass
 
-"""
+    """
 ##### Option 1. KDB.AI Cloud
 
 To use KDB.AI Cloud, you will need two session details - a URL endpoint and an API key.
@@ -126,22 +125,22 @@ You can connect to a KDB.AI Cloud session using `kdbai.Session` and passing the 
 If the environment variables `KDBAI_ENDPOINTS` and `KDBAI_API_KEY` exist on your system containing your KDB.AI Cloud portal details, these variables will automatically be used to connect.
 If these do not exist, it will prompt you to enter your KDB.AI Cloud portal session URL endpoint and API key details.
 """
-logger.info("##### Option 1. KDB.AI Cloud")
+    logger.info("##### Option 1. KDB.AI Cloud")
 
-KDBAI_ENDPOINT = (
-    os.environ["KDBAI_ENDPOINT"]
-    if "KDBAI_ENDPOINT" in os.environ
-    else input("KDB.AI endpoint: ")
+    KDBAI_ENDPOINT= (
+os.environ["KDBAI_ENDPOINT"]
+if "KDBAI_ENDPOINT" in os.environ
+else input("KDB.AI endpoint: ")
 )
-KDBAI_API_KEY = (
-    os.environ["KDBAI_API_KEY"]
-    if "KDBAI_API_KEY" in os.environ
+    KDBAI_API_KEY= (
+os.environ["KDBAI_API_KEY"]
+if "KDBAI_API_KEY" in os.environ
 #     else getpass("KDB.AI API key: ")
 )
 
-session = kdbai.Session(endpoint=KDBAI_ENDPOINT, api_key=KDBAI_API_KEY)
+    session= kdbai.Session(endpoint=KDBAI_ENDPOINT, api_key=KDBAI_API_KEY)
 
-"""
+    """
 ##### Option 2. KDB.AI Server
 
 To use KDB.AI Server, you will need download and run your own container.
@@ -152,11 +151,11 @@ Follow instructions in the signup email to get your session up and running.
 
 Once the [setup steps](https://code.kx.com/kdbai/gettingStarted/kdb-ai-server-setup.html) are complete you can then connect to your KDB.AI Server session using `kdbai.Session` and passing your local endpoint.
 """
-logger.info("##### Option 2. KDB.AI Server")
+    logger.info("##### Option 2. KDB.AI Server")
 
 
 
-"""
+    """
 ### Create the schema for your KDB.AI table
 
 ***!!! Note:*** The 'dims' parameter in the embedding column must reflect the output dimensions of the embedding model you choose.
@@ -164,68 +163,68 @@ logger.info("##### Option 2. KDB.AI Server")
 
 - MLX 'mxbai-embed-large' outputs 1536 dimensions.
 """
-logger.info("### Create the schema for your KDB.AI table")
+    logger.info("### Create the schema for your KDB.AI table")
 
-schema = [
-    {"name": "document_id", "type": "bytes"},
-    {"name": "text", "type": "bytes"},
-    {"name": "embeddings", "type": "float32s"},
-    {"name": "title", "type": "str"},
-    {"name": "publication_date", "type": "datetime64[ns]"},
+    schema= [
+{"name": "document_id", "type": "bytes"},
+{"name": "text", "type": "bytes"},
+{"name": "embeddings", "type": "float32s"},
+{"name": "title", "type": "str"},
+{"name": "publication_date", "type": "datetime64[ns]"},
 ]
 
 
-indexFlat = {
-    "name": "flat_index",
-    "type": "flat",
-    "column": "embeddings",
-    "params": {"dims": 1536, "metric": "L2"},
+    indexFlat= {
+"name": "flat_index",
+"type": "flat",
+"column": "embeddings",
+"params": {"dims": 1536, "metric": "L2"},
 }
 
-KDBAI_TABLE_NAME = "reports"
-database = session.database("default")
+    KDBAI_TABLE_NAME = "reports"
+    database = session.database("default")
 
-for table in database.tables:
+    for table in database.tables:
     if table.name == KDBAI_TABLE_NAME:
         table.drop()
         break
 
-table = database.create_table(
-    KDBAI_TABLE_NAME, schema=schema, indexes=[indexFlat]
+    table = database.create_table(
+KDBAI_TABLE_NAME, schema = schema, indexes = [indexFlat]
 )
 
-"""
+    """
 ## Financial reports urls and metadata
 """
-logger.info("## Financial reports urls and metadata")
+    logger.info("## Financial reports urls and metadata")
 
-INPUT_URLS = [
-    "https://www.govinfo.gov/content/pkg/PLAW-106publ102/pdf/PLAW-106publ102.pdf",
-    "https://www.govinfo.gov/content/pkg/PLAW-111publ203/pdf/PLAW-111publ203.pdf",
+    INPUT_URLS= [
+"https://www.govinfo.gov/content/pkg/PLAW-106publ102/pdf/PLAW-106publ102.pdf",
+"https://www.govinfo.gov/content/pkg/PLAW-111publ203/pdf/PLAW-111publ203.pdf",
 ]
 
-METADATA = {
-    "pdf/PLAW-106publ102.pdf": {
-        "title": "GRAMM–LEACH–BLILEY ACT, 1999",
-        "publication_date": pd.to_datetime("1999-11-12"),
-    },
-    "pdf/PLAW-111publ203.pdf": {
-        "title": "DODD-FRANK WALL STREET REFORM AND CONSUMER PROTECTION ACT, 2010",
-        "publication_date": pd.to_datetime("2010-07-21"),
-    },
+    METADATA= {
+"pdf/PLAW-106publ102.pdf": {
+    "title": "GRAMM–LEACH–BLILEY ACT, 1999",
+    "publication_date": pd.to_datetime("1999-11-12"),
+},
+"pdf/PLAW-111publ203.pdf": {
+    "title": "DODD-FRANK WALL STREET REFORM AND CONSUMER PROTECTION ACT, 2010",
+    "publication_date": pd.to_datetime("2010-07-21"),
+},
 }
 
-"""
+    """
 ## Download PDF files locally
 """
-logger.info("## Download PDF files locally")
+    logger.info("## Download PDF files locally")
 
-# %%time
+    # %%time
 
-CHUNK_SIZE = 512 * 1024
+    CHUNK_SIZE = 512 * 1024
 
 
-def download_file(url):
+    def download_file(url):
     logger.debug("Downloading %s..." % url)
     out = os.path.join(OUTDIR, os.path.basename(url))
     try:
@@ -243,7 +242,7 @@ def download_file(url):
     return out
 
 
-if RESET:
+    if RESET:
     if os.path.exists(OUTDIR):
         shutil.rmtree(OUTDIR)
     os.mkdir(OUTDIR)
@@ -251,163 +250,163 @@ if RESET:
     local_files = [download_file(x) for x in INPUT_URLS]
     local_files[:10]
 
-"""
+    """
 ## Load local PDF files with LlamaIndex
 """
-logger.info("## Load local PDF files with LlamaIndex")
+    logger.info("## Load local PDF files with LlamaIndex")
 
-# %%time
+    # %%time
 
 
-def get_metadata(filepath):
+    def get_metadata(filepath):
     return METADATA[filepath]
 
 
-documents = SimpleDirectoryReader(
-    input_files=local_files,
-    file_metadata=get_metadata,
+    documents = SimpleDirectoryReader(
+input_files = local_files,
+file_metadata = get_metadata,
 )
 
-docs = documents.load_data()
-len(docs)
+    docs= documents.load_data()
+    len(docs)
 
-"""
+    """
 ## Setup LlamaIndex RAG pipeline using KDB.AI vector store
 """
-logger.info("## Setup LlamaIndex RAG pipeline using KDB.AI vector store")
+    logger.info("## Setup LlamaIndex RAG pipeline using KDB.AI vector store")
 
-# %%time
+    # %%time
 
-vector_store = KDBAIVectorStore(table)
+    vector_store= KDBAIVectorStore(table)
 
-storage_context = StorageContext.from_defaults(vector_store=vector_store)
-index = VectorStoreIndex.from_documents(
-    docs,
-    storage_context=storage_context,
-    transformations=[SentenceSplitter(chunk_size=2048, chunk_overlap=0)],
+    storage_context= StorageContext.from_defaults(vector_store=vector_store)
+    index= VectorStoreIndex.from_documents(
+docs,
+storage_context = storage_context,
+transformations = [SentenceSplitter(chunk_size=2048, chunk_overlap=0)],
 )
 
-table.query()
+    table.query()
 
-"""
+    """
 ## Setup the LlamaIndex Query Engine
 """
-logger.info("## Setup the LlamaIndex Query Engine")
+    logger.info("## Setup the LlamaIndex Query Engine")
 
-# %%time
+    # %%time
 
-K = 15
+    K= 15
 
-query_engine = index.as_query_engine(
-    similarity_top_k=K,
-    vector_store_kwargs={
-        "index": "flat_index",
-        "filter": [["<", "publication_date", datetime.date(2008, 9, 15)]],
-        "sort_columns": "publication_date",
-    },
+    query_engine= index.as_query_engine(
+similarity_top_k = K,
+vector_store_kwargs = {
+    "index": "flat_index",
+    "filter": [["<", "publication_date", datetime.date(2008, 9, 15)]],
+    "sort_columns": "publication_date",
+},
 )
 
-"""
+    """
 ## Before the 2008 crisis
 """
-logger.info("## Before the 2008 crisis")
+    logger.info("## Before the 2008 crisis")
 
-# %%time
+    # %%time
 
-result = query_engine.query(
-    """
+    result= query_engine.query(
+"""
     What was the main financial regulation in the US before the 2008 financial crisis ?
     """
 )
-logger.debug(result.response)
+    logger.debug(result.response)
 
-# %%time
+    # %%time
 
-result = query_engine.query(
-    """
+    result= query_engine.query(
+"""
     Is the Gramm-Leach-Bliley Act of 1999 enough to prevent the 2008 crisis. Search the document and explain its strenghts and weaknesses to regulate the US stock market.
     """
 )
-logger.debug(result.response)
+    logger.debug(result.response)
 
-"""
+    """
 ## After the 2008 crisis
 """
-logger.info("## After the 2008 crisis")
+    logger.info("## After the 2008 crisis")
 
-# %%time
+    # %%time
 
-K = 15
+    K= 15
 
-query_engine = index.as_query_engine(
-    similarity_top_k=K,
-    vector_store_kwargs={
-        "index": "flat_index",
-        "filter": [[">=", "publication_date", datetime.date(2008, 9, 15)]],
-        "sort_columns": "publication_date",
-    },
+    query_engine= index.as_query_engine(
+similarity_top_k = K,
+vector_store_kwargs = {
+    "index": "flat_index",
+    "filter": [[">=", "publication_date", datetime.date(2008, 9, 15)]],
+    "sort_columns": "publication_date",
+},
 )
 
-# %%time
+    # %%time
 
-result = query_engine.query(
-    """
+    result= query_engine.query(
+"""
     What happened on the 15th of September 2008 ?
     """
 )
-logger.debug(result.response)
+    logger.debug(result.response)
 
-# %%time
+    # %%time
 
-result = query_engine.query(
-    """
+    result= query_engine.query(
+"""
     What was the new US financial regulation enacted after the 2008 crisis to increase the market regulation and to improve consumer sentiment ?
     """
 )
-logger.debug(result.response)
+    logger.debug(result.response)
 
-"""
+    """
 ## In depth analysis
 """
-logger.info("## In depth analysis")
+    logger.info("## In depth analysis")
 
-# %%time
+    # %%time
 
-K = 20
+    K= 20
 
-query_engine = index.as_query_engine(
-    similarity_top_k=K,
-    vector_store_kwargs={
-        "index": "flat_index",
-        "sort_columns": "publication_date",
-    },
+    query_engine= index.as_query_engine(
+similarity_top_k = K,
+vector_store_kwargs = {
+    "index": "flat_index",
+    "sort_columns": "publication_date",
+},
 )
 
-# %%time
+    # %%time
 
-result = query_engine.query(
-    """
+    result= query_engine.query(
+"""
     Analyse the US financial regulations before and after the 2008 crisis and produce a report of all related arguments to explain what happened, and to ensure that does not happen again.
     Use both the provided context and your own knowledge but do mention explicitely which one you use.
     """
 )
-logger.debug(result.response)
+    logger.debug(result.response)
 
-"""
+    """
 ## Delete the KDB.AI Table
 
 Once finished with the table, it is best practice to drop it.
 """
-logger.info("## Delete the KDB.AI Table")
+    logger.info("## Delete the KDB.AI Table")
 
-table.drop()
+    table.drop()
 
-"""
+    """
 #### Take Our Survey
 We hope you found this sample helpful! Your feedback is important to us, and we would appreciate it if you could take a moment to fill out our brief survey. Your input helps us improve our content.
 
 Take the [Survey](https://delighted.com/t/kWYXv316)
 """
-logger.info("#### Take Our Survey")
+    logger.info("#### Take Our Survey")
 
-logger.info("\n\n[DONE]", bright=True)
+    logger.info("\n\n[DONE]", bright=True)

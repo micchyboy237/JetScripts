@@ -3,10 +3,10 @@ from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAda
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.llms import (
-ChatMessage,
-ImageBlock,
-TextBlock,
-MessageRole,
+    ChatMessage,
+    ImageBlock,
+    TextBlock,
+    MessageRole,
 )
 from llama_index.core.schema import Document, MediaResource
 from llama_index.core.settings import Settings
@@ -76,7 +76,7 @@ logger.info("## Initialize `AzureMLX` and Load Images from URLs")
 
 azure_openai_llm = AzureMLXLlamaIndexLLMAdapter(
     engine="my-qwen3-1.7b-4bit-mini",
-    model="qwen3-1.7b-4bit-mini",
+    model="qwen3-1.7b-4bit",
     max_new_tokens=300,
 )
 
@@ -89,7 +89,7 @@ azure_openai_llm = AzureMLXLlamaIndexLLMAdapter(
     azure_endpoint="https://YOUR_URL.openai.azure.com/",
     engine="my-qwen3-1.7b-4bit-mini",
     api_version="2024-02-15-preview",
-    model="qwen3-1.7b-4bit-mini",
+    model="qwen3-1.7b-4bit",
     max_new_tokens=300,
     api_key="xxx",
     supports_content_blocks=True,

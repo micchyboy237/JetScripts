@@ -81,8 +81,7 @@ logger.info("## Setup Vector Index over this Data")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-
-Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
 
 
@@ -112,7 +111,6 @@ eval_dataset = QueryResponseDataset.from_json("./llama2_eval_qr_dataset.json")
 logger.info("#### Get Evaluator")
 
 
-
 evaluator_c = CorrectnessEvaluator()
 
 evaluator_dict = {"correctness": evaluator_c}
@@ -124,10 +122,10 @@ batch_runner = BatchEvalRunner(evaluator_dict, workers=2, show_progress=True)
 logger.info("#### Define Correctness Eval Function")
 
 
-
 async def get_correctness(query_engine, eval_qa_pairs, batch_runner):
     eval_qs = [q for q, _ in eval_qa_pairs]
     eval_answers = [a for _, a in eval_qa_pairs]
+
     async def async_func_7():
         pred_responses = get_responses(
             eval_qs, query_engine, show_progress=True
@@ -193,6 +191,7 @@ logger.info("#### Prepend emotions")
 
 QA_PROMPT_KEY = "response_synthesizer:text_qa_template"
 
+
 async def run_and_evaluate(
     query_engine, eval_qa_pairs, batch_runner, emotion_stimuli_str, qa_tmpl
 ):
@@ -201,6 +200,7 @@ async def run_and_evaluate(
 
     old_qa_tmpl = query_engine.get_prompts()[QA_PROMPT_KEY]
     query_engine.update_prompts({QA_PROMPT_KEY: new_qa_tmpl})
+
     async def async_func_10():
         avg_correctness = await get_correctness(
             query_engine, eval_qa_pairs, batch_runner
@@ -210,6 +210,7 @@ async def run_and_evaluate(
     logger.success(format_json(avg_correctness))
     query_engine.update_prompts({QA_PROMPT_KEY: old_qa_tmpl})
     return avg_correctness
+
 
 async def async_func_16():
     correctness_ep01 = await run_and_evaluate(
@@ -225,6 +226,7 @@ logger.success(format_json(correctness_ep01))
 
 logger.debug(correctness_ep01)
 
+
 async def async_func_26():
     correctness_ep02 = await run_and_evaluate(
         query_engine,
@@ -239,6 +241,7 @@ logger.success(format_json(correctness_ep02))
 
 logger.debug(correctness_ep02)
 
+
 async def async_func_36():
     correctness_base = await run_and_evaluate(
         query_engine, eval_dataset.qr_pairs, batch_runner, "", qa_tmpl
@@ -252,6 +255,7 @@ logger.debug(correctness_base)
 """
 From this, we can see that more emotional prompts seem to lead to better performance!
 """
-logger.info("From this, we can see that more emotional prompts seem to lead to better performance!")
+logger.info(
+    "From this, we can see that more emotional prompts seem to lead to better performance!")
 
 logger.info("\n\n[DONE]", bright=True)

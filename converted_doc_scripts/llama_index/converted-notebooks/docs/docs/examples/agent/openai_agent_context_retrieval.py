@@ -6,10 +6,10 @@ from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import (
-SimpleDirectoryReader,
-VectorStoreIndex,
-StorageContext,
-load_index_from_storage,
+    SimpleDirectoryReader,
+    VectorStoreIndex,
+    StorageContext,
+    load_index_from_storage,
 )
 from llama_index.core import Document
 from llama_index.core.agent.workflow import FunctionAgent
@@ -62,9 +62,8 @@ logger.info("# Context-Augmented Function Calling Agent")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
-
 
 
 try:
@@ -194,6 +193,8 @@ async def get_agent_with_context_awareness(
     )
 
 query = "What is the 'X' of March 2022?"
+
+
 async def async_func_34():
     agent = await get_agent_with_context_awareness(
         query, context_retriever, query_engine_tools
@@ -201,6 +202,7 @@ async def async_func_34():
     return agent
 agent = asyncio.run(async_func_34())
 logger.success(format_json(agent))
+
 
 async def run_async_code_c3285c55():
     async def run_async_code_512dcb7d():
@@ -215,6 +217,8 @@ logger.success(format_json(response))
 logger.debug(str(response))
 
 query = "What is the 'Y' and 'Z' in September 2022?"
+
+
 async def async_func_43():
     agent = await get_agent_with_context_awareness(
         query, context_retriever, query_engine_tools
@@ -222,6 +226,7 @@ async def async_func_43():
     return agent
 agent = asyncio.run(async_func_43())
 logger.success(format_json(agent))
+
 
 async def run_async_code_c3285c55():
     async def run_async_code_512dcb7d():
@@ -246,6 +251,8 @@ logger.info("### Managing Context/Memory")
 ctx = Context(agent)
 
 query = "What is the 'Y' and 'Z' in September 2022?"
+
+
 async def async_func_5():
     agent = await get_agent_with_context_awareness(
         query, context_retriever, query_engine_tools
@@ -253,6 +260,8 @@ async def async_func_5():
     return agent
 agent = asyncio.run(async_func_5())
 logger.success(format_json(agent))
+
+
 async def run_async_code_206be75f():
     async def run_async_code_2ead98bd():
         response = await agent.run(query, ctx=ctx)
@@ -264,6 +273,8 @@ response = asyncio.run(run_async_code_206be75f())
 logger.success(format_json(response))
 
 query = "What did I just ask?"
+
+
 async def async_func_11():
     agent = await get_agent_with_context_awareness(
         query, context_retriever, query_engine_tools
@@ -271,6 +282,8 @@ async def async_func_11():
     return agent
 agent = asyncio.run(async_func_11())
 logger.success(format_json(agent))
+
+
 async def run_async_code_206be75f():
     async def run_async_code_2ead98bd():
         response = await agent.run(query, ctx=ctx)
@@ -288,7 +301,6 @@ logger.debug(str(response))
 logger.info("### Use Uber 10-Q as context, use Calculator as Tool")
 
 
-
 def magic_formula(revenue: int, cost: int) -> int:
     """Runs MAGIC_FORMULA on revenue and cost."""
     return revenue - cost
@@ -299,6 +311,8 @@ magic_tool = FunctionTool.from_defaults(magic_formula)
 context_retriever = sept_index.as_retriever(similarity_top_k=3)
 
 query = "Can you run MAGIC_FORMULA on Uber's revenue and cost?"
+
+
 async def async_func_13():
     agent = await get_agent_with_context_awareness(
         query, context_retriever, [magic_tool]
@@ -306,6 +320,8 @@ async def async_func_13():
     return agent
 agent = asyncio.run(async_func_13())
 logger.success(format_json(agent))
+
+
 async def run_async_code_c3285c55():
     async def run_async_code_512dcb7d():
         response = await agent.run(query)

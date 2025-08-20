@@ -94,7 +94,6 @@ The other steps will use the built-in `StartEvent` and `StopEvent` events.
 logger.info("### [Optional] Set up observability with Llamatrace")
 
 
-
 class InputEvent(Event):
     input: list[ChatMessage]
 
@@ -110,16 +109,15 @@ class ToolCallEvent(Event):
 class FunctionOutputEvent(Event):
     output: ToolOutput
 
+
 """
 ### The Workflow Itself
 
-With our events defined, we can construct our workflow and steps. 
+With our events defined, we can construct our workflow and steps.
 
 Note that the workflow automatically validates itself using type annotations, so the type annotations on our steps are very helpful!
 """
 logger.info("### The Workflow Itself")
-
-
 
 
 class FuncationCallingAgent(Workflow):
@@ -142,7 +140,7 @@ class FuncationCallingAgent(Workflow):
     ) -> InputEvent:
         async def run_async_code_74de6a9e():
             await ctx.store.set("sources", [])
-            return 
+            return
          = asyncio.run(run_async_code_74de6a9e())
         logger.success(format_json())
 
@@ -339,7 +337,7 @@ tools = [
 ]
 
 agent = FuncationCallingAgent(
-    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"), tools=tools, timeout=120, verbose=True
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"), tools=tools, timeout=120, verbose=True
 )
 
 async def run_async_code_e75b1b7f():
@@ -404,7 +402,7 @@ Using the `handler` returned from the `.run()` method, we can also access the st
 logger.info("## Streaming")
 
 agent = FuncationCallingAgent(
-    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"), tools=tools, timeout=120, verbose=False
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"), tools=tools, timeout=120, verbose=False
 )
 
 handler = agent.run(input="Hello! Write me a short story about a cat.")

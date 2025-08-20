@@ -107,7 +107,7 @@ logger.info("### 3. Initializing CogneeGraphRAG")
 cogneeRAG = CogneeGraphRAG(
 #     llm_api_key=os.environ["OPENAI_API_KEY"],
     llm_provider="openai",
-    llm_model="qwen3-1.7b-4bit-mini",
+    llm_model="qwen3-1.7b-4bit",
     graph_db_provider="networkx",
     vector_db_provider="lancedb",
     relational_db_provider="sqlite",
@@ -121,9 +121,10 @@ Load the dataset into the cognee framework:
 """
 logger.info("### 4. Adding Data to Cognee")
 
+
 async def run_async_code_3d9f2743():
     await cogneeRAG.add(documents, "test")
-    return 
+    return
  = asyncio.run(run_async_code_3d9f2743())
 logger.success(format_json())
 

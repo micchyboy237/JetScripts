@@ -60,7 +60,8 @@ logger.info("# 🚀 DeepEval - Open Source Evals with Tracing")
 """
 This step is optional and only if you want a server-hosted dashboard! (Psst I think you should!)
 """
-logger.info("This step is optional and only if you want a server-hosted dashboard! (Psst I think you should!)")
+logger.info(
+    "This step is optional and only if you want a server-hosted dashboard! (Psst I think you should!)")
 
 # !deepeval login
 
@@ -72,8 +73,6 @@ logger.info("This step is optional and only if you want a server-hosted dashboar
 Create a `FunctionAgent` with a list of metrics you wish to use, and pass it to your LlamaIndex application's `run` method.
 """
 logger.info("### End-to-End Evals")
-
-
 
 
 instrument_llama_index(instrument.get_dispatcher())
@@ -88,7 +87,7 @@ answer_relevancy_metric = AnswerRelevancyMetric()
 
 agent = FunctionAgent(
     tools=[multiply],
-    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"),
     system_prompt="You are a helpful assistant that can perform calculations.",
     metrics=[answer_relevancy_metric],
 )
@@ -97,7 +96,7 @@ agent = FunctionAgent(
 async def llm_app(input: str):
     async def run_async_code_490ef1cf():
         return await agent.run(input)
-        return 
+        return
      = asyncio.run(run_async_code_490ef1cf())
     logger.success(format_json())
 
@@ -167,7 +166,7 @@ def multiply(a: float, b: float) -> float:
 answer_relevancy_metric = AnswerRelevancyMetric()
 agent = FunctionAgent(
     tools=[multiply],
-    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"),
     system_prompt="You are a helpful assistant that can perform calculations.",
     metrics=[answer_relevancy_metric],
 )
@@ -205,7 +204,7 @@ def multiply(a: float, b: float) -> float:
 answer_relevancy_metric = AnswerRelevancyMetric()
 agent = FunctionAgent(
     tools=[multiply],
-    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"),
     system_prompt="You are a helpful assistant that can perform calculations.",
     metrics=[answer_relevancy_metric],
 )
@@ -246,7 +245,7 @@ def multiply(a: float, b: float) -> float:
 
 agent = FunctionAgent(
     tools=[multiply],
-    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"),
     system_prompt="You are a helpful assistant that can perform calculations.",
     metric_collection="test_collection_1",
 )

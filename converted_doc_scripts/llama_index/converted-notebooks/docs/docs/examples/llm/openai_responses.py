@@ -56,7 +56,7 @@ logger.info("## Basic Usage")
 
 
 llm = MLXResponses(
-    model="qwen3-1.7b-4bit-mini",
+    model="qwen3-1.7b-4bit",
 )
 
 """
@@ -131,7 +131,7 @@ logger.info("## Configure Parameters")
 
 
 llm = MLXResponses(
-    model="qwen3-1.7b-4bit-mini",
+    model="qwen3-1.7b-4bit",
     temperature=0.5,  # default is 0.1
     max_output_tokens=100,  # default is None
     top_p=0.95,  # default is 1.0
@@ -152,7 +152,7 @@ logger.info("### Built-in Tool Calling")
 
 
 llm = MLXResponses(
-    model="qwen3-1.7b-4bit-mini",
+    model="qwen3-1.7b-4bit",
     built_in_tools=[{"type": "web_search_preview"}],
 )
 
@@ -222,7 +222,6 @@ In the example below, we define a function to generate a Song object.
 logger.info("## Using Function/Tool Calling")
 
 
-
 class Song(BaseModel):
     """A song with name and artist"""
 
@@ -245,7 +244,7 @@ Since this seems to increase latency, it defaults to false.
 logger.info("The `strict` parameter tells MLX whether or not to use constrained sampling when generating tool calls/structured outputs. This means that the generated tool call schema will always contain the expected fields.")
 
 
-llm = MLXResponses(model="qwen3-1.7b-4bit-mini", strict=True)
+llm = MLXResponses(model="qwen3-1.7b-4bit", strict=True)
 response = llm.predict_and_call(
     [tool],
     "Write a random song for me",
@@ -257,14 +256,15 @@ We can also do multiple function calling.
 """
 logger.info("We can also do multiple function calling.")
 
-llm = MLXResponses(model="qwen3-1.7b-4bit-mini")
+llm = MLXResponses(model="qwen3-1.7b-4bit")
 response = llm.predict_and_call(
     [tool],
     "Generate five songs from the Beatles",
     allow_parallel_tool_calls=True,
 )
 for s in response.sources:
-    logger.debug(f"Name: {s.tool_name}, Input: {s.raw_input}, Output: {str(s)}")
+    logger.debug(
+        f"Name: {s.tool_name}, Input: {s.raw_input}, Output: {str(s)}")
 
 """
 ### Manual Tool Calling
@@ -276,7 +276,7 @@ First, lets select a tool.
 logger.info("### Manual Tool Calling")
 
 
-llm = MLXResponses(model="qwen3-1.7b-4bit-mini")
+llm = MLXResponses(model="qwen3-1.7b-4bit")
 
 chat_history = [ChatMessage(role="user", content="Write a random song for me")]
 
@@ -331,7 +331,6 @@ An important use case for function calling is extracting structured objects. Lla
 logger.info("## Structured Prediction")
 
 
-
 class MenuItem(BaseModel):
     """A menu item in a restaurant."""
 
@@ -348,7 +347,7 @@ class Restaurant(BaseModel):
     menu_items: List[MenuItem]
 
 
-llm = MLXResponses(model="qwen3-1.7b-4bit-mini")
+llm = MLXResponses(model="qwen3-1.7b-4bit")
 prompt_tmpl = PromptTemplate(
     "Generate a restaurant in a given city {city_name}"
 )
@@ -368,6 +367,7 @@ logger.info("## Async")
 
 llm = MLXResponses(model="qwen3-1.7b-4bit")
 
+
 async def run_async_code_c3ecd675():
     async def run_async_code_a989c387():
         resp = llm.complete("Paul Graham is ")
@@ -379,6 +379,7 @@ resp = asyncio.run(run_async_code_c3ecd675())
 logger.success(format_json(resp))
 
 logger.debug(resp)
+
 
 async def run_async_code_240f4fad():
     async def run_async_code_506ce1e2():
@@ -398,7 +399,9 @@ Async function calling is also supported.
 """
 logger.info("Async function calling is also supported.")
 
-llm = MLXResponses(model="qwen3-1.7b-4bit-mini")
+llm = MLXResponses(model="qwen3-1.7b-4bit")
+
+
 async def run_async_code_7be6247b():
     async def run_async_code_89fea8b9():
         response = llm.predict_and_call([tool], "Generate a random song")
@@ -421,7 +424,7 @@ logger.info("## Additional kwargs")
 
 
 llm = MLXResponses(
-    model="qwen3-1.7b-4bit-mini", additional_kwargs={"user": "your_user_id"}
+    model="qwen3-1.7b-4bit", additional_kwargs={"user": "your_user_id"}
 )
 resp = llm.complete("Paul Graham is ")
 logger.debug(resp)
@@ -447,7 +450,7 @@ response = llm.chat(
 async def run_async_code_48b7cc44():
     async def run_async_code_800f7ac5():
         )  # response = llm.chat(messages) for an implementation
-        return )  # response
+        return)  # response
     )  # response = asyncio.run(run_async_code_800f7ac5())
     logger.success(format_json()  # response))
     return )  # response

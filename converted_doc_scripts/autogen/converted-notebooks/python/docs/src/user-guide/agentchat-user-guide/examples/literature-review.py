@@ -54,8 +54,9 @@ Also install required libraries:
 """
 logger.info("## Defining Tools")
 
-def google_search(query: str, num_results: int = 2, max_chars: int = 500) -> list:  # type: ignore[type-arg]
 
+# type: ignore[type-arg]
+def google_search(query: str, num_results: int = 2, max_chars: int = 500) -> list:
 
     load_dotenv()
 
@@ -63,10 +64,12 @@ def google_search(query: str, num_results: int = 2, max_chars: int = 500) -> lis
     search_engine_id = os.getenv("GOOGLE_SEARCH_ENGINE_ID")
 
     if not api_key or not search_engine_id:
-        raise ValueError("API key or Search Engine ID not found in environment variables")
+        raise ValueError(
+            "API key or Search Engine ID not found in environment variables")
 
     url = "https://www.googleapis.com/customsearch/v1"
-    params = {"key": api_key, "cx": search_engine_id, "q": query, "num": num_results}
+    params = {"key": api_key, "cx": search_engine_id,
+              "q": query, "num": num_results}
 
     response = requests.get(url, params=params)  # type: ignore[arg-type]
 
@@ -96,20 +99,23 @@ def google_search(query: str, num_results: int = 2, max_chars: int = 500) -> lis
     for item in results:
         body = get_page_content(item["link"])
         enriched_results.append(
-            {"title": item["title"], "link": item["link"], "snippet": item["snippet"], "body": body}
+            {"title": item["title"], "link": item["link"],
+                "snippet": item["snippet"], "body": body}
         )
         time.sleep(1)  # Be respectful to the servers
 
     return enriched_results
 
 
-def arxiv_search(query: str, max_results: int = 2) -> list:  # type: ignore[type-arg]
+# type: ignore[type-arg]
+def arxiv_search(query: str, max_results: int = 2) -> list:
     """
     Search Arxiv for papers and return the results including abstracts.
     """
 
     client = arxiv.Client()
-    search = arxiv.Search(query=query, max_results=max_results, sort_by=arxiv.SortCriterion.Relevance)
+    search = arxiv.Search(query=query, max_results=max_results,
+                          sort_by=arxiv.SortCriterion.Relevance)
 
     results = []
     for paper in client.results(search):
@@ -123,8 +129,8 @@ def arxiv_search(query: str, max_results: int = 2) -> list:  # type: ignore[type
             }
         )
 
-
     return results
+
 
 google_search_tool = FunctionTool(
     google_search, description="Search Google for information, returns results with a snippet and body content"
@@ -140,7 +146,7 @@ Next, we will define the agents that will perform the tasks.
 """
 logger.info("## Defining Agents")
 
-model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit-mini")
+model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
 
 google_search_agent = AssistantAgent(
     name="Google_Search_Agent",
@@ -175,8 +181,10 @@ logger.info("## Creating the Team")
 
 termination = TextMentionTermination("TERMINATE")
 team = RoundRobinGroupChat(
-    participants=[google_search_agent, arxiv_search_agent, report_agent], termination_condition=termination
+    participants=[google_search_agent, arxiv_search_agent,
+                  report_agent], termination_condition=termination
 )
+
 
 async def async_func_5():
     await Console(
@@ -185,6 +193,7 @@ async def async_func_5():
         )
     )
 asyncio.run(async_func_5())
+
 
 async def run_async_code_0349fda4():
     await model_client.close()

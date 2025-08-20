@@ -79,7 +79,7 @@ logger.info("## Setup LLM And Embedding Model")
 
 
 embed_model = MLXEmbedding()
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 
 """
 ## Define TopicNodeParser

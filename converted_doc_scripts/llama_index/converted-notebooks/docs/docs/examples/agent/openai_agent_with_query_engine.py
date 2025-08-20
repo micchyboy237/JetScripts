@@ -49,7 +49,7 @@ logger.info("# Agent with Query Engine Tools")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
 
 
@@ -125,7 +125,8 @@ For other LLMs, we can use the `ReActAgent`.
 logger.info("## Setup Agent")
 
 
-agent = FunctionAgent(tools=query_engine_tools, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"))
+agent = FunctionAgent(tools=query_engine_tools,
+                      llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"))
 
 ctx = Context(agent)
 
@@ -144,6 +145,7 @@ async for ev in handler.stream_events():
         )
     elif isinstance(ev, AgentStream):
         logger.debug(ev.delta, end="", flush=True)
+
 
 async def run_async_code_78ff5c2b():
     async def run_async_code_2cbcd794():

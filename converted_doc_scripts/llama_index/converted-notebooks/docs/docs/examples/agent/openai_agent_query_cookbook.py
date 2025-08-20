@@ -11,11 +11,11 @@ from llama_index.core import StorageContext
 from llama_index.core import VectorStoreIndex
 from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.core.agent.workflow import (
-ToolCallResult,
-ToolCall,
-AgentStream,
-AgentInput,
-AgentOutput,
+    ToolCallResult,
+    ToolCall,
+    AgentStream,
+    AgentInput,
+    AgentOutput,
 )
 from llama_index.core.agent.workflow import FunctionAgent
 from llama_index.core.indices import SQLStructStoreIndex
@@ -29,12 +29,12 @@ from llama_index.core.settings import Settings
 from llama_index.core.tools import FunctionTool
 from llama_index.core.tools import QueryEngineTool
 from llama_index.core.vector_stores import (
-VectorStoreInfo,
-MetadataInfo,
-MetadataFilter,
-MetadataFilters,
-FilterCondition,
-FilterOperator,
+    VectorStoreInfo,
+    MetadataInfo,
+    MetadataFilter,
+    MetadataFilters,
+    FilterCondition,
+    FilterOperator,
 )
 from llama_index.core.vector_stores import MetadataInfo, VectorStoreInfo
 from llama_index.core.workflow import Context
@@ -44,14 +44,14 @@ from llama_index.vector_stores.pinecone import PineconeVectorStore
 from pinecone import Pinecone, ServerlessSpec
 from pydantic import BaseModel, Field
 from sqlalchemy import (
-create_engine,
-MetaData,
-Table,
-Column,
-String,
-Integer,
-select,
-column,
+    create_engine,
+    MetaData,
+    Table,
+    Column,
+    String,
+    Integer,
+    select,
+    column,
 )
 from sqlalchemy import insert
 from typing import Any, Annotated
@@ -111,7 +111,7 @@ os.environ["PINECONE_API_KEY"] = "..."
 # os.environ["OPENAI_API_KEY"] = "..."
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
 
 
@@ -128,9 +128,6 @@ pc.create_index(
 time.sleep(10)
 
 index = pc.Index("quickstart-index")
-
-
-
 
 
 nodes = [
@@ -220,8 +217,6 @@ so we converted the metadata filter keys and values into lists for the function 
 logger.info("#### Define Function Tool")
 
 
-
-
 vector_store_info = VectorStoreInfo(
     content_info="brief biography of celebrities",
     metadata_info=[
@@ -258,7 +253,6 @@ vector_store_info = VectorStoreInfo(
 Define AutoRetrieve Functions
 """
 logger.info("Define AutoRetrieve Functions")
-
 
 
 async def auto_retrieve_fn(
@@ -360,6 +354,7 @@ async for ev in handler.stream_events():
     elif isinstance(ev, AgentStream):
         logger.debug(ev.delta, end="", flush=True)
 
+
 async def run_async_code_78ff5c2b():
     async def run_async_code_2cbcd794():
         response = await handler
@@ -380,6 +375,7 @@ async for ev in handler.stream_events():
     elif isinstance(ev, AgentStream):
         logger.debug(ev.delta, end="", flush=True)
 
+
 async def run_async_code_78ff5c2b():
     async def run_async_code_2cbcd794():
         response = await handler
@@ -389,6 +385,7 @@ async def run_async_code_78ff5c2b():
     return response
 response = asyncio.run(run_async_code_78ff5c2b())
 logger.success(format_json(response))
+
 
 async def async_func_49():
     response = await agent.run(
@@ -489,7 +486,7 @@ index = pc.Index("quickstart-sql")
 index.delete(deleteAll=True)
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit-mini")
+Settings.llm = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit")
 Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
 Settings.node_parser = TokenTextSplitter(chunk_size=1024)
 
@@ -509,7 +506,6 @@ for city, wiki_doc in zip(cities, wiki_docs):
 #### Define Query Engines / Tools
 """
 logger.info("#### Define Query Engines / Tools")
-
 
 
 vector_store_info = VectorStoreInfo(
@@ -573,6 +569,7 @@ async for ev in handler.stream_events():
     elif isinstance(ev, AgentStream):
         logger.debug(ev.delta, end="", flush=True)
 
+
 async def run_async_code_78ff5c2b():
     async def run_async_code_2cbcd794():
         response = await handler
@@ -593,6 +590,7 @@ async for ev in handler.stream_events():
     elif isinstance(ev, AgentStream):
         logger.debug(ev.delta, end="", flush=True)
 
+
 async def run_async_code_78ff5c2b():
     async def run_async_code_2cbcd794():
         response = await handler
@@ -602,6 +600,7 @@ async def run_async_code_78ff5c2b():
     return response
 response = asyncio.run(run_async_code_78ff5c2b())
 logger.success(format_json(response))
+
 
 async def async_func_46():
     response = await agent.run(

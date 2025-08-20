@@ -107,7 +107,7 @@ logger.info("## Setup LLM")
 
 
 embed_model = MLXEmbedding()
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 
 
 token_counter = TokenCounter()
@@ -153,6 +153,8 @@ logger.info("### Lets run the asynchronous version with parallel LLM calls")
 
 parser.llm_workers = 4
 start_time = time.time()
+
+
 async def run_async_code_17fe8f58():
     async def run_async_code_5a77e568():
         nodes = await parser.aget_nodes_from_documents([document], show_progress=True)

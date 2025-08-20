@@ -63,7 +63,7 @@ logger.info("## Basic Usage")
 
 
 llm = MLXLlamaIndexLLMAdapter(
-    model="qwen3-1.7b-4bit-mini",
+    model="qwen3-1.7b-4bit",
 )
 
 """
@@ -180,7 +180,6 @@ When using these models, you can configure the output modality (text or audio) u
 logger.info("## Audio Support")
 
 
-
 llm = MLXLlamaIndexLLMAdapter(
     model="qwen3-1.7b-4bit-audio-preview",
     modalities=["text", "audio"],
@@ -205,7 +204,8 @@ Audio(base64.b64decode(resp.message.blocks[0].audio), rate=16000)
 """
 We can also use audio as input and get descriptions or transcriptions of the audio.
 """
-logger.info("We can also use audio as input and get descriptions or transcriptions of the audio.")
+logger.info(
+    "We can also use audio as input and get descriptions or transcriptions of the audio.")
 
 # !wget AUDIO_URL = "https://science.nasa.gov/wp-content/uploads/2024/04/sounds-of-mars-one-small-step-earth.wav" -O audio.wav
 
@@ -240,7 +240,6 @@ In the example below, we define a function to generate a Song object.
 logger.info("## Using Function/Tool Calling")
 
 
-
 class Song(BaseModel):
     """A song with name and artist"""
 
@@ -263,7 +262,7 @@ Since this seems to increase latency, it defaults to false.
 logger.info("The `strict` parameter tells MLX whether or not to use constrained sampling when generating tool calls/structured outputs. This means that the generated tool call schema will always contain the expected fields.")
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini", strict=True)
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", strict=True)
 response = llm.predict_and_call(
     [tool],
     "Pick a random song for me",
@@ -275,14 +274,16 @@ We can also do multiple function calling.
 """
 logger.info("We can also do multiple function calling.")
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(
+    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 response = llm.predict_and_call(
     [tool],
     "Generate five songs from the Beatles",
     allow_parallel_tool_calls=True,
 )
 for s in response.sources:
-    logger.debug(f"Name: {s.tool_name}, Input: {s.raw_input}, Output: {str(s)}")
+    logger.debug(
+        f"Name: {s.tool_name}, Input: {s.raw_input}, Output: {str(s)}")
 
 """
 ### Manual Tool Calling
@@ -347,7 +348,6 @@ An important use case for function calling is extracting structured objects. Lla
 logger.info("## Structured Prediction")
 
 
-
 class MenuItem(BaseModel):
     """A menu item in a restaurant."""
 
@@ -364,7 +364,8 @@ class Restaurant(BaseModel):
     menu_items: List[MenuItem]
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(
+    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 prompt_tmpl = PromptTemplate(
     "Generate a restaurant in a given city {city_name}"
 )
@@ -401,7 +402,9 @@ restaurant_obj
 logger.info("## Async")
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(
+    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+
 
 async def run_async_code_c3ecd675():
     async def run_async_code_a989c387():
@@ -414,6 +417,7 @@ resp = asyncio.run(run_async_code_c3ecd675())
 logger.success(format_json(resp))
 
 logger.debug(resp)
+
 
 async def run_async_code_240f4fad():
     async def run_async_code_506ce1e2():
@@ -433,7 +437,10 @@ Async function calling is also supported.
 """
 logger.info("Async function calling is also supported.")
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(
+    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+
+
 async def run_async_code_d4d0bf51():
     async def run_async_code_bf5a731b():
         response = llm.predict_and_call([tool], "Generate a song")
@@ -452,7 +459,8 @@ If desired, you can have separate LLM instances use separate API keys.
 logger.info("## Set API Key at a per-instance level")
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", api_key="BAD_KEY")
+llm = MLXLlamaIndexLLMAdapter(
+    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", api_key="BAD_KEY")
 resp = llm.complete("Paul Graham is ")
 logger.debug(resp)
 
@@ -463,12 +471,14 @@ Rather than adding same parameters to each chat or completion call, you can set 
 logger.info("## Additional kwargs")
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", additional_kwargs={"user": "your_user_id"})
+llm = MLXLlamaIndexLLMAdapter(
+    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", additional_kwargs={"user": "your_user_id"})
 resp = llm.complete("Paul Graham is ")
 logger.debug(resp)
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", additional_kwargs={"user": "your_user_id"})
+llm = MLXLlamaIndexLLMAdapter(
+    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", additional_kwargs={"user": "your_user_id"})
 messages = [
     ChatMessage(
         role="system", content="You are a pirate with a colorful personality"
@@ -515,8 +525,9 @@ logger.info("### Create a Pipeline.")
 embedding_config = {
     "type": "OPENAI_EMBEDDING",
     "component": {
-#         "api_key": os.environ["OPENAI_API_KEY"],
-        "model_name": "text-embedding-ada-002",  # You can choose any MLX Embedding model
+        #         "api_key": os.environ["OPENAI_API_KEY"],
+        # You can choose any MLX Embedding model
+        "model_name": "text-embedding-ada-002",
     },
 }
 

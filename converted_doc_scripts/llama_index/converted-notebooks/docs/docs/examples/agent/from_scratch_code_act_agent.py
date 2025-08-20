@@ -67,6 +67,7 @@ For now, let's use a few basic math functions.
 """
 logger.info("##")
 
+
 def add(a: int, b: int) -> int:
     """Add two numbers together"""
     return a + b
@@ -86,8 +87,9 @@ def divide(a: int, b: int) -> float:
     """Divide two numbers"""
     return a / b
 
+
 """
-## Creating a Code Executor 
+## Creating a Code Executor
 
 In order to execute code, we need to create a code executor.
 
@@ -96,7 +98,6 @@ Here, we will use a simple in-process code executor that maintains it's own stat
 **NOTE:** This is a simple example, and does not include proper sandboxing. In a production environment, you should use tools like docker or proper code sandboxing environments.
 """
 logger.info("## Creating a Code Executor")
-
 
 
 class SimpleCodeExecutor:
@@ -171,6 +172,7 @@ class SimpleCodeExecutor:
 
         return output
 
+
 code_executor = SimpleCodeExecutor(
     locals={
         "add": add,
@@ -201,7 +203,6 @@ First, we can create the events in the workflow.
 logger.info("## Defining the CodeAct Agent")
 
 
-
 class InputEvent(Event):
     input: list[ChatMessage]
 
@@ -213,12 +214,12 @@ class StreamEvent(Event):
 class CodeExecutionEvent(Event):
     code: str
 
+
 """
 Next, we can define the workflow that orchestrates using these events.
 """
-logger.info("Next, we can define the workflow that orchestrates using these events.")
-
-
+logger.info(
+    "Next, we can define the workflow that orchestrates using these events.")
 
 
 CODEACT_SYSTEM_PROMPT = """
@@ -246,7 +247,7 @@ class CodeActAgent(Workflow):
         super().__init__(**workflow_kwargs)
         self.fns = fns or []
         self.code_execute_fn = code_execute_fn
-        self.llm = llm or MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+        self.llm = llm or MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 
         self.fn_str = "\n\n".join(
             f'def {fn.__name__}{str(inspect.signature(fn))}:\n    """ {fn.__doc__} """\n    ...'
@@ -290,7 +291,7 @@ class CodeActAgent(Workflow):
 
         async def run_async_code_bbf63658():
             await ctx.store.set("memory", memory)
-            return 
+            return
          = asyncio.run(run_async_code_bbf63658())
         logger.success(format_json())
 
@@ -376,7 +377,7 @@ logger.info("## Testing the CodeAct Agent")
 agent = CodeActAgent(
     fns=[add, subtract, multiply, divide],
     code_execute_fn=code_executor.execute,
-    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini", api_key="sk-..."),
+    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", api_key="sk-..."),
 )
 
 ctx = Context(agent)

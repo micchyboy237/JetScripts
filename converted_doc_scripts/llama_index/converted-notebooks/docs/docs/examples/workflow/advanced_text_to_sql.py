@@ -13,9 +13,9 @@ from llama_index.core.bridge.pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage
 from llama_index.core.llms import ChatResponse
 from llama_index.core.objects import (
-SQLTableNodeMapping,
-ObjectIndex,
-SQLTableSchema,
+    SQLTableNodeMapping,
+    ObjectIndex,
+    SQLTableSchema,
 )
 from llama_index.core.prompts import ChatPromptTemplate
 from llama_index.core.prompts.default_prompts import DEFAULT_TEXT_TO_SQL_PROMPT
@@ -23,23 +23,23 @@ from llama_index.core.retrievers import SQLRetriever
 from llama_index.core.schema import TextNode
 from llama_index.core.settings import Settings
 from llama_index.core.workflow import (
-Workflow,
-StartEvent,
-StopEvent,
-step,
-Context,
-Event,
+    Workflow,
+    StartEvent,
+    StopEvent,
+    step,
+    Context,
+    Event,
 )
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.utils.workflow import draw_all_possible_flows
 from pathlib import Path
 from sqlalchemy import (
-create_engine,
-MetaData,
-Table,
-Column,
-String,
-Integer,
+    create_engine,
+    MetaData,
+    Table,
+    Column,
+    String,
+    Integer,
 )
 from sqlalchemy import text
 from typing import Dict
@@ -121,7 +121,6 @@ tableinfo_dir = "WikiTableQuestions_TableInfo"
 # !mkdir {tableinfo_dir}
 
 
-
 class TableInfo(BaseModel):
     """Information regarding a structured table."""
 
@@ -149,8 +148,7 @@ prompt_tmpl = ChatPromptTemplate(
     message_templates=[ChatMessage.from_str(prompt_str, role="user")]
 )
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
-
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 
 
 def _get_tableinfo_with_index(idx: int) -> str:
@@ -188,7 +186,8 @@ for idx, df in enumerate(dfs):
                 table_names.add(table_name)
                 break
             else:
-                logger.debug(f"Table name {table_name} already exists, trying again.")
+                logger.debug(
+                    f"Table name {table_name} already exists, trying again.")
                 pass
 
         out_file = f"{tableinfo_dir}/{idx}_{table_name}.json"
@@ -201,7 +200,6 @@ for idx, df in enumerate(dfs):
 We use `sqlalchemy`, a popular SQL database toolkit, to load all the tables.
 """
 logger.info("### Put Data in SQL Database")
-
 
 
 def sanitize_column_name(col_name):
@@ -253,7 +251,8 @@ Here we define the core modules.
 
 Object index, retriever, SQLDatabase
 """
-logger.info("## Advanced Capability 1: Text-to-SQL with Query-Time Table Retrieval.")
+logger.info(
+    "## Advanced Capability 1: Text-to-SQL with Query-Time Table Retrieval.")
 
 
 sql_database = SQLDatabase(engine)
@@ -295,11 +294,11 @@ def get_table_context_str(table_schema_objs: List[SQLTableSchema]):
         context_strs.append(table_info)
     return "\n\n".join(context_strs)
 
+
 """
 Text-to-SQL Prompt + Output Parser
 """
 logger.info("Text-to-SQL Prompt + Output Parser")
-
 
 
 def parse_response_to_sql(chat_response: ChatResponse) -> str:
@@ -309,7 +308,7 @@ def parse_response_to_sql(chat_response: ChatResponse) -> str:
     if sql_query_start != -1:
         response = response[sql_query_start:]
         if response.startswith("SQLQuery:"):
-            response = response[len("SQLQuery:") :]
+            response = response[len("SQLQuery:"):]
     sql_result_start = response.find("SQLResult:")
     if sql_result_start != -1:
         response = response[:sql_result_start]
@@ -337,7 +336,7 @@ response_synthesis_prompt = PromptTemplate(
     response_synthesis_prompt_str,
 )
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 
 """
 ### Define Workflow
@@ -345,7 +344,6 @@ llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
 Now that the components are in place, let's define the full workflow!
 """
 logger.info("### Define Workflow")
-
 
 
 class TableRetrieveEvent(Event):
@@ -418,6 +416,7 @@ class TextToSQLWorkflow1(Workflow):
         chat_response = llm.chat(fmt_messages)
         return StopEvent(result=chat_response)
 
+
 """
 ### Visualize Workflow
 
@@ -452,6 +451,7 @@ workflow = TextToSQLWorkflow1(
     verbose=True,
 )
 
+
 async def async_func_9():
     response = await workflow.run(
         query="What was the year that The Notorious B.I.G was signed to Bad Boy?"
@@ -461,6 +461,7 @@ response = asyncio.run(async_func_9())
 logger.success(format_json(response))
 logger.debug(str(response))
 
+
 async def async_func_14():
     response = await workflow.run(
         query="Who won best director in the 1972 academy awards"
@@ -469,6 +470,7 @@ async def async_func_14():
 response = asyncio.run(async_func_14())
 logger.success(format_json(response))
 logger.debug(str(response))
+
 
 async def run_async_code_66b4deaf():
     async def run_async_code_be06940b():
@@ -494,8 +496,8 @@ We now extend our workflow.
 
 We embed/index the rows of each table, resulting in one index per table.
 """
-logger.info("## 2. Advanced Capability 2: Text-to-SQL with Query-Time Row Retrieval (along with Table Retrieval)")
-
+logger.info(
+    "## 2. Advanced Capability 2: Text-to-SQL with Query-Time Row Retrieval (along with Table Retrieval)")
 
 
 def index_all_tables(
@@ -582,6 +584,7 @@ def get_table_context_and_rows_str(
         context_strs.append(table_info)
     return "\n\n".join(context_strs)
 
+
 """
 ### Define Expanded Workflow
 
@@ -590,7 +593,6 @@ We re-use the workflow in section 1, but with an upgraded SQL parsing step after
 It is very easy to subclass and extend an existing workflow, and customizing existing steps to be more advanced. Here we define a new worfklow that overrides the existing `retrieve_tables` step in order to return the relevant rows.
 """
 logger.info("### Define Expanded Workflow")
-
 
 
 class TextToSQLWorkflow2(TextToSQLWorkflow1):
@@ -609,10 +611,12 @@ class TextToSQLWorkflow2(TextToSQLWorkflow1):
             table_context_str=table_context_str, query=ev.query
         )
 
+
 """
 Since the overall sequence of steps is the same, the graph should look the same.
 """
-logger.info("Since the overall sequence of steps is the same, the graph should look the same.")
+logger.info(
+    "Since the overall sequence of steps is the same, the graph should look the same.")
 
 
 draw_all_possible_flows(
@@ -634,6 +638,7 @@ workflow2 = TextToSQLWorkflow2(
     llm,
     verbose=True,
 )
+
 
 async def async_func_9():
     response = await workflow2.run(

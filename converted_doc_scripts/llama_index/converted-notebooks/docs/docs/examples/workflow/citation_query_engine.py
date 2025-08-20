@@ -109,7 +109,6 @@ The other steps will use the built-in `StartEvent` and `StopEvent` events.
 logger.info("## Designing the Workflow")
 
 
-
 class RetrieverEvent(Event):
     """Result of running retrieval"""
 
@@ -120,6 +119,7 @@ class CreateCitationsEvent(Event):
     """Add citations to the nodes."""
 
     nodes: list[NodeWithScore]
+
 
 """
 ## Citation Prompt Templates
@@ -186,16 +186,11 @@ DEFAULT_CITATION_CHUNK_OVERLAP = 20
 """
 ### The Workflow Itself
 
-With our events defined, we can construct our workflow and steps. 
+With our events defined, we can construct our workflow and steps.
 
 Note that the workflow automatically validates itself using type annotations, so the type annotations on our steps are very helpful!
 """
 logger.info("### The Workflow Itself")
-
-
-
-
-
 
 
 class CitationQueryEngineWorkflow(Workflow):
@@ -212,7 +207,7 @@ class CitationQueryEngineWorkflow(Workflow):
 
         async def run_async_code_810a43cd():
             await ctx.store.set("query", query)
-            return 
+            return
          = asyncio.run(run_async_code_810a43cd())
         logger.success(format_json())
 
@@ -273,7 +268,7 @@ class CitationQueryEngineWorkflow(Workflow):
         self, ctx: Context, ev: CreateCitationsEvent
     ) -> StopEvent:
         """Return a streaming response using the retrieved nodes."""
-        llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+        llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
         async def run_async_code_a66b93bf():
             async def run_async_code_7e418399():
                 query = await ctx.store.get("query", default=None)

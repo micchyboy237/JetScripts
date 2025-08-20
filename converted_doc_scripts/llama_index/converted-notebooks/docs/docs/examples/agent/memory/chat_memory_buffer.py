@@ -74,12 +74,13 @@ logger.info("## Using with Agents")
 # os.environ["OPENAI_API_KEY"] = "sk-proj-..."
 
 
-
 memory = ChatMemoryBuffer.from_defaults(token_limit=40000)
 
-agent = FunctionAgent(tools=[], llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini"))
+agent = FunctionAgent(
+    tools=[], llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"))
 
 ctx = Context(agent)
+
 
 async def run_async_code_94bdf377():
     async def run_async_code_bf67faa6():

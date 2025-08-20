@@ -13,7 +13,8 @@ from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from typing import List, ClassVar
 import os
-import os, re
+import os
+import re
 import pandas as pd
 import shutil
 
@@ -60,8 +61,6 @@ logger.info("# Trustworthy RAG with LlamaIndex and Cleanlab")
 # %pip install llama-index cleanlab-tlm
 
 
-
-
 """
 Initialize the MLX client using its API key.
 """
@@ -69,13 +68,14 @@ logger.info("Initialize the MLX client using its API key.")
 
 # os.environ["OPENAI_API_KEY"] = "<your-openai-api-key>"
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 embed_model = MLXEmbedding(embed_batch_size=10)
 
 """
 Now, we initialize Cleanlab's client with default configurations. You can achieve better detection accuracy and latency by adjusting [optional configurations](https://help.cleanlab.ai/tlm/tutorials/tlm_advanced/).
 """
-logger.info("Now, we initialize Cleanlab's client with default configurations. You can achieve better detection accuracy and latency by adjusting [optional configurations](https://help.cleanlab.ai/tlm/tutorials/tlm_advanced/).")
+logger.info(
+    "Now, we initialize Cleanlab's client with default configurations. You can achieve better detection accuracy and latency by adjusting [optional configurations](https://help.cleanlab.ai/tlm/tutorials/tlm_advanced/).")
 
 os.environ["CLEANLAB_TLM_API_KEY"] = "<your-cleanlab-api-key"
 
@@ -144,7 +144,6 @@ We define an event handler that stores the prompt that LlamaIndex sends to the L
 logger.info("Note that Cleanlab is agnostic to the index and the query engine used for RAG, and is compatible with any choices you make for these components of your system.")
 
 
-
 class PromptEventHandler(BaseEventHandler):
     events: ClassVar[List[BaseEvent]] = []
     PROMPT_TEMPLATE: str = ""
@@ -183,6 +182,7 @@ This response is indeed correct for our simple query. Let's see the document chu
 """
 logger.info("This response is indeed correct for our simple query. Let's see the document chunks that LlamaIndex retrieved for this query, from which we can easy verify this response was right.")
 
+
 def get_retrieved_context(response, print_chunks=False):
     if isinstance(response, list):
         texts = [node.text for node in response]
@@ -193,6 +193,7 @@ def get_retrieved_context(response, print_chunks=False):
         for idx, text in enumerate(texts):
             logger.debug(f"--- Chunk {idx + 1} ---\n{text[:200]}...")
     return "\n".join(texts)
+
 
 context_str = get_retrieved_context(response, True)
 
@@ -226,6 +227,7 @@ Let's define a helper function to run Cleanlab's detection.
 """
 logger.info("Each Eval returns a score between 0-1 (higher is better) that assesses a different aspect of your RAG system:")
 
+
 def get_eval(query, response, event_handler, evaluator):
     context = get_retrieved_context(response)
     pt = event_handler.PROMPT_TEMPLATE
@@ -252,6 +254,7 @@ def get_answer(query, evaluator=trustworthy_rag, event_handler=event_handler):
 
     get_eval(query, response, event_handler, evaluator)
 
+
 get_eval(query, response, event_handler, trustworthy_rag)
 
 """
@@ -270,7 +273,8 @@ get_answer(
 
 Let’s see how our RAG system responds to another *challenging* question.
 """
-logger.info("Let’s see how our RAG system responds to another *challenging* question.")
+logger.info(
+    "Let’s see how our RAG system responds to another *challenging* question.")
 
 get_answer(
     "How much did Nvidia's revenue decrease this quarter vs last quarter, in dollars?"
@@ -346,6 +350,7 @@ for metric, value in result.items():
 """
 While it remains hard to achieve a RAG application that will accurately answer *any* possible question, you can easily use Cleanlab to deploy a *trustworthy* RAG application which at least flags answers that are likely inaccurate.  Learn more about optional configurations you can adjust to improve accuracy/latency in the [Cleanlab documentation](https://help.cleanlab.ai/tlm/).
 """
-logger.info("While it remains hard to achieve a RAG application that will accurately answer *any* possible question, you can easily use Cleanlab to deploy a *trustworthy* RAG application which at least flags answers that are likely inaccurate.  Learn more about optional configurations you can adjust to improve accuracy/latency in the [Cleanlab documentation](https://help.cleanlab.ai/tlm/).")
+logger.info(
+    "While it remains hard to achieve a RAG application that will accurately answer *any* possible question, you can easily use Cleanlab to deploy a *trustworthy* RAG application which at least flags answers that are likely inaccurate.  Learn more about optional configurations you can adjust to improve accuracy/latency in the [Cleanlab documentation](https://help.cleanlab.ai/tlm/).")
 
 logger.info("\n\n[DONE]", bright=True)

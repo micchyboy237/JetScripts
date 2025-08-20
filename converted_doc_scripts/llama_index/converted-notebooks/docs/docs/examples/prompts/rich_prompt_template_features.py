@@ -54,7 +54,8 @@ prompt = RichPromptTemplate("Hello, {{ name }}!")
 """
 You can format the prompt into either a string or list of chat messages.
 """
-logger.info("You can format the prompt into either a string or list of chat messages.")
+logger.info(
+    "You can format the prompt into either a string or list of chat messages.")
 
 logger.debug(prompt.format(name="John"))
 
@@ -93,7 +94,7 @@ logger.info("## Prompts with Images and Audio")
 # !wget https://cdn.pixabay.com/photo/2016/07/07/16/46/dice-1502706_640.jpg -O image.png
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini", api_key="sk-...")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", api_key="sk-...")
 
 prompt = RichPromptTemplate(
     """
@@ -121,7 +122,8 @@ Describe the following audio:
 )
 messages = prompt.format_messages(audio_path="./audio.wav")
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-audio-preview", api_key="sk-...")
+llm = MLXLlamaIndexLLMAdapter(
+    model="qwen3-1.7b-4bit-audio-preview", api_key="sk-...")
 response = llm.chat(messages)
 logger.debug(response.message.content)
 

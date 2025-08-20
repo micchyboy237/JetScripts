@@ -55,6 +55,7 @@ We setup some trivial `multiply` and `add` tools. Note that you can define arbit
 """
 logger.info("## Define Function Tools")
 
+
 def multiply(a: int, b: int) -> int:
     """Multiply two integers and returns the result integer"""
     return a * b
@@ -64,13 +65,14 @@ def add(a: int, b: int) -> int:
     """Add two integers and returns the result integer"""
     return a + b
 
+
 """
 ## Run Some Queries
 """
 logger.info("## Run Some Queries")
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 agent = ReActAgent(tools=[multiply, add], llm=llm)
 
 ctx = Context(agent)
@@ -90,6 +92,7 @@ handler = agent.run("What is 20+(2*4)?", ctx=ctx)
 async for ev in handler.stream_events():
     if isinstance(ev, AgentStream):
         logger.debug(f"{ev.delta}", end="", flush=True)
+
 
 async def run_async_code_78ff5c2b():
     async def run_async_code_2cbcd794():
@@ -188,6 +191,7 @@ handler = agent.run("What is 5+3+2")
 async for ev in handler.stream_events():
     if isinstance(ev, AgentStream):
         logger.debug(f"{ev.delta}", end="", flush=True)
+
 
 async def run_async_code_78ff5c2b():
     async def run_async_code_2cbcd794():

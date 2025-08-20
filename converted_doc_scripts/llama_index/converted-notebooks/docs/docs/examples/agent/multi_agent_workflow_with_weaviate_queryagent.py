@@ -73,8 +73,6 @@ logger.info("# Multi-Agent Workflow with Weaviate QueryAgent")
 # !pip install llama-index-core llama-index-utils-workflow weaviate-client[agents] llama-index-llms-ollama llama-index-readers-web
 
 
-
-
 # from getpass import getpass
 
 """
@@ -109,6 +107,7 @@ The Weaviate [`QueryAgent`](https://weaviate.io/blog/query-agent) is designed to
 The Agent will use the collection descriptions, as well as the property descriptions while formilating the queries.
 """
 logger.info("### Create WeaviateDocs and LlamaIndexDocs Collections")
+
 
 def fresh_setup_weaviate(client):
     if client.collections.exists("WeaviateDocs"):
@@ -156,6 +155,7 @@ def fresh_setup_weaviate(client):
     )
     return agent
 
+
 """
 ### Write Contents of Webpage to the Collections
 
@@ -163,12 +163,14 @@ The helper function below uses the `SimpleWebPageReader` to write the contents o
 """
 logger.info("### Write Contents of Webpage to the Collections")
 
+
 def write_webpages_to_weaviate(client, urls: list[str], collection_name: str):
     documents = SimpleWebPageReader(html_to_text=True).load_data(urls)
     collection = client.collections.get(collection_name)
     with collection.batch.dynamic() as batch:
         for doc in documents:
             batch.add_object(properties={"url": doc.id_, "text": doc.text})
+
 
 """
 ## Create a Function Calling Agent
@@ -182,7 +184,7 @@ logger.info("## Create a Function Calling Agent")
 
 weaviate_agent = fresh_setup_weaviate(client)
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 
 
 def write_to_weaviate_collection(urls=list[str]):
@@ -209,6 +211,7 @@ agent = FunctionAgent(
       as well as forwarding questions to a QueryAgent""",
 )
 
+
 async def async_func_32():
     response = await agent.run(
         user_msg="Can you save https://docs.llamaindex.ai/en/stable/examples/agent/agent_workflow_basic/"
@@ -217,6 +220,7 @@ async def async_func_32():
 response = asyncio.run(async_func_32())
 logger.success(format_json(response))
 logger.debug(str(response))
+
 
 async def async_func_37():
     response = await agent.run(
@@ -228,6 +232,7 @@ async def async_func_37():
 response = asyncio.run(async_func_37())
 logger.success(format_json(response))
 logger.debug(str(response))
+
 
 async def async_func_44():
     response = await agent.run(
@@ -255,6 +260,7 @@ For our use-case, we can imagine thet there are 4 events:
 """
 logger.info("## Create a Workflow with Branches")
 
+
 class EvaluateQuery(Event):
     query: str
 
@@ -270,10 +276,12 @@ class WriteWeaviateDocsEvent(Event):
 class QueryAgentEvent(Event):
     query: str
 
+
 """
 ### Simple Example: A Branching Workflow (that does nothing yet)
 """
 logger.info("### Simple Example: A Branching Workflow (that does nothing yet)")
+
 
 class DocsAssistantWorkflow(Workflow):
     @step
@@ -313,13 +321,13 @@ class DocsAssistantWorkflow(Workflow):
         logger.debug(f"Got a request to forward a query to the QueryAgent")
         return StopEvent()
 
+
 workflow_that_does_nothing = DocsAssistantWorkflow()
 
 logger.debug(
     async def run_async_code_24c7ada7():
         await workflow_that_does_nothing.run(start_event=StartEvent(query="llama"))
-        return 
-     = asyncio.run(run_async_code_24c7ada7())
+        return =asyncio.run(run_async_code_24c7ada7())
     logger.success(format_json())
 )
 
@@ -327,6 +335,7 @@ logger.debug(
 ### Classify the Query with Structured Outputs
 """
 logger.info("### Classify the Query with Structured Outputs")
+
 
 class SaveToLlamaIndexDocs(BaseModel):
     """The URLs to parse and save into a llama-index specific docs collection."""
@@ -353,6 +362,7 @@ class Actions(BaseModel):
         Union[SaveToLlamaIndexDocs, SaveToWeaviateDocs, Ask]
     ] = Field(default_factory=list)
 
+
 """
 #### Create a Workflow
 
@@ -363,10 +373,10 @@ Notice how whichever step runs first, will return a `StopEvent`... This is good,
 logger.info("#### Create a Workflow")
 
 
-
 class DocsAssistantWorkflow(Workflow):
     def __init__(self, *args, **kwargs):
-        self.llm = MLXResponses(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+        self.llm = MLXResponses(model="qwen3-1.7b-4bit",
+                                log_dir=f"{OUTPUT_DIR}/chats")
         self.system_prompt = """You are a docs assistant. You evaluate incoming queries and break them down to subqueries when needed.
                           You decide on the next best course of action. Overall, here are the options:
                           - You can write the contents of a URL to llamaindex docs (if it's a llamaindex url)
@@ -383,6 +393,7 @@ class DocsAssistantWorkflow(Workflow):
         self, ev: EvaluateQuery
     ) -> QueryAgentEvent | WriteLlamaIndexDocsEvent | WriteWeaviateDocsEvent:
         sllm = self.llm.as_structured_llm(Actions)
+
         async def async_func_22():
             response = sllm.chat(
                 [
@@ -424,6 +435,7 @@ class DocsAssistantWorkflow(Workflow):
 
 everything_docs_agent_beta = DocsAssistantWorkflow()
 
+
 async def run_docs_agent_beta(query: str):
     logger.debug(
         await everything_docs_agent_beta.run(
@@ -440,9 +452,10 @@ await run_docs_agent_beta(
     "How many documents do we have in the LlamaIndexDocs collection now?"
 )
 
+
 async def run_async_code_cbcd22b6():
     await run_docs_agent_beta("What are LlamaIndex workflows?")
-    return 
+    return
  = asyncio.run(run_async_code_cbcd22b6())
 logger.success(format_json())
 

@@ -52,7 +52,6 @@ The logger name is {py:attr}`autogen_core.EVENT_LOGGER_NAME`, and the event type
 logger.info("# Model Clients")
 
 
-
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 logger.addHandler(logging.StreamHandler())
@@ -72,9 +71,9 @@ model_client = MLXAutogenChatLLMAdapter(
 # )  # assuming OPENAI_API_KEY is set in the environment.
 
 async def run_async_code_75a3b6ab():
-    result = await model_client.create([UserMessage(content="What is the capital of France?", source="user")])
+    result=await model_client.create([UserMessage(content="What is the capital of France?", source="user")])
     return result
-result = asyncio.run(run_async_code_75a3b6ab())
+result=asyncio.run(run_async_code_75a3b6ab())
 logger.success(format_json(result))
 logger.debug(result)
 
@@ -89,18 +88,20 @@ logger.info("## Streaming Tokens")
 
 # model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")  # assuming OPENAI_API_KEY is set in the environment.
 
-messages = [
-    UserMessage(content="Write a very short story about a dragon.", source="user"),
+messages=[
+    UserMessage(content="Write a very short story about a dragon.",
+                source="user"),
 ]
 
-stream = model_client.create_stream(messages=messages)
+stream=model_client.create_stream(messages=messages)
 
 logger.debug("Streamed responses:")
 async for chunk in stream:  # type: ignore
     if isinstance(chunk, str):
         logger.debug(chunk, flush=True, end="")
     else:
-        assert isinstance(chunk, CreateResult) and isinstance(chunk.content, str)
+        assert isinstance(chunk, CreateResult) and isinstance(
+            chunk.content, str)
         logger.debug("\n\n------------\n")
         logger.debug("The complete response:", flush=True)
         logger.debug(chunk.content, flush=True)
@@ -112,7 +113,7 @@ of the type {py:class}`~autogen_core.models.CreateResult`.
 ```
 
 ```{note}
-The default usage response is to return zero values. To enable usage, 
+The default usage response is to return zero values. To enable usage,
 see {py:meth}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.BaseMLXAutogenChatLLMAdapter.create_stream`
 for more details.
 ```
@@ -141,21 +142,21 @@ class AgentResponse(BaseModel):
     response: Literal["happy", "sad", "neutral"]
 
 
-model_client = MLXAutogenChatLLMAdapter(
+model_client=MLXAutogenChatLLMAdapter(
     model="qwen3-1.7b-4bit",
     response_format=AgentResponse,  # type: ignore
 )
 
-messages = [
+messages=[
     UserMessage(content="I am happy.", source="user"),
 ]
 async def run_async_code_fbb22dd6():
-    response = await model_client.create(messages=messages)
+    response=await model_client.create(messages=messages)
     return response
-response = asyncio.run(run_async_code_fbb22dd6())
+response=asyncio.run(run_async_code_fbb22dd6())
 logger.success(format_json(response))
 assert isinstance(response.content, str)
-parsed_response = AgentResponse.model_validate_json(response.content)
+parsed_response=AgentResponse.model_validate_json(response.content)
 logger.debug(parsed_response.thoughts)
 logger.debug(parsed_response.response)
 
@@ -184,21 +185,21 @@ logger.info("## Caching Model Responses")
 
 async def main() -> None:
     with tempfile.TemporaryDirectory() as tmpdirname:
-        openai_model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+        openai_model_client=MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
 
-        cache_store = DiskCacheStore[CHAT_CACHE_VALUE_TYPE](Cache(tmpdirname))
-        cache_client = ChatCompletionCache(openai_model_client, cache_store)
+        cache_store=DiskCacheStore[CHAT_CACHE_VALUE_TYPE](Cache(tmpdirname))
+        cache_client=ChatCompletionCache(openai_model_client, cache_store)
 
         async def run_async_code_e23dea5e():
-            response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
+            response=await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
             return response
-        response = asyncio.run(run_async_code_e23dea5e())
+        response=asyncio.run(run_async_code_e23dea5e())
         logger.success(format_json(response))
         logger.debug(response)  # Should print response from MLX
         async def run_async_code_e23dea5e():
-            response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
+            response=await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
             return response
-        response = asyncio.run(run_async_code_e23dea5e())
+        response=asyncio.run(run_async_code_e23dea5e())
         logger.success(format_json(response))
         logger.debug(response)  # Should print cached response
 
@@ -226,7 +227,7 @@ logger.info("## Build an Agent with a Model Client")
 
 
 
-@dataclass
+@ dataclass
 class Message:
     content: str
 
@@ -234,13 +235,14 @@ class Message:
 class SimpleAgent(RoutedAgent):
     def __init__(self, model_client: ChatCompletionClient) -> None:
         super().__init__("A simple agent")
-        self._system_messages = [SystemMessage(content="You are a helpful AI assistant.")]
-        self._model_client = model_client
+        self._system_messages=[SystemMessage(
+            content="You are a helpful AI assistant.")]
+        self._model_client=model_client
 
-    @message_handler
+    @ message_handler
     async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
-        user_message = UserMessage(content=message.content, source="user")
-        response = await self._model_client.create(
+        user_message=UserMessage(content=message.content, source="user")
+        response=await self._model_client.create(
             self._system_messages + [user_message], cancellation_token=ctx.cancellation_token
         )
         assert isinstance(response.content, str)
@@ -261,11 +263,11 @@ and can be used by the caller to cancel the handlers.
 logger.info("The `SimpleAgent` class is a subclass of the")
 
 
-model_client = MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit-mini",
+model_client=MLXAutogenChatLLMAdapter(
+    model="qwen3-1.7b-4bit",
 )
 
-runtime = SingleThreadedAgentRuntime()
+runtime=SingleThreadedAgentRuntime()
 async def async_func_7():
     await SimpleAgent.register(
         runtime,
@@ -276,11 +278,11 @@ asyncio.run(async_func_7())
 async def run_async_code_1e6ac0a6():
     runtime.start()
 asyncio.run(run_async_code_1e6ac0a6())
-message = Message("Hello, what are some fun things to do in Seattle?")
+message=Message("Hello, what are some fun things to do in Seattle?")
 async def run_async_code_b614784e():
-    response = await runtime.send_message(message, AgentId("simple_agent", "default"))
+    response=await runtime.send_message(message, AgentId("simple_agent", "default"))
     return response
-response = asyncio.run(run_async_code_b614784e())
+response=asyncio.run(run_async_code_b614784e())
 logger.success(format_json(response))
 logger.debug(response.content)
 async def run_async_code_4aaa8dea():
@@ -301,8 +303,8 @@ See the [Model Context](./model-context.ipynb) page for more details.
 
 In the examples above, we show that you can provide the API key through the `api_key` argument. Importantly, the MLX and Azure MLX clients use the [openai package](https://github.com/openai/openai-python/blob/3f8d8205ae41c389541e125336b0ae0c5e437661/src/openai/__init__.py#L260), which will automatically read an api key from the environment variable if one is not provided.
 
-# - For MLX, you can set the `OPENAI_API_KEY` environment variable.  
-# - For Azure MLX, you can set the `AZURE_OPENAI_API_KEY` environment variable. 
+# - For MLX, you can set the `OPENAI_API_KEY` environment variable.
+# - For Azure MLX, you can set the `AZURE_OPENAI_API_KEY` environment variable.
 
 In addition, for Gemini (Beta), you can set the `GEMINI_API_KEY` environment variable.
 

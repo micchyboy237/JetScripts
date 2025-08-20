@@ -91,7 +91,6 @@ if __name__ == "__main__":
 logger.info("## Define Events")
 
 
-
 class QueryEngineSelectionEvent(Event):
     """Result of selecting the query engine tools."""
 
@@ -103,6 +102,7 @@ class SynthesizeEvent(Event):
 
     result: List[RESPONSE_TYPE]
     selected_query_engines: SelectorResult
+
 
 """
 ## The Workflow
@@ -128,9 +128,6 @@ With our events defined, we can construct our workflow and steps.
 logger.info("## The Workflow")
 
 
-
-
-
 class RouterQueryEngineWorkflow(Workflow):
     @step
     async def selector(
@@ -142,7 +139,7 @@ class RouterQueryEngineWorkflow(Workflow):
 
         async def run_async_code_b2b0f167():
             await ctx.store.set("query", ev.get("query"))
-            return 
+            return
          = asyncio.run(run_async_code_b2b0f167())
         logger.success(format_json())
         async def run_async_code_252c87dd():
@@ -354,7 +351,7 @@ class RouterQueryEngineWorkflow(Workflow):
 """
 logger.info("## Define LLM")
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 Settings.llm = llm
 
 """

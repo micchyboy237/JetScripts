@@ -1,22 +1,22 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from autogen_core import (
-FunctionCall,
-MessageContext,
-RoutedAgent,
-SingleThreadedAgentRuntime,
-TopicId,
-TypeSubscription,
-message_handler,
+    FunctionCall,
+    MessageContext,
+    RoutedAgent,
+    SingleThreadedAgentRuntime,
+    TopicId,
+    TypeSubscription,
+    message_handler,
 )
 from autogen_core.models import (
-AssistantMessage,
-ChatCompletionClient,
-FunctionExecutionResult,
-FunctionExecutionResultMessage,
-LLMMessage,
-SystemMessage,
-UserMessage,
+    AssistantMessage,
+    ChatCompletionClient,
+    FunctionExecutionResult,
+    FunctionExecutionResultMessage,
+    LLMMessage,
+    SystemMessage,
+    UserMessage,
 )
 from autogen_core.tools import FunctionTool, Tool
 from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
@@ -81,7 +81,6 @@ Let's implement this scenario using AutoGen Core. First, we need to import the n
 logger.info("# Handoffs")
 
 
-
 """
 ## Message Protocol
 
@@ -94,6 +93,7 @@ We are using event-driven pub-sub communication, so these message types will be 
 """
 logger.info("## Message Protocol")
 
+
 class UserLogin(BaseModel):
     pass
 
@@ -105,6 +105,7 @@ class UserTask(BaseModel):
 class AgentResponse(BaseModel):
     reply_to_topic_type: str
     context: List[LLMMessage]
+
 
 """
 ## AI Agent
@@ -128,6 +129,7 @@ by publishing to the `user_topic_type`.
 """
 logger.info("## AI Agent")
 
+
 class AIAgent(RoutedAgent):
     def __init__(
         self,
@@ -144,7 +146,8 @@ class AIAgent(RoutedAgent):
         self._model_client = model_client
         self._tools = dict([(tool.name, tool) for tool in tools])
         self._tool_schema = [tool.schema for tool in tools]
-        self._delegate_tools = dict([(tool.name, tool) for tool in delegate_tools])
+        self._delegate_tools = dict([(tool.name, tool)
+                                    for tool in delegate_tools])
         self._delegate_tool_schema = [tool.schema for tool in delegate_tools]
         self._agent_topic_type = agent_topic_type
         self._user_topic_type = user_topic_type
@@ -156,7 +159,8 @@ class AIAgent(RoutedAgent):
             tools=self._tool_schema + self._delegate_tool_schema,
             cancellation_token=ctx.cancellation_token,
         )
-        logger.debug(f"{'-'*80}\n{self.id.type}:\n{llm_result.content}", flush=True)
+        logger.debug(
+            f"{'-'*80}\n{self.id.type}:\n{llm_result.content}", flush=True)
         while isinstance(llm_result.content, list) and all(isinstance(m, FunctionCall) for m in llm_result.content):
             tool_call_results: List[FunctionExecutionResult] = []
             delegate_targets: List[Tuple[str, UserTask]] = []
@@ -164,13 +168,16 @@ class AIAgent(RoutedAgent):
                 arguments = json.loads(call.arguments)
                 if call.name in self._tools:
                     result = await self._tools[call.name].run_json(arguments, ctx.cancellation_token)
-                    result_as_str = self._tools[call.name].return_value_as_string(result)
+                    result_as_str = self._tools[call.name].return_value_as_string(
+                        result)
                     tool_call_results.append(
-                        FunctionExecutionResult(call_id=call.id, content=result_as_str, is_error=False, name=call.name)
+                        FunctionExecutionResult(
+                            call_id=call.id, content=result_as_str, is_error=False, name=call.name)
                     )
                 elif call.name in self._delegate_tools:
                     result = await self._delegate_tools[call.name].run_json(arguments, ctx.cancellation_token)
-                    topic_type = self._delegate_tools[call.name].return_value_as_string(result)
+                    topic_type = self._delegate_tools[call.name].return_value_as_string(
+                        result)
                     delegate_messages = list(message.context) + [
                         AssistantMessage(content=[call], source=self.id.type),
                         FunctionExecutionResultMessage(
@@ -184,19 +191,24 @@ class AIAgent(RoutedAgent):
                             ]
                         ),
                     ]
-                    delegate_targets.append((topic_type, UserTask(context=delegate_messages)))
+                    delegate_targets.append(
+                        (topic_type, UserTask(context=delegate_messages)))
                 else:
                     raise ValueError(f"Unknown tool: {call.name}")
             if len(delegate_targets) > 0:
                 for topic_type, task in delegate_targets:
-                    logger.debug(f"{'-'*80}\n{self.id.type}:\nDelegating to {topic_type}", flush=True)
+                    logger.debug(
+                        f"{'-'*80}\n{self.id.type}:\nDelegating to {topic_type}", flush=True)
                     await self.publish_message(task, topic_id=TopicId(topic_type, source=self.id.key))
             if len(tool_call_results) > 0:
-                logger.debug(f"{'-'*80}\n{self.id.type}:\n{tool_call_results}", flush=True)
+                logger.debug(
+                    f"{'-'*80}\n{self.id.type}:\n{tool_call_results}", flush=True)
                 message.context.extend(
                     [
-                        AssistantMessage(content=llm_result.content, source=self.id.type),
-                        FunctionExecutionResultMessage(content=tool_call_results),
+                        AssistantMessage(
+                            content=llm_result.content, source=self.id.type),
+                        FunctionExecutionResultMessage(
+                            content=tool_call_results),
                     ]
                 )
                 llm_result = await self._model_client.create(
@@ -204,15 +216,19 @@ class AIAgent(RoutedAgent):
                     tools=self._tool_schema + self._delegate_tool_schema,
                     cancellation_token=ctx.cancellation_token,
                 )
-                logger.debug(f"{'-'*80}\n{self.id.type}:\n{llm_result.content}", flush=True)
+                logger.debug(
+                    f"{'-'*80}\n{self.id.type}:\n{llm_result.content}", flush=True)
             else:
                 return
         assert isinstance(llm_result.content, str)
-        message.context.append(AssistantMessage(content=llm_result.content, source=self.id.type))
+        message.context.append(AssistantMessage(
+            content=llm_result.content, source=self.id.type))
         await self.publish_message(
-            AgentResponse(context=message.context, reply_to_topic_type=self._agent_topic_type),
+            AgentResponse(context=message.context,
+                          reply_to_topic_type=self._agent_topic_type),
             topic_id=TopicId(self._user_topic_type, source=self.id.key),
         )
+
 
 """
 ## Human Agent
@@ -231,6 +247,7 @@ get your input. In a real-world application, you can improve this design as foll
 """
 logger.info("## Human Agent")
 
+
 class HumanAgent(RoutedAgent):
     def __init__(self, description: str, agent_topic_type: str, user_topic_type: str) -> None:
         super().__init__(description)
@@ -241,11 +258,14 @@ class HumanAgent(RoutedAgent):
     async def handle_user_task(self, message: UserTask, ctx: MessageContext) -> None:
         human_input = input("Human agent input: ")
         logger.debug(f"{'-'*80}\n{self.id.type}:\n{human_input}", flush=True)
-        message.context.append(AssistantMessage(content=human_input, source=self.id.type))
+        message.context.append(AssistantMessage(
+            content=human_input, source=self.id.type))
         await self.publish_message(
-            AgentResponse(context=message.context, reply_to_topic_type=self._agent_topic_type),
+            AgentResponse(context=message.context,
+                          reply_to_topic_type=self._agent_topic_type),
             topic_id=TopicId(self._user_topic_type, source=self.id.key),
         )
+
 
 """
 ## User Agent
@@ -263,6 +283,7 @@ idea described in the `HumanAgent` section above.
 """
 logger.info("## User Agent")
 
+
 class UserAgent(RoutedAgent):
     def __init__(self, description: str, user_topic_type: str, agent_topic_type: str) -> None:
         super().__init__(description)
@@ -271,7 +292,8 @@ class UserAgent(RoutedAgent):
 
     @message_handler
     async def handle_user_login(self, message: UserLogin, ctx: MessageContext) -> None:
-        logger.debug(f"{'-'*80}\nUser login, session ID: {self.id.key}.", flush=True)
+        logger.debug(
+            f"{'-'*80}\nUser login, session ID: {self.id.key}.", flush=True)
         user_input = input("User: ")
         logger.debug(f"{'-'*80}\n{self.id.type}:\n{user_input}")
         await self.publish_message(
@@ -284,12 +306,14 @@ class UserAgent(RoutedAgent):
         user_input = input("User (type 'exit' to close the session): ")
         logger.debug(f"{'-'*80}\n{self.id.type}:\n{user_input}", flush=True)
         if user_input.strip().lower() == "exit":
-            logger.debug(f"{'-'*80}\nUser session ended, session ID: {self.id.key}.")
+            logger.debug(
+                f"{'-'*80}\nUser session ended, session ID: {self.id.key}.")
             return
         message.context.append(UserMessage(content=user_input, source="User"))
         await self.publish_message(
             UserTask(context=message.context), topic_id=TopicId(message.reply_to_topic_type, source=self.id.key)
         )
+
 
 """
 ## Tools for the AI agents
@@ -299,6 +323,7 @@ We define the tools using simple functions and create the tools using the
 {py:class}`~autogen_core.tools.FunctionTool` wrapper.
 """
 logger.info("## Tools for the AI agents")
+
 
 def execute_order(product: str, price: int) -> str:
     logger.debug("\n\n=== Order Summary ===")
@@ -329,7 +354,8 @@ def execute_refund(item_id: str, reason: str = "not provided") -> str:
     return "success"
 
 
-execute_order_tool = FunctionTool(execute_order, description="Price should be in USD.")
+execute_order_tool = FunctionTool(
+    execute_order, description="Price should be in USD.")
 look_up_item_tool = FunctionTool(
     look_up_item, description="Use to find item ID.\nSearch query can be a description or keywords."
 )
@@ -361,6 +387,7 @@ instead of continue generating responses using the model in the same agent.
 """
 logger.info("## Delegate tools for the AI agents")
 
+
 def transfer_to_sales_agent() -> str:
     return sales_agent_topic_type
 
@@ -387,7 +414,8 @@ transfer_back_to_triage_tool = FunctionTool(
     transfer_back_to_triage,
     description="Call this if the user brings up a topic outside of your purview,\nincluding escalating to human.",
 )
-escalate_to_human_tool = FunctionTool(escalate_to_human, description="Only call this if explicitly asked to.")
+escalate_to_human_tool = FunctionTool(
+    escalate_to_human, description="Only call this if explicitly asked to.")
 
 """
 ## Creating the team
@@ -414,13 +442,15 @@ logger.info("## Creating the team")
 runtime = SingleThreadedAgentRuntime()
 
 model_client = MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit-mini",
+    model="qwen3-1.7b-4bit",
 )
+
 
 async def async_func_6():
     triage_agent_type = await AIAgent.register(
         runtime,
-        type=triage_agent_topic_type,  # Using the topic type as the agent type.
+        # Using the topic type as the agent type.
+        type=triage_agent_topic_type,
         factory=lambda: AIAgent(
             description="A triage agent.",
             system_message=SystemMessage(
@@ -443,9 +473,12 @@ async def async_func_6():
     return triage_agent_type
 triage_agent_type = asyncio.run(async_func_6())
 logger.success(format_json(triage_agent_type))
+
+
 async def run_async_code_57426791():
     await runtime.add_subscription(TypeSubscription(topic_type=triage_agent_topic_type, agent_type=triage_agent_type.type))
 asyncio.run(run_async_code_57426791())
+
 
 async def async_func_30():
     sales_agent_type = await AIAgent.register(
@@ -475,14 +508,18 @@ async def async_func_30():
     return sales_agent_type
 sales_agent_type = asyncio.run(async_func_30())
 logger.success(format_json(sales_agent_type))
+
+
 async def run_async_code_1b942423():
     await runtime.add_subscription(TypeSubscription(topic_type=sales_agent_topic_type, agent_type=sales_agent_type.type))
 asyncio.run(run_async_code_1b942423())
 
+
 async def async_func_56():
     issues_and_repairs_agent_type = await AIAgent.register(
         runtime,
-        type=issues_and_repairs_agent_topic_type,  # Using the topic type as the agent type.
+        # Using the topic type as the agent type.
+        type=issues_and_repairs_agent_topic_type,
         factory=lambda: AIAgent(
             description="An issues and repairs agent.",
             system_message=SystemMessage(
@@ -508,11 +545,15 @@ async def async_func_56():
     return issues_and_repairs_agent_type
 issues_and_repairs_agent_type = asyncio.run(async_func_56())
 logger.success(format_json(issues_and_repairs_agent_type))
+
+
 async def async_func_81():
     await runtime.add_subscription(
-        TypeSubscription(topic_type=issues_and_repairs_agent_topic_type, agent_type=issues_and_repairs_agent_type.type)
+        TypeSubscription(topic_type=issues_and_repairs_agent_topic_type,
+                         agent_type=issues_and_repairs_agent_type.type)
     )
 asyncio.run(async_func_81())
+
 
 async def async_func_85():
     human_agent_type = await HumanAgent.register(
@@ -527,9 +568,12 @@ async def async_func_85():
     return human_agent_type
 human_agent_type = asyncio.run(async_func_85())
 logger.success(format_json(human_agent_type))
+
+
 async def run_async_code_0f1c20cc():
     await runtime.add_subscription(TypeSubscription(topic_type=human_agent_topic_type, agent_type=human_agent_type.type))
 asyncio.run(run_async_code_0f1c20cc())
+
 
 async def async_func_96():
     user_agent_type = await UserAgent.register(
@@ -538,12 +582,15 @@ async def async_func_96():
         factory=lambda: UserAgent(
             description="A user agent.",
             user_topic_type=user_topic_type,
-            agent_topic_type=triage_agent_topic_type,  # Start with the triage agent.
+            # Start with the triage agent.
+            agent_topic_type=triage_agent_topic_type,
         ),
     )
     return user_agent_type
 user_agent_type = asyncio.run(async_func_96())
 logger.success(format_json(user_agent_type))
+
+
 async def run_async_code_3a3d930f():
     await runtime.add_subscription(TypeSubscription(topic_type=user_topic_type, agent_type=user_agent_type.type))
 asyncio.run(run_async_code_3a3d930f())
@@ -563,18 +610,24 @@ and [Topics and Subscriptions](../core-concepts/topic-and-subscription.md).
 """
 logger.info("## Running the team")
 
+
 async def run_async_code_1e6ac0a6():
     runtime.start()
 asyncio.run(run_async_code_1e6ac0a6())
 
 session_id = str(uuid.uuid4())
+
+
 async def run_async_code_9b34341c():
     await runtime.publish_message(UserLogin(), topic_id=TopicId(user_topic_type, source=session_id))
 asyncio.run(run_async_code_9b34341c())
 
+
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
 asyncio.run(run_async_code_b7ca34d4())
+
+
 async def run_async_code_0349fda4():
     await model_client.close()
 asyncio.run(run_async_code_0349fda4())

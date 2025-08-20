@@ -53,7 +53,7 @@ logger.info("# Accessing/Customizing Prompts within Higher-Level Modules")
 
 
 Settings.embed_model = MLXEmbedding(model_name="mxbai-embed-large")
-Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit-mini")
+Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
 
 """
 ## Setup: Load Data, Build Index, and Get Query Engine
@@ -70,13 +70,13 @@ logger.info("## Setup: Load Data, Build Index, and Get Query Engine")
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 
 
 index = VectorStoreIndex.from_documents(documents)
 
 query_engine = index.as_query_engine(response_mode="tree_summarize")
-
 
 
 def display_prompt_dict(prompts_dict):
@@ -85,6 +85,7 @@ def display_prompt_dict(prompts_dict):
         display(Markdown(text_md))
         logger.debug(p.get_template())
         display(Markdown("<br><br>"))
+
 
 """
 ## Accessing Prompts
@@ -114,7 +115,8 @@ Here we try the default `compact` method.
 
 We'll see that the set of templates used are different; a QA template and a refine template.
 """
-logger.info("#### Checking `get_prompts` with a different response synthesis strategy")
+logger.info(
+    "#### Checking `get_prompts` with a different response synthesis strategy")
 
 query_engine = index.as_query_engine(response_mode="compact")
 
