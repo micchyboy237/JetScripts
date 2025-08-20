@@ -35,6 +35,8 @@ prompt = tokenizer.apply_chat_template(
     tools=list(tools.values()),
     enable_thinking=False,
 )
+logger.gray("Prompt:")
+logger.debug(tokenizer.decode(prompt))
 
 prompt_cache = make_prompt_cache(model)
 

@@ -3,7 +3,7 @@ Execute browse or internet search if requested.
 Keep in mind I use a Mac M1.
 
 I value flexible, modular, testable, optimized, DRY and robust code.
-Do not implement with static code and overly specific defaults.
+Do not implement with static code, prioritize flexibility without overly specific defaults or business logic.
 Please follow industry standard best practices.
 Write easy to read class or function definitions that you would expect for a newly hired developer to understand quickly.
 Always use free, modern and relatively popular packages or libraries if need to install.

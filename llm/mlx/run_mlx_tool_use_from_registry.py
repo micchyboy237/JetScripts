@@ -1,5 +1,6 @@
 import json
 from jet.llm.mlx.mlx_types import ChatTemplateArgs
+from jet.llm.mlx.mlx_utils import parse_tool_call
 from jet.logger import logger
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from mlx_lm import generate, load
@@ -53,11 +54,8 @@ logger.gray("Response:")
 logger.success(response)
 
 # Parse the tool call
-tool_open = "<tool_call>"
-tool_close = "</tool_call>"
-start_tool = response.find(tool_open) + len(tool_open)
-end_tool = response.find(tool_close)
-tool_call = json.loads(response[start_tool:end_tool].strip())
+
+tool_call = parse_tool_call(response)
 logger.debug(f"tool_call arguments: {tool_call['arguments']}")
 logger.debug(
     f"Type of a: {type(tool_call['arguments']['a'])}, Value: {tool_call['arguments']['a']}")
@@ -69,20 +67,20 @@ logger.success(f"tool_result: {tool_result}")
 
 # Put the tool result in the prompt with explicit instruction
 messages = [
+    {"role": "system", "content": "Confirm the result of the multiplication in a clear sentence."},
     {"role": "user", "content": "Multiply 12234585 and 48838483920."},
     {"role": "tool", "name": tool_call["name"], "content": str(tool_result)},
-    {"role": "system", "content": "Confirm the result of the multiplication in a clear sentence."}
 ]
 
 # Create a new prompt cache
-prompt_cache = make_prompt_cache(model.model)
+# prompt_cache = make_prompt_cache(model.model)
 
 # Generate the final response
 llm_response = model.chat(
     messages,
     max_tokens=2048,
     verbose=True,
-    prompt_cache=prompt_cache,
+    # prompt_cache=prompt_cache,
 )
 response = llm_response["content"]
 logger.gray("Response 2:")

@@ -7,6 +7,7 @@ import subprocess
 import re
 import ast
 from jet.code.python_code_extractor import strip_comments
+from jet.utils.code_utils import shorten_functions
 from jet.logger import logger
 
 exclude_files = [
@@ -229,7 +230,7 @@ def clean_content(content: str, file_path: str, shorten_funcs: bool = True):
     if file_path.endswith(".py"):
         content = strip_comments(content)
         if shorten_funcs:
-            content = shorten_functions(content, file_path)
+            content = shorten_functions(content)
     if not file_path.endswith(".md"):
         content = clean_comments(content)
     content = clean_logging(content)
@@ -254,103 +255,103 @@ def remove_parent_paths(path: str) -> str:
 #     return result
 
 
-def shorten_functions(content: str, file_path: Optional[str] = None) -> str:
-    """
-    Extracts function and class definitions from Python code, 
-    including full signatures, return/yield statements, 
-    and unique assignments from class instantiations or method calls.
+# def shorten_functions(content: str, file_path: Optional[str] = None) -> str:
+#     """
+#     Extracts function and class definitions from Python code,
+#     including full signatures, return/yield statements,
+#     and unique assignments from class instantiations or method calls.
 
-    Args:
-        content: The Python source code as a string.
-        file_path: Optional file path for error reporting.
+#     Args:
+#         content: The Python source code as a string.
+#         file_path: Optional file path for error reporting.
 
-    Returns:
-        A string containing the extracted definitions.
+#     Returns:
+#         A string containing the extracted definitions.
 
-    Raises:
-        ShortenFunctionsError: If the input content has invalid Python syntax.
-    """
-    logger.debug(f"Processing content with file_path: {file_path}")
-    # Split early to access lines in except block
-    content_lines: List[str] = content.splitlines()
-    try:
-        tree = ast.parse(content)
-        logger.debug("Successfully parsed AST")
-    except SyntaxError as e:
-        # Get the exact line from content, if available
-        line_content = content_lines[e.lineno - 1].rstrip(
-        ) if e.lineno <= len(content_lines) else "<unavailable>"
-        error_msg = f"{file_path or '<string>'}:{e.lineno}\nLine content:\n{line_content}"
-        logger.error(error_msg)
+#     Raises:
+#         ShortenFunctionsError: If the input content has invalid Python syntax.
+#     """
+#     logger.debug(f"Processing content with file_path: {file_path}")
+#     # Split early to access lines in except block
+#     content_lines: List[str] = content.splitlines()
+#     try:
+#         tree = ast.parse(content)
+#         logger.debug("Successfully parsed AST")
+#     except SyntaxError as e:
+#         # Get the exact line from content, if available
+#         line_content = content_lines[e.lineno - 1].rstrip(
+#         ) if e.lineno <= len(content_lines) else "<unavailable>"
+#         error_msg = f"{file_path or '<string>'}:{e.lineno}\nLine content:\n{line_content}"
+#         logger.error(error_msg)
 
-        raise
+#         raise
 
-    logger.debug(f"Split content into {len(content_lines)} lines")
-    definitions: List[str] = []
-    # Tracks seen obj.method() or ClassName() calls
-    seen_calls: Set[str] = set()
-    seen_objects: Set[str] = set()  # Tracks seen object names for assignments
+#     logger.debug(f"Split content into {len(content_lines)} lines")
+#     definitions: List[str] = []
+#     # Tracks seen obj.method() or ClassName() calls
+#     seen_calls: Set[str] = set()
+#     seen_objects: Set[str] = set()  # Tracks seen object names for assignments
 
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            start_line = node.lineno - 1
-            end_line = node.body[0].lineno - 1
+#     for node in ast.walk(tree):
+#         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+#             start_line = node.lineno - 1
+#             end_line = node.body[0].lineno - 1
 
-            # Collect function/class signature lines
-            signature_lines = content_lines[start_line:end_line]
+#             # Collect function/class signature lines
+#             signature_lines = content_lines[start_line:end_line]
 
-            # Track return and yield statements
-            return_yield_lines = []
+#             # Track return and yield statements
+#             return_yield_lines = []
 
-            for subnode in ast.walk(node):
-                if isinstance(subnode, (ast.Return, ast.Yield, ast.YieldFrom)):
-                    return_start = subnode.lineno - 1
-                    return_end = getattr(
-                        subnode, 'end_lineno', return_start) - 1
-                    return_yield_lines.extend(
-                        content_lines[return_start:return_end + 1])
+#             for subnode in ast.walk(node):
+#                 if isinstance(subnode, (ast.Return, ast.Yield, ast.YieldFrom)):
+#                     return_start = subnode.lineno - 1
+#                     return_end = getattr(
+#                         subnode, 'end_lineno', return_start) - 1
+#                     return_yield_lines.extend(
+#                         content_lines[return_start:return_end + 1])
 
-            full_definition = "\n".join(
-                line.rstrip() for line in signature_lines + return_yield_lines)
-            definitions.append(full_definition)
+#             full_definition = "\n".join(
+#                 line.rstrip() for line in signature_lines + return_yield_lines)
+#             definitions.append(full_definition)
 
-        elif isinstance(node, ast.Assign):
-            # Ensure assignment is from an object method call OR class instantiation
-            if isinstance(node.value, ast.Call):
-                call_name = None
+#         elif isinstance(node, ast.Assign):
+#             # Ensure assignment is from an object method call OR class instantiation
+#             if isinstance(node.value, ast.Call):
+#                 call_name = None
 
-                # Case 1: Method call on an object (obj.method())
-                if isinstance(node.value.func, ast.Attribute):
-                    if isinstance(node.value.func.value, ast.Name):
-                        call_name = f"{node.value.func.value.id}.{node.value.func.attr}"
+#                 # Case 1: Method call on an object (obj.method())
+#                 if isinstance(node.value.func, ast.Attribute):
+#                     if isinstance(node.value.func.value, ast.Name):
+#                         call_name = f"{node.value.func.value.id}.{node.value.func.attr}"
 
-                # Case 2: Class instantiation (ClassName())
-                elif isinstance(node.value.func, ast.Name):
-                    call_name = node.value.func.id
+#                 # Case 2: Class instantiation (ClassName())
+#                 elif isinstance(node.value.func, ast.Name):
+#                     call_name = node.value.func.id
 
-                # Check for duplicates based on method name and object
-                if call_name and call_name not in seen_calls:
-                    seen_calls.add(call_name)
-                    start_line = node.lineno - 1
-                    end_line = start_line + 1
-                    signature_lines = content_lines[start_line:end_line]
-                    definitions.append("\n".join(line.rstrip()
-                                       for line in signature_lines))
+#                 # Check for duplicates based on method name and object
+#                 if call_name and call_name not in seen_calls:
+#                     seen_calls.add(call_name)
+#                     start_line = node.lineno - 1
+#                     end_line = start_line + 1
+#                     signature_lines = content_lines[start_line:end_line]
+#                     definitions.append("\n".join(line.rstrip()
+#                                        for line in signature_lines))
 
-            # Case: Simple object assignment (e.g., obj1 = MyClass())
-            elif isinstance(node.value, ast.Name):
-                obj_name = node.value.id
+#             # Case: Simple object assignment (e.g., obj1 = MyClass())
+#             elif isinstance(node.value, ast.Name):
+#                 obj_name = node.value.id
 
-                # Only add object assignments if they are unique
-                if obj_name not in seen_objects:
-                    seen_objects.add(obj_name)
-                    start_line = node.lineno - 1
-                    end_line = start_line + 1
-                    signature_lines = content_lines[start_line:end_line]
-                    definitions.append("\n".join(line.rstrip()
-                                       for line in signature_lines))
+#                 # Only add object assignments if they are unique
+#                 if obj_name not in seen_objects:
+#                     seen_objects.add(obj_name)
+#                     start_line = node.lineno - 1
+#                     end_line = start_line + 1
+#                     signature_lines = content_lines[start_line:end_line]
+#                     definitions.append("\n".join(line.rstrip()
+#                                        for line in signature_lines))
 
-    return "\n".join(definitions)
+#     return "\n".join(definitions)
 
 
 def get_file_length(file_path, shorten_funcs):
