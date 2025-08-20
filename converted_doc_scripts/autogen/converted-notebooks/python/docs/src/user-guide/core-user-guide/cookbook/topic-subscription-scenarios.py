@@ -174,7 +174,9 @@ async def run_single_tenant_single_scope() -> None:
         await runtime.add_subscription(DefaultSubscription(agent_type=specialist_agent_type_2))
     asyncio.run(run_async_code_56d331b8())
 
-    runtime.start()
+    async def run_async_code_772b732b():
+        runtime.start()
+    asyncio.run(run_async_code_772b732b())
     async def run_async_code_51965411():
         await runtime.publish_message(ClientRequest("I need to have my tax for 2024 prepared."), topic_id=DefaultTopicId())
     asyncio.run(run_async_code_51965411())
@@ -249,7 +251,9 @@ async def run_multi_tenant_single_scope() -> None:
             await runtime.add_subscription(specialist_subscription)
         asyncio.run(run_async_code_d34a487f())
 
-    runtime.start()
+    async def run_async_code_772b732b():
+        runtime.start()
+    asyncio.run(run_async_code_772b732b())
 
     for tenant in tenants:
         topic_source = tenant  # The topic source is the client name
@@ -330,7 +334,9 @@ async def run_single_tenant_multiple_scope() -> None:
         specialist_subscription = TypeSubscription(topic_type=specialty.value, agent_type=specialist_agent_type)
         await runtime.add_subscription(specialist_subscription)
 
-    runtime.start()
+    async def run_async_code_772b732b():
+        runtime.start()
+    asyncio.run(run_async_code_772b732b())
 
     for specialty in TaxSpecialty:
         topic_id = TopicId(type=specialty.value, source="default")
@@ -421,7 +427,9 @@ async def run_multi_tenant_multiple_scope() -> None:
                 await runtime.add_subscription(specialist_subscription)
             asyncio.run(run_async_code_353886c4())
 
-    runtime.start()
+    async def run_async_code_772b732b():
+        runtime.start()
+    asyncio.run(run_async_code_772b732b())
 
     for tenant in tenants:
         for specialty in TaxSpecialty:

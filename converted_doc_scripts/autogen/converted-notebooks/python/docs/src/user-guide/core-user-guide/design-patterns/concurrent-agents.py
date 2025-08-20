@@ -85,7 +85,9 @@ async def run_async_code_5fb8b73c():
     await Processor.register(runtime, "agent_2", lambda: Processor("Agent 2"))
 asyncio.run(run_async_code_5fb8b73c())
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 
 async def run_async_code_fcb7a2df():
     await runtime.publish_message(Task(task_id="task-1"), topic_id=DefaultTopicId())
@@ -150,7 +152,9 @@ async def run_async_code_bf59fa7f():
     await NormalProcessor.register(runtime, "normal_processor", lambda: NormalProcessor("Normal Processor"))
 asyncio.run(run_async_code_bf59fa7f())
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 
 async def run_async_code_48008583():
     await runtime.publish_message(Task(task_id="normal-1"), topic_id=TopicId(type="normal", source="default"))
@@ -179,7 +183,9 @@ async def collect_result(_agent: ClosureContext, message: TaskResponse, ctx: Mes
     await queue.put(message)
 
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 
 CLOSURE_AGENT_TYPE = "collect_result_agent"
 async def async_func_10():
@@ -266,7 +272,9 @@ async def run_async_code_9204bbe6():
     await DelegatorAgent.register(runtime, "delegator", lambda: DelegatorAgent("Delegator Agent", "worker"))
 asyncio.run(run_async_code_9204bbe6())
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 
 delegator = AgentId("delegator", "default")
 async def run_async_code_294c285f():

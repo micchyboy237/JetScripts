@@ -345,7 +345,9 @@ Let's test the agent with a question about stock price.
 """
 logger.info("This example uses the {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenChatLLMAdapter`,")
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 tool_use_agent = AgentId("tool_use_agent", "default")
 async def run_async_code_7e95725f():
     response = await runtime.send_message(Message("What is the stock price of NVDA on 2024/06/01?"), tool_use_agent)

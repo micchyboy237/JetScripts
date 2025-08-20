@@ -563,7 +563,9 @@ and [Topics and Subscriptions](../core-concepts/topic-and-subscription.md).
 """
 logger.info("## Running the team")
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 
 session_id = str(uuid.uuid4())
 async def run_async_code_9b34341c():

@@ -106,7 +106,9 @@ async def async_func_10():
     )
 asyncio.run(async_func_10())
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 async def run_async_code_e1e147d5():
     await runtime.send_message(Message(10), AgentId("checker", "default"))
 asyncio.run(run_async_code_e1e147d5())

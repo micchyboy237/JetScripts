@@ -204,7 +204,9 @@ async def async_func_9():
             ),
         )
         
-        runtime.start()
+        async def run_async_code_5ecde064():
+            runtime.start()
+        asyncio.run(run_async_code_5ecde064())
         
         await runtime.send_message(
             Message(content="Use Bing to find out the address of Microsoft Building 99"),

@@ -137,7 +137,9 @@ async def async_func_10():
         )
         await Executor.register(runtime, "executor", lambda: Executor(executor))
         
-        runtime.start()
+        async def run_async_code_5ecde064():
+            runtime.start()
+        asyncio.run(run_async_code_5ecde064())
         await runtime.publish_message(
             Message("Create a plot of NVIDA vs TSLA stock returns YTD from 2024-01-01."), DefaultTopicId()
         )

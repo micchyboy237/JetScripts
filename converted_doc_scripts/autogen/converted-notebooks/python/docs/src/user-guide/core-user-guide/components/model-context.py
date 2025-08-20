@@ -74,7 +74,9 @@ async def async_func_5():
         lambda: SimpleAgentWithContext(model_client=model_client),
     )
 asyncio.run(async_func_5())
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 agent_id = AgentId("simple_agent_context", "default")
 
 message = Message("Hello, what are some fun things to do in Seattle?")

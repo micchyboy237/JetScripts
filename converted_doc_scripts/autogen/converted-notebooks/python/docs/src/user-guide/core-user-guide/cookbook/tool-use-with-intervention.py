@@ -179,7 +179,9 @@ logger.info("Run the agents by starting the runtime and sending a message to the
 async def run_async_code_21307994():
     await docker_executor.start()
 asyncio.run(run_async_code_21307994())
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 
 async def async_func_3():
     response = await runtime.send_message(

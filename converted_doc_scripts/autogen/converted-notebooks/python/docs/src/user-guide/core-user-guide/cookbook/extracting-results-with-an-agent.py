@@ -83,7 +83,9 @@ We can simulate the collection of final results by publishing them directly to t
 """
 logger.info("We can simulate the collection of final results by publishing them directly to the runtime.")
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 async def run_async_code_6e97825e():
     await runtime.publish_message(FinalResult("Result 1"), DefaultTopicId())
 asyncio.run(run_async_code_6e97825e())

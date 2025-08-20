@@ -273,7 +273,9 @@ async def async_func_7():
         lambda: SimpleAgent(model_client=model_client),
     )
 asyncio.run(async_func_7())
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 message = Message("Hello, what are some fun things to do in Seattle?")
 async def run_async_code_b614784e():
     response = await runtime.send_message(message, AgentId("simple_agent", "default"))

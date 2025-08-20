@@ -1,13 +1,13 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from autogen_core import (
-MessageContext,
-RoutedAgent,
-SingleThreadedAgentRuntime,
-TopicId,
-TypeSubscription,
-message_handler,
-type_subscription,
+    MessageContext,
+    RoutedAgent,
+    SingleThreadedAgentRuntime,
+    TopicId,
+    TypeSubscription,
+    message_handler,
+    type_subscription,
 )
 from autogen_core.models import ChatCompletionClient, SystemMessage, UserMessage
 from dataclasses import dataclass
@@ -53,7 +53,6 @@ each step of the pipeline, with each agent publishing to the topic that the next
 logger.info("# Sequential Workflow")
 
 
-
 """
 ## Message Protocol
 
@@ -61,9 +60,11 @@ The message protocol for this example workflow is a simple text message that age
 """
 logger.info("## Message Protocol")
 
+
 @dataclass
 class Message:
     content: str
+
 
 """
 ## Topics
@@ -88,6 +89,7 @@ The concept extractor agent comes up with the initial bullet points for the prod
 """
 logger.info("## Agents")
 
+
 @type_subscription(topic_type=concept_extractor_topic_type)
 class ConceptExtractorAgent(RoutedAgent):
     def __init__(self, model_client: ChatCompletionClient) -> None:
@@ -106,7 +108,8 @@ class ConceptExtractorAgent(RoutedAgent):
     async def handle_user_description(self, message: Message, ctx: MessageContext) -> None:
         prompt = f"Product description: {message.content}"
         llm_result = await self._model_client.create(
-            messages=[self._system_message, UserMessage(content=prompt, source=self.id.key)],
+            messages=[self._system_message, UserMessage(
+                content=prompt, source=self.id.key)],
             cancellation_token=ctx.cancellation_token,
         )
         response = llm_result.content
@@ -117,10 +120,12 @@ class ConceptExtractorAgent(RoutedAgent):
             await self.publish_message(Message(response), topic_id=TopicId(writer_topic_type, source=self.id.key))
         asyncio.run(run_async_code_af659285())
 
+
 """
 The writer agent performs writing.
 """
 logger.info("The writer agent performs writing.")
+
 
 @type_subscription(topic_type=writer_topic_type)
 class WriterAgent(RoutedAgent):
@@ -141,7 +146,8 @@ class WriterAgent(RoutedAgent):
 
         async def async_func_17():
             llm_result = await self._model_client.create(
-                messages=[self._system_message, UserMessage(content=prompt, source=self.id.key)],
+                messages=[self._system_message, UserMessage(
+                    content=prompt, source=self.id.key)],
                 cancellation_token=ctx.cancellation_token,
             )
             return llm_result
@@ -155,10 +161,12 @@ class WriterAgent(RoutedAgent):
             await self.publish_message(Message(response), topic_id=TopicId(format_proof_topic_type, source=self.id.key))
         asyncio.run(run_async_code_c7b3076e())
 
+
 """
 The format proof agent performs the formatting.
 """
 logger.info("The format proof agent performs the formatting.")
+
 
 @type_subscription(topic_type=format_proof_topic_type)
 class FormatProofAgent(RoutedAgent):
@@ -176,7 +184,8 @@ class FormatProofAgent(RoutedAgent):
     async def handle_intermediate_text(self, message: Message, ctx: MessageContext) -> None:
         prompt = f"Draft copy:\n{message.content}."
         llm_result = await self._model_client.create(
-            messages=[self._system_message, UserMessage(content=prompt, source=self.id.key)],
+            messages=[self._system_message, UserMessage(
+                content=prompt, source=self.id.key)],
             cancellation_token=ctx.cancellation_token,
         )
         response = llm_result.content
@@ -187,11 +196,14 @@ class FormatProofAgent(RoutedAgent):
             await self.publish_message(Message(response), topic_id=TopicId(user_topic_type, source=self.id.key))
         asyncio.run(run_async_code_98713bb7())
 
+
 """
 In this example, the user agent simply prints the final marketing copy to the console.
 In a real-world application, this could be replaced by storing the result to a database, sending an email, or any other desired action.
 """
-logger.info("In this example, the user agent simply prints the final marketing copy to the console.")
+logger.info(
+    "In this example, the user agent simply prints the final marketing copy to the console.")
+
 
 @type_subscription(topic_type=user_topic_type)
 class UserAgent(RoutedAgent):
@@ -200,7 +212,9 @@ class UserAgent(RoutedAgent):
 
     @message_handler
     async def handle_final_copy(self, message: Message, ctx: MessageContext) -> None:
-        logger.debug(f"\n{'-'*80}\n{self.id.type} received final copy:\n{message.content}")
+        logger.debug(
+            f"\n{'-'*80}\n{self.id.type} received final copy:\n{message.content}")
+
 
 """
 ## Workflow
@@ -216,21 +230,27 @@ model_client = MLXAutogenChatLLMAdapter(
 
 runtime = SingleThreadedAgentRuntime()
 
+
 async def async_func_6():
     await ConceptExtractorAgent.register(
-        runtime, type=concept_extractor_topic_type, factory=lambda: ConceptExtractorAgent(model_client=model_client)
+        runtime, type=concept_extractor_topic_type, factory=lambda: ConceptExtractorAgent(
+            model_client=model_client)
     )
 asyncio.run(async_func_6())
+
 
 async def run_async_code_b871bd98():
     await WriterAgent.register(runtime, type=writer_topic_type, factory=lambda: WriterAgent(model_client=model_client))
 asyncio.run(run_async_code_b871bd98())
 
+
 async def async_func_12():
     await FormatProofAgent.register(
-        runtime, type=format_proof_topic_type, factory=lambda: FormatProofAgent(model_client=model_client)
+        runtime, type=format_proof_topic_type, factory=lambda: FormatProofAgent(
+            model_client=model_client)
     )
 asyncio.run(async_func_12())
+
 
 async def run_async_code_f7b0dbb6():
     await UserAgent.register(runtime, type=user_topic_type, factory=lambda: UserAgent())
@@ -243,18 +263,26 @@ Finally, we can run the workflow by publishing a message to the first agent in t
 """
 logger.info("## Run the Workflow")
 
-runtime.start()
+
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
+
 
 async def async_func_2():
     await runtime.publish_message(
-        Message(content="An eco-friendly stainless steel water bottle that keeps drinks cold for 24 hours"),
+        Message(
+            content="An eco-friendly stainless steel water bottle that keeps drinks cold for 24 hours"),
         topic_id=TopicId(concept_extractor_topic_type, source="default"),
     )
 asyncio.run(async_func_2())
 
+
 async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
 asyncio.run(run_async_code_b7ca34d4())
+
+
 async def run_async_code_0349fda4():
     await model_client.close()
 asyncio.run(run_async_code_0349fda4())

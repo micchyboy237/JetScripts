@@ -100,7 +100,9 @@ async def run_async_code_b1b3e265():
     await AnAgent.register(runtime, "my_agent", AnAgent)
 asyncio.run(run_async_code_b1b3e265())
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 
 async def run_async_code_536bba2d():
     await runtime.publish_message(Message("hello"), DefaultTopicId())

@@ -170,7 +170,9 @@ message to this instance.
 """
 logger.info("Once an agent type is registered, we can send a direct message to an agent instance")
 
-runtime.start()  # Start processing messages in the background.
+async def run_async_code_bf004966():
+    runtime.start()  # Start processing messages in the background.
+asyncio.run(run_async_code_bf004966())
 async def run_async_code_a7edcc41():
     await runtime.send_message(MyMessageType("Hello, World!"), AgentId("my_agent", "default"))
 asyncio.run(run_async_code_a7edcc41())
@@ -198,7 +200,9 @@ To stop the background task immediately, use the {py:meth}`~autogen_core.SingleT
 """
 logger.info("## Running the Single-Threaded Agent Runtime")
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 async def run_async_code_e8c0530d():
     await runtime.stop()  # This will return immediately but will not cancel
 asyncio.run(run_async_code_e8c0530d())
@@ -214,7 +218,9 @@ You can achieve this by using the {py:meth}`~autogen_core.SingleThreadedAgentRun
 """
 logger.info("You can resume the background task by calling {py:meth}`~autogen_core.SingleThreadedAgentRuntime.start` again.")
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 async def run_async_code_28f4a243():
     await runtime.stop_when_idle()  # This will block until the runtime is idle.
 asyncio.run(run_async_code_28f4a243())

@@ -187,7 +187,9 @@ async def main() -> None:
         runtime = SingleThreadedAgentRuntime(
             tracer_provider=trace.NoOpTracerProvider(),  # Disable telemetry for runtime.
         )
-        runtime.start()
+        async def run_async_code_5ecde064():
+            runtime.start()
+        asyncio.run(run_async_code_5ecde064())
 
         team = SelectorGroupChat(
             [planning_agent, web_search_agent, data_analyst_agent],

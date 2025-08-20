@@ -524,7 +524,9 @@ We start the runtime and publish a `GroupChatMessage` for the task to start the 
 """
 logger.info("## Running the Group Chat")
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 session_id = str(uuid.uuid4())
 async def async_func_2():
     await runtime.publish_message(

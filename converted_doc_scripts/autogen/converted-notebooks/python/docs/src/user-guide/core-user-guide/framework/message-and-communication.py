@@ -107,7 +107,9 @@ Test this agent with `TextMessage` and `ImageMessage`.
 """
 logger.info("Test this agent with `TextMessage` and `ImageMessage`.")
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 agent_id = AgentId("my_agent", "default")
 async def run_async_code_65728bc7():
     await runtime.send_message(TextMessage(content="Hello, World!", source="User"), agent_id)
@@ -167,7 +169,9 @@ runtime = SingleThreadedAgentRuntime()
 async def run_async_code_6be75fb9():
     await RoutedBySenderAgent.register(runtime, "my_agent", lambda: RoutedBySenderAgent("Routed by sender agent"))
 asyncio.run(run_async_code_6be75fb9())
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 agent_id = AgentId("my_agent", "default")
 async def run_async_code_b412f69c():
     await runtime.send_message(TextMessage(content="Hello, World!", source="user1-test"), agent_id)
@@ -260,7 +264,9 @@ asyncio.run(run_async_code_046817ed())
 async def run_async_code_9808e8a3():
     await OuterAgent.register(runtime, "outer_agent", lambda: OuterAgent("OuterAgent", "inner_agent"))
 asyncio.run(run_async_code_9808e8a3())
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 outer_agent_id = AgentId("outer_agent", "default")
 async def run_async_code_a4db0dab():
     await runtime.send_message(Message(content="Hello, World!"), outer_agent_id)
@@ -372,7 +378,9 @@ async def run_async_code_d59b1ddb():
     await runtime.add_subscription(TypeSubscription(topic_type="default", agent_type="broadcasting_agent"))
 asyncio.run(run_async_code_d59b1ddb())
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 async def async_func_10():
     await runtime.publish_message(
         Message("Hello, World! From the runtime!"), topic_id=TopicId(type="default", source="default")
@@ -439,7 +447,9 @@ asyncio.run(async_func_1())
 async def run_async_code_4a2f2009():
     await ReceivingAgent.register(runtime, "receiving_agent", lambda: ReceivingAgent("Receiving Agent"))
 asyncio.run(run_async_code_4a2f2009())
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 async def run_async_code_4ef5053d():
     await runtime.publish_message(Message("Hello, World! From the runtime!"), topic_id=DefaultTopicId())
 asyncio.run(run_async_code_4ef5053d())

@@ -452,12 +452,15 @@ def wrap_await_code_singleline_args(code: str) -> str:
             skip_until_closing_paren = True
             result_lines.append(line)
             continue
-        match = re.match(r'(.*?)(?=\s*= await)', line)
+        # Handle async-related calls like runtime.start()
+        is_async_related = "runtime.start()" in stripped_line or "await" in line
+        match = re.match(r'(.*?)(?=\s*= await)',
+                         line) if "await" in line else None
         text_before_await = match.group(1).strip() if match else ""
         await_leading_spaces = len(line) - len(line.lstrip())
         function_name = generate_unique_function_name(line)
         indent = " " * await_leading_spaces
-        if "await" in line and paren_depth == 0 and not in_async_def:
+        if is_async_related and paren_depth == 0 and not in_async_def:
             if text_before_await:
                 async_wrapped_code = "\n".join([
                     f"{indent}async def {function_name}():",

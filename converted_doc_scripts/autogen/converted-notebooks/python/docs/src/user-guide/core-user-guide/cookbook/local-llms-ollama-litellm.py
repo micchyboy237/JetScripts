@@ -157,7 +157,9 @@ Let's run everything!
 """
 logger.info("Let's run everything!")
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 async def async_func_1():
     await runtime.send_message(
         Message("Joe, tell me a joke."),

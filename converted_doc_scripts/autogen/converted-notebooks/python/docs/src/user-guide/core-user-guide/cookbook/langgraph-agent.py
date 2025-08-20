@@ -146,7 +146,9 @@ Start the agent runtime.
 """
 logger.info("Start the agent runtime.")
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 
 """
 Send a direct message to the agent, and print the response.

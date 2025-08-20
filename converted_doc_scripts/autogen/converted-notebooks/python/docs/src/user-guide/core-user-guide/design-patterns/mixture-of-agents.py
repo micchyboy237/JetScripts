@@ -186,7 +186,9 @@ async def async_func_3():
     )
 asyncio.run(async_func_3())
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 async def run_async_code_5d35fbb3():
     result = await runtime.send_message(UserTask(task=task), AgentId("orchestrator", "default"))
     return result

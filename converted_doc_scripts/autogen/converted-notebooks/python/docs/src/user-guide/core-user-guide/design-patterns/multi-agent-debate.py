@@ -358,7 +358,9 @@ and the aggregator agent will start the debate.
 logger.info("## Solving Math Problems")
 
 question = "Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. How many clips did Natalia sell altogether in April and May?"
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 async def run_async_code_33e3430c():
     await runtime.publish_message(Question(content=question), DefaultTopicId())
 asyncio.run(run_async_code_33e3430c())

@@ -369,7 +369,9 @@ Let's send a greeting message to the agent, and see the response streamed back.
 """
 logger.info("Let's send a greeting message to the agent, and see the response streamed back.")
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 async def run_async_code_6407d14a():
     await runtime.send_message(TextMessage(content="Hello, how are you today!", source="user"), agent)
 asyncio.run(run_async_code_6407d14a())
@@ -385,7 +387,9 @@ to answer the question.
 """
 logger.info("## Assistant with Code Interpreter")
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 async def run_async_code_30a4d357():
     await runtime.send_message(TextMessage(content="What is 1332322 x 123212?", source="user"), agent)
 asyncio.run(run_async_code_30a4d357())
@@ -410,7 +414,9 @@ Let's send the file to the agent using an `UploadForCodeInterpreter` message.
 """
 logger.info("Let's send the file to the agent using an `UploadForCodeInterpreter` message.")
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 async def run_async_code_5fd06a41():
     await runtime.send_message(UploadForCodeInterpreter(file_path="seattle_city_wages.csv"), agent)
 asyncio.run(run_async_code_5fd06a41())
@@ -423,7 +429,9 @@ We can now ask some questions about the data to the agent.
 """
 logger.info("We can now ask some questions about the data to the agent.")
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 async def run_async_code_36dcec0b():
     await runtime.send_message(TextMessage(content="Take a look at the uploaded CSV file.", source="user"), agent)
 asyncio.run(run_async_code_36dcec0b())
@@ -431,7 +439,9 @@ async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
 asyncio.run(run_async_code_b7ca34d4())
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 async def run_async_code_f819bab5():
     await runtime.send_message(TextMessage(content="What are the top-10 salaries?", source="user"), agent)
 asyncio.run(run_async_code_f819bab5())
@@ -456,7 +466,9 @@ Send the file to the agent using an `UploadForFileSearch` message.
 """
 logger.info("Send the file to the agent using an `UploadForFileSearch` message.")
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 async def async_func_1():
     await runtime.send_message(
         UploadForFileSearch(file_path="third_anglo_afghan_war.html", vector_store_id=vector_store.id), agent
@@ -472,7 +484,9 @@ we reset the agent memory to start a new conversation.
 """
 logger.info("Let's ask some questions about the document to the agent. Before asking,")
 
-runtime.start()
+async def run_async_code_1e6ac0a6():
+    runtime.start()
+asyncio.run(run_async_code_1e6ac0a6())
 async def run_async_code_4488944a():
     await runtime.send_message(Reset(), agent)
 asyncio.run(run_async_code_4488944a())
