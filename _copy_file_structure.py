@@ -225,10 +225,10 @@ def clean_print(content):
     return re.sub(r'print\(.+?\)(,?.*?\))?', '', content, flags=re.DOTALL)
 
 
-def clean_content(content: str, file_path: str, shorten_funcs: bool = True):
+def clean_content(content: str, file_path: str, shorten_funcs: bool = True, remove_triple_quoted_definitions: bool = False):
     """Clean the content based on file type and apply various cleaning operations."""
     if file_path.endswith(".py"):
-        content = strip_comments(content)
+        content = strip_comments(content, remove_triple_quoted_definitions)
         if shorten_funcs:
             content = shorten_functions(content)
     if not file_path.endswith(".md"):

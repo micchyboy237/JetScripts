@@ -1,4 +1,5 @@
 import asyncio
+from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.transformers.formatters import format_json
 from IPython.display import display, Markdown
 from jet.llm.mlx.base import MLX
@@ -400,7 +401,8 @@ logger.info("## Running the Workflow")
 
 
 wf = LongRAGWorkflow(timeout=60)
-llm = MLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/llama_index/converted-notebooks/docs/docs/examples/workflow/data"
 
 
