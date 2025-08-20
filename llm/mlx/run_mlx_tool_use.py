@@ -1,5 +1,3 @@
-# Copyright © 2025 Apple Inc.
-
 import json
 
 from jet.logger import logger

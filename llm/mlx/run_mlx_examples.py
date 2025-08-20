@@ -12,7 +12,7 @@ log_file = os.path.join(
 logger = CustomLogger(log_file, overwrite=True)
 
 
-model: LLMModelKey = "llama-3.2-1b-instruct-4bit"
+model: LLMModelKey = "qwen3-1.7b-4bit"
 
 MLX_LOG_DIR = f"{script_dir}/generated/run_mlx_examples"
 

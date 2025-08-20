@@ -3,6 +3,7 @@ from typing import Any, Dict
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
+from jet.models.model_types import LLMModelKey
 from jet.transformers.formatters import format_json
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -266,7 +267,8 @@ def text_generation_with_xtc_example(client: MLX):
 
 if __name__ == "__main__":
     """Main function to run all advanced examples."""
-    client = MLXModelRegistry.load_model("qwen3-1.7b-4bit")
+    model: LLMModelKey = "qwen3-1.7b-4bit"
+    client = MLXModelRegistry.load_model(model)
 
     logger.info("\n=== Encode/Decode Example ===")
     encode_decode_example(client)
