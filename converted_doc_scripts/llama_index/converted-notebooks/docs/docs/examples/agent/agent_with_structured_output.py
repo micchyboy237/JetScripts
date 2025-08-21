@@ -47,10 +47,10 @@ Let's now define our structured output format
 logger.info("Let's now define our structured output format")
 
 
-
 class MathResult(BaseModel):
     operation: str = Field(description="The operation that has been performed")
     result: int = Field(description="Result of the operation")
+
 
 """
 And a very simple calculator agent
@@ -58,7 +58,8 @@ And a very simple calculator agent
 logger.info("And a very simple calculator agent")
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = MLXLlamaIndexLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 
 def add(x: int, y: int):
@@ -84,11 +85,9 @@ Let's now run the agent
 """
 logger.info("Let's now run the agent")
 
+
 async def run_async_code_d3493c9a():
-    async def run_async_code_cf2ce179():
-        response = await agent.run("What is the result of 10 multiplied by 4?")
-        return response
-    response = asyncio.run(run_async_code_cf2ce179())
+    response = await agent.run("What is the result of 10 multiplied by 4?")
     logger.success(format_json(response))
     return response
 response = asyncio.run(run_async_code_d3493c9a())
