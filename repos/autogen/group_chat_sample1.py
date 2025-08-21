@@ -12,8 +12,17 @@ from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_core import AgentRuntime, SingleThreadedAgentRuntime
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_core.tools import FunctionTool
-from autogen_ext.models.ollama import OllamaChatCompletionClient
-from jet.logger import logger
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
+from jet.logger import CustomLogger
+import os
+import shutil
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger = CustomLogger(log_file, overwrite=True)
+logger.info(f"Logs: {log_file}")
 
 
 # Simulated real-world function for task completion
@@ -28,43 +37,49 @@ def code_execution_task(input_code: str) -> str:
 
 # Real-world example where an assistant and a code executor collaborate
 async def task_execution_with_code(runtime: AgentRuntime | None) -> None:
-    model_client = OllamaChatCompletionClient(model="llama3.2")
+    model_client = MLXAutogenChatLLMAdapter(
+        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/task_chats")
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # Create a code executor agent to run the task
-        code_executor_agent = CodeExecutorAgent(
-            "code_executor", code_executor=LocalCommandLineCodeExecutor(work_dir=temp_dir)
-        )
+    work_dir = f"{OUTPUT_DIR}/work_dir"
 
-        # Create an assistant agent to assist with the task
-        coding_assistant_agent = AssistantAgent(
-            "coding_assistant", model_client=model_client
-        )
+    # Create a code executor agent to run the task
+    code_executor_agent = CodeExecutorAgent(
+        "code_executor",
+        code_executor=LocalCommandLineCodeExecutor(work_dir=work_dir),
+        model_client=model_client,
+    )
 
-        # Setup the termination condition
-        termination_condition = TextMentionTermination("TERMINATE")
+    # Create an assistant agent to assist with the task
+    coding_assistant_agent = AssistantAgent(
+        "coding_assistant",
+        model_client=model_client
+    )
 
-        # Create a group chat with round-robin messaging pattern
-        team = RoundRobinGroupChat(
-            participants=[coding_assistant_agent, code_executor_agent],
-            termination_condition=termination_condition,
-            runtime=runtime
-        )
+    # Setup the termination condition
+    termination_condition = TextMentionTermination("TERMINATE")
 
-        # Run the task with input: writing a program to print 'Hello, world!'
-        result = await team.run(
-            task="Write a program that prints 'Hello, world!'",
-        )
+    # Create a group chat with round-robin messaging pattern
+    team = RoundRobinGroupChat(
+        participants=[coding_assistant_agent, code_executor_agent],
+        termination_condition=termination_condition,
+        runtime=runtime
+    )
 
-        # Log the resulting messages and assert termination
-        for message in result.messages:
-            logger.debug(f"Message content: {message.content}")
-        assert result.stop_reason == "Text 'TERMINATE' mentioned"
+    # Run the task with input: writing a program to print 'Hello, world!'
+    result = await team.run(
+        task="Write a program that prints 'Hello, world!' using python",
+    )
+
+    # Log the resulting messages and assert termination
+    for message in result.messages:
+        logger.debug(f"Message content: {message.content}")
+    assert result.stop_reason == "Text 'TERMINATE' mentioned"
 
 
 # Example where agents handle tools and asynchronous tasks
 async def agent_with_tools_example(runtime: AgentRuntime | None) -> None:
-    model_client = OllamaChatCompletionClient(model="llama3.2")
+    model_client = MLXAutogenChatLLMAdapter(
+        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/agent_chats")
 
     # Define a tool to simulate a pass function for the agent
     tool = FunctionTool(code_execution_task, name="pass",

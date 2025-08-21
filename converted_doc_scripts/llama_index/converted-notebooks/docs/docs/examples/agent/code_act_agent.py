@@ -5,14 +5,15 @@ from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.agent.workflow import (
-ToolCall,
-ToolCallResult,
-AgentStream,
+    ToolCall,
+    ToolCallResult,
+    AgentStream,
 )
 from llama_index.core.agent.workflow import CodeActAgent
 from llama_index.core.settings import Settings
 from llama_index.core.workflow import Context
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.core.workflow.errors import WorkflowRuntimeError
 from typing import Any, Dict, Tuple
 import ast
 import contextlib
@@ -62,7 +63,8 @@ logger.info("# Prebuilt CodeAct Agent w/ LlamaIndex")
 # %pip install -U llama-index-core llama-index-llms-ollama
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", api_key="sk-...")
+llm = MLXLlamaIndexLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
 
 def add(a: int, b: int) -> int:
@@ -131,29 +133,24 @@ class SimpleCodeExecutor:
             code: Python code to execute
 
         Returns:
-            Dict with keys `success`, `output`, and `return_value`
+            Tuple of (success: bool, output: str, return_value: Any)
         """
         stdout = io.StringIO()
         stderr = io.StringIO()
 
         output = ""
         return_value = None
+        success = True
         try:
-            with contextlib.redirect_stdout(
-                stdout
-            ), contextlib.redirect_stderr(stderr):
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
                 try:
                     tree = ast.parse(code)
                     last_node = tree.body[-1] if tree.body else None
 
                     if isinstance(last_node, ast.Expr):
                         last_line = code.rstrip().split("\n")[-1]
-                        exec_code = (
-                            code[: -len(last_line)]
-                            + "\n__result__ = "
-                            + last_line
-                        )
-
+                        exec_code = code[: -len(last_line)] + \
+                            "\n__result__ = " + last_line
                         exec(exec_code, self.globals, self.locals)
                         return_value = self.locals.get("__result__")
                     else:
@@ -168,11 +165,12 @@ class SimpleCodeExecutor:
         except Exception as e:
             output = f"Error: {type(e).__name__}: {str(e)}\n"
             output += traceback.format_exc()
+            success = False
 
         if return_value is not None:
             output += "\n\n" + str(return_value)
 
-        return output
+        return success, output, return_value
 
 
 code_executor = SimpleCodeExecutor(
@@ -213,75 +211,95 @@ logger.info("## Use the Agent")
 
 
 async def run_agent_verbose(agent, ctx, query):
-    handler = agent.run(query, ctx=ctx)
-    logger.debug(f"User:  {query}")
-    async for event in handler.stream_events():
-        if isinstance(event, ToolCallResult):
-            logger.debug(
-                f"\n-----------\nCode execution result:\n{event.tool_output}"
-            )
-        elif isinstance(event, ToolCall):
-            logger.debug(
-                f"\n-----------\nParsed code:\n{event.tool_kwargs['code']}")
-        elif isinstance(event, AgentStream):
-            logger.debug(f"{event.delta}", end="", flush=True)
+    try:
+        handler = agent.run(query, ctx=ctx)
+        logger.debug(f"User: {query}")
+        async for event in handler.stream_events():
+            if isinstance(event, ToolCallResult):
+                logger.debug(
+                    f"\n-----------\nCode execution result:\n{event.tool_output}")
+            elif isinstance(event, ToolCall):
+                logger.debug(
+                    f"\n-----------\nParsed code:\n{event.tool_kwargs['code']}")
+            elif isinstance(event, AgentStream):
+                logger.debug(f"{event.delta}", end="", flush=True)
 
-    async def run_async_code_745df5ad():
-        return await handler
-        return
-     = asyncio.run(run_async_code_745df5ad())
-    logger.success(format_json())
+        result = await handler
+        logger.success(format_json(result))
+        return result
+    except (RuntimeError, WorkflowRuntimeError) as e:
+        logger.error(
+            f"Error processing query '{query}': {type(e).__name__}: {str(e)}")
+        logger.debug(f"Traceback: {traceback.format_exc()}")
+        return {"error": f"Failed to process query: {str(e)}"}
 
-"""
-Here, the agent uses some built-in functions to calculate the sum of all numbers from 1 to 10.
-"""
-logger.info("Here, the agent uses some built-in functions to calculate the sum of all numbers from 1 to 10.")
+# First task
+logger.info(
+    "Here, the agent uses some built-in functions to calculate the sum of all numbers from 1 to 10.")
 
-async def async_func_0():
-    response = await run_agent_verbose(
-        agent, ctx, "Calculate the sum of all numbers from 1 to 10"
-    )
+
+async def sum_1_to_10():
+    response = await run_agent_verbose(agent, ctx, "Calculate the sum of all numbers from 1 to 10")
     return response
-response = asyncio.run(async_func_0())
-logger.success(format_json(response))
+try:
+    response = asyncio.run(sum_1_to_10())
+    if "error" not in response:
+        logger.success(format_json(response))
+    else:
+        logger.error(f"Task sum_1_to_10 failed: {response['error']}")
+except Exception as e:
+    logger.error(f"Unexpected error in sum_1_to_10: {str(e)}")
+    logger.debug(f"Traceback: {traceback.format_exc()}")
 
-"""
-Next, we get the agent to use the tools that we passed in.
-"""
+# Second task
 logger.info("Next, we get the agent to use the tools that we passed in.")
 
-async def async_func_0():
-    response = await run_agent_verbose(
-        agent, ctx, "Add 5 and 3, then multiply the result by 2"
-    )
-    return response
-response = asyncio.run(async_func_0())
-logger.success(format_json(response))
 
-"""
-We can even get the agent to define new functions for us!
-"""
+async def add_multiply_task():
+    response = await run_agent_verbose(agent, ctx, "Add 5 and 3, then multiply the result by 2")
+    return response
+try:
+    response = asyncio.run(add_multiply_task())
+    if "error" not in response:
+        logger.success(format_json(response))
+    else:
+        logger.error(f"Task add_multiply_task failed: {response['error']}")
+except Exception as e:
+    logger.error(f"Unexpected error in add_multiply_task: {str(e)}")
+    logger.debug(f"Traceback: {traceback.format_exc()}")
+
+# Third task
 logger.info("We can even get the agent to define new functions for us!")
 
-async def async_func_0():
-    response = await run_agent_verbose(
-        agent, ctx, "Calculate the sum of the first 10 fibonacci numbers"
-    )
-    return response
-response = asyncio.run(async_func_0())
-logger.success(format_json(response))
 
-"""
-And then reuse those new functions in a new task!
-"""
+async def fibonacci_10():
+    response = await run_agent_verbose(agent, ctx, "Calculate the sum of the first 10 fibonacci numbers")
+    return response
+try:
+    response = asyncio.run(fibonacci_10())
+    if "error" not in response:
+        logger.success(format_json(response))
+    else:
+        logger.error(f"Task fibonacci_10 failed: {response['error']}")
+except Exception as e:
+    logger.error(f"Unexpected error in fibonacci_10: {str(e)}")
+    logger.debug(f"Traceback: {traceback.format_exc()}")
+
+# Fourth task
 logger.info("And then reuse those new functions in a new task!")
 
-async def async_func_0():
-    response = await run_agent_verbose(
-        agent, ctx, "Calculate the sum of the first 20 fibonacci numbers"
-    )
+
+async def fibonacci_20():
+    response = await run_agent_verbose(agent, ctx, "Calculate the sum of the first 20 fibonacci numbers")
     return response
-response = asyncio.run(async_func_0())
-logger.success(format_json(response))
+try:
+    response = asyncio.run(fibonacci_20())
+    if "error" not in response:
+        logger.success(format_json(response))
+    else:
+        logger.error(f"Task fibonacci_20 failed: {response['error']}")
+except Exception as e:
+    logger.error(f"Unexpected error in fibonacci_20: {str(e)}")
+    logger.debug(f"Traceback: {traceback.format_exc()}")
 
 logger.info("\n\n[DONE]", bright=True)

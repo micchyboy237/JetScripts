@@ -4,13 +4,13 @@ from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, default_su
 from autogen_core import SingleThreadedAgentRuntime
 from autogen_core.code_executor import CodeBlock, CodeExecutor
 from autogen_core.models import (
-AssistantMessage,
-ChatCompletionClient,
-LLMMessage,
-SystemMessage,
-UserMessage,
+    AssistantMessage,
+    ChatCompletionClient,
+    LLMMessage,
+    SystemMessage,
+    UserMessage,
 )
-from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from dataclasses import dataclass
 from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
@@ -47,8 +47,6 @@ Code generated in this example is run within a [Docker](https://www.docker.com/)
 logger.info("# Code Execution")
 
 
-
-
 @dataclass
 class Message:
     content: str
@@ -68,11 +66,14 @@ Always save figures to file in the current directory. Do not use plt.show(). All
 
     @message_handler
     async def handle_message(self, message: Message, ctx: MessageContext) -> None:
-        self._chat_history.append(UserMessage(content=message.content, source="user"))
+        self._chat_history.append(UserMessage(
+            content=message.content, source="user"))
         result = await self._model_client.create(self._chat_history)
         logger.debug(f"\n{'-'*80}\nAssistant:\n{result.content}")
-        self._chat_history.append(AssistantMessage(content=result.content, source="assistant"))  # type: ignore
-        await self.publish_message(Message(content=result.content), DefaultTopicId())  # type: ignore
+        self._chat_history.append(AssistantMessage(
+            content=result.content, source="assistant"))  # type: ignore
+        # type: ignore
+        await self.publish_message(Message(content=result.content), DefaultTopicId())
 
 
 def extract_markdown_code_blocks(markdown_text: str) -> List[CodeBlock]:
@@ -102,6 +103,7 @@ class Executor(RoutedAgent):
             logger.debug(f"\n{'-'*80}\nExecutor:\n{result.output}")
             await self.publish_message(Message(content=result.output), DefaultTopicId())
 
+
 """
 You might have already noticed, the agents' logic, whether it is using model or code executor,
 is completely decoupled from
@@ -117,49 +119,50 @@ The following code shows how to register and run the agents using
 {py:class}`~autogen_core.SingleThreadedAgentRuntime`,
 a local embedded agent runtime implementation.
 """
-logger.info("You might have already noticed, the agents' logic, whether it is using model or code executor,")
+logger.info(
+    "You might have already noticed, the agents' logic, whether it is using model or code executor,")
 
 
-
-work_dir = tempfile.mkdtemp()
+# Modified work_dir to ensure it exists
+work_dir = os.path.join(OUTPUT_DIR, "work_dir")
+os.makedirs(work_dir, exist_ok=True)
 
 runtime = SingleThreadedAgentRuntime()
 
+
 async def async_func_10():
-    async with DockerCommandLineCodeExecutor(work_dir=work_dir) as executor:  # type: ignore[syntax]
-        model_client = MLXAutogenChatLLMAdapter(
-            model="qwen3-1.7b-4bit",
-        )
-        await Assistant.register(
-            runtime,
-            "assistant",
-            lambda: Assistant(model_client=model_client),
-        )
-        await Executor.register(runtime, "executor", lambda: Executor(executor))
-        
-        async def run_async_code_5ecde064():
+    try:
+        async with LocalCommandLineCodeExecutor(work_dir=work_dir) as executor:
+            model_client = MLXAutogenChatLLMAdapter(
+                model="qwen3-1.7b-4bit", log_dir=os.path.join(OUTPUT_DIR, "chats")
+            )
+            await Assistant.register(
+                runtime,
+                "assistant",
+                lambda: Assistant(model_client=model_client),
+            )
+            await Executor.register(runtime, "executor", lambda: Executor(executor))
+
             runtime.start()
-        asyncio.run(run_async_code_5ecde064())
-        await runtime.publish_message(
-            Message("Create a plot of NVIDA vs TSLA stock returns YTD from 2024-01-01."), DefaultTopicId()
-        )
-        
-        async def run_async_code_6a36839b():
+            await runtime.publish_message(
+                Message(
+                    "Create a plot of NVIDIA vs TSLA stock returns YTD from 2024-01-01."), DefaultTopicId()
+            )
             await runtime.stop_when_idle()
-        asyncio.run(run_async_code_6a36839b())
-        async def run_async_code_eecbf04a():
             await model_client.close()
-        asyncio.run(run_async_code_eecbf04a())
-asyncio.run(async_func_10())
+    except Exception as e:
+        logger.error(f"Error in async_func_10: {str(e)}")
+        raise
 
 """
 From the agent's output, we can see the plot of Tesla's and Nvidia's stock returns
 has been created.
 """
-logger.info("From the agent's output, we can see the plot of Tesla's and Nvidia's stock returns")
+logger.info(
+    "From the agent's output, we can see the plot of Tesla's and Nvidia's stock returns")
 
 
-Image(filename=f"{work_dir}/nvidia_vs_tesla_ytd_returns.png")  # type: ignore
+# Image(filename=f"{work_dir}/nvidia_vs_tesla_ytd_returns.png")  # type: ignore
 
 """
 AutoGen also supports a distributed agent runtime, which can host agents running on
@@ -168,6 +171,7 @@ different processes or machines, with different identities, languages and depend
 To learn how to use agent runtime, communication, message handling, and subscription, please continue
 reading the sections following this quick start.
 """
-logger.info("AutoGen also supports a distributed agent runtime, which can host agents running on")
+logger.info(
+    "AutoGen also supports a distributed agent runtime, which can host agents running on")
 
 logger.info("\n\n[DONE]", bright=True)

@@ -1,4 +1,5 @@
 import asyncio
+from jet.llm.mlx.memory import MemoryManager, MemoryList
 from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
@@ -56,7 +57,7 @@ In the following example, we will use ListMemory to maintain a memory bank of us
 logger.info("## Memory and RAG")
 
 
-user_memory = ListMemory()
+user_memory = MemoryList()
 
 
 async def run_async_code_daf84d7d():
@@ -81,8 +82,7 @@ async def get_weather(city: str, units: str = "imperial") -> str:
 assistant_agent = AssistantAgent(
     name="assistant_agent",
     model_client=MLXAutogenChatLLMAdapter(
-        model="qwen3-1.7b-4bit",
-    ),
+        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
     tools=[get_weather],
     memory=[user_memory],
 )
@@ -172,8 +172,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
     asyncio.run(async_func_32())
 
     model_client = MLXAutogenChatLLMAdapter(
-        model="qwen3-1.7b-4bit",
-    )
+        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats2")
 
     assistant_agent = AssistantAgent(
         name="assistant_agent",
@@ -248,8 +247,7 @@ async def async_func_27():
 asyncio.run(async_func_27())
 
 model_client = MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit",
-)
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats3")
 
 assistant_agent = AssistantAgent(
     name="assistant_agent",
@@ -400,7 +398,7 @@ async def run_async_code_97c54031():
 asyncio.run(run_async_code_97c54031())
 
 rag_assistant = AssistantAgent(
-    name="rag_assistant", model_client=MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"), memory=[rag_memory]
+    name="rag_assistant", model_client=MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats4"), memory=[rag_memory]
 )
 
 stream = rag_assistant.run_stream(task="What is AgentChat?")
@@ -433,8 +431,7 @@ In the following example, we'll demonstrate how to use `Mem0Memory` to maintain 
 logger.info("## Mem0Memory Example")
 
 
-mem0_memory = Mem0Memory(
-    is_cloud=True,
+mem0_memory = MemoryManager(
     limit=5,  # Maximum number of memories to retrieve
 )
 
@@ -463,8 +460,7 @@ asyncio.run(async_func_19())
 assistant_agent = AssistantAgent(
     name="assistant_agent",
     model_client=MLXAutogenChatLLMAdapter(
-        model="qwen3-1.7b-4bit",
-    ),
+        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats5"),
     tools=[get_weather],
     memory=[mem0_memory],
 )

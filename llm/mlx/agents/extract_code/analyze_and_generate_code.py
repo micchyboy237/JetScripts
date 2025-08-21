@@ -9,7 +9,7 @@ from autogen_ext.models.ollama import OllamaChatCompletionClient
 from dotenv import load_dotenv
 
 from jet.file.utils import save_file
-from jet.llm.mlx.autogen_ext.mlx_chat_completion_client import MLXChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.models.model_types import LLMModelType
 
 # Load environment variables
@@ -34,9 +34,10 @@ async def read_python_file(file_path: str) -> str:
 class CodeAnalyzer:
     """A reusable class to analyze Python files and process custom queries using AutoGen 0.4.3."""
 
-    def __init__(self, model: LLMModelType = "mlx-community/Llama-3.2-3B-Instruct-4bit", work_dir="coding", timeout=60):
+    def __init__(self, model: LLMModelType = "qwen3-1.7b-4bit", work_dir="coding", timeout=60):
         """Initialize the CodeAnalyzer with model and executor settings."""
-        self.model_client = MLXChatCompletionClient(model=model)
+        self.model_client = MLXAutogenChatLLMAdapter(
+            model=model, log_dir=f"{OUTPUT_DIR}/chats")
         self.work_dir = work_dir
         self.timeout = timeout
         self.executor = LocalCommandLineCodeExecutor(
@@ -69,6 +70,11 @@ class CodeAnalyzer:
         self.user_proxy = UserProxyAgent(
             name="UserProxy",
             description="A proxy for autonomous task execution and code analysis.",
+            human_input_mode="NEVER",  # Disable human input for fully autonomous execution
+            code_execution_config={
+                "executor": self.executor,
+                "use_docker": False,  # Disable Docker for local execution on Mac M1
+            },
         )
 
     def _parse_functions(self, code: str) -> list:
@@ -86,7 +92,7 @@ class CodeAnalyzer:
                     })
             return functions
         except SyntaxError as e:
-            return [{"error": f"Syntax error in code: {str(e)}"}]
+            return [{"error": f"Syntax error in code: {str(e)}\n\nCode:\n```code\n{code}\n```"}]
 
     async def analyze_file(self, file_path: str, query: str) -> str:
         """Analyze a Python file and process a custom query."""
@@ -96,9 +102,33 @@ class CodeAnalyzer:
         # Read file content using the assistant's run method with the tool
         read_task = f"Use the read_python_file tool to read the content of {file_path}"
         read_result = await self.assistant.run(task=read_task)
-        code = read_result.messages[-1].content if read_result.messages else f"Error: No content returned from read_python_file"
-        if "Error reading file" in code:
-            return code
+
+        # Extract content from tool call response
+        code = ""
+        if read_result.messages:
+            last_message = read_result.messages[-1].content
+            # Check if the response is a tool call
+            if "<tool_call>" in last_message:
+                import json
+                # Extract the JSON part between <tool_call> and </tool_call>
+                try:
+                    # Find the JSON part between <tool_call> and </tool_call>
+                    start_idx = last_message.index("{")
+                    end_idx = last_message.rindex("}") + 1
+                    tool_call_json = last_message[start_idx:end_idx]
+                    tool_call = json.loads(tool_call_json)
+                    # The actual file content should be the result of the tool execution
+                    # Assuming the tool execution result is stored in a subsequent message or needs to be fetched
+                    # For now, we'll assume the content is not directly in the tool call
+                    # We need to invoke the tool manually to get the content
+                    if tool_call["name"] == "read_python_file":
+                        code = await read_python_file(tool_call["arguments"]["file_path"])
+                except (ValueError, json.JSONDecodeError) as e:
+                    return f"Error processing tool call response: {str(e)}"
+            else:
+                code = last_message
+        else:
+            return f"Error: No content returned from read_python_file"
 
         # Parse functions for reference
         functions = self._parse_functions(code)
@@ -126,7 +156,7 @@ def chunk_text(text: str, chunk_size: int) -> list:
 def process_chunks(chunks: list) -> list:
     """Process each chunk (e.g., add prefix)."""
     return [f"Chunk_{i}: {chunk}" for i, chunk in enumerate(chunks)]
-'''
+'''.strip()
         sample_file_path = "sample_code.py"
         os.makedirs("coding", exist_ok=True)
         with open(os.path.join("coding", sample_file_path), "w") as f:

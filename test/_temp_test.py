@@ -1,77 +1,50 @@
-import logging
-from typing import Optional
-import speech_recognition as sr
+import os
+import shutil
+import asyncio
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.teams import RoundRobinGroupChat
+from autogen_agentchat.conditions import TextMentionTermination
+from autogen_agentchat.ui import Console
+from autogen_ext.models.openai import OpenAIChatCompletionClient
 
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 
-
-class SpeechTranscriber:
-    """Handles voice recognition and transcription using speech_recognition."""
-
-    def __init__(self):
-        self.recognizer = sr.Recognizer()
-        self.microphone = sr.Microphone()
-
-    def adjust_for_ambient_noise(self, duration: float = 1.0) -> None:
-        """Adjusts recognizer for ambient noise."""
-        try:
-            logger.info("Adjusting for ambient noise...")
-            with self.microphone as source:
-                self.recognizer.adjust_for_ambient_noise(
-                    source, duration=duration)
-            logger.info("Ambient noise adjustment completed.")
-        except Exception as e:
-            logger.error(f"Failed to adjust for ambient noise: {e}")
-            raise
-
-    def listen(self, timeout: int = 5, phrase_time_limit: Optional[int] = None) -> Optional[sr.AudioData]:
-        """Captures audio from the microphone."""
-        try:
-            logger.info("Listening for audio input...")
-            with self.microphone as source:
-                audio = self.recognizer.listen(
-                    source, timeout=timeout, phrase_time_limit=phrase_time_limit)
-            logger.info("Audio captured successfully.")
-            return audio
-        except sr.WaitTimeoutError:
-            logger.warning("Listening timed out, no speech detected.")
-            return None
-        except Exception as e:
-            logger.error(f"Error capturing audio: {e}")
-            raise
-
-    def transcribe(self, audio: Optional[sr.AudioData]) -> Optional[str]:
-        """Transcribes audio to text using Google's Speech Recognition API."""
-        if audio is None:
-            logger.warning("No audio provided for transcription.")
-            return None
-        try:
-            logger.info("Transcribing audio...")
-            text = self.recognizer.recognize_google(audio)
-            logger.info(f"Transcription successful: {text}")
-            return text
-        except sr.UnknownValueError:
-            logger.warning("Could not understand the audio.")
-            return None
-        except sr.RequestError as e:
-            logger.error(f"Transcription API error: {e}")
-            return None
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 
-def transcribe_speech() -> Optional[str]:
-    """Main function to transcribe speech from microphone."""
-    transcriber = SpeechTranscriber()
-    transcriber.adjust_for_ambient_noise()
-    audio = transcriber.listen()
-    return transcriber.transcribe(audio)
+async def main() -> None:
+    model_client = MLXAutogenChatLLMAdapter(
+        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", seed=42)
 
+    writer = AssistantAgent(
+        name="writer",
+        description="A writer.",
+        system_message="You are a writer.",
+        model_client=model_client,
+    )
 
-if __name__ == "__main__":
-    result = transcribe_speech()
-    if result:
-        print(f"Transcribed text: {result}")
-    else:
-        print("No transcription available.")
+    critic = AssistantAgent(
+        name="critic",
+        description="A critic.",
+        system_message="You are a critic, provide feedback on the writing. Reply only 'APPROVE' if the task is done.",
+        model_client=model_client,
+    )
+
+    # The termination condition is a text termination, which will cause the chat to terminate when the text "APPROVE" is received.
+    termination = TextMentionTermination("APPROVE")
+
+    # The group chat will alternate between the writer and the critic.
+    group_chat = RoundRobinGroupChat(
+        [writer, critic], termination_condition=termination, max_turns=12)
+
+    # `run_stream` returns an async generator to stream the intermediate messages.
+    stream = group_chat.run_stream(
+        task="Write a short story about a robot that discovers it has feelings.")
+    # `Console` is a simple UI to display the stream.
+    await Console(stream)
+    # Close the connection to the model client.
+    await model_client.close()
+
+asyncio.run(main())
