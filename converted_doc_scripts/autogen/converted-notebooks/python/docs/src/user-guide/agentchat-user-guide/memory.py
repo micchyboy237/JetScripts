@@ -81,7 +81,7 @@ async def get_weather(city: str, units: str = "imperial") -> str:
 assistant_agent = AssistantAgent(
     name="assistant_agent",
     model_client=MLXAutogenChatLLMAdapter(
-        model="qwen3-1.7b-4bit-2024-08-06",
+        model="qwen3-1.7b-4bit",
     ),
     tools=[get_weather],
     memory=[user_memory],
@@ -463,7 +463,7 @@ asyncio.run(async_func_19())
 assistant_agent = AssistantAgent(
     name="assistant_agent",
     model_client=MLXAutogenChatLLMAdapter(
-        model="qwen3-1.7b-4bit-2024-08-06",
+        model="qwen3-1.7b-4bit",
     ),
     tools=[get_weather],
     memory=[mem0_memory],

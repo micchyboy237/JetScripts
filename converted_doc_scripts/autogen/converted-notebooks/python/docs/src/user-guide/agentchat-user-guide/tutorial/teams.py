@@ -59,9 +59,8 @@ The two-agent team implements the _reflection_ pattern, a multi-agent design pat
 logger.info("# Teams")
 
 
-
 model_client = MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit-2024-08-06",
+    model="qwen3-1.7b-4bit",
 )
 
 primary_agent = AssistantAgent(
@@ -78,7 +77,8 @@ critic_agent = AssistantAgent(
 
 text_termination = TextMentionTermination("APPROVE")
 
-team = RoundRobinGroupChat([primary_agent, critic_agent], termination_condition=text_termination)
+team = RoundRobinGroupChat(
+    [primary_agent, critic_agent], termination_condition=text_termination)
 
 """
 ## Running a Team
@@ -87,6 +87,7 @@ Let's call the {py:meth}`~autogen_agentchat.teams.BaseGroupChat.run` method
 to start the team with a task.
 """
 logger.info("## Running a Team")
+
 
 async def run_async_code_9817a56b():
     result = await team.run(task="Write a short poem about the fall season.")
@@ -108,10 +109,12 @@ Similar to the agent's {py:meth}`~autogen_agentchat.agents.BaseChatAgent.on_mess
 """
 logger.info("## Observing a Team")
 
+
 async def run_async_code_12a0d807():
     await team.reset()  # Reset the team for a new task.
 asyncio.run(run_async_code_12a0d807())
-async for message in team.run_stream(task="Write a short poem about the fall season."):  # type: ignore
+# type: ignore
+async for message in team.run_stream(task="Write a short poem about the fall season."):
     if isinstance(message, TaskResult):
         logger.debug("Stop Reason:", message.stop_reason)
     else:
@@ -122,13 +125,18 @@ As demonstrated in the example above, you can determine the reason why the team 
 
 The {py:meth}`~autogen_agentchat.ui.Console` method provides a convenient way to print messages to the console with proper formatting.
 """
-logger.info("As demonstrated in the example above, you can determine the reason why the team stopped by checking the {py:attr}`~autogen_agentchat.base.TaskResult.stop_reason` attribute.")
+logger.info(
+    "As demonstrated in the example above, you can determine the reason why the team stopped by checking the {py:attr}`~autogen_agentchat.base.TaskResult.stop_reason` attribute.")
+
 
 async def run_async_code_12a0d807():
     await team.reset()  # Reset the team for a new task.
 asyncio.run(run_async_code_12a0d807())
+
+
 async def run_async_code_0fe78289():
-    await Console(team.run_stream(task="Write a short poem about the fall season."))  # Stream the messages to the console.
+    # Stream the messages to the console.
+    await Console(team.run_stream(task="Write a short poem about the fall season."))
 asyncio.run(run_async_code_0fe78289())
 
 """
@@ -138,6 +146,7 @@ You can reset the team by calling the {py:meth}`~autogen_agentchat.teams.BaseGro
 It will call the each agent's {py:meth}`~autogen_agentchat.base.ChatAgent.on_reset` method to clear the agent's state.
 """
 logger.info("## Resetting a Team")
+
 
 async def run_async_code_512f84bd():
     await team.reset()  # Reset the team for the next run.
@@ -166,16 +175,20 @@ logger.info("## Stopping a Team")
 external_termination = ExternalTermination()
 team = RoundRobinGroupChat(
     [primary_agent, critic_agent],
-    termination_condition=external_termination | text_termination,  # Use the bitwise OR operator to combine conditions.
+    # Use the bitwise OR operator to combine conditions.
+    termination_condition=external_termination | text_termination,
 )
 
-run = asyncio.create_task(Console(team.run_stream(task="Write a short poem about the fall season.")))
+run = asyncio.create_task(Console(team.run_stream(
+    task="Write a short poem about the fall season.")))
+
 
 async def run_async_code_80bd3181():
     await asyncio.sleep(0.1)
 asyncio.run(run_async_code_80bd3181())
 
 external_termination.set()
+
 
 async def run_async_code_41cf4617():
     await run
@@ -196,8 +209,10 @@ without a new task.
 """
 logger.info("## Resuming a Team")
 
+
 async def run_async_code_9aa6c87a():
-    await Console(team.run_stream())  # Resume the team to continue the last task.
+    # Resume the team to continue the last task.
+    await Console(team.run_stream())
 asyncio.run(run_async_code_9aa6c87a())
 
 """
@@ -207,7 +222,9 @@ before the team stopped.
 
 Let's resume the team again with a new task while keeping the context about the previous task.
 """
-logger.info("You can see the team resumed from where it left off in the output above,")
+logger.info(
+    "You can see the team resumed from where it left off in the output above,")
+
 
 async def run_async_code_8cb8974a():
     await Console(team.run_stream(task="将这首诗用中文唐诗风格写一遍。"))
@@ -301,8 +318,10 @@ team = RoundRobinGroupChat(
     termination_condition=termination_condition,
 )
 
-async for message in team.run_stream(task="Increment the number 5 to 10."):  # type: ignore
+# type: ignore
+async for message in team.run_stream(task="Increment the number 5 to 10."):
     logger.debug(type(message).__name__, message)
+
 
 async def run_async_code_0349fda4():
     await model_client.close()

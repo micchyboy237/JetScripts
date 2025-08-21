@@ -2,22 +2,22 @@ import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import display  # type: ignore
 from autogen_core import (
-DefaultTopicId,
-FunctionCall,
-Image,
-MessageContext,
-RoutedAgent,
-SingleThreadedAgentRuntime,
-TopicId,
-TypeSubscription,
-message_handler,
+    DefaultTopicId,
+    FunctionCall,
+    Image,
+    MessageContext,
+    RoutedAgent,
+    SingleThreadedAgentRuntime,
+    TopicId,
+    TypeSubscription,
+    message_handler,
 )
 from autogen_core.models import (
-AssistantMessage,
-ChatCompletionClient,
-LLMMessage,
-SystemMessage,
-UserMessage,
+    AssistantMessage,
+    ChatCompletionClient,
+    LLMMessage,
+    SystemMessage,
+    UserMessage,
 )
 from autogen_core.tools import FunctionTool
 from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
@@ -86,9 +86,6 @@ We will be using the [rich](https://github.com/Textualize/rich) library to displ
 logger.info("# Group Chat")
 
 
-
-
-
 """
 ## Message Protocol
 
@@ -104,12 +101,14 @@ The following diagram illustrates steps 2 to 4 above.
 """
 logger.info("## Message Protocol")
 
+
 class GroupChatMessage(BaseModel):
     body: UserMessage
 
 
 class RequestToSpeak(BaseModel):
     pass
+
 
 """
 ## Base Group Chat Agent
@@ -118,6 +117,7 @@ Let's first define the agent class that only uses LLM models to generate text.
 This is will be used as the base class for all AI agents in the group chat.
 """
 logger.info("## Base Group Chat Agent")
+
 
 class BaseGroupChatAgent(RoutedAgent):
     """A group chat participant using an LLM."""
@@ -139,7 +139,8 @@ class BaseGroupChatAgent(RoutedAgent):
     async def handle_message(self, message: GroupChatMessage, ctx: MessageContext) -> None:
         self._chat_history.extend(
             [
-                UserMessage(content=f"Transferred to {message.body.source}", source="system"),
+                UserMessage(
+                    content=f"Transferred to {message.body.source}", source="system"),
                 message.body,
             ]
         )
@@ -148,16 +149,20 @@ class BaseGroupChatAgent(RoutedAgent):
     async def handle_request_to_speak(self, message: RequestToSpeak, ctx: MessageContext) -> None:
         Console().logger.debug(Markdown(f"### {self.id.type}: "))
         self._chat_history.append(
-            UserMessage(content=f"Transferred to {self.id.type}, adopt the persona immediately.", source="system")
+            UserMessage(
+                content=f"Transferred to {self.id.type}, adopt the persona immediately.", source="system")
         )
         completion = await self._model_client.create([self._system_message] + self._chat_history)
         assert isinstance(completion.content, str)
-        self._chat_history.append(AssistantMessage(content=completion.content, source=self.id.type))
+        self._chat_history.append(AssistantMessage(
+            content=completion.content, source=self.id.type))
         Console().logger.debug(Markdown(completion.content))
         await self.publish_message(
-            GroupChatMessage(body=UserMessage(content=completion.content, source=self.id.type)),
+            GroupChatMessage(body=UserMessage(
+                content=completion.content, source=self.id.type)),
             topic_id=DefaultTopicId(type=self._group_chat_topic_type),
         )
+
 
 """
 ## Writer and Editor Agents
@@ -166,6 +171,7 @@ Using the base class, we can define the writer and editor agents with
 different system messages.
 """
 logger.info("## Writer and Editor Agents")
+
 
 class WriterAgent(BaseGroupChatAgent):
     def __init__(self, description: str, group_chat_topic_type: str, model_client: ChatCompletionClient) -> None:
@@ -187,6 +193,7 @@ class EditorAgent(BaseGroupChatAgent):
             "Approve if the task is completed and the draft and illustration meets user's requirements.",
         )
 
+
 """
 ## Illustrator Agent with Image Generation
 
@@ -196,6 +203,7 @@ We set up the image generator as a tool using {py:class}`~autogen_core.tools.Fun
 wrapper, and use a model client to make the tool call.
 """
 logger.info("## Illustrator Agent with Image Generation")
+
 
 class IllustratorAgent(BaseGroupChatAgent):
     def __init__(
@@ -227,10 +235,12 @@ class IllustratorAgent(BaseGroupChatAgent):
         return response.data[0].b64_json  # type: ignore
 
     @message_handler
-    async def handle_request_to_speak(self, message: RequestToSpeak, ctx: MessageContext) -> None:  # type: ignore
+    # type: ignore
+    async def handle_request_to_speak(self, message: RequestToSpeak, ctx: MessageContext) -> None:
         Console().logger.debug(Markdown(f"### {self.id.type}: "))
         self._chat_history.append(
-            UserMessage(content=f"Transferred to {self.id.type}, adopt the persona immediately.", source="system")
+            UserMessage(
+                content=f"Transferred to {self.id.type}, adopt the persona immediately.", source="system")
         )
         completion = await self._model_client.create(
             [self._system_message] + self._chat_history,
@@ -246,14 +256,17 @@ class IllustratorAgent(BaseGroupChatAgent):
             arguments = json.loads(tool_call.arguments)
             Console().logger.debug(arguments)
             result = await self._image_gen_tool.run_json(arguments, ctx.cancellation_token)
-            image = Image.from_base64(self._image_gen_tool.return_value_as_string(result))
+            image = Image.from_base64(
+                self._image_gen_tool.return_value_as_string(result))
             image = Image.from_pil(image.image.resize((256, 256)))
             display(image.image)  # type: ignore
             images.append(image)
         await self.publish_message(
-            GroupChatMessage(body=UserMessage(content=images, source=self.id.type)),
+            GroupChatMessage(body=UserMessage(
+                content=images, source=self.id.type)),
             DefaultTopicId(type=self._group_chat_topic_type),
         )
+
 
 """
 ## User Agent
@@ -267,6 +280,7 @@ and subscribe to responses from the frontend.
 """
 logger.info("## User Agent")
 
+
 class UserAgent(RoutedAgent):
     def __init__(self, description: str, group_chat_topic_type: str) -> None:
         super().__init__(description=description)
@@ -278,12 +292,15 @@ class UserAgent(RoutedAgent):
 
     @message_handler
     async def handle_request_to_speak(self, message: RequestToSpeak, ctx: MessageContext) -> None:
-        user_input = input("Enter your message, type 'APPROVE' to conclude the task: ")
+        user_input = input(
+            "Enter your message, type 'APPROVE' to conclude the task: ")
         Console().logger.debug(Markdown(f"### User: \n{user_input}"))
         await self.publish_message(
-            GroupChatMessage(body=UserMessage(content=user_input, source=self.id.type)),
+            GroupChatMessage(body=UserMessage(
+                content=user_input, source=self.id.type)),
             DefaultTopicId(type=self._group_chat_topic_type),
         )
+
 
 """
 ## Group Chat Manager
@@ -304,6 +321,7 @@ participant to speak next, by keeping track of the previous speaker.
 This helps to ensure the group chat is not dominated by a single participant.
 """
 logger.info("## Group Chat Manager")
+
 
 class GroupChatManager(RoutedAgent):
     def __init__(
@@ -370,10 +388,7 @@ Read the above conversation. Then select the next role from {participants} to pl
                 ),
             )
         )
-        async def run_async_code_ea600906():
-            completion = await self._model_client.create([system_message], cancellation_token=ctx.cancellation_token)
-            return completion
-        completion = asyncio.run(run_async_code_ea600906())
+        completion = await self._model_client.create([system_message], cancellation_token=ctx.cancellation_token)
         logger.success(format_json(completion))
         assert isinstance(completion.content, str)
         selected_topic_type: str
@@ -381,11 +396,10 @@ Read the above conversation. Then select the next role from {participants} to pl
             if topic_type.lower() in completion.content.lower():
                 selected_topic_type = topic_type
                 self._previous_participant_topic_type = selected_topic_type
-                async def run_async_code_5843036a():
-                    await self.publish_message(RequestToSpeak(), DefaultTopicId(type=selected_topic_type))
-                asyncio.run(run_async_code_5843036a())
+                await self.publish_message(RequestToSpeak(), DefaultTopicId(type=selected_topic_type))
                 return
         raise ValueError(f"Invalid role selected: {completion.content}")
+
 
 """
 ## Creating the Group Chat
@@ -413,8 +427,9 @@ user_description = "User for providing final approval."
 illustrator_description = "An illustrator for creating images."
 
 model_client = MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit-2024-08-06",
+    model="qwen3-1.7b-4bit",
 )
+
 
 async def async_func_17():
     editor_agent_type = await EditorAgent.register(
@@ -429,12 +444,17 @@ async def async_func_17():
     return editor_agent_type
 editor_agent_type = asyncio.run(async_func_17())
 logger.success(format_json(editor_agent_type))
+
+
 async def run_async_code_6a1b9d19():
     await runtime.add_subscription(TypeSubscription(topic_type=editor_topic_type, agent_type=editor_agent_type.type))
 asyncio.run(run_async_code_6a1b9d19())
+
+
 async def run_async_code_c3cc96e8():
     await runtime.add_subscription(TypeSubscription(topic_type=group_chat_topic_type, agent_type=editor_agent_type.type))
 asyncio.run(run_async_code_c3cc96e8())
+
 
 async def async_func_29():
     writer_agent_type = await WriterAgent.register(
@@ -449,12 +469,17 @@ async def async_func_29():
     return writer_agent_type
 writer_agent_type = asyncio.run(async_func_29())
 logger.success(format_json(writer_agent_type))
+
+
 async def run_async_code_9f747b37():
     await runtime.add_subscription(TypeSubscription(topic_type=writer_topic_type, agent_type=writer_agent_type.type))
 asyncio.run(run_async_code_9f747b37())
+
+
 async def run_async_code_51e4e8e9():
     await runtime.add_subscription(TypeSubscription(topic_type=group_chat_topic_type, agent_type=writer_agent_type.type))
 asyncio.run(run_async_code_51e4e8e9())
+
 
 async def async_func_41():
     illustrator_agent_type = await IllustratorAgent.register(
@@ -471,64 +496,158 @@ async def async_func_41():
     return illustrator_agent_type
 illustrator_agent_type = asyncio.run(async_func_41())
 logger.success(format_json(illustrator_agent_type))
+
+
 async def async_func_52():
     await runtime.add_subscription(
-        TypeSubscription(topic_type=illustrator_topic_type, agent_type=illustrator_agent_type.type)
+        TypeSubscription(topic_type=illustrator_topic_type,
+                         agent_type=illustrator_agent_type.type)
     )
 asyncio.run(async_func_52())
+
+
 async def async_func_55():
     await runtime.add_subscription(
-        TypeSubscription(topic_type=group_chat_topic_type, agent_type=illustrator_agent_type.type)
+        TypeSubscription(topic_type=group_chat_topic_type,
+                         agent_type=illustrator_agent_type.type)
     )
 asyncio.run(async_func_55())
+
 
 async def async_func_59():
     user_agent_type = await UserAgent.register(
         runtime,
         user_topic_type,
-        lambda: UserAgent(description=user_description, group_chat_topic_type=group_chat_topic_type),
+        lambda: UserAgent(description=user_description,
+                          group_chat_topic_type=group_chat_topic_type),
     )
     return user_agent_type
 user_agent_type = asyncio.run(async_func_59())
 logger.success(format_json(user_agent_type))
+
+
 async def run_async_code_3a3d930f():
     await runtime.add_subscription(TypeSubscription(topic_type=user_topic_type, agent_type=user_agent_type.type))
 asyncio.run(run_async_code_3a3d930f())
+
+
 async def run_async_code_5306bf3c():
     await runtime.add_subscription(TypeSubscription(topic_type=group_chat_topic_type, agent_type=user_agent_type.type))
 asyncio.run(run_async_code_5306bf3c())
+
 
 async def async_func_67():
     group_chat_manager_type = await GroupChatManager.register(
         runtime,
         "group_chat_manager",
         lambda: GroupChatManager(
-            participant_topic_types=[writer_topic_type, illustrator_topic_type, editor_topic_type, user_topic_type],
+            participant_topic_types=[
+                writer_topic_type, illustrator_topic_type, editor_topic_type, user_topic_type],
             model_client=model_client,
-            participant_descriptions=[writer_description, illustrator_description, editor_description, user_description],
+            participant_descriptions=[
+                writer_description, illustrator_description, editor_description, user_description],
         ),
     )
     return group_chat_manager_type
 group_chat_manager_type = asyncio.run(async_func_67())
 logger.success(format_json(group_chat_manager_type))
+
+
 async def async_func_76():
     await runtime.add_subscription(
-        TypeSubscription(topic_type=group_chat_topic_type, agent_type=group_chat_manager_type.type)
+        TypeSubscription(topic_type=group_chat_topic_type,
+                         agent_type=group_chat_manager_type.type)
     )
 asyncio.run(async_func_76())
 
 """
 ## Running the Group Chat
 
-We start the runtime and publish a `GroupChatMessage` for the task to start the group chat.
+Run the entire group chat workflow in a single async function to ensure all operations use the same event loop.
 """
 logger.info("## Running the Group Chat")
 
-async def run_async_code_1e6ac0a6():
+
+async def run_group_chat():
+    # Initialize clients
+    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+    image_client = openai.AsyncClient()
+
+    # Initialize runtime
+    runtime = SingleThreadedAgentRuntime()
+
+    # Register agents
+    editor_agent_type = await EditorAgent.register(
+        runtime,
+        editor_topic_type,
+        lambda: EditorAgent(
+            description=editor_description,
+            group_chat_topic_type=group_chat_topic_type,
+            model_client=model_client,
+        ),
+    )
+    logger.success(format_json(editor_agent_type))
+
+    writer_agent_type = await WriterAgent.register(
+        runtime,
+        writer_topic_type,
+        lambda: WriterAgent(
+            description=writer_description,
+            group_chat_topic_type=group_chat_topic_type,
+            model_client=model_client,
+        ),
+    )
+    logger.success(format_json(writer_agent_type))
+
+    illustrator_agent_type = await IllustratorAgent.register(
+        runtime,
+        illustrator_topic_type,
+        lambda: IllustratorAgent(
+            description=illustrator_description,
+            group_chat_topic_type=group_chat_topic_type,
+            model_client=model_client,
+            image_client=image_client,
+        ),
+    )
+    logger.success(format_json(illustrator_agent_type))
+
+    user_agent_type = await UserAgent.register(
+        runtime,
+        user_topic_type,
+        lambda: UserAgent(description=user_description,
+                          group_chat_topic_type=group_chat_topic_type),
+    )
+    logger.success(format_json(user_agent_type))
+
+    group_chat_manager_type = await GroupChatManager.register(
+        runtime,
+        "group_chat_manager",
+        lambda: GroupChatManager(
+            participant_topic_types=[
+                writer_topic_type, illustrator_topic_type, editor_topic_type, user_topic_type],
+            model_client=model_client,
+            participant_descriptions=[
+                writer_description, illustrator_description, editor_description, user_description],
+        ),
+    )
+    logger.success(format_json(group_chat_manager_type))
+
+    # Add subscriptions
+    await runtime.add_subscription(TypeSubscription(topic_type=editor_topic_type, agent_type=editor_agent_type.type))
+    await runtime.add_subscription(TypeSubscription(topic_type=group_chat_topic_type, agent_type=editor_agent_type.type))
+    await runtime.add_subscription(TypeSubscription(topic_type=writer_topic_type, agent_type=writer_agent_type.type))
+    await runtime.add_subscription(TypeSubscription(topic_type=group_chat_topic_type, agent_type=writer_agent_type.type))
+    await runtime.add_subscription(TypeSubscription(topic_type=illustrator_topic_type, agent_type=illustrator_agent_type.type))
+    await runtime.add_subscription(TypeSubscription(topic_type=group_chat_topic_type, agent_type=illustrator_agent_type.type))
+    await runtime.add_subscription(TypeSubscription(topic_type=user_topic_type, agent_type=user_agent_type.type))
+    await runtime.add_subscription(TypeSubscription(topic_type=group_chat_topic_type, agent_type=user_agent_type.type))
+    await runtime.add_subscription(TypeSubscription(topic_type=group_chat_topic_type, agent_type=group_chat_manager_type.type))
+
+    # Start runtime
     runtime.start()
-asyncio.run(run_async_code_1e6ac0a6())
-session_id = str(uuid.uuid4())
-async def async_func_2():
+
+    # Publish initial message
+    session_id = str(uuid.uuid4())
     await runtime.publish_message(
         GroupChatMessage(
             body=UserMessage(
@@ -538,23 +657,22 @@ async def async_func_2():
         ),
         TopicId(type=group_chat_topic_type, source=session_id),
     )
-asyncio.run(async_func_2())
-async def run_async_code_b7ca34d4():
+
+    # Stop runtime when idle
     await runtime.stop_when_idle()
-asyncio.run(run_async_code_b7ca34d4())
-async def run_async_code_0349fda4():
+
+    # Close clients
     await model_client.close()
-asyncio.run(run_async_code_0349fda4())
+    await image_client.close()
+
+# Run the workflow
+asyncio.run(run_group_chat())
 
 """
-From the output, you can see the writer, illustrator, and editor agents
-taking turns to speak and collaborate to generate a picture book, before
-asking for final approval from the user.
-
 ## Next Steps
 
 This example showcases a simple implementation of the group chat pattern -- 
-**it is not meant to be used in real applications.** You can improve the
+it is not meant to be used in real applications. You can improve the
 speaker selection algorithm. For example, you can avoid using LLM when simple
 rules are sufficient and more reliable: 
 you can use a rule that the editor always speaks after the writer.

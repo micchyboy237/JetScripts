@@ -25,8 +25,8 @@ This cookbook demonstrates how to obtain structured output using GPT-4o models. 
 Currently, this feature is supported for:
 
 - qwen3-1.7b-4bit on MLX
-- qwen3-1.7b-4bit-2024-08-06 on MLX
-- qwen3-1.7b-4bit-2024-08-06 on Azure
+- qwen3-1.7b-4bit on MLX
+- qwen3-1.7b-4bit on Azure
 
 Let's define a simple message type that carries explanation and output for a Math problem
 """
@@ -44,7 +44,7 @@ class MathReasoning(BaseModel):
 
 os.environ["AZURE_OPENAI_ENDPOINT"] = "https://YOUR_ENDPOINT_DETAILS.openai.azure.com/"
 # os.environ["AZURE_OPENAI_API_KEY"] = "YOUR_API_KEY"
-os.environ["AZURE_OPENAI_DEPLOYMENT_NAME"] = "qwen3-1.7b-4bit-2024-08-06"
+os.environ["AZURE_OPENAI_DEPLOYMENT_NAME"] = "qwen3-1.7b-4bit"
 os.environ["AZURE_OPENAI_API_VERSION"] = "2024-08-01-preview"
 
 

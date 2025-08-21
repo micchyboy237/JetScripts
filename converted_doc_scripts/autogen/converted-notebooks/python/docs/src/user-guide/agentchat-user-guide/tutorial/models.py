@@ -50,7 +50,6 @@ The logger name is {py:attr}`autogen_core.EVENT_LOGGER_NAME`, and the event type
 logger.info("# Models")
 
 
-
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 logger.addHandler(logging.StreamHandler())
@@ -68,11 +67,12 @@ pip install "autogen-ext[openai]"
 """
 You will also need to obtain an [API key](https://platform.openai.com/account/api-keys) from MLX.
 """
-logger.info("You will also need to obtain an [API key](https://platform.openai.com/account/api-keys) from MLX.")
+logger.info(
+    "You will also need to obtain an [API key](https://platform.openai.com/account/api-keys) from MLX.")
 
 
 openai_model_client = MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit-2024-08-06",
+    model="qwen3-1.7b-4bit",
 )
 
 """
@@ -87,6 +87,8 @@ async def run_async_code_6c382726():
 result = asyncio.run(run_async_code_6c382726())
 logger.success(format_json(result))
 logger.debug(result)
+
+
 async def run_async_code_72fad18f():
     await openai_model_client.close()
 asyncio.run(run_async_code_72fad18f())
@@ -125,8 +127,10 @@ az_model_client = AzureMLXAutogenChatLLMAdapter(
     model="{model-name, such as qwen3-1.7b-4bit}",
     api_version="2024-06-01",
     azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
-    azure_ad_token_provider=token_provider,  # Optional if you choose key-based authentication.
+    # Optional if you choose key-based authentication.
+    azure_ad_token_provider=token_provider,
 )
+
 
 async def run_async_code_759f2e10():
     result = await az_model_client.create([UserMessage(content="What is the capital of France?", source="user")])
@@ -134,6 +138,8 @@ async def run_async_code_759f2e10():
 result = asyncio.run(run_async_code_759f2e10())
 logger.success(format_json(result))
 logger.debug(result)
+
+
 async def run_async_code_8aa14161():
     await az_model_client.close()
 asyncio.run(run_async_code_8aa14161())
@@ -155,8 +161,8 @@ pip install "autogen-ext[azure]"
 """
 Below is an example of using this client with the Phi-4 model from [GitHub Marketplace](https://github.com/marketplace/models).
 """
-logger.info("Below is an example of using this client with the Phi-4 model from [GitHub Marketplace](https://github.com/marketplace/models).")
-
+logger.info(
+    "Below is an example of using this client with the Phi-4 model from [GitHub Marketplace](https://github.com/marketplace/models).")
 
 
 client = AzureAIChatCompletionClient(
@@ -172,12 +178,15 @@ client = AzureAIChatCompletionClient(
     },
 )
 
+
 async def run_async_code_2defc511():
     result = await client.create([UserMessage(content="What is the capital of France?", source="user")])
     return result
 result = asyncio.run(run_async_code_2defc511())
 logger.success(format_json(result))
 logger.debug(result)
+
+
 async def run_async_code_c4f3b18a():
     await client.close()
 asyncio.run(run_async_code_c4f3b18a())
@@ -191,15 +200,18 @@ You will also need to obtain an [API key](https://console.anthropic.com) from An
 logger.info("## Anthropic (experimental)")
 
 
+anthropic_client = AnthropicChatCompletionClient(
+    model="claude-3-7-sonnet-20250219")
 
 
-anthropic_client = AnthropicChatCompletionClient(model="claude-3-7-sonnet-20250219")
 async def run_async_code_f147f07d():
     result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])
     return result
 result = asyncio.run(run_async_code_f147f07d())
 logger.success(format_json(result))
 logger.debug(result)
+
+
 async def run_async_code_d246b63f():
     await anthropic_client.close()
 asyncio.run(run_async_code_d246b63f())
@@ -218,10 +230,11 @@ To use Ollama, install the `ollama` extension and use the {py:class}`~autogen_ex
 """
 logger.info("## Ollama (experimental)")
 
-pip install -U "autogen-ext[ollama]"
+pip install - U "autogen-ext[ollama]"
 
 
 ollama_model_client = OllamaChatCompletionClient(model="llama3.2")
+
 
 async def run_async_code_76d47701():
     response = await ollama_model_client.create([UserMessage(content="What is the capital of France?", source="user")])
@@ -229,6 +242,8 @@ async def run_async_code_76d47701():
 response = asyncio.run(run_async_code_76d47701())
 logger.success(format_json(response))
 logger.debug(response)
+
+
 async def run_async_code_d4cf5a76():
     await ollama_model_client.close()
 asyncio.run(run_async_code_d4cf5a76())
@@ -252,12 +267,15 @@ model_client = MLXAutogenChatLLMAdapter(
     model="gemini-1.5-flash-8b",
 )
 
+
 async def run_async_code_536a0273():
     response = await model_client.create([UserMessage(content="What is the capital of France?", source="user")])
     return response
 response = asyncio.run(run_async_code_536a0273())
 logger.success(format_json(response))
 logger.debug(response)
+
+
 async def run_async_code_0349fda4():
     await model_client.close()
 asyncio.run(run_async_code_0349fda4())
@@ -295,10 +313,10 @@ This endpoint fully supports the following MLX client library features:
 logger.info("# api_key="GEMINI_API_KEY",")
 
 
-
 model_client = MLXAutogenChatLLMAdapter(
     model="Llama-4-Scout-17B-16E-Instruct-FP8",
 )
+
 
 async def run_async_code_20a5ddd0():
     response = await model_client.create([UserMessage(content="Write me a poem", source="user")])
@@ -306,6 +324,8 @@ async def run_async_code_20a5ddd0():
 response = asyncio.run(run_async_code_20a5ddd0())
 logger.success(format_json(response))
 logger.debug(response)
+
+
 async def run_async_code_0349fda4():
     await model_client.close()
 asyncio.run(run_async_code_0349fda4())
@@ -315,12 +335,15 @@ model_client = MLXAutogenChatLLMAdapter(
 )
 image = Image.from_file(Path("test.png"))
 
+
 async def run_async_code_de33fdf0():
     response = await model_client.create([UserMessage(content=["What is in this image", image], source="user")])
     return response
 response = asyncio.run(run_async_code_de33fdf0())
 logger.success(format_json(response))
 logger.debug(response)
+
+
 async def run_async_code_0349fda4():
     await model_client.close()
 asyncio.run(run_async_code_0349fda4())
@@ -348,20 +371,20 @@ For example, to use Anthropic models, you need to install `semantic-kernel-anthr
 logger.info("## Semantic Kernel Adapter")
 
 
-
 """
 To use this adapter, you need create a Semantic Kernel model client and pass it to the adapter.
 
 For example, to use the Anthropic model:
 """
-logger.info("To use this adapter, you need create a Semantic Kernel model client and pass it to the adapter.")
-
+logger.info(
+    "To use this adapter, you need create a Semantic Kernel model client and pass it to the adapter.")
 
 
 sk_client = AnthropicChatCompletion(
     ai_model_id="claude-3-5-sonnet-20241022",
-#     api_key=os.environ["ANTHROPIC_API_KEY"],
-    service_id="my-service-id",  # Optional; for targeting specific services within Semantic Kernel
+    #     api_key=os.environ["ANTHROPIC_API_KEY"],
+    # Optional; for targeting specific services within Semantic Kernel
+    service_id="my-service-id",
 )
 settings = AnthropicChatPromptExecutionSettings(
     temperature=0.2,
@@ -371,14 +394,18 @@ anthropic_model_client = SKChatCompletionAdapter(
     sk_client, kernel=Kernel(memory=NullMemory()), prompt_settings=settings
 )
 
+
 async def async_func_21():
     model_result = await anthropic_model_client.create(
-        messages=[UserMessage(content="What is the capital of France?", source="User")]
+        messages=[UserMessage(
+            content="What is the capital of France?", source="User")]
     )
     return model_result
 model_result = asyncio.run(async_func_21())
 logger.success(format_json(model_result))
 logger.debug(model_result)
+
+
 async def run_async_code_7ddc9cc5():
     await anthropic_model_client.close()
 asyncio.run(run_async_code_7ddc9cc5())
@@ -386,6 +413,7 @@ asyncio.run(run_async_code_7ddc9cc5())
 """
 Read more about the [Semantic Kernel Adapter](../../../reference/python/autogen_ext.models.semantic_kernel.rst).
 """
-logger.info("Read more about the [Semantic Kernel Adapter](../../../reference/python/autogen_ext.models.semantic_kernel.rst).")
+logger.info(
+    "Read more about the [Semantic Kernel Adapter](../../../reference/python/autogen_ext.models.semantic_kernel.rst).")
 
 logger.info("\n\n[DONE]", bright=True)

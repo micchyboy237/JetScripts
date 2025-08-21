@@ -598,39 +598,140 @@ asyncio.run(run_async_code_3a3d930f())
 """
 ## Running the team
 
-Finally, we can start the runtime and simulate a user session by publishing
-a `UserLogin` message to the runtime.
-The message is published to the topic ID with type set to `user_topic_type` 
-and source set to a unique `session_id`.
-This `session_id` will be used to create all topic IDs in this user session and will also be used to create the agent ID
-for all the agents in this user session.
-To read more about how topic ID and agent ID are created, read
-[Agent Identity and Lifecycle](../core-concepts/agent-identity-and-lifecycle.md).
-and [Topics and Subscriptions](../core-concepts/topic-and-subscription.md).
+Run the entire handoff workflow in a single async function to ensure all operations use the same event loop.
 """
 logger.info("## Running the team")
 
 
-async def run_async_code_1e6ac0a6():
+async def run_handoff_team():
+    # Initialize model client
+    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+
+    # Initialize runtime
+    runtime = SingleThreadedAgentRuntime()
+
+    # Register agents
+    triage_agent_type = await AIAgent.register(
+        runtime,
+        type=triage_agent_topic_type,
+        factory=lambda: AIAgent(
+            description="A triage agent.",
+            system_message=SystemMessage(
+                content="You are a customer service bot for ACME Inc. "
+                "Introduce yourself. Always be very brief. "
+                "Gather information to direct the customer to the right department. "
+                "But make your questions subtle and natural."
+            ),
+            model_client=model_client,
+            tools=[],
+            delegate_tools=[
+                transfer_to_issues_and_repairs_tool,
+                transfer_to_sales_agent_tool,
+                escalate_to_human_tool,
+            ],
+            agent_topic_type=triage_agent_topic_type,
+            user_topic_type=user_topic_type,
+        ),
+    )
+    logger.success(format_json(triage_agent_type))
+
+    sales_agent_type = await AIAgent.register(
+        runtime,
+        type=sales_agent_topic_type,
+        factory=lambda: AIAgent(
+            description="A sales agent.",
+            system_message=SystemMessage(
+                content="You are a sales agent for ACME Inc."
+                "Always answer in a sentence or less."
+                "Follow the following routine with the user:"
+                "1. Ask them about any problems in their life related to catching roadrunners.\n"
+                "2. Casually mention one of ACME's crazy made-up products can help.\n"
+                " - Don't mention price.\n"
+                "3. Once the user is bought in, drop a ridiculous price.\n"
+                "4. Only after everything, and if the user says yes, "
+                "tell them a crazy caveat and execute their order.\n"
+                ""
+            ),
+            model_client=model_client,
+            tools=[execute_order_tool],
+            delegate_tools=[transfer_back_to_triage_tool],
+            agent_topic_type=sales_agent_topic_type,
+            user_topic_type=user_topic_type,
+        ),
+    )
+    logger.success(format_json(sales_agent_type))
+
+    issues_and_repairs_agent_type = await AIAgent.register(
+        runtime,
+        type=issues_and_repairs_agent_topic_type,
+        factory=lambda: AIAgent(
+            description="An issues and repairs agent.",
+            system_message=SystemMessage(
+                content="You are a customer support agent for ACME Inc."
+                "Always answer in a sentence or less."
+                "Follow the following routine with the user:"
+                "1. First, ask probing questions and understand the user's problem deeper.\n"
+                " - unless the user has already provided a reason.\n"
+                "2. Propose a fix (make one up).\n"
+                "3. ONLY if not satisfied, offer a refund.\n"
+                "4. If accepted, search for the ID and then execute refund."
+            ),
+            model_client=model_client,
+            tools=[
+                execute_refund_tool,
+                look_up_item_tool,
+            ],
+            delegate_tools=[transfer_back_to_triage_tool],
+            agent_topic_type=issues_and_repairs_agent_topic_type,
+            user_topic_type=user_topic_type,
+        ),
+    )
+    logger.success(format_json(issues_and_repairs_agent_type))
+
+    human_agent_type = await HumanAgent.register(
+        runtime,
+        type=human_agent_topic_type,
+        factory=lambda: HumanAgent(
+            description="A human agent.",
+            agent_topic_type=human_agent_topic_type,
+            user_topic_type=user_topic_type,
+        ),
+    )
+    logger.success(format_json(human_agent_type))
+
+    user_agent_type = await UserAgent.register(
+        runtime,
+        type=user_topic_type,
+        factory=lambda: UserAgent(
+            description="A user agent.",
+            user_topic_type=user_topic_type,
+            agent_topic_type=triage_agent_topic_type,
+        ),
+    )
+    logger.success(format_json(user_agent_type))
+
+    # Add subscriptions
+    await runtime.add_subscription(TypeSubscription(topic_type=triage_agent_topic_type, agent_type=triage_agent_type.type))
+    await runtime.add_subscription(TypeSubscription(topic_type=sales_agent_topic_type, agent_type=sales_agent_type.type))
+    await runtime.add_subscription(TypeSubscription(topic_type=issues_and_repairs_agent_topic_type, agent_type=issues_and_repairs_agent_type.type))
+    await runtime.add_subscription(TypeSubscription(topic_type=human_agent_topic_type, agent_type=human_agent_type.type))
+    await runtime.add_subscription(TypeSubscription(topic_type=user_topic_type, agent_type=user_agent_type.type))
+
+    # Start runtime
     runtime.start()
-asyncio.run(run_async_code_1e6ac0a6())
 
-session_id = str(uuid.uuid4())
-
-
-async def run_async_code_9b34341c():
+    # Simulate user session
+    session_id = str(uuid.uuid4())
     await runtime.publish_message(UserLogin(), topic_id=TopicId(user_topic_type, source=session_id))
-asyncio.run(run_async_code_9b34341c())
 
-
-async def run_async_code_b7ca34d4():
+    # Stop runtime when idle
     await runtime.stop_when_idle()
-asyncio.run(run_async_code_b7ca34d4())
 
-
-async def run_async_code_0349fda4():
+    # Close model client
     await model_client.close()
-asyncio.run(run_async_code_0349fda4())
+
+# Run the workflow
+asyncio.run(run_handoff_team())
 
 """
 ## Next steps
