@@ -1,5 +1,7 @@
-from autogen.agentchat import UserProxyAgent,AssistantAgent,GroupChat,GroupChatManager
+from autogen_agentchat.agents import UserProxyAgent, AssistantAgent
 from dotenv import load_dotenv
+from jet.llm.mlx.adapters.agents.autogen_group_chat import GroupChat
+from jet.llm.mlx.adapters.agents.autogen_group_chat_manager import GroupChatManager
 from jet.logger import CustomLogger
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -78,14 +80,10 @@ logger.info("## Set your API Endpoint")
 
 load_dotenv()
 config_list_gpt4 = [
-  {
-    "model": "gpt-4o",
-    "api_type": "azure",
-    "api_key": os.getenv('AZURE_OPENAI_KEY'),
-    "base_url": os.getenv('AZURE_OAI_ENDPOINT'),
-    "api_version": "2024-06-01"
-  },
-  ]
+    {
+        "model": "llama-3.2-3b-instruct-4bit",
+    },
+]
 
 gpt4_config = {
     "cache_seed": 42,  # change the cache_seed for different trials
@@ -135,7 +133,7 @@ developer = AssistantAgent(
         You need to execute the code.""",
 )
 planner = AssistantAgent(
-    name="Planner",  #2. The research should be executed with code
+    name="Planner",  # 2. The research should be executed with code
     system_message="""You are an AI Planner,  follow these guidelines:
     1. Your plan should include 5 steps, you should provide a detailed plan to solve the task.
     2. Post project review isn't needed.
@@ -182,19 +180,21 @@ Group chat is a powerful conversation pattern, but it can be hard to control if 
 logger.info("Group chat is a powerful conversation pattern, but it can be hard to control if the number of participating agents is large. AutoGen provides a way to constrain the selection of the next speaker by using the allowed_or_disallowed_speaker_transitions argument of the GroupChat class.")
 
 allowed_transitions = {
-    user_proxy: [ planner,quality_assurance],
-    planner: [ user_proxy, developer, quality_assurance],
-    developer: [executor,quality_assurance, user_proxy],
+    user_proxy: [planner, quality_assurance],
+    planner: [user_proxy, developer, quality_assurance],
+    developer: [executor, quality_assurance, user_proxy],
     executor: [developer],
-    quality_assurance: [planner,developer,executor,user_proxy],
+    quality_assurance: [planner, developer, executor, user_proxy],
 }
 
-system_message_manager="You are the manager of a research group your role is to manage the team and make sure the project is completed successfully."
+system_message_manager = "You are the manager of a research group your role is to manage the team and make sure the project is completed successfully."
 groupchat = GroupChat(
-    agents=[user_proxy, developer, planner, executor, quality_assurance],allowed_or_disallowed_speaker_transitions=allowed_transitions,
-    speaker_transitions_type="allowed", messages=[], max_round=30,send_introductions=True
+    agents=[user_proxy, developer, planner, executor,
+            quality_assurance], allowed_or_disallowed_speaker_transitions=allowed_transitions,
+    speaker_transitions_type="allowed", messages=[], max_round=30, send_introductions=True
 )
-manager = GroupChatManager(groupchat=groupchat, llm_config=gpt4_config, system_message=system_message_manager)
+manager = GroupChatManager(
+    groupchat=groupchat, llm_config=gpt4_config, system_message=system_message_manager)
 
 """
 Sometimes it's a bit complicated to understand the relationship between the entities, here we print a graph representation of the code
@@ -217,8 +217,10 @@ pos = nx.spring_layout(G)  # For consistent positioning
 nx.draw_networkx_nodes(G, pos)
 nx.draw_networkx_edges(G, pos)
 
-label_pos = {k: [v[0], v[1] - 0.1] for k, v in pos.items()}  # Shift labels below the nodes
-nx.draw_networkx_labels(G, label_pos, verticalalignment='top', font_color="darkgreen")
+label_pos = {k: [v[0], v[1] - 0.1]
+             for k, v in pos.items()}  # Shift labels below the nodes
+nx.draw_networkx_labels(
+    G, label_pos, verticalalignment='top', font_color="darkgreen")
 
 ax = plt.gca()
 ax.margins(0.1)  # Increase the margin value if needed
@@ -235,11 +237,10 @@ plt.show()
 """
 logger.info("## Start Chat")
 
-task1="what are the 5 leading GitHub repositories on llm for the legal domain?"
-chat_result=user_proxy.initiate_chat(
+task1 = "what are the 5 leading GitHub repositories on llm for the legal domain?"
+chat_result = user_proxy.initiate_chat(
     manager,
-    message=task1
-, clear_history=True
+    message=task1, clear_history=True
 )
 
 """
@@ -280,13 +281,13 @@ Quality_assurance (to chat_manager):
 
 The task is now complete, and the final list of leading GitHub repositories on LLM for the legal domain has been verified and finalized.
 """
-logger.info("### Final List of 5 Leading GitHub Repositories on LLM for the Legal Domain")
+logger.info(
+    "### Final List of 5 Leading GitHub Repositories on LLM for the Legal Domain")
 
-task2="based on techcrunch, please find 3 articles on companies developing llm for legal domain, that rasied seed round. please use serper api"
-chat_result=user_proxy.initiate_chat(
+task2 = "based on techcrunch, please find 3 articles on companies developing llm for legal domain, that rasied seed round. please use serper api"
+chat_result = user_proxy.initiate_chat(
     manager,
-    message=task2
-, clear_history=False
+    message=task2, clear_history=False
 )
 
 """
