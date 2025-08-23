@@ -128,6 +128,81 @@ with PostgresClient(
             f"{OUTPUT_DIR}/all_rows.json"
         )
 
+        # Example: Retrieve rows with WHERE condition (is_active = True)
+        where_conditions = {"is_active": True}
+        filtered_where_rows = client.get_rows(
+            TABLE_NAME, where_conditions=where_conditions)
+        logger.newline()
+        logger.debug(f"Filtered rows where is_active = True:")
+        logger.success(f"{filtered_where_rows}")
+        save_file(
+            {
+                "table": TABLE_NAME,
+                "count": len(filtered_where_rows),
+                "where_conditions": where_conditions,
+                "rows": filtered_where_rows
+            },
+            f"{OUTPUT_DIR}/filtered_where_rows.json"
+        )
+
+        # Example: Retrieve rows with LIMIT
+        limit = 2
+        limited_rows = client.get_rows(TABLE_NAME, limit=limit)
+        logger.newline()
+        logger.debug(f"Limited rows (limit={limit}):")
+        logger.success(f"{limited_rows}")
+        save_file(
+            {
+                "table": TABLE_NAME,
+                "count": len(limited_rows),
+                "limit": limit,
+                "rows": limited_rows
+            },
+            f"{OUTPUT_DIR}/limited_rows.json"
+        )
+
+        # Example: Retrieve rows with ORDER BY
+        order_by = ("score", "DESC")
+        ordered_rows = client.get_rows(TABLE_NAME, order_by=order_by)
+        logger.newline()
+        logger.debug(f"Ordered rows by score DESC:")
+        logger.success(f"{ordered_rows}")
+        save_file(
+            {
+                "table": TABLE_NAME,
+                "count": len(ordered_rows),
+                "order_by": order_by,
+                "rows": ordered_rows
+            },
+            f"{OUTPUT_DIR}/ordered_rows.json"
+        )
+
+        # Example: Retrieve rows with combined WHERE, LIMIT, and ORDER BY
+        combined_where_conditions = {"is_active": True}
+        combined_limit = 1
+        combined_order_by = ("score", "ASC")
+        combined_rows = client.get_rows(
+            TABLE_NAME,
+            where_conditions=combined_where_conditions,
+            limit=combined_limit,
+            order_by=combined_order_by
+        )
+        logger.newline()
+        logger.debug(
+            f"Combined filtered rows (where is_active = True, limit={combined_limit}, order by score ASC):")
+        logger.success(f"{combined_rows}")
+        save_file(
+            {
+                "table": TABLE_NAME,
+                "count": len(combined_rows),
+                "where_conditions": combined_where_conditions,
+                "limit": combined_limit,
+                "order_by": combined_order_by,
+                "rows": combined_rows
+            },
+            f"{OUTPUT_DIR}/combined_rows.json"
+        )
+
         # Example: Retrieve filtered rows by IDs
         selected_ids = [single_row["id"],
                         multiple_rows[0]["id"], "non_existent_id"]
