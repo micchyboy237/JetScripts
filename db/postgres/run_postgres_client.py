@@ -259,6 +259,74 @@ with PostgresClient(
             f"{OUTPUT_DIR}/combined_rows.json"
         )
 
+        # Group by is_active and count rows
+        group_by_count = client.get_rows(
+            TABLE_NAME,
+            group_by=["is_active"],
+            aggregates={"row_count": ("id", "COUNT")}
+        )
+        logger.newline()
+        logger.debug("Grouped rows by is_active with count:")
+        logger.success(f"{group_by_count}")
+        save_file(
+            {
+                "table": TABLE_NAME,
+                "count": len(group_by_count),
+                "group_by": ["is_active"],
+                "aggregates": {"row_count": ("id", "COUNT")},
+                "rows": group_by_count
+            },
+            f"{OUTPUT_DIR}/grouped_count_rows.json"
+        )
+
+        # Group by is_active, sum scores, and order by sum descending
+        group_by_sum = client.get_rows(
+            TABLE_NAME,
+            group_by=["is_active"],
+            aggregates={"total_score": ("score", "SUM")},
+            order_by=("total_score", "DESC")
+        )
+        logger.newline()
+        logger.debug(
+            "Grouped rows by is_active with sum of scores, ordered by total_score DESC:")
+        logger.success(f"{group_by_sum}")
+        save_file(
+            {
+                "table": TABLE_NAME,
+                "count": len(group_by_sum),
+                "group_by": ["is_active"],
+                "aggregates": {"total_score": ("score", "SUM")},
+                "order_by": ("total_score", "DESC"),
+                "rows": group_by_sum
+            },
+            f"{OUTPUT_DIR}/grouped_sum_rows.json"
+        )
+
+        # Group by is_active and custom_field, average score, with where condition and limit
+        group_by_avg = client.get_rows(
+            TABLE_NAME,
+            group_by=["is_active", "custom_field"],
+            aggregates={"avg_score": ("score", "AVG")},
+            where_conditions={"is_active": True},
+            limit=2
+        )
+        logger.newline()
+        logger.debug(
+            "Grouped rows by is_active and custom_field with average score, where is_active = True, limit=2:")
+        logger.success(f"{group_by_avg}")
+        save_file(
+            {
+                "table": TABLE_NAME,
+                "count": len(group_by_avg),
+                "group_by": ["is_active", "custom_field"],
+                "aggregates": {"avg_score": ("score", "AVG")},
+                "where_conditions": {"is_active": True},
+                "limit": 2,
+                "rows": group_by_avg
+            },
+            f"{OUTPUT_DIR}/grouped_avg_rows.json"
+        )
+
         # Example: Retrieve filtered rows by IDs
         selected_ids = [single_row["id"],
                         multiple_rows[0]["id"], "non_existent_id"]
