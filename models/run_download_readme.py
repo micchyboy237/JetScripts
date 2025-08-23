@@ -4,8 +4,10 @@ from jet.models.utils import download_model_readmes, download_readme, resolve_mo
 
 if __name__ == "__main__":
     overwrite = True
+    extract_code = True
     hf_readme_download_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/docs/hf_readmes"
-    model: ModelType = "mixedbread-ai/mxbai-embed-large-v1"
-    model_key: ModelKey = resolve_model_key(model)
+    model: ModelType = "jinaai/jina-embeddings-v2-base-en"
+
     model_value: ModelValue = resolve_model_value(model)
-    download_readme(model_value, model_key, hf_readme_download_dir, overwrite)
+    download_readme(model_value, hf_readme_download_dir,
+                    overwrite, extract_code)
