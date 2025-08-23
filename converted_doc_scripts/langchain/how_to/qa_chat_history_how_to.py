@@ -33,7 +33,7 @@ logger.info(f"Logs: {log_file}")
 initialize_ollama_settings()
 
 
-def render_mermaid_graph(agent, output_filename="graph_output.png", draw_method=MermaidDrawMethod.PYPPETEER):
+def _render_mermaid_graph(agent, output_filename="graph_output.png", draw_method=MermaidDrawMethod.PYPPETEER):
     """
     Generates a Mermaid graph PNG from the agent and opens it using the system's default viewer on macOS.
 
@@ -254,7 +254,7 @@ memory = MemorySaver()
 graph = graph_builder.compile(checkpointer=memory)
 
 
-render_mermaid_graph(graph)
+_render_mermaid_graph(graph)
 
 """
 Let's test our application.
@@ -330,7 +330,7 @@ agent_executor = create_react_agent(llm, [retrieve], checkpointer=memory)
 Let's inspect the graph:
 """
 
-render_mermaid_graph(graph)
+_render_mermaid_graph(graph)
 
 """
 The key difference from our earlier implementation is that instead of a final generation step that ends the run, here the tool invocation loops back to the original LLM call. The model can then either answer the question using the retrieved context, or generate another tool call to obtain more information.

@@ -1,5 +1,5 @@
 {
-  "model_id": "cross-encoder/ms-marco-MiniLM-L6-v2",
-  "max_context": 512,
-  "max_embeddings": 384
+  "model_id": "jinaai/jina-embeddings-v2-base-en",
+  "max_context": 8192,
+  "max_embeddings": 768
 }

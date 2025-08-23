@@ -1,3 +1,5 @@
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
+from langchain_core.runnables.graph import MermaidDrawMethod
 from IPython.display import Image, display, Markdown, HTML
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
@@ -203,7 +205,7 @@ model_provider = 'Azure'  # 'Azure' or 'MLX'
 """
 logger.info("### Instantiate LLM model")
 
-llm = ChatMLX(model="llama-3.2-3b-instruct")
+llm = ChatMLX(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 
 llm.invoke("Hello, how are you?")
 
@@ -555,7 +557,9 @@ memory = MemorySaver()
 
 graph_plan = workflow.compile(checkpointer=memory)
 
-display(Image(graph_plan.get_graph(xray=1).draw_mermaid_png()))
+# display(Image(graph_plan.get_graph(xray=1).draw_mermaid_png()))
+diagram_path = os.path.join(OUTPUT_DIR, "project_manager_workflow.png")
+render_mermaid_graph(graph_plan, diagram_path)
 
 """
 ## Usage Example
@@ -587,9 +591,10 @@ def get_team(file_path: str):
     return team
 
 
+data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/GenAI_Agents/data"
 project_description = get_project_description(
-    "../data/project_manager_assistant/project_description.txt")
-team = get_team("../data/project_manager_assistant/team.csv")
+    f"{data_dir}/project_manager_assistant/project_description.txt")
+team = get_team(f"{data_dir}/project_manager_assistant/team.csv")
 
 logger.debug(project_description)
 logger.debug(team)
@@ -729,7 +734,9 @@ simple_memory = MemorySaver()
 
 simple_graph_plan = simple_workflow.compile(checkpointer=memory)
 
-display(Image(simple_graph_plan.get_graph(xray=1).draw_mermaid_png()))
+# display(Image(simple_graph_plan.get_graph(xray=1).draw_mermaid_png()))
+diagram_path = os.path.join(OUTPUT_DIR, "simple_graph_plan.png")
+render_mermaid_graph(simple_graph_plan, diagram_path)
 
 config = {"configurable": {"thread_id": "2"}}
 for event in simple_graph_plan.stream(state_input, config, stream_mode=["updates"]):

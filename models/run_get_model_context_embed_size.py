@@ -7,10 +7,15 @@ from jet.transformers.formatters import format_json
 
 if __name__ == "__main__":
     output_dir = os.path.join(os.path.dirname(__file__), "constants")
-    model_id: ModelType = "cross-encoder/ms-marco-MiniLM-L6-v2"
+    model_id: ModelType = "jinaai/jina-embeddings-v2-base-en"
 
     max_context, max_embeddings = get_model_limits(model_id)
-    print(model_id, max_context, max_embeddings)
+
+    logger.newline()
+    logger.log("Model ID:", f" {model_id}", colors=["GRAY", "DEBUG"])
+    logger.log("Max Context:", f" {max_context}", colors=["GRAY", "SUCCESS"])
+    logger.log("Max Embeddings:", f" {max_embeddings}", colors=[
+               "GRAY", "SUCCESS"])
 
     save_file({
         "model_id": model_id,
