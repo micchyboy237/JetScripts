@@ -18,7 +18,7 @@ if __name__ == "__main__":
     # title = "I'll Become a Villainess Who Goes Down in History"
     # query = f"Anime \"{title}\" {search_keys_str}"
 
-    query = "Top isekai anime 2025."
+    query = "Top isekai anime 2025"
 
     try:
         include_sites = [
