@@ -114,6 +114,62 @@ with PostgresClient(
             f"{OUTPUT_DIR}/updated_multiple_rows.json"
         )
 
+        # Example: Create or update a single row (updating existing or creating new)
+        create_or_update_row_data = {
+            "id": single_row["id"],  # Use existing row ID to update
+            "metadata": "create_or_update metadata",
+            "score": 99.0,
+            "is_active": True,
+            "details": {"key1": "create_or_update_value1", "key2": {"nested_key": 150}},
+            "custom_field": "create_or_update_test_value"
+        }
+        created_or_updated_row = client.create_or_update_row(
+            TABLE_NAME, create_or_update_row_data)
+        logger.newline()
+        logger.debug(
+            f"Created or updated single row for ID {single_row['id']}:")
+        logger.success(f"{created_or_updated_row}")
+        save_file(created_or_updated_row,
+                  f"{OUTPUT_DIR}/created_or_updated_row.json")
+
+        # Example: Create or update multiple rows (some existing, some new)
+        create_or_update_rows_data = [
+            # Update existing row (using ID from single_row)
+            {
+                "id": single_row["id"],
+                "metadata": "updated metadata",
+                "score": 98.0,
+                "is_active": False,
+                "details": {"key1": "updated_value1", "key2": {"nested_key": 100}},
+                "custom_field": "updated_test_value"
+            },
+            # Update existing row (using ID from multiple_rows[0])
+            {
+                "id": multiple_rows[0]["id"],
+                "metadata": "updated_row_0",
+                "score": 95.0,
+                "is_active": False,
+                "details": {"index": 0, "data": {"value": "updated_test_0"}},
+                "custom_field": "updated_custom_0"
+            },
+            # Create new row
+            {
+                "id": "new-row-1",
+                "metadata": "new row metadata",
+                "score": 92.5,
+                "is_active": True,
+                "details": {"key1": "new_value1", "key2": {"nested_key": 200}},
+                "custom_field": "new_test_value"
+            }
+        ]
+        created_or_updated_rows = client.create_or_update_rows(
+            TABLE_NAME, create_or_update_rows_data)
+        logger.newline()
+        logger.debug(f"Created or updated rows:")
+        logger.success(f"{created_or_updated_rows}")
+        save_file(created_or_updated_rows,
+                  f"{OUTPUT_DIR}/created_or_updated_rows.json")
+
         # Example: Retrieve all rows
         all_rows = client.get_rows(TABLE_NAME)
         logger.newline()

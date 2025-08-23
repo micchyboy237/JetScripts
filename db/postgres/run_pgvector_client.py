@@ -76,6 +76,25 @@ with PgVectorClient(
             f"{OUTPUT_DIR}/created_multiple_rows.json"
         )
 
+        # Example: Create or update a single row (updating existing or creating new)
+        create_or_update_row_data = {
+            "id": single_row["id"],  # Use existing row ID to update
+            "embedding": np.random.rand(EMBEDDING_DIM).tolist(),
+            "metadata": "create_or_update metadata",
+            "score": 99.0,
+            "is_active": True,
+            "details": {"key1": "create_or_update_value1", "key2": {"nested_key": 150}},
+            "custom_field": "create_or_update_test_value"
+        }
+        created_or_updated_row = client.create_or_update_row(
+            TABLE_NAME, create_or_update_row_data)
+        logger.newline()
+        logger.debug(
+            f"Created or updated single row for ID {single_row['id']}:")
+        logger.success(f"{created_or_updated_row}")
+        save_file(created_or_updated_row,
+                  f"{OUTPUT_DIR}/created_or_updated_row.json")
+
         # Example: Create or update rows (some existing, some new)
         create_or_update_rows_data = [
             # Update existing row (using ID from single_row)
