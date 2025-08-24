@@ -1,4 +1,6 @@
 import asyncio
+from jet.file.utils import save_file
+from jet.search.duckduckgo import DuckDuckGoSearch, search_web
 from jet.transformers.formatters import format_json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.messages import MultiModalMessage
@@ -10,7 +12,8 @@ from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.tools import FunctionTool
 from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
 from io import BytesIO
-from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
+# from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
+from autogen_ext.models.ollama import OllamaChatCompletionClient
 from jet.logger import CustomLogger
 from pydantic import BaseModel
 from typing import Literal
@@ -58,11 +61,11 @@ logger.info("# Agents")
 
 async def web_search(query: str) -> str:
     """Find information on the web"""
-    return "AutoGen is a programming framework for building multi-agent applications."
+    return search_web(query)
 
 
-model_client = MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
+model_client = OllamaChatCompletionClient(
+    model="llama3.2", log_dir=f"{OUTPUT_DIR}/chats",
 )
 agent = AssistantAgent(
     name="assistant",
@@ -118,7 +121,7 @@ pil_image = PIL.Image.open(
 img = Image(pil_image)
 multi_modal_message = MultiModalMessage(
     content=["Can you describe the content of this image?", img], source="user")
-img
+save_file(img, f"{OUTPUT_DIR}/multi_modal_img_query")
 
 
 async def run_async_code_f33c45f0():
@@ -140,13 +143,10 @@ logger.info("## Streaming Messages")
 
 
 async def assistant_run_stream() -> None:
-
-    async def async_func_2():
-        await Console(
-            agent.run_stream(task="Find information on AutoGen"),
-            output_stats=True,  # Enable stats printing.
-        )
-    asyncio.run(async_func_2())
+    await Console(
+        agent.run_stream(task="Find information on AutoGen"),
+        output_stats=True,  # Enable stats printing.
+    )
 
 
 async def run_async_code_b1f495c8():
@@ -246,17 +246,12 @@ async def async_func_7():
             name="fetcher", model_client=model_client, workbench=workbench, reflect_on_tool_use=True
         )
 
-        async def run_async_code_29f8686c():
-            result = await fetch_agent.run(task="Summarize the content of https://en.wikipedia.org/wiki/Seattle")
-            return result
-        result = asyncio.run(run_async_code_29f8686c())
+        result = await fetch_agent.run(task="Summarize the content of https://en.wikipedia.org/wiki/Seattle")
         logger.success(format_json(result))
         assert isinstance(result.messages[-1], TextMessage)
         logger.debug(result.messages[-1].content)
 
-        async def run_async_code_eecbf04a():
-            await model_client.close()
-        asyncio.run(run_async_code_eecbf04a())
+        await model_client.close()
 asyncio.run(async_func_7())
 
 """
