@@ -1,4 +1,5 @@
 import asyncio
+from pathlib import Path
 from jet.transformers.formatters import format_json
 from IPython.display import Image
 from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, default_subscription, message_handler
@@ -131,7 +132,8 @@ logger.info(
 # Set DOCKER_HOST to Colima's socket
 os.environ["DOCKER_HOST"] = "unix:///Users/jethroestrada/.colima/default/docker.sock"
 
-work_dir = tempfile.mkdtemp()
+work_dir = Path(f"{OUTPUT_DIR}/coding")
+work_dir.mkdir(exist_ok=True)
 
 runtime = SingleThreadedAgentRuntime()
 
@@ -164,10 +166,8 @@ async def async_func_10():
 
         await runtime.stop_when_idle()
         await model_client.close()
-    return result
 
-result = asyncio.run(async_func_10())
-logger.success(format_json(result))
+asyncio.run(async_func_10())
 
 """
 From the agent's output, we can see the plot of Tesla's and Nvidia's stock returns
