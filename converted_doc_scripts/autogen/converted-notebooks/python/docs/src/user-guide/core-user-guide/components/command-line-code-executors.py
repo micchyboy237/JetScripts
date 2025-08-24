@@ -9,6 +9,8 @@ import os
 import shutil
 import venv
 
+from jet.transformers.formatters import format_json
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -53,21 +55,31 @@ then you can set the `auto_remove` parameter to `False` when creating the execut
 """
 logger.info("# Command Line Code Executors")
 
+# Set DOCKER_HOST to Colima's socket
+os.environ["DOCKER_HOST"] = "unix:///Users/jethroestrada/.colima/default/docker.sock"
 
-
-work_dir = Path("coding")
+work_dir = Path(f"{OUTPUT_DIR}/coding1")
 work_dir.mkdir(exist_ok=True)
 
+
 async def async_func_9():
-    async with DockerCommandLineCodeExecutor(work_dir=work_dir) as executor:  # type: ignore
-        logger.debug(
-            await executor.execute_code_blocks(
-                code_blocks=[
-                    CodeBlock(language="python", code="logger.debug('Hello, World!')"),
-                ],
-                cancellation_token=CancellationToken(),
-            )
+    async with DockerCommandLineCodeExecutor(
+        work_dir=work_dir,
+        bind_dir=str(work_dir),
+        timeout=60,
+        auto_remove=True,
+        delete_tmp_files=True
+    ) as code_executor:
+        result = await code_executor.execute_code_blocks(
+            code_blocks=[
+                CodeBlock(language="python",
+                          code="logger.debug('Hello, World!')"),
+            ],
+            cancellation_token=CancellationToken(),
         )
+        logger.gray("Executed code result:")
+        logger.success(format_json(result))
+
 asyncio.run(async_func_9())
 
 """
@@ -101,21 +113,23 @@ To execute code on the host machine, as in the machine running your application,
 logger.info("### Combining an Application in Docker with a Docker based executor")
 
 
-
-work_dir = Path("coding")
+work_dir = Path(f"{OUTPUT_DIR}/coding2")
 work_dir.mkdir(exist_ok=True)
 
 local_executor = LocalCommandLineCodeExecutor(work_dir=work_dir)
-logger.debug(
-    async def async_func_11():
-        await local_executor.execute_code_blocks(
-            code_blocks=[
-                CodeBlock(language="python", code="logger.debug('Hello, World!')"),
-            ],
-            cancellation_token=CancellationToken(),
-        )
-    asyncio.run(async_func_11())
-)
+
+
+async def async_func_11():
+    result = await local_executor.execute_code_blocks(
+        code_blocks=[
+            CodeBlock(language="python", code="logger.debug('Hello, World!')"),
+        ],
+        cancellation_token=CancellationToken(),
+    )
+    logger.gray("Executed code result:")
+    logger.success(format_json(result))
+
+asyncio.run(async_func_11())
 
 """
 ## Local within a Virtual Environment
@@ -125,8 +139,7 @@ If you want the code to run within a virtual environment created as part of the 
 logger.info("## Local within a Virtual Environment")
 
 
-
-work_dir = Path("coding")
+work_dir = Path(f"{OUTPUT_DIR}/coding3")
 work_dir.mkdir(exist_ok=True)
 
 venv_dir = work_dir / ".venv"
@@ -134,14 +147,19 @@ venv_builder = venv.EnvBuilder(with_pip=True)
 venv_builder.create(venv_dir)
 venv_context = venv_builder.ensure_directories(venv_dir)
 
-local_executor = LocalCommandLineCodeExecutor(work_dir=work_dir, virtual_env_context=venv_context)
+local_executor = LocalCommandLineCodeExecutor(
+    work_dir=work_dir, virtual_env_context=venv_context)
+
+
 async def async_func_16():
-    await local_executor.execute_code_blocks(
+    result = await local_executor.execute_code_blocks(
         code_blocks=[
             CodeBlock(language="bash", code="pip install matplotlib"),
         ],
         cancellation_token=CancellationToken(),
     )
+    logger.gray("Executed code result:")
+    logger.success(format_json(result))
 asyncio.run(async_func_16())
 
 """
