@@ -81,15 +81,6 @@ logger.info("### Agents")
 
 
 def search_web_tool(query: str) -> str:
-    """
-    Search the web for the given query using DuckDuckGo and return the results as a string.
-
-    Args:
-        query (str): The search query.
-
-    Returns:
-        str: The search results from DuckDuckGo.
-    """
     # Initialize the DuckDuckGoSearchAPIWrapper with custom parameters
     api_wrapper = DuckDuckGoSearchAPIWrapper(
         region="wt-wt",  # Worldwide region
@@ -105,16 +96,6 @@ def search_web_tool(query: str) -> str:
 
 
 def percentage_change_tool(start: float, end: float) -> float:
-    """
-    Calculate the percentage change from a starting value to an ending value.
-
-    Args:
-        start (float): The initial value.
-        end (float): The final value.
-
-    Returns:
-        float: The percentage change from start to end.
-    """
     return ((end - start) / start) * 100
 
 
