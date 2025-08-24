@@ -1,3 +1,4 @@
+from docker.client import DockerClient
 import asyncio
 from jet.transformers.formatters import format_json
 from autogen_core import (
@@ -60,25 +61,36 @@ Here is how you create the tool and use it.
 """
 logger.info("# Tools")
 
+# Set DOCKER_HOST to Colima's socket
+os.environ["DOCKER_HOST"] = "unix:///Users/jethroestrada/.colima/default/docker.sock"
 
-code_executor = DockerCommandLineCodeExecutor()
+# Configure working directory
+work_dir = pathlib.Path(OUTPUT_DIR) / "code_execution"
+work_dir.mkdir(parents=True, exist_ok=True)
 
-
-async def run_async_code_e817eaa6():
-    await code_executor.start()
-asyncio.run(run_async_code_e817eaa6())
-code_execution_tool = PythonCodeExecutionTool(code_executor)
-cancellation_token = CancellationToken()
-
-code = "logger.debug('Hello, world!')"
+# Initialize and run DockerCommandLineCodeExecutor with context manager
 
 
-async def run_async_code_1f3d02b5():
-    result = await code_execution_tool.run_json({"code": code}, cancellation_token)
+async def run_code_execution():
+    async with DockerCommandLineCodeExecutor(
+        work_dir=work_dir,
+        bind_dir=str(work_dir),  # Mount work_dir to /workspace in container
+        timeout=60,
+        auto_remove=True,
+        delete_tmp_files=True
+    ) as code_executor:
+        code_execution_tool = PythonCodeExecutionTool(code_executor)
+        cancellation_token = CancellationToken()
+        code = "import logging; logging.debug('Hello, world!')"
+
+        result = await code_execution_tool.run_json({"code": code}, cancellation_token)
+        logger.success(format_json(result))
+        logger.debug(code_execution_tool.return_value_as_string(result))
+
     return result
-result = asyncio.run(run_async_code_1f3d02b5())
-logger.success(format_json(result))
-logger.debug(code_execution_tool.return_value_as_string(result))
+
+# Run all async operations in a single event loop
+result = asyncio.run(run_code_execution())
 
 """
 The {py:class}`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor`
