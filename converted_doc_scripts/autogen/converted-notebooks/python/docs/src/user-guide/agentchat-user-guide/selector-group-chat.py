@@ -81,15 +81,13 @@ logger.info("### Agents")
 
 
 def search_web_tool(query: str) -> str:
-    # Initialize the DuckDuckGoSearchAPIWrapper with custom parameters
     api_wrapper = DuckDuckGoSearchAPIWrapper(
-        region="wt-wt",  # Worldwide region
-        safesearch="moderate",  # Moderate safe search
-        time="y",  # Results from the past year
-        max_results=10,  # Maximum of 10 results
-        source="text"  # Text search
+        region="wt-wt",
+        safesearch="moderate",
+        time="y",
+        max_results=10,
+        source="text"
     )
-    # Initialize the DuckDuckGoSearchRun tool
     search_tool = DuckDuckGoSearchRun(api_wrapper=api_wrapper)
     result = search_tool._run(query)
     return result
