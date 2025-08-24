@@ -75,14 +75,19 @@ work_dir.mkdir(parents=True, exist_ok=True)
 async def run_code_execution():
     async with DockerCommandLineCodeExecutor(
         work_dir=work_dir,
-        bind_dir=str(work_dir),  # Mount work_dir to /workspace in container
+        bind_dir=str(work_dir),
         timeout=60,
         auto_remove=True,
         delete_tmp_files=True
     ) as code_executor:
         code_execution_tool = PythonCodeExecutionTool(code_executor)
         cancellation_token = CancellationToken()
-        code = "import logging; logging.debug('Hello, world!')"
+        # Configure logging to output to stdout
+        code = """
+import logging
+logging.basicConfig(level=logging.DEBUG, format='%(message)s')
+logging.debug('Hello, world!')
+"""
 
         result = await code_execution_tool.run_json({"code": code}, cancellation_token)
         logger.success(format_json(result))
@@ -147,12 +152,7 @@ In AutoGen, every tool is a subclass of {py:class}`~autogen_core.tools.BaseTool`
 which automatically generates the JSON schema for the tool.
 For example, to get the JSON schema for the `stock_price_tool`, we can use the
 {py:attr}`~autogen_core.tools.BaseTool.schema` property.
-"""
-logger.info("## Calling Tools with Model Clients")
 
-stock_price_tool.schema
-
-"""
 Model clients use the JSON schema of the tools to generate tool calls.
 
 Here is an example of how to use the {py:class}`~autogen_core.tools.FunctionTool` class
@@ -160,9 +160,13 @@ with a {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenC
 Other model client classes can be used in a similar way. See [Model Clients](./model-clients.ipynb)
 for more details.
 """
+
+logger.info("## Calling Tools with Model Clients")
+
+stock_price_tool.schema
+
 logger.info(
     "Model clients use the JSON schema of the tools to generate tool calls.")
-
 
 model_client = MLXAutogenChatLLMAdapter(
     model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
@@ -179,9 +183,27 @@ async def async_func_10():
             stock_price_tool], cancellation_token=cancellation_token
     )
     return create_result
+
 create_result = asyncio.run(async_func_10())
 logger.success(format_json(create_result))
-create_result.content
+
+# Handle string content with tool call
+if isinstance(create_result.content, str):
+    import re
+    # Extract JSON from <tool_call> tags
+    match = re.search(r'<tool_call>\n(.*?)\n</tool_call>',
+                      create_result.content, re.DOTALL)
+    if match:
+        tool_call_json = json.loads(match.group(1))
+        create_result.content = [FunctionCall(
+            id="call_0",  # Assign a default ID
+            name=tool_call_json["name"],
+            arguments=json.dumps(tool_call_json["arguments"])
+        )]
+    else:
+        raise ValueError("Failed to parse tool call from string content")
+
+logger.debug(create_result.content)
 
 """
 What is actually going on under the hood of the call to the
@@ -234,19 +256,28 @@ exec_result = FunctionExecutionResult(
     name=stock_price_tool.name,
 )
 
+# Convert message contents for MLXAutogenChatLLMAdapter compatibility
 messages = [
     user_message,
-    # assistant message with tool call
-    AssistantMessage(content=create_result.content, source="assistant"),
-    # function execution result message
-    FunctionExecutionResultMessage(content=[exec_result]),
+    # Assistant message with tool call (convert list to string)
+    AssistantMessage(
+        content=json.dumps(create_result.content, default=str),
+        source="assistant"
+    ),
+    # Function execution result message (keep content as list)
+    FunctionExecutionResultMessage(
+        content=[exec_result]
+    ),
 ]
 
 
 async def run_async_code_9d837451():
-    # type: ignore
-    create_result = await model_client.create(messages=messages, cancellation_token=cancellation_token)
+    create_result = await model_client.create(
+        messages=messages,
+        cancellation_token=cancellation_token
+    )
     return create_result
+
 create_result = asyncio.run(run_async_code_9d837451())
 logger.success(format_json(create_result))
 logger.debug(create_result.content)
