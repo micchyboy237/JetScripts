@@ -427,7 +427,7 @@ user_description = "User for providing final approval."
 illustrator_description = "An illustrator for creating images."
 
 model_client = MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit",
+    model="llama-3.2-3b-instruct-4bit",
 )
 
 
@@ -570,7 +570,7 @@ logger.info("## Running the Group Chat")
 
 async def run_group_chat():
     # Initialize clients
-    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit")
+    model_client = MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct-4bit")
     image_client = openai.AsyncClient()
 
     # Initialize runtime
