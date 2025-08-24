@@ -6,6 +6,7 @@ from autogen_agentchat.messages import HandoffMessage
 from autogen_agentchat.teams import Swarm
 from autogen_agentchat.ui import Console
 from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
+from autogen_ext.models.ollama import OllamaChatCompletionClient
 from jet.logger import CustomLogger
 from typing import Any, Dict, List
 import os
@@ -106,24 +107,27 @@ Additionally, we let the user interact with the agents, when agents handoff to `
 logger.info("# Swarm")
 
 
-
 """
 ### Tools
 """
 logger.info("### Tools")
 
+
 def refund_flight(flight_id: str) -> str:
     """Refund a flight"""
     return f"Flight {flight_id} refunded"
+
 
 """
 ### Agents
 """
 logger.info("### Agents")
 
-model_client = MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit",
-)
+# model_client = MLXAutogenChatLLMAdapter(
+#     model="qwen3-1.7b-4bit",
+# )
+model_client = OllamaChatCompletionClient(
+    model="llama3.2", host="http://localhost:11434")
 
 travel_agent = AssistantAgent(
     "travel_agent",
@@ -147,8 +151,10 @@ flights_refunder = AssistantAgent(
     When the transaction is complete, handoff to the travel agent to finalize.""",
 )
 
-termination = HandoffTermination(target="user") | TextMentionTermination("TERMINATE")
-team = Swarm([travel_agent, flights_refunder], termination_condition=termination)
+termination = HandoffTermination(
+    target="user") | TextMentionTermination("TERMINATE")
+team = Swarm([travel_agent, flights_refunder],
+             termination_condition=termination)
 
 task = "I need to refund my flight."
 
@@ -162,7 +168,8 @@ async def run_team_stream() -> None:
 
         async def async_func_39():
             task_result = await Console(
-                team.run_stream(task=HandoffMessage(source="user", target=last_message.source, content=user_message))
+                team.run_stream(task=HandoffMessage(
+                    source="user", target=last_message.source, content=user_message))
             )
             return task_result
         task_result = asyncio.run(async_func_39())
@@ -173,6 +180,8 @@ async def run_team_stream() -> None:
 async def run_async_code_6a718861():
     await run_team_stream()
 asyncio.run(run_async_code_6a718861())
+
+
 async def run_async_code_0349fda4():
     await model_client.close()
 asyncio.run(run_async_code_0349fda4())
@@ -198,6 +207,7 @@ This system is designed to perform stock research tasks by leveraging four agent
 ### Tools
 """
 logger.info("## Stock Research Example")
+
 
 async def get_stock_data(symbol: str) -> Dict[str, Any]:
     """Get stock market data for a given symbol"""
@@ -277,13 +287,18 @@ text_termination = TextMentionTermination("TERMINATE")
 termination = text_termination
 
 research_team = Swarm(
-    participants=[planner, financial_analyst, news_analyst, writer], termination_condition=termination
+    participants=[planner, financial_analyst, news_analyst,
+                  writer], termination_condition=termination
 )
 
 task = "Conduct market research for TSLA stock"
+
+
 async def run_async_code_f9c7863d():
     await Console(research_team.run_stream(task=task))
 asyncio.run(run_async_code_f9c7863d())
+
+
 async def run_async_code_0349fda4():
     await model_client.close()
 asyncio.run(run_async_code_0349fda4())

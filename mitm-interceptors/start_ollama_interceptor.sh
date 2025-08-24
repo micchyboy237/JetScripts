@@ -4,11 +4,11 @@
 MODE=""
 
 CLIENT_LISTEN_PORT="11434"
-CLIENT_TARGET_URL="http://jetairm1:11434"
+CLIENT_TARGET_URL="http://jethros-macbook-air.local:11434"
 CLIENT_PROXY_SCRIPT="ollama_proxy.py"
 
 SERVER_LISTEN_PORT="11434"
-SERVER_TARGET_URL="http://jetairm1:11435"
+SERVER_TARGET_URL="http://jethros-macbook-air.local:11435"
 SERVER_PROXY_SCRIPT="ollama_reverse_proxy.py"
 
 # Parse command-line arguments
