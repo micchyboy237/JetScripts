@@ -15,12 +15,15 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 DBNAME = "mlx_agents_chat_history_db1"
 TABLE_NAME = "messages"
 
+
 with PostgresClient(
     dbname=DBNAME,
 ) as client:
-    all_rows = client.get_rows(TABLE_NAME, where_conditions={
-        "conversation_id": "25d41299-921b-4a03-902e-75468e87b7a8"
-    })
+    # where_conditions = {
+    #     "conversation_id": "25d41299-921b-4a03-902e-75468e87b7a8"
+    # }
+    where_conditions = None
+    all_rows = client.get_rows(TABLE_NAME, where_conditions=where_conditions)
     logger.newline()
     logger.debug(f"All rows in {TABLE_NAME}:")
     logger.success(format_json(all_rows))
@@ -33,7 +36,7 @@ with PostgresClient(
         f"{OUTPUT_DIR}/all_rows.json"
     )
 
-    grouped_rows = group_by(all_rows, "session_id")
+    grouped_rows = group_by(all_rows, "name")
     groups = []
     for group in grouped_rows:
         groups.append({
@@ -44,7 +47,7 @@ with PostgresClient(
     save_file(
         {
             "table": TABLE_NAME,
-            "group_key": "session_id",
+            "group_key": "name",
             "count": len(groups),
             "groups": groups
         },

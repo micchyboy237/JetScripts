@@ -1,3 +1,4 @@
+from langchain_community.tools.ddg_search.tool import DuckDuckGoSearchAPIWrapper, DuckDuckGoSearchRun
 import asyncio
 import sys
 import uuid
@@ -77,21 +78,40 @@ logger.info("### Agents")
 
 
 def search_web_tool(query: str) -> str:
-    if "2006-2007" in query:
-        return """Here are the total points scored by Miami Heat players in the 2006-2007 season:
-        Udonis Haslem: 844 points
-        Dwayne Wade: 1397 points
-        James Posey: 550 points
-        ...
-        """
-    elif "2007-2008" in query:
-        return "The number of total rebounds for Dwayne Wade in the Miami Heat season 2007-2008 is 214."
-    elif "2008-2009" in query:
-        return "The number of total rebounds for Dwayne Wade in the Miami Heat season 2008-2009 is 398."
-    return "No data found."
+    """
+    Search the web for the given query using DuckDuckGo and return the results as a string.
+
+    Args:
+        query (str): The search query.
+
+    Returns:
+        str: The search results from DuckDuckGo.
+    """
+    # Initialize the DuckDuckGoSearchAPIWrapper with custom parameters
+    api_wrapper = DuckDuckGoSearchAPIWrapper(
+        region="wt-wt",  # Worldwide region
+        safesearch="moderate",  # Moderate safe search
+        time="y",  # Results from the past year
+        max_results=10,  # Maximum of 10 results
+        source="text"  # Text search
+    )
+    # Initialize the DuckDuckGoSearchRun tool
+    search_tool = DuckDuckGoSearchRun(api_wrapper=api_wrapper)
+    result = search_tool._run(query)
+    return result
 
 
 def percentage_change_tool(start: float, end: float) -> float:
+    """
+    Calculate the percentage change from a starting value to an ending value.
+
+    Args:
+        start (float): The initial value.
+        end (float): The final value.
+
+    Returns:
+        float: The percentage change from start to end.
+    """
     return ((end - start) / start) * 100
 
 
@@ -109,7 +129,7 @@ planning_agent = AssistantAgent(
     "PlanningAgent",
     description="An agent for planning tasks, this agent should be the first to engage when given a new task.",
     model_client=MLXAutogenChatLLMAdapter(
-        model="llama-3.2-1b-instruct-4bit", conversation_id=conversation_id, log_dir=f"{OUTPUT_DIR}/planning_chats"),
+        model="llama-3.2-3b-instruct-4bit", name="PlanningAgent", conversation_id=conversation_id, log_dir=f"{OUTPUT_DIR}/planning_chats"),
     system_message="""
     You are a planning agent.
     Your job is to break down complex tasks into smaller, manageable subtasks.
@@ -131,7 +151,7 @@ web_search_agent = AssistantAgent(
     description="An agent for searching information on the web.",
     tools=[search_web_tool],
     model_client=MLXAutogenChatLLMAdapter(
-        model="llama-3.2-1b-instruct-4bit", conversation_id=conversation_id, log_dir=f"{OUTPUT_DIR}/web_search_chats"),
+        model="llama-3.2-3b-instruct-4bit", name="WebSearchAgent", conversation_id=conversation_id, log_dir=f"{OUTPUT_DIR}/web_search_chats"),
     system_message="""
     You are a web search agent.
     Your only tool is search_tool - use it to find information.
@@ -144,7 +164,7 @@ data_analyst_agent = AssistantAgent(
     "DataAnalystAgent",
     description="An agent for performing calculations.",
     model_client=MLXAutogenChatLLMAdapter(
-        model="llama-3.2-1b-instruct-4bit", conversation_id=conversation_id, log_dir=f"{OUTPUT_DIR}/data_analyst_chats"),
+        model="llama-3.2-3b-instruct-4bit", name="DataAnalystAgent", conversation_id=conversation_id, log_dir=f"{OUTPUT_DIR}/data_analyst_chats"),
     tools=[percentage_change_tool],
     system_message="""
     You are a data analyst.
@@ -243,8 +263,9 @@ logger.info("### Running the Team")
 
 team = SelectorGroupChat(
     [planning_agent, web_search_agent, data_analyst_agent],
+    name="GroupChatManager",
     model_client=MLXAutogenChatLLMAdapter(
-        model="llama-3.2-3b-instruct-4bit", conversation_id=conversation_id, log_dir=f"{OUTPUT_DIR}/manager_chats"),
+        model="llama-3.2-3b-instruct-4bit", name="GroupChatManager", conversation_id=conversation_id, log_dir=f"{OUTPUT_DIR}/group_chat_manager_chats"),
     termination_condition=termination,
     selector_prompt=selector_prompt,
     # Allow an agent to speak multiple turns in a row.
@@ -299,7 +320,7 @@ async def run_async_code_a5b70700():
 asyncio.run(run_async_code_a5b70700())
 team = SelectorGroupChat(
     [planning_agent, web_search_agent, data_analyst_agent],
-    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-1b-instruct-4bit"),
+    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct-4bit"),
     termination_condition=termination,
     selector_prompt=selector_prompt,
     allow_repeated_speaker=True,
@@ -367,7 +388,7 @@ async def run_async_code_a5b70700():
 asyncio.run(run_async_code_a5b70700())
 team = SelectorGroupChat(
     [planning_agent, web_search_agent, data_analyst_agent],
-    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-1b-instruct-4bit"),
+    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct-4bit"),
     termination_condition=termination,
     candidate_func=candidate_func,
 )
@@ -417,7 +438,7 @@ async def run_async_code_a5b70700():
 asyncio.run(run_async_code_a5b70700())
 team = SelectorGroupChat(
     [planning_agent, web_search_agent, data_analyst_agent, user_proxy_agent],
-    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-1b-instruct-4bit"),
+    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct-4bit"),
     termination_condition=termination,
     selector_prompt=selector_prompt,
     selector_func=selector_func_with_user_proxy,
@@ -459,14 +480,14 @@ web_search_agent = AssistantAgent(
     "WebSearchAgent",
     description="An agent for searching information on the web.",
     tools=[search_web_tool],
-    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-1b-instruct-4bit"),
+    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct-4bit"),
     system_message="""Use web search tool to find information.""",
 )
 
 data_analyst_agent = AssistantAgent(
     "DataAnalystAgent",
     description="An agent for performing calculations.",
-    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-1b-instruct-4bit"),
+    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct-4bit"),
     tools=[percentage_change_tool],
     system_message="""Use tool to perform calculation. If you have not seen the data, ask for it.""",
 )
@@ -489,7 +510,7 @@ When the task is complete, let the user approve or disapprove the task.
 
 team = SelectorGroupChat(
     [web_search_agent, data_analyst_agent, user_proxy_agent],
-    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-1b-instruct-4bit"),
+    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct-4bit"),
     # Use the same termination condition as before.
     termination_condition=termination,
     selector_prompt=selector_prompt,
