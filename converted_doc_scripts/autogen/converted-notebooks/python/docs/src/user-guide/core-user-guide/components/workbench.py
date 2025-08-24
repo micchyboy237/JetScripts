@@ -1,3 +1,4 @@
+import re
 from httpx_sse import aconnect_sse  # Add for SSE connection
 import asyncio
 from jet.transformers.formatters import format_json
@@ -60,65 +61,132 @@ class WorkbenchAgent(RoutedAgent):
         self._model_context = model_context
         self._workbench = workbench
 
+    # Update the handle_user_message method in WorkbenchAgent class
     @message_handler
     async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
         await self._model_context.add_message(UserMessage(content=message.content, source="user"))
         logger.debug("---------User Message-----------")
         logger.debug(message.content)
-        # Log available tools for debugging
         available_tools = await self._workbench.list_tools()
         logger.debug(f"Available tools: {format_json(available_tools)}")
+
+        # Create initial model response with tools
         create_result = await self._model_client.create(
             messages=self._system_messages + (await self._model_context.get_messages()),
             tools=available_tools,
-            tool_choice="auto",  # Encourage tool usage when applicable
+            tool_choice="auto",
             cancellation_token=ctx.cancellation_token,
         )
         logger.success(format_json(create_result))
-        while isinstance(create_result.content, list) and all(
-            isinstance(call, FunctionCall) for call in create_result.content
-        ):
-            logger.debug("---------Function Calls-----------")
-            for call in create_result.content:
-                logger.debug(format_json(call))
-            await self._model_context.add_message(AssistantMessage(content=create_result.content, source="assistant"))
-            logger.debug("---------Function Call Results-----------")
-            results: List[ToolResult] = []
-            for call in create_result.content:
-                async def async_func_61():
-                    result = await self._workbench.call_tool(
-                        call.name, arguments=json.loads(call.arguments), cancellation_token=ctx.cancellation_token
-                    )
-                    return result
-                result = asyncio.run(async_func_61())
-                logger.success(format_json(result))
-                results.append(result)
-                logger.debug(result)
-            await self._model_context.add_message(
-                FunctionExecutionResultMessage(
-                    content=[
-                        FunctionExecutionResult(
-                            call_id=call.id,
-                            content=result.to_text(),
-                            is_error=result.is_error,
-                            name=result.name,
-                        )
-                        for call, result in zip(create_result.content, results, strict=False)
-                    ]
+
+        # Parse tool calls from model response
+        tool_calls = self._parse_tool_calls(create_result.content)
+        logger.debug("---------Function Calls-----------")
+        for call in tool_calls:
+            logger.debug(format_json({
+                "id": call.id,
+                "name": call.name,
+                "arguments": call.arguments
+            }))
+
+        # If browser_search is called, simulate it with navigate and type
+        for call in tool_calls:
+            if call.name == "browser_search":
+                query = json.loads(call.arguments).get("query", "")
+                # Navigate to Bing
+                await self._workbench.call_tool(
+                    "browser_navigate",
+                    arguments={"url": "https://www.bing.com"},
+                    cancellation_token=ctx.cancellation_token
                 )
-            )
-            create_result = await self._model_client.create(
-                messages=self._system_messages + (await self._model_context.get_messages()),
-                tools=available_tools,
-                tool_choice="auto",
-                cancellation_token=ctx.cancellation_token,
-            )
-            logger.success(format_json(create_result))
-        assert isinstance(create_result.content, str)
+                # Type the query into the search bar
+                await self._workbench.call_tool(
+                    "browser_type",
+                    arguments={
+                        "element": "search input",
+                        "ref": "input[name='q']",
+                        "text": query,
+                        "submit": True
+                    },
+                    cancellation_token=ctx.cancellation_token
+                )
+                # Capture snapshot to get search results
+                snapshot_result = await self._workbench.call_tool(
+                    "browser_snapshot",
+                    arguments={},
+                    cancellation_token=ctx.cancellation_token
+                )
+                logger.success(format_json(snapshot_result))
+                await self._model_context.add_message(
+                    FunctionExecutionResultMessage(
+                        content=[
+                            FunctionExecutionResult(
+                                call_id=call.id,
+                                content=snapshot_result.to_text(),
+                                is_error=snapshot_result.is_error,
+                                name="browser_search"
+                            )
+                        ]
+                    )
+                )
+            else:
+                result = await self._workbench.call_tool(
+                    call.name,
+                    arguments=json.loads(call.arguments),
+                    cancellation_token=ctx.cancellation_token
+                )
+                logger.success(format_json(result))
+                await self._model_context.add_message(
+                    FunctionExecutionResultMessage(
+                        content=[
+                            FunctionExecutionResult(
+                                call_id=call.id,
+                                content=result.to_text(),
+                                is_error=result.is_error,
+                                name=result.name
+                            )
+                        ]
+                    )
+                )
+
+        # Generate final response
+        create_result = await self._model_client.create(
+            messages=self._system_messages + (await self._model_context.get_messages()),
+            tools=available_tools,
+            tool_choice="auto",
+            cancellation_token=ctx.cancellation_token,
+        )
+        logger.success(format_json(create_result))
+
+        # Serialize tool calls properly
+        tool_calls_serializable = [
+            {"id": call.id, "name": call.name, "arguments": call.arguments}
+            for call in tool_calls
+        ]
+        tool_calls_str = json.dumps(tool_calls_serializable)
         logger.debug("---------Final Response-----------")
-        logger.debug(create_result.content)
+        logger.debug(format_json(tool_calls_serializable))
         await self._model_context.add_message(AssistantMessage(content=create_result.content, source="assistant"))
         return Message(content=create_result.content)
+
+    # Update the _parse_tool_calls method to handle multiple tool calls
+    def _parse_tool_calls(self, content: str) -> List[FunctionCall]:
+        tool_calls = []
+        matches = re.findall(
+            r'<tool_call>\n(.*?)\n</tool_call>', content, re.DOTALL)
+        for i, match in enumerate(matches):
+            try:
+                tool_call_json = json.loads(match)
+                tool_calls.append(FunctionCall(
+                    id=f"call_{i}",
+                    name=tool_call_json["name"],
+                    arguments=json.dumps(tool_call_json["arguments"])
+                ))
+            except json.JSONDecodeError:
+                logger.error(f"Failed to parse tool call JSON: {match}")
+        if not tool_calls:
+            raise ValueError("Failed to parse any tool calls from content")
+        return tool_calls
 
 # New function to check server availability
 
