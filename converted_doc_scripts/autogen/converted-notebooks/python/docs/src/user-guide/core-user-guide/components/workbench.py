@@ -215,9 +215,7 @@ async def async_func_9():
         )
 
         await runtime.stop()
-    return result
 
-result = asyncio.run(async_func_9())
-logger.success(format_json(result))
+asyncio.run(async_func_9())
 
 logger.info("\n\n[DONE]", bright=True)
