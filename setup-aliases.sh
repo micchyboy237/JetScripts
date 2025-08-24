@@ -423,7 +423,7 @@ git_stats() {
     # git_stats -e ".py,.md"
     # git_stats -e ".py,.md" -t files -m file
     # git_stats -e ".py,.md" -t dirs -m git -d 3
-    # git_stats -e ".py,.md" -t dirs -m auto -d 3
+    # git_stats -e ".py,.ipynb" -m auto
 }
 
 # Function to check memory usage of specific Python processes
