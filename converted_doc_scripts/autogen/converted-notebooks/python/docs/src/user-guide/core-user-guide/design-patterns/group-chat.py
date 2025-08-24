@@ -147,7 +147,7 @@ class BaseGroupChatAgent(RoutedAgent):
 
     @message_handler
     async def handle_request_to_speak(self, message: RequestToSpeak, ctx: MessageContext) -> None:
-        Console().logger.debug(Markdown(f"### {self.id.type}: "))
+        Console().print(Markdown(f"### {self.id.type}: "))
         self._chat_history.append(
             UserMessage(
                 content=f"Transferred to {self.id.type}, adopt the persona immediately.", source="system")
@@ -156,7 +156,7 @@ class BaseGroupChatAgent(RoutedAgent):
         assert isinstance(completion.content, str)
         self._chat_history.append(AssistantMessage(
             content=completion.content, source=self.id.type))
-        Console().logger.debug(Markdown(completion.content))
+        Console().print(Markdown(completion.content))
         await self.publish_message(
             GroupChatMessage(body=UserMessage(
                 content=completion.content, source=self.id.type)),
@@ -237,7 +237,7 @@ class IllustratorAgent(BaseGroupChatAgent):
     @message_handler
     # type: ignore
     async def handle_request_to_speak(self, message: RequestToSpeak, ctx: MessageContext) -> None:
-        Console().logger.debug(Markdown(f"### {self.id.type}: "))
+        Console().print(Markdown(f"### {self.id.type}: "))
         self._chat_history.append(
             UserMessage(
                 content=f"Transferred to {self.id.type}, adopt the persona immediately.", source="system")
@@ -254,7 +254,7 @@ class IllustratorAgent(BaseGroupChatAgent):
         images: List[str | Image] = []
         for tool_call in completion.content:
             arguments = json.loads(tool_call.arguments)
-            Console().logger.debug(arguments)
+            Console().print(arguments)
             result = await self._image_gen_tool.run_json(arguments, ctx.cancellation_token)
             image = Image.from_base64(
                 self._image_gen_tool.return_value_as_string(result))
@@ -294,7 +294,7 @@ class UserAgent(RoutedAgent):
     async def handle_request_to_speak(self, message: RequestToSpeak, ctx: MessageContext) -> None:
         user_input = input(
             "Enter your message, type 'APPROVE' to conclude the task: ")
-        Console().logger.debug(Markdown(f"### User: \n{user_input}"))
+        Console().print(Markdown(f"### User: \n{user_input}"))
         await self.publish_message(
             GroupChatMessage(body=UserMessage(
                 content=user_input, source=self.id.type)),
