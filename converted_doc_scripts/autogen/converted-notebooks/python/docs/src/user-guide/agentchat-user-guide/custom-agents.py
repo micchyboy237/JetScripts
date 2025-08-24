@@ -1,4 +1,5 @@
 import asyncio
+import sys
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
@@ -208,14 +209,14 @@ async def run_number_agents() -> None:
     ]
     stream = selector_group_chat.run_stream(task=task)
 
-    async def run_async_code_8cdf6b5b():
-        await Console(stream)
-    asyncio.run(run_async_code_8cdf6b5b())
+    await Console(stream)
 
 
 async def run_async_code_c9fbdd41():
     await run_number_agents()
 asyncio.run(run_async_code_c9fbdd41())
+
+sys.exit()
 
 """
 From the output, we can see that the agents have successfully transformed the input integer
@@ -281,9 +282,7 @@ class GeminiAssistantAgent(BaseChatAgent):
             + ": "
             + (msg.content if isinstance(msg.content, str) else "")
             + "\n"
-            async def run_async_code_e4f0a5f2():
-                for msg in await self._model_context.get_messages()
-            asyncio.run(run_async_code_e4f0a5f2())
+            for msg in await self._model_context.get_messages()
         ]
         response = self._model_client.models.generate_content(
             model=self._model,
@@ -427,9 +426,7 @@ class GeminiAssistantAgent(BaseChatAgent, Component[GeminiAssistantAgentConfig])
             + ": "
             + (msg.content if isinstance(msg.content, str) else "")
             + "\n"
-            async def run_async_code_e4f0a5f2():
-                for msg in await self._model_context.get_messages()
-            asyncio.run(run_async_code_e4f0a5f2())
+            for msg in await self._model_context.get_messages()
         ]
 
         response = self._model_client.models.generate_content(
