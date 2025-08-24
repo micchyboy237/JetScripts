@@ -8,9 +8,9 @@ from autogen_core.models import CreateResult, UserMessage
 from autogen_core.models import UserMessage
 from autogen_ext.cache_store.diskcache import DiskCacheStore
 from autogen_ext.models.cache import CHAT_CACHE_VALUE_TYPE, ChatCompletionCache
+from autogen_ext.models.ollama import OllamaChatCompletionClient
 from dataclasses import dataclass
 from diskcache import Cache
-from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from pydantic import BaseModel
 from typing import Literal
@@ -35,8 +35,8 @@ AutoGen provides a suite of built-in model clients for using ChatCompletion API.
 All model clients implement the {py:class}`~autogen_core.models.ChatCompletionClient` protocol class.
 
 Currently we support the following built-in model clients:
-* {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenChatLLMAdapter`: for MLX models and models with MLX API compatibility (e.g., Gemini).
-* {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.AzureMLXAutogenChatLLMAdapter`: for Azure MLX models.
+* {py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient`: for Ollama models and models with Ollama API compatibility (e.g., Gemini).
+* {py:class}`~autogen_ext.models.openai.AzureOllamaChatCompletionClient`: for Azure Ollama models.
 * {py:class}`~autogen_ext.models.azure.AzureAIChatCompletionClient`: for GitHub models and models hosted on Azure.
 * {py:class}`~autogen_ext.models.ollama.OllamaChatCompletionClient` (Experimental): for local models hosted on Ollama.
 * {py:class}`~autogen_ext.models.anthropic.AnthropicChatCompletionClient` (Experimental): for models hosted on Anthropic.
@@ -52,28 +52,25 @@ The logger name is {py:attr}`autogen_core.EVENT_LOGGER_NAME`, and the event type
 logger.info("# Model Clients")
 
 
-logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger(EVENT_LOGGER_NAME)
-logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.INFO)
-
 """
 ## Call Model Client
 
 To call a model client, you can use the {py:meth}`~autogen_core.models.ChatCompletionClient.create` method.
-This example uses the {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenChatLLMAdapter` to call an MLX model.
+This example uses the {py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient` to call an Ollama model.
 """
 logger.info("## Call Model Client")
 
 
-model_client = MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3
-# )  # assuming OPENAI_API_KEY is set in the environment.
+model_client = OllamaChatCompletionClient(
+    model="llama3.2",
+    host="http://localhost:11434"
+)
+
 
 async def run_async_code_75a3b6ab():
-    result=await model_client.create([UserMessage(content="What is the capital of France?", source="user")])
+    result = await model_client.create([UserMessage(content="What is the capital of France?", source="user")])
     return result
-result=asyncio.run(run_async_code_75a3b6ab())
+result = asyncio.run(run_async_code_75a3b6ab())
 logger.success(format_json(result))
 logger.debug(result)
 
@@ -85,26 +82,30 @@ chat completion request with streaming token chunks.
 """
 logger.info("## Streaming Tokens")
 
+model_client = OllamaChatCompletionClient(
+    model="llama3.2", host="http://localhost:11434")
 
-# model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")  # assuming OPENAI_API_KEY is set in the environment.
-
-messages=[
+messages = [
     UserMessage(content="Write a very short story about a dragon.",
                 source="user"),
 ]
 
-stream=model_client.create_stream(messages=messages)
+
+async def print_streamed_responses():
+    stream = model_client.create_stream(messages=messages)
+    try:
+        async for chunk in stream:
+            if isinstance(chunk, str):
+                logger.debug(chunk)
+            else:
+                assert isinstance(chunk, CreateResult) and isinstance(
+                    chunk.content, str)
+                logger.teal(chunk.content, flush=True)
+    finally:
+        await model_client.close()
 
 logger.debug("Streamed responses:")
-async for chunk in stream:  # type: ignore
-    if isinstance(chunk, str):
-        logger.debug(chunk, flush=True, end="")
-    else:
-        assert isinstance(chunk, CreateResult) and isinstance(
-            chunk.content, str)
-        logger.debug("\n\n------------\n")
-        logger.debug("The complete response:", flush=True)
-        logger.debug(chunk.content, flush=True)
+asyncio.run(print_streamed_responses())
 
 """
 ```{note}
@@ -114,27 +115,25 @@ of the type {py:class}`~autogen_core.models.CreateResult`.
 
 ```{note}
 The default usage response is to return zero values. To enable usage,
-see {py:meth}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.BaseMLXAutogenChatLLMAdapter.create_stream`
+see {py:meth}`~autogen_ext.models.openai.BaseOllamaChatCompletionClient.create_stream`
 for more details.
 ```
 
 ## Structured Output
 
 Structured output can be enabled by setting the `response_format` field in
-{py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenChatLLMAdapter` and {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.AzureMLXAutogenChatLLMAdapter` to
+{py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient` and {py:class}`~autogen_ext.models.openai.AzureOllamaChatCompletionClient` to
 as a [Pydantic BaseModel](https://docs.pydantic.dev/latest/concepts/models/) class.
 
 ```{note}
 Structured output is only available for models that support it. It also
 requires the model client to support structured output as well.
-Currently, the {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenChatLLMAdapter`
-and {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.AzureMLXAutogenChatLLMAdapter`
+Currently, the {py:class}`~autogen_ext.models.openai.OllamaChatCompletionClient`
+and {py:class}`~autogen_ext.models.openai.AzureOllamaChatCompletionClient`
 support structured output.
 ```
 """
 logger.info("## Structured Output")
-
-
 
 
 class AgentResponse(BaseModel):
@@ -142,30 +141,37 @@ class AgentResponse(BaseModel):
     response: Literal["happy", "sad", "neutral"]
 
 
-model_client=MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit",
+model_client = OllamaChatCompletionClient(
+    model="llama3.2",
+    host="http://localhost:11434",
     response_format=AgentResponse,  # type: ignore
 )
 
-messages=[
+messages = [
     UserMessage(content="I am happy.", source="user"),
 ]
+
+
 async def run_async_code_fbb22dd6():
-    response=await model_client.create(messages=messages)
+    response = await model_client.create(messages=messages)
+    logger.info(format_json(response))
     return response
-response=asyncio.run(run_async_code_fbb22dd6())
-logger.success(format_json(response))
+
+response = asyncio.run(run_async_code_fbb22dd6())
+logger.info(format_json(response))
 assert isinstance(response.content, str)
-parsed_response=AgentResponse.model_validate_json(response.content)
+parsed_response = AgentResponse.model_validate_json(response.content)
 logger.debug(parsed_response.thoughts)
 logger.debug(parsed_response.response)
 
+
 async def run_async_code_0349fda4():
     await model_client.close()
+
 asyncio.run(run_async_code_0349fda4())
 
 """
-You also use the `extra_create_args` parameter in the {py:meth}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.BaseMLXAutogenChatLLMAdapter.create` method
+You also use the `extra_create_args` parameter in the {py:meth}`~autogen_ext.models.openai.BaseOllamaChatCompletionClient.create` method
 to set the `response_format` field so that the structured output can be configured for each request.
 
 ## Caching Model Responses
@@ -179,38 +185,30 @@ Here's an example of using `diskcache` for local caching:
 logger.info("## Caching Model Responses")
 
 
-
-
-
-
 async def main() -> None:
+    import tempfile
+
     with tempfile.TemporaryDirectory() as tmpdirname:
-        openai_model_client=MLXAutogenChatLLMAdapter(
-            model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+        # Remove invalid parameters from OllamaChatCompletionClient
+        openai_model_client = OllamaChatCompletionClient(
+            model="llama3.2"
+        )
 
-        cache_store=DiskCacheStore[CHAT_CACHE_VALUE_TYPE](Cache(tmpdirname))
-        cache_client=ChatCompletionCache(openai_model_client, cache_store)
+        cache_store = DiskCacheStore[CHAT_CACHE_VALUE_TYPE](Cache(tmpdirname))
+        cache_client = ChatCompletionCache(openai_model_client, cache_store)
 
-        async def run_async_code_e23dea5e():
-            response=await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
-            return response
-        response=asyncio.run(run_async_code_e23dea5e())
-        logger.success(format_json(response))
-        logger.debug(response)  # Should print response from MLX
-        async def run_async_code_e23dea5e():
-            response=await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
-            return response
-        response=asyncio.run(run_async_code_e23dea5e())
-        logger.success(format_json(response))
-        logger.debug(response)  # Should print cached response
+        # First call: should hit the model and cache the result
+        response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
+        logger.info(format_json(response))
+        logger.debug(response)  # Should print response from Ollama
 
-        async def run_async_code_54283016():
-            await openai_model_client.close()
-        asyncio.run(run_async_code_54283016())
-        async def run_async_code_dba000a8():
-            await cache_client.close()
-        asyncio.run(run_async_code_dba000a8())
+        # Second call: should hit the cache
+        response_cached = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
+        logger.info(format_json(response_cached))
+        logger.debug(response_cached)  # Should print cached response
 
+        await openai_model_client.close()
+        await cache_client.close()
 
 asyncio.run(main())
 
@@ -226,9 +224,7 @@ Let's create a simple AI agent that can respond to messages using the ChatComple
 logger.info("## Build an Agent with a Model Client")
 
 
-
-
-@ dataclass
+@dataclass
 class Message:
     content: str
 
@@ -236,18 +232,20 @@ class Message:
 class SimpleAgent(RoutedAgent):
     def __init__(self, model_client: ChatCompletionClient) -> None:
         super().__init__("A simple agent")
-        self._system_messages=[SystemMessage(
+        self._system_messages = [SystemMessage(
             content="You are a helpful AI assistant.")]
-        self._model_client=model_client
+        self._model_client = model_client
 
-    @ message_handler
+    @message_handler
     async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
-        user_message=UserMessage(content=message.content, source="user")
-        response=await self._model_client.create(
+        user_message = UserMessage(content=message.content, source="user")
+        response = await self._model_client.create(
             self._system_messages + [user_message], cancellation_token=ctx.cancellation_token
         )
+        logger.info(format_json(response))
         assert isinstance(response.content, str)
         return Message(content=response.content)
+
 
 """
 The `SimpleAgent` class is a subclass of the
@@ -264,34 +262,29 @@ and can be used by the caller to cancel the handlers.
 logger.info("The `SimpleAgent` class is a subclass of the")
 
 
-model_client=MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit",
-)
+async def main():
+    model_client = OllamaChatCompletionClient(
+        model="llama3.2",
+    )
 
-runtime=SingleThreadedAgentRuntime()
-async def async_func_7():
+    runtime = SingleThreadedAgentRuntime()
     await SimpleAgent.register(
         runtime,
         "simple_agent",
         lambda: SimpleAgent(model_client=model_client),
     )
-asyncio.run(async_func_7())
-async def run_async_code_1e6ac0a6():
     runtime.start()
-asyncio.run(run_async_code_1e6ac0a6())
-message=Message("Hello, what are some fun things to do in Seattle?")
-async def run_async_code_b614784e():
-    response=await runtime.send_message(message, AgentId("simple_agent", "default"))
-    return response
-response=asyncio.run(run_async_code_b614784e())
-logger.success(format_json(response))
-logger.debug(response.content)
-async def run_async_code_4aaa8dea():
+    message = Message("Hello, what are some fun things to do in Seattle?")
+
+    response = await runtime.send_message(message, AgentId("simple_agent", "default"))
+    logger.info(format_json(response))
+    assert isinstance(response.content, str)
+    logger.debug(response.content)
+
     await runtime.stop()
-asyncio.run(run_async_code_4aaa8dea())
-async def run_async_code_0349fda4():
     await model_client.close()
-asyncio.run(run_async_code_0349fda4())
+
+asyncio.run(main())
 
 """
 The above `SimpleAgent` always responds with a fresh context that contains only
@@ -302,10 +295,10 @@ See the [Model Context](./model-context.ipynb) page for more details.
 
 ## API Keys From Environment Variables
 
-In the examples above, we show that you can provide the API key through the `api_key` argument. Importantly, the MLX and Azure MLX clients use the [openai package](https://github.com/openai/openai-python/blob/3f8d8205ae41c389541e125336b0ae0c5e437661/src/openai/__init__.py#L260), which will automatically read an api key from the environment variable if one is not provided.
+In the examples above, we show that you can provide the API key through the `api_key` argument. Importantly, the Ollama and Azure Ollama clients use the [openai package](https://github.com/openai/openai-python/blob/3f8d8205ae41c389541e125336b0ae0c5e437661/src/openai/__init__.py#L260), which will automatically read an api key from the environment variable if one is not provided.
 
-# - For MLX, you can set the `OPENAI_API_KEY` environment variable.
-# - For Azure MLX, you can set the `AZURE_OPENAI_API_KEY` environment variable.
+# - For Ollama, you can set the `OPENAI_API_KEY` environment variable.
+# - For Azure Ollama, you can set the `AZURE_OPENAI_API_KEY` environment variable.
 
 In addition, for Gemini (Beta), you can set the `GEMINI_API_KEY` environment variable.
 

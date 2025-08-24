@@ -3,8 +3,8 @@ from jet.transformers.formatters import format_json
 from autogen_core import AgentId, MessageContext, RoutedAgent, SingleThreadedAgentRuntime, message_handler
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import AssistantMessage, ChatCompletionClient, SystemMessage, UserMessage
+from autogen_ext.models.ollama import OllamaChatCompletionClient
 from dataclasses import dataclass
-from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 import os
 import shutil
@@ -50,12 +50,20 @@ class SimpleAgentWithContext(RoutedAgent):
     async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
         user_message = UserMessage(content=message.content, source="user")
         await self._model_context.add_message(user_message)
+        logger.success(format_json(message.content))
+
         response = await self._model_client.create(
             self._system_messages + (await self._model_context.get_messages()),
             cancellation_token=ctx.cancellation_token,
         )
+        logger.success(format_json(response))
         assert isinstance(response.content, str)
-        await self._model_context.add_message(AssistantMessage(content=response.content, source=self.metadata["type"]))
+
+        await self._model_context.add_message(
+            AssistantMessage(content=response.content,
+                             source=self.metadata["type"])
+        )
+        logger.success(format_json(response.content))
         return Message(content=response.content)
 
 
@@ -64,59 +72,39 @@ Now let's try to ask follow up questions after the first one.
 """
 logger.info("Now let's try to ask follow up questions after the first one.")
 
-model_client = MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit",
-)
 
-runtime = SingleThreadedAgentRuntime()
+async def main():
+    model_client = OllamaChatCompletionClient(
+        model="llama3.2",
+        host="http://localhost:11434"
+    )
 
-
-async def async_func_5():
+    runtime = SingleThreadedAgentRuntime()
     await SimpleAgentWithContext.register(
         runtime,
         "simple_agent_context",
         lambda: SimpleAgentWithContext(model_client=model_client),
     )
-asyncio.run(async_func_5())
-
-
-async def run_async_code_1e6ac0a6():
     runtime.start()
-asyncio.run(run_async_code_1e6ac0a6())
-agent_id = AgentId("simple_agent_context", "default")
+    agent_id = AgentId("simple_agent_context", "default")
 
-message = Message("Hello, what are some fun things to do in Seattle?")
-logger.debug(f"Question: {message.content}")
-
-
-async def run_async_code_3f4c141c():
+    message = Message("Hello, what are some fun things to do in Seattle?")
+    logger.debug(f"Question: {message.content}")
     response = await runtime.send_message(message, agent_id)
-    return response
-response = asyncio.run(run_async_code_3f4c141c())
-logger.success(format_json(response))
-logger.debug(f"Response: {response.content}")
-logger.debug("-----")
+    logger.success(format_json(response))
+    logger.debug(f"Response: {response.content}")
+    logger.debug("-----")
 
-message = Message("What was the first thing you mentioned?")
-logger.debug(f"Question: {message.content}")
-
-
-async def run_async_code_3f4c141c():
+    message = Message("What was the first thing you mentioned?")
+    logger.debug(f"Question: {message.content}")
     response = await runtime.send_message(message, agent_id)
-    return response
-response = asyncio.run(run_async_code_3f4c141c())
-logger.success(format_json(response))
-logger.debug(f"Response: {response.content}")
+    logger.success(format_json(response))
+    logger.debug(f"Response: {response.content}")
 
-
-async def run_async_code_4aaa8dea():
     await runtime.stop()
-asyncio.run(run_async_code_4aaa8dea())
-
-
-async def run_async_code_0349fda4():
     await model_client.close()
-asyncio.run(run_async_code_0349fda4())
+
+asyncio.run(main())
 
 """
 From the second response, you can see the agent now can recall its own previous responses.
