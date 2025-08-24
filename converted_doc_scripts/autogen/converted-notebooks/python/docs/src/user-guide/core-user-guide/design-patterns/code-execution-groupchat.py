@@ -1,4 +1,5 @@
 import asyncio
+from jet.transformers.formatters import format_json
 from IPython.display import Image
 from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, default_subscription, message_handler
 from autogen_core import SingleThreadedAgentRuntime
@@ -10,9 +11,9 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
-from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
+from autogen_ext.models.ollama import OllamaChatCompletionClient
 from dataclasses import dataclass
-from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from typing import List
 import os
@@ -33,7 +34,7 @@ logger.info(f"Logs: {log_file}")
 
 In this section we explore creating custom agents to handle code generation and execution. These tasks can be handled using the provided Agent implementations found here {py:meth}`~autogen_agentchat.agents.AssistantAgent`, {py:meth}`~autogen_agentchat.agents.CodeExecutorAgent`; but this guide will show you how to implement custom, lightweight agents that can replace their functionality. This simple example implements two agents that create a plot of Tesla's and Nvidia's stock returns.
 
-We first define the agent classes and their respective procedures for 
+We first define the agent classes and their respective procedures for
 handling messages.
 We create two agent classes: `Assistant` and `Executor`. The `Assistant`
 agent writes code and the `Executor` agent executes the code.
@@ -68,12 +69,15 @@ Always save figures to file in the current directory. Do not use plt.show(). All
     async def handle_message(self, message: Message, ctx: MessageContext) -> None:
         self._chat_history.append(UserMessage(
             content=message.content, source="user"))
+
         result = await self._model_client.create(self._chat_history)
+        logger.success(format_json(result))
         logger.debug(f"\n{'-'*80}\nAssistant:\n{result.content}")
         self._chat_history.append(AssistantMessage(
             content=result.content, source="assistant"))  # type: ignore
-        # type: ignore
+
         await self.publish_message(Message(content=result.content), DefaultTopicId())
+        logger.success(format_json(result))
 
 
 def extract_markdown_code_blocks(markdown_text: str) -> List[CodeBlock]:
@@ -100,8 +104,10 @@ class Executor(RoutedAgent):
             result = await self._code_executor.execute_code_blocks(
                 code_blocks, cancellation_token=ctx.cancellation_token
             )
+            logger.success(format_json(result))
             logger.debug(f"\n{'-'*80}\nExecutor:\n{result.output}")
             await self.publish_message(Message(content=result.output), DefaultTopicId())
+            logger.success(format_json(result))
 
 
 """
@@ -122,37 +128,46 @@ a local embedded agent runtime implementation.
 logger.info(
     "You might have already noticed, the agents' logic, whether it is using model or code executor,")
 
+# Set DOCKER_HOST to Colima's socket
+os.environ["DOCKER_HOST"] = "unix:///Users/jethroestrada/.colima/default/docker.sock"
 
-# Modified work_dir to ensure it exists
-work_dir = os.path.join(OUTPUT_DIR, "work_dir")
-os.makedirs(work_dir, exist_ok=True)
+work_dir = tempfile.mkdtemp()
 
 runtime = SingleThreadedAgentRuntime()
 
 
 async def async_func_10():
-    try:
-        async with LocalCommandLineCodeExecutor(work_dir=work_dir) as executor:
-            model_client = MLXAutogenChatLLMAdapter(
-                model="qwen3-1.7b-4bit", log_dir=os.path.join(OUTPUT_DIR, "chats")
-            )
-            await Assistant.register(
-                runtime,
-                "assistant",
-                lambda: Assistant(model_client=model_client),
-            )
-            await Executor.register(runtime, "executor", lambda: Executor(executor))
+    # type: ignore[syntax]
+    async with DockerCommandLineCodeExecutor(
+        work_dir=work_dir,
+        bind_dir=str(work_dir),
+        timeout=60,
+        auto_remove=False,
+        # delete_tmp_files=True
+    ) as executor:
+        model_client = OllamaChatCompletionClient(
+            model="llama3.2",
+            host="http://localhost:11434"
+        )
+        await Assistant.register(
+            runtime,
+            "assistant",
+            lambda: Assistant(model_client=model_client),
+        )
+        await Executor.register(runtime, "executor", lambda: Executor(executor))
 
-            runtime.start()
-            await runtime.publish_message(
-                Message(
-                    "Create a plot of NVIDIA vs TSLA stock returns YTD from 2024-01-01."), DefaultTopicId()
-            )
-            await runtime.stop_when_idle()
-            await model_client.close()
-    except Exception as e:
-        logger.error(f"Error in async_func_10: {str(e)}")
-        raise
+        runtime.start()
+        await runtime.publish_message(
+            Message(
+                "Create a plot of NVIDA vs TSLA stock returns YTD from 2024-01-01."), DefaultTopicId()
+        )
+
+        await runtime.stop_when_idle()
+        await model_client.close()
+    return result
+
+result = asyncio.run(async_func_10())
+logger.success(format_json(result))
 
 """
 From the agent's output, we can see the plot of Tesla's and Nvidia's stock returns
@@ -162,7 +177,7 @@ logger.info(
     "From the agent's output, we can see the plot of Tesla's and Nvidia's stock returns")
 
 
-# Image(filename=f"{work_dir}/nvidia_vs_tesla_ytd_returns.png")  # type: ignore
+Image(filename=f"{work_dir}/nvidia_vs_tesla_ytd_returns.png")  # type: ignore
 
 """
 AutoGen also supports a distributed agent runtime, which can host agents running on
