@@ -261,7 +261,7 @@ messages = [
     user_message,
     # Assistant message with tool call (convert list to string)
     AssistantMessage(
-        content=json.dumps(create_result.content, default=str),
+        content=create_result.content,
         source="assistant"
     ),
     # Function execution result message (keep content as list)
@@ -300,6 +300,13 @@ For "pre-built" agents that can use tools, please refer to the [AgentChat API](.
 """
 logger.info("## Tool-Equipped Agent")
 
+# Utility function for message content serialization
+
+
+def serialize_message_content(content):
+    """Convert message content to a JSON string for MLX compatibility."""
+    return content if isinstance(content, str) else json.dumps(content, default=str)
+
 
 @dataclass
 class Message:
@@ -316,45 +323,42 @@ class ToolUseAgent(RoutedAgent):
 
     @message_handler
     async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
-        session: List[LLMMessage] = self._system_messages + \
-            [UserMessage(content=message.content, source="user")]
+        session: List[LLMMessage] = self._system_messages + [
+            UserMessage(content=message.content, source="user")]
 
-        async def async_func_39():
-            create_result = await self._model_client.create(
-                messages=session,
-                tools=self._tools,
-                cancellation_token=ctx.cancellation_token,
-            )
-            return create_result
-        create_result = asyncio.run(async_func_39())
+        # Generate tool call
+        create_result = await self._model_client.create(
+            messages=session,
+            tools=self._tools,
+            cancellation_token=ctx.cancellation_token,
+        )
         logger.success(format_json(create_result))
 
         if isinstance(create_result.content, str):
             return Message(content=create_result.content)
+
         assert isinstance(create_result.content, list) and all(
             isinstance(call, FunctionCall) for call in create_result.content
         )
 
         session.append(AssistantMessage(
-            content=create_result.content, source="assistant"))
+            content=serialize_message_content(create_result.content),
+            source="assistant"))
 
-        async def async_func_53():
-            results = await asyncio.gather(
-                *[self._execute_tool_call(call, ctx.cancellation_token) for call in create_result.content]
-            )
-            return results
-        results = asyncio.run(async_func_53())
+        # Execute tool calls
+        results = await asyncio.gather(
+            *[self._execute_tool_call(call, ctx.cancellation_token) for call in create_result.content]
+        )
         logger.success(format_json(results))
 
-        session.append(FunctionExecutionResultMessage(content=results))
+        session.append(FunctionExecutionResultMessage(
+            content=serialize_message_content(results)))
 
-        async def async_func_59():
-            create_result = await self._model_client.create(
-                messages=session,
-                cancellation_token=ctx.cancellation_token,
-            )
-            return create_result
-        create_result = asyncio.run(async_func_59())
+        # Generate reflection
+        create_result = await self._model_client.create(
+            messages=session,
+            cancellation_token=ctx.cancellation_token,
+        )
         logger.success(format_json(create_result))
         assert isinstance(create_result.content, str)
 
@@ -369,11 +373,7 @@ class ToolUseAgent(RoutedAgent):
 
         try:
             arguments = json.loads(call.arguments)
-
-            async def run_async_code_05473541():
-                result = await tool.run_json(arguments, cancellation_token)
-                return result
-            result = asyncio.run(run_async_code_05473541())
+            result = await tool.run_json(arguments, cancellation_token)
             logger.success(format_json(result))
             return FunctionExecutionResult(
                 call_id=call.id, content=tool.return_value_as_string(result), is_error=False, name=tool.name
@@ -400,7 +400,8 @@ tools: List[Tool] = [FunctionTool(
     get_stock_price, description="Get the stock price.")]
 
 
-async def async_func_3():
+async def run_tool_use_agent():
+    # Register the agent
     await ToolUseAgent.register(
         runtime,
         "tool_use_agent",
@@ -409,38 +410,25 @@ async def async_func_3():
             tool_schema=tools,
         ),
     )
-asyncio.run(async_func_3())
 
-"""
-This example uses the {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenChatLLMAdapter`,
-for Azure MLX and other clients, see [Model Clients](./model-clients.ipynb).
-Let's test the agent with a question about stock price.
-"""
-logger.info(
-    "This example uses the {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenChatLLMAdapter`,")
+    # Start runtime, send message, and stop runtime
+    logger.info(
+        "This example uses the {py:class}`~jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter.MLXAutogenChatLLMAdapter`,")
 
+    runtime.start()  # Non-awaitable, synchronous start
+    tool_use_agent = AgentId("tool_use_agent", "default")
 
-async def run_async_code_1e6ac0a6():
-    runtime.start()
-asyncio.run(run_async_code_1e6ac0a6())
-tool_use_agent = AgentId("tool_use_agent", "default")
+    response = await runtime.send_message(
+        Message("What is the stock price of NVDA on 2024/06/01?"),
+        tool_use_agent
+    )
+    logger.success(format_json(response))
+    logger.debug(response.content)
 
-
-async def run_async_code_7e95725f():
-    response = await runtime.send_message(Message("What is the stock price of NVDA on 2024/06/01?"), tool_use_agent)
-    return response
-response = asyncio.run(run_async_code_7e95725f())
-logger.success(format_json(response))
-logger.debug(response.content)
-
-
-async def run_async_code_4aaa8dea():
     await runtime.stop()
-asyncio.run(run_async_code_4aaa8dea())
-
-
-async def run_async_code_0349fda4():
     await model_client.close()
-asyncio.run(run_async_code_0349fda4())
+
+# Run all async operations in a single event loop
+asyncio.run(run_tool_use_agent())
 
 logger.info("\n\n[DONE]", bright=True)
