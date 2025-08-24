@@ -67,13 +67,13 @@ async def async_func_9():
         work_dir=work_dir,
         bind_dir=str(work_dir),
         timeout=60,
-        auto_remove=True,
-        delete_tmp_files=True
+        auto_remove=False,
+        # delete_tmp_files=True
     ) as code_executor:
         result = await code_executor.execute_code_blocks(
             code_blocks=[
                 CodeBlock(language="python",
-                          code="logger.debug('Hello, World!')"),
+                          code="# filename: sample1.py\nfrom jet.logger import logger\n\nlogger.debug('Hello, World!')"),
             ],
             cancellation_token=CancellationToken(),
         )
@@ -116,13 +116,15 @@ logger.info("### Combining an Application in Docker with a Docker based executor
 work_dir = Path(f"{OUTPUT_DIR}/coding2")
 work_dir.mkdir(exist_ok=True)
 
-local_executor = LocalCommandLineCodeExecutor(work_dir=work_dir)
+local_executor = LocalCommandLineCodeExecutor(
+    work_dir=work_dir, cleanup_temp_files=False)
 
 
 async def async_func_11():
     result = await local_executor.execute_code_blocks(
         code_blocks=[
-            CodeBlock(language="python", code="logger.debug('Hello, World!')"),
+            CodeBlock(
+                language="python", code="# filename: sample2.py\nfrom jet.logger import logger\n\nlogger.debug('Hello, World!')"),
         ],
         cancellation_token=CancellationToken(),
     )
