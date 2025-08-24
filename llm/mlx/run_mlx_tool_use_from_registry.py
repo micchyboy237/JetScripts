@@ -1,16 +1,24 @@
-import json
+import os
+import shutil
 from jet.llm.mlx.mlx_types import ChatTemplateArgs
 from jet.llm.mlx.mlx_utils import parse_tool_call
-from jet.logger import logger
+from jet.logger import CustomLogger
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from mlx_lm import generate, load
 from mlx_lm.models.cache import make_prompt_cache
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger = CustomLogger(log_file, overwrite=True)
+logger.info(f"Logs: {log_file}")
 
 # Specify the checkpoint
 checkpoint = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125"
 
 # Load the corresponding model and tokenizer
-model = MLXModelRegistry.load_model(checkpoint)
+model = MLXModelRegistry.load_model(checkpoint, log_dir=f"{OUTPUT_DIR}/chats")
 
 # An example tool, make sure to include a docstring and type hints
 
