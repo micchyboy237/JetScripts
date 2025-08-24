@@ -18,7 +18,9 @@ TABLE_NAME = "messages"
 with PostgresClient(
     dbname=DBNAME,
 ) as client:
-    all_rows = client.get_rows(TABLE_NAME)
+    all_rows = client.get_rows(TABLE_NAME, where_conditions={
+        "conversation_id": "25d41299-921b-4a03-902e-75468e87b7a8"
+    })
     logger.newline()
     logger.debug(f"All rows in {TABLE_NAME}:")
     logger.success(format_json(all_rows))
@@ -32,12 +34,19 @@ with PostgresClient(
     )
 
     grouped_rows = group_by(all_rows, "session_id")
+    groups = []
+    for group in grouped_rows:
+        groups.append({
+            "group": group["group"],
+            "count": len(group["items"]),
+            "items": group["items"]
+        })
     save_file(
         {
             "table": TABLE_NAME,
             "group_key": "session_id",
-            "count": len(grouped_rows),
-            "rows": grouped_rows  # Directly save all columns except embedding
+            "count": len(groups),
+            "groups": groups
         },
         f"{OUTPUT_DIR}/grouped_rows.json"
     )

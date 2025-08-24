@@ -1,4 +1,6 @@
 import asyncio
+import sys
+import uuid
 from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
 from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
@@ -101,13 +103,13 @@ so it is recommended to provide meaningful names and descriptions.
 logger.info(
     "Let's create the specialized agents using the {py:class}`~autogen_agentchat.agents.AssistantAgent` class.")
 
-model_client = MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+conversation_id = str(uuid.uuid4())
 
 planning_agent = AssistantAgent(
     "PlanningAgent",
     description="An agent for planning tasks, this agent should be the first to engage when given a new task.",
-    model_client=model_client,
+    model_client=MLXAutogenChatLLMAdapter(
+        model="llama-3.2-1b-instruct-4bit", conversation_id=conversation_id, log_dir=f"{OUTPUT_DIR}/planning_chats"),
     system_message="""
     You are a planning agent.
     Your job is to break down complex tasks into smaller, manageable subtasks.
@@ -128,7 +130,8 @@ web_search_agent = AssistantAgent(
     "WebSearchAgent",
     description="An agent for searching information on the web.",
     tools=[search_web_tool],
-    model_client=model_client,
+    model_client=MLXAutogenChatLLMAdapter(
+        model="llama-3.2-1b-instruct-4bit", conversation_id=conversation_id, log_dir=f"{OUTPUT_DIR}/web_search_chats"),
     system_message="""
     You are a web search agent.
     Your only tool is search_tool - use it to find information.
@@ -140,7 +143,8 @@ web_search_agent = AssistantAgent(
 data_analyst_agent = AssistantAgent(
     "DataAnalystAgent",
     description="An agent for performing calculations.",
-    model_client=model_client,
+    model_client=MLXAutogenChatLLMAdapter(
+        model="llama-3.2-1b-instruct-4bit", conversation_id=conversation_id, log_dir=f"{OUTPUT_DIR}/data_analyst_chats"),
     tools=[percentage_change_tool],
     system_message="""
     You are a data analyst.
@@ -239,7 +243,8 @@ logger.info("### Running the Team")
 
 team = SelectorGroupChat(
     [planning_agent, web_search_agent, data_analyst_agent],
-    model_client=model_client,
+    model_client=MLXAutogenChatLLMAdapter(
+        model="llama-3.2-3b-instruct-4bit", conversation_id=conversation_id, log_dir=f"{OUTPUT_DIR}/manager_chats"),
     termination_condition=termination,
     selector_prompt=selector_prompt,
     # Allow an agent to speak multiple turns in a row.
@@ -258,6 +263,8 @@ task = "Who was the Miami Heat player with the highest points in the 2006-2007 s
 async def run_async_code_ac2575cc():
     await Console(team.run_stream(task=task))
 asyncio.run(run_async_code_ac2575cc())
+
+sys.exit()
 
 """
 As we can see, after the Web Search Agent conducts the necessary searches and the Data Analyst Agent completes the necessary calculations, we find that Dwayne Wade was the Miami Heat player with the highest points in the 2006-2007 season, and the percentage change in his total rebounds between the 2007-2008 and 2008-2009 seasons is 85.98%!
@@ -292,7 +299,7 @@ async def run_async_code_a5b70700():
 asyncio.run(run_async_code_a5b70700())
 team = SelectorGroupChat(
     [planning_agent, web_search_agent, data_analyst_agent],
-    model_client=model_client,
+    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-1b-instruct-4bit"),
     termination_condition=termination,
     selector_prompt=selector_prompt,
     allow_repeated_speaker=True,
@@ -360,7 +367,7 @@ async def run_async_code_a5b70700():
 asyncio.run(run_async_code_a5b70700())
 team = SelectorGroupChat(
     [planning_agent, web_search_agent, data_analyst_agent],
-    model_client=model_client,
+    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-1b-instruct-4bit"),
     termination_condition=termination,
     candidate_func=candidate_func,
 )
@@ -410,7 +417,7 @@ async def run_async_code_a5b70700():
 asyncio.run(run_async_code_a5b70700())
 team = SelectorGroupChat(
     [planning_agent, web_search_agent, data_analyst_agent, user_proxy_agent],
-    model_client=model_client,
+    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-1b-instruct-4bit"),
     termination_condition=termination,
     selector_prompt=selector_prompt,
     selector_func=selector_func_with_user_proxy,
@@ -448,20 +455,18 @@ Also, we are keeping the selector prompt and system messages as simple as possib
 """
 logger.info("## Using Reasoning Models")
 
-model_client = MLXAutogenChatLLMAdapter(model="o3-mini")
-
 web_search_agent = AssistantAgent(
     "WebSearchAgent",
     description="An agent for searching information on the web.",
     tools=[search_web_tool],
-    model_client=model_client,
+    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-1b-instruct-4bit"),
     system_message="""Use web search tool to find information.""",
 )
 
 data_analyst_agent = AssistantAgent(
     "DataAnalystAgent",
     description="An agent for performing calculations.",
-    model_client=model_client,
+    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-1b-instruct-4bit"),
     tools=[percentage_change_tool],
     system_message="""Use tool to perform calculation. If you have not seen the data, ask for it.""",
 )
@@ -484,7 +489,7 @@ When the task is complete, let the user approve or disapprove the task.
 
 team = SelectorGroupChat(
     [web_search_agent, data_analyst_agent, user_proxy_agent],
-    model_client=model_client,
+    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-1b-instruct-4bit"),
     # Use the same termination condition as before.
     termination_condition=termination,
     selector_prompt=selector_prompt,
