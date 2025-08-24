@@ -12,11 +12,10 @@ from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.tools import FunctionTool
 from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
 from io import BytesIO
-# from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
-from autogen_ext.models.ollama import OllamaChatCompletionClient
+from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from pydantic import BaseModel
-from typing import Literal
+from typing import Literal, Optional
 import PIL
 import os
 import requests
@@ -64,8 +63,8 @@ async def web_search(query: str) -> str:
     return search_web(query)
 
 
-model_client = OllamaChatCompletionClient(
-    model="llama3.2", log_dir=f"{OUTPUT_DIR}/chats",
+model_client = MLXAutogenChatLLMAdapter(
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats1",
 )
 agent = AssistantAgent(
     name="assistant",
@@ -235,24 +234,82 @@ using {py:func}`~autogen_ext.tools.mcp.McpWorkbench`.
 logger.info("### Model Context Protocol (MCP) Workbench")
 
 
-fetch_mcp_server = StdioServerParams(command="uvx", args=["mcp-server-fetch"])
+async def async_func_7(logger: CustomLogger, timeout: float = 10.0, validate_server: bool = True) -> Optional[dict]:
+    """
+    Run the fetch agent with MCP workbench to summarize a webpage.
 
+    Args:
+        logger: CustomLogger instance for logging.
+        timeout: Timeout in seconds for MCP server connection.
+        validate_server: If True, attempt to validate MCP server availability; set to False to skip for servers without --version support.
 
-async def async_func_7():
-    async with McpWorkbench(fetch_mcp_server) as workbench:  # type: ignore
-        model_client = MLXAutogenChatLLMAdapter(
-            model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
-        fetch_agent = AssistantAgent(
-            name="fetcher", model_client=model_client, workbench=workbench, reflect_on_tool_use=True
-        )
+    Returns:
+        Optional[dict]: Task result as a dictionary, or None if an error occurs.
+    """
+    fetch_mcp_server = StdioServerParams(
+        command="uvx", args=["mcp-server-fetch"])
 
-        result = await fetch_agent.run(task="Summarize the content of https://en.wikipedia.org/wiki/Seattle")
-        logger.success(format_json(result))
-        assert isinstance(result.messages[-1], TextMessage)
-        logger.debug(result.messages[-1].content)
+    if validate_server:
+        try:
+            # Run a no-op check: just invoke the command without args to verify availability (uvx will install if needed)
+            # Avoid --version as it may not be supported; check returncode and log stderr as info for installation messages
+            result = await asyncio.create_subprocess_exec(
+                fetch_mcp_server.command, *fetch_mcp_server.args,
+                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await result.communicate()
+            stderr_str = stderr.decode().strip()
+            if result.returncode == 0:
+                logger.info(f"MCP server ready: {stdout.decode().strip()}")
+            else:
+                if "Installed" in stderr_str:  # Handle uvx dynamic install
+                    logger.info(f"MCP server installed via uvx: {stderr_str}")
+                else:
+                    logger.error(f"MCP server command failed: {stderr_str}")
+                    return None
+        except FileNotFoundError:
+            logger.error(
+                "uvx command not found. Install uv via https://docs.astral.sh/uv/")
+            return None
+        except Exception as e:
+            logger.warning(
+                f"Server validation failed (non-critical for some servers): {str(e)}")
+            # Proceed anyway, as validation may not be supported
+    else:
+        logger.info("Skipping MCP server validation.")
 
-        await model_client.close()
-asyncio.run(async_func_7())
+    try:
+        async with McpWorkbench(fetch_mcp_server, timeout=timeout) as workbench:
+            model_client = MLXAutogenChatLLMAdapter(
+                model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats2"
+            )
+            fetch_agent = AssistantAgent(
+                name="fetcher",
+                model_client=model_client,
+                workbench=workbench,
+                reflect_on_tool_use=True
+            )
+
+            result = await fetch_agent.run(task="Summarize the content of https://en.wikipedia.org/wiki/Seattle")
+            logger.success(format_json(result))
+            if result.messages and isinstance(result.messages[-1], TextMessage):
+                logger.debug(result.messages[-1].content)
+            else:
+                logger.warning("No valid TextMessage found in result.")
+
+            await model_client.close()
+            # Fallback to dict if to_dict() not available
+            try:
+                return result.to_dict()
+            except AttributeError:
+                return {"messages": [msg.dict() for msg in result.messages]}
+
+    except Exception as e:
+        logger.error(f"Failed to run fetch agent: {str(e)}")
+        return None
+
+# Run the function with validation (default)
+asyncio.run(async_func_7(logger, timeout=10.0))
 
 """
 ### Agent as a Tool
@@ -287,6 +344,7 @@ logger.info("### Agent as a Tool")
 model_client_no_parallel_tool_call = MLXAutogenChatLLMAdapter(
     model="qwen3-1.7b-4bit",
     parallel_tool_calls=False,  # type: ignore
+    log_dir=f"{OUTPUT_DIR}/chats3",
 )
 agent_no_parallel_tool_call = AssistantAgent(
     name="assistant",
@@ -354,7 +412,7 @@ class AgentResponse(BaseModel):
 
 
 model_client = MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats4")
 agent = AssistantAgent(
     "assistant",
     model_client=model_client,
@@ -392,7 +450,7 @@ Please check with your model provider to see if this is supported.
 logger.info("## Streaming Tokens")
 
 model_client = MLXAutogenChatLLMAdapter(
-    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats5")
 
 streaming_assistant = AssistantAgent(
     name="assistant",
@@ -402,8 +460,12 @@ streaming_assistant = AssistantAgent(
 )
 
 # type: ignore
-async for message in streaming_assistant.run_stream(task="Name two cities in South America"):
-    logger.debug(message)
+
+
+async def run_async_code_8a2b1c3d():
+    async for message in streaming_assistant.run_stream(task="Name two cities in South America"):
+        logger.debug(message)
+asyncio.run(run_async_code_8a2b1c3d())
 
 """
 You can see the streaming chunks in the output above.
