@@ -1,6 +1,6 @@
 from datetime import datetime
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatMLX
+from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
 from jet.logger import CustomLogger
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import StateGraph
@@ -120,6 +120,7 @@ We use Pydantic and TypedDict to define our data structures:
 """
 logger.info("## 📊 Data Models and State Management")
 
+
 class Article(BaseModel):
     """
     Represents a single news article
@@ -132,6 +133,7 @@ class Article(BaseModel):
     title: str
     url: str
     content: str
+
 
 class Summary(TypedDict):
     """
@@ -146,6 +148,7 @@ class Summary(TypedDict):
     summary: str
     url: str
 
+
 class GraphState(TypedDict):
     """
     Maintains workflow state between agents
@@ -159,12 +162,14 @@ class GraphState(TypedDict):
     summaries: Optional[List[Summary]]
     report: Optional[str]
 
+
 """
 ## 🤖 Agent Implementation
 
 ### 1. NewsSearcher Agent
 """
 logger.info("## 🤖 Agent Implementation")
+
 
 class NewsSearcher:
     """
@@ -197,10 +202,12 @@ class NewsSearcher:
 
         return articles
 
+
 """
 ### 2. Summarizer Agent
 """
 logger.info("### 2. Summarizer Agent")
+
 
 class Summarizer:
     """
@@ -227,14 +234,17 @@ class Summarizer:
         """
         response = llm.invoke([
             SystemMessage(content=self.system_prompt),
-            HumanMessage(content=f"Title: {article.title}\n\nContent: {article.content}")
+            HumanMessage(
+                content=f"Title: {article.title}\n\nContent: {article.content}")
         ])
         return response.content
+
 
 """
 ### 3. Publisher Agent
 """
 logger.info("### 3. Publisher Agent")
+
 
 class Publisher:
     """
@@ -285,6 +295,7 @@ class Publisher:
 
         return response.content
 
+
 """
 ## 🔄 Workflow Implementation
 
@@ -304,6 +315,7 @@ For example the node of NewsSearcher agent:
 """
 logger.info("## 🔄 Workflow Implementation")
 
+
 def search_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Node for article search
@@ -318,6 +330,7 @@ def search_node(state: Dict[str, Any]) -> Dict[str, Any]:
     state['articles'] = searcher.search()
     return state
 
+
 def summarize_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Node for article summarization
@@ -331,7 +344,7 @@ def summarize_node(state: Dict[str, Any]) -> Dict[str, Any]:
     summarizer = Summarizer()
     state['summaries'] = []
 
-    for article in state['articles']: # Uses articles from previous node
+    for article in state['articles']:  # Uses articles from previous node
         summary = summarizer.summarize(article)
         state['summaries'].append({
             'title': article.title,
@@ -339,6 +352,7 @@ def summarize_node(state: Dict[str, Any]) -> Dict[str, Any]:
             'url': article.url
         })
     return state
+
 
 def publish_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -355,10 +369,12 @@ def publish_node(state: Dict[str, Any]) -> Dict[str, Any]:
     state['report'] = report_content
     return state
 
+
 """
 ### Workflow Graph Creation
 """
 logger.info("### Workflow Graph Creation")
+
 
 def create_workflow() -> StateGraph:
     """
@@ -375,12 +391,14 @@ def create_workflow() -> StateGraph:
     workflow.add_node("summarize", summarize_node)
     workflow.add_node("publish", publish_node)
 
-    workflow.add_edge("search", "summarize") # search results flow to summarizer
-    workflow.add_edge("summarize", "publish") # summaries flow to publisher
+    # search results flow to summarizer
+    workflow.add_edge("search", "summarize")
+    workflow.add_edge("summarize", "publish")  # summaries flow to publisher
 
     workflow.set_entry_point("search")
 
     return workflow.compile()
+
 
 """
 ## 🎬 Usage Example

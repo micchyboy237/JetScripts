@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatMLX
+from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
 from jet.logger import CustomLogger
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
 from typing import List, Dict
@@ -50,7 +50,6 @@ Future improvements could include adding more specialized agents, incorporating 
 logger.info("# History and Data Analysis Collaboration System")
 
 
-
 load_dotenv()
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
@@ -66,6 +65,7 @@ llm = ChatMLX(model="llama-3.2-3b-instruct", max_tokens=1000, temperature=0.7)
 """
 logger.info("### Define the base Agent class")
 
+
 class Agent:
     def __init__(self, name: str, role: str, skills: List[str]):
         self.name = name
@@ -75,7 +75,8 @@ class Agent:
 
     def process(self, task: str, context: List[Dict] = None) -> str:
         messages = [
-            SystemMessage(content=f"You are {self.name}, a {self.role}. Your skills include: {', '.join(self.skills)}. Respond to the task based on your role and skills.")
+            SystemMessage(
+                content=f"You are {self.name}, a {self.role}. Your skills include: {', '.join(self.skills)}. Respond to the task based on your role and skills.")
         ]
 
         if context:
@@ -89,18 +90,25 @@ class Agent:
         response = self.llm.invoke(messages)
         return response.content
 
+
 """
 ### Define specialized agents: HistoryResearchAgent and DataAnalysisAgent
 """
-logger.info("### Define specialized agents: HistoryResearchAgent and DataAnalysisAgent")
+logger.info(
+    "### Define specialized agents: HistoryResearchAgent and DataAnalysisAgent")
+
 
 class HistoryResearchAgent(Agent):
     def __init__(self):
-        super().__init__("Clio", "History Research Specialist", ["deep knowledge of historical events", "understanding of historical contexts", "identifying historical trends"])
+        super().__init__("Clio", "History Research Specialist", [
+            "deep knowledge of historical events", "understanding of historical contexts", "identifying historical trends"])
+
 
 class DataAnalysisAgent(Agent):
     def __init__(self):
-        super().__init__("Data", "Data Analysis Expert", ["interpreting numerical data", "statistical analysis", "data visualization description"])
+        super().__init__("Data", "Data Analysis Expert", [
+            "interpreting numerical data", "statistical analysis", "data visualization description"])
+
 
 """
 ### Define the different functions for the collaboration system
@@ -109,46 +117,58 @@ class DataAnalysisAgent(Agent):
 """
 logger.info("### Define the different functions for the collaboration system")
 
+
 def research_historical_context(history_agent, task: str, context: list) -> list:
     logger.debug("🏛️ History Agent: Researching historical context...")
     history_task = f"Provide relevant historical context and information for the following task: {task}"
     history_result = history_agent.process(history_task)
-    context.append({"role": "ai", "content": f"History Agent: {history_result}"})
+    context.append(
+        {"role": "ai", "content": f"History Agent: {history_result}"})
     logger.debug(f"📜 Historical context provided: {history_result[:100]}...\n")
     return context
+
 
 """
 #### Identify Data Needs
 """
 logger.info("#### Identify Data Needs")
 
+
 def identify_data_needs(data_agent, task: str, context: list) -> list:
-    logger.debug("📊 Data Agent: Identifying data needs based on historical context...")
+    logger.debug(
+        "📊 Data Agent: Identifying data needs based on historical context...")
     historical_context = context[-1]["content"]
     data_need_task = f"Based on the historical context, what specific data or statistical information would be helpful to answer the original question? Historical context: {historical_context}"
     data_need_result = data_agent.process(data_need_task, context)
-    context.append({"role": "ai", "content": f"Data Agent: {data_need_result}"})
+    context.append(
+        {"role": "ai", "content": f"Data Agent: {data_need_result}"})
     logger.debug(f"🔍 Data needs identified: {data_need_result[:100]}...\n")
     return context
+
 
 """
 #### Provide Historical Data
 """
 logger.info("#### Provide Historical Data")
 
+
 def provide_historical_data(history_agent, task: str, context: list) -> list:
     logger.debug("🏛️ History Agent: Providing relevant historical data...")
     data_needs = context[-1]["content"]
     data_provision_task = f"Based on the data needs identified, provide relevant historical data or statistics. Data needs: {data_needs}"
     data_provision_result = history_agent.process(data_provision_task, context)
-    context.append({"role": "ai", "content": f"History Agent: {data_provision_result}"})
-    logger.debug(f"📊 Historical data provided: {data_provision_result[:100]}...\n")
+    context.append(
+        {"role": "ai", "content": f"History Agent: {data_provision_result}"})
+    logger.debug(
+        f"📊 Historical data provided: {data_provision_result[:100]}...\n")
     return context
+
 
 """
 #### Analyze Data
 """
 logger.info("#### Analyze Data")
+
 
 def analyze_data(data_agent, task: str, context: list) -> list:
     logger.debug("📈 Data Agent: Analyzing historical data...")
@@ -159,10 +179,12 @@ def analyze_data(data_agent, task: str, context: list) -> list:
     logger.debug(f"💡 Data analysis results: {analysis_result[:100]}...\n")
     return context
 
+
 """
 #### Synthesize Final Answer
 """
 logger.info("#### Synthesize Final Answer")
+
 
 def synthesize_final_answer(history_agent, task: str, context: list) -> str:
     logger.debug("🏛️ History Agent: Synthesizing final answer...")
@@ -170,15 +192,19 @@ def synthesize_final_answer(history_agent, task: str, context: list) -> str:
     final_result = history_agent.process(synthesis_task, context)
     return final_result
 
+
 """
 ### HistoryDataCollaborationSystem Class
 """
 logger.info("### HistoryDataCollaborationSystem Class")
 
+
 class HistoryDataCollaborationSystem:
     def __init__(self):
-        self.history_agent = Agent("Clio", "History Research Specialist", ["deep knowledge of historical events", "understanding of historical contexts", "identifying historical trends"])
-        self.data_agent = Agent("Data", "Data Analysis Expert", ["interpreting numerical data", "statistical analysis", "data visualization description"])
+        self.history_agent = Agent("Clio", "History Research Specialist", [
+                                   "deep knowledge of historical events", "understanding of historical contexts", "identifying historical trends"])
+        self.data_agent = Agent("Data", "Data Analysis Expert", [
+                                "interpreting numerical data", "statistical analysis", "data visualization description"])
 
     def solve(self, task: str, timeout: int = 300) -> str:
         logger.debug(f"\n👥 Starting collaboration to solve: {task}\n")
@@ -207,6 +233,7 @@ class HistoryDataCollaborationSystem:
 
         logger.debug("\n✅ Collaboration complete. Final answer synthesized.\n")
         return context[-1]["content"]
+
 
 """
 ### Example usage

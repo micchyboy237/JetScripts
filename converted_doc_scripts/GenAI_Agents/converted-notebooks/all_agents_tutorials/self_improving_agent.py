@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatMLX
+from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
 from jet.logger import CustomLogger
 from langchain.memory import ChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -72,15 +72,18 @@ We'll define helper functions for each capability of our agent.
 """
 logger.info("## Helper Functions")
 
+
 def get_chat_history(store, session_id: str):
     if session_id not in store:
         store[session_id] = ChatMessageHistory()
     return store[session_id]
 
+
 """
 ### Response Generation
 """
 logger.info("### Response Generation")
+
 
 def generate_response(chain_with_history, human_input: str, session_id: str, insights: str):
     response = chain_with_history.invoke(
@@ -89,10 +92,12 @@ def generate_response(chain_with_history, human_input: str, session_id: str, ins
     )
     return response.content
 
+
 """
 ### Reflection
 """
 logger.info("### Reflection")
+
 
 def reflect(llm, store, session_id: str):
     reflection_prompt = ChatPromptTemplate.from_messages([
@@ -102,13 +107,16 @@ def reflect(llm, store, session_id: str):
     ])
     reflection_chain = reflection_prompt | llm
     history = get_chat_history(store, session_id)
-    reflection_response = reflection_chain.invoke({"history": history.messages})
+    reflection_response = reflection_chain.invoke(
+        {"history": history.messages})
     return reflection_response.content
+
 
 """
 ### Learning
 """
 logger.info("### Learning")
+
 
 def learn(llm, store, session_id: str, insights: str):
     learning_prompt = ChatPromptTemplate.from_messages([
@@ -118,8 +126,10 @@ def learn(llm, store, session_id: str, insights: str):
     ])
     learning_chain = learning_prompt | llm
     learned_points = learning_chain.invoke({"insights": insights}).content
-    get_chat_history(store, session_id).add_ai_message(f"[SYSTEM] Agent learned: {learned_points}")
+    get_chat_history(store, session_id).add_ai_message(
+        f"[SYSTEM] Agent learned: {learned_points}")
     return learned_points
+
 
 """
 ## Self-Improving Agent Class
@@ -128,9 +138,11 @@ Now we'll define our `SelfImprovingAgent` class that uses these functions.
 """
 logger.info("## Self-Improving Agent Class")
 
+
 class SelfImprovingAgent:
     def __init__(self):
-        self.llm = ChatMLX(model="llama-3.2-3b-instruct", max_tokens=1000, temperature=0.7)
+        self.llm = ChatMLX(model="llama-3.2-3b-instruct",
+                           max_tokens=1000, temperature=0.7)
         self.store = {}
         self.insights = ""
 
@@ -160,6 +172,7 @@ class SelfImprovingAgent:
         self.reflect(session_id)
         return learn(self.llm, self.store, session_id, self.insights)
 
+
 """
 ## Example Usage
 
@@ -172,14 +185,17 @@ session_id = "user_123"
 
 logger.debug("AI:", agent.respond("What's the capital of France?", session_id))
 
-logger.debug("AI:", agent.respond("Can you tell me more about its history?", session_id))
+logger.debug("AI:", agent.respond(
+    "Can you tell me more about its history?", session_id))
 
 logger.debug("\nReflecting and learning...")
 learned = agent.learn(session_id)
 logger.debug("Learned:", learned)
 
-logger.debug("\nAI:", agent.respond("What's a famous landmark in this city?", session_id))
+logger.debug("\nAI:", agent.respond(
+    "What's a famous landmark in this city?", session_id))
 
-logger.debug("AI:", agent.respond("What's another interesting fact about this city?", session_id))
+logger.debug("AI:", agent.respond(
+    "What's another interesting fact about this city?", session_id))
 
 logger.info("\n\n[DONE]", bright=True)

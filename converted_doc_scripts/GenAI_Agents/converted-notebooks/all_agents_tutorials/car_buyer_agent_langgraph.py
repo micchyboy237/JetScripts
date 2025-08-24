@@ -7,7 +7,7 @@ from enum import Enum
 from google.colab import userdata
 from gradio import ChatMessage
 from importnb import Notebook
-from jet.llm.ollama.base_langchain import ChatMLX
+from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
 from jet.logger import CustomLogger
 from langchain.tools import DuckDuckGoSearchResults
 from langchain_community.tools import DuckDuckGoSearchResults
@@ -170,9 +170,6 @@ This cell imports the required libraries and modules for building and managing t
 logger.info("### Import Necessary Libraries")
 
 
-
-
-
 # import nest_asyncio
 # nest_asyncio.apply()
 
@@ -202,6 +199,7 @@ The modular design allows for easy addition of new platforms by extending the `W
 """
 logger.info("### Web Scraping and Interface Definitions")
 
+
 async def scroll_to_bottom(page, scroll_delay=0.1):
     """
     Scroll to the bottom of the page iteratively, with delays to ensure dynamic content is fully loaded.
@@ -219,7 +217,7 @@ async def scroll_to_bottom(page, scroll_delay=0.1):
     for i in range(3):
         async def run_async_code_9ddac758():
             await page.evaluate(f"window.scrollTo(0, {next_scroll})")
-            return 
+            return
          = asyncio.run(run_async_code_9ddac758())
         logger.success(format_json())
 

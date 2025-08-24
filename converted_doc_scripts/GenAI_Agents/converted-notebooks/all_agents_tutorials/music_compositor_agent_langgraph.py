@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatMLX
+from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
 from jet.logger import CustomLogger
 from langchain.prompts import ChatPromptTemplate
 from langgraph.graph import StateGraph, END
@@ -65,7 +65,6 @@ Import all necessary modules and libraries for the AI Music Collaborator.
 logger.info("# AI Music Compositor using LangGraph")
 
 
-
 load_dotenv()
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
@@ -76,6 +75,7 @@ Define the MusicState class to hold the workflow's state.
 """
 logger.info("## State Definition")
 
+
 class MusicState(TypedDict):
     """Define the structure of the state for the music generation workflow."""
     musician_input: str  # User's input describing the desired music
@@ -85,6 +85,7 @@ class MusicState(TypedDict):
     style: str           # Desired musical style
     composition: str     # Complete musical composition
     midi_file: str       # Path to the generated MIDI file
+
 
 """
 ## LLM Initialization
@@ -102,6 +103,7 @@ Define the component functions for melody generation, harmony creation, rhythm a
 """
 logger.info("## Component Functions")
 
+
 def melody_generator(state: MusicState) -> Dict:
     """Generate a melody based on the user's input."""
     prompt = ChatPromptTemplate.from_template(
@@ -110,6 +112,7 @@ def melody_generator(state: MusicState) -> Dict:
     chain = prompt | llm
     melody = chain.invoke({"input": state["musician_input"]})
     return {"melody": melody.content}
+
 
 def harmony_creator(state: MusicState) -> Dict:
     """Create harmony for the generated melody."""
@@ -120,14 +123,17 @@ def harmony_creator(state: MusicState) -> Dict:
     harmony = chain.invoke({"melody": state["melody"]})
     return {"harmony": harmony.content}
 
+
 def rhythm_analyzer(state: MusicState) -> Dict:
     """Analyze and suggest a rhythm for the melody and harmony."""
     prompt = ChatPromptTemplate.from_template(
         "Analyze and suggest a rhythm for this melody and harmony: {melody}, {harmony}. Represent it as a string of durations in music21 format."
     )
     chain = prompt | llm
-    rhythm = chain.invoke({"melody": state["melody"], "harmony": state["harmony"]})
+    rhythm = chain.invoke(
+        {"melody": state["melody"], "harmony": state["harmony"]})
     return {"rhythm": rhythm.content}
+
 
 def style_adapter(state: MusicState) -> Dict:
     """Adapt the composition to the specified musical style."""
@@ -142,6 +148,7 @@ def style_adapter(state: MusicState) -> Dict:
         "rhythm": state["rhythm"]
     })
     return {"composition": adapted.content}
+
 
 def midi_converter(state: MusicState) -> Dict:
     """Convert the composition to MIDI format and save it as a file."""
@@ -211,7 +218,8 @@ def midi_converter(state: MusicState) -> Dict:
     final_note.quarterLength = 1
     melody.append(final_note)
 
-    final_chord = music21.chord.Chord(chords[scale_name.split()[0] + ' ' + scale_name.split()[1]])
+    final_chord = music21.chord.Chord(
+        chords[scale_name.split()[0] + ' ' + scale_name.split()[1]])
     final_chord.quarterLength = 1
     harmony.append(final_chord)
 
@@ -224,6 +232,7 @@ def midi_converter(state: MusicState) -> Dict:
         piece.write('midi', temp_midi.name)
 
     return {"midi_file": temp_midi.name}
+
 
 """
 ## Graph Construction
@@ -273,6 +282,7 @@ logger.debug(f"MIDI file saved at: {result['midi_file']}")
 Define a function to play the generated MIDI file using pygame.
 """
 logger.info("## MIDI Playback Function")
+
 
 def play_midi(midi_file_path):
     """Play the generated MIDI file."""

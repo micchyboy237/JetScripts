@@ -2,7 +2,7 @@ from IPython.display import Image, display, Markdown
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from google.colab import userdata
-from jet.llm.ollama.base_langchain import ChatMLX
+from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
 from jet.logger import CustomLogger
 from langchain_core.messages import AnyMessage, SystemMessage, HumanMessage, ToolMessage, AIMessage, ChatMessage
 from langchain_core.tools import BaseTool
@@ -13,10 +13,10 @@ from langgraph.graph import StateGraph, END
 from psycopg import Connection
 from pydantic import BaseModel, Field
 from tenacity import (
-retry,
-stop_after_attempt,
-wait_exponential,
-retry_if_exception_type
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type
 )
 from typing import TypedDict, Annotated, List, Dict, Any, Type
 from uuid import uuid4
@@ -153,11 +153,6 @@ logger.info("# Systematic Review Automation System")
 # os.environ["OPENAI_API_KEY"] = userdata.get('OPENAI_API_KEY')
 
 
-
-
-
-
-
 _ = load_dotenv()
 
 """
@@ -196,14 +191,20 @@ This tool simplifies academic research by providing structured access to scholar
 """
 logger.info("## III. Academic Search Tool")
 
+
 class AcademicPaperSearchInput(BaseModel):
-    topic: str = Field(..., description="The topic to search for academic papers on")
-    max_results: int = Field(20, description="Maximum number of results to return")
+    topic: str = Field(...,
+                       description="The topic to search for academic papers on")
+    max_results: int = Field(
+        20, description="Maximum number of results to return")
+
 
 class AcademicPaperSearchTool(BaseTool):
     args_schema: type = AcademicPaperSearchInput  # Explicit type annotation
-    name: str = Field("academic_paper_search_tool", description="Tool for searching academic papers")
-    description: str = Field("Queries an academic papers API to retrieve relevant articles based on a topic")
+    name: str = Field("academic_paper_search_tool",
+                      description="Tool for searching academic papers")
+    description: str = Field(
+        "Queries an academic papers API to retrieve relevant articles based on a topic")
 
     def __init__(self, name: str = "academic_paper_search_tool",
                  description: str = "Queries an academic paper API to retrieve relevant articles based on a topic"):
@@ -223,9 +224,9 @@ class AcademicPaperSearchTool(BaseTool):
         base_url = "https://api.semanticscholar.org/graph/v1/paper/search"
         params = {
             "query": topic,
-            "limit": max_results, # max_results
+            "limit": max_results,  # max_results
             "fields": "title,abstract,authors,year,openAccessPdf",
-            "openAccessPdf" : True
+            "openAccessPdf": True
         }
         try:
             while True:
@@ -237,21 +238,23 @@ class AcademicPaperSearchTool(BaseTool):
                         papers = response.json().get("data", [])
                         formatted_results = [
                             {
-                                "title"     : paper.get("title"),
-                                "abstract"  : paper.get("abstract"),
-                                "authors"   : [author.get("name") for author in paper.get("authors", [])],
-                                "year"      : paper.get("year"),
-                                "pdf"       : paper.get("openAccessPdf"),
+                                "title": paper.get("title"),
+                                "abstract": paper.get("abstract"),
+                                "authors": [author.get("name") for author in paper.get("authors", [])],
+                                "year": paper.get("year"),
+                                "pdf": paper.get("openAccessPdf"),
                             }
                             for paper in papers
                         ]
 
                         return formatted_results
                 except:
-                    logger.debug((f"Failed to fetch papers: {response.status_code} - {response.text}. Trying Again..."))
+                    logger.debug(
+                        (f"Failed to fetch papers: {response.status_code} - {response.text}. Trying Again..."))
         except KeyboardInterrupt:
             logger.debug("\nOperation cancelled by user")
             sys.exit(0)  # Clean exit
+
 
 """
 ## IV. Prompts
@@ -472,6 +475,7 @@ This state management system helps track all components of a systematic review f
 """
 logger.info("## V. Understanding Agent State")
 
+
 def reduce_messages(left: list[AnyMessage], right: list[AnyMessage]) -> list[AnyMessage]:
     for message in right:
         if not message.id:
@@ -486,25 +490,27 @@ def reduce_messages(left: list[AnyMessage], right: list[AnyMessage]) -> list[Any
             merged.append(message)
     return merged
 
+
 class AgentState(TypedDict):
     messages: Annotated[list[AnyMessage], reduce_messages]
-    systematic_review_outline : str
-    last_human_index : int
-    papers : Annotated[List[str], operator.add] ## papers downloaded
+    systematic_review_outline: str
+    last_human_index: int
+    papers: Annotated[List[str], operator.add]  # papers downloaded
     analyses: Annotated[List[Dict], operator.add]  # Store analysis results
     combined_analysis: str  # Final combined analysis
 
     title: str
-    abstract : str
-    introduction : str
-    methods : str
-    results : str
-    conclusion : str
-    references : str
+    abstract: str
+    introduction: str
+    methods: str
+    results: str
+    conclusion: str
+    references: str
 
-    draft : str
-    revision_num : int
-    max_revisions : int
+    draft: str
+    revision_num: int
+    max_revisions: int
+
 
 """
 ## VI. Creating Graph Components
@@ -534,6 +540,7 @@ Both functions help maintain clean conversation state and prepare messages for t
 """
 logger.info("## VI. Creating Graph Components")
 
+
 def process_input(state: AgentState):
     max_revision = 2
     messages = state.get('messages', [])
@@ -544,7 +551,8 @@ def process_input(state: AgentState):
             last_human_index = i
             break
 
-    return {"last_human_index": last_human_index, "max_revisions" : max_revision, "revision_num" : 1}
+    return {"last_human_index": last_human_index, "max_revisions": max_revision, "revision_num": 1}
+
 
 def get_relevant_messages(state: AgentState) -> List[AnyMessage]:
     '''
@@ -554,12 +562,13 @@ def get_relevant_messages(state: AgentState) -> List[AnyMessage]:
     messages = state['messages']
     filtered_history = []
     for message in messages:
-        if isinstance(message, HumanMessage) and message.content!="":
+        if isinstance(message, HumanMessage) and message.content != "":
             filtered_history.append(message)
-        elif isinstance(message, AIMessage) and message.content!="" and message.response_metadata['finish_reason']=="stop":
+        elif isinstance(message, AIMessage) and message.content != "" and message.response_metadata['finish_reason'] == "stop":
             filtered_history.append(message)
     last_human_index = state['last_human_index']
     return filtered_history[:-1] + messages[last_human_index:]
+
 
 """
 ### B. Planning and Research Node Functions
@@ -594,6 +603,7 @@ These nodes represent the initial planning and research strategy phases in the s
 """
 logger.info("### B. Planning and Research Node Functions")
 
+
 def plan_node(state: AgentState):
     logger.debug("PLANNER")
     relevant_messages = get_relevant_messages(state)
@@ -601,7 +611,8 @@ def plan_node(state: AgentState):
     response = model.invoke(messages, temperature=temperature)
     logger.debug(response)
     logger.debug()
-    return {"systematic_review_outline" : [response]}
+    return {"systematic_review_outline": [response]}
+
 
 def research_node(state: AgentState):
     logger.debug("RESEARCHER")
@@ -610,7 +621,8 @@ def research_node(state: AgentState):
     response = model.invoke(messages, temperature=temperature)
     logger.debug(response)
     logger.debug()
-    return {"messages" : [response]}
+    return {"messages": [response]}
+
 
 """
 ### C. Search Node Functions
@@ -658,6 +670,7 @@ These nodes represent the paper selection and acquisition phase of the systemati
 """
 logger.info("### C. Search Node Functions")
 
+
 def take_action(state: AgentState):
     ''' Get last message from agent state.
     If we get to this state, the language model wanted to use a tool.
@@ -674,25 +687,30 @@ def take_action(state: AgentState):
     for t in last_message.tool_calls:
         logger.debug(f'Calling: {t}')
 
-        if not t['name'] in tools: # check for bad tool name
+        if not t['name'] in tools:  # check for bad tool name
             logger.debug("\n ....bad tool name....")
-            result = "bad tool name, retry" # instruct llm to retry if bad
+            result = "bad tool name, retry"  # instruct llm to retry if bad
         else:
             result = tools[t['name']].invoke(t['args'])
 
-        results.append(ToolMessage(tool_call_id = t['id'], name=t['name'], content=str(result)))
+        results.append(ToolMessage(
+            tool_call_id=t['id'], name=t['name'], content=str(result)))
 
-    return {"messages" : results} # langgraph adding to state in between iterations
+    # langgraph adding to state in between iterations
+    return {"messages": results}
+
 
 def decision_node(state: AgentState):
     logger.debug("DECISION-MAKER")
     review_plan = state['systematic_review_outline']
     relevant_messages = get_relevant_messages(state)
-    messages = [SystemMessage(content=decision_prompt)] + review_plan + relevant_messages
+    messages = [SystemMessage(content=decision_prompt)] + \
+        review_plan + relevant_messages
     response = model.invoke(messages, temperature=temperature)
     logger.debug(response)
     logger.debug()
-    return {"messages" : [response]}
+    return {"messages": [response]}
+
 
 def article_download(state: AgentState):
     logger.debug("DOWNLOAD PAPERS")
@@ -720,7 +738,7 @@ def article_download(state: AgentState):
                 with open(filename, 'wb') as f:
                     f.write(response.content)
 
-                filenames.append({"paper" : filename})
+                filenames.append({"paper": filename})
                 logger.debug(f"Successfully downloaded: {filename}")
 
             except Exception as e:
@@ -745,6 +763,7 @@ def article_download(state: AgentState):
                 )
             ]
         }
+
 
 """
 ### D. Paper Analyzer Function Explained
@@ -776,9 +795,10 @@ def paper_analyzer(state: AgentState)
 """
 logger.info("### D. Paper Analyzer Function Explained")
 
+
 def paper_analyzer(state: AgentState):
     logger.debug("ANALYZE PAPERS")
-    analyses=""
+    analyses = ""
     for paper in state['papers'][-1].content:
         md_text = pymupdf4llm.to_markdown(f"./{paper['paper']}")
         messages = [
@@ -786,13 +806,15 @@ def paper_analyzer(state: AgentState):
             HumanMessage(content=md_text)
         ]
 
-        model = ChatMLX(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+        model = ChatMLX(model="llama-3.2-3b-instruct",
+                        log_dir=f"{OUTPUT_DIR}/chats")
         response = model.invoke(messages, temperature=0.1)
         logger.debug(response)
-        analyses+=response.content
+        analyses += response.content
     return {
         "analyses": [analyses]
     }
+
 
 """
 ### E. Paper Writing Functions Explained
@@ -849,6 +871,7 @@ Each function:
 """
 logger.info("### E. Paper Writing Functions Explained")
 
+
 def _make_api_call(model, messages, temperature=0.1):
     @retry(
         retry=retry_if_exception_type(openai.RateLimitError),
@@ -868,23 +891,27 @@ def write_abstract(state: AgentState):
     logger.debug("WRITE ABSTRACT")
     review_plan = state['systematic_review_outline']
     analyses = state['analyses']
-    messages = [SystemMessage(content=abstract_prompt)] + review_plan + analyses
+    messages = [SystemMessage(content=abstract_prompt)
+                ] + review_plan + analyses
     model = ChatMLX(model='llama-3.2-3b-instruct')
     response = _make_api_call(model, messages)
     logger.debug(response)
     logger.debug()
-    return {"abstract" : [response]}
+    return {"abstract": [response]}
+
 
 def write_introduction(state: AgentState):
     logger.debug("WRITE INTRODUCTION")
     review_plan = state['systematic_review_outline']
     analyses = state['analyses']
-    messages = [SystemMessage(content=introduction_prompt)] + review_plan + analyses
+    messages = [SystemMessage(content=introduction_prompt)
+                ] + review_plan + analyses
     model = ChatMLX(model='llama-3.2-3b-instruct')
     response = _make_api_call(model, messages)
     logger.debug(response)
     logger.debug()
-    return {"introduction" : [response]}
+    return {"introduction": [response]}
+
 
 def write_methods(state: AgentState):
     logger.debug("WRITE METHODS")
@@ -895,7 +922,8 @@ def write_methods(state: AgentState):
     response = _make_api_call(model, messages)
     logger.debug(response)
     logger.debug()
-    return {"methods" : [response]}
+    return {"methods": [response]}
+
 
 def write_results(state: AgentState):
     logger.debug("WRITE RESULTS")
@@ -906,29 +934,34 @@ def write_results(state: AgentState):
     response = _make_api_call(model, messages)
     logger.debug(response)
     logger.debug()
-    return {"results" : [response]}
+    return {"results": [response]}
+
 
 def write_conclusion(state: AgentState):
     logger.debug("WRITE CONCLUSION")
     review_plan = state['systematic_review_outline']
     analyses = state['analyses']
-    messages = [SystemMessage(content=conclusions_prompt)] + review_plan + analyses
+    messages = [SystemMessage(content=conclusions_prompt)
+                ] + review_plan + analyses
     model = ChatMLX(model='llama-3.2-3b-instruct')
     response = _make_api_call(model, messages)
     logger.debug(response)
     logger.debug()
-    return {"conclusion" : [response]}
+    return {"conclusion": [response]}
+
 
 def write_references(state: AgentState):
     logger.debug("WRITE REFERENCES")
     review_plan = state['systematic_review_outline']
     analyses = state['analyses']
-    messages = [SystemMessage(content=references_prompt)] + review_plan + analyses
+    messages = [SystemMessage(content=references_prompt)
+                ] + review_plan + analyses
     model = ChatMLX(model='llama-3.2-3b-instruct')
     response = _make_api_call(model, messages)
     logger.debug(response)
     logger.debug()
-    return {"references" : [response]}
+    return {"references": [response]}
+
 
 """
 ### F. Final Stage Functions
@@ -987,6 +1020,7 @@ These functions represent the final stages of the systematic review process, han
 """
 logger.info("### F. Final Stage Functions")
 
+
 def aggregator(state: AgentState):
     logger.debug("AGGREGATE")
     abstract = state['abstract'][-1].content
@@ -997,36 +1031,43 @@ def aggregator(state: AgentState):
     references = state['references'][-1].content
 
     messages = [
-            SystemMessage(content="Make a title for this systematic review based on the abstract. Write it in markdown."),
-            HumanMessage(content=abstract)
-        ]
+        SystemMessage(
+            content="Make a title for this systematic review based on the abstract. Write it in markdown."),
+        HumanMessage(content=abstract)
+    ]
     title = model.invoke(messages, temperature=0.1).content
 
-    draft = title + "\n\n" + abstract + "\n\n" + introduction + "\n\n" + methods + "\n\n" + results + "\n\n" + conclusion + "\n\n" + references
+    draft = title + "\n\n" + abstract + "\n\n" + introduction + "\n\n" + \
+        methods + "\n\n" + results + "\n\n" + conclusion + "\n\n" + references
 
-    return {"draft" : [draft]}
+    return {"draft": [draft]}
 
-def critique(state:AgentState):
+
+def critique(state: AgentState):
     logger.debug("CRITIQUE")
     draft = state["draft"]
     review_plan = state['systematic_review_outline']
 
-    messages = [SystemMessage(content=critique_draft_prompt)] + review_plan + draft
+    messages = [SystemMessage(
+        content=critique_draft_prompt)] + review_plan + draft
     response = model.invoke(messages, temperature=temperature)
     logger.debug(response)
 
-    return {'messages' : [response], "revision_num": state.get("revision_num", 1) + 1}
+    return {'messages': [response], "revision_num": state.get("revision_num", 1) + 1}
+
 
 def paper_reviser(state: AgentState):
     logger.debug("REVISE PAPER")
     critique = state["messages"][-1].content
     draft = state["draft"]
 
-    messages = [SystemMessage(content=revise_draft_prompt)] + [critique] + draft
+    messages = [SystemMessage(content=revise_draft_prompt)
+                ] + [critique] + draft
     response = model.invoke(messages, temperature=temperature)
     logger.debug(response)
 
-    return {'draft' : [response]}
+    return {'draft': [response]}
+
 
 def exists_action(state: AgentState):
     '''
@@ -1046,9 +1087,11 @@ def exists_action(state: AgentState):
     else:
         return "revise"
 
+
 def final_draft(state: AgentState):
     logger.debug("FINAL DRAFT")
-    return {"draft" : state['draft']}
+    return {"draft": state['draft']}
+
 
 """
 ## VII. Create Graph
@@ -1157,7 +1200,7 @@ graph.add_conditional_edges(
 graph.add_edge("revise_paper", "critique_paper")
 graph.add_edge("final_draft", END)
 
-graph.set_entry_point("process_input") ## "llm"
+graph.set_entry_point("process_input")  # "llm"
 
 """
 ## VIII. Compile and Run Graph
@@ -1167,20 +1210,20 @@ logger.info("## VIII. Compile and Run Graph")
 checkpointer = MemorySaver()
 graph = graph.compile(checkpointer=checkpointer)
 
-topic= "diffusion models for music generation"
+topic = "diffusion models for music generation"
 thread_id = "test18"
-temperature=0.1
+temperature = 0.1
 papers_tool = AcademicPaperSearchTool()
 tooling = [papers_tool]
-model=ChatMLX(model='llama-3.2-3b-instruct') # llama-3.2-3b-instruct
+model = ChatMLX(model='llama-3.2-3b-instruct')  # llama-3.2-3b-instruct
 tools = {t.name: t for t in tooling} if tooling else {}
 model = model.bind_tools(tooling) if tools else model
 
-agent_input = {"messages" : [HumanMessage(content=topic)]}
-thread_config = {"configurable" : {"thread_id" : thread_id}}
+agent_input = {"messages": [HumanMessage(content=topic)]}
+thread_config = {"configurable": {"thread_id": thread_id}}
 result = graph.invoke(agent_input, thread_config)
 
-final_paper=result['draft'][-1].content
+final_paper = result['draft'][-1].content
 display(Markdown(final_paper))
 
 logger.info("\n\n[DONE]", bright=True)

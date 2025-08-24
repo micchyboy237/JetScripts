@@ -1,6 +1,6 @@
 from IPython.display import display, Image
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatMLX
+from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 from langchain.schema import HumanMessage
@@ -45,7 +45,6 @@ This cell imports all the necessary modules and classes for our LangGraph tutori
 logger.info("# Introduction to LangGraph")
 
 
-
 """
 ### Set Up API Key
 # This cell loads environment variables and sets up the MLX API key. Make sure you have a `.env` file with your `OPENAI_API_KEY`.
@@ -64,11 +63,13 @@ Here we define the State class to hold our workflow data and initialize the Chat
 """
 logger.info("## Building the Text Processing Pipeline")
 
+
 class State(TypedDict):
     text: str
     classification: str
     entities: List[str]
     summary: str
+
 
 llm = ChatMLX(model="llama-3.2-3b-instruct", temperature=0)
 
@@ -77,6 +78,7 @@ llm = ChatMLX(model="llama-3.2-3b-instruct", temperature=0)
 These functions define the operations performed at each node of our graph: classification, entity extraction, and summarization.
 """
 logger.info("### Define Node Functions")
+
 
 def classification_node(state: State):
     ''' Classify the text into one of the categories: News, Blog, Research, or Other '''
@@ -110,6 +112,7 @@ def summarization_node(state: State):
     summary = llm.invoke([message]).content.strip()
     return {"summary": summary}
 
+
 """
 ### Create Tools and Build Workflow
 This cell builds the StateGraph workflow.
@@ -122,7 +125,8 @@ workflow.add_node("classification_node", classification_node)
 workflow.add_node("entity_extraction", entity_extraction_node)
 workflow.add_node("summarization", summarization_node)
 
-workflow.set_entry_point("classification_node") # Set the entry point of the graph
+# Set the entry point of the graph
+workflow.set_entry_point("classification_node")
 workflow.add_edge("classification_node", "entity_extraction")
 workflow.add_edge("entity_extraction", "summarization")
 workflow.add_edge("summarization", END)

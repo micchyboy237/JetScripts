@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatMLX
+from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 import os
@@ -103,6 +103,7 @@ qa_chain = prompt | llm
 """
 logger.info("### Define the get_answer function")
 
+
 def get_answer(question):
     """
     Get an answer to the given question using the QA chain.
@@ -110,6 +111,7 @@ def get_answer(question):
     input_variables = {"question": question}
     response = qa_chain.invoke(input_variables).content
     return response
+
 
 """
 ### Cell 6: Example usage

@@ -1,10 +1,10 @@
 from IPython.display import display, Image, Markdown
-from jet.llm.ollama.base_langchain import ChatMLX
+from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
 from jet.logger import CustomLogger
 from langchain_core.messages import (
-BaseMessage,
-HumanMessage,
-ToolMessage,
+    BaseMessage,
+    HumanMessage,
+    ToolMessage,
 )
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.graph import MermaidDrawMethod
@@ -91,9 +91,6 @@ logger.info("## Conclusion")
 logger.info("## Importations")
 
 
-
-
-
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 os.environ["TAVILY_API_KEY"] = os.getenv('TAVILY_API_KEY')
 
@@ -103,12 +100,14 @@ Here we define the states for the agent workflow. The states w
 """
 logger.info("## State Definitions")
 
+
 class ApproachState(TypedDict):
     plan: str  # detailed workflow of the approach
-    style: str # style description of the approach
-    task: str # user's input of task
-    details: str # internet retrieval of task specs
-    history: str # description of history approaches
+    style: str  # style description of the approach
+    task: str  # user's input of task
+    details: str  # internet retrieval of task specs
+    history: str  # description of history approaches
+
 
 """
 ## LLM & Tavily Initialization
@@ -168,6 +167,7 @@ def task_manifest(approach: ApproachState) -> ApproachState:
 
     return approach
 
+
 def result_approach(approach: ApproachState) -> ApproachState:
     prompt = ChatPromptTemplate.from_template(
         "Give me a plan of steps to carry out the following task with custom work styles specified."
@@ -176,11 +176,13 @@ def result_approach(approach: ApproachState) -> ApproachState:
         "The output must be a numbered list of steps with explanation of why it is needed, what to do and how it considers the Work Style."
     )
 
-    suggestion = llm.invoke(prompt.format(task=approach["task"], details=approach["details"], style=approach["style"]))
+    suggestion = llm.invoke(prompt.format(
+        task=approach["task"], details=approach["details"], style=approach["style"]))
 
     approach['plan'] = suggestion
 
     return approach
+
 
 """
 ## Graph Workflow Building
@@ -209,6 +211,7 @@ This function will be used to induce the entire workflow!
 """
 logger.info("## Agent Calling Function")
 
+
 def approach(task: str) -> ApproachState:
     init_approach = ApproachState(
         task=task,
@@ -221,13 +224,15 @@ def approach(task: str) -> ApproachState:
     response = app.invoke(init_approach)
     return response
 
+
 """
 ### **🚀🚀🚀🚀🚀🚀🚀🚀 Great! Now we can start the inference and see how the workflow performs! 🚀🚀🚀🚀🚀🚀🚀🚀**
 
 ## Example
 This is an example where the user hopes to build a smoke detector that is futuristic in design and accessible for installation!
 """
-logger.info("### **🚀🚀🚀🚀🚀🚀🚀🚀 Great! Now we can start the inference and see how the workflow performs! 🚀🚀🚀🚀🚀🚀🚀🚀**")
+logger.info(
+    "### **🚀🚀🚀🚀🚀🚀🚀🚀 Great! Now we can start the inference and see how the workflow performs! 🚀🚀🚀🚀🚀🚀🚀🚀**")
 
 query = """
     I want to build a smoke detector device! I am visioning it with futuristic design and hope to maximize the ability to install it anywhere. Perhaps keep it small and energy efficient for that purpose!

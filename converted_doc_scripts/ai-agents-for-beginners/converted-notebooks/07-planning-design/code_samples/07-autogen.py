@@ -1,7 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from autogen_core.models import UserMessage, SystemMessage, AssistantMessage
-from autogen_ext.models.azure import AzureAIChatCompletionClient
+from autogen_ext.models.ollama import OllamaChatCompletionClient
 from azure.core.credentials import AzureKeyCredential
 from dotenv import load_dotenv
 from enum import Enum
@@ -14,12 +14,14 @@ import json
 import os
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 
 load_dotenv()
+
 
 class AgentEnum(str, Enum):
     FlightBooking = "flight_booking"
@@ -31,7 +33,6 @@ class AgentEnum(str, Enum):
     GroupChatManager = "group_chat_manager"
 
 
-
 class TravelSubTask(BaseModel):
     task_details: str
     assigned_agent: AgentEnum  # we want to assign the task to the agent
@@ -41,6 +42,7 @@ class TravelPlan(BaseModel):
     main_task: str
     subtasks: List[TravelSubTask]
     is_greeting: bool
+
 
 client = AzureAIChatCompletionClient(
     model="llama3.1",
@@ -73,6 +75,7 @@ messages = [
         content="Create a travel plan for a family of 2 kids from Singapore to Melbourne", source="user"),
 ]
 
+
 async def run_async_code_51d41b79():
     async def run_async_code_f4199a31():
         response = await client.create(messages=messages, extra_create_args={"response_format": 'json_object'})
@@ -87,7 +90,7 @@ logger.success(format_json(response))
 response_content: Optional[str] = response.content if isinstance(
     response.content, str) else None
 if response_content is None:
-    raise ValueError("Response content is not a valid JSON string" )
+    raise ValueError("Response content is not a valid JSON string")
 
 plogger.debug(json.loads(response_content))
 

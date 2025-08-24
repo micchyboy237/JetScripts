@@ -3,7 +3,7 @@ from IPython.display import display
 from docx import Document
 from docx.oxml import OxmlElement
 from docx.shared import RGBColor
-from jet.llm.ollama.base_langchain import ChatMLX
+from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
 from jet.logger import CustomLogger
 from langchain_community.embeddings import MLXEmbeddings
 from langchain_community.vectorstores import Pinecone
@@ -100,9 +100,10 @@ logger.info("# Contract Analysis Assistant")
 
 def _set_env(var: str):
     if not os.environ.get(var):
-#         os.environ[var] = getpass.getpass(f"{var}: ")
+        #         os.environ[var] = getpass.getpass(f"{var}: ")
 
-# _set_env("OPENAI_API_KEY")
+        # _set_env("OPENAI_API_KEY")
+
 
 _set_env("PINECONE_API_KEY")
 
@@ -112,6 +113,7 @@ _set_env("PINECONE_API_KEY")
 This section of the code defines the `ClauseRetriever` class, which forms the core of the clause analysis functionality for the agent. It retrieves and indexes contract clauses based on contract type, category, and additional metadata such as jurisdiction and version.
 """
 logger.info("## Clause Analysis Component")
+
 
 class ClauseMetadata(BaseModel):
     jurisdiction: str
@@ -184,9 +186,9 @@ class ClauseRetriever:
             self.index.upsert(vectors=vectors_to_upsert)
 
     def get_clauses_by_contract_type(self,
-                                   contract_type: str,
-                                   jurisdiction: Optional[str] = None,
-                                   k: int = 5) -> List[Dict]:
+                                     contract_type: str,
+                                     jurisdiction: Optional[str] = None,
+                                     k: int = 5) -> List[Dict]:
         """Retrieve relevant clauses based on contract type and optional filters"""
         filter_dict = {"contract_type": contract_type}
         if jurisdiction:
@@ -215,10 +217,10 @@ class ClauseRetriever:
         return formatted_results
 
     def search_clauses(self,
-                      query: str,
-                      contract_type: Optional[str] = None,
-                      jurisdiction: Optional[str] = None,
-                      k: int = 5) -> List[Dict]:
+                       query: str,
+                       contract_type: Optional[str] = None,
+                       jurisdiction: Optional[str] = None,
+                       k: int = 5) -> List[Dict]:
         """Search for clauses based on semantic similarity"""
         filter_dict = {}
         if contract_type:
@@ -247,6 +249,7 @@ class ClauseRetriever:
 
         return formatted_results
 
+
 """
 ## Load clauses.json to pinecone, it should be in the data folder
 """
@@ -254,17 +257,19 @@ logger.info("## Load clauses.json to pinecone, it should be in the data folder")
 
 clause_retriever = ClauseRetriever("../data/clauses.json")
 employment_clauses = clause_retriever.get_clauses_by_contract_type(
-        contract_type="Employment Contract",
-    )
+    contract_type="Employment Contract",
+)
 
 # import getpass
 
-llm = ChatMLX(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats", temperature=0)
+llm = ChatMLX(model="llama-3.2-3b-instruct",
+              log_dir=f"{OUTPUT_DIR}/chats", temperature=0)
 
 """
 We'll use [LangSmith](https://docs.smith.langchain.com/) for [tracing](https://docs.smith.langchain.com/concepts/tracing).
 """
-logger.info("We'll use [LangSmith](https://docs.smith.langchain.com/) for [tracing](https://docs.smith.langchain.com/concepts/tracing).")
+logger.info(
+    "We'll use [LangSmith](https://docs.smith.langchain.com/) for [tracing](https://docs.smith.langchain.com/concepts/tracing).")
 
 _set_env("LANGCHAIN_API_KEY")
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
@@ -277,17 +282,21 @@ This section defines the core data structures used for managing the state of a c
 """
 logger.info("## Contract Review State and Supporting Models")
 
+
 class ContractInfo(BaseModel):
     contract_type: str = Field(description="Type of the contract")
     industry: Optional[str] = Field(description="Industry if identifiable")
 
+
 class ReviewPlan(BaseModel):
     steps: List[str] = Field(description="Detailed steps for contract review")
+
 
 class Modification(BaseModel):
     original_text: str = Field(description="Original contract text")
     suggested_text: str = Field(description="Suggested modification")
     reason: str = Field(description="Reason for modification")
+
 
 class ContractReviewState(TypedDict):
     contract_text: str
@@ -303,9 +312,12 @@ class ContractReviewState(TypedDict):
     clauses: Annotated[List[str], operator.add]
     final_report: str
 
+
 class StepAnalysis(BaseModel):
-    modifications: List[Modification] = Field(default_factory=list, description="List of suggested modifications")
+    modifications: List[Modification] = Field(
+        default_factory=list, description="List of suggested modifications")
     analysis: str = Field(description="Analysis from this role's perspective")
+
 
 """
 ## Contract Review Nodes Overview
@@ -384,6 +396,7 @@ These nodes collectively form an AI-powered workflow for contract analysis, ensu
 """
 logger.info("## Contract Review Nodes Overview")
 
+
 def classify_contract(state: ContractReviewState):
     """Node to classify the contract type and industry"""
 
@@ -398,6 +411,7 @@ def classify_contract(state: ContractReviewState):
 
     contract_info = llm.with_structured_output(ContractInfo).invoke(messages)
     return {"contract_info": contract_info}
+
 
 def retrieve_clauses(state: ContractReviewState):
     """Node to retrieve clauses based on contract type and filter for relevancy"""
@@ -423,7 +437,8 @@ def retrieve_clauses(state: ContractReviewState):
         for clause in specific_clauses:
             messages = [
                 SystemMessage(content=system_prompt),
-                HumanMessage(content=f"Clause Title: {clause['clause_title']}\n\nClause Text: {clause['clause_text']}")
+                HumanMessage(
+                    content=f"Clause Title: {clause['clause_title']}\n\nClause Text: {clause['clause_text']}")
             ]
 
             response = llm.invoke(messages).content.strip().upper()
@@ -447,7 +462,7 @@ def retrieve_clauses(state: ContractReviewState):
             formatted_clauses.append(formatted_clause)
 
         return {"clauses": formatted_clauses,
-                 "current_step": 0}  # Return to clauses instead of sections
+                "current_step": 0}  # Return to clauses instead of sections
 
     except Exception as e:
         error_message = f"Error retrieving clauses: {str(e)}"
@@ -516,7 +531,8 @@ def create_review_plan(state: ContractReviewState):
 
     messages = [
         SystemMessage(content=system_prompt),
-        HumanMessage(content=f"Contract text:\n{state['contract_text']}\n\nGenerate a role-based review plan.")
+        HumanMessage(
+            content=f"Contract text:\n{state['contract_text']}\n\nGenerate a role-based review plan.")
     ]
 
     review_plan = llm.with_structured_output(ReviewPlan).invoke(messages)
@@ -524,6 +540,7 @@ def create_review_plan(state: ContractReviewState):
         "review_plan": review_plan,
         "current_step": 0
     }
+
 
 def execute_step(state: ContractReviewState):
     """Node to execute each step of the review plan with specific analysis"""
@@ -559,6 +576,7 @@ def execute_step(state: ContractReviewState):
         "modifications": step_result.modifications,
         "sections": [section_summary]
     }
+
 
 def generate_final_report(state: ContractReviewState):
     """Node to generate the final report and summary."""
@@ -641,6 +659,7 @@ def generate_final_report(state: ContractReviewState):
 
     return {"final_report": report}
 
+
 """
 ## Parallel work
 
@@ -649,13 +668,13 @@ def generate_final_report(state: ContractReviewState):
 logger.info("## Parallel work")
 
 
-
 def continue_to_clauses_check_execute(state: ContractReviewState):
     return [Send("execute_step_clause", {"contract_text": state["contract_text"], "clauses": c}) for c in state["clauses"]]
 
 
 def continue_to_plan_check_execute(state: ContractReviewState):
     return [Send("execute_step", {"contract_text": state["contract_text"], "review_plan": step}) for step in state["review_plan"].steps]
+
 
 """
 ## The graph
@@ -674,10 +693,12 @@ builder.add_node("generate_final_report", generate_final_report)
 builder.add_edge(START, "classify_contract")
 builder.add_edge("classify_contract", "retrieve_clauses")
 
-builder.add_conditional_edges("retrieve_clauses", continue_to_clauses_check_execute, ["execute_step_clause"])
+builder.add_conditional_edges(
+    "retrieve_clauses", continue_to_clauses_check_execute, ["execute_step_clause"])
 builder.add_edge("execute_step_clause", "create_review_plan")
 
-builder.add_conditional_edges("create_review_plan", continue_to_plan_check_execute, ["execute_step"])
+builder.add_conditional_edges(
+    "create_review_plan", continue_to_plan_check_execute, ["execute_step"])
 builder.add_edge("execute_step", "generate_final_report")
 
 builder.add_edge("generate_final_report", END)
@@ -711,15 +732,18 @@ def extract_text_from_pdf(file_path):
             text += page.extract_text()
     return text
 
+
 def extract_text_from_docx(file_path):
     doc = docx.Document(file_path)
     text = "\n".join([paragraph.text for paragraph in doc.paragraphs])
     return text
 
+
 uploaded_file_path = None
 contract = ""
 primary_objective = ""
 specific_focus = ""
+
 
 def handle_file_upload(change):
     global uploaded_file_path
@@ -729,6 +753,7 @@ def handle_file_upload(change):
         with open(file_name, 'wb') as f:
             f.write(file_info['content'])
         logger.debug(f"File {file_name} uploaded successfully!")
+
 
 upload_widget = widgets.FileUpload(accept='.pdf,.docx', multiple=False)
 upload_widget.observe(handle_file_upload, names='value')
@@ -743,6 +768,7 @@ specific_focus_input = widgets.Text(
     placeholder="Enter the specific focus",
 )
 
+
 def save_inputs_and_extract_file_content(_):
     global contract, primary_objective, specific_focus
 
@@ -755,16 +781,20 @@ def save_inputs_and_extract_file_content(_):
     elif uploaded_file_path.endswith('.docx'):
         contract = extract_text_from_docx(uploaded_file_path)
     else:
-        logger.debug("Unsupported file format. Please upload a PDF or DOCX file.")
+        logger.debug(
+            "Unsupported file format. Please upload a PDF or DOCX file.")
         return
 
     primary_objective = primary_objective_input.value
     specific_focus = specific_focus_input.value
 
     logger.debug("\n--- Results ---")
-    logger.debug(f"Extracted Contract Text (first 500 chars):\n{contract[:500]}...")  # Showing a snippet for clarity
+    # Showing a snippet for clarity
+    logger.debug(
+        f"Extracted Contract Text (first 500 chars):\n{contract[:500]}...")
     logger.debug(f"Primary Objective: {primary_objective}")
     logger.debug(f"Specific Focus: {specific_focus}")
+
 
 save_button = widgets.Button(description="Save & Extract")
 save_button.on_click(save_inputs_and_extract_file_content)
@@ -812,10 +842,10 @@ def apply_modifications_to_contract(contract_text, all_modifications, output_pat
     paragraphs = contract_text.split("\n")
 
     def add_strikethrough(run):
-          r = run._element
-          rPr = r.get_or_add_rPr()
-          strike = OxmlElement("w:strike")
-          rPr.append(strike)
+        r = run._element
+        rPr = r.get_or_add_rPr()
+        strike = OxmlElement("w:strike")
+        rPr.append(strike)
 
     for paragraph_text in paragraphs:
         modified = False
@@ -843,13 +873,13 @@ def apply_modifications_to_contract(contract_text, all_modifications, output_pat
     logger.debug(f"Modified contract saved to {output_path}")
 
 
-
 contract_text = result["contract_text"]
 clause_modifications = result["clause_modifications"]
 planner_modifications = result["modifications"]
 
 all_modifications = clause_modifications + planner_modifications
 
-apply_modifications_to_contract(contract_text, all_modifications, "Modified_Contract.docx")
+apply_modifications_to_contract(
+    contract_text, all_modifications, "Modified_Contract.docx")
 
 logger.info("\n\n[DONE]", bright=True)

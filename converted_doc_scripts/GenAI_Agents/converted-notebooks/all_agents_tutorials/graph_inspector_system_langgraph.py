@@ -1,10 +1,10 @@
 from IPython.display import Image
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatMLX
+from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
 from jet.logger import CustomLogger
 from jinja2 import Template
 from langchain_core.messages import (AIMessage, ChatMessage, FunctionMessage,
-HumanMessage, SystemMessage, ToolMessage)
+                                     HumanMessage, SystemMessage, ToolMessage)
 from langchain_core.runnables.config import RunnableConfig
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.constants import Send
@@ -13,7 +13,7 @@ from langgraph.graph.graph import CompiledGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 from pydantic import BaseModel, Field, PrivateAttr
 from typing import (Annotated, Any, Dict, List, Optional, Set, Tuple, Type,
-Union)
+                    Union)
 from typing_extensions import TypedDict
 import copy
 import gradio as gr
@@ -99,7 +99,6 @@ logger.info("# LangGraph-Based Systems Inspector using LangGraph")
 # %pip install --quiet -U gradio networkx jinja2 langchain-core langchain-openai langgraph pydantic python-dotenv
 
 
-
 """
 ### Set up LLM model
 - Set up API keys in a .env file
@@ -125,6 +124,7 @@ All utility functions needed for the system inspector.
 """
 logger.info("## Utils")
 
+
 def create_structured_llm(config: dict, structured_output: BaseModel):
     """
     Creates a structured language model (LLM) based on the provided configuration and structured output model.
@@ -139,14 +139,16 @@ def create_structured_llm(config: dict, structured_output: BaseModel):
     """
 
     try:
-            model = config["configurable"].get("llm")
-            structured_llm = model.with_structured_output(structured_output)
-            return structured_llm
+        model = config["configurable"].get("llm")
+        structured_llm = model.with_structured_output(structured_output)
+        return structured_llm
     except:
         raise ValueError("The llm model is not valid")
 
+
 class PromtTemplate:
     """A class to render a prompt template with input variables."""
+
     def __init__(self, template: str, input_variables: list[str]):
         self.template = Template(template)
         self.input_variables = input_variables
@@ -154,22 +156,25 @@ class PromtTemplate:
     def render(self, **kwargs):
         return self.template.render(**kwargs)
 
+
 class Config(TypedDict):
     user_id: uuid.uuid4
     thread_id: uuid.uuid4
     description: str
 
+
 """
 Wrapper function that provides error handling and configuration management around graph execution.
 """
-logger.info("Wrapper function that provides error handling and configuration management around graph execution.")
+logger.info(
+    "Wrapper function that provides error handling and configuration management around graph execution.")
+
 
 def invoke_graph(graph: CompiledGraph,
                  input: Any,
-                 thread_id:Optional[str] = None,
-                 user_id:Optional[str]= None,
-                 description:str="") -> tuple[Config, bool, str]:
-
+                 thread_id: Optional[str] = None,
+                 user_id: Optional[str] = None,
+                 description: str = "") -> tuple[Config, bool, str]:
 
     thread_id = thread_id if thread_id else str(uuid.uuid4())
     user_id = user_id if user_id else str(uuid.uuid4())
@@ -191,10 +196,13 @@ def invoke_graph(graph: CompiledGraph,
 
     return config, error, error_message
 
+
 """
 Custom reducer function to handle parallel execution of multiple nodes.
 """
-logger.info("Custom reducer function to handle parallel execution of multiple nodes.")
+logger.info(
+    "Custom reducer function to handle parallel execution of multiple nodes.")
+
 
 def reduce_valid_input(left: Any | None, right: Any | None) -> Any:
     if left is None:
@@ -205,6 +213,7 @@ def reduce_valid_input(left: Any | None, right: Any | None) -> Any:
         return left
     if left != right:
         return left
+
 
 def generate_pairs(a: list, b: list) -> list[tuple]:
     """
@@ -223,15 +232,17 @@ def generate_pairs(a: list, b: list) -> list[tuple]:
 
     return result
 
+
 """
 Retrieve the annotation of any Python object. This function is used to determine the type of a generated input and check whether it is valid.
 """
 logger.info("Retrieve the annotation of any Python object. This function is used to determine the type of a generated input and check whether it is valid.")
 
+
 class TypeAnnotator:
     _iterables = [list, tuple, set, dict]
     _message_types = [HumanMessage, AIMessage, ToolMessage, SystemMessage,
-                     FunctionMessage, ChatMessage]
+                      FunctionMessage, ChatMessage]
     _no_iterables = [int, float, str, bool] + _message_types
 
     def __init__(self, obj: Any):
@@ -276,9 +287,9 @@ class TypeAnnotator:
         value_types = {self._infer_type(v) for v in obj.values()}
 
         key_type = (Union[tuple(sorted(key_types, key=str))]
-                   if len(key_types) > 1 else next(iter(key_types)))
+                    if len(key_types) > 1 else next(iter(key_types)))
         value_type = (Union[tuple(sorted(value_types, key=str))]
-                     if len(value_types) > 1 else next(iter(value_types)))
+                      if len(value_types) > 1 else next(iter(value_types)))
 
         return Dict[key_type, value_type]
 
@@ -298,10 +309,13 @@ class TypeAnnotator:
             return Set[next(iter(types))]
         return Set[Union[tuple(sorted(types, key=str))]]
 
+
 """
 obj_to_str function  is used to pass the inputs samples to the LLM model as strings.
 """
-logger.info("obj_to_str function  is used to pass the inputs samples to the LLM model as strings.")
+logger.info(
+    "obj_to_str function  is used to pass the inputs samples to the LLM model as strings.")
+
 
 def obj_to_str(obj, max_depth=float('inf'), current_depth=0):
     """
@@ -319,10 +333,12 @@ def obj_to_str(obj, max_depth=float('inf'), current_depth=0):
         return repr(obj)
 
     if isinstance(obj, dict):
-        items = [f'"{k}": {obj_to_str(v, max_depth, current_depth + 1)}' for k, v in obj.items()]
+        items = [
+            f'"{k}": {obj_to_str(v, max_depth, current_depth + 1)}' for k, v in obj.items()]
         return '{' + ', '.join(items) + '}'
     elif isinstance(obj, (list, tuple)):
-        items = [obj_to_str(item, max_depth, current_depth + 1) for item in obj]
+        items = [obj_to_str(item, max_depth, current_depth + 1)
+                 for item in obj]
         return '[' + ', '.join(items) + ']' if isinstance(obj, list) else '(' + ', '.join(items) + ')'
     elif isinstance(obj, str):
         return f'"{obj}"'
@@ -352,9 +368,11 @@ def obj_to_str(obj, max_depth=float('inf'), current_depth=0):
         attr_strs = []
         for key, value in attrs.items():
             if not key.startswith('_'):
-                attr_strs.append(f"{key}={obj_to_str(value, max_depth, current_depth + 1)}")
+                attr_strs.append(
+                    f"{key}={obj_to_str(value, max_depth, current_depth + 1)}")
 
         return f"{class_name}({', '.join(attr_strs)})"
+
 
 """
 ## Graph creation
@@ -364,8 +382,11 @@ Models used to parse the output of the LLM model and as states.
 """
 logger.info("## Graph creation")
 
+
 class Node_description(BaseModel):
-    node_description: str = Field(description="Description of the node. Max 45 words")
+    node_description: str = Field(
+        description="Description of the node. Max 45 words")
+
 
 class SuggestedTester(BaseModel):
     role: str = Field(
@@ -380,10 +401,12 @@ class SuggestedTester(BaseModel):
     def id(self):
         return self._id
 
+
 class Testers(BaseModel):
     testers: List[SuggestedTester] = Field(
         description="Comprehensive list of testers with their roles and descriptions",
     )
+
 
 class TestCase(BaseModel):
     name: str = Field(description="name of the test case.")
@@ -400,19 +423,25 @@ class TestCase(BaseModel):
     def id(self):
         return self._id
 
+
 class TaseCasesList(BaseModel):
-    test_cases: List[TestCase] = Field(description="Comprehensive list of test cases with their properties")
+    test_cases: List[TestCase] = Field(
+        description="Comprehensive list of test cases with their properties")
+
 
 class Input(BaseModel):
-    new_input : str = Field(description="new input for the test case")
+    new_input: str = Field(description="new input for the test case")
     tester_id: str = Field(description="leave this field blank", default='')
     test_case_id: str = Field(description="leave this field blank", default='')
-    actual_input: Optional[Any] = Field(description="leave this field blank", default=None)
-    is_successful: bool = Field(description="leave this field blank", default=False)
+    actual_input: Optional[Any] = Field(
+        description="leave this field blank", default=None)
+    is_successful: bool = Field(
+        description="leave this field blank", default=False)
+
 
 class FinalOutput(BaseModel):
-    assertion : bool = Field(description="Assertion result of the test case")
-    comments : str = Field(description="Comments on the test case output")
+    assertion: bool = Field(description="Assertion result of the test case")
+    comments: str = Field(description="Comments on the test case output")
     tester_id: str = Field(description="leave this field blank", default='')
     test_case_id: str = Field(description="leave this field blank", default='')
 
@@ -431,12 +460,14 @@ class OverallState(TypedDict):
     all_new_inputs: Annotated[list[Input], operator.add]
     listResults: Annotated[list[FinalOutput], operator.add]
 
+
 class SubGraphState(TypedDict):
     current_test_case: TestCase
     valid_input:  Annotated[Any, reduce_valid_input]
     all_new_inputs: Annotated[list[Input], operator.add]
     compiled_graph: Annotated[CompiledGraph, reduce_valid_input]
     execution_configs: Annotated[list[Config], operator.add]
+
 
 """
 ### Static test node
@@ -445,9 +476,11 @@ class SubGraphState(TypedDict):
 """
 logger.info("### Static test node")
 
+
 def static_test(state: OverallState):
-    memory = MemorySaver() # it could be a SQLite database
-    graph_after_compile = state["graph_before_compile"].compile(checkpointer=memory)
+    memory = MemorySaver()  # it could be a SQLite database
+    graph_after_compile = state["graph_before_compile"].compile(
+        checkpointer=memory)
 
     graph_object = graph_after_compile.get_graph()
 
@@ -464,14 +497,17 @@ def static_test(state: OverallState):
             for name_tool, tool in node.data.tools_by_name.items():
                 tools[name_tool] = tool.description
 
-        graph_sumary.add_node(name, type=type_node, runnable=node.data, tools=tools, name=name)
+        graph_sumary.add_node(name, type=type_node,
+                              runnable=node.data, tools=tools, name=name)
 
     for edge in edges:
-        graph_sumary.add_edge(edge.source, edge.target, conditional=edge.conditional)
+        graph_sumary.add_edge(edge.source, edge.target,
+                              conditional=edge.conditional)
 
     return {"compiled_graph": graph_after_compile,
-             "summary_graph": graph_sumary,
-             "execution_configs": []}
+            "summary_graph": graph_sumary,
+            "execution_configs": []}
+
 
 """
 ## Generate node descriptions
@@ -508,14 +544,14 @@ Explain the input and output requirements.
 {% if functions %}figure out what the fuction are for in the graph context.{% endif %}
 Find out how the node can contribute to achieve the description.
 Finally, write the description of the node.""",
-input_variables=["graph_description", "input", "output", "node_name", "type", "functions", "income_nodes", "outcome_nodes", "node_description"])
+                                       input_variables=["graph_description", "input", "output", "node_name", "type", "functions", "income_nodes", "outcome_nodes", "node_description"])
 
 
 def generate_node_descriptions(state: OverallState, config: RunnableConfig):
     structured_llm = create_structured_llm(config, Node_description)
 
-    config, error, error_message  = invoke_graph(graph=state["compiled_graph"],
-                          input=state["valid_input"])
+    config, error, error_message = invoke_graph(graph=state["compiled_graph"],
+                                                input=state["valid_input"])
 
     if error:
         raise ValueError(f"Invalid graph input: {error}")
@@ -528,35 +564,38 @@ def generate_node_descriptions(state: OverallState, config: RunnableConfig):
     node_name_in_tasks = [item.tasks[0].name for item in history if item.tasks]
     node_name_in_tasks.remove('__start__')
 
-    node_tasks_in_tasks = [item.tasks[0].result for item in history if item.tasks]
+    node_tasks_in_tasks = [
+        item.tasks[0].result for item in history if item.tasks]
 
     summary_graph = state["summary_graph"]
 
     for index, node_name in enumerate(node_name_in_tasks):
-        current_description = summary_graph.nodes[node_name].get("description", None)
+        current_description = summary_graph.nodes[node_name].get(
+            "description", None)
         functions = summary_graph.nodes[node_name].get("tools", None)
 
         actual_input = node_tasks_in_tasks[index]
         actual_output = node_tasks_in_tasks[index+1]
 
-        parameters = {"graph_description":state["user_description"],
-        "input":obj_to_str(actual_input),
-        "output":obj_to_str(actual_output),
-        "node_name":node_name,
-        "type":str(summary_graph.nodes[node_name]["type"]),
-        "functions":functions,
-        "income_nodes":str(summary_graph.in_edges(node_name)),
-        "outcome_nodes":str(summary_graph.out_edges(node_name)),
-        "node_description":current_description}
+        parameters = {"graph_description": state["user_description"],
+                      "input": obj_to_str(actual_input),
+                      "output": obj_to_str(actual_output),
+                      "node_name": node_name,
+                      "type": str(summary_graph.nodes[node_name]["type"]),
+                      "functions": functions,
+                      "income_nodes": str(summary_graph.in_edges(node_name)),
+                      "outcome_nodes": str(summary_graph.out_edges(node_name)),
+                      "node_description": current_description}
 
         system_message = node_description_promt.render(**parameters)
-        llm_description = structured_llm.invoke([SystemMessage(system_message)])
+        llm_description = structured_llm.invoke(
+            [SystemMessage(system_message)])
 
         summary_graph.nodes[node_name]["description"] = llm_description.node_description
 
-
     return {"execution_configs": [config],
             "summary_graph": summary_graph}
+
 
 """
 ## Generate testers 
@@ -580,24 +619,27 @@ Follow these instructions carefully:
 Max number of analysts: {{max_analysts}}
 
 5. Assign one tester to each theme. For each tester, provide the following information:""",
-input_variables=["graph_description", "human_analyst_feedback", "max_analysts"])
+                                     input_variables=["graph_description", "human_analyst_feedback", "max_analysts"])
+
 
 def generate_testers(state: OverallState, config: RunnableConfig):
     structured_llm = create_structured_llm(config, Testers)
 
-    parameters = {"graph_description":state["user_description"],
-                    "human_analyst_feedback":"Include: functional tester, anti injection and jailbreak LLM engeener, vulnerabilities bounty hunter",
-                    "max_analysts":3}
+    parameters = {"graph_description": state["user_description"],
+                  "human_analyst_feedback": "Include: functional tester, anti injection and jailbreak LLM engeener, vulnerabilities bounty hunter",
+                  "max_analysts": 3}
 
     system_message = testers_instructions.render(**parameters)
     created_testers = structured_llm.invoke([SystemMessage(system_message)])
 
-    nodes = [node_data for node_name, node_data in state["summary_graph"].nodes(data=True) if node_data.get("description", None)]
+    nodes = [node_data for node_name, node_data in state["summary_graph"].nodes(
+        data=True) if node_data.get("description", None)]
     testers = created_testers.testers
 
     return {"testers": {tester.id: tester for tester in created_testers.testers},
             "node_and_tester": generate_pairs(nodes, testers),
             "test_cases": []}
+
 
 """
 ## Generate Test Cases:
@@ -626,7 +668,8 @@ Give at least 3 test case.
 AVOID [repeating the same test case, puting values in the acceptance_criteria]
 Take your time and think out of the box.
 If there is no test case neded, return and empty object.""",
-input_variables=["role_description", "node_name", "node_type", "node_description", "node_functions", "sample_input", "sample_output", "existing_test_cases"])
+                                 input_variables=["role_description", "node_name", "node_type", "node_description", "node_functions", "sample_input", "sample_output", "existing_test_cases"])
+
 
 def generate_test_cases(state: OverallState, config: RunnableConfig):
     structured_llm = create_structured_llm(config, TaseCasesList)
@@ -641,7 +684,8 @@ def generate_test_cases(state: OverallState, config: RunnableConfig):
     history = list(state["compiled_graph"].get_state_history(configurable))
     history.reverse()
 
-    node_tasks_in_tasks = [(item.tasks[0].name, item.tasks[0].result) for item in history if item.tasks]
+    node_tasks_in_tasks = [(item.tasks[0].name, item.tasks[0].result)
+                           for item in history if item.tasks]
 
     actual_inputs = []
     actual_outputs = []
@@ -653,22 +697,24 @@ def generate_test_cases(state: OverallState, config: RunnableConfig):
 
     name_test_cases = [test_case.name for test_case in state["test_cases"]]
 
-    parameters = {"role_description":current_tester.description,
-                  "node_name":current_node["name"],
-                  "node_type":current_node["type"],
-                  "node_description":current_node["description"],
-                  "node_functions":current_node["tools"],
-                  "sample_input":obj_to_str(actual_inputs),
-                  "sample_output":obj_to_str(actual_outputs),
-                  "existing_test_cases":name_test_cases}
+    parameters = {"role_description": current_tester.description,
+                  "node_name": current_node["name"],
+                  "node_type": current_node["type"],
+                  "node_description": current_node["description"],
+                  "node_functions": current_node["tools"],
+                  "sample_input": obj_to_str(actual_inputs),
+                  "sample_output": obj_to_str(actual_outputs),
+                  "existing_test_cases": name_test_cases}
 
     system_message = test_case_prompt.render(**parameters)
-    test_cases = structured_llm.invoke([SystemMessage(content=system_message)]+[HumanMessage(content="Generate the set of test cases.")])
+    test_cases = structured_llm.invoke([SystemMessage(
+        content=system_message)]+[HumanMessage(content="Generate the set of test cases.")])
 
     for test_case in test_cases.test_cases:
         test_case.tester_id = current_tester.id
 
     return {"test_cases": test_cases.test_cases}
+
 
 def more_test_cases(state: OverallState):
     if state["node_and_tester"]:
@@ -680,13 +726,14 @@ def more_test_cases(state: OverallState):
         execution_configs = state["execution_configs"]
 
         for test_case in state["test_cases"]:
-            new_state = {"current_test_case":test_case,
-                         "valid_input":valid_inpout,
-                         "compiled_graph":compiled_graph}
+            new_state = {"current_test_case": test_case,
+                         "valid_input": valid_inpout,
+                         "compiled_graph": compiled_graph}
 
-            routing.append(Send("run_test_cases",new_state))
+            routing.append(Send("run_test_cases", new_state))
 
         return routing
+
 
 """
 ## Generate Subgraph to Create New Inputs and Run Tests
@@ -715,7 +762,8 @@ you must follow this instructions:
 7. For any message object, the content must be a string.
 8. Make sure the string could be passed to the 'eval' python function. For example, if the input has 'null' it should be 'None'.
 9. Return the new input.""",
-input_variables=["test_case_name", "test_case_description", "graph_valid_input"])
+                                 input_variables=["test_case_name", "test_case_description", "graph_valid_input"])
+
 
 def generate_new_inputs(state: SubGraphState, config: RunnableConfig):
     structured_llm = create_structured_llm(config, Input)
@@ -726,7 +774,8 @@ def generate_new_inputs(state: SubGraphState, config: RunnableConfig):
 
     system_message = new_input_prompt.render(**parameters)
 
-    new_input = structured_llm.invoke([SystemMessage(content=system_message)]+[HumanMessage(content="Generate the new input.")])
+    new_input = structured_llm.invoke([SystemMessage(
+        content=system_message)]+[HumanMessage(content="Generate the new input.")])
     new_input.tester_id = state["current_test_case"].tester_id
     new_input.test_case_id = state["current_test_case"].id
 
@@ -738,11 +787,11 @@ def generate_new_inputs(state: SubGraphState, config: RunnableConfig):
         if agent_valid_input_type == valid_input_type:
             new_input.actual_input = agent_valid_input
 
-            config, error, error_message  = invoke_graph(graph=state["compiled_graph"],
-                                                         input=agent_valid_input,
-                                                         description= state["current_test_case"].name,
-                                                         thread_id=new_input.test_case_id,
-                                                         user_id=new_input.tester_id)
+            config, error, error_message = invoke_graph(graph=state["compiled_graph"],
+                                                        input=agent_valid_input,
+                                                        description=state["current_test_case"].name,
+                                                        thread_id=new_input.test_case_id,
+                                                        user_id=new_input.tester_id)
             new_input.is_successful = not error
 
             return {"all_new_inputs": [new_input],
@@ -752,6 +801,7 @@ def generate_new_inputs(state: SubGraphState, config: RunnableConfig):
 
     except Exception as e:
         return {"all_new_inputs": []}
+
 
 sub_builder = StateGraph(SubGraphState)
 
@@ -779,7 +829,8 @@ You must validate the results using the test case description, acceptance criter
 You must validate the output. If the output is as described in the acceptance criteria, return 'True'. Otherwise, return 'False'.
 Finally, write additional comments of how to solve the issue if the output is not as expected.
 If the output is as expected, the comments should be a description of the behavior of the graph.
-""", input_variables=["test_case_name" ,"role_description", "test_case_description", "acceptance_criteria", "output"])
+""", input_variables=["test_case_name", "role_description", "test_case_description", "acceptance_criteria", "output"])
+
 
 def analize_results(state: OverallState, config: RunnableConfig):
     structured_llm = create_structured_llm(config, FinalOutput)
@@ -798,21 +849,24 @@ def analize_results(state: OverallState, config: RunnableConfig):
 
     configurable = {"configurable": current_result_config}
 
-    parameters = {"test_case_name" : current_test_case.name,
-                  "role_description":tester.description,
-                  "test_case_description":current_test_case.description,
-                  "acceptance_criteria":current_test_case.acceptance_criteria,
-                  "output":obj_to_str(state["compiled_graph"].get_state(configurable).values)}
+    parameters = {"test_case_name": current_test_case.name,
+                  "role_description": tester.description,
+                  "test_case_description": current_test_case.description,
+                  "acceptance_criteria": current_test_case.acceptance_criteria,
+                  "output": obj_to_str(state["compiled_graph"].get_state(configurable).values)}
 
     system_message = assertion_prompt.render(**parameters)
-    final_output = structured_llm.invoke([SystemMessage(content=system_message)]+[HumanMessage(content="Generate the final output.")])
+    final_output = structured_llm.invoke([SystemMessage(
+        content=system_message)]+[HumanMessage(content="Generate the final output.")])
     final_output.tester_id = tester.id
     final_output.test_case_id = current_test_case.id
 
     return {"listResults": [final_output]}
 
+
 def more_results(state: OverallState):
     return bool(state["execution_configs"])
+
 
 """
 ## Set Up LangGraph Workflow
@@ -835,9 +889,11 @@ builder.set_entry_point("static_test")
 builder.add_edge("static_test", "generate_node_descriptions")
 builder.add_edge("generate_node_descriptions", "generate_testers")
 builder.add_edge("generate_testers", "generate_test_cases")
-builder.add_conditional_edges("generate_test_cases", more_test_cases, ["generate_test_cases", "run_test_cases"])
+builder.add_conditional_edges("generate_test_cases", more_test_cases, [
+                              "generate_test_cases", "run_test_cases"])
 builder.add_edge("run_test_cases", "analize_results")
-builder.add_conditional_edges("analize_results", more_results, {True: "analize_results", False: "__end__"})
+builder.add_conditional_edges("analize_results", more_results, {
+                              True: "analize_results", False: "__end__"})
 
 graph = builder.compile()
 
@@ -849,6 +905,7 @@ Very simple graph to test the system inspector. It is a react agent with only on
 """
 logger.info("# Example Usage")
 
+
 def multiply(a: float, b: float) -> float:
     """Multiply a and b.
 
@@ -857,6 +914,7 @@ def multiply(a: float, b: float) -> float:
         b: second float
     """
     return a * b
+
 
 def add(a: float, b: float) -> float:
     """Adds a and b.
@@ -867,6 +925,7 @@ def add(a: float, b: float) -> float:
     """
     return a + b
 
+
 def divide(a: float, b: float) -> float:
     """Divides a by b.
 
@@ -876,14 +935,18 @@ def divide(a: float, b: float) -> float:
     """
     return a / b
 
+
 tools = [add, multiply, divide]
 
 llm_with_tools = llm.bind_tools(tools)
 
-sys_msg = SystemMessage(content="You are a helpful assistant tasked with performing arithmetic on a set of inputs.")
+sys_msg = SystemMessage(
+    content="You are a helpful assistant tasked with performing arithmetic on a set of inputs.")
+
 
 def assistant(state: MessagesState):
-   return {"messages": [llm_with_tools.invoke([sys_msg] + state["messages"])]}
+    return {"messages": [llm_with_tools.invoke([sys_msg] + state["messages"])]}
+
 
 builder_sample = StateGraph(MessagesState)
 
@@ -919,10 +982,9 @@ logger.info("In most cases, the recursion limit error is raised when the default
 
 configurations = {"configurable": {"llm": llm}, "recursion_limit": 50}
 
-result = graph.invoke({"user_description":user_description
-                       ,"valid_input": user_valid_input,
+result = graph.invoke({"user_description": user_description, "valid_input": user_valid_input,
                        "graph_before_compile": graph_before_compile},
-                       config=configurations)
+                      config=configurations)
 
 """
 ## Display results
@@ -945,17 +1007,20 @@ with gr.Blocks() as demo:
 
         tester = result["testers"][result_graph.tester_id]
 
-        configurations = {"configurable": {"user_id":tester.id,
-                                           "thread_id":current_test_case.id}}
+        configurations = {"configurable": {"user_id": tester.id,
+                                           "thread_id": current_test_case.id}}
 
         with gr.Accordion(f"{current_test_case.name}: {symbol}", open=False):
             gr.Markdown(f"{result_graph.comments}")
 
             with gr.Accordion(f"Details", open=False):
                 gr.Markdown(f"Tester: {tester.role}")
-                gr.Markdown(f"Teste description: {current_test_case.description}")
-                gr.Markdown(f"Teste assertion: {current_test_case.acceptance_criteria}")
-                gr.Markdown(f"Actual output: {obj_to_str(result["compiled_graph"].get_state(configurations).values)}")
+                gr.Markdown(
+                    f"Teste description: {current_test_case.description}")
+                gr.Markdown(
+                    f"Teste assertion: {current_test_case.acceptance_criteria}")
+                gr.Markdown(
+                    f"Actual output: {obj_to_str(result["compiled_graph"].get_state(configurations).values)}")
 
 demo.launch(debug=False, inbrowser=False)
 
