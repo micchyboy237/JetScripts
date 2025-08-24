@@ -19,11 +19,16 @@ TABLE_NAME = "messages"
 with PostgresClient(
     dbname=DBNAME,
 ) as client:
-    # where_conditions = {
-    #     "conversation_id": "25d41299-921b-4a03-902e-75468e87b7a8"
-    # }
+
     where_conditions = None
+    order_by = ("created_at", "DESC")
+    first_row = client.get_rows(TABLE_NAME, limit=1, order_by=order_by)
+
+    where_conditions = {
+        "conversation_id": first_row[0]["conversation_id"]
+    }
     all_rows = client.get_rows(TABLE_NAME, where_conditions=where_conditions)
+
     logger.newline()
     logger.debug(f"All rows in {TABLE_NAME}:")
     logger.success(format_json(all_rows))
