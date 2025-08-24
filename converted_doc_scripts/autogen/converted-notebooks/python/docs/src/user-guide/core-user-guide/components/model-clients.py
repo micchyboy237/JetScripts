@@ -96,7 +96,7 @@ async def print_streamed_responses():
     try:
         async for chunk in stream:
             if isinstance(chunk, str):
-                logger.debug(chunk)
+                logger.teal(chunk, flush=True)
             else:
                 assert isinstance(chunk, CreateResult) and isinstance(
                     chunk.content, str)
@@ -161,8 +161,8 @@ response = asyncio.run(run_async_code_fbb22dd6())
 logger.info(format_json(response))
 assert isinstance(response.content, str)
 parsed_response = AgentResponse.model_validate_json(response.content)
-logger.debug(parsed_response.thoughts)
-logger.debug(parsed_response.response)
+logger.success(parsed_response.thoughts)
+logger.success(parsed_response.response)
 
 
 async def run_async_code_0349fda4():
@@ -200,12 +200,12 @@ async def main() -> None:
         # First call: should hit the model and cache the result
         response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
         logger.info(format_json(response))
-        logger.debug(response)  # Should print response from Ollama
+        logger.success(response)  # Should print response from Ollama
 
         # Second call: should hit the cache
         response_cached = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
         logger.info(format_json(response_cached))
-        logger.debug(response_cached)  # Should print cached response
+        logger.success(response_cached)  # Should print cached response
 
         await openai_model_client.close()
         await cache_client.close()
@@ -244,6 +244,7 @@ class SimpleAgent(RoutedAgent):
         )
         logger.info(format_json(response))
         assert isinstance(response.content, str)
+        logger.success(response.content)
         return Message(content=response.content)
 
 
@@ -279,7 +280,7 @@ async def main():
     response = await runtime.send_message(message, AgentId("simple_agent", "default"))
     logger.info(format_json(response))
     assert isinstance(response.content, str)
-    logger.debug(response.content)
+    logger.success(response.content)
 
     await runtime.stop()
     await model_client.close()
