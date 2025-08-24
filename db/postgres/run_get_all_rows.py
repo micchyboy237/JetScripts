@@ -4,6 +4,7 @@ from jet.db.postgres.client import PostgresClient
 from jet.file.utils import save_file
 from jet.logger import logger
 from jet.transformers.formatters import format_json
+from jet.utils.collection_utils import group_by
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -28,4 +29,15 @@ with PostgresClient(
             "rows": all_rows  # Directly save all columns except embedding
         },
         f"{OUTPUT_DIR}/all_rows.json"
+    )
+
+    grouped_rows = group_by(all_rows, "session_id")
+    save_file(
+        {
+            "table": TABLE_NAME,
+            "group_key": "session_id",
+            "count": len(grouped_rows),
+            "rows": grouped_rows  # Directly save all columns except embedding
+        },
+        f"{OUTPUT_DIR}/grouped_rows.json"
     )
