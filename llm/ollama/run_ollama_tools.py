@@ -45,12 +45,14 @@ if tool_calls:
         "content": "Sunny, 24°C"
     }
 
-    follow_up = ollama.chat(
+    follow_up_stream = ollama.chat(
         model="llama3.2",
+        stream=True,
         messages=[
             {"role": "user", "content": "What's the weather in Nairobi?"},
             result
         ]
     )
+    follow_up = list(follow_up_stream)[-1]
 
     print("Final response:", follow_up.message.content)

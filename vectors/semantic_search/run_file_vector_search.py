@@ -101,7 +101,6 @@ def main(query, directories):
         result for result in with_split_chunks_results
         if detect_lang(result["text"])["lang"] == "en"
     ]
-    print_results(query, with_split_chunks_results, split_chunks)
     save_file({
         "query": query,
         "count": len(with_split_chunks_results),
@@ -110,14 +109,13 @@ def main(query, directories):
     }, f"{output_dir}/search_results_split.json")
 
     split_chunks = False
-    without_split_chunks_results = merge_results(
+    merged_results = merge_results(
         with_split_chunks_results, tokenizer=count_tokens)
-    print_results(query, without_split_chunks_results, split_chunks)
     save_file({
         "query": query,
-        "count": len(without_split_chunks_results),
+        "count": len(merged_results),
         "merged": not split_chunks,
-        "results": without_split_chunks_results
+        "results": merged_results
     }, f"{output_dir}/search_results_merged.json")
 
     # Rerank
@@ -132,13 +130,15 @@ def main(query, directories):
     }, f"{output_dir}/reranked_results_split.json")
 
     query_candidates, reranked_results = rerank_results(
-        query, without_split_chunks_results[:top_n])
+        query, merged_results[:top_n])
     save_file({
         "query": query,
         "candidates": query_candidates,
         "count": len(reranked_results),
         "results": reranked_results
     }, f"{output_dir}/reranked_results_merged.json")
+
+    print_results(query, merged_results, split_chunks)
 
 
 def parse_arguments():
