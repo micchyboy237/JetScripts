@@ -66,7 +66,7 @@ store = InMemoryStore(index={"embed": "ollama:mxbai-embed-large"})
 """
 ### 2. Defining Our Agent's "Brain": The State
 """
-logger.info("### 2. Defining Our Agent's "Brain": The State")
+logger.info("### 2. Defining Our Agent's \"Brain\": The State")
 
 class State(TypedDict):
     email_input: dict  # The incoming email
