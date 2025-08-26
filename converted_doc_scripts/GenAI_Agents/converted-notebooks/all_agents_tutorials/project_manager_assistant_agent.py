@@ -222,6 +222,7 @@ elif model_provider == 'Ollama':
     llm = ChatOllama(model="llama3.2")
 else:
     logger.debug('Implement your own llm loader')
+    llm = ChatOllama(model="llama3.2")
 
 llm.invoke("Hello, how are you?")
 
