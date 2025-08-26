@@ -563,7 +563,7 @@ memory = MemorySaver()
 graph_plan = workflow.compile(checkpointer=memory)
 
 render_mermaid_graph(
-    graph_plan, output_filename=f"{OUTPUT_DIR}/graph_output.png")
+    graph_plan, output_filename=f"{OUTPUT_DIR}/graph_output1.png")
 
 """
 ## Usage Example
@@ -736,7 +736,7 @@ simple_memory = MemorySaver()
 simple_graph_plan = simple_workflow.compile(checkpointer=memory)
 
 render_mermaid_graph(
-    simple_graph_plan, output_filename=f"{OUTPUT_DIR}/graph_output.png")
+    simple_graph_plan, output_filename=f"{OUTPUT_DIR}/graph_output2.png")
 
 config = {"configurable": {"thread_id": "2"}}
 for event in simple_graph_plan.stream(state_input, config, stream_mode=["updates"]):
