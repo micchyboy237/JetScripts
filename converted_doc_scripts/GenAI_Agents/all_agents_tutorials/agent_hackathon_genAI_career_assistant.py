@@ -94,7 +94,7 @@ This code imports necessary libraries to create and interact with a generative A
 """
 
 
-llm = ChatOllama(model="llama3.1")
+llm = ChatOllama(model="llama3.2")
 
 """
 ### Defining a State class using TypedDict to specify the structure of state data in the workflow.
@@ -182,7 +182,7 @@ def show_md_file(file_path):
 
 class LearningResourceAgent:
     def __init__(self, prompt):
-        self.model = ChatOllama(model="llama3.1")
+        self.model = ChatOllama(model="llama3.2")
         self.prompt = prompt
         self.tools = [DuckDuckGoSearchResults()]
 
@@ -246,7 +246,7 @@ class LearningResourceAgent:
 
 class InterviewAgent:
     def __init__(self, prompt):
-        self.model = ChatOllama(model="llama3.1")
+        self.model = ChatOllama(model="llama3.2")
         self.prompt = prompt
         # Web search tool for retrieving additional information
         self.tools = [DuckDuckGoSearchResults()]
@@ -328,7 +328,7 @@ class InterviewAgent:
 
 class ResumeMaker:
     def __init__(self, prompt):
-        self.model = ChatOllama(model="llama3.1")
+        self.model = ChatOllama(model="llama3.2")
         self.prompt = prompt
         # Search tool to gather additional information if needed
         self.tools = [DuckDuckGoSearchResults()]
@@ -377,7 +377,7 @@ class ResumeMaker:
 
 class JobSearch:
     def __init__(self, prompt):
-        self.model = ChatOllama(model="llama3.1")
+        self.model = ChatOllama(model="llama3.2")
         self.prompt = prompt
         # Search tool to find job listings or related information
         self.tools = DuckDuckGoSearchResults()

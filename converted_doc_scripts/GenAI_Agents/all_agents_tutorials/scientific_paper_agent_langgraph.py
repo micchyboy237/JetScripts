@@ -1,3 +1,4 @@
+import shutil
 from jet.logger import CustomLogger
 from jet.llm.ollama.base import initialize_ollama_settings
 import io
@@ -17,9 +18,10 @@ from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field
 from typing import Annotated, ClassVar, Sequence, TypedDict, Optional
 
-    
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -95,7 +97,6 @@ This cell installs the required dependencies.
 """
 This cell imports the required libraries and sets the environment variables.
 """
-
 
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -200,22 +201,24 @@ This cell contains the utility classes and functions used in the workflow. It in
 The `CoreAPIWrapper` class includes a retry mechanism to handle transient errors and make the workflow more robust.
 """
 
+
 class CoreAPIWrapper(BaseModel):
     """Simple wrapper around the CORE API."""
     base_url: ClassVar[str] = "https://api.core.ac.uk/v3"
     api_key: ClassVar[str] = os.environ["CORE_API_KEY"]
 
-    top_k_results: int = Field(description = "Top k results obtained by running a query on Core", default = 1)
+    top_k_results: int = Field(
+        description="Top k results obtained by running a query on Core", default=1)
 
     def _get_search_response(self, query: str) -> dict:
         http = urllib3.PoolManager()
 
-        max_retries = 5    
+        max_retries = 5
         for attempt in range(max_retries):
             response = http.request(
                 'GET',
-                f"{self.base_url}/search/outputs", 
-                headers={"Authorization": f"Bearer {self.api_key}"}, 
+                f"{self.base_url}/search/outputs",
+                headers={"Authorization": f"Bearer {self.api_key}"},
                 fields={"q": query, "limit": self.top_k_results}
             )
             if 200 <= response.status < 300:
@@ -223,7 +226,8 @@ class CoreAPIWrapper(BaseModel):
             elif attempt < max_retries - 1:
                 time.sleep(2 ** (attempt + 2))
             else:
-                raise Exception(f"Got non 2xx response from CORE API: {response.status} {response.data}")
+                raise Exception(
+                    f"Got non 2xx response from CORE API: {response.status} {response.data}")
 
     def search(self, query: str) -> str:
         response = self._get_search_response(query)
@@ -233,8 +237,10 @@ class CoreAPIWrapper(BaseModel):
 
         docs = []
         for result in results:
-            published_date_str = result.get('publishedDate') or result.get('yearPublished', '')
-            authors_str = ' and '.join([item['name'] for item in result.get('authors', [])])
+            published_date_str = result.get(
+                'publishedDate') or result.get('yearPublished', '')
+            authors_str = ' and '.join([item['name']
+                                       for item in result.get('authors', [])])
             docs.append((
                 f"* ID: {result.get('id', '')},\n"
                 f"* Title: {result.get('title', '')},\n"
@@ -245,23 +251,34 @@ class CoreAPIWrapper(BaseModel):
             ))
         return "\n-----\n".join(docs)
 
+
 class SearchPapersInput(BaseModel):
     """Input object to search papers with the CORE API."""
-    query: str = Field(description="The query to search for on the selected archive.")
-    max_papers: int = Field(description="The maximum number of papers to return. It's default to 1, but you can increase it up to 10 in case you need to perform a more comprehensive search.", default=1, ge=1, le=10)
+    query: str = Field(
+        description="The query to search for on the selected archive.")
+    max_papers: int = Field(
+        description="The maximum number of papers to return. It's default to 1, but you can increase it up to 10 in case you need to perform a more comprehensive search.", default=1, ge=1, le=10)
+
 
 class DecisionMakingOutput(BaseModel):
     """Output object of the decision making node."""
-    requires_research: bool = Field(description="Whether the user query requires research or not.")
-    answer: Optional[str] = Field(default=None, description="The answer to the user query. It should be None if the user query requires research, otherwise it should be a direct answer to the user query.")
+    requires_research: bool = Field(
+        description="Whether the user query requires research or not.")
+    answer: Optional[str] = Field(
+        default=None, description="The answer to the user query. It should be None if the user query requires research, otherwise it should be a direct answer to the user query.")
+
 
 class JudgeOutput(BaseModel):
     """Output object of the judge node."""
-    is_good_answer: bool = Field(description="Whether the answer is good or not.")
-    feedback: Optional[str] = Field(default=None, description="Detailed feedback about why the answer is not good. It should be None if the answer is good.")
+    is_good_answer: bool = Field(
+        description="Whether the answer is good or not.")
+    feedback: Optional[str] = Field(
+        default=None, description="Detailed feedback about why the answer is not good. It should be None if the answer is good.")
+
 
 def format_tools_description(tools: list[BaseTool]) -> str:
     return "\n\n".join([f"- {tool.name}: {tool.description}\n Input arguments: {tool.args}" for tool in tools])
+
 
 async def print_stream(app: CompiledStateGraph, input: str) -> Optional[BaseMessage]:
     display(Markdown("## New research running"))
@@ -276,7 +293,7 @@ async def print_stream(app: CompiledStateGraph, input: str) -> Optional[BaseMess
                 for message in messages:
                     message.pretty_logger.debug()
                     logger.debug("\n\n")
- 
+
     if not all_messages:
         return None
     return all_messages[-1]
@@ -291,12 +308,14 @@ This cell defines the agent state, which contains the following information:
 - `messages`: The conversation history between the user and the LLM.
 """
 
+
 class AgentState(TypedDict):
     """The state of the agent during the paper research process."""
     requires_research: bool = False
     num_feedback_requests: int = 0
     is_good_answer: bool = False
     messages: Annotated[Sequence[BaseMessage], add_messages]
+
 
 """
 ## Agent tools
@@ -305,6 +324,7 @@ This cell defines the tools available to the agent. The toolkit contains a tool 
 
 To make the paper download more robust, the tool includes a retry mechanism, similar to the one used for the CORE API, as well as a mock browser header to avoid 403 errors.
 """
+
 
 @tool("search-papers", args_schema=SearchPapersInput)
 def search_papers(query: str, max_papers: int = 1) -> str:
@@ -321,6 +341,7 @@ def search_papers(query: str, max_papers: int = 1) -> str:
     except Exception as e:
         return f"Error performing paper search: {e}"
 
+
 @tool("download-paper")
 def download_paper(url: str) -> str:
     """Download a specific scientific paper from a given URL.
@@ -331,11 +352,11 @@ def download_paper(url: str) -> str:
     Returns:
         The paper content.
     """
-    try:        
+    try:
         http = urllib3.PoolManager(
             cert_reqs='CERT_NONE',
         )
-        
+
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -356,14 +377,17 @@ def download_paper(url: str) -> str:
             elif attempt < max_retries - 1:
                 time.sleep(2 ** (attempt + 2))
             else:
-                raise Exception(f"Got non 2xx when downloading paper: {response.status_code} {response.text}")
+                raise Exception(
+                    f"Got non 2xx when downloading paper: {response.status_code} {response.text}")
     except Exception as e:
         return f"Error downloading paper: {e}"
+
 
 @tool("ask-human-feedback")
 def ask_human_feedback(question: str) -> str:
     """Ask for human feedback. You should call this tool when encountering unexpected errors."""
     return input(question)
+
 
 tools = [search_papers, download_paper, ask_human_feedback]
 tools_dict = {tool.name: tool for tool in tools}
@@ -374,19 +398,22 @@ tools_dict = {tool.name: tool for tool in tools}
 This cell defines the nodes of the workflow. Note how the `judge_node` is configured to end the execution if the LLM failed to provide a good answer twice to keep latency acceptable.
 """
 
-base_llm = ChatOllama(model="llama3.1")
+base_llm = ChatOllama(model="llama3.2")
 decision_making_llm = base_llm.with_structured_output(DecisionMakingOutput)
 agent_llm = base_llm.bind_tools(tools)
 judge_llm = base_llm.with_structured_output(JudgeOutput)
 
+
 def decision_making_node(state: AgentState):
     """Entry point of the workflow. Based on the user query, the model can either respond directly or perform a full research, routing the workflow to the planning node"""
     system_prompt = SystemMessage(content=decision_making_prompt)
-    response: DecisionMakingOutput = decision_making_llm.invoke([system_prompt] + state["messages"])
+    response: DecisionMakingOutput = decision_making_llm.invoke(
+        [system_prompt] + state["messages"])
     output = {"requires_research": response.requires_research}
     if response.answer:
         output["messages"] = [AIMessage(content=response.answer)]
     return output
+
 
 def router(state: AgentState):
     """Router directing the user query to the appropriate branch of the workflow."""
@@ -395,11 +422,14 @@ def router(state: AgentState):
     else:
         return "end"
 
+
 def planning_node(state: AgentState):
     """Planning node that creates a step by step plan to answer the user query."""
-    system_prompt = SystemMessage(content=planning_prompt.format(tools=format_tools_description(tools)))
+    system_prompt = SystemMessage(content=planning_prompt.format(
+        tools=format_tools_description(tools)))
     response = base_llm.invoke([system_prompt] + state["messages"])
     return {"messages": [response]}
+
 
 def tools_node(state: AgentState):
     """Tool call node that executes the tools based on the plan."""
@@ -415,11 +445,13 @@ def tools_node(state: AgentState):
         )
     return {"messages": outputs}
 
+
 def agent_node(state: AgentState):
     """Agent call node that uses the LLM with tools to answer the user query."""
     system_prompt = SystemMessage(content=agent_prompt)
     response = agent_llm.invoke([system_prompt] + state["messages"])
     return {"messages": [response]}
+
 
 def should_continue(state: AgentState):
     """Check if the agent should continue or end."""
@@ -431,6 +463,7 @@ def should_continue(state: AgentState):
     else:
         return "end"
 
+
 def judge_node(state: AgentState):
     """Node to let the LLM judge the quality of its own final answer."""
     num_feedback_requests = state.get("num_feedback_requests", 0)
@@ -438,7 +471,8 @@ def judge_node(state: AgentState):
         return {"is_good_answer": True}
 
     system_prompt = SystemMessage(content=judge_prompt)
-    response: JudgeOutput = judge_llm.invoke([system_prompt] + state["messages"])
+    response: JudgeOutput = judge_llm.invoke(
+        [system_prompt] + state["messages"])
     output = {
         "is_good_answer": response.is_good_answer,
         "num_feedback_requests": num_feedback_requests + 1
@@ -447,12 +481,14 @@ def judge_node(state: AgentState):
         output["messages"] = [AIMessage(content=response.feedback)]
     return output
 
+
 def final_answer_router(state: AgentState):
     """Router to end the workflow or improve the answer."""
     if state["is_good_answer"]:
         return "end"
     else:
         return "planning"
+
 
 """
 ## Workflow definition

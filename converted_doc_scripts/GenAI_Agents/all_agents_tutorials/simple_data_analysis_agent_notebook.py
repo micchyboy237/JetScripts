@@ -101,7 +101,7 @@ Here, we create a Pandas DataFrame agent using LangChain. This agent will be cap
 """
 
 agent = create_pandas_dataframe_agent(
-    ChatOllama(model="llama3.1"),
+    ChatOllama(model="llama3.2"),
     df,
     verbose=True,
     allow_dangerous_code=True,

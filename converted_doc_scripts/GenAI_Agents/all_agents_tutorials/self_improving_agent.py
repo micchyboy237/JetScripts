@@ -133,7 +133,7 @@ Now we'll define our `SelfImprovingAgent` class that uses these functions.
 
 class SelfImprovingAgent:
     def __init__(self):
-        self.llm = ChatOllama(model="llama3.1")
+        self.llm = ChatOllama(model="llama3.2")
         self.store = {}
         self.insights = ""
 

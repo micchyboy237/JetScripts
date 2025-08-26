@@ -8,9 +8,10 @@ from pydantic_ai import Agent
 from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
 from pydantic_ai.agent import AgentRunResult
 
-    
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -90,11 +91,8 @@ This notebook demonstrates how to create a simple conversational agent using Pyd
 
 ### Import required libraries
 """
-logger.info("# Building a Conversational Agent with Context Awareness with PydanticAI")
-
-
-
-
+logger.info(
+    "# Building a Conversational Agent with Context Awareness with PydanticAI")
 
 
 # import nest_asyncio
@@ -105,7 +103,7 @@ load_dotenv()
 os.environ['LOGFIRE_IGNORE_NO_CONFIG'] = '1'
 
 agent = Agent(
-    model='ollama:llama3.1',
+    model='ollama:llama3.2',
     system_prompt='You are a helpful AI assistant.',
 )
 
@@ -116,20 +114,23 @@ logger.info("###  Create a simple in-memory store for chat histories")
 
 store: dict[str, list[bytes]] = {}
 
+
 def create_session_if_not_exists(session_id: str) -> None:
     """Makes sure that `session_id` exists in the chat storage."""
     if session_id not in store:
         store[session_id]: list[ModelMessage] = []
-    
+
+
 def get_chat_history(session_id: str) -> list[ModelMessage]:
     """Returns the existing chat history."""
-    
+
     create_session_if_not_exists(session_id)
 
     return list(chain.from_iterable(
         ModelMessagesTypeAdapter.validate_json(msg_group)
         for msg_group in store[session_id]
     ))
+
 
 def store_messages_in_history(session_id: str, run_result: AgentRunResult[ModelMessage]) -> None:
     """Stores all new messages from the recent `run` with the model, into the local store.
@@ -141,21 +142,25 @@ def store_messages_in_history(session_id: str, run_result: AgentRunResult[ModelM
 
     store[session_id].append(run_result.new_messages_json())
 
+
 """
 ### Wrap the ask with message history
 """
 logger.info("### Wrap the ask with message history")
+
 
 def ask_with_history(user_message: str, user_session_id: str) -> AgentRunResult[ModelMessage]:
     """Asks the chatbot the user's question and stores the new messages in the chat history."""
 
     chat_history = get_chat_history(user_session_id)
 
-    chat_response: AgentRunResult[ModelMessage] = agent.run_sync(user_message, message_history=chat_history)
+    chat_response: AgentRunResult[ModelMessage] = agent.run_sync(
+        user_message, message_history=chat_history)
 
     store_messages_in_history(user_session_id, chat_response)
 
     return chat_response
+
 
 """
 ### Example usage

@@ -10,9 +10,10 @@ from langchain_core.runnables.graph import MermaidDrawMethod
 from IPython.display import display, Image
 from dotenv import load_dotenv
 
-    
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -44,7 +45,6 @@ This cell imports all the necessary modules and classes for our LangGraph tutori
 """
 
 
-
 """
 ### Set Up API Key
 # This cell loads environment variables and sets up the Ollama API key. Make sure you have a `.env` file with your `OPENAI_API_KEY`.
@@ -61,18 +61,21 @@ load_dotenv()
 Here we define the State class to hold our workflow data and initialize the ChatOllama model.
 """
 
+
 class State(TypedDict):
     text: str
     classification: str
     entities: List[str]
     summary: str
 
-llm = ChatOllama(model="llama3.1")
+
+llm = ChatOllama(model="llama3.2")
 
 """
 ### Define Node Functions
 These functions define the operations performed at each node of our graph: classification, entity extraction, and summarization.
 """
+
 
 def classification_node(state: State):
     ''' Classify the text into one of the categories: News, Blog, Research, or Other '''
@@ -106,6 +109,7 @@ def summarization_node(state: State):
     summary = llm.invoke([message]).content.strip()
     return {"summary": summary}
 
+
 """
 ### Create Tools and Build Workflow
 This cell builds the StateGraph workflow.
@@ -117,7 +121,8 @@ workflow.add_node("classification_node", classification_node)
 workflow.add_node("entity_extraction", entity_extraction_node)
 workflow.add_node("summarization", summarization_node)
 
-workflow.set_entry_point("classification_node") # Set the entry point of the graph
+# Set the entry point of the graph
+workflow.set_entry_point("classification_node")
 workflow.add_edge("classification_node", "entity_extraction")
 workflow.add_edge("entity_extraction", "summarization")
 workflow.add_edge("summarization", END)

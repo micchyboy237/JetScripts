@@ -8,9 +8,10 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 import os
 from dotenv import load_dotenv
 
-    
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -77,7 +78,6 @@ This notebook demonstrates how to create a simple conversational agent using Lan
 logger.info("# Building a Conversational Agent with Context Awareness")
 
 
-
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
 """
@@ -86,7 +86,7 @@ logger.info("# Building a Conversational Agent with Context Awareness")
 logger.info("### Load environment variables and initialize the language model")
 
 load_dotenv()
-llm = ChatOllama(model="llama3.1")
+llm = ChatOllama(model="llama3.2")
 
 """
 ###  Create a simple in-memory store for chat histories
@@ -95,10 +95,12 @@ logger.info("###  Create a simple in-memory store for chat histories")
 
 store = {}
 
+
 def get_chat_history(session_id: str):
     if session_id not in store:
         store[session_id] = ChatMessageHistory()
     return store[session_id]
+
 
 """
 ### Create the prompt template
