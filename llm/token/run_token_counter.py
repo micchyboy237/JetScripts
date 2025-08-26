@@ -1,5 +1,5 @@
 import json
-from jet.token import token_counter, filter_texts
+from jet.token.token_utils import token_counter, filter_texts
 from jet.logger import logger
 from jet.transformers.object import make_serializable
 from llama_index.core.base.llms.types import ChatMessage, MessageRole
@@ -39,7 +39,7 @@ sample_chat_messages: list[ChatMessage] = [
 ]
 
 if __name__ == "__main__":
-    models = ["mistral", "llama3.1", "llama3.2"]
+    models = ["qwen3"]
     default_max_tokens = 20
     max_tokens = default_max_tokens
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         counts = token_counter(sample_texts, model_name, prevent_total=True)
         logger.log("List of Tokens:", counts, colors=["GRAY", "SUCCESS"])
 
-    logger.info("\n\nFilter text count")
+    logger.info(f"\n\nFilter text count (max: {max_tokens})")
     for model_name in models:
         logger.newline()
         logger.log("Model:", model_name, colors=["WHITE", "PURPLE"])
@@ -85,7 +85,8 @@ if __name__ == "__main__":
         logger.log("Filtered Text:", filtered_text,
                    colors=["GRAY", "SUCCESS"])
 
-    logger.info("\n\nFilter batch of texts for: list[str]")
+    logger.info(
+        f"\n\nFilter batch of texts for: list[str] (max: {max_tokens})")
     for model_name in models:
         logger.newline()
         logger.log("Model:", model_name, colors=["WHITE", "PURPLE"])
@@ -117,7 +118,8 @@ if __name__ == "__main__":
         logger.log("Filtered Texts:", len(filtered_texts),
                    colors=["GRAY", "SUCCESS"])
 
-    logger.info("\n\nFilter batch of texts for: list[ChatMessage]")
+    logger.info(
+        f"\n\nFilter batch of texts for: list[ChatMessage] (max: {max_tokens})")
     for model_name in models:
         logger.newline()
         logger.log("Model:", model_name, colors=["WHITE", "PURPLE"])
@@ -132,7 +134,8 @@ if __name__ == "__main__":
         logger.log("Filtered Texts:", len(filtered_texts),
                    colors=["GRAY", "SUCCESS"])
 
-    logger.info("\n\nFilter batch of texts for: list[dict]")
+    logger.info(
+        f"\n\nFilter batch of texts for: list[dict] (max: {max_tokens})")
     sample_chat_messages_list_dict = make_serializable(sample_chat_messages)
     for model_name in models:
         logger.newline()
