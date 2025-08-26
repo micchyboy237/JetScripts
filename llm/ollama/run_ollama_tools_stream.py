@@ -52,15 +52,20 @@ available_functions = {
     'subtract_two_numbers': subtract_two_numbers,
 }
 
-response: ChatResponse = chat(
+response_stream: ChatResponse = chat(
     'llama3.2',
     messages=messages,
+    stream=True,
     tools=[add_two_numbers, subtract_two_numbers_tool],
 )
+tool_calls = None
+for response in response_stream:
+    if response.message.tool_calls:
+        tool_calls = response.message.tool_calls
 
-if response.message.tool_calls:
+if tool_calls:
     # There may be multiple tool calls in the response
-    for tool in response.message.tool_calls:
+    for tool in tool_calls:
         # Ensure the function is available, and then call it
         if function_to_call := available_functions.get(tool.function.name):
             print('Calling function:', tool.function.name)
@@ -71,7 +76,7 @@ if response.message.tool_calls:
             print('Function', tool.function.name, 'not found')
 
 # Only needed to chat with the model using the tool call results
-if response.message.tool_calls:
+if tool_calls:
     # Add the function response to messages for the model to use
     messages.append(response.message)
     messages.append({'role': 'tool', 'content': str(
