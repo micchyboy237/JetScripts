@@ -1,3 +1,4 @@
+import shutil
 from jet.llm.ollama.base_langchain import ChatOllama
 from jet.logger import CustomLogger
 from jet.llm.ollama.base import initialize_ollama_settings
@@ -18,7 +19,9 @@ from langchain_community.tools import DuckDuckGoSearchResults  # searching tools
 from langchain.agents import create_tool_calling_agent
 from langchain.agents import AgentExecutor
 
-
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 script_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(
     script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
@@ -139,15 +142,13 @@ def trim_conversation(prompt):
 
 
 def save_file(data, filename):
-    """Saves data to a markdown file with a timestamped filename."""
-    folder_name = "Agent_output"  # Folder to store output files
-    # Creates the folder if it doesn't exist
-    os.makedirs(folder_name, exist_ok=True)
+    """Saves data to a markdown file with a timestamped filename inside OUTPUT_DIR."""
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")  # Format: YYYYMMDDHHMMSS
     filename = f"{filename}_{timestamp}.md"
 
-    file_path = os.path.join(folder_name, filename)
+    file_path = os.path.join(OUTPUT_DIR, filename)
 
     with open(file_path, "w", encoding="utf-8") as file:
         file.write(data)

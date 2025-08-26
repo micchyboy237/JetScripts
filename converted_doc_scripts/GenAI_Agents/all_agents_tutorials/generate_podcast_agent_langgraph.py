@@ -21,12 +21,13 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import ToolNode, tools_condition
 import google.generativeai as genai
-from jet.llm.ollama.base_langchain import AzureChatOllama
+from jet.llm.ollama.base_langchain import ChatOllama
 from langchain_community.retrievers import TavilySearchAPIRetriever
 
-    
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -149,12 +150,7 @@ This notebook demonstrates a sophisticated approach to automated podcast content
 ### Import necessary libraries
 """
 
-pip install langgraph langgraph-sdk langgraph-checkpoint-sqlite langsmith langchain-community langchain-core langchain-openai tavily-python wikipedia google-generativeai
-
-
-
-
-
+# pip install langgraph langgraph-sdk langgraph-checkpoint-sqlite langsmith langchain-community langchain-core langchain-openai tavily-python wikipedia google-generativeai
 
 
 """
@@ -180,31 +176,34 @@ os.environ["LANGCHAIN_PROJECT"] = "PodcastGenAI"
 Here we are fetching and configuring the models
 """
 
-def get_model(model:str="Agent_test", temp:float=0.1, max_tokens:int=100):
-  """Get model from Azure Ollama"""
-  model = AzureChatOllama(
-        openai_api_version="2024-02-15-preview",
-        azure_deployment=model,
+
+def get_model(model: str = "llama3.2", temp: float = 0.1, max_tokens: int = 100) -> ChatOllama:
+    """Get model from Ollama"""
+    model = ChatOllama(
+        model=model,
+        # openai_api_version="2024-02-15-preview",
+        # azure_deployment=model,
         temperature=temp,
-        max_tokens=max_tokens,
+        # max_tokens=max_tokens,
     )
-  return model
+    return model
+
 
 """
 Here we are fetching and configuring the models
 """
 
 generation_config = {
-  "temperature": 0.21,
-  "top_p": 0.95,
-  "top_k": 64,
-  "max_output_tokens": 5000,
-  "response_mime_type": "text/plain",
+    "temperature": 0.21,
+    "top_p": 0.95,
+    "top_k": 64,
+    "max_output_tokens": 5000,
+    "response_mime_type": "text/plain",
 }
 
 model = genai.GenerativeModel(
-  model_name="gemini-1.5-flash",
-  generation_config=generation_config,
+    model_name="gemini-1.5-flash",
+    generation_config=generation_config,
 )
 podcast_model = model.start_chat()
 
@@ -220,53 +219,68 @@ We define a State class to hold the topic, keywords and subtopics for each topic
 This class definition is crucial for the LangGraph library later.
 """
 
+
 class Planning(TypedDict):
-  topic:str
-  keywords: list[str]
-  subtopics: list[str]
+    topic: str
+    keywords: list[str]
+    subtopics: list[str]
+
 
 """
 Here we prompt with following, asking for the keywords relevant for the topic that was provided in the start of the workflow.
 """
 
+
 class keywords(BaseModel):
     """Answer with at least 5 keywords that you think are related to the topic"""
-    keys: list = Field(description="list of at least 5 keywords related to the topic")
+    keys: list = Field(
+        description="list of at least 5 keywords related to the topic")
 
-gpt_keywords = get_model("Agent_test",0.1, 50)
+
+gpt_keywords = get_model("llama3.2", 0.1, 50)
 model_keywords = gpt_keywords.with_structured_output(keywords)
 
 """
 We will repeat the same process for the Subtopics and Structure. Again important pre requisites in the starter sub-graph
 """
 
+
 class Subtopics(BaseModel):
     """Answer with at least 5 subtopics related to the topic"""
-    subtopics: list = Field(description="list of at least 5 subtopics related to the topic")
+    subtopics: list = Field(
+        description="list of at least 5 subtopics related to the topic")
+
 
 class Structure(BaseModel):
     """Structure of the podcast having in account the topic and the keywords"""
-    subtopics: list[Subtopics] = Field(description="5 subtopics that we will review in the podcast related to the Topic and the Keywords")
+    subtopics: list[Subtopics] = Field(
+        description="5 subtopics that we will review in the podcast related to the Topic and the Keywords")
 
-gpt_structure = get_model("Agent_test",0.3, 1000)
+
+gpt_structure = get_model("llama3.2", 0.3, 1000)
 model_structure = gpt_structure.with_structured_output(Structure)
 
 """
 Here we will pass all of these elements and build the first subgraph.
 """
 
+
 def get_keywords(state: Planning):
-  topic = state['topic']
-  messages = [SystemMessage(content="You task is to generate 5 relevant words about the following topic: " + topic)]
-  message = model_keywords.invoke(messages)
-  return {'keywords': message.keys}
+    topic = state['topic']
+    messages = [SystemMessage(
+        content="You task is to generate 5 relevant words about the following topic: " + topic)]
+    message = model_keywords.invoke(messages)
+    return {'keywords': message.keys}
+
 
 def get_structure(state: Planning):
-  topic = state['topic']
-  keywords = state['keywords']
-  messages = [SystemMessage(content="You task is to generate 5 subtopics to make a podcast about the following topic: " + topic +"and the following keywords:" + " ".join(keywords))]
-  message = model_structure.invoke(messages)
-  return { "subtopics": message.subtopics[0].subtopics}
+    topic = state['topic']
+    keywords = state['keywords']
+    messages = [SystemMessage(content="You task is to generate 5 subtopics to make a podcast about the following topic: " +
+                              topic + "and the following keywords:" + " ".join(keywords))]
+    message = model_structure.invoke(messages)
+    return {"subtopics": message.subtopics[0].subtopics}
+
 
 plan_builder = StateGraph(Planning)
 
@@ -294,21 +308,25 @@ This is the main part, where the first subbraph is integrated into the main work
 Again, we need to define the InterviewState class with all the nodes, that will go into configuring the agent with langgraph
 """
 
+
 class InterviewState(MessagesState):
-    topic: str # Topic of the podcast
-    max_num_turns: int # Number turns of conversation
-    context: Annotated[list, operator.add] # Source docs
-    section: str # section transcript
-    sections: list # Final key we duplicate in outer state for Send() API
+    topic: str  # Topic of the podcast
+    max_num_turns: int  # Number turns of conversation
+    context: Annotated[list, operator.add]  # Source docs
+    section: str  # section transcript
+    sections: list  # Final key we duplicate in outer state for Send() API
+
 
 """
 Here we define the query to prompt for the interview:
 """
 
+
 class SearchQuery(BaseModel):
     search_query: str = Field(None, description="Search query for retrieval.")
 
-podcast_gpt = get_model(max_tokens= 1000)
+
+podcast_gpt = get_model(max_tokens=1000)
 structured_llm = podcast_gpt.with_structured_output(SearchQuery)
 
 question_instructions = """You are the host of a popular podcast and you are tasked with interviewing an expert to learn about a specific topic.
@@ -328,6 +346,7 @@ When you are satisfied with your understanding, complete the interview with: "Th
 
 Remember to stay in character throughout your response"""
 
+
 def generate_question(state: InterviewState):
     """ Node to generate a question """
 
@@ -335,9 +354,11 @@ def generate_question(state: InterviewState):
     messages = state["messages"]
 
     system_message = question_instructions.format(topic=topic)
-    question = podcast_gpt.invoke([SystemMessage(content=system_message)]+messages)
+    question = podcast_gpt.invoke(
+        [SystemMessage(content=system_message)]+messages)
 
     return {"messages": [question]}
+
 
 """
 Since we are using function calls to parse the web for the particular topics, here we define the search queries for that:
@@ -349,12 +370,14 @@ First, analyze the full conversation.
 Pay particular attention to the final question posed by the analyst.
 Convert this final question into a well-structured web search query""")
 
+
 def search_web(state: InterviewState):
     """ Retrieve docs from web search """
 
-    search_query = structured_llm.invoke([search_instructions]+state['messages'])
+    search_query = structured_llm.invoke(
+        [search_instructions]+state['messages'])
 
-    tavily_search = TavilySearchResults(max_results = 3)
+    tavily_search = TavilySearchResults(max_results=3)
     search_docs = tavily_search.invoke(search_query.search_query)
 
     formatted_search_docs = "\n\n---\n\n".join(
@@ -366,10 +389,12 @@ def search_web(state: InterviewState):
 
     return {"context": [formatted_search_docs]}
 
+
 def search_wikipedia(state: InterviewState):
     """ Retrieve docs from wikipedia """
 
-    search_query = structured_llm.invoke([search_instructions]+state['messages'])
+    search_query = structured_llm.invoke(
+        [search_instructions]+state['messages'])
 
     search_docs = WikipediaLoader(query=search_query.search_query,
                                   load_max_docs=2).load()
@@ -382,6 +407,7 @@ def search_wikipedia(state: InterviewState):
     )
 
     return {"context": [formatted_search_docs]}
+
 
 answer_instructions = """You are an expert being interviewed by a popular podcast host.
 Here is the analyst's focus area: {topic}.
@@ -398,8 +424,8 @@ When answering questions, follow these steps
 
 4. Make it interesting."""
 
-def generate_answer(state: InterviewState):
 
+def generate_answer(state: InterviewState):
     """ Node to answer a question """
 
     topic = state["topic"]
@@ -407,14 +433,15 @@ def generate_answer(state: InterviewState):
     context = state["context"]
 
     system_message = answer_instructions.format(topic=topic, context=context)
-    answer = podcast_gpt.invoke([SystemMessage(content=system_message)]+messages)
+    answer = podcast_gpt.invoke(
+        [SystemMessage(content=system_message)]+messages)
 
     answer.name = "expert"
 
     return {"messages": [answer]}
 
-def save_podcast(state: InterviewState):
 
+def save_podcast(state: InterviewState):
     """ save_podcast """
 
     messages = state["messages"]
@@ -423,11 +450,12 @@ def save_podcast(state: InterviewState):
 
     return {"section": interview}
 
-def route_messages(state: InterviewState, name: str="expert"):
+
+def route_messages(state: InterviewState, name: str = "expert"):
     """ Route between question and answer """
 
     messages = state["messages"]
-    max_num_turns = state.get('max_num_turns',2)
+    max_num_turns = state.get('max_num_turns', 2)
 
     num_responses = len(
         [m for m in messages if isinstance(m, AIMessage) and m.name == name]
@@ -441,6 +469,7 @@ def route_messages(state: InterviewState, name: str="expert"):
     if "Thank you so much for your help" in last_question.content:
         return 'Save podcast'
     return "Host question"
+
 
 """
 Final piece of the puzzle are sections that we need to classify the text into:
@@ -467,17 +496,19 @@ Your task is to create an interesting, easily digestible section of a podcast ba
 - Include no preamble before the title of the report
 - Check that all guidelines have been followed"""
 
-def write_section(state: InterviewState):
 
+def write_section(state: InterviewState):
     """ Node to answer a question """
 
     section = state["section"]
     topic = state["topic"]
 
     system_message = section_writer_instructions.format(focus=topic)
-    section_res = podcast_model.send_message(system_message + f"Use this source to write your section: {section}")
+    section_res = podcast_model.send_message(
+        system_message + f"Use this source to write your section: {section}")
 
     return {"sections": [section_res.text]}
+
 
 """
 Finally we pass the nodes and the edges to construct our graph:
@@ -496,18 +527,22 @@ interview_builder.add_edge("Host question", "Web research")
 interview_builder.add_edge("Host question", "Wiki research")
 interview_builder.add_edge("Web research", "Expert answer")
 interview_builder.add_edge("Wiki research", "Expert answer")
-interview_builder.add_conditional_edges("Expert answer", route_messages,['Host question','Save podcast'])
+interview_builder.add_conditional_edges("Expert answer", route_messages, [
+                                        'Host question', 'Save podcast'])
 interview_builder.add_edge("Save podcast", "Write script")
 interview_builder.add_edge("Write script", END)
 
 memory = MemorySaver()
-podcast_graph = interview_builder.compile(checkpointer=memory).with_config(run_name="Create podcast")
+podcast_graph = interview_builder.compile(
+    checkpointer=memory).with_config(run_name="Create podcast")
 
 display(Image(podcast_graph.get_graph().draw_mermaid_png()))
 
-messages = [HumanMessage(f"So you said you were writing an article about Attention in human cognition?")]
+messages = [HumanMessage(
+    f"So you said you were writing an article about Attention in human cognition?")]
 thread = {"configurable": {"thread_id": "1"}}
-interview = podcast_graph.invoke({"topic": "The Role of Focus in Perception", "messages": messages, "max_num_turns": 2}, thread)
+interview = podcast_graph.invoke(
+    {"topic": "The Role of Focus in Perception", "messages": messages, "max_num_turns": 2}, thread)
 Markdown(interview['sections'][0])
 
 """
@@ -518,16 +553,18 @@ Markdown(interview['sections'][0])
 In this main graph, we include Research topic, keywords, analysts and all the other elements of the main graph. The end result is the final report that produces the end to end podcast
 """
 
+
 class ResearchGraphState(TypedDict):
-    topic: Annotated[str, operator.add] # Research topic
-    keywords: List # Keywords
-    max_analysts: int # Number of analysts
-    subtopics: List # Subtopics
-    sections: Annotated[list, operator.add] # Send() API key
-    introduction: str # Introduction for the final report
-    content: str # Content for the final report
-    conclusion: str # Conclusion for the final report
-    final_report: str # Final report
+    topic: Annotated[str, operator.add]  # Research topic
+    keywords: List  # Keywords
+    max_analysts: int  # Number of analysts
+    subtopics: List  # Subtopics
+    sections: Annotated[list, operator.add]  # Send() API key
+    introduction: str  # Introduction for the final report
+    content: str  # Content for the final report
+    conclusion: str  # Conclusion for the final report
+    final_report: str  # Final report
+
 
 """
 Prompt for the reporter:
@@ -587,75 +624,89 @@ Here are the segments to draw upon for crafting your conclusion: {formatted_str_
 Core functions that will be parts of the nodes of the graph when passing it to the LangGraph
 """
 
+
 def initiate_all_interviews(state: ResearchGraphState):
     """ This is the "map" step where we run each interview sub-graph using Send API """
 
     topic = state["topic"]
     return [Send("Create podcast", {"topic": topic,
-                                        "messages": [HumanMessage(
-                                            content=f"So you said you were researching about {subtopic}?"
-                                        )
-                                                    ]}) for subtopic in state["subtopics"]]
+                                    "messages": [HumanMessage(
+                                        content=f"So you said you were researching about {subtopic}?"
+                                    )
+                                    ]}) for subtopic in state["subtopics"]]
+
 
 def write_report(state: ResearchGraphState):
     sections = state["sections"]
     topic = state["topic"]
 
-    formatted_str_sections = "\n\n".join([f"{section}" for section in sections])
+    formatted_str_sections = "\n\n".join(
+        [f"{section}" for section in sections])
 
-    system_message = report_writer_instructions.format(topic=topic, context=formatted_str_sections)
+    system_message = report_writer_instructions.format(
+        topic=topic, context=formatted_str_sections)
     report = podcast_model.send_message(system_message)
     return {"content": report.text}
+
 
 def write_introduction(state: ResearchGraphState):
     sections = state["sections"]
     topic = state["topic"]
 
-    formatted_str_sections = "\n\n".join([f"{section}" for section in sections])
+    formatted_str_sections = "\n\n".join(
+        [f"{section}" for section in sections])
 
-
-    instructions = intro_instructions.format(topic=topic, formatted_str_sections=formatted_str_sections)
+    instructions = intro_instructions.format(
+        topic=topic, formatted_str_sections=formatted_str_sections)
     intro = podcast_model.send_message(instructions)
     return {"introduction": intro.text}
+
 
 def write_conclusion(state: ResearchGraphState):
     sections = state["sections"]
     topic = state["topic"]
 
-    formatted_str_sections = "\n\n".join([f"{section}" for section in sections])
+    formatted_str_sections = "\n\n".join(
+        [f"{section}" for section in sections])
 
-
-    instructions = conclusion_instructions.format(topic=topic, formatted_str_sections=formatted_str_sections)
+    instructions = conclusion_instructions.format(
+        topic=topic, formatted_str_sections=formatted_str_sections)
     conclusion = podcast_model.send_message(instructions)
     return {"conclusion": conclusion.text}
+
 
 def finalize_report(state: ResearchGraphState):
     """ The is the "reduce" step where we gather all the sections, combine them, and reflect on them to write the intro/conclusion """
     content = state["content"]
-    final_report = state["introduction"] + "\n\n---\n\n" + content + "\n\n---\n\n" + state["conclusion"]
+    final_report = state["introduction"] + "\n\n---\n\n" + \
+        content + "\n\n---\n\n" + state["conclusion"]
 
     return {"final_report": final_report}
+
 
 def Start_parallel(state):
     """ No-op node that should be interrupted on """
     pass
 
+
 builder = StateGraph(ResearchGraphState)
 builder.add_node("Planing", plan_builder.compile())
 builder.add_node("Start research", Start_parallel)
 builder.add_node("Create podcast", interview_builder.compile())
-builder.add_node("Write report",write_report)
-builder.add_node("Write introduction",write_introduction)
-builder.add_node("Write conclusion",write_conclusion)
-builder.add_node("Finalize podcast",finalize_report)
+builder.add_node("Write report", write_report)
+builder.add_node("Write introduction", write_introduction)
+builder.add_node("Write conclusion", write_conclusion)
+builder.add_node("Finalize podcast", finalize_report)
 
 builder.add_edge(START, "Planing")
 builder.add_edge("Planing", "Start research")
-builder.add_conditional_edges("Start research", initiate_all_interviews, ["Planing", "Create podcast"])
+builder.add_conditional_edges("Start research", initiate_all_interviews, [
+                              "Planing", "Create podcast"])
 builder.add_edge("Create podcast", "Write report")
 builder.add_edge("Create podcast", "Write introduction")
 builder.add_edge("Create podcast", "Write conclusion")
-builder.add_edge(["Write introduction", "Write report", "Write conclusion"], "Finalize podcast")
+builder.add_edge(["Write introduction", "Write report",
+                 "Write conclusion"], "Finalize podcast")
 builder.add_edge("Finalize podcast", END)
 
 memory = MemorySaver()
@@ -668,7 +719,7 @@ Here is an example of asking for a topic regarding attention in human cognition:
 
 topic = "What is Attention in human cognition"
 
-input_g = {"topic":topic}
+input_g = {"topic": topic}
 thread = {"configurable": {"thread_id": "1"}}
 
 for event in main_graph.stream(input_g, thread, stream_mode="updates"):

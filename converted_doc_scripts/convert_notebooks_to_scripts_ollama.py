@@ -610,18 +610,12 @@ def collect_files_and_dirs(input_base_dirs: list[str], extensions: list[str]) ->
 if __name__ == "__main__":
     repo_base_dir = [
         "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/code_agents",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/eval_agents",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/rag_05_2025",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples_05_2025",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples_07_2025",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/lessons",
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogen",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/chatbot/autogenhub",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples_07_2025/ai-agents-for-beginners",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/GenAI_Agents",
     ]
     include_files = []
     exclude_files = []
