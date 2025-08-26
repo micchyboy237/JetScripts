@@ -5,7 +5,6 @@ from IPython.display import Image, display
 from datetime import datetime, timezone, timedelta
 from functools import reduce
 from jet.logger import CustomLogger
-from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain.prompts import PromptTemplate
 from langchain_core.messages import HumanMessage, SystemMessage, BaseMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -2010,7 +2009,7 @@ async def run_all_system(profile_json: str, calendar_json: str, task_json: str) 
         console.print(
             "[bold cyan]System initialized and processing request...[/bold cyan]\n")
         console.print("[bold cyan]Workflow Graph Structure:[/bold cyan]\n")
-        render_mermaid_graph(graph, f"{OUTPUT_DIR}/graph_output1.png")
+        display(Image(graph.get_graph().draw_mermaid_png()))
 
         coordinator_output = None
         final_state = None
