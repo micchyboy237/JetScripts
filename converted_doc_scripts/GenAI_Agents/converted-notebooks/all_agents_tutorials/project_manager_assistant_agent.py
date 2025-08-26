@@ -332,15 +332,13 @@ In this tutorial we have implemented the nodes based on th following pattern:
 
 ```
 def task_generation_node(state: AgentState):
- """
-logger.info("Well done, let's create the required nodes. As a quick recap:")LangGraph node that will extract tasks from given project description"""
+ \"\"\"LangGraph node that will extract tasks from given project description\"\"\"
     description = state["project_description"]
-    prompt = f"""
-logger.info("description = state["project_description"]")You are an experienced project description analyzer. Analyze the 
+    prompt = f\"\"\"You are an experienced project description analyzer. Analyze the 
     project description '{description}' and create a list of actionable and
     realistic tasks with estimated time (in days) to complete each task.
     If the task takes longer than 5 days, break it down into independent smaller tasks.
-    """
+    \"\"\"
     structure_llm = llm.with_structured_output(TaskList)
     tasks: TaskList = structure_llm.invoke(prompt)
     state['tasks'] = tasks
@@ -353,7 +351,6 @@ The .with_structured_output() method enables models with native APIs for structu
 
 The only exception is the insight_generation_node where only `str` as requested from the llm and the required interface only `llm.invoke(prompt)`
 """
-logger.info("structure_llm = llm.with_structured_output(TaskList)")
 
 def task_generation_node(state: AgentState):
     """LangGraph node that will extract tasks from given project description"""
@@ -581,8 +578,9 @@ def get_team(file_path:str):
 
     return team
 
-project_description = get_project_description("../data/project_manager_assistant/project_description.txt")
-team = get_team("../data/project_manager_assistant/team.csv")
+data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/GenAI_Agents/data"
+project_description = get_project_description(f"{data_dir}/project_manager_assistant/project_description.txt")
+team = get_team(f"{data_dir}/project_manager_assistant/team.csv")
 
 logger.debug(project_description)
 logger.debug(team)
