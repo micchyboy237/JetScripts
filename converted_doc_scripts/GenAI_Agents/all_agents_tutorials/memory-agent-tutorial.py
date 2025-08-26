@@ -1,11 +1,13 @@
 import platform
 from pathlib import Path
+import shutil
 from jet.logger import CustomLogger
 from jet.llm.ollama.base import initialize_ollama_settings
 import os
 from dotenv import load_dotenv
 from typing import TypedDict, Literal, Annotated, List
 from langgraph.graph import StateGraph, START, END, add_messages
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain.chat_models import init_chat_model
 from langchain_core.tools import tool
 from langchain.prompts import PromptTemplate
@@ -19,7 +21,9 @@ from langmem import create_multi_prompt_optimizer
 from langchain.embeddings import init_embeddings
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
 
-
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 script_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(
     script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
@@ -27,26 +31,6 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 initialize_ollama_settings()
-
-
-def render_mermaid_graph(agent, output_filename="graph_output.png", draw_method=MermaidDrawMethod.API):
-    """
-    Generates a Mermaid graph PNG from the agent and opens it using the system's default viewer on macOS.
-
-    Args:
-        agent: An object with a get_graph().draw_mermaid_png() method.
-        output_filename (str): Name of the file to save the PNG to.
-        draw_method: Drawing method (e.g., MermaidDrawMethod.API).
-    """
-    # Generate PNG bytes from the Mermaid graph
-    png_bytes = agent.get_graph().draw_mermaid_png(draw_method=draw_method)
-
-    # Define the output file path
-    output_path = Path(output_filename)
-    output_path.write_bytes(png_bytes)
-
-    # Open the PNG file with the default image viewer on macOS
-    os.system(f"open {output_path}")
 
 
 """
@@ -83,7 +67,7 @@ First, the imports:
 
 load_dotenv()
 
-llm = init_chat_model("ollama:llama3.1")
+llm = init_chat_model("ollama:llama3.2")
 
 store = InMemoryStore(index={
     "dims": OLLAMA_MODEL_EMBEDDING_TOKENS["mxbai-embed-large"],
@@ -243,7 +227,7 @@ agent = workflow.compile(store=store)
 #### Show the current agent
 """
 
-render_mermaid_graph(agent, draw_method=MermaidDrawMethod.API)
+render_mermaid_graph(agent, output_filename=f"{OUTPUT_DIR}/graph_output.png")
 
 """
 ### 7. Adding Procedural Memory (Updating Instructions)
