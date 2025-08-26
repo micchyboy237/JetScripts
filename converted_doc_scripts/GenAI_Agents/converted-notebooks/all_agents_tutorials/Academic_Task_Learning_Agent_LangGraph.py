@@ -485,14 +485,7 @@ class AgentExecutor:
                         tasks.append(self.agents[agent_name](state))
 
                 if tasks:
-                    async def run_async_code_521e3a85():
-                        async def run_async_code_3dcb828d():
-                            group_results = await asyncio.gather(*tasks, return_exceptions=True)
-                            return group_results
-                        group_results = asyncio.run(run_async_code_3dcb828d())
-                        logger.success(format_json(group_results))
-                        return group_results
-                    group_results = asyncio.run(run_async_code_521e3a85())
+                    group_results = await asyncio.gather(*tasks, return_exceptions=True)
                     logger.success(format_json(group_results))
 
                     for agent_name, result in zip(group, group_results):
@@ -500,14 +493,7 @@ class AgentExecutor:
                             results[agent_name.lower()] = result
 
             if not results and "PLANNER" in self.agents:
-                async def run_async_code_322a6375():
-                    async def run_async_code_55a1444d():
-                        planner_result = await self.agents["PLANNER"](state)
-                        return planner_result
-                    planner_result = asyncio.run(run_async_code_55a1444d())
-                    logger.success(format_json(planner_result))
-                    return planner_result
-                planner_result = asyncio.run(run_async_code_322a6375())
+                planner_result = await self.agents["PLANNER"].__call__(state)
                 logger.success(format_json(planner_result))
                 results["planner"] = planner_result
 
@@ -1304,14 +1290,7 @@ class PlannerAgent(ReActAgent):
             {"role": "user", "content": json.dumps(tasks)}
         ]
 
-        async def run_async_code_e1a18a56():
-            async def run_async_code_f95a1ed0():
-                response = await self.llm.agenerate(messages)
-                return response
-            response = asyncio.run(run_async_code_f95a1ed0())
-            logger.success(format_json(response))
-            return response
-        response = asyncio.run(run_async_code_e1a18a56())
+        response = await self.llm.agenerate(messages)
         logger.success(format_json(response))
 
         return {
@@ -1382,7 +1361,6 @@ class PlannerAgent(ReActAgent):
         ]
 
         response = await self.llm.agenerate(messages, temperature=0.5)
-        response = asyncio.run(run_async_code_79423a65())
         logger.success(format_json(response))
 
         return {
