@@ -55,14 +55,20 @@ def main(query, directories):
     output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
 
     extensions = [".py"]
-    embed_model: EmbedModelType = "static-retrieval-mrl-en-v1"
-    llm_model: LLMModelType = "qwen3-1.7b-4bit"
+    # embed_model: EmbedModelType = "static-retrieval-mrl-en-v1"
+    # embed_model_name: EmbedModelType = "mxbai-embed-large"
+    embed_model_name: EmbedModelType = "all-MiniLM-L6-v2"
+    truncate_dim = None
+    max_seq_len = None
 
     top_k = None
     threshold = 0.0  # Using default threshold
     chunk_size = 1000
     chunk_overlap = 100
-    tokenizer = SentenceTransformerRegistry.get_tokenizer(embed_model)
+
+    embed_model = SentenceTransformerRegistry.load_model(
+        embed_model_name, truncate_dim=truncate_dim, max_seq_length=max_seq_len)
+    tokenizer = SentenceTransformerRegistry.get_tokenizer(embed_model_name)
 
     def count_tokens(text):
         return len(tokenizer.encode(text))

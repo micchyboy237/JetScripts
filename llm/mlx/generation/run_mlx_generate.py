@@ -14,16 +14,16 @@ OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(
 
 MLX_LOG_DIR = f"{OUTPUT_DIR}/mlx-logs"
 
-model: LLMModelType = "llama-3.2-1b-instruct-4bit"
+model: LLMModelType = "llama-3.2-3b-instruct"
 seed = 42
 
 
-prompt = "Tell me a very short story about a brave knight."
+prompt = "### System:\nYou are a market research specialist. Your tasks include:\n    1. Analyzing market trends and patterns\n    2. Identifying market opportunities and threats\n    3. Evaluating competitor strategies\n    4. Assessing customer needs and preferences\n    5. Providing actionable market insights\n\n### User:\nSystem: \n Your Name: Market-Researcher \n\n\nHuman: system: Sequential Flow Structure:\nStep 1: Market-Researcher (leads to: Financial-Analyst)\nStep 2: Financial-Analyst (follows: Market-Researcher) (leads to: Technical-Analyst)\nStep 3: Technical-Analyst (follows: Financial-Analyst)\n\nUser: What are the best 3 oil ETFs?\n\nsystem: Sequential awareness: Agent behind: Financial-Analyst\n\n"
 
-logger.debug("Streaming Chat Response:")
+logger.debug("Streaming Generate Response:")
 response = ""
 
-client = MLX(seed=seed)
+client = MLX(model, seed=seed)
 
 response = generate(
     prompt=prompt,
