@@ -1265,14 +1265,7 @@ class PlannerAgent(ReActAgent):
             {"role": "user", "content": json.dumps(filtered_events)}
         ]
 
-        async def run_async_code_e1a18a56():
-            async def run_async_code_f95a1ed0():
-                response = await self.llm.agenerate(messages)
-                return response
-            response = asyncio.run(run_async_code_f95a1ed0())
-            logger.success(format_json(response))
-            return response
-        response = asyncio.run(run_async_code_e1a18a56())
+        response = await self.llm.agenerate(messages)
         logger.success(format_json(response))
 
         return {
@@ -1605,14 +1598,7 @@ class NoteWriterAgent(ReActAgent):
             Dict containing generated notes or error message
         """
         try:
-            async def run_async_code_398e1f80():
-                async def run_async_code_f3518147():
-                    final_state = await self.workflow.ainvoke(state)
-                    return final_state
-                final_state = asyncio.run(run_async_code_f3518147())
-                logger.success(format_json(final_state))
-                return final_state
-            final_state = asyncio.run(run_async_code_398e1f80())
+            final_state = await self.workflow.ainvoke(state)
             logger.success(format_json(final_state))
             notes = final_state["results"].get("generated_notes", {})
             return {"notes": final_state["results"].get("generated_notes")}
