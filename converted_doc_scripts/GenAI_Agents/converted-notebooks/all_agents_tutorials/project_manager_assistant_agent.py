@@ -1,7 +1,7 @@
 from IPython.display import Image, display, Markdown, HTML
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import AzureChatOllama, ChatOllama
+from jet.llm.ollama.base_langchain import ChatOllama
 from jet.logger import CustomLogger
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph, START,END
@@ -210,8 +210,8 @@ if model_provider == 'Azure':
         - OPENAI_API_VERSION
         - AZURE_OPENAI_ENDPOINT
     """
-    llm = AzureChatOllama(
-        deployment_name='llama3.2',  # Your actual deployment name
+    llm = ChatOllama(
+        model='llama3.2',  # Your actual deployment name
     )
 elif model_provider == 'Ollama':
     """
