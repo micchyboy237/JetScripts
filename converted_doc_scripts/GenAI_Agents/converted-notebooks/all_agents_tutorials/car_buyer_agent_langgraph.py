@@ -7,7 +7,7 @@ from enum import Enum
 from google.colab import userdata
 from gradio import ChatMessage
 from importnb import Notebook
-from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
+from jet.llm.ollama.base_langchain import ChatOllama
 from jet.logger import CustomLogger
 from langchain.tools import DuckDuckGoSearchResults
 from langchain_community.tools import DuckDuckGoSearchResults
@@ -118,7 +118,7 @@ This cell installs all the necessary Python packages required for the project. B
    - Provides tools for building and managing state-based workflows, particularly useful for conversational agents.
 
 2. **`langchain` and `langchain-openai`**:
-   - Frameworks for developing applications powered by Language Models (LLMs). `langchain-openai` is specifically tailored for MLX's APIs.
+   - Frameworks for developing applications powered by Language Models (LLMs). `langchain-openai` is specifically tailored for Ollama's APIs.
 
 3. **`langchain-community`**:
    - A community-driven package offering additional tools and integrations for LangChain.
@@ -165,9 +165,12 @@ logger.info("# Smart Product Buyer AI Agent")
 """
 ### Import Necessary Libraries
 
-This cell imports the required libraries and modules for building and managing the workflow, integrating MLX's APIs, handling asynchronous operations, and working with custom scrapers.
+This cell imports the required libraries and modules for building and managing the workflow, integrating Ollama's APIs, handling asynchronous operations, and working with custom scrapers.
 """
 logger.info("### Import Necessary Libraries")
+
+
+
 
 
 # import nest_asyncio
@@ -199,7 +202,6 @@ The modular design allows for easy addition of new platforms by extending the `W
 """
 logger.info("### Web Scraping and Interface Definitions")
 
-
 async def scroll_to_bottom(page, scroll_delay=0.1):
     """
     Scroll to the bottom of the page iteratively, with delays to ensure dynamic content is fully loaded.
@@ -217,7 +219,7 @@ async def scroll_to_bottom(page, scroll_delay=0.1):
     for i in range(3):
         async def run_async_code_9ddac758():
             await page.evaluate(f"window.scrollTo(0, {next_scroll})")
-            return
+            return 
          = asyncio.run(run_async_code_9ddac758())
         logger.success(format_json())
 
@@ -596,15 +598,15 @@ This cell configures the environment and initializes API keys required for the p
 1. **Load `.env` Variables**:
    - Uses `load_dotenv()` to load sensitive information (like API keys) from a `.env` file.
 
-2. **Configure MLX API Key**:
+2. **Configure Ollama API Key**:
 #    - Retrieves the `OPENAI_API_KEY` from the environment or Colab's `userdata` if running in Google Colab.
 
 3. **Set LangChain Configuration**:
    - Disables tracing (`LANGCHAIN_TRACING_V2`) and configures the LangChain endpoint and project.
 
 4. **Initialize Clients**:
-   - Sets up `GPT` as the model (`llama-3.2-3b-instruct`) using `ChatMLX`.
-   - Creates `langsmith_client` and `openai_client` for managing MLX interactions.
+   - Sets up `GPT` as the model (`llama3.2`) using `ChatOllama`.
+   - Creates `langsmith_client` and `openai_client` for managing Ollama interactions.
 """
 logger.info("### Load Environment Variables and Set Up API Keys")
 
@@ -620,7 +622,7 @@ os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
 os.environ["LANGCHAIN_PROJECT"] = "car_buyer_agent"
 os.environ["LANGCHAIN_API_KEY"] = os.getenv('LANGCHAIN_API_KEY', "")
 
-GPT = ChatMLX(model="llama-3.2-3b-instruct")
+GPT = ChatOllama(model="llama3.2")
 
 langsmith_client = Client()
 openai_client = wrap_openai(openai.Client())
@@ -707,7 +709,7 @@ class UserNeeds(BaseModel):
     user_needs: str
     next_step: NextStep
 
-USER_NEEDS_GPT = ChatMLX(model="llama-3.2-3b-instruct", response_format=UserNeeds)
+USER_NEEDS_GPT = ChatOllama(model="llama3.2")
 
 def ask_user_needs(state: State) -> State:
     """Ask user initial questions to define their needs for the car."""
@@ -880,7 +882,7 @@ class UserResponse(BaseModel):
     action: Literal['select_listing', 'refine_search', 'end_conversation']
     listing_id: Optional[str]
 
-CLASSIFIER_GPT = ChatMLX(model="llama-3.2-3b-instruct", response_format=UserResponse)
+CLASSIFIER_GPT = ChatOllama(model="llama3.2")
 
 def search_listings(state: State) -> State:
     """Search for cars on LaCentrale and mobile.de based on filters."""

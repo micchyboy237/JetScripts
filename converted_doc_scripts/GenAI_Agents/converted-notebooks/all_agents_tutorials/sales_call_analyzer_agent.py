@@ -2,9 +2,9 @@ import asyncio
 from jet.transformers.formatters import format_json
 from crewai import Task, Agent, Crew
 from dotenv import load_dotenv
-from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
+from jet.llm.ollama.base_langchain import ChatOllama
 from jet.logger import CustomLogger
-from langchain_community.document_loaders.parsers import MLXWhisperParser
+from langchain_community.document_loaders.parsers import OllamaWhisperParser
 from langchain_core.documents.base import Blob
 from textwrap import dedent
 import asyncio
@@ -28,11 +28,11 @@ This tutorial demonstrates how to build an AI-powered sales call analyzer using 
 
 ## Motivation
 
-In sales environments, analyzing call transcriptions can provide valuable insights into customer behavior, agent performance, and opportunities for improvement. By automating the process of transcription and analysis, businesses can save time, enhance their training, and improve their customer interactions. This project combines MLX's Whisper for audio transcription and CrewAI's task automation to build an efficient, scalable solution for call analysis.
+In sales environments, analyzing call transcriptions can provide valuable insights into customer behavior, agent performance, and opportunities for improvement. By automating the process of transcription and analysis, businesses can save time, enhance their training, and improve their customer interactions. This project combines Ollama's Whisper for audio transcription and CrewAI's task automation to build an efficient, scalable solution for call analysis.
 
 ## Key Components
 
-- **Audio Transcription**: Use MLX Whisper to transcribe audio calls into text.
+- **Audio Transcription**: Use Ollama Whisper to transcribe audio calls into text.
 - **Call Analysis**: Define tasks for analyzing the transcription using sentiment analysis, key phrase extraction, customer pain points, agent effectiveness, and more.
 - **Task Automation**: Use CrewAI's agents and tasks framework to structure and automate the analysis process.
 - **Report Generation**: Generate a detailed, structured report containing actionable insights for improving sales calls.
@@ -50,31 +50,28 @@ logger.info("# Building an AI-Powered Sales Call Analyzer with LangChain")
 
 We will begin by importing the required libraries
 """
-logger.info(
-    "### 2. **Initialization**: Setting up the environment and importing necessary libraries.")
+logger.info("### 2. **Initialization**: Setting up the environment and importing necessary libraries.")
 
 
 """
-Next, we will be loading environment variables (MLX API key)
+Next, we will be loading environment variables (Ollama API key)
 """
-logger.info("Next, we will be loading environment variables (MLX API key)")
+logger.info("Next, we will be loading environment variables (Ollama API key)")
 
 load_dotenv()
 
 """
-### 3. **Audio Transcription**: Transcribing sales call audio using MLX Whisper.
+### 3. **Audio Transcription**: Transcribing sales call audio using Ollama Whisper.
 
-We will use MLX Whisper to transcribe audio files into text. The `transcribe_audio` function takes the path to an audio file, processes it, and returns the transcribed text.
+We will use Ollama Whisper to transcribe audio files into text. The `transcribe_audio` function takes the path to an audio file, processes it, and returns the transcribed text.
 """
-logger.info(
-    "### 3. **Audio Transcription**: Transcribing sales call audio using MLX Whisper.")
+logger.info("### 3. **Audio Transcription**: Transcribing sales call audio using Ollama Whisper.")
 
-parser = MLXWhisperParser()
-
+parser = OllamaWhisperParser()
 
 def transcribe_audio(audio_path: str) -> str:
     """
-    Transcribe audio from a given file path using MLX Whisper.
+    Transcribe audio from a given file path using Ollama Whisper.
 
     Args:
         audio_path (str): The path to the audio file to be transcribed.
@@ -97,15 +94,12 @@ def transcribe_audio(audio_path: str) -> str:
         logger.debug(f"Error during transcription: {e}")
         return ""
 
-
 """
 ### 4. **Call Analysis**: Defining the tasks for analyzing the transcription.
 
 Next, we'll define a task that structures the analysis of a sales call. This task includes sentiment analysis, key phrases extraction, and recommendations for improving the call.
 """
-logger.info(
-    "### 4. **Call Analysis**: Defining the tasks for analyzing the transcription.")
-
+logger.info("### 4. **Call Analysis**: Defining the tasks for analyzing the transcription.")
 
 class MyTasks():
     def call_analysis_task(self, transcription, call_analysis_agent):
@@ -170,15 +164,12 @@ class MyTasks():
             agent=call_analysis_agent
         )
 
-
 """
 ### 5. **Defining the Call Analysis Agent**: Setting up an AI-powered agent to handle the analysis.
 
 The agent will perform the analysis of the transcription and generate the structured JSON report based on predefined tasks.
 """
-logger.info(
-    "### 5. **Defining the Call Analysis Agent**: Setting up an AI-powered agent to handle the analysis.")
-
+logger.info("### 5. **Defining the Call Analysis Agent**: Setting up an AI-powered agent to handle the analysis.")
 
 class MyAgents():
     def call_analysis_agent(self, model):
@@ -191,26 +182,21 @@ class MyAgents():
             llm=model
         )
 
-
 """
 ### 6. **Task Execution**: Automating the task flow and obtaining the final analysis result.
 
 Now, we define the function that will transcribe the audio, analyze the transcription, and return the analysis result.
 """
-logger.info(
-    "### 6. **Task Execution**: Automating the task flow and obtaining the final analysis result.")
-
+logger.info("### 6. **Task Execution**: Automating the task flow and obtaining the final analysis result.")
 
 async def get_final_conversation_result(transcription):
-    llm = ChatMLX(model="llama-3.2-3b-instruct",
-                  log_dir=f"{OUTPUT_DIR}/chats", temperature=0.7)
+    llm = ChatOllama(model="llama3.2")
 
     my_agents = MyAgents()
     better_call_analysis_agent = my_agents.call_analysis_agent(llm)
 
     my_tasks = MyTasks()
-    better_call_analysis_task = my_tasks.call_analysis_task(
-        transcription, better_call_analysis_agent)
+    better_call_analysis_task = my_tasks.call_analysis_task(transcription, better_call_analysis_agent)
 
     crew = Crew(
         agents=[better_call_analysis_agent],
@@ -252,9 +238,8 @@ if transcribed_text:
 
 ## Conclusion
 
-This tutorial has demonstrated how to build an AI-powered sales call analyzer using LangChain and MLX Whisper. By combining audio transcription, NLP analysis, and task automation, we've created an intelligent system capable of generating actionable insights from sales call transcriptions. This system can be extended to include additional analysis tasks, integrations with CRM systems, or customized reporting features, providing businesses with valuable tools to enhance their sales process and customer interactions.
+This tutorial has demonstrated how to build an AI-powered sales call analyzer using LangChain and Ollama Whisper. By combining audio transcription, NLP analysis, and task automation, we've created an intelligent system capable of generating actionable insights from sales call transcriptions. This system can be extended to include additional analysis tasks, integrations with CRM systems, or customized reporting features, providing businesses with valuable tools to enhance their sales process and customer interactions.
 """
-logger.info(
-    "# Visualize the flow: This cell provides a visualization of our workflow")
+logger.info("# Visualize the flow: This cell provides a visualization of our workflow")
 
 logger.info("\n\n[DONE]", bright=True)

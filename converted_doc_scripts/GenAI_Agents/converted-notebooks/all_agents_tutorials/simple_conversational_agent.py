@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
+from jet.llm.ollama.base_langchain import ChatOllama
 from jet.logger import CustomLogger
 from langchain.memory import ChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -76,6 +76,7 @@ This notebook demonstrates how to create a simple conversational agent using Lan
 logger.info("# Building a Conversational Agent with Context Awareness")
 
 
+
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
 """
@@ -84,7 +85,7 @@ logger.info("# Building a Conversational Agent with Context Awareness")
 logger.info("### Load environment variables and initialize the language model")
 
 load_dotenv()
-llm = ChatMLX(model="llama-3.2-3b-instruct", max_tokens=1000, temperature=0)
+llm = ChatOllama(model="llama3.2")
 
 """
 ###  Create a simple in-memory store for chat histories
@@ -93,12 +94,10 @@ logger.info("###  Create a simple in-memory store for chat histories")
 
 store = {}
 
-
 def get_chat_history(session_id: str):
     if session_id not in store:
         store[session_id] = ChatMessageHistory()
     return store[session_id]
-
 
 """
 ### Create the prompt template

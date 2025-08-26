@@ -15,7 +15,7 @@ logger.info(f"Logs: {log_file}")
 
 """
 # Overview 🔎
-This script demonstrates the use of a multi-agent system for collaborative research and blog post creation using MLX's Swarm package. The system leverages multiple agents to interact and solve tasks collaboratively, focusing on efficient research execution and content generation.
+This script demonstrates the use of a multi-agent system for collaborative research and blog post creation using Ollama's Swarm package. The system leverages multiple agents to interact and solve tasks collaboratively, focusing on efficient research execution and content generation.
 
 ## Motivation
 By utilizing a multi-agent system, we can enhance collaborative research and content creation by distributing tasks among specialized agents. This approach demonstrates how agents with distinct roles can work together to produce a comprehensive blog post.
@@ -28,7 +28,7 @@ Multi-agent systems offer several advantages in complex tasks like content creat
 4. Robustness: If one agent fails, others can compensate, ensuring task completion.
 
 ## Key Components
-- MLX's Swarm Package: Facilitates the creation and management of multi-agent interactions.
+- Ollama's Swarm Package: Facilitates the creation and management of multi-agent interactions.
 - Agents: Include a human admin, AI researcher, content planner, writer, and editor, each with specific responsibilities.
 - Interaction Management: Manages the conversation flow and context among agents.
 
@@ -75,7 +75,7 @@ logger.info("# Overview 🔎")
 load_dotenv()
 
 """
-## MLX Swarm Package
+## Ollama Swarm Package
 The Swarm package provides a framework for creating and managing multi-agent systems. It allows for:
 - Easy agent creation with customizable roles and behaviors
 - Seamless communication between agents
@@ -86,7 +86,7 @@ The Swarm package provides a framework for creating and managing multi-agent sys
 
 Swarm requires `Python>=3.10`
 """
-logger.info("## MLX Swarm Package")
+logger.info("## Ollama Swarm Package")
 
 # %pip install git+https://github.com/openai/swarm.git
 
@@ -238,7 +238,7 @@ Outputs will be saved to a local .md file titled as the chosen topic
 
 ### Introduction
 
-In the realm of artificial intelligence, Large Language Models (LLMs) like MLX’s GPT-3 and Google's BERT have emerged as powerful tools capable of understanding and generating human-language text with resounding proficiency. These models draw on extensive datasets to execute complex natural language processing tasks, thus opening up expansive possibilities in various fields, especially healthcare. As healthcare continues to pivot towards technology-driven solutions, the integration of LLMs offers promising pathways to enhance efficiency, elevate patient outcomes, and personalize medical care.
+In the realm of artificial intelligence, Large Language Models (LLMs) like Ollama’s GPT-3 and Google's BERT have emerged as powerful tools capable of understanding and generating human-language text with resounding proficiency. These models draw on extensive datasets to execute complex natural language processing tasks, thus opening up expansive possibilities in various fields, especially healthcare. As healthcare continues to pivot towards technology-driven solutions, the integration of LLMs offers promising pathways to enhance efficiency, elevate patient outcomes, and personalize medical care.
 
 ### Enhancement of Diagnostics
 

@@ -1,18 +1,18 @@
 from IPython.display import Image, display
 from collections import Counter
 from dotenv import load_dotenv
-from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
-from jet.llm.ollama.base_langchain.embeddings import MLXEmbeddings
+from jet.llm.ollama.base_langchain import ChatOllama
+from jet.llm.ollama.base_langchain.embeddings import OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain.agents import AgentExecutor
 from langchain.agents import initialize_agent, Tool
-from langchain.chat_models import ChatMLX
-from langchain.llms import MLX
+from langchain.chat_models import ChatOllama
+from langchain.llms import Ollama
 from langchain.prompts import PromptTemplate
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
 from langchain.vectorstores import FAISS
 from langchain_experimental.text_splitter import SemanticChunker
-from openai import MLX
+from openai import Ollama
 from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.metrics.pairwise import cosine_similarity
 from typing import List, Dict
@@ -99,6 +99,7 @@ pip install langchain-experimental
 pip install faiss-cpu
 
 
+
 # os.environ["OPENAI_API_KEY"] = "ADD your key here" #set an openAI key
 
 """
@@ -106,7 +107,7 @@ initialize language model
 """
 logger.info("initialize language model")
 
-llm = ChatMLX(model="llama-3.2-3b-instruct", max_tokens=1000, temperature=0.7)
+llm = ChatOllama(model="llama3.2")
 
 """
 # **Graph**
@@ -129,7 +130,6 @@ def render_mermaid(graph_definition: str, width: int = 800, height: int = 600):
     image_url = f"https://mermaid.ink/img/{base64_string}"
     display(Image(url=image_url, width=width, height=height))
 
-
 mermaid_graph = """
 graph TD
     subgraph User_Query
@@ -137,7 +137,7 @@ graph TD
     end
     subgraph Knowledge_Base_Processing
         A[EU Compliance Documents] -->|Text Splitter| B[Document Chunks]
-        B -->|MLX Embedding| C[Vector Embeddings]
+        B -->|Ollama Embedding| C[Vector Embeddings]
         C -->|Embeddings to Retriever| F[Retriever Agent]
     end
     subgraph Retriever_Agent
@@ -147,7 +147,7 @@ graph TD
     end
     subgraph Summarizer_Agent
         J -->|Contextual Summary| K[Context-Aware Summary]
-        K -->|MLX LLM| L[Generated Summary]
+        K -->|Ollama LLM| L[Generated Summary]
         L -->|Summary for User| M[Final Summary]
     end
     subgraph Evaluation_Agent
@@ -171,7 +171,6 @@ logger.info("# Chunking the documents and Vector store")
 
 folder_path = "/content/data"  # Path to the folder containing documents
 
-
 def load_documents(folder_path):
     """
     Load and combine content from all text documents in the specified folder.
@@ -185,35 +184,28 @@ def load_documents(folder_path):
     combined_content = ""
     for filename in os.listdir(folder_path):
         file_path = os.path.join(folder_path, filename)
-        # Adjust extensions as needed
-        if os.path.isfile(file_path) and filename.endswith((".txt", ".md", ".docx")):
+        if os.path.isfile(file_path) and filename.endswith((".txt", ".md", ".docx")):  # Adjust extensions as needed
             with open(file_path, 'r', encoding='utf-8') as file:
                 combined_content += file.read() + "\n"
     return combined_content
-
 
 content = load_documents(folder_path)
 if not content:
     raise ValueError("No valid documents found in the folder.")
 
-# Specify the desired embedding model
-embedding_model = MLXEmbeddings(model="mxbai-embed-large")
+embedding_model = OllamaEmbeddings(model="mxbai-embed-large")  # Specify the desired embedding model
 text_splitter = SemanticChunker(
     embeddings=embedding_model,  # Use the custom embedding model here
-    # Use percentile-based semantic shifts for splitting
-    breakpoint_threshold_type='percentile',
-    # Define the threshold value (90th percentile)
-    breakpoint_threshold_amount=90
+    breakpoint_threshold_type='percentile',  # Use percentile-based semantic shifts for splitting
+    breakpoint_threshold_amount=90  # Define the threshold value (90th percentile)
 )
 
-docs = text_splitter.create_documents(
-    [content])  # Semantic chunks as documents
+docs = text_splitter.create_documents([content])  # Semantic chunks as documents
 logger.debug(f"Generated {len(docs)} semantic chunks.")
 
 vectorstore = FAISS.from_documents(docs, embedding_model)
 
-chunks_query_retriever = vectorstore.as_retriever(
-    search_kwargs={"k": 3})  # Retrieve top-3 relevant chunks
+chunks_query_retriever = vectorstore.as_retriever(search_kwargs={"k": 3})  # Retrieve top-3 relevant chunks
 
 query = "What are the goals of the European Green Deal?"
 retrieved_chunks = chunks_query_retriever.invoke(query)
@@ -233,20 +225,20 @@ logger.info("# **Define the different functions for the collaboration system**")
 
 
 class RetrieverAgent:
-    def __init__(self, vectorstore, model="llama-3.2-3b-instruct", temperature=0.0):
+    def __init__(self, vectorstore, model="llama3.2", temperature=0.0):
         """
-        Initialize the Retriever Agent with a FAISS vectorstore and MLX model.
+        Initialize the Retriever Agent with a FAISS vectorstore and Ollama model.
 
         Args:
             vectorstore: FAISS vectorstore containing document chunks and their embeddings
-            model (str): MLX model to use for relevance scoring (default: llama-3.2-3b-instruct)
+            model (str): Ollama model to use for relevance scoring (default: llama3.2)
         """
         self.vectorstore = vectorstore
         self.model = model
         self.temperature = temperature
-#         openai.api_key = os.getenv("OPENAI_API_KEY")  # Ensure the MLX API key is set from environment variable
+#         openai.api_key = os.getenv("OPENAI_API_KEY")  # Ensure the Ollama API key is set from environment variable
 
-        self.llm = MLX(model=self.model, temperature=self.temperature)
+        self.llm = Ollama(model=self.model, temperature=self.temperature)
 
         self.system = """You are a grader assessing relevance of a retrieved document to a user question.
                          If the document contains keyword(s) or semantic meaning related to the user question,
@@ -270,8 +262,7 @@ class RetrieverAgent:
                     Grade the relevance of this chunk to the query. Respond only with 'yes' or 'no'."""
 
         try:
-            # Assuming llm has a generate method
-            response = self.llm.generate([prompt])
+            response = self.llm.generate([prompt])  # Assuming llm has a generate method
             grade = response['choices'][0]['text'].strip()
             return grade.lower()
 
@@ -280,51 +271,48 @@ class RetrieverAgent:
             return "no"  # Default to no if there's an error
 
     def retrieve_relevant_chunks(self, query: str, top_k: int = 3, rerank: bool = True) -> List[Dict]:
-        """
-        Retrieve and optionally rerank the most relevant chunks using both vector similarity
-        and LLM-based grading.
+      """
+      Retrieve and optionally rerank the most relevant chunks using both vector similarity
+      and LLM-based grading.
 
-        Args:
-            query (str): User query
-            top_k (int): Number of top relevant chunks to return
-            rerank (bool): Whether to rerank results using LLM grading
+      Args:
+          query (str): User query
+          top_k (int): Number of top relevant chunks to return
+          rerank (bool): Whether to rerank results using LLM grading
 
-        Returns:
-            list: List of dictionaries containing similarity scores and chunk text
-        """
-        retrieved_docs = self.vectorstore.similarity_search_with_score(
-            query,
-            k=top_k * (2 if rerank else 1)  # Get more candidates if reranking
-        )
+      Returns:
+          list: List of dictionaries containing similarity scores and chunk text
+      """
+      retrieved_docs = self.vectorstore.similarity_search_with_score(
+          query,
+          k=top_k * (2 if rerank else 1)  # Get more candidates if reranking
+      )
 
-        logger.debug("Retrieved Docs (Raw):", retrieved_docs)
+      logger.debug("Retrieved Docs (Raw):", retrieved_docs)
 
-        relevant_chunks = []
+      relevant_chunks = []
 
-        for doc, vector_score in retrieved_docs:
-            chunk_info = {
-                # Vector similarity score
-                "vector_similarity": float(vector_score),
-                "chunk_text": doc.page_content,
-                "metadata": doc.metadata
-            }
+      for doc, vector_score in retrieved_docs:
+          chunk_info = {
+              "vector_similarity": float(vector_score),  # Vector similarity score
+              "chunk_text": doc.page_content,
+              "metadata": doc.metadata
+          }
 
-            if rerank:
-                relevance_grade = self._get_relevance_score(
-                    query, doc.page_content)
+          if rerank:
+              relevance_grade = self._get_relevance_score(query, doc.page_content)
 
-                if relevance_grade == "yes":
-                    chunk_info["relevance_grade"] = relevance_grade
-                    chunk_info["combined_score"] = 1 - \
-                        vector_score  # Adjust this as necessary
-                    relevant_chunks.append(chunk_info)
-            else:
-                chunk_info["combined_score"] = 1 - \
-                    vector_score  # Adjust this as necessary
-                relevant_chunks.append(chunk_info)
+              if relevance_grade == "yes":
+                  chunk_info["relevance_grade"] = relevance_grade
+                  chunk_info["combined_score"] = 1 - vector_score  # Adjust this as necessary
+                  relevant_chunks.append(chunk_info)
+          else:
+              chunk_info["combined_score"] = 1 - vector_score  # Adjust this as necessary
+              relevant_chunks.append(chunk_info)
 
-        relevant_chunks.sort(key=lambda x: x["combined_score"], reverse=True)
-        return relevant_chunks[:top_k]
+      relevant_chunks.sort(key=lambda x: x["combined_score"], reverse=True)
+      return relevant_chunks[:top_k]
+
 
     def batch_retrieve(self, queries: List[str], top_k: int = 3, rerank: bool = True) -> Dict[str, List[Dict]]:
         """
@@ -340,24 +328,21 @@ class RetrieverAgent:
         """
         results = {}
         for query in queries:
-            results[query] = self.retrieve_relevant_chunks(
-                query, top_k, rerank)
+            results[query] = self.retrieve_relevant_chunks(query, top_k, rerank)
         return results
 
-
-def create_retriever_agent(vectorstore, model="llama-3.2-3b-instruct", temperature=0.0):
+def create_retriever_agent(vectorstore, model="llama3.2", temperature=0.0):
     """
     Factory function to create a RetrieverAgent instance.
 
     Args:
         vectorstore: FAISS vectorstore containing document chunks
-        model (str): MLX model to use for scoring (default: llama-3.2-3b-instruct)
+        model (str): Ollama model to use for scoring (default: llama3.2)
 
     Returns:
         RetrieverAgent: Initialized retriever agent
     """
     return RetrieverAgent(vectorstore, model, temperature)
-
 
 """
 ## **Summarizer Agent**
@@ -368,15 +353,15 @@ logger.info("## **Summarizer Agent**")
 
 
 class SummarizerAgent:
-    def __init__(self, model="llama-3.2-3b-instruct"):  # Default model can be adjusted
+    def __init__(self, model="llama3.2"):  # Default model can be adjusted
         """
-        Initialize the Summarizer Agent with MLX model.
+        Initialize the Summarizer Agent with Ollama model.
 
         Args:
-            model (str): MLX model to use for summarization (default: llama-3.2-3b-instruct)
+            model (str): Ollama model to use for summarization (default: llama3.2)
         """
         self.model = model
-#         openai.api_key = os.getenv("OPENAI_API_KEY")  # Ensure the MLX API key is set from environment variable
+#         openai.api_key = os.getenv("OPENAI_API_KEY")  # Ensure the Ollama API key is set from environment variable
 
     def summarize_text(self, query: str, text: str) -> str:
         """
@@ -392,7 +377,7 @@ class SummarizerAgent:
         url = "https://api.openai.com/v1/chat/completions"
         headers = {
             "Content-Type": "application/json",
-            #             "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}"  # Ensure the MLX API key is set
+#             "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}"  # Ensure the Ollama API key is set
         }
 
         prompt = f"""Summarize the following text based on the query. Focus on extracting the most relevant details in a clear and concise manner, ensuring the summary is no more than two sentences.
@@ -419,8 +404,7 @@ class SummarizerAgent:
             response.raise_for_status()  # Raise an exception if the request fails
 
             result = response.json()
-            summarized_text = result['choices'][0]['message']['content'].strip(
-            )
+            summarized_text = result['choices'][0]['message']['content'].strip()
             return summarized_text
 
         except requests.exceptions.RequestException as e:
@@ -443,9 +427,7 @@ class SummarizerAgent:
             summaries[query] = self.summarize_text(query, text)
         return summaries
 
-
-# Use the same model or another available model
-summarizer = SummarizerAgent(model="llama-3.2-3b-instruct")
+summarizer = SummarizerAgent(model="llama3.2")  # Use the same model or another available model
 
 query = "What is the European Green Deal?"
 text = """The European Green Deal is a set of policy initiatives by the European Commission to address climate change, promote sustainability, and reduce carbon emissions by 2030. The Deal includes measures to promote clean energy, sustainable agriculture, and investments in green technologies. It aims to make Europe the first carbon-neutral continent by 2050."""
@@ -463,67 +445,38 @@ logger.info("# **Evaluation Agent**")
 gold_qa_dict = [
     {"query": "What is the European Green Deal (EGD)?", "answer": "The EGD is the EU’s strategy to reach net zero greenhouse gas emissions by 2050 while achieving sustainable economic growth. It covers policies across sectors like agriculture, energy, and manufacturing to ensure products meet higher sustainability standards."},
     {"query": "What is the Farm to Fork (F2F) Strategy?", "answer": "The F2F strategy is part of the EGD, focusing on making the EU’s food system fair, healthy, and environmentally friendly. It targets reducing pesticide use, nutrient loss, and promoting organic farming."},
-    {"query": "What is the Circular Economy Action Plan (CEAP)?",
-     "answer": "CEAP aims to eliminate waste by promoting the reuse, repair, and recycling of materials. It emphasizes creating sustainable products and reducing waste generation in industries like packaging, textiles, and electronics."},
+    {"query": "What is the Circular Economy Action Plan (CEAP)?", "answer": "CEAP aims to eliminate waste by promoting the reuse, repair, and recycling of materials. It emphasizes creating sustainable products and reducing waste generation in industries like packaging, textiles, and electronics."},
     {"query": "What is the EU Green Deal Industrial Plan?", "answer": "The Plan aims to enhance Europe’s net-zero industrial base by simplifying regulations, increasing funding, developing skills, and fostering trade. It focuses on manufacturing key technologies like batteries, hydrogen systems, and wind turbines to achieve climate neutrality by 2050."},
     {"query": "What is the Net-Zero Industry Act (NZIA)?", "answer": "The NZIA aims to boost the EU's manufacturing capacity for net-zero technologies, such as solar panels, batteries, and electrolysers. It sets goals like manufacturing at least 40% of strategic net-zero technologies domestically by 2030."},
-    {"query": "What is the EU Biodiversity Strategy for 2030?",
-        "answer": "A key part of the Green Deal, it focuses on reversing biodiversity loss by restoring degraded ecosystems, reducing pesticide use by 50%, and ensuring 25% of farmland is organic by 2030."},
+    {"query": "What is the EU Biodiversity Strategy for 2030?", "answer": "A key part of the Green Deal, it focuses on reversing biodiversity loss by restoring degraded ecosystems, reducing pesticide use by 50%, and ensuring 25% of farmland is organic by 2030."},
     {"query": "What is the Carbon Border Adjustment Mechanism (CBAM)?", "answer": "CBAM is a policy tool designed to prevent carbon leakage by imposing carbon costs on imports of certain goods from countries with less stringent climate policies. It ensures that imported products are priced similarly to EU-manufactured goods under the EU's carbon pricing system."},
-    {"query": "Which sectors does CBAM initially cover?",
-        "answer": "CBAM applies to high-emission sectors such as cement, iron and steel, fertilizers, electricity, and aluminum. Additional sectors may be included in the future."},
-    {"query": "How does CBAM impact SMEs exporting to the EU?",
-        "answer": "SMEs exporting CBAM-regulated goods must report the carbon emissions embedded in their products and potentially pay a carbon price. This may require investment in cleaner technologies and better transparency in production processes."},
-    {"query": "When will CBAM come into effect?",
-        "answer": "CBAM will be implemented in stages, starting with a reporting phase in 2023 and transitioning to full operation with financial obligations by 2026."},
-    {"query": "How can exporters mitigate CBAM costs?",
-        "answer": "Exporters can invest in low-carbon production methods or provide evidence of carbon taxes already paid in their home countries to reduce or eliminate CBAM charges."},
-    {"query": "What sustainability standards must SMEs exporting to the EU meet?",
-        "answer": "SMEs must meet standards for reduced waste, traceable production, eco-friendly packaging, and compliance with the new Ecodesign for Sustainable Products Regulation."},
-    {"query": "What are the traceability requirements for exporters?",
-        "answer": "Exporters must provide detailed information on product life cycles, including manufacturing, materials used, and compliance with sustainability criteria."},
-    {"query": "How does the Carbon Border Adjustment Mechanism (CBAM) affect imports?",
-     "answer": "CBAM imposes carbon taxes on imported goods with high greenhouse gas footprints, ensuring imports align with EU environmental standards."},
-    {"query": "What is required under the new EU organic regulations?",
-        "answer": "Imported organic products must display control body codes, follow strict organic certification rules, and meet labeling requirements."},
-    {"query": "How does the Green Deal Industrial Plan simplify regulations for SMEs?",
-        "answer": "The Plan introduces streamlined permitting processes and 'one-stop shops' to reduce red tape for projects related to renewable technologies."},
-    {"query": "What is the Digital Product Passport (DPP)?",
-     "answer": "The DPP provides detailed information about a product’s lifecycle, ensuring traceability and compliance with sustainability standards. It helps SMEs align with EU buyers' expectations."},
-    {"query": "What are the biodiversity-related commitments for agricultural land?",
-        "answer": "By 2030, 10% of farmland must feature biodiversity-friendly measures, and pesticide use must be cut by 50%."},
-    {"query": "What challenges might SMEs face due to the EGD?",
-        "answer": "SMEs may encounter higher production costs, complex sustainability reporting requirements, and the need to adapt to new eco-friendly technologies."},
-    {"query": "What are the compliance deadlines for key regulations?",
-        "answer": "Major regulations like the revision of pesticide use directives and the CBAM will be implemented in stages, with some taking effect by 2024."},
-    {"query": "How does the EU support skill development for the green transition?",
-        "answer": "The EU is establishing Net-Zero Industry Academies to train workers in net-zero technologies, with funding for reskilling and upskilling programs."},
-    {"query": "What is the timeline for major Green Deal initiatives?",
-        "answer": "Key initiatives like the NZIA and biodiversity commitments have milestones up to 2030, with significant mid-term reviews and funding disbursements expected between 2023 and 2026."},
-    {"query": "What funding mechanisms are available for SMEs under the Green Deal?",
-        "answer": "SMEs can access funding through programs like the Innovation Fund, InvestEU, and the European Sovereignty Fund. These mechanisms support green technology projects and offer tax breaks."},
-    {"query": "What is the European Hydrogen Bank?",
-        "answer": "It is a financial instrument to support renewable hydrogen production and imports. The Bank offers subsidies to bridge the cost gap between renewable and fossil hydrogen."},
-    {"query": "What trade opportunities does the Green Deal provide?",
-        "answer": "The Plan promotes open and fair trade through partnerships, free trade agreements, and initiatives like the Critical Raw Materials Club to ensure supply chain resilience."},
-    {"query": "How can SMEs benefit from the EU Green Deal?",
-        "answer": "SMEs can capitalize on increased demand for sustainable products, gain partnerships with EU companies, and access new markets driven by sustainability goals."},
-    {"query": "What support is available for SMEs transitioning to sustainable practices?",
-        "answer": "EU-based programs provide subsidies, technical support, and resources like the Digital Product Passport to help SMEs adapt."},
-    {"query": "What opportunities do CEAP and F2F provide?",
-        "answer": "These initiatives create markets for sustainable products, such as organic food and recycled textiles, enhancing SME competitiveness."},
-    {"query": "What is the role of the EU Digital Product Passport?",
-        "answer": "This tool standardizes and simplifies compliance, providing detailed product information to buyers while promoting transparency."},
-    {"query": "What are Net-Zero Strategic Projects?",
-        "answer": "These are priority projects essential for the EU's energy transition, such as large-scale solar or battery manufacturing plants. They benefit from accelerated permitting and funding."},
-    {"query": "How does the EU address biodiversity in urban planning?",
-        "answer": "Through the Green City Accord, urban planning integrates green spaces and biodiversity-focused infrastructure."},
-    {"query": "What role does hydrogen play in the EU's climate strategy?",
-        "answer": "Hydrogen is a cornerstone for reducing industrial emissions, with a target of producing 10 million tonnes of renewable hydrogen in the EU and importing an additional 10 million tonnes by 2030."},
-    {"query": "What are the packaging requirements under the EGD?",
-        "answer": "All packaging must be reusable or recyclable by 2024, with reduced material complexity and increased recycled content."},
-    {"query": "How does the EU Biodiversity Strategy impact exporters?",
-        "answer": "Exporters must ensure their products do not contribute to deforestation or biodiversity loss and comply with due diligence laws."}
+    {"query": "Which sectors does CBAM initially cover?", "answer": "CBAM applies to high-emission sectors such as cement, iron and steel, fertilizers, electricity, and aluminum. Additional sectors may be included in the future."},
+    {"query": "How does CBAM impact SMEs exporting to the EU?", "answer": "SMEs exporting CBAM-regulated goods must report the carbon emissions embedded in their products and potentially pay a carbon price. This may require investment in cleaner technologies and better transparency in production processes."},
+    {"query": "When will CBAM come into effect?", "answer": "CBAM will be implemented in stages, starting with a reporting phase in 2023 and transitioning to full operation with financial obligations by 2026."},
+    {"query": "How can exporters mitigate CBAM costs?", "answer": "Exporters can invest in low-carbon production methods or provide evidence of carbon taxes already paid in their home countries to reduce or eliminate CBAM charges."},
+    {"query": "What sustainability standards must SMEs exporting to the EU meet?", "answer": "SMEs must meet standards for reduced waste, traceable production, eco-friendly packaging, and compliance with the new Ecodesign for Sustainable Products Regulation."},
+    {"query": "What are the traceability requirements for exporters?", "answer": "Exporters must provide detailed information on product life cycles, including manufacturing, materials used, and compliance with sustainability criteria."},
+    {"query": "How does the Carbon Border Adjustment Mechanism (CBAM) affect imports?", "answer": "CBAM imposes carbon taxes on imported goods with high greenhouse gas footprints, ensuring imports align with EU environmental standards."},
+    {"query": "What is required under the new EU organic regulations?", "answer": "Imported organic products must display control body codes, follow strict organic certification rules, and meet labeling requirements."},
+    {"query": "How does the Green Deal Industrial Plan simplify regulations for SMEs?", "answer": "The Plan introduces streamlined permitting processes and 'one-stop shops' to reduce red tape for projects related to renewable technologies."},
+    {"query": "What is the Digital Product Passport (DPP)?", "answer": "The DPP provides detailed information about a product’s lifecycle, ensuring traceability and compliance with sustainability standards. It helps SMEs align with EU buyers' expectations."},
+    {"query": "What are the biodiversity-related commitments for agricultural land?", "answer": "By 2030, 10% of farmland must feature biodiversity-friendly measures, and pesticide use must be cut by 50%."},
+    {"query": "What challenges might SMEs face due to the EGD?", "answer": "SMEs may encounter higher production costs, complex sustainability reporting requirements, and the need to adapt to new eco-friendly technologies."},
+    {"query": "What are the compliance deadlines for key regulations?", "answer": "Major regulations like the revision of pesticide use directives and the CBAM will be implemented in stages, with some taking effect by 2024."},
+    {"query": "How does the EU support skill development for the green transition?", "answer": "The EU is establishing Net-Zero Industry Academies to train workers in net-zero technologies, with funding for reskilling and upskilling programs."},
+    {"query": "What is the timeline for major Green Deal initiatives?", "answer": "Key initiatives like the NZIA and biodiversity commitments have milestones up to 2030, with significant mid-term reviews and funding disbursements expected between 2023 and 2026."},
+    {"query": "What funding mechanisms are available for SMEs under the Green Deal?", "answer": "SMEs can access funding through programs like the Innovation Fund, InvestEU, and the European Sovereignty Fund. These mechanisms support green technology projects and offer tax breaks."},
+    {"query": "What is the European Hydrogen Bank?", "answer": "It is a financial instrument to support renewable hydrogen production and imports. The Bank offers subsidies to bridge the cost gap between renewable and fossil hydrogen."},
+    {"query": "What trade opportunities does the Green Deal provide?", "answer": "The Plan promotes open and fair trade through partnerships, free trade agreements, and initiatives like the Critical Raw Materials Club to ensure supply chain resilience."},
+    {"query": "How can SMEs benefit from the EU Green Deal?", "answer": "SMEs can capitalize on increased demand for sustainable products, gain partnerships with EU companies, and access new markets driven by sustainability goals."},
+    {"query": "What support is available for SMEs transitioning to sustainable practices?", "answer": "EU-based programs provide subsidies, technical support, and resources like the Digital Product Passport to help SMEs adapt."},
+    {"query": "What opportunities do CEAP and F2F provide?", "answer": "These initiatives create markets for sustainable products, such as organic food and recycled textiles, enhancing SME competitiveness."},
+    {"query": "What is the role of the EU Digital Product Passport?", "answer": "This tool standardizes and simplifies compliance, providing detailed product information to buyers while promoting transparency."},
+    {"query": "What are Net-Zero Strategic Projects?", "answer": "These are priority projects essential for the EU's energy transition, such as large-scale solar or battery manufacturing plants. They benefit from accelerated permitting and funding."},
+    {"query": "How does the EU address biodiversity in urban planning?", "answer": "Through the Green City Accord, urban planning integrates green spaces and biodiversity-focused infrastructure."},
+    {"query": "What role does hydrogen play in the EU's climate strategy?", "answer": "Hydrogen is a cornerstone for reducing industrial emissions, with a target of producing 10 million tonnes of renewable hydrogen in the EU and importing an additional 10 million tonnes by 2030."},
+    {"query": "What are the packaging requirements under the EGD?", "answer": "All packaging must be reusable or recyclable by 2024, with reduced material complexity and increased recycled content."},
+    {"query": "How does the EU Biodiversity Strategy impact exporters?", "answer": "Exporters must ensure their products do not contribute to deforestation or biodiversity loss and comply with due diligence laws."}
 ]
 
 """
@@ -601,13 +554,10 @@ class EvaluationAgent:
         gen_tokens = set(self._tokenize_text(generated_answer))
         gold_tokens = set(self._tokenize_text(gold_answer))
 
-        precision = len(gen_tokens & gold_tokens) / \
-            len(gen_tokens) if len(gen_tokens) > 0 else 0
-        recall = len(gen_tokens & gold_tokens) / \
-            len(gold_tokens) if len(gold_tokens) > 0 else 0
+        precision = len(gen_tokens & gold_tokens) / len(gen_tokens) if len(gen_tokens) > 0 else 0
+        recall = len(gen_tokens & gold_tokens) / len(gold_tokens) if len(gold_tokens) > 0 else 0
 
-        f1 = 2 * (precision * recall) / (precision +
-                                         recall) if (precision + recall) > 0 else 0
+        f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
         return f1
 
     def evaluate_answer(self, generated_answer, query):
@@ -656,6 +606,7 @@ class EvaluationAgent:
         }
 
 
+
 gold_qa_dict = [
     {"query": "What is the European Green Deal (EGD)?", "answer":
      "The EGD is the EU’s strategy to reach net zero greenhouse gas emissions by 2050 while achieving sustainable economic growth. It covers policies across sectors like agriculture, energy, and manufacturing to ensure products meet higher sustainability standards."},
@@ -668,16 +619,13 @@ evaluation_agent = EvaluationAgent(gold_qa_dict, similarity_threshold=0.85)
 generated_answer = "The F2F strategy is part of the EGD, focusing on making the EU’s food system fair, healthy, and environmentally friendly. It targets reducing pesticide use, nutrient loss, and promoting organic farming."
 user_question = "What is the Farm to Fork strategy (F2F)?"
 
-evaluation_result = evaluation_agent.evaluate_answer(
-    generated_answer, user_question)
+evaluation_result = evaluation_agent.evaluate_answer(generated_answer, user_question)
 
-logger.debug(
-    f"Cosine Similarity: {evaluation_result['cosine_similarity']:.2f}")
+logger.debug(f"Cosine Similarity: {evaluation_result['cosine_similarity']:.2f}")
 logger.debug(f"F1 Score (Overlap): {evaluation_result['f1_score']:.2f}")
 logger.debug(f"Precision@1: {evaluation_result['precision_at_1']}")
 logger.debug(f"Semantic Match: {evaluation_result['semantic_match']}")
-logger.debug(
-    f"Human Review Needed: {evaluation_result['human_review_needed']}")
+logger.debug(f"Human Review Needed: {evaluation_result['human_review_needed']}")
 logger.debug(f"Generated Answer: {evaluation_result['generated_answer']}")
 logger.debug(f"Gold Answer: {evaluation_result['gold_answer']}")
 
@@ -701,11 +649,11 @@ class RelevanceSummarizationSystem:
 #         self.openai_api_key = openai_api_key or os.getenv("OPENAI_API_KEY")
 
         if not self.openai_api_key:
-            raise ValueError("MLX API key is required for rephrasing queries.")
+            raise ValueError("Ollama API key is required for rephrasing queries.")
 
-    def _send_openai_request(self, prompt: str, model="llama-3.2-3b-instruct", temperature=0.7, max_tokens=150):
+    def _send_openai_request(self, prompt: str, model="llama3.2", temperature=0.7, max_tokens=150):
         """
-        Helper function to send a request to MLX's API and handle the response.
+        Helper function to send a request to Ollama's API and handle the response.
         """
         url = "https://api.openai.com/v1/chat/completions"
         headers = {
@@ -733,11 +681,10 @@ class RelevanceSummarizationSystem:
 
     def rephrase_query(self, query: str) -> str:
         """
-        Rephrase the query using MLX's API to improve retrieval accuracy.
+        Rephrase the query using Ollama's API to improve retrieval accuracy.
         """
         prompt = f"You are a rephrasing expert. Rephrase the following question to make it clearer and more likely to retrieve relevant information: {query}"
-        rephrased_query = self._send_openai_request(
-            prompt, model="llama-3.2-3b-instruct", max_tokens=60)
+        rephrased_query = self._send_openai_request(prompt, model="llama3.2", max_tokens=60)
 
         if rephrased_query:
             logger.debug(f"🔄 Rephrased query: {rephrased_query}")
@@ -753,16 +700,13 @@ class RelevanceSummarizationSystem:
         rephrased_query = self.rephrase_query(query)
 
         try:
-            original_chunks = self.retriever_agent.retrieve_relevant_chunks(
-                query, top_k=top_k)
-            rephrased_chunks = self.retriever_agent.retrieve_relevant_chunks(
-                rephrased_query, top_k=top_k)
+            original_chunks = self.retriever_agent.retrieve_relevant_chunks(query, top_k=top_k)
+            rephrased_chunks = self.retriever_agent.retrieve_relevant_chunks(rephrased_query, top_k=top_k)
         except Exception as e:
             logger.debug(f"❌ Error during retrieval: {e}")
             return "An error occurred while processing your query. Please try again later."
 
-        all_chunks = sorted(original_chunks + rephrased_chunks,
-                            key=lambda x: x["combined_score"], reverse=True)
+        all_chunks = sorted(original_chunks + rephrased_chunks, key=lambda x: x["combined_score"], reverse=True)
 
         if not all_chunks:
             logger.debug("⚠️ No relevant chunks found.\n")
@@ -772,24 +716,20 @@ class RelevanceSummarizationSystem:
         logger.debug(f"📊 Top relevance score: {top_relevance:.2f}")
 
         if top_relevance < self.relevance_threshold:
-            logger.debug(
-                f"⚠️ Relevance score too low (Score: {top_relevance:.2f}).\n")
+            logger.debug(f"⚠️ Relevance score too low (Score: {top_relevance:.2f}).\n")
             return "I don't know the answer to this question. Can you try rephrasing your question and try again?"
 
         try:
-            summary = self.summarizer_agent.summarize_retrieved_chunks(
-                all_chunks, query)
+            summary = self.summarizer_agent.summarize_retrieved_chunks(all_chunks, query)
         except Exception as e:
             logger.debug(f"❌ Error during summarization: {e}")
             return "An error occurred while summarizing the information. Please try again later."
 
-        evaluation_result = self.evaluation_agent.evaluate_answer(
-            summary, query)
+        evaluation_result = self.evaluation_agent.evaluate_answer(summary, query)
 
         logger.debug(f"📝 Evaluation Results: {evaluation_result}\n")
 
         return summary.strip(), evaluation_result
-
 
 """
 # **Example Usage**
@@ -809,8 +749,7 @@ relevance_system = RelevanceSummarizationSystem(
 
 user_question = input("Enter your question: ")  # User-provided query
 
-final_summary, evaluation_results = relevance_system.process_query(
-    user_question, top_k=3)
+final_summary, evaluation_results = relevance_system.process_query(user_question, top_k=3)
 
 logger.debug("\nResponse:")
 logger.debug(final_summary)  # Clean and concise summary

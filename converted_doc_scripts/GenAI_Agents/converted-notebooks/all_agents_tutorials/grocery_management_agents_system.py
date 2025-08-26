@@ -52,7 +52,7 @@ logger.info("# 🛒 Grocery Management Agents System")
 
 """
 ### Step 2: Set Up Your API Key
-You will need an MLX API key to proceed. Please store it securely and load it into your environment.
+You will need an Ollama API key to proceed. Please store it securely and load it into your environment.
 
 Additionally, if you wish to test the functionality that reads real receipts and converts them into markdown files, you'll need a LLAMA OCR API key. This is optional but recommended for testing with actual receipt images. You can obtain a LLAMA OCR API key from [here](https://api.together.ai/).
 

@@ -1,12 +1,10 @@
-from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
-from langchain_core.runnables.graph import MermaidDrawMethod
 from IPython.display import Image, display, Markdown, HTML
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
+from jet.llm.ollama.base_langchain import AzureChatOllama, ChatOllama
 from jet.logger import CustomLogger
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import StateGraph, START,END
 from pydantic import BaseModel, Field
 from typing import List, TypedDict
 import os
@@ -198,14 +196,32 @@ logger.info("# Project Manager Assistant Agent")
 
 load_dotenv(override=True)
 
-model_provider = 'Azure'  # 'Azure' or 'MLX'
+model_provider = 'Azure' # 'Azure' or 'Ollama'
 
 """
 ### Instantiate LLM model
 """
 logger.info("### Instantiate LLM model")
 
-llm = ChatMLX(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+if model_provider == 'Azure':
+    """
+    Define your environmental variables under .venv:
+#         - AZURE_OPENAI_API_KEY
+        - OPENAI_API_VERSION
+        - AZURE_OPENAI_ENDPOINT
+    """
+    llm = AzureChatOllama(
+        deployment_name='llama3.2',  # Your actual deployment name
+    )
+elif model_provider == 'Ollama':
+    """
+    Define your environmental variables under .venv:
+#         - OPENAI_API_KEY
+        - OPENAI_API_BASE
+    """
+    llm = ChatOllama(model="llama3.2")
+else:
+    logger.debug('Implement your own llm loader')
 
 llm.invoke("Hello, how are you?")
 
@@ -220,41 +236,31 @@ So let's create all required data classes first:
 """
 logger.info("In the following section, we will step-by-step implement:")
 
-
 class Task(BaseModel):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4,
-                          description="Unique identifier for the task")
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, description="Unique identifier for the task")
     task_name: str = Field(description="Name of the task")
     task_description: str = Field(description="Description of the task")
-    estimated_day: int = Field(
-        description="Estimated number of days to complete the task")
-
+    estimated_day: int = Field(description="Estimated number of days to complete the task")
 
 class TaskList(BaseModel):
     tasks: List[Task] = Field(description="List of tasks")
-
 
 class TaskDependency(BaseModel):
     """Task dependency model"""
     task: Task = Field(description="Task")
     dependent_tasks: List[Task] = Field(description="List of dependent tasks")
 
-
 class TeamMember(BaseModel):
     name: str = Field(description="Name of the team member")
     profile: str = Field(description="Profile of the team member")
 
-
 class Team(BaseModel):
     team_members: List[TeamMember] = Field(description="List of team members")
-
 
 class TaskAllocation(BaseModel):
     """Task allocation class"""
     task: Task = Field(description="Task")
-    team_member: TeamMember = Field(
-        description="Team members assigned to the task")
-
+    team_member: TeamMember = Field(description="Team members assigned to the task")
 
 class TaskSchedule(BaseModel):
     """Schedule schedule class"""
@@ -262,58 +268,43 @@ class TaskSchedule(BaseModel):
     start_day: int = Field(description="Start day of the task")
     end_day: int = Field(description="End day of the task")
 
-
 class DependencyList(BaseModel):
     """List of task dependencies"""
-    dependencies: List[TaskDependency] = Field(
-        description="List of task dependencies")
-
+    dependencies: List[TaskDependency] = Field(description="List of task dependencies")
 
 class Schedule(BaseModel):
     """List of task schedules"""
     schedule: List[TaskSchedule] = Field(description="List of task schedules")
 
-
 class TaskAllocationList(BaseModel):
     """List of task allocations"""
-    task_allocations: List[TaskAllocation] = Field(
-        description="List of task allocations")
-
+    task_allocations: List[TaskAllocation] = Field(description="List of task allocations")
 
 class TaskAllocationListIteration(BaseModel):
     """List of task allocations for each iteration"""
-    task_allocations_iteration: List[TaskAllocationList] = Field(
-        description="List of task allocations for each iteration")
-
+    task_allocations_iteration: List[TaskAllocationList] = Field(description="List of task allocations for each iteration")
 
 class ScheduleIteration(BaseModel):
     """List of task schedules for each iteration"""
-    schedule: List[Schedule] = Field(
-        description="List of task schedules for each iteration")
-
+    schedule: List[Schedule] = Field(description="List of task schedules for each iteration")
 
 class Risk(BaseModel):
     """Risk of a task"""
     task: Task = Field(description="Task")
     score: str = Field(description="Risk associated with the task")
 
-
 class RiskList(BaseModel):
     """List of risks for each iteration"""
     risks: List[Risk] = Field(description="List of risks")
 
-
 class RiskListIteration(BaseModel):
     """List of risks for each iteration"""
-    risks_iteration: List[RiskList] = Field(
-        description="List of risks for each iteration")
-
+    risks_iteration: List[RiskList] = Field(description="List of risks for each iteration")
 
 """
 In the next step, let's create the AgentState. The `schedule_iteration`, `task_allocations_iteration`, `risks_iteration` are introduced to generate structured 'memory' for the self-reflection cycles.
 """
 logger.info("In the next step, let's create the AgentState. The `schedule_iteration`, `task_allocations_iteration`, `risks_iteration` are introduced to generate structured 'memory' for the self-reflection cycles.")
-
 
 class AgentState(TypedDict):
     """The project manager agent state."""
@@ -332,7 +323,6 @@ class AgentState(TypedDict):
     risks_iteration: List[RiskListIteration]
     project_risk_score_iterations: List[int]
 
-
 """
 Well done, let's create the required nodes. As a quick recap:
 
@@ -343,10 +333,27 @@ In this tutorial we have implemented the nodes based on th following pattern:
 ```
 def task_generation_node(state: AgentState):
  """
-logger.info(
-    "Well done, let's create the required nodes. As a quick recap:\n\n In LangGraph a node is defined as a function which has an argument the `AgentState`. Within the node certain attributes of the field state is updated which at the end of the node is returned to the workflow manager and passed to the next node. Inside the nodes, LLM's are used to generate (non)-structured response.\n\nIn this tutorial we have implemented the nodes based on th following pattern:\n\n```\ndef task_generation_node(state: AgentState):\n \"\"\"LangGraph node that will extract tasks from given project description\"\"\"\n    description = state[\"project_description\"]\n    prompt = f\"\"\"You are an experienced project description analyzer. Analyze the \n    project description '{description}' and create a list of actionable and\n    realistic tasks with estimated time (in days) to complete each task.\n    If the task takes longer than 5 days, break it down into independent smaller tasks.\n    \"\"\"\n    structure_llm = llm.with_structured_output(TaskList)\n    tasks: TaskList = structure_llm.invoke(prompt)\n    state['tasks'] = tasks\n    return state\n```\nIn almost all nodes, we used:\n- `llm.with_structured_output(<structure>)` - generating structured output. \n\nThe .with_structured_output() method enables models with native APIs for structured outputs, such as function calling or JSON mode, to reliably produce outputs as objects based on a defined schema. The schema can be specified using a TypedDict, JSON Schema, or a Pydantic class, determining whether the output is a dictionary or a Pydantic object.\n\nThe only exception is the insight_generation_node where only `str` as requested from the llm and the required interface only `llm.invoke(prompt)`")
-logger.info("structure_llm = llm.with_structured_output(TaskList)")
+logger.info("Well done, let's create the required nodes. As a quick recap:")LangGraph node that will extract tasks from given project description"""
+    description = state["project_description"]
+    prompt = f"""
+logger.info("description = state["project_description"]")You are an experienced project description analyzer. Analyze the 
+    project description '{description}' and create a list of actionable and
+    realistic tasks with estimated time (in days) to complete each task.
+    If the task takes longer than 5 days, break it down into independent smaller tasks.
+    """
+    structure_llm = llm.with_structured_output(TaskList)
+    tasks: TaskList = structure_llm.invoke(prompt)
+    state['tasks'] = tasks
+    return state
+```
+In almost all nodes, we used:
+- `llm.with_structured_output(<structure>)` - generating structured output. 
 
+The .with_structured_output() method enables models with native APIs for structured outputs, such as function calling or JSON mode, to reliably produce outputs as objects based on a defined schema. The schema can be specified using a TypedDict, JSON Schema, or a Pydantic class, determining whether the output is a dictionary or a Pydantic object.
+
+The only exception is the insight_generation_node where only `str` as requested from the llm and the required interface only `llm.invoke(prompt)`
+"""
+logger.info("structure_llm = llm.with_structured_output(TaskList)")
 
 def task_generation_node(state: AgentState):
     """LangGraph node that will extract tasks from given project description"""
@@ -366,7 +373,6 @@ def task_generation_node(state: AgentState):
     tasks: TaskList = structure_llm.invoke(prompt)
     return {"tasks": tasks}
 
-
 def task_dependency_node(state: AgentState):
     """Evaluate the dependencies between the tasks"""
     tasks = state["tasks"]
@@ -383,13 +389,11 @@ def task_dependency_node(state: AgentState):
     dependencies: DependencyList = structure_llm.invoke(prompt)
     return {"dependencies": dependencies}
 
-
 def task_scheduler_node(state: AgentState):
     """LangGraph node that will schedule tasks based on dependencies and team availability"""
     dependencies = state["dependencies"]
     tasks = state["tasks"]
-    # "" if state["insights"] is None else state["insights"].insights[-1]
-    insights = state["insights"]
+    insights = state["insights"] #"" if state["insights"] is None else state["insights"].insights[-1]
     prompt = f"""
         You are an experienced project scheduler tasked with creating an optimized project timeline.
         **Given:**
@@ -412,14 +416,12 @@ def task_scheduler_node(state: AgentState):
     state["schedule_iteration"].append(schedule)
     return state
 
-
 def task_allocation_node(state: AgentState):
     """LangGraph node that will allocate tasks to team members"""
     tasks = state["tasks"]
     schedule = state["schedule"]
     team = state["team"]
-    # "" if state["insights"] is None else state["insights"].insights[-1]
-    insights = state["insights"]
+    insights = state["insights"] #"" if state["insights"] is None else state["insights"].insights[-1]
     prompt = f"""
         You are a proficient project manager responsible for allocating tasks to team members efficiently.
         **Given:**
@@ -445,11 +447,10 @@ def task_allocation_node(state: AgentState):
     state["task_allocations_iteration"].append(task_allocations)
     return state
 
-
 def risk_assessment_node(state: AgentState):
     """LangGraph node that analyse risk associated with schedule and allocation of task"""
     schedule = state["schedule"]
-    task_allocations = state["task_allocations"]
+    task_allocations=state["task_allocations"]
     prompt = f"""
         You are a seasoned project risk analyst tasked with evaluating the risks associated with the current project plan.
         **Given:**
@@ -479,11 +480,10 @@ def risk_assessment_node(state: AgentState):
     state["risks_iteration"].append(risks)
     return state
 
-
 def insight_generation_node(state: AgentState):
     """LangGraph node that generate insights from the schedule, task allocation, and risk associated"""
     schedule = state["schedule"]
-    task_allocations = state["task_allocations"]
+    task_allocations=state["task_allocations"]
     risks = state["risks"]
     prompt = f"""
         You are an expert project manager responsible for generating actionable insights to enhance the project plan.
@@ -505,12 +505,10 @@ def insight_generation_node(state: AgentState):
     insights = llm.invoke(prompt).content
     return {"insights": insights}
 
-
 """
 The proposed agentic workflow contains a conditional routing in which the logic was built around the overall risk score of the project plan. The task scheduling and task assignment is carried out at least twice in a 'self-reflection' in order to minimize the overall project risk assigned in each iteration as part of the `risk_assessment_node`. If the risk was reduced the agent finishes its task, otherwise tries to self-reflect using an `insight_generation_node` from which the insights fed back to the scheduler_node.
 """
 logger.info("The proposed agentic workflow contains a conditional routing in which the logic was built around the overall risk score of the project plan. The task scheduling and task assignment is carried out at least twice in a 'self-reflection' in order to minimize the overall project risk assigned in each iteration as part of the `risk_assessment_node`. If the risk was reduced the agent finishes its task, otherwise tries to self-reflect using an `insight_generation_node` from which the insights fed back to the scheduler_node.")
-
 
 def router(state: AgentState):
     """LangGraph node that will route the agent to the appropriate node based on the project description"""
@@ -518,7 +516,7 @@ def router(state: AgentState):
     iteration_number = state["iteration_number"]
 
     if iteration_number < max_iteration:
-        if len(state["project_risk_score_iterations"]) > 1:
+        if len(state["project_risk_score_iterations"])>1:
             if state["project_risk_score_iterations"][-1] < state["project_risk_score_iterations"][0]:
                 return END
             else:
@@ -528,12 +526,10 @@ def router(state: AgentState):
     else:
         return END
 
-
 """
 As a last remainign step, let's create an agentic workflow using LangGraph.
 """
-logger.info(
-    "As a last remainign step, let's create an agentic workflow using LangGraph.")
+logger.info("As a last remainign step, let's create an agentic workflow using LangGraph.")
 
 workflow = StateGraph(AgentState)
 
@@ -549,17 +545,14 @@ workflow.add_edge("task_generation", "task_dependencies")
 workflow.add_edge("task_dependencies", "task_scheduler")
 workflow.add_edge("task_scheduler", "task_allocator")
 workflow.add_edge("task_allocator", "risk_assessor")
-workflow.add_conditional_edges("risk_assessor", router, [
-                               "insight_generator", END])
+workflow.add_conditional_edges("risk_assessor", router, ["insight_generator", END])
 workflow.add_edge("insight_generator", "task_scheduler")
 
 memory = MemorySaver()
 
 graph_plan = workflow.compile(checkpointer=memory)
 
-# display(Image(graph_plan.get_graph(xray=1).draw_mermaid_png()))
-diagram_path = os.path.join(OUTPUT_DIR, "project_manager_workflow.png")
-render_mermaid_graph(graph_plan, diagram_path)
+display(Image(graph_plan.get_graph(xray=1).draw_mermaid_png()))
 
 """
 ## Usage Example
@@ -570,31 +563,26 @@ In this tutorial we provide two dummy input under `data`. The team is defined as
 """
 logger.info("## Usage Example")
 
-
-def get_project_description(file_path: str):
+def get_project_description(file_path:str):
     """Read the project description from the file"""
     with open(file_path, 'r') as file:
-        content = file.read()
+            content = file.read()
 
     return content
 
-
-def get_team(file_path: str):
+def get_team(file_path:str):
     """Read the team members from the CSV file"""
     team_df = pd.read_csv(file_path)
     team_members = [
-        TeamMember(name=row['Name'], profile=row['Profile Description'])
-        for _, row in team_df.iterrows()
-    ]
+            TeamMember(name=row['Name'], profile=row['Profile Description'])
+            for _, row in team_df.iterrows()
+        ]
     team = Team(team_members=team_members)
 
     return team
 
-
-data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/GenAI_Agents/data"
-project_description = get_project_description(
-    f"{data_dir}/project_manager_assistant/project_description.txt")
-team = get_team(f"{data_dir}/project_manager_assistant/team.csv")
+project_description = get_project_description("../data/project_manager_assistant/project_description.txt")
+team = get_team("../data/project_manager_assistant/team.csv")
 
 logger.debug(project_description)
 logger.debug(team)
@@ -642,7 +630,7 @@ for i in range(number_of_iterations):
             task_schedule.end_day
         ])
 
-    df_schedule = pd.DataFrame(t, columns=['task_name', 'start', 'end'])
+    df_schedule = pd.DataFrame(t,columns=['task_name', 'start', 'end'])
 
     task_allocations = final_state['task_allocations_iteration'][i].task_allocations
 
@@ -653,9 +641,10 @@ for i in range(number_of_iterations):
             task_allocation.team_member.name
         ])
 
-    df_allocation = pd.DataFrame(t, columns=['task_name', 'team_member'])
+    df_allocation = pd.DataFrame(t,columns=['task_name', 'team_member'])
 
     df = df_allocation.merge(df_schedule, on='task_name')
+
 
     current_date = datetime.today()
 
@@ -664,14 +653,12 @@ for i in range(number_of_iterations):
 
     df.rename(columns={'team_member': 'Team Member'}, inplace=True)
     df.sort_values(by='Team Member', inplace=True)
-    fig = px.timeline(df, x_start="start", x_end="end", y="task_name",
-                      color="Team Member", title=f"Gantt Chart - Iteration:{i+1} ")
+    fig = px.timeline(df, x_start="start", x_end="end", y="task_name", color="Team Member", title=f"Gantt Chart - Iteration:{i+1} ")
 
     fig.update_layout(
         xaxis_title="Timeline",
         yaxis_title="Tasks",
-        # Reverse the y-axis to have tasks in the vertical side
-        yaxis=dict(autorange="reversed"),
+        yaxis=dict(autorange="reversed"),  # Reverse the y-axis to have tasks in the vertical side
         title_x=0.5
     )
 
@@ -688,13 +675,11 @@ However, the expected complex structured response may not always be achieved by 
 """
 logger.info("## Comparison")
 
-
 class ProjectPlan(BaseModel):
     tasks: TaskList
     dependencies: DependencyList
     schedule: Schedule
     task_allocations: TaskAllocationList
-
 
 class SimpleAgentState(TypedDict):
     """The project manager agent state."""
@@ -704,7 +689,6 @@ class SimpleAgentState(TypedDict):
     dependencies: DependencyList
     schedule: Schedule
     task_allocations: TaskAllocationList
-
 
 def project_plan_generation_node(state: SimpleAgentState):
     """LangGraph node that will extract tasks from given project description"""
@@ -734,9 +718,7 @@ simple_memory = MemorySaver()
 
 simple_graph_plan = simple_workflow.compile(checkpointer=memory)
 
-# display(Image(simple_graph_plan.get_graph(xray=1).draw_mermaid_png()))
-diagram_path = os.path.join(OUTPUT_DIR, "simple_graph_plan.png")
-render_mermaid_graph(simple_graph_plan, diagram_path)
+display(Image(simple_graph_plan.get_graph(xray=1).draw_mermaid_png()))
 
 config = {"configurable": {"thread_id": "2"}}
 for event in simple_graph_plan.stream(state_input, config, stream_mode=["updates"]):
@@ -755,7 +737,7 @@ for task_schedule in task_schedules:
         task_schedule.end_day
     ])
 
-df_schedule = pd.DataFrame(t, columns=['task_name', 'start', 'end'])
+df_schedule = pd.DataFrame(t,columns=['task_name', 'start', 'end'])
 
 task_allocations = simple_final_state['task_allocations'].task_allocations
 
@@ -766,7 +748,7 @@ for task_allocation in task_allocations:
         task_allocation.team_member.name
     ])
 
-df_allocation = pd.DataFrame(t, columns=['task_name', 'team_member'])
+df_allocation = pd.DataFrame(t,columns=['task_name', 'team_member'])
 
 df = df_allocation.merge(df_schedule, on='task_name')
 
@@ -778,14 +760,12 @@ df['end'] = df['end'].apply(lambda x: current_date + timedelta(days=x))
 
 df.rename(columns={'team_member': 'Team Member'}, inplace=True)
 df.sort_values(by='Team Member', inplace=True)
-fig = px.timeline(df, x_start="start", x_end="end", y="task_name",
-                  color="Team Member", title=f"Gantt Chart - Oneshot Project Plan")
+fig = px.timeline(df, x_start="start", x_end="end", y="task_name", color="Team Member", title=f"Gantt Chart - Oneshot Project Plan")
 
 fig.update_layout(
     xaxis_title="Timeline",
     yaxis_title="Tasks",
-    # Reverse the y-axis to have tasks in the vertical side
-    yaxis=dict(autorange="reversed"),
+    yaxis=dict(autorange="reversed"),  # Reverse the y-axis to have tasks in the vertical side
     title_x=0.5
 )
 

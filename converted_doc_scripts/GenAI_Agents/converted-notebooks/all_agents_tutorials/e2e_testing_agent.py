@@ -3,7 +3,7 @@ from jet.transformers.formatters import format_json
 from IPython.display import display, Image
 from contextlib import redirect_stdout
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import AzureChatMLX
+from jet.llm.ollama.base_langchain import AzureChatOllama
 from jet.logger import CustomLogger
 from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts.chat import SystemMessagePromptTemplate, HumanMessagePromptTemplate
@@ -96,7 +96,7 @@ Initialize the LLM instance. You can instantiate a LLM of your choice.
 """
 logger.info("Initialize the LLM instance. You can instantiate a LLM of your choice.")
 
-llm = AzureChatMLX(
+llm = AzureChatOllama(
     model_name=os.getenv("AZURE_OPENAI_LLM_MODEL"),
     deployment_name=os.getenv("AZURE_OPENAI_LLM_MODEL_DEPLOYMENT"),
     temperature=0.0,

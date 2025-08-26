@@ -1,6 +1,6 @@
 from datetime import datetime
 from dotenv import load_dotenv
-from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
+from jet.llm.ollama.base_langchain import ChatOllama
 from jet.logger import CustomLogger
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import StateGraph
@@ -50,13 +50,13 @@ AInsight processes news through three specialized agents:
 
 2. **Summarizer Agent**
    - Processes technical content
-   - Uses llama-3.2-3b-instruct for natural language generation (LLM can be configured per user preference, used MLX in this tutorial for accessibility)
+   - Uses llama3.2 for natural language generation (LLM can be configured per user preference, used Ollama in this tutorial for accessibility)
    - Handles technical term simplification
 
 3. **Publisher Agent**
    - Takes list of summaries as input
    - Formats them into a structured prompt
-   - Makes single llama-3.2-3b-instruct call to generate complete report with:
+   - Makes single llama3.2 call to generate complete report with:
      * Introduction section
      * Organized summaries
      * Further reading links
@@ -70,12 +70,12 @@ AInsight processes news through three specialized agents:
 ### 🎯 Learning Objectives
 1. Understand multi-agent system architecture
 2. Implement state management with LangGraph
-3. Work with external APIs (Tavily, MLX)
+3. Work with external APIs (Tavily, Ollama)
 4. Create modular, maintainable Python code
 
 ### 🔧 Technical Requirements
 - Python 3.11+
-- MLX API key
+- Ollama API key
 - Tavily API key
 - Required packages (see setup section)
 
@@ -105,8 +105,8 @@ logger.info("### Environment Configuration")
 load_dotenv()
 
 tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
-llm = ChatMLX(
-    model="llama-3.2-3b-instruct",
+llm = ChatOllama(
+    model="llama3.2",
     temperature=0.1,
     max_tokens=600
 )
@@ -119,7 +119,6 @@ Think of state as a "memory" that will flow through your workflow (graph) later.
 We use Pydantic and TypedDict to define our data structures:
 """
 logger.info("## 📊 Data Models and State Management")
-
 
 class Article(BaseModel):
     """
@@ -134,7 +133,6 @@ class Article(BaseModel):
     url: str
     content: str
 
-
 class Summary(TypedDict):
     """
     Represents a processed article summary
@@ -147,7 +145,6 @@ class Summary(TypedDict):
     title: str
     summary: str
     url: str
-
 
 class GraphState(TypedDict):
     """
@@ -162,14 +159,12 @@ class GraphState(TypedDict):
     summaries: Optional[List[Summary]]
     report: Optional[str]
 
-
 """
 ## 🤖 Agent Implementation
 
 ### 1. NewsSearcher Agent
 """
 logger.info("## 🤖 Agent Implementation")
-
 
 class NewsSearcher:
     """
@@ -202,17 +197,15 @@ class NewsSearcher:
 
         return articles
 
-
 """
 ### 2. Summarizer Agent
 """
 logger.info("### 2. Summarizer Agent")
 
-
 class Summarizer:
     """
     Agent that processes articles and generates accessible summaries
-    using llama-3.2-3b-instruct
+    using llama3.2
     """
 
     def __init__(self):
@@ -234,17 +227,14 @@ class Summarizer:
         """
         response = llm.invoke([
             SystemMessage(content=self.system_prompt),
-            HumanMessage(
-                content=f"Title: {article.title}\n\nContent: {article.content}")
+            HumanMessage(content=f"Title: {article.title}\n\nContent: {article.content}")
         ])
         return response.content
-
 
 """
 ### 3. Publisher Agent
 """
 logger.info("### 3. Publisher Agent")
-
 
 class Publisher:
     """
@@ -295,7 +285,6 @@ class Publisher:
 
         return response.content
 
-
 """
 ## 🔄 Workflow Implementation
 
@@ -315,7 +304,6 @@ For example the node of NewsSearcher agent:
 """
 logger.info("## 🔄 Workflow Implementation")
 
-
 def search_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Node for article search
@@ -330,7 +318,6 @@ def search_node(state: Dict[str, Any]) -> Dict[str, Any]:
     state['articles'] = searcher.search()
     return state
 
-
 def summarize_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Node for article summarization
@@ -344,7 +331,7 @@ def summarize_node(state: Dict[str, Any]) -> Dict[str, Any]:
     summarizer = Summarizer()
     state['summaries'] = []
 
-    for article in state['articles']:  # Uses articles from previous node
+    for article in state['articles']: # Uses articles from previous node
         summary = summarizer.summarize(article)
         state['summaries'].append({
             'title': article.title,
@@ -352,7 +339,6 @@ def summarize_node(state: Dict[str, Any]) -> Dict[str, Any]:
             'url': article.url
         })
     return state
-
 
 def publish_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -369,12 +355,10 @@ def publish_node(state: Dict[str, Any]) -> Dict[str, Any]:
     state['report'] = report_content
     return state
 
-
 """
 ### Workflow Graph Creation
 """
 logger.info("### Workflow Graph Creation")
-
 
 def create_workflow() -> StateGraph:
     """
@@ -391,14 +375,12 @@ def create_workflow() -> StateGraph:
     workflow.add_node("summarize", summarize_node)
     workflow.add_node("publish", publish_node)
 
-    # search results flow to summarizer
-    workflow.add_edge("search", "summarize")
-    workflow.add_edge("summarize", "publish")  # summaries flow to publisher
+    workflow.add_edge("search", "summarize") # search results flow to summarizer
+    workflow.add_edge("summarize", "publish") # summaries flow to publisher
 
     workflow.set_entry_point("search")
 
     return workflow.compile()
-
 
 """
 ## 🎬 Usage Example

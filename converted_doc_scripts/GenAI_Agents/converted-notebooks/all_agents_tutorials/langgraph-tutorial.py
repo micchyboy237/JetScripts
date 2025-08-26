@@ -1,6 +1,6 @@
 from IPython.display import display, Image
 from dotenv import load_dotenv
-from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
+from jet.llm.ollama.base_langchain import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 from langchain.schema import HumanMessage
@@ -45,9 +45,10 @@ This cell imports all the necessary modules and classes for our LangGraph tutori
 logger.info("# Introduction to LangGraph")
 
 
+
 """
 ### Set Up API Key
-# This cell loads environment variables and sets up the MLX API key. Make sure you have a `.env` file with your `OPENAI_API_KEY`.
+# This cell loads environment variables and sets up the Ollama API key. Make sure you have a `.env` file with your `OPENAI_API_KEY`.
 """
 logger.info("### Set Up API Key")
 
@@ -59,10 +60,9 @@ load_dotenv()
 ## Building the Text Processing Pipeline
 
 ### Define State and Initialize LLM
-Here we define the State class to hold our workflow data and initialize the ChatMLX model.
+Here we define the State class to hold our workflow data and initialize the ChatOllama model.
 """
 logger.info("## Building the Text Processing Pipeline")
-
 
 class State(TypedDict):
     text: str
@@ -70,15 +70,13 @@ class State(TypedDict):
     entities: List[str]
     summary: str
 
-
-llm = ChatMLX(model="llama-3.2-3b-instruct", temperature=0)
+llm = ChatOllama(model="llama3.2")
 
 """
 ### Define Node Functions
 These functions define the operations performed at each node of our graph: classification, entity extraction, and summarization.
 """
 logger.info("### Define Node Functions")
-
 
 def classification_node(state: State):
     ''' Classify the text into one of the categories: News, Blog, Research, or Other '''
@@ -112,7 +110,6 @@ def summarization_node(state: State):
     summary = llm.invoke([message]).content.strip()
     return {"summary": summary}
 
-
 """
 ### Create Tools and Build Workflow
 This cell builds the StateGraph workflow.
@@ -125,8 +122,7 @@ workflow.add_node("classification_node", classification_node)
 workflow.add_node("entity_extraction", entity_extraction_node)
 workflow.add_node("summarization", summarization_node)
 
-# Set the entry point of the graph
-workflow.set_entry_point("classification_node")
+workflow.set_entry_point("classification_node") # Set the entry point of the graph
 workflow.add_edge("classification_node", "entity_extraction")
 workflow.add_edge("entity_extraction", "summarization")
 workflow.add_edge("summarization", END)
@@ -154,7 +150,7 @@ This cell runs a sample text through our pipeline and displays the results.
 logger.info("## Testing the Pipeline")
 
 sample_text = """
-MLX has announced the GPT-4 model, which is a large multimodal model that exhibits human-level performance on various professional benchmarks. It is developed to improve the alignment and safety of AI systems.
+Ollama has announced the GPT-4 model, which is a large multimodal model that exhibits human-level performance on various professional benchmarks. It is developed to improve the alignment and safety of AI systems.
 additionally, the model is designed to be more efficient and scalable than its predecessor, GPT-3. The GPT-4 model is expected to be released in the coming months and will be available to the public for research and development purposes.
 """
 

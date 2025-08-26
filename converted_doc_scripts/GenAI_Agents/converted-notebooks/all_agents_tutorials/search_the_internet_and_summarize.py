@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
+from jet.llm.ollama.base_langchain import ChatOllama
 from jet.logger import CustomLogger
 from langchain_core.prompts import PromptTemplate
 from langchain_community.tools import DuckDuckGoSearchResults
@@ -40,7 +40,7 @@ The notebook consists of several integral components:
 
 1. **Web Search Module**: Utilizes DuckDuckGo's search API to fetch relevant web pages based on user queries.
 2. **Result Parser**: Processes raw search results into a structured format for further analysis.
-3. **Text Summarization Engine**: Leverages MLX's language models to generate concise summaries of web content.
+3. **Text Summarization Engine**: Leverages Ollama's language models to generate concise summaries of web content.
 4. **Integration Layer**: Combines the search and summarization functionalities into a seamless workflow.
 
 ## Method Details
@@ -173,15 +173,15 @@ def perform_web_search(query: str, specific_site: Optional[str] = None) -> Tuple
 """
 ## Text Summarization Function
 
-This cell defines the function to summarize text using MLX's language model.
+This cell defines the function to summarize text using Ollama's language model.
 """
 logger.info("## Text Summarization Function")
 
 
 def summarize_text(text: str, source: Tuple[str, str]) -> str:
-    """Summarize the given text using MLX's language model."""
+    """Summarize the given text using Ollama's language model."""
     try:
-        llm = ChatMLX(temperature=0.7, model="llama-3.2-3b-instruct")
+        llm = ChatOllama(model="llama3.2")
         prompt_template = "Please summarize the following text in 1-2 bullet points:\n\n{text}\n\nSummary:"
         prompt = PromptTemplate(
             template=prompt_template,

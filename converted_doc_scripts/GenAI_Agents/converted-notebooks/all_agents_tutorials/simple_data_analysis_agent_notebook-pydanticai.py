@@ -136,7 +136,7 @@ class Deps:
     df: pd.DataFrame
 
 agent = Agent(
-    model='ollama:llama-3.2-3b-instruct',
+    model='ollama:llama3.2',
     system_prompt="""You are an AI assistant that helps extract information from a pandas DataFrame.
     If asked about columns, be sure to check the column names first.
     Be concise in your answers.""",

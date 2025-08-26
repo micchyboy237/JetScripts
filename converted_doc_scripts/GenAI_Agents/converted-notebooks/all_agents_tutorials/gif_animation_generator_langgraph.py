@@ -3,12 +3,12 @@ from jet.transformers.formatters import format_json
 from IPython.display import display, Image as IPImage
 from PIL import Image
 from dotenv import load_dotenv
-from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
+from jet.llm.ollama.base_langchain import ChatOllama
 from jet.logger import CustomLogger
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.runnables.graph import MermaidDrawMethod
 from langgraph.graph import Graph, END
-from openai import MLX
+from openai import Ollama
 from typing import TypedDict, Annotated, Sequence, List
 import aiohttp
 import asyncio
@@ -56,7 +56,7 @@ The GIF generation process follows these high-level steps:
 Throughout this process, LangGraph manages the flow of information between steps, ensuring that the output of each stage is appropriately fed into the next. The use of asynchronous programming allows for efficient parallel processing, particularly during the image generation and retrieval phases.
 
 ## Conclusion
-This GIF Animation Generator demonstrates the potential of combining different AI technologies to create a powerful, user-friendly tool for content creation. By automating the process from text prompt to visual animation, it opens up new possibilities for storytelling, education, and entertainment.
+This GIF Animation Generator demonstrates the potential of combining different AI technologies to create a powerful, user-friendly tool for content creation. By automating the process from text prompt to visual animation, it opens up new possibilities for storytelling, education, and entertainment. 
 
 The modular nature of the system, facilitated by LangGraph, allows for easy updates or replacements of individual components. This makes the project adaptable to future advancements in language models or image generation technologies.
 
@@ -69,11 +69,13 @@ Import necessary libraries and set up the environment.
 logger.info("# GIF Animation Generator using LangGraph and DALL-E")
 
 
+
+
 load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
-client = MLX()
+client = Ollama()
 
 """
 ## Define Data Structures
@@ -82,20 +84,16 @@ Define the structure for the graph state using TypedDict.
 """
 logger.info("## Define Data Structures")
 
-
 class GraphState(TypedDict):
-    messages: Annotated[Sequence[HumanMessage | AIMessage],
-        "The messages in the conversation"]
+    messages: Annotated[Sequence[HumanMessage | AIMessage], "The messages in the conversation"]
     query: Annotated[str, "Input query describing the character and scene"]
     plot: Annotated[str, "Generated plot for the GIF"]
-    character_description: Annotated[str,
-        "Detailed description of the main character or object"]
+    character_description: Annotated[str, "Detailed description of the main character or object"]
     image_prompts: Annotated[List[str], "List of prompts for each frame"]
     image_urls: Annotated[List[str], "List of URLs for generated images"]
     gif_data: Annotated[bytes, "GIF data in bytes"]
 
-
-llm = ChatMLX(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
+llm = ChatOllama(model="llama3.2")
 
 """
 ## Define Graph Functions
@@ -103,7 +101,6 @@ llm = ChatMLX(model="llama-3.2-3b-instruct", log_dir=f"{OUTPUT_DIR}/chats")
 Define the functions that will be used in the LangGraph workflow.
 """
 logger.info("## Define Graph Functions")
-
 
 async def get_image_data(session, url: str):
     """Fetch image data from a given URL."""
@@ -117,25 +114,20 @@ async def get_image_data(session, url: str):
     logger.success(format_json(result))
     return None
 
-
 def generate_character_description(state: GraphState) -> GraphState:
     """Generate a detailed description of the main character or scene."""
     query = state["query"]
-    response = llm.invoke([HumanMessage(
-        content=f"Based on the query '{query}', create a detailed description of the main character, object, or scene. Include specific details about appearance, characteristics, and any unique features. This description will be used to maintain consistency across multiple images.")])
+    response = llm.invoke([HumanMessage(content=f"Based on the query '{query}', create a detailed description of the main character, object, or scene. Include specific details about appearance, characteristics, and any unique features. This description will be used to maintain consistency across multiple images.")])
     state["character_description"] = response.content
     return state
-
 
 def generate_plot(state: GraphState) -> GraphState:
     """Generate a 5-step plot for the GIF animation."""
     query = state["query"]
     character_description = state["character_description"]
-    response = llm.invoke([HumanMessage(
-        content=f"Create a short, 5-step plot for a GIF based on this query: '{query}' and featuring this description: {character_description}. Each step should be a brief description of a single frame, maintaining consistency throughout. Keep it family-friendly and avoid any sensitive themes.")])
+    response = llm.invoke([HumanMessage(content=f"Create a short, 5-step plot for a GIF based on this query: '{query}' and featuring this description: {character_description}. Each step should be a brief description of a single frame, maintaining consistency throughout. Keep it family-friendly and avoid any sensitive themes.")])
     state["plot"] = response.content
     return state
-
 
 def generate_image_prompts(state: GraphState) -> GraphState:
     """Generate specific image prompts for each frame of the GIF."""
@@ -157,16 +149,13 @@ Format each prompt as a numbered list item, like this:
     for line in response.content.split('\n'):
         if line.strip().startswith(('1.', '2.', '3.', '4.', '5.')):
             prompt = line.split('.', 1)[1].strip()
-            prompts.append(
-                f"Create a detailed, photorealistic image of the following scene: {prompt}")
+            prompts.append(f"Create a detailed, photorealistic image of the following scene: {prompt}")
 
     if len(prompts) != 5:
-        raise ValueError(
-            f"Expected 5 prompts, but got {len(prompts)}. Please try again.")
+        raise ValueError(f"Expected 5 prompts, but got {len(prompts)}. Please try again.")
 
     state["image_prompts"] = prompts
     return state
-
 
 async def create_image(prompt: str, retries: int = 3):
     """Generate an image using DALL-E based on the given prompt."""
@@ -190,10 +179,9 @@ async def create_image(prompt: str, retries: int = 3):
                 logger.debug(f"Failed to generate image for prompt: {prompt}")
                 logger.debug(f"Error: {str(e)}")
                 return None
-
             async def run_async_code_c2d26f7d():
                 await asyncio.sleep(2)  # Wait before retrying
-                return
+                return 
              = asyncio.run(run_async_code_c2d26f7d())
             logger.success(format_json())
 

@@ -10,7 +10,7 @@ from langchain.prompts import PromptTemplate
 from langchain_core.messages import HumanMessage, SystemMessage, BaseMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.graph import StateGraph, Graph, END, START
-from openai import MLX, AsyncMLX
+from openai import Ollama, AsyncOllama
 from operator import add
 from pydantic import BaseModel, Field
 from rich import box
@@ -165,12 +165,12 @@ class AcademicState(TypedDict):
 **Key Differences:**
 ```
 1. Concurrency Model
-  - AsyncMLX: Asynchronous operations using `async/await`
-  - MLX: Synchronous operations that block execution
+  - AsyncOllama: Asynchronous operations using `async/await`
+  - Ollama: Synchronous operations that block execution
 
 2. Use Cases
-  - AsyncMLX: High throughput, non-blocking operations
-  - MLX: Simple sequential requests, easier debugging
+  - AsyncOllama: High throughput, non-blocking operations
+  - Ollama: Simple sequential requests, easier debugging
 ```
 """
 logger.info("# LLM Initialization")
@@ -185,7 +185,7 @@ class LLMConfig:
 class NeMoLLaMa:
   """
   A class to interact with NVIDIA's nemotron-4-340b-instruct model through their API
-  This implementation uses AsyncMLX client for asynchronous operations
+  This implementation uses AsyncOllama client for asynchronous operations
   """
 
   def __init__(self, api_key: str):
@@ -195,7 +195,7 @@ class NeMoLLaMa:
         api_key (str): NVIDIA API authentication key
     """
     self.config = LLMConfig()
-    self.client = AsyncMLX(
+    self.client = AsyncOllama(
         base_url=self.config.base_url,
         api_key=api_key
     )

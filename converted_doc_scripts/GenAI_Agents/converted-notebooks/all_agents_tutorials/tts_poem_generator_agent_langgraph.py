@@ -2,7 +2,7 @@ from IPython.display import display, Audio, Markdown
 from dotenv import load_dotenv
 from jet.logger import CustomLogger
 from langgraph.graph import StateGraph, END
-from openai import MLX
+from openai import Ollama
 from typing import TypedDict
 import io
 import os
@@ -19,18 +19,18 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# Building an Intelligent Text-to-Speech Agent with LangGraph and MLX
+# Building an Intelligent Text-to-Speech Agent with LangGraph and Ollama
 
 ## Overview
-This tutorial guides you through the process of creating an advanced text-to-speech (TTS) agent using LangGraph and MLX's APIs. The agent can classify input text, process it based on its content type, and generate corresponding speech output.
+This tutorial guides you through the process of creating an advanced text-to-speech (TTS) agent using LangGraph and Ollama's APIs. The agent can classify input text, process it based on its content type, and generate corresponding speech output.
 
 ## Motivation
 In the era of AI and natural language processing, there's a growing need for systems that can intelligently process and vocalize text. This project aims to create a versatile TTS agent that goes beyond simple text-to-speech conversion by understanding and adapting to different types of content.
 
 ## Key Components
-1. **Content Classification**: Utilizes MLX's GPT models to categorize input text.
+1. **Content Classification**: Utilizes Ollama's GPT models to categorize input text.
 2. **Content Processing**: Applies specific processing based on the content type (general, poem, news, or joke).
-3. **Text-to-Speech Conversion**: Leverages MLX's TTS API to generate audio from processed text.
+3. **Text-to-Speech Conversion**: Leverages Ollama's TTS API to generate audio from processed text.
 4. **LangGraph Workflow**: Orchestrates the entire process using a state graph.
 
 ## Method
@@ -51,7 +51,7 @@ The entire workflow is managed by a LangGraph state machine, ensuring smooth tra
 ## Conclusion
 This intelligent TTS agent demonstrates the power of combining language models for content understanding with speech synthesis technology. It offers a more nuanced and context-aware approach to text-to-speech conversion, opening up possibilities for more natural and engaging audio content generation across various applications, from content creation to accessibility solutions.
 
-By leveraging the strengths of GPT models for text processing and MLX's TTS capabilities, this project showcases how advanced AI technologies can be integrated to create sophisticated, multi-step language processing pipelines.
+By leveraging the strengths of GPT models for text processing and Ollama's TTS capabilities, this project showcases how advanced AI technologies can be integrated to create sophisticated, multi-step language processing pipelines.
 
 <div style="text-align: center;">
 
@@ -60,18 +60,18 @@ By leveraging the strengths of GPT models for text processing and MLX's TTS capa
 
 ## Import necessary libraries and set up environment
 """
-logger.info("# Building an Intelligent Text-to-Speech Agent with LangGraph and MLX")
+logger.info("# Building an Intelligent Text-to-Speech Agent with LangGraph and Ollama")
 
 
 load_dotenv()
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
 """
-## Initialize MLX client and define state
+## Initialize Ollama client and define state
 """
-logger.info("## Initialize MLX client and define state")
+logger.info("## Initialize Ollama client and define state")
 
-client = MLX()
+client = Ollama()
 
 class AgentState(TypedDict):
     input_text: str
@@ -88,7 +88,7 @@ logger.info("## Define Node Functions")
 def classify_content(state: AgentState) -> AgentState:
     """Classify the input text into one of four categories: general, poem, news, or joke."""
     response = client.chat.completions.create(
-        model="llama-3.2-3b-instruct",
+        model="llama3.2",
         messages=[
             {"role": "system", "content": "Classify the content as one of: 'general', 'poem', 'news', 'joke'."},
             {"role": "user", "content": state["input_text"]}
@@ -105,7 +105,7 @@ def process_general(state: AgentState) -> AgentState:
 def process_poem(state: AgentState) -> AgentState:
     """Process the input text as a poem, rewriting it in a poetic style."""
     response = client.chat.completions.create(
-        model="llama-3.2-3b-instruct",
+        model="llama3.2",
         messages=[
             {"role": "system", "content": "Rewrite the following text as a short, beautiful poem:"},
             {"role": "user", "content": state["input_text"]}
@@ -117,7 +117,7 @@ def process_poem(state: AgentState) -> AgentState:
 def process_news(state: AgentState) -> AgentState:
     """Process the input text as news, rewriting it in a formal news anchor style."""
     response = client.chat.completions.create(
-        model="llama-3.2-3b-instruct",
+        model="llama3.2",
         messages=[
             {"role": "system", "content": "Rewrite the following text in a formal news anchor style:"},
             {"role": "user", "content": state["input_text"]}
@@ -129,7 +129,7 @@ def process_news(state: AgentState) -> AgentState:
 def process_joke(state: AgentState) -> AgentState:
     """Process the input text as a joke, turning it into a short, funny joke."""
     response = client.chat.completions.create(
-        model="llama-3.2-3b-instruct",
+        model="llama3.2",
         messages=[
             {"role": "system", "content": "Turn the following text into a short, funny joke:"},
             {"role": "user", "content": state["input_text"]}

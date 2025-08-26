@@ -25,14 +25,14 @@ REPLACE_OLLAMA_MAP = {
     "ChatOpenAI": "ChatOllama",
     "ChatAnthropic": "ChatOllama",
     "OpenAI": "Ollama",
-    "(\"gpt-4\")": "(model=\"llama3.1\")",
-    "('gpt-4')": "(model=\"llama3.1\")",
+    "(\"gpt-4\")": "(model=\"llama3.2\")",
+    "('gpt-4')": "(model=\"llama3.2\")",
     "(\"gpt-3.5\")": "(model=\"llama3.2\")",
     "(\'gpt-3.5\')": "(model=\"llama3.2\")",
     "openai:": "ollama:",
     "anthropic:": "ollama:",
-    "gpt-4o-mini": "llama3.1",
-    "claude-3-5-sonnet-latest": "llama3.1",
+    "gpt-4o-mini": "llama3.2",
+    "claude-3-5-sonnet-latest": "llama3.2",
     "text-embedding-3-small": "mxbai-embed-large",
 }
 
@@ -186,7 +186,7 @@ def update_code_with_ollama(code: str) -> str:
     updated_code = re.sub(r'Ollama\s*\((.*?)\)', r'Ollama(\1)', updated_code)
     updated_code = re.sub(
         r'model=["\']gpt-4[^"\']*["\']',
-        'model="llama3.1", request_timeout=300.0, context_window=4096',
+        'model="llama3.2", request_timeout=300.0, context_window=4096',
         updated_code
     )
     updated_code = re.sub(
@@ -201,7 +201,7 @@ def update_code_with_ollama(code: str) -> str:
     )
     updated_code = re.sub(
         r'ChatOllama\s*\((.*?)\)',
-        r'ChatOllama(model="llama3.1")',
+        r'ChatOllama(model="llama3.2")',
         updated_code
     )
     updated_code = re.sub(

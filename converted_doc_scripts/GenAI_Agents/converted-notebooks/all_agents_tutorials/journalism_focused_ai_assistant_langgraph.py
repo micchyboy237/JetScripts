@@ -2,7 +2,6 @@ from IPython.display import display, Image
 from dotenv import load_dotenv
 from duckduckgo_search import DDGS
 from functools import lru_cache
-from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
 from jet.llm.ollama.base_langchain import ChatOllama
 from jet.logger import CustomLogger
 from langchain import PromptTemplate
@@ -48,7 +47,7 @@ The ultimate goal is to support ethical reporting and uphold the integrity of th
 
 ## Key Components
 
-1. **Language Models**: Get insights and generate responses using advanced models like `Llama 3.1/3.2` and `llama-3.2-3b-instruct`.
+1. **Language Models**: Get insights and generate responses using advanced models like `Llama 3.1/3.2` and `llama3.2`.
 2. **Web Search Integration**: Fetch reliable data from `DuckDuckGo’s` search API to strengthen the research process.
 3. **Document Parsing**: Extract text from PDFs and web pages with tools like PyMuPDFLoader and WebBaseLoader, enhanced by BeautifulSoupTransformer.
 4. **Structured Outputs**: Receive responses in a clean, JSON format for consistency and precision.
@@ -108,6 +107,10 @@ First, we'll import the necessary modules and set up our environment.
 logger.info("# Journalism-Focused AI Assistant")
 
 
+
+
+
+
 load_dotenv()
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
@@ -124,7 +127,7 @@ For running Llama models, we use Ollama. A detailed tutorial on this is beyond t
 """
 logger.info("## Initialize Language Models")
 
-llm = ChatMLX(model="llama-3.2-3b-instruct", temperature=0)
+llm = ChatOllama(model="llama3.2")
 
 """
 ## Data Setup
@@ -152,7 +155,6 @@ For printing throughout the tutorial, I will sometimes use the built-in `pprint`
 """
 logger.info("#### Check the file contents and remove the new lines and tabs")
 
-
 def clean_page_content(page_content: str) -> str:
     """
     Clean the page content by removing new lines and tabs
@@ -160,7 +162,6 @@ def clean_page_content(page_content: str) -> str:
     page_content = page_content.replace("\n", " ")
     page_content = page_content.replace("\t", " ")
     return page_content
-
 
 logger.debug("Page content before cleaning")
 for page in pages:
@@ -181,7 +182,6 @@ full_article_text = " ".join(formatted_pages)
 """
 logger.info("## Helper Functions")
 
-
 def chunk_large_text(text, chunk_size=100000, overlap=1000):
     """
     Splits the input text into manageable chunks while maintaining context overlap.
@@ -193,11 +193,10 @@ def chunk_large_text(text, chunk_size=100000, overlap=1000):
     )
     return text_splitter.split_text(text)
 
-
 """
 ## Summarizing Long Articles
 
-Summarizing lengthy articles requires handling the constraints of token limits in models like `llama-3.2-3b-instruct` or `Llama 3.2/3.1`. These models can process only a limited amount of text at once, making **text splitting** a crucial step to ensure the analysis is thorough and no critical information is overlooked. While this notebook may not reach those token limits, the text-splitting approach is demonstrated as a proof of concept.
+Summarizing lengthy articles requires handling the constraints of token limits in models like `llama3.2` or `Llama 3.2/3.1`. These models can process only a limited amount of text at once, making **text splitting** a crucial step to ensure the analysis is thorough and no critical information is overlooked. While this notebook may not reach those token limits, the text-splitting approach is demonstrated as a proof of concept.
 
 ### Why Use Text Splitting?
 
@@ -255,7 +254,6 @@ combine_summarization_pipeline = combine_summarization_prompt | llm
 """
 logger.info("### Summarization helper functions")
 
-
 def combine_summaries(summaries: List[str]):
     """
     Combines multiple summaries into a single coherent summary.
@@ -267,8 +265,7 @@ def combine_summaries(summaries: List[str]):
     for i, summary in enumerate(summaries):
         summaries_text += f"Summary {i + 1}:\n{summary}\n\n"
 
-    full_summary = combine_summarization_pipeline.invoke(
-        {"summaries": summaries_text})
+    full_summary = combine_summarization_pipeline.invoke({"summaries": summaries_text})
 
     return full_summary
 
@@ -289,7 +286,6 @@ def summarize_article(article_text: str, article_chunks=None):
     full_summary = combine_summaries(summaries)
 
     return full_summary
-
 
 """
 ### Sample usage
@@ -341,7 +337,6 @@ A seamless tool to enhance content credibility and journalistic integrity.
 """
 logger.info("## Fact-Checking Articles")
 
-
 class FactCheckStatement(TypedDict):
     """
     Represents a single fact-check statement structure.
@@ -358,12 +353,10 @@ class FactCheckResult(TypedDict):
     """
     result: List[FactCheckStatement]
 
-
 """
 #### Define the internet search helper functions
 """
 logger.info("#### Define the internet search helper functions")
-
 
 @lru_cache
 def search_ddg(keywords: str, max_results: int = 1):
@@ -377,13 +370,13 @@ def search_ddg(keywords: str, max_results: int = 1):
         logger.debug("Error: ", str(e))
         time.sleep(5)
         try:
-            text_results = ddgs.text(
-                keywords=keywords, max_results=max_results)
+            text_results = ddgs.text(keywords=keywords, max_results=max_results)
         except Exception as e:
             logger.debug("Error: ", str(e))
             return [{}]
 
     return text_results
+
 
 
 def search_and_summarize(keywords: str, max_results: int = 1):
@@ -398,14 +391,11 @@ def search_and_summarize(keywords: str, max_results: int = 1):
         html_content = str(loader.scrape())
         bs_transformer = BeautifulSoupTransformer()
         html_transform = (
-            bs_transformer.remove_unwanted_tags(
-                html_content, ["script", "style", "noscript"])
+            bs_transformer.remove_unwanted_tags(html_content, ["script", "style", "noscript"])
         )
 
-        html_transform = bs_transformer.extract_tags(
-            html_transform, ["p"], remove_comments=True)
-        html_transform = bs_transformer.remove_unnecessary_lines(
-            html_transform)
+        html_transform = bs_transformer.extract_tags(html_transform, ["p"], remove_comments=True)
+        html_transform = bs_transformer.remove_unnecessary_lines(html_transform)
 
         summary_result = summarize_article(page_content)
 
@@ -416,7 +406,6 @@ def search_and_summarize(keywords: str, max_results: int = 1):
         })
 
     return results
-
 
 """
 ### Prepare the fact-checking pipeline
@@ -452,6 +441,7 @@ structured_output_llm = llm.with_structured_output(FactCheckResult)
 fact_checking_pipeline = fact_checking_prompt | structured_output_llm
 
 
+
 def fact_check_article(article_text: str, chunks=None):
     """
     Fact-check the given text by identifying factual inaccuracies, misleading information, unsupported claims, or vague language.
@@ -472,7 +462,6 @@ def fact_check_article(article_text: str, chunks=None):
         fact_check_results.extend(fact_check_result["result"])
 
     return fact_check_results
-
 
 """
 ### Sample usage
@@ -509,6 +498,7 @@ tone_analysis_prompt = PromptTemplate(
 tone_pipeline = tone_analysis_prompt | llm
 
 
+
 def tone_analysis_article(article_text: str, chunks=None):
     """
     Analyze the tones of the given article text.
@@ -522,7 +512,6 @@ def tone_analysis_article(article_text: str, chunks=None):
         tone_results.append(tone_result.content)
 
     return tone_results
-
 
 """
 ### Sample usage
@@ -555,6 +544,7 @@ quote_extraction_prompt = PromptTemplate(
 quote_extraction_pipeline = quote_extraction_prompt | llm
 
 
+
 def quote_extraction_article(article_text: str, chunks=None):
     """
     Extract direct quotes from the given article text.
@@ -568,7 +558,6 @@ def quote_extraction_article(article_text: str, chunks=None):
         quote_results.append(quote_result.content)
 
     return quote_results
-
 
 """
 ### Sample usage
@@ -600,6 +589,7 @@ review_prompt = PromptTemplate(
 grammar_and_bias_review = review_prompt | llm
 
 
+
 def grammary_and_bias_analysis_article(article_text: str, chunks=None):
     """
     Review the given article text for grammar, spelling, punctuation, and bias.
@@ -614,14 +604,12 @@ def grammary_and_bias_analysis_article(article_text: str, chunks=None):
 
     return review_results
 
-
 """
 ### Sample usage
 """
 logger.info("### Sample usage")
 
-grammary_and_bias_analysis_results = grammary_and_bias_analysis_article(
-    full_article_text)
+grammary_and_bias_analysis_results = grammary_and_bias_analysis_article(full_article_text)
 
 pprint.plogger.debug(grammary_and_bias_analysis_results)
 
@@ -648,7 +636,6 @@ The `State` class includes the following fields:
 """
 logger.info("## LangGraph Workflow Integration")
 
-
 class State(TypedDict):
     current_query: str
     article_text: str
@@ -661,7 +648,6 @@ class State(TypedDict):
     grammar_and_bias_review_result: Optional[str]
     review_result: Optional[str]
 
-
 """
 ## Pipeline for Identifying Action Types
 
@@ -671,10 +657,8 @@ Using a well-crafted prompt template, the assistant organizes its response in a 
 """
 logger.info("## Pipeline for Identifying Action Types")
 
-
 class SystemAction(TypedDict):
     actions: List[str]
-
 
 action_prompt = PromptTemplate(
     input_variables=["input_text"],
@@ -725,6 +709,7 @@ action_prompt = PromptTemplate(
 action_pipeline = action_prompt | llm.with_structured_output(SystemAction)
 
 
+
 def get_user_actions(input_text: str) -> List[str]:
     """
     Identify the user's intended actions based on their input.
@@ -732,7 +717,6 @@ def get_user_actions(input_text: str) -> List[str]:
     system_actions = action_pipeline.invoke({"input_text": input_text})
 
     return system_actions["actions"]
-
 
 """
 ### Sample usage
@@ -771,7 +755,6 @@ The following functions are defined to handle various actions such as summarizat
 - `grammar_and_bias_review_node(state: State)`: Handles the grammar and bias review action.
 """
 logger.info("### Define Node Functions")
-
 
 def get_or_create_chunks(state: State):
     """
@@ -835,14 +818,12 @@ def grammar_and_bias_review_node(state: State) -> State:
     )
     return {"grammar_and_bias_review_result": grammar_and_bias_review_results}
 
-
 """
 ### Routing function
 
 The `route` function determines the next action based on the current state. It checks the actions specified in the state and returns the corresponding routes. If no specific actions are found, it returns `END`.
 """
 logger.info("### Routing function")
-
 
 def route(state: State) -> str:
     routes = []
@@ -860,7 +841,6 @@ def route(state: State) -> str:
         return END
 
     return routes
-
 
 """
 ### Create and Configure the Graph
@@ -934,7 +914,6 @@ Format the results in markdown and save them to be easier to read.
 """
 logger.info("### Report Generation")
 
-
 def format_analysis_results(report_data):
 
     actions = report_data.get('actions', [])
@@ -967,16 +946,13 @@ def format_analysis_results(report_data):
     else:
         fact_check_text = "No fact-check results available."
 
-    grammar_review = report_data.get('grammar_and_bias_review_result', [
-                                     'No grammar or bias review available.'])
+    grammar_review = report_data.get('grammar_and_bias_review_result', ['No grammar or bias review available.'])
     grammar_review = "\n".join(grammar_review)
 
-    tone_analysis = report_data.get('tone_analysis_result', [
-                                    'No tone analysis available.'])
+    tone_analysis = report_data.get('tone_analysis_result', ['No tone analysis available.'])
     tone_analysis = "\n".join(tone_analysis)
 
-    quote_extraction = report_data.get(
-        'quote_extraction_result', ['No quotes extracted.'])
+    quote_extraction = report_data.get('quote_extraction_result', ['No quotes extracted.'])
     quote_extraction = "\n".join(quote_extraction)
 
     report_structured = f"""
@@ -1001,7 +977,6 @@ def format_analysis_results(report_data):
 """
 
     return report_structured
-
 
 report_content = format_analysis_results(full_report)
 

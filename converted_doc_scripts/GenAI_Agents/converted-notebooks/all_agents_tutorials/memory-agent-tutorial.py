@@ -59,7 +59,7 @@ logger.info("# Building a Memory-Enhanced Email Agent with LangGraph")
 
 load_dotenv()
 
-llm = init_chat_model("ollama:llama-3.2-3b-instruct")
+llm = init_chat_model("ollama:llama3.2")
 
 store = InMemoryStore(index={"embed": "ollama:mxbai-embed-large"})
 

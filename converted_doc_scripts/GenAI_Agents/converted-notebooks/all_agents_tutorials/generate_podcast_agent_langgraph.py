@@ -1,7 +1,7 @@
 from IPython.display import Image, display, Markdown
 from datetime import datetime
 from google.colab import userdata
-from jet.llm.ollama.base_langchain import AzureChatMLX
+from jet.llm.ollama.base_langchain import AzureChatOllama
 from jet.logger import CustomLogger
 from langchain.output_parsers.openai_functions import JsonOutputFunctionsParser
 from langchain_community.document_loaders import WikipediaLoader
@@ -38,7 +38,7 @@ logger.info(f"Logs: {log_file}")
 # Automated Podcast Generation System using LangGraph
 
 ### Overview
-This notebook demonstrates an automated podcast generation system implemented using LangGraph, Azure MLX, and Google's Gemini model. The system is designed to generate content for podcasts based on given topics, including keyword generation and structure planning. At the end full podcast will be generated purely based on topic given. Finally extensive (web) based function tool search is also used to augment the needed information for the topic.
+This notebook demonstrates an automated podcast generation system implemented using LangGraph, Azure Ollama, and Google's Gemini model. The system is designed to generate content for podcasts based on given topics, including keyword generation and structure planning. At the end full podcast will be generated purely based on topic given. Finally extensive (web) based function tool search is also used to augment the needed information for the topic.
 
 ### Motivation
 Automated content generation systems can significantly reduce the workload for podcast creators while providing structured and relevant content. This implementation showcases how advanced AI models and graph-based workflows can be combined to create a sophisticated system that considers multiple aspects of podcast planning and content creation. Special focus is set on (web) research aspect..
@@ -68,7 +68,7 @@ Automated content generation systems can significantly reduce the workload for p
 #### 3. **Sentiment Analysis**
    - **Modules/Functions**:
      - The code doesn't specifically list a sentiment analysis function, but it likely leverages LangChain or similar models to determine sentiment through natural language processing (NLP) techniques.
-     - You might use tools like `convert_to_openai_function` (from `langchain_core.utils.function_calling`) to integrate MLX's models, which could analyze sentiment based on responses.
+     - You might use tools like `convert_to_openai_function` (from `langchain_core.utils.function_calling`) to integrate Ollama's models, which could analyze sentiment based on responses.
 
 #### 4. **Response Generation**
    - **Classes/Methods**:
@@ -138,7 +138,7 @@ There are two graphs. The first smaller one, is responsible for generating struc
 
 The system uses LangGraph to create a structured workflow for the podcast generation process.
 Custom Pydantic models (e.g., Planning, keywords, Subtopics, Structure) are used to ensure type safety and data validation throughout the process.
-The notebook sets up necessary API keys and configurations for Azure MLX, Google Gemini, Tavily (for search), and LangSmith (for monitoring).
+The notebook sets up necessary API keys and configurations for Azure Ollama, Google Gemini, Tavily (for search), and LangSmith (for monitoring).
 The planning subgraph is visualized using a Mermaid diagram, providing a clear representation of the workflow.
 
 ### Conclusion
@@ -185,8 +185,8 @@ Here we are fetching and configuring the models
 logger.info("## Get models")
 
 def get_model(model:str="Agent_test", temp:float=0.1, max_tokens:int=100):
-  """Get model from Azure MLX"""
-  model = AzureChatMLX(
+  """Get model from Azure Ollama"""
+  model = AzureChatOllama(
         openai_api_version="2024-02-15-preview",
         azure_deployment=model,
         temperature=temp,

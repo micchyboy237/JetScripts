@@ -1,14 +1,14 @@
 from IPython.display import display, Markdown, HTML, Image
 from google.colab import userdata
-from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
+from jet.llm.ollama.base_langchain import ChatOllama
 from jet.logger import CustomLogger
 from langchain_core.messages import (
-    AIMessage,
-    BaseMessage,
-    ChatMessage,
-    FunctionMessage,
-    HumanMessage,
-    SystemMessage,
+AIMessage,
+BaseMessage,
+ChatMessage,
+FunctionMessage,
+HumanMessage,
+SystemMessage,
 )
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.checkpoint.memory import MemorySaver
@@ -77,7 +77,7 @@ We have also used display functions which contain basic game logic (which can al
 
 ## Key Components
 1. State Management: Utilizes `GenerateGameState`, `ConversationState` classes to manage the game state and the textual conversation state
-2. Language Model: Employs ChatMLX (GPT-4o) for the backstory generation, interactable characters, and (optionally) the LLM investigator protagonist agent
+2. Language Model: Employs ChatOllama(model="llama3.2") for the backstory generation, interactable characters, and (optionally) the LLM investigator protagonist agent
 3. Gameplay Features:
    * LLM generated character backstory and story
    * Talk with LLM Agent characters (Human/Sherlock LLM Agent)
@@ -154,7 +154,7 @@ This notebook demonstrates the great potential LLM agents can have in a game, ei
 Before you begin, you'll need:
 1. A Google Colab account or Jupyter Notebook environment
 2. Basic understanding of Python
-3. An MLX API key (for GPT-4o access)
+3. An Ollama API key (for GPT-4o access)
 
 ### Structure of the Notebook
 This notebook is organized into several key sections:
@@ -188,7 +188,7 @@ This notebook is organized into several key sections:
    ```
 
 #### Step 2: API Key Configuration
-1. You'll need to set up your MLX API key
+1. You'll need to set up your Ollama API key
 2. The notebook will prompt you to enter it when needed
 3. Alternative methods:
    ```python
@@ -214,7 +214,7 @@ This notebook is organized into several key sections:
 
 #### API Key Issues
 If you see API key errors:
-- Ensure you have a valid MLX API key
+- Ensure you have a valid Ollama API key
 - Check if the key is correctly set in the environment
 - Verify your API key has access to GPT-4o
 
@@ -252,7 +252,7 @@ environment = "Mistral office in Paris"
 
 ### Additional Resources
 - LangChain documentation for understanding the framework
-- MLX API documentation for GPT-4o integration
+- Ollama API documentation for GPT-4o integration
 - Python basics tutorials if needed
 
 Remember, the goal is to solve the mystery by gathering information through interviews and making logical deductions. Good luck, detective!
@@ -270,13 +270,15 @@ logger.info("# Murder Mystery Game with LLM Agents")
 logger.info("## Import Libraries")
 
 
+
 # import getpass
 
 
+
 try:
-    #   os.environ["OPENAI_API_KEY"] = userdata.get('OPENAI_API_KEY')
+#   os.environ["OPENAI_API_KEY"] = userdata.get('OPENAI_API_KEY')
 except:
-    #   os.environ["OPENAI_API_KEY"] = getpass.getpass(f"OPENAI_API_KEY: ") # Fallback if env variable is missing, ask user to input key.
+#   os.environ["OPENAI_API_KEY"] = getpass.getpass(f"OPENAI_API_KEY: ") # Fallback if env variable is missing, ask user to input key.
 
 """
 ## Display Functions (Not Necessary for Core Functionallity)
@@ -284,7 +286,6 @@ except:
 Define the display functions and logic to provide a interactive UI.
 """
 logger.info("## Display Functions (Not Necessary for Core Functionallity)")
-
 
 def print_game_header():
     """
@@ -299,7 +300,6 @@ def print_game_header():
             🕵️‍♂️ MURDER MYSTERY INVESTIGATION 🔍
         </h2>
     """))
-
 
 def print_narration(narration):
     """
@@ -318,7 +318,6 @@ def print_narration(narration):
     ))
     console.rule(style="blue")
 
-
 def print_introduction(character, narration):
     """
     Displays the introduction dialogue for a character with styled formatting.
@@ -328,8 +327,7 @@ def print_introduction(character, narration):
         narration: LLM response object containing the narration content in its 'content' attribute.
     """
     console = Console()
-    console.rule(
-        f"[bold blue]Conversation with {character.name}[/bold blue]", style="blue")
+    console.rule(f"[bold blue]Conversation with {character.name}[/bold blue]", style="blue")
     console.logger.debug(Panel(
         f"[bold]{character.name}[/bold]:\n\n{narration.content}",
         border_style="blue",
@@ -338,7 +336,6 @@ def print_introduction(character, narration):
         title_align="left"
     ))
     console.rule(style="blue")
-
 
 def get_player_input(character_name):
     """
@@ -379,7 +376,6 @@ def get_player_input(character_name):
 
     return question
 
-
 def print_character_answer(character, reaction):
     """
     Displays a character's answer with styled formatting.
@@ -397,7 +393,6 @@ def print_character_answer(character, reaction):
         title_align="left"
     ))
 
-
 def print_characters_list(characters):
     """
     Displays a formatted table of all characters in the game with their backgrounds.
@@ -410,8 +405,7 @@ def print_characters_list(characters):
     """
     console = Console()
 
-    console.logger.debug(
-        "\n[bold blue]CHARACTERS[/bold blue]", justify="center")
+    console.logger.debug("\n[bold blue]CHARACTERS[/bold blue]", justify="center")
 
     char_list = list(enumerate(characters))
     random.shuffle(char_list)
@@ -443,7 +437,6 @@ def print_characters_list(characters):
 
     console.logger.debug(table)
     return display_to_original
-
 
 def get_character_selection(characters, display_to_original):
     """
@@ -488,24 +481,18 @@ def get_character_selection(characters, display_to_original):
                 selected_character = characters[original_idx]
 
                 if selected_character.role == 'victim':
-                    console.logger.debug(
-                        "[red]Invalid input. You are unable to choose the victim[/red]")
+                    console.logger.debug("[red]Invalid input. You are unable to choose the victim[/red]")
                     continue
 
-                console.logger.debug(
-                    f"You have selected {selected_character.name}")
+                console.logger.debug(f"You have selected {selected_character.name}")
                 return {"selected_character_id": original_idx}
 
-            console.logger.debug(
-                "[red]Invalid input. Please enter a number within the range or -1.[/red]")
+            console.logger.debug("[red]Invalid input. Please enter a number within the range or -1.[/red]")
 
         except ValueError:
-            console.logger.debug(
-                "[red]Invalid input. Please enter a number.[/red]")
+            console.logger.debug("[red]Invalid input. Please enter a number.[/red]")
         except KeyError:
-            console.logger.debug(
-                "[red]Invalid selection. Please try again.[/red]")
-
+            console.logger.debug("[red]Invalid selection. Please try again.[/red]")
 
 def get_player_yesno_answer(question):
     """
@@ -536,7 +523,6 @@ def get_player_yesno_answer(question):
     )
     return answer
 
-
 def print_suspect_list(characters):
     """
     Displays a formatted table of all suspects in the investigation.
@@ -563,7 +549,6 @@ def print_suspect_list(characters):
 
     console.logger.debug(table)
 
-
 def print_guesses_remaining(num_guesses):
     """
     Displays the number of remaining guesses available to the player.
@@ -578,7 +563,6 @@ def print_guesses_remaining(num_guesses):
         title="⏳ Guesses",
         title_align="left"
     ))
-
 
 def print_result(is_win, is_lose, killer_name=None):
     """
@@ -605,7 +589,6 @@ def print_result(is_win, is_lose, killer_name=None):
             title_align="left"
         ))
 
-
 def print_incorrect_guess():
     """
     Displays a message indicating that the player's guess was incorrect.
@@ -617,7 +600,6 @@ def print_incorrect_guess():
         title="❗ Wrong Guess",
         title_align="left"
     ))
-
 
 """
 ## State and Schema Classes Definition
@@ -634,7 +616,6 @@ We define 2 state classes:
 """
 logger.info("## State and Schema Classes Definition")
 
-
 class Character(BaseModel):
     role: str = Field(
         description="Primary role of the character in the story",
@@ -645,18 +626,15 @@ class Character(BaseModel):
     backstory: str = Field(
         description="Backstory of the character focus, concerns, and motives.",
     )
-
     @property
     def persona(self) -> str:
         return f"Name: {self.name}\nRole: {self.role}\nBackstory: {self.backstory}\n"
-
 
 class NPC(BaseModel):
     characters: List[Character] = Field(
         description="Comprehensive list of characters with their roles and backstories.",
         default_factory=list
     )
-
 
 class StoryDetails(BaseModel):
     victim_name: str = Field(
@@ -683,16 +661,14 @@ class StoryDetails(BaseModel):
     initial_clues: str = Field(
         description="Initial clues or evidence found at the scene"
     )
-    npc_brief: str = Field(
+    npc_brief:str = Field(
         description="Brief description of the characters and their relationships"
     )
 
-
 class ConversationState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], operator.add]
-    character: Character  # Character being interviewed
+    character: Character # Character being interviewed
     story_details: Optional[StoryDetails]  # Details about the murder mystery
-
 
 class GenerateGameState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], operator.add]
@@ -700,10 +676,9 @@ class GenerateGameState(TypedDict):
     max_characters: int  # Number of characters
     characters: List[Character]  # Characters in the story
     story_details: Optional[StoryDetails]  # Details about the murder mystery
-    selected_character_id: Optional[int]  # Index of the selected character
-    num_guesses_left: int  # Number of guesses the player has
-    result: str  # Store the Guesser result and evalute Correct/Incorrect
-
+    selected_character_id: Optional[int] # Index of the selected character
+    num_guesses_left: int # Number of guesses the player has
+    result: str #Store the Guesser result and evalute Correct/Incorrect
 
 """
 ## LLM Initialization
@@ -716,8 +691,7 @@ We set the `temperature` to 0, this makes the run deterministic, i.e. no randomn
 """
 logger.info("## LLM Initialization")
 
-llm = ChatMLX(model="llama-3.2-3b-instruct",
-              log_dir=f"{OUTPUT_DIR}/chats", temperature=0)
+llm = ChatOllama(model="llama3.2")
 
 """
 ## Component Functions
@@ -730,7 +704,6 @@ Define the component functions:
 - killer guessing
 """
 logger.info("## Component Functions")
-
 
 def character_introduction(state: ConversationState):
     """
@@ -799,8 +772,6 @@ Considering the above information, formulate a insightful and relevant question 
 The question should be phrased in a manner befitting Sherlock Holmes's inquisitive nature.
 in your answer make a new line for every sentance to make it easier to read.
 """
-
-
 def get_question(state: ConversationState):
     """
     Part of the Conversation Sub-Graph.
@@ -838,19 +809,18 @@ def get_question(state: ConversationState):
         cause_of_death=story.cause_of_death,
         crime_scene_details=story.crime_scene_details,
         initial_clues=story.initial_clues,
-        conversation_history="\n".join(
-            [f"{msg.type}: {msg.content}" for msg in messages])
+        conversation_history="\n".join([f"{msg.type}: {msg.content}" for msg in messages])
     )
 
     prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                system_message,
-            ),
-            MessagesPlaceholder(variable_name="messages"),
-        ]
-    )
+          [
+              (
+                  "system",
+                  system_message,
+              ),
+              MessagesPlaceholder(variable_name="messages"),
+          ]
+      )
     chain = prompt | llm
     question = chain.invoke(messages)
 
@@ -893,16 +863,16 @@ def ask_question(state: ConversationState):
     """
     character = state['character']
     while True:
-        try:
-            use_ai_sherlock = get_player_yesno_answer(
-                "Do you want SherlockAI to ask a question?")
-            if use_ai_sherlock.lower()[0] == 'y':
-                question = get_question(state)
-            else:
-                question = get_player_input(character.name)
-            return {"messages": [HumanMessage(content=question)]}
-        except ValueError:
+      try:
+        use_ai_sherlock = get_player_yesno_answer("Do you want SherlockAI to ask a question?")
+        if use_ai_sherlock.lower()[0] == 'y':
+          question = get_question(state)
+        else:
+          question = get_player_input(character.name)
+        return {"messages": [HumanMessage(content=question)]}
+      except ValueError:
             logger.debug("Invalid input. Please enter a valid question")
+
 
 
 def answer_question(state: ConversationState):
@@ -980,20 +950,20 @@ Question to answer:
     )
 
     prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                system_message,
-            ),
-            MessagesPlaceholder(variable_name="messages"),
-        ]
-    )
+          [
+              (
+                  "system",
+                  system_message,
+              ),
+              MessagesPlaceholder(variable_name="messages"),
+          ]
+      )
     chain = prompt | llm
     answer = chain.invoke(messages)
 
     print_character_answer(character, answer.content)
 
-    return {"messages": [answer]}
+    return {"messages":[answer]}
 
 
 def where_to_go(state: ConversationState):
@@ -1025,7 +995,8 @@ def where_to_go(state: ConversationState):
         return "continue"
 
 
-character_instructions = """You are an AI character designer tasked with creating personas for a murder mystery game.
+
+character_instructions="""You are an AI character designer tasked with creating personas for a murder mystery game.
 Your goal is to develop a cast of characters that fits the given environment and creates an engaging, interactive experience for players.
 
 First, carefully understand the environment setting:
@@ -1074,7 +1045,6 @@ Remember:
 - Make the characters diverse and interesting to enhance the gameplay experience.
 - Provide enough detail for each character to make them memorable and useful in the game context."""
 
-
 def create_characters(state: GenerateGameState):
     """
     Part of the Game Loop Graph.
@@ -1104,10 +1074,8 @@ def create_characters(state: GenerateGameState):
 
     structured_llm = llm.with_structured_output(NPC)
 
-    system_message = character_instructions.replace(
-        "{{environment}}", environment)
-    system_message = system_message.replace(
-        "{{max_characters}}", str(max_characters))
+    system_message = character_instructions.replace("{{environment}}", environment)
+    system_message = system_message.replace("{{max_characters}}", str(max_characters))
 
     result = structured_llm.invoke([
         SystemMessage(content=system_message),
@@ -1115,6 +1083,7 @@ def create_characters(state: GenerateGameState):
     ])
 
     return {"characters": result.characters}
+
 
 
 story_instructions = """You are crafting the central murder mystery for our story. Using the provided environment and characters, create a compelling murder scenario.
@@ -1164,7 +1133,6 @@ Important:
 
 Format your response to provide the specific details requested in the StoryDetails schema."""
 
-
 def create_story(state: GenerateGameState):
     """
     Part of the Game Loop Graph.
@@ -1208,6 +1176,7 @@ def create_story(state: GenerateGameState):
     return {"story_details": result}
 
 
+
 narrator_instructions = """You are trusted assistant and friend of the legendary detective Sherlock Holmes - Dr. John Watson.
 Sherlock has just arrived at the seen of the murder.
 Use the provided details to give Sherlock a brief, engaging introduction to the crime seen in 100 words or less.
@@ -1223,7 +1192,6 @@ Crime Scene Details:
     Scene Description:
     {scene}
 """
-
 
 def narrartor(state: GenerateGameState):
     """
@@ -1256,8 +1224,7 @@ def narrartor(state: GenerateGameState):
     )
     narration = llm.invoke([
         SystemMessage(content=system_message),
-        HumanMessage(
-            content="Create an atmospheric narration of the crime scene")
+        HumanMessage(content="Create an atmospheric narration of the crime scene")
     ])
 
     print_game_header()
@@ -1292,8 +1259,8 @@ def sherlock(state: GenerateGameState):
     return get_character_selection(characters, display_to_original)
 
 
-KILLER_ROLE = "Killer"
 
+KILLER_ROLE = "Killer"
 
 def guesser(state: GenerateGameState):
     """
@@ -1321,8 +1288,7 @@ def guesser(state: GenerateGameState):
     num_guesses_left = state['num_guesses_left']
     all_characters = state['characters']
     non_victims = [char for char in all_characters if char.role != 'Victim']
-    killer_character = next(
-        char for char in all_characters if char.role == KILLER_ROLE)
+    killer_character = next(char for char in all_characters if char.role == KILLER_ROLE)
     characters = list(sorted(non_victims, key=lambda x: x.name))
 
     console.rule("[bold red]🔍 Final Deduction[/bold red]")
@@ -1358,16 +1324,15 @@ def guesser(state: GenerateGameState):
                     break
 
             else:
-                console.logger.debug(
-                    "[red]Invalid input. Please enter a valid suspect number.[/red]")
+                console.logger.debug("[red]Invalid input. Please enter a valid suspect number.[/red]")
         except ValueError:
-            console.logger.debug(
-                "[red]Invalid input. Please enter a number.[/red]")
+            console.logger.debug("[red]Invalid input. Please enter a number.[/red]")
 
     print_result(is_win, is_lose, killer_character.name)
 
     is_end = is_win or is_lose
     return {"result": "end", "num_guesses_left": num_guesses_left} if is_end else {"result": "sherlock", "num_guesses_left": num_guesses_left}
+
 
 
 def conversation(state: GenerateGameState):
@@ -1400,12 +1365,11 @@ def conversation(state: GenerateGameState):
             "character": character,
             "story_details": state['story_details'],
         }
-        response = conversation_graph.invoke(inputs, {"recursion_limit": 50})
+        response = conversation_graph.invoke(inputs,{"recursion_limit": 50})
 
         return {"messages": [response['messages']]}
     else:
         return END
-
 
 """
 ## Conversation Sub-Graph Construction
@@ -1422,8 +1386,7 @@ conversation_builder.add_node("answer_question", answer_question)
 
 conversation_builder.add_edge(START, "character_introduction")
 conversation_builder.add_edge("character_introduction", "ask_question")
-conversation_builder.add_conditional_edges("ask_question", where_to_go, {
-                                           "continue": "answer_question", "end": END})
+conversation_builder.add_conditional_edges("ask_question",where_to_go,{"continue": "answer_question", "end": END})
 conversation_builder.add_edge("answer_question", "ask_question")
 
 conversation_graph = conversation_builder.compile()
@@ -1446,24 +1409,24 @@ builder.add_node("guesser", guesser)
 builder.add_node("conversation", conversation)
 
 
+
 builder.add_edge(START, "create_characters")
 builder.add_edge("create_characters", "create_story")
 builder.add_edge("create_story", "narrartor")
 builder.add_edge("narrartor", "sherlock")
 
 builder.add_conditional_edges("sherlock",
-                              lambda state: "next_talk" if state.get(
-                                  'selected_character_id') is not None else "end_talks",
+                              lambda state: "next_talk" if state.get('selected_character_id') is not None else "end_talks",
                               {
-                                  "next_talk": "conversation",
-                                  "end_talks": "guesser"
+                                "next_talk": "conversation",
+                                "end_talks": "guesser"
                               }
-                              )
+)
 
 builder.add_edge("conversation", "sherlock")
 builder.add_conditional_edges("guesser",
                               lambda state: state.get('result'),
-                              {"sherlock": "sherlock", "end": END})
+                              {"sherlock":"sherlock","end":END})
 
 graph = builder.compile()
 display(Image(graph.get_graph(xray=1).draw_mermaid_png()))
@@ -1477,7 +1440,6 @@ max_characters = 5
 num_guesses_left: int = 3
 environment = "Mistral office in Paris"
 
-output = graph.invoke({"environment": environment,
-                      "max_characters": max_characters, "num_guesses_left": num_guesses_left})
+output = graph.invoke({"environment":environment,"max_characters":max_characters, "num_guesses_left": num_guesses_left})
 
 logger.info("\n\n[DONE]", bright=True)

@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.mlx.adapters.mlx_langchain_llm_adapter import ChatMLX
+from jet.llm.ollama.base_langchain import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 import os
@@ -17,7 +17,7 @@ logger.info(f"Logs: {log_file}")
 # Simple Question-Answering Agent Tutorial
 
 ## Overview
-This tutorial introduces a basic Question-Answering (QA) agent using LangChain and MLX's language model. The agent is designed to understand user queries and provide relevant, concise answers.
+This tutorial introduces a basic Question-Answering (QA) agent using LangChain and Ollama's language model. The agent is designed to understand user queries and provide relevant, concise answers.
 
 ## Motivation
 In the era of AI-driven interactions, creating a simple QA agent serves as a fundamental stepping stone towards more complex AI systems. This project aims to:
@@ -26,7 +26,7 @@ In the era of AI-driven interactions, creating a simple QA agent serves as a fun
 - Provide a foundation for more advanced agent architectures
 
 ## Key Components
-1. **Language Model**: Utilizes MLX's GPT model for natural language understanding and generation.
+1. **Language Model**: Utilizes Ollama's GPT model for natural language understanding and generation.
 2. **Prompt Template**: Defines the structure and context for the agent's responses.
 3. **LLMChain**: Combines the language model and prompt template for streamlined processing.
 
@@ -35,7 +35,7 @@ In the era of AI-driven interactions, creating a simple QA agent serves as a fun
 ### 1. Setup and Initialization
 - Import necessary libraries (LangChain, dotenv)
 - Load environment variables for API key management
-- Initialize the MLX language model
+- Initialize the Ollama language model
 
 ### 2. Defining the Prompt Template
 - Create a template that instructs the AI on its role and response format
@@ -74,7 +74,7 @@ load_dotenv()
 """
 logger.info("### initialize the language model")
 
-llm = ChatMLX(model="llama-3.2-3b-instruct", max_tokens=1000, temperature=0)
+llm = ChatOllama(model="llama3.2")
 
 """
 ### Define the prompt template
@@ -103,7 +103,6 @@ qa_chain = prompt | llm
 """
 logger.info("### Define the get_answer function")
 
-
 def get_answer(question):
     """
     Get an answer to the given question using the QA chain.
@@ -111,7 +110,6 @@ def get_answer(question):
     input_variables = {"question": question}
     response = qa_chain.invoke(input_variables).content
     return response
-
 
 """
 ### Cell 6: Example usage

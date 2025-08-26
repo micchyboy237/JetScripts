@@ -22,7 +22,7 @@ logger.info(f"Logs: {log_file}")
 
 ## PydanticAI
 
-[PydanticAI](https://ai.pydantic.dev/) is a new Python agent framework designed to make it less painful to build production grade applications with Generative AI. Developed by the team behind **Pydantic**, it brings the same robust validation and type-safety principles that have made Pydantic a cornerstone for many LLM libraries, including MLX SDK, Anthropic SDK, LangChain, LlamaIndex, and more.
+[PydanticAI](https://ai.pydantic.dev/) is a new Python agent framework designed to make it less painful to build production grade applications with Generative AI. Developed by the team behind **Pydantic**, it brings the same robust validation and type-safety principles that have made Pydantic a cornerstone for many LLM libraries, including Ollama SDK, Anthropic SDK, LangChain, LlamaIndex, and more.
 
 With PydanticAI, control flow and agent composition are handled using **vanilla Python**, allowing you to apply the same development best practices you’d use in any other (non-AI) project.
 
@@ -104,7 +104,7 @@ load_dotenv()
 os.environ['LOGFIRE_IGNORE_NO_CONFIG'] = '1'
 
 agent = Agent(
-    model='ollama:llama-3.2-3b-instruct',
+    model='ollama:llama3.2',
     system_prompt='You are a helpful AI assistant.',
 )
 
