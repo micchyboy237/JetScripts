@@ -1,6 +1,8 @@
 from pathlib import Path
+import shutil
 from jet.logger import CustomLogger
 from jet.llm.ollama.base import initialize_ollama_settings
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 import os
 import uuid
 import pandas as pd
@@ -19,7 +21,9 @@ import plotly.express as px
 from datetime import datetime, timedelta
 from langchain_core.runnables.graph import MermaidDrawMethod
 
-
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 script_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(
     script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
@@ -27,26 +31,6 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 initialize_ollama_settings()
-
-
-def render_mermaid_graph(graph, output_filename="graph_output.png", draw_method=MermaidDrawMethod.PYPPETEER):
-    """
-    Generates a Mermaid graph PNG from the graph and opens it using the system's default viewer on macOS.
-
-    Args:
-        graph: An object with a get_graph().draw_mermaid_png() method.
-        output_filename (str): Name of the file to save the PNG to.
-        draw_method: Drawing method (e.g., MermaidDrawMethod.API).
-    """
-    # Generate PNG bytes from the Mermaid graph
-    png_bytes = graph.get_graph().draw_mermaid_png(draw_method=draw_method)
-
-    # Define the output file path
-    output_path = Path(output_filename)
-    output_path.write_bytes(png_bytes)
-
-    # Open the PNG file with the default image viewer on macOS
-    os.system(f"open {output_path}")
 
 
 """
@@ -229,7 +213,7 @@ model_provider = 'Azure'  # 'Azure' or 'Ollama'
 ### Instantiate LLM model
 """
 
-llm = ChatOllama(model="llama3.1")
+llm = ChatOllama(model="llama3.2")
 llm.invoke("Hello, how are you?")
 
 
@@ -578,7 +562,8 @@ memory = MemorySaver()
 
 graph_plan = workflow.compile(checkpointer=memory)
 
-render_mermaid_graph(graph_plan)
+render_mermaid_graph(
+    graph_plan, output_filename=f"{OUTPUT_DIR}/graph_output.png")
 
 """
 ## Usage Example
@@ -750,7 +735,8 @@ simple_memory = MemorySaver()
 
 simple_graph_plan = simple_workflow.compile(checkpointer=memory)
 
-render_mermaid_graph(simple_graph_plan)
+render_mermaid_graph(
+    simple_graph_plan, output_filename=f"{OUTPUT_DIR}/graph_output.png")
 
 config = {"configurable": {"thread_id": "2"}}
 for event in simple_graph_plan.stream(state_input, config, stream_mode=["updates"]):

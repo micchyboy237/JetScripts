@@ -189,10 +189,37 @@ logger.info("## Example Usage")
 
 session_id = "user_123"
 
-logger.debug("AI:", chat("Hello! My name is Alice.", session_id))
-logger.debug("AI:", chat("What's the weather like today?", session_id))
-logger.debug("AI:", chat("I love sunny days.", session_id))
-logger.debug("AI:", chat("Do you remember my name?", session_id))
+# Interaction 1: Introduction
+logger.debug("Interaction 1 - User input: Hello! My name is Alice.")
+response1 = chat("Hello! My name is Alice.", session_id)
+logger.debug(f"AI response: {response1}")
+logger.debug("Current Short-term Memory:")
+for message in chat_store[session_id].messages:
+    logger.debug(f"{message.type}: {message.content}")
+
+# Interaction 2: Weather question
+logger.debug("\nInteraction 2 - User input: What's the weather like today?")
+response2 = chat("What's the weather like today?", session_id)
+logger.debug(f"AI response: {response2}")
+logger.debug("Current Short-term Memory:")
+for message in chat_store[session_id].messages:
+    logger.debug(f"{message.type}: {message.content}")
+
+# Interaction 3: Preference statement
+logger.debug("\nInteraction 3 - User input: I love sunny days.")
+response3 = chat("I love sunny days.", session_id)
+logger.debug(f"AI response: {response3}")
+logger.debug("Current Short-term Memory:")
+for message in chat_store[session_id].messages:
+    logger.debug(f"{message.type}: {message.content}")
+
+# Interaction 4: Memory test
+logger.debug("\nInteraction 4 - User input: Do you remember my name?")
+response4 = chat("Do you remember my name?", session_id)
+logger.debug(f"AI response: {response4}")
+logger.debug("Current Short-term Memory:")
+for message in chat_store[session_id].messages:
+    logger.debug(f"{message.type}: {message.content}")
 
 """
 ## Review Memory
@@ -201,7 +228,7 @@ Let's review the conversation history and long-term memory.
 """
 logger.info("## Review Memory")
 
-logger.debug("Conversation History:")
+logger.debug("Final Conversation History (Short-term Memory):")
 for message in chat_store[session_id].messages:
     logger.debug(f"{message.type}: {message.content}")
 
