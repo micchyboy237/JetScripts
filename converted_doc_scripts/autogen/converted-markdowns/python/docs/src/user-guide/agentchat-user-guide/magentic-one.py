@@ -46,6 +46,7 @@ Find additional information about Magentic-one in our [blog post](https://aka.ms
 """
 logger.info("# Magentic-One")
 
+"""
 Using Magentic-One involves interacting with a digital world designed for humans, which carries inherent risks. To minimize these risks, consider the following precautions:
 
 1. ** Use Containers**: Run all tasks in docker containers to isolate the agents and prevent direct system attacks.
@@ -55,6 +56,7 @@ Using Magentic-One involves interacting with a digital world designed for humans
 5. ** Limit Access**: Restrict the agents' access to the internet and other resources to prevent unauthorized actions.
 6. **Safeguard Data**: Ensure that the agents do not have access to sensitive data or resources that could be compromised. Do not share sensitive information with the agents.
 Be aware that agents may occasionally attempt risky actions, such as recruiting humans for help or accepting cookie agreements without human involvement. Always ensure agents are monitored and operate within a controlled environment to prevent unintended consequences. Moreover, be cautious that Magentic-One may be susceptible to prompt injection attacks from webpages.
+"""
 
 """
 ## Getting started
@@ -63,9 +65,9 @@ Install the required packages:
 """
 logger.info("## Getting started")
 
-pip install "autogen-agentchat" "autogen-ext[magentic-one,openai]"
+# pip install "autogen-agentchat" "autogen-ext[magentic-one,openai]"
 
-playwright install --with-deps chromium
+# playwright install --with-deps chromium
 
 """
 If you haven't done so already, go through the AgentChat tutorial to learn about the concepts of AgentChat.
@@ -77,18 +79,19 @@ For example:
 logger.info("If you haven't done so already, go through the AgentChat tutorial to learn about the concepts of AgentChat.")
 
 
-
 async def main() -> None:
-    model_client = MLXAutogenChatLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    model_client = MLXAutogenChatLLMAdapter(
+        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
     assistant = AssistantAgent(
         "Assistant",
         model_client=model_client,
     )
     team = MagenticOneGroupChat([assistant], model_client=model_client)
+
     async def run_async_code_aa019b62():
         await Console(team.run_stream(task="Provide a different proof for Fermat's Last Theorem"))
-        return 
+        return
      = asyncio.run(run_async_code_aa019b62())
     logger.success(format_json())
     async def run_async_code_3902376f():

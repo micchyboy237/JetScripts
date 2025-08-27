@@ -615,7 +615,7 @@ if __name__ == "__main__":
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/GenAI_Agents",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/Prompt_Engineering",
     ]
     include_files = []
     exclude_files = []

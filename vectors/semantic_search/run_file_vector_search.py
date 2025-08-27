@@ -55,15 +55,15 @@ def main(query, directories):
     output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
 
     extensions = [".py"]
-    embed_model_name: EmbedModelType = "static-retrieval-mrl-en-v1"
+    # embed_model_name: EmbedModelType = "static-retrieval-mrl-en-v1"
     # embed_model_name: EmbedModelType = "mxbai-embed-large"
-    # embed_model_name: EmbedModelType = "all-MiniLM-L6-v2"
+    embed_model_name: EmbedModelType = "all-MiniLM-L6-v2"
     truncate_dim = None
     max_seq_len = None
 
     top_k = None
     threshold = 0.0  # Using default threshold
-    chunk_size = 1000
+    chunk_size = 500
     chunk_overlap = 100
 
     embed_model = SentenceTransformerRegistry.load_model(
