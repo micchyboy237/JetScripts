@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     logger.info("Extracting texts from notebooks...")
     run_notebook_extraction(input_path, output_dir,
-                            include_code=True, merge_consecutive_code=True, save_as="md")
+                            include_code=True, merge_consecutive_code=True, save_as="blocks")
 
     # logger.info("Extracting documentation markdown...")
     # run_text_extraction(input_path, output_dir, save_as="md")
