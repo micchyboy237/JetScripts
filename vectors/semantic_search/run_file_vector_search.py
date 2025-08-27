@@ -95,8 +95,8 @@ def main(query, directories):
             split_chunks=split_chunks,
             tokenizer=count_tokens,
             preprocess=preprocess_text,
-            includes=["examples"],
-            excludes=[".venv", ".pytest_cache", "node_modules"],
+            includes=["**/examples/*"],
+            excludes=["**/.venv/*", "**/.pytest_cache/*", "**/node_modules/*"],
             weights={
                 "dir": 0.325,
                 "name": 0.325,
