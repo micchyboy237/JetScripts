@@ -12,7 +12,8 @@ if __name__ == "__main__":
     output_dir = f"{OUTPUT_DIR}/{os.path.basename(input_path)}"
 
     logger.info("Extracting texts from notebooks...")
-    run_notebook_extraction(input_path, output_dir, include_code=True)
+    run_notebook_extraction(input_path, output_dir,
+                            include_code=True, merge_consecutive_code=True, save_as="md")
 
     # logger.info("Extracting documentation markdown...")
     # run_text_extraction(input_path, output_dir, save_as="md")
