@@ -55,9 +55,9 @@ def main(query, directories):
     output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
 
     extensions = [".py"]
-    # embed_model: EmbedModelType = "static-retrieval-mrl-en-v1"
+    embed_model_name: EmbedModelType = "static-retrieval-mrl-en-v1"
     # embed_model_name: EmbedModelType = "mxbai-embed-large"
-    embed_model_name: EmbedModelType = "all-MiniLM-L6-v2"
+    # embed_model_name: EmbedModelType = "all-MiniLM-L6-v2"
     truncate_dim = None
     max_seq_len = None
 
@@ -95,7 +95,8 @@ def main(query, directories):
             split_chunks=split_chunks,
             tokenizer=count_tokens,
             preprocess=preprocess_text,
-            excludes=["**/.venv/*", "**/.pytest_cache/*", "**/node_modules/*"],
+            includes=["examples"],
+            excludes=[".venv", ".pytest_cache", "node_modules"],
             weights={
                 "dir": 0.325,
                 "name": 0.325,
