@@ -9,7 +9,7 @@ from jet.llm.mlx.helpers.base import rewrite_query
 from jet.models.model_types import LLMModelType
 from jet.file.utils import load_file, save_file
 from jet.llm.utils.search_docs import search_docs
-from jet.scrapers.hrequests_utils import scrape_urls, sync_scrape_url
+from jet.scrapers.hrequests_utils import scrape_urls, scrape_url_sync
 from jet.scrapers.utils import search_data
 from jet.search.searxng import SearchResult
 from jet.transformers.formatters import format_json
@@ -224,7 +224,7 @@ async def main():
         for anime_title in loaded_titles:
             title = anime_title["title"].lower()
             search_link = search_link_template.format(anime_title=title)
-            html_str = sync_scrape_url(search_link)
+            html_str = scrape_url_sync(search_link)
             if not html_str:
                 continue
             docs = get_md_header_docs(html_str)

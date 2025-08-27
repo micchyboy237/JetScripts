@@ -11,10 +11,12 @@ if __name__ == "__main__":
     output_dir = os.path.join(os.path.dirname(
         __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_4/top_isekai_anime_2025/pages/www_ranker_com_list_best_isekai_anime_2025_anna_lindwasser/page_preprocessed.html"
-    html_str: str = load_file(html_file)
+    # html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_4/top_isekai_anime_2025/pages/www_ranker_com_list_best_isekai_anime_2025_anna_lindwasser/page_preprocessed.html"
+    # html_str: str = load_file(html_file)
+    # md_content = convert_html_to_markdown(html_str)
 
-    md_content = convert_html_to_markdown(html_str)
+    md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/code/extraction/generated/run_extract_notebook_texts/GenAI_Agents/docs/Academic_Task_Learning_Agent_LangGraph.md"
+    md_content: str = load_file(md_file)
 
     save_file(md_content, f"{output_dir}/md_content.md")
 
