@@ -56,7 +56,7 @@ def main(query: str, search_dir: str, extensions: List[str], include_files: List
                 query,
                 extensions,
                 top_k=50,
-                threshold=0.5,
+                threshold=0.2,
                 embed_model=embed_model,
                 chunk_size=256,
                 chunk_overlap=40,
