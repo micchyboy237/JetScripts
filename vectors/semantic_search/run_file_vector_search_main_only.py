@@ -72,6 +72,14 @@ def main(query: str, search_dir: str, extensions: List[str], include_files: List
                 }
             )
         )
+        # Save all files
+        save_file({
+            "query": query,
+            "count": len(all_results),
+            "includes": include_files,
+            "excludes": exclude_files,
+            "results": all_results
+        }, f"{output_dir}/all_results.json", verbose=True)
 
         all_files = search_files(
             search_dir,
@@ -84,6 +92,8 @@ def main(query: str, search_dir: str, extensions: List[str], include_files: List
         save_file({
             "query": query,
             "count": len(all_files),
+            "includes": include_files,
+            "excludes": exclude_files,
             "files": all_files
         }, f"{output_dir}/files.json", verbose=True)
 
@@ -95,7 +105,7 @@ def main(query: str, search_dir: str, extensions: List[str], include_files: List
         save_file({
             "query": query,
             "count": len(grouped_dirs),
-            "results": grouped_dirs
+            "groups": grouped_dirs
         }, f"{output_dir}/grouped_dirs.json", verbose=True)
 
         # Perform vector search and save results for each directory group
