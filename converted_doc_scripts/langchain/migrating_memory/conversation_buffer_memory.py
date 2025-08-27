@@ -91,7 +91,7 @@ Below is example usage of `ConversationBufferMemory` with an `LLMChain` or an eq
 #     memory_key="chat_history", return_messages=True)
 
 # legacy_chain = LLMChain(
-#     llm=ChatOllama(model="llama3.1"),
+#     llm=ChatOllama(model="llama3.2"),
 #     prompt=prompt,
 #     memory=memory,
 # )
@@ -124,7 +124,7 @@ This example assumes that you're already somewhat familiar with `LangGraph`. If 
 
 workflow = StateGraph(state_schema=MessagesState)
 
-model = ChatOllama(model="llama3.1")
+model = ChatOllama(model="llama3.2")
 
 
 def call_model(state: MessagesState):
@@ -179,7 +179,7 @@ native tool calling capabilities of chat models and will likely work better out 
 """
 
 
-# model = ChatOllama(model="llama3.1")
+# model = ChatOllama(model="llama3.2")
 
 
 # @tool
@@ -242,7 +242,7 @@ def get_user_age(name: str) -> str:
 
 
 memory = MemorySaver()
-model = ChatOllama(model="llama3.1")
+model = ChatOllama(model="llama3.2")
 system_prompt = SystemMessage(
     content="You are a helpful assistant. Use the tools available, including memory tools, to assist the user.")
 app = create_react_agent(

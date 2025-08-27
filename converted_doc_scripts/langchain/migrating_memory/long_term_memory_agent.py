@@ -205,7 +205,7 @@ prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-model = ChatOllama(model="llama3.1")
+model = ChatOllama(model="llama3.2")
 model_with_tools = model.bind_tools(tools)
 
 tokenizer = tiktoken.encoding_for_model("gpt-4o")

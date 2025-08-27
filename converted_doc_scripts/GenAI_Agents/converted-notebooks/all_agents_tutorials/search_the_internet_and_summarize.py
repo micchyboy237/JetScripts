@@ -229,14 +229,19 @@ def search_summarize(query: str, specific_site: Optional[str] = None) -> str:
 
 This cell demonstrates how to use the search_summarize function.
 """
-logger.info("## Example Usage")
+if __name__ == "__main__":
+    logger.info("## Example Usage")
 
-query = "What are the latest advancements in artificial intelligence?"
-# Optional: specify a site or set to None
-specific_site = "https://www.nature.com"
-result = search_summarize(query, specific_site)
-logger.debug(
-    f"Summary of latest advancements in AI (including information from {specific_site if specific_site else 'various sources'}):")
-logger.debug(result)
+    # query = "What are the latest advancements in artificial intelligence?"
+    # # Optional: specify a site or set to None
+    # specific_site = "https://www.nature.com"
 
-logger.info("\n\n[DONE]", bright=True)
+    query = "What are the upcoming isekai anime this year?"
+    specific_site = "https://myanimelist.net"
+
+    result = search_summarize(query, specific_site)
+    logger.debug(
+        f"Summary of latest advancements in AI (including information from {specific_site if specific_site else 'various sources'}):")
+    logger.debug(result)
+
+    logger.info("\n\n[DONE]", bright=True)

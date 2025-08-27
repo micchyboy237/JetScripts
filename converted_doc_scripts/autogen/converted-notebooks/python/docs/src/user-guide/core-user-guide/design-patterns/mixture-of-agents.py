@@ -2,8 +2,8 @@ import asyncio
 from jet.transformers.formatters import format_json
 from autogen_core import AgentId, MessageContext, RoutedAgent, SingleThreadedAgentRuntime, message_handler
 from autogen_core.models import ChatCompletionClient, SystemMessage, UserMessage
+from autogen_ext.models.ollama import OllamaChatCompletionClient
 from dataclasses import dataclass
-from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
 from jet.logger import CustomLogger
 from typing import List
 import asyncio
@@ -95,16 +95,29 @@ class WorkerAgent(RoutedAgent):
     @message_handler
     async def handle_task(self, message: WorkerTask, ctx: MessageContext) -> WorkerTaskResult:
         if message.previous_results:
-            system_prompt = "You have been provided with a set of responses from various open-source models to the latest user query. Your task is to synthesize these responses into a single, high-quality response. It is crucial to critically evaluate the information provided in these responses, recognizing that some of it may be biased or incorrect. Your response should not simply replicate the given answers but should offer a refined, accurate, and comprehensive reply to the instruction. Ensure your response is well-structured, coherent, and adheres to the highest standards of accuracy and reliability.\n\nResponses from models:"
-            system_prompt += "\n" + \
-                "\n\n".join(
-                    [f"{i+1}. {r}" for i, r in enumerate(message.previous_results)])
-            model_result = await self._model_client.create(
-                [SystemMessage(content=system_prompt), UserMessage(
-                    content=message.task, source="user")]
+            system_prompt = (
+                "You have been provided with a set of responses from various open-source models to the latest user query. "
+                "Your task is to synthesize these responses into a single, high-quality response. It is crucial to critically "
+                "evaluate the information provided in these responses, recognizing that some of it may be biased or incorrect. "
+                "Your response should not simply replicate the given answers but should offer a refined, accurate, and comprehensive "
+                "reply to the instruction. Ensure your response is well-structured, coherent, and adheres to the highest standards "
+                "of accuracy and reliability.\n\nResponses from models:"
             )
+            system_prompt += "\n" + "\n\n".join(
+                [f"{i+1}. {r}" for i, r in enumerate(message.previous_results)]
+            )
+            model_result = await self._model_client.create(
+                [
+                    SystemMessage(content=system_prompt),
+                    UserMessage(content=message.task, source="user"),
+                ]
+            )
+            logger.success(format_json(model_result))
         else:
-            model_result = await self._model_client.create([UserMessage(content=message.task, source="user")])
+            model_result = await self._model_client.create(
+                [UserMessage(content=message.task, source="user")]
+            )
+            logger.success(format_json(model_result))
         assert isinstance(model_result.content, str)
         logger.debug(f"{'-'*80}\nWorker-{self.id}:\n{model_result.content}")
         return WorkerTaskResult(result=model_result.content)
@@ -144,21 +157,39 @@ class OrchestratorAgent(RoutedAgent):
             ]
             logger.debug(
                 f"{'-'*80}\nOrchestrator-{self.id}:\nDispatch to workers at layer {i}")
-            results = await asyncio.gather(*[self.send_message(worker_task, worker_id) for worker_id in worker_ids])
+
+            # Remove nested async and asyncio.run, just await directly
+            results = await asyncio.gather(
+                *[self.send_message(worker_task, worker_id) for worker_id in worker_ids]
+            )
+            logger.success(format_json(results))
             logger.debug(
                 f"{'-'*80}\nOrchestrator-{self.id}:\nReceived results from workers at layer {i}")
-            worker_task = WorkerTask(task=message.task, previous_results=[
-                                     r.result for r in results])
+            worker_task = WorkerTask(
+                task=message.task,
+                previous_results=[r.result for r in results]
+            )
         logger.debug(
             f"{'-'*80}\nOrchestrator-{self.id}:\nPerforming final aggregation")
-        system_prompt = "You have been provided with a set of responses from various open-source models to the latest user query. Your task is to synthesize these responses into a single, high-quality response. It is crucial to critically evaluate the information provided in these responses, recognizing that some of it may be biased or incorrect. Your response should not simply replicate the given answers but should offer a refined, accurate, and comprehensive reply to the instruction. Ensure your response is well-structured, coherent, and adheres to the highest standards of accuracy and reliability.\n\nResponses from models:"
-        system_prompt += "\n" + \
-            "\n\n".join(
-                [f"{i+1}. {r}" for i, r in enumerate(worker_task.previous_results)])
-        model_result = await self._model_client.create(
-            [SystemMessage(content=system_prompt), UserMessage(
-                content=message.task, source="user")]
+        system_prompt = (
+            "You have been provided with a set of responses from various open-source models to the latest user query. "
+            "Your task is to synthesize these responses into a single, high-quality response. It is crucial to critically "
+            "evaluate the information provided in these responses, recognizing that some of it may be biased or incorrect. "
+            "Your response should not simply replicate the given answers but should offer a refined, accurate, and comprehensive "
+            "reply to the instruction. Ensure your response is well-structured, coherent, and adheres to the highest standards "
+            "of accuracy and reliability.\n\nResponses from models:"
         )
+        system_prompt += "\n" + "\n\n".join(
+            [f"{i+1}. {r}" for i, r in enumerate(worker_task.previous_results)]
+        )
+
+        model_result = await self._model_client.create(
+            [
+                SystemMessage(content=system_prompt),
+                UserMessage(content=message.task, source="user"),
+            ]
+        )
+        logger.success(format_json(model_result))
         assert isinstance(model_result.content, str)
         return FinalResult(result=model_result.content)
 
@@ -166,7 +197,7 @@ class OrchestratorAgent(RoutedAgent):
 """
 ## Running Mixture of Agents
 
-Run the entire mixture of agents workflow in a single async function to ensure all operations use the same event loop.
+Let's run the mixture of agents on a math task. You can change the task to make it more challenging, for example, by trying tasks from the [International Mathematical Olympiad](https://www.imo-official.org/problems.aspx).
 """
 logger.info("## Running Mixture of Agents")
 
@@ -174,39 +205,56 @@ task = (
     "I have 432 cookies, and divide them 3:4:2 between Alice, Bob, and Charlie. How many cookies does each person get?"
 )
 
+"""
+Let's set up the runtime with 3 layers of worker agents, each layer consisting of 3 worker agents.
+We only need to register a single worker agent types, "worker", because we are using
+the same model client configuration (i.e., llama3.2) for all worker agents.
+If you want to use different models, you will need to register multiple worker agent types,
+one for each model, and update the `worker_agent_types` list in the orchestrator agent's
+factory function.
 
-async def run_mixture_of_agents():
-    # Initialize model client
-    model_client = MLXAutogenChatLLMAdapter(
-        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+The instances of worker agents are automatically created when the orchestrator agent
+dispatches tasks to them.
+See [Agent Identity and Lifecycle](../core-concepts/agent-identity-and-lifecycle.md)
+for more information on agent lifecycle.
+"""
+logger.info(
+    "Let's set up the runtime with 3 layers of worker agents, each layer consisting of 3 worker agents."
+)
 
-    # Initialize runtime
-    runtime = SingleThreadedAgentRuntime()
+runtime = SingleThreadedAgentRuntime()
+model_client = OllamaChatCompletionClient(model="llama3.2")
 
-    # Register agents
-    await WorkerAgent.register(runtime, "worker", lambda: WorkerAgent(model_client=model_client))
+
+async def main():
+    # Register the worker agent type
+    await WorkerAgent.register(
+        runtime, "worker", lambda: WorkerAgent(model_client=model_client)
+    )
+
+    # Register the orchestrator agent
     await OrchestratorAgent.register(
         runtime,
         "orchestrator",
-        lambda: OrchestratorAgent(model_client=model_client, worker_agent_types=[
-                                  "worker"] * 3, num_layers=3),
+        lambda: OrchestratorAgent(
+            model_client=model_client,
+            worker_agent_types=["worker"] * 3,
+            num_layers=3,
+        ),
     )
 
-    # Start runtime
     runtime.start()
 
-    # Send task to orchestrator
-    result = await runtime.send_message(UserTask(task=task), AgentId("orchestrator", "default"))
+    # Send the user task to the orchestrator agent
+    result = await runtime.send_message(
+        UserTask(task=task), AgentId("orchestrator", "default")
+    )
     logger.success(format_json(result))
-    logger.debug(f"{'-'*80}\nFinal result:\n{result.result}")
 
-    # Stop runtime when idle
     await runtime.stop_when_idle()
-
-    # Close model client
     await model_client.close()
 
-# Run the workflow
-asyncio.run(run_mixture_of_agents())
+    logger.debug(f"{'-'*80}\nFinal result:\n{result.result}")
+    logger.info("\n\n[DONE]", bright=True)
 
-logger.info("\n\n[DONE]", bright=True)
+asyncio.run(main())

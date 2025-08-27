@@ -83,7 +83,7 @@ The conversation ID can be passed as either part of the RunnableConfig (as we'll
 
 builder = StateGraph(state_schema=MessagesState)
 
-model = ChatOllama(model="llama3.1")
+model = ChatOllama(model="llama3.2")
 
 
 def call_model(state: MessagesState, config: RunnableConfig) -> list[BaseMessage]:

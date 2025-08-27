@@ -1,11 +1,12 @@
 import asyncio
-from jet.transformers.formatters import format_json
+import shutil
 from IPython.display import display, HTML
 from dotenv import load_dotenv
 from jet.logger import CustomLogger
-from openai import AsyncOllama
+from jet.file.utils import save_file
+from ollama import AsyncClient
 from semantic_kernel.agents import ChatCompletionAgent, ChatHistoryAgentThread
-from semantic_kernel.connectors.ai.open_ai import OllamaChatCompletion
+from semantic_kernel.connectors.ai.ollama import OllamaChatCompletion
 from semantic_kernel.contents import FunctionCallContent, FunctionResultContent, StreamingTextContent
 from semantic_kernel.functions import kernel_function
 from typing import Annotated
@@ -13,15 +14,19 @@ import json
 import os
 import random
 
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# Semantic Kernel 
+# Semantic Kernel
 
-In this code sample, you will use the [Semantic Kernel](https://aka.ms/ai-agents-beginners/semantic-kernel) AI Framework to create a basic agent. 
+In this code sample, you will use the [Semantic Kernel](https://aka.ms/ai-agents-beginners/semantic-kernel) AI Framework to create a basic agent.
 
 The goal of this sample is to show you the steps that we will later use in the additional code samples when implementing the different agentic patterns.
 
@@ -30,22 +35,16 @@ The goal of this sample is to show you the steps that we will later use in the a
 logger.info("# Semantic Kernel")
 
 
-
-
-
-
-
 """
 ## Creating the Client
 
-In this sample, we will use [GitHub Models](https://aka.ms/ai-agents-beginners/github-models) for access to the LLM. 
+In this sample, we will use [GitHub Models](https://aka.ms/ai-agents-beginners/github-models) for access to the LLM.
 
-The `ai_model_id` is defined as `llama3.1`. Try changing the model to another model available on the GitHub Models marketplace to see the different results. 
+The `ai_model_id` is defined as `llama3.2`. Try changing the model to another model available on the GitHub Models marketplace to see the different results.
 
 For us to use the `Azure Inference SDK` that is used for the `base_url` for GitHub Models, we will use the `OllamaChatCompletion` connector within Semantic Kernel. There are also other [available connectors](https://learn.microsoft.com/semantic-kernel/concepts/ai-services/chat-completion) to use Semantic Kernel for other model providers.
 """
 logger.info("## Creating the Client")
-
 
 
 class DestinationsPlugin:
@@ -78,19 +77,19 @@ class DestinationsPlugin:
 
         return destination
 
+
 load_dotenv()
-client = AsyncOllama(
-    api_key=os.environ.get("GITHUB_TOKEN"),
-    base_url="https://models.inference.ai.azure.com/",
+client = AsyncClient(
+    host="http://localhost:11434",
 )
 
 chat_completion_service = OllamaChatCompletion(
-    ai_model_id="llama3.1",
-    async_client=client,
+    ai_model_id="llama3.2",
+    client=client,
 )
 
 """
-## Creating the Agent 
+## Creating the Agent
 
 Below we create the Agent called `TravelAgent`.
 
@@ -122,11 +121,11 @@ agent = ChatCompletionAgent(
 )
 
 """
-## Running the Agents 
+## Running the Agents
 
-Now we can run the Agent by defining the `ChatHistory` and adding the `system_message` to it. We will use the `AGENT_INSTRUCTIONS` that we defined earlier. 
+Now we can run the Agent by defining the `ChatHistory` and adding the `system_message` to it. We will use the `AGENT_INSTRUCTIONS` that we defined earlier.
 
-After these are defined, we create a `user_inputs` that will be what the user is sending to the agent. In this case, we have set this message to `Plan me a sunny vacation`. 
+After these are defined, we create a `user_inputs` that will be what the user is sending to the agent. In this case, we have set this message to `Plan me a sunny vacation`.
 
 Feel free to change this message to see how the agent responds differently.
 """
@@ -136,6 +135,7 @@ user_inputs = [
     "Plan me a day trip.",
     "I don't like that destination. Plan me another vacation.",
 ]
+
 
 async def main():
     thread: ChatHistoryAgentThread | None = None
@@ -178,11 +178,13 @@ async def main():
                         except Exception:
                             pass  # leave as raw string
 
-                        function_calls.append(f"Calling function: {current_function_name}({formatted_args})")
+                        function_calls.append(
+                            f"Calling function: {current_function_name}({formatted_args})")
                         current_function_name = None
                         argument_buffer = ""
 
-                    function_calls.append(f"\nFunction Result:\n\n{item.result}")
+                    function_calls.append(
+                        f"\nFunction Result:\n\n{item.result}")
                 elif isinstance(item, StreamingTextContent) and item.text:
                     full_response.append(item.text)
 
@@ -204,11 +206,9 @@ async def main():
         )
 
         display(HTML(html_output))
+        save_file(html_output, f"{OUTPUT_DIR}/html_output.html")
 
-async def run_async_code_ba09313d():
-    await main()
-    return 
- = asyncio.run(run_async_code_ba09313d())
-logger.success(format_json())
+
+asyncio.run(main())
 
 logger.info("\n\n[DONE]", bright=True)

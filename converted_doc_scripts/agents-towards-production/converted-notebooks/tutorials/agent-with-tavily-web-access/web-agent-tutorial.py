@@ -1,6 +1,6 @@
 from IPython.display import Markdown
 from dotenv import load_dotenv
-from jet.llm.mlx.base_langchain import ChatMLX
+from jet.llm.ollama.base_langchain import ChatOllama
 from jet.logger import CustomLogger
 from langchain.schema import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -93,7 +93,7 @@ logger.info("### Setting Up Your Tavily API Client")
 
 load_dotenv()
 
-if not os.environ.get("TAVILY_API_KEY"):
+# if not os.environ.get("TAVILY_API_KEY"):
 #     os.environ["TAVILY_API_KEY"] = getpass.getpass("TAVILY_API_KEY:\n")
 
 # if not os.environ.get("OPENAI_API_KEY"):
@@ -109,7 +109,8 @@ Let's define the following modular tools with the Tavily-LangChain integration:
 
 3. **Crawl** entire websites
 """
-logger.info("Let's define the following modular tools with the Tavily-LangChain integration:")
+logger.info(
+    "Let's define the following modular tools with the Tavily-LangChain integration:")
 
 
 search = TavilySearch(max_results=10, topic="general")
@@ -127,6 +128,7 @@ logger.info("Now let's set up several MLX foundation models to power our agent, 
 # o3_mini = ChatMLX(model="o3-mini-2025-01-31", api_key=os.getenv("OPENAI_API_KEY"))
 
 # gpt_4_1 = ChatMLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", api_key=os.getenv("OPENAI_API_KEY"))
+model_client = ChatOllama(model="llama3.2")
 
 """
 ## Web Agent
@@ -145,7 +147,7 @@ logger.info("## Web Agent")
 today = datetime.datetime.today().strftime("%A, %B %d, %Y")
 
 web_agent = create_react_agent(
-    model=gpt_4_1,
+    model=model_client,
     tools=[search, extract, crawl],
     prompt=ChatPromptTemplate.from_messages(
         [
@@ -267,7 +269,7 @@ for s in web_agent.stream(inputs, stream_mode="values"):
     if isinstance(message, tuple):
         logger.debug(message)
     else:
-        message.pretty_logger.debug()
+        message.pretty_print()
 
 """
 Examine the agent's intermediate steps printed above, including how it chooses and configures different tool parameters. Then, display the agent's final answer in markdown format.
@@ -295,7 +297,7 @@ for s in web_agent.stream(inputs, stream_mode="values"):
     if isinstance(message, tuple):
         logger.debug(message)
     else:
-        message.pretty_logger.debug()
+        message.pretty_print()
 
 """
 Print the agent's final response as markdown.

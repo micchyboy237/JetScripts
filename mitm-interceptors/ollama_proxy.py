@@ -601,14 +601,15 @@ def response(flow: http.HTTPFlow):
             response_info), colors=["GRAY", "DEBUG"])
 
         durations = get_response_durations(response_info)
-        total_duration = durations.pop("total_duration")
+        total_duration = durations.pop("total_duration", None)
         for key, formatted_time in durations.items():
-            logger.log(f"{key.title().replace("_", " ")}:", formatted_time,
+            logger.log(f"{key.title().replace('_', ' ')}:", formatted_time,
                        colors=["WHITE", "DEBUG"])
-        logger.log("Total Duration:", total_duration, colors=[
-            "DEBUG",
-            "SUCCESS",
-        ])
+        if total_duration is not None:
+            logger.log("Total Duration:", total_duration, colors=[
+                "DEBUG",
+                "SUCCESS",
+            ])
 
         final_response_content = "".join(
             [chunk.get("content", "") for chunk in local_chunks])

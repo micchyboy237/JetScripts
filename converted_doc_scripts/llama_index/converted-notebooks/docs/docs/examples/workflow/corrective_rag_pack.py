@@ -66,7 +66,7 @@ logger.info("# Corrective RAG Workflow")
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-proj-..."
-tavily_ai_api_key = "<Your Tavily AI API Key>"
+tavily_ai_api_key = os.environ["TAVILY_API_KEY"]
 
 # !mkdir -p 'data/'
 # !wget 'https://arxiv.org/pdf/2307.09288.pdf' -O 'data/llama2.pdf'
@@ -102,7 +102,6 @@ The following events are needed:
 logger.info("## Designing the Workflow")
 
 
-
 class PrepEvent(Event):
     """Prep event (prepares for retrieval)."""
 
@@ -132,6 +131,7 @@ class QueryEvent(Event):
 
     relevant_text: str
     search_text: str
+
 
 """
 Below is the code for the corrective RAG workflow:
@@ -201,11 +201,12 @@ class CorrectiveRAGWorkflow(Workflow):
         tavily_ai_apikey: str | None = ev.get("tavily_ai_apikey")
         index = ev.get("index")
 
-        llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+        llm = MLXLlamaIndexLLMAdapter(
+            model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
 
         async def run_async_code_58c0d29b():
             await ctx.store.set("llm", llm)
-            return 
+            return
          = asyncio.run(run_async_code_58c0d29b())
         logger.success(format_json())
         async def run_async_code_8375a763():

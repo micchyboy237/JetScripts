@@ -95,7 +95,7 @@ how to maintain a running summary of the conversation while discarding older mes
 #     memory_key="chat_history", return_messages=True)
 
 # legacy_chain = LLMChain(
-#     llm=ChatOllama(model="llama3.1"),
+#     llm=ChatOllama(model="llama3.2"),
 #     prompt=prompt,
 #     memory=memory,
 # )
@@ -159,7 +159,7 @@ Here, we'll use `trim_messages` to keeps the system message and the most recent 
 
 selected_messages = trim_messages(
     messages,
-    token_counter=ChatOllama(model="llama3.1"),
+    token_counter=ChatOllama(model="llama3.2"),
     max_tokens=80,  # <-- token limit
     start_on="human",
     include_system=True,
@@ -188,7 +188,7 @@ how to discard older messages, ensuring they aren't re-processed during later tu
 
 workflow = StateGraph(state_schema=MessagesState)
 
-model = ChatOllama(model="llama3.1")
+model = ChatOllama(model="llama3.2")
 
 
 def call_model(state: MessagesState):
@@ -253,7 +253,7 @@ def get_user_age(name: str) -> str:
 
 
 memory = MemorySaver()
-model = ChatOllama(model="llama3.1")
+model = ChatOllama(model="llama3.2")
 
 
 def prompt(state) -> list[BaseMessage]:
@@ -313,7 +313,7 @@ If you want to use a chat model's tool calling capabilities, remember to bind th
 """
 
 
-model = ChatOllama(model="llama3.1")
+model = ChatOllama(model="llama3.2")
 
 
 @tool
