@@ -59,7 +59,6 @@ logger.info("# Finetuning an Adapter on Top of any Black-Box Embedding Model")
 # %pip install llama-index-finetuning
 
 
-
 """
 Download Data
 """
@@ -69,11 +68,12 @@ logger.info("Download Data")
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/uber_2021.pdf' -O 'data/10k/uber_2021.pdf'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/lyft_2021.pdf' -O 'data/10k/lyft_2021.pdf'
 
-TRAIN_FILES = ["./data/10k/lyft_2021.pdf"]
-VAL_FILES = ["./data/10k/uber_2021.pdf"]
+TRAIN_FILES = [f"{os.path.dirname(__file__)}/data/10k/lyft_2021.pdf"]
+VAL_FILES = [f"{os.path.dirname(__file__)}/data/10k/uber_2021.pdf"]
 
-TRAIN_CORPUS_FPATH = "./data/train_corpus.json"
-VAL_CORPUS_FPATH = "./data/val_corpus.json"
+TRAIN_CORPUS_FPATH = f"{os.path.dirname(__file__)}/data/train_corpus.json"
+VAL_CORPUS_FPATH = f"{os.path.dirname(__file__)}/data/val_corpus.json"
+
 
 def load_corpus(files, verbose=False):
     if verbose:
@@ -91,6 +91,7 @@ def load_corpus(files, verbose=False):
         logger.debug(f"Parsed {len(nodes)} nodes")
 
     return nodes
+
 
 """
 We do a very naive train/val split by having the Lyft corpus as the train dataset, and the Uber corpus as the val dataset.
@@ -156,8 +157,8 @@ We evaluate with two ranking metrics:
 logger.info("## Evaluate Finetuned Model")
 
 
-
-ada = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+ada = HuggingFaceEmbedding(
+    model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 ada_val_results = evaluate(val_dataset, ada)
 
 display_results(["ada"], [ada_val_results])
@@ -190,7 +191,6 @@ It's a simple two-layer NN with a ReLU activation and a residual layer at the en
 We train for 25 epochs - longer than the linear adapter - and preserve checkpoints every 100 steps.
 """
 logger.info("## Fine-tune a Two-Layer Adapter")
-
 
 
 base_embed_model = resolve_embed_model("local:BAAI/bge-small-en")
@@ -323,6 +323,7 @@ class CustomNN(BaseAdapter):
             "add_residual": self._add_residual,
         }
 
+
 custom_adapter = CustomNN(
     384,  # input dimension
     1024,  # hidden dimension
@@ -353,8 +354,6 @@ embed_model_custom = finetune_engine.get_finetuned_model(
 Run the same evaluation script used in the previous section to measure hit-rate/MRR.
 """
 logger.info("### Evaluation Results")
-
-
 
 
 ft_val_results_custom = evaluate(val_dataset, embed_model_custom)

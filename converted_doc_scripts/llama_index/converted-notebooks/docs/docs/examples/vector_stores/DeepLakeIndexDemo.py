@@ -33,8 +33,8 @@ logger.info("# Deep Lake Vector Store Quickstart")
 """
 Next, let's import the required modules and set the needed environmental variables:
 """
-logger.info("Next, let's import the required modules and set the needed environmental variables:")
-
+logger.info(
+    "Next, let's import the required modules and set the needed environmental variables:")
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-********************************"
@@ -56,7 +56,8 @@ We can now create documents from the source data file.
 """
 logger.info("We can now create documents from the source data file.")
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 logger.debug(
     "Document ID:",
     documents[0].doc_id,
@@ -67,10 +68,11 @@ logger.debug(
 """
 Finally, let's create the Deep Lake Vector Store and populate it with data. We use a default tensor configuration, which creates tensors with `text (str)`, `metadata(json)`, `id (str, auto-populated)`, `embedding (float32)`. [Learn more about tensor customizability here](https://docs.activeloop.ai/example-code/getting-started/vector-store/step-4-customizing-vector-stores).
 """
-logger.info("Finally, let's create the Deep Lake Vector Store and populate it with data. We use a default tensor configuration, which creates tensors with `text (str)`, `metadata(json)`, `id (str, auto-populated)`, `embedding (float32)`. [Learn more about tensor customizability here](https://docs.activeloop.ai/example-code/getting-started/vector-store/step-4-customizing-vector-stores).")
+logger.info(
+    "Finally, let's create the Deep Lake Vector Store and populate it with data. We use a default tensor configuration, which creates tensors with `text (str)`, `metadata(json)`, `id (str, auto-populated)`, `embedding (float32)`. [Learn more about tensor customizability here](https://docs.activeloop.ai/example-code/getting-started/vector-store/step-4-customizing-vector-stores).")
 
 
-dataset_path = "./dataset/paul_graham"
+dataset_path = f"{os.path.dirname(__file__)}/dataset/paul_graham"
 
 vector_store = DeepLakeVectorStore(dataset_path=dataset_path, overwrite=True)
 storage_context = StorageContext.from_defaults(vector_store=vector_store)

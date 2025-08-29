@@ -1,10 +1,10 @@
 from jet.models.config import MODELS_CACHE_DIR
 from jet.logger import CustomLogger
 from llama_index.core import (
-SimpleDirectoryReader,
-VectorStoreIndex,
-StorageContext,
-load_index_from_storage,
+    SimpleDirectoryReader,
+    VectorStoreIndex,
+    StorageContext,
+    load_index_from_storage,
 )
 from llama_index.core import SQLDatabase
 from llama_index.core import Settings
@@ -26,14 +26,14 @@ from llama_index.llms.replicate import Replicate
 from llama_parse import LlamaParse
 from pydantic import BaseModel
 from sqlalchemy import (
-create_engine,
-MetaData,
-Table,
-Column,
-String,
-Integer,
-select,
-column,
+    create_engine,
+    MetaData,
+    Table,
+    Column,
+    String,
+    Integer,
+    select,
+    column,
 )
 from typing import Sequence, List
 import json
@@ -102,8 +102,6 @@ Make sure you have REPLICATE_API_TOKEN specified!
 logger.info("### Setup LLM using Replicate")
 
 
-
-
 llm_replicate = Replicate(model="meta/meta-llama-3-70b-instruct")
 
 """
@@ -112,7 +110,8 @@ llm_replicate = Replicate(model="meta/meta-llama-3-70b-instruct")
 logger.info("### Setup Embedding Model")
 
 
-embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+embed_model = HuggingFaceEmbedding(
+    model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 """
 ### Define Global Settings Configuration
@@ -151,10 +150,12 @@ We load data using LlamaParse by default, but you can also choose to opt for our
 logger.info("### Load Data")
 
 
-docs_kendrick = LlamaParse(result_type="text").load_data("./data/kendrick.pdf")
-docs_drake = LlamaParse(result_type="text").load_data("./data/drake.pdf")
+docs_kendrick = LlamaParse(result_type="text").load_data(
+    f"{os.path.dirname(__file__)}/data/kendrick.pdf")
+docs_drake = LlamaParse(result_type="text").load_data(
+    f"{os.path.dirname(__file__)}/data/drake.pdf")
 docs_both = LlamaParse(result_type="text").load_data(
-    "./data/drake_kendrick_beef.pdf"
+    f"{os.path.dirname(__file__)}/data/drake_kendrick_beef.pdf"
 )
 
 """
@@ -302,8 +303,8 @@ Here, we download and use a sample SQLite database with 11 tables, with various 
 """
 logger.info("## 4. Text-to-SQL")
 
-# !wget "https://www.sqlitetutorial.net/wp-content/uploads/2018/03/chinook.zip" -O "./data/chinook.zip"
-# !unzip "./data/chinook.zip"
+# !wget "https://www.sqlitetutorial.net/wp-content/uploads/2018/03/chinook.zip" -O f"{os.path.dirname(__file__)}/data/chinook.zip"
+# !unzip f"{os.path.dirname(__file__)}/data/chinook.zip"
 
 
 engine = create_engine("sqlite:///chinook.db")
@@ -347,7 +348,6 @@ An important use case for function calling is extracting structured objects. Lla
 **NOTE**: Since there's no native function calling support with Llama3 / Ollama, the structured extraction is performed by prompting the LLM + output parsing.
 """
 logger.info("## 5. Structured Data Extraction")
-
 
 
 class Restaurant(BaseModel):
@@ -418,7 +418,6 @@ Here we build agents with Llama 3. We perform RAG over simple functions as well 
 logger.info("## 7. Agents")
 
 
-
 # import nest_asyncio
 
 # nest_asyncio.apply()
@@ -427,6 +426,7 @@ logger.info("## 7. Agents")
 ### Define Tools
 """
 logger.info("### Define Tools")
+
 
 def multiply(a: int, b: int) -> int:
     """Multiple two integers and returns the result integer"""
@@ -478,7 +478,6 @@ logger.debug(str(response))
 logger.info("### ReAct Agent With RAG QueryEngine Tools")
 
 
-
 """
 ### Create ReAct Agent using RAG QueryEngine Tools
 """
@@ -503,7 +502,7 @@ kendrick_tool = QueryEngineTool(
 query_engine_tools = [drake_tool, kendrick_tool]
 
 agent = ReActAgent.from_tools(
-    query_engine_tools,  ## TODO: define query tools
+    query_engine_tools,  # TODO: define query tools
     llm=llm_replicate,
     verbose=True,
 )

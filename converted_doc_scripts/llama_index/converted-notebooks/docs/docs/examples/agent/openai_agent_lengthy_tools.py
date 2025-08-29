@@ -10,15 +10,14 @@ async def main():
     from llama_index.core.tools.types import ToolMetadata
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/agent/openai_agent_query_plan.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
@@ -30,62 +29,65 @@ async def main():
     
     If you're opening this Notebook on Colab, you will probably need to install LlamaIndex 🦙.
     """
-    logger.info("# OllamaFunctionCallingAdapter Agent Workarounds for Lengthy Tool Descriptions")
-    
+    logger.info(
+        "# OllamaFunctionCallingAdapter Agent Workarounds for Lengthy Tool Descriptions")
+
     # %pip install llama-index-agent-openai
     # %pip install llama-index-llms-ollama
-    
+
     # !pip install llama-index
-    
+
     # %load_ext autoreload
     # %autoreload 2
-    
-    
-    
+
     # os.environ["OPENAI_API_KEY"] = "sk-..."
-    
-    llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
-    
+
+    llm = OllamaFunctionCallingAdapter(
+        temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+
     """
     ## Download Data
     """
     logger.info("## Download Data")
-    
+
     # !mkdir -p 'data/10q/'
     # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10q/uber_10q_march_2022.pdf' -O 'data/10q/uber_10q_march_2022.pdf'
     # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10q/uber_10q_june_2022.pdf' -O 'data/10q/uber_10q_june_2022.pdf'
     # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10q/uber_10q_sept_2022.pdf' -O 'data/10q/uber_10q_sept_2022.pdf'
-    
+
     """
     ## Load data
     """
     logger.info("## Load data")
-    
+
     march_2022 = SimpleDirectoryReader(
-        input_files=["./data/10q/uber_10q_march_2022.pdf"]
+        input_files=[
+            f"{os.path.dirname(__file__)}/data/10q/uber_10q_march_2022.pdf"]
     ).load_data()
     june_2022 = SimpleDirectoryReader(
-        input_files=["./data/10q/uber_10q_june_2022.pdf"]
+        input_files=[
+            f"{os.path.dirname(__file__)}/data/10q/uber_10q_june_2022.pdf"]
     ).load_data()
     sept_2022 = SimpleDirectoryReader(
-        input_files=["./data/10q/uber_10q_sept_2022.pdf"]
+        input_files=[
+            f"{os.path.dirname(__file__)}/data/10q/uber_10q_sept_2022.pdf"]
     ).load_data()
-    
+
     """
     ## Build indices
     
     We build a vector index / query engine over each of the documents (March, June, September).
     """
     logger.info("## Build indices")
-    
+
     march_index = VectorStoreIndex.from_documents(march_2022)
     june_index = VectorStoreIndex.from_documents(june_2022)
     sept_index = VectorStoreIndex.from_documents(sept_2022)
-    
+
     march_engine = march_index.as_query_engine(similarity_top_k=3, llm=llm)
     june_engine = june_index.as_query_engine(similarity_top_k=3, llm=llm)
     sept_engine = sept_index.as_query_engine(similarity_top_k=3, llm=llm)
-    
+
     """
     ## Defining an Excessively Lengthy Query Plan
     
@@ -104,7 +106,7 @@ async def main():
     give each query engine tool a very lengthy and redundant description.
     """
     logger.info("## Defining an Excessively Lengthy Query Plan")
-    
+
     description_10q_general = """\
     A Form 10-Q is a quarterly report required by the SEC for publicly traded companies,
     providing an overview of the company's financial performance for the quarter.
@@ -115,12 +117,11 @@ async def main():
     and information on the company's internal controls. Its primary purpose is to keep
     investors informed about the company's financial status and operations,
     enabling informed investment decisions."""
-    
+
     description_10q_specific = (
         "This 10-Q provides Uber quarterly financials ending"
     )
-    
-    
+
     query_tool_sept = QueryEngineTool.from_defaults(
         query_engine=sept_engine,
         name="sept_2022",
@@ -136,27 +137,28 @@ async def main():
         name="march_2022",
         description=f"{description_10q_general} {description_10q_specific} March 2022",
     )
-    
+
     logger.debug(len(query_tool_sept.metadata.description))
     logger.debug(len(query_tool_june.metadata.description))
     logger.debug(len(query_tool_march.metadata.description))
-    
+
     """
     From the print statements above, we see that we will easily exceed the
     maximum character limit of 1024 when composing these tools into the `QueryPlanTool`.
     """
-    logger.info("From the print statements above, we see that we will easily exceed the")
-    
+    logger.info(
+        "From the print statements above, we see that we will easily exceed the")
+
     query_engine_tools = [query_tool_sept, query_tool_june, query_tool_march]
-    
+
     response_synthesizer = get_response_synthesizer()
     query_plan_tool = QueryPlanTool.from_defaults(
         query_engine_tools=query_engine_tools,
         response_synthesizer=response_synthesizer,
     )
-    
+
     openai_tool = query_plan_tool.metadata.to_openai_tool()
-    
+
     """
     ## Moving Tool Descriptions to the Prompt
     
@@ -178,8 +180,7 @@ async def main():
     tool names and descriptions in the prompt.)
     """
     logger.info("## Moving Tool Descriptions to the Prompt")
-    
-    
+
     introductory_tool_description_prefix = """\
     This is a query plan tool that takes in a list of tools and executes a \
     query plan over these tools to answer a query. The query plan is a DAG of query nodes.
@@ -189,7 +190,7 @@ async def main():
     
     The tool names and descriptions will be given alongside the query.
     """
-    
+
     new_metadata = ToolMetadata(
         introductory_tool_description_prefix,
         query_plan_tool.metadata.name,
@@ -197,21 +198,22 @@ async def main():
     )
     query_plan_tool.metadata = new_metadata
     query_plan_tool.metadata
-    
+
     """
     Second, we must concatenate our tool names and descriptions alongside
     the query being posed.
     """
-    logger.info("Second, we must concatenate our tool names and descriptions alongside")
-    
-    
+    logger.info(
+        "Second, we must concatenate our tool names and descriptions alongside")
+
     agent = FunctionAgent(
         tools=[query_plan_tool],
-        llm=OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096),
+        llm=OllamaFunctionCallingAdapter(
+            temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096),
     )
-    
+
     query = "What were the risk factors in sept 2022?"
-    
+
     tools_description = "\n\n".join(
         [
             f"Tool Name: {tool.metadata.name}\n"
@@ -219,14 +221,14 @@ async def main():
             for tool in query_engine_tools
         ]
     )
-    
+
     query_planned_query = f"{tools_description}\n\nQuery: {query}"
     query_planned_query
-    
+
     response = await agent.run(query_planned_query)
     logger.success(format_json(response))
     response
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

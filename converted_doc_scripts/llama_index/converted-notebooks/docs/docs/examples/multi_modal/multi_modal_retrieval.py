@@ -47,7 +47,8 @@ Steps:
 3. Build image index for vector store using CLIP embeddings
 4. Retrieve relevant text and image simultaneously using different query encoding embeddings and vector stores
 """
-logger.info("# Multi-Modal Retrieval using GPT text embedding and CLIP image embedding for Wikipedia Articles")
+logger.info(
+    "# Multi-Modal Retrieval using GPT text embedding and CLIP image embedding for Wikipedia Articles")
 
 # %pip install llama-index-vector-stores-qdrant
 
@@ -61,7 +62,8 @@ logger.info("# Multi-Modal Retrieval using GPT text embedding and CLIP image emb
 ## Load and Download Multi-Modal datasets including texts and images from Wikipedia
 Parse wikipedia articles and save into local folder
 """
-logger.info("## Load and Download Multi-Modal datasets including texts and images from Wikipedia")
+logger.info(
+    "## Load and Download Multi-Modal datasets including texts and images from Wikipedia")
 
 
 wiki_titles = [
@@ -142,7 +144,8 @@ for title in wiki_titles:
                 if images_per_wiki > MAX_IMAGES_PER_WIKI:
                     break
     except:
-        logger.debug(str(Exception("No images found for Wikipedia page: ")) + title)
+        logger.debug(
+            str(Exception("No images found for Wikipedia page: ")) + title)
         continue
 
 
@@ -151,7 +154,8 @@ for title in wiki_titles:
 """
 ## Build Multi Modal Vector Store using Text and Image embeddings under different collections
 """
-logger.info("## Build Multi Modal Vector Store using Text and Image embeddings under different collections")
+logger.info(
+    "## Build Multi Modal Vector Store using Text and Image embeddings under different collections")
 
 
 client = qdrant_client.QdrantClient(path="qdrant_db")
@@ -166,7 +170,8 @@ storage_context = StorageContext.from_defaults(
     vector_store=text_store, image_store=image_store
 )
 
-documents = SimpleDirectoryReader("./data_wiki/").load_data()
+documents = SimpleDirectoryReader(
+    f"{os.path.dirname(__file__)}/data_wiki/").load_data()
 index = MultiModalVectorStoreIndex.from_documents(
     documents,
     storage_context=storage_context,
@@ -176,7 +181,6 @@ index = MultiModalVectorStoreIndex.from_documents(
 ### Plot downloaded Images from Wikipedia
 """
 logger.info("### Plot downloaded Images from Wikipedia")
-
 
 
 def plot_images(image_metadata_dict):
@@ -206,7 +210,9 @@ plot_images(image_metadata_dict)
 """
 ### Build a separate CLIP image embedding index under a differnt collection `wikipedia_img`
 """
-logger.info("### Build a separate CLIP image embedding index under a differnt collection `wikipedia_img`")
+logger.info(
+    "### Build a separate CLIP image embedding index under a differnt collection `wikipedia_img`")
+
 
 def plot_images(image_paths):
     images_shown = 0
@@ -223,6 +229,7 @@ def plot_images(image_paths):
             images_shown += 1
             if images_shown >= 9:
                 break
+
 
 """
 ## Get Multi-Modal retrieval results for some example queries

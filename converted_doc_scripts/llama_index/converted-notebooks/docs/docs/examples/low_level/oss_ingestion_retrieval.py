@@ -56,7 +56,8 @@ logger.info("# Building RAG from Scratch (Open-source only!)")
 # %pip install llama-index-llms-llama-cpp
 
 
-embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+embed_model = HuggingFaceEmbedding(
+    model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 """
 #### Llama CPP
@@ -151,7 +152,8 @@ logger.info("## Build an Ingestion Pipeline from Scratch")
 # from llama_index.readers.file import PyMuPDFReader
 
 # loader = PyMuPDFReader()
-documents = loader.load(file_path="./data/llama2.pdf")
+documents = loader.load(
+    file_path=f"{os.path.dirname(__file__)}/data/llama2.pdf")
 
 """
 ### 2. Use a Text Splitter to Split Documents
@@ -257,7 +259,6 @@ for index, node in enumerate(query_result.nodes):
 logger.info("### 4. Put into a Retriever")
 
 
-
 class VectorDBRetriever(BaseRetriever):
     """Retriever over a postgres vector store."""
 
@@ -295,6 +296,7 @@ class VectorDBRetriever(BaseRetriever):
             nodes_with_scores.append(NodeWithScore(node=node, score=score))
 
         return nodes_with_scores
+
 
 retriever = VectorDBRetriever(
     vector_store, embed_model, query_mode="default", similarity_top_k=2

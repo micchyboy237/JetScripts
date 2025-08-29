@@ -18,15 +18,14 @@ async def main():
     import asyncio
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/low_level/fusion_retriever.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
@@ -43,60 +42,60 @@ async def main():
     We load documents and build a simple vector index.
     """
     logger.info("# Building an Advanced Fusion Retriever from Scratch")
-    
+
     # %pip install llama-index-readers-file pymupdf
     # %pip install llama-index-llms-ollama
     # %pip install llama-index-retrievers-bm25
-    
+
     # import nest_asyncio
-    
+
     # nest_asyncio.apply()
-    
+
     """
     #### Load Documents
     """
     logger.info("#### Load Documents")
-    
+
     # !mkdir data
     # !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
-    
+
     """
     If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
     """
-    logger.info("If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.")
-    
+    logger.info(
+        "If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.")
+
     # !pip install llama-index
-    
+
     # from llama_index.readers.file import PyMuPDFReader
-    
+
     # loader = PyMuPDFReader()
-    documents = loader.load(file_path="./data/llama2.pdf")
-    
+    documents = loader.load(
+        file_path=f"{os.path.dirname(__file__)}/data/llama2.pdf")
+
     """
     #### Setup Models
     """
     logger.info("#### Setup Models")
-    
-    
+
     # os.environ["OPENAI_API_KEY"] = "sk-..."
-    
-    
-    llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
+
+    llm = OllamaFunctionCallingAdapter(
+        model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
     embed_model = HuggingFaceEmbedding(
         model="mxbai-embed-large", embed_batch_size=256
     )
-    
+
     """
     #### Load into Vector Store
     """
     logger.info("#### Load into Vector Store")
-    
-    
+
     splitter = SentenceSplitter(chunk_size=1024)
     index = VectorStoreIndex.from_documents(
         documents, transformations=[splitter], embed_model=embed_model
     )
-    
+
     """
     ## Define Advanced Retriever
     
@@ -114,10 +113,9 @@ async def main():
     We can do this by prompting ChatGPT.
     """
     logger.info("## Define Advanced Retriever")
-    
-    
+
     query_str = "How do the models developed in this work compare to open-source chat models based on the benchmarks tested?"
-    
+
     query_gen_prompt_str = (
         "You are a helpful assistant that generates multiple search queries based on a "
         "single input query. Generate {num_queries} search queries, one on each line, "
@@ -126,7 +124,7 @@ async def main():
         "Queries:\n"
     )
     query_gen_prompt = PromptTemplate(query_gen_prompt_str)
-    
+
     def generate_queries(llm, query_str: str, num_queries: int = 4):
         fmt_prompt = query_gen_prompt.format(
             num_queries=num_queries - 1, query=query_str
@@ -134,11 +132,11 @@ async def main():
         response = llm.complete(fmt_prompt)
         queries = response.text.split("\n")
         return queries
-    
+
     queries = generate_queries(llm, query_str, num_queries=4)
-    
+
     logger.debug(queries)
-    
+
     """
     ### Step 2: Perform Vector Search for Each Query
     
@@ -149,36 +147,32 @@ async def main():
     Here we'll use the retriever provided from our vector store. If you want to see how to build this from scratch please see [our tutorial on this](https://docs.llamaindex.ai/en/latest/examples/low_level/retrieval.html#put-this-into-a-retriever).
     """
     logger.info("### Step 2: Perform Vector Search for Each Query")
-    
-    
-    
+
     async def run_queries(queries, retrievers):
         """Run queries against retrievers."""
         tasks = []
         for query in queries:
             for i, retriever in enumerate(retrievers):
                 tasks.append(retriever.aretrieve(query))
-    
+
         task_results = await tqdm.gather(*tasks)
         logger.success(format_json(task_results))
-    
+
         results_dict = {}
         for i, (query, query_result) in enumerate(zip(queries, task_results)):
             results_dict[(query, i)] = query_result
-    
+
         return results_dict
-    
-    
-    
+
     vector_retriever = index.as_retriever(similarity_top_k=2)
-    
+
     bm25_retriever = BM25Retriever.from_defaults(
         docstore=index.docstore, similarity_top_k=2
     )
-    
+
     results_dict = await run_queries(queries, [vector_retriever, bm25_retriever])
     logger.success(format_json(results_dict))
-    
+
     """
     ### Step 3: Perform Fusion
     
@@ -193,15 +187,13 @@ async def main():
     Full paper here: https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf
     """
     logger.info("### Step 3: Perform Fusion")
-    
-    
-    
+
     def fuse_results(results_dict, similarity_top_k: int = 2):
         """Fuse results."""
         k = 60.0  # `k` is a parameter used to control the impact of outlier rankings.
         fused_scores = {}
         text_to_node = {}
-    
+
         for nodes_with_scores in results_dict.values():
             for rank, node_with_score in enumerate(
                 sorted(
@@ -213,23 +205,23 @@ async def main():
                 if text not in fused_scores:
                     fused_scores[text] = 0.0
                 fused_scores[text] += 1.0 / (rank + k)
-    
+
         reranked_results = dict(
             sorted(fused_scores.items(), key=lambda x: x[1], reverse=True)
         )
-    
+
         reranked_nodes: List[NodeWithScore] = []
         for text, score in reranked_results.items():
             reranked_nodes.append(text_to_node[text])
             reranked_nodes[-1].score = score
-    
+
         return reranked_nodes[:similarity_top_k]
-    
+
     final_results = fuse_results(results_dict)
-    
+
     for n in final_results:
         logger.debug(n.score, "\n", n.text, "\n********\n")
-    
+
     """
     **Analysis**: The above code has a few straightforward components.
     1. Go through each node in each retrieved list, and add it's reciprocal rank to the node's ID. The node's ID is the hash of it's text for dedup purposes.
@@ -241,13 +233,10 @@ async def main():
     Now we're ready to define this as a custom retriever, and plug it into our `RetrieverQueryEngine` (which does retrieval and synthesis).
     """
     logger.info("## Plug into RetrieverQueryEngine")
-    
-    
-    
-    
+
     class FusionRetriever(BaseRetriever):
         """Ensemble retriever with fusion."""
-    
+
         def __init__(
             self,
             llm,
@@ -259,7 +248,7 @@ async def main():
             self._similarity_top_k = similarity_top_k
             self._llm = llm
             super().__init__()
-    
+
         def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
             """Retrieve."""
             queries = generate_queries(
@@ -269,20 +258,19 @@ async def main():
             final_results = fuse_results(
                 results, similarity_top_k=self._similarity_top_k
             )
-    
+
             return final_results
-    
-    
+
     fusion_retriever = FusionRetriever(
         llm, [vector_retriever, bm25_retriever], similarity_top_k=2
     )
-    
+
     query_engine = RetrieverQueryEngine(fusion_retriever)
-    
+
     response = query_engine.query(query_str)
-    
+
     logger.debug(str(response))
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

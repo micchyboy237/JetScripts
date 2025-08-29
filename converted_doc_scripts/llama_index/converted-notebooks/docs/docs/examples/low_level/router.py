@@ -83,10 +83,13 @@ router_prompt0 = PromptTemplate(
 """
 Let's try this prompt on a set of toy questions and see what the output brings.
 """
-logger.info("Let's try this prompt on a set of toy questions and see what the output brings.")
+logger.info(
+    "Let's try this prompt on a set of toy questions and see what the output brings.")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
+
 
 def get_formatted_prompt(query_str):
     fmt_prompt = router_prompt0.format(
@@ -96,6 +99,7 @@ def get_formatted_prompt(query_str):
         query_str=query_str,
     )
     return fmt_prompt
+
 
 query_str = "Can you tell me more about the amount of Vitamin C in apples"
 fmt_prompt = get_formatted_prompt(query_str)
@@ -139,6 +143,7 @@ class Answer(BaseModel):
     choice: int
     reason: str
 
+
 logger.debug(json.dumps(Answer.schema(), indent=2))
 
 """
@@ -177,27 +182,30 @@ If we want to put `FORMAT_STR` as part of an f-string as part of a prompt templa
 """
 logger.info("If we want to put `FORMAT_STR` as part of an f-string as part of a prompt template, then we'll need to escape the curly braces so that they don't get treated as template variables.")
 
+
 def _escape_curly_braces(input_string: str) -> str:
     escaped_string = input_string.replace("{", "{{").replace("}", "}}")
     return escaped_string
+
 
 """
 We now define a simple parsing function to extract out the JSON string from the LLM response (by searching for square brackets)
 """
 logger.info("We now define a simple parsing function to extract out the JSON string from the LLM response (by searching for square brackets)")
 
+
 def _marshal_output_to_json(output: str) -> str:
     output = output.strip()
     left = output.find("[")
     right = output.find("]")
-    output = output[left : right + 1]
+    output = output[left: right + 1]
     return output
+
 
 """
 We put these together in our `RouterOutputParser`
 """
 logger.info("We put these together in our `RouterOutputParser`")
-
 
 
 class RouterOutputParser(BaseOutputParser):
@@ -211,6 +219,7 @@ class RouterOutputParser(BaseOutputParser):
     def format(self, prompt_template: str) -> str:
         return prompt_template + "\n\n" + _escape_curly_braces(FORMAT_STR)
 
+
 """
 ### 2.c Give it a Try
 
@@ -219,7 +228,6 @@ We create a function called `route_query` that will take in the output parser, l
 logger.info("### 2.c Give it a Try")
 
 output_parser = RouterOutputParser()
-
 
 
 def route_query(
@@ -240,6 +248,7 @@ def route_query(
 
     return parsed
 
+
 """
 ## 3. Perform Routing with a Function Calling Endpoint
 
@@ -254,7 +263,6 @@ We redefine our `Answer` class with annotations, as well as an `Answers` class c
 logger.info("## 3. Perform Routing with a Function Calling Endpoint")
 
 
-
 class Answer(BaseModel):
     "Represents a single choice with a reason."
     choice: int
@@ -265,6 +273,7 @@ class Answers(BaseModel):
     """Represents a list of answers."""
 
     answers: List[Answer]
+
 
 Answers.schema()
 
@@ -302,7 +311,8 @@ logger.info("## 4. Plug Router Module as part of a RAG pipeline")
 # from llama_index.readers.file import PyMuPDFReader
 
 # loader = PyMuPDFReader()
-documents = loader.load(file_path="./data/llama2.pdf")
+documents = loader.load(
+    file_path=f"{os.path.dirname(__file__)}/data/llama2.pdf")
 
 """
 ### Setup: Define Indexes
@@ -356,7 +366,8 @@ class RouterQueryEngine(CustomQueryEngine):
         if self.verbose:
             logger.debug(f"Selected choice(s):")
             for answer in output.answers:
-                logger.debug(f"Choice: {answer.choice}, Reason: {answer.reason}")
+                logger.debug(
+                    f"Choice: {answer.choice}, Reason: {answer.reason}")
 
         responses = []
         for answer in output.answers:
@@ -374,6 +385,7 @@ class RouterQueryEngine(CustomQueryEngine):
             )
             return result_response
 
+
 choices = [
     (
         "Useful for answering questions about specific sections of the Llama 2"
@@ -387,7 +399,8 @@ router_query_engine = RouterQueryEngine(
     choice_descriptions=choices,
     verbose=True,
     router_prompt=router_prompt1,
-    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
+    llm=OllamaFunctionCallingAdapter(
+        model="llama3.2", request_timeout=300.0, context_window=4096),
 )
 
 """

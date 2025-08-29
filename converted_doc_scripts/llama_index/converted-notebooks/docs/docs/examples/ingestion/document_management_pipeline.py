@@ -47,7 +47,8 @@ logger.info("# Ingestion Pipeline + Document Management")
 # !echo "This is a test file: two!" > data/test2.txt
 
 
-documents = SimpleDirectoryReader("./data", filename_as_id=True).load_data()
+documents = SimpleDirectoryReader(
+    f"{os.path.dirname(__file__)}/data", filename_as_id=True).load_data()
 
 """
 ## Create Pipeline with Document Store
@@ -55,11 +56,11 @@ documents = SimpleDirectoryReader("./data", filename_as_id=True).load_data()
 logger.info("## Create Pipeline with Document Store")
 
 
-
 pipeline = IngestionPipeline(
     transformations=[
         SentenceSplitter(),
-        HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
+        HuggingFaceEmbedding(
+            model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     ],
     docstore=SimpleDocumentStore(),
 )
@@ -82,7 +83,8 @@ pipeline.persist("./pipeline_storage")
 pipeline = IngestionPipeline(
     transformations=[
         SentenceSplitter(),
-        HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
+        HuggingFaceEmbedding(
+            model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     ]
 )
 
@@ -100,7 +102,8 @@ logger.info("## Test the Document Management")
 # !echo "This is a test file: three!" > data/test3.txt
 # !echo "This is a NEW test file: one!" > data/test1.txt
 
-documents = SimpleDirectoryReader("./data", filename_as_id=True).load_data()
+documents = SimpleDirectoryReader(
+    f"{os.path.dirname(__file__)}/data", filename_as_id=True).load_data()
 
 nodes = pipeline.run(documents=documents)
 

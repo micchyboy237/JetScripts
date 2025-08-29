@@ -58,7 +58,7 @@ logger.info("## The Image Dataset: PaperCards")
 logger.info("### Load PaperCards as ImageDocuments")
 
 
-image_path = "./data"
+image_path = f"{os.path.dirname(__file__)}/data"
 image_documents = SimpleDirectoryReader(image_path).load_data()
 
 img_doc = image_documents[0]
@@ -75,8 +75,8 @@ plt.show()
 
 Here we will define our data class (i.e., Pydantic BaseModel) that will hold the data that we extract from a given image or PaperCard.
 """
-logger.info("## Build Our MultiModalLLMCompletionProgram (Multimodal Structured Outputs)")
-
+logger.info(
+    "## Build Our MultiModalLLMCompletionProgram (Multimodal Structured Outputs)")
 
 
 class PaperCard(BaseModel):
@@ -99,6 +99,7 @@ class PaperCard(BaseModel):
         description="Describe what's being displayed in the technical bits section of the image."
     )
 
+
 """
 Next, we define our `MultiModalLLMCompletionProgram`. Here we actually will define three separate programs, one for each of the vision-capable GPT-4 models, namely: GPT-4o, GPT-4v, and GPT-4Turbo.
 """
@@ -109,9 +110,11 @@ Use the attached PaperCard image to extract data from it and store into the
 provided data class.
 """
 
-gpt_4o = OllamaFunctionCallingAdapterMultiModal(model="llama3.2", request_timeout=300.0, context_window=4096, max_new_tokens=4096)
+gpt_4o = OllamaFunctionCallingAdapterMultiModal(
+    model="llama3.2", request_timeout=300.0, context_window=4096, max_new_tokens=4096)
 
-gpt_4v = OllamaFunctionCallingAdapterMultiModal(model="llama3.2", request_timeout=300.0, context_window=4096, max_new_tokens=4096)
+gpt_4v = OllamaFunctionCallingAdapterMultiModal(
+    model="llama3.2", request_timeout=300.0, context_window=4096, max_new_tokens=4096)
 
 gpt_4turbo = OllamaFunctionCallingAdapterMultiModal(
     model="llama3.2", request_timeout=300.0, context_window=4096, max_new_tokens=4096
@@ -255,6 +258,7 @@ def display_results_and_papercard(ix: int):
     logger.debug()
     logger.debug("============================================\n")
 
+
 GRADES = {
     "gpt_4o": [0] * len(image_documents),
     "gpt_4v": [0] * len(image_documents),
@@ -289,12 +293,14 @@ def manual_evaluations(img_ix: Optional[int] = None):
     """
     if img_ix is None:
         for ix in range(len(image_documents)):
-            logger.debug(f"You are marking {ix + 1} out of {len(image_documents)}")
+            logger.debug(
+                f"You are marking {ix + 1} out of {len(image_documents)}")
             logger.debug()
             manual_evaluation_single(ix)
             clear_output(wait=True)
     else:
         manual_evaluation_single(img_ix)
+
 
 manual_evaluations()
 

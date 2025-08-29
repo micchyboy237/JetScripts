@@ -9,16 +9,14 @@ async def main():
     from llama_index.llms.anthropic import Anthropic
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
-    
+
     """
     # Stress-Testing Long Context LLMs with a Recall Task
     
@@ -31,39 +29,38 @@ async def main():
     We use a fixed document - the 2021 Uber 10-K, which contains ~290k tokens.
     """
     logger.info("# Stress-Testing Long Context LLMs with a Recall Task")
-    
+
     # %pip install llama-index-llms-ollama
     # %pip install llama-index-llms-anthropic
-    
+
     # import nest_asyncio
-    
+
     # nest_asyncio.apply()
-    
-    
+
     """
     ## Setup Data / Indexes
     
     We load the Uber 10-k
     """
     logger.info("## Setup Data / Indexes")
-    
+
     # !mkdir -p 'data/10k/'
     # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/uber_2021.pdf' -O 'data/10k/uber_2021.pdf'
-    
+
     uber_docs0 = SimpleDirectoryReader(
-        input_files=["./data/10k/uber_2021.pdf"]
+        input_files=[f"{os.path.dirname(__file__)}/data/10k/uber_2021.pdf"]
     ).load_data()
-    uber_doc = Document(text="\n\n".join([d.get_content() for d in uber_docs0]))
-    
+    uber_doc = Document(text="\n\n".join(
+        [d.get_content() for d in uber_docs0]))
+
     """
     We print the number of tokens below. Note that this overflows the context window of existing LLMs, requiring response synthesis strategies.
     """
     logger.info("We print the number of tokens below. Note that this overflows the context window of existing LLMs, requiring response synthesis strategies.")
-    
-    
+
     num_tokens = len(globals_helper.tokenizer(uber_doc.get_content()))
     logger.debug(f"NUM TOKENS: {num_tokens}")
-    
+
     """
     ## Try Out Different Experiments
     
@@ -72,21 +69,21 @@ async def main():
     Here we insert a single sentence of context that we're going to "hide" within the overall document at different positions.
     """
     logger.info("## Try Out Different Experiments")
-    
+
     context_str = "Jerry's favorite snack is Hot Cheetos."
     query_str = "What is Jerry's favorite snack?"
-    
+
     def augment_doc(doc_str, context, position):
         """Augment doc with additional context at a given position."""
         doc_str1 = doc_str[:position]
         doc_str2 = doc_str[position:]
-    
+
         return f"{doc_str1}...\n\n{context}\n\n...{doc_str2}"
-    
+
     test_str = augment_doc(
         uber_doc.get_content(), context_str, int(0.5 * len(uber_doc.get_content()))
     )
-    
+
     """
     ### Define Experiment Loop
     
@@ -98,17 +95,19 @@ async def main():
     5. Compare predicted response against expected response with our `CorrectnessEvaluator`
     """
     logger.info("### Define Experiment Loop")
-    
+
     async def run_experiments(
         doc, position_percentiles, context_str, query, llm, response_mode="compact"
     ):
-        eval_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
-    
+        eval_llm = OllamaFunctionCallingAdapter(
+            model="llama3.2", request_timeout=300.0, context_window=4096)
+
         correctness_evaluator = CorrectnessEvaluator(llm=eval_llm)
         eval_scores = {}
         for idx, position_percentile in enumerate(position_percentiles):
             logger.debug(f"Position percentile: {position_percentile}")
-            position_idx = int(position_percentile * len(uber_doc.get_content()))
+            position_idx = int(position_percentile *
+                               len(uber_doc.get_content()))
             new_doc_str = augment_doc(
                 uber_doc.get_content(), context_str, position_idx
             )
@@ -120,7 +119,7 @@ async def main():
                 response_mode=response_mode, llm=llm
             )
             logger.debug(f"Query: {query}")
-    
+
             response = query_engine.query(query)
             logger.debug(f"Response: {str(response)}")
             eval_result = correctness_evaluator.evaluate(
@@ -130,50 +129,53 @@ async def main():
             logger.debug(f"Eval score: {eval_score}")
             eval_scores[position_percentile] = eval_score
         return eval_scores
-    
-    position_percentiles = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-    
-    llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
-    
+
+    position_percentiles = [0.0, 0.1, 0.2,
+                            0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+    llm = OllamaFunctionCallingAdapter(
+        model="llama3.2", request_timeout=300.0, context_window=4096)
+
     eval_scores_gpt4 = await run_experiments(
-            [uber_doc],
-            position_percentiles,
-            context_str,
-            query_str,
-            llm,
-            response_mode="compact",
-        )
+        [uber_doc],
+        position_percentiles,
+        context_str,
+        query_str,
+        llm,
+        response_mode="compact",
+    )
     logger.success(format_json(eval_scores_gpt4))
-    
-    llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+
+    llm = OllamaFunctionCallingAdapter(
+        model="llama3.2", request_timeout=300.0, context_window=4096)
     eval_scores_gpt4_ts = await run_experiments(
-            [uber_doc],
-            position_percentiles,
-            context_str,
-            query_str,
-            llm,
-            response_mode="tree_summarize",
-        )
+        [uber_doc],
+        position_percentiles,
+        context_str,
+        query_str,
+        llm,
+        response_mode="tree_summarize",
+    )
     logger.success(format_json(eval_scores_gpt4_ts))
-    
+
     llm = Anthropic(model="claude-2")
-    
+
     eval_scores_anthropic = await run_experiments(
-            [uber_doc], position_percentiles, context_str, query_str, llm
-        )
+        [uber_doc], position_percentiles, context_str, query_str, llm
+    )
     logger.success(format_json(eval_scores_anthropic))
-    
+
     llm = Anthropic(model="claude-2")
     eval_scores_anthropic = await run_experiments(
-            [uber_doc],
-            position_percentiles,
-            context_str,
-            query_str,
-            llm,
-            response_mode="tree_summarize",
-        )
+        [uber_doc],
+        position_percentiles,
+        context_str,
+        query_str,
+        llm,
+        response_mode="tree_summarize",
+    )
     logger.success(format_json(eval_scores_anthropic))
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

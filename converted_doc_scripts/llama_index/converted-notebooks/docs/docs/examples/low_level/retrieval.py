@@ -98,7 +98,8 @@ logger.info("#### Load Documents")
 # from llama_index.readers.file import PyMuPDFReader
 
 # loader = PyMuPDFReader()
-documents = loader.load(file_path="./data/llama2.pdf")
+documents = loader.load(
+    file_path=f"{os.path.dirname(__file__)}/data/llama2.pdf")
 
 """
 #### Load into Vector Store
@@ -133,7 +134,8 @@ query_str = "Can you tell me about the key concepts for safety finetuning"
 logger.info("### 1. Generate a Query Embedding")
 
 
-embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+embed_model = HuggingFaceEmbedding(
+    model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 query_embedding = embed_model.get_query_embedding(query_str)
 
@@ -183,7 +185,6 @@ Let's put this into a Retriever subclass that can plug into the rest of LlamaInd
 logger.info("### 4. Put this into a Retriever")
 
 
-
 class PineconeRetriever(BaseRetriever):
     """Retriever over a pinecone vector store."""
 
@@ -225,6 +226,7 @@ class PineconeRetriever(BaseRetriever):
             nodes_with_scores.append(NodeWithScore(node=node, score=score))
 
         return nodes_with_scores
+
 
 retriever = PineconeRetriever(
     vector_store, embed_model, query_mode="default", similarity_top_k=2

@@ -45,7 +45,8 @@ logger.info("# NVIDIA NIMs")
 """
 Bring in a test dataset, a PDF about housing construction in San Francisco in 2021.
 """
-logger.info("Bring in a test dataset, a PDF about housing construction in San Francisco in 2021.")
+logger.info(
+    "Bring in a test dataset, a PDF about housing construction in San Francisco in 2021.")
 
 # !mkdir data
 # !wget "https://www.dropbox.com/scl/fi/p33j9112y0ysgwg77fdjz/2021_Housing_Inventory.pdf?rlkey=yyok6bb18s5o31snjd2dxkxz3&dl=0" -O "data/housing_data.pdf"
@@ -79,7 +80,8 @@ logger.info("Let's use a NVIDIA hosted NIM for the embedding model.")
 
 Settings.text_splitter = SentenceSplitter(chunk_size=500)
 
-documents = SimpleDirectoryReader("./data").load_data()
+documents = SimpleDirectoryReader(
+    f"{os.path.dirname(__file__)}/data").load_data()
 
 """
 We set our embedding model to NVIDIA's default. If a chunk exceeds the number of tokens the model can encode, the default is to throw an error, so we set `truncate="END"` to instead discard tokens that go over the limit (hopefully not many because of our chunk size above).
@@ -101,7 +103,8 @@ If you are using a local NIM, make sure you change the `base_url` to your deploy
 
 We're going to retrieve the top 5 most relevant chunks to answer our question.
 """
-logger.info("Now we've embedded our data and indexed it in memory, we set up our LLM that's self-hosted locally. NIM can be hosted locally using Docker in 5 minutes, following this [NIM quick start guide](https://docs.nvidia.com/nim/large-language-models/latest/getting-started.html).")
+logger.info(
+    "Now we've embedded our data and indexed it in memory, we set up our LLM that's self-hosted locally. NIM can be hosted locally using Docker in 5 minutes, following this [NIM quick start guide](https://docs.nvidia.com/nim/large-language-models/latest/getting-started.html).")
 
 Settings.llm = NVIDIA(model="meta/llama3-70b-instruct")
 
@@ -110,7 +113,8 @@ query_engine = index.as_query_engine(similarity_top_k=20)
 """
 Let's ask it a simple question we know is answered in one place in the document (on page 18).
 """
-logger.info("Let's ask it a simple question we know is answered in one place in the document (on page 18).")
+logger.info(
+    "Let's ask it a simple question we know is answered in one place in the document (on page 18).")
 
 response = query_engine.query(
     "How many new housing units were built in San Francisco in 2021?"
@@ -147,7 +151,7 @@ parser = LlamaParse(
 
 file_extractor = {".pdf": parser}
 documents2 = SimpleDirectoryReader(
-    "./data", file_extractor=file_extractor
+    f"{os.path.dirname(__file__)}/data", file_extractor=file_extractor
 ).load_data()
 
 index2 = VectorStoreIndex.from_documents(documents2)
@@ -163,7 +167,8 @@ Perfect! With a better parser, the LLM is able to answer the question.
 
 Let's now try a trickier question:
 """
-logger.info("Perfect! With a better parser, the LLM is able to answer the question.")
+logger.info(
+    "Perfect! With a better parser, the LLM is able to answer the question.")
 
 response = query_engine2.query(
     "How many affordable housing units were completed in 2021?"
@@ -175,7 +180,8 @@ The LLM is getting confused; this appears to be the percentage increase in housi
 
 Let's try giving the LLM more context (40 instead of 20) and then sorting those chunks with a reranker. We'll use NVIDIA's reranker for this:
 """
-logger.info("The LLM is getting confused; this appears to be the percentage increase in housing units.")
+logger.info(
+    "The LLM is getting confused; this appears to be the percentage increase in housing units.")
 
 
 query_engine3 = index2.as_query_engine(
@@ -190,6 +196,7 @@ logger.debug(response)
 """
 Excellent! Now the figure is correct (this is on page 35, in case you're wondering).
 """
-logger.info("Excellent! Now the figure is correct (this is on page 35, in case you're wondering).")
+logger.info(
+    "Excellent! Now the figure is correct (this is on page 35, in case you're wondering).")
 
 logger.info("\n\n[DONE]", bright=True)

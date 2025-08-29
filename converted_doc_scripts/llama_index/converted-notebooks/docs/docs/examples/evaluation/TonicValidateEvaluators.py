@@ -5,12 +5,12 @@ from llama_index.core import VectorStoreIndex
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.llama_dataset import LabelledRagDataset
 from llama_index.evaluation.tonic_validate import (
-AnswerConsistencyEvaluator,
-AnswerSimilarityEvaluator,
-AugmentationAccuracyEvaluator,
-AugmentationPrecisionEvaluator,
-RetrievalPrecisionEvaluator,
-TonicValidateEvaluator,
+    AnswerConsistencyEvaluator,
+    AnswerSimilarityEvaluator,
+    AugmentationAccuracyEvaluator,
+    AugmentationPrecisionEvaluator,
+    RetrievalPrecisionEvaluator,
+    TonicValidateEvaluator,
 )
 from tonic_validate.metrics import AnswerSimilarityMetric
 import json
@@ -41,7 +41,6 @@ logger.info("# Tonic Validate Evaluators")
 # %pip install llama-index-evaluation-tonic-validate
 
 
-
 """
 ## One Question Usage Example
 
@@ -64,11 +63,11 @@ logger.info("The answer similarity score is a score between 0 and 5 that scores 
 
 answer_similarity_evaluator = AnswerSimilarityEvaluator()
 score = answer_similarity_evaluator.evaluate(
-        question,
-        llm_answer,
-        retrieved_context_list,
-        reference_response=reference_answer,
-    )
+    question,
+    llm_answer,
+    retrieved_context_list,
+    reference_response=reference_answer,
+)
 logger.success(format_json(score))
 score
 
@@ -80,8 +79,8 @@ logger.info("The answer consistency score is between 0.0 and 1.0, and measure wh
 answer_consistency_evaluator = AnswerConsistencyEvaluator()
 
 score = answer_consistency_evaluator.evaluate(
-        question, llm_answer, retrieved_context_list
-    )
+    question, llm_answer, retrieved_context_list
+)
 logger.success(format_json(score))
 score
 
@@ -93,8 +92,8 @@ logger.info("Augmentation accuracy measeures the percentage of the retrieved con
 augmentation_accuracy_evaluator = AugmentationAccuracyEvaluator()
 
 score = augmentation_accuracy_evaluator.evaluate(
-        question, llm_answer, retrieved_context_list
-    )
+    question, llm_answer, retrieved_context_list
+)
 logger.success(format_json(score))
 score
 
@@ -106,8 +105,8 @@ logger.info("Augmentation precision measures whether the relevant retrieved cont
 augmentation_precision_evaluator = AugmentationPrecisionEvaluator()
 
 score = augmentation_precision_evaluator.evaluate(
-        question, llm_answer, retrieved_context_list
-    )
+    question, llm_answer, retrieved_context_list
+)
 logger.success(format_json(score))
 score
 
@@ -119,24 +118,25 @@ logger.info("Retrieval precision measures the percentage of retrieved context is
 retrieval_precision_evaluator = RetrievalPrecisionEvaluator()
 
 score = retrieval_precision_evaluator.evaluate(
-        question, llm_answer, retrieved_context_list
-    )
+    question, llm_answer, retrieved_context_list
+)
 logger.success(format_json(score))
 score
 
 """
 The `TonicValidateEvaluator` can calculate all of Tonic Validate's metrics at once.
 """
-logger.info("The `TonicValidateEvaluator` can calculate all of Tonic Validate's metrics at once.")
+logger.info(
+    "The `TonicValidateEvaluator` can calculate all of Tonic Validate's metrics at once.")
 
 tonic_validate_evaluator = TonicValidateEvaluator()
 
 scores = tonic_validate_evaluator.evaluate(
-        question,
-        llm_answer,
-        retrieved_context_list,
-        reference_response=reference_answer,
-    )
+    question,
+    llm_answer,
+    retrieved_context_list,
+    reference_response=reference_answer,
+)
 logger.success(format_json(scores))
 
 scores.score_dict
@@ -151,8 +151,8 @@ logger.info("You can also evaluate more than one query and response at once usin
 tonic_validate_evaluator = TonicValidateEvaluator()
 
 scores = tonic_validate_evaluator.evaluate_run(
-        [question], [llm_answer], [retrieved_context_list], [reference_answer]
-    )
+    [question], [llm_answer], [retrieved_context_list], [reference_answer]
+)
 logger.success(format_json(scores))
 scores.run_data[0].scores
 
@@ -168,11 +168,10 @@ logger.info("## Labelled RAG Dataset Example")
 # !llamaindex-cli download-llamadataset EvaluatingLlmSurveyPaperDataset --download-dir ./data
 
 
+rag_dataset = LabelledRagDataset.from_json(
+    f"{os.path.dirname(__file__)}/data/rag_dataset.json")
 
-
-rag_dataset = LabelledRagDataset.from_json("./data/rag_dataset.json")
-
-documents = SimpleDirectoryReader(input_dir="./data/source_files").load_data(
+documents = SimpleDirectoryReader(input_dir=f"{os.path.dirname(__file__)}/data/source_files").load_data(
     num_workers=4
 )  # parallel loading
 
@@ -195,21 +194,23 @@ tonic_validate_evaluator = TonicValidateEvaluator(
 )
 
 scores = tonic_validate_evaluator.evaluate_run(
-        questions, retrieved_context_lists, reference_answers, llm_answers
-    )
+    questions, retrieved_context_lists, reference_answers, llm_answers
+)
 logger.success(format_json(scores))
 
 """
 The `overall_scores` gives the average score over the 276 questions in the dataset.
 """
-logger.info("The `overall_scores` gives the average score over the 276 questions in the dataset.")
+logger.info(
+    "The `overall_scores` gives the average score over the 276 questions in the dataset.")
 
 scores.overall_scores
 
 """
 Using `pandas` and `matplotlib`, we can plot a histogram of the similarity scores.
 """
-logger.info("Using `pandas` and `matplotlib`, we can plot a histogram of the similarity scores.")
+logger.info(
+    "Using `pandas` and `matplotlib`, we can plot a histogram of the similarity scores.")
 
 
 score_list = [x.scores["answer_similarity"] for x in scores.run_data]

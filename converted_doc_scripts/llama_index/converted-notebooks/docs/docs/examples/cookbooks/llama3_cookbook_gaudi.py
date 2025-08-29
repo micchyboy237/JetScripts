@@ -1,14 +1,14 @@
 from huggingface_hub import notebook_login
 from jet.logger import CustomLogger
 from llama_index.core import (
-KnowledgeGraphIndex,
-StorageContext,
+    KnowledgeGraphIndex,
+    StorageContext,
 )
 from llama_index.core import (
-SimpleDirectoryReader,
-KnowledgeGraphIndex,
-Settings,
-StorageContext,
+    SimpleDirectoryReader,
+    KnowledgeGraphIndex,
+    Settings,
+    StorageContext,
 )
 from llama_index.core import PropertyGraphIndex
 from llama_index.core import SQLDatabase
@@ -28,19 +28,21 @@ from llama_index.graph_stores.neo4j import Neo4jGraphStore
 from llama_index.llms.gaudi import GaudiLLM
 from llama_index.readers.wikipedia import WikipediaReader
 from sqlalchemy import (
-create_engine,
-MetaData,
-Table,
-Column,
-String,
-Integer,
-select,
-column,
+    create_engine,
+    MetaData,
+    Table,
+    Column,
+    String,
+    Integer,
+    select,
+    column,
 )
 import argparse
 import neo4j
 import os
-import os, sys, logging
+import os
+import sys
+import logging
 import shutil
 
 
@@ -85,14 +87,13 @@ logger.info("# LLM Cookbook with Intel Gaudi")
 # nest_asyncio.apply()
 
 
-
-
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
     datefmt="%m/%d/%Y %H:%M:%S",
     level=logging.INFO,
 )
 logger = logging.getLogger(__name__)
+
 
 class AttributeContainer:
     def __init__(self, **kwargs):
@@ -155,8 +156,10 @@ args = AttributeContainer(
     bucket_internal=False,
 )
 
+
 def completion_to_prompt(completion):
     return f"<|system|>\n</s>\n<|user|>\n{completion}</s>\n<|assistant|>\n"
+
 
 def messages_to_prompt(messages):
     prompt = ""
@@ -174,6 +177,7 @@ def messages_to_prompt(messages):
     prompt = prompt + "<|assistant|>\n"
 
     return prompt
+
 
 """
 ### Setup LLM using Intel Gaudi
@@ -348,8 +352,8 @@ Here, we download and use a sample SQLite database with 11 tables, with various 
 """
 logger.info("## 4. Text-to-SQL")
 
-# !wget "https://www.sqlitetutorial.net/wp-content/uploads/2018/03/chinook.zip" -O "./data/chinook.zip"
-# !unzip "./data/chinook.zip"
+# !wget "https://www.sqlitetutorial.net/wp-content/uploads/2018/03/chinook.zip" -O f"{os.path.dirname(__file__)}/data/chinook.zip"
+# !unzip f"{os.path.dirname(__file__)}/data/chinook.zip"
 
 
 engine = create_engine("sqlite:///chinook.db")
@@ -388,7 +392,8 @@ logger.debug(response.metadata["sql_query"])
 """
 ## 5. Structured Data Extraction - Graph RAG with Local NEO4J Database
 """
-logger.info("## 5. Structured Data Extraction - Graph RAG with Local NEO4J Database")
+logger.info(
+    "## 5. Structured Data Extraction - Graph RAG with Local NEO4J Database")
 
 
 graph_store = Neo4jGraphStore(

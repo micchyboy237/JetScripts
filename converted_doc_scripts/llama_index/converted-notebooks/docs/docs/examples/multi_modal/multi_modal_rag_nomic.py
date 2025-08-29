@@ -64,7 +64,8 @@ logger.info("# Multi-Modal RAG using Nomic Embed and Anthropic.")
 ## Load and Download Multi-Modal datasets including texts and images from Wikipedia
 Parse wikipedia articles and save into local folder
 """
-logger.info("## Load and Download Multi-Modal datasets including texts and images from Wikipedia")
+logger.info(
+    "## Load and Download Multi-Modal datasets including texts and images from Wikipedia")
 
 
 wiki_titles = [
@@ -170,7 +171,8 @@ os.environ["NOMIC_API_KEY"] = ""
 """
 ## Build Multi Modal Vector Store using Text and Image embeddings under different collections
 """
-logger.info("## Build Multi Modal Vector Store using Text and Image embeddings under different collections")
+logger.info(
+    "## Build Multi Modal Vector Store using Text and Image embeddings under different collections")
 
 
 client = qdrant_client.QdrantClient(path="qdrant_db")
@@ -189,7 +191,8 @@ embedding_model = NomicEmbedding(
     vision_model_name="nomic-embed-vision-v1.5",
 )
 
-documents = SimpleDirectoryReader("./data_wiki/").load_data()
+documents = SimpleDirectoryReader(
+    f"{os.path.dirname(__file__)}/data_wiki/").load_data()
 index = MultiModalVectorStoreIndex.from_documents(
     documents,
     storage_context=storage_context,
@@ -201,7 +204,6 @@ index = MultiModalVectorStoreIndex.from_documents(
 ### Plot downloaded Images from Wikipedia
 """
 logger.info("### Plot downloaded Images from Wikipedia")
-
 
 
 def plot_images(image_metadata_dict):
@@ -228,6 +230,7 @@ def plot_images(image_metadata_dict):
 
 plot_images(image_metadata_dict)
 
+
 def plot_images(image_paths):
     images_shown = 0
     plt.figure(figsize=(16, 9))
@@ -243,6 +246,7 @@ def plot_images(image_paths):
             images_shown += 1
             if images_shown >= 9:
                 break
+
 
 """
 ## Get Multi-Modal retrieval results for some example queries

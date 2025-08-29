@@ -3,7 +3,7 @@ from googleapiclient import discovery
 from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
 from llama_index.agent.introspective import (
-ToolInteractiveReflectionAgentWorker,
+    ToolInteractiveReflectionAgentWorker,
 )
 from llama_index.agent.introspective import IntrospectiveAgentWorker
 from llama_index.agent.multi_hop.planner import MultiHopPlannerAgent
@@ -18,9 +18,9 @@ from llama_index.core.bridge.pydantic import Field
 from llama_index.core.ingestion import IngestionPipeline
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.memory import (
-VectorMemory,
-SimpleComposableMemory,
-ChatMemoryBuffer,
+    VectorMemory,
+    SimpleComposableMemory,
+    ChatMemoryBuffer,
 )
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.tools import FunctionTool
@@ -34,7 +34,7 @@ from llama_index.vector_stores.qdrant import QdrantVectorStore
 from numpy import random
 from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
-OTLPSpanExporter,
+    OTLPSpanExporter,
 )
 from opentelemetry.sdk import trace as trace_sdk
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
@@ -73,11 +73,11 @@ Follow the quickstart guide found [here](https://github.com/Arize-ai/openinferen
 logger.info("## Observability: Arize AI")
 
 # %pip install --upgrade \
-    openinference-instrumentation-llama-index \
+openinference-instrumentation-llama-index \
     opentelemetry-sdk \
     opentelemetry-exporter-otlp \
     "opentelemetry-proto>=1.12.0" \
-    arize-phoenix -q
+    arize-phoenix - q
 
 
 get_ipython().system = os.system
@@ -119,7 +119,8 @@ logger.info("## Example: A Gang of LLMs Tell A Story")
 anthropic_llm = Anthropic(model="claude-3-opus-20240229")
 cohere_llm = Cohere(model="command")
 mistral_llm = MistralAI(model="mistral-large-latest")
-openai_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+openai_llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
 
 theme = "over-the-top pizza toppings"
 start = anthropic_llm.complete(
@@ -181,10 +182,10 @@ logger.debug(response)
 logger.info("## Example: RAG Yields More Accurate Responses")
 
 # !mkdir data
-# !wget "https://cdn.pathfactory.com/assets/preprocessed/10580/b81532f1-95f3-4a1c-ba0d-80a56726e833/b81532f1-95f3-4a1c-ba0d-80a56726e833.pdf" -O "./data/gp-purpose-report-2022.pdf"
+# !wget "https://cdn.pathfactory.com/assets/preprocessed/10580/b81532f1-95f3-4a1c-ba0d-80a56726e833/b81532f1-95f3-4a1c-ba0d-80a56726e833.pdf" -O f"{os.path.dirname(__file__)}/data/gp-purpose-report-2022.pdf"
 
 
-loader = SimpleDirectoryReader(input_dir="./data")
+loader = SimpleDirectoryReader(input_dir=f"{os.path.dirname(__file__)}/data")
 documents = loader.load_data()
 index = VectorStoreIndex.from_documents(documents)
 rag = index.as_query_engine(llm=mistral_llm)
@@ -201,7 +202,8 @@ logger.debug(response)
 
 ### Step 1: Build Knowledge Store
 """
-logger.info("## Example: 3 Steps For Basic RAG (Unpacking the previous Example RAG)")
+logger.info(
+    "## Example: 3 Steps For Basic RAG (Unpacking the previous Example RAG)")
 
 """Load the data.
 
@@ -211,7 +213,7 @@ a container that holds the text of the document.
 """
 
 
-loader = SimpleDirectoryReader(input_dir="./data")
+loader = SimpleDirectoryReader(input_dir=f"{os.path.dirname(__file__)}/data")
 documents = loader.load_data()
 
 documents[1].text
@@ -230,7 +232,8 @@ vector_store = QdrantVectorStore(client=client, collection_name="test_store")
 pipeline = IngestionPipeline(
     transformations=[
         SentenceSplitter(),
-        HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
+        HuggingFaceEmbedding(
+            model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     ],
     vector_store=vector_store,
 )
@@ -299,7 +302,8 @@ logger.info("## Example: Graph RAG")
 index = PropertyGraphIndex.from_documents(
     documents[10:20],
     llm=openai_llm,
-    embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
+    embed_model=HuggingFaceEmbedding(
+        model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     show_progress=True,
 )
 
@@ -346,7 +350,8 @@ def uniform_random_sample(n: int) -> List[float]:
 
 rs_tool = FunctionTool.from_defaults(fn=uniform_random_sample)
 
-agent = OllamaFunctionCallingAdapterAgent.from_tools([rs_tool], llm=openai_llm, verbose=True)
+agent = OllamaFunctionCallingAdapterAgent.from_tools(
+    [rs_tool], llm=openai_llm, verbose=True)
 
 response = agent.chat(
     "Can you please give me a sample of 10 uniformly random numbers?"
@@ -364,7 +369,8 @@ logger.info("## Example: Agent Ingredients — Composable Memory")
 
 vector_memory = VectorMemory.from_defaults(
     vector_store=None,  # leave as None to use default in-memory vector store
-    embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
+    embed_model=HuggingFaceEmbedding(
+        model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     retriever_kwargs={"similarity_top_k": 2},
 )
 
@@ -374,6 +380,7 @@ composable_memory = SimpleComposableMemory.from_defaults(
     primary_memory=chat_memory_buffer,
     secondary_memory_sources=[vector_memory],
 )
+
 
 def multiply(a: int, b: int) -> int:
     """Multiply two integers and returns the result integer."""
@@ -423,7 +430,8 @@ response = agent_without_memory.chat(
 """
 logger.info("#### With memory")
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
 agent_worker = FunctionCallingAgentWorker.from_tools(
     [multiply_tool, mystery_tool], llm=openai_llm, verbose=True
 )
@@ -492,7 +500,6 @@ To perform steps 1. and 2., you can follow the instructions outlined here: https
 logger.info("## Example: Reflection Toxicity Reduction")
 
 
-
 class Perspective:
     """Custom class to interact with Perspective API."""
 
@@ -548,6 +555,7 @@ class Perspective:
 
 perspective = Perspective()
 
+
 def perspective_function_tool(
     text: str = Field(
         default_factory=str,
@@ -558,7 +566,6 @@ def perspective_function_tool(
     scores = perspective.get_toxicity_scores(text=text)
     max_key = max(scores, key=scores.get)
     return (max_key, scores[max_key] * 100)
-
 
 
 pespective_tool = FunctionTool.from_defaults(
@@ -674,7 +681,8 @@ query_engine_tools = [
     ),
 ]
 
-agent = OllamaFunctionCallingAdapterAgent.from_tools(query_engine_tools, verbose=True)
+agent = OllamaFunctionCallingAdapterAgent.from_tools(
+    query_engine_tools, verbose=True)
 
 response = agent.chat(query)
 

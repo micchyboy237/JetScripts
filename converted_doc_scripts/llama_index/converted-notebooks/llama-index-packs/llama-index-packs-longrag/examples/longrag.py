@@ -47,7 +47,7 @@ logger.info("## Usage")
 
 Settings.llm = OllamaFunctionCallingAdapter("gpt-4o")
 
-pack = LongRAGPack(data_dir="./data")
+pack = LongRAGPack(data_dir=f"{os.path.dirname(__file__)}/data")
 
 
 query_str = (
@@ -62,9 +62,11 @@ Other parameters include `chunk_size`, `similarity_top_k`, and `small_chunk_size
 - `similarity_top_k`: Retrieves the top k large retrieval units. The default is 8, and based on the paper, the ideal range is 4-8.
 - `small_chunk_size`: To compare similarities, each large retrieval unit is split into smaller child retrieval units of `small_chunk_size` tokens. The embeddings of these smaller retrieval units are compared to the query embeddings. The top k large parent retrieval units are chosen based on the maximum scores of their smaller child retrieval units. The default size is 512.
 """
-logger.info("Other parameters include `chunk_size`, `similarity_top_k`, and `small_chunk_size`.")
+logger.info(
+    "Other parameters include `chunk_size`, `similarity_top_k`, and `small_chunk_size`.")
 
-pack = LongRAGPack(data_dir="./data", chunk_size=None, similarity_top_k=4)
+pack = LongRAGPack(
+    data_dir=f"{os.path.dirname(__file__)}/data", chunk_size=None, similarity_top_k=4)
 query_str = (
     "How can Pittsburgh become a startup hub, and what are the two types of moderates?"
 )
@@ -91,7 +93,8 @@ logger.info("Below is an example of loading an index.")
 
 ctx = StorageContext.from_defaults(persist_dir="./paul_graham")
 index = load_index_from_storage(ctx)
-pack_from_idx = LongRAGPack(data_dir="./data", index=index)
+pack_from_idx = LongRAGPack(
+    data_dir=f"{os.path.dirname(__file__)}/data", index=index)
 query_str = (
     "How can Pittsburgh become a startup hub, and what are the two types of moderates?"
 )

@@ -2,21 +2,21 @@ async def main():
     from jet.transformers.formatters import format_json
     from jet.logger import CustomLogger
     from llama_index.core import (
-    VectorStoreIndex,
-    StorageContext,
-    load_index_from_storage,
+        VectorStoreIndex,
+        StorageContext,
+        load_index_from_storage,
     )
     from llama_index.core import Settings
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.core.llms import ChatMessage, MessageRole
     from llama_index.core.tools import QueryEngineTool
     from llama_index.core.workflow import (
-    step,
-    Event,
-    Context,
-    StartEvent,
-    StopEvent,
-    Workflow,
+        step,
+        Event,
+        Context,
+        StartEvent,
+        StopEvent,
+        Workflow,
     )
     from llama_index.embeddings.nvidia import NVIDIAEmbedding
     from llama_index.llms.nvidia import NVIDIA
@@ -24,15 +24,14 @@ async def main():
     from typing import List
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     # Document Research Assistant for Blog Creation
     
@@ -71,14 +70,14 @@ async def main():
     ### Install Dependencies
     """
     logger.info("# Document Research Assistant for Blog Creation")
-    
+
     # !pip install llama-index-core
     # !pip install llama-index-core
     # !pip install llama-index-llms-nvidia
     # !pip install llama-index-embeddings-nvidia
     # !pip install llama-index-utils-workflow
     # !pip install llama-parse
-    
+
     """
     If your environment does not have `wget` , make sure to install that as well.
     
@@ -87,13 +86,13 @@ async def main():
     The data for this notebook is the City of San Francisco's Proposed Budget.
     """
     logger.info("### Download data")
-    
+
     # !wget "https://www.dropbox.com/scl/fi/vip161t63s56vd94neqlt/2023-CSF_Proposed_Budget_Book_June_2023_Master_Web.pdf?rlkey=hemoce3w1jsuf6s2bz87g549i&dl=0" -O "san_francisco_budget_2023.pdf"
-    
+
     # import nest_asyncio
-    
+
     # nest_asyncio.apply()
-    
+
     """
     ## API Keys
     Prior to getting started, you will need to create API Keys for the NVIDIA API Catalog if you're not self-hosting a model and LlamaIndex to use LlamaCloud. 
@@ -114,31 +113,29 @@ async def main():
     First, set the NVIDIA API Key as the environment variable.
     """
     logger.info("## API Keys")
-    
+
     # import getpass
-    
+
     if not os.environ.get("NVIDIA_API_KEY", "").startswith("nvapi-"):
-    #     nvapi_key = getpass.getpass("Enter your NVIDIA API key: ")
+        #     nvapi_key = getpass.getpass("Enter your NVIDIA API key: ")
         assert nvapi_key.startswith(
             "nvapi-"
         ), f"{nvapi_key[:5]}... is not a valid key"
         os.environ["NVIDIA_API_KEY"] = nvapi_key
-    
+
     """
     Next, set the LlamaIndex API Key for LlamaCloud.
     """
     logger.info("Next, set the LlamaIndex API Key for LlamaCloud.")
-    
+
     # import os, getpass
-    
-    
+
     def _set_env(var: str):
         if not os.environ.get(var):
-    #         os.environ[var] = getpass.getpass(f"{var}: ")
-    
-    
+            #         os.environ[var] = getpass.getpass(f"{var}: ")
+
     _set_env("LLAMA_CLOUD_API_KEY")
-    
+
     """
     ### Working with the NVIDIA API Catalog
     Let's test the API endpoint.
@@ -146,10 +143,9 @@ async def main():
     We'll use both an LLM and embedding model in this notebook so we'll import both the packages now.
     """
     logger.info("### Working with the NVIDIA API Catalog")
-    
-    
+
     llm = NVIDIA(model="meta/llama-3.3-70b-instruct")
-    
+
     messages = [
         ChatMessage(
             role=MessageRole.SYSTEM,
@@ -160,11 +156,11 @@ async def main():
             content=("What are the most popular house pets in North America?"),
         ),
     ]
-    
+
     response = llm.chat(messages)
-    
+
     logger.debug(response)
-    
+
     """
     ### Optional: Locally Run NVIDIA NIM Microservices
     
@@ -177,12 +173,11 @@ async def main():
     </div>
     """
     logger.info("### Optional: Locally Run NVIDIA NIM Microservices")
-    
-    
+
     Settings.llm = NVIDIA(
         base_url="http://localhost:8000/v1", model="meta/llama-3.3-70b-instruct"
     )
-    
+
     """
     ### Set LLM and Embedding Model
     
@@ -190,62 +185,59 @@ async def main():
     You will also use NVIDIA's embedding model, llama-3.2-nv-embedqa-1b-v2.
     """
     logger.info("### Set LLM and Embedding Model")
-    
-    
+
     Settings.llm = NVIDIA(model="meta/llama-3.3-70b-instruct")
     Settings.embed_model = NVIDIAEmbedding(
         model="nvidia/llama-3.2-nv-embedqa-1b-v2", truncate="END"
     )
-    
+
     """
     ## Create New Index from Document
     """
     logger.info("## Create New Index from Document")
-    
-    
-    DATA_DIR = "./data"
+
+    DATA_DIR = f"{os.path.dirname(__file__)}/data"
     PERSIST_DIR = "./storage"
-    
+
     if os.path.exists(PERSIST_DIR):
         logger.debug("Loading existing index...")
         storage_context = StorageContext.from_defaults(persist_dir=PERSIST_DIR)
         index = load_index_from_storage(storage_context)
     else:
         logger.debug("Creating new index...")
-    
+
         file_path = "./san_francisco_budget_2023.pdf"
-    
+
         documents = LlamaParse(result_type="markdown").load_data(file_path)
-    
+
         index = VectorStoreIndex.from_documents(documents)
         index.storage_context.persist(persist_dir=PERSIST_DIR)
-    
+
     """
     ### Run a Query Against the Index
     Create a Query engine from the Index. A Query Engine is a generic interface that allows you to ask question over your data.
     Here, the parameter `similarity_top_k` is set to 10. If you are using your own documents, you can play around with this parameter.
     """
     logger.info("### Run a Query Against the Index")
-    
+
     query_engine = index.as_query_engine(similarity_top_k=10)
     response = query_engine.query(
         "What was San Francisco's budget for Police in 2023?"
     )
     logger.debug(response)
-    
+
     """
     ## Create Engine Query Tool
     Next, create a Query Engine Tool. This takes the Query Engine defined earlier and wraps it as a tool the Agent can use.
     """
     logger.info("## Create Engine Query Tool")
-    
-    
+
     budget_tool = QueryEngineTool.from_defaults(
         query_engine,
         name="san_francisco_budget_2023",
         description="A RAG engine with extremely detailed information about the 2023 San Francisco budget.",
     )
-    
+
     """
     ## Build the Agent
     
@@ -262,30 +254,23 @@ async def main():
       * those questions are answered and the process repeats
     """
     logger.info("## Build the Agent")
-    
-    
-    
+
     class OutlineEvent(Event):
         outline: str
-    
-    
+
     class QuestionEvent(Event):
         question: str
-    
-    
+
     class AnswerEvent(Event):
         question: str
         answer: str
-    
-    
+
     class ReviewEvent(Event):
         report: str
-    
-    
+
     class ProgressEvent(Event):
         progress: str
-    
-    
+
     class DocumentResearchAgent(Workflow):
         @step
         async def formulate_plan(
@@ -294,28 +279,28 @@ async def main():
             query = ev.query
             await ctx.store.set("original_query", query)
             await ctx.store.set("tools", ev.tools)
-    
+
             prompt = f"""You are an expert at writing blog posts. You have been given a topic to write
             a blog post about. Plan an outline for the blog post; it should be detailed and specific.
             Another agent will formulate questions to find the facts necessary to fulfill the outline.
             The topic is: {query}"""
-    
+
             response = Settings.llm.complete(prompt)
             logger.success(format_json(response))
-    
+
             ctx.write_event_to_stream(
                 ProgressEvent(progress="Outline:\n" + str(response))
             )
-    
+
             return OutlineEvent(outline=str(response))
-    
+
         @step
         async def formulate_questions(
             self, ctx: Context, ev: OutlineEvent
         ) -> QuestionEvent:
             outline = ev.outline
             await ctx.store.set("outline", outline)
-    
+
             prompt = f"""You are an expert at formulating research questions. You have been given an outline
             for a blog post. Formulate a series of simple questions that will get you the facts necessary
             to fulfill the outline. You cannot assume any existing knowledge; you must ask at least one
@@ -323,28 +308,28 @@ async def main():
             them down into a series of simple questions. Your output should be a list of questions, each
             on a new line. Do not include headers or categories or any preamble or explanation; just a
             list of questions. For speed of response, limit yourself to 8 questions. The outline is: {outline}"""
-    
+
             response = Settings.llm.complete(prompt)
             logger.success(format_json(response))
-    
+
             questions = str(response).split("\n")
             questions = [x for x in questions if x]
-    
+
             ctx.write_event_to_stream(
                 ProgressEvent(
                     progress="Formulated questions:\n" + "\n".join(questions)
                 )
             )
-    
+
             await ctx.store.set("num_questions", len(questions))
-    
+
             ctx.write_event_to_stream(
                 ProgressEvent(progress="Questions:\n" + "\n".join(questions))
             )
-    
+
             for question in questions:
                 ctx.send_event(QuestionEvent(question=question))
-    
+
         @step
         async def answer_question(
             self, ctx: Context, ev: QuestionEvent
@@ -368,15 +353,15 @@ async def main():
             response = await agent.run(question)
             logger.success(format_json(response))
             response = str(response)
-    
+
             ctx.write_event_to_stream(
                 ProgressEvent(
                     progress=f"To question '{question}' the agent answered: {response}"
                 )
             )
-    
+
             return AnswerEvent(question=question, answer=response)
-    
+
         @step
         async def write_report(self, ctx: Context, ev: AnswerEvent) -> ReviewEvent:
             num_questions = await ctx.store.get("num_questions")
@@ -384,7 +369,7 @@ async def main():
             results = ctx.collect_events(ev, [AnswerEvent] * num_questions)
             if results is None:
                 return None
-    
+
             try:
                 previous_questions = await ctx.store.get("previous_questions")
                 logger.success(format_json(previous_questions))
@@ -392,26 +377,27 @@ async def main():
                 previous_questions = []
             previous_questions.extend(results)
             await ctx.store.set("previous_questions", previous_questions)
-    
+
             prompt = f"""You are an expert at writing blog posts. You are given an outline of a blog post
             and a series of questions and answers that should provide all the data you need to write the
             blog post. Compose the blog post according to the outline, using only the data given in the
             answers. The outline is in <outline> and the questions and answers are in <questions> and
             <answers>.
             <outline>{await ctx.store.get('outline')}</outline>"""
-    
+
             for result in previous_questions:
                 prompt += f"<question>{result.question}</question>\n<answer>{result.answer}</answer>\n"
-    
+
             ctx.write_event_to_stream(
-                ProgressEvent(progress="Writing report with prompt:\n" + prompt)
+                ProgressEvent(
+                    progress="Writing report with prompt:\n" + prompt)
             )
-    
+
             report = Settings.llm.complete(prompt)
             logger.success(format_json(report))
-    
+
             return ReviewEvent(report=str(report))
-    
+
         @step
         async def review_report(
             self, ctx: Context, ev: ReviewEvent
@@ -423,9 +409,9 @@ async def main():
                 num_reviews = 1
             num_reviews += 1
             await ctx.store.set("num_reviews", num_reviews)
-    
+
             report = ev.report
-    
+
             prompt = f"""You are an expert reviewer of blog posts. You are given an original query,
             and a blog post that was written to satisfy that query. Review the blog post and determine
             if it adequately answers the query and contains enough detail. If it doesn't, come up with
@@ -435,10 +421,10 @@ async def main():
             The original query is: '{await ctx.store.get('original_query')}'.
             The blog post is: <blogpost>{report}</blogpost>.
             If the blog post is fine, return just the string 'OKAY'."""
-    
+
             response = Settings.llm.complete(prompt)
             logger.success(format_json(response))
-    
+
             if response == "OKAY" or await ctx.store.get("num_reviews") >= 3:
                 ctx.write_event_to_stream(
                     ProgressEvent(progress="Blog post is fine")
@@ -452,14 +438,14 @@ async def main():
                 )
                 for question in questions:
                     ctx.send_event(QuestionEvent(question=question))
-    
+
     """
     ## Test the Agent
     
     Run the Agent with a query and look at the generated blog post written to answer it
     """
     logger.info("## Test the Agent")
-    
+
     agent = DocumentResearchAgent(timeout=600, verbose=True)
     handler = agent.run(
         query="Tell me about the budget of the San Francisco Police Department in 2023",
@@ -471,7 +457,7 @@ async def main():
     final_result = await handler
     logger.success(format_json(final_result))
     logger.debug("------- Blog post ----------\n", final_result)
-    
+
     """
     ## Sample output rendered as markdown
     
@@ -514,7 +500,7 @@ async def main():
     As you can see in the output, the agent attempts to fulfill the request with an initial set of questions and answers, decides it needs more input, and asks more questions before settling on the final result. This ability to self-reflect and improve is part of why agentic strategies are such a powerful way to improve the quality of generative AI output.
     """
     logger.info("## Sample output rendered as markdown")
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

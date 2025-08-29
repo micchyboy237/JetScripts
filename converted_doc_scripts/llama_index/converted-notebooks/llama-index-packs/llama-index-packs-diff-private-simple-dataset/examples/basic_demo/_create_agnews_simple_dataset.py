@@ -1,8 +1,8 @@
 from jet.logger import CustomLogger
 from llama_index.core.llama_dataset.base import CreatedBy, CreatedByType
 from llama_index.core.llama_dataset.simple import (
-LabelledSimpleDataExample,
-LabelledSimpleDataset,
+    LabelledSimpleDataExample,
+    LabelledSimpleDataset,
 )
 import os
 import pandas as pd
@@ -34,7 +34,7 @@ logger.info("### Load data")
 # !mkdir -p "data/agnews/"
 # !wget "https://www.dropbox.com/scl/fi/wzcuxuv2yo8gjp5srrslm/train.csv?rlkey=6kmofwjvsamlf9dj15m34mjw9&dl=1" -O "data/agnews/train.csv"
 
-df = pd.read_csv("./data/agnews/train.csv")
+df = pd.read_csv(f"{os.path.dirname(__file__)}/data/agnews/train.csv")
 
 class_to_label = {1: "World", 2: "Sports", 3: "Business", 4: "Sci/Tech"}
 

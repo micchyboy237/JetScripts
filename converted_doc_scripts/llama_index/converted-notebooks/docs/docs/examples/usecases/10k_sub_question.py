@@ -34,7 +34,6 @@ logger.info("# 10K Analysis")
 # nest_asyncio.apply()
 
 
-
 """
 ## Configure LLM service
 """
@@ -44,7 +43,8 @@ logger.info("## Configure LLM service")
 # os.environ["OPENAI_API_KEY"] = "YOUR_API_KEY"
 
 
-Settings.llm = OllamaFunctionCallingAdapter(temperature=0.2, model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = OllamaFunctionCallingAdapter(
+    temperature=0.2, model="llama3.2", request_timeout=300.0, context_window=4096)
 
 """
 ## Download Data
@@ -61,10 +61,10 @@ logger.info("## Download Data")
 logger.info("## Load data")
 
 lyft_docs = SimpleDirectoryReader(
-    input_files=["./data/10k/lyft_2021.pdf"]
+    input_files=[f"{os.path.dirname(__file__)}/data/10k/lyft_2021.pdf"]
 ).load_data()
 uber_docs = SimpleDirectoryReader(
-    input_files=["./data/10k/uber_2021.pdf"]
+    input_files=[f"{os.path.dirname(__file__)}/data/10k/uber_2021.pdf"]
 ).load_data()
 
 """

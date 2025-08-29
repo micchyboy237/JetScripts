@@ -70,7 +70,8 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 logger.info("## Load Data, Build Index")
 
 
-Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = OllamaFunctionCallingAdapter(
+    temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
 Settings.chunk_size = 512
 
 """
@@ -106,7 +107,8 @@ for title in wiki_titles:
     with open(data_path / f"{title}.txt", "w") as fp:
         fp.write(wiki_text)
 
-documents = SimpleDirectoryReader("./data_wiki/").load_data()
+documents = SimpleDirectoryReader(
+    f"{os.path.dirname(__file__)}/data_wiki/").load_data()
 
 """
 ### Build vector store index for this Wikipedia page
@@ -128,8 +130,6 @@ Steps:
 logger.info("## Retrieval + RankGPT reranking")
 
 
-
-
 def get_retrieved_nodes(
     query_str, vector_top_k=10, reranker_top_n=3, with_reranker=False
 ):
@@ -145,7 +145,7 @@ def get_retrieved_nodes(
             llm=OllamaFunctionCallingAdapter(
                 model="llama3.2", request_timeout=300.0, context_window=4096,
                 temperature=0.0,
-#                 api_key=OPENAI_API_KEY,
+                #                 api_key=OPENAI_API_KEY,
             ),
             top_n=reranker_top_n,
             verbose=True,
@@ -168,6 +168,7 @@ def visualize_retrieved_nodes(nodes) -> None:
         result_dicts.append(result_dict)
 
     pretty_logger.debug(pd.DataFrame(result_dicts))
+
 
 """
 ### Retrieval top 3 results without Reranking
@@ -211,7 +212,8 @@ visualize_retrieved_nodes(new_nodes)
 
 ### Using `Ollama` for serving local `Mistral` models
 """
-logger.info("#### Finding: After RankGPT reranking, the top 1st result is the right text containing the answer")
+logger.info(
+    "#### Finding: After RankGPT reranking, the top 1st result is the right text containing the answer")
 
 
 llm = Ollama(
@@ -219,8 +221,6 @@ llm = Ollama(
     request_timeout=30.0,
     context_window=8000,
 )
-
-
 
 
 def get_retrieved_nodes(
@@ -244,6 +244,7 @@ def get_retrieved_nodes(
         )
 
     return retrieved_nodes
+
 
 new_nodes = get_retrieved_nodes(
     "Which date did Paul Gauguin arrive in Arles ?",

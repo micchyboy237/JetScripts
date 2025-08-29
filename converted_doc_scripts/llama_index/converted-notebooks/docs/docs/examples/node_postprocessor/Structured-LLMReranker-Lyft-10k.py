@@ -41,7 +41,6 @@ logger.info("# Structured LLM Reranker Demonstration (2021 Lyft 10-k)")
 # nest_asyncio.apply()
 
 
-
 """
 ## Download Data
 """
@@ -62,7 +61,7 @@ Settings.chunk_overlap = 0
 Settings.chunk_size = 128
 
 documents = SimpleDirectoryReader(
-    input_files=["./data/10k/lyft_2021.pdf"]
+    input_files=[f"{os.path.dirname(__file__)}/data/10k/lyft_2021.pdf"]
 ).load_data()
 
 index = VectorStoreIndex.from_documents(
@@ -73,7 +72,6 @@ index = VectorStoreIndex.from_documents(
 ## Retrieval Comparisons
 """
 logger.info("## Retrieval Comparisons")
-
 
 
 def get_retrieved_nodes(
@@ -114,6 +112,7 @@ def visualize_retrieved_nodes(nodes) -> None:
         result_dicts.append(result_dict)
 
     pretty_logger.debug(pd.DataFrame(result_dicts))
+
 
 new_nodes = get_retrieved_nodes(
     "What is Lyft's response to COVID-19?", vector_top_k=5, with_reranker=False

@@ -61,7 +61,7 @@ logger.info("Download Data")
 # !mkdir -p 'data/10k/'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/lyft_2021.pdf' -O 'data/10k/lyft_2021.pdf'
 
-docs = reader.load_data("./data/10k/lyft_2021.pdf")
+docs = reader.load_data(f"{os.path.dirname(__file__)}/data/10k/lyft_2021.pdf")
 
 
 node_parser = SentenceSplitter()
@@ -108,16 +108,19 @@ class SECTextChunk(Base):
     text = mapped_column(String)
     embedding = mapped_column(Vector(384))
 
+
 Base.metadata.drop_all(engine)
 Base.metadata.create_all(engine)
 
 """
 #### Generate embedding for each Node with a sentence_transformers model
 """
-logger.info("#### Generate embedding for each Node with a sentence_transformers model")
+logger.info(
+    "#### Generate embedding for each Node with a sentence_transformers model")
 
 
-embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+embed_model = HuggingFaceEmbedding(
+    model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 for node in nodes:
     text_embedding = embed_model.get_text_embedding(node.get_content())
@@ -203,10 +206,10 @@ either tabular querying or semantic search.
 logger.info("### Setup LLM, Embedding Model, and Misc.")
 
 
-
 sql_database = SQLDatabase(engine, include_tables=["sec_text_chunk"])
 
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
 Settings.embed_model = embed_model
 
 

@@ -10,18 +10,16 @@ async def main():
     import openai
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
-    
+
     openai.api_key = "sk-your-key"
-    
+
     """
     ## Leveraging the GraphQL schema in our Agent
     
@@ -34,13 +32,12 @@ async def main():
     From the schema, a **QueryRoot** is `The schema's entry-point for queries. This acts as the public, top-level API from which all queries must start.` Because these obejcts are so critical to writing good queries, it's worth passing them into the agent.
     """
     logger.info("## Leveraging the GraphQL schema in our Agent")
-    
-    
+
     with open("data/shopify_graphql.txt", "r") as f:
         txt = f.read()
-    
+
     ast = parse(txt)
-    
+
     query_root_node = next(
         (
             defn
@@ -50,7 +47,7 @@ async def main():
     )
     query_roots = [field.name.value for field in query_root_node.fields]
     logger.debug(query_roots)
-    
+
     """
     ## Setting up SDLReader and OnDemandLoaderTool
     
@@ -59,8 +56,7 @@ async def main():
     The **SDLReader** is consuming our GraphQL spec and intelligently breaking it into chunks based on the definitions in the schema. By wrapping the **SDLReader** with the **OnDemandLoaderTool**, there is essentially a sub-model that is processing our query_str, retriving any relevant chunks of data from the GraphQL schema, and then intrpreting those chunks in relation to our query. This lets us ask arbitrary natural language questions, and get back intelligent responses based on the GraphQL schema.
     """
     logger.info("## Setting up SDLReader and OnDemandLoaderTool")
-    
-    
+
     documentation_tool = OnDemandLoaderTool.from_defaults(
         SDLReader(),
         name="graphql_writer",
@@ -77,30 +73,30 @@ async def main():
     
             """,
     )
-    
+
     logger.debug(
         documentation_tool(
-            "./data/shopify_graphql.txt",
+            f"{os.path.dirname(__file__)}/data/shopify_graphql.txt",
             query_str="Write a graphql query to retrieve the first 3 products from a store",
         )
     )
     logger.debug(
         documentation_tool(
-            "./data/shopify_graphql.txt",
+            f"{os.path.dirname(__file__)}/data/shopify_graphql.txt",
             query_str="what fields can you retrieve from the products object",
         )
     )
-    
+
     """
     ## Setting up the Shopify Tool
     
     We've now set up a tool that ourselves or an Agent can call with natural language, and get information or create queries based on our schema. We can now initialize the Shopify tool and even test it out with the prompt that was written, adding in some of the extra fields the documentation returned us:
     """
     logger.info("## Setting up the Shopify Tool")
-    
-    
-    shopify_tool = ShopifyToolSpec("your-store.myshopify.com", "2023-04", "your-key")
-    
+
+    shopify_tool = ShopifyToolSpec(
+        "your-store.myshopify.com", "2023-04", "your-key")
+
     shopify_tool.run_graphql_query(
         """
     query {
@@ -116,7 +112,7 @@ async def main():
       }
     }"""
     )
-    
+
     """
     ## Creating a Data Agent
     
@@ -125,8 +121,7 @@ async def main():
     Our next step is to pass these tools to a Data Agent, and allow them access to use the tools and interpret the outputs for the user. We supply the Agent with a system prompt on initilization that gives them some extra info, like the **QueryRoot** objects we processed above, and some instructions on how to effectively use the tools:
     """
     logger.info("## Creating a Data Agent")
-    
-    
+
     agent = FunctionAgent(
         tools=[*shopify_tool.to_tool_list(), documentation_tool],
         system_prompt=f"""
@@ -144,18 +139,19 @@ async def main():
         If the GraphQL you execute returns an error, either directly fix the query, or directly ask the graphql_writer questions about the schema instead of writing graphql queries.
         Then use that information to write the correct graphql query
         """,
-        llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
+        llm=OllamaFunctionCallingAdapter(
+            model="llama3.2", request_timeout=300.0, context_window=4096),
     )
-    
+
     logger.debug(await agent.run("What are the most recent orders my store received"))
-    
+
     """
     ## Conclusion
     
     We can see the Agent was able to handle the errors from the GraphQL endpoint to modify the queries, and used our documentation tool to gather more information on the schema to ulimately return a helpful response to the user. Neat!
     """
     logger.info("## Conclusion")
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

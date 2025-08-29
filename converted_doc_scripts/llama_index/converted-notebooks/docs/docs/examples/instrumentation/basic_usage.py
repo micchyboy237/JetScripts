@@ -55,6 +55,7 @@ Defining your custom `EventHandler` involves subclassing the `BaseEventHandler`.
 """
 logger.info("Defining your custom `EventHandler` involves subclassing the `BaseEventHandler`. Doing so, requires defining logic for the abstract method `handle()`.")
 
+
 class MyEventHandler(BaseEventHandler):
     @classmethod
     def class_name(cls) -> str:
@@ -69,14 +70,13 @@ class MyEventHandler(BaseEventHandler):
             f.write(str(event))
             f.write("\n")
 
+
 """
 ### Custom Span Handlers
 
 `SpanHandler` also involve subclassing a base class, in this case `BaseSpanHandler`. However, since `SpanHandler`'s work with an associated `Span` type, you will need to create this as well if you want to handle a new `Span` type.
 """
 logger.info("### Custom Span Handlers")
-
-
 
 
 class MyCustomSpan(BaseSpan):
@@ -124,10 +124,12 @@ class MyCustomSpanHandler(BaseSpanHandler[MyCustomSpan]):
         """Logic for preparing to drop a span."""
         pass
 
+
 """
 For this notebook, we'll use `SimpleSpanHandler` that works with the `SimpleSpan` type.
 """
-logger.info("For this notebook, we'll use `SimpleSpanHandler` that works with the `SimpleSpan` type.")
+logger.info(
+    "For this notebook, we'll use `SimpleSpanHandler` that works with the `SimpleSpan` type.")
 
 
 """
@@ -167,7 +169,8 @@ logger.info("### Test It Out")
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
 
-documents = SimpleDirectoryReader(input_dir="./data").load_data()
+documents = SimpleDirectoryReader(
+    input_dir=f"{os.path.dirname(__file__)}/data").load_data()
 index = VectorStoreIndex.from_documents(documents)
 
 query_engine = index.as_query_engine()

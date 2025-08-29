@@ -28,7 +28,7 @@ mongodb_client = pymongo.MongoClient(mongo_uri)
 store = AWSDocDbVectorStore(mongodb_client)
 storage_context = StorageContext.from_defaults(vector_store=store)
 uber_docs = SimpleDirectoryReader(
-    input_files=["./data/10k/uber_2021.pdf"]
+    input_files=[f"{os.path.dirname(__file__)}/data/10k/uber_2021.pdf"]
 ).load_data()
 index = VectorStoreIndex.from_documents(
     uber_docs, storage_context=storage_context
@@ -43,7 +43,8 @@ typed_response = (
     response if isinstance(response, Response) else response.get_response()
 )
 ref_doc_id = typed_response.source_nodes[0].node.ref_doc_id
-logger.debug(store._collection.count_documents({"metadata.ref_doc_id": ref_doc_id}))
+logger.debug(store._collection.count_documents(
+    {"metadata.ref_doc_id": ref_doc_id}))
 
 if ref_doc_id:
     store.delete(ref_doc_id)

@@ -20,71 +20,69 @@ async def main():
     import re
     import shutil
     import tiktoken
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/evaluation/prometheus_evaluation.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
-    
+
     # Evaluation using [Prometheus](https://huggingface.co/TheBloke/prometheus-13B-v1.0-GPTQ) model
-    
+
     Evaluation is a crucial aspect of iterating over your RAG (Retrieval-Augmented Generation) pipeline. This process has relied heavily on GPT-4. However, a new open-source model named [Prometheus](https://arxiv.org/abs/2310.08491) has recently emerged as an alternative for evaluation purposes.
-    
+
     In this notebook, we will demonstrate how you can utilize the Prometheus model for evaluation, integrating it with the LlamaIndex abstractions.
-    
+
     If you're unfamiliar with the Prometheus model, you might find the paper summary prepared by Andrei informative. It's important to note that this model requires rubric scores to be included in the prompt for effective evaluation. For more detailed information, you can refer to the specific prompts outlined in the notebook.
-    
+
     ![Prometheus Paper Card](../data/images/prometheus_paper_card.png)
-    
+
     We will demonstrate the correctness evaluation using the Prometheus model with two datasets from the Llama Datasets. If you haven't yet explored Llama Datasets, I recommend taking some time to read about them [here](https://blog.llamaindex.ai/introducing-llama-datasets-aadb9994ad9e).
-    
+
     1. Paul Graham Essay
     2. Llama2
-    
+
     ### Note: We are showcasing original [Prometheus model](https://huggingface.co/kaist-ai/prometheus-13b-v1.0) for the analysis here. You can re-run the analysis with [quantized version of the model](https://huggingface.co/TheBloke/prometheus-13B-v1.0-GPTQ).
     """
-    logger.info("# Evaluation using [Prometheus](https://huggingface.co/TheBloke/prometheus-13B-v1.0-GPTQ) model")
-    
+    logger.info(
+        "# Evaluation using [Prometheus](https://huggingface.co/TheBloke/prometheus-13B-v1.0-GPTQ) model")
+
     # %pip install llama-index-llms-ollama
     # %pip install llama-index-llms-huggingface-api
-    
+
     # import nest_asyncio
-    
+
     # nest_asyncio.apply()
-    
+
     """
     ## Download Datasets
     """
     logger.info("## Download Datasets")
-    
-    
+
     paul_graham_rag_dataset, paul_graham_documents = download_llama_dataset(
         "PaulGrahamEssayDataset", "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data"
     )
-    
+
     llama2_rag_dataset, llama2_documents = download_llama_dataset(
-        "Llama2PaperDataset", "./data/llama2"
+        "Llama2PaperDataset", f"{os.path.dirname(__file__)}/data/llama2"
     )
-    
+
     """
     ## Define Prometheus LLM hosted on HuggingFace.
-    
+
     We hosted the model on HF Inference endpoint using Nvidia A10G GPU.
     """
     logger.info("## Define Prometheus LLM hosted on HuggingFace.")
-    
-    
+
     HF_TOKEN = "YOUR HF TOKEN"
     HF_ENDPOINT_URL = (
         "https://q3yljc2cypyrvw3i.us-east-1.aws.endpoints.huggingface.cloud"
     )
-    
+
     prometheus_llm = HuggingFaceInferenceAPI(
         model_name=HF_ENDPOINT_URL,
         token=HF_TOKEN,
@@ -94,33 +92,33 @@ async def main():
         top_k=40,
         repetition_penalty=1.1,
     )
-    
+
     """
     ## Prompt templates.
-    
+
     We will use same prompts for Prometheus model and GPT-4 to make consistent performance comparison.
-    
+
     ### Correctness Evaluation Prompt
     """
     logger.info("## Prompt templates.")
-    
+
     prometheus_correctness_eval_prompt_template = """###Task Description: An instruction (might include an Input inside it), a query, a response to evaluate, a reference answer that gets a score of 5, and a score rubric representing a evaluation criteria are given.
     			1. Write a detailed feedback that assesses the quality of the response strictly based on the given score rubric, not evaluating in general.
     			2. After writing a feedback, write a score that is either 1 or 2 or 3 or 4 or 5. You should refer to the score rubric.
     			3. The output format should look as follows: "Feedback: (write a feedback for criteria) [RESULT] (1 or 2 or 3 or 4 or 5)"
     			4. Please do not generate any other opening, closing, and explanations.
                 5. Only evaluate on common things between generated answer and reference answer. Don't evaluate on things which are present in reference answer but not in generated answer.
-    
-    
-    
-    
+
+
+
+
                 Score 1: If the generated answer is not relevant to the user query and reference answer.
                 Score 2: If the generated answer is according to reference answer but not relevant to user query.
                 Score 3: If the generated answer is relevant to the user query and reference answer but contains mistakes.
         		Score 4: If the generated answer is relevant to the user query and has the exact same metrics as the reference answer, but it is not as concise.
                 Score 5: If the generated answer is relevant to the user query and fully correct according to the reference answer.
-    
-    prometheus_correctness_eval_prompt_template = """###Task Description: An instruction (might include an Input inside it), a query, a response to evaluate, a reference answer that gets a score of 5, and a score rubric representing a evaluation criteria are given.
+
+    prometheus_correctness_eval_prompt_template = """  # Task Description: An instruction (might include an Input inside it), a query, a response to evaluate, a reference answer that gets a score of 5, and a score rubric representing a evaluation criteria are given.
     			1. Write a detailed feedback that assesses the quality of the response strictly based on the given score rubric, not evaluating in general.
     			2. After writing a feedback, write a score that is either 1 or 2 or 3 or 4 or 5. You should refer to the score rubric.
     			3. The output format should look as follows: "Feedback: (write a feedback for criteria) [RESULT] (1 or 2 or 3 or 4 or 5)"
@@ -523,7 +521,7 @@ async def main():
     """
     logger.info("## Evaluation with Llama2 paper")
     
-    query_engine, rag_dataset = create_query_engine_rag_dataset("./data/llama2")
+    query_engine, rag_dataset = create_query_engine_rag_dataset(f"{os.path.dirname(__file__)}/data/llama2")
     
     questions = [example.query for example in rag_dataset.examples]
     

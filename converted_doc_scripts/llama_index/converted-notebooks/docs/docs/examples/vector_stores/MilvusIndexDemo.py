@@ -44,7 +44,8 @@ logger.info("# Milvus Vector Store")
 """
 This notebook will use [Milvus Lite](https://milvus.io/docs/milvus_lite.md) requiring a higher version of pymilvus:
 """
-logger.info("This notebook will use [Milvus Lite](https://milvus.io/docs/milvus_lite.md) requiring a higher version of pymilvus:")
+logger.info(
+    "This notebook will use [Milvus Lite](https://milvus.io/docs/milvus_lite.md) requiring a higher version of pymilvus:")
 
 # %pip install pymilvus>=2.4.2
 
@@ -81,7 +82,8 @@ logger.info("## Getting Started")
 
 
 documents = SimpleDirectoryReader(
-    input_files=["/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data_essay.txt"]
+    input_files=[
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data_essay.txt"]
 ).load_data()
 
 logger.debug("Document ID:", documents[0].doc_id)
@@ -140,7 +142,6 @@ Now that we have a document, we can can create an index and insert the document.
 logger.info("### Create an index across the data")
 
 
-
 vector_store = MilvusVectorStore(
     uri="./milvus_demo.db", dim=1536, overwrite=True
 )
@@ -175,7 +176,6 @@ This next test shows that overwriting removes the previous data.
 logger.info("This next test shows that overwriting removes the previous data.")
 
 
-
 vector_store = MilvusVectorStore(
     uri="./milvus_demo.db", dim=1536, overwrite=True
 )
@@ -191,7 +191,8 @@ logger.debug(res)
 """
 The next test shows adding additional data to an already existing  index.
 """
-logger.info("The next test shows adding additional data to an already existing  index.")
+logger.info(
+    "The next test shows adding additional data to an already existing  index.")
 
 del index, vector_store, storage_context, query_engine
 
@@ -215,7 +216,8 @@ We can generate results by filtering specific sources. The following example ill
 logger.info("## Metadata filtering")
 
 
-documents_all = SimpleDirectoryReader("./data/").load_data()
+documents_all = SimpleDirectoryReader(
+    f"{os.path.dirname(__file__)}/data/").load_data()
 
 vector_store = MilvusVectorStore(
     uri="./milvus_demo.db", dim=1536, overwrite=True
@@ -241,7 +243,8 @@ logger.debug(res)
 """
 We get a different result this time when retrieve from the file `paul_graham_essay.txt`.
 """
-logger.info("We get a different result this time when retrieve from the file `paul_graham_essay.txt`.")
+logger.info(
+    "We get a different result this time when retrieve from the file `paul_graham_essay.txt`.")
 
 filters = MetadataFilters(
     filters=[ExactMatchFilter(key="file_name", value="paul_graham_essay.txt")]

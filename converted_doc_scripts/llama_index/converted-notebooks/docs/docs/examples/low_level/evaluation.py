@@ -49,10 +49,12 @@ logger.info("# Building Evaluation from Scratch")
 # from llama_index.readers.file import PyMuPDFReader
 
 # loader = PyMuPDFReader()
-documents = loader.load(file_path="./data/llama2.pdf")
+documents = loader.load(
+    file_path=f"{os.path.dirname(__file__)}/data/llama2.pdf")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
 node_parser = SentenceSplitter(chunk_size=1024)
 
 nodes = node_parser.get_nodes_from_documents(documents)
@@ -73,12 +75,14 @@ We define the functions that we will use for dataset generation:
 logger.info("## Dataset Generation")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
 
 """
 We define `generate_answers_for_questions` to generate answers from questions given context.
 """
-logger.info("We define `generate_answers_for_questions` to generate answers from questions given context.")
+logger.info(
+    "We define `generate_answers_for_questions` to generate answers from questions given context.")
 
 QA_PROMPT = PromptTemplate(
     "Context information is below.\n"
@@ -105,10 +109,12 @@ def generate_answers_for_questions(
         answers.append(str(response_obj))
     return answers
 
+
 """
 We define `generate_qa_pairs` to generate qa pairs over an entire list of Nodes.
 """
-logger.info("We define `generate_qa_pairs` to generate qa pairs over an entire list of Nodes.")
+logger.info(
+    "We define `generate_qa_pairs` to generate qa pairs over an entire list of Nodes.")
 
 QUESTION_GEN_USER_TMPL = (
     "Context information is below.\n"
@@ -160,6 +166,7 @@ def generate_qa_pairs(
         cur_qa_pairs = list(zip(cleaned_questions, answers))
         qa_pairs.extend(cur_qa_pairs)
     return qa_pairs
+
 
 qa_pairs
 
@@ -250,7 +257,6 @@ Now that we've defined the prompts template, let's define an evaluation function
 logger.info("Now that we've defined the prompts template, let's define an evaluation function that feeds the prompt to the LLM and parses the output into a dict of results.")
 
 
-
 def run_correctness_eval(
     query_str: str,
     reference_answer: str,
@@ -274,12 +280,15 @@ def run_correctness_eval(
 
     return {"passing": score >= threshold, "score": score, "reason": reasoning}
 
+
 """
 Now let's try running this on some sample inputs with a chat model (GPT-4).
 """
-logger.info("Now let's try running this on some sample inputs with a chat model (GPT-4).")
+logger.info(
+    "Now let's try running this on some sample inputs with a chat model (GPT-4).")
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
 
 query_str = (
     "What is the specific name given to the fine-tuned LLMs optimized for"
@@ -359,8 +368,7 @@ EVAL_REFINE_TEMPLATE = PromptTemplate(
 
 We now define our function below. Since we defined both a standard eval template for a given piece of context but also a refine template for subsequent contexts, we implement our "create-and-refine" response synthesis strategy to obtain the answer.
 """
-logger.info("We now define our function below. Since we defined both a standard eval template for a given piece of context but also a refine template for subsequent contexts, we implement our "create-and-refine" response synthesis strategy to obtain the answer.")
-
+logger.info("We now define our function below. Since we defined both a standard eval template for a given piece of context but also a refine template for subsequent contexts, we implement our "create-and -refine" response synthesis strategy to obtain the answer.")
 
 
 def run_faithfulness_eval(
@@ -385,6 +393,7 @@ def run_faithfulness_eval(
         passing = False
 
     return {"passing": passing, "reason": str(response_txt)}
+
 
 """
 Let's try it out on some data
@@ -416,7 +425,6 @@ sample_size = 5
 qa_pairs_sample = random.sample(qa_pairs, sample_size)
 
 
-
 def run_evals(qa_pairs: List[Tuple[str, str]], llm: OllamaFunctionCallingAdapter, query_engine):
     results_list = []
     for question, reference_answer in qa_pairs:
@@ -440,6 +448,7 @@ def run_evals(qa_pairs: List[Tuple[str, str]], llm: OllamaFunctionCallingAdapter
         }
         results_list.append(cur_result_dict)
     return pd.DataFrame(results_list)
+
 
 evals_df = run_evals(qa_pairs_sample, llm, query_engine)
 

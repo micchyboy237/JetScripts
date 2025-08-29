@@ -17,15 +17,14 @@ async def main():
     import os
     import pinecone
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/low_level/response_synthesis.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
@@ -48,26 +47,27 @@ async def main():
     If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
     """
     logger.info("# Building Response Synthesis from Scratch")
-    
+
     # %pip install llama-index-readers-file pymupdf
     # %pip install llama-index-vector-stores-pinecone
     # %pip install llama-index-llms-ollama
-    
+
     # !pip install llama-index
-    
+
     """
     #### Load Data
     """
     logger.info("#### Load Data")
-    
+
     # !mkdir data
     # !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
-    
+
     # from llama_index.readers.file import PyMuPDFReader
-    
+
     # loader = PyMuPDFReader()
-    documents = loader.load(file_path="./data/llama2.pdf")
-    
+    documents = loader.load(
+        file_path=f"{os.path.dirname(__file__)}/data/llama2.pdf")
+
     """
     #### Build Pinecone Index, Get Retriever
     
@@ -76,43 +76,41 @@ async def main():
     Note that we set chunk sizes to 1024.
     """
     logger.info("#### Build Pinecone Index, Get Retriever")
-    
-    
+
     api_key = os.environ["PINECONE_API_KEY"]
     pinecone.init(api_key=api_key, environment="us-west1-gcp")
-    
+
     pinecone.create_index(
         "quickstart", dimension=1536, metric="euclidean", pod_type="p1"
     )
-    
+
     pinecone_index = pinecone.Index("quickstart")
-    
+
     pinecone_index.delete(deleteAll=True)
-    
-    
+
     vector_store = PineconeVectorStore(pinecone_index=pinecone_index)
     splitter = SentenceSplitter(chunk_size=1024)
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     index = VectorStoreIndex.from_documents(
         documents, transformations=[splitter], storage_context=storage_context
     )
-    
+
     retriever = index.as_retriever()
-    
+
     """
     #### Given an example question, get a retrieved set of nodes.
     
     We use the retriever to get a set of relevant nodes given a user query. These nodes will then be passed to the response synthesis modules below.
     """
     logger.info("#### Given an example question, get a retrieved set of nodes.")
-    
+
     query_str = (
         "Can you tell me about results from RLHF using both model-based and"
         " human-based evaluation?"
     )
-    
+
     retrieved_nodes = retriever.retrieve(query_str)
-    
+
     """
     ## Building Response Synthesis with LLMs
     
@@ -125,10 +123,9 @@ async def main():
     We first try to synthesize the response using a single input prompt + LLM call.
     """
     logger.info("## Building Response Synthesis with LLMs")
-    
-    
+
     llm = OllamaFunctionCallingAdapter(model="text-davinci-003")
-    
+
     qa_prompt = PromptTemplate(
         """\
     Context information is below.
@@ -140,19 +137,19 @@ async def main():
     Answer: \
     """
     )
-    
+
     """
     Given an example question, retrieve the set of relevant nodes and try to put it all in the prompt, separated by newlines.
     """
     logger.info("Given an example question, retrieve the set of relevant nodes and try to put it all in the prompt, separated by newlines.")
-    
+
     query_str = (
         "Can you tell me about results from RLHF using both model-based and"
         " human-based evaluation?"
     )
-    
+
     retrieved_nodes = retriever.retrieve(query_str)
-    
+
     def generate_response(retrieved_nodes, query_str, qa_prompt, llm):
         context_str = "\n\n".join([r.get_content() for r in retrieved_nodes])
         fmt_qa_prompt = qa_prompt.format(
@@ -160,27 +157,27 @@ async def main():
         )
         response = llm.complete(fmt_qa_prompt)
         return str(response), fmt_qa_prompt
-    
+
     response, fmt_qa_prompt = generate_response(
         retrieved_nodes, query_str, qa_prompt, llm
     )
-    
+
     logger.debug(f"*****Response******:\n{response}\n\n")
-    
+
     logger.debug(f"*****Formatted Prompt*****:\n{fmt_qa_prompt}\n\n")
-    
+
     """
     **Problem**: What if we set the top-k retriever to a higher value? The context would overflow!
     """
-    
+
     retriever = index.as_retriever(similarity_top_k=6)
     retrieved_nodes = retriever.retrieve(query_str)
-    
+
     response, fmt_qa_prompt = generate_response(
         retrieved_nodes, query_str, qa_prompt, llm
     )
     logger.debug(f"Response (k=5): {response}")
-    
+
     """
     ### 2. Try a "Create and Refine" strategy
     
@@ -189,7 +186,7 @@ async def main():
     This requires us to define a "refine" prompt as well.
     """
     logger.info("### 2. Try a "Create and Refine" strategy")
-    
+
     refine_prompt = PromptTemplate(
         """\
     The original query is as follows: {query_str}
@@ -204,17 +201,15 @@ async def main():
     Refined Answer: \
     """
     )
-    
-    
-    
+
     def generate_response_cr(
         retrieved_nodes, query_str, qa_prompt, refine_prompt, llm
     ):
         """Generate a response using create and refine strategy.
-    
+
         The first node uses the 'QA' prompt.
         All subsequent nodes use the 'refine' prompt.
-    
+
         """
         cur_response = None
         fmt_prompts = []
@@ -232,22 +227,22 @@ async def main():
                     query_str=query_str,
                     existing_answer=str(cur_response),
                 )
-    
+
             cur_response = llm.complete(fmt_prompt)
             fmt_prompts.append(fmt_prompt)
-    
+
         return str(cur_response), fmt_prompts
-    
+
     response, fmt_prompts = generate_response_cr(
         retrieved_nodes, query_str, qa_prompt, refine_prompt, llm
     )
-    
+
     logger.debug(str(response))
-    
+
     logger.debug(fmt_prompts[0])
-    
+
     logger.debug(fmt_prompts[1])
-    
+
     """
     **Observation**: This is an initial step, but obviously there are inefficiencies. One is the fact that it's quite slow - we make sequential calls. The second piece is that each LLM call is inefficient - we are only inserting a single node, but not "stuffing" the prompt with as much context as necessary.
     
@@ -260,7 +255,7 @@ async def main():
     **NOTE**: In LlamaIndex this is referred to as "tree_summarize", in LangChain this is referred to as map-reduce.
     """
     logger.info("### 3. Try a Hierarchical Summarization Strategy")
-    
+
     def combine_results(
         texts,
         query_str,
@@ -271,7 +266,7 @@ async def main():
     ):
         new_texts = []
         for idx in range(0, len(texts), num_children):
-            text_batch = texts[idx : idx + num_children]
+            text_batch = texts[idx: idx + num_children]
             context_str = "\n\n".join([t for t in text_batch])
             fmt_qa_prompt = qa_prompt.format(
                 context_str=context_str, query_str=query_str
@@ -279,22 +274,21 @@ async def main():
             combined_response = llm.complete(fmt_qa_prompt)
             new_texts.append(str(combined_response))
             cur_prompt_list.append(fmt_qa_prompt)
-    
+
         if len(new_texts) == 1:
             return new_texts[0]
         else:
             return combine_results(
                 new_texts, query_str, qa_prompt, llm, num_children=num_children
             )
-    
-    
+
     def generate_response_hs(
         retrieved_nodes, query_str, qa_prompt, llm, num_children=10
     ):
         """Generate a response using hierarchical summarization strategy.
-    
+
         Combine num_children nodes hierarchically until we get one root node.
-    
+
         """
         fmt_prompts = []
         node_responses = []
@@ -306,7 +300,7 @@ async def main():
             node_response = llm.complete(fmt_qa_prompt)
             node_responses.append(node_response)
             fmt_prompts.append(fmt_qa_prompt)
-    
+
         response_txt = combine_results(
             [str(r) for r in node_responses],
             query_str,
@@ -315,15 +309,15 @@ async def main():
             fmt_prompts,
             num_children=num_children,
         )
-    
+
         return response_txt, fmt_prompts
-    
+
     response, fmt_prompts = generate_response_hs(
         retrieved_nodes, query_str, qa_prompt, llm
     )
-    
+
     logger.debug(str(response))
-    
+
     """
     **Observation**: Note that the answer is much more concise than the create-and-refine approach. This is a well-known phemonenon - the reason is because hierarchical summarization tends to compress information at each stage, whereas create and refine encourages adding on more information with each node.
     
@@ -337,12 +331,13 @@ async def main():
     
     We implement an async version below. We use asyncio.gather to execute coroutines (LLM calls) for each Node concurrently.
     """
-    logger.info("#### 4. [Optional] Let's create an async version of hierarchical summarization!")
-    
+    logger.info(
+        "#### 4. [Optional] Let's create an async version of hierarchical summarization!")
+
     # import nest_asyncio
-    
+
     # nest_asyncio.apply()
-    
+
     async def acombine_results(
         texts,
         query_str,
@@ -353,34 +348,33 @@ async def main():
     ):
         fmt_prompts = []
         for idx in range(0, len(texts), num_children):
-            text_batch = texts[idx : idx + num_children]
+            text_batch = texts[idx: idx + num_children]
             context_str = "\n\n".join([t for t in text_batch])
             fmt_qa_prompt = qa_prompt.format(
                 context_str=context_str, query_str=query_str
             )
             fmt_prompts.append(fmt_qa_prompt)
             cur_prompt_list.append(fmt_qa_prompt)
-    
+
         tasks = [llm.acomplete(p) for p in fmt_prompts]
         combined_responses = await asyncio.gather(*tasks)
         logger.success(format_json(combined_responses))
         new_texts = [str(r) for r in combined_responses]
-    
+
         if len(new_texts) == 1:
             return new_texts[0]
         else:
             return await acombine_results(
                 new_texts, query_str, qa_prompt, llm, num_children=num_children
             )
-    
-    
+
     async def agenerate_response_hs(
         retrieved_nodes, query_str, qa_prompt, llm, num_children=10
     ):
         """Generate a response using hierarchical summarization strategy.
-    
+
         Combine num_children nodes hierarchically until we get one root node.
-    
+
         """
         fmt_prompts = []
         node_responses = []
@@ -390,11 +384,11 @@ async def main():
                 context_str=context_str, query_str=query_str
             )
             fmt_prompts.append(fmt_qa_prompt)
-    
+
         tasks = [llm.acomplete(p) for p in fmt_prompts]
         node_responses = await asyncio.gather(*tasks)
         logger.success(format_json(node_responses))
-    
+
         response_txt = combine_results(
             [str(r) for r in node_responses],
             query_str,
@@ -403,16 +397,16 @@ async def main():
             fmt_prompts,
             num_children=num_children,
         )
-    
+
         return response_txt, fmt_prompts
-    
+
     response, fmt_prompts = await agenerate_response_hs(
-            retrieved_nodes, query_str, qa_prompt, llm
-        )
+        retrieved_nodes, query_str, qa_prompt, llm
+    )
     logger.success(format_json(response, fmt_prompts))
-    
+
     logger.debug(str(response))
-    
+
     """
     ## Let's put it all together!
     
@@ -421,25 +415,22 @@ async def main():
     **NOTE**: We skip subclassing our own `QueryEngine` abstractions. This is a big TODO to make it more easily sub-classable!
     """
     logger.info("## Let's put it all together!")
-    
-    
-    
+
     @dataclass
     class Response:
         response: str
         source_nodes: Optional[List] = None
-    
+
         def __str__(self):
             return self.response
-    
-    
+
     class MyQueryEngine:
         """My query engine.
-    
+
         Uses the tree summarize response synthesis module by default.
-    
+
         """
-    
+
         def __init__(
             self,
             retriever: BaseRetriever,
@@ -451,7 +442,7 @@ async def main():
             self._qa_prompt = qa_prompt
             self._llm = llm
             self._num_children = num_children
-    
+
         def query(self, query_str: str):
             retrieved_nodes = self._retriever.retrieve(query_str)
             response_txt, _ = generate_response_hs(
@@ -463,32 +454,32 @@ async def main():
             )
             response = Response(response_txt, source_nodes=retrieved_nodes)
             return response
-    
+
         async def aquery(self, query_str: str):
             retrieved_nodes = await self._retriever.aretrieve(query_str)
             logger.success(format_json(retrieved_nodes))
             response_txt, _ = await agenerate_response_hs(
-                    retrieved_nodes,
-                    query_str,
-                    self._qa_prompt,
-                    self._llm,
-                    num_children=self._num_children,
-                )
+                retrieved_nodes,
+                query_str,
+                self._qa_prompt,
+                self._llm,
+                num_children=self._num_children,
+            )
             logger.success(format_json(response_txt, _))
             response = Response(response_txt, source_nodes=retrieved_nodes)
             return response
-    
+
     query_engine = MyQueryEngine(retriever, qa_prompt, llm, num_children=10)
-    
+
     response = query_engine.query(query_str)
-    
+
     logger.debug(str(response))
-    
+
     response = query_engine.query(query_str)
     logger.success(format_json(response))
-    
+
     logger.debug(str(response))
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

@@ -54,7 +54,6 @@ logger.info("# Finetune Embeddings")
 # %pip install "transformers[torch]"
 
 
-
 """
 Download Data
 """
@@ -64,11 +63,12 @@ logger.info("Download Data")
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/uber_2021.pdf' -O 'data/10k/uber_2021.pdf'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/lyft_2021.pdf' -O 'data/10k/lyft_2021.pdf'
 
-TRAIN_FILES = ["./data/10k/lyft_2021.pdf"]
-VAL_FILES = ["./data/10k/uber_2021.pdf"]
+TRAIN_FILES = [f"{os.path.dirname(__file__)}/data/10k/lyft_2021.pdf"]
+VAL_FILES = [f"{os.path.dirname(__file__)}/data/10k/uber_2021.pdf"]
 
-TRAIN_CORPUS_FPATH = "./data/train_corpus.json"
-VAL_CORPUS_FPATH = "./data/val_corpus.json"
+TRAIN_CORPUS_FPATH = f"{os.path.dirname(__file__)}/data/train_corpus.json"
+VAL_CORPUS_FPATH = f"{os.path.dirname(__file__)}/data/val_corpus.json"
+
 
 def load_corpus(files, verbose=False):
     if verbose:
@@ -86,6 +86,7 @@ def load_corpus(files, verbose=False):
         logger.debug(f"Parsed {len(nodes)} nodes")
 
     return nodes
+
 
 """
 We do a very naive train/val split by having the Lyft corpus as the train dataset, and the Uber corpus as the val dataset.
@@ -105,19 +106,19 @@ Each pair of (generated question, text chunk used as context) becomes a datapoin
 logger.info("### Generate synthetic queries")
 
 
-
 # OPENAI_API_KEY = "sk-"
 # os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 
-
 train_dataset = generate_qa_embedding_pairs(
-    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
+    llm=OllamaFunctionCallingAdapter(
+        model="llama3.2", request_timeout=300.0, context_window=4096),
     nodes=train_nodes,
     output_path="train_dataset.json",
 )
 val_dataset = generate_qa_embedding_pairs(
-    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
+    llm=OllamaFunctionCallingAdapter(
+        model="llama3.2", request_timeout=300.0, context_window=4096),
     nodes=val_nodes,
     output_path="val_dataset.json",
 )
@@ -173,6 +174,7 @@ This approach is very simple and intuitive, and we can apply it to both the prop
 """
 logger.info("### Define eval function")
 
+
 def evaluate(
     dataset,
     embed_model,
@@ -205,13 +207,13 @@ def evaluate(
         eval_results.append(eval_result)
     return eval_results
 
+
 """
 **Option 2**: We use the `InformationRetrievalEvaluator` from sentence_transformers.
 
 This provides a more comprehensive suite of metrics, but we can only run it against the sentencetransformers compatible models (open source and our finetuned model, *not* the OllamaFunctionCallingAdapter embedding model).
 """
 logger.info("This provides a more comprehensive suite of metrics, but we can only run it against the sentencetransformers compatible models (open source and our finetuned model, *not* the OllamaFunctionCallingAdapter embedding model).")
-
 
 
 def evaluate_st(
@@ -231,6 +233,7 @@ def evaluate_st(
     Path(output_path).mkdir(exist_ok=True, parents=True)
     return evaluator(model, output_path=output_path)
 
+
 """
 ### Run Evals
 
@@ -240,7 +243,8 @@ Note: this might take a few minutes to run since we have to embed the corpus and
 """
 logger.info("### Run Evals")
 
-ada = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+ada = HuggingFaceEmbedding(
+    model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 ada_val_results = evaluate(val_dataset, ada)
 
 df_ada = pd.DataFrame(ada_val_results)
@@ -312,7 +316,8 @@ df_st_finetuned = pd.read_csv(
 """
 We can see that embedding finetuning improves metrics consistently across the suite of eval metrics
 """
-logger.info("We can see that embedding finetuning improves metrics consistently across the suite of eval metrics")
+logger.info(
+    "We can see that embedding finetuning improves metrics consistently across the suite of eval metrics")
 
 df_st_bge["model"] = "bge"
 df_st_finetuned["model"] = "fine_tuned"

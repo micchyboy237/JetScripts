@@ -27,8 +27,8 @@ logger.info(f"Logs: {log_file}")
 """
 # LLMs and LlamaIndex ◦ April 2 2024 ◦ Ontario Teacher's Pension Plan
 """
-logger.info("# LLMs and LlamaIndex ◦ April 2 2024 ◦ Ontario Teacher's Pension Plan")
-
+logger.info(
+    "# LLMs and LlamaIndex ◦ April 2 2024 ◦ Ontario Teacher's Pension Plan")
 
 
 """
@@ -47,7 +47,7 @@ logger.info("#### Notebook Setup & Dependency Installation")
 # nest_asyncio.apply()
 
 # !mkdir data
-# !wget "https://www.otpp.com/content/dam/otpp/documents/reports/2023-ar/otpp-2023-annual-report-eng.pdf" -O "./data/otpp-2023-annual-report-eng.pdf"
+# !wget "https://www.otpp.com/content/dam/otpp/documents/reports/2023-ar/otpp-2023-annual-report-eng.pdf" -O f"{os.path.dirname(__file__)}/data/otpp-2023-annual-report-eng.pdf"
 
 """
 ## Motivation
@@ -57,7 +57,8 @@ logger.info("#### Notebook Setup & Dependency Installation")
 logger.info("## Motivation")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
 response = llm.complete("What is Ontario Teacher's Pension Plan all about?")
 
 logger.debug(response)
@@ -98,7 +99,7 @@ a container that holds the text of the document.
 """
 
 
-loader = SimpleDirectoryReader(input_dir="./data")
+loader = SimpleDirectoryReader(input_dir=f"{os.path.dirname(__file__)}/data")
 documents = loader.load_data()
 
 documents[0].text[:1000]
@@ -117,7 +118,8 @@ vector_store = QdrantVectorStore(client=client, collection_name="test_store")
 pipeline = IngestionPipeline(
     transformations=[
         SentenceSplitter(),
-        HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
+        HuggingFaceEmbedding(
+            model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     ],
     vector_store=vector_store,
 )
@@ -217,17 +219,17 @@ logger.debug(response)
 logger.info("### Improved PDF Parsing using LlamaParse")
 
 
-
 parser = LlamaParse(result_type="markdown")
 md_documents = parser.load_data(
-    file_path="./data/otpp-2023-annual-report-eng.pdf"
+    file_path=f"{os.path.dirname(__file__)}/data/otpp-2023-annual-report-eng.pdf"
 )
 
 with open("./mds/parsed.md", "w") as f:
     f.write(md_documents[0].text)
 
 md_node_parser = MarkdownElementNodeParser(
-    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
+    llm=OllamaFunctionCallingAdapter(
+        model="llama3.2", request_timeout=300.0, context_window=4096),
     num_workers=3,
     include_metadata=True,
 )
@@ -265,11 +267,11 @@ logger.debug(response)
 logger.info("## In Summary")
 
 
-
 """
 ### Leadership Team
 """
 logger.info("### Leadership Team")
+
 
 class LeadershipTeam(BaseModel):
     """Data model for leadership team."""
@@ -289,6 +291,7 @@ class LeadershipTeam(BaseModel):
     chief_investment_officer: str = Field(
         description="Chief Investment Officer"
     )
+
 
 prompt_template_str = """\
 Here is the 2023 Annual Report for Ontario Teacher's Pension Plan:

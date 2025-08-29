@@ -9,14 +9,14 @@ from llama_index.core.llms import LLM
 from llama_index.core.prompts import PromptTemplate
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.retrievers import (
-CustomPGRetriever,
-VectorContextRetriever,
-TextToCypherRetriever,
+    CustomPGRetriever,
+    VectorContextRetriever,
+    TextToCypherRetriever,
 )
 from llama_index.core.vector_stores.types import VectorStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.graph_stores.neo4j import Neo4jPropertyGraphStore
-from llama_index.postprocessor.cohere_rerank import CohereRerank
+from jet.vectors.adapters.neo4j_property_graph_adapter import Neo4jPropertyGraphStore
+from jet.models.embeddings.adapters.rerank_cross_encoder_llama_index_adapter import CrossEncoderRerank
 from typing import Optional, Any, Union
 import os
 import shutil
@@ -68,7 +68,8 @@ logger.info("#### Load Paul Graham Essay")
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 
 """
 #### Define Default LLMs
@@ -76,8 +77,10 @@ documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Project
 logger.info("#### Define Default LLMs")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
-embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
+embed_model = HuggingFaceEmbedding(
+    model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 """
 #### Setup Neo4j
@@ -138,9 +141,6 @@ The return type here can be a string, `TextNode`, `NodeWithScore`, or a list of 
 logger.info("## Define Custom Retriever")
 
 
-
-
-
 class MyCustomRetriever(CustomPGRetriever):
     """Custom retriever with cohere reranking."""
 
@@ -153,7 +153,7 @@ class MyCustomRetriever(CustomPGRetriever):
         llm: Optional[LLM] = None,
         text_to_cypher_template: Optional[Union[PromptTemplate, str]] = None,
         cohere_api_key: Optional[str] = None,
-        cohere_top_n: int = 2,
+        top_n: int = 2,
         **kwargs: Any,
     ) -> None:
         """Uses any kwargs passed in from class constructor."""
@@ -173,9 +173,8 @@ class MyCustomRetriever(CustomPGRetriever):
             text_to_cypher_template=text_to_cypher_template
         )
 
-        self.reranker = CohereRerank(
-            api_key=cohere_api_key, top_n=cohere_top_n
-        )
+        self.reranker = CrossEncoderRerank(
+            top_n=top_n, model="ms-marco-MiniLM-L12-v2")
 
     def custom_retrieve(self, query_str: str) -> str:
         """Define custom retriever with reranking.
@@ -193,6 +192,7 @@ class MyCustomRetriever(CustomPGRetriever):
         )
 
         return final_text
+
 
 """
 ## Test out the Custom Retriever

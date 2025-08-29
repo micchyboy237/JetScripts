@@ -25,7 +25,6 @@ logger.info(f"Logs: {log_file}")
 logger.info("# RAG Bootcamp ◦ February 2024 ◦ Vector Institute")
 
 
-
 """
 ![Title Image](https://d3ddy8balm3goa.cloudfront.net/rag-bootcamp-vector/title.excalidraw.svg)
 
@@ -42,7 +41,7 @@ logger.info("#### Notebook Setup & Dependency Installation")
 # nest_asyncio.apply()
 
 # !mkdir data
-# !wget "https://arxiv.org/pdf/2402.09353.pdf" -O "./data/dorav1.pdf"
+# !wget "https://arxiv.org/pdf/2402.09353.pdf" -O f"{os.path.dirname(__file__)}/data/dorav1.pdf"
 
 """
 ## Motivation
@@ -52,7 +51,8 @@ logger.info("#### Notebook Setup & Dependency Installation")
 logger.info("## Motivation")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
 response = llm.complete("What is DoRA?")
 
 logger.debug(response.text)
@@ -81,9 +81,8 @@ a container that holds the text of the document.
 """
 
 
-loader = SimpleDirectoryReader(input_dir="./data")
+loader = SimpleDirectoryReader(input_dir=f"{os.path.dirname(__file__)}/data")
 documents = loader.load_data()
-
 
 
 """Chunk, Encode, and Store into a Vector Store.
@@ -100,12 +99,12 @@ vector_store = QdrantVectorStore(client=client, collection_name="test_store")
 pipeline = IngestionPipeline(
     transformations=[
         SentenceSplitter(),
-        HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
+        HuggingFaceEmbedding(
+            model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     ],
     vector_store=vector_store,
 )
 _nodes = pipeline.run(documents=documents, num_workers=4)
-
 
 
 """Create a llama-index... wait for it... Index.

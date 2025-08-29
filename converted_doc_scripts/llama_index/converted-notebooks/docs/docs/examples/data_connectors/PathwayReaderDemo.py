@@ -117,7 +117,7 @@ logger.info("### Define data sources tracked by Pathway")
 data_sources = []
 data_sources.append(
     pw.io.fs.read(
-        "./data",
+        f"{os.path.dirname(__file__)}/data",
         format="binary",
         mode="streaming",
         with_metadata=True,
@@ -134,7 +134,8 @@ In this example, let's first split the text first using `TokenTextSplitter`, the
 logger.info("### Create the document indexing pipeline")
 
 
-embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+embed_model = HuggingFaceEmbedding(
+    model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 transformations_example = [
     TokenTextSplitter(

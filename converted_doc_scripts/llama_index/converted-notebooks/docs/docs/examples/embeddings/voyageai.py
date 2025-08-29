@@ -59,7 +59,8 @@ logger.debug(embeddings[:5])
 """
 ##### Let's check With `int8` embedding_type with `voyage-3-large` model
 """
-logger.info("##### Let's check With `int8` embedding_type with `voyage-3-large` model")
+logger.info(
+    "##### Let's check With `int8` embedding_type with `voyage-3-large` model")
 
 embed_model = VoyageEmbedding(
     voyage_api_key="<YOUR_VOYAGE_API_KEY>",
@@ -85,8 +86,6 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
 
-
-
 """
 #### Download Data
 """
@@ -100,7 +99,8 @@ logger.info("#### Download Data")
 """
 logger.info("#### Load Data")
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 
 """
 ### With `int8` embedding_type
@@ -111,7 +111,7 @@ logger.info("### With `int8` embedding_type")
 
 llm = OllamaFunctionCallingAdapter(
     model="command-nightly",
-#     api_key="<YOUR_OPENAI_API_KEY>",
+    #     api_key="<YOUR_OPENAI_API_KEY>",
 )
 embed_model = VoyageEmbedding(
     voyage_api_key="<YOUR_VOYAGE_API_KEY>",
@@ -145,7 +145,8 @@ for n in search_query_retrieved_nodes:
 logger.info("### Text-Image Embeddings")
 
 
-img = Image.open("./data/images/prometheus_paper_card.png")
+img = Image.open(
+    f"{os.path.dirname(__file__)}/data/images/prometheus_paper_card.png")
 plt.imshow(img)
 
 embed_model = VoyageEmbedding(
@@ -160,7 +161,7 @@ embed_model = VoyageEmbedding(
 logger.info("##### Image Embeddings")
 
 embeddings = embed_model.get_image_embedding(
-    "./data/images/prometheus_paper_card.png"
+    f"{os.path.dirname(__file__)}/data/images/prometheus_paper_card.png"
 )
 
 logger.debug(len(embeddings))

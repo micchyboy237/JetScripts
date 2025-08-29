@@ -2,24 +2,24 @@ from jet.transformers.formatters import format_json
 from IPython.display import display, HTML
 from jet.logger import CustomLogger
 from llama_index.core import (
-VectorStoreIndex,
-SummaryIndex,
-SimpleDirectoryReader,
-ServiceContext,
-StorageContext,
+    VectorStoreIndex,
+    SummaryIndex,
+    SimpleDirectoryReader,
+    ServiceContext,
+    StorageContext,
 )
 from llama_index.core import SimpleKeywordTableIndex
 from llama_index.core.query_engine.router_query_engine import RouterQueryEngine
 from llama_index.core.query_engine.sub_question_query_engine import (
-SubQuestionQueryEngine,
+    SubQuestionQueryEngine,
 )
 from llama_index.core.selectors.llm_selectors import (
-LLMSingleSelector,
-LLMMultiSelector,
+    LLMSingleSelector,
+    LLMMultiSelector,
 )
 from llama_index.core.selectors.pydantic_selectors import (
-PydanticMultiSelector,
-PydanticSingleSelector,
+    PydanticMultiSelector,
+    PydanticSingleSelector,
 )
 from llama_index.core.text_splitter import SentenceSplitter
 from llama_index.core.tools.query_engine import QueryEngineTool, ToolMetadata
@@ -79,8 +79,6 @@ handler = logging.StreamHandler(sys.stdout)
 handler.setLevel(logging.INFO)  # Set handler level to INFO
 
 logger.addHandler(handler)
-
-
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
@@ -258,10 +256,10 @@ logger.info("## SubQuestion Query Engine")
 logger.info("### Load Data")
 
 lyft_docs = SimpleDirectoryReader(
-    input_files=["./data/10k/lyft_2021.pdf"]
+    input_files=[f"{os.path.dirname(__file__)}/data/10k/lyft_2021.pdf"]
 ).load_data()
 uber_docs = SimpleDirectoryReader(
-    input_files=["./data/10k/uber_2021.pdf"]
+    input_files=[f"{os.path.dirname(__file__)}/data/10k/uber_2021.pdf"]
 ).load_data()
 
 logger.debug(f"Loaded lyft 10-K with {len(lyft_docs)} pages")
@@ -285,15 +283,15 @@ lyft_engine = lyft_index.as_query_engine(similarity_top_k=3)
 uber_engine = uber_index.as_query_engine(similarity_top_k=3)
 
 response = lyft_engine.query(
-        "What is the revenue of Lyft in 2021? Answer in millions with page reference"
-    )
+    "What is the revenue of Lyft in 2021? Answer in millions with page reference"
+)
 logger.success(format_json(response))
 
 display(HTML(f'<p style="font-size:20px">{response.response}</p>'))
 
 response = uber_engine.query(
-        "What is the revenue of Uber in 2021? Answer in millions, with page reference"
-    )
+    "What is the revenue of Uber in 2021? Answer in millions, with page reference"
+)
 logger.success(format_json(response))
 
 display(HTML(f'<p style="font-size:20px">{response.response}</p>'))
@@ -336,8 +334,8 @@ sub_question_query_engine = SubQuestionQueryEngine.from_defaults(
 logger.info("### Querying")
 
 response = sub_question_query_engine.query(
-        "Compare revenue growth of Uber and Lyft from 2020 to 2021"
-    )
+    "Compare revenue growth of Uber and Lyft from 2020 to 2021"
+)
 logger.success(format_json(response))
 
 display(HTML(f'<p style="font-size:20px">{response.response}</p>'))

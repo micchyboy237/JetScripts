@@ -7,8 +7,8 @@ async def main():
     from llama_index.core import StorageContext
     from llama_index.core import VectorStoreIndex
     from llama_index.core.extractors import (
-    QuestionsAnsweredExtractor,
-    TitleExtractor,
+        QuestionsAnsweredExtractor,
+        TitleExtractor,
     )
     from llama_index.core.ingestion import IngestionPipeline
     from llama_index.core.node_parser import SentenceSplitter
@@ -19,15 +19,14 @@ async def main():
     import fitz
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/low_level/ingestion.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
@@ -58,13 +57,13 @@ async def main():
     If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
     """
     logger.info("# Building Data Ingestion from Scratch")
-    
+
     # %pip install llama-index-embeddings-huggingface
     # %pip install llama-index-vector-stores-pinecone
     # %pip install llama-index-llms-ollama
-    
+
     # !pip install llama-index
-    
+
     """
     ## OllamaFunctionCallingAdapter
     
@@ -75,9 +74,9 @@ async def main():
     First we add our dependencies.
     """
     logger.info("## OllamaFunctionCallingAdapter")
-    
+
     # !pip -q install python-dotenv pinecone-client llama-index pymupdf
-    
+
     """
     #### Set Environment Variables
     
@@ -86,22 +85,22 @@ async def main():
     Note: Google Colabs will let you create but not open a .env
     """
     logger.info("#### Set Environment Variables")
-    
+
     dotenv_path = (
         "env"  # Google Colabs will not let you open a .env, but you can set
     )
     with open(dotenv_path, "w") as f:
         f.write('PINECONE_API_KEY="<your api key>"\n')
     #     f.write('OPENAI_API_KEY="<your api key>"\n')
-    
+
     """
     Set your OllamaFunctionCallingAdapter api key, and Pinecone api key and environment in the file we created.
     """
-    logger.info("Set your OllamaFunctionCallingAdapter api key, and Pinecone api key and environment in the file we created.")
-    
-    
+    logger.info(
+        "Set your OllamaFunctionCallingAdapter api key, and Pinecone api key and environment in the file we created.")
+
     load_dotenv(dotenv_path=dotenv_path)
-    
+
     """
     ## Setup
     
@@ -111,15 +110,12 @@ async def main():
     Note: Do not save your API keys in the code or add pinecone_env to your repo!
     """
     logger.info("## Setup")
-    
-    
+
     api_key = os.environ["PINECONE_API_KEY"]
     pc = Pinecone(api_key=api_key)
-    
+
     index_name = "llamaindex-rag-fs"
-    
-    
-    
+
     if index_name not in pc.list_indexes().names():
         pc.create_index(
             index_name,
@@ -127,21 +123,20 @@ async def main():
             metric="euclidean",
             spec=ServerlessSpec(cloud="aws", region="us-east-1"),
         )
-    
+
     pinecone_index = pc.Index(index_name)
-    
+
     pinecone_index.delete(deleteAll=True)
-    
+
     """
     #### Create PineconeVectorStore
     
     Simple wrapper abstraction to use in LlamaIndex. Wrap in StorageContext so we can easily load in Nodes.
     """
     logger.info("#### Create PineconeVectorStore")
-    
-    
+
     vector_store = PineconeVectorStore(pinecone_index=pinecone_index)
-    
+
     """
     ## Build an Ingestion Pipeline from Scratch
     
@@ -154,26 +149,24 @@ async def main():
     ### 1. Load Data
     """
     logger.info("## Build an Ingestion Pipeline from Scratch")
-    
+
     # !mkdir data
     # !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
-    
-    
-    file_path = "./data/llama2.pdf"
+
+    file_path = f"{os.path.dirname(__file__)}/data/llama2.pdf"
     doc = fitz.open(file_path)
-    
+
     """
     ### 2. Use a Text Splitter to Split Documents
     
     Here we import our `SentenceSplitter` to split document texts into smaller chunks, while preserving paragraphs/sentences as much as possible.
     """
     logger.info("### 2. Use a Text Splitter to Split Documents")
-    
-    
+
     text_parser = SentenceSplitter(
         chunk_size=1024,
     )
-    
+
     text_chunks = []
     doc_idxs = []
     for doc_idx, page in enumerate(doc):
@@ -181,7 +174,7 @@ async def main():
         cur_text_chunks = text_parser.split_text(page_text)
         text_chunks.extend(cur_text_chunks)
         doc_idxs.extend([doc_idx] * len(cur_text_chunks))
-    
+
     """
     ### 3. Manually Construct Nodes from Text Chunks
     
@@ -192,8 +185,7 @@ async def main():
     This essentially replicates logic in our `SentenceSplitter`.
     """
     logger.info("### 3. Manually Construct Nodes from Text Chunks")
-    
-    
+
     nodes = []
     for idx, text_chunk in enumerate(text_chunks):
         node = TextNode(
@@ -202,11 +194,11 @@ async def main():
         src_doc_idx = doc_idxs[idx]
         src_page = doc[src_doc_idx]
         nodes.append(node)
-    
+
     logger.debug(nodes[0].metadata)
-    
+
     logger.debug(nodes[0].get_content(metadata_mode="all"))
-    
+
     """
     ### [Optional] 4. Extract Metadata from each Node
     
@@ -215,23 +207,23 @@ async def main():
     This will add more metadata to each Node.
     """
     logger.info("### [Optional] 4. Extract Metadata from each Node")
-    
-    
-    llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
-    
+
+    llm = OllamaFunctionCallingAdapter(
+        model="llama3.2", request_timeout=300.0, context_window=4096)
+
     extractors = [
         TitleExtractor(nodes=5, llm=llm),
         QuestionsAnsweredExtractor(questions=3, llm=llm),
     ]
-    
+
     pipeline = IngestionPipeline(
         transformations=extractors,
     )
     nodes = await pipeline.arun(nodes=nodes, in_place=False)
     logger.success(format_json(nodes))
-    
+
     logger.debug(nodes[0].metadata)
-    
+
     """
     ### 5. Generate Embeddings for each Node
     
@@ -240,16 +232,16 @@ async def main():
     Store these on the `embedding` property on each Node.
     """
     logger.info("### 5. Generate Embeddings for each Node")
-    
-    
-    embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
-    
+
+    embed_model = HuggingFaceEmbedding(
+        model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+
     for node in nodes:
         node_embedding = embed_model.get_text_embedding(
             node.get_content(metadata_mode="all")
         )
         node.embedding = node_embedding
-    
+
     """
     ### 6. Load Nodes into a Vector Store
     
@@ -258,9 +250,9 @@ async def main():
     **NOTE**: We skip the VectorStoreIndex abstraction, which is a higher-level abstraction that handles ingestion as well. We use `VectorStoreIndex` in the next section to fast-track retrieval/querying.
     """
     logger.info("### 6. Load Nodes into a Vector Store")
-    
+
     vector_store.add(nodes)
-    
+
     """
     ## Retrieve and Query from the Vector Store
     
@@ -269,18 +261,17 @@ async def main():
     **NOTE**: We can use our high-level `VectorStoreIndex` abstraction here. See the next section to see how to define retrieval at a lower-level!
     """
     logger.info("## Retrieve and Query from the Vector Store")
-    
-    
+
     index = VectorStoreIndex.from_vector_store(vector_store)
-    
+
     query_engine = index.as_query_engine()
-    
+
     query_str = "Can you tell me about the key concepts for safety finetuning"
-    
+
     response = query_engine.query(query_str)
-    
+
     logger.debug(str(response))
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

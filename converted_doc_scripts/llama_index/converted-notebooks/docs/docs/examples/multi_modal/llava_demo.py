@@ -10,14 +10,14 @@ from llama_index.core.output_parsers import PydanticOutputParser
 from llama_index.core.program import MultiModalLLMCompletionProgram
 from llama_index.core.query_engine import SimpleMultiModalQueryEngine
 from llama_index.core.response.notebook_utils import (
-display_source_node,
-display_image_uris,
+    display_source_node,
+    display_image_uris,
 )
 from llama_index.core.schema import ImageDocument
 from llama_index.core.schema import ImageNode
 from llama_index.multi_modal_llms.replicate import ReplicateMultiModal
 from llama_index.multi_modal_llms.replicate.base import (
-REPLICATE_MULTI_MODAL_LLM_MODELS,
+    REPLICATE_MULTI_MODAL_LLM_MODELS,
 )
 from llama_index.readers.file import FlatReader
 from llama_index.vector_stores.qdrant import QdrantVectorStore
@@ -136,7 +136,8 @@ plt.imshow(image)
 """
 ### Running LLaVa model using Replicate through LlamaIndex for image understanding
 """
-logger.info("### Running LLaVa model using Replicate through LlamaIndex for image understanding")
+logger.info(
+    "### Running LLaVa model using Replicate through LlamaIndex for image understanding")
 
 
 logger.debug(imageUrl)
@@ -179,7 +180,6 @@ if not input_image_path.exists():
 # !wget "https://docs.google.com/uc?export=download&id=12ZpBBFkYu-jzz1iz356U5kMikn4uN9ww" -O ./instagram_images/jordan.png
 
 
-
 class InsAds(BaseModel):
     """Data model for a Ins Ads."""
 
@@ -203,7 +203,8 @@ plt.imshow(image)
 """
 ### Using Multi-Modal Pydantic Program to generate structured output using Llava-13b
 """
-logger.info("### Using Multi-Modal Pydantic Program to generate structured output using Llava-13b")
+logger.info(
+    "### Using Multi-Modal Pydantic Program to generate structured output using Llava-13b")
 
 
 prompt_template_str = """\
@@ -234,6 +235,7 @@ def pydantic_llava(
         logger.debug(res)
     return response
 
+
 """
 ### Output Structured Pydantic Output
 """
@@ -253,7 +255,8 @@ logger.debug(pydantic_response.brand)
 
 ### Downloading text, images data from raw files [Wikipedia] for Multi Modal Index/Retrieval
 """
-logger.info("## Advanced Multi-Modal Retrieval using GPT4V and Multi-Modal Index/Retriever/Query Engine")
+logger.info(
+    "## Advanced Multi-Modal Retrieval using GPT4V and Multi-Modal Index/Retriever/Query Engine")
 
 
 wiki_titles = [
@@ -331,13 +334,15 @@ for title in wiki_titles:
                 if images_per_wiki > MAX_IMAGES_PER_WIKI:
                     break
     except:
-        logger.debug(str(Exception("No images found for Wikipedia page: ")) + title)
+        logger.debug(
+            str(Exception("No images found for Wikipedia page: ")) + title)
         continue
 
 """
 ### Build Multi-modal index and Vector Store to index both text and images
 """
-logger.info("### Build Multi-modal index and Vector Store to index both text and images")
+logger.info(
+    "### Build Multi-modal index and Vector Store to index both text and images")
 
 
 client = qdrant_client.QdrantClient(path="qdrant_mm_db")
@@ -352,12 +357,12 @@ storage_context = StorageContext.from_defaults(
     vector_store=text_store, image_store=image_store
 )
 
-documents = SimpleDirectoryReader("./data_wiki/").load_data()
+documents = SimpleDirectoryReader(
+    f"{os.path.dirname(__file__)}/data_wiki/").load_data()
 index = MultiModalVectorStoreIndex.from_documents(
     documents,
     storage_context=storage_context,
 )
-
 
 
 def plot_images(image_metadata_dict):
@@ -387,7 +392,8 @@ plot_images(image_metadata_dict)
 """
 ### Multi-Modal RAG Retrieval and Querying using LlaVa pydantic structured output
 """
-logger.info("### Multi-Modal RAG Retrieval and Querying using LlaVa pydantic structured output")
+logger.info(
+    "### Multi-Modal RAG Retrieval and Querying using LlaVa pydantic structured output")
 
 retriever = index.as_retriever(similarity_top_k=3, image_similarity_top_k=5)
 retrieval_results = retriever.retrieve(pydantic_response.brand)

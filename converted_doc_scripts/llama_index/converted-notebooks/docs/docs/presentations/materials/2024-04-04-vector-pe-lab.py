@@ -26,8 +26,8 @@ logger.info(f"Logs: {log_file}")
 """
 # LLMs and LlamaIndex ◦ April 4 2024 ◦ Vector Institute Prompt Engineering Lab
 """
-logger.info("# LLMs and LlamaIndex ◦ April 4 2024 ◦ Vector Institute Prompt Engineering Lab")
-
+logger.info(
+    "# LLMs and LlamaIndex ◦ April 4 2024 ◦ Vector Institute Prompt Engineering Lab")
 
 
 """
@@ -46,7 +46,7 @@ logger.info("#### Notebook Setup & Dependency Installation")
 # nest_asyncio.apply()
 
 # !mkdir data
-# !wget "https://vectorinstitute.ai/wp-content/uploads/2024/02/Vector-Annual-Report-2022-23_accessible_rev0224-1.pdf" -O "./data/Vector-Annual-Report-2022-23_accessible_rev0224-1.pdf"
+# !wget "https://vectorinstitute.ai/wp-content/uploads/2024/02/Vector-Annual-Report-2022-23_accessible_rev0224-1.pdf" -O f"{os.path.dirname(__file__)}/data/Vector-Annual-Report-2022-23_accessible_rev0224-1.pdf"
 
 """
 ## Motivation
@@ -56,7 +56,8 @@ logger.info("#### Notebook Setup & Dependency Installation")
 logger.info("## Motivation")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
 
 response = llm.complete("What is Vector Institute all about?")
 
@@ -93,7 +94,7 @@ a container that holds the text of the document.
 """
 
 
-loader = SimpleDirectoryReader(input_dir="./data")
+loader = SimpleDirectoryReader(input_dir=f"{os.path.dirname(__file__)}/data")
 documents = loader.load_data()
 
 documents[1].text
@@ -112,7 +113,8 @@ vector_store = QdrantVectorStore(client=client, collection_name="test_store")
 pipeline = IngestionPipeline(
     transformations=[
         SentenceSplitter(),
-        HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
+        HuggingFaceEmbedding(
+            model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     ],
     vector_store=vector_store,
 )
@@ -225,11 +227,11 @@ logger.debug(response)
 logger.info("## In Summary")
 
 
-
 """
 ### Sponsors
 """
 logger.info("### Sponsors")
+
 
 class VectorSponsors(BaseModel):
     """Data model for Vector Institute sponsors 2022-2023."""
@@ -238,6 +240,7 @@ class VectorSponsors(BaseModel):
     gold: str = Field(description="Gold sponsors")
     silver: str = Field(description="Silver sponsors")
     bronze: List[str] = Field(description="Bronze sponsors")
+
 
 prompt_template_str = """\
 Here is the 2022-2023 Annual Report for Vector Institute:

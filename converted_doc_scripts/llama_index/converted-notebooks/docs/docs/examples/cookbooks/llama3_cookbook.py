@@ -1,10 +1,10 @@
 from jet.models.config import MODELS_CACHE_DIR
 from jet.logger import CustomLogger
 from llama_index.core import (
-SimpleDirectoryReader,
-VectorStoreIndex,
-StorageContext,
-load_index_from_storage,
+    SimpleDirectoryReader,
+    VectorStoreIndex,
+    StorageContext,
+    load_index_from_storage,
 )
 from llama_index.core import Settings
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
@@ -74,8 +74,6 @@ stopping_ids = [
 logger.info("### Setup LLM using `HuggingFaceLLM`")
 
 
-
-
 llm = HuggingFaceLLM(
     model_name="meta-llama/Meta-Llama-3-8B-Instruct",
     model_kwargs={
@@ -141,7 +139,8 @@ documents = SimpleDirectoryReader(
 logger.info("### Setup Embedding Model")
 
 
-embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+embed_model = HuggingFaceEmbedding(
+    model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 """
 ### Set Default LLM and Embedding Model
@@ -184,7 +183,6 @@ logger.debug(response)
 logger.info("### Agents And Tools")
 
 
-
 # import nest_asyncio
 
 # nest_asyncio.apply()
@@ -193,6 +191,7 @@ logger.info("### Agents And Tools")
 ### Define Tools
 """
 logger.info("### Define Tools")
+
 
 def multiply(a: int, b: int) -> int:
     """Multiple two integers and returns the result integer"""
@@ -247,7 +246,6 @@ logger.debug(str(response))
 logger.info("### ReAct Agent With RAG QueryEngine Tools")
 
 
-
 """
 ### Download Data
 """
@@ -263,10 +261,10 @@ logger.info("### Download Data")
 logger.info("### Load Data")
 
 lyft_docs = SimpleDirectoryReader(
-    input_files=["./data/10k/lyft_2021.pdf"]
+    input_files=[f"{os.path.dirname(__file__)}/data/10k/lyft_2021.pdf"]
 ).load_data()
 uber_docs = SimpleDirectoryReader(
-    input_files=["./data/10k/uber_2021.pdf"]
+    input_files=[f"{os.path.dirname(__file__)}/data/10k/uber_2021.pdf"]
 ).load_data()
 
 """

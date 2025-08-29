@@ -35,7 +35,6 @@ logger.info("# 10Q Analysis")
 # nest_asyncio.apply()
 
 
-
 """
 ## Configure LLM service
 """
@@ -45,7 +44,8 @@ logger.info("## Configure LLM service")
 # os.environ["OPENAI_API_KEY"] = "OPENAI_API_KEY"
 
 
-Settings.llm = OllamaFunctionCallingAdapter(temperature=0.2, model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = OllamaFunctionCallingAdapter(
+    temperature=0.2, model="llama3.2", request_timeout=300.0, context_window=4096)
 
 """
 ## Download Data
@@ -63,13 +63,16 @@ logger.info("## Download Data")
 logger.info("## Load data")
 
 march_2022 = SimpleDirectoryReader(
-    input_files=["./data/10q/uber_10q_march_2022.pdf"]
+    input_files=[
+        f"{os.path.dirname(__file__)}/data/10q/uber_10q_march_2022.pdf"]
 ).load_data()
 june_2022 = SimpleDirectoryReader(
-    input_files=["./data/10q/uber_10q_june_2022.pdf"]
+    input_files=[
+        f"{os.path.dirname(__file__)}/data/10q/uber_10q_june_2022.pdf"]
 ).load_data()
 sept_2022 = SimpleDirectoryReader(
-    input_files=["./data/10q/uber_10q_sept_2022.pdf"]
+    input_files=[
+        f"{os.path.dirname(__file__)}/data/10q/uber_10q_sept_2022.pdf"]
 ).load_data()
 
 """

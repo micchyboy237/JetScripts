@@ -50,7 +50,8 @@ logger.info("# Qdrant Hybrid Search")
 # !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
 
-documents = SimpleDirectoryReader("./data/").load_data()
+documents = SimpleDirectoryReader(
+    f"{os.path.dirname(__file__)}/data/").load_data()
 
 """
 ## Indexing Data
@@ -135,7 +136,6 @@ logger.info("### Async Support")
 # nest_asyncio.apply()
 
 
-
 vector_store = QdrantVectorStore(
     collection_name="llama2_paper",
     client=client,
@@ -156,8 +156,8 @@ index = VectorStoreIndex.from_documents(
 query_engine = index.as_query_engine(similarity_top_k=2, sparse_top_k=10)
 
 response = query_engine.query(
-        "What baseline models are measured against in the paper?"
-    )
+    "What baseline models are measured against in the paper?"
+)
 logger.success(format_json(response))
 
 """
@@ -242,6 +242,7 @@ def sparse_query_vectors(
 
     return indices, vecs
 
+
 vector_store = QdrantVectorStore(
     "llama2_paper",
     client=client,
@@ -260,7 +261,6 @@ You can customize this function to be any other method (plain deduplication, Rec
 Below is the default code for our relative score fusion approach and how you can pass it into the constructor.
 """
 logger.info("### Customizing `hybrid_fusion_fn()`")
-
 
 
 def relative_score_fusion(
@@ -331,6 +331,7 @@ def relative_score_fusion(
         similarities=[x[0] for x in fused_similarities],
         ids=[x[1].node_id for x in fused_similarities],
     )
+
 
 vector_store = QdrantVectorStore(
     "llama2_paper",

@@ -1,16 +1,16 @@
 from google.cloud import aiplatform
 from jet.logger import CustomLogger
 from llama_index.core import (
-StorageContext,
-Settings,
-VectorStoreIndex,
-SimpleDirectoryReader,
+    StorageContext,
+    Settings,
+    VectorStoreIndex,
+    SimpleDirectoryReader,
 )
 from llama_index.core.schema import TextNode
 from llama_index.core.vector_stores.types import (
-MetadataFilters,
-MetadataFilter,
-FilterOperator,
+    MetadataFilters,
+    MetadataFilter,
+    FilterOperator,
 )
 from llama_index.embeddings.vertex import VertexTextEmbedding
 from llama_index.llms.vertex import Vertex
@@ -104,7 +104,8 @@ if len(index_names) == 0:
         dimensions=VS_DIMENSIONS,
         distance_measure_type="DOT_PRODUCT_DISTANCE",
         shard_size="SHARD_SIZE_SMALL",
-        index_update_method="STREAM_UPDATE",  # allowed values BATCH_UPDATE , STREAM_UPDATE
+        # allowed values BATCH_UPDATE , STREAM_UPDATE
+        index_update_method="STREAM_UPDATE",
     )
     logger.debug(
         f"Vector Search index {vs_index.display_name} created with resource name {vs_index.resource_name}"
@@ -203,7 +204,8 @@ vs_endpoint = aiplatform.MatchingEngineIndexEndpoint(
 """
 ### Create a simple vector store from plain text without metadata filters
 """
-logger.info("### Create a simple vector store from plain text without metadata filters")
+logger.info(
+    "### Create a simple vector store from plain text without metadata filters")
 
 vector_store = VertexAIVectorStore(
     project_id=PROJECT_ID,
@@ -362,12 +364,14 @@ for row in response:
 """
 ## Parse, Index and Query PDFs using Vertex AI Vector Search and Gemini Pro
 """
-logger.info("## Parse, Index and Query PDFs using Vertex AI Vector Search and Gemini Pro")
+logger.info(
+    "## Parse, Index and Query PDFs using Vertex AI Vector Search and Gemini Pro")
 
 # ! mkdir -p ./data/arxiv/
 # ! wget 'https://arxiv.org/pdf/1706.03762.pdf' -O ./data/arxiv/test.pdf
 
-documents = SimpleDirectoryReader("./data/arxiv/").load_data()
+documents = SimpleDirectoryReader(
+    f"{os.path.dirname(__file__)}/data/arxiv/").load_data()
 logger.debug(f"# of documents = {len(documents)}")
 
 vector_store = VertexAIVectorStore(
@@ -459,9 +463,10 @@ if CLEANUP_RESOURCES:
 """
 
 if CLEANUP_RESOURCES and "GCS_BUCKET_NAME" in globals():
-    logger.debug(f"Deleting contents from the Cloud Storage bucket {GCS_BUCKET_NAME}")
+    logger.debug(
+        f"Deleting contents from the Cloud Storage bucket {GCS_BUCKET_NAME}")
 
-    shell_output = ! gsutil du -ash gs://$GCS_BUCKET_NAME
+    shell_output = ! gsutil du - ash gs: // $GCS_BUCKET_NAME
     logger.debug(shell_output)
     logger.debug(
         f"Size of the bucket {GCS_BUCKET_NAME} before deleting = {' '.join(shell_output[0].split()[:2])}"

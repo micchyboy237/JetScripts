@@ -76,7 +76,8 @@ logger.info("## Env Setup")
 # nest_asyncio.apply()
 
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 
 """
 We choose using gpt-4o and local embedding model intfloat/multilingual-e5-large . You can change to what you like, by editing the following lines:
@@ -86,7 +87,8 @@ logger.info("We choose using gpt-4o and local embedding model intfloat/multiling
 # %pip install llama-index-embeddings-huggingface
 
 
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
+Settings.llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 Settings.embed_model = HuggingFaceEmbedding(
     model_name="intfloat/multilingual-e5-large"
 )
@@ -124,12 +126,14 @@ index = PropertyGraphIndex.from_documents(
     show_progress=True,
 )
 
-index.storage_context.vector_store.persist("./data/nebula_vec_store.json")
+index.storage_context.vector_store.persist(
+    f"{os.path.dirname(__file__)}/data/nebula_vec_store.json")
 
 """
 Now that the graph is created, we can explore it with [jupyter-nebulagraph](https://github.com/wey-gu/jupyter_nebulagraph)
 """
-logger.info("Now that the graph is created, we can explore it with [jupyter-nebulagraph](https://github.com/wey-gu/jupyter_nebulagraph)")
+logger.info(
+    "Now that the graph is created, we can explore it with [jupyter-nebulagraph](https://github.com/wey-gu/jupyter_nebulagraph)")
 
 # %ngql SHOW TAGS
 
@@ -174,7 +178,8 @@ graph_store = NebulaPropertyGraphStore(
 )
 
 
-vec_store = SimpleVectorStore.from_persist_path("./data/nebula_vec_store.json")
+vec_store = SimpleVectorStore.from_persist_path(
+    f"{os.path.dirname(__file__)}/data/nebula_vec_store.json")
 
 index = PropertyGraphIndex.from_existing(
     property_graph_store=graph_store,

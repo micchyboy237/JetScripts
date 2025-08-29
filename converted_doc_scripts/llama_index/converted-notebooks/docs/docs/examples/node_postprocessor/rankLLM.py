@@ -66,7 +66,8 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 # os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 
-Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = OllamaFunctionCallingAdapter(
+    temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
 Settings.chunk_size = 512
 
 """
@@ -100,7 +101,8 @@ for title in wiki_titles:
     with open(data_path / f"{title}.txt", "w") as fp:
         fp.write(wiki_text)
 
-documents = SimpleDirectoryReader("./data_wiki/").load_data()
+documents = SimpleDirectoryReader(
+    f"{os.path.dirname(__file__)}/data_wiki/").load_data()
 
 index = VectorStoreIndex.from_documents(
     documents,
@@ -174,8 +176,6 @@ use_azure_ollama: bool = Field(
 logger.info("### Retrieval + RankLLM Reranking (sliding window)")
 
 
-
-
 def get_retrieved_nodes(
     query_str,
     vector_top_k=10,
@@ -218,13 +218,15 @@ def visualize_retrieved_nodes(nodes) -> None:
 
     pretty_logger.debug(pd.DataFrame(result_dicts))
 
+
 """
 ### Without `RankZephyr` reranking, the correct result is ranked `47`th/50.
 
 #### Expected result:
 ```After much pleading from Van Gogh, Gauguin arrived in Arles on 23 October and, in November, the two painted together. Gauguin depicted Van Gogh in his The Painter of Sunflowers;```
 """
-logger.info("### Without `RankZephyr` reranking, the correct result is ranked `47`th/50.")
+logger.info(
+    "### Without `RankZephyr` reranking, the correct result is ranked `47`th/50.")
 
 new_nodes = get_retrieved_nodes(
     "Which date did Paul Gauguin arrive in Arles?",
@@ -237,7 +239,8 @@ visualize_retrieved_nodes(new_nodes[:3])
 """
 ### With `RankZephyr` reranking, the correct result is ranked `1`st/50
 """
-logger.info("### With `RankZephyr` reranking, the correct result is ranked `1`st/50")
+logger.info(
+    "### With `RankZephyr` reranking, the correct result is ranked `1`st/50")
 
 new_nodes = get_retrieved_nodes(
     "Which date did Paul Gauguin arrive in Arles?",

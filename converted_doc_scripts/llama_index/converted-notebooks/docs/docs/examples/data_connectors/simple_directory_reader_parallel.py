@@ -1,7 +1,8 @@
 from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader
 from pstats import SortKey
-import cProfile, pstats
+import cProfile
+import pstats
 import os
 import shutil
 
@@ -24,12 +25,14 @@ logger.info("# Parallel Processing SimpleDirectoryReader")
 """
 In this demo, we'll use the `PatronusAIFinanceBenchDataset` llama-dataset from [llamahub](https://llamahub.ai). This dataset is based off of a set of 32 PDF files which are included in the download from llamahub.
 """
-logger.info("In this demo, we'll use the `PatronusAIFinanceBenchDataset` llama-dataset from [llamahub](https://llamahub.ai). This dataset is based off of a set of 32 PDF files which are included in the download from llamahub.")
+logger.info(
+    "In this demo, we'll use the `PatronusAIFinanceBenchDataset` llama-dataset from [llamahub](https://llamahub.ai). This dataset is based off of a set of 32 PDF files which are included in the download from llamahub.")
 
 # !llamaindex-cli download-llamadataset PatronusAIFinanceBenchDataset --download-dir ./data
 
 
-reader = SimpleDirectoryReader(input_dir="./data/source_files")
+reader = SimpleDirectoryReader(
+    input_dir=f"{os.path.dirname(__file__)}/data/source_files")
 
 """
 ### Sequential Load

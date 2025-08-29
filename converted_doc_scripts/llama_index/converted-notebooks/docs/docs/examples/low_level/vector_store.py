@@ -7,8 +7,8 @@ from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.schema import BaseNode
 from llama_index.core.schema import TextNode, BaseNode
 from llama_index.core.vector_stores import (
-VectorStoreQuery,
-VectorStoreQueryResult,
+    VectorStoreQuery,
+    VectorStoreQueryResult,
 )
 from llama_index.core.vector_stores import MetadataFilters
 from llama_index.core.vector_stores.types import BasePydanticVectorStore
@@ -59,7 +59,8 @@ logger.info("# Building a (Very Simple) Vector Store from Scratch")
 # from llama_index.readers.file import PyMuPDFReader
 
 # loader = PyMuPDFReader()
-documents = loader.load(file_path="./data/llama2.pdf")
+documents = loader.load(
+    file_path=f"{os.path.dirname(__file__)}/data/llama2.pdf")
 
 """
 #### Parse into Nodes
@@ -76,7 +77,8 @@ nodes = node_parser.get_nodes_from_documents(documents)
 logger.info("#### Generate Embeddings for each Node")
 
 
-embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+embed_model = HuggingFaceEmbedding(
+    model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 for node in nodes:
     node_embedding = embed_model.get_text_embedding(
         node.get_content(metadata_mode="all")
@@ -99,7 +101,6 @@ We'll first define the interface for building a vector store. It contains the fo
 - `persist` (which we will not implement)
 """
 logger.info("## Build a Simple In-Memory Vector Store")
-
 
 
 class BaseVectorStore(BasePydanticVectorStore):
@@ -148,6 +149,7 @@ class BaseVectorStore(BasePydanticVectorStore):
         """
         pass
 
+
 """
 At a high-level, we subclass our base `VectorStore` abstraction. There's no inherent reason to do this if you're just building a vector store from scratch. We do it because it makes it easy to plug into our downstream abstractions later.
 
@@ -170,7 +172,6 @@ We add some basic capabilities to add, get, and delete from a vector store.
 The implementation is very simple (everything is just stored in a python dictionary).
 """
 logger.info("### 2. Defining `add`, `get`, and `delete`")
-
 
 
 class VectorStore2(BaseVectorStore):
@@ -200,6 +201,7 @@ class VectorStore2(BaseVectorStore):
 
         """
         del self.node_dict[node_id]
+
 
 """
 We run some basic tests just to show it works well.
@@ -231,7 +233,6 @@ Cosine similarity: $\dfrac{\vec{d}\vec{q}}{|\vec{d}||\vec{q}|}$ for every docume
 logger.info("### 3.a Defining `query` (semantic search)")
 
 
-
 def get_top_k_embeddings(
     query_embedding: List[float],
     doc_embeddings: List[List[float]],
@@ -255,7 +256,6 @@ def get_top_k_embeddings(
     result_similarities = [s for s, _ in sorted_tups]
     result_ids = [n for _, n in sorted_tups]
     return result_similarities, result_ids
-
 
 
 class VectorStore3A(VectorStore2):
@@ -284,6 +284,7 @@ class VectorStore3A(VectorStore2):
             nodes=result_nodes, similarities=similarities, ids=node_ids
         )
 
+
 """
 ### 3.b. Supporting Metadata Filtering
 
@@ -292,7 +293,6 @@ The next extension is adding metadata filter support. This means that we will fi
 For simplicity we use metadata filters for exact matching with an AND condition.
 """
 logger.info("### 3.b. Supporting Metadata Filtering")
-
 
 
 def filter_nodes(nodes: List[BaseNode], filters: MetadataFilters):
@@ -310,10 +310,13 @@ def filter_nodes(nodes: List[BaseNode], filters: MetadataFilters):
             filtered_nodes.append(node)
     return filtered_nodes
 
+
 """
 We add `filter_nodes` as a first-pass over the nodes before running semantic search.
 """
-logger.info("We add `filter_nodes` as a first-pass over the nodes before running semantic search.")
+logger.info(
+    "We add `filter_nodes` as a first-pass over the nodes before running semantic search.")
+
 
 def dense_search(query: VectorStoreQuery, nodes: List[BaseNode]):
     """Dense search."""
@@ -350,6 +353,7 @@ class VectorStore3B(VectorStore2):
         return VectorStoreQueryResult(
             nodes=result_nodes, similarities=similarities, ids=node_ids
         )
+
 
 """
 ### 4. Load Data into our Vector Store

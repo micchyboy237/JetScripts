@@ -19,15 +19,14 @@ async def main():
     import os
     import pandas as pd
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/finetuning/rerankers/cohere_custom_reranker.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
@@ -42,14 +41,14 @@ async def main():
     Let's install the necessary packages.
     """
     logger.info("# Custom Cohere Reranker")
-    
+
     # %pip install llama-index-postprocessor-cohere-rerank
     # %pip install llama-index-llms-ollama
     # %pip install llama-index-finetuning
     # %pip install llama-index-embeddings-cohere
-    
+
     # !pip install llama-index cohere pypdf
-    
+
     """
     ### Initialize the api keys.
     
@@ -58,50 +57,40 @@ async def main():
     CohereAI - For training custom reranker and evaluating with base reranker.
     """
     logger.info("### Initialize the api keys.")
-    
+
     openai_api_key = "YOUR OPENAI API KEY"
     cohere_api_key = "YOUR COHEREAI API KEY"
-    
-    
+
     # os.environ["OPENAI_API_KEY"] = openai_api_key
     os.environ["COHERE_API_KEY"] = cohere_api_key
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
     # import nest_asyncio
-    
+
     # nest_asyncio.apply()
-    
+
     """
     ## Download data
     
     We will use Lyft 2021 10K SEC Filings for training and Uber 2021 10K SEC Filings for evaluating.
     """
     logger.info("## Download data")
-    
+
     # !mkdir -p 'data/10k/'
     # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/uber_2021.pdf' -O 'data/10k/uber_2021.pdf'
     # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/lyft_2021.pdf' -O 'data/10k/lyft_2021.pdf'
-    
+
     """
     ## Load Data
     """
     logger.info("## Load Data")
-    
+
     lyft_docs = SimpleDirectoryReader(
-        input_files=["./data/10k/lyft_2021.pdf"]
+        input_files=[f"{os.path.dirname(__file__)}/data/10k/lyft_2021.pdf"]
     ).load_data()
     uber_docs = SimpleDirectoryReader(
-        input_files=["./data/10k/uber_2021.pdf"]
+        input_files=[f"{os.path.dirname(__file__)}/data/10k/uber_2021.pdf"]
     ).load_data()
-    
+
     """
     ## Data Curation
     
@@ -110,24 +99,25 @@ async def main():
     The documentation mentions that Query + Relevant Passage/ Query + Hard Negatives should be less than 510 tokens. To accomidate that we limit chunk_size to 400 tokens. (Each chunk will eventually be treated as a Relevant Passage/ Hard Negative)
     """
     logger.info("## Data Curation")
-    
+
     node_parser = SimpleNodeParser.from_defaults(chunk_size=400)
-    
+
     lyft_nodes = node_parser.get_nodes_from_documents(lyft_docs)
     uber_nodes = node_parser.get_nodes_from_documents(uber_docs)
-    
+
     """
     We will use gpt-4 to create questions from chunks.
     """
     logger.info("We will use gpt-4 to create questions from chunks.")
-    
-    llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
-    
+
+    llm = OllamaFunctionCallingAdapter(
+        temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+
     """
     Prompt to generate questions from each Node/ chunk.
     """
     logger.info("Prompt to generate questions from each Node/ chunk.")
-    
+
     qa_generate_prompt_tmpl = """\
     Context information is below.
     
@@ -144,7 +134,7 @@ async def main():
     across the document. The questions should not contain options, not start with Q1/ Q2. \
     Restrict the questions to the context information provided.\
     """
-    
+
     """
     Training Custom Re-ranker expects minimum 256 (Query + Relevant passage) pairs with or without hard negatives for training and 64 pairs for validation. Please note that the validation is optional.
     
@@ -155,34 +145,34 @@ async def main():
     **Testing:** We will use 150 nodes from Uber.
     """
     logger.info("Training Custom Re-ranker expects minimum 256 (Query + Relevant passage) pairs with or without hard negatives for training and 64 pairs for validation. Please note that the validation is optional.")
-    
+
     qa_dataset_lyft_train = generate_question_context_pairs(
         lyft_nodes[:256],
         llm=llm,
         num_questions_per_chunk=1,
         qa_generate_prompt_tmpl=qa_generate_prompt_tmpl,
     )
-    
+
     qa_dataset_lyft_train.save_json("lyft_train_dataset.json")
-    
+
     qa_dataset_lyft_val = generate_question_context_pairs(
         lyft_nodes[257:321],
         llm=llm,
         num_questions_per_chunk=1,
         qa_generate_prompt_tmpl=qa_generate_prompt_tmpl,
     )
-    
+
     qa_dataset_lyft_val.save_json("lyft_val_dataset.json")
-    
+
     qa_dataset_uber_val = generate_question_context_pairs(
         uber_nodes[:150],
         llm=llm,
         num_questions_per_chunk=1,
         qa_generate_prompt_tmpl=qa_generate_prompt_tmpl,
     )
-    
+
     qa_dataset_uber_val.save_json("uber_val_dataset.json")
-    
+
     """
     Now that we have compiled questions from each chunk, we will format the data according to the specifications required for training the Custom Re-ranker.
     
@@ -198,13 +188,13 @@ async def main():
     [Reference](https://docs.cohere.com/docs/rerank-models)
     """
     logger.info("### Data Format and Requirements")
-    
+
     embed_model = CohereEmbedding(
         api_key=cohere_api_key,
         model_name="embed-english-v3.0",
         input_type="search_document",
     )
-    
+
     """
     Let's create 3 datasets.
     
@@ -213,15 +203,15 @@ async def main():
     3. Dataset with hard negatives selected based on cosine similarity.
     """
     logger.info("Let's create 3 datasets.")
-    
+
     generate_cohere_reranker_finetuning_dataset(
         qa_dataset_lyft_train, finetune_dataset_file_name="train.jsonl"
     )
-    
+
     generate_cohere_reranker_finetuning_dataset(
         qa_dataset_lyft_val, finetune_dataset_file_name="val.jsonl"
     )
-    
+
     generate_cohere_reranker_finetuning_dataset(
         qa_dataset_lyft_train,
         num_negatives=5,
@@ -229,7 +219,7 @@ async def main():
         finetune_dataset_file_name="train_5_random.jsonl",
         embed_model=embed_model,
     )
-    
+
     generate_cohere_reranker_finetuning_dataset(
         qa_dataset_lyft_val,
         num_negatives=5,
@@ -237,7 +227,7 @@ async def main():
         finetune_dataset_file_name="val_5_random.jsonl",
         embed_model=embed_model,
     )
-    
+
     generate_cohere_reranker_finetuning_dataset(
         qa_dataset_lyft_train,
         num_negatives=5,
@@ -245,7 +235,7 @@ async def main():
         finetune_dataset_file_name="train_5_cosine_similarity.jsonl",
         embed_model=embed_model,
     )
-    
+
     generate_cohere_reranker_finetuning_dataset(
         qa_dataset_lyft_val,
         num_negatives=5,
@@ -253,14 +243,14 @@ async def main():
         finetune_dataset_file_name="val_5_cosine_similarity.jsonl",
         embed_model=embed_model,
     )
-    
+
     """
     ## Training Custom Reranker.
     
     With our training and validation datasets ready, we're set to proceed with the training Custom re-ranker process. Be aware that this training is expected to take approximately 25 to 45 minutes.
     """
     logger.info("## Training Custom Reranker.")
-    
+
     finetune_model_no_hard_negatives = CohereRerankerFinetuneEngine(
         train_file_name="train.jsonl",
         val_file_name="val.jsonl",
@@ -269,7 +259,7 @@ async def main():
         base_model="english",
     )
     finetune_model_no_hard_negatives.finetune()
-    
+
     finetune_model_random_hard_negatives = CohereRerankerFinetuneEngine(
         train_file_name="train_5_random.jsonl",
         val_file_name="val_5_random.jsonl",
@@ -278,7 +268,7 @@ async def main():
         base_model="english",
     )
     finetune_model_random_hard_negatives.finetune()
-    
+
     finetune_model_cosine_hard_negatives = CohereRerankerFinetuneEngine(
         train_file_name="train_5_cosine_similarity.jsonl",
         val_file_name="val_5_cosine_similarity.jsonl",
@@ -287,14 +277,14 @@ async def main():
         base_model="english",
     )
     finetune_model_cosine_hard_negatives.finetune()
-    
+
     """
     Once the jobs are submitted, you can check the training status in the `models` section of dashboard at https://dashboard.cohere.com/models.
     
     You then need to get the model id for testing.
     """
     logger.info("Once the jobs are submitted, you can check the training status in the `models` section of dashboard at https://dashboard.cohere.com/models.")
-    
+
     reranker_base = CohereRerank(top_n=5)
     reranker_model_0 = finetune_model_no_hard_negatives.get_finetuned_model(
         top_n=5
@@ -305,7 +295,7 @@ async def main():
     reranker_model_5_cosine = (
         finetune_model_cosine_hard_negatives.get_finetuned_model(top_n=5)
     )
-    
+
     """
     ## Testing
     
@@ -318,7 +308,7 @@ async def main():
     5. With Custom reranker with hard negatives selected based on cosine similarity.
     """
     logger.info("## Testing")
-    
+
     RERANKERS = {
         "WithoutReranker": "None",
         "CohereRerank": reranker_base,
@@ -326,25 +316,25 @@ async def main():
         "CohereRerank_5_random": reranker_model_5_random,
         "CohereRerank_5_cosine": reranker_model_5_cosine,
     }
-    
+
     """
     Function to display the results
     """
     logger.info("Function to display the results")
-    
+
     def display_results(embedding_name, reranker_name, eval_results):
         """Display results from evaluate."""
-    
+
         metric_dicts = []
         for eval_result in eval_results:
             metric_dict = eval_result.metric_vals_dict
             metric_dicts.append(metric_dict)
-    
+
         full_df = pd.DataFrame(metric_dicts)
-    
+
         hit_rate = full_df["hit_rate"].mean()
         mrr = full_df["mrr"].mean()
-    
+
         metric_df = pd.DataFrame(
             {
                 "Embedding": [embedding_name],
@@ -353,22 +343,21 @@ async def main():
                 "mrr": [mrr],
             }
         )
-    
+
         return metric_df
-    
+
     index_embed_model = CohereEmbedding(
         api_key=cohere_api_key,
         model_name="embed-english-v3.0",
         input_type="search_document",
     )
-    
+
     query_embed_model = CohereEmbedding(
         api_key=cohere_api_key,
         model_name="embed-english-v3.0",
         input_type="search_query",
     )
-    
-    
+
     vector_index = VectorStoreIndex(
         uber_nodes[:150],
         embed_model=index_embed_model,
@@ -378,84 +367,84 @@ async def main():
         similarity_top_k=10,
         embed_model=query_embed_model,
     )
-    
+
     results_df = pd.DataFrame()
-    
+
     embed_name = "CohereEmbedding"
-    
+
     for rerank_name, reranker in RERANKERS.items():
         logger.debug(f"Running Evaluation for Reranker: {rerank_name}")
-    
+
         class CustomRetriever(BaseRetriever):
             """Custom retriever that performs both Vector search and Knowledge Graph search"""
-    
+
             def __init__(
                 self,
                 vector_retriever: VectorIndexRetriever,
             ) -> None:
                 """Init params."""
-    
+
                 self._vector_retriever = vector_retriever
                 super().__init__()
-    
+
             def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
                 """Retrieve nodes given query."""
-    
+
                 retrieved_nodes = self._vector_retriever.retrieve(query_bundle)
-    
+
                 if reranker != "None":
                     retrieved_nodes = reranker.postprocess_nodes(
                         retrieved_nodes, query_bundle
                     )
                 else:
                     retrieved_nodes = retrieved_nodes[:5]
-    
+
                 return retrieved_nodes
-    
+
             async def _aretrieve(
                 self, query_bundle: QueryBundle
             ) -> List[NodeWithScore]:
                 """Asynchronously retrieve nodes given query.
-    
+
                 Implemented by the user.
-    
+
                 """
                 return self._retrieve(query_bundle)
-    
+
             async def aretrieve(
                 self, str_or_query_bundle: QueryType
             ) -> List[NodeWithScore]:
                 if isinstance(str_or_query_bundle, str):
                     str_or_query_bundle = QueryBundle(str_or_query_bundle)
                 return await self._aretrieve(str_or_query_bundle)
-    
+
         custom_retriever = CustomRetriever(vector_retriever)
-    
+
         retriever_evaluator = RetrieverEvaluator.from_metric_names(
             ["mrr", "hit_rate"], retriever=custom_retriever
         )
         eval_results = retriever_evaluator.evaluate_dataset(
-                qa_dataset_uber_val
-            )
+            qa_dataset_uber_val
+        )
         logger.success(format_json(eval_results))
-    
+
         current_df = display_results(embed_name, rerank_name, eval_results)
         results_df = pd.concat([results_df, current_df], ignore_index=True)
-    
+
     """
     ## Check Results.
     """
     logger.info("## Check Results.")
-    
+
     logger.debug(results_df)
-    
+
     """
     The Cohere Custom Re-ranker has led to improvements. It's important to highlight that determining the optimal number of hard negatives and whether to use random or cosine sampling should be based on experimental results. This guide presents a framework to enhance retrieval systems with Custom Cohere re-ranker.
     
     **There is potential for enhancement in the selection of hard negatives; contributions in this area are welcome from the community.**
     """
     logger.info("The Cohere Custom Re-ranker has led to improvements. It's important to highlight that determining the optimal number of hard negatives and whether to use random or cosine sampling should be based on experimental results. This guide presents a framework to enhance retrieval systems with Custom Cohere re-ranker.")
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

@@ -11,7 +11,7 @@ from llama_index.core.prompts import ChatPromptTemplate
 from llama_index.core.schema import TextNode
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.postprocessor.flag_embedding_reranker import (
-FlagEmbeddingReranker,
+    FlagEmbeddingReranker,
 )
 from llama_parse import LlamaParse
 from pprint import pprint
@@ -46,8 +46,10 @@ logger.info("# Examples of Structured Data Extraction in LlamaIndex")
 # nest_asyncio.apply()
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
-embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
+embed_model = HuggingFaceEmbedding(
+    model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 Settings.llm = llm
 Settings.embed_model = embed_model
 
@@ -61,7 +63,6 @@ Here we pass a simple `Album` class which contains a list of songs. We can then 
 **NOTE**: async is supported but streaming is coming soon.
 """
 logger.info("## 1. Simple Structured Extraction")
-
 
 
 class Song(BaseModel):
@@ -145,7 +146,8 @@ chat_prompt_tmpl = ChatPromptTemplate(
     ]
 )
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096)
 album = llm.structured_predict(
     Album, chat_prompt_tmpl, movie_name="Lord of the Rings"
 )
@@ -170,9 +172,8 @@ logger.info("#### Option 1: Use LlamaParse")
 
 
 orig_docs = LlamaParse(result_type="text").load_data(
-    "./data/apple_2021_10k.pdf"
+    f"{os.path.dirname(__file__)}/data/apple_2021_10k.pdf"
 )
-
 
 
 def get_page_nodes(docs, separator="\n---\n"):
@@ -201,7 +202,6 @@ You can also choose to use the free PDF parser bundled into our `SimpleDirectory
 logger.info("#### Option 2: Use SimpleDirectoryReader")
 
 
-
 """
 #### Build RAG Pipeline, Define Structured Output Schema
 
@@ -217,7 +217,6 @@ reranker = FlagEmbeddingReranker(
     top_n=5,
     model="BAAI/bge-reranker-large",
 )
-
 
 
 class Output(BaseModel):
@@ -248,7 +247,8 @@ query_engine = index.as_query_engine(
     similarity_top_k=5,
     node_postprocessors=[reranker],
     llm=sllm,
-    response_mode="tree_summarize",  # you can also select other modes like `compact`, `refine`
+    # you can also select other modes like `compact`, `refine`
+    response_mode="tree_summarize",
 )
 
 response = query_engine.query("Net sales for each product category in 2021")

@@ -10,16 +10,14 @@ async def main():
     from llama_index.llama_pack import download_llama_pack
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
-    
+
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/llama_dataset/uploading_llama_dataset.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
@@ -35,61 +33,59 @@ async def main():
     This brief notebook provides a quick example using the Paul Graham Essay text file.
     """
     logger.info("# Contributing a LlamaDataset To LlamaHub")
-    
+
     # %pip install llama-index-llms-ollama
-    
+
     # import nest_asyncio
-    
+
     # nest_asyncio.apply()
-    
+
     """
     ### Load Data
     """
     logger.info("### Load Data")
-    
+
     # !mkdir -p 'data/paul_graham/'
     # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
-    
-    
+
     documents = SimpleDirectoryReader(
         input_files=["data/paul_graham/paul_graham_essay.txt"]
     ).load_data()
-    
-    
-    llm_gpt35 = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
-    
+
+    llm_gpt35 = OllamaFunctionCallingAdapter(
+        model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
+
     dataset_generator = RagDatasetGenerator.from_documents(
         documents,
         llm=llm_gpt35,
         num_questions_per_chunk=2,  # set the number of questions per nodes
         show_progress=True,
     )
-    
+
     rag_dataset = dataset_generator.generate_dataset_from_nodes()
-    
+
     """
     Now that we have our `LabelledRagDataset` generated (btw, it's totally fine to manually create one with human generated queries and reference answers!), we store this into the necessary json file.
     """
     logger.info("Now that we have our `LabelledRagDataset` generated (btw, it's totally fine to manually create one with human generated queries and reference answers!), we store this into the necessary json file.")
-    
+
     rag_dataset.save_json("rag_dataset.json")
-    
+
     """
     #### Generating Baseline Results
     
     In addition to adding just a `LlamaDataset`, we also encourage adding baseline benchmarks for others to use as sort of measuring stick against their own RAG pipelines.
     """
     logger.info("#### Generating Baseline Results")
-    
-    
+
     index = VectorStoreIndex.from_documents(documents=documents)
     query_engine = index.as_query_engine()
-    
+
     prediction_dataset = await rag_dataset.amake_predictions_with(
-            query_engine=query_engine, show_progress=True
-        )
+        query_engine=query_engine, show_progress=True
+    )
     logger.success(format_json(prediction_dataset))
-    
+
     """
     ## Submitting The Pull-Requests
     
@@ -167,7 +163,7 @@ async def main():
     
     # download and install dependencies for benchmark dataset
     rag_dataset, documents = download_llama_datasets(
-      "PaulGrahamEssayTruncatedDataset", "./data"
+      "PaulGrahamEssayTruncatedDataset", f"{os.path.dirname(__file__)}/data"
     )
     
     # evaluate
@@ -206,7 +202,7 @@ async def main():
     Now, simply `git add`, `git commit` and `git push` your branch, and make your PR.
     """
     logger.info("## Submitting The Pull-Requests")
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

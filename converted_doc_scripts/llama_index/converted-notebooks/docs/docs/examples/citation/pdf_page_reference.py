@@ -1,10 +1,10 @@
 from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
 from llama_index.core import (
-SimpleDirectoryReader,
-VectorStoreIndex,
-download_loader,
-RAKEKeywordTableIndex,
+    SimpleDirectoryReader,
+    VectorStoreIndex,
+    download_loader,
+    RAKEKeywordTableIndex,
 )
 import os
 import shutil
@@ -35,8 +35,8 @@ logger.info("# Get References from PDFs")
 # !pip install llama-index
 
 
-
-llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(
+    temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
 
 """
 Download Data
@@ -51,7 +51,8 @@ Load document and build index
 """
 logger.info("Load document and build index")
 
-reader = SimpleDirectoryReader(input_files=["./data/10k/lyft_2021.pdf"])
+reader = SimpleDirectoryReader(
+    input_files=[f"{os.path.dirname(__file__)}/data/10k/lyft_2021.pdf"])
 data = reader.load_data()
 
 index = VectorStoreIndex.from_documents(data)

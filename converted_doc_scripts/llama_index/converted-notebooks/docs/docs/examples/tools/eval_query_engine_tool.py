@@ -4,8 +4,8 @@ async def main():
     from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
     from jet.logger import CustomLogger
     from llama_index.core import (
-    StorageContext,
-    load_index_from_storage,
+        StorageContext,
+        load_index_from_storage,
     )
     from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
     from llama_index.core.agent.workflow import FunctionAgent
@@ -16,15 +16,14 @@ async def main():
     from llama_index.embeddings.huggingface import HuggingFaceEmbedding
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/tools/eval_query_engine_tool.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
@@ -39,25 +38,23 @@ async def main():
     ## Install Dependencies
     """
     logger.info("# Evaluation Query Engine Tool")
-    
+
     # %pip install llama-index-embeddings-huggingface
     # %pip install llama-index-llms-ollama
     # %pip install llama-index-agents-openai
-    
-    
+
     # os.environ["OPENAI_API_KEY"] = "sk-..."
-    
+
     """
     ## Initialize and Set LLM and Local Embedding Model
     """
     logger.info("## Initialize and Set LLM and Local Embedding Model")
-    
-    
+
     Settings.embed_model = HuggingFaceEmbedding(
         model_name="BAAI/bge-small-en-v1.5"
     )
     Settings.llm = OllamaFunctionCallingAdapter()
-    
+
     """
     ## Download and Index Data
     This is something we are donig for the sake of this demo. In production environments, data stores and indexes should already exist and not be created on the fly.
@@ -65,74 +62,70 @@ async def main():
     ### Create Storage Contexts
     """
     logger.info("## Download and Index Data")
-    
-    
+
     try:
         storage_context = StorageContext.from_defaults(
             persist_dir="./storage/lyft",
         )
         lyft_index = load_index_from_storage(storage_context)
-    
+
         storage_context = StorageContext.from_defaults(
             persist_dir="./storage/uber"
         )
         uber_index = load_index_from_storage(storage_context)
-    
+
         index_loaded = True
     except:
         index_loaded = False
-    
+
     """
     Download Data
     """
     logger.info("Download Data")
-    
+
     # !mkdir -p 'data/10k/'
     # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/uber_2021.pdf' -O 'data/10k/uber_2021.pdf'
     # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/lyft_2021.pdf' -O 'data/10k/lyft_2021.pdf'
-    
+
     """
     ### Load Data
     """
     logger.info("### Load Data")
-    
-    
+
     if not index_loaded:
         lyft_docs = SimpleDirectoryReader(
-            input_files=["./data/10k/lyft_2021.pdf"]
+            input_files=[f"{os.path.dirname(__file__)}/data/10k/lyft_2021.pdf"]
         ).load_data()
         uber_docs = SimpleDirectoryReader(
-            input_files=["./data/10k/uber_2021.pdf"]
+            input_files=[f"{os.path.dirname(__file__)}/data/10k/uber_2021.pdf"]
         ).load_data()
-    
+
         lyft_index = VectorStoreIndex.from_documents(lyft_docs)
         uber_index = VectorStoreIndex.from_documents(uber_docs)
-    
+
         lyft_index.storage_context.persist(persist_dir="./storage/lyft")
         uber_index.storage_context.persist(persist_dir="./storage/uber")
-    
+
     """
     ## Create Query Engines
     """
     logger.info("## Create Query Engines")
-    
+
     lyft_engine = lyft_index.as_query_engine(similarity_top_k=5)
     uber_engine = uber_index.as_query_engine(similarity_top_k=5)
-    
+
     """
     ## Create Evaluator
     """
     logger.info("## Create Evaluator")
-    
-    
+
     evaluator = RelevancyEvaluator()
-    
+
     """
     ## Create Query Engine Tools
     """
     logger.info("## Create Query Engine Tools")
-    
-    
+
     query_engine_tools = [
         EvalQueryEngineTool(
             evaluator=evaluator,
@@ -157,15 +150,15 @@ async def main():
             ),
         ),
     ]
-    
+
     """
     ## Setup OllamaFunctionCallingAdapter Agent
     """
     logger.info("## Setup OllamaFunctionCallingAdapter Agent")
-    
-    
-    agent = FunctionAgent(tools=query_engine_tools, llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096))
-    
+
+    agent = FunctionAgent(tools=query_engine_tools, llm=OllamaFunctionCallingAdapter(
+        model="llama3.2", request_timeout=300.0, context_window=4096))
+
     """
     ## Query Engine Passes Evaluation
     
@@ -175,11 +168,11 @@ async def main():
     3. The output of the query engine will pass evaluation because it contains Lyft's financials
     """
     logger.info("## Query Engine Passes Evaluation")
-    
+
     response = await agent.run("What was Lyft's revenue growth in 2021?")
     logger.success(format_json(response))
     logger.debug(str(response))
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

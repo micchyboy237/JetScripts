@@ -76,9 +76,10 @@ logger.info("## Setup")
 # import getpass
 
 if os.environ.get("NVIDIA_API_KEY", "").startswith("nvapi-"):
-    logger.debug("Valid NVIDIA_API_KEY already in environment. Delete to reset")
+    logger.debug(
+        "Valid NVIDIA_API_KEY already in environment. Delete to reset")
 else:
-#     nvapi_key = getpass.getpass("NVAPI Key (starts with nvapi-): ")
+    #     nvapi_key = getpass.getpass("NVAPI Key (starts with nvapi-): ")
     assert nvapi_key.startswith(
         "nvapi-"
     ), f"{nvapi_key[:5]}... is not a valid key"
@@ -97,7 +98,8 @@ reranker = NVIDIARerank(top_n=4)
 
 Settings.text_splitter = SentenceSplitter(chunk_size=500)
 
-documents = SimpleDirectoryReader("./data").load_data()
+documents = SimpleDirectoryReader(
+    f"{os.path.dirname(__file__)}/data").load_data()
 
 Settings.embed_model = NVIDIAEmbedding(model="NV-Embed-QA", truncate="END")
 

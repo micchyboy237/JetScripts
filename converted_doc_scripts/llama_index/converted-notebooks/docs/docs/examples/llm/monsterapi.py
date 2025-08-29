@@ -41,7 +41,6 @@ Import required modules
 logger.info("Import required modules")
 
 
-
 """
 ### Set Monster API Key env variable
 
@@ -112,7 +111,8 @@ logger.info("##RAG Approach to import external knowledge into LLM as context")
 Lets try to augment our LLM with RAG source paper PDF as external information.
 Lets download the pdf into data dir
 """
-logger.info("Lets try to augment our LLM with RAG source paper PDF as external information.")
+logger.info(
+    "Lets try to augment our LLM with RAG source paper PDF as external information.")
 
 # !rm -r ./data
 # !mkdir -p data&&cd data&&curl 'https://arxiv.org/pdf/2005.11401.pdf' -o "RAG.pdf"
@@ -122,7 +122,8 @@ Load the document
 """
 logger.info("Load the document")
 
-documents = SimpleDirectoryReader("./data").load_data()
+documents = SimpleDirectoryReader(
+    f"{os.path.dirname(__file__)}/data").load_data()
 
 """
 Initiate LLM and Embedding Model
