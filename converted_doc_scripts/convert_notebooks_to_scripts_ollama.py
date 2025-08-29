@@ -600,7 +600,6 @@ if __name__ == "__main__":
     ]
     include_files = []
     exclude_files = [
-        "agent_with_structured_output",
         "agent_workflow_research_assistant",
         "Chatbot_SEC",
         "code_act_agent",
