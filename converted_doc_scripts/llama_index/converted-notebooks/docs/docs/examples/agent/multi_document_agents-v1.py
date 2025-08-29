@@ -47,6 +47,27 @@ Settings.embed_model = HuggingFaceEmbedding(
 Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
 logger.info("Initialized embedding model and LLM")
 
+"""
+<a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/agent/multi_document_agents-v1.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
+# Multi-Document Agents (V1)
+
+In this guide, you learn towards setting up a multi-document agent over the LlamaIndex documentation.
+
+This is an extension of V0 multi-document agents with the additional features:
+- Reranking during document (tool) retrieval
+- Query planning tool that the agent can use to plan 
+
+
+We do this with the following architecture:
+
+- setup a "document agent" over each Document: each doc agent can do QA/summarization within its doc
+- setup a top-level agent over this set of document agents. Do tool retrieval and then do CoT over the set of tools to answer a question.
+
+If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
+"""
+logger.info("# Multi-Document Agents (V1)")
+
 
 async def load_documents(doc_limit: int = 100) -> List[Document]:
     """Load and process markdown documents from the resume data directory."""
