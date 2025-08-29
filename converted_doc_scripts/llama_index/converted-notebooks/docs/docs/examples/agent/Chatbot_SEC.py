@@ -20,12 +20,11 @@ import os
 import shutil
 
 
+# Setup logger and settings
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-
 DATA_DIR = f"{os.path.dirname(__file__)}/data"
-
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
@@ -157,6 +156,7 @@ logger.info(
     "### Setting up a Sub Question Query Engine to Synthesize Answers Across 10-K Filings")
 
 
+# Create query engine tools and sub-question query engine
 individual_query_engine_tools = [
     QueryEngineTool.from_defaults(
         query_engine=index_set[year].as_query_engine(),
@@ -224,59 +224,36 @@ We can now test the agent with various queries.
 
 If we test it with a simple "hello" query, the agent does not use any Tools.
 """
-logger.info("### Testing the Agent")
-
-ctx = Context(agent)
 
 
-async def test_hello():
+# Test functions using a single event loop
+async def run_tests():
+    logger.info("### Testing the Agent")
+
+    # Test 1: Simple "hello" query
+    ctx = Context(agent)
+    logger.info("Testing with 'hi, i am bob'")
     response = await agent.run("hi, i am bob", ctx=ctx)
     logger.success(format_json(response))
-    return response
 
-response = asyncio.run(test_hello())
-logger.success(format_json(response))
-logger.debug(str(response))
-
-"""
-If we test it with a query regarding the 10-k of a given year, the agent will use
-the relevant vector index Tool.
-"""
-logger.info(
-    "If we test it with a query regarding the 10-k of a given year, the agent will use"
-)
-
-
-async def test_risk_factors_2020():
+    # Test 2: Risk factors for 2020
+    ctx = Context(agent)  # Create new context
+    logger.info("Testing risk factors for 2020")
     response = await agent.run(
         "What were some of the biggest risk factors in 2020 for Uber?", ctx=ctx
     )
     logger.success(format_json(response))
-    return response
 
-response = asyncio.run(test_risk_factors_2020())
-logger.success(format_json(response))
-logger.debug(str(response))
-
-"""
-Finally, if we test it with a query to compare/contrast risk factors across years, the agent will use the Sub Question Query Engine Tool.
-"""
-logger.info("Finally, if we test it with a query to compare/contrast risk factors across years, the agent will use the Sub Question Query Engine Tool.")
-
-cross_query_str = (
-    "Compare/contrast the risk factors described in the Uber 10-K across"
-    " years. Give answer in bullet points."
-)
-
-
-async def test_cross_years():
+    # Test 3: Cross-year comparison
+    ctx = Context(agent)  # Create new context
+    cross_query_str = (
+        "Compare/contrast the risk factors described in the Uber 10-K across"
+        " years. Give answer in bullet points."
+    )
+    logger.info("Testing cross-year risk factors comparison")
     response = await agent.run(cross_query_str, ctx=ctx)
     logger.success(format_json(response))
-    return response
 
-response = asyncio.run(test_cross_years())
-logger.success(format_json(response))
-logger.debug(str(response))
 
 """
 ### Setting up the Chatbot Loop
@@ -285,22 +262,21 @@ Now that we have the chatbot setup, it only takes a few more steps to setup a ba
 """
 logger.info("### Setting up the Chatbot Loop")
 
-agent = FunctionAgent(
-    tools=tools, llm=OllamaFunctionCallingAdapter(model="llama3.2"))
-ctx = Context(agent)
 
-while True:
-    text_input = input("User: ")
-    if text_input == "exit":
-        break
-
-    async def chat_once():
+# Interactive chat loop
+async def chat_loop():
+    ctx = Context(agent)
+    while True:
+        text_input = input("User: ")
+        if text_input.lower() == "exit":
+            break
         response = await agent.run(text_input, ctx=ctx)
+        logger.debug(f"Agent:")
         logger.success(format_json(response))
-        return response
 
-    response = asyncio.run(chat_once())
-    logger.success(format_json(response))
-    logger.debug(f"Agent: {response}")
-
-logger.info("\n\n[DONE]", bright=True)
+# Run all tests and chat loop in a single event loop
+if __name__ == "__main__":
+    asyncio.run(run_tests())
+    logger.info("Starting interactive chat loop")
+    asyncio.run(chat_loop())
+    logger.info("\n\n[DONE]", bright=True)
