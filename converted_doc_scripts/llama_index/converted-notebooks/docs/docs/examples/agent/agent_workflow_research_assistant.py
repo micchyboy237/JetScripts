@@ -159,7 +159,7 @@ workflow = AgentWorkflow.from_tools_or_functions(
 
 
 async def main():
-    handler = await workflow.run(
+    handler = workflow.run(
         user_msg="""
         Use DuckDuckGoSearch to find URL resources on the web that are relevant to the research topic: What is the relationship between exercise and stress levels?
         For each different resource found, use Playwright to navigate to the resource and retrieve the page content using get_current_page. Then, use the extract_web_data_from_browser tool to extract information, including the name of the resource, author name(s), link to the resource, publishing date, journal name, volume number, issue number, and the abstract.
