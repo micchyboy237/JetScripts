@@ -1,12 +1,15 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from jet.llm.ollama.adapters.ollama_llama_index_function_calling_llm_adapter import OllamaFunctionCallingAdapter
+from jet.search.adapters.custom_browser_tool_spec import CustomBrowserToolSpec
+from jet.search.adapters.duckduckgo_llama_index_tool import DuckDuckGoSearchToolSpec
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.agent.workflow import AgentWorkflow, AgentStream
 from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.tools.duckduckgo import DuckDuckGoSearchToolSpec
+# from llama_index.tools.agentql import AgentQLBrowserToolSpec
+# from llama_index.tools.duckduckgo import DuckDuckGoSearchToolSpec
 from llama_index.tools.playwright.base import PlaywrightToolSpec
 from llama_index.core.tools import FunctionTool
 from bs4 import BeautifulSoup
@@ -132,6 +135,8 @@ def extract_metadata(page_content: str) -> Dict[str, Optional[str]]:
         }
 
 
+custom_browser_tool = CustomBrowserToolSpec(async_browser=async_browser)
+
 # Wrap extract_metadata as a LlamaIndex tool
 metadata_tool = FunctionTool.from_defaults(
     fn=extract_metadata,
@@ -144,7 +149,10 @@ logger.info("Creating AgentWorkflow with imported tools.")
 llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 workflow = AgentWorkflow.from_tools_or_functions(
-    playwright_agent_tool_list + duckduckgo_search_tool + [metadata_tool],
+    playwright_agent_tool_list
+    + duckduckgo_search_tool
+    + custom_browser_tool.to_tool_list(),
+    # + [metadata_tool],
     llm=llm,
     system_prompt="You are an expert that can do browser automation, data extraction, and text summarization for finding and extracting data from research resources. Use Playwright to navigate and retrieve page content, then use the extract_metadata tool to parse metadata such as title, author, publishing date, journal name, volume number, issue number, and abstract from the page content.",
 )
@@ -154,8 +162,8 @@ async def main():
     handler = await workflow.run(
         user_msg="""
         Use DuckDuckGoSearch to find URL resources on the web that are relevant to the research topic: What is the relationship between exercise and stress levels?
-        For each different resource found, use Playwright to navigate to the resource and retrieve the page content using get_current_page. Then, use the extract_metadata tool to parse the page content and extract metadata including the name of the resource, author name(s), link to the resource, publishing date, journal name, volume number, issue number, and abstract.
-        Continue finding resources until metadata is successfully extracted from two different resources. Ensure the extracted metadata is returned in a structured format.
+        For each different resource found, use Playwright to navigate to the resource and retrieve the page content using get_current_page. Then, use the extract_web_data_from_browser tool to extract information, including the name of the resource, author name(s), link to the resource, publishing date, journal name, volume number, issue number, and the abstract.
+        Find more resources until there are two different resources that can be successfully extracted from.
         """
     )
 
