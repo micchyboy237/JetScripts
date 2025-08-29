@@ -38,7 +38,7 @@ if __name__ == "__main__":
             "yahoo",
         ]
         results: list[SearchResult] = search_searxng(
-            query_url="http://Jethros-MacBook-Air.local:3000/search",
+            query_url="http://jethros-macbook-air.local:3000/search",
             query=query,
             min_score=0.2,
             include_sites=include_sites,

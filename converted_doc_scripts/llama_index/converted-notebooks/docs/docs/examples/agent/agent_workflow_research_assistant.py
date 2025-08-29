@@ -2,7 +2,7 @@ import asyncio
 from jet.transformers.formatters import format_json
 from jet.llm.ollama.adapters.ollama_llama_index_function_calling_llm_adapter import OllamaFunctionCallingAdapter
 from jet.search.adapters.custom_browser_tool_spec import CustomBrowserToolSpec
-from jet.search.adapters.duckduckgo_llama_index_tool import DuckDuckGoSearchToolSpec
+from jet.search.adapters.searxng_llama_index_tool import SearXNGSearchToolSpec
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.agent.workflow import AgentWorkflow, AgentStream
@@ -33,32 +33,6 @@ Settings.embed_model = HuggingFaceEmbedding(
 
 logger.info(
     "Agent Workflow + Research Assistant with Playwright and BeautifulSoup")
-
-
-async def async_func_2():
-    async_browser = await PlaywrightToolSpec.create_async_playwright_browser(
-        headless=True
-    )
-    return async_browser
-
-async_browser = asyncio.run(async_func_2())
-logger.success(format_json(async_browser))
-
-playwright_tool = PlaywrightToolSpec(async_browser=async_browser)
-playwright_tool_list = playwright_tool.to_tool_list()
-playwright_agent_tool_list = [
-    tool
-    for tool in playwright_tool_list
-    if tool.metadata.name in ["click", "get_current_page", "navigate_to"]
-]
-
-logger.info("Using Playwright, DuckDuckGo, and metadata extraction tools.")
-
-duckduckgo_search_tool = [
-    tool
-    for tool in DuckDuckGoSearchToolSpec().to_tool_list()
-    if tool.metadata.name == "duckduckgo_full_search"
-]
 
 
 def extract_metadata(page_content: str) -> Dict[str, Optional[str]]:
@@ -135,6 +109,32 @@ def extract_metadata(page_content: str) -> Dict[str, Optional[str]]:
         }
 
 
+async def async_func_2():
+    async_browser = await PlaywrightToolSpec.create_async_playwright_browser(
+        headless=True
+    )
+    return async_browser
+
+async_browser = asyncio.run(async_func_2())
+logger.success(format_json(async_browser))
+
+playwright_tool = PlaywrightToolSpec(async_browser=async_browser)
+playwright_tool_list = playwright_tool.to_tool_list()
+playwright_agent_tool_list = [
+    tool
+    for tool in playwright_tool_list
+    if tool.metadata.name in ["click", "get_current_page", "navigate_to"]
+]
+
+logger.info("Using Playwright, SearXNG, and metadata extraction tools.")
+
+searxng_search_tool = [
+    tool
+    for tool in SearXNGSearchToolSpec().to_tool_list()
+    if tool.metadata.name == "searxng_full_search"
+]
+
+
 custom_browser_tool = CustomBrowserToolSpec(async_browser=async_browser)
 
 # Wrap extract_metadata as a LlamaIndex tool
@@ -150,26 +150,27 @@ llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 workflow = AgentWorkflow.from_tools_or_functions(
     playwright_agent_tool_list
-    + duckduckgo_search_tool
+    + searxng_search_tool
     + custom_browser_tool.to_tool_list(),
     # + [metadata_tool],
     llm=llm,
-    system_prompt="You are an expert that can do browser automation, data extraction, and text summarization for finding and extracting data from research resources. Use Playwright to navigate and retrieve page content, then use the extract_metadata tool to parse metadata such as title, author, publishing date, journal name, volume number, issue number, and abstract from the page content.",
+    system_prompt="You are an expert that can do browser automation, data extraction and text summarization for finding and extracting data from research resources.",
 )
 
 
 async def main():
+    query = "What is the relationship between exercise and stress levels?"
     handler = workflow.run(
         user_msg="""
-        Use DuckDuckGoSearch to find URL resources on the web that are relevant to the research topic: What is the relationship between exercise and stress levels?
-        For each different resource found, use Playwright to navigate to the resource and retrieve the page content using get_current_page. Then, use the extract_web_data_from_browser tool to extract information, including the name of the resource, author name(s), link to the resource, publishing date, journal name, volume number, issue number, and the abstract.
-        Find more resources until there are two different resources that can be successfully extracted from.
-        """
+Use searxng_full_search to find URL resources on the web that are relevant to the research topic: {query}
+Go through each resource found. For each different resource, use Playwright to navigate to the link to the resource, then use extract_web_data_from_browser to extract information, including the name of the resource, author name(s), link to the resource, publishing date, journal name, volume number, issue number, and the abstract.
+Find more resources until there are two different resources that can be successfully extracted from.
+""".format(query=query)
     )
 
     async for event in handler.stream_events():
         if isinstance(event, AgentStream):
-            logger.debug(event.delta, flush=True)
+            logger.success(event.delta, flush=True)
 
     logger.info("\n\n[DONE]", bright=True)
 
