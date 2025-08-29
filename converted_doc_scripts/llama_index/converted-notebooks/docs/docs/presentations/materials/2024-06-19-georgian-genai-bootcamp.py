@@ -185,7 +185,8 @@ logger.info("## Example: RAG Yields More Accurate Responses")
 # !wget "https://cdn.pathfactory.com/assets/preprocessed/10580/b81532f1-95f3-4a1c-ba0d-80a56726e833/b81532f1-95f3-4a1c-ba0d-80a56726e833.pdf" -O "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/gp-purpose-report-2022.pdf"
 
 
-loader = SimpleDirectoryReader(input_dir=f"{os.path.dirname(__file__)}/data")
+loader = SimpleDirectoryReader(
+    input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp")
 documents = loader.load_data()
 index = VectorStoreIndex.from_documents(documents)
 rag = index.as_query_engine(llm=mistral_llm)
@@ -213,7 +214,8 @@ a container that holds the text of the document.
 """
 
 
-loader = SimpleDirectoryReader(input_dir=f"{os.path.dirname(__file__)}/data")
+loader = SimpleDirectoryReader(
+    input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp")
 documents = loader.load_data()
 
 documents[1].text

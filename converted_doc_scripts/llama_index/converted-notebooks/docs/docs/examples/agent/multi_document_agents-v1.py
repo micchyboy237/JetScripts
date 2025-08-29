@@ -33,7 +33,7 @@ OUTPUT_DIR = os.path.join(
 )
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-DATA_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp"
+DATA_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/docs.llamaindex.ai"
 
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
@@ -70,19 +70,25 @@ logger.info("# Multi-Document Agents (V1)")
 
 
 async def load_documents(doc_limit: int = 100) -> List[Document]:
-    """Load and process markdown documents from the resume data directory."""
+    """Load and process HTML documents from the LlamaIndex documentation directory."""
     reader = UnstructuredReader()
-    data_dir = Path(
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data")
-    all_files_gen = data_dir.rglob("*.md")
+    data_dir = Path(DATA_DIR)
+    all_files_gen = data_dir.rglob("*.html")
     all_files = [f.resolve() for f in all_files_gen]
-    logger.debug(f"Found {len(all_files)} markdown files in {data_dir}")
+    logger.debug(f"Found {len(all_files)} HTML files in {data_dir}")
+
+    useful_files = [
+        x for x in all_files
+        if "understanding" in str(x).split(".")[-2]
+        or "examples" in str(x).split(".")[-2]
+    ]
+    logger.debug(f"Found {len(useful_files)} relevant HTML files")
 
     docs = []
-    for idx, f in enumerate(all_files):
+    for idx, f in enumerate(useful_files):
         if idx >= doc_limit:
             break
-        logger.debug(f"Processing file {idx + 1}/{len(all_files)}: {f}")
+        logger.debug(f"Processing file {idx + 1}/{len(useful_files)}: {f}")
         try:
             loaded_docs = reader.load_data(file=f, split_documents=True)
             loaded_doc = Document(
@@ -99,8 +105,8 @@ async def load_documents(doc_limit: int = 100) -> List[Document]:
 
 async def build_agent_per_doc(nodes: List, file_base: str) -> Tuple[FunctionAgent, str]:
     """Build a document agent for a single document with vector and summary query engines."""
-    vi_out_path = f"{DATA_DIR}/resume_docs/{file_base}"
-    summary_out_path = f"{DATA_DIR}/resume_docs/{file_base}_summary.pkl"
+    vi_out_path = f"{DATA_DIR}/llamaindex_docs/{file_base}"
+    summary_out_path = f"{DATA_DIR}/llamaindex_docs/{file_base}_summary.pkl"
     try:
         if not os.path.exists(vi_out_path):
             os.makedirs(os.path.dirname(vi_out_path), exist_ok=True)
@@ -147,7 +153,7 @@ async def build_agent_per_doc(nodes: List, file_base: str) -> Tuple[FunctionAgen
     agent = FunctionAgent(
         tools=query_engine_tools,
         llm=function_llm,
-        system_prompt=f"""You are a specialized agent designed to answer queries about the `{file_base}.md` part of the resume data.
+        system_prompt=f"""You are a specialized agent designed to answer queries about the `{file_base}.html` part of the LlamaIndex documentation.
 You must ALWAYS use at least one of the tools provided when answering a question; do NOT rely on prior knowledge.""",
     )
     return agent, summary
@@ -259,7 +265,7 @@ async def main():
     )
     top_agent = FunctionAgent(
         tool_retriever=custom_obj_retriever,
-        system_prompt="""You are an agent designed to answer queries about the resume data.
+        system_prompt="""You are an agent designed to answer queries about the LlamaIndex documentation.
 Please always use the tools provided to answer a question. Do not rely on prior knowledge.""",
         llm=Settings.llm,
     )
@@ -269,7 +275,7 @@ Please always use the tools provided to answer a question. Do not rely on prior 
     base_index = VectorStoreIndex(all_nodes)
     base_query_engine = base_index.as_query_engine(similarity_top_k=4)
     logger.info("Base query engine initialized")
-    handler = top_agent.run("What skills are listed in the resume?")
+    handler = top-Agent.run("What can you build with LlamaIndex?")
     async for ev in handler.stream_events():
         if isinstance(ev, ToolCallResult):
             logger.debug(
@@ -280,16 +286,15 @@ Please always use the tools provided to answer a question. Do not rely on prior 
     response = await handler
     logger.success(f"Query response: {format_json(str(response))}")
     logger.debug(f"Response: {str(response)}")
-    response = base_query_engine.query("What skills are listed in the resume?")
+    response = base_query_engine.query("What can you build with LlamaIndex?")
     logger.debug(f"Baseline query response: {str(response)}")
-    response = await top_agent.run("Compare the mobile and web app projects")
+    response = await top_agent.run("Compare workflows to query engines")
     logger.success(f"Comparison query response: {format_json(str(response))}")
     logger.debug(f"Response: {str(response)}")
     response = await top_agent.run(
-        "Can you compare the skills and work history at a very high-level?"
+        "Can you compare the compact and tree_summarize response synthesizer response modes at a very high-level?"
     )
-    logger.success(
-        f"Skills and work history comparison response: {format_json(str(response))}")
+    logger.success(f"Comparison response: {format_json(str(response))}")
     logger.debug(f"Response: {str(response)}")
     logger.info("\n\n[DONE]", bright=True)
 

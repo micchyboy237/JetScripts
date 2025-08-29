@@ -47,7 +47,8 @@ logger.info("## Usage")
 
 Settings.llm = OllamaFunctionCallingAdapter("gpt-4o")
 
-pack = LongRAGPack(data_dir=f"{os.path.dirname(__file__)}/data")
+pack = LongRAGPack(
+    data_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp")
 
 
 query_str = (
@@ -66,7 +67,7 @@ logger.info(
     "Other parameters include `chunk_size`, `similarity_top_k`, and `small_chunk_size`.")
 
 pack = LongRAGPack(
-    data_dir=f"{os.path.dirname(__file__)}/data", chunk_size=None, similarity_top_k=4)
+    data_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp", chunk_size=None, similarity_top_k=4)
 query_str = (
     "How can Pittsburgh become a startup hub, and what are the two types of moderates?"
 )
@@ -94,7 +95,7 @@ logger.info("Below is an example of loading an index.")
 ctx = StorageContext.from_defaults(persist_dir="./paul_graham")
 index = load_index_from_storage(ctx)
 pack_from_idx = LongRAGPack(
-    data_dir=f"{os.path.dirname(__file__)}/data", index=index)
+    data_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp", index=index)
 query_str = (
     "How can Pittsburgh become a startup hub, and what are the two types of moderates?"
 )

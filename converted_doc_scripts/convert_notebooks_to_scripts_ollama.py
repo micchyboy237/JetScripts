@@ -189,12 +189,12 @@ def update_code_with_ollama(code: str) -> str:
     updated_code = re.sub(r'Ollama\s*\((.*?)\)', r'Ollama(\1)', updated_code)
     updated_code = re.sub(
         r'model=["\']gpt-4[^"\']*["\']',
-        'model="llama3.2", request_timeout=300.0, context_window=4096',
+        'model="llama3.2"',
         updated_code
     )
     updated_code = re.sub(
         r'model=["\']gpt-3\.5[^"\']*["\']',
-        'model="llama3.2", request_timeout=300.0, context_window=4096',
+        'model="llama3.2"',
         updated_code
     )
     updated_code = re.sub(

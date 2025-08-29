@@ -101,7 +101,7 @@ for title in wiki_titles:
         fp.write(wiki_text)
 
 documents = SimpleDirectoryReader(
-    f"{os.path.dirname(__file__)}/data_wiki/").load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp_wiki/").load_data()
 
 index = VectorStoreIndex.from_documents(
     documents,
