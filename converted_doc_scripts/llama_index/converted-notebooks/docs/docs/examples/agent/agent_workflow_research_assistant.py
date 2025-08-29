@@ -1,6 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.ollama.adapters.ollama_llama_index_function_calling_llm_adapter import OllamaFunctionCallingAdapter
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.search.adapters.custom_browser_tool_spec import CustomBrowserToolSpec
 from jet.search.adapters.searxng_llama_index_tool import SearXNGSearchToolSpec
 from jet.logger import CustomLogger
@@ -163,7 +163,7 @@ async def main():
     handler = workflow.run(
         user_msg="""
 Use searxng_full_search to find URL resources on the web that are relevant to the research topic: {query}
-Go through each resource found. For each different resource, use Playwright to navigate to the link to the resource, then use extract_web_data_from_browser to extract information, including the name of the resource, author name(s), link to the resource, publishing date, journal name, volume number, issue number, and the abstract.
+Go through each resource found. For each different resource, use Playwright to navigate to the resource url, then use extract_web_data_from_browser to extract information, including the title of the resource, link to the resource, publishing date, and other relevant details if any.
 Find more resources until there are two different resources that can be successfully extracted from.
 """.format(query=query)
     )

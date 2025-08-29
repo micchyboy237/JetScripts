@@ -6,25 +6,25 @@ from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import (
-load_index_from_storage,
-StorageContext,
-VectorStoreIndex,
+    load_index_from_storage,
+    StorageContext,
+    VectorStoreIndex,
 )
 from llama_index.core import Document
 from llama_index.core import Settings
 from llama_index.core import SummaryIndex
 from llama_index.core import VectorStoreIndex
 from llama_index.core.agent.workflow import (
-AgentStream,
-ToolCall,
-ToolCallResult,
+    AgentStream,
+    ToolCall,
+    ToolCallResult,
 )
 from llama_index.core.agent.workflow import FunctionAgent, ReActAgent
 from llama_index.core.agent.workflow import ReActAgent, FunctionAgent
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.objects import (
-ObjectIndex,
-ObjectRetriever,
+    ObjectIndex,
+    ObjectRetriever,
 )
 from llama_index.core.query_engine import SubQuestionQueryEngine
 from llama_index.core.schema import QueryBundle
@@ -32,7 +32,7 @@ from llama_index.core.settings import Settings
 from llama_index.core.tools import FunctionTool
 from llama_index.core.tools import QueryEngineTool
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.postprocessor.cohere_rerank import CohereRerank
+from jet.llm.mlx.adapters.rerankers.mlx_llama_index_cohere_rerank_adapter import CohereRerank
 from llama_index.readers.file import UnstructuredReader
 from pathlib import Path
 from tqdm.notebook import tqdm
@@ -172,7 +172,6 @@ We create a separate document agent for each city.
 logger.info("## Building Multi-Document Agents")
 
 
-
 async def build_agent_per_doc(nodes, file_base):
     vi_out_path = f"./data/llamaindex_docs/{file_base}"
     summary_out_path = f"./data/llamaindex_docs/{file_base}_summary.pkl"
@@ -216,7 +215,8 @@ async def build_agent_per_doc(nodes, file_base):
         ),
     ]
 
-    function_llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    function_llm = MLXLlamaIndexLLMAdapter(
+        model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
     agent = FunctionAgent(
         tools=query_engine_tools,
         llm=function_llm,
@@ -235,12 +235,12 @@ async def build_agents(docs):
     agents_dict = {}
     extra_info_dict = {}
 
-
     for idx, doc in enumerate(tqdm(docs)):
         nodes = node_parser.get_nodes_from_documents([doc])
 
         file_path = Path(doc.metadata["path"])
         file_base = str(file_path.parent.stem) + "_" + str(file_path.stem)
+
         async def run_async_code_a3623563():
             async def run_async_code_24569e98():
                 agent, summary = await build_agent_per_doc(nodes, file_base)
@@ -255,6 +255,7 @@ async def build_agents(docs):
         extra_info_dict[file_base] = {"summary": summary, "nodes": nodes}
 
     return agents_dict, extra_info_dict
+
 
 async def run_async_code_a78a7590():
     async def run_async_code_7cb7b201():
@@ -279,7 +280,6 @@ This agent will use a tool retriever to retrieve the most relevant tools for the
 - Adding in a query planning tool: we add an explicit query planning tool that's dynamically created based on the set of retrieved tools.
 """
 logger.info("### Build Retriever-Enabled MLX Agent")
-
 
 
 def get_agent_tool_callable(agent: FunctionAgent) -> Callable:
@@ -312,7 +312,6 @@ for file_base, agent in agents_dict.items():
 logger.debug(all_tools[0].metadata)
 
 
-
 llm = MLXLlamaIndexLLMAdapter(model_name="qwen3-1.7b-4bit")
 
 obj_index = ObjectIndex.from_objects(
@@ -334,7 +333,8 @@ class CustomObjectRetriever(ObjectRetriever):
     ):
         self._retriever = retriever
         self._object_node_mapping = object_node_mapping
-        self._llm = llm or MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+        self._llm = llm or MLXLlamaIndexLLMAdapter(
+            model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
         self._node_postprocessors = node_postprocessors or []
 
     def retrieve(self, query_bundle):
@@ -377,6 +377,7 @@ tool with the original query. Do NOT use the other tools for any queries involvi
             description=sub_agent.description,
         )
         return tools + [sub_question_tool]
+
 
 custom_obj_retriever = CustomObjectRetriever(
     vector_node_retriever,
@@ -435,6 +436,7 @@ async for ev in handler.stream_events():
     elif isinstance(ev, ToolCall):
         logger.debug(f"\nTool call: {ev.tool_name} with args {ev.tool_kwargs}")
 
+
 async def run_async_code_78ff5c2b():
     async def run_async_code_2cbcd794():
         response = await handler
@@ -448,11 +450,11 @@ logger.success(format_json(response))
 logger.debug(str(response))
 
 
-
 response = base_query_engine.query(
     "What can you build with LlamaIndex?",
 )
 logger.debug(str(response))
+
 
 async def run_async_code_96488610():
     async def run_async_code_6f32d7af():
@@ -464,6 +466,7 @@ async def run_async_code_96488610():
 response = asyncio.run(run_async_code_96488610())
 logger.success(format_json(response))
 logger.debug(str(response))
+
 
 async def async_func_31():
     response = await top_agent.run(
