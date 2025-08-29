@@ -1,6 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.llm.ollama.adapters.ollama_llama_index_llm_question_generator_adapter import LLMQuestionGenerator
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -14,7 +15,7 @@ from llama_index.core.tools import QueryEngineTool
 from llama_index.core.workflow import Context
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.readers.file import UnstructuredReader
-from llama_index.core.question_gen.llm_generators import LLMQuestionGenerator
+# from llama_index.core.question_gen.llm_generators import LLMQuestionGenerator
 from pathlib import Path
 import os
 import shutil
