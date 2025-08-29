@@ -1,6 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
@@ -22,6 +22,7 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
 Settings.embed_model = HuggingFaceEmbedding(
     model_name=model_name,
     cache_folder=MODELS_CACHE_DIR,
@@ -77,19 +78,17 @@ logger.info("## Using with Agents")
 memory = ChatMemoryBuffer.from_defaults(token_limit=40000)
 
 agent = FunctionAgent(
-    tools=[], llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"))
+    tools=[], llm=Settings.llm)
 
 ctx = Context(agent)
 
 
-async def run_async_code_94bdf377():
-    async def run_async_code_bf67faa6():
-        resp = await agent.run("Hello, how are you?", ctx=ctx, memory=memory)
-        return resp
-    resp = asyncio.run(run_async_code_bf67faa6())
+async def run_async_code():
+    resp = await agent.run("Hello, how are you?", ctx=ctx, memory=memory)
     logger.success(format_json(resp))
     return resp
-resp = asyncio.run(run_async_code_94bdf377())
+
+resp = asyncio.run(run_async_code())
 logger.success(format_json(resp))
 
 logger.debug(memory.get_all())
