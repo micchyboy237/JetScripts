@@ -67,7 +67,7 @@ async def main():
     """
     logger.info("Let's now run the agent")
 
-    response = await agent.run("What is the result of 10 multiplied by 4?")
+    response = agent.run("What is the result of 10 multiplied by 4?")
     logger.success(format_json(response))
 
     """
