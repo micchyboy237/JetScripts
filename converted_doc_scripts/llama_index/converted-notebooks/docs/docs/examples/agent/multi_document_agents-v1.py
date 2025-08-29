@@ -5,9 +5,6 @@ import shutil
 from pathlib import Path
 from typing import Dict, List, Callable, Tuple
 from tqdm import tqdm
-from jet.transformers.formatters import format_json
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import (
     Document,
     Settings,
@@ -24,6 +21,9 @@ from llama_index.core.schema import QueryBundle
 from llama_index.core.tools import FunctionTool, QueryEngineTool
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.readers.file import UnstructuredReader
+from jet.transformers.formatters import format_json
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.models.config import MODELS_CACHE_DIR
 from jet.models.embeddings.adapters.rerank_cross_encoder_llama_index_adapter import CrossEncoderRerank
 from jet.logger import CustomLogger
 
