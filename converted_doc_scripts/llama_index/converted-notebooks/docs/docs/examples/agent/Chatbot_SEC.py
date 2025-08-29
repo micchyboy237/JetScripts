@@ -1,8 +1,7 @@
 import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Settings
@@ -28,10 +27,13 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 model_name = "sentence-transformers/all-MiniLM-L6-v2"
+Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
 Settings.embed_model = HuggingFaceEmbedding(
     model_name=model_name,
     cache_folder=MODELS_CACHE_DIR,
 )
+Settings.chunk_size = 512
+Settings.chunk_overlap = 64
 
 
 """
@@ -63,11 +65,6 @@ logger.info("# How to Build a Chatbot")
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-
-Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
-Settings.embed_model = MLXEmbedding(model_name="text-embedding-3-large")
-Settings.chunk_size = 512
-Settings.chunk_overlap = 64
 
 """
 ### Ingest Data
@@ -181,7 +178,7 @@ query_engine = SubQuestionQueryEngine.from_defaults(
 """
 ### Setting up the Chatbot Agent
 
-We use a LlamaIndex Data Agent to setup the outer chatbot agent, which has access to a set of Tools. Specifically, we will use an FunctionAgent, that takes advantage of MLX API function calling. We want to use the separate Tools we defined previously for each index (corresponding to a given year), as well as a tool for the sub question query engine we defined above.
+We use a LlamaIndex Data Agent to setup the outer chatbot agent, which has access to a set of Tools. Specifically, we will use an FunctionAgent, that takes advantage of Ollama API function calling. We want to use the separate Tools we defined previously for each index (corresponding to a given year), as well as a tool for the sub question query engine we defined above.
 
 First we define a `QueryEngineTool` for the sub question query engine:
 """
@@ -212,7 +209,7 @@ logger.info(
 
 
 agent = FunctionAgent(
-    tools=tools, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"))
+    tools=tools, llm=OllamaFunctionCallingAdapter(model="llama3.2"))
 
 """
 ### Testing the Agent
@@ -285,7 +282,7 @@ Now that we have the chatbot setup, it only takes a few more steps to setup a ba
 logger.info("### Setting up the Chatbot Loop")
 
 agent = FunctionAgent(
-    tools=tools, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit"))
+    tools=tools, llm=OllamaFunctionCallingAdapter(model="llama3.2"))
 ctx = Context(agent)
 
 while True:
