@@ -1,12 +1,12 @@
 import asyncio
 from jet.transformers.formatters import format_json
 from autogen_core import (
-ClosureAgent,
-ClosureContext,
-DefaultSubscription,
-DefaultTopicId,
-MessageContext,
-SingleThreadedAgentRuntime,
+    ClosureAgent,
+    ClosureContext,
+    DefaultSubscription,
+    DefaultTopicId,
+    MessageContext,
+    SingleThreadedAgentRuntime,
 )
 from dataclasses import dataclass
 from jet.logger import CustomLogger
@@ -37,20 +37,22 @@ This is because the agent will only receive messages from topics it is subscribe
 logger.info("# Extracting Results with an Agent")
 
 
-
 """
 Define a dataclass for the final result.
 """
 logger.info("Define a dataclass for the final result.")
 
+
 @dataclass
 class FinalResult:
     value: str
 
+
 """
 Create a queue to pass the result from the agent to the external code.
 """
-logger.info("Create a queue to pass the result from the agent to the external code.")
+logger.info(
+    "Create a queue to pass the result from the agent to the external code.")
 
 queue = asyncio.Queue[FinalResult]()
 
@@ -61,7 +63,9 @@ The function must follow the signature
 where `T` is the type of the message the agent will receive.
 You can use union types to handle multiple message types.
 """
-logger.info("Create a function closure for outputting the final result to the queue.")
+logger.info(
+    "Create a function closure for outputting the final result to the queue.")
+
 
 async def output_result(_agent: ClosureContext, message: FinalResult, ctx: MessageContext) -> None:
     await queue.put(message)
@@ -69,43 +73,33 @@ async def output_result(_agent: ClosureContext, message: FinalResult, ctx: Messa
 """
 Let's create a runtime and register a {py:class}`~autogen_core.components.ClosureAgent` that will publish the final result to the queue.
 """
-logger.info("Let's create a runtime and register a {py:class}`~autogen_core.components.ClosureAgent` that will publish the final result to the queue.")
+logger.info(
+    "Let's create a runtime and register a {py:class}`~autogen_core.components.ClosureAgent` that will publish the final result to the queue.")
 
 runtime = SingleThreadedAgentRuntime()
-async def async_func_1():
+
+
+async def main():
     await ClosureAgent.register_closure(
         runtime, "output_result", output_result, subscriptions=lambda: [DefaultSubscription()]
     )
-asyncio.run(async_func_1())
-
-"""
-We can simulate the collection of final results by publishing them directly to the runtime.
-"""
-logger.info("We can simulate the collection of final results by publishing them directly to the runtime.")
-
-async def run_async_code_1e6ac0a6():
     runtime.start()
-asyncio.run(run_async_code_1e6ac0a6())
-async def run_async_code_6e97825e():
     await runtime.publish_message(FinalResult("Result 1"), DefaultTopicId())
-asyncio.run(run_async_code_6e97825e())
-async def run_async_code_baba95bc():
     await runtime.publish_message(FinalResult("Result 2"), DefaultTopicId())
-asyncio.run(run_async_code_baba95bc())
-async def run_async_code_b7ca34d4():
     await runtime.stop_when_idle()
-asyncio.run(run_async_code_b7ca34d4())
 
-"""
-We can take a look at the queue to see the final result.
-"""
-logger.info("We can take a look at the queue to see the final result.")
+    """
+    We can take a look at the queue to see the final result.
+    """
+    logger.info("We can take a look at the queue to see the final result.")
 
-while not queue.empty():
-    async def run_async_code_e348b90b():
-        logger.debug((result := await queue.get()).value)
-        return logger.debug((result :
-    logger.debug((result : = asyncio.run(run_async_code_e348b90b())
-    logger.success(format_json(logger.debug((result :))
+    results = []
+    while not queue.empty():
+        result = await queue.get()
+        logger.debug(result.value)
+        results.append(result.value)
+    logger.success(format_json(results))
 
-logger.info("\n\n[DONE]", bright=True)
+    logger.info("\n\n[DONE]", bright=True)
+
+asyncio.run(main())
