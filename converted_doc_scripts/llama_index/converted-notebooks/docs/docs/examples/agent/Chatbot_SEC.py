@@ -22,6 +22,9 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
+DATA_DIR = f"{os.path.dirname(__file__)}/data"
+
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
@@ -95,7 +98,7 @@ doc_set = {}
 all_docs = []
 for year in years:
     year_docs = loader.load_data(
-        file=Path(f"./data/UBER/UBER_{year}.html"), split_documents=False
+        file=Path(f"{DATA_DIR}/UBER/UBER_{year}.html"), split_documents=False
     )
     for d in year_docs:
         d.metadata = {"year": year}
@@ -121,7 +124,7 @@ for year in years:
         storage_context=storage_context,
     )
     index_set[year] = cur_index
-    storage_context.persist(persist_dir=f"./storage/{year}")
+    storage_context.persist(persist_dir=f"{DATA_DIR}/storage/{year}")
 
 """
 To load an index from disk, do the following
@@ -132,7 +135,7 @@ logger.info("To load an index from disk, do the following")
 index_set = {}
 for year in years:
     storage_context = StorageContext.from_defaults(
-        persist_dir=f"./storage/{year}"
+        persist_dir=f"{DATA_DIR}/storage/{year}"
     )
     cur_index = load_index_from_storage(
         storage_context,
@@ -220,18 +223,15 @@ If we test it with a simple "hello" query, the agent does not use any Tools.
 """
 logger.info("### Testing the Agent")
 
-
 ctx = Context(agent)
 
 
-async def run_async_code_dfb2c107():
-    async def run_async_code_19c790e9():
-        response = await agent.run("hi, i am bob", ctx=ctx)
-        return response
-    response = asyncio.run(run_async_code_19c790e9())
+async def test_hello():
+    response = await agent.run("hi, i am bob", ctx=ctx)
     logger.success(format_json(response))
     return response
-response = asyncio.run(run_async_code_dfb2c107())
+
+response = asyncio.run(test_hello())
 logger.success(format_json(response))
 logger.debug(str(response))
 
@@ -240,15 +240,18 @@ If we test it with a query regarding the 10-k of a given year, the agent will us
 the relevant vector index Tool.
 """
 logger.info(
-    "If we test it with a query regarding the 10-k of a given year, the agent will use")
+    "If we test it with a query regarding the 10-k of a given year, the agent will use"
+)
 
 
-async def async_func_0():
+async def test_risk_factors_2020():
     response = await agent.run(
         "What were some of the biggest risk factors in 2020 for Uber?", ctx=ctx
     )
+    logger.success(format_json(response))
     return response
-response = asyncio.run(async_func_0())
+
+response = asyncio.run(test_risk_factors_2020())
 logger.success(format_json(response))
 logger.debug(str(response))
 
@@ -263,14 +266,12 @@ cross_query_str = (
 )
 
 
-async def run_async_code_6546a213():
-    async def run_async_code_a5a5f6a7():
-        response = await agent.run(cross_query_str, ctx=ctx)
-        return response
-    response = asyncio.run(run_async_code_a5a5f6a7())
+async def test_cross_years():
+    response = await agent.run(cross_query_str, ctx=ctx)
     logger.success(format_json(response))
     return response
-response = asyncio.run(run_async_code_6546a213())
+
+response = asyncio.run(test_cross_years())
 logger.success(format_json(response))
 logger.debug(str(response))
 
@@ -290,14 +291,12 @@ while True:
     if text_input == "exit":
         break
 
-    async def run_async_code_d18017d8():
-        async def run_async_code_b19fb72c():
-            response = await agent.run(text_input, ctx=ctx)
-            return response
-        response = asyncio.run(run_async_code_b19fb72c())
+    async def chat_once():
+        response = await agent.run(text_input, ctx=ctx)
         logger.success(format_json(response))
         return response
-    response = asyncio.run(run_async_code_d18017d8())
+
+    response = asyncio.run(chat_once())
     logger.success(format_json(response))
     logger.debug(f"Agent: {response}")
 

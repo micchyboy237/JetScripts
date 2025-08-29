@@ -32,6 +32,9 @@ OUTPUT_DIR = os.path.join(
         os.path.basename(__file__))[0]
 )
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+DATA_DIR = f"{os.path.dirname(__file__)}/data"
+
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
@@ -75,8 +78,8 @@ async def load_documents(doc_limit: int = 100) -> List[Document]:
 
 async def build_agent_per_doc(nodes: List, file_base: str) -> Tuple[FunctionAgent, str]:
     """Build a document agent for a single document with vector and summary query engines."""
-    vi_out_path = f"./data/resume_docs/{file_base}"
-    summary_out_path = f"./data/resume_docs/{file_base}_summary.pkl"
+    vi_out_path = f"{DATA_DIR}/resume_docs/{file_base}"
+    summary_out_path = f"{DATA_DIR}/resume_docs/{file_base}_summary.pkl"
     try:
         if not os.path.exists(vi_out_path):
             os.makedirs(os.path.dirname(vi_out_path), exist_ok=True)
