@@ -162,7 +162,7 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
+logger.orange(f"Logs: {log_file}")
     """.strip()
     log_done_code = 'logger.info("\\n\\n[DONE]", bright=True)'
     return "\n\n".join([import_code, code, log_done_code])

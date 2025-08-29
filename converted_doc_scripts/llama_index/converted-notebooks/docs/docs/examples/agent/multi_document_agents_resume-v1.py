@@ -25,26 +25,27 @@ from jet.transformers.formatters import format_json
 from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.models.config import MODELS_CACHE_DIR
 from jet.models.embeddings.adapters.rerank_cross_encoder_llama_index_adapter import CrossEncoderRerank
+from jet.utils.inspect_utils import get_entry_file_path
 from jet.logger import CustomLogger
 
-OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(
-        os.path.basename(__file__))[0]
-)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+OUTPUT_DIR = os.path.join(os.path.dirname(
+    __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 DATA_DIR = f"/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp"
+LOG_DIR = f"{OUTPUT_DIR}/logs"
 
-log_file = os.path.join(OUTPUT_DIR, "main.log")
+log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
+logger.orange(f"Logs: {log_file}")
 
 model_name = "sentence-transformers/all-MiniLM-L6-v2"
 Settings.embed_model = HuggingFaceEmbedding(
     model_name=model_name,
     cache_folder=MODELS_CACHE_DIR,
 )
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
+Settings.llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", log_dir=f"{LOG_DIR}/chats")
 logger.info("Initialized embedding model and LLM")
 
 """
@@ -144,7 +145,8 @@ async def build_agent_per_doc(nodes: List, file_base: str) -> Tuple[FunctionAgen
             description="Useful for summarization questions",
         ),
     ]
-    function_llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    function_llm = OllamaFunctionCallingAdapter(
+        model="llama3.2", log_dir=f"{LOG_DIR}/agent_functions")
     agent = FunctionAgent(
         tools=query_engine_tools,
         llm=function_llm,
@@ -194,7 +196,8 @@ class CustomObjectRetriever(ObjectRetriever):
     def __init__(self, retriever, object_node_mapping, node_postprocessors=None, llm=None):
         self._retriever = retriever
         self._object_node_mapping = object_node_mapping
-        self._llm = llm or OllamaFunctionCallingAdapter(model="llama3.2")
+        self._llm = llm or OllamaFunctionCallingAdapter(
+            model="llama3.2", log_dir=f"{LOG_DIR}/object_retriever")
         self._node_postprocessors = node_postprocessors or []
 
     def retrieve(self, query_bundle: str | QueryBundle) -> List:
@@ -255,14 +258,15 @@ async def main():
         vector_node_retriever,
         obj_index.object_node_mapping,
         node_postprocessors=[CrossEncoderRerank(
-            top_n=5, model="ms-marco-MiniLM-L12-v2")],
-        llm=Settings.llm,
+            top_n=5, model="ms-marco-MiniLM-L12-v2")], llm=OllamaFunctionCallingAdapter(
+            model="llama3.2", log_dir=f"{LOG_DIR}/object_retriever"),
     )
     top_agent = FunctionAgent(
         tool_retriever=custom_obj_retriever,
         system_prompt="""You are an agent designed to answer queries about the resume data.
 Please always use the tools provided to answer a question. Do not rely on prior knowledge.""",
-        llm=Settings.llm,
+        llm=OllamaFunctionCallingAdapter(
+            model="llama3.2", log_dir=f"{LOG_DIR}/top_agent"),
     )
     logger.info("Top agent initialized")
     all_nodes = [n for extra_info in extra_info_dict.values()
