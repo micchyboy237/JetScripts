@@ -124,7 +124,7 @@ for year in years:
         storage_context=storage_context,
     )
     index_set[year] = cur_index
-    storage_context.persist(persist_dir=f"{DATA_DIR}/storage/{year}")
+    storage_context.persist(persist_dir=f"{OUTPUT_DIR}/storage/{year}")
 
 """
 To load an index from disk, do the following
@@ -135,7 +135,7 @@ logger.info("To load an index from disk, do the following")
 index_set = {}
 for year in years:
     storage_context = StorageContext.from_defaults(
-        persist_dir=f"{DATA_DIR}/storage/{year}"
+        persist_dir=f"{OUTPUT_DIR}/storage/{year}"
     )
     cur_index = load_index_from_storage(
         storage_context,
@@ -176,6 +176,7 @@ logger.info("Now we can create the Sub Question Query Engine, which will allow u
 
 query_engine = SubQuestionQueryEngine.from_defaults(
     query_engine_tools=individual_query_engine_tools,
+    llm=Settings.llm,
 )
 
 """
