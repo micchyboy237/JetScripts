@@ -77,7 +77,6 @@ async def main():
     
     resp = await agent.run("Hello, how are you?", ctx=ctx, memory=memory)
     logger.success(format_json(resp))
-    logger.success(format_json(resp))
     
     logger.debug(memory.get_all())
     

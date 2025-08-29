@@ -158,7 +158,6 @@ async def main():
         )
         summary_txt = query_engine.query(query_str)
         logger.success(format_json(summary_txt))
-        logger.success(format_json(summary_txt))
         summary_txt = str(summary_txt)
     
         index_id = doc.metadata["index_id"]
@@ -191,12 +190,10 @@ async def main():
     
         index_nodes = await run_jobs(tasks, show_progress=True, workers=3)
         logger.success(format_json(index_nodes))
-        logger.success(format_json(index_nodes))
     
         return index_nodes
     
     index_nodes = await aprocess_docs(docs)
-    logger.success(format_json(index_nodes))
     logger.success(format_json(index_nodes))
     
     index_nodes[5].metadata

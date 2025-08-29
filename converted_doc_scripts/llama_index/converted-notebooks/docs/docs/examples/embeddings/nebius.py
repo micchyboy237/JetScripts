@@ -60,7 +60,6 @@ async def main():
     text = "Everyone loves justice at another person's expense"
     embeddings = await embed_model.aget_text_embedding(text)
     logger.success(format_json(embeddings))
-    logger.success(format_json(embeddings))
     assert len(embeddings) == 4096
     logger.debug(len(embeddings), embeddings[:5], sep="\n")
     
@@ -94,7 +93,6 @@ async def main():
     ]
     
     embeddings = await embed_model.aget_text_embedding_batch(texts)
-    logger.success(format_json(embeddings))
     logger.success(format_json(embeddings))
     assert len(embeddings) == 4
     assert len(embeddings[0]) == 4096

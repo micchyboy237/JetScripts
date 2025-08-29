@@ -162,14 +162,12 @@ async def main():
         fmt_messages = GEN_SYS_PROMPT_TMPL.format_messages(task=task)
         response = llm.chat(fmt_messages)
         logger.success(format_json(response))
-        logger.success(format_json(response))
         return response.message.content
     
     
     async def get_tools(task: str):
         """Get the set of relevant tools to use given an input task."""
         subset_tools = await tool_retriever.aretrieve(task)
-        logger.success(format_json(subset_tools))
         logger.success(format_json(subset_tools))
         return [t.metadata.name for t in subset_tools]
     

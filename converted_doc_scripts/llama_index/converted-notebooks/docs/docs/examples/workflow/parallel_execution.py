@@ -99,7 +99,6 @@ async def main():
         ) -> StopEvent | None:
             num_to_collect = await ctx.store.get("num_to_collect")
             logger.success(format_json(num_to_collect))
-            logger.success(format_json(num_to_collect))
             results = ctx.collect_events(ev, [ResultEvent] * num_to_collect)
             if results is None:
                 return None
@@ -131,7 +130,6 @@ async def main():
         ) -> StopEvent | None:
             num_to_collect = await ctx.store.get("num_to_collect")
             logger.success(format_json(num_to_collect))
-            logger.success(format_json(num_to_collect))
             results = ctx.collect_events(ev, [ResultEvent] * num_to_collect)
             if results is None:
                 return None
@@ -162,7 +160,6 @@ async def main():
     start_time = time.time()
     result = await sequential_workflow.run()
     logger.success(format_json(result))
-    logger.success(format_json(result))
     end_time = time.time()
     logger.debug(f"Workflow result: {result}")
     logger.debug(f"Time taken: {end_time - start_time} seconds")
@@ -175,7 +172,6 @@ async def main():
     )
     start_time = time.time()
     result = await parallel_workflow.run()
-    logger.success(format_json(result))
     logger.success(format_json(result))
     end_time = time.time()
     logger.debug(f"Workflow result: {result}")

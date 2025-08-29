@@ -158,7 +158,6 @@ async def main():
     
     all_docs = await reader.aload_data()
     logger.success(format_json(all_docs))
-    logger.success(format_json(all_docs))
     
     logger.debug(len(all_docs))
     

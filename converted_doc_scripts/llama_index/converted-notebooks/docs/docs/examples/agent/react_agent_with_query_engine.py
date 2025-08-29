@@ -145,7 +145,6 @@ async def main():
     
     response = await handler
     logger.success(format_json(response))
-    logger.success(format_json(response))
     
     logger.debug(str(response))
     
@@ -159,7 +158,6 @@ async def main():
             logger.debug(f"{ev.delta}", end="", flush=True)
     
     response = await handler
-    logger.success(format_json(response))
     logger.success(format_json(response))
     
     logger.debug(str(response))

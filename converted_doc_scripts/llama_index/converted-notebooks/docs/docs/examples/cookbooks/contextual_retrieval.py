@@ -220,7 +220,6 @@ async def main():
     
         eval_results = retriever_evaluator.evaluate_dataset(qa_dataset)
         logger.success(format_json(eval_results))
-        logger.success(format_json(eval_results))
     
         return eval_results
     
@@ -383,7 +382,6 @@ async def main():
         )
     logger.success(format_json(embedding_retriever_results))
     bm25_retriever_results = await retrieval_results(bm25_retriever, qa_dataset)
-    logger.success(format_json(bm25_retriever_results))
     logger.success(format_json(bm25_retriever_results))
     embedding_bm25_retriever_rerank_results = await retrieval_results(
             embedding_bm25_retriever_rerank, qa_dataset

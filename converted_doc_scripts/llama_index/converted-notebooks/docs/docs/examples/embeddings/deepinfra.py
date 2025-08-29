@@ -84,7 +84,6 @@ async def main():
         text = "hello world"
         async_response = await model.aget_text_embedding(text)
         logger.success(format_json(async_response))
-        logger.success(format_json(async_response))
         logger.debug(async_response)
     
     

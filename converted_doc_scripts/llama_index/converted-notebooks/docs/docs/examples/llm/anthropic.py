@@ -128,7 +128,6 @@ async def main():
     
     resp = llm.stream_complete("Who is Paul Graham?")
     logger.success(format_json(resp))
-    logger.success(format_json(resp))
     async for r in resp:
         logger.debug(r.delta, end="")
     
@@ -137,7 +136,6 @@ async def main():
     ]
     
     resp = llm.chat(messages)
-    logger.success(format_json(resp))
     logger.success(format_json(resp))
     logger.debug(resp)
     
@@ -461,7 +459,6 @@ async def main():
     )
     
     output = await agent.run("How do LlamaIndex and LLMs work together?")
-    logger.success(format_json(output))
     logger.success(format_json(output))
     
     

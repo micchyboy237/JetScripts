@@ -164,10 +164,8 @@ async def main():
     
             query = await ctx.store.get("query", default=None)
             logger.success(format_json(query))
-            logger.success(format_json(query))
             selected_query_engines = ev.selected_query_engines
             query_engine_tools = await ctx.store.get("query_engine_tools")
-            logger.success(format_json(query_engine_tools))
             logger.success(format_json(query_engine_tools))
     
             query_engines = [engine.query_engine for engine in query_engine_tools]
@@ -186,7 +184,6 @@ async def main():
                     tasks.append(query_engine.aquery(query))
     
                 response_generated = await asyncio.gather(*tasks)
-                logger.success(format_json(response_generated))
                 logger.success(format_json(response_generated))
     
             else:
@@ -223,7 +220,6 @@ async def main():
                 ):
                     response_obj = response.get_response()
                     logger.success(format_json(response_obj))
-                    logger.success(format_json(response_obj))
                 else:
                     response_obj = response
                 source_nodes.extend(response_obj.source_nodes)
@@ -254,9 +250,7 @@ async def main():
             response_generated = ev.result
             query = await ctx.store.get("query", default=None)
             logger.success(format_json(query))
-            logger.success(format_json(query))
             summarizer = await ctx.store.get("summarizer")
-            logger.success(format_json(summarizer))
             logger.success(format_json(summarizer))
             selected_query_engines = ev.selected_query_engines
     

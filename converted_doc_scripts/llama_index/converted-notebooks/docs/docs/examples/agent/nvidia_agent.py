@@ -85,7 +85,6 @@ async def main():
     
     response = await agent.run("What is (121 * 3) + 42?")
     logger.success(format_json(response))
-    logger.success(format_json(response))
     logger.debug(str(response))
     
     logger.debug(response.tool_calls)
@@ -102,11 +101,9 @@ async def main():
     
     response = await agent.run("Hello, my name is John Doe.", ctx=ctx)
     logger.success(format_json(response))
-    logger.success(format_json(response))
     logger.debug(str(response))
     
     response = await agent.run("What is my name?", ctx=ctx)
-    logger.success(format_json(response))
     logger.success(format_json(response))
     logger.debug(str(response))
     
@@ -125,11 +122,9 @@ async def main():
     
     response = await agent.run("Hi")
     logger.success(format_json(response))
-    logger.success(format_json(response))
     logger.debug(response)
     
     response = await agent.run("Tell me a story")
-    logger.success(format_json(response))
     logger.success(format_json(response))
     logger.debug(response)
     
@@ -191,7 +186,6 @@ async def main():
             logger.debug(ev.delta, end="", flush=True)
     
     response = await handler
-    logger.success(format_json(response))
     logger.success(format_json(response))
     
     logger.debug(str(response))

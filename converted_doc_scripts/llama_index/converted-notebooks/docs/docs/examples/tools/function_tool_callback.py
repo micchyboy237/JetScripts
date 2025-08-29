@@ -69,11 +69,9 @@ async def main():
     
     response = await agent.run("Send hello to Karen")
     logger.success(format_json(response))
-    logger.success(format_json(response))
     logger.debug(str(response))
     
     response = await agent.run("Send hello to Joe")
-    logger.success(format_json(response))
     logger.success(format_json(response))
     logger.debug(str(response))
     

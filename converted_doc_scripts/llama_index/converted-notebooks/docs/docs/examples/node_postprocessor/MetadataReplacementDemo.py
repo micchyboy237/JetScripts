@@ -255,7 +255,6 @@ async def main():
     
     eval_dataset = await dataset_generator.agenerate_dataset_from_nodes()
     logger.success(format_json(eval_dataset))
-    logger.success(format_json(eval_dataset))
     
     eval_dataset.save_json("data/ipcc_eval_qr_dataset.json")
     

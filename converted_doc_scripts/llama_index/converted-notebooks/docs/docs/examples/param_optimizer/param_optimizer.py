@@ -271,7 +271,6 @@ async def main():
     
     results = await aparam_tuner.atune()
     logger.success(format_json(results))
-    logger.success(format_json(results))
     
     best_result = results.best_run_result
     best_top_k = results.best_run_result.params["top_k"]

@@ -141,9 +141,7 @@ async def main():
         async def chat(self, ev: ChatEvent) -> ResponseEvent:
             chat_history = await self._memory.aget()
             logger.success(format_json(chat_history))
-            logger.success(format_json(chat_history))
             response = self._llm.chat(chat_history)
-            logger.success(format_json(response))
             logger.success(format_json(response))
             return ResponseEvent(response=response.message.content)
     

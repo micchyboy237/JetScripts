@@ -83,7 +83,6 @@ async def main():
         start = time.time()
         nodes = await pipline.arun(documents=documents)
         logger.success(format_json(nodes))
-        logger.success(format_json(nodes))
         end = time.time()
         times.append(end - start)
     
@@ -129,7 +128,6 @@ async def main():
         pipline = build_pipeline()
         start = time.time()
         nodes = await pipline.arun(documents=documents)
-        logger.success(format_json(nodes))
         logger.success(format_json(nodes))
         end = time.time()
         times.append(end - start)

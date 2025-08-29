@@ -82,7 +82,6 @@ async def main():
     
         async with ToolboxClient("http://127.0.0.1:5000") as client:
                 tools = await client.aload_toolset()
-                logger.success(format_json(tools))
             
                 agent = AgentWorkflow.from_tools_or_functions(
                     tools,
@@ -96,7 +95,6 @@ async def main():
             
                 for query in queries:
                     response = await agent.run(user_msg=query, ctx=ctx)
-                    logger.success(format_json(response))
                     logger.debug()
                     logger.debug(f"---- {query} ----")
                     logger.debug(str(response))

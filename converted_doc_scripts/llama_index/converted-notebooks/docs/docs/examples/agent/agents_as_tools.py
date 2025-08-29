@@ -145,7 +145,6 @@ async def main():
                 user_msg += f"<research_notes>{notes}</research_notes>\n\n"
             
                 result = await write_agent.run(user_msg=user_msg)
-                logger.success(format_json(result))
                 report = re.search(
                     r"<report>(.*)</report>", str(result), re.DOTALL
                 ).group(1)
@@ -247,7 +246,6 @@ async def main():
     logger.info("With our report written and revised/reviewed, we can inspect the final report in the state.")
     
     state = await ctx.store.get("state")
-    logger.success(format_json(state))
     logger.success(format_json(state))
     logger.debug(state["report_content"])
     

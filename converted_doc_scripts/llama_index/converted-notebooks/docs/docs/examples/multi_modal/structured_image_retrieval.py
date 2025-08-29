@@ -150,7 +150,6 @@ async def main():
     
         response = await llm_program.acall()
         logger.success(format_json(response))
-        logger.success(format_json(response))
         return response
     
     """
@@ -164,7 +163,6 @@ async def main():
         logger.debug(f"Image file: {image_file}")
         img_docs = SimpleDirectoryReader(input_files=[image_file]).load_data()
         output = await pydantic_gemini(ReceiptInfo, img_docs, prompt_template_str)
-        logger.success(format_json(output))
         logger.success(format_json(output))
         return output
     
@@ -180,11 +178,9 @@ async def main():
     
         outputs = await run_jobs(tasks, show_progress=True, workers=5)
         logger.success(format_json(outputs))
-        logger.success(format_json(outputs))
         return outputs
     
     outputs = await aprocess_image_files(image_files)
-    logger.success(format_json(outputs))
     logger.success(format_json(outputs))
     
     outputs[4]

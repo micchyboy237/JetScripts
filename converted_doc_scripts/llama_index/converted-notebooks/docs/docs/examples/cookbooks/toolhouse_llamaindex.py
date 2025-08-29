@@ -133,7 +133,6 @@ class SalesRepWorkflow(Workflow):
         prompt = f"Get the contents of {ev.url}, then summarize its key value propositions in a few bullet points."
         contents = self.agent.chat(prompt)
         logger.success(format_json(contents))
-        logger.success(format_json(contents))
         return WebsiteContentEvent(contents=str(contents.response))
 
     @step
@@ -147,7 +146,6 @@ class SalesRepWorkflow(Workflow):
         )
         prompt = f"With that you know about the business, perform a web search to find 5 tech companies who may benefit from the business's product. Only answer with the names of the companies you chose."
         results = self.agent.chat(prompt)
-        logger.success(format_json(results))
         logger.success(format_json(results))
         return WebSearchEvent(results=str(results.response))
 
@@ -163,7 +161,6 @@ class SalesRepWorkflow(Workflow):
         prompt = "Select one company that can benefit from the business's product. Only use your knowledge to select the company. Respond with just the name of the company. Do not use tools."
         results = self.agent.chat(prompt)
         logger.success(format_json(results))
-        logger.success(format_json(results))
         ctx.write_event_to_stream(
             LogEvent(
                 msg=f"The agent selected this company: {results.response}"
@@ -178,7 +175,6 @@ class SalesRepWorkflow(Workflow):
         )
         prompt = f"Draft a short cold sales outreach email for the company you picked. Do not use tools."
         email = self.agent.chat(prompt)
-        logger.success(format_json(email))
         logger.success(format_json(email))
         ctx.write_event_to_stream(
             LogEvent(msg=f"Here is the email: {email.response}")

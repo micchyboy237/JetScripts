@@ -242,7 +242,6 @@ logger.info("## Async")
 llm = MistralAI()
 resp = llm.complete("Paul Graham is ")
 logger.success(format_json(resp))
-logger.success(format_json(resp))
 
 logger.debug(resp)
 

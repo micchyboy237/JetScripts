@@ -165,7 +165,6 @@ async def main():
             retriever = index.as_retriever(similarity_top_k=2)
             nodes = await retriever.aretrieve(query)
             logger.success(format_json(nodes))
-            logger.success(format_json(nodes))
             logger.debug(f"Retrieved {len(nodes)} nodes.")
             return RetrieverEvent(nodes=nodes)
     
@@ -177,6 +176,7 @@ async def main():
             logger.debug(await ctx.store.get("query", default=None), flush=True)
             new_nodes = ranker.postprocess_nodes(
                 ev.nodes, query_str=await ctx.store.get("query", default=None)
+                logger.success(format_json(ev.nodes, query_str))
             )
             logger.debug(f"Reranked nodes to {len(new_nodes)}")
             return RerankEvent(nodes=new_nodes)
@@ -188,10 +188,8 @@ async def main():
             summarizer = CompactAndRefine(llm=llm, streaming=True, verbose=True)
             query = await ctx.store.get("query", default=None)
             logger.success(format_json(query))
-            logger.success(format_json(query))
     
             response = await summarizer.asynthesize(query, nodes=ev.nodes)
-            logger.success(format_json(response))
             logger.success(format_json(response))
             return StopEvent(result=response)
     
@@ -211,10 +209,8 @@ async def main():
     
     index = await w.run(dirname="data")
     logger.success(format_json(index))
-    logger.success(format_json(index))
     
     result = await w.run(query="How was Llama2 trained?", index=index)
-    logger.success(format_json(result))
     logger.success(format_json(result))
     async for chunk in result.async_response_gen():
         logger.debug(chunk, end="", flush=True)

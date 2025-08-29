@@ -139,7 +139,6 @@ async def main():
         ) -> StopEvent | ExtractionDone:
             current_retries = await ctx.store.get("retries", default=0)
             logger.success(format_json(current_retries))
-            logger.success(format_json(current_retries))
             if current_retries >= self.max_retries:
                 return StopEvent(result="Max retries reached")
             else:
@@ -168,7 +167,6 @@ async def main():
                 prompt += reflection_prompt
     
             output = llm.complete(prompt)
-            logger.success(format_json(output))
             logger.success(format_json(output))
     
             return ExtractionDone(output=str(output), passage=passage)

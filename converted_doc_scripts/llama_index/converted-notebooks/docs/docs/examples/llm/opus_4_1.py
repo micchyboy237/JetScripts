@@ -117,7 +117,6 @@ async def main():
     
     response = await handler
     logger.success(format_json(response))
-    logger.success(format_json(response))
     
     logger.debug("Final response")
     logger.debug(response)
@@ -141,7 +140,6 @@ async def main():
             )
     
     response = await handler
-    logger.success(format_json(response))
     logger.success(format_json(response))
     
     logger.debug("Final response")

@@ -188,7 +188,6 @@ logger.info("#### Async")
 
 query_result = query_engine.query("Who is Paul?")
 logger.success(format_json(query_result))
-logger.success(format_json(query_result))
 
 """
 #### Streaming

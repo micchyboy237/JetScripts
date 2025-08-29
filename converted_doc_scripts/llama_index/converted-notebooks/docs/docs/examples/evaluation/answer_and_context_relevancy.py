@@ -129,10 +129,8 @@ async def main():
     
     eval_results1 = await tqdm_asyncio.gather(*eval_tasks[:250])
     logger.success(format_json(eval_results1))
-    logger.success(format_json(eval_results1))
     
     eval_results2 = await tqdm_asyncio.gather(*eval_tasks[250:])
-    logger.success(format_json(eval_results2))
     logger.success(format_json(eval_results2))
     
     eval_results = eval_results1 + eval_results2

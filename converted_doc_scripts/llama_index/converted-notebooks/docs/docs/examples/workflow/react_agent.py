@@ -171,7 +171,6 @@ async def main():
     
             memory = await ctx.store.get("memory", default=None)
             logger.success(format_json(memory))
-            logger.success(format_json(memory))
             if not memory:
                 memory = ChatMemoryBuffer.from_defaults(llm=self.llm)
     
@@ -190,7 +189,6 @@ async def main():
             self, ctx: Context, ev: PrepEvent
         ) -> InputEvent:
             memory = await ctx.store.get("memory")
-            logger.success(format_json(memory))
             logger.success(format_json(memory))
             chat_history = memory.get()
             current_reasoning = await ctx.store.get(
@@ -214,10 +212,8 @@ async def main():
             logger.success(format_json(current_reasoning))
             memory = await ctx.store.get("memory")
             logger.success(format_json(memory))
-            logger.success(format_json(memory))
     
             response_gen = self.llm.stream_chat(chat_history)
-            logger.success(format_json(response_gen))
             logger.success(format_json(response_gen))
             async for response in response_gen:
                 ctx.write_event_to_stream(StreamEvent(delta=response.delta or ""))
@@ -236,7 +232,6 @@ async def main():
                     await ctx.store.set("current_reasoning", current_reasoning)
     
                     sources = await ctx.store.get("sources", default=[])
-                    logger.success(format_json(sources))
                     logger.success(format_json(sources))
     
                     return StopEvent(
@@ -279,7 +274,6 @@ async def main():
                 )
             logger.success(format_json(current_reasoning))
             sources = await ctx.store.get("sources", default=[])
-            logger.success(format_json(sources))
             logger.success(format_json(sources))
     
             for tool_call in tool_calls:
@@ -354,12 +348,10 @@ async def main():
     
     ret = await agent.run(input="Hello!")
     logger.success(format_json(ret))
-    logger.success(format_json(ret))
     
     logger.debug(ret["response"])
     
     ret = await agent.run(input="What is (2123 + 2321) * 312?")
-    logger.success(format_json(ret))
     logger.success(format_json(ret))
     
     logger.debug(ret["response"])
@@ -376,11 +368,9 @@ async def main():
     
     ret = await agent.run(input="Hello! My name is Logan", ctx=ctx)
     logger.success(format_json(ret))
-    logger.success(format_json(ret))
     logger.debug(ret["response"])
     
     ret = await agent.run(input="What is my name?", ctx=ctx)
-    logger.success(format_json(ret))
     logger.success(format_json(ret))
     logger.debug(ret["response"])
     
@@ -402,7 +392,6 @@ async def main():
             logger.debug(event.delta, end="", flush=True)
     
     response = await handler
-    logger.success(format_json(response))
     logger.success(format_json(response))
     
     logger.info("\n\n[DONE]", bright=True)

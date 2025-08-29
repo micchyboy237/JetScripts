@@ -55,7 +55,6 @@ async def main():
     
     result = await embed_model.aget_text_embedding("Hello World!")
     logger.success(format_json(result))
-    logger.success(format_json(result))
     
     result[:5]
     

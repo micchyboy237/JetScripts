@@ -464,7 +464,6 @@ async def main():
         try:
             response = await graphql_api.graphql_using_post(body=request)
             logger.success(format_json(response))
-            logger.success(format_json(response))
             logger.debug("GraphQL Query Results:")
             logger.debug(json.dumps(response, indent=2))
         except Exception as e:

@@ -75,7 +75,6 @@ async def main():
     
     response = await agent.run("What happened to AAPL stock on February 19th, 2024?")
     logger.success(format_json(response))
-    logger.success(format_json(response))
     
     logger.info("\n\n[DONE]", bright=True)
 

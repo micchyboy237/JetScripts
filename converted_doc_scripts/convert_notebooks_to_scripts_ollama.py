@@ -333,49 +333,20 @@ async def run_async_wrapper(code: str) -> str:
         return f"logger.error('Error: {e}')"
 
 
-def wrap_await_code_singleline_args(code: str) -> str:
-    lines = code.splitlines()
-    result_lines = []
-    paren_depth = 0
-    skip_until_closing_paren = False
-    for line_idx, line in enumerate(lines):
-        stripped_line = line.strip()
-        paren_depth += stripped_line.count("(") - stripped_line.count(")")
-        if skip_until_closing_paren:
-            result_lines.append(line)
-            if paren_depth == 0:
-                skip_until_closing_paren = False
-            continue
-        if "await" in line and "(" in stripped_line and paren_depth > 0:
-            skip_until_closing_paren = True
-            result_lines.append(line)
-            continue
-        match = re.match(r'(.*?)(?=\s*= await)', line)
-        if match and "await" in line and paren_depth == 0:
-            text_before_await = match.group(1).strip()
-            await_leading_spaces = len(line) - len(line.lstrip())
-            if text_before_await:
-                indent = " " * await_leading_spaces
-                result_lines.append(f"{indent}{line.strip()}")
-                result_lines.append(
-                    f"{indent}logger.success(format_json({text_before_await}))")
-            else:
-                result_lines.append(line)
-        else:
-            result_lines.append(line)
-    return "\n".join(result_lines)
-
-
-def wrap_await_code_multiline_args(code: str) -> str:
+def wrap_await_code(code: str) -> str:
     lines = code.splitlines()
     updated_lines = []
     line_idx = 0
     while line_idx < len(lines):
         line = lines[line_idx].rstrip()
-        if line.strip().startswith("async with"):
-            leading_spaces = len(line) - len(line.lstrip())
+        leading_spaces = len(line) - len(line.lstrip())
+        indent = " " * leading_spaces
+        stripped_line = line.strip()
+
+        # Handle async with blocks
+        if stripped_line.startswith("async with"):
             variable = "result"
-            async_block = [f"{' ' * leading_spaces}{line.strip()}"]
+            async_block = [f"{indent}{stripped_line}"]
             line_idx += 1
             while line_idx < len(lines):
                 next_line = lines[line_idx].rstrip()
@@ -389,49 +360,46 @@ def wrap_await_code_multiline_args(code: str) -> str:
                 async_block.append(f"{adjusted_indent}{next_line.lstrip()}")
                 line_idx += 1
             async_block.append(
-                f"{' ' * leading_spaces}logger.success(format_json({variable}))")
+                f"{indent}logger.success(format_json({variable}))")
             updated_lines.extend(async_block)
             continue
-        if "await" in line and line.strip().endswith("("):
+
+        # Handle await statements (single-line or multi-line)
+        if "await" in line:
             match = re.match(r'(.*?)\s*=\s*await', line)
             if match:
                 variable = match.group(1).strip()
-                leading_spaces = len(line) - len(line.lstrip())
-                async_block = [f"{' ' * leading_spaces}{line.strip()}"]
-                open_parens = 1
-                line_idx += 1
-                while line_idx < len(lines) and open_parens > 0:
-                    next_line = lines[line_idx].rstrip()
-                    next_leading_spaces = len(
-                        next_line) - len(next_line.lstrip())
-                    relative_indent = next_leading_spaces - leading_spaces
-                    if relative_indent < 0:
-                        relative_indent = 0
-                    adjusted_indent = ' ' * \
-                        (leading_spaces + 4 + relative_indent)
-                    async_block.append(
-                        f"{adjusted_indent}{next_line.lstrip()}")
-                    open_parens += next_line.count("(") - next_line.count(")")
+                if not variable:
+                    updated_lines.append(line)
+                    line_idx += 1
+                    continue
+                open_parens = stripped_line.count(
+                    "(") - stripped_line.count(")")
+                async_block = [f"{indent}{stripped_line}"]
+                if open_parens > 0:  # Multi-line await
+                    line_idx += 1
+                    while line_idx < len(lines) and open_parens > 0:
+                        next_line = lines[line_idx].rstrip()
+                        next_leading_spaces = len(
+                            next_line) - len(next_line.lstrip())
+                        relative_indent = next_leading_spaces - leading_spaces
+                        if relative_indent < 0:
+                            relative_indent = 0
+                        adjusted_indent = ' ' * \
+                            (leading_spaces + 4 + relative_indent)
+                        async_block.append(
+                            f"{adjusted_indent}{next_line.lstrip()}")
+                        open_parens += next_line.count("(") - \
+                            next_line.count(")")
+                        line_idx += 1
+                else:  # Single-line await
                     line_idx += 1
                 async_block.append(
-                    f"{' ' * leading_spaces}logger.success(format_json({variable}))")
+                    f"{indent}logger.success(format_json({variable}))")
                 updated_lines.extend(async_block)
-            else:
-                updated_lines.append(line)
-                line_idx += 1
-            continue
-        if "await" in line:
-            match = re.match(r'(.*?)(?=\s*= await)', line)
-            text_before_await = match.group(1).strip() if match else ""
-            leading_spaces = len(line) - len(line.lstrip())
-            if text_before_await:
-                updated_lines.append(f"{' ' * leading_spaces}{line.strip()}")
-                updated_lines.append(
-                    f"{' ' * leading_spaces}logger.success(format_json({text_before_await}))")
-            else:
-                updated_lines.append(line)
-            line_idx += 1
-            continue
+                continue
+
+        # Non-await lines
         updated_lines.append(line)
         line_idx += 1
     return "\n".join(updated_lines)
@@ -529,9 +497,7 @@ def scrape_code(
                         source_group['code'] = wrap_triple_double_quoted_comments_in_log(
                             source_group['code'])
                     if source_group['type'] == 'code':
-                        source_group['code'] = wrap_await_code_multiline_args(
-                            source_group['code'])
-                        source_group['code'] = wrap_await_code_singleline_args(
+                        source_group['code'] = wrap_await_code(
                             source_group['code'])
                 source_code = "\n\n".join(group['code']
                                           for group in source_groups)

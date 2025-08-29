@@ -39,7 +39,6 @@ async def main():
     
     answer = await agent.run(f"read document {document_id}")
     logger.success(format_json(answer))
-    logger.success(format_json(answer))
     logger.debug(answer)
     
     logger.info("\n\n[DONE]", bright=True)

@@ -133,6 +133,7 @@ async def main():
             agent = ReActAgent.from_tools(
                 await ctx.store.get("tools"),
                 llm=await ctx.store.get("llm"),
+                logger.success(format_json(llm))
                 verbose=True,
             )
             response = agent.chat(ev.question)

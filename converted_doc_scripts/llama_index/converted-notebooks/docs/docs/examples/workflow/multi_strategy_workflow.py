@@ -162,7 +162,6 @@ async def main():
         ) -> BadQueryEvent | NaiveRAGEvent | HighTopKEvent | RerankEvent:
             llm = await ctx.store.get("llm", default=None)
             logger.success(format_json(llm))
-            logger.success(format_json(llm))
             if llm is None:
                 await ctx.store.set("llm", OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1))
                 await ctx.store.set(
@@ -207,7 +206,6 @@ async def main():
         ) -> ResponseEvent:
             index = await ctx.store.get("index")
             logger.success(format_json(index))
-            logger.success(format_json(index))
             engine = index.as_query_engine(similarity_top_k=5)
             response = engine.query(ev.query)
             logger.debug("Naive response:", response)
@@ -221,7 +219,6 @@ async def main():
         ) -> ResponseEvent:
             index = await ctx.store.get("index")
             logger.success(format_json(index))
-            logger.success(format_json(index))
             engine = index.as_query_engine(similarity_top_k=20)
             response = engine.query(ev.query)
             logger.debug("High top k response:", response)
@@ -233,8 +230,8 @@ async def main():
         async def rerank(self, ctx: Context, ev: RerankEvent) -> ResponseEvent:
             index = await ctx.store.get("index")
             logger.success(format_json(index))
-            logger.success(format_json(index))
             reranker = RankGPTRerank(top_n=5, llm=await ctx.store.get("llm"))
+            logger.success(format_json(reranker = RankGPTRerank(top_n=5, llm))
             retriever = index.as_retriever(similarity_top_k=20)
             engine = RetrieverQueryEngine.from_args(
                 retriever=retriever,

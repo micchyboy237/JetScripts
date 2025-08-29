@@ -109,7 +109,6 @@ async def main():
     
     results = await parser.aparse(pdf_path)
     logger.success(format_json(results))
-    logger.success(format_json(results))
     
     logger.debug(results.pages[0].text)
     
@@ -397,7 +396,6 @@ async def main():
         ) -> BuildGraph:
             result = await self.affiliate_extract_agent.aextract(ev.file_path)
             logger.success(format_json(result))
-            logger.success(format_json(result))
             return BuildGraph(data=result.data, file_path=ev.file_path)
     
         @step
@@ -405,7 +403,6 @@ async def main():
             self, ctx: Context, ev: ExtractCoBranding
         ) -> BuildGraph:
             result = await self.branding_extract_agent.aextract(ev.file_path)
-            logger.success(format_json(result))
             logger.success(format_json(result))
             return BuildGraph(data=result.data, file_path=ev.file_path)
     

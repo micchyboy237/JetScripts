@@ -101,7 +101,6 @@ async def main():
     
     output = await batch_gather(tasks, batch_size=10, verbose=True)
     logger.success(format_json(output))
-    logger.success(format_json(output))
     
     """
     ## [Optional] Save/Load Extracted Themes

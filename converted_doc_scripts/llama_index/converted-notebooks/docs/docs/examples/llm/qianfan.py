@@ -85,7 +85,6 @@ async def async_chat():
     ]
     chat_response = llm.chat(messages)
     logger.success(format_json(chat_response))
-    logger.success(format_json(chat_response))
     logger.debug(chat_response.message.content)
 
 
@@ -105,7 +104,6 @@ async def async_stream_chat():
     ]
     content = ""
     response = llm.stream_chat(messages)
-    logger.success(format_json(response))
     logger.success(format_json(response))
     async for chat_response in response:
         content += chat_response.delta

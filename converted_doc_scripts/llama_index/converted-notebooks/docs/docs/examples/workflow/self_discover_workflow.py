@@ -208,7 +208,6 @@ async def main():
             modules = ev.modules
             llm: LLM = await ctx.store.get("llm")
             logger.success(format_json(llm: LLM))
-            logger.success(format_json(llm: LLM))
     
             prompt = ADAPT_PROMPT_TEMPLATE.format(
                 task=task, selected_modules=modules
@@ -225,7 +224,6 @@ async def main():
             task = ev.task
             refined_modules = ev.refined_modules
             llm: LLM = await ctx.store.get("llm")
-            logger.success(format_json(llm: LLM))
             logger.success(format_json(llm: LLM))
     
             prompt = IMPLEMENT_PROMPT_TEMPLATE.format(
@@ -245,7 +243,6 @@ async def main():
             task = ev.task
             reasoning_structure = ev.reasoning_structure
             llm: LLM = await ctx.store.get("llm")
-            logger.success(format_json(llm: LLM))
             logger.success(format_json(llm: LLM))
     
             prompt = REASONING_PROMPT_TEMPLATE.format(
@@ -267,7 +264,6 @@ async def main():
     
     task = "Michael has 15 oranges. He gives 4 oranges to his brother and trades 3 oranges for 6 apples with his neighbor. Later in the day, he realizes some of his oranges are spoiled, so he discards 2 of them. Then, Michael goes to the market and buys 12 more oranges and 5 more apples. If Michael decides to give 2 apples to his friend, how many oranges and apples does Michael have now?"
     result = await workflow.run(task=task, llm=llm)
-    logger.success(format_json(result))
     logger.success(format_json(result))
     display(Markdown(str(result)))
     

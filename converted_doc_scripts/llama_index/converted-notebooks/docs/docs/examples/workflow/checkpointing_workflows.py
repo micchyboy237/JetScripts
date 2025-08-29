@@ -50,7 +50,6 @@ async def main():
             prompt = f"Write your best joke about {topic}."
             response = self.llm.complete(prompt)
             logger.success(format_json(response))
-            logger.success(format_json(response))
             return JokeEvent(joke=str(response))
     
         @step
@@ -59,7 +58,6 @@ async def main():
     
             prompt = f"Give a thorough analysis and critique of the following joke: {joke}"
             response = self.llm.complete(prompt)
-            logger.success(format_json(response))
             logger.success(format_json(response))
             return StopEvent(result=str(response))
     

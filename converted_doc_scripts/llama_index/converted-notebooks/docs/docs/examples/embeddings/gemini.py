@@ -58,7 +58,6 @@ async def main():
     
     embedding = await embed_model.aget_text_embedding("Google Gemini Embeddings.")
     logger.success(format_json(embedding))
-    logger.success(format_json(embedding))
     logger.debug(embedding[:5])
     
     embeddings = await embed_model.aget_text_embedding_batch(
@@ -74,7 +73,6 @@ async def main():
     logger.debug(embeddings[2][:5])
     
     embedding = await embed_model.aget_query_embedding("Google Gemini Embeddings.")
-    logger.success(format_json(embedding))
     logger.success(format_json(embedding))
     logger.debug(embedding[:5])
     

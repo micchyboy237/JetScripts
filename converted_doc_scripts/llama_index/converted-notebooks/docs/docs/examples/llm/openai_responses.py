@@ -359,12 +359,10 @@ async def main():
     
     resp = llm.complete("Paul Graham is ")
     logger.success(format_json(resp))
-    logger.success(format_json(resp))
     
     logger.debug(resp)
     
     resp = llm.stream_complete("Paul Graham is ")
-    logger.success(format_json(resp))
     logger.success(format_json(resp))
     
     async for delta in resp:
@@ -377,7 +375,6 @@ async def main():
     
     llm = OllamaFunctionCallingAdapterResponses(model="llama3.2")
     response = llm.predict_and_call([tool], "Generate a random song")
-    logger.success(format_json(response))
     logger.success(format_json(response))
     logger.debug(str(response))
     
@@ -416,7 +413,6 @@ async def main():
     response = llm.chat(
         messages
     )  # response = llm.chat(messages) for an implementation
-    logger.success(format_json()  # response))
     logger.success(format_json()  # response))
     for block in response.message.blocks:
         if isinstance(block, ImageBlock):

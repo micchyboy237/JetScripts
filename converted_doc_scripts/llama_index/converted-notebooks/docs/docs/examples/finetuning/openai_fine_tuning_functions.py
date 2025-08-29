@@ -307,7 +307,6 @@ async def main():
         node_questions_tasks.append(task)
     node_questions_lists = await tqdm_asyncio.gather(*node_questions_tasks)
     logger.success(format_json(node_questions_lists))
-    logger.success(format_json(node_questions_lists))
     
     node_questions_lists
     

@@ -133,7 +133,6 @@ async def main():
     
         response = await agent.run(query)
         logger.success(format_json(response))
-        logger.success(format_json(response))
     
         logger.debug(f"\n🤖 Response: {response}")
         logger.debug("\n✅ Check your Maxim dashboard for detailed trace information!")
@@ -190,7 +189,6 @@ async def main():
                 ],
             )
             response = await multimodal_agent.run(msg)
-            logger.success(format_json(response))
             logger.success(format_json(response))
     
         except Exception as e:
@@ -319,7 +317,6 @@ async def main():
         logger.debug("🔄 This will coordinate multiple agents...")
     
         response = await multi_agent_workflow.run(query)
-        logger.success(format_json(response))
         logger.success(format_json(response))
     
         logger.debug(f"\n🤖 Multi-Agent Response:\n{response}")

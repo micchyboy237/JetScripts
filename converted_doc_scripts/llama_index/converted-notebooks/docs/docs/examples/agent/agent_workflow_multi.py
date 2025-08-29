@@ -219,7 +219,6 @@ async def main():
     
     state = await handler.ctx.store.get("state")
     logger.success(format_json(state))
-    logger.success(format_json(state))
     logger.debug(state["report_content"])
     
     logger.info("\n\n[DONE]", bright=True)

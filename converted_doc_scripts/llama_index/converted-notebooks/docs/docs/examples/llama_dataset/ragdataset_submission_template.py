@@ -358,7 +358,6 @@ async def main():
     )
     benchmark_df = await rag_evaluator.arun()
     logger.success(format_json(benchmark_df))
-    logger.success(format_json(benchmark_df))
     benchmark_df
     
     """

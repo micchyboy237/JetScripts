@@ -126,7 +126,6 @@ async def main():
     
     response_chat = gemini_pro.chat(messages=[msg])
     logger.success(format_json(response_achat))
-    logger.success(format_json(response_achat))
     
     logger.debug(response_achat.message.content)
     
@@ -137,7 +136,6 @@ async def main():
     
     
     streaming_handler = gemini_pro.stream_chat(messages=[msg])
-    logger.success(format_json(streaming_handler))
     logger.success(format_json(streaming_handler))
     async for chunk in streaming_handler:
         logger.debug(chunk.delta, end="")

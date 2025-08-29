@@ -100,7 +100,6 @@ async def main():
     
     response = await run_agent_verbose("What is (121 + 2) * 5?")
     logger.success(format_json(response))
-    logger.success(format_json(response))
     logger.debug(str(response))
     
     logger.debug(response.tool_calls)
@@ -117,9 +116,7 @@ async def main():
     
     response = await agent.run("My name is John Doe", ctx=ctx)
     logger.success(format_json(response))
-    logger.success(format_json(response))
     response = await agent.run("What is my name?", ctx=ctx)
-    logger.success(format_json(response))
     logger.success(format_json(response))
     
     logger.debug(str(response))

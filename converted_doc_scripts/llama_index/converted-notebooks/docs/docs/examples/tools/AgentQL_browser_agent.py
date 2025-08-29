@@ -121,7 +121,6 @@ async def main():
     
     async_browser = await PlaywrightToolSpec.create_async_playwright_browser()
     logger.success(format_json(async_browser))
-    logger.success(format_json(async_browser))
     agentql_browser_tool = AgentQLBrowserToolSpec(async_browser=async_browser)
     
     """

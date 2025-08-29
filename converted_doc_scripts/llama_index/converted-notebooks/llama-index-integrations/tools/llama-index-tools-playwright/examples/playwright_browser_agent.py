@@ -45,7 +45,6 @@ async def main():
     
     browser = await PlaywrightToolSpec.create_async_playwright_browser(headless=True)
     logger.success(format_json(browser))
-    logger.success(format_json(browser))
     playwright_tool = PlaywrightToolSpec.from_async_browser(browser)
     
     """

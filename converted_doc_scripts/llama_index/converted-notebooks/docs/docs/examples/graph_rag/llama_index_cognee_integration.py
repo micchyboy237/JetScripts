@@ -166,7 +166,6 @@ async def main():
     
     related_nodes = await cogneeRAG.get_related_nodes("person")
     logger.success(format_json(related_nodes))
-    logger.success(format_json(related_nodes))
     
     logger.debug("\n\nRelated nodes are:\n")
     for node in related_nodes:

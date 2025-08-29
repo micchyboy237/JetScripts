@@ -48,7 +48,6 @@ async def main():
     
     embeddings = await embed_model.aget_text_embedding("Hello World!")
     logger.success(format_json(embeddings))
-    logger.success(format_json(embeddings))
     logger.debug(len(embeddings))
     logger.debug(embeddings[:5])
     

@@ -296,7 +296,6 @@ logger.debug(eval_result)
 
 eval_results = retriever_evaluator.evaluate_dataset(qa_dataset)
 logger.success(format_json(eval_results))
-logger.success(format_json(eval_results))
 
 def display_results(name, eval_results):
     """Display results from evaluate."""

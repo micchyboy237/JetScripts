@@ -153,7 +153,6 @@ async def main():
     )
     response = llm.complete("Tell me a joke")
     logger.success(format_json(response))
-    logger.success(format_json(response))
     
     logger.debug(response)
     

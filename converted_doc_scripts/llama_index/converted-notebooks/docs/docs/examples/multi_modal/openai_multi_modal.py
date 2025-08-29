@@ -97,7 +97,6 @@ logger.info("We can also stream the model response asynchronously")
 
 async_resp = openai_llm.stream_chat(messages=[msg])
 logger.success(format_json(async_resp))
-logger.success(format_json(async_resp))
 async for delta in async_resp:
     logger.debug(delta.delta, end="")
 

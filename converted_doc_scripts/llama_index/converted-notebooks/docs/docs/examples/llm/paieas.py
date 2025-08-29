@@ -99,12 +99,10 @@ logger.info("## Async")
 
 resp = llm.complete("Paul Graham is ")
 logger.success(format_json(resp))
-logger.success(format_json(resp))
 
 logger.debug(resp)
 
 resp = llm.stream_complete("Paul Graham is ")
-logger.success(format_json(resp))
 logger.success(format_json(resp))
 
 async for delta in resp:

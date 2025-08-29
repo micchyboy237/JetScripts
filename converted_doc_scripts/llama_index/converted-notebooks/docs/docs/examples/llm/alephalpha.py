@@ -81,7 +81,6 @@ logger.info("## Async")
 llm = AlephAlpha(model="luminous-base-control")
 resp = llm.complete("Paul Graham is ")
 logger.success(format_json(resp))
-logger.success(format_json(resp))
 
 logger.debug(resp)
 

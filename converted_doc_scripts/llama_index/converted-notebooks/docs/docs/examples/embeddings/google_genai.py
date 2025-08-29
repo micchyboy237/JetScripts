@@ -81,7 +81,6 @@ async def main():
     
     embeddings = await embed_model.aget_text_embedding("Google Gemini Embeddings.")
     logger.success(format_json(embeddings))
-    logger.success(format_json(embeddings))
     logger.debug(embeddings[:5])
     logger.debug(f"Dimension of embeddings: {len(embeddings)}")
     

@@ -206,7 +206,6 @@ async def main():
     
     docs = await reader.aload_data()
     logger.success(format_json(docs))
-    logger.success(format_json(docs))
     
     logger.debug(docs)
     

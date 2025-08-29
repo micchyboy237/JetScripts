@@ -122,12 +122,10 @@ async def main():
     
     response = await agent.run("What is the revenue of uber in 2021.")
     logger.success(format_json(response))
-    logger.success(format_json(response))
     
     logger.debug(str(response))
     
     response = await agent.run("What are lyft investments in 2021?")
-    logger.success(format_json(response))
     logger.success(format_json(response))
     
     logger.debug(str(response))
@@ -169,7 +167,6 @@ async def main():
     
     response = await agent.run("What is (26 * 2) + 2024?")
     logger.success(format_json(response))
-    logger.success(format_json(response))
     logger.debug(str(response))
     
     """
@@ -180,7 +177,6 @@ async def main():
     agent = ReActAgent(tools=[multiply_tool, add_tool, subtract_tool], llm=llm)
     
     response = await agent.run("What is (26 * 2) + 2024?")
-    logger.success(format_json(response))
     logger.success(format_json(response))
     logger.debug(str(response))
     

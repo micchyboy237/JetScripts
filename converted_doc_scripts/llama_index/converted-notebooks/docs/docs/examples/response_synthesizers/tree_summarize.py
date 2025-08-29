@@ -56,7 +56,6 @@ summarizer = TreeSummarize(verbose=True)
 
 response = summarizer.get_response("who is Paul Graham?", [text])
 logger.success(format_json(response))
-logger.success(format_json(response))
 
 logger.debug(response)
 

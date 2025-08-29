@@ -271,7 +271,6 @@ async def main():
     
     eval_dataset = await dataset_generator.agenerate_dataset_from_nodes(num=60)
     logger.success(format_json(eval_dataset))
-    logger.success(format_json(eval_dataset))
     
     eval_dataset.save_json("data/llama2_eval_qr_dataset.json")
     

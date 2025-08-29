@@ -226,6 +226,7 @@ async def main():
         logger.debug(f"Creating table: {tableinfo.table_name}")
         create_table_from_dataframe(df, tableinfo.table_name, engine, metadata_obj)
     
+    
     """
     ## Advanced Capability 1: Text-to-SQL with Query-Time Table Retrieval.
     
@@ -454,7 +455,6 @@ async def main():
     logger.debug(str(response))
     
     response = await workflow.run(query="What was the term of Pasquale Preziosa?")
-    logger.success(format_json(response))
     logger.success(format_json(response))
     logger.debug(str(response))
     

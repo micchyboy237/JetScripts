@@ -74,12 +74,10 @@ async def main():
         ]
         response = reka_llm.chat(messages)
         logger.success(format_json(response))
-        logger.success(format_json(response))
         logger.debug(response.message.content)
     
         prompt = "The largest planet in our solar system is"
         response = reka_llm.complete(prompt)
-        logger.success(format_json(response))
         logger.success(format_json(response))
         logger.debug(response.text)
     

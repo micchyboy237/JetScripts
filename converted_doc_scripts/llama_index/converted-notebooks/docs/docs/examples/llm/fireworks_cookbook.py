@@ -113,7 +113,6 @@ async def main():
     
     response = await agent.run("What is (121 * 3) + 42?")
     logger.success(format_json(response))
-    logger.success(format_json(response))
     logger.debug(str(response))
     
     logger.info("\n\n[DONE]", bright=True)

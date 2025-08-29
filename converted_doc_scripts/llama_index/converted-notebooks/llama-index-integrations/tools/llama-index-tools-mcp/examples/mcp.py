@@ -69,7 +69,6 @@ async def main():
     async def get_agent(tools: McpToolSpec):
         tools = await tools.to_tool_list_async()
         logger.success(format_json(tools))
-        logger.success(format_json(tools))
         agent = FunctionAgent(
             name="Agent",
             description="An agent that can fetch the ip info of the user.",
@@ -95,7 +94,6 @@ async def main():
     
         response = await handler
         logger.success(format_json(response))
-        logger.success(format_json(response))
         return str(response)
     
     
@@ -103,7 +101,6 @@ async def main():
     mcp_tool = McpToolSpec(client=mcp_client)
     
     agent = await get_agent(mcp_tool)
-    logger.success(format_json(agent))
     logger.success(format_json(agent))
     
     agent_context = Context(agent)
@@ -114,7 +111,6 @@ async def main():
             break
         logger.debug("User: ", user_input)
         response = await handle_user_message(user_input, agent, agent_context, verbose=True)
-        logger.success(format_json(response))
         logger.success(format_json(response))
         logger.debug("Agent: ", response)
     
@@ -127,7 +123,6 @@ async def main():
     
     tools = await mcp_tool.to_tool_list_async()
     logger.success(format_json(tools))
-    logger.success(format_json(tools))
     for tool in tools:
         logger.debug(tool.metadata.name, tool.metadata.description)
     
@@ -138,7 +133,6 @@ async def main():
     
     mcp_tool = McpToolSpec(client=mcp_client, allowed_tools=["some fake tool"])
     tools = await mcp_tool.to_tool_list_async()
-    logger.success(format_json(tools))
     logger.success(format_json(tools))
     for tool in tools:
         logger.debug(tool.metadata.name, tool.metadata.description)
@@ -154,7 +148,6 @@ async def main():
     
     
     tools = await aget_tools_from_mcp_url("http://127.0.0.1:8000/sse")
-    logger.success(format_json(tools))
     logger.success(format_json(tools))
     
     """
@@ -195,7 +188,6 @@ async def main():
             break
         logger.debug("User: ", user_input)
         response = await handle_user_message(user_input, agent, agent_context, verbose=True)
-        logger.success(format_json(response))
         logger.success(format_json(response))
         logger.debug("Agent: ", response)
     

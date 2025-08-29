@@ -95,7 +95,6 @@ async def main():
     
     nodes = await pipeline.arun(documents=documents, num_workers=4)
     logger.success(format_json(nodes))
-    logger.success(format_json(nodes))
     
     len(nodes)
     
@@ -136,7 +135,6 @@ async def main():
     logger.info("### Async on Main Processor")
     
     nodes = await pipeline.arun(documents=documents)
-    logger.success(format_json(nodes))
     logger.success(format_json(nodes))
     
     len(nodes)

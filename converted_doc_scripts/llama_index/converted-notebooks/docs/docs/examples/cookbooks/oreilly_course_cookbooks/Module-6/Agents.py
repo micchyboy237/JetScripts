@@ -92,7 +92,6 @@ async def main():
     
     response = await agent.run("What is (26 * 2) + 2024?")
     logger.success(format_json(response))
-    logger.success(format_json(response))
     
     display(HTML(f'<p style="font-size:20px">{response.response}</p>'))
     
@@ -107,7 +106,6 @@ async def main():
     )
     
     response = await agent.run("What is (26 * 2) + 2024?")
-    logger.success(format_json(response))
     logger.success(format_json(response))
     
     display(HTML(f'<p style="font-size:20px">{response}</p>'))
@@ -185,12 +183,10 @@ async def main():
     
     response = await agent.run("What are the investments of Uber in 2021?")
     logger.success(format_json(response))
-    logger.success(format_json(response))
     
     display(HTML(f'<p style="font-size:20px">{response}</p>'))
     
     response = await agent.run("What are lyft investments in 2021?")
-    logger.success(format_json(response))
     logger.success(format_json(response))
     
     display(HTML(f'<p style="font-size:20px">{response}</p>'))

@@ -228,7 +228,6 @@ async def main():
             response_synthesizer = get_response_synthesizer()
             query = await ctx.store.get("query", default=None)
             logger.success(format_json(query))
-            logger.success(format_json(query))
             final_response = await response_synthesizer.asynthesize(
                     query=query,
                     nodes=ev.nodes,

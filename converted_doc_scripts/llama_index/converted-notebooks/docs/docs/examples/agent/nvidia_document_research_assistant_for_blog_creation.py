@@ -302,7 +302,6 @@ async def main():
     
             response = Settings.llm.complete(prompt)
             logger.success(format_json(response))
-            logger.success(format_json(response))
     
             ctx.write_event_to_stream(
                 ProgressEvent(progress="Outline:\n" + str(response))
@@ -326,7 +325,6 @@ async def main():
             list of questions. For speed of response, limit yourself to 8 questions. The outline is: {outline}"""
     
             response = Settings.llm.complete(prompt)
-            logger.success(format_json(response))
             logger.success(format_json(response))
     
             questions = str(response).split("\n")
@@ -364,10 +362,10 @@ async def main():
                 return None
             agent = FunctionAgent(
                 tools=await ctx.store.get("tools"),
+                logger.success(format_json(tools))
                 llm=Settings.llm,
             )
             response = await agent.run(question)
-            logger.success(format_json(response))
             logger.success(format_json(response))
             response = str(response)
     
@@ -383,14 +381,12 @@ async def main():
         async def write_report(self, ctx: Context, ev: AnswerEvent) -> ReviewEvent:
             num_questions = await ctx.store.get("num_questions")
             logger.success(format_json(num_questions))
-            logger.success(format_json(num_questions))
             results = ctx.collect_events(ev, [AnswerEvent] * num_questions)
             if results is None:
                 return None
     
             try:
                 previous_questions = await ctx.store.get("previous_questions")
-                logger.success(format_json(previous_questions))
                 logger.success(format_json(previous_questions))
             except:
                 previous_questions = []
@@ -413,7 +409,6 @@ async def main():
     
             report = Settings.llm.complete(prompt)
             logger.success(format_json(report))
-            logger.success(format_json(report))
     
             return ReviewEvent(report=str(report))
     
@@ -423,7 +418,6 @@ async def main():
         ) -> StopEvent | QuestionEvent:
             try:
                 num_reviews = await ctx.store.get("num_reviews")
-                logger.success(format_json(num_reviews))
                 logger.success(format_json(num_reviews))
             except:
                 num_reviews = 1
@@ -443,7 +437,6 @@ async def main():
             If the blog post is fine, return just the string 'OKAY'."""
     
             response = Settings.llm.complete(prompt)
-            logger.success(format_json(response))
             logger.success(format_json(response))
     
             if response == "OKAY" or await ctx.store.get("num_reviews") >= 3:
@@ -476,7 +469,6 @@ async def main():
         if isinstance(ev, ProgressEvent):
             logger.debug(ev.progress)
     final_result = await handler
-    logger.success(format_json(final_result))
     logger.success(format_json(final_result))
     logger.debug("------- Blog post ----------\n", final_result)
     

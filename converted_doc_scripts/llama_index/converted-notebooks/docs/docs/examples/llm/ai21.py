@@ -96,10 +96,8 @@ async def main():
     
     chat_resp = AI21(api_key=api_key).chat(messages)
     logger.success(format_json(chat_resp))
-    logger.success(format_json(chat_resp))
     
     complete_resp = AI21(api_key=api_key).complete(prompt)
-    logger.success(format_json(complete_resp))
     logger.success(format_json(complete_resp))
     
     """

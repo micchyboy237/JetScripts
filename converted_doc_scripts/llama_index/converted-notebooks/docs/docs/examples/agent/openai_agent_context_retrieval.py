@@ -169,7 +169,6 @@ async def main():
     ) -> FunctionAgent:
         context_nodes = await context_retriever.aretrieve(query)
         logger.success(format_json(context_nodes))
-        logger.success(format_json(context_nodes))
         context_text = "\n----\n".join([n.node.text for n in context_nodes])
     
         return FunctionAgent(
@@ -186,7 +185,6 @@ async def main():
     
     response = await agent.run(query)
     logger.success(format_json(response))
-    logger.success(format_json(response))
     
     logger.debug(str(response))
     
@@ -197,7 +195,6 @@ async def main():
     logger.success(format_json(agent))
     
     response = await agent.run(query)
-    logger.success(format_json(response))
     logger.success(format_json(response))
     
     logger.debug(str(response))
@@ -219,7 +216,6 @@ async def main():
     logger.success(format_json(agent))
     response = await agent.run(query, ctx=ctx)
     logger.success(format_json(response))
-    logger.success(format_json(response))
     
     query = "What did I just ask?"
     agent = await get_agent_with_context_awareness(
@@ -227,7 +223,6 @@ async def main():
         )
     logger.success(format_json(agent))
     response = await agent.run(query, ctx=ctx)
-    logger.success(format_json(response))
     logger.success(format_json(response))
     logger.debug(str(response))
     
@@ -253,7 +248,6 @@ async def main():
         )
     logger.success(format_json(agent))
     response = await agent.run(query)
-    logger.success(format_json(response))
     logger.success(format_json(response))
     logger.debug(str(response))
     

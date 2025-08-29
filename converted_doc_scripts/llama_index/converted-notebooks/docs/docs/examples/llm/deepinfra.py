@@ -109,7 +109,6 @@ logger.info("## Asynchronous Complete")
 async def async_complete():
     response = llm.complete("Hello Async World!")
     logger.success(format_json(response))
-    logger.success(format_json(response))
     logger.debug(response.text)
 
 
@@ -125,7 +124,6 @@ logger.info("## Asynchronous Stream Complete")
 async def async_stream_complete():
     content = ""
     response = llm.stream_complete("Once upon an time")
-    logger.success(format_json(response))
     logger.success(format_json(response))
     async for completion in response:
         content += completion.delta
@@ -147,7 +145,6 @@ async def async_chat():
     ]
     chat_response = llm.chat(messages)
     logger.success(format_json(chat_response))
-    logger.success(format_json(chat_response))
     logger.debug(chat_response.message.content)
 
 
@@ -167,7 +164,6 @@ async def async_stream_chat():
     ]
     content = ""
     response = llm.stream_chat(messages)
-    logger.success(format_json(response))
     logger.success(format_json(response))
     async for chat_response in response:
         content += chat_response.message.delta

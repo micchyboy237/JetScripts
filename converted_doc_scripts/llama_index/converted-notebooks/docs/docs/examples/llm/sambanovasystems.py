@@ -146,7 +146,6 @@ logger.info("## Async")
 
 ai_msg = llm.chat(messages)
 logger.success(format_json(ai_msg))
-logger.success(format_json(ai_msg))
 ai_msg
 
 logger.debug(ai_msg.message.content)
@@ -157,7 +156,6 @@ logger.debug(ai_msg.message.content)
 logger.info("### Complete")
 
 ai_msg = llm.complete(user_msg.content)
-logger.success(format_json(ai_msg))
 logger.success(format_json(ai_msg))
 ai_msg
 
@@ -296,7 +294,6 @@ logger.info("## Async")
 
 ai_msg = llm.chat(messages)
 logger.success(format_json(ai_msg))
-logger.success(format_json(ai_msg))
 ai_msg
 
 logger.debug(ai_msg.message.content)
@@ -307,7 +304,6 @@ logger.debug(ai_msg.message.content)
 logger.info("### Complete")
 
 ai_msg = llm.complete(user_msg.content)
-logger.success(format_json(ai_msg))
 logger.success(format_json(ai_msg))
 ai_msg
 

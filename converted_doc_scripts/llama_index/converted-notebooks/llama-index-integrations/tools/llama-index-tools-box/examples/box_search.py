@@ -36,7 +36,6 @@ async def main():
     
     answer = await agent.run("search all invoices")
     logger.success(format_json(answer))
-    logger.success(format_json(answer))
     logger.debug(answer)
     
     """

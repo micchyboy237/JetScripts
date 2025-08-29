@@ -100,7 +100,6 @@ logger.info("#### Async")
 
 output = sllm.chat([input_msg])
 logger.success(format_json(output))
-logger.success(format_json(output))
 output_obj = output.raw
 logger.debug(str(output))
 
@@ -125,7 +124,6 @@ logger.info("#### Async Streaming")
 
 
 stream_output = sllm.stream_chat([input_msg])
-logger.success(format_json(stream_output))
 logger.success(format_json(stream_output))
 async for partial_output in stream_output:
     clear_output(wait=True)

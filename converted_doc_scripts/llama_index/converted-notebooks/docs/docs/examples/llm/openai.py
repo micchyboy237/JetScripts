@@ -393,12 +393,10 @@ llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, cont
 
 resp = llm.complete("Paul Graham is ")
 logger.success(format_json(resp))
-logger.success(format_json(resp))
 
 logger.debug(resp)
 
 resp = llm.stream_complete("Paul Graham is ")
-logger.success(format_json(resp))
 logger.success(format_json(resp))
 
 async for delta in resp:
@@ -411,7 +409,6 @@ logger.info("Async function calling is also supported.")
 
 llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 response = llm.predict_and_call([tool], "Generate a song")
-logger.success(format_json(response))
 logger.success(format_json(response))
 logger.debug(str(response))
 

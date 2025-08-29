@@ -104,7 +104,6 @@ llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, cont
 
 response = llm.chat(prompt.format_messages(data=user))
 logger.success(format_json(response))
-logger.success(format_json(response))
 
 logger.debug(response.message.content)
 
@@ -132,7 +131,6 @@ class ContactDetails(BaseModel):
 sllm = llm.as_structured_llm(ContactDetails)
 
 structured_response = sllm.chat(prompt.format_messages(data=user))
-logger.success(format_json(structured_response))
 logger.success(format_json(structured_response))
 
 logger.debug(structured_response.raw.email)

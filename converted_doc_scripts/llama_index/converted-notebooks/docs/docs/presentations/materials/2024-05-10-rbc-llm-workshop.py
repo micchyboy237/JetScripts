@@ -114,7 +114,6 @@ async def main():
         coros.append(coro)
     classifications = await asyncio.gather(*coros)
     logger.success(format_json(classifications))
-    logger.success(format_json(classifications))
     
     [c.text for c in classifications]
     

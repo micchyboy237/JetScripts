@@ -62,13 +62,11 @@ async def main():
             llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
             response = llm.complete(ev.query)
             logger.success(format_json(response))
-            logger.success(format_json(response))
             return StopEvent(result=str(response))
     
     
     w = OllamaFunctionCallingAdapterGenerator(timeout=10, verbose=False)
     result = await w.run(query="What's LlamaIndex?")
-    logger.success(format_json(result))
     logger.success(format_json(result))
     logger.debug(result)
     
@@ -145,7 +143,6 @@ async def main():
     l = LoopExampleFlow(timeout=10, verbose=True)
     result = await l.run(query="What's LlamaIndex?")
     logger.success(format_json(result))
-    logger.success(format_json(result))
     logger.debug(result)
     
     """
@@ -166,14 +163,12 @@ async def main():
         async def query(self, ctx: Context, ev: QueryEvent) -> StopEvent:
             data = await ctx.store.get("some_database")
             logger.success(format_json(data))
-            logger.success(format_json(data))
     
             result = f"The answer to your query is {data[1]}"
             return StopEvent(result=result)
     
     g = GlobalExampleFlow(timeout=10, verbose=True)
     result = await g.run(query="What's LlamaIndex?")
-    logger.success(format_json(result))
     logger.success(format_json(result))
     logger.debug(result)
     
@@ -196,7 +191,6 @@ async def main():
                 if hasattr(self, "data"):
                     data = await ctx.store.get("data")
                     logger.success(format_json(data))
-                    logger.success(format_json(data))
                     return StopEvent(result=f"Got the data {data}")
                 else:
                     return None
@@ -206,16 +200,13 @@ async def main():
     w = WaitExampleFlow(verbose=True)
     result = await w.run(query="Can I kick it?")
     logger.success(format_json(result))
-    logger.success(format_json(result))
     if result is None:
         logger.debug("No you can't")
     logger.debug("---")
     result = await w.run(data="Yes you can")
     logger.success(format_json(result))
-    logger.success(format_json(result))
     logger.debug("---")
     result = await w.run(query="Can I kick it?")
-    logger.success(format_json(result))
     logger.success(format_json(result))
     logger.debug(result)
     
@@ -284,7 +275,6 @@ async def main():
     
     c = CollectExampleFlow()
     result = await c.run(input="Here's some input", query="Here's my question")
-    logger.success(format_json(result))
     logger.success(format_json(result))
     logger.debug(result)
     

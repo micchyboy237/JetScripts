@@ -90,7 +90,6 @@ logger.info("## Async")
 llm = LiteLLM("gpt-3.5-turbo")
 resp = llm.complete("Paul Graham is ")
 logger.success(format_json(resp))
-logger.success(format_json(resp))
 
 logger.debug(resp)
 

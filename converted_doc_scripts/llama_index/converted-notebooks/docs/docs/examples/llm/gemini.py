@@ -132,11 +132,9 @@ llm = Gemini()
 
 resp = llm.complete("Llamas are famous for ")
 logger.success(format_json(resp))
-logger.success(format_json(resp))
 logger.debug(resp)
 
 resp = llm.stream_complete("Llamas are famous for ")
-logger.success(format_json(resp))
 logger.success(format_json(resp))
 async for chunk in resp:
     logger.debug(chunk.text, end="")

@@ -157,7 +157,6 @@ async def main():
                 user_msg += f"<research_notes>{notes}</research_notes>\n\n"
             
                 result = await write_agent.run(user_msg=user_msg)
-                logger.success(format_json(result))
                 report = re.search(
                     r"<report>(.*)</report>", str(result), re.DOTALL
                 ).group(1)
@@ -283,7 +282,6 @@ async def main():
     
             state = await ctx.store.get("state")
             logger.success(format_json(state))
-            logger.success(format_json(state))
             available_agents_str = "\n".join(
                 [
                     f'<agent name="{agent.name}">{agent.description}</agent>'
@@ -361,7 +359,6 @@ async def main():
     
             state = await ctx.store.get("state")
             logger.success(format_json(state))
-            logger.success(format_json(state))
             chat_history.append(
                 ChatMessage(
                     role="user",
@@ -408,7 +405,6 @@ async def main():
     
     result = await handler
     logger.success(format_json(result))
-    logger.success(format_json(result))
     
     logger.debug(result.response)
     
@@ -418,7 +414,6 @@ async def main():
     logger.info("Now, we can retrieve the final report in the system for ourselves.")
     
     state = await handler.ctx.store.get("state")
-    logger.success(format_json(state))
     logger.success(format_json(state))
     logger.debug(state["report_content"])
     

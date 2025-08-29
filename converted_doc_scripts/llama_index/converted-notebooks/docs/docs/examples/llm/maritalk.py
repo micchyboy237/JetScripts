@@ -65,7 +65,6 @@ logger.debug(response)
 async def get_dog_name(llm, messages):
     response = llm.chat(messages)
     logger.success(format_json(response))
-    logger.success(format_json(response))
     logger.debug(response)
 
 
@@ -114,7 +113,6 @@ logger.debug(response)
 
 async def classify_review(llm, prompt):
     response = llm.complete(prompt)
-    logger.success(format_json(response))
     logger.success(format_json(response))
     logger.debug(response)
 

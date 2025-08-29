@@ -137,7 +137,6 @@ async def main():
     
     response = await handler
     logger.success(format_json(response))
-    logger.success(format_json(response))
     
     logger.info("\n\n[DONE]", bright=True)
 

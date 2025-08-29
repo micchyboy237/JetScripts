@@ -225,7 +225,6 @@ async def main():
     
     response = await agent.run(query_planned_query)
     logger.success(format_json(response))
-    logger.success(format_json(response))
     response
     
     logger.info("\n\n[DONE]", bright=True)

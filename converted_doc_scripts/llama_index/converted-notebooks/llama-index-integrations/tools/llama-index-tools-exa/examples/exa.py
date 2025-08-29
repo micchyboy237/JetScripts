@@ -171,7 +171,6 @@ async def main():
     
     response = await agent.run("Tell me more about the recent news on semiconductors")
     logger.success(format_json(response))
-    logger.success(format_json(response))
     logger.debug(f"Response: {str(response)}")
     
     """

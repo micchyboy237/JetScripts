@@ -136,7 +136,6 @@ async def main():
     
     response = await agent.run("Hi, My name is Mayank.", memory=memory_from_client)
     logger.success(format_json(response))
-    logger.success(format_json(response))
     logger.debug(str(response))
     
     response = await agent.run(
@@ -166,7 +165,6 @@ async def main():
     )
     
     response = await agent.run("Hi, My name is Mayank.", memory=memory_from_client)
-    logger.success(format_json(response))
     logger.success(format_json(response))
     logger.debug(str(response))
     

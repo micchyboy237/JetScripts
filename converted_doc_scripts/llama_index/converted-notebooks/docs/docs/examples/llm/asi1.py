@@ -322,12 +322,10 @@ llm = ASI(model="asi1-mini")
 
 resp = llm.complete("who is Paul Graham")
 logger.success(format_json(resp))
-logger.success(format_json(resp))
 
 logger.debug(resp)
 
 resp = llm.stream_complete("Paul Graham is ")
-logger.success(format_json(resp))
 logger.success(format_json(resp))
 
 # import nest_asyncio
@@ -343,17 +341,14 @@ async for delta in resp:
 async def test_async():
     resp = llm.complete("Paul Graham is ")
     logger.success(format_json(resp))
-    logger.success(format_json(resp))
     logger.debug(f"Async completion: {resp}")
 
     resp = llm.chat(messages)
-    logger.success(format_json(resp))
     logger.success(format_json(resp))
     logger.debug(f"Async chat: {resp}")
 
     logger.debug("Async streaming completion: ", end="")
     resp = llm.stream_complete("Paul Graham is ")
-    logger.success(format_json(resp))
     logger.success(format_json(resp))
     async for delta in resp:
         logger.debug(delta.delta, end="")
@@ -361,7 +356,6 @@ async def test_async():
 
     logger.debug("Async streaming chat: ", end="")
     resp = llm.stream_chat(messages)
-    logger.success(format_json(resp))
     logger.success(format_json(resp))
     async for delta in resp:
         logger.debug(delta.delta, end="")

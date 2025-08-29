@@ -178,7 +178,6 @@ async def main():
     
     response = await agent.run("What was Lyft's revenue growth in 2021?")
     logger.success(format_json(response))
-    logger.success(format_json(response))
     logger.debug(str(response))
     
     logger.info("\n\n[DONE]", bright=True)

@@ -161,7 +161,6 @@ async def main():
     query_engine = index.as_query_engine(use_async=True, llm=llm)
     response = query_engine.query("What did the author learn?")
     logger.success(format_json(response))
-    logger.success(format_json(response))
     
     logger.debug(response)
     
@@ -219,7 +218,6 @@ async def main():
             tasks.append(task)
         results = await asyncio.gather(*tasks)
         logger.success(format_json(results))
-        logger.success(format_json(results))
         end_time = time.time()
         return end_time - start_time
     
@@ -241,7 +239,6 @@ async def main():
     
         async def measure_async_add():
             async_time = await async_add(count)
-            logger.success(format_json(async_time))
             logger.success(format_json(async_time))
             logger.debug(f"Async add for {count} took {async_time:.2f} seconds")
             return async_time
@@ -297,7 +294,6 @@ async def main():
             tasks.append(task)
         results = await asyncio.gather(*tasks)
         logger.success(format_json(results))
-        logger.success(format_json(results))
         end_time = time.time()
         return end_time - start_time
     
@@ -312,7 +308,6 @@ async def main():
     
         async def measure_async_search():
             async_time = await async_search(count)
-            logger.success(format_json(async_time))
             logger.success(format_json(async_time))
             logger.debug(
                 f"Async search for {count} queries took {async_time:.2f} seconds"

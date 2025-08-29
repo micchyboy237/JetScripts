@@ -484,7 +484,6 @@ async def main():
             )
             results = await ctx.store.get("results")
             logger.success(format_json(results))
-            logger.success(format_json(results))
             results.append(f"Wrote {ev.urls} it LlamaIndex Docs")
             return ActionCompleted(result=f"Writing {ev.urls} to LlamaIndex Docs")
     
@@ -498,7 +497,6 @@ async def main():
             )
             results = await ctx.store.get("results")
             logger.success(format_json(results))
-            logger.success(format_json(results))
             results.append(f"Wrote {ev.urls} it Weavite Docs")
             return ActionCompleted(result=f"Writing {ev.urls} to Weaviate Docs")
     
@@ -510,7 +508,6 @@ async def main():
             response = weaviate_agent.run(ev.query)
             results = await ctx.store.get("results")
             logger.success(format_json(results))
-            logger.success(format_json(results))
             results.append(f"QueryAgent responded with:\n {response.final_answer}")
             return ActionCompleted(result=f"Sending `'{ev.query}`' to agent")
     
@@ -519,7 +516,6 @@ async def main():
             self, ctx: Context, ev: ActionCompleted
         ) -> StopEvent | None:
             num_events = await ctx.store.get("num_events")
-            logger.success(format_json(num_events))
             logger.success(format_json(num_events))
             evs = ctx.collect_events(ev, [ActionCompleted] * num_events)
             if evs is None:
@@ -532,7 +528,6 @@ async def main():
     async def run_docs_agent(query: str):
         handler = everything_docs_agent.run(start_event=StartEvent(query=query))
         result = await handler
-        logger.success(format_json(result))
         logger.success(format_json(result))
         for response in await handler.ctx.store.get("results"):
             logger.debug(response)

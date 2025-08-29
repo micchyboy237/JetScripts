@@ -295,7 +295,6 @@ async def main():
     
         response = query_engine.query(query)
         logger.success(format_json(response))
-        logger.success(format_json(response))
         return str(response)
     
     
@@ -346,7 +345,6 @@ async def main():
     
     response = await handler
     logger.success(format_json(response))
-    logger.success(format_json(response))
     
     handler = agent.run("Tell me about two celebrities born after 1980. ", ctx=ctx)
     
@@ -359,7 +357,6 @@ async def main():
             logger.debug(ev.delta, end="", flush=True)
     
     response = await handler
-    logger.success(format_json(response))
     logger.success(format_json(response))
     
     response = await agent.run(
@@ -544,7 +541,6 @@ async def main():
     
     response = await handler
     logger.success(format_json(response))
-    logger.success(format_json(response))
     
     handler = agent.run("Tell me about the history of Berlin", ctx=ctx)
     
@@ -557,7 +553,6 @@ async def main():
             logger.debug(ev.delta, end="", flush=True)
     
     response = await handler
-    logger.success(format_json(response))
     logger.success(format_json(response))
     
     response = await agent.run(

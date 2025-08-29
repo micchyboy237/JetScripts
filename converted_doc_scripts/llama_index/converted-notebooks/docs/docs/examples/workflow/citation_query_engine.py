@@ -258,7 +258,6 @@ async def main():
             llm = OllamaFunctionCallingAdapter(model="llama3.2")
             query = await ctx.store.get("query", default=None)
             logger.success(format_json(query))
-            logger.success(format_json(query))
     
             synthesizer = get_response_synthesizer(
                 llm=llm,
@@ -269,7 +268,6 @@ async def main():
             )
     
             response = await synthesizer.asynthesize(query, nodes=ev.nodes)
-            logger.success(format_json(response))
             logger.success(format_json(response))
             return StopEvent(result=response)
     
@@ -298,7 +296,6 @@ async def main():
     w = CitationQueryEngineWorkflow()
     
     result = await w.run(query="What information do you have", index=index)
-    logger.success(format_json(result))
     logger.success(format_json(result))
     
     

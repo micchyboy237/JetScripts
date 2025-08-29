@@ -225,9 +225,7 @@ async def main():
             """Synthesize the response."""
             llm = await ctx.store.get("llm", default=None)
             logger.success(format_json(llm))
-            logger.success(format_json(llm))
             query = await ctx.store.get("query", default=None)
-            logger.success(format_json(query))
             logger.success(format_json(query))
     
             response_str = llm.predict(

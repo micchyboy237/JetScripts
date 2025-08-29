@@ -229,7 +229,6 @@ async def main():
     )
     nodes = await pipeline.arun(nodes=nodes, in_place=False)
     logger.success(format_json(nodes))
-    logger.success(format_json(nodes))
     
     logger.debug(nodes[0].metadata)
     

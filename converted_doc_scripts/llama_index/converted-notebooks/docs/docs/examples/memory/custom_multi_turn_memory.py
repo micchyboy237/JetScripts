@@ -147,7 +147,6 @@ async def main():
     
     chat_history = await memory.aget()
     logger.success(format_json(chat_history))
-    logger.success(format_json(chat_history))
     
     for message in chat_history:
         logger.debug(message.role)
@@ -209,11 +208,9 @@ async def main():
     
     resp = await agent.run("What is (3214 * 322) / 2?", memory=memory)
     logger.success(format_json(resp))
-    logger.success(format_json(resp))
     logger.debug(resp)
     
     current_chat_history = await memory.aget()
-    logger.success(format_json(current_chat_history))
     logger.success(format_json(current_chat_history))
     for message in current_chat_history:
         logger.debug(message.role)

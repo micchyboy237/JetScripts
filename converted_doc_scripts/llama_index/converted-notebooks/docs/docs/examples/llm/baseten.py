@@ -124,7 +124,6 @@ async_llm = Baseten(
 )
 response = async_llm.complete("Paul Graham is")
 logger.success(format_json(response))
-logger.success(format_json(response))
 logger.debug(response)  # This is the request id
 
 """

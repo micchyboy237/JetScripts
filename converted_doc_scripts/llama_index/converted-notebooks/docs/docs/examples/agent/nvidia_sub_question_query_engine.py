@@ -160,10 +160,11 @@ async def main():
     
             agent = ReActAgent(
                 tools=await ctx.store.get("tools"),
+                logger.success(format_json(tools))
                 llm=await ctx.store.get("llm"),
+                logger.success(format_json(llm))
             )
             response = await agent.run(ev.question)
-            logger.success(format_json(response))
             logger.success(format_json(response))
     
             return AnswerEvent(question=ev.question, answer=str(response))

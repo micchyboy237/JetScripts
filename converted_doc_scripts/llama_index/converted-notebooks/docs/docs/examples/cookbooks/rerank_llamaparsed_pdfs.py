@@ -237,7 +237,6 @@ async def main():
     
         results = await tqdm.gather(*tasks, desc="Uploading Documents")
         logger.success(format_json(results))
-        logger.success(format_json(results))
     
         successful = sum(1 for result in results if result is not None)
         logger.debug(f"Successfully uploaded {successful}/{len(docs)} documents")

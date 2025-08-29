@@ -198,9 +198,7 @@ async def main():
             "Retrieve the relevant nodes for the original and step-back queries."
             query = await ctx.store.get("query", default=None)
             logger.success(format_json(query))
-            logger.success(format_json(query))
             index = await ctx.store.get("index", default=None)
-            logger.success(format_json(index))
             logger.success(format_json(index))
     
             await ctx.store.set("step_back_query", ev.step_back_query)
@@ -208,9 +206,7 @@ async def main():
             retriever = index.as_retriever(similarity_top_k=2)
             nodes_step_back = await retriever.aretrieve(ev.step_back_query)
             logger.success(format_json(nodes_step_back))
-            logger.success(format_json(nodes_step_back))
             nodes_original = await retriever.aretrieve(query)
-            logger.success(format_json(nodes_original))
             logger.success(format_json(nodes_original))
     
             return RetrieverEvent(
@@ -231,7 +227,6 @@ async def main():
             ).get_text()
     
             query = await ctx.store.get("query", default=None)
-            logger.success(format_json(query))
             logger.success(format_json(query))
             formatted_query = GENERATE_ANSWER_TEMPLATE.format(
                 context_original=context_original,
@@ -287,7 +282,6 @@ async def main():
     w = RAGWorkflow()
     
     result = await w.run(query="What's Paul's work", index=index)
-    logger.success(format_json(result))
     logger.success(format_json(result))
     result
     

@@ -100,7 +100,6 @@ logger.info("## Async Chat")
 
 response = llm.chat(messages)
 logger.success(format_json(response))
-logger.success(format_json(response))
 
 logger.debug(response)
 
@@ -124,7 +123,6 @@ Similarly, for asynchronous streaming, the `astream_chat` method provides a way 
 logger.info("## Async Stream Chat")
 
 resp = llm.stream_chat(messages)
-logger.success(format_json(resp))
 logger.success(format_json(resp))
 
 async for delta in resp:

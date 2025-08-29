@@ -133,7 +133,6 @@ async def main():
     
             memory = await ctx.store.get("memory", default=None)
             logger.success(format_json(memory))
-            logger.success(format_json(memory))
             if not memory:
                 memory = ChatMemoryBuffer.from_defaults(llm=self.llm)
     
@@ -162,7 +161,6 @@ async def main():
     
             memory = await ctx.store.get("memory")
             logger.success(format_json(memory))
-            logger.success(format_json(memory))
             memory.put(response.message)
             await ctx.store.set("memory", memory)
     
@@ -172,7 +170,6 @@ async def main():
     
             if not tool_calls:
                 sources = await ctx.store.get("sources", default=[])
-                logger.success(format_json(sources))
                 logger.success(format_json(sources))
                 return StopEvent(
                     result={"response": response, "sources": [*sources]}
@@ -189,7 +186,6 @@ async def main():
     
             tool_msgs = []
             sources = await ctx.store.get("sources", default=[])
-            logger.success(format_json(sources))
             logger.success(format_json(sources))
     
             for tool_call in tool_calls:
@@ -228,7 +224,6 @@ async def main():
                     )
     
             memory = await ctx.store.get("memory")
-            logger.success(format_json(memory))
             logger.success(format_json(memory))
             for msg in tool_msgs:
                 memory.put(msg)
@@ -280,12 +275,10 @@ async def main():
     
     ret = await agent.run(input="Hello!")
     logger.success(format_json(ret))
-    logger.success(format_json(ret))
     
     logger.debug(ret["response"])
     
     ret = await agent.run(input="What is (2123 + 2321) * 312?")
-    logger.success(format_json(ret))
     logger.success(format_json(ret))
     
     """
@@ -300,11 +293,9 @@ async def main():
     
     ret = await agent.run(input="Hello! My name is Logan.", ctx=ctx)
     logger.success(format_json(ret))
-    logger.success(format_json(ret))
     logger.debug(ret["response"])
     
     ret = await agent.run(input="What is my name?", ctx=ctx)
-    logger.success(format_json(ret))
     logger.success(format_json(ret))
     logger.debug(ret["response"])
     
@@ -326,7 +317,6 @@ async def main():
             logger.debug(event.delta, end="", flush=True)
     
     response = await handler
-    logger.success(format_json(response))
     logger.success(format_json(response))
     
     logger.info("\n\n[DONE]", bright=True)

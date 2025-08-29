@@ -183,7 +183,6 @@ async def main():
             )
             eval_results = retriever_evaluator.evaluate_dataset(dataset=qa_dataset)
             logger.success(format_json(eval_results))
-            logger.success(format_json(eval_results))
     
             hit_rate, mrr = calculate_metrics(eval_results)
     
@@ -193,7 +192,6 @@ async def main():
     
     
     results = await alpha_mine(qa_dataset=qa_dataset, vector_store_index=vector_index)
-    logger.success(format_json(results))
     logger.success(format_json(results))
     results
     
@@ -219,7 +217,6 @@ async def main():
     
             eval_results = retriever_evaluator.evaluate_dataset(dataset=qa_dataset)
             logger.success(format_json(eval_results))
-            logger.success(format_json(eval_results))
     
             hit_rate, mrr = calculate_metrics(eval_results)
     
@@ -231,7 +228,6 @@ async def main():
     retrievers = {"vanilla": vanilla_retriever, "koda": koda_retriever}
     
     results = await compare_retrievers(retrievers=retrievers, qa_dataset=qa_dataset)
-    logger.success(format_json(results))
     logger.success(format_json(results))
     results
     

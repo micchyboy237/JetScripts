@@ -169,7 +169,6 @@ async def main():
             else:
                 query = await ctx.store.get("original_query")
                 logger.success(format_json(query))
-                logger.success(format_json(query))
                 current_results_str = ev.result
     
                 decision = self.llm.predict(
@@ -181,7 +180,6 @@ async def main():
     
                 if "PLAN" in decision:
                     context_str = await ctx.store.get("context")
-                    logger.success(format_json(context_str))
                     logger.success(format_json(context_str))
                     query_plan = await self.llm.astructured_predict(
                             QueryPlan,
@@ -208,7 +206,6 @@ async def main():
         ) -> QueryPlanItemResult:
             tools = await ctx.store.get("tools")
             logger.success(format_json(tools))
-            logger.success(format_json(tools))
             tool = tools[ev.name]
     
             ctx.write_event_to_stream(
@@ -218,7 +215,6 @@ async def main():
             )
     
             result = await tool.acall(ev.query)
-            logger.success(format_json(result))
             logger.success(format_json(result))
     
             ctx.write_event_to_stream(
@@ -232,7 +228,6 @@ async def main():
             self, ctx: Context, ev: QueryPlanItemResult
         ) -> ExecutedPlanEvent:
             num_items = await ctx.store.get("num_items")
-            logger.success(format_json(num_items))
             logger.success(format_json(num_items))
             results = ctx.collect_events(ev, [QueryPlanItemResult] * num_items)
     
@@ -274,7 +269,6 @@ async def main():
         else:
             documents = await parser.aload_data(folder + file)
             logger.success(format_json(documents))
-            logger.success(format_json(documents))
             index = VectorStoreIndex.from_documents(documents)
             index.storage_context.persist(index_persist_path)
     
@@ -309,7 +303,6 @@ async def main():
     
     result = await handler
     logger.success(format_json(result))
-    logger.success(format_json(result))
     
     logger.debug(str(result))
     
@@ -323,7 +316,6 @@ async def main():
             logger.debug(event.msg)
     
     result = await handler
-    logger.success(format_json(result))
     logger.success(format_json(result))
     
     logger.debug(str(result))

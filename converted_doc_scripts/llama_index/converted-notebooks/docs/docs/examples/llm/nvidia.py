@@ -256,7 +256,6 @@ async def main():
     
     streamed_response = stream_llm.stream_chat(messages)
     logger.success(format_json(streamed_response))
-    logger.success(format_json(streamed_response))
     
     streamed_response
     
@@ -372,7 +371,6 @@ async def main():
     )
     
     response = await agent.run("What is (121 * 3) + 42?")
-    logger.success(format_json(response))
     logger.success(format_json(response))
     logger.debug(str(response))
     

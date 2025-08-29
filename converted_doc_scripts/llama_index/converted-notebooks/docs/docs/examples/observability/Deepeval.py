@@ -77,7 +77,6 @@ async def main():
     async def main():
         response = await agent.run("What's 7 * 8?")
         logger.success(format_json(response))
-        logger.success(format_json(response))
         logger.debug(response)
     
     
@@ -121,7 +120,6 @@ async def main():
     
     async def main():
         response = await agent.run("What's 7 * 8?")
-        logger.success(format_json(response))
         logger.success(format_json(response))
         logger.debug(response)
     

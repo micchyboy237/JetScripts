@@ -98,7 +98,6 @@ async def main():
     
     current_chat_history = await memory.aget()
     logger.success(format_json(current_chat_history))
-    logger.success(format_json(current_chat_history))
     for msg in current_chat_history:
         logger.debug(msg)
     
@@ -108,7 +107,6 @@ async def main():
     logger.info("If we retrieva all messages, we will find all 400 messages.")
     
     all_messages = await memory.aget_all()
-    logger.success(format_json(all_messages))
     logger.success(format_json(all_messages))
     logger.debug(len(all_messages))
     
@@ -120,7 +118,6 @@ async def main():
     await memory.areset()
     
     all_messages = await memory.aget_all()
-    logger.success(format_json(all_messages))
     logger.success(format_json(all_messages))
     logger.debug(len(all_messages))
     
@@ -207,7 +204,6 @@ async def main():
     for user_msg in user_msgs:
         _ = await agent.run(user_msg=user_msg, memory=memory)
         logger.success(format_json(_))
-        logger.success(format_json(_))
     
     """
     Now, let's inspect the most recent user-message and see what the memory inserts into the user message.
@@ -217,7 +213,6 @@ async def main():
     logger.info("Now, let's inspect the most recent user-message and see what the memory inserts into the user message.")
     
     chat_history = await memory.aget()
-    logger.success(format_json(chat_history))
     logger.success(format_json(chat_history))
     
     logger.debug(len(chat_history))
@@ -244,9 +239,7 @@ async def main():
     
     new_chat_history = await memory.aget()
     logger.success(format_json(new_chat_history))
-    logger.success(format_json(new_chat_history))
     resp = llm.chat(new_chat_history)
-    logger.success(format_json(resp))
     logger.success(format_json(resp))
     await memory.aput(resp.message)
     logger.debug(resp.message.content)

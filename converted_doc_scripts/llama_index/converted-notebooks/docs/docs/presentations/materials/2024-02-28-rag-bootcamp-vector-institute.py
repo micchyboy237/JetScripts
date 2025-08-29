@@ -134,6 +134,7 @@ retrieve the most relevant document chunks.
 retriever = index.as_retriever(similarity_top_k=2)
 retrieved_nodes = retriever.retrieve("What is DoRA?")
 
+
 """
 ## 3. Generate Final Response
 

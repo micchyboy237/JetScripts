@@ -164,7 +164,6 @@ async def main():
         ) -> NewBlockEvent | StopEvent:
             blocks = await ctx.store.get("blocks", [])
             logger.success(format_json(blocks))
-            logger.success(format_json(blocks))
             running_story = "\n".join(str(b) for b in blocks)
     
             if len(blocks) < self.max_steps:
@@ -201,7 +200,6 @@ async def main():
     
             blocks = await ctx.store.get("blocks")
             logger.success(format_json(blocks))
-            logger.success(format_json(blocks))
             block.choice = human_input
             blocks[-1] = block
             await ctx.store.set("block", blocks)
@@ -230,7 +228,6 @@ async def main():
     w = ChooseYourOwnAdventureWorkflow(timeout=None)
     
     result = await w.run()
-    logger.success(format_json(result))
     logger.success(format_json(result))
     
     """

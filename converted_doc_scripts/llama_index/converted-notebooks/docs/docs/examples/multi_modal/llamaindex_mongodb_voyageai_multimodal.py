@@ -176,6 +176,7 @@ index = MultiModalVectorStoreIndex.from_documents(
 
 logger.debug("Finished storing images.")
 
+
 """
 # **Test the Retrieval**
 Here we create a retriever and test it out. Note that we are storing only images in our database, and we will query these images with plain text!

@@ -48,7 +48,6 @@ async def main():
     
     tools = await aget_tools_from_mcp_url("http://127.0.0.1:8000/mcp")
     logger.success(format_json(tools))
-    logger.success(format_json(tools))
     
     """
     By default, this will use our `BasicMCPClient`, which will run a command or connect to the URL and return the tools.
@@ -143,26 +142,20 @@ async def main():
     
     tools = await http_client.list_tools()
     logger.success(format_json(tools))
-    logger.success(format_json(tools))
     
     result = await http_client.call_tool("calculate", {"x": 5, "y": 10})
-    logger.success(format_json(result))
     logger.success(format_json(result))
     
     resources = await http_client.list_resources()
     logger.success(format_json(resources))
-    logger.success(format_json(resources))
     
     content, mime_type = await http_client.read_resource("config://app")
-    logger.success(format_json(content, mime_type))
     logger.success(format_json(content, mime_type))
     
     prompts = await http_client.list_prompts()
     logger.success(format_json(prompts))
-    logger.success(format_json(prompts))
     
     prompt_result = await http_client.get_prompt("greet", {"name": "World"})
-    logger.success(format_json(prompt_result))
     logger.success(format_json(prompt_result))
     
     """
@@ -184,7 +177,6 @@ async def main():
     )
     
     tools = await client.list_tools()
-    logger.success(format_json(tools))
     logger.success(format_json(tools))
     
     """

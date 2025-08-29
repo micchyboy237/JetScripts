@@ -119,7 +119,6 @@ llm = GoogleGenAI(model="gemini-2.0-flash")
 
 resp = llm.stream_complete("Who is Paul Graham?")
 logger.success(format_json(resp))
-logger.success(format_json(resp))
 async for r in resp:
     logger.debug(r.delta, end="")
 
@@ -128,7 +127,6 @@ messages = [
 ]
 
 resp = llm.chat(messages)
-logger.success(format_json(resp))
 logger.success(format_json(resp))
 logger.debug(resp)
 

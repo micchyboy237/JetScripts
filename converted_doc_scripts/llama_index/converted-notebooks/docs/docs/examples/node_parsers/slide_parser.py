@@ -145,7 +145,6 @@ async def main():
     start_time = time.time()
     nodes = await parser.aget_nodes_from_documents([document], show_progress=True)
     logger.success(format_json(nodes))
-    logger.success(format_json(nodes))
     end_time = time.time()
     logger.debug(f"Time taken to parse: {end_time - start_time} seconds")
     

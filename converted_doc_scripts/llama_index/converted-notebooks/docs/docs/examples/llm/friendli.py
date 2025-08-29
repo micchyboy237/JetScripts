@@ -61,7 +61,6 @@ logger.info("#### Async")
 
 resp = llm.chat([message])
 logger.success(format_json(resp))
-logger.success(format_json(resp))
 
 logger.debug(resp)
 
@@ -71,7 +70,6 @@ logger.debug(resp)
 logger.info("#### Async Streaming")
 
 resp = llm.stream_chat([message])
-logger.success(format_json(resp))
 logger.success(format_json(resp))
 async for r in resp:
     logger.debug(r.delta, end="")
@@ -102,7 +100,6 @@ logger.info("#### Async")
 
 resp = llm.complete(prompt)
 logger.success(format_json(resp))
-logger.success(format_json(resp))
 
 logger.debug(resp)
 
@@ -112,7 +109,6 @@ logger.debug(resp)
 logger.info("#### Async Streaming")
 
 resp = llm.stream_complete(prompt)
-logger.success(format_json(resp))
 logger.success(format_json(resp))
 async for r in resp:
     logger.debug(r.delta, end="")

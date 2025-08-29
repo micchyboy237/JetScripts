@@ -101,6 +101,7 @@ logger.info("### Setup OllamaFunctionCallingAdapter")
 
 # %env OPENAI_API_KEY=sk-...
 
+
 """
 ## Multi-tenant similarity search
 

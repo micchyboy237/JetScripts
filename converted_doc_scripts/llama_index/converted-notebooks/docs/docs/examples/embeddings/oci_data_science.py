@@ -83,7 +83,6 @@ async def main():
     
     e1 = await embeddings.aget_text_embedding("This is a test document")
     logger.success(format_json(e1))
-    logger.success(format_json(e1))
     logger.debug(e1)
     
     e2 = await embeddings.aget_text_embedding_batch(

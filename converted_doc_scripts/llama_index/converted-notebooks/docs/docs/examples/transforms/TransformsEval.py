@@ -114,7 +114,6 @@ async def main():
     
     eval_dataset = await dataset_generator.agenerate_dataset_from_nodes(num=100)
     logger.success(format_json(eval_dataset))
-    logger.success(format_json(eval_dataset))
     
     len(eval_dataset.qr_pairs)
     

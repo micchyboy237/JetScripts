@@ -38,6 +38,7 @@ logger.info("# A Simple to Advanced Guide with Auto-Retrieval (with Pinecone + A
 
 # %pip install llama-index-vector-stores-pinecone
 
+
 """
 ## Part 1: Setup Auto-Retrieval
 

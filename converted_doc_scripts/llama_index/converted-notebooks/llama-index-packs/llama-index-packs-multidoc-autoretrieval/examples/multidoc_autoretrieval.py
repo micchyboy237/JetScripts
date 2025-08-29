@@ -118,13 +118,11 @@ async def main():
     
         new_docs = await run_jobs(tasks, show_progress=True, workers=5)
         logger.success(format_json(new_docs))
-        logger.success(format_json(new_docs))
     
     
         return new_docs
     
     new_docs = await aprocess_docs(docs)
-    logger.success(format_json(new_docs))
     logger.success(format_json(new_docs))
     
     new_docs[5].metadata

@@ -257,7 +257,6 @@ async def main():
             reader = AsyncWebPageReader(html_to_text=True)
             documents = await reader.aload_data(urls=ev.get("urls"))
             logger.success(format_json(documents))
-            logger.success(format_json(documents))
             return CompletedDocumentRetrievalEvent(
                 name=ev.get("name"), documents=documents
             )

@@ -210,9 +210,7 @@ async def main():
             """Retrieve the relevant nodes for the query."""
             query_str = await ctx.store.get("query_str")
             logger.success(format_json(query_str))
-            logger.success(format_json(query_str))
             retriever_kwargs = await ctx.store.get("retriever_kwargs")
-            logger.success(format_json(retriever_kwargs))
             logger.success(format_json(retriever_kwargs))
     
             if query_str is None:
@@ -220,9 +218,7 @@ async def main():
     
             index = await ctx.store.get("index", default=None)
             logger.success(format_json(index))
-            logger.success(format_json(index))
             tavily_tool = await ctx.store.get("tavily_tool", default=None)
-            logger.success(format_json(tavily_tool))
             logger.success(format_json(tavily_tool))
             if not (index or tavily_tool):
                 raise ValueError(
@@ -243,12 +239,10 @@ async def main():
             retrieved_nodes = ev.retrieved_nodes
             query_str = await ctx.store.get("query_str")
             logger.success(format_json(query_str))
-            logger.success(format_json(query_str))
     
             relevancy_results = []
             for node in retrieved_nodes:
                 llm = await ctx.store.get("llm")
-                logger.success(format_json(llm))
                 logger.success(format_json(llm))
                 resp = llm.complete(
                         DEFAULT_RELEVANCY_PROMPT_TEMPLATE.format(
@@ -267,7 +261,6 @@ async def main():
         ) -> TextExtractEvent:
             """Extract relevant texts from retrieved documents."""
             retrieved_nodes = await ctx.store.get("retrieved_nodes")
-            logger.success(format_json(retrieved_nodes))
             logger.success(format_json(retrieved_nodes))
             relevancy_results = ev.relevant_results
     
@@ -288,14 +281,11 @@ async def main():
             relevant_text = ev.relevant_text
             relevancy_results = await ctx.store.get("relevancy_results")
             logger.success(format_json(relevancy_results))
-            logger.success(format_json(relevancy_results))
             query_str = await ctx.store.get("query_str")
-            logger.success(format_json(query_str))
             logger.success(format_json(query_str))
     
             if "no" in relevancy_results:
                 llm = await ctx.store.get("llm")
-                logger.success(format_json(llm))
                 logger.success(format_json(llm))
                 resp = llm.complete(
                         DEFAULT_TRANSFORM_QUERY_TEMPLATE.format(query_str=query_str)
@@ -303,7 +293,6 @@ async def main():
                 logger.success(format_json(resp))
                 transformed_query_str = resp.text
                 tavily_tool = await ctx.store.get("tavily_tool")
-                logger.success(format_json(tavily_tool))
                 logger.success(format_json(tavily_tool))
                 search_results = tavily_tool.search(
                     transformed_query_str, max_results=5
@@ -321,7 +310,6 @@ async def main():
             search_text = ev.search_text
             query_str = await ctx.store.get("query_str")
             logger.success(format_json(query_str))
-            logger.success(format_json(query_str))
     
             documents = [Document(text=relevant_text + "\n" + search_text)]
             index = SummaryIndex.from_documents(documents)
@@ -338,7 +326,6 @@ async def main():
     documents = SimpleDirectoryReader("./data").load_data()
     workflow = CorrectiveRAGWorkflow()
     index = await workflow.run(documents=documents)
-    logger.success(format_json(index))
     logger.success(format_json(index))
     
     

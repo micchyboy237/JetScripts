@@ -112,6 +112,7 @@ retriever = RaptorRetriever(
     mode="tree_traversal",  # sets default mode
 )
 
+
 """
 ## Query Engine
 """

@@ -39,7 +39,6 @@ llm = LangChainLLM(ChatOllamaFunctionCallingAdapter())
 
 stream = llm.stream(PromptTemplate("Hi, write a short story"))
 logger.success(format_json(stream))
-logger.success(format_json(stream))
 
 async for token in stream:
     logger.debug(token, end="")
@@ -61,7 +60,6 @@ logger.info("## OllamaFunctionCallingAdapter LLM")
 llm = OllamaFunctionCallingAdapter()
 
 stream = llm.stream("Hi, write a short story")
-logger.success(format_json(stream))
 logger.success(format_json(stream))
 
 for token in stream:

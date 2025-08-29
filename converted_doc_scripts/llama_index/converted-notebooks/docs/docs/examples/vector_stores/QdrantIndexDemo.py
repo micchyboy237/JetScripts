@@ -160,7 +160,6 @@ logger.info("#### Async Query Index")
 query_engine = index.as_query_engine(use_async=True)
 response = query_engine.query("What did the author do growing up?")
 logger.success(format_json(response))
-logger.success(format_json(response))
 
 display(Markdown(f"<b>{response}</b>"))
 

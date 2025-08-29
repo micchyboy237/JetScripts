@@ -161,7 +161,6 @@ async def main():
     
         task_results = await tqdm.gather(*tasks)
         logger.success(format_json(task_results))
-        logger.success(format_json(task_results))
     
         results_dict = {}
         for i, (query, query_result) in enumerate(zip(queries, task_results)):
@@ -178,7 +177,6 @@ async def main():
     )
     
     results_dict = await run_queries(queries, [vector_retriever, bm25_retriever])
-    logger.success(format_json(results_dict))
     logger.success(format_json(results_dict))
     
     """

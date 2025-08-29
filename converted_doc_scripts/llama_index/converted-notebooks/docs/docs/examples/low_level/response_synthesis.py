@@ -364,7 +364,6 @@ async def main():
         tasks = [llm.acomplete(p) for p in fmt_prompts]
         combined_responses = await asyncio.gather(*tasks)
         logger.success(format_json(combined_responses))
-        logger.success(format_json(combined_responses))
         new_texts = [str(r) for r in combined_responses]
     
         if len(new_texts) == 1:
@@ -394,7 +393,6 @@ async def main():
     
         tasks = [llm.acomplete(p) for p in fmt_prompts]
         node_responses = await asyncio.gather(*tasks)
-        logger.success(format_json(node_responses))
         logger.success(format_json(node_responses))
     
         response_txt = combine_results(
@@ -469,7 +467,6 @@ async def main():
         async def aquery(self, query_str: str):
             retrieved_nodes = await self._retriever.aretrieve(query_str)
             logger.success(format_json(retrieved_nodes))
-            logger.success(format_json(retrieved_nodes))
             response_txt, _ = await agenerate_response_hs(
                     retrieved_nodes,
                     query_str,
@@ -488,7 +485,6 @@ async def main():
     logger.debug(str(response))
     
     response = query_engine.query(query_str)
-    logger.success(format_json(response))
     logger.success(format_json(response))
     
     logger.debug(str(response))

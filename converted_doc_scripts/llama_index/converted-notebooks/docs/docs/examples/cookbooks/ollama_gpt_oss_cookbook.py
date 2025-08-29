@@ -67,7 +67,6 @@ async def main():
     
     resp_gen = llm.stream_complete("What is 1234 * 5678?")
     logger.success(format_json(resp_gen))
-    logger.success(format_json(resp_gen))
     
     still_thinking = True
     logger.debug("====== THINKING ======")
@@ -136,9 +135,7 @@ async def main():
     
     resp = await agent.run("What is 1234 * 5678?", ctx=ctx)
     logger.success(format_json(resp))
-    logger.success(format_json(resp))
     resp = await agent.run("What was the last question/answer pair?", ctx=ctx)
-    logger.success(format_json(resp))
     logger.success(format_json(resp))
     
     logger.debug(resp.response.content)
