@@ -618,7 +618,13 @@ if __name__ == "__main__":
         "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index",
     ]
     include_files = []
-    exclude_files = []
+    exclude_files = [
+        "agent_with_structured_output",
+        "agent_workflow_research_assistant",
+        "Chatbot_SEC",
+        "code_act_agent",
+        "multi_document_agents-v1",
+    ]
     extension_mappings = [
         {"ext": [".ipynb"], "output_base_dir": "converted-notebooks"},
         # {"ext": [".md"], "output_base_dir": "converted-markdown-docs"},
