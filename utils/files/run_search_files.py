@@ -11,10 +11,10 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == '__main__':
-    base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI"
-    includes = ["examples"]
-    excludes = [".venv", ".pytest_cache", "node_modules"]
-    extensions = [".py"]
+    base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index"
+    includes = ["multi_document_agents-v1"]
+    excludes = []
+    extensions = [".ipynb"]
     results = search_files(
         base_dir,
         extensions,

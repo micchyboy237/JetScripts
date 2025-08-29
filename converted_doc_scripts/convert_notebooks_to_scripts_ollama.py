@@ -598,11 +598,14 @@ if __name__ == "__main__":
     input_base_dirs = [
         "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index",
     ]
-    include_files = []
+    include_files = [
+        # "multi_document_agents-v1",
+    ]
     exclude_files = [
         "agent_workflow_research_assistant",
+        "agent_workflow_basic",
+        "/code_act_agent",
         "Chatbot_SEC",
-        "code_act_agent",
         "multi_document_agents-v1",
     ]
     extension_mappings = [
