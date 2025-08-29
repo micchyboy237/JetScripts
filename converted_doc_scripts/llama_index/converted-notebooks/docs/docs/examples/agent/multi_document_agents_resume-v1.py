@@ -122,7 +122,7 @@ async def build_agent_per_doc(nodes: List, file_base: str) -> Tuple[FunctionAgen
         if not os.path.exists(summary_out_path):
             os.makedirs(os.path.dirname(summary_out_path), exist_ok=True)
             summary = str(summary_query_engine.query(
-                "Generate a concise 1-2 line summary capturing the key points of this document"
+                "Generate a concise summary capturing the key points of this document"
             ))
             with open(summary_out_path, "wb") as f:
                 pickle.dump(summary, f)
