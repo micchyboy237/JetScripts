@@ -51,7 +51,7 @@ logger.info("# Qdrant Hybrid Search")
 
 
 documents = SimpleDirectoryReader(
-    f"{os.path.dirname(__file__)}/data/").load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/").load_data()
 
 """
 ## Indexing Data

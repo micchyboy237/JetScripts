@@ -169,9 +169,9 @@ logger.info("## Labelled RAG Dataset Example")
 
 
 rag_dataset = LabelledRagDataset.from_json(
-    f"{os.path.dirname(__file__)}/data/rag_dataset.json")
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/rag_dataset.json")
 
-documents = SimpleDirectoryReader(input_dir=f"{os.path.dirname(__file__)}/data/source_files").load_data(
+documents = SimpleDirectoryReader(input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/source_files").load_data(
     num_workers=4
 )  # parallel loading
 

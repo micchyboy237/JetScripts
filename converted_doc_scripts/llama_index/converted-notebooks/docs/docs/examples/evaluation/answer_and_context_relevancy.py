@@ -60,7 +60,7 @@ async def main():
     logger.info("### Download the dataset (`LabelledRagDataset`)")
 
     rag_dataset, documents = download_llama_dataset(
-        "EvaluatingLlmSurveyPaperDataset", f"{os.path.dirname(__file__)}/data"
+        "EvaluatingLlmSurveyPaperDataset", "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp"
     )
 
     rag_dataset.to_pandas()[:5]

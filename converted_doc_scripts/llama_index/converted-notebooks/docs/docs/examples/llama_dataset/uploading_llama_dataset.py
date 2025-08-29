@@ -163,7 +163,7 @@ async def main():
     
     # download and install dependencies for benchmark dataset
     rag_dataset, documents = download_llama_datasets(
-      "PaulGrahamEssayTruncatedDataset", f"{os.path.dirname(__file__)}/data"
+      "PaulGrahamEssayTruncatedDataset", "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp"
     )
     
     # evaluate

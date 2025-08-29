@@ -46,7 +46,7 @@ logger.info("#### Notebook Setup & Dependency Installation")
 # nest_asyncio.apply()
 
 # !mkdir data
-# !wget "https://vectorinstitute.ai/wp-content/uploads/2024/02/Vector-Annual-Report-2022-23_accessible_rev0224-1.pdf" -O f"{os.path.dirname(__file__)}/data/Vector-Annual-Report-2022-23_accessible_rev0224-1.pdf"
+# !wget "https://vectorinstitute.ai/wp-content/uploads/2024/02/Vector-Annual-Report-2022-23_accessible_rev0224-1.pdf" -O "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/Vector-Annual-Report-2022-23_accessible_rev0224-1.pdf"
 
 """
 ## Motivation
@@ -94,7 +94,8 @@ a container that holds the text of the document.
 """
 
 
-loader = SimpleDirectoryReader(input_dir=f"{os.path.dirname(__file__)}/data")
+loader = SimpleDirectoryReader(
+    input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp")
 documents = loader.load_data()
 
 documents[1].text

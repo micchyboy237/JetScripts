@@ -68,7 +68,7 @@ async def main():
     )
 
     llama2_rag_dataset, llama2_documents = download_llama_dataset(
-        "Llama2PaperDataset", f"{os.path.dirname(__file__)}/data/llama2"
+        "Llama2PaperDataset", "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/llama2"
     )
 
     """
@@ -521,7 +521,7 @@ async def main():
     """
     logger.info("## Evaluation with Llama2 paper")
     
-    query_engine, rag_dataset = create_query_engine_rag_dataset(f"{os.path.dirname(__file__)}/data/llama2")
+    query_engine, rag_dataset = create_query_engine_rag_dataset("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/llama2")
     
     questions = [example.query for example in rag_dataset.examples]
     

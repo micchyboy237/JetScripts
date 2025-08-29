@@ -170,7 +170,7 @@ logger.info("### Test It Out")
 
 
 documents = SimpleDirectoryReader(
-    input_dir=f"{os.path.dirname(__file__)}/data").load_data()
+    input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp").load_data()
 index = VectorStoreIndex.from_documents(documents)
 
 query_engine = index.as_query_engine()

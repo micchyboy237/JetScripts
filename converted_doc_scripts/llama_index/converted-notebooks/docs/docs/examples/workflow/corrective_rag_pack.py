@@ -316,7 +316,7 @@ async def main():
     logger.info("## Running the workflow")
 
     documents = SimpleDirectoryReader(
-        f"{os.path.dirname(__file__)}/data").load_data()
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp").load_data()
     workflow = CorrectiveRAGWorkflow()
     index = await workflow.run(documents=documents)
     logger.success(format_json(index))

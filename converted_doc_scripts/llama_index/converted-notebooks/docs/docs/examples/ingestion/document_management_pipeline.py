@@ -48,7 +48,7 @@ logger.info("# Ingestion Pipeline + Document Management")
 
 
 documents = SimpleDirectoryReader(
-    f"{os.path.dirname(__file__)}/data", filename_as_id=True).load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp", filename_as_id=True).load_data()
 
 """
 ## Create Pipeline with Document Store
@@ -103,7 +103,7 @@ logger.info("## Test the Document Management")
 # !echo "This is a NEW test file: one!" > data/test1.txt
 
 documents = SimpleDirectoryReader(
-    f"{os.path.dirname(__file__)}/data", filename_as_id=True).load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp", filename_as_id=True).load_data()
 
 nodes = pipeline.run(documents=documents)
 

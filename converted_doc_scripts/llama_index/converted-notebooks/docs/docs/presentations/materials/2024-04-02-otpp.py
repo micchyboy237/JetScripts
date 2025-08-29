@@ -47,7 +47,7 @@ logger.info("#### Notebook Setup & Dependency Installation")
 # nest_asyncio.apply()
 
 # !mkdir data
-# !wget "https://www.otpp.com/content/dam/otpp/documents/reports/2023-ar/otpp-2023-annual-report-eng.pdf" -O f"{os.path.dirname(__file__)}/data/otpp-2023-annual-report-eng.pdf"
+# !wget "https://www.otpp.com/content/dam/otpp/documents/reports/2023-ar/otpp-2023-annual-report-eng.pdf" -O "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/otpp-2023-annual-report-eng.pdf"
 
 """
 ## Motivation
@@ -99,7 +99,8 @@ a container that holds the text of the document.
 """
 
 
-loader = SimpleDirectoryReader(input_dir=f"{os.path.dirname(__file__)}/data")
+loader = SimpleDirectoryReader(
+    input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp")
 documents = loader.load_data()
 
 documents[0].text[:1000]
@@ -221,7 +222,7 @@ logger.info("### Improved PDF Parsing using LlamaParse")
 
 parser = LlamaParse(result_type="markdown")
 md_documents = parser.load_data(
-    file_path=f"{os.path.dirname(__file__)}/data/otpp-2023-annual-report-eng.pdf"
+    file_path="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/otpp-2023-annual-report-eng.pdf"
 )
 
 with open("./mds/parsed.md", "w") as f:

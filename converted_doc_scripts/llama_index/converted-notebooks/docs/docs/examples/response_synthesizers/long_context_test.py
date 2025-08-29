@@ -48,7 +48,8 @@ async def main():
     # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/uber_2021.pdf' -O 'data/10k/uber_2021.pdf'
 
     uber_docs0 = SimpleDirectoryReader(
-        input_files=[f"{os.path.dirname(__file__)}/data/10k/uber_2021.pdf"]
+        input_files=[
+            "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/10k/uber_2021.pdf"]
     ).load_data()
     uber_doc = Document(text="\n\n".join(
         [d.get_content() for d in uber_docs0]))

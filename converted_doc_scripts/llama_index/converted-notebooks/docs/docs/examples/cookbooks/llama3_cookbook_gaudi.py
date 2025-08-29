@@ -352,8 +352,8 @@ Here, we download and use a sample SQLite database with 11 tables, with various 
 """
 logger.info("## 4. Text-to-SQL")
 
-# !wget "https://www.sqlitetutorial.net/wp-content/uploads/2018/03/chinook.zip" -O f"{os.path.dirname(__file__)}/data/chinook.zip"
-# !unzip f"{os.path.dirname(__file__)}/data/chinook.zip"
+# !wget "https://www.sqlitetutorial.net/wp-content/uploads/2018/03/chinook.zip" -O "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/chinook.zip"
+# !unzip "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/chinook.zip"
 
 
 engine = create_engine("sqlite:///chinook.db")

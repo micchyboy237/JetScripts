@@ -65,7 +65,8 @@ Settings.chunk_overlap = 0
 Settings.chunk_size = 128
 
 documents = SimpleDirectoryReader(
-    input_files=[f"{os.path.dirname(__file__)}/data/10k/lyft_2021.pdf"]
+    input_files=[
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/10k/lyft_2021.pdf"]
 ).load_data()
 
 index = VectorStoreIndex.from_documents(

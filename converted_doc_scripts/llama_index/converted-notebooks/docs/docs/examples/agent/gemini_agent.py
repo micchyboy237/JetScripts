@@ -136,7 +136,8 @@ async def main():
     query_llm = GoogleGenAI(model="gemini-2.0-flash")
 
     uber_docs = SimpleDirectoryReader(
-        input_files=[f"{os.path.dirname(__file__)}/data/10k/uber_2021.pdf"]
+        input_files=[
+            "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/10k/uber_2021.pdf"]
     ).load_data()
 
     uber_index = VectorStoreIndex.from_documents(

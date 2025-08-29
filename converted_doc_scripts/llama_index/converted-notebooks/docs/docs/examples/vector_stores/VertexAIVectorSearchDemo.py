@@ -371,7 +371,7 @@ logger.info(
 # ! wget 'https://arxiv.org/pdf/1706.03762.pdf' -O ./data/arxiv/test.pdf
 
 documents = SimpleDirectoryReader(
-    f"{os.path.dirname(__file__)}/data/arxiv/").load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/arxiv/").load_data()
 logger.debug(f"# of documents = {len(documents)}")
 
 vector_store = VertexAIVectorStore(

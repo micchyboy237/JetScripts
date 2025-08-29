@@ -87,15 +87,15 @@ async def main():
     if not index_loaded:
         march_docs = SimpleDirectoryReader(
             input_files=[
-                f"{os.path.dirname(__file__)}/data/10q/uber_10q_march_2022.pdf"]
+                "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/10q/uber_10q_march_2022.pdf"]
         ).load_data()
         june_docs = SimpleDirectoryReader(
             input_files=[
-                f"{os.path.dirname(__file__)}/data/10q/uber_10q_june_2022.pdf"]
+                "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/10q/uber_10q_june_2022.pdf"]
         ).load_data()
         sept_docs = SimpleDirectoryReader(
             input_files=[
-                f"{os.path.dirname(__file__)}/data/10q/uber_10q_sept_2022.pdf"]
+                "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/10q/uber_10q_sept_2022.pdf"]
         ).load_data()
 
         march_index = VectorStoreIndex.from_documents(march_docs)

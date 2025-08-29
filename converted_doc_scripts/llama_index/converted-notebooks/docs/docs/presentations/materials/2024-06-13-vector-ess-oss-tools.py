@@ -165,10 +165,11 @@ logger.debug(response)
 logger.info("## Example: RAG Yields More Accurate Responses")
 
 # !mkdir data
-# !wget "https://www.rbc.com/investor-relations/_assets-custom/pdf/ar_2023_e.pdf" -O f"{os.path.dirname(__file__)}/data/RBC-Annual-Report-2023.pdf"
+# !wget "https://www.rbc.com/investor-relations/_assets-custom/pdf/ar_2023_e.pdf" -O "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/RBC-Annual-Report-2023.pdf"
 
 
-loader = SimpleDirectoryReader(input_dir=f"{os.path.dirname(__file__)}/data")
+loader = SimpleDirectoryReader(
+    input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp")
 documents = loader.load_data()
 index = VectorStoreIndex.from_documents(documents)
 rag = index.as_query_engine(llm=mistral_llm)
@@ -196,7 +197,8 @@ a container that holds the text of the document.
 """
 
 
-loader = SimpleDirectoryReader(input_dir=f"{os.path.dirname(__file__)}/data")
+loader = SimpleDirectoryReader(
+    input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp")
 documents = loader.load_data()
 
 documents[1].text

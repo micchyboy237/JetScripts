@@ -41,7 +41,7 @@ logger.info("#### Notebook Setup & Dependency Installation")
 # nest_asyncio.apply()
 
 # !mkdir data
-# !wget "https://arxiv.org/pdf/2402.09353.pdf" -O f"{os.path.dirname(__file__)}/data/dorav1.pdf"
+# !wget "https://arxiv.org/pdf/2402.09353.pdf" -O "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/dorav1.pdf"
 
 """
 ## Motivation
@@ -81,7 +81,8 @@ a container that holds the text of the document.
 """
 
 
-loader = SimpleDirectoryReader(input_dir=f"{os.path.dirname(__file__)}/data")
+loader = SimpleDirectoryReader(
+    input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp")
 documents = loader.load_data()
 
 

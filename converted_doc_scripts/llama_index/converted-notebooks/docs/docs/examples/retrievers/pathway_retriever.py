@@ -103,7 +103,7 @@ logger.info("### Define data sources tracked by Pathway")
 data_sources = []
 data_sources.append(
     pw.io.fs.read(
-        f"{os.path.dirname(__file__)}/data",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp",
         format="binary",
         mode="streaming",
         with_metadata=True,

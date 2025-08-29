@@ -99,7 +99,7 @@ reranker = NVIDIARerank(top_n=4)
 Settings.text_splitter = SentenceSplitter(chunk_size=500)
 
 documents = SimpleDirectoryReader(
-    f"{os.path.dirname(__file__)}/data").load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp").load_data()
 
 Settings.embed_model = NVIDIAEmbedding(model="NV-Embed-QA", truncate="END")
 

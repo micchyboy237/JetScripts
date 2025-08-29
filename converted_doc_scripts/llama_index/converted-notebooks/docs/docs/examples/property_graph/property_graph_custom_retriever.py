@@ -69,7 +69,7 @@ logger.info("#### Load Paul Graham Essay")
 
 
 documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/paul_graham/").load_data()
 
 """
 #### Define Default LLMs

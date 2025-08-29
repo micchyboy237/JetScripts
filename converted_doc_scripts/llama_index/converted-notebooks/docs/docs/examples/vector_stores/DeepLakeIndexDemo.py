@@ -72,7 +72,7 @@ logger.info(
     "Finally, let's create the Deep Lake Vector Store and populate it with data. We use a default tensor configuration, which creates tensors with `text (str)`, `metadata(json)`, `id (str, auto-populated)`, `embedding (float32)`. [Learn more about tensor customizability here](https://docs.activeloop.ai/example-code/getting-started/vector-store/step-4-customizing-vector-stores).")
 
 
-dataset_path = f"{os.path.dirname(__file__)}/dataset/paul_graham"
+dataset_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/tempset/paul_graham"
 
 vector_store = DeepLakeVectorStore(dataset_path=dataset_path, overwrite=True)
 storage_context = StorageContext.from_defaults(vector_store=vector_store)

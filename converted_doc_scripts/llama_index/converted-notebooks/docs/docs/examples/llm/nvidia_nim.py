@@ -81,7 +81,7 @@ logger.info("Let's use a NVIDIA hosted NIM for the embedding model.")
 Settings.text_splitter = SentenceSplitter(chunk_size=500)
 
 documents = SimpleDirectoryReader(
-    f"{os.path.dirname(__file__)}/data").load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp").load_data()
 
 """
 We set our embedding model to NVIDIA's default. If a chunk exceeds the number of tokens the model can encode, the default is to throw an error, so we set `truncate="END"` to instead discard tokens that go over the limit (hopefully not many because of our chunk size above).
@@ -151,7 +151,7 @@ parser = LlamaParse(
 
 file_extractor = {".pdf": parser}
 documents2 = SimpleDirectoryReader(
-    f"{os.path.dirname(__file__)}/data", file_extractor=file_extractor
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp", file_extractor=file_extractor
 ).load_data()
 
 index2 = VectorStoreIndex.from_documents(documents2)

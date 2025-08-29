@@ -214,7 +214,7 @@ async def main():
 
     # loader = PyMuPDFReader()
     docs0 = loader.load(file_path=Path(
-        f"{os.path.dirname(__file__)}/data/llama2.pdf"))
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/llama2.pdf"))
 
     doc_text = "\n\n".join([d.get_content() for d in docs0])
     metadata = {

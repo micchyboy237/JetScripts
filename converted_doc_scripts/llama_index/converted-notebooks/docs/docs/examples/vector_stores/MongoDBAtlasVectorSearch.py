@@ -48,7 +48,8 @@ store.create_vector_search_index(
 )
 storage_context = StorageContext.from_defaults(vector_store=store)
 uber_docs = SimpleDirectoryReader(
-    input_files=[f"{os.path.dirname(__file__)}/data/10k/uber_2021.pdf"]
+    input_files=[
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/10k/uber_2021.pdf"]
 ).load_data()
 index = VectorStoreIndex.from_documents(
     uber_docs, storage_context=storage_context

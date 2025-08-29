@@ -34,7 +34,8 @@ logger.info("### Load data")
 # !mkdir -p "data/agnews/"
 # !wget "https://www.dropbox.com/scl/fi/wzcuxuv2yo8gjp5srrslm/train.csv?rlkey=6kmofwjvsamlf9dj15m34mjw9&dl=1" -O "data/agnews/train.csv"
 
-df = pd.read_csv(f"{os.path.dirname(__file__)}/data/agnews/train.csv")
+df = pd.read_csv(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/agnews/train.csv")
 
 class_to_label = {1: "World", 2: "Sports", 3: "Business", 4: "Sci/Tech"}
 

@@ -63,11 +63,13 @@ logger.info("Download Data")
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/uber_2021.pdf' -O 'data/10k/uber_2021.pdf'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/lyft_2021.pdf' -O 'data/10k/lyft_2021.pdf'
 
-TRAIN_FILES = [f"{os.path.dirname(__file__)}/data/10k/lyft_2021.pdf"]
-VAL_FILES = [f"{os.path.dirname(__file__)}/data/10k/uber_2021.pdf"]
+TRAIN_FILES = [
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/10k/lyft_2021.pdf"]
+VAL_FILES = [
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/10k/uber_2021.pdf"]
 
-TRAIN_CORPUS_FPATH = f"{os.path.dirname(__file__)}/data/train_corpus.json"
-VAL_CORPUS_FPATH = f"{os.path.dirname(__file__)}/data/val_corpus.json"
+TRAIN_CORPUS_FPATH = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/train_corpus.json"
+VAL_CORPUS_FPATH = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/val_corpus.json"
 
 
 def load_corpus(files, verbose=False):

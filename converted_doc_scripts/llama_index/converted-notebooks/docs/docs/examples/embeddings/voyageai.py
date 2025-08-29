@@ -146,7 +146,7 @@ logger.info("### Text-Image Embeddings")
 
 
 img = Image.open(
-    f"{os.path.dirname(__file__)}/data/images/prometheus_paper_card.png")
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/images/prometheus_paper_card.png")
 plt.imshow(img)
 
 embed_model = VoyageEmbedding(
@@ -161,7 +161,7 @@ embed_model = VoyageEmbedding(
 logger.info("##### Image Embeddings")
 
 embeddings = embed_model.get_image_embedding(
-    f"{os.path.dirname(__file__)}/data/images/prometheus_paper_card.png"
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/images/prometheus_paper_card.png"
 )
 
 logger.debug(len(embeddings))

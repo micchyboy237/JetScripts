@@ -153,7 +153,7 @@ async def main():
     # !mkdir data
     # !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
-    file_path = f"{os.path.dirname(__file__)}/data/llama2.pdf"
+    file_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/llama2.pdf"
     doc = fitz.open(file_path)
 
     """

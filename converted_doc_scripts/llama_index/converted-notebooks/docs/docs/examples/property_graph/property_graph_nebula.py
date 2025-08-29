@@ -127,7 +127,7 @@ index = PropertyGraphIndex.from_documents(
 )
 
 index.storage_context.vector_store.persist(
-    f"{os.path.dirname(__file__)}/data/nebula_vec_store.json")
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/nebula_vec_store.json")
 
 """
 Now that the graph is created, we can explore it with [jupyter-nebulagraph](https://github.com/wey-gu/jupyter_nebulagraph)
@@ -179,7 +179,7 @@ graph_store = NebulaPropertyGraphStore(
 
 
 vec_store = SimpleVectorStore.from_persist_path(
-    f"{os.path.dirname(__file__)}/data/nebula_vec_store.json")
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/nebula_vec_store.json")
 
 index = PropertyGraphIndex.from_existing(
     property_graph_store=graph_store,

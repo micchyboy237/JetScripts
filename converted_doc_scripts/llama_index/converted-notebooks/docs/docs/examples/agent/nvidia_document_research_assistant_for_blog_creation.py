@@ -196,7 +196,7 @@ async def main():
     """
     logger.info("## Create New Index from Document")
 
-    DATA_DIR = f"{os.path.dirname(__file__)}/data"
+    DATA_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp"
     PERSIST_DIR = "./storage"
 
     if os.path.exists(PERSIST_DIR):

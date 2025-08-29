@@ -312,7 +312,7 @@ logger.info("## 4. Plug Router Module as part of a RAG pipeline")
 
 # loader = PyMuPDFReader()
 documents = loader.load(
-    file_path=f"{os.path.dirname(__file__)}/data/llama2.pdf")
+    file_path="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/llama2.pdf")
 
 """
 ### Setup: Define Indexes

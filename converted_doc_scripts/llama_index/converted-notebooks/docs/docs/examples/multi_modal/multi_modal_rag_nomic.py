@@ -192,7 +192,7 @@ embedding_model = NomicEmbedding(
 )
 
 documents = SimpleDirectoryReader(
-    f"{os.path.dirname(__file__)}/data_wiki/").load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp_wiki/").load_data()
 index = MultiModalVectorStoreIndex.from_documents(
     documents,
     storage_context=storage_context,

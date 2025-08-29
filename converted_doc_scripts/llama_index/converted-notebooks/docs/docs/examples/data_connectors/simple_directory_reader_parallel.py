@@ -32,7 +32,7 @@ logger.info(
 
 
 reader = SimpleDirectoryReader(
-    input_dir=f"{os.path.dirname(__file__)}/data/source_files")
+    input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/source_files")
 
 """
 ### Sequential Load

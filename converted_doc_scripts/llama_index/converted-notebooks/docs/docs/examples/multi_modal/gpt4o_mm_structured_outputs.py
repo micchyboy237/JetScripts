@@ -58,7 +58,7 @@ logger.info("## The Image Dataset: PaperCards")
 logger.info("### Load PaperCards as ImageDocuments")
 
 
-image_path = f"{os.path.dirname(__file__)}/data"
+image_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp"
 image_documents = SimpleDirectoryReader(image_path).load_data()
 
 img_doc = image_documents[0]

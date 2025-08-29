@@ -48,7 +48,7 @@ logger.info("Download Data")
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
 documents = SimpleDirectoryReader(
-    f"{os.path.dirname(__file__)}/data//paul_graham/").load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp//paul_graham/").load_data()
 
 index = VectorStoreIndex.from_documents(documents)
 retriever = index.as_retriever()

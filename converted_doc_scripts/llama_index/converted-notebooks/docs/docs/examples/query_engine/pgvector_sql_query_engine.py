@@ -61,7 +61,8 @@ logger.info("Download Data")
 # !mkdir -p 'data/10k/'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/lyft_2021.pdf' -O 'data/10k/lyft_2021.pdf'
 
-docs = reader.load_data(f"{os.path.dirname(__file__)}/data/10k/lyft_2021.pdf")
+docs = reader.load_data(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/10k/lyft_2021.pdf")
 
 
 node_parser = SentenceSplitter()

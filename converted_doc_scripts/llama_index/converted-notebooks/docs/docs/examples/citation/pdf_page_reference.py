@@ -52,7 +52,7 @@ Load document and build index
 logger.info("Load document and build index")
 
 reader = SimpleDirectoryReader(
-    input_files=[f"{os.path.dirname(__file__)}/data/10k/lyft_2021.pdf"])
+    input_files=["/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/10k/lyft_2021.pdf"])
 data = reader.load_data()
 
 index = VectorStoreIndex.from_documents(data)

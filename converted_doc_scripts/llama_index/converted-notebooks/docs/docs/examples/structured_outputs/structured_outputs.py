@@ -172,7 +172,7 @@ logger.info("#### Option 1: Use LlamaParse")
 
 
 orig_docs = LlamaParse(result_type="text").load_data(
-    f"{os.path.dirname(__file__)}/data/apple_2021_10k.pdf"
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/apple_2021_10k.pdf"
 )
 
 

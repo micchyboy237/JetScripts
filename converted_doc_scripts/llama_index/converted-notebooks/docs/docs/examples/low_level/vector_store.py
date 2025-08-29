@@ -60,7 +60,7 @@ logger.info("# Building a (Very Simple) Vector Store from Scratch")
 
 # loader = PyMuPDFReader()
 documents = loader.load(
-    file_path=f"{os.path.dirname(__file__)}/data/llama2.pdf")
+    file_path="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/llama2.pdf")
 
 """
 #### Parse into Nodes

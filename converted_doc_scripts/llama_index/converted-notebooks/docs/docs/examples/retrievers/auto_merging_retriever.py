@@ -82,7 +82,7 @@ async def main():
 
     # loader = PyMuPDFReader()
     docs0 = loader.load(file_path=Path(
-        f"{os.path.dirname(__file__)}/data/llama2.pdf"))
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/llama2.pdf"))
 
     """
     By default, the PDF reader creates a separate doc for each page.

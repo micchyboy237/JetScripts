@@ -76,13 +76,13 @@ async def main():
 
     logger.debug(
         documentation_tool(
-            f"{os.path.dirname(__file__)}/data/shopify_graphql.txt",
+            "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/shopify_graphql.txt",
             query_str="Write a graphql query to retrieve the first 3 products from a store",
         )
     )
     logger.debug(
         documentation_tool(
-            f"{os.path.dirname(__file__)}/data/shopify_graphql.txt",
+            "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/shopify_graphql.txt",
             query_str="what fields can you retrieve from the products object",
         )
     )

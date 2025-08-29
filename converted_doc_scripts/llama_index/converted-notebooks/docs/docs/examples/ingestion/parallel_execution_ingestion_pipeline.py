@@ -47,7 +47,7 @@ async def main():
     # !llamaindex-cli download-llamadataset PatronusAIFinanceBenchDataset --download-dir ./data
 
     documents = SimpleDirectoryReader(
-        input_dir=f"{os.path.dirname(__file__)}/data/source_files").load_data()
+        input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/source_files").load_data()
 
     """
     ### Define our IngestionPipeline

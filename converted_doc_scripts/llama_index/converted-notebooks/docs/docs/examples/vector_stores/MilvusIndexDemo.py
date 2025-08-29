@@ -217,7 +217,7 @@ logger.info("## Metadata filtering")
 
 
 documents_all = SimpleDirectoryReader(
-    f"{os.path.dirname(__file__)}/data/").load_data()
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/").load_data()
 
 vector_store = MilvusVectorStore(
     uri="./milvus_demo.db", dim=1536, overwrite=True

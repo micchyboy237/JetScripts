@@ -182,7 +182,7 @@ logger.debug(response)
 logger.info("## Example: RAG Yields More Accurate Responses")
 
 # !mkdir data
-# !wget "https://cdn.pathfactory.com/assets/preprocessed/10580/b81532f1-95f3-4a1c-ba0d-80a56726e833/b81532f1-95f3-4a1c-ba0d-80a56726e833.pdf" -O f"{os.path.dirname(__file__)}/data/gp-purpose-report-2022.pdf"
+# !wget "https://cdn.pathfactory.com/assets/preprocessed/10580/b81532f1-95f3-4a1c-ba0d-80a56726e833/b81532f1-95f3-4a1c-ba0d-80a56726e833.pdf" -O "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/gp-purpose-report-2022.pdf"
 
 
 loader = SimpleDirectoryReader(input_dir=f"{os.path.dirname(__file__)}/data")

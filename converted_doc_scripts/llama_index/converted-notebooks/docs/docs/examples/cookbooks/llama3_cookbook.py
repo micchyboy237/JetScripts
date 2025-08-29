@@ -261,10 +261,12 @@ logger.info("### Download Data")
 logger.info("### Load Data")
 
 lyft_docs = SimpleDirectoryReader(
-    input_files=[f"{os.path.dirname(__file__)}/data/10k/lyft_2021.pdf"]
+    input_files=[
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/10k/lyft_2021.pdf"]
 ).load_data()
 uber_docs = SimpleDirectoryReader(
-    input_files=[f"{os.path.dirname(__file__)}/data/10k/uber_2021.pdf"]
+    input_files=[
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/10k/uber_2021.pdf"]
 ).load_data()
 
 """

@@ -87,10 +87,12 @@ logger.info("Download Data")
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/lyft_2021.pdf' -O 'data/10k/lyft_2021.pdf'
 
 lyft_docs = SimpleDirectoryReader(
-    input_files=[f"{os.path.dirname(__file__)}/data/10k/lyft_2021.pdf"]
+    input_files=[
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/10k/lyft_2021.pdf"]
 ).load_data()
 uber_docs = SimpleDirectoryReader(
-    input_files=[f"{os.path.dirname(__file__)}/data/10k/uber_2021.pdf"]
+    input_files=[
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/10k/uber_2021.pdf"]
 ).load_data()
 
 lyft_index = VectorStoreIndex.from_documents(lyft_docs)
