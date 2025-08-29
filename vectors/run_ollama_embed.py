@@ -24,9 +24,9 @@ def embed_texts(texts: list[str], model: str = "mxbai-embed-large") -> list[list
 
 
 if __name__ == '__main__':
-    # model = "mxbai-embed-large"
+    model = "mxbai-embed-large"
     # model = "nomic-embed-text"
-    model = "llama3.1"
+    # model = "llama3.2"
 
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
     jobs: JobData = load_file(data_file)
@@ -64,9 +64,9 @@ if __name__ == '__main__':
 
     logger.debug(f"Jobs ({len(jobs)})")
     logger.success(format_json({
-        "largest": token_counts_info["max"]["tokens"],
-        "smallest": token_counts_info["min"]["tokens"],
-        "total": token_counts_info["total"],
+        "average": token_counts_info["average"],
+        "largest": token_counts_info["max"],
+        "smallest": token_counts_info["min"],
     }))
 
     embed_results = embed_texts(texts, model)

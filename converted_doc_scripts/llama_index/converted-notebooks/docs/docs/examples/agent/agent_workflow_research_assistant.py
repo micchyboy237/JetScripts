@@ -1,22 +1,19 @@
 import asyncio
 from jet.transformers.formatters import format_json
-from google.colab import userdata
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_function_calling_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
-from llama_index.core.agent.workflow import (
-AgentStream,
-)
-from llama_index.core.agent.workflow import AgentWorkflow
+from llama_index.core.agent.workflow import AgentWorkflow, AgentStream
 from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.tools.agentql import AgentQLBrowserToolSpec
 from llama_index.tools.duckduckgo import DuckDuckGoSearchToolSpec
 from llama_index.tools.playwright.base import PlaywrightToolSpec
+from llama_index.core.tools import FunctionTool
+from bs4 import BeautifulSoup
 import os
 import shutil
-
+import logging
+from typing import Dict, Optional
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -31,55 +28,8 @@ Settings.embed_model = HuggingFaceEmbedding(
     cache_folder=MODELS_CACHE_DIR,
 )
 
-
-"""
-# Agent Workflow + Research Assistant using AgentQL
-
-<a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/agent/agent_workflow_research_assistant.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
-
-In this tutorial, we will use an `AgentWorkflow` to build a research assistant MLX agent using tools including AgentQL's browser tools, Playwright's tools, and the DuckDuckGoSearch tool. This agent performs a web search to find relevant resources for a research topic, interacts with them, and extracts key metadata (e.g., title, author, publication details, and abstract) from those resources.
-
-## Initial Setup
-
-The main things we need to get started are:
-
-- <a href="https://platform.openai.com/api-keys" target="_blank">MLX's API key</a>
-- <a href="https://dev.agentql.com/api-keys" target="_blank">AgentQL's API key</a>
-
-If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙 and Playwright.
-"""
-logger.info("# Agent Workflow + Research Assistant using AgentQL")
-
-# %pip install llama-index
-# %pip install llama-index-tools-agentql
-# %pip install llama-index-tools-playwright
-# %pip install llama-index-tools-duckduckgo
-
-# !playwright install
-
-"""
-# Store your `OPENAI_API_KEY` and `AGENTQL_API_KEY` keys in <a href="https://medium.com/@parthdasawant/how-to-use-secrets-in-google-colab-450c38e3ec75" target="_blank">Google Colab's secrets</a>.
-"""
-# logger.info("Store your `OPENAI_API_KEY` and `AGENTQL_API_KEY` keys in <a href="https://medium.com/@parthdasawant/how-to-use-secrets-in-google-colab-450c38e3ec75" target="_blank">Google Colab's secrets</a>.")
-
-
-
-os.environ["AGENTQL_API_KEY"] = userdata.get("AGENTQL_API_KEY")
-# os.environ["OPENAI_API_KEY"] = userdata.get("OPENAI_API_KEY")
-
-"""
-Let's start by enabling async for the notebook since an online environment like Google Colab only supports an asynchronous version of AgentQL.
-"""
-logger.info("Let's start by enabling async for the notebook since an online environment like Google Colab only supports an asynchronous version of AgentQL.")
-
-# import nest_asyncio
-
-# nest_asyncio.apply()
-
-"""
-Create an `async_browser` instance and select the <a href="https://docs.llamaindex.ai/en/latest/api_reference/tools/playwright/" target="_blank">Playwright tools</a> you want to use.
-"""
-logger.info("Create an `async_browser` instance and select the <a href="https://docs.llamaindex.ai/en/latest/api_reference/tools/playwright/" target="_blank">Playwright tools</a> you want to use.")
+logger.info(
+    "Agent Workflow + Research Assistant with Playwright and BeautifulSoup")
 
 
 async def async_func_2():
@@ -87,6 +37,7 @@ async def async_func_2():
         headless=True
     )
     return async_browser
+
 async_browser = asyncio.run(async_func_2())
 logger.success(format_json(async_browser))
 
@@ -98,11 +49,7 @@ playwright_agent_tool_list = [
     if tool.metadata.name in ["click", "get_current_page", "navigate_to"]
 ]
 
-"""
-Import the <a href="https://docs.llamaindex.ai/en/latest/api_reference/tools/agentql/" target="_blank">AgentQL browser tools</a> and <a href="https://docs.llamaindex.ai/en/latest/api_reference/tools/duckduckgo/" target="_blank">DuckDuckGo full search tool</a>.
-"""
-logger.info("Import the <a href="https://docs.llamaindex.ai/en/latest/api_reference/tools/agentql/" target="_blank">AgentQL browser tools</a> and <a href="https://docs.llamaindex.ai/en/latest/api_reference/tools/duckduckgo/" target="_blank">DuckDuckGo full search tool</a>.")
-
+logger.info("Using Playwright, DuckDuckGo, and metadata extraction tools.")
 
 duckduckgo_search_tool = [
     tool
@@ -110,39 +57,113 @@ duckduckgo_search_tool = [
     if tool.metadata.name == "duckduckgo_full_search"
 ]
 
-agentql_browser_tool = AgentQLBrowserToolSpec(async_browser=async_browser)
 
-"""
-We can now create an `AgentWorkFlow` that uses the tools that we have imported.
-"""
-logger.info("We can now create an `AgentWorkFlow` that uses the tools that we have imported.")
+def extract_metadata(page_content: str) -> Dict[str, Optional[str]]:
+    """
+    Extract metadata from HTML content using BeautifulSoup.
+
+    Args:
+        page_content (str): HTML content of the page.
+
+    Returns:
+        Dict[str, Optional[str]]: Extracted metadata (title, author, date, etc.).
+    """
+    try:
+        soup = BeautifulSoup(page_content, 'html.parser')
+
+        # Extract title
+        title_tag = soup.find('title') or soup.find('h1')
+        title = title_tag.get_text(strip=True) if title_tag else None
+
+        # Extract author
+        author_tag = soup.find(['meta'], attrs={'name': 'author'}) or \
+            soup.find(['span', 'div'],
+                      class_=lambda x: x and 'author' in x.lower())
+        author = author_tag.get('content') or author_tag.get_text(
+            strip=True) if author_tag else None
+
+        # Extract publishing date
+        date_tag = soup.find(['meta'], attrs={'name': 'date'}) or \
+            soup.find(['time', 'span', 'div'],
+                      class_=lambda x: x and 'date' in x.lower())
+        date = date_tag.get('content') or date_tag.get_text(
+            strip=True) if date_tag else None
+
+        # Extract journal name
+        journal_tag = soup.find(['meta'], attrs={'name': 'journal'}) or \
+            soup.find(['span', 'div'],
+                      class_=lambda x: x and 'journal' in x.lower())
+        journal = journal_tag.get('content') or journal_tag.get_text(
+            strip=True) if journal_tag else None
+
+        # Extract volume and issue
+        volume_tag = soup.find(
+            ['span', 'div'], class_=lambda x: x and 'volume' in x.lower())
+        issue_tag = soup.find(
+            ['span', 'div'], class_=lambda x: x and 'issue' in x.lower())
+        volume = volume_tag.get_text(strip=True) if volume_tag else None
+        issue = issue_tag.get_text(strip=True) if issue_tag else None
+
+        # Extract abstract
+        abstract_tag = soup.find(['div', 'section', 'p'], class_=lambda x: x and 'abstract' in x.lower()) or \
+            soup.find(['meta'], attrs={'name': 'description'})
+        abstract = abstract_tag.get_text(strip=True) or abstract_tag.get(
+            'content') if abstract_tag else None
+
+        return {
+            "title": title,
+            "author": author,
+            "publishing_date": date,
+            "journal_name": journal,
+            "volume_number": volume,
+            "issue_number": issue,
+            "abstract": abstract
+        }
+    except Exception as e:
+        logger.error(f"Error extracting metadata: {str(e)}")
+        return {
+            "title": None,
+            "author": None,
+            "publishing_date": None,
+            "journal_name": None,
+            "volume_number": None,
+            "issue_number": None,
+            "abstract": None
+        }
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
+# Wrap extract_metadata as a LlamaIndex tool
+metadata_tool = FunctionTool.from_defaults(
+    fn=extract_metadata,
+    name="extract_metadata",
+    description="Extracts metadata (title, author, publishing date, journal name, volume number, issue number, abstract) from HTML content of a web page."
+)
+
+logger.info("Creating AgentWorkflow with imported tools.")
+
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 workflow = AgentWorkflow.from_tools_or_functions(
-    playwright_agent_tool_list
-    + agentql_browser_tool.to_tool_list()
-    + duckduckgo_search_tool,
+    playwright_agent_tool_list + duckduckgo_search_tool + [metadata_tool],
     llm=llm,
-    system_prompt="You are an expert that can do browser automation, data extraction and text summarization for finding and extracting data from research resources.",
+    system_prompt="You are an expert that can do browser automation, data extraction, and text summarization for finding and extracting data from research resources. Use Playwright to navigate and retrieve page content, then use the extract_metadata tool to parse metadata such as title, author, publishing date, journal name, volume number, issue number, and abstract from the page content.",
 )
 
-"""
-`AgentWorkflow` also supports streaming, which works by using the handler that is returned from the workflow. To stream the LLM output, you can use the `AgentStream` events.
-"""
 
+async def main():
+    handler = await workflow.run(
+        user_msg="""
+        Use DuckDuckGoSearch to find URL resources on the web that are relevant to the research topic: What is the relationship between exercise and stress levels?
+        For each different resource found, use Playwright to navigate to the resource and retrieve the page content using get_current_page. Then, use the extract_metadata tool to parse the page content and extract metadata including the name of the resource, author name(s), link to the resource, publishing date, journal name, volume number, issue number, and abstract.
+        Continue finding resources until metadata is successfully extracted from two different resources. Ensure the extracted metadata is returned in a structured format.
+        """
+    )
 
-handler = workflow.run(
-    user_msg="""
-    Use DuckDuckGoSearch to find URL resources on the web that are relevant to the research topic: What is the relationship between exercise and stress levels?
-    Go through each resource found. For each different resource, use Playwright to click on link to the resource, then use AgentQL to extract information, including the name of the resource, author name(s), link to the resource, publishing date, journal name, volume number, issue number, and the abstract.
-    Find more resources until there are two different resources that can be successfully extracted from.
-    """
-)
+    async for event in handler.stream_events():
+        if isinstance(event, AgentStream):
+            logger.debug(event.delta, flush=True)
 
-async for event in handler.stream_events():
-    if isinstance(event, AgentStream):
-        logger.debug(event.delta, end="", flush=True)
+    logger.info("\n\n[DONE]", bright=True)
 
-logger.info("\n\n[DONE]", bright=True)
+if __name__ == "__main__":
+    asyncio.run(main())

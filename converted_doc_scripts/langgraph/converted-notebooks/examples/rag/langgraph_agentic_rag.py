@@ -1,6 +1,6 @@
 from IPython.display import Image, display
-from jet.llm.ollama.base_langchain import ChatOllama
-from jet.llm.ollama.base_langchain import OllamaEmbeddings
+from jet.llm.ollama.base_langchain import ChatOllama, OllamaEmbeddings
+from jet.models.embeddings.adapters.embed_ollama_langchain_adapter import OllamaEmbeddingsLangchainAdapter
 from jet.logger import CustomLogger
 from langchain import hub
 from langchain.tools.retriever import create_retriever_tool
@@ -75,8 +75,8 @@ logger.info("## Retriever")
 
 urls = [
     "https://lilianweng.github.io/posts/2023-06-23-agent/",
-    "https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/",
-    "https://lilianweng.github.io/posts/2023-10-25-adv-attack-llm/",
+    # "https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/",
+    # "https://lilianweng.github.io/posts/2023-10-25-adv-attack-llm/",
 ]
 
 docs = [WebBaseLoader(url).load() for url in urls]
@@ -90,7 +90,7 @@ doc_splits = text_splitter.split_documents(docs_list)
 vectorstore = Chroma.from_documents(
     documents=doc_splits,
     collection_name="rag-chroma",
-    embedding=OllamaEmbeddings(model="mxbai-embed-large"),
+    embedding=OllamaEmbeddingsLangchainAdapter(model="mxbai-embed-large"),
 )
 retriever = vectorstore.as_retriever()
 
@@ -276,7 +276,7 @@ def generate(state):
 
 logger.debug("*" * 20 + "Prompt[rlm/rag-prompt]" + "*" * 20)
 # Show what the prompt looks like
-prompt = hub.pull("rlm/rag-prompt").pretty_logger.debug()
+prompt = hub.pull("rlm/rag-prompt").pretty_print()
 
 """
 ## Graph
@@ -330,7 +330,8 @@ inputs = {
         ("user", "What does Lilian Weng say about the types of agent memory?"),
     ]
 }
-for output in graph.stream(inputs):
+state = AgentState(messages=inputs["messages"])
+for output in graph.stream(state):
     for key, value in output.items():
         pprint.pprint(f"Output from node '{key}':")
         pprint.pprint("---")
