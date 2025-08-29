@@ -66,7 +66,7 @@ We'll be aggressively optimizing the QA prompt for this RAG pipeline.
 
 
 Settings.llm = Ollama(
-    model="llama3.2", request_timeout=300.0, context_window=4096)
+    model="llama3.2")
 
 index = VectorStoreIndex(base_nodes)
 

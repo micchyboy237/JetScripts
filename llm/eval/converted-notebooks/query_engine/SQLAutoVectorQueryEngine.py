@@ -168,7 +168,7 @@ vector_auto_retriever = VectorIndexAutoRetriever(
 
 retriever_query_engine = RetrieverQueryEngine.from_args(
     vector_auto_retriever, llm=Ollama(
-        model="llama3.1", request_timeout=300.0, context_window=4096)
+        model="llama3.1")
 )
 
 
@@ -194,7 +194,7 @@ vector_tool = QueryEngineTool.from_defaults(
 
 query_engine = SQLAutoVectorQueryEngine(
     sql_tool, vector_tool, llm=Ollama(
-        model="llama3.1", request_timeout=300.0, context_window=4096)
+        model="llama3.1")
 )
 
 response = query_engine.query(

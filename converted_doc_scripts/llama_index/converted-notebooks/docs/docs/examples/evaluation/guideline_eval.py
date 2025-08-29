@@ -41,7 +41,7 @@ GUIDELINES = [
     ),
 ]
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 evaluators = [
     GuidelineEvaluator(llm=llm, guidelines=guideline)

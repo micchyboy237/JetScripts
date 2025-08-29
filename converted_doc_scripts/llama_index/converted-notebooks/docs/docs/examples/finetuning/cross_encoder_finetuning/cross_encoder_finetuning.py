@@ -9,15 +9,15 @@ from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Response
 from llama_index.core.evaluation import PairwiseComparisonEvaluator
 from llama_index.core.evaluation.eval_utils import (
-get_responses,
-get_results_df,
+    get_responses,
+    get_results_df,
 )
 from llama_index.core.postprocessor import SentenceTransformerRerank
 from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.finetuning.cross_encoders import CrossEncoderFinetuneEngine
 from llama_index.finetuning.cross_encoders.dataset_gen import (
-generate_ce_fine_tuning_dataset,
-generate_synthetic_queries_over_documents,
+    generate_ce_fine_tuning_dataset,
+    generate_synthetic_queries_over_documents,
 )
 from sentence_transformers import SentenceTransformer
 from typing import List
@@ -86,7 +86,6 @@ logger.info("# How to Finetune a cross-encoder using LLamaIndex")
 logger.info("## Process")
 
 
-
 dataset = load_dataset("allenai/qasper")
 
 train_dataset = dataset["train"]
@@ -118,7 +117,6 @@ test_samples = [test_dataset[i] for i in test_sampled_indices]
     - figures_and_tables: figures and tables of each research paper
 """
 logger.info("## QASPER Dataset")
-
 
 
 def get_full_text(sample: dict) -> str:
@@ -239,7 +237,6 @@ logger.info("### Generate Finetuning Dataset")
 # !pip install llama-index --quiet
 
 
-
 # os.environ["OPENAI_API_KEY"] = "sk-"
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 
@@ -352,10 +349,10 @@ logger.info("## Reranking Evaluation")
 df_reranking = pd.read_csv("/content/reranking_test.csv", index_col=0)
 df_reranking["questions"] = df_reranking["questions"].apply(ast.literal_eval)
 df_reranking["context"] = df_reranking["context"].apply(ast.literal_eval)
-logger.debug(f"Number of papers in the reranking eval dataset:- {len(df_reranking)}")
+logger.debug(
+    f"Number of papers in the reranking eval dataset:- {len(df_reranking)}")
 
 df_reranking.head(1)
-
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-"
@@ -486,11 +483,10 @@ Just using OllamaFunctionCallingAdapter Embeddings for retrieval without any re-
 logger.info("### Baseline Evaluation")
 
 
-
 # os.environ["OPENAI_API_KEY"] = "sk-"
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
 evaluator_gpt4_pairwise = PairwiseComparisonEvaluator(llm=gpt4)
 
@@ -527,10 +523,9 @@ for index, row in df_test.iterrows():
             }
             no_reranker_dict_list.append(no_reranker_dict)
 
-
             pairwise_eval_result = evaluator_gpt4_pairwise.evaluate(
-                    query, response=response, reference=reference
-                )
+                query, response=response, reference=reference
+            )
             logger.success(format_json(pairwise_eval_result))
 
             pairwise_score = pairwise_eval_result.score
@@ -585,7 +580,7 @@ rerank = SentenceTransformerRerank(
     model="cross-encoder/ms-marco-MiniLM-L-12-v2", top_n=3
 )
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
 evaluator_gpt4_pairwise = PairwiseComparisonEvaluator(llm=gpt4)
 
@@ -625,10 +620,9 @@ for index, row in df_test.iterrows():
             }
             base_reranker_dict_list.append(base_reranker_dict)
 
-
             pairwise_eval_result = evaluator_gpt4_pairwise.evaluate(
-                    query=query, response=response, reference=reference
-                )
+                query=query, response=response, reference=reference
+            )
             logger.success(format_json(pairwise_eval_result))
 
             pairwise_score = pairwise_eval_result.score
@@ -683,7 +677,7 @@ rerank = SentenceTransformerRerank(
 )
 
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
 evaluator_gpt4_pairwise = PairwiseComparisonEvaluator(llm=gpt4)
 
@@ -723,10 +717,9 @@ for index, row in df_test.iterrows():
             }
             finetuned_reranker_dict_list.append(finetuned_reranker_dict)
 
-
             pairwise_eval_result = evaluator_gpt4_pairwise.evaluate(
-                    query, response=response, reference=reference
-                )
+                query, response=response, reference=reference
+            )
             logger.success(format_json(pairwise_eval_result))
 
             pairwise_score = pairwise_eval_result.score

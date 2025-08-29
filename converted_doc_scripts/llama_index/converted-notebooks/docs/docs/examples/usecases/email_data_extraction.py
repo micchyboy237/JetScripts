@@ -11,7 +11,8 @@ import logging
 import openai
 import os
 import shutil
-import sys, json
+import sys
+import json
 
 
 OUTPUT_DIR = os.path.join(
@@ -71,7 +72,6 @@ Here we define a Python class named `EmailData` using the Pydantic library. This
 logger.info("### Set Up Expected JSON Output Definition (JSON Schema)")
 
 
-
 class Instrument(BaseModel):
     """Datamodel for ticker trading details."""
 
@@ -110,13 +110,13 @@ class EmailData(BaseModel):
     sender_email_id: str = Field(description="Email Id of the email sender.")
     email_date_time: str = Field(description="Date and time of email")
 
+
 """
 ### Load content from .eml / .msg file
 
 In this step, we will use the `UnstructuredReader` from the `llama-hub` to load the content of an .eml email file or .msg Outlook file. This file's contents are then stored in a variable for further processing.
 """
 logger.info("### Load content from .eml / .msg file")
-
 
 
 loader = UnstructuredReader()
@@ -158,7 +158,7 @@ prompt = ChatPromptTemplate(
     ]
 )
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=EmailData,

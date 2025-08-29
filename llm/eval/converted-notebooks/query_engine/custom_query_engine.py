@@ -133,7 +133,7 @@ print(response.source_nodes[0].get_content())
 ### Trying Option 2 (`RAGStringQueryEngine`)
 """
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 query_engine = RAGStringQueryEngine(
     retriever=retriever,

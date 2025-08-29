@@ -49,9 +49,10 @@ logger.info("#### Download Data")
 """
 logger.info("#### Load documents, build the VectorStoreIndex")
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
 
-llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 Settings.llm = llm
 Settings.chunk_size = 512
 

@@ -323,7 +323,7 @@ contextual_embedding_bm25_retriever_rerank = EmbeddingBM25RerankerRetriever(
 """
 
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 qa_dataset = create_eval_dataset(nodes, llm=llm, num_questions_per_chunk=2)
 

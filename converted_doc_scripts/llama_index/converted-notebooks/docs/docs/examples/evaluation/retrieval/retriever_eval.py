@@ -3,8 +3,8 @@ from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctio
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.evaluation import (
-generate_question_context_pairs,
-EmbeddingQAFinetuneDataset,
+    generate_question_context_pairs,
+    EmbeddingQAFinetuneDataset,
 )
 from llama_index.core.evaluation import RetrieverEvaluator
 from llama_index.core.node_parser import SentenceSplitter
@@ -54,7 +54,8 @@ logger.info("Download Data")
 # !mkdir -p 'data/paul_graham/'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 
 node_parser = SentenceSplitter(chunk_size=512)
 nodes = node_parser.get_nodes_from_documents(documents)
@@ -62,7 +63,7 @@ nodes = node_parser.get_nodes_from_documents(documents)
 for idx, node in enumerate(nodes):
     node.id_ = f"node_{idx}"
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 vector_index = VectorStoreIndex(nodes)
 retriever = vector_index.as_retriever(similarity_top_k=2)
@@ -115,7 +116,7 @@ logger.info("## Use `RetrieverEvaluator` for Retrieval Evaluation")
 include_cohere_rerank = False
 
 if include_cohere_rerank:
-#     !pip install cohere -q
+    #     !pip install cohere -q
 
 
 metrics = ["hit_rate", "mrr", "precision", "recall", "ap", "ndcg"]
@@ -137,7 +138,6 @@ logger.debug(eval_result)
 
 eval_results = retriever_evaluator.evaluate_dataset(qa_dataset)
 logger.success(format_json(eval_results))
-
 
 
 def display_results(name, eval_results):
@@ -162,6 +162,7 @@ def display_results(name, eval_results):
     metric_df = pd.DataFrame(columns)
 
     return metric_df
+
 
 display_results("top-2 eval", eval_results)
 

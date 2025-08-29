@@ -13,14 +13,14 @@ from llama_index.core.vector_stores import MetadataInfo, VectorStoreInfo
 from llama_index.readers.wikipedia import WikipediaReader
 from llama_index.vector_stores.pinecone import PineconeVectorStore
 from sqlalchemy import (
-create_engine,
-MetaData,
-Table,
-Column,
-String,
-Integer,
-select,
-column,
+    create_engine,
+    MetaData,
+    Table,
+    Column,
+    String,
+    Integer,
+    select,
+    column,
 )
 from sqlalchemy import insert
 import logging
@@ -94,7 +94,6 @@ pinecone.init(api_key=api_key, environment="us-west1-gcp-free")
 pinecone_index = pinecone.Index("quickstart")
 
 pinecone_index.delete(deleteAll=True)
-
 
 
 vector_store = PineconeVectorStore(
@@ -192,7 +191,6 @@ for city, wiki_doc in zip(cities, wiki_docs):
 logger.info("### Define Query Engines, Set as Tools")
 
 
-
 vector_store_info = VectorStoreInfo(
     content_info="articles about different cities",
     metadata_info=[
@@ -206,7 +204,7 @@ vector_auto_retriever = VectorIndexAutoRetriever(
 )
 
 retriever_query_engine = RetrieverQueryEngine.from_args(
-    vector_auto_retriever, llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+    vector_auto_retriever, llm=OllamaFunctionCallingAdapter(model="llama3.2")
 )
 
 
@@ -232,7 +230,7 @@ logger.info("### Define SQLAutoVectorQueryEngine")
 
 
 query_engine = SQLAutoVectorQueryEngine(
-    sql_tool, vector_tool, llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+    sql_tool, vector_tool, llm=OllamaFunctionCallingAdapter(model="llama3.2")
 )
 
 response = query_engine.query(

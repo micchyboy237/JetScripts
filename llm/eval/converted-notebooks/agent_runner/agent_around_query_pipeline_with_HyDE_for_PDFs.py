@@ -340,7 +340,7 @@ qp.add_modules(
     {
         "agent_input": agent_input_component,
         "react_prompt": react_prompt_component,
-        "llm": Ollama(model="llama3.1", request_timeout=300.0, context_window=4096),
+        "llm": Ollama(model="llama3.1"),
         "react_output_parser": parse_react_output,
         "run_tool": run_tool,
         "process_response": process_response,

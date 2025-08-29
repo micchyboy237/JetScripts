@@ -49,7 +49,7 @@ from typing import List
 
 
 Settings.llm = Ollama(
-    model="llama3.2", request_timeout=300.0, context_window=4096)
+    model="llama3.2")
 Settings.embed_model = OllamaEmbedding(model_name="nomic-embed-text")
 
 """
@@ -110,7 +110,7 @@ While some level of filtering is done on code, this tool is not recommended
 to be used in a production setting without heavy sandboxing or virtual machines.
 """
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 # df_query_engines = [
 #     PandasQueryEngine(table_df, llm=llm) for table_df in table_dfs

@@ -226,7 +226,7 @@ documents = SimpleDirectoryReader("data/paul_graham").load_data()
 # Setup LLM
 
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 Settings.llm = llm
 

@@ -47,7 +47,7 @@ logger.info("# Examples of Structured Data Extraction in LlamaIndex")
 
 
 llm = OllamaFunctionCallingAdapter(
-    model="llama3.2", request_timeout=300.0, context_window=4096)
+    model="llama3.2")
 embed_model = HuggingFaceEmbedding(
     model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 Settings.llm = llm
@@ -147,7 +147,7 @@ chat_prompt_tmpl = ChatPromptTemplate(
 )
 
 llm = OllamaFunctionCallingAdapter(
-    model="llama3.2", request_timeout=300.0, context_window=4096)
+    model="llama3.2")
 album = llm.structured_predict(
     Album, chat_prompt_tmpl, movie_name="Lord of the Rings"
 )

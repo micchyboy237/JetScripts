@@ -36,7 +36,7 @@ logger.info("# Get References from PDFs")
 
 
 llm = OllamaFunctionCallingAdapter(
-    temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+    temperature=0, model="llama3.2")
 
 """
 Download Data

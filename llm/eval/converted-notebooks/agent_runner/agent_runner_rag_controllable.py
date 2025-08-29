@@ -36,7 +36,7 @@ initialize_ollama_settings()
 # Here we load a simple dataset of different cities from Wikipedia.
 
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 # Download Data
 

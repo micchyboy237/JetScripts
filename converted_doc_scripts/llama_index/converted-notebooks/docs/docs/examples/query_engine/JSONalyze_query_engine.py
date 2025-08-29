@@ -49,7 +49,8 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 """
 Let's assume we have a list of JSON(already loaded as List of Dicts) as follows:
 """
-logger.info("Let's assume we have a list of JSON(already loaded as List of Dicts) as follows:")
+logger.info(
+    "Let's assume we have a list of JSON(already loaded as List of Dicts) as follows:")
 
 json_list = [
     {
@@ -249,10 +250,11 @@ json_list = [
 """
 Then, we can create a JSONalyze Query Engine instance, with the JSON List as input.
 """
-logger.info("Then, we can create a JSONalyze Query Engine instance, with the JSON List as input.")
+logger.info(
+    "Then, we can create a JSONalyze Query Engine instance, with the JSON List as input.")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 json_stats_query_engine = JSONalyzeQueryEngine(
     list_of_dict=json_list,

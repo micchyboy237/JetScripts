@@ -19,15 +19,14 @@ async def main():
     import os
     import requests
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     # GPT Builder Demo
     
@@ -38,19 +37,18 @@ async def main():
     Here you can build your own agent...with another agent!
     """
     logger.info("# GPT Builder Demo")
-    
+
     # %pip install llama-index-embeddings-huggingface
     # %pip install llama-index-llms-ollama
     # %pip install llama-index-readers-file
-    
-    
+
     # os.environ["OPENAI_API_KEY"] = "sk-..."
-    
-    
-    llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+
+    llm = OllamaFunctionCallingAdapter(model="llama3.2")
     Settings.llm = llm
-    Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
-    
+    Settings.embed_model = HuggingFaceEmbedding(
+        model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+
     """
     ## Define Candidate Tools
     
@@ -59,12 +57,9 @@ async def main():
     In this setting we define tools as different Wikipedia pages.
     """
     logger.info("## Define Candidate Tools")
-    
-    
+
     wiki_titles = ["Toronto", "Seattle", "Chicago", "Boston", "Houston"]
-    
-    
-    
+
     for title in wiki_titles:
         response = requests.get(
             "https://en.wikipedia.org/w/api.php",
@@ -78,53 +73,51 @@ async def main():
         ).json()
         page = next(iter(response["query"]["pages"].values()))
         wiki_text = page["extract"]
-    
+
         data_path = Path("data")
         if not data_path.exists():
             Path.mkdir(data_path)
-    
+
         with open(data_path / f"{title}.txt", "w") as fp:
             fp.write(wiki_text)
-    
+
     city_docs = {}
     for wiki_title in wiki_titles:
         city_docs[wiki_title] = SimpleDirectoryReader(
             input_files=[f"data/{wiki_title}.txt"]
         ).load_data()
-    
+
     """
     ### Build Query Tool for Each Document
     """
     logger.info("### Build Query Tool for Each Document")
-    
-    
+
     tool_dict = {}
-    
+
     for wiki_title in wiki_titles:
         vector_index = VectorStoreIndex.from_documents(
             city_docs[wiki_title],
         )
         vector_query_engine = vector_index.as_query_engine(llm=llm)
-    
+
         vector_tool = QueryEngineTool.from_defaults(
             query_engine=vector_query_engine,
             name=wiki_title,
             description=("Useful for questions related to" f" {wiki_title}"),
         )
         tool_dict[wiki_title] = vector_tool
-    
+
     """
     ### Define Tool Retriever
     """
     logger.info("### Define Tool Retriever")
-    
-    
+
     tool_index = ObjectIndex.from_objects(
         list(tool_dict.values()),
         index_cls=VectorStoreIndex,
     )
     tool_retriever = tool_index.as_retriever(similarity_top_k=1)
-    
+
     """
     ### Load Data
     
@@ -133,15 +126,14 @@ async def main():
     ## Define Meta-Tools for GPT Builder
     """
     logger.info("### Load Data")
-    
-    
+
     GEN_SYS_PROMPT_STR = """\
     Task information is given below.
     
     Given the task, please generate a system prompt for an OllamaFunctionCallingAdapter-powered bot to solve this task:
     {task} \
     """
-    
+
     gen_sys_prompt_messages = [
         ChatMessage(
             role="system",
@@ -149,13 +141,11 @@ async def main():
         ),
         ChatMessage(role="user", content=GEN_SYS_PROMPT_STR),
     ]
-    
+
     GEN_SYS_PROMPT_TMPL = ChatPromptTemplate(gen_sys_prompt_messages)
-    
-    
+
     agent_cache = {}
-    
-    
+
     async def create_system_prompt(task: str):
         """Create system prompt for another agent given an input task."""
         llm = OllamaFunctionCallingAdapter(llm="gpt-4")
@@ -163,21 +153,19 @@ async def main():
         response = llm.chat(fmt_messages)
         logger.success(format_json(response))
         return response.message.content
-    
-    
+
     async def get_tools(task: str):
         """Get the set of relevant tools to use given an input task."""
         subset_tools = await tool_retriever.aretrieve(task)
         logger.success(format_json(subset_tools))
         return [t.metadata.name for t in subset_tools]
-    
-    
+
     def create_agent(system_prompt: str, tool_names: List[str]):
         """Create an agent given a system prompt and an input set of tools."""
-        llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+        llm = OllamaFunctionCallingAdapter(model="llama3.2")
         try:
             input_tools = [tool_dict[tn] for tn in tool_names]
-    
+
             agent = FunctionAgent(
                 tools=input_tools, llm=llm, system_prompt=system_prompt
             )
@@ -186,12 +174,11 @@ async def main():
         except Exception as e:
             return_msg = f"An error occurred when building an agent. Here is the error: {repr(e)}"
         return return_msg
-    
-    
+
     system_prompt_tool = FunctionTool.from_defaults(fn=create_system_prompt)
     get_tools_tool = FunctionTool.from_defaults(fn=get_tools)
     create_agent_tool = FunctionTool.from_defaults(fn=create_agent)
-    
+
     GPT_BUILDER_SYS_STR = """\
     You are helping to construct an agent given a user-specified task. You should generally use the tools in this order to build the agent.
     
@@ -199,35 +186,34 @@ async def main():
     2) Get tools tool: to fetch the candidate set of tools to use.
     3) Create agent tool: to create the final agent.
     """
-    
+
     prefix_msgs = [ChatMessage(role="system", content=GPT_BUILDER_SYS_STR)]
-    
-    
+
     builder_agent = FunctionAgent(
         tools=[system_prompt_tool, get_tools_tool, create_agent_tool],
         prefix_messages=prefix_msgs,
-        llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
+        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
         verbose=True,
     )
-    
-    
-    handler = builder_agent.run("Build an agent that can tell me about Toronto.")
+
+    handler = builder_agent.run(
+        "Build an agent that can tell me about Toronto.")
     async for event in handler.stream_events():
         if isinstance(event, ToolCallResult):
             logger.debug(
                 f"Called tool {event.tool_name} with input {event.tool_kwargs}\nGot output: {event.tool_output}"
             )
-    
+
     result = await handler
     logger.success(format_json(result))
     logger.debug(f"Result: {result}")
-    
+
     city_agent = agent_cache["agent"]
-    
+
     response = await city_agent.run("Tell me about the parks in Toronto")
     logger.success(format_json(response))
     logger.debug(str(response))
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

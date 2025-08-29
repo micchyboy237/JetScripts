@@ -48,7 +48,7 @@ Try to include as many key details as possible.
 Passage: """
 hyde_prompt = PromptTemplate(hyde_str)
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 
 summarizer = TreeSummarize(llm=llm)

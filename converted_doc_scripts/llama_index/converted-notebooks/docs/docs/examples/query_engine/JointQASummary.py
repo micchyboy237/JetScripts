@@ -50,13 +50,14 @@ logger.info("## Download Data")
 logger.info("## Load Data")
 
 
-reader = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/")
+reader = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/")
 documents = reader.load_data()
 
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
-chatgpt = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+chatgpt = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
 
 query_engine_builder = QASummaryQueryEngineBuilder(

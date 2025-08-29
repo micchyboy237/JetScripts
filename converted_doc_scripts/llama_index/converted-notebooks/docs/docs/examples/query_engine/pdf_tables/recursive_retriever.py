@@ -47,7 +47,6 @@ logger.info("# Recursive Retriever + Query Engine Demo")
 # %pip install llama-index-experimental
 
 
-
 # from llama_index.readers.file import PyMuPDFReader
 
 """
@@ -59,8 +58,9 @@ logger.info("## Default Settings")
 # os.environ["OPENAI_API_KEY"] = "YOUR_API_KEY"
 
 
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
-Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 """
 ## Load in Document (and Tables)
@@ -77,6 +77,7 @@ file_path = "billionaires_page.pdf"
 
 docs = reader.load(file_path)
 
+
 def get_tables(path: str, pages: List[int]):
     table_dfs = []
     for page in pages:
@@ -89,6 +90,7 @@ def get_tables(path: str, pages: List[int]):
         )
         table_dfs.append(table_df)
     return table_dfs
+
 
 table_dfs = get_tables(file_path, pages=[3, 25])
 
@@ -110,7 +112,7 @@ to be used in a production setting without heavy sandboxing or virtual machines.
 """
 logger.info("## Create Pandas Query Engines")
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 df_query_engines = [
     PandasQueryEngine(table_df, llm=llm) for table_df in table_dfs

@@ -2,10 +2,10 @@ from jet.models.config import MODELS_CACHE_DIR
 from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
 from llama_index.core import (
-VectorStoreIndex,
-SimpleDirectoryReader,
-StorageContext,
-load_index_from_storage,
+    VectorStoreIndex,
+    SimpleDirectoryReader,
+    StorageContext,
+    load_index_from_storage,
 )
 from llama_index.core import Settings
 from llama_index.core.query_engine import CitationQueryEngine
@@ -46,9 +46,9 @@ logger.info("# CitationQueryEngine")
 logger.info("## Setup")
 
 
-
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
-Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 """
 ## Download Data
@@ -59,7 +59,8 @@ logger.info("## Download Data")
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
 if not os.path.exists("./citation"):
-    documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
+    documents = SimpleDirectoryReader(
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
     index = VectorStoreIndex.from_documents(
         documents,
     )

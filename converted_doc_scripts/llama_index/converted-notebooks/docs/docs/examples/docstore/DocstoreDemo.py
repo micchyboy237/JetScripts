@@ -58,7 +58,8 @@ logger.info("#### Download Data")
 """
 logger.info("#### Load Documents")
 
-reader = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/")
+reader = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/")
 documents = reader.load_data()
 
 """
@@ -86,7 +87,6 @@ Each index uses the same underlying Node.
 logger.info("#### Define Multiple Indexes")
 
 
-
 storage_context = StorageContext.from_defaults(docstore=docstore)
 summary_index = SummaryIndex(nodes, storage_context=storage_context)
 vector_index = VectorStoreIndex(nodes, storage_context=storage_context)
@@ -101,7 +101,7 @@ len(storage_context.docstore.docs)
 """
 logger.info("#### Test out some Queries")
 
-llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
 Settings.llm = llm
 Settings.chunk_size = 1024

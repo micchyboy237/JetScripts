@@ -2,29 +2,28 @@ async def main():
     from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import (
-    FunctionAgent,
-    AgentWorkflow,
-    ToolCallResult,
-    AgentStream,
+        FunctionAgent,
+        AgentWorkflow,
+        ToolCallResult,
+        AgentStream,
     )
     from llama_index.core.memory import Memory
     from llama_index.tools.artifact_editor import (
-    ArtifactEditorToolSpec,
-    ArtifactMemoryBlock,
+        ArtifactEditorToolSpec,
+        ArtifactMemoryBlock,
     )
     from pydantic import BaseModel, Field
     import json
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     # Build an Order Completion Agent with an Artifact Editor Tool
     
@@ -35,14 +34,14 @@ async def main():
     To build this, we're using the new `ArtifactEditorToolSpec` and `ArtifactMemoryBlock`
     """
     logger.info("# Build an Order Completion Agent with an Artifact Editor Tool")
-    
+
     # !pip install llama-index llama-index-tools-artifact-editor
-    
+
     # from getpass import getpass
-    
+
     # if "OPENAI_API_KEY" not in os.environ:
     #     os.environ["OPENAI_API_KEY"] = getpass("OllamaFunctionCallingAdapter API Key: ")
-    
+
     class Pizza(BaseModel):
         name: str = Field(description="The name of the pizza")
         remove: list[str] | None = Field(
@@ -53,8 +52,7 @@ async def main():
             description="If exists, the ingredients the customer requests to be added",
             default=None,
         )
-    
-    
+
     class Address(BaseModel):
         street_address: str = Field(
             description="The street address of the customer"
@@ -62,8 +60,7 @@ async def main():
         city: str = Field(description="The city of the customer")
         state: str = Field(description="The state of the customer")
         zip_code: str = Field(description="The zip code of the customer")
-    
-    
+
     class Order(BaseModel):
         pizzas: list[Pizza] | None = Field(
             description="The pizzas ordered by the customer", default=None
@@ -71,19 +68,19 @@ async def main():
         address: Address | None = Field(
             description="The full address of the customer", default=None
         )
-    
+
     tool_spec = ArtifactEditorToolSpec(Order)
     tools = tool_spec.to_tool_list()
-    
+
     memory = Memory.from_defaults(
         session_id="order_editor",
         memory_blocks=[ArtifactMemoryBlock(artifact_spec=tool_spec)],
         token_limit=60000,
         chat_history_token_ratio=0.7,
     )
-    
-    llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
-    
+
+    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+
     agent = AgentWorkflow(
         agents=[
             FunctionAgent(
@@ -95,7 +92,7 @@ async def main():
             )
         ],
     )
-    
+
     async def chat():
         while True:
             user_msg = input("User: ").strip()
@@ -105,7 +102,7 @@ async def main():
                     f"The Order was placed with the following Order schema:\n: {json.dumps(tool_spec.get_current_artifact(), indent=4)}"
                 )
                 break
-    
+
             handler = agent.run(user_msg, memory=memory)
             async for ev in handler.stream_events():
                 if isinstance(ev, AgentStream):
@@ -114,11 +111,12 @@ async def main():
                     logger.debug(
                         f"\n\nCalling tool: {ev.tool_name} with kwargs: {ev.tool_kwargs}"
                     )
-    
-            logger.debug("\n\nCurrent artifact: ", tool_spec.get_current_artifact())
-    
+
+            logger.debug("\n\nCurrent artifact: ",
+                         tool_spec.get_current_artifact())
+
     await chat()
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

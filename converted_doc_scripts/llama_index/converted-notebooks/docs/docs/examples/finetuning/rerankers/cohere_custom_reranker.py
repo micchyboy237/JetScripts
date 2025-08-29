@@ -113,7 +113,7 @@ async def main():
     logger.info("We will use gpt-4 to create questions from chunks.")
 
     llm = OllamaFunctionCallingAdapter(
-        temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+        temperature=0, model="llama3.2")
 
     """
     Prompt to generate questions from each Node/ chunk.

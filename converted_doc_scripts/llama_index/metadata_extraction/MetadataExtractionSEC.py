@@ -170,7 +170,7 @@ index_no_metadata = VectorStoreIndex(
     nodes=nodes_no_metadata,
 )
 engine_no_metadata = index_no_metadata.as_query_engine(
-    similarity_top_k=10, llm=Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+    similarity_top_k=10, llm=Ollama(model="llama3.1")
 )
 
 final_engine_no_metadata = SubQuestionQueryEngine.from_defaults(
@@ -210,7 +210,7 @@ index = VectorStoreIndex(
     nodes=uber_nodes + lyft_nodes,
 )
 engine = index.as_query_engine(similarity_top_k=10, llm=Ollama(
-    model="llama3.1", request_timeout=300.0, context_window=4096))
+    model="llama3.1"))
 
 final_engine = SubQuestionQueryEngine.from_defaults(
     query_engine_tools=[

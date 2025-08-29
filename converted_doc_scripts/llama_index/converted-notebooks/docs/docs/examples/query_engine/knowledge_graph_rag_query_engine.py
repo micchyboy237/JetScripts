@@ -74,8 +74,7 @@ logging.basicConfig(
 )  # logging.DEBUG for more verbose output
 
 
-
-Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 Settings.chunk_size = 512
 
 """
@@ -192,8 +191,8 @@ response = query_engine.query(
 display(Markdown(f"<b>{response}</b>"))
 
 response = query_engine.query(
-        "Tell me about Peter Quill?",
-    )
+    "Tell me about Peter Quill?",
+)
 logger.success(format_json(response))
 display(Markdown(f"<b>{response}</b>"))
 

@@ -297,7 +297,7 @@ We plug into RetrieverQueryEngine to synthesize a result.
 """
 
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 query_engine = RetrieverQueryEngine.from_args(retriever, llm=llm)
 

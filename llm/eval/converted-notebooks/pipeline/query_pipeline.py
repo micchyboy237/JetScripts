@@ -73,7 +73,7 @@ llama_index.core.set_global_handler("arize_phoenix")
 
 
 Settings.llm = Ollama(
-    model="llama3.2", request_timeout=300.0, context_window=4096)
+    model="llama3.2")
 Settings.embed_model = OllamaEmbedding(model_name="nomic-embed-text")
 
 
@@ -100,7 +100,7 @@ else:
 
 prompt_str = "Please generate related movies to {movie_name}"
 prompt_tmpl = PromptTemplate(prompt_str)
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 p = QueryPipeline(chain=[prompt_tmpl, llm], verbose=True)
 
@@ -136,7 +136,7 @@ class Movies(BaseModel):
     movies: List[Movie] = Field(..., description="List of movies.")
 
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 output_parser = PydanticOutputParser(Movies)
 json_prompt_str = """\
 Please generate related movies to {movie_name}. Output with the following JSON format: 
@@ -166,7 +166,7 @@ Here's some text:
 Can you rewrite this with a summary of each movie?
 """
 prompt_tmpl2 = PromptTemplate(prompt_str2)
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 llm_c = llm.as_query_component(streaming=True)
 
 p = QueryPipeline(
@@ -216,7 +216,7 @@ prompt_str2 = (
 )
 prompt_tmpl2 = PromptTemplate(prompt_str2)
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 retriever = index.as_retriever(similarity_top_k=5)
 p = QueryPipeline(
     chain=[prompt_tmpl1, llm, prompt_tmpl2, llm, retriever], verbose=True
@@ -238,7 +238,7 @@ len(nodes)
 
 prompt_str = "Please generate a question about Paul Graham's life regarding the following topic {topic}"
 prompt_tmpl = PromptTemplate(prompt_str)
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 retriever = index.as_retriever(similarity_top_k=3)
 reranker = CohereRerank()
 summarizer = TreeSummarize(llm=llm)
@@ -292,7 +292,7 @@ print(str(response))
 
 retriever = index.as_retriever(similarity_top_k=5)
 summarizer = TreeSummarize(llm=Ollama(
-    model="llama3.2", request_timeout=300.0, context_window=4096))
+    model="llama3.2"))
 reranker = CohereRerank()
 
 p = QueryPipeline(verbose=True)
@@ -348,7 +348,7 @@ class RelatedMovieComponent(CustomQueryComponent):
 # Let's try the custom component out! We'll also add a step to convert the output to Shakespeare.
 
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 component = RelatedMovieComponent(llm=llm)
 
 prompt_str = """\
@@ -379,7 +379,7 @@ print(str(output))
 
 prompt_str = "Please generate related movies to {movie_name}"
 prompt_tmpl = PromptTemplate(prompt_str)
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 p = QueryPipeline(chain=[prompt_tmpl, llm], verbose=True)
 

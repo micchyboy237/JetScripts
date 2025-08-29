@@ -167,7 +167,7 @@ storage_context = StorageContext.from_defaults(
 )
 storage_context.persist(persist_dir=STORAGE_CACHE_DIR)
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 
 base_index = VectorStoreIndex(

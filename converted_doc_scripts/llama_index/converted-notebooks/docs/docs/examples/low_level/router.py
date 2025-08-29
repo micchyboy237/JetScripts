@@ -88,7 +88,7 @@ logger.info(
 
 
 llm = OllamaFunctionCallingAdapter(
-    model="llama3.2", request_timeout=300.0, context_window=4096)
+    model="llama3.2")
 
 
 def get_formatted_prompt(query_str):
@@ -400,7 +400,7 @@ router_query_engine = RouterQueryEngine(
     verbose=True,
     router_prompt=router_prompt1,
     llm=OllamaFunctionCallingAdapter(
-        model="llama3.2", request_timeout=300.0, context_window=4096),
+        model="llama3.2"),
 )
 
 """

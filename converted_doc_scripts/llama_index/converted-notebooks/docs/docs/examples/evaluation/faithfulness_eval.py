@@ -1,9 +1,9 @@
 from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
 from llama_index.core import (
-VectorStoreIndex,
-SimpleDirectoryReader,
-Response,
+    VectorStoreIndex,
+    SimpleDirectoryReader,
+    Response,
 )
 from llama_index.core.evaluation import DatasetGenerator
 from llama_index.core.evaluation import EvaluationResult
@@ -48,7 +48,7 @@ Using GPT-4 here for evaluation
 """
 logger.info("Using GPT-4 here for evaluation")
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
 evaluator_gpt4 = FaithfulnessEvaluator(llm=gpt4)
 
@@ -58,7 +58,6 @@ splitter = SentenceSplitter(chunk_size=512)
 vector_index = VectorStoreIndex.from_documents(
     documents, transformations=[splitter]
 )
-
 
 
 def display_eval_df(response: Response, eval_result: EvaluationResult) -> None:
@@ -82,6 +81,7 @@ def display_eval_df(response: Response, eval_result: EvaluationResult) -> None:
         subset=["Response", "Source"]
     )
     display(eval_df)
+
 
 """
 To run evaluations you can call the `.evaluate_response()` function on the `Response` object return from the query to run the evaluations. Lets evaluate the outputs of the vector_index.
@@ -108,7 +108,6 @@ eval_questions = question_generator.generate_questions_from_nodes(5)
 eval_questions
 
 
-
 def evaluate_query_engine(query_engine, questions):
     c = [query_engine.aquery(q) for q in questions]
     results = asyncio.run(asyncio.gather(*c))
@@ -122,6 +121,7 @@ def evaluate_query_engine(query_engine, questions):
         total_correct += eval_result
 
     return total_correct, len(results)
+
 
 vector_query_engine = vector_index.as_query_engine()
 correct, total = evaluate_query_engine(vector_query_engine, eval_questions[:5])

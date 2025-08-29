@@ -62,15 +62,17 @@ logger.info("We will be using GPT-4 for its reasoning capabilities to infer the 
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 
 
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
-Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 """
 This Notebook uses Weaviate in [Embedded mode](https://weaviate.io/developers/weaviate/installation/embedded), which is supported on Linux and macOS.
 
 If you prefer to try out Weaviate's fully managed service, [Weaviate Cloud Services (WCS)](https://weaviate.io/developers/weaviate/installation/weaviate-cloud-services), you can enable the code in the comments.
 """
-logger.info("This Notebook uses Weaviate in [Embedded mode](https://weaviate.io/developers/weaviate/installation/embedded), which is supported on Linux and macOS.")
+logger.info(
+    "This Notebook uses Weaviate in [Embedded mode](https://weaviate.io/developers/weaviate/installation/embedded), which is supported on Linux and macOS.")
 
 
 client = weaviate.connect_to_embedded()
@@ -177,7 +179,6 @@ which contains a structured description of the vector store collection and the m
 This information will then be used in the auto-retrieval prompt where the LLM infers metadata filters.
 """
 logger.info("## Define `VectorIndexAutoRetriever`")
-
 
 
 vector_store_info = VectorStoreInfo(

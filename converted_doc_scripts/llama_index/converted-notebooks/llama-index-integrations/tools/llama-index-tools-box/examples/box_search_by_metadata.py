@@ -5,56 +5,53 @@ async def main():
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.tools.box import (
-    BoxSearchByMetadataToolSpec,
-    BoxSearchByMetadataOptions,
+        BoxSearchByMetadataToolSpec,
+        BoxSearchByMetadataOptions,
     )
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
-    
+
     BOX_DEV_TOKEN = "your_box_dev_token"
-    
+
     config = DeveloperTokenConfig(BOX_DEV_TOKEN)
     auth = BoxDeveloperTokenAuth(config)
     box_client = BoxClient(auth)
-    
+
     # os.environ["OPENAI_API_KEY"] = "your-key"
-    
-    
-    
-    
-    from_ = "enterprise_" + "your_box_enterprise_id" + "." + "your_metadata_template_key"
+
+    from_ = "enterprise_" + "your_box_enterprise_id" + \
+        "." + "your_metadata_template_key"
     ancestor_folder_id = "your_starting_folder_id"
     query = "documentType = :docType "  # Your metadata query string
     query_params = '{"docType": "Invoice"}'  # Your metadata query parameters
-    
+
     options = BoxSearchByMetadataOptions(
         from_=from_,
         ancestor_folder_id=ancestor_folder_id,
         query=query,
     )
-    
-    box_tool = BoxSearchByMetadataToolSpec(box_client=box_client, options=options)
-    
+
+    box_tool = BoxSearchByMetadataToolSpec(
+        box_client=box_client, options=options)
+
     agent = FunctionAgent(
         tools=box_tool.to_tool_list(),
-        llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
+        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
     )
-    
+
     answer = await agent.run(
-            f"search all documents using the query_params as the key value pair of  {query_params} "
-        )
+        f"search all documents using the query_params as the key value pair of  {query_params} "
+    )
     logger.success(format_json(answer))
     logger.debug(answer)
-    
+
     """
     ```
     tests/test_tools_box_search_by_metadata.py Added user message to memory: search all documents using the query_params as the key value pair of  {"docType": "Invoice"} 
@@ -86,7 +83,7 @@ async def main():
     ```
     """
     logger.info("tests/test_tools_box_search_by_metadata.py Added user message to memory: search all documents using the query_params as the key value pair of  {"docType": "Invoice"}")
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

@@ -115,13 +115,13 @@ def extract_triplets(input_text):
 
     return triplets
 
+
 """
 ## 2. Extract with wiki filtering
 
 Optionally, we can filter our extracted relations using data from wikipedia.
 """
 logger.info("## 2. Extract with wiki filtering")
-
 
 
 class WikiFilter:
@@ -173,11 +173,11 @@ def extract_triplets_wiki(text):
 
     return filtered_relations
 
+
 """
 ## Run with Llama_Index
 """
 logger.info("## Run with Llama_Index")
-
 
 
 loader = ArxivReader()
@@ -193,7 +193,7 @@ documents = loader.load_data(
 documents = [Document(text="".join([x.text for x in documents]))]
 
 
-llm = OllamaFunctionCallingAdapter(temperature=0.1, model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(temperature=0.1, model="llama3.2")
 Settings.llm = llm
 Settings.chunk_size = 256
 

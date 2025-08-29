@@ -66,7 +66,7 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
 
 Settings.llm = OllamaFunctionCallingAdapter(
-    temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+    temperature=0, model="llama3.2")
 Settings.chunk_size = 512
 
 """

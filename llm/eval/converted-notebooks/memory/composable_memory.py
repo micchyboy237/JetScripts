@@ -166,7 +166,7 @@ def mystery(a: int, b: int) -> int:
 multiply_tool = FunctionTool.from_defaults(fn=multiply)
 mystery_tool = FunctionTool.from_defaults(fn=mystery)
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 agent = FunctionCallingAgent.from_tools(
     [multiply_tool, mystery_tool],
     llm=llm,
@@ -192,7 +192,7 @@ logger.success(json.dumps(make_serializable(response), indent=2))
 
 # An Agent without our past memory
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 agent_without_memory = FunctionCallingAgent.from_tools(
     [multiply_tool, mystery_tool], llm=llm, verbose=True
 )
@@ -207,7 +207,7 @@ logger.success(json.dumps(make_serializable(response), indent=2))
 
 # We see that the agent without access to the our past memory cannot complete the task. With this next agent we will indeed pass in our previous long-term memory (i.e., `vector_memory`). Note that we even use a fresh `ChatMemoryBuffer` which means there is no `chat_history` with this agent. Nonetheless, it will be able to retrieve from our long-term memory to get the past dialogue it needs.
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 composable_memory = SimpleComposableMemory.from_defaults(
     primary_memory=ChatMemoryBuffer.from_defaults(),
@@ -257,7 +257,7 @@ composable_memory = SimpleComposableMemory.from_defaults(
     ],
 )
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 agent_worker = FunctionCallingAgentWorker.from_tools(
     [multiply_tool, mystery_tool], llm=llm, verbose=True
 )

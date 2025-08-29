@@ -3,9 +3,9 @@ from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctio
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Response
 from llama_index.core.evaluation import (
-FaithfulnessEvaluator,
-RelevancyEvaluator,
-CorrectnessEvaluator,
+    FaithfulnessEvaluator,
+    RelevancyEvaluator,
+    CorrectnessEvaluator,
 )
 from llama_index.core.evaluation import BatchEvalRunner
 from llama_index.core.evaluation import DatasetGenerator
@@ -49,7 +49,7 @@ Using GPT-4 here for evaluation
 """
 logger.info("Using GPT-4 here for evaluation")
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
 faithfulness_gpt4 = FaithfulnessEvaluator(llm=gpt4)
 relevancy_gpt4 = RelevancyEvaluator(llm=gpt4)
@@ -57,7 +57,7 @@ correctness_gpt4 = CorrectnessEvaluator(llm=gpt4)
 
 documents = SimpleDirectoryReader("./test_wiki_data/").load_data()
 
-llm = OllamaFunctionCallingAdapter(temperature=0.3, model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(temperature=0.3, model="llama3.2")
 splitter = SentenceSplitter(chunk_size=512)
 vector_index = VectorStoreIndex.from_documents(
     documents, transformations=[splitter]
@@ -93,8 +93,8 @@ runner = BatchEvalRunner(
 )
 
 eval_results = runner.evaluate_queries(
-        vector_index.as_query_engine(llm=llm), queries=qas.questions
-    )
+    vector_index.as_query_engine(llm=llm), queries=qas.questions
+)
 logger.success(format_json(eval_results))
 
 logger.debug(len([qr for qr in qas.qr_pairs]))
@@ -117,6 +117,7 @@ logger.debug(eval_results["faithfulness"][0].contexts)
 """
 logger.info("## Reporting Total Scores")
 
+
 def get_eval_results(key, eval_results):
     results = eval_results[key]
     correct = 0
@@ -126,6 +127,7 @@ def get_eval_results(key, eval_results):
     score = correct / len(results)
     logger.debug(f"{key} Score: {score}")
     return score
+
 
 score = get_eval_results("faithfulness", eval_results)
 

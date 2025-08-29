@@ -122,7 +122,7 @@ prompt_tmpl = ChatPromptTemplate(
     message_templates=[ChatMessage.from_str(prompt_str, role="user")]
 )
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 
 def _get_tableinfo_with_index(idx: int) -> str:
@@ -293,7 +293,7 @@ response_synthesis_prompt = PromptTemplate(
     response_synthesis_prompt_str,
 )
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 # Define Workflow
 #

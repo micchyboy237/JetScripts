@@ -3,9 +3,9 @@ from IPython.display import Markdown, display
 from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
 from llama_index.core import (
-VectorStoreIndex,
-SimpleDirectoryReader,
-KnowledgeGraphIndex,
+    VectorStoreIndex,
+    SimpleDirectoryReader,
+    KnowledgeGraphIndex,
 )
 from llama_index.core import KnowledgeGraphIndex, SimpleDirectoryReader
 from llama_index.core import Settings
@@ -46,13 +46,10 @@ logger.info("# Nebula Graph Store")
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
 Settings.llm = llm
 Settings.chunk_size = 512
-
-
-
 
 
 logging.basicConfig(
@@ -95,8 +92,6 @@ Settings.embed_model = embedding_model
 #### Building the Knowledge Graph
 """
 logger.info("## Using Knowledge Graph with NebulaGraphStore")
-
-
 
 
 documents = SimpleDirectoryReader(
@@ -183,10 +178,10 @@ logger.info("## Visualizing the Graph RAG")
 # %ngql --address 127.0.0.1 --port 9669 --user root --password <password>
 
 # %%ngql
-USE paul_graham_essay;
-MATCH p=(n)-[*1..2]-()
-  WHERE id(n) IN ['Interleaf', 'history', 'Software', 'Company']
-RETURN p LIMIT 100;
+USE paul_graham_essay
+MATCH p = (n)-[*1..2]-()
+WHERE id(n) IN['Interleaf', 'history', 'Software', 'Company']
+RETURN p LIMIT 100
 
 # %ng_draw
 
@@ -248,7 +243,8 @@ net.show("example.html")
 """
 #### [Optional] Try building the graph and manually add triplets!
 """
-logger.info("#### [Optional] Try building the graph and manually add triplets!")
+logger.info(
+    "#### [Optional] Try building the graph and manually add triplets!")
 
 
 node_parser = SentenceSplitter()

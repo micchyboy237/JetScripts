@@ -10,15 +10,15 @@ from llama_index.core.evaluation import LabelledQADataset
 from llama_index.core.evaluation import MultiModalRetrieverEvaluator
 from llama_index.core.evaluation import get_retrieval_results_df
 from llama_index.core.evaluation.multi_modal import (
-MultiModalRelevancyEvaluator,
-MultiModalFaithfulnessEvaluator,
+    MultiModalRelevancyEvaluator,
+    MultiModalFaithfulnessEvaluator,
 )
 from llama_index.core.evaluation.notebook_utils import get_eval_results_df
 from llama_index.core.indices import MultiModalVectorStoreIndex
 from llama_index.core.multi_modal_llms.generic_utils import load_image_urls
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.response.notebook_utils import (
-display_query_and_multimodal_response,
+    display_query_and_multimodal_response,
 )
 from llama_index.core.schema import ImageDocument
 from llama_index.core.schema import TextNode, ImageNode
@@ -58,8 +58,6 @@ logger.info("# Evaluating Multi-Modal RAG")
 # %pip install llama-index-multi-modal-llms-replicate
 
 
-
-
 """
 ## Use Case: Spelling In ASL
 
@@ -87,12 +85,13 @@ logger.info("### The Dataset")
 
 download_notebook_data = False
 if download_notebook_data:
-#     !wget "https://www.dropbox.com/scl/fo/tpesl5m8ye21fqza6wq6j/h?rlkey=zknd9pf91w30m23ebfxiva9xn&dl=1" -O asl_data.zip -q
+    #     !wget "https://www.dropbox.com/scl/fo/tpesl5m8ye21fqza6wq6j/h?rlkey=zknd9pf91w30m23ebfxiva9xn&dl=1" -O asl_data.zip -q
 
 """
 To begin, lets load the context images and text into `ImageDocument` and `Documents`, respectively.
 """
-logger.info("To begin, lets load the context images and text into `ImageDocument` and `Documents`, respectively.")
+logger.info(
+    "To begin, lets load the context images and text into `ImageDocument` and `Documents`, respectively.")
 
 
 image_path = "./asl_data/images"
@@ -125,13 +124,15 @@ With the previous `MultiModalVectorStoreIndex`, the default embedding model for 
 
 In particular, we will prompt GPT-4V to write text-descriptions of every image, and then apply the usual text-embeddings to these descriptions and associate these embeddings to the images. That is, these text-description embeddings will be what's ultimately used in this RAG system to perform retrieval.
 """
-logger.info("### Another RAG System For Consideration (GPT-4V Image Descriptions For Retrieval)")
+logger.info(
+    "### Another RAG System For Consideration (GPT-4V Image Descriptions For Retrieval)")
 
 load_previously_generated_text_descriptions = True
 
 
 if not load_previously_generated_text_descriptions:
-    openai_mm_llm = OllamaFunctionCallingAdapterMultiModal(model="llama3.2", request_timeout=300.0, context_window=4096, max_new_tokens=300)
+    openai_mm_llm = OllamaFunctionCallingAdapterMultiModal(
+        model="llama3.2", request_timeout=300.0, context_window=4096, max_new_tokens=300)
 
     image_with_text_documents = SimpleDirectoryReader(image_path).load_data()
 
@@ -313,7 +314,6 @@ For this guide, we write a specific helper function to build the `LabelledQAData
 logger.info("One important thing to note when computing evaluation is that you very often need ground-truth (or sometimes also called labelled) data. For retrieval, this labelled data takes the form of `query`, `expected_ids` pairs, where the former is the user query and the latter represents the nodes (represented by their ids) that should be retrieved.")
 
 
-
 def asl_create_labelled_retrieval_dataset(
     reg_ex, nodes, mode
 ) -> LabelledQADataset:
@@ -344,6 +344,7 @@ def asl_create_labelled_retrieval_dataset(
         queries=queries, relevant_docs=relevant_docs, corpus={}, mode=mode
     )
 
+
 qa_dataset_image = asl_create_labelled_retrieval_dataset(
     r"(?:([A-Z]+).jpg)", image_nodes, "image"
 )
@@ -362,16 +363,16 @@ Now with our ground-truth data in hand, we can invoke the `evaluate_dataset` (or
 logger.info("Now with our ground-truth data in hand, we can invoke the `evaluate_dataset` (or its `async` version) method of our `MultiModalRetrieverEvaluator`.")
 
 eval_results_image = clip_retriever_evaluator.evaluate_dataset(
-        qa_dataset_image
-    )
+    qa_dataset_image
+)
 logger.success(format_json(eval_results_image))
 eval_results_text = clip_retriever_evaluator.evaluate_dataset(
-        qa_dataset_text
-    )
+    qa_dataset_text
+)
 logger.success(format_json(eval_results_text))
 eval_results_text_desc = text_desc_retriever_evaluator.evaluate_dataset(
-        qa_dataset_text_desc
-    )
+    qa_dataset_text_desc
+)
 logger.success(format_json(eval_results_text_desc))
 
 """
@@ -481,11 +482,10 @@ We have these abstractions in our `evaluation` module, and will demonstrate thei
 logger.info("### Correctness, Faithfulness, Relevancy")
 
 
-
 judges = {}
 
 judges["correctness"] = CorrectnessEvaluator(
-    llm=OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096),
+    llm=OllamaFunctionCallingAdapter(temperature=0, model="llama3.2"),
 )
 
 judges["relevancy"] = MultiModalRelevancyEvaluator(
@@ -526,10 +526,10 @@ if not load_previous_evaluations:
             reference_answer = human_answers[letter]
             for rag_name, rag_response_data in data_entry["responses"].items():
                 correctness_result = judges["correctness"].evaluate(
-                        query=data_entry["query"],
-                        response=rag_response_data["response"],
-                        reference=reference_answer,
-                    )
+                    query=data_entry["query"],
+                    response=rag_response_data["response"],
+                    reference=reference_answer,
+                )
                 logger.success(format_json(correctness_result))
 
                 relevancy_result = judges["relevancy"].evaluate(
@@ -586,7 +586,8 @@ else:
 """
 To view these results, we yet again make use of notebook utility function `get_eval_results_df`.
 """
-logger.info("To view these results, we yet again make use of notebook utility function `get_eval_results_df`.")
+logger.info(
+    "To view these results, we yet again make use of notebook utility function `get_eval_results_df`.")
 
 
 deep_eval_df, mean_correctness_df = get_eval_results_df(

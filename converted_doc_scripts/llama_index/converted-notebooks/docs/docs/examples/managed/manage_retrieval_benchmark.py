@@ -1,5 +1,5 @@
 from google.ai.generativelanguage import (
-GenerateAnswerRequest,
+    GenerateAnswerRequest,
 )
 from google.oauth2 import service_account
 from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
@@ -125,8 +125,8 @@ Please follow [OAuth Quickstart](https://developers.generativeai.google/tutorial
 """
 logger.info("#### Authentication (Option 2): OAuth using user credentials")
 
-project_name = "TODO-your-project-name"  #  @param {type:"string"}
-email = "ht@runllama.ai"  #  @param {type:"string"}
+project_name = "TODO-your-project-name"  # @param {type:"string"}
+email = "ht@runllama.ai"  # @param {type:"string"}
 client_file_name = "client_secret.json"
 
 # !gcloud config set project $project_name
@@ -172,7 +172,8 @@ os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 google_index = GoogleIndex.create_corpus(display_name="My first corpus!")
 logger.debug(f"Newly created corpus ID is {google_index.corpus_id}.")
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 google_index.insert_documents(documents)
 
 google_index = GoogleIndex.from_corpus(corpus_id="")
@@ -257,8 +258,8 @@ for r in response.source_nodes:
 
 For the 1st example of reranking, we tried using `Gemini` as LLM for reranking the retrieved nodes.
 """
-logger.info("### Google Semantic Retrieval: Advanced Retrieval with LlamaIndex Reranking and Synthesizer")
-
+logger.info(
+    "### Google Semantic Retrieval: Advanced Retrieval with LlamaIndex Reranking and Synthesizer")
 
 
 response_synthesizer = GoogleTextSynthesizer.from_defaults(
@@ -289,7 +290,6 @@ logger.info("### For the 2nd example of reranking, we use `SentenceTransformer` 
 sbert_rerank = SentenceTransformerRerank(
     model="cross-encoder/ms-marco-MiniLM-L-2-v2", top_n=5
 )
-
 
 
 response_synthesizer = GoogleTextSynthesizer.from_defaults(
@@ -342,7 +342,8 @@ for r in response.source_nodes:
 """
 #### Rewrite the Query to include more entities related to `program`
 """
-logger.info("#### Rewrite the Query to include more entities related to `program`")
+logger.info(
+    "#### Rewrite the Query to include more entities related to `program`")
 
 query_engine = qdrant_index.as_query_engine()
 response = query_engine.query(
@@ -353,8 +354,8 @@ logger.debug(response)
 """
 ## LlamaIndex Default Configuration with LLM Reranker and Tree Summarize for Response
 """
-logger.info("## LlamaIndex Default Configuration with LLM Reranker and Tree Summarize for Response")
-
+logger.info(
+    "## LlamaIndex Default Configuration with LLM Reranker and Tree Summarize for Response")
 
 
 reranker = LLMRerank(top_n=3)
@@ -372,7 +373,6 @@ response = query_engine.query(
 )
 
 logger.debug(response.response)
-
 
 
 sbert_rerank = SentenceTransformerRerank(
@@ -408,7 +408,8 @@ vectara_customer_id = ""
 vectara_corpus_id = ""
 vectara_api_key = ""
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 vectara_index = VectaraIndex.from_documents(
     documents,
     vectara_customer_id=vectara_customer_id,
@@ -439,7 +440,6 @@ sys.path.insert(0, "ColBERT/")
 # !pip install faiss-cpu torch
 
 
-
 # OPENAI_API_KEY = "sk-"
 # os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
@@ -449,9 +449,10 @@ sys.path.insert(0, "ColBERT/")
 logger.info("### Build ColBERT-V2 end-to-end Index")
 
 
-Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 index = ColbertIndex.from_documents(
     documents=documents,
 )

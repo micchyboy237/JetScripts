@@ -146,7 +146,7 @@ logger.debug(response.source_nodes[0].get_content())
 logger.info("### Trying Option 2 (`RAGStringQueryEngine`)")
 
 llm = OllamaFunctionCallingAdapter(
-    model="llama3.2", request_timeout=300.0, context_window=4096)
+    model="llama3.2")
 
 query_engine = RAGStringQueryEngine(
     retriever=retriever,

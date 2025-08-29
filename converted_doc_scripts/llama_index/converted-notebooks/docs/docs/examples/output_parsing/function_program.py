@@ -46,11 +46,11 @@ logger.info("# Function Calling Program for Structured Extraction")
 # !pip install llama-index
 
 
-
 """
 Define output schema
 """
 logger.info("Define output schema")
+
 
 class Song(BaseModel):
     """Data model for a song."""
@@ -65,6 +65,7 @@ class Album(BaseModel):
     name: str
     artist: str
     songs: List[Song]
+
 
 """
 ## Define Function Calling Program
@@ -89,7 +90,7 @@ prompt_template_str = """\
 Generate an example album, with an artist and a list of songs. \
 Using the movie {movie_name} as inspiration.\
 """
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 program = FunctionCallingProgram.from_defaults(
     output_cls=Album,
@@ -107,7 +108,8 @@ output = program(movie_name="The Shining")
 """
 The output is a valid Pydantic object that we can then use to call functions/APIs.
 """
-logger.info("The output is a valid Pydantic object that we can then use to call functions/APIs.")
+logger.info(
+    "The output is a valid Pydantic object that we can then use to call functions/APIs.")
 
 output
 
@@ -122,7 +124,7 @@ Generate example albums, with an artist and a list of songs, using each movie be
 Here are the movies:
 {movie_names}
 """
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 program = FunctionCallingProgram.from_defaults(
     output_cls=Album,

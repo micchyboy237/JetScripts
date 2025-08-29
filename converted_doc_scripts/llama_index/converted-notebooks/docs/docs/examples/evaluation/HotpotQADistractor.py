@@ -32,7 +32,7 @@ logger.info("# HotpotQADistractor Demo")
 # !pip install llama-index
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 embed_model = resolve_embed_model(
     "local:sentence-transformers/all-MiniLM-L6-v2"
 )

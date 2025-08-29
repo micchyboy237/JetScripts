@@ -78,7 +78,7 @@ We'll be aggressively optimizing the QA prompt for this RAG pipeline.
 
 
 Settings.llm = Ollama(
-    model="llama3.2", request_timeout=300.0, context_window=4096)
+    model="llama3.2")
 
 index = VectorStoreIndex(base_nodes)
 
@@ -109,7 +109,7 @@ Output only the generated questions without any explanations.
 
 dataset_generator = DatasetGenerator(
     base_nodes[:20],
-    llm=Ollama(model="llama3.1", request_timeout=300.0, context_window=4096),
+    llm=Ollama(model="llama3.1"),
     show_progress=True,
     question_gen_query=QUESTION_GEN_QUERY,
 )
@@ -157,7 +157,7 @@ Finally we define and run the prompt optimization loop.
 
 
 evaluator_c = CorrectnessEvaluator(llm=Ollama(
-    model="llama3.2", request_timeout=300.0, context_window=4096))
+    model="llama3.2"))
 evaluator_dict = {
     "correctness": evaluator_c,
 }
@@ -192,7 +192,7 @@ async def get_correctness(query_engine, eval_qa_pairs, batch_runner):
 QA_PROMPT_KEY = "response_synthesizer:text_qa_template"
 
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 qa_tmpl_str = (
     "---------------------\n"
@@ -340,7 +340,7 @@ answer the query. \
 
 old_qa_prompt = get_full_prompt_template(initial_instr, base_qa_prompt)
 
-meta_llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+meta_llm = Ollama(model="llama3.2")
 
 
 async def async_func_0():

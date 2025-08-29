@@ -48,7 +48,7 @@ logger.info("## Summarize")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 
 summarizer = get_response_synthesizer(
@@ -96,7 +96,7 @@ In that case, the `Refine` module will automatically switch to using a structure
 """
 logger.info("## Non Function-calling LLMs")
 
-instruct_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+instruct_llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 
 summarizer = get_response_synthesizer(

@@ -290,7 +290,7 @@ tools = [
 ]
 
 agent = ReActAgent(
-    llm=Ollama(model="llama3.1", request_timeout=300.0, context_window=4096), tools=tools, timeout=120, verbose=True
+    llm=Ollama(model="llama3.1"), tools=tools, timeout=120, verbose=True
 )
 
 

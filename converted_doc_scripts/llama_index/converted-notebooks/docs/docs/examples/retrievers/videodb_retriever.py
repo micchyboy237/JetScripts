@@ -199,7 +199,6 @@ Just like we used `VideoDBRetriever` for the spoken index, we will use it for th
 logger.info("#### 📸️ Retrieving Relevant Nodes from Scene Index")
 
 
-
 scene_retriever = VideoDBRetriever(
     collection=coll.id,
     video=video.id,
@@ -257,8 +256,8 @@ There are lots of way to do create a multimodal RAG, for the sake of simplicity 
 
 #### 🧩 Query Transformation
 """
-logger.info("### 🛠️ Step4: Simple Multimodal RAG - Combining Results of Both modalities")
-
+logger.info(
+    "### 🛠️ Step4: Simple Multimodal RAG - Combining Results of Both modalities")
 
 
 def split_spoken_visual_query(query):
@@ -266,7 +265,7 @@ def split_spoken_visual_query(query):
     Divide the following query into two distinct parts: one for spoken content and one for visual content. The spoken content should refer to any narration, dialogue, or verbal explanations and The visual content should refer to any images, videos, or graphical representations. Format the response strictly as:\nSpoken: <spoken_query>\nVisual: <visual_query>\n\nQuery: {query}
     """
     prompt = transformation_prompt.format(query=query)
-    response = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096).complete(prompt)
+    response = OllamaFunctionCallingAdapter(model="llama3.2").complete(prompt)
     divided_query = response.text.strip().split("\n")
     spoken_query = divided_query[0].replace("Spoken:", "").strip()
     scene_query = divided_query[1].replace("Visual:", "").strip()
@@ -333,7 +332,6 @@ One of the other ways can be `Intersection`:
 - `Intersection`: This method only includes timestamps that are present in every node, resulting in a smaller list with times that are universally relevant across all modalities.
 """
 logger.info("#### 🎥 Viewing the result : Video Clip")
-
 
 
 def merge_intervals(intervals):

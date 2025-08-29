@@ -65,7 +65,7 @@ documents = SimpleDirectoryReader(
     "../../../examples/data/paul_graham"
 ).load_data()
 
-llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 Settings.llm = llm
 Settings.chunk_size = 512
 
@@ -149,7 +149,8 @@ net.show("kuzugraph_draw.html")
 """
 #### [Optional] Try building the graph and manually add triplets!
 """
-logger.info("#### [Optional] Try building the graph and manually add triplets!")
+logger.info(
+    "#### [Optional] Try building the graph and manually add triplets!")
 
 
 node_parser = SentenceSplitter()

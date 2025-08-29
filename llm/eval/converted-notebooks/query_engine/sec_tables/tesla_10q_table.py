@@ -185,7 +185,7 @@ def create_recursive_retriever_over_doc(docs, nodes_save_path=None):
 nest_asyncio.apply()
 
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 query_engine_2021, nodes_2021 = create_recursive_retriever_over_doc(
     docs_2021, nodes_save_path="2021_nodes.pkl"

@@ -3,9 +3,9 @@ from jet.logger import CustomLogger
 from llama_index.core import Document, PropertyGraphIndex
 from llama_index.core import Settings
 from llama_index.core.indices.property_graph import (
-SimpleLLMPathExtractor,
-SchemaLLMPathExtractor,
-DynamicLLMPathExtractor,
+    SimpleLLMPathExtractor,
+    SchemaLLMPathExtractor,
+    DynamicLLMPathExtractor,
 )
 import os
 import shutil
@@ -36,8 +36,6 @@ logger.info("# Comparing LLM Path Extractors for Knowledge Graph Construction")
 # !pip install llama_index pyvis wikipedia
 
 
-
-
 # import nest_asyncio
 
 # nest_asyncio.apply()
@@ -49,7 +47,7 @@ logger.info("## Set up LLM Backend")
 
 # os.environ["OPENAI_API_KEY"] = "sk-proj-..."
 
-llm = OllamaFunctionCallingAdapter(temperature=0.0, model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(temperature=0.0, model="llama3.2")
 
 Settings.llm = llm
 Settings.chunk_size = 2048
@@ -60,6 +58,7 @@ Settings.chunk_overlap = 20
 """
 logger.info("## Fetch Some Raw Text from Wikipedia")
 
+
 def get_wikipedia_content(title):
     try:
         page = wikipedia.page(title)
@@ -69,6 +68,7 @@ def get_wikipedia_content(title):
     except wikipedia.exceptions.PageError:
         logger.debug(f"Page '{title}' does not exist.")
     return None
+
 
 wiki_title = "Barack Obama"
 content = get_wikipedia_content(wiki_title)
@@ -179,7 +179,8 @@ kg_extractor = SchemaLLMPathExtractor(
     llm=llm,
     max_triplets_per_chunk=20,
     strict=False,  # Set to False to showcase why it's not going to be the same as DynamicLLMPathExtractor
-    possible_entities=None,  # USE DEFAULT ENTITIES (PERSON, ORGANIZATION... etc)
+    # USE DEFAULT ENTITIES (PERSON, ORGANIZATION... etc)
+    possible_entities=None,
     possible_relations=None,  # USE DEFAULT RELATIONSHIPS
     possible_relation_props=[
         "extra_description"

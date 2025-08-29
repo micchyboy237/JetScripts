@@ -2,9 +2,9 @@ from jet.models.config import MODELS_CACHE_DIR
 from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
 from llama_index.core import (
-load_index_from_storage,
-StorageContext,
-VectorStoreIndex,
+    load_index_from_storage,
+    StorageContext,
+    VectorStoreIndex,
 )
 from llama_index.core import Document
 from llama_index.core import QueryBundle
@@ -48,7 +48,8 @@ Visit https://together.ai and sign up to get an API key.
 
 We load in our documentation. For the sake of speed we load in just 10 pages, but of course if you want to stress test your model you should load in all of it.
 """
-logger.info("# Chunk + Document Hybrid Retrieval with Long-Context Embeddings (Together.ai)")
+logger.info(
+    "# Chunk + Document Hybrid Retrieval with Long-Context Embeddings (Together.ai)")
 
 # %pip install llama-index-embeddings-together
 # %pip install llama-index-llms-ollama
@@ -101,7 +102,8 @@ Define a custom retriever that does the following:
 
 This is essentially vector retrieval with a reranking step that reweights the node similarities.
 """
-logger.info("## Building Hybrid Retrieval with Chunk Embedding + Parent Embedding")
+logger.info(
+    "## Building Hybrid Retrieval with Chunk Embedding + Parent Embedding")
 
 
 api_key = "<api_key>"
@@ -110,7 +112,7 @@ embed_model = TogetherEmbedding(
     model_name="togethercomputer/m2-bert-80M-32k-retrieval", api_key=api_key
 )
 
-llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
 """
 ### Create Document Store 
@@ -135,7 +137,6 @@ docstore.add_documents(docs)
 Let's build the vector index of chunks. Each chunk will also have a reference to its source document through its `index_id` (which can then be used to lookup the source document in the docstore).
 """
 logger.info("### Build Vector Index")
-
 
 
 def build_index(docs, out_path: str = "storage/chunk_index"):
@@ -169,6 +170,7 @@ def build_index(docs, out_path: str = "storage/chunk_index"):
 
     return index
 
+
 index = build_index(docs)
 
 """
@@ -177,7 +179,6 @@ index = build_index(docs)
 We define a hybrid retriever that can first fetch chunks by vector similarity, and then reweight it based on similarity with the parent document (using an alpha parameter).
 """
 logger.info("### Define Hybrid Retriever")
-
 
 
 class HybridRetriever(BaseRetriever):
@@ -208,7 +209,6 @@ class HybridRetriever(BaseRetriever):
 
         nodes = self._retriever.retrieve(query_bundle.query_str)
 
-
         docs = [self._docstore.get_document(n.node.index_id) for n in nodes]
         doc_embeddings = [d.embedding for d in docs]
         query_embedding = self._embed_model.get_query_embedding(
@@ -236,6 +236,7 @@ class HybridRetriever(BaseRetriever):
 
         return [n for _, n in result_tups][:out_top_k]
 
+
 top_k = 10
 out_top_k = 3
 hybrid_retriever = HybridRetriever(
@@ -243,10 +244,12 @@ hybrid_retriever = HybridRetriever(
 )
 base_retriever = index.as_retriever(similarity_top_k=out_top_k)
 
+
 def show_nodes(nodes, out_len: int = 200):
     for idx, n in enumerate(nodes):
         logger.debug(f"\n\n >>>>>>>>>>>> ID {n.id_}: {n.metadata['path']}")
         logger.debug(n.get_content()[:out_len])
+
 
 query_str = "Tell me more about the LLM interface and where they're used"
 

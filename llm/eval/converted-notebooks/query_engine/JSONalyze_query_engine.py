@@ -240,7 +240,7 @@ Then, we can create a JSONalyze Query Engine instance, with the JSON List as inp
 """
 
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 json_stats_query_engine = JSONalyzeQueryEngine(
     list_of_dict=json_list,

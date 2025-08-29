@@ -125,7 +125,7 @@ async def run_experiments(
 
 position_percentiles = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 
 async def run_async_code_25e7e2ff():
@@ -141,7 +141,7 @@ async def run_async_code_25e7e2ff():
         response_mode="compact",
     )
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 
 async def run_async_code_880ba9fe():

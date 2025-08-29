@@ -83,7 +83,7 @@ Instantiate the LLM and service context.
 logger.info("Instantiate the LLM and service context.")
 
 
-Settings.llm = OllamaFunctionCallingAdapter(temperature=0.8, model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = OllamaFunctionCallingAdapter(temperature=0.8, model="llama3.2")
 
 """
 Instantiate the vector store and storage context.
@@ -97,7 +97,8 @@ storage_context = StorageContext.from_defaults(vector_store=vector_store)
 """
 Add documents to the `llamaindex_demo` collection and create an index.
 """
-logger.info("Add documents to the `llamaindex_demo` collection and create an index.")
+logger.info(
+    "Add documents to the `llamaindex_demo` collection and create an index.")
 
 
 index = VectorStoreIndex.from_documents(
@@ -184,7 +185,8 @@ logger.info("## Creating an Index from a New Collection")
 
 vector_store = RocksetVectorStore.with_new_collection(
     collection="llamaindex_demo",  # name of new collection
-    dimensions=1536,  # specifies length of vectors in ingest tranformation (optional)
+    # specifies length of vectors in ingest tranformation (optional)
+    dimensions=1536,
 )
 
 index = VectorStoreIndex(

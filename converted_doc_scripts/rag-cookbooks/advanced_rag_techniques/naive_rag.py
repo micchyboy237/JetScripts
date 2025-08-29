@@ -17,7 +17,8 @@ import os
 import pandas as pd
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -60,14 +61,14 @@ pc = PineconeClient(
 )
 
 pc.create_index(
-        name='my-index',
-        dimension=1536,
-        metric="cosine",
-        spec=ServerlessSpec(
-            cloud="aws",
-            region="us-east-1"
-        )
+    name='my-index',
+    dimension=1536,
+    metric="cosine",
+    spec=ServerlessSpec(
+        cloud="aws",
+        region="us-east-1"
     )
+)
 
 index_name = "my-index"
 
@@ -81,7 +82,6 @@ vectorstore = Pinecone.from_documents(
 ## **FAISS (Optional)**
 """
 logger.info("## **FAISS (Optional)**")
-
 
 
 """
@@ -128,8 +128,9 @@ response = []
 contexts = []
 
 for query in question:
-  response.append(rag_chain.invoke(query))
-  contexts.append([docs.page_content for docs in retriever.get_relevant_documents(query)])
+    response.append(rag_chain.invoke(query))
+    contexts.append(
+        [docs.page_content for docs in retriever.get_relevant_documents(query)])
 
 data = {
     "query": question,
@@ -164,6 +165,6 @@ AthinaApiKey.set_key(os.getenv('ATHINA_API_KEY'))
 
 dataset = Loader().load_dict(df_dict)
 
-DoesResponseAnswerQuery(model="llama3.1", request_timeout=300.0, context_window=4096).run_batch(data=dataset).to_df()
+DoesResponseAnswerQuery(model="llama3.1").run_batch(data=dataset).to_df()
 
 logger.info("\n\n[DONE]", bright=True)

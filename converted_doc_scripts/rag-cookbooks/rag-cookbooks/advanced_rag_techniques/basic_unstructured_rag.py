@@ -17,7 +17,8 @@ import os
 import pandas as pd
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -55,7 +56,7 @@ filename = "/content/sample.pdf"
 pdf_elements = partition_pdf(
     filename=filename,
     extract_images_in_pdf=True,
-    strategy = "hi_res",
+    strategy="hi_res",
     hi_res_model_name="yolox",
     infer_table_structure=True,
     chunking_strategy="by_title",
@@ -71,8 +72,8 @@ unique_types = {el.to_dict()['type'] for el in pdf_elements}
 unique_types
 
 
-
-documents = [Document(page_content=el.text, metadata={"source": filename}) for el in pdf_elements]
+documents = [Document(page_content=el.text, metadata={
+                      "source": filename}) for el in pdf_elements]
 
 """
 ## **Vector Store**
@@ -112,7 +113,8 @@ rag_chain = (
     | StrOutputParser()
 )
 
-response = rag_chain.invoke("Compare all the Training Results on MATH Test Set")
+response = rag_chain.invoke(
+    "Compare all the Training Results on MATH Test Set")
 response
 
 """
@@ -125,8 +127,9 @@ response = []
 contexts = []
 
 for query in question:
-  response.append(rag_chain.invoke(query))
-  contexts.append([docs.page_content for docs in retriever.get_relevant_documents(query)])
+    response.append(rag_chain.invoke(query))
+    contexts.append(
+        [docs.page_content for docs in retriever.get_relevant_documents(query)])
 
 data = {
     "query": question,
@@ -161,6 +164,6 @@ AthinaApiKey.set_key(os.getenv('ATHINA_API_KEY'))
 
 dataset = Loader().load_dict(df_dict)
 
-DoesResponseAnswerQuery(model="llama3.1", request_timeout=300.0, context_window=4096).run_batch(data=dataset).to_df()
+DoesResponseAnswerQuery(model="llama3.1").run_batch(data=dataset).to_df()
 
 logger.info("\n\n[DONE]", bright=True)

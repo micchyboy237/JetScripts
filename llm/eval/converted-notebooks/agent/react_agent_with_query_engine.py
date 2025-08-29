@@ -112,7 +112,7 @@ You can **optionally** specify context which will be added to the core ReAct sys
 """
 
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 agent = ReActAgent.from_tools(
     query_engine_tools,
@@ -167,7 +167,7 @@ We compare the performance of the two agents in being able to answer some comple
 """
 
 llm_instruct = Ollama(
-    model="llama3.2", request_timeout=300.0, context_window=4096)
+    model="llama3.2")
 agent_instruct = ReActAgent.from_tools(
     query_engine_tools, llm=llm_instruct, verbose=True
 )

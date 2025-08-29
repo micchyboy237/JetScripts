@@ -50,7 +50,6 @@ logger.info("# Knowledge Distillation For Fine-Tuning A GPT-3.5 Judge (Pairwise)
 # %pip install llama-index-llms-huggingface-api
 
 
-
 # import nest_asyncio
 
 # nest_asyncio.apply()
@@ -59,7 +58,6 @@ logger.info("# Knowledge Distillation For Fine-Tuning A GPT-3.5 Judge (Pairwise)
 HUGGING_FACE_TOKEN = os.getenv("HUGGING_FACE_TOKEN")
 
 # OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
 
 
 def display_eval_df(question, source, answer_a, answer_b, result) -> None:
@@ -85,6 +83,7 @@ def display_eval_df(question, source, answer_a, answer_b, result) -> None:
         subset=["Answer A", "Answer B"]
     )
     display(eval_df)
+
 
 """
 ## Step 1 Generate datasets: `train_dataset` and `test_dataset`
@@ -125,7 +124,8 @@ Now that we have our train and test set of `Document`'s, the next step is to gen
 
 #### Generate Questions
 """
-logger.info("### Use a `DatasetGenerator` to build `train_dataset` and `test_dataset`")
+logger.info(
+    "### Use a `DatasetGenerator` to build `train_dataset` and `test_dataset`")
 
 QUESTION_GEN_PROMPT = (
     "You are a Teacher/ Professor. Your task is to setup "
@@ -140,7 +140,8 @@ With all that out of the way, let's spring into action. First, we will download 
 logger.info("With all that out of the way, let's spring into action. First, we will download the reference pdf document and create the set of questions against it.")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 
 
 train_dataset_generator = DatasetGenerator.from_documents(
@@ -201,7 +202,6 @@ From here we will build `RetrieverQueryEngine`'s that will take in our queries (
 logger.info("From here we will build `RetrieverQueryEngine`'s that will take in our queries (i.e. questions) for processing. Note that we use `HuggingFaceInferenceAPI` for our LLM answer-generators, and that Llama-2 requires permissions. If you haven't yet gain accessed to these models, then feel free to swap out Llama-2 with another model of your choosing.")
 
 
-
 def create_query_engine(
     hf_name: str, retriever: VectorIndexRetriever, hf_llm_generators: dict
 ) -> RetrieverQueryEngine:
@@ -214,6 +214,7 @@ def create_query_engine(
         token=HUGGING_FACE_TOKEN,
     )
     return RetrieverQueryEngine.from_args(retriever=retriever, llm=llm)
+
 
 hf_llm_generators = {
     "mistral-7b-instruct": "mistralai/Mistral-7B-Instruct-v0.1",
@@ -279,17 +280,18 @@ main_finetuning_handler = OllamaFunctionCallingAdapterFineTuningHandler()
 callback_manager = CallbackManager([main_finetuning_handler])
 Settings.callback_manager = callback_manager
 
-llm_4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096, callback_manager=callback_manager)
+llm_4 = OllamaFunctionCallingAdapter(
+    temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096, callback_manager=callback_manager)
 
 gpt4_judge = PairwiseComparisonEvaluator(llm=llm_4)
 
 for data_entry in tqdm.tqdm(train_dataset):
     final_eval_result = gpt4_judge.evaluate(
-            query=data_entry["question"],
-            response=data_entry["answers"][0]["text"],
-            second_response=data_entry["answers"][1]["text"],
-            reference=data_entry["source"],
-        )
+        query=data_entry["question"],
+        response=data_entry["answers"][0]["text"],
+        second_response=data_entry["answers"][1]["text"],
+        reference=data_entry["source"],
+    )
     logger.success(format_json(final_eval_result))
 
     judgement = {}
@@ -407,11 +409,11 @@ for q in tqdm.tqdm(test_questions):
 
 for data_entry in tqdm.tqdm(test_dataset):
     final_eval_result = gpt4_judge.evaluate(
-            query=data_entry["question"],
-            response=data_entry["answers"][0]["text"],
-            second_response=data_entry["answers"][1]["text"],
-            reference=data_entry["source"],
-        )
+        query=data_entry["question"],
+        response=data_entry["answers"][0]["text"],
+        second_response=data_entry["answers"][1]["text"],
+        reference=data_entry["source"],
+    )
     logger.success(format_json(final_eval_result))
 
     judgement = {}
@@ -430,11 +432,11 @@ ft_gpt_3p5_judge = PairwiseComparisonEvaluator(llm=ft_llm)
 for data_entry in tqdm.tqdm(test_dataset):
     try:
         final_eval_result = ft_gpt_3p5_judge.evaluate(
-                query=data_entry["question"],
-                response=data_entry["answers"][0]["text"],
-                second_response=data_entry["answers"][1]["text"],
-                reference=data_entry["source"],
-            )
+            query=data_entry["question"],
+            response=data_entry["answers"][0]["text"],
+            second_response=data_entry["answers"][1]["text"],
+            reference=data_entry["source"],
+        )
         logger.success(format_json(final_eval_result))
     except:
         final_eval_result = EvaluationResult(
@@ -453,18 +455,18 @@ for data_entry in tqdm.tqdm(test_dataset):
     judgement["source"] = final_eval_result.pairwise_source
     data_entry["evaluations"] += [judgement]
 
-gpt_3p5_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+gpt_3p5_llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 gpt_3p5_judge = PairwiseComparisonEvaluator(llm=gpt_3p5_llm)
 
 for data_entry in tqdm.tqdm(test_dataset):
     try:
         final_eval_result = gpt_3p5_judge.evaluate(
-                query=data_entry["question"],
-                response=data_entry["answers"][0]["text"],
-                second_response=data_entry["answers"][1]["text"],
-                reference=data_entry["source"],
-            )
+            query=data_entry["question"],
+            response=data_entry["answers"][0]["text"],
+            second_response=data_entry["answers"][1]["text"],
+            reference=data_entry["source"],
+        )
         logger.success(format_json(final_eval_result))
     except:
         final_eval_result = EvaluationResult(

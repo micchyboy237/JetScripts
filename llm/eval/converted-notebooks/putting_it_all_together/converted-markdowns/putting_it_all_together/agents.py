@@ -14,7 +14,7 @@ def multiply(a: int, b: int) -> int:
 
 multiply_tool = FunctionTool.from_defaults(fn=multiply)
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 agent = ReActAgent.from_tools([multiply_tool], llm=llm, verbose=True)
 

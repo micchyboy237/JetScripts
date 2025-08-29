@@ -11,13 +11,13 @@ async def main():
     from llama_index.core.bridge.pydantic import BaseModel, Field
     from llama_index.core.graph_stores import SimplePropertyGraphStore
     from llama_index.core.graph_stores.types import (
-    EntityNode,
-    KG_NODES_KEY,
-    KG_RELATIONS_KEY,
-    Relation,
+        EntityNode,
+        KG_NODES_KEY,
+        KG_RELATIONS_KEY,
+        Relation,
     )
     from llama_index.core.indices.property_graph.utils import (
-    default_parse_triplets_fn,
+        default_parse_triplets_fn,
     )
     from llama_index.core.llms import ChatMessage
     from llama_index.core.llms import LLM
@@ -25,7 +25,7 @@ async def main():
     from llama_index.core.node_parser import SentenceSplitter
     from llama_index.core.prompts import PromptTemplate
     from llama_index.core.prompts.default_prompts import (
-    DEFAULT_KG_TRIPLET_EXTRACT_PROMPT,
+        DEFAULT_KG_TRIPLET_EXTRACT_PROMPT,
     )
     from llama_index.core.query_engine import CustomQueryEngine
     from llama_index.core.schema import TransformComponent, BaseNode
@@ -37,15 +37,14 @@ async def main():
     import pandas as pd
     import re
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/cookbooks/GraphRAG_v1.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
@@ -102,9 +101,9 @@ async def main():
     `graspologic` is used to use hierarchical_leiden for building communities.
     """
     logger.info("# GraphRAG Implementation with LlamaIndex")
-    
+
     # !pip install llama-index graspologic numpy==1.24.4 scipy==1.12.0
-    
+
     """
     ## Load Data
     
@@ -113,35 +112,32 @@ async def main():
     The dataset contains 2,500 samples; for ease of experimentation, we will use 50 of these samples, which include the `title` and `text` of news articles.
     """
     logger.info("## Load Data")
-    
-    
+
     news = pd.read_csv(
         "https://raw.githubusercontent.com/tomasonjo/blog-datasets/main/news_articles.csv"
     )[:50]
-    
+
     news.head()
-    
+
     """
     Prepare documents as required by LlamaIndex
     """
     logger.info("Prepare documents as required by LlamaIndex")
-    
+
     documents = [
         Document(text=f"{row['title']}: {row['text']}")
         for i, row in news.iterrows()
     ]
-    
+
     """
     ## Setup API Key and LLM
     """
     logger.info("## Setup API Key and LLM")
-    
-    
+
     # os.environ["OPENAI_API_KEY"] = "sk-..."
-    
-    
-    llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
-    
+
+    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+
     """
     ## GraphRAGExtractor
     
@@ -179,19 +175,16 @@ async def main():
     **NOTE:** In the current implementation, we are using only relationship descriptions. In the next implementation, we will utilize entity descriptions during the retrieval stage.
     """
     logger.info("## GraphRAGExtractor")
-    
+
     # import nest_asyncio
-    
+
     # nest_asyncio.apply()
-    
-    
-    
-    
+
     class GraphRAGExtractor(TransformComponent):
         """Extract triples from a graph.
-    
+
         Uses an LLM and a simple prompt + output parsing to extract paths (i.e. triples) and entity, relation descriptions from text.
-    
+
         Args:
             llm (LLM):
                 The language model to use.
@@ -204,13 +197,13 @@ async def main():
             max_paths_per_chunk (int):
                 The maximum number of paths to extract per chunk.
         """
-    
+
         llm: LLM
         extract_prompt: PromptTemplate
         parse_fn: Callable
         num_workers: int
         max_paths_per_chunk: int
-    
+
         def __init__(
             self,
             llm: Optional[LLM] = None,
@@ -220,10 +213,10 @@ async def main():
             num_workers: int = 4,
         ) -> None:
             """Init params."""
-    
+
             if isinstance(extract_prompt, str):
                 extract_prompt = PromptTemplate(extract_prompt)
-    
+
             super().__init__(
                 llm=llm or Settings.llm,
                 extract_prompt=extract_prompt or DEFAULT_KG_TRIPLET_EXTRACT_PROMPT,
@@ -231,11 +224,11 @@ async def main():
                 num_workers=num_workers,
                 max_paths_per_chunk=max_paths_per_chunk,
             )
-    
+
         @classmethod
         def class_name(cls) -> str:
             return "GraphExtractor"
-    
+
         def __call__(
             self, nodes: List[BaseNode], show_progress: bool = False, **kwargs: Any
         ) -> List[BaseNode]:
@@ -243,36 +236,37 @@ async def main():
             return asyncio.run(
                 self.acall(nodes, show_progress=show_progress, **kwargs)
             )
-    
+
         async def _aextract(self, node: BaseNode) -> BaseNode:
             """Extract triples from a node."""
             assert hasattr(node, "text")
-    
+
             text = node.get_content(metadata_mode="llm")
             try:
                 llm_response = self.llm.predict(
-                        self.extract_prompt,
-                        text=text,
-                        max_knowledge_triplets=self.max_paths_per_chunk,
-                    )
+                    self.extract_prompt,
+                    text=text,
+                    max_knowledge_triplets=self.max_paths_per_chunk,
+                )
                 logger.success(format_json(llm_response))
                 entities, entities_relationship = self.parse_fn(llm_response)
             except ValueError:
                 entities = []
                 entities_relationship = []
-    
+
             existing_nodes = node.metadata.pop(KG_NODES_KEY, [])
             existing_relations = node.metadata.pop(KG_RELATIONS_KEY, [])
             metadata = node.metadata.copy()
             for entity, entity_type, description in entities:
                 metadata[
                     "entity_description"
-                ] = description  # Not used in the current implementation. But will be useful in future work.
+                    # Not used in the current implementation. But will be useful in future work.
+                ] = description
                 entity_node = EntityNode(
                     name=entity, label=entity_type, properties=metadata
                 )
                 existing_nodes.append(entity_node)
-    
+
             metadata = node.metadata.copy()
             for triple in entities_relationship:
                 subj, obj, rel, description = triple
@@ -285,14 +279,14 @@ async def main():
                     target_id=obj_node.id,
                     properties=metadata,
                 )
-    
+
                 existing_nodes.extend([subj_node, obj_node])
                 existing_relations.append(rel_node)
-    
+
             node.metadata[KG_NODES_KEY] = existing_nodes
             node.metadata[KG_RELATIONS_KEY] = existing_relations
             return node
-    
+
         async def acall(
             self, nodes: List[BaseNode], show_progress: bool = False, **kwargs: Any
         ) -> List[BaseNode]:
@@ -300,14 +294,14 @@ async def main():
             jobs = []
             for node in nodes:
                 jobs.append(self._aextract(node))
-    
+
             return await run_jobs(
                 jobs,
                 workers=self.num_workers,
                 show_progress=show_progress,
                 desc="Extracting paths from text",
             )
-    
+
     """
     ## GraphRAGStore
     
@@ -352,14 +346,11 @@ async def main():
     1. Returns the community summaries by building them if not already done.
     """
     logger.info("## GraphRAGStore")
-    
-    
-    
-    
+
     class GraphRAGStore(SimplePropertyGraphStore):
         community_summary = {}
         max_cluster_size = 5
-    
+
         def generate_community_summary(self, text):
             """Generate summary for a given text using an LLM."""
             messages = [
@@ -377,9 +368,10 @@ async def main():
                 ChatMessage(role="user", content=text),
             ]
             response = OllamaFunctionCallingAdapter().chat(messages)
-            clean_response = re.sub(r"^assistant:\s*", "", str(response)).strip()
+            clean_response = re.sub(
+                r"^assistant:\s*", "", str(response)).strip()
             return clean_response
-    
+
         def build_communities(self):
             """Builds communities from the graph and summarizes them."""
             nx_graph = self._create_nx_graph()
@@ -390,7 +382,7 @@ async def main():
                 nx_graph, community_hierarchical_clusters
             )
             self._summarize_communities(community_info)
-    
+
         def _create_nx_graph(self):
             """Converts internal graph representation to NetworkX graph."""
             nx_graph = nx.Graph()
@@ -404,7 +396,7 @@ async def main():
                     description=relation.properties["relationship_description"],
                 )
             return nx_graph
-    
+
         def _collect_community_info(self, nx_graph, clusters):
             """Collect detailed information for each node based on their community."""
             community_mapping = {item.node: item.cluster for item in clusters}
@@ -414,7 +406,7 @@ async def main():
                 node = item.node
                 if cluster_id not in community_info:
                     community_info[cluster_id] = []
-    
+
                 for neighbor in nx_graph.neighbors(node):
                     if community_mapping[neighbor] == cluster_id:
                         edge_data = nx_graph.get_edge_data(node, neighbor)
@@ -422,7 +414,7 @@ async def main():
                             detail = f"{node} -> {neighbor} -> {edge_data['relationship']} -> {edge_data['description']}"
                             community_info[cluster_id].append(detail)
             return community_info
-    
+
         def _summarize_communities(self, community_info):
             """Generate and store summaries for each community."""
             for community_id, details in community_info.items():
@@ -432,13 +424,13 @@ async def main():
                 self.community_summary[
                     community_id
                 ] = self.generate_community_summary(details_text)
-    
+
         def get_community_summaries(self):
             """Returns the community summaries, building them if not already done."""
             if not self.community_summary:
                 self.build_communities()
             return self.community_summary
-    
+
     """
     ## GraphRAGQueryEngine
     
@@ -483,13 +475,11 @@ async def main():
     ```
     """
     logger.info("## GraphRAGQueryEngine")
-    
-    
-    
+
     class GraphRAGQueryEngine(CustomQueryEngine):
         graph_store: GraphRAGStore
         llm: LLM
-    
+
         def custom_query(self, query_str: str) -> str:
             """Process all community summaries to generate answers to a specific query."""
             community_summaries = self.graph_store.get_community_summaries()
@@ -497,10 +487,10 @@ async def main():
                 self.generate_answer_from_summary(community_summary, query_str)
                 for _, community_summary in community_summaries.items()
             ]
-    
+
             final_answer = self.aggregate_answers(community_answers)
             return final_answer
-    
+
         def generate_answer_from_summary(self, community_summary, query):
             """Generate an answer from a community summary based on a given query using LLM."""
             prompt = (
@@ -515,9 +505,10 @@ async def main():
                 ),
             ]
             response = self.llm.chat(messages)
-            cleaned_response = re.sub(r"^assistant:\s*", "", str(response)).strip()
+            cleaned_response = re.sub(
+                r"^assistant:\s*", "", str(response)).strip()
             return cleaned_response
-    
+
         def aggregate_answers(self, community_answers):
             """Aggregate individual community answers into a final, coherent response."""
             prompt = "Combine the following intermediate answers into a final, concise response."
@@ -533,7 +524,7 @@ async def main():
                 r"^assistant:\s*", "", str(final_response)
             ).strip()
             return cleaned_final_response
-    
+
     """
     ##  Build End to End GraphRAG Pipeline
     
@@ -547,21 +538,21 @@ async def main():
     ### Create nodes/ chunks from the text.
     """
     logger.info("##  Build End to End GraphRAG Pipeline")
-    
-    
+
     splitter = SentenceSplitter(
         chunk_size=1024,
         chunk_overlap=20,
     )
     nodes = splitter.get_nodes_from_documents(documents)
-    
+
     len(nodes)
-    
+
     """
     ### Build ProperGraphIndex using `GraphRAGExtractor` and `GraphRAGStore`
     """
-    logger.info("### Build ProperGraphIndex using `GraphRAGExtractor` and `GraphRAGStore`")
-    
+    logger.info(
+        "### Build ProperGraphIndex using `GraphRAGExtractor` and `GraphRAGStore`")
+
     KG_TRIPLET_EXTRACT_TMPL = """
     -Goal-
     Given a text document, identify all entities and their entity types from the text and all relationships among the identified entities.
@@ -623,9 +614,7 @@ async def main():
     -Real Data-
     text: {text}
     output:"""
-    
-    
-    
+
     def parse_fn(response_str: str) -> Any:
         json_pattern = r"\{.*\}"
         match = re.search(json_pattern, response_str, re.DOTALL)
@@ -657,62 +646,60 @@ async def main():
         except json.JSONDecodeError as e:
             logger.debug("Error parsing JSON:", e)
             return entities, relationships
-    
-    
+
     kg_extractor = GraphRAGExtractor(
         llm=llm,
         extract_prompt=KG_TRIPLET_EXTRACT_TMPL,
         max_paths_per_chunk=2,
         parse_fn=parse_fn,
     )
-    
-    
+
     index = PropertyGraphIndex(
         nodes=nodes,
         property_graph_store=GraphRAGStore(),
         kg_extractors=[kg_extractor],
         show_progress=True,
     )
-    
+
     list(index.property_graph_store.graph.nodes.values())[-1]
-    
+
     list(index.property_graph_store.graph.relations.values())[0]
-    
+
     list(index.property_graph_store.graph.relations.values())[0].properties[
         "relationship_description"
     ]
-    
+
     """
     ### Build communities
     
     This will create communities and summary for each community.
     """
     logger.info("### Build communities")
-    
+
     index.property_graph_store.build_communities()
-    
+
     """
     ### Create QueryEngine
     """
     logger.info("### Create QueryEngine")
-    
+
     query_engine = GraphRAGQueryEngine(
         graph_store=index.property_graph_store, llm=llm
     )
-    
+
     """
     ### Querying
     """
     logger.info("### Querying")
-    
+
     response = query_engine.query(
         "What are the main news discussed in the document?"
     )
     display(Markdown(f"{response.response}"))
-    
+
     response = query_engine.query("What are news related to financial sector?")
     display(Markdown(f"{response.response}"))
-    
+
     """
     ## Future Work:
     
@@ -725,7 +712,7 @@ async def main():
     5. Implement claims or covariate information extraction, Local Search and Global Search techniques.
     """
     logger.info("## Future Work:")
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

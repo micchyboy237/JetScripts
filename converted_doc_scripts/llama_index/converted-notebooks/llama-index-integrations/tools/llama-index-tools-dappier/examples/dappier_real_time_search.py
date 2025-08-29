@@ -5,15 +5,14 @@ async def main():
     from llama_index.tools.dappier import DappierRealTimeSearchToolSpec
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     ## Building a Dappier Real Time Search Agent
     
@@ -31,9 +30,9 @@ async def main():
     First, install the `llama-index` and `llama-index-tools-dappier` packages
     """
     logger.info("## Building a Dappier Real Time Search Agent")
-    
+
     # %pip install llama-index llama-index-tools-dappier
-    
+
     """
     ## Setup API keys
     
@@ -42,34 +41,34 @@ async def main():
     You can go to [here](https://platform.openai.com/settings/organization/api-keys) to get API Key from Open AI.
     """
     logger.info("## Setup API keys")
-    
+
     # from getpass import getpass
-    
+
     # openai_api_key = getpass("Enter your API key: ")
     # os.environ["OPENAI_API_KEY"] = openai_api_key
-    
+
     """
     You can go to [here](https://platform.dappier.com/profile/api-keys) to get API Key from Dappier with **free** credits.
     """
-    logger.info("You can go to [here](https://platform.dappier.com/profile/api-keys) to get API Key from Dappier with **free** credits.")
-    
+    logger.info(
+        "You can go to [here](https://platform.dappier.com/profile/api-keys) to get API Key from Dappier with **free** credits.")
+
     # dappier_api_key = getpass("Enter your API key: ")
     os.environ["DAPPIER_API_KEY"] = dappier_api_key
-    
+
     """
     ## Setup Dappier Tool
     
     Initialize the Dappier Real-Time Search Tool, convert it to a tool list.
     """
     logger.info("## Setup Dappier Tool")
-    
-    
+
     dappier_tool = DappierRealTimeSearchToolSpec()
-    
+
     dappier_tool_list = dappier_tool.to_tool_list()
     for tool in dappier_tool_list:
         logger.debug(tool.metadata.name)
-    
+
     """
     ## Usage
     
@@ -80,39 +79,40 @@ async def main():
     Access real-time google web search results including the latest news, weather, travel, deals and more.
     """
     logger.info("## Usage")
-    
-    logger.debug(dappier_tool.search_real_time_data("How is the weather in New York today?"))
-    
+
+    logger.debug(dappier_tool.search_real_time_data(
+        "How is the weather in New York today?"))
+
     """
     ### Search Stock Market Data
     
     Access real-time financial news, stock prices, and trades from polygon.io, with AI-powered insights and up-to-the-minute updates to keep you informed on all your financial interests.
     """
     logger.info("### Search Stock Market Data")
-    
-    logger.debug(dappier_tool.search_stock_market_data("latest financial news on Meta"))
-    
+
+    logger.debug(dappier_tool.search_stock_market_data(
+        "latest financial news on Meta"))
+
     """
     ### Using the Dappier Real Time Search tool in an Agent
     
     We can create an agent with access to the Dappier Real Time Search tool start testing it out:
     """
     logger.info("### Using the Dappier Real Time Search tool in an Agent")
-    
-    
+
     agent = FunctionAgent(
         tools=dappier_tool_list,
-        llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
+        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
     )
-    
+
     logger.debug(
         await agent.run(
             "Analyze next week's weather in New York and provide daily clothing recommendations in a markdown format."
         )
     )
-    
+
     logger.debug(await agent.run("Last 24-hour activity of apple stock"))
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

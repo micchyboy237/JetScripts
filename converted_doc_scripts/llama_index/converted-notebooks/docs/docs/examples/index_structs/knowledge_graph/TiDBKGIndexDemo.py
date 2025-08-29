@@ -3,9 +3,9 @@ from IPython.display import Markdown, display
 from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
 from llama_index.core import (
-KnowledgeGraphIndex,
-SimpleDirectoryReader,
-StorageContext,
+    KnowledgeGraphIndex,
+    SimpleDirectoryReader,
+    StorageContext,
 )
 from llama_index.core import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
@@ -41,10 +41,9 @@ logger.info("# TiDB Graph Store")
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 Settings.llm = llm
 Settings.chunk_size = 512
-
 
 
 logging.basicConfig(

@@ -41,7 +41,7 @@ loader = PyMuPDFReader()
 documents = loader.load(file_path="./data/llama2.pdf")
 
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 node_parser = SentenceSplitter(chunk_size=1024)
 
 nodes = node_parser.get_nodes_from_documents(documents)
@@ -59,7 +59,7 @@ query_engine = index.as_query_engine(llm=llm)
 # We define the functions that we will use for dataset generation:
 
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 # We define `generate_answers_for_questions` to generate answers from questions given context.
 
@@ -246,7 +246,7 @@ def run_correctness_eval(
 # Now let's try running this on some sample inputs with a chat model (GPT-4).
 
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 query_str = (
     "What is the specific name given to the fine-tuned LLMs optimized for"

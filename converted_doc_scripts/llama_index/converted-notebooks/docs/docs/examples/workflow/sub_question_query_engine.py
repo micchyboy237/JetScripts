@@ -239,7 +239,7 @@ async def main():
 
     engine = SubQuestionQueryEngine(timeout=120, verbose=True)
     llm = OllamaFunctionCallingAdapter(
-        model="llama3.2", request_timeout=300.0, context_window=4096)
+        model="llama3.2")
     result = await engine.run(
         llm=llm,
         tools=query_engine_tools,

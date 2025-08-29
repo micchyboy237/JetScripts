@@ -11,10 +11,10 @@ from llama_index.core.response.notebook_utils import display_source_node
 from llama_index.core.retrievers import QueryFusionRetriever
 from llama_index.core.storage.docstore import SimpleDocumentStore
 from llama_index.core.vector_stores.types import (
-MetadataFilters,
-MetadataFilter,
-FilterOperator,
-FilterCondition,
+    MetadataFilters,
+    MetadataFilter,
+    FilterOperator,
+    FilterCondition,
 )
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.retrievers.bm25 import BM25Retriever
@@ -54,8 +54,9 @@ logger.info("# BM25 Retriever")
 # os.environ["OPENAI_API_KEY"] = "sk-proj-..."
 
 
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
-Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 """
 ## Download Data
@@ -73,7 +74,8 @@ We first show how to convert a Document into a set of Nodes, and insert into a D
 logger.info("## Load Data")
 
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
 
 
 splitter = SentenceSplitter(chunk_size=512)
@@ -143,7 +145,6 @@ documents = [
 ]
 
 
-
 splitter = SentenceSplitter(chunk_size=512)
 nodes = splitter.get_nodes_from_documents(documents)
 
@@ -161,7 +162,6 @@ filters = MetadataFilters(
     ],
     condition=FilterCondition.AND,
 )
-
 
 
 retrieved_nodes = BM25Retriever.from_defaults(

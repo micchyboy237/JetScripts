@@ -127,7 +127,7 @@ for wiki_title in wiki_titles:
     ]
 
     function_llm = Ollama(
-        model="llama3.2", request_timeout=300.0, context_window=4096)
+        model="llama3.2")
     agent = OllamaAgent.from_tools(
         query_engine_tools,
         llm=function_llm,

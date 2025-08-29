@@ -1,10 +1,10 @@
 from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
 from llama_index.core import (
-TreeIndex,
-VectorStoreIndex,
-SimpleDirectoryReader,
-Response,
+    TreeIndex,
+    VectorStoreIndex,
+    SimpleDirectoryReader,
+    Response,
 )
 from llama_index.core.evaluation import EvaluationResult
 from llama_index.core.evaluation import RelevancyEvaluator
@@ -41,9 +41,9 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
 pd.set_option("display.max_colwidth", 0)
 
-gpt3 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+gpt3 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
 evaluator = RelevancyEvaluator(llm=gpt3)
 evaluator_gpt4 = RelevancyEvaluator(llm=gpt4)
@@ -54,7 +54,6 @@ splitter = SentenceSplitter(chunk_size=512)
 vector_index = VectorStoreIndex.from_documents(
     documents, transformations=[splitter]
 )
-
 
 
 def display_eval_df(
@@ -78,6 +77,7 @@ def display_eval_df(
         subset=["Response", "Source"]
     )
     display(eval_df)
+
 
 """
 ### Evaluate Response
@@ -123,7 +123,6 @@ Evaluate the set of returned sources, and determine which sources actually conta
 logger.info("### Evaluate Source Nodes")
 
 
-
 def display_eval_sources(
     query: str, response: Response, eval_result: List[str]
 ) -> None:
@@ -144,6 +143,7 @@ def display_eval_sources(
     )
 
     display(eval_df)
+
 
 query_str = "What are the airports in New York City?"
 query_engine = vector_index.as_query_engine(

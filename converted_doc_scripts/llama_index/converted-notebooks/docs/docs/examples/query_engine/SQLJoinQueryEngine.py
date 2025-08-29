@@ -12,14 +12,14 @@ from llama_index.core.tools import ToolMetadata
 from llama_index.core.vector_stores import MetadataInfo, VectorStoreInfo
 from llama_index.readers.wikipedia import WikipediaReader
 from sqlalchemy import (
-create_engine,
-MetaData,
-Table,
-Column,
-String,
-Integer,
-select,
-column,
+    create_engine,
+    MetaData,
+    Table,
+    Column,
+    String,
+    Integer,
+    select,
+    column,
 )
 from sqlalchemy import insert
 import logging
@@ -76,8 +76,6 @@ This includes a `ServiceContext` object containing abstractions such as the LLM 
 This also includes a `StorageContext` object containing our vector store abstractions.
 """
 logger.info("### Create Common Objects")
-
-
 
 
 """
@@ -151,14 +149,13 @@ sql_database = SQLDatabase(engine, include_tables=["city_stats"])
 logger.info("### Build Vector Index")
 
 
-
 vector_indices = {}
 vector_query_engines = {}
 
 for city, wiki_doc in zip(cities, wiki_docs):
     vector_index = VectorStoreIndex.from_documents([wiki_doc])
     query_engine = vector_index.as_query_engine(
-        similarity_top_k=2, llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+        similarity_top_k=2, llm=OllamaFunctionCallingAdapter(model="llama3.2")
     )
     vector_indices[city] = vector_index
     vector_query_engines[city] = query_engine
@@ -189,7 +186,8 @@ for city in cities:
 
 
 s_engine = SubQuestionQueryEngine.from_defaults(
-    query_engine_tools=query_engine_tools, llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+    query_engine_tools=query_engine_tools, llm=OllamaFunctionCallingAdapter(
+        model="llama3.2")
 )
 
 
@@ -215,7 +213,7 @@ logger.info("### Define SQLJoinQueryEngine")
 
 
 query_engine = SQLJoinQueryEngine(
-    sql_tool, s_engine_tool, llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+    sql_tool, s_engine_tool, llm=OllamaFunctionCallingAdapter(model="llama3.2")
 )
 
 response = query_engine.query(

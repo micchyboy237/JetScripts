@@ -36,14 +36,14 @@ This notebook has to do with fine-tuning an LLM Judge that evaluates the respons
 
 More specifically, we will use `CorrectnessEvaluator` as our LLM Judge.
 """
-logger.info("# Knowledge Distillation For Fine-Tuning A GPT-3.5 Judge (Correctness)")
+logger.info(
+    "# Knowledge Distillation For Fine-Tuning A GPT-3.5 Judge (Correctness)")
 
 # %pip install llama-index-readers-wikipedia
 # %pip install llama-index-finetuning
 # %pip install llama-index-llms-ollama
 # %pip install llama-index-finetuning-callbacks
 # %pip install llama-index-llms-huggingface-api
-
 
 
 # import nest_asyncio
@@ -87,7 +87,8 @@ Now that we have our train and test set of `Document`'s, the next step is to gen
 
 #### Generate Questions
 """
-logger.info("### Use a `DatasetGenerator` to build `train_dataset` and `test_dataset`")
+logger.info(
+    "### Use a `DatasetGenerator` to build `train_dataset` and `test_dataset`")
 
 QUESTION_GEN_PROMPT = (
     "You are a Teacher/ Professor. Your task is to setup "
@@ -97,7 +98,8 @@ QUESTION_GEN_PROMPT = (
 )
 
 
-gpt_35_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
+gpt_35_llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 
 dataset_generator = DatasetGenerator.from_documents(
     documents,
@@ -180,11 +182,11 @@ gpt4_judge = CorrectnessEvaluator(llm=gpt_4_llm)
 
 for data_entry in tqdm.tqdm(train_dataset):
     eval_result = gpt4_judge.evaluate(
-            query=data_entry["question"],
-            response=data_entry["response_data"]["text"],
-            context=data_entry["response_data"]["context"],
-            reference=data_entry["reference"],
-        )
+        query=data_entry["question"],
+        response=data_entry["response_data"]["text"],
+        context=data_entry["response_data"]["context"],
+        reference=data_entry["reference"],
+    )
     logger.success(format_json(eval_result))
 
     judgement = {}
@@ -237,11 +239,11 @@ for q, a in tqdm.tqdm(qrd.qr_pairs[num_train_questions:]):
 
 for data_entry in tqdm.tqdm(test_dataset):
     eval_result = gpt4_judge.evaluate(
-            query=data_entry["question"],
-            response=data_entry["response_data"]["text"],
-            context=data_entry["response_data"]["context"],
-            reference=data_entry["reference"],
-        )
+        query=data_entry["question"],
+        response=data_entry["response_data"]["text"],
+        context=data_entry["response_data"]["context"],
+        reference=data_entry["reference"],
+    )
     logger.success(format_json(eval_result))
 
     judgement = {}
@@ -257,11 +259,11 @@ ft_gpt_3p5_judge = CorrectnessEvaluator(llm=ft_llm)
 
 for data_entry in tqdm.tqdm(test_dataset):
     eval_result = ft_gpt_3p5_judge.evaluate(
-            query=data_entry["question"],
-            response=data_entry["response_data"]["text"],
-            context=data_entry["response_data"]["context"],
-            reference=data_entry["reference"],
-        )
+        query=data_entry["question"],
+        response=data_entry["response_data"]["text"],
+        context=data_entry["response_data"]["context"],
+        reference=data_entry["reference"],
+    )
     logger.success(format_json(eval_result))
 
     judgement = {}
@@ -270,17 +272,17 @@ for data_entry in tqdm.tqdm(test_dataset):
     judgement["text"] = eval_result.response
     data_entry["evaluations"] += [judgement]
 
-gpt_3p5_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+gpt_3p5_llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 gpt_3p5_judge = CorrectnessEvaluator(llm=gpt_3p5_llm)
 
 for data_entry in tqdm.tqdm(test_dataset):
     eval_result = gpt_3p5_judge.evaluate(
-            query=data_entry["question"],
-            response=data_entry["response_data"]["text"],
-            context=data_entry["response_data"]["context"],
-            reference=data_entry["reference"],
-        )
+        query=data_entry["question"],
+        response=data_entry["response_data"]["text"],
+        context=data_entry["response_data"]["context"],
+        reference=data_entry["reference"],
+    )
     logger.success(format_json(eval_result))
 
     judgement = {}

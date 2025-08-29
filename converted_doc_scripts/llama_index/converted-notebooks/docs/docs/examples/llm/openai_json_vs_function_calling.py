@@ -32,13 +32,14 @@ In this notebook, we explore the tradeoff between the latest [JSON Mode](https:/
 
 We'll start by generating some synthetic data for our data extraction task. Let's ask our LLM for a hypothetical sales transcript.
 """
-logger.info("# OllamaFunctionCallingAdapter JSON Mode vs. Function Calling for Data Extraction")
+logger.info(
+    "# OllamaFunctionCallingAdapter JSON Mode vs. Function Calling for Data Extraction")
 
 # %pip install llama-index-llms-ollama
 # %pip install llama-index-program-openai
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 response = llm.complete(
     "Generate a sales call transcript, use real names, talk about a product, discuss some action items"
 )
@@ -54,7 +55,6 @@ Let's specify our desired output "shape", as a Pydantic Model.
 logger.info("### Setup our desired schema")
 
 
-
 class CallSummary(BaseModel):
     """Data model for a call summary."""
 
@@ -67,6 +67,7 @@ class CallSummary(BaseModel):
     rep_name: str = Field(description="Name of the sales rep")
     prospect_name: str = Field(description="Name of the prospect")
     action_items: List[str] = Field(description="List of action items")
+
 
 """
 ### Data extraction with function calling
@@ -159,7 +160,8 @@ logger.debug(output)
 """
 Let's try again by just showing the JSON format we want, instead of specifying the schema
 """
-logger.info("Let's try again by just showing the JSON format we want, instead of specifying the schema")
+logger.info(
+    "Let's try again by just showing the JSON format we want, instead of specifying the schema")
 
 
 prompt = ChatPromptTemplate(
@@ -205,7 +207,8 @@ output = llm.chat(
 """
 Now we are able to get the extracted structured data as we expected.
 """
-logger.info("Now we are able to get the extracted structured data as we expected.")
+logger.info(
+    "Now we are able to get the extracted structured data as we expected.")
 
 logger.debug(output)
 

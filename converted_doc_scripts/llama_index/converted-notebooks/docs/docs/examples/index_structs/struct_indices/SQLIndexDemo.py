@@ -6,12 +6,12 @@ from llama_index.core import SQLDatabase
 from llama_index.core import VectorStoreIndex
 from llama_index.core.embeddings.openai import HuggingFaceEmbedding
 from llama_index.core.indices.struct_store.sql_query import (
-SQLTableRetrieverQueryEngine,
+    SQLTableRetrieverQueryEngine,
 )
 from llama_index.core.objects import (
-SQLTableNodeMapping,
-ObjectIndex,
-SQLTableSchema,
+    SQLTableNodeMapping,
+    ObjectIndex,
+    SQLTableSchema,
 )
 from llama_index.core.query_engine import NLSQLTableQueryEngine
 from llama_index.core.query_engine import RetrieverQueryEngine
@@ -19,13 +19,13 @@ from llama_index.core.response.notebook_utils import display_source_node
 from llama_index.core.retrievers import NLSQLRetriever
 from llama_index.core.schema import TextNode
 from sqlalchemy import (
-create_engine,
-MetaData,
-Table,
-Column,
-String,
-Integer,
-select,
+    create_engine,
+    MetaData,
+    Table,
+    Column,
+    String,
+    Integer,
+    select,
 )
 from sqlalchemy import insert
 from sqlalchemy import text
@@ -67,8 +67,6 @@ logger.info("# Text-to-SQL Guide (Query Engine + Retriever)")
 # os.environ["OPENAI_API_KEY"] = "sk-.."
 
 
-
-
 """
 ### Create Database Schema
 
@@ -98,7 +96,7 @@ We first define our `SQLDatabase` abstraction (a light wrapper around SQLAlchemy
 logger.info("### Define SQL Database")
 
 
-llm = OllamaFunctionCallingAdapter(temperature=0.1, model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(temperature=0.1, model="llama3.2")
 
 sql_database = SQLDatabase(engine, include_tables=["city_stats"])
 
@@ -200,7 +198,8 @@ obj_index = ObjectIndex.from_objects(
     table_schema_objs,
     table_node_mapping,
     VectorStoreIndex,
-    embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
+    embed_model=HuggingFaceEmbedding(
+        model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
 )
 query_engine = SQLTableRetrieverQueryEngine(
     sql_database, obj_index.as_retriever(similarity_top_k=1)
@@ -209,7 +208,8 @@ query_engine = SQLTableRetrieverQueryEngine(
 """
 Now we can take our SQLTableRetrieverQueryEngine and query it for our response.
 """
-logger.info("Now we can take our SQLTableRetrieverQueryEngine and query it for our response.")
+logger.info(
+    "Now we can take our SQLTableRetrieverQueryEngine and query it for our response.")
 
 response = query_engine.query("Which city has the highest population?")
 display(Markdown(f"<b>{response}</b>"))
@@ -219,7 +219,8 @@ response.metadata["result"]
 """
 You can also add additional context information for each table schema you define.
 """
-logger.info("You can also add additional context information for each table schema you define.")
+logger.info(
+    "You can also add additional context information for each table schema you define.")
 
 city_stats_text = (
     "This table gives information regarding the population and country of a"
@@ -250,7 +251,8 @@ with engine.connect() as connection:
 city_nodes = [TextNode(text=str(t)) for t in results]
 
 city_rows_index = VectorStoreIndex(
-    city_nodes, embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+    city_nodes, embed_model=HuggingFaceEmbedding(
+        model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 )
 city_rows_retriever = city_rows_index.as_retriever(similarity_top_k=1)
 
@@ -259,7 +261,8 @@ city_rows_retriever.retrieve("US")
 """
 Then, the rows retriever of each table can be provided to the SQLTableRetrieverQueryEngine.
 """
-logger.info("Then, the rows retriever of each table can be provided to the SQLTableRetrieverQueryEngine.")
+logger.info(
+    "Then, the rows retriever of each table can be provided to the SQLTableRetrieverQueryEngine.")
 
 rows_retrievers = {
     "city_stats": city_rows_retriever,
@@ -296,7 +299,8 @@ for column_name in ["city_name", "country"]:
     nodes = [TextNode(text=t[0]) for t in values]
 
     column_index = VectorStoreIndex(
-        nodes, embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+        nodes, embed_model=HuggingFaceEmbedding(
+            model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
     )
     column_retriever = column_index.as_retriever(similarity_top_k=1)
 
@@ -305,7 +309,8 @@ for column_name in ["city_name", "country"]:
 """
 Then, columns retrievers of each table can be provided to the SQLTableRetrieverQueryEngine.
 """
-logger.info("Then, columns retrievers of each table can be provided to the SQLTableRetrieverQueryEngine.")
+logger.info(
+    "Then, columns retrievers of each table can be provided to the SQLTableRetrieverQueryEngine.")
 
 cols_retrievers = {
     "city_stats": city_cols_retrievers,

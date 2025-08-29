@@ -5,7 +5,7 @@ from llama_index.core import Settings
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.postprocessor.flag_embedding_reranker import (
-FlagEmbeddingReranker,
+    FlagEmbeddingReranker,
 )
 from time import time
 import os
@@ -48,10 +48,11 @@ logger.info("Download Data")
 # OPENAI_API_KEY = "sk-"
 # os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
 
 
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
 Settings.embed_model = HuggingFaceEmbedding(
     model_name="BAAI/bge-small-en-v1.5"
 )

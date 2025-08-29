@@ -5,18 +5,18 @@ async def main():
     from jet.logger import CustomLogger
     from llama_index.core.base.response.schema import Response
     from llama_index.core.indices.struct_store.sql_retriever import (
-    DefaultSQLParser,
+        DefaultSQLParser,
     )
     from llama_index.core.prompts import PromptTemplate
     from llama_index.core.prompts.default_prompts import DEFAULT_JSONALYZE_PROMPT
     from llama_index.core.prompts.prompt_type import PromptType
     from llama_index.core.utils import print_text
     from llama_index.core.workflow import (
-    Context,
-    Workflow,
-    StartEvent,
-    StopEvent,
-    step,
+        Context,
+        Workflow,
+        StartEvent,
+        StopEvent,
+        step,
     )
     from llama_index.core.workflow import Event
     from typing import Dict, List, Any
@@ -24,15 +24,14 @@ async def main():
     import os
     import shutil
     import sqlite_utils
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/workflow/JSONalyze_query_engine.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
@@ -47,12 +46,11 @@ async def main():
     Specifically we will implement [JSONalyzeQueryEngine](https://github.com/run-llama/llama_index/blob/main/docs/docs/examples/query_engine/JSONalyze_query_engine.ipynb).
     """
     logger.info("# JSONalyze Query Engine")
-    
+
     # !pip install -U llama-index
-    
-    
+
     # os.environ["OPENAI_API_KEY"] = "sk-..."
-    
+
     """
     Since workflows are async first, this all runs fine in a notebook. If you were running in your own code, you would want to use `asyncio.run()` to start an async event loop if one isn't already running.
     
@@ -80,31 +78,28 @@ async def main():
     ## Define Event
     """
     logger.info("## The Workflow")
-    
-    
-    
+
     class JsonAnalyzerEvent(Event):
         """
         Event containing results of JSON analysis.
-    
+
         Attributes:
             sql_query (str): The generated SQL query.
             table_schema (Dict[str, Any]): Schema of the analyzed table.
             results (List[Dict[str, Any]]): Query execution results.
         """
-    
+
         sql_query: str
         table_schema: Dict[str, Any]
         results: List[Dict[str, Any]]
-    
+
     """
     ## Prompt Templates
     
     Here we define default `DEFAULT_RESPONSE_SYNTHESIS_PROMPT_TMPL`, `DEFAULT_RESPONSE_SYNTHESIS_PROMPT` and `DEFAULT_TABLE_NAME`.
     """
     logger.info("## Prompt Templates")
-    
-    
+
     DEFAULT_RESPONSE_SYNTHESIS_PROMPT_TMPL = (
         "Given a query, synthesize a response based on SQL query results"
         " to satisfy the query. Only include details that are relevant to"
@@ -115,14 +110,14 @@ async def main():
         "Query: {query_str}\n"
         "Response: "
     )
-    
+
     DEFAULT_RESPONSE_SYNTHESIS_PROMPT = PromptTemplate(
         DEFAULT_RESPONSE_SYNTHESIS_PROMPT_TMPL,
         prompt_type=PromptType.SQL_RESPONSE_SYNTHESIS,
     )
-    
+
     DEFAULT_TABLE_NAME = "items"
-    
+
     """
     ### The Workflow Itself
     
@@ -131,12 +126,7 @@ async def main():
     Note that the workflow automatically validates itself using type annotations, so the type annotations on our steps are very helpful!
     """
     logger.info("### The Workflow Itself")
-    
-    
-    
-    
-    
-    
+
     class JSONAnalyzeQueryEngineWorkflow(Workflow):
         @step
         async def jsonalyzer(
@@ -144,18 +134,18 @@ async def main():
         ) -> JsonAnalyzerEvent:
             """
             Analyze JSON data using a SQL-like query approach.
-    
+
             This asynchronous method sets up an in-memory SQLite database, loads JSON data,
             generates a SQL query based on a natural language question, executes the query,
             and returns the results.
-    
+
             Args:
                 ctx (Context): The context object for storing data during execution.
                 ev (StartEvent): The event object containing input parameters.
-    
+
             Returns:
                 JsonAnalyzerEvent: An event object containing the SQL query, table schema, and query results.
-    
+
             The method performs the following steps:
             1. Imports the required 'sqlite-utils' package.
             2. Extracts necessary data from the input event.
@@ -163,7 +153,7 @@ async def main():
             4. Generates a SQL query using a LLM based on the input question.
             5. Executes the SQL query and retrieves the results.
             6. Returns the results along with the SQL query and table schema.
-    
+
             Note:
                 This method requires the 'sqlite-utils' package to be installed.
             """
@@ -173,17 +163,17 @@ async def main():
                     "sqlite-utils is needed to use this Query Engine:\n"
                     "pip install sqlite-utils"
                 )
-    
+
                 raise ImportError(IMPORT_ERROR_MSG) from exc
-    
+
             await ctx.store.set("query", ev.get("query"))
             await ctx.store.set("llm", ev.get("llm"))
-    
+
             query = ev.get("query")
             table_name = ev.get("table_name")
             list_of_dict = ev.get("list_of_dict")
             prompt = DEFAULT_JSONALYZE_PROMPT
-    
+
             db = sqlite_utils.Database(memory=True)
             try:
                 db[ev.table_name].insert_all(list_of_dict)
@@ -193,31 +183,32 @@ async def main():
                 )
                 print_text("[{col1: val1, col2: val2, ...}, ...]")
                 raise ValueError("Invalid list_of_dict") from exc
-    
+
             table_schema = db[table_name].columns_dict
-    
+
             response_str = ev.llm.predict(
-                    prompt=prompt,
-                    table_name=table_name,
-                    table_schema=table_schema,
-                    question=query,
-                )
+                prompt=prompt,
+                table_name=table_name,
+                table_schema=table_schema,
+                question=query,
+            )
             logger.success(format_json(response_str))
-    
+
             sql_parser = DefaultSQLParser()
-    
-            sql_query = sql_parser.parse_response_to_sql(response_str, ev.query)
-    
+
+            sql_query = sql_parser.parse_response_to_sql(
+                response_str, ev.query)
+
             try:
                 results = list(db.query(sql_query))
             except sqlite_utils.utils.sqlite3.OperationalError as exc:
                 print_text(f"Error executing query: {sql_query}")
                 raise ValueError("Invalid query") from exc
-    
+
             return JsonAnalyzerEvent(
                 sql_query=sql_query, table_schema=table_schema, results=results
             )
-    
+
         @step
         async def synthesize(
             self, ctx: Context, ev: JsonAnalyzerEvent
@@ -227,7 +218,7 @@ async def main():
             logger.success(format_json(llm))
             query = await ctx.store.get("query", default=None)
             logger.success(format_json(query))
-    
+
             response_str = llm.predict(
                 DEFAULT_RESPONSE_SYNTHESIS_PROMPT,
                 sql_query=ev.sql_query,
@@ -235,21 +226,22 @@ async def main():
                 sql_response=ev.results,
                 query_str=query,
             )
-    
+
             response_metadata = {
                 "sql_query": ev.sql_query,
                 "table_schema": str(ev.table_schema),
             }
-    
-            response = Response(response=response_str, metadata=response_metadata)
-    
+
+            response = Response(response=response_str,
+                                metadata=response_metadata)
+
             return StopEvent(result=response)
-    
+
     """
     ## Create Json List
     """
     logger.info("## Create Json List")
-    
+
     json_list = [
         {
             "name": "John Doe",
@@ -444,81 +436,81 @@ async def main():
             "occupation": "Political Analyst",
         },
     ]
-    
+
     """
     ## Define LLM
     """
     logger.info("## Define LLM")
-    
-    llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
-    
+
+    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+
     """
     ### Run the Workflow!
     """
     logger.info("### Run the Workflow!")
-    
+
     w = JSONAnalyzeQueryEngineWorkflow()
-    
+
     query = "What is the maximum age among the individuals?"
-    
+
     result = await w.run(
-            query=query, list_of_dict=json_list, llm=llm, table_name=DEFAULT_TABLE_NAME
-        )
+        query=query, list_of_dict=json_list, llm=llm, table_name=DEFAULT_TABLE_NAME
+    )
     logger.success(format_json(result))
-    
+
     display(
         Markdown("> Question: {}".format(query)),
         Markdown("Answer: {}".format(result)),
     )
-    
+
     query = "How many individuals have an occupation related to science or engineering?"
-    
+
     result = await w.run(
-            query=query, list_of_dict=json_list, llm=llm, table_name=DEFAULT_TABLE_NAME
-        )
+        query=query, list_of_dict=json_list, llm=llm, table_name=DEFAULT_TABLE_NAME
+    )
     logger.success(format_json(result))
-    
+
     display(
         Markdown("> Question: {}".format(query)),
         Markdown("Answer: {}".format(result)),
     )
-    
+
     query = "How many individuals have a phone number starting with '+1 234'?"
-    
+
     result = await w.run(
-            query=query, list_of_dict=json_list, llm=llm, table_name=DEFAULT_TABLE_NAME
-        )
+        query=query, list_of_dict=json_list, llm=llm, table_name=DEFAULT_TABLE_NAME
+    )
     logger.success(format_json(result))
-    
+
     display(
         Markdown("> Question: {}".format(query)),
         Markdown("Answer: {}".format(result)),
     )
-    
+
     query = "What is the percentage of individuals residing in California (CA)?"
-    
+
     result = await w.run(
-            query=query, list_of_dict=json_list, llm=llm, table_name=DEFAULT_TABLE_NAME
-        )
+        query=query, list_of_dict=json_list, llm=llm, table_name=DEFAULT_TABLE_NAME
+    )
     logger.success(format_json(result))
-    
+
     display(
         Markdown("> Question: {}".format(query)),
         Markdown("Answer: {}".format(result)),
     )
-    
+
     query = "How many individuals have a major in Psychology?"
-    
+
     result = await w.run(
-            query=query, list_of_dict=json_list, llm=llm, table_name=DEFAULT_TABLE_NAME
-        )
+        query=query, list_of_dict=json_list, llm=llm, table_name=DEFAULT_TABLE_NAME
+    )
     logger.success(format_json(result))
-    
+
     display(
         Markdown("> Question: {}".format(query)),
         Markdown("Answer: {}".format(result)),
     )
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

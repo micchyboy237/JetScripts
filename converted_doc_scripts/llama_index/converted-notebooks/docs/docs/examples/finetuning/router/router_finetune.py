@@ -11,8 +11,8 @@ from llama_index.core.evaluation import EmbeddingQAFinetuneDataset
 from llama_index.core.node_parser import SimpleNodeParser
 from llama_index.core.query_engine import RouterQueryEngine
 from llama_index.core.selectors import (
-EmbeddingSingleSelector,
-LLMSingleSelector,
+    EmbeddingSingleSelector,
+    LLMSingleSelector,
 )
 from llama_index.core.tools import QueryEngineTool
 from llama_index.finetuning import SentenceTransformersFinetuneEngine
@@ -59,7 +59,8 @@ logger.info("# Router Fine-tuning")
 """
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
-logger.info("If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.")
+logger.info(
+    "If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.")
 
 # !pip install llama-index
 
@@ -80,7 +81,6 @@ wiki_titles = [
     "Berlin",
     "Lisbon",
 ]
-
 
 
 for title in wiki_titles:
@@ -112,7 +112,8 @@ for wiki_title in wiki_titles:
     ).load_data()
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 
 city_descs_dict = {}
 choices = []
@@ -158,7 +159,6 @@ Base Question: {base_question}
 Question Variations:
 """
 summary_q_prompt = PromptTemplate(summary_q_tmpl)
-
 
 
 def generate_dataset(
@@ -217,6 +217,7 @@ def generate_dataset(
         queries=queries, corpus=corpus, relevant_docs=relevant_docs
     )
 
+
 dataset = generate_dataset(
     wiki_titles,
     city_descs_dict,
@@ -227,11 +228,9 @@ dataset = generate_dataset(
 )
 
 
-
 dataset.save_json("dataset.json")
 
 dataset = EmbeddingQAFinetuneDataset.from_json("dataset.json")
-
 
 
 def split_train_val_by_query(dataset, split=0.7):
@@ -261,6 +260,7 @@ def split_train_val_by_query(dataset, split=0.7):
         relevant_docs=eval_rel_docs,
     )
     return train_dataset, eval_dataset
+
 
 train_dataset, eval_dataset = split_train_val_by_query(dataset, split=0.7)
 
@@ -307,7 +307,6 @@ base_selector = EmbeddingSingleSelector.from_defaults(
 )
 
 
-
 def run_evals(eval_dataset, selector, choices, choice_to_id_dict):
     eval_pairs = eval_dataset.query_docid_pairs
     matches = []
@@ -317,6 +316,7 @@ def run_evals(eval_dataset, selector, choices, choice_to_id_dict):
         gt_doc_id = relevant_doc_ids[0]
         matches.append(gt_doc_id == pred_doc_id)
     return np.array(matches)
+
 
 ft_matches = run_evals(eval_dataset, ft_selector, choices, choice_to_id_dict)
 
@@ -329,7 +329,7 @@ base_matches = run_evals(
 np.mean(base_matches)
 
 
-eval_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+eval_llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 llm_selector = LLMSingleSelector.from_defaults(
     llm=eval_llm,

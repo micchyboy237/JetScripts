@@ -101,7 +101,7 @@ async def main():
         doc, position_percentiles, context_str, query, llm, response_mode="compact"
     ):
         eval_llm = OllamaFunctionCallingAdapter(
-            model="llama3.2", request_timeout=300.0, context_window=4096)
+            model="llama3.2")
 
         correctness_evaluator = CorrectnessEvaluator(llm=eval_llm)
         eval_scores = {}
@@ -135,7 +135,7 @@ async def main():
                             0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
     llm = OllamaFunctionCallingAdapter(
-        model="llama3.2", request_timeout=300.0, context_window=4096)
+        model="llama3.2")
 
     eval_scores_gpt4 = await run_experiments(
         [uber_doc],
@@ -148,7 +148,7 @@ async def main():
     logger.success(format_json(eval_scores_gpt4))
 
     llm = OllamaFunctionCallingAdapter(
-        model="llama3.2", request_timeout=300.0, context_window=4096)
+        model="llama3.2")
     eval_scores_gpt4_ts = await run_experiments(
         [uber_doc],
         position_percentiles,

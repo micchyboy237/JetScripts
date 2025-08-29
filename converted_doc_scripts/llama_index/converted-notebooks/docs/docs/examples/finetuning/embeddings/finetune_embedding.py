@@ -114,13 +114,13 @@ logger.info("### Generate synthetic queries")
 
 train_dataset = generate_qa_embedding_pairs(
     llm=OllamaFunctionCallingAdapter(
-        model="llama3.2", request_timeout=300.0, context_window=4096),
+        model="llama3.2"),
     nodes=train_nodes,
     output_path="train_dataset.json",
 )
 val_dataset = generate_qa_embedding_pairs(
     llm=OllamaFunctionCallingAdapter(
-        model="llama3.2", request_timeout=300.0, context_window=4096),
+        model="llama3.2"),
     nodes=val_nodes,
     output_path="val_dataset.json",
 )

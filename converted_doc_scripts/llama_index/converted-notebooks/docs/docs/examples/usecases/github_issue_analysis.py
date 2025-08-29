@@ -5,8 +5,8 @@ async def main():
     from llama_index.core.async_utils import batch_gather
     from llama_index.program.openai import OllamaFunctionCallingAdapterPydanticProgram
     from llama_index.readers.github import (
-    GitHubRepositoryIssuesReader,
-    GitHubIssuesClient,
+        GitHubRepositoryIssuesReader,
+        GitHubIssuesClient,
     )
     from pydantic import BaseModel
     from tqdm.asyncio import asyncio
@@ -14,15 +14,14 @@ async def main():
     import os
     import pickle
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     # Github Issue Analysis
     
@@ -34,21 +33,18 @@ async def main():
     See [llama-hub](https://llama-hub-ui.vercel.app/l/github_repo_issues) for more details about the loader.
     """
     logger.info("# Github Issue Analysis")
-    
+
     # %pip install llama-index-readers-github
     # %pip install llama-index-llms-ollama
     # %pip install llama-index-program-openai
-    
-    
+
     os.environ["GITHUB_TOKEN"] = "<your github token>"
-    
+
     """
     ## Load Github Issue tickets
     """
     logger.info("## Load Github Issue tickets")
-    
-    
-    
+
     github_client = GitHubIssuesClient()
     loader = GitHubRepositoryIssuesReader(
         github_client,
@@ -56,29 +52,26 @@ async def main():
         repo="llama_index",
         verbose=True,
     )
-    
+
     docs = loader.load_data()
-    
+
     """
     Quick inspection
     """
     logger.info("Quick inspection")
-    
+
     docs[10].text
-    
+
     docs[10].metadata
-    
+
     """
     ## Extract themes
     """
     logger.info("## Extract themes")
-    
+
     # %load_ext autoreload
     # %autoreload 2
-    
-    
-    
-    
+
     prompt_template_str = """\
     Here is a Github Issue ticket.
     
@@ -86,42 +79,41 @@ async def main():
     
     Please extract central themes and output a list of tags.\
     """
-    
+
     class TagList(BaseModel):
         """A list of tags corresponding to central themes of an issue."""
-    
+
         tags: List[str]
-    
+
     program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
         prompt_template_str=prompt_template_str,
         output_cls=TagList,
     )
-    
+
     tasks = [program.acall(ticket=doc) for doc in docs]
-    
+
     output = await batch_gather(tasks, batch_size=10, verbose=True)
     logger.success(format_json(output))
-    
+
     """
     ## [Optional] Save/Load Extracted Themes
     """
     logger.info("## [Optional] Save/Load Extracted Themes")
-    
-    
+
     with open("github_issue_analysis_data.pkl", "wb") as f:
         pickle.dump(tag_lists, f)
-    
+
     with open("github_issue_analysis_data.pkl", "rb") as f:
         tag_lists = pickle.load(f)
         logger.debug(f"Loaded tag lists for {len(tag_lists)} tickets")
-    
+
     """
     ## Summarize Themes
     
     Build prompt
     """
     logger.info("## Summarize Themes")
-    
+
     prompt = """
     Here is a list of central themes (in the form of tags) extracted from a list of Github Issue tickets.
     Tags for each ticket is separated by 2 newlines.
@@ -130,22 +122,22 @@ async def main():
     
     Please summarize the key takeaways and what we should prioritize to fix.
     """
-    
+
     tag_lists_str = "\n\n".join([str(tag_list) for tag_list in tag_lists])
-    
+
     prompt = prompt.format(tag_lists_str=tag_lists_str)
-    
+
     """
     Summarize with GPT-4
     """
     logger.info("Summarize with GPT-4")
-    
-    
-    response = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096).stream_complete(prompt)
-    
+
+    response = OllamaFunctionCallingAdapter(
+        model="llama3.2").stream_complete(prompt)
+
     for r in response:
         logger.debug(r.delta, end="")
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

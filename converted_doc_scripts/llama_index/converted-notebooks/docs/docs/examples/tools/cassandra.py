@@ -5,20 +5,19 @@ async def main():
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.tools.cassandra.base import CassandraDatabaseToolSpec
     from llama_index.tools.cassandra.cassandra_database_wrapper import (
-    CassandraDatabase,
+        CassandraDatabase,
     )
     import cassio
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     # Cassandra Database Tools
     
@@ -126,38 +125,33 @@ async def main():
     (You may also modify the below code to directly connect with `cassio`.)
     """
     logger.info("# Cassandra Database Tools")
-    
-    
+
     load_dotenv(override=True)
-    
-    
-    
-    
-    
+
     """
     ## Connect to a Cassandra Database
     """
     logger.info("## Connect to a Cassandra Database")
-    
+
     cassio.init(auto=True)
-    
+
     session = cassio.config.resolve_session()
     if not session:
         raise Exception(
             "Check environment configuration or manually configure cassio connection parameters"
         )
-    
+
     session = cassio.config.resolve_session()
-    
+
     session.execute("""DROP KEYSPACE IF EXISTS llamaindex_agent_test; """)
-    
+
     session.execute(
         """
     CREATE KEYSPACE if not exists llamaindex_agent_test
     WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
     """
     )
-    
+
     session.execute(
         """
         CREATE TABLE IF NOT EXISTS llamaindex_agent_test.user_credentials (
@@ -167,7 +161,7 @@ async def main():
     );
     """
     )
-    
+
     session.execute(
         """
         CREATE TABLE IF NOT EXISTS llamaindex_agent_test.users (
@@ -176,7 +170,7 @@ async def main():
         email TEXT
     );"""
     )
-    
+
     session.execute(
         """
         CREATE TABLE IF NOT EXISTS llamaindex_agent_test.user_videos (
@@ -188,57 +182,57 @@ async def main():
     );
     """
     )
-    
+
     user_id = "522b1fe2-2e36-4cef-a667-cd4237d08b89"
     video_id = "27066014-bad7-9f58-5a30-f63fe03718f6"
-    
+
     session.execute(
         f"""
         INSERT INTO llamaindex_agent_test.user_credentials (user_id, user_email)
         VALUES ({user_id}, 'patrick@datastax.com');
     """
     )
-    
+
     session.execute(
         f"""
         INSERT INTO llamaindex_agent_test.users (id, name, email)
         VALUES ({user_id}, 'Patrick McFadin', 'patrick@datastax.com');
     """
     )
-    
+
     session.execute(
         f"""
         INSERT INTO llamaindex_agent_test.user_videos (user_id, video_id, title)
         VALUES ({user_id}, {video_id}, 'Use Langflow to Build an LLM Application in 5 Minutes');
     """
     )
-    
+
     session.set_keyspace("llamaindex_agent_test")
-    
+
     db = CassandraDatabase()
-    
+
     spec = CassandraDatabaseToolSpec(db=db)
-    
+
     tools = spec.to_tool_list()
     for tool in tools:
         logger.debug(tool.metadata.name)
         logger.debug(tool.metadata.description)
         logger.debug(tool.metadata.fn_schema)
-    
-    llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
-    
+
+    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+
     agent = FunctionAgent(tools=tools, llm=llm)
-    
+
     """
     ### Invoking the agent with tools
     We've created an agent that uses an LLM for reasoning and communication with a tool list for actions, Now we can simply ask questions of the agent and watch it utilize the tools we've given it.
     """
     logger.info("### Invoking the agent with tools")
-    
+
     await agent.run("What tables are in the keyspace llamaindex_agent_test?")
     await agent.run("What is the userid for patrick@datastax.com ?")
     await agent.run("What videos did user patrick@datastax.com upload?")
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

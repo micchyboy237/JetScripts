@@ -3,8 +3,8 @@ from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctio
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.evaluation import (
-generate_question_context_pairs,
-EmbeddingQAFinetuneDataset,
+    generate_question_context_pairs,
+    EmbeddingQAFinetuneDataset,
 )
 from llama_index.core.evaluation import RetrieverEvaluator
 from llama_index.core.evaluation import generate_question_context_pairs
@@ -87,7 +87,8 @@ logger.info("## Download Data")
 """
 logger.info("## Load Data")
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 
 """
 ## Create Nodes
@@ -105,7 +106,7 @@ for idx, node in enumerate(nodes):
 """
 logger.info("## Create retrievers for different embedding types")
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 
 def cohere_embedding(
@@ -133,6 +134,7 @@ def retriver(nodes, embedding_type="float", model_name="embed-english-v3.0"):
         ),
     )
     return retriever
+
 
 retriver_float = retriver(nodes)
 
@@ -164,7 +166,8 @@ We use our `generate_question_context_pairs` to generate a set of (question, con
 
 We get back a `EmbeddingQAFinetuneDataset` object. At a high-level this contains a set of ids mapping to queries and relevant doc chunks, as well as the corpus itself.
 """
-logger.info("## Evaluation dataset - Synthetic Dataset Generation of (query, context) pairs")
+logger.info(
+    "## Evaluation dataset - Synthetic Dataset Generation of (query, context) pairs")
 
 
 qa_dataset = generate_question_context_pairs(
@@ -213,30 +216,30 @@ eval_result = retriever_evaluator_float.evaluate(sample_query, sample_expected)
 logger.debug(eval_result)
 
 eval_results_float = retriever_evaluator_float.evaluate_dataset(
-        qa_dataset
-    )
+    qa_dataset
+)
 logger.success(format_json(eval_results_float))
 
 eval_results_int8 = retriever_evaluator_int8.evaluate_dataset(
-        qa_dataset
-    )
+    qa_dataset
+)
 logger.success(format_json(eval_results_int8))
 
 eval_results_binary = retriever_evaluator_binary.evaluate_dataset(
-        qa_dataset
-    )
+    qa_dataset
+)
 logger.success(format_json(eval_results_binary))
 
 eval_results_ubinary = retriever_evaluator_ubinary.evaluate_dataset(
-        qa_dataset
-    )
+    qa_dataset
+)
 logger.success(format_json(eval_results_ubinary))
 
 """
 #### Define `display_results` to get the display the results in dataframe with each retriever.
 """
-logger.info("#### Define `display_results` to get the display the results in dataframe with each retriever.")
-
+logger.info(
+    "#### Define `display_results` to get the display the results in dataframe with each retriever.")
 
 
 def display_results(name, eval_results):
@@ -256,6 +259,7 @@ def display_results(name, eval_results):
     metric_df = pd.DataFrame(columns)
 
     return metric_df
+
 
 """
 ## Evaluation Results

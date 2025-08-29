@@ -5,15 +5,14 @@ async def main():
     from llama_index.tools.vectara_query.base import VectaraQueryToolSpec
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/llama-index-integrations/tools/llama-index-tools-vectara-query/examples/vectara_query.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
@@ -34,23 +33,21 @@ async def main():
     To initialize the tool, provide your Vectara information and any query parameters that you want to adjust, such as the reranker, summarizer prompt, etc. To see the entire list of parameters, see the [VectaraQueryToolSpec class definition](https://github.com/run-llama/llama_index/blob/05828d6d099e78df51c76b8c98aa3ecbd45162ec/llama-index-integrations/tools/llama-index-tools-vectara-query/llama_index/tools/vectara_query/base.py#L11).
     """
     logger.info("## Vectara Query Tool")
-    
-    
+
     tool_spec = VectaraQueryToolSpec()
-    
+
     """
     After initializing the tool spec, we can provide it to our agent. For this notebook, we will use the OllamaFunctionCallingAdapter Agent, but our tool can be used with any type of agent. You will need your own OllamaFunctionCallingAdapter API key to run this notebook.
     """
     logger.info("After initializing the tool spec, we can provide it to our agent. For this notebook, we will use the OllamaFunctionCallingAdapter Agent, but our tool can be used with any type of agent. You will need your own OllamaFunctionCallingAdapter API key to run this notebook.")
-    
-    
+
     agent = FunctionAgent(
         tools=tool_spec.to_tool_list(),
-        llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
+        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
     )
-    
+
     logger.debug(await agent.run("What are the different types of electric vehicles?"))
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

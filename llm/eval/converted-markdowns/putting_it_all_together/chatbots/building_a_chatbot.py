@@ -83,7 +83,7 @@ individual_query_engine_tools = [
 
 query_engine = SubQuestionQueryEngine.from_defaults(
     query_engine_tools=individual_query_engine_tools,
-    llm=Ollama(model="llama3.2", request_timeout=300.0, context_window=4096),
+    llm=Ollama(model="llama3.2"),
 )
 
 query_engine_tool = QueryEngineTool(

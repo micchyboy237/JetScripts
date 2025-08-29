@@ -28,7 +28,6 @@ logger.info("# RAGatouille Retriever Llama Pack")
 # %pip install llama-index-packs-ragatouille-retriever
 
 
-
 """
 ## Load Documents
 
@@ -49,7 +48,7 @@ logger.info("## Create Pack")
 
 index_name = "my_index"
 ragatouille_pack = RAGatouilleRetrieverPack(
-    docs, llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096), index_name=index_name, top_k=5
+    docs, llm=OllamaFunctionCallingAdapter(model="llama3.2"), index_name=index_name, top_k=5
 )
 
 """
@@ -61,7 +60,8 @@ logger.info("## Try out Pack")
 
 
 retriever = ragatouille_pack.get_modules()["retriever"]
-nodes = retriever.retrieve("How does ColBERTv2 compare with other BERT models?")
+nodes = retriever.retrieve(
+    "How does ColBERTv2 compare with other BERT models?")
 
 for node in nodes:
     display_source_node(node)
@@ -72,7 +72,8 @@ results = RAG.search(
 )
 results
 
-response = ragatouille_pack.run("How does ColBERTv2 compare with other BERT models?")
+response = ragatouille_pack.run(
+    "How does ColBERTv2 compare with other BERT models?")
 logger.debug(str(response))
 
 logger.info("\n\n[DONE]", bright=True)

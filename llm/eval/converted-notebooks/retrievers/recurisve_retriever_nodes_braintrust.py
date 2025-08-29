@@ -80,7 +80,7 @@ for idx, node in enumerate(base_nodes):
 
 
 embed_model = resolve_embed_model("local:BAAI/bge-small-en")
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 # Baseline Retriever
 #
@@ -201,7 +201,7 @@ for idx, d in enumerate(metadata_dicts):
 all_nodes_dict = {n.node_id: n for n in all_nodes}
 
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 vector_index_metadata = VectorStoreIndex(all_nodes)
 

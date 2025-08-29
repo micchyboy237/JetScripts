@@ -63,12 +63,11 @@ graph_store = FalkorDBGraphStore(
 logger.info("#### Building the Knowledge Graph")
 
 
-
 documents = SimpleDirectoryReader(
     "../../../../examples/paul_graham_essay/data"
 ).load_data()
 
-llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 Settings.llm = llm
 Settings.chunk_size = 512
 

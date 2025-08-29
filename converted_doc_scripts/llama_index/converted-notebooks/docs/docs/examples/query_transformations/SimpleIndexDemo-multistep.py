@@ -3,7 +3,7 @@ from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctio
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.indices.query.query_transform.base import (
-StepDecomposeQueryTransform,
+    StepDecomposeQueryTransform,
 )
 from llama_index.core.query_engine import MultiStepQueryEngine
 import os
@@ -50,11 +50,12 @@ logger.info("#### Load documents, build the VectorStoreIndex")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-gpt35 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+gpt35 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 
 index = VectorStoreIndex.from_documents(documents)
 

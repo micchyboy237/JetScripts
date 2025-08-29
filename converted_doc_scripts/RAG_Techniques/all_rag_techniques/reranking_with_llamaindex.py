@@ -17,7 +17,8 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -90,14 +91,12 @@ logger.info("# Reranking Methods in RAG Systems")
 # !pip install faiss-cpu llama-index python-dotenv
 
 
-
-
 load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
-EMBED_DIMENSION=512
-Settings.llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+EMBED_DIMENSION = 512
+Settings.llm = Ollama(model="llama3.2")
 Settings.embed_model = OllamaEmbedding(model_name="mxbai-embed-large")
 
 """
@@ -157,7 +156,8 @@ query_engine_w_llm_rerank = index.as_query_engine(
     ],
 )
 
-resp = query_engine_w_llm_rerank.query("What are the impacts of climate change on biodiversity?")
+resp = query_engine_w_llm_rerank.query(
+    "What are the impacts of climate change on biodiversity?")
 logger.debug(resp)
 
 """
@@ -179,14 +179,14 @@ def compare_rag_techniques(query: str, docs: List[Document] = docs) -> None:
     docs = [Document(text=sentence) for sentence in chunks]
     index = VectorStoreIndex.from_documents(docs)
 
-
     logger.debug("Comparison of Retrieval Techniques")
     logger.debug("==================================")
     logger.debug(f"Query: {query}\n")
 
     logger.debug("Baseline Retrieval Result:")
     baseline_docs = index.as_retriever(similarity_top_k=5).retrieve(query)
-    for i, doc in enumerate(baseline_docs[:2]): # Get only the first two retrieved docs
+    # Get only the first two retrieved docs
+    for i, doc in enumerate(baseline_docs[:2]):
         logger.debug(f"\nDocument {i+1}:")
         logger.debug(doc.text)
 
@@ -195,9 +195,9 @@ def compare_rag_techniques(query: str, docs: List[Document] = docs) -> None:
         top_n=2,
     )
     advanced_docs = reranker.postprocess_nodes(
-            baseline_docs,
-            QueryBundle(query)
-        )
+        baseline_docs,
+        QueryBundle(query)
+    )
     for i, doc in enumerate(advanced_docs):
         logger.debug(f"\nDocument {i+1}:")
         logger.debug(doc.text)
@@ -228,7 +228,8 @@ query_engine_w_cross_encoder = index.as_query_engine(
     ],
 )
 
-resp = query_engine_w_cross_encoder.query("What are the impacts of climate change on biodiversity?")
+resp = query_engine_w_cross_encoder.query(
+    "What are the impacts of climate change on biodiversity?")
 logger.debug(resp)
 
 logger.info("\n\n[DONE]", bright=True)

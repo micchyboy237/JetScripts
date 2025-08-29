@@ -6,15 +6,14 @@ async def main():
     from pydantic import BaseModel, Field
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     # Agents with Structured Outputs
     
@@ -23,43 +22,38 @@ async def main():
     Let's first install the needed dependencies
     """
     logger.info("# Agents with Structured Outputs")
-    
+
     # ! pip install llama-index
-    
+
     # from getpass import getpass
-    
+
     # os.environ["OPENAI_API_KEY"] = getpass()
-    
+
     """
     Let's now define our structured output format
     """
     logger.info("Let's now define our structured output format")
-    
-    
-    
+
     class MathResult(BaseModel):
-        operation: str = Field(description="The operation that has been performed")
+        operation: str = Field(
+            description="The operation that has been performed")
         result: int = Field(description="Result of the operation")
-    
+
     """
     And a very simple calculator agent
     """
     logger.info("And a very simple calculator agent")
-    
-    
-    llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
-    
-    
+
+    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+
     def add(x: int, y: int):
         """Add two numbers"""
         return x + y
-    
-    
+
     def multiply(x: int, y: int):
         """Multiply two numbers"""
         return x * y
-    
-    
+
     agent = FunctionAgent(
         llm=llm,
         output_cls=MathResult,
@@ -67,23 +61,23 @@ async def main():
         system_prompt="You are a calculator agent that can add or multiply two numbers by calling tools",
         name="calculator",
     )
-    
+
     """
     Let's now run the agent
     """
     logger.info("Let's now run the agent")
-    
+
     response = await agent.run("What is the result of 10 multiplied by 4?")
     logger.success(format_json(response))
-    
+
     """
     Finally, we can get the structured output
     """
     logger.info("Finally, we can get the structured output")
-    
+
     logger.debug(response.structured_response)
     logger.debug(response.get_pydantic_model(MathResult))
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

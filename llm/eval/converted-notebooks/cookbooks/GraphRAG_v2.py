@@ -82,7 +82,7 @@ documents = [
 # os.environ["OPENAI_API_KEY"] = "sk-.."
 
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 # GraphRAGExtractor
 #

@@ -119,7 +119,7 @@ vector_query_engines = {}
 for city, wiki_doc in zip(cities, wiki_docs):
     vector_index = VectorStoreIndex.from_documents([wiki_doc])
     query_engine = vector_index.as_query_engine(
-        similarity_top_k=2, llm=Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+        similarity_top_k=2, llm=Ollama(model="llama3.2")
     )
     vector_indices[city] = vector_index
     vector_query_engines[city] = query_engine
@@ -150,7 +150,7 @@ for city in cities:
 
 s_engine = SubQuestionQueryEngine.from_defaults(
     query_engine_tools=query_engine_tools, llm=Ollama(
-        model="llama3.2", request_timeout=300.0, context_window=4096)
+        model="llama3.2")
 )
 
 
@@ -176,7 +176,7 @@ s_engine_tool = QueryEngineTool.from_defaults(
 
 query_engine = SQLJoinQueryEngine(
     sql_tool, s_engine_tool, llm=Ollama(
-        model="llama3.1", request_timeout=300.0, context_window=4096)
+        model="llama3.1")
 )
 
 response = query_engine.query(

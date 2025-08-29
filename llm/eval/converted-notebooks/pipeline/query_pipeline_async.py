@@ -51,7 +51,7 @@ documents = reader.load_data()
 # - Query Engines
 
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 chunk_sizes = [128, 256, 512, 1024]
 query_engines = {}
 for chunk_size in chunk_sizes:

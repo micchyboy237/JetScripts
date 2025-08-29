@@ -18,7 +18,8 @@ import os
 import pandas as pd
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -60,7 +61,8 @@ child_splitter = RecursiveCharacterTextSplitter(chunk_size=400)
 
 store = InMemoryStore()
 
-vectorstore = Chroma(collection_name="split_parents", embedding_function=embeddings)
+vectorstore = Chroma(collection_name="split_parents",
+                     embedding_function=embeddings)
 
 """
 ## **Retriever**
@@ -102,7 +104,8 @@ rag_chain = (
     | StrOutputParser()
 )
 
-response = rag_chain.invoke("who played the lead roles in the movie leaving las vegas")
+response = rag_chain.invoke(
+    "who played the lead roles in the movie leaving las vegas")
 response
 
 """
@@ -113,10 +116,12 @@ logger.info("## **Preparing Data for Evaluation**")
 question = ["who played the lead roles in the movie leaving las vegas"]
 response = []
 contexts = []
-ground_truth = ["Nicolas Cage stars as a suicidal alcoholic who has ended his personal and professional life to drink himself to death in Las Vegas ."]
+ground_truth = [
+    "Nicolas Cage stars as a suicidal alcoholic who has ended his personal and professional life to drink himself to death in Las Vegas ."]
 for query in question:
-  response.append(rag_chain.invoke(query))
-  contexts.append([docs.page_content for docs in retriever.get_relevant_documents(query)])
+    response.append(rag_chain.invoke(query))
+    contexts.append(
+        [docs.page_content for docs in retriever.get_relevant_documents(query)])
 
 data = {
     "query": question,
@@ -152,6 +157,6 @@ AthinaApiKey.set_key(os.getenv('ATHINA_API_KEY'))
 
 dataset = Loader().load_dict(df_dict)
 
-RagasContextRecall(model="llama3.1", request_timeout=300.0, context_window=4096).run_batch(data=dataset).to_df()
+RagasContextRecall(model="llama3.1").run_batch(data=dataset).to_df()
 
 logger.info("\n\n[DONE]", bright=True)

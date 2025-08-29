@@ -21,7 +21,8 @@ import asyncio
 import os
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -36,7 +37,7 @@ AI agent frameworks are software platforms designed to simplify the creation, de
 
 These frameworks help developers focus on the unique aspects of their applications by providing standardized approaches to common challenges in AI agent development. They enhance scalability, accessibility, and efficiency in building AI systems.
 
-## Introduction 
+## Introduction
 
 This lesson will cover:
 
@@ -97,7 +98,6 @@ SDKs like Microsoft Semantic Kernel and LangChain offer pre-built components suc
 logger.info("# Explore AI Agent Frameworks")
 
 
-
 chat_history = ChatHistory()
 chat_history.add_user_message("I'd like to go to New York on January 1, 2025")
 
@@ -111,6 +111,7 @@ class BookTravelPlugin:
     ) -> str:
         return f"Travel was booked to {location} on {date}"
 
+
 kernel = Kernel()
 
 kernel.add_plugin(BookTravelPlugin(), plugin_name="book_travel")
@@ -121,7 +122,8 @@ chat_service = AzureChatCompletion(
     endpoint="https://<your-resource>.azure.openai.com/",
 )
 
-request_settings = AzureChatPromptExecutionSettings(function_choice_behavior=FunctionChoiceBehavior.Auto())
+request_settings = AzureChatPromptExecutionSettings(
+    function_choice_behavior=FunctionChoiceBehavior.Auto())
 
 
 async def main():
@@ -168,7 +170,7 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 
-// Semantic Kernel C# example
+// Semantic Kernel C  # example
 
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -184,7 +186,7 @@ kernelBuilder.AddAzureOllamaChatCompletion(
     apiKey: "YOUR_API_KEY",
     endpoint: "YOUR_AZURE_ENDPOINT"
 );
-kernelBuilder.Plugins.AddFromType<BookTravelPlugin>("BookTravel");
+kernelBuilder.Plugins.AddFromType < BookTravelPlugin > ("BookTravel");
 var kernel = kernelBuilder.Build();
 
 var settings = new AzureOllamaPromptExecutionSettings()
@@ -192,7 +194,8 @@ var settings = new AzureOllamaPromptExecutionSettings()
     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
 };
 
-var chatCompletion = kernel.GetRequiredService<IChatCompletionService>();
+var chatCompletion = kernel.GetRequiredService < IChatCompletionService > ();
+
 
 async def run_async_code_63e0836e():
     async def run_async_code_643ca808():
@@ -205,7 +208,7 @@ var response = asyncio.run(run_async_code_63e0836e())
 logger.success(format_json(var response))
 
 /*
-Behind the scenes, the model recognizes the tool to call, what arguments it already has (location) and (date)
+Behind the scenes, the model recognizes the tool to call, what arguments it already has(location) and (date)
 {
 
 "tool_calls": [
@@ -218,7 +221,7 @@ Behind the scenes, the model recognizes the tool to call, what arguments it alre
         }
     }
 ]
-*/
+* /
 
 Console.WriteLine(response.Content);
 chatHistory.AddMessage(response!.Role, response!.Content!);
@@ -230,11 +233,11 @@ public class BookTravelPlugin
 {
     [KernelFunction("book_flight")]
     [Description("Book travel given location and date")]
-    public async Task<string> BookFlight(DateTime date, string location)
+    public async Task < string > BookFlight(DateTime date, string location)
     {
         async def run_async_code_5a0b32ee():
-            return await Task.FromResult( $"Travel was booked to {location} on {date}");
-            return 
+            return await Task.FromResult($"Travel was booked to {location} on {date}");
+            return
          = asyncio.run(run_async_code_5a0b32ee())
         logger.success(format_json())
     }
@@ -273,12 +276,13 @@ termination = TextMentionTermination("APPROVE")
 
 user_proxy = UserProxyAgent("user_proxy", input_func=input)
 
-team = RoundRobinGroupChat([agent_retrieve, agent_analyze, user_proxy], termination_condition=termination)
+team = RoundRobinGroupChat(
+    [agent_retrieve, agent_analyze, user_proxy], termination_condition=termination)
 
 stream = team.run_stream(task="Analyze data", max_turns=10)
 async def run_async_code_71db6073():
     await Console(stream)
-    return 
+    return
  = asyncio.run(run_async_code_71db6073())
 logger.success(format_json())
 
@@ -313,7 +317,7 @@ Here are some important core concepts of AutoGen:
   - **Communicates via messages**, these messages can be synchronous or asynchronous.
   - **Maintains its own state**, which can be modified by incoming messages.
   - **Performs actions** in response to received messages or changes in its state. These actions may modify the agent’s state and produce external effects, such as updating message logs, sending new messages, executing code, or making API calls.
-    
+
   Here you have a short code snippet in which you create your own agent with Chat capabilities:
 
     ```python
@@ -322,25 +326,27 @@ Here are some important core concepts of AutoGen:
     class MyAssistant(RoutedAgent):
         def __init__(self, name: str) -> None:
             super().__init__(name)
-            model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+            model_client = OllamaChatCompletionClient(model="llama3.1")
             self._delegate = AssistantAgent(name, model_client=model_client)
-    
+
         @message_handler
         async def handle_my_message_type(self, message: MyMessageType, ctx: MessageContext) -> None:
             logger.debug(f"{self.id.type} received message: {message.content}")
             response = await self._delegate.on_messages(
-                [TextMessage(content=message.content, source="user")], ctx.cancellation_token
+                [TextMessage(content=message.content, source="user")
+                             ], ctx.cancellation_token
             )
-            logger.debug(f"{self.id.type} responded: {response.chat_message.content}")
+            logger.debug(
+                f"{self.id.type} responded: {response.chat_message.content}")
     ```
-    
+
     In the previous code, `MyAssistant` has been created and inherits from `RoutedAgent`. It has a message handler that prints the content of the message and then sends a response using the `AssistantAgent` delegate. Especially note how we assign to `self._delegate` an instance of `AssistantAgent` which is a pre-built agent that can handle chat completions.
 
 
     Let's let AutoGen know about this agent type and kick off the program next:
 
     ```python
-    
+
     # main.py
     runtime = SingleThreadedAgentRuntime()
     await MyAgent.register(runtime, "my_agent", lambda: MyAgent())
@@ -384,15 +390,16 @@ Here are some important core concepts of AutoGen:
     runtime,
     "group_chat_manager",
     lambda: GroupChatManager(
-        participant_topic_types=[writer_topic_type, illustrator_topic_type, editor_topic_type, user_topic_type],
+        participant_topic_types=[
+            writer_topic_type, illustrator_topic_type, editor_topic_type, user_topic_type],
         model_client=OllamaChatCompletionClient(
             model="llama3.1", request_timeout=300.0, context_window=4096,
             # api_key="YOUR_API_KEY",
         ),
         participant_descriptions=[
-            writer_description, 
-            illustrator_description, 
-            editor_description, 
+            writer_description,
+            illustrator_description,
+            editor_description,
             user_description
         ],
         ),
@@ -403,14 +410,14 @@ Here are some important core concepts of AutoGen:
 
 - **Agent Runtime**. The framework provides a runtime environment, enabling communication between agents, manages their identities and lifecycles, and enforce security and privacy boundaries. This means that you can run your agents in a secure and controlled environment, ensuring that they can interact safely and efficiently. There are two runtimes of interest:
   - **Stand-alone runtime**. This is a good choice for single-process applications where all agents are implemented in the same programming language and run in the same process. Here's an illustration of how it works:
-  
-    <a href="https://microsoft.github.io/autogen/stable/_images/architecture-standalone.svg" target="_blank">Stand-alone runtime</a>   
+
+    <a href="https://microsoft.github.io/autogen/stable/_images/architecture-standalone.svg" target="_blank">Stand-alone runtime</a>
 Application stack
 
     *agents communicate via messages through the runtime, and the runtime manages the lifecycle of agents*
 
   - **Distributed agent runtime**, is suitable for multi-process applications where agents may be implemented in different programming languages and running on different machines. Here's an illustration of how it works:
-  
+
     <a href="https://microsoft.github.io/autogen/stable/_images/architecture-distributed.svg" target="_blank">Distributed runtime</a>
 
 ## Semantic Kernel + Agent Framework
@@ -419,7 +426,8 @@ Semantic Kernel is an enterprise-ready AI Orchestration SDK. It consists of AI a
 
 Let's first cover some core components:
 
-- **AI Connectors**: This is an interface with external AI services and data sources for use in both Python and C#.
+#.
+- **AI Connectors**: This is an interface with external AI services and data sources for use in both Python and C
 
   ```python
   # Semantic Kernel Python
@@ -432,7 +440,7 @@ Let's first cover some core components:
         endpoint="your-endpoint",
     )
   )
-  ```  
+  ```
 
     ```csharp
     // Semantic Kernel C#
@@ -440,7 +448,7 @@ Let's first cover some core components:
 
     // Create kernel
     var builder = Kernel.CreateBuilder();
-    
+
     // Add a chat completion service:
     builder.Services.AddAzureOllamaChatCompletion(
         "your-resource-name",
@@ -477,10 +485,11 @@ logger.info("### Learn in Real-Time")
       logger.debug(f"Model Response: {response}")
 
       """
-logger.info("response = await kernel_function.invoke(kernel=kernel, user_input=user_input)")
+logger.info(
+    "response = await kernel_function.invoke(kernel=kernel, user_input=user_input)")
       Sample Console Output:
 
-      User Input:> I like dogs
+      User Input: > I like dogs
       Model Response: The text expresses a preference for dogs.
       """
 
@@ -495,7 +504,7 @@ logger.info("response = await kernel_function.invoke(kernel=kernel, user_input=u
     // Define semantic function inline.
     string skPrompt = @"Summarize the provided unstructured text in a sentence that is easy to understand.
                         Text to summarize: {{$userInput}}";
-    
+
     // create the function from the prompt
     KernelFunction summarizeFunc = kernel.CreateFunctionFromPrompt(
         promptTemplate: skPrompt,
@@ -522,7 +531,7 @@ logger.info("response = await kernel_function.invoke(kernel=kernel, user_input=u
             return content.Substring(0, maxSize);
         }
     }
-    
+
     //Import native function
     string plugInName = "NativeFunction";
     string functionName = "RetrieveLocalFile";
@@ -542,15 +551,15 @@ logger.info("response = await kernel_function.invoke(kernel=kernel, user_input=u
         managing the machine learning project lifecycle. Machine learning professionals,
         data scientists, and engineers can use it in their day-to-day workflows"
     );
-    
+
     facts.Add(
         "Azure SQL Service; https://learn.microsoft.com/azure/azure-sql/",
         @"Azure SQL is a family of managed, secure, and intelligent products
         that use the SQL Server database engine in the Azure cloud."
     );
-    
+
     string memoryCollectionName = "SummarizedAzureDocs";
-    
+
     foreach (var fact in facts) {
         await memoryBuilder.SaveReferenceAsync(
             collection: memoryCollectionName,
@@ -570,11 +579,12 @@ So that's the basics of the Semantic Kernel framework, what about the Agent Fram
 
 Azure AI Agent Service is a more recent addition, introduced at Microsoft Ignite 2024. It allows for the development and deployment of AI agents with more flexible models, such as directly calling open-source LLMs like Llama 3, Mistral, and Cohere.
 
-Azure AI Agent Service provides stronger enterprise security mechanisms and data storage methods, making it suitable for enterprise applications. 
+Azure AI Agent Service provides stronger enterprise security mechanisms and data storage methods, making it suitable for enterprise applications.
 
 It works out-of-the-box with multi-agent orchestration frameworks like AutoGen and Semantic Kernel.
 
-This service is currently in Public Preview and supports Python and C# for building agents.
+# for building agents.
+This service is currently in Public Preview and supports Python and C
 
 Using Semantic Kernel Python, we can create an Azure AI Agent with a user-defined plugin:
 """
@@ -587,7 +597,7 @@ logger.info("## Azure AI Agent Service")
 class MenuPlugin:
     """A sample Menu Plugin used for the concept sample."""
 
-    @kernel_function(description="Provides a list of specials from the menu.")
+    @ kernel_function(description="Provides a list of specials from the menu.")
     def get_specials(self) -> Annotated[str, "Returns the specials from the menu."]:
         return """
         Special Soup: Clam Chowder
@@ -595,7 +605,7 @@ class MenuPlugin:
         Special Drink: Chai Tea
         """
 
-    @kernel_function(description="Provides the price of the requested menu item.")
+    @ kernel_function(description="Provides the price of the requested menu item.")
     def get_item_price(
         self, menu_item: Annotated[str, "The name of the menu item."]
     ) -> Annotated[str, "Returns the price of the menu item."]:
@@ -614,7 +624,7 @@ async def main() -> None:
             ) as client,
         return result
 
-    result = asyncio.run(async_func_32())
+    result=asyncio.run(async_func_32())
     logger.success(format_json(result))
     ):
         async def async_func_39():
@@ -658,12 +668,12 @@ async def main() -> None:
         finally:
             async def run_async_code_8c2324e7():
                 await thread.delete() if thread else None
-                return 
+                return
              = asyncio.run(run_async_code_8c2324e7())
             logger.success(format_json())
             async def run_async_code_ffa0a0cc():
                 await client.agents.delete_agent(agent.id)
-                return 
+                return
              = asyncio.run(run_async_code_ffa0a0cc())
             logger.success(format_json())
 
@@ -699,10 +709,11 @@ Azure AI Agent Service has the following core concepts:
         role="user",
         content="Could you please create a bar chart for the operating profit using the following data and provide the file to me? Company A: $1.2 million, Company B: $2.5 million, Company C: $3.0 million, Company D: $1.8 million",
     )
-    
+
     # Ask the agent to perform work on the thread
-    run = project_client.agents.create_and_process_run(thread_id=thread.id, agent_id=agent.id)
-    
+    run = project_client.agents.create_and_process_run(
+        thread_id=thread.id, agent_id=agent.id)
+
     # Fetch and log all messages to see the agent's response
     messages = project_client.agents.list_messages(thread_id=thread.id)
     logger.debug(f"Messages: {messages}")
@@ -715,19 +726,19 @@ Azure AI Agent Service has the following core concepts:
 **Use Cases**: Azure AI Agent Service is designed for enterprise applications that require secure, scalable, and flexible AI agent deployment.
 
 ## What's the difference between these frameworks?
- 
+
 It does sound like there is a lot of overlap between these frameworks, but there are some key differences in terms of their design, capabilities, and target use cases:
- 
+
 - **AutoGen**: Is an experimentation framework focused on leading-edge research on multi-agent systems. It is the best place to experiment and prototype sophisticated multi-agent systems.
 - **Semantic Kernel**: Is a production-ready agent library for building enterprise agentic applications. Focuses on event-driven, distributed agentic applications, enabling multiple LLMs and SLMs, tools, and single/multi-agent design patterns.
 - **Azure AI Agent Service**: Is a platform and deployment service in Azure Foundry for agents. It offers building connectivity to services support by Azure Found like Azure Ollama, Azure AI Search, Bing Search and code execution.
- 
+
 Still not sure which one to choose?
 
 ### Use Cases
- 
+
 Let's see if we can help you by going through some common use cases:
- 
+
 > Q: I'm experimenting, learning and building proof-of-concept agent applications, and I want to be able to build and experiment quickly
 >
 
@@ -741,11 +752,11 @@ Let's see if we can help you by going through some common use cases:
 
 >
 > A: Yes, Azure AI Agent Service is a platform service for agents and add built-in capabilities for multiple models, Azure AI Search, Bing Search and Azure Functions. It makes it easy to build your agents in the Foundry Portal and deploy them at scale.
- 
+
 > Q: I'm still confused just give me one option
 >
 > A: A great choice is to build your application in Semantic Kernel first and then use Azure AI Agent Service to deploy your agent. This approach allows you to easily persist your agents while leveraging the power to build multi-agent systems in Semantic Kernel. Additionally, Semantic Kernel has a connector in AutoGen, making it easy to use both frameworks together.
- 
+
 Let's summarize the key differences in a table:
 
 | Framework | Focus | Core Concepts | Use Cases |

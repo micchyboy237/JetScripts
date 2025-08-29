@@ -7,15 +7,14 @@ async def main():
     from llama_index.tools.google import GmailToolSpec
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     # LlamaHub Demostration
     
@@ -34,48 +33,46 @@ async def main():
     **NOTE**: for any module on LlamaHub, to use with `download_` functions, note down the class name.
     """
     logger.info("# LlamaHub Demostration")
-    
+
     # %pip install llama-index-agent-openai
     # %pip install llama-index-readers-web
     # %pip install llama-index-tools-google
-    
-    
+
     reader = SimpleWebPageReader(html_to_text=True)
-    
-    docs = reader.load_data(urls=["https://eugeneyan.com/writing/llm-patterns/"])
-    
+
+    docs = reader.load_data(
+        urls=["https://eugeneyan.com/writing/llm-patterns/"])
+
     logger.debug(docs[0].get_content()[:400])
-    
+
     """
     Now you can plug these docs into your downstream LlamaIndex pipeline.
     """
-    logger.info("Now you can plug these docs into your downstream LlamaIndex pipeline.")
-    
-    
+    logger.info(
+        "Now you can plug these docs into your downstream LlamaIndex pipeline.")
+
     index = VectorStoreIndex.from_documents(docs)
     query_engine = index.as_query_engine()
-    
+
     response = query_engine.query("What are ways to evaluate LLMs?")
     logger.debug(str(response))
-    
+
     """
     ## Using an Agent Tool Spec
     
     In this example we show how to load an agent tool.
     """
     logger.info("## Using an Agent Tool Spec")
-    
-    
+
     tool_spec = GmailToolSpec()
-    
-    
+
     agent = FunctionAgent(
         tools=tool_spec.to_tool_list(),
-        llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
+        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
     )
-    
+
     await agent.run("What is my most recent email")
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

@@ -5,16 +5,16 @@ from llama_index.core import Document
 from llama_index.core import VectorStoreIndex
 from llama_index.core.embeddings import resolve_embed_model
 from llama_index.core.evaluation import (
-RetrieverEvaluator,
-get_retrieval_results_df,
+    RetrieverEvaluator,
+    get_retrieval_results_df,
 )
 from llama_index.core.evaluation import (
-generate_question_context_pairs,
-EmbeddingQAFinetuneDataset,
+    generate_question_context_pairs,
+    EmbeddingQAFinetuneDataset,
 )
 from llama_index.core.extractors import (
-SummaryExtractor,
-QuestionsAnsweredExtractor,
+    SummaryExtractor,
+    QuestionsAnsweredExtractor,
 )
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.query_engine import RetrieverQueryEngine
@@ -62,7 +62,8 @@ logger.info("# Recursive Retriever + Node References")
 """
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
-logger.info("If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.")
+logger.info(
+    "If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.")
 
 # !pip install llama-index pypdf
 
@@ -79,7 +80,8 @@ logger.info("## Load Data + Setup")
 # from llama_index.readers.file import PDFReader
 
 # loader = PDFReader()
-docs0 = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+docs0 = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 
 
 doc_text = "\n\n".join([d.get_content() for d in docs0])
@@ -94,7 +96,7 @@ for idx, node in enumerate(base_nodes):
 
 
 embed_model = resolve_embed_model("local:BAAI/bge-small-en")
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 """
 ## Baseline Retriever
@@ -127,7 +129,8 @@ In this usage example, we show how to build a graph of smaller chunks pointing t
 
 During query-time, we retrieve smaller chunks, but we follow references to bigger chunks. This allows us to have more context for synthesis.
 """
-logger.info("## Chunk References: Smaller Child Chunks Referring to Bigger Parent Chunk")
+logger.info(
+    "## Chunk References: Smaller Child Chunks Referring to Bigger Parent Chunk")
 
 sub_chunk_sizes = [128, 256, 512]
 sub_node_parsers = [
@@ -181,7 +184,8 @@ This additional context includes summaries as well as generated questions.
 
 During query-time, we retrieve smaller chunks, but we follow references to bigger chunks. This allows us to have more context for synthesis.
 """
-logger.info("## Metadata References: Summaries + Generated Questions referring to a bigger chunk")
+logger.info(
+    "## Metadata References: Summaries + Generated Questions referring to a bigger chunk")
 
 # import nest_asyncio
 
@@ -202,6 +206,7 @@ for extractor in extractors:
         else:
             node_to_metadata[node.node_id].update(metadata)
 
+
 def save_metadata_dicts(path, data):
     with open(path, "w") as fp:
         json.dump(data, fp)
@@ -211,6 +216,7 @@ def load_metadata_dicts(path):
     with open(path, "r") as fp:
         data = json.load(fp)
     return data
+
 
 save_metadata_dicts("data/llama2_metadata_dicts.json", node_to_metadata)
 
@@ -225,7 +231,7 @@ for node_id, metadata in node_to_metadata.items():
 all_nodes_dict = {n.node_id: n for n in all_nodes}
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 vector_index_metadata = VectorStoreIndex(all_nodes)
 
@@ -276,7 +282,7 @@ logger.info("## Evaluation")
 # nest_asyncio.apply()
 
 eval_dataset = generate_question_context_pairs(
-    base_nodes, OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+    base_nodes, OllamaFunctionCallingAdapter(model="llama3.2")
 )
 
 eval_dataset.save_json("data/llama2_eval_dataset.json")
@@ -320,6 +326,7 @@ def display_results(names, results_arr):
     )
     display(final_df)
 
+
 vector_retriever_chunk = vector_index_chunk.as_retriever(
     similarity_top_k=top_k
 )
@@ -333,8 +340,8 @@ retriever_evaluator = RetrieverEvaluator.from_metric_names(
     ["mrr", "hit_rate"], retriever=retriever_chunk
 )
 results_chunk = retriever_evaluator.evaluate_dataset(
-        eval_dataset, show_progress=True
-    )
+    eval_dataset, show_progress=True
+)
 logger.success(format_json(results_chunk))
 
 vector_retriever_metadata = vector_index_metadata.as_retriever(
@@ -350,8 +357,8 @@ retriever_evaluator = RetrieverEvaluator.from_metric_names(
     ["mrr", "hit_rate"], retriever=retriever_metadata
 )
 results_metadata = retriever_evaluator.evaluate_dataset(
-        eval_dataset, show_progress=True
-    )
+    eval_dataset, show_progress=True
+)
 logger.success(format_json(results_metadata))
 
 base_retriever = base_index.as_retriever(similarity_top_k=top_k)
@@ -359,8 +366,8 @@ retriever_evaluator = RetrieverEvaluator.from_metric_names(
     ["mrr", "hit_rate"], retriever=base_retriever
 )
 results_base = retriever_evaluator.evaluate_dataset(
-        eval_dataset, show_progress=True
-    )
+    eval_dataset, show_progress=True
+)
 logger.success(format_json(results_base))
 
 full_results_df = get_retrieval_results_df(

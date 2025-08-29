@@ -86,7 +86,7 @@ async def aprocess_doc(doc, include_summary: bool = True):
     query_str = "Give a one-sentence concise summary of this issue."
     query_engine = summary_index.as_query_engine(
         service_context=ServiceContext.from_defaults(llm=Ollama(
-            model="llama3.2", request_timeout=300.0, context_window=4096))
+            model="llama3.2"))
     )
     summary_txt = str(query_engine.query(query_str))
 

@@ -95,12 +95,12 @@ async def main():
 
     judges["answer_relevancy"] = AnswerRelevancyEvaluator(
         llm=OllamaFunctionCallingAdapter(
-            temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096),
+            temperature=0, model="llama3.2"),
     )
 
     judges["context_relevancy"] = ContextRelevancyEvaluator(
         llm=OllamaFunctionCallingAdapter(
-            temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096),
+            temperature=0, model="llama3.2"),
     )
 
     """

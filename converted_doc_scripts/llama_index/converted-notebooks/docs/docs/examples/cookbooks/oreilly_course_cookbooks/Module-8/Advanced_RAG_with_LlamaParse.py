@@ -6,7 +6,7 @@ from llama_index.core import VectorStoreIndex
 from llama_index.core.node_parser import MarkdownElementNodeParser
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.postprocessor.flag_embedding_reranker import (
-FlagEmbeddingReranker,
+    FlagEmbeddingReranker,
 )
 from llama_parse import LlamaParse
 import os
@@ -66,8 +66,9 @@ os.environ["LLAMA_CLOUD_API_KEY"] = "llx-..."
 logger.info("#### Setting LLM and Embedding Model")
 
 
-embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+embed_model = HuggingFaceEmbedding(
+    model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 Settings.llm = llm
 Settings.embed_model = embed_model
@@ -91,7 +92,7 @@ logger.debug(documents[0].text[:1000] + "...")
 
 
 node_parser = MarkdownElementNodeParser(
-    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096), num_workers=8
+    llm=OllamaFunctionCallingAdapter(model="llama3.2"), num_workers=8
 )
 
 nodes = node_parser.get_nodes_from_documents(documents)

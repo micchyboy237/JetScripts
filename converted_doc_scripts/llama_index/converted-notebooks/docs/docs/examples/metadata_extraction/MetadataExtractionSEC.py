@@ -4,18 +4,18 @@ from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
 from llama_index.core.extractors import (
-SummaryExtractor,
-QuestionsAnsweredExtractor,
-TitleExtractor,
-KeywordExtractor,
-BaseExtractor,
+    SummaryExtractor,
+    QuestionsAnsweredExtractor,
+    TitleExtractor,
+    KeywordExtractor,
+    BaseExtractor,
 )
 from llama_index.core.ingestion import IngestionPipeline
 from llama_index.core.node_parser import TokenTextSplitter
 from llama_index.core.query_engine import SubQuestionQueryEngine
 from llama_index.core.question_gen import LLMQuestionGenerator
 from llama_index.core.question_gen.prompts import (
-DEFAULT_SUB_QUESTION_PROMPT_TMPL,
+    DEFAULT_SUB_QUESTION_PROMPT_TMPL,
 )
 from llama_index.core.schema import MetadataMode
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
@@ -45,7 +45,8 @@ We do this through our brand-new `Metadata Extractor` modules.
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
-logger.info("# Extracting Metadata for Better Document Indexing and Understanding")
+logger.info(
+    "# Extracting Metadata for Better Document Indexing and Understanding")
 
 # %pip install llama-index-llms-ollama
 # %pip install llama-index-extractors-entity
@@ -60,7 +61,8 @@ logger.info("# Extracting Metadata for Better Document Indexing and Understandin
 # os.environ["OPENAI_API_KEY"] = "YOUR_API_KEY_HERE"
 
 
-llm = OllamaFunctionCallingAdapter(temperature=0.1, model="llama3.2", request_timeout=300.0, context_window=4096, max_tokens=512)
+llm = OllamaFunctionCallingAdapter(
+    temperature=0.1, model="llama3.2", request_timeout=300.0, context_window=4096, max_tokens=512)
 
 """
 We create a node parser that extracts the document title and hypothetical question embeddings relevant to the document chunk.
@@ -102,7 +104,8 @@ transformations = [text_splitter] + extractors
 """
 We first load the 10k annual SEC report for Uber and Lyft for the years 2019 and 2020 respectively.
 """
-logger.info("We first load the 10k annual SEC report for Uber and Lyft for the years 2019 and 2020 respectively.")
+logger.info(
+    "We first load the 10k annual SEC report for Uber and Lyft for the years 2019 and 2020 respectively.")
 
 # !mkdir -p data
 # !wget -O "data/10k-132.pdf" "https://www.dropbox.com/scl/fi/6dlqdk6e2k1mjhi8dee5j/uber.pdf?rlkey=2jyoe49bg2vwdlz30l76czq6g&dl=1"
@@ -140,7 +143,6 @@ Since we are asking fairly sophisticated questions, we utilize a subquestion que
 logger.info("Since we are asking fairly sophisticated questions, we utilize a subquestion query engine for all QnA pipelines below, and prompt it to pay more attention to the relevance of the retrieved sources.")
 
 
-
 question_gen = LLMQuestionGenerator.from_defaults(
     llm=llm,
     prompt_template_str="""
@@ -173,7 +175,7 @@ index_no_metadata = VectorStoreIndex(
     nodes=nodes_no_metadata,
 )
 engine_no_metadata = index_no_metadata.as_query_engine(
-    similarity_top_k=10, llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+    similarity_top_k=10, llm=OllamaFunctionCallingAdapter(model="llama3.2")
 )
 
 final_engine_no_metadata = SubQuestionQueryEngine.from_defaults(
@@ -213,7 +215,8 @@ logger.debug(
 index = VectorStoreIndex(
     nodes=uber_nodes + lyft_nodes,
 )
-engine = index.as_query_engine(similarity_top_k=10, llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096))
+engine = index.as_query_engine(
+    similarity_top_k=10, llm=OllamaFunctionCallingAdapter(model="llama3.2"))
 
 final_engine = SubQuestionQueryEngine.from_defaults(
     query_engine_tools=[

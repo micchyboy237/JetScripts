@@ -44,7 +44,7 @@ Use ChatGPT ("gpt-3.5-turbo")
 logger.info("### Customize LLM")
 
 
-llm = OllamaFunctionCallingAdapter(temperature=0.0, model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(temperature=0.0, model="llama3.2")
 
 
 chat_engine = SimpleChatEngine.from_defaults(llm=llm)
@@ -56,7 +56,7 @@ chat_engine.chat_repl()
 logger.info("## Streaming Support")
 
 
-llm = OllamaFunctionCallingAdapter(temperature=0.0, model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(temperature=0.0, model="llama3.2")
 
 
 chat_engine = SimpleChatEngine.from_defaults(llm=llm)

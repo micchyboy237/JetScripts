@@ -7,37 +7,33 @@ async def main():
     from llama_index.tools.box import BoxSearchToolSpec
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
-    
+
     BOX_DEV_TOKEN = "your_box_dev_token"
-    
+
     config = DeveloperTokenConfig(BOX_DEV_TOKEN)
     auth = BoxDeveloperTokenAuth(config)
     box_client = BoxClient(auth)
-    
+
     # os.environ["OPENAI_API_KEY"] = "your-key"
-    
-    
-    
+
     box_tool_spec = BoxSearchToolSpec(box_client)
-    
+
     agent = FunctionAgent(
         tools=box_tool_spec.to_tool_list(),
-        llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
+        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
     )
-    
+
     answer = await agent.run("search all invoices")
     logger.success(format_json(answer))
     logger.debug(answer)
-    
+
     """
     ```
     I found the following invoices:
@@ -71,7 +67,7 @@ async def main():
     ```
     """
     logger.info("I found the following invoices:")
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

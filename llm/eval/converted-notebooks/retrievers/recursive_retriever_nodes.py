@@ -73,8 +73,8 @@ REQUIRED_EXTS = [
     # ".txt"
 ]
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
-eval_llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
+eval_llm = Ollama(model="llama3.2")
 embed_model = OllamaEmbedding(
     model_name=OLLAMA_LARGE_EMBED_MODEL, base_url=OLLAMA_BASE_EMBED_URL)
 node_parser = SentenceSplitter(

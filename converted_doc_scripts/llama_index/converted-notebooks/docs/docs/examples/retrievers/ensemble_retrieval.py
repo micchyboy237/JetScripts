@@ -117,7 +117,7 @@ async def main():
         "Here we try out different chunk sizes: 128, 256, 512, and 1024.")
 
     llm = OllamaFunctionCallingAdapter(
-        model="llama3.2", request_timeout=300.0, context_window=4096)
+        model="llama3.2")
     chunk_sizes = [128, 256, 512, 1024]
     nodes_list = []
     vector_indices = []
@@ -258,7 +258,7 @@ async def main():
     # nest_asyncio.apply()
 
     eval_llm = OllamaFunctionCallingAdapter(
-        model="llama3.2", request_timeout=300.0, context_window=4096)
+        model="llama3.2")
     dataset_generator = DatasetGenerator(
         nodes_list[-1],
         llm=eval_llm,

@@ -45,8 +45,9 @@ Load data and build index
 logger.info("### Get started in 5 lines of code")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
-data = SimpleDirectoryReader(input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
+data = SimpleDirectoryReader(
+    input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 index = VectorStoreIndex.from_documents(data)
 
 """

@@ -46,7 +46,7 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 logger.info("## Load Data, Build Index")
 
 
-Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 Settings.chunk_size = 512
 
 documents = SimpleDirectoryReader("../../../examples/gatsby/data").load_data()
@@ -61,7 +61,6 @@ index = VectorStoreIndex.from_documents(
 ## Retrieval
 """
 logger.info("## Retrieval")
-
 
 
 pd.set_option("display.max_colwidth", -1)
@@ -100,6 +99,7 @@ def visualize_retrieved_nodes(nodes) -> None:
         result_dicts.append(result_dict)
 
     pretty_logger.debug(pd.DataFrame(result_dicts))
+
 
 new_nodes = get_retrieved_nodes(
     "Who was driving the car that hit Myrtle?",

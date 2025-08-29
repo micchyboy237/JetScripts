@@ -57,9 +57,9 @@ logger.info("## Get started in 5 lines of code")
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 
 
-
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
-data = SimpleDirectoryReader(input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
+data = SimpleDirectoryReader(
+    input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 index = VectorStoreIndex.from_documents(data)
 
 """
@@ -121,9 +121,11 @@ logger.debug(response)
 logger.info("## Streaming Support")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0)
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0)
 Settings.llm = llm
-data = SimpleDirectoryReader(input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+data = SimpleDirectoryReader(
+    input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 index = VectorStoreIndex.from_documents(data)
 
 chat_engine = index.as_chat_engine(

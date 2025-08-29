@@ -9,8 +9,8 @@ from llama_index.core.indices.query.query_transform import HyDEQueryTransform
 from llama_index.core.llms import ChatMessage
 from llama_index.core.question_gen import LLMQuestionGenerator
 from llama_index.core.selectors import (
-PydanticMultiSelector,
-PydanticSingleSelector,
+    PydanticMultiSelector,
+    PydanticSingleSelector,
 )
 from llama_index.core.selectors import LLMSingleSelector, LLMMultiSelector
 from llama_index.core.tools import FunctionTool
@@ -53,13 +53,13 @@ logger.info("# Query Transform Cookbook")
 # %pip install llama-index-llms-ollama
 
 
-
 def display_prompt_dict(prompts_dict):
     for k, p in prompts_dict.items():
         text_md = f"**Prompt Key**: {k}<br>" f"**Text:** <br>"
         display(Markdown(text_md))
         logger.debug(p.get_template())
         display(Markdown("<br><br>"))
+
 
 """
 ## Routing
@@ -126,7 +126,7 @@ Queries:
 """
 query_gen_prompt = PromptTemplate(query_gen_str)
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 
 def generate_queries(query: str, llm, num_queries: int = 4):
@@ -137,6 +137,7 @@ def generate_queries(query: str, llm, num_queries: int = 4):
     queries_str = "\n".join(queries)
     logger.debug(f"Generated queries:\n{queries_str}")
     return queries
+
 
 queries = generate_queries("What happened at Interleaf and Viaweb?", llm)
 
@@ -155,7 +156,7 @@ logger.info("### Query Rewriting (using QueryTransform)")
 
 
 hyde = HyDEQueryTransform(include_original=True)
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 query_bundle = hyde.run("What is Bel?")
 
@@ -177,7 +178,8 @@ logger.info("## Sub-Questions")
 
 
 llm = OllamaFunctionCallingAdapter()
-question_gen = OllamaFunctionCallingAdapterQuestionGenerator.from_defaults(llm=llm)
+question_gen = OllamaFunctionCallingAdapterQuestionGenerator.from_defaults(
+    llm=llm)
 
 display_prompt_dict(question_gen.get_prompts())
 
@@ -237,7 +239,8 @@ tools = [tool1, tool2]
 """
 Here we get the input prompt messages to pass to the LLM. Take a look!
 """
-logger.info("Here we get the input prompt messages to pass to the LLM. Take a look!")
+logger.info(
+    "Here we get the input prompt messages to pass to the LLM. Take a look!")
 
 chat_formatter = ReActChatFormatter()
 output_parser = ReActOutputParser()
@@ -257,7 +260,7 @@ Next we get the output from the model.
 """
 logger.info("Next we get the output from the model.")
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 response = llm.chat(input_msgs)
 

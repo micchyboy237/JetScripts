@@ -62,7 +62,7 @@ documents = SimpleDirectoryReader(
 
 
 Settings.llm = Ollama(
-    model="llama3.2", request_timeout=300.0, context_window=4096)
+    model="llama3.2")
 Settings.chunk_size = 1024
 
 nodes = Settings.node_parser.get_nodes_from_documents(documents)

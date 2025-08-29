@@ -10,49 +10,45 @@ async def main():
     from pyspark.sql.window import Window
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
-    
+
     waii_tool = WaiiToolSpec(
         url="https://tweakit.waii.ai/api/",
         api_key="3........",
         database_key="snowflake://....",
         verbose=True,
     )
-    
-    
-    documents = waii_tool.load_data("Get all tables with their number of columns")
+
+    documents = waii_tool.load_data(
+        "Get all tables with their number of columns")
     index = VectorStoreIndex.from_documents(documents).as_query_engine()
-    
+
     index.query(
         "Which table contains most columns, tell me top 5 tables with number of columns?"
     ).response
-    
-    
+
     agent = FunctionAgent(
-        waii_tool.to_tool_list(), llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
+        waii_tool.to_tool_list(), llm=OllamaFunctionCallingAdapter(model="llama3.2"),
     )
-    
-    
+
     ctx = Context(agent)
-    
+
     logger.debug(await agent.run("Give me top 3 countries with the most number of car factory", ctx=ctx))
     logger.debug(await agent.run("What are the car factories of these countries", ctx=ctx))
-    
+
     logger.debug(
         await agent.run(
             "Give me top 3 longest running queries, include the complete query_id and their duration. And analyze performance of the first query",
             ctx=ctx,
         )
     )
-    
+
     previous_query = """
     SELECT
         employee_id,
@@ -75,9 +71,9 @@ async def main():
     LIMIT 100;
     """
     logger.debug(await agent.run(f"tell me difference between {previous_query} and {current_query}", ctx=ctx))
-    
+
     logger.debug(await agent.run("Summarize the dataset", ctx=ctx))
-    
+
     q = """
     
     spark = SparkSession.builder.appName("yearly_car_analysis").getOrCreate()
@@ -109,7 +105,7 @@ async def main():
     final_result.show()
     """
     logger.debug(await agent.run(f"translate this pyspark query {q}, to Snowflake", ctx=ctx))
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

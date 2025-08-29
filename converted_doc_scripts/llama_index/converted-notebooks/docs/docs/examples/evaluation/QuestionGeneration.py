@@ -49,7 +49,8 @@ Load Data
 """
 logger.info("Load Data")
 
-reader = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/")
+reader = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/")
 documents = reader.load_data()
 
 data_generator = DatasetGenerator.from_documents(documents)
@@ -58,11 +59,12 @@ eval_questions = data_generator.generate_questions_from_nodes()
 
 eval_questions
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
 evaluator_gpt4 = RelevancyEvaluator(llm=gpt4)
 
 vector_index = VectorStoreIndex.from_documents(documents)
+
 
 def display_eval_df(query: str, response: Response, eval_result: str) -> None:
     eval_df = pd.DataFrame(
@@ -84,6 +86,7 @@ def display_eval_df(query: str, response: Response, eval_result: str) -> None:
         subset=["Response", "Source"]
     )
     display(eval_df)
+
 
 query_engine = vector_index.as_query_engine()
 response_vector = query_engine.query(eval_questions[1])

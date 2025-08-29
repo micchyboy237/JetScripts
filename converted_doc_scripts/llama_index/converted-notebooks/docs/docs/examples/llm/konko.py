@@ -74,7 +74,7 @@ logger.info("## Call `chat` with OllamaFunctionCallingAdapter Models")
 
 # os.environ["OPENAI_API_KEY"] = "<your-api-key>"
 
-llm = Konko(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Konko(model="llama3.2")
 
 message = ChatMessage(role="user", content="Explain Big Bang Theory briefly")
 resp = llm.chat([message])

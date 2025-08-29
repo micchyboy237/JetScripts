@@ -60,7 +60,7 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 documents = SimpleDirectoryReader(
     "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 splitter = SentenceSplitter(chunk_size=1024)
 nodes = splitter.get_nodes_from_documents(documents)
 

@@ -115,7 +115,7 @@ for r in resp:
 logger.info("## Configure Model")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 resp = llm.complete("Paul Graham is ")
 
@@ -143,7 +143,7 @@ logger.info("## Image Support")
 # !wget https://cdn.pixabay.com/photo/2016/07/07/16/46/dice-1502706_640.jpg -O image.png
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 messages = [
     ChatMessage(
@@ -166,7 +166,6 @@ OllamaFunctionCallingAdapter has beta support for audio inputs and outputs, usin
 When using these models, you can configure the output modality (text or audio) using the `modalities` parameter. The output audio configuration can also be set using the `audio_config` parameter. See the [OllamaFunctionCallingAdapter docs](https://platform.openai.com/docs/guides/audio) for more information.
 """
 logger.info("## Audio Support")
-
 
 
 llm = OllamaFunctionCallingAdapter(
@@ -193,7 +192,8 @@ Audio(base64.b64decode(resp.message.blocks[0].audio), rate=16000)
 """
 We can also use audio as input and get descriptions or transcriptions of the audio.
 """
-logger.info("We can also use audio as input and get descriptions or transcriptions of the audio.")
+logger.info(
+    "We can also use audio as input and get descriptions or transcriptions of the audio.")
 
 # !wget AUDIO_URL = "https://science.nasa.gov/wp-content/uploads/2024/04/sounds-of-mars-one-small-step-earth.wav" -O audio.wav
 
@@ -226,7 +226,6 @@ OllamaFunctionCallingAdapter models have native support for function calling. Th
 In the example below, we define a function to generate a Song object.
 """
 logger.info("## Using Function/Tool Calling")
-
 
 
 class Song(BaseModel):
@@ -263,14 +262,15 @@ We can also do multiple function calling.
 """
 logger.info("We can also do multiple function calling.")
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 response = llm.predict_and_call(
     [tool],
     "Generate five songs from the Beatles",
     allow_parallel_tool_calls=True,
 )
 for s in response.sources:
-    logger.debug(f"Name: {s.tool_name}, Input: {s.raw_input}, Output: {str(s)}")
+    logger.debug(
+        f"Name: {s.tool_name}, Input: {s.raw_input}, Output: {str(s)}")
 
 """
 ### Manual Tool Calling
@@ -335,7 +335,6 @@ An important use case for function calling is extracting structured objects. Lla
 logger.info("## Structured Prediction")
 
 
-
 class MenuItem(BaseModel):
     """A menu item in a restaurant."""
 
@@ -352,7 +351,7 @@ class Restaurant(BaseModel):
     menu_items: List[MenuItem]
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 prompt_tmpl = PromptTemplate(
     "Generate a restaurant in a given city {city_name}"
 )
@@ -389,7 +388,7 @@ restaurant_obj
 logger.info("## Async")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 resp = llm.complete("Paul Graham is ")
 logger.success(format_json(resp))
@@ -407,7 +406,7 @@ Async function calling is also supported.
 """
 logger.info("Async function calling is also supported.")
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 response = llm.predict_and_call([tool], "Generate a song")
 logger.success(format_json(response))
 logger.debug(str(response))
@@ -419,7 +418,8 @@ If desired, you can have separate LLM instances use separate API keys.
 logger.info("## Set API Key at a per-instance level")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, api_key="BAD_KEY")
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096, api_key="BAD_KEY")
 resp = llm.complete("Paul Graham is ")
 logger.debug(resp)
 
@@ -430,12 +430,14 @@ Rather than adding same parameters to each chat or completion call, you can set 
 logger.info("## Additional kwargs")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, additional_kwargs={"user": "your_user_id"})
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0,
+                                   context_window=4096, additional_kwargs={"user": "your_user_id"})
 resp = llm.complete("Paul Graham is ")
 logger.debug(resp)
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, additional_kwargs={"user": "your_user_id"})
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0,
+                                   context_window=4096, additional_kwargs={"user": "your_user_id"})
 messages = [
     ChatMessage(
         role="system", content="You are a pirate with a colorful personality"
@@ -482,8 +484,9 @@ logger.info("### Create a Pipeline.")
 embedding_config = {
     "type": "OPENAI_EMBEDDING",
     "component": {
-#         "api_key": os.environ["OPENAI_API_KEY"],
-        "model_name": "text-embedding-ada-002",  # You can choose any OllamaFunctionCallingAdapter Embedding model
+        #         "api_key": os.environ["OPENAI_API_KEY"],
+        # You can choose any OllamaFunctionCallingAdapter Embedding model
+        "model_name": "text-embedding-ada-002",
     },
 }
 

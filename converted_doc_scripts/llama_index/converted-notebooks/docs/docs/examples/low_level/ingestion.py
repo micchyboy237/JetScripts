@@ -209,7 +209,7 @@ async def main():
     logger.info("### [Optional] 4. Extract Metadata from each Node")
 
     llm = OllamaFunctionCallingAdapter(
-        model="llama3.2", request_timeout=300.0, context_window=4096)
+        model="llama3.2")
 
     extractors = [
         TitleExtractor(nodes=5, llm=llm),

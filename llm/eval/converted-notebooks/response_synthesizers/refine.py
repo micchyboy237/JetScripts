@@ -47,7 +47,7 @@ text = docs[0].text
 """
 
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 
 summarizer = Refine(llm=llm, verbose=True)

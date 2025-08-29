@@ -90,7 +90,8 @@ example_index_node = [b for b in base_nodes_2021 if isinstance(b, IndexNode)][
 logger.debug(
     f"\n--------\n{example_index_node.get_content(metadata_mode='all')}\n--------\n"
 )
-logger.debug(f"\n--------\nIndex ID: {example_index_node.index_id}\n--------\n")
+logger.debug(
+    f"\n--------\nIndex ID: {example_index_node.index_id}\n--------\n")
 logger.debug(
     f"\n--------\n{node_mappings_2021[example_index_node.index_id].get_content()}\n--------\n"
 )
@@ -154,7 +155,6 @@ This allows us to execute document comparisons against both.
 logger.info("## Try Table Comparisons")
 
 
-
 def create_recursive_retriever_over_doc(docs, nodes_save_path=None):
     """Big function to go from document path -> recursive retriever."""
     node_parser = UnstructuredElementNodeParser()
@@ -180,6 +180,7 @@ def create_recursive_retriever_over_doc(docs, nodes_save_path=None):
     query_engine = RetrieverQueryEngine.from_args(recursive_retriever)
     return query_engine, base_nodes
 
+
 """
 ### Create Sub Question Query Engine
 """
@@ -190,8 +191,7 @@ logger.info("### Create Sub Question Query Engine")
 # nest_asyncio.apply()
 
 
-
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 query_engine_2021, nodes_2021 = create_recursive_retriever_over_doc(
     docs_2021, nodes_save_path="2021_nodes.pkl"

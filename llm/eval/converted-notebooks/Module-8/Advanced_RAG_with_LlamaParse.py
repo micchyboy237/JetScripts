@@ -47,7 +47,7 @@ os.environ["LLAMA_CLOUD_API_KEY"] = "llx-..."
 
 
 embed_model = OllamaEmbedding(model_name="mxbai-embed-large")
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 Settings.llm = llm
 Settings.embed_model = embed_model
@@ -68,7 +68,7 @@ print(documents[0].text[:1000] + "...")
 
 
 node_parser = MarkdownElementNodeParser(
-    llm=Ollama(model="llama3.2", request_timeout=300.0, context_window=4096), num_workers=8
+    llm=Ollama(model="llama3.2"), num_workers=8
 )
 
 nodes = node_parser.get_nodes_from_documents(documents)

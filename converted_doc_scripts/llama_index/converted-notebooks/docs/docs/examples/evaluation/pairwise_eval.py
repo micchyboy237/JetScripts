@@ -43,7 +43,7 @@ Using GPT-4 here for evaluation
 """
 logger.info("Using GPT-4 here for evaluation")
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
 evaluator_gpt4 = PairwiseComparisonEvaluator(llm=gpt4)
 
@@ -61,6 +61,7 @@ vector_index2 = VectorStoreIndex.from_documents(
 
 query_engine1 = vector_index1.as_query_engine(similarity_top_k=2)
 query_engine2 = vector_index2.as_query_engine(similarity_top_k=8)
+
 
 def display_eval_df(query, response1, response2, eval_result) -> None:
     eval_df = pd.DataFrame(
@@ -82,6 +83,7 @@ def display_eval_df(query, response1, response2, eval_result) -> None:
     )
     display(eval_df)
 
+
 """
 To run evaluations you can call the `.evaluate_response()` function on the `Response` object return from the query to run the evaluations. Lets evaluate the outputs of the vector_index.
 """
@@ -99,8 +101,8 @@ We try feeding in the candidate, reference pair, and then swap the order of the 
 logger.info("By default, we enforce "consistency" in the pairwise comparison.")
 
 eval_result = evaluator_gpt4.evaluate(
-        query_str, response=response1, reference=response2
-    )
+    query_str, response=response1, reference=response2
+)
 logger.success(format_json(eval_result))
 
 display_eval_df(query_str, response1, response2, eval_result)
@@ -117,15 +119,15 @@ evaluator_gpt4_nc = PairwiseComparisonEvaluator(
 )
 
 eval_result = evaluator_gpt4_nc.evaluate(
-        query_str, response=response1, reference=response2
-    )
+    query_str, response=response1, reference=response2
+)
 logger.success(format_json(eval_result))
 
 display_eval_df(query_str, response1, response2, eval_result)
 
 eval_result = evaluator_gpt4_nc.evaluate(
-        query_str, response=response2, reference=response1
-    )
+    query_str, response=response2, reference=response1
+)
 logger.success(format_json(eval_result))
 
 display_eval_df(query_str, response2, response1, eval_result)
@@ -140,8 +142,8 @@ response1 = str(query_engine1.query(query_str))
 response2 = str(query_engine2.query(query_str))
 
 eval_result = evaluator_gpt4.evaluate(
-        query_str, response=response1, reference=response2
-    )
+    query_str, response=response1, reference=response2
+)
 logger.success(format_json(eval_result))
 
 display_eval_df(query_str, response1, response2, eval_result)

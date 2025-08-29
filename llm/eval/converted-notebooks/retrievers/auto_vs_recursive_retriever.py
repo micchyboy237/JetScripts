@@ -68,7 +68,7 @@ summaries_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/Jet
 chunk_size = 256
 chunk_overlap = 20
 
-llm = Ollama(model="mistral", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="mistral")
 callback_manager = CallbackManager([LlamaDebugHandler()])
 splitter = SentenceSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 

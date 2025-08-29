@@ -170,7 +170,7 @@ async def main():
         return FunctionAgent(
             tools=tools,
             llm=OllamaFunctionCallingAdapter(
-                model="llama3.2", request_timeout=300.0, context_window=4096),
+                model="llama3.2"),
             system_prompt=system_prompt_template.format(context=context_text),
         )
 

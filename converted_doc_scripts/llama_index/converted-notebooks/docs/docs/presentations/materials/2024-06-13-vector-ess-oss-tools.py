@@ -106,7 +106,7 @@ anthropic_llm = Anthropic(model="claude-3-opus-20240229")
 cohere_llm = Cohere(model="command")
 mistral_llm = MistralAI(model="mistral-large-latest")
 openai_llm = OllamaFunctionCallingAdapter(
-    model="llama3.2", request_timeout=300.0, context_window=4096)
+    model="llama3.2")
 
 start = anthropic_llm.complete(
     "Please start a random story. Limit your response to 20 words."
@@ -417,7 +417,7 @@ response = agent_without_memory.chat(
 logger.info("#### With memory")
 
 llm = OllamaFunctionCallingAdapter(
-    model="llama3.2", request_timeout=300.0, context_window=4096)
+    model="llama3.2")
 
 composable_memory = SimpleComposableMemory.from_defaults(
     primary_memory=ChatMemoryBuffer.from_defaults(),

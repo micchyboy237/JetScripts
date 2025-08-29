@@ -5,10 +5,10 @@ from llama_index.core import SimpleDirectoryReader, get_response_synthesizer
 from llama_index.core import StorageContext
 from llama_index.core import load_index_from_storage
 from llama_index.core.indices.document_summary import (
-DocumentSummaryIndexEmbeddingRetriever,
+    DocumentSummaryIndexEmbeddingRetriever,
 )
 from llama_index.core.indices.document_summary import (
-DocumentSummaryIndexLLMRetriever,
+    DocumentSummaryIndexLLMRetriever,
 )
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.query_engine import RetrieverQueryEngine
@@ -70,7 +70,6 @@ logger.info("### Load Datasets")
 wiki_titles = ["Toronto", "Seattle", "Chicago", "Boston", "Houston"]
 
 
-
 for title in wiki_titles:
     response = requests.get(
         "https://en.wikipedia.org/w/api.php",
@@ -109,7 +108,7 @@ We show two ways of building the index:
 """
 logger.info("### Build Document Summary Index")
 
-chatgpt = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+chatgpt = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 splitter = SentenceSplitter(chunk_size=1024)
 
 response_synthesizer = get_response_synthesizer(

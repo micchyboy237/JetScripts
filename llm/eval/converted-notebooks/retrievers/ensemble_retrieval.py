@@ -116,7 +116,7 @@ query = "Tell me about yourself and latest achievements."
 Here we try out different chunk sizes: 128, 256, 512, and 1024.
 """
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 # chunk_sizes = [128, 256, 512, 1024]
 chunk_sizes = [256, 512, 1024]
 nodes_list = []
@@ -250,7 +250,7 @@ We define/load an eval benchmark dataset and then run different evaluations over
 
 nest_asyncio.apply()
 
-eval_llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+eval_llm = Ollama(model="llama3.1")
 dataset_generator = DatasetGenerator(
     nodes_list[-1],
     llm=eval_llm,

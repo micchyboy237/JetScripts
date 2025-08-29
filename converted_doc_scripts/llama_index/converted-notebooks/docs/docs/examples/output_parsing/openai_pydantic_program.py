@@ -41,13 +41,13 @@ logger.info("# OllamaFunctionCallingAdapter Pydantic Program")
 # %pip install llama-index
 
 
-
 """
 ### Without docstring in Model
 
 Define output schema (without docstring)
 """
 logger.info("### Without docstring in Model")
+
 
 class Song(BaseModel):
     title: str
@@ -58,6 +58,7 @@ class Album(BaseModel):
     name: str
     artist: str
     songs: List[Song]
+
 
 """
 Define openai pydantic program
@@ -86,6 +87,7 @@ output = program(
 """
 logger.info("### With docstring in Model")
 
+
 class Song(BaseModel):
     """Data model for a song."""
 
@@ -99,6 +101,7 @@ class Album(BaseModel):
     name: str
     artist: str
     songs: List[Song]
+
 
 prompt_template_str = """\
 Generate an example album, with an artist and a list of songs. \
@@ -118,7 +121,8 @@ output = program(movie_name="The Shining")
 """
 The output is a valid Pydantic object that we can then use to call functions/APIs.
 """
-logger.info("The output is a valid Pydantic object that we can then use to call functions/APIs.")
+logger.info(
+    "The output is a valid Pydantic object that we can then use to call functions/APIs.")
 
 output
 
@@ -130,7 +134,6 @@ Instead of waiting for the Function Call to generate the entire JSON, we can use
 First let's define the Output Pydantic class
 """
 logger.info("## Stream partial intermediate Pydantic Objects")
-
 
 
 class CharacterInfo(BaseModel):
@@ -145,6 +148,7 @@ class Characters(BaseModel):
     """List of characters."""
 
     characters: list[CharacterInfo] = Field(default_factory=list)
+
 
 """
 Now we'll initialilze the program with prompt template
@@ -161,7 +165,8 @@ program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
 """
 Finally we stream the partial objects using the `stream_partial_objects()` method
 """
-logger.info("Finally we stream the partial objects using the `stream_partial_objects()` method")
+logger.info(
+    "Finally we stream the partial objects using the `stream_partial_objects()` method")
 
 for partial_object in program.stream_partial_objects(movie="Harry Potter"):
     logger.debug(partial_object)
@@ -183,7 +188,7 @@ Generate 4 albums about spring, summer, fall, and winter.
 """
 program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=Album,
-    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
+    llm=OllamaFunctionCallingAdapter(model="llama3.2"),
     prompt_template_str=prompt_template_str,
     allow_multiple=True,
     verbose=True,
@@ -256,7 +261,8 @@ output = program(input_str=input_str)
 """
 The output is a full DirectoryTree structure with recursive `Node` objects.
 """
-logger.info("The output is a full DirectoryTree structure with recursive `Node` objects.")
+logger.info(
+    "The output is a full DirectoryTree structure with recursive `Node` objects.")
 
 output
 

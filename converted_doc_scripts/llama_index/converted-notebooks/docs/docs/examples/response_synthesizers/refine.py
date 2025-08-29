@@ -41,7 +41,8 @@ logger.info("## Load Data")
 
 
 reader = SimpleDirectoryReader(
-    input_files=["/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/paul_graham_essay.txt"]
+    input_files=[
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/paul_graham_essay.txt"]
 )
 
 docs = reader.load_data()
@@ -54,7 +55,7 @@ text = docs[0].text
 logger.info("## Summarize")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 
 summarizer = Refine(llm=llm, verbose=True)

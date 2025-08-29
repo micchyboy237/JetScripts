@@ -44,7 +44,7 @@ logger.info("## Configure LLM service")
 
 
 Settings.llm = OllamaFunctionCallingAdapter(
-    temperature=0.2, model="llama3.2", request_timeout=300.0, context_window=4096)
+    temperature=0.2, model="llama3.2")
 
 """
 ## Download Data

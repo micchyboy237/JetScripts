@@ -210,7 +210,7 @@ logger.info("### Setup LLM, Embedding Model, and Misc.")
 sql_database = SQLDatabase(engine, include_tables=["sec_text_chunk"])
 
 Settings.llm = OllamaFunctionCallingAdapter(
-    model="llama3.2", request_timeout=300.0, context_window=4096)
+    model="llama3.2")
 Settings.embed_model = embed_model
 
 

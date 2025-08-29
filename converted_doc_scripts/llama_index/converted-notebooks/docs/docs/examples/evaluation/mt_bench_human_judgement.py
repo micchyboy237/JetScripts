@@ -10,15 +10,14 @@ async def main():
     import os
     import pandas as pd
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/evaluation/mt_bench_human_judgement.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
@@ -30,49 +29,47 @@ async def main():
     2. GPT-4 (OllamaFunctionCallingAdapter)
     3. Gemini-Pro (Google)
     """
-    logger.info("# Benchmarking LLM Evaluators On The MT-Bench Human Judgement `LabelledPairwiseEvaluatorDataset`")
-    
+    logger.info(
+        "# Benchmarking LLM Evaluators On The MT-Bench Human Judgement `LabelledPairwiseEvaluatorDataset`")
+
     # %pip install llama-index-llms-ollama
     # %pip install llama-index-llms-cohere
     # %pip install llama-index-llms-gemini
-    
+
     # !pip install "google-generativeai" -q
-    
+
     # import nest_asyncio
-    
+
     # nest_asyncio.apply()
-    
+
     """
     ### Load In Dataset
     
     Let's load in the llama-dataset from llama-hub.
     """
     logger.info("### Load In Dataset")
-    
-    
+
     pairwise_evaluator_dataset, _ = download_llama_dataset(
         "MtBenchHumanJudgementDataset", "./mt_bench_data"
     )
-    
+
     pairwise_evaluator_dataset.to_pandas()[:5]
-    
+
     """
     ### Define Our Evaluators
     """
     logger.info("### Define Our Evaluators")
-    
-    
-    
-    llm_gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
-    llm_gpt35 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+
+    llm_gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+    llm_gpt35 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
     llm_gemini = Gemini(model="models/gemini-pro", temperature=0)
-    
+
     evaluators = {
         "gpt-4": PairwiseComparisonEvaluator(llm=llm_gpt4),
         "gpt-3.5": PairwiseComparisonEvaluator(llm=llm_gpt35),
         "gemini-pro": PairwiseComparisonEvaluator(llm=llm_gemini),
     }
-    
+
     """
     ### Benchmark With `EvaluatorBenchmarkerPack` (llama-pack)
     
@@ -88,81 +85,80 @@ async def main():
     To compute these metrics, we'll make use of the `EvaluatorBenchmarkerPack`.
     """
     logger.info("### Benchmark With `EvaluatorBenchmarkerPack` (llama-pack)")
-    
-    
+
     EvaluatorBenchmarkerPack = download_llama_pack(
         "EvaluatorBenchmarkerPack", "./pack"
     )
-    
+
     """
     #### GPT-3.5
     """
     logger.info("#### GPT-3.5")
-    
+
     evaluator_benchmarker = EvaluatorBenchmarkerPack(
         evaluator=evaluators["gpt-3.5"],
         eval_dataset=pairwise_evaluator_dataset,
         show_progress=True,
     )
-    
+
     gpt_3p5_benchmark_df = await evaluator_benchmarker.arun(
-            batch_size=100, sleep_time_in_seconds=0
-        )
+        batch_size=100, sleep_time_in_seconds=0
+    )
     logger.success(format_json(gpt_3p5_benchmark_df))
-    
+
     gpt_3p5_benchmark_df.index = ["gpt-3.5"]
     gpt_3p5_benchmark_df
-    
+
     """
     #### GPT-4
     """
     logger.info("#### GPT-4")
-    
+
     evaluator_benchmarker = EvaluatorBenchmarkerPack(
         evaluator=evaluators["gpt-4"],
         eval_dataset=pairwise_evaluator_dataset,
         show_progress=True,
     )
-    
+
     gpt_4_benchmark_df = await evaluator_benchmarker.arun(
-            batch_size=100, sleep_time_in_seconds=0
-        )
+        batch_size=100, sleep_time_in_seconds=0
+    )
     logger.success(format_json(gpt_4_benchmark_df))
-    
+
     gpt_4_benchmark_df.index = ["gpt-4"]
     gpt_4_benchmark_df
-    
+
     """
     ### Gemini Pro
     
     NOTE: The rate limit for Gemini models is still very constraining, which is understandable given that they've just been released at the time of writing this notebook. So, we use a very small `batch_size` and moderately high `sleep_time_in_seconds` to reduce risk of getting rate-limited.
     """
     logger.info("### Gemini Pro")
-    
+
     evaluator_benchmarker = EvaluatorBenchmarkerPack(
         evaluator=evaluators["gemini-pro"],
         eval_dataset=pairwise_evaluator_dataset,
         show_progress=True,
     )
-    
+
     gemini_pro_benchmark_df = await evaluator_benchmarker.arun(
-            batch_size=5, sleep_time_in_seconds=0.5
-        )
+        batch_size=5, sleep_time_in_seconds=0.5
+    )
     logger.success(format_json(gemini_pro_benchmark_df))
-    
+
     gemini_pro_benchmark_df.index = ["gemini-pro"]
     gemini_pro_benchmark_df
-    
-    evaluator_benchmarker.prediction_dataset.save_json("gemini_predictions.json")
-    
+
+    evaluator_benchmarker.prediction_dataset.save_json(
+        "gemini_predictions.json")
+
     """
     ### Summary
     
     For convenience, let's put all the results in a single DataFrame.
     """
     logger.info("### Summary")
-    
-    
+
     final_benchmark = pd.concat(
         [
             gpt_3p5_benchmark_df,
@@ -172,7 +168,7 @@ async def main():
         axis=0,
     )
     final_benchmark
-    
+
     """
     From the results above, we make the following observations:
     - In terms of agreement rates, all three models seem quite close, with perhaps a slight edge given to the Gemini models
@@ -181,7 +177,7 @@ async def main():
     - Overall, it seems that Gemini Pro is up to snuff with GPT models, and would say that it outperforms GPT-3.5 — looks like Gemini can be legit alternatives to GPT models for evaluation tasks.
     """
     logger.info("From the results above, we make the following observations:")
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

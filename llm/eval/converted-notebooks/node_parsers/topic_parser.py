@@ -52,7 +52,7 @@ print(documents[0].get_content())
 
 
 embed_model = OllamaEmbedding(model_name="nomic-embed-text")
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 # Define TopicNodeParser
 

@@ -5,15 +5,14 @@ async def main():
     from llama_index.tools.linkup_research.base import LinkupToolSpec
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     # Building a Linkup Data Agent
     
@@ -24,27 +23,26 @@ async def main():
     We will import the relevant agents and tools and pass them our keys here:
     """
     logger.info("# Building a Linkup Data Agent")
-    
+
     # %pip install llama-index-tools-linkup-research llama-index
-    
-    
+
     # os.environ["OPENAI_API_KEY"] = "sk-..."
-    
-    
+
     linkup_tool = LinkupToolSpec(
         api_key="your Linkup API Key",
-        depth="",  # Choose (standard) for a faster result (deep) for a slower but more complete result.
-        output_type="",  # Choose (searchResults) for a list of results relative to your query, (sourcedAnswer) for an answer and a list of sources, or (structured) if you want a specific shema.
+        # Choose (standard) for a faster result (deep) for a slower but more complete result.
+        depth="",
+        # Choose (searchResults) for a list of results relative to your query, (sourcedAnswer) for an answer and a list of sources, or (structured) if you want a specific shema.
+        output_type="",
     )
-    
-    
+
     agent = FunctionAgent(
         tools=linkup_tool.to_tool_list(),
-        llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
+        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
     )
-    
+
     logger.debug(await agent.run("Can you tell me which women were awarded the Physics Nobel Prize"))
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

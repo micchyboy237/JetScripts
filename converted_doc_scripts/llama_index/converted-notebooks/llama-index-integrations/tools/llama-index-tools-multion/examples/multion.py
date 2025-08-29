@@ -8,15 +8,14 @@ async def main():
     from llama_index.tools.multion import MultionToolSpec
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     # MultiOn Demo
     
@@ -27,29 +26,27 @@ async def main():
     First, we import the FunctionAgent that will control the Multion session:
     """
     logger.info("# MultiOn Demo")
-    
-    
+
     # os.environ["OPENAI_API_KEY"] = "sk-your-key"
-    
-    
+
     """
     We then import the MultiOn tool and initialize our agent with the tool.
     """
-    logger.info("We then import the MultiOn tool and initialize our agent with the tool.")
-    
-    
+    logger.info(
+        "We then import the MultiOn tool and initialize our agent with the tool.")
+
     multion_tool = MultionToolSpec(api_key="your-multion-key")
-    
+
     """
     To support the MultiOn browsing session, we will also give our LlamaIndex agent a tool to search and summarize a users gmail inbox. We set up that tool below. For more information on the gmail tool, see the [Gmail notebook here](https://github.com/emptycrown/llama-hub/blob/main/llama_hub/tools/notebooks/gmail.ipynb).
     
     We will use this tool later on to allow the agent to gain more context around our emails
     """
-    logger.info("To support the MultiOn browsing session, we will also give our LlamaIndex agent a tool to search and summarize a users gmail inbox. We set up that tool below. For more information on the gmail tool, see the [Gmail notebook here](https://github.com/emptycrown/llama-hub/blob/main/llama_hub/tools/notebooks/gmail.ipynb).")
-    
-    
+    logger.info(
+        "To support the MultiOn browsing session, we will also give our LlamaIndex agent a tool to search and summarize a users gmail inbox. We set up that tool below. For more information on the gmail tool, see the [Gmail notebook here](https://github.com/emptycrown/llama-hub/blob/main/llama_hub/tools/notebooks/gmail.ipynb).")
+
     gmail_tool = GmailToolSpec()
-    
+
     gmail_loader_tool = OnDemandLoaderTool.from_tool(
         gmail_tool.to_tool_list()[1],
         name="gmail_search",
@@ -67,7 +64,7 @@ async def main():
                 query='is:inbox', max_results=5, query_str='Summarize these emails'
             """,
     )
-    
+
     agent = FunctionAgent(
         tools=[*multion_tool.to_tool_list(), gmail_loader_tool],
         system_prompt="""
@@ -78,19 +75,18 @@ async def main():
     
         Use these two tools together to gain context on past emails and respond to conversations for the user.
         """,
-        llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
+        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
     )
-    
-    
+
     ctx = Context(agent)
-    
+
     """
     Our agent is now set up and ready to browse the web!
     """
     logger.info("Our agent is now set up and ready to browse the web!")
-    
+
     logger.debug(await agent.run("browse to the latest email from Julian and open the email", ctx=ctx))
-    
+
     logger.debug(
         await agent.run(
             "Summarize the email chain with julian and create a response to the last email"
@@ -98,7 +94,7 @@ async def main():
             ctx=ctx,
         )
     )
-    
+
     logger.debug(
         await agent.run(
             "pass the entire generated email to the browser and have it send the email as a"
@@ -106,7 +102,7 @@ async def main():
             ctx=ctx,
         )
     )
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

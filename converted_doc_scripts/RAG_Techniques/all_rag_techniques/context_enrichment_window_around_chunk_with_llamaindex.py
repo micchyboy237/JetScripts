@@ -15,7 +15,8 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -87,13 +88,12 @@ logger.info("# Context Enrichment Window for Document Retrieval")
 # !pip install faiss-cpu llama-index python-dotenv
 
 
-
 load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
-EMBED_DIMENSION=512
-Settings.llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+EMBED_DIMENSION = 512
+Settings.llm = Ollama(model="llama3.2")
 Settings.embed_model = OllamaEmbedding(model_name="mxbai-embed-large")
 
 """
@@ -191,9 +191,10 @@ windowed_query_engine = windowed_index.as_query_engine(
     similarity_top_k=1,
     node_postprocessors=[
         MetadataReplacementPostProcessor(
-            target_metadata_key="window" # `window_metadata_key` key defined in SentenceWindowNodeParser
-            )
-        ],
+            # `window_metadata_key` key defined in SentenceWindowNodeParser
+            target_metadata_key="window"
+        )
+    ],
 )
 
 windowed_response = windowed_query_engine.query(query)

@@ -54,7 +54,7 @@ documents = loader.load(
 
 
 llm = OllamaFunctionCallingAdapter(
-    model="llama3.2", request_timeout=300.0, context_window=4096)
+    model="llama3.2")
 node_parser = SentenceSplitter(chunk_size=1024)
 
 nodes = node_parser.get_nodes_from_documents(documents)
@@ -76,7 +76,7 @@ logger.info("## Dataset Generation")
 
 
 llm = OllamaFunctionCallingAdapter(
-    model="llama3.2", request_timeout=300.0, context_window=4096)
+    model="llama3.2")
 
 """
 We define `generate_answers_for_questions` to generate answers from questions given context.
@@ -288,7 +288,7 @@ logger.info(
     "Now let's try running this on some sample inputs with a chat model (GPT-4).")
 
 llm = OllamaFunctionCallingAdapter(
-    model="llama3.2", request_timeout=300.0, context_window=4096)
+    model="llama3.2")
 
 query_str = (
     "What is the specific name given to the fine-tuned LLMs optimized for"

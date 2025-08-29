@@ -144,7 +144,7 @@ async def main():
     storage_context = StorageContext.from_defaults(docstore=docstore)
 
     llm = OllamaFunctionCallingAdapter(
-        model="llama3.2", request_timeout=300.0, context_window=4096)
+        model="llama3.2")
 
     base_index = VectorStoreIndex(
         leaf_nodes,
@@ -208,7 +208,7 @@ async def main():
     # nest_asyncio.apply()
 
     eval_llm = OllamaFunctionCallingAdapter(
-        model="llama3.2", request_timeout=300.0, context_window=4096)
+        model="llama3.2")
     dataset_generator = DatasetGenerator(
         root_nodes[:20],
         llm=eval_llm,

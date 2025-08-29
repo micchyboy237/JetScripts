@@ -73,7 +73,7 @@ router_prompt0 = PromptTemplate(
 # Let's try this prompt on a set of toy questions and see what the output brings.
 
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 
 def get_formatted_prompt(query_str):
@@ -348,7 +348,7 @@ router_query_engine = RouterQueryEngine(
     choice_descriptions=choices,
     verbose=True,
     router_prompt=router_prompt1,
-    llm=Ollama(model="llama3.1", request_timeout=300.0, context_window=4096),
+    llm=Ollama(model="llama3.1"),
 )
 
 # Try our constructed Router Query Engine

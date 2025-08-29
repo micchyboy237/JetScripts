@@ -181,7 +181,7 @@ async def main():
             index = ev.get("index")
 
             llm = OllamaFunctionCallingAdapter(
-                model="llama3.2", request_timeout=300.0, context_window=4096)
+                model="llama3.2")
 
             await ctx.store.set("llm", llm)
             await ctx.store.set("index", index)

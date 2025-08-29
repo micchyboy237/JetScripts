@@ -119,7 +119,7 @@ Queries:
 """
 query_gen_prompt = PromptTemplate(query_gen_str)
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 
 def generate_queries(query: str, llm, num_queries: int = 4):
@@ -150,7 +150,7 @@ In this section we show you how to do query transformations using our QueryTrans
 
 
 hyde = HyDEQueryTransform(include_original=True)
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 query_bundle = hyde.run("What is Bel?")
 
@@ -248,7 +248,7 @@ input_msgs
 Next we get the output from the model.
 """
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 response = llm.chat(input_msgs)
 

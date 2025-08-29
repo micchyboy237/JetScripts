@@ -77,7 +77,7 @@ pandas_prompt = PromptTemplate(pandas_prompt_str).partial_format(
 )
 pandas_output_parser = PandasInstructionParser(df)
 response_synthesis_prompt = PromptTemplate(response_synthesis_prompt_str)
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 # Build Query Pipeline
 #

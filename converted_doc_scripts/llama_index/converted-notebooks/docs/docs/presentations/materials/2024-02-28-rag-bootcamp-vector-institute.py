@@ -52,7 +52,7 @@ logger.info("## Motivation")
 
 
 llm = OllamaFunctionCallingAdapter(
-    model="llama3.2", request_timeout=300.0, context_window=4096)
+    model="llama3.2")
 response = llm.complete("What is DoRA?")
 
 logger.debug(response.text)

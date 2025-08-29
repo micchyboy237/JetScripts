@@ -13,7 +13,8 @@ import os
 import pandas as pd
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -73,14 +74,13 @@ logger.info("# Simple RAG (Retrieval-Augmented Generation) System for CSV Files"
 # !pip install faiss-cpu llama-index pandas python-dotenv
 
 
-
 load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
 
-EMBED_DIMENSION=512
-Settings.llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+EMBED_DIMENSION = 512
+Settings.llm = Ollama(model="llama3.2")
 Settings.embed_model = OllamaEmbedding(model_name="mxbai-embed-large")
 
 """
@@ -94,7 +94,7 @@ os.makedirs('data', exist_ok=True)
 # !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
 # !wget -O data/customers-100.csv https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/customers-100.csv
 
-file_path = ('data/customers-100.csv') # insert the path of the csv file
+file_path = ('data/customers-100.csv')  # insert the path of the csv file
 data = pd.read_csv(file_path)
 
 data.head()
@@ -116,8 +116,8 @@ csv_reader = PagedCSVReader()
 
 reader = SimpleDirectoryReader(
     input_files=[file_path],
-    file_extractor= {".csv": csv_reader}
-    )
+    file_extractor={".csv": csv_reader}
+)
 
 docs = reader.load_data()
 

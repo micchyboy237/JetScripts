@@ -66,8 +66,7 @@ logging.basicConfig(
 )  # logging.DEBUG for more verbose output
 
 
-
-Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 Settings.chunk_size = 512
 
 """
@@ -148,7 +147,6 @@ If we have a Knowledge Graph on NebulaGraphStore already, this step could be ski
 logger.info("## (Optional)Build the Knowledge Graph with LlamaIndex")
 
 
-
 loader = WikipediaReader()
 
 documents = loader.load_data(
@@ -160,7 +158,8 @@ documents = loader.load_data(
 
 Then, we will create a KnowledgeGraphIndex to enable Graph based RAG, see [here](https://gpt-index.readthedocs.io/en/latest/examples/index_structs/knowledge_graph/KnowledgeGraphIndex_vs_VectorStoreIndex_vs_CustomIndex_combined.html) for deails, apart from that, we have a Knowledge Graph up and running for other purposes, too!
 """
-logger.info("### Step 2, Generate a KnowledgeGraphIndex with NebulaGraph as graph_store")
+logger.info(
+    "### Step 2, Generate a KnowledgeGraphIndex with NebulaGraph as graph_store")
 
 
 kg_index = KnowledgeGraphIndex.from_documents(
@@ -196,7 +195,6 @@ Finally, let's demo how to Query Knowledge Graph with Natural language!
 Here, we will leverage the `KnowledgeGraphQueryEngine`, with `NebulaGraphStore` as the `storage_context.graph_store`.
 """
 logger.info("## Asking the Knowledge Graph")
-
 
 
 query_engine = KnowledgeGraphQueryEngine(
@@ -247,9 +245,9 @@ Of course we still could query it, too! And this query engine could be our best 
 logger.info("We could see it helps generate the Graph query:")
 
 # %%ngql
-MATCH (p:`entity`)-[e:relationship]->(m:`entity`)
-  WHERE p.`entity`.`name` == 'Peter Quill'
-RETURN p.`entity`.`name`, e.relationship, m.`entity`.`name`;
+MATCH(p: `entity`)-[e:relationship] -> (m: `entity`)
+WHERE p.`entity`.`name` == 'Peter Quill'
+RETURN p.`entity`.`name`, e.relationship, m.`entity`.`name`
 
 """
 And change the query to be rendered
@@ -257,15 +255,16 @@ And change the query to be rendered
 logger.info("And change the query to be rendered")
 
 # %%ngql
-MATCH (p:`entity`)-[e:relationship]->(m:`entity`)
-  WHERE p.`entity`.`name` == 'Peter Quill'
-RETURN p, e, m;
+MATCH(p: `entity`)-[e:relationship] -> (m: `entity`)
+WHERE p.`entity`.`name` == 'Peter Quill'
+RETURN p, e, m
 
 # %ng_draw
 
 """
 The results of this knowledge-fetching query could not be more clear from the renderred graph then.
 """
-logger.info("The results of this knowledge-fetching query could not be more clear from the renderred graph then.")
+logger.info(
+    "The results of this knowledge-fetching query could not be more clear from the renderred graph then.")
 
 logger.info("\n\n[DONE]", bright=True)

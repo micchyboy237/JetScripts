@@ -3,9 +3,9 @@ from IPython.display import Markdown, display
 from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
 from llama_index.core import (
-VectorStoreIndex,
-SimpleDirectoryReader,
-KnowledgeGraphIndex,
+    VectorStoreIndex,
+    SimpleDirectoryReader,
+    KnowledgeGraphIndex,
 )
 from llama_index.core import KnowledgeGraphIndex, SimpleDirectoryReader
 from llama_index.core import Settings
@@ -45,11 +45,9 @@ logger.info("# Neo4j Graph Store")
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 Settings.llm = llm
 Settings.chunk_size = 512
-
-
 
 
 logging.basicConfig(
@@ -94,8 +92,6 @@ Settings.chunk_size = 512
 #### Building the Knowledge Graph
 """
 logger.info("## Using Knowledge Graph with Neo4jGraphStore")
-
-
 
 
 documents = SimpleDirectoryReader(
@@ -197,7 +193,8 @@ display(Markdown(f"<b>{response}</b>"))
 """
 #### [Optional] Try building the graph and manually add triplets!
 """
-logger.info("#### [Optional] Try building the graph and manually add triplets!")
+logger.info(
+    "#### [Optional] Try building the graph and manually add triplets!")
 
 
 node_parser = SentenceSplitter()

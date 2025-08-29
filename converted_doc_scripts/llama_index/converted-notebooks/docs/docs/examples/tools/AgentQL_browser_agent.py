@@ -8,15 +8,14 @@ async def main():
     from llama_index.tools.playwright.base import PlaywrightToolSpec
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     # Building a Browser Agent with AgentQL
     
@@ -53,31 +52,30 @@ async def main():
     ## Set up
     """
     logger.info("# Building a Browser Agent with AgentQL")
-    
+
     # %pip install llama-index-tools-agentql llama-index-tools-playwright llama-index
-    
+
     """
     ### Credentials
     
     To use the AgentQL tools, you will need to get your own API key from the [AgentQL Dev Portal](https://dev.agentql.com/) and set the AgentQL environment variable:
     """
     logger.info("### Credentials")
-    
-    
+
     os.environ["AGENTQL_API_KEY"] = "YOUR_AGENTQL_API_KEY"
-    
+
     """
     ### Set up Playwright browser and AgentQL tools
     To run this notebook, install Playwright browser and configure Jupyter Notebook's `asyncio` loop.
     """
     logger.info("### Set up Playwright browser and AgentQL tools")
-    
+
     # !playwright install
-    
+
     # import nest_asyncio
-    
+
     # nest_asyncio.apply()
-    
+
     """
     ## Instantiation
     
@@ -95,10 +93,9 @@ async def main():
     `AgentQLRestAPIToolSpec` is using AgentQL REST API, for more details about the parameters read [API Reference docs](https://docs.agentql.com/rest-api/api-reference).
     """
     logger.info("## Instantiation")
-    
-    
+
     agentql_rest_api_tool = AgentQLRestAPIToolSpec()
-    
+
     """
     ### `AgentQLBrowserToolSpec`
     `AgentQLBrowserToolSpec` provides 2 tools: `extract_web_data_from_browser` and `get_web_element_from_browser`.
@@ -117,12 +114,11 @@ async def main():
     > **Note:** To instantiate `AgentQLBrowserToolSpec` you need to provide a browser instance. You can create one using  `create_async_playwright_browser` utility method from LlamaIndex's Playwright ToolSpec.
     """
     logger.info("### `AgentQLBrowserToolSpec`")
-    
-    
+
     async_browser = await PlaywrightToolSpec.create_async_playwright_browser()
     logger.success(format_json(async_browser))
     agentql_browser_tool = AgentQLBrowserToolSpec(async_browser=async_browser)
-    
+
     """
     ## Invoking the AgentQL tools
     
@@ -137,12 +133,12 @@ async def main():
     > **Note:** You must define either a `query` or a `prompt` to use AgentQL.
     """
     logger.info("## Invoking the AgentQL tools")
-    
+
     await agentql_rest_api_tool.extract_web_data_with_rest_api(
         url="https://www.agentql.com/blog",
         query="{ posts[] { title url author date }}",
     )
-    
+
     """
     #### Stealth Mode
     AgentQL provides experimental anti-bot evasion strategies to avoid detection by anti-bot services.
@@ -150,12 +146,12 @@ async def main():
     > **Note**: Stealth mode is experimental and may not work for all websites at all times. The data extraction may take longer to complete comparing to non-stealth mode.
     """
     logger.info("#### Stealth Mode")
-    
+
     await agentql_rest_api_tool.extract_web_data_with_rest_api(
         url="https://www.patagonia.com/shop/web-specials/womens",
         query="{ items[] { name price}}",
     )
-    
+
     """
     ### `extract_web_data_from_browser`
     
@@ -167,51 +163,47 @@ async def main():
     To extract data, first you must navigate to a web page using LlamaIndex's [Playwright](https://docs.llamaindex.ai/en/stable/api_reference/tools/playwright/) click tool.
     """
     logger.info("### `extract_web_data_from_browser`")
-    
+
     playwright_tool = PlaywrightToolSpec(async_browser=async_browser)
     await playwright_tool.navigate_to("https://www.agentql.com/blog")
-    
-    
-    
+
     await agentql_browser_tool.extract_web_data_from_browser(
         prompt="the blog posts with title and url",
     )
-    
+
     """
     ### `get_web_element_from_browser`
     
     - `prompt`: A Natural Language description of the web element to find on the page.
     """
     logger.info("### `get_web_element_from_browser`")
-    
+
     await playwright_tool.navigate_to("https://www.agentql.com/blog")
     logger.debug(await playwright_tool.get_current_page())
-    
+
     next_page_button = await agentql_browser_tool.get_web_element_from_browser(
-            prompt="The next page navigation button",
-        )
+        prompt="The next page navigation button",
+    )
     logger.success(format_json(next_page_button))
     next_page_button
-    
+
     """
     Click on the element and check the url again
     """
     logger.info("Click on the element and check the url again")
-    
+
     await playwright_tool.click(next_page_button)
-    
+
     logger.debug(await playwright_tool.get_current_page())
-    
+
     """
     ## Using the AgentQL tools with agent
     To get started, you will need an [OllamaFunctionCallingAdapter api key](https://platform.openai.com/account/api-keys)
     """
     logger.info("## Using the AgentQL tools with agent")
-    
-    
+
     # os.environ["OPENAI_API_KEY"] = "YOUR_OPENAI_API_KEY"
-    
-    
+
     playwright_tool = PlaywrightToolSpec(async_browser=async_browser)
     playwright_tool_list = playwright_tool.to_tool_list()
     playwright_agent_tool_list = [
@@ -219,12 +211,12 @@ async def main():
         for tool in playwright_tool_list
         if tool.metadata.name in ["click", "get_current_page", "navigate_to"]
     ]
-    
+
     agent = FunctionAgent(
         tools=playwright_agent_tool_list + agentql_browser_tool.to_tool_list(),
-        llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
+        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
     )
-    
+
     logger.debug(
         await agent.run(
             """
@@ -234,7 +226,7 @@ async def main():
             """
         )
     )
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

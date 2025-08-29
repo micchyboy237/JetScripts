@@ -4,9 +4,9 @@ from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.evaluation import (
-DatasetGenerator,
-FaithfulnessEvaluator,
-RelevancyEvaluator
+    DatasetGenerator,
+    FaithfulnessEvaluator,
+    RelevancyEvaluator
 )
 from llama_index.core.prompts import PromptTemplate
 import openai
@@ -15,7 +15,8 @@ import random
 import time
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -33,7 +34,6 @@ logger.info("# Package Installation and Imports")
 # import nest_asyncio
 
 # nest_asyncio.apply()
-
 
 
 load_dotenv()
@@ -64,7 +64,7 @@ k_eval_questions = random.sample(eval_questions, num_eval_questions)
 """
 logger.info("### Define metrics evaluators and modify llama_index faithfullness evaluator prompt to rely on the context")
 
-gpt4 = Ollama(temperature=0, model="llama3.1", request_timeout=300.0, context_window=4096)
+gpt4 = Ollama(temperature=0, model="llama3.1")
 
 Settings.llm = gpt4
 
@@ -96,7 +96,9 @@ faithfulness_new_prompt_template = PromptTemplate(""" Please tell if a given pie
 
     """)
 
-faithfulness_gpt4.update_prompts({"your_prompt_key": faithfulness_new_prompt_template}) # Update the prompts dictionary with the new prompt template
+# Update the prompts dictionary with the new prompt template
+faithfulness_gpt4.update_prompts(
+    {"your_prompt_key": faithfulness_new_prompt_template})
 
 relevancy_gpt4 = RelevancyEvaluator()
 
@@ -104,6 +106,7 @@ relevancy_gpt4 = RelevancyEvaluator()
 ### Function to evaluate metrics for each chunk size
 """
 logger.info("### Function to evaluate metrics for each chunk size")
+
 
 def evaluate_response_time_and_accuracy(chunk_size, eval_questions):
     """
@@ -120,7 +123,7 @@ def evaluate_response_time_and_accuracy(chunk_size, eval_questions):
     total_faithfulness = 0
     total_relevancy = 0
 
-    llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+    llm = Ollama(model="llama3.2")
 
     Settings.llm = llm
     Settings.chunk_size = chunk_size
@@ -154,6 +157,7 @@ def evaluate_response_time_and_accuracy(chunk_size, eval_questions):
 
     return average_response_time, average_faithfulness, average_relevancy
 
+
 """
 ### Test different chunk sizes
 """
@@ -162,7 +166,9 @@ logger.info("### Test different chunk sizes")
 chunk_sizes = [128, 256]
 
 for chunk_size in chunk_sizes:
-  avg_response_time, avg_faithfulness, avg_relevancy = evaluate_response_time_and_accuracy(chunk_size, k_eval_questions)
-  logger.debug(f"Chunk size {chunk_size} - Average Response time: {avg_response_time:.2f}s, Average Faithfulness: {avg_faithfulness:.2f}, Average Relevancy: {avg_relevancy:.2f}")
+    avg_response_time, avg_faithfulness, avg_relevancy = evaluate_response_time_and_accuracy(
+        chunk_size, k_eval_questions)
+    logger.debug(
+        f"Chunk size {chunk_size} - Average Response time: {avg_response_time:.2f}s, Average Faithfulness: {avg_faithfulness:.2f}, Average Relevancy: {avg_relevancy:.2f}")
 
 logger.info("\n\n[DONE]", bright=True)

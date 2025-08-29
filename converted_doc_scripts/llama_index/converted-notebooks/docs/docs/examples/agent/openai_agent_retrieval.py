@@ -9,15 +9,14 @@ async def main():
     from llama_index.core.workflow import Context
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/agent/openai_agent_retrieval.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
@@ -40,46 +39,40 @@ async def main():
     If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
     """
     logger.info("# Retrieval-Augmented Agents")
-    
+
     # %pip install llama-index
-    
-    
+
     # os.environ["OPENAI_API_KEY"] = "sk-..."
-    
+
     """
     Let's define some very simple calculator tools for our agent.
     """
     logger.info("Let's define some very simple calculator tools for our agent.")
-    
-    
-    
+
     def multiply(a: int, b: int) -> int:
         """Multiply two integers and returns the result integer"""
         return a * b
-    
-    
+
     def add(a: int, b: int) -> int:
         """Add two integers and returns the result integer"""
         return a + b
-    
-    
+
     def useless(a: int, b: int) -> int:
         """Toy useless function."""
         pass
-    
-    
+
     multiply_tool = FunctionTool.from_defaults(multiply, name="multiply")
     add_tool = FunctionTool.from_defaults(add, name="add")
-    
+
     useless_tools = [
         FunctionTool.from_defaults(useless, name=f"useless_{str(idx)}")
         for idx in range(28)
     ]
-    
+
     all_tools = [multiply_tool] + [add_tool] + useless_tools
-    
+
     all_tools_map = {t.metadata.name: t for t in all_tools}
-    
+
     """
     ## Building an Object Index
     
@@ -94,20 +87,18 @@ async def main():
     perform Tool retrieval during query-time.
     """
     logger.info("## Building an Object Index")
-    
-    
+
     obj_index = ObjectIndex.from_objects(
         all_tools,
         index_cls=VectorStoreIndex,
     )
-    
+
     """
     To reload the index later, we can use the `from_objects_and_index` method.
     """
-    logger.info("To reload the index later, we can use the `from_objects_and_index` method.")
-    
-    
-    
+    logger.info(
+        "To reload the index later, we can use the `from_objects_and_index` method.")
+
     """
     ## Agent w/ Tool Retrieval
     
@@ -116,29 +107,28 @@ async def main():
     During query-time, we would first use the `ObjectRetriever` to retrieve a set of relevant Tools. These tools would then be passed into the agent; more specifically, their function signatures would be passed into the OllamaFunctionCallingAdapter Function calling API.
     """
     logger.info("## Agent w/ Tool Retrieval")
-    
-    
+
     agent = FunctionAgent(
         tool_retriever=obj_index.as_retriever(similarity_top_k=2),
-        llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
+        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
     )
-    
+
     ctx = Context(agent)
-    
+
     resp = await agent.run(
-            "What's 212 multiplied by 122? Make sure to use Tools", ctx=ctx
-        )
+        "What's 212 multiplied by 122? Make sure to use Tools", ctx=ctx
+    )
     logger.success(format_json(resp))
     logger.debug(str(resp))
     logger.debug(resp.tool_calls)
-    
+
     resp = await agent.run(
-            "What's 212 added to 122 ? Make sure to use Tools", ctx=ctx
-        )
+        "What's 212 added to 122 ? Make sure to use Tools", ctx=ctx
+    )
     logger.success(format_json(resp))
     logger.debug(str(resp))
     logger.debug(resp.tool_calls)
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

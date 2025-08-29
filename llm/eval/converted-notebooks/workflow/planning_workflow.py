@@ -92,7 +92,7 @@ class ExecutedPlanEvent(Event):
 
 
 class QueryPlanningWorkflow(Workflow):
-    llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+    llm = Ollama(model="llama3.1")
     planning_prompt = PromptTemplate(
         "Think step by step. Given an initial query, as well as information about the indexes you can query, return a plan for a RAG system.\n"
         "The plan should be a list of QueryPlanItem objects, where each object contains a query.\n"

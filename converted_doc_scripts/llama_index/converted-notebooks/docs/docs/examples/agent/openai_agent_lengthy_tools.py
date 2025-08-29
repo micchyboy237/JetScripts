@@ -43,7 +43,7 @@ async def main():
     # os.environ["OPENAI_API_KEY"] = "sk-..."
 
     llm = OllamaFunctionCallingAdapter(
-        temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+        temperature=0, model="llama3.2")
 
     """
     ## Download Data
@@ -209,7 +209,7 @@ async def main():
     agent = FunctionAgent(
         tools=[query_plan_tool],
         llm=OllamaFunctionCallingAdapter(
-            temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096),
+            temperature=0, model="llama3.2"),
     )
 
     query = "What were the risk factors in sept 2022?"

@@ -140,7 +140,7 @@ async def main():
         Then use that information to write the correct graphql query
         """,
         llm=OllamaFunctionCallingAdapter(
-            model="llama3.2", request_timeout=300.0, context_window=4096),
+            model="llama3.2"),
     )
 
     logger.debug(await agent.run("What are the most recent orders my store received"))

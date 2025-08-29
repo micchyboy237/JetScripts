@@ -10,28 +10,27 @@ async def main():
     from llama_index.core.retrievers import VectorIndexAutoRetriever
     from llama_index.core.schema import IndexNode
     from llama_index.core.vector_stores import (
-    FilterOperator,
-    MetadataFilter,
-    MetadataFilters,
+        FilterOperator,
+        MetadataFilter,
+        MetadataFilters,
     )
     from llama_index.core.vector_stores import MetadataInfo, VectorStoreInfo
     from llama_index.readers.github import (
-    GitHubRepositoryIssuesReader,
-    GitHubIssuesClient,
+        GitHubRepositoryIssuesReader,
+        GitHubIssuesClient,
     )
     from llama_index.vector_stores.weaviate import WeaviateVectorStore
     import os
     import shutil
     import weaviate
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     # Structured Hierarchical Retrieval
     
@@ -48,30 +47,27 @@ async def main():
     - Given a user query, first do **auto-retrieval** - infer the relevant semantic query and the set of filters to query this data (effectively combining text-to-SQL and semantic search).
     """
     logger.info("# Structured Hierarchical Retrieval")
-    
+
     # %pip install llama-index-readers-github
     # %pip install llama-index-vector-stores-weaviate
     # %pip install llama-index-llms-ollama
-    
+
     # !pip install llama-index llama-hub
-    
+
     """
     ## Setup and Download Data
     
     In this section, we'll load in LlamaIndex Github issues.
     """
     logger.info("## Setup and Download Data")
-    
+
     # import nest_asyncio
-    
+
     # nest_asyncio.apply()
-    
-    
+
     os.environ["GITHUB_TOKEN"] = "ghp_..."
     # os.environ["OPENAI_API_KEY"] = "sk-..."
-    
-    
-    
+
     github_client = GitHubIssuesClient()
     loader = GitHubRepositoryIssuesReader(
         github_client,
@@ -79,24 +75,23 @@ async def main():
         repo="llama_index",
         verbose=True,
     )
-    
+
     orig_docs = loader.load_data()
-    
+
     limit = 100
-    
+
     docs = []
     for idx, doc in enumerate(orig_docs):
         doc.metadata["index_id"] = int(doc.id_)
         if idx >= limit:
             break
         docs.append(doc)
-    
+
     """
     ## Setup the Vector Store and Index
     """
     logger.info("## Setup the Vector Store and Index")
-    
-    
+
     auth_config = weaviate.AuthApiKey(
         api_key="XRa15cDIkYRT7AkrpqT6jLfE4wropK1c1TGk"
     )
@@ -104,37 +99,34 @@ async def main():
         "https://llama-index-test-v0oggsoz.weaviate.network",
         auth_client_secret=auth_config,
     )
-    
+
     class_name = "LlamaIndex_docs"
-    
+
     client.schema.delete_class(class_name)
-    
-    
+
     vector_store = WeaviateVectorStore(
         weaviate_client=client, index_name=class_name
     )
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
-    
+
     doc_index = VectorStoreIndex.from_documents(
         docs, storage_context=storage_context
     )
-    
+
     """
     ## Create IndexNodes for retrieval and filtering
     """
     logger.info("## Create IndexNodes for retrieval and filtering")
-    
-    
-    
+
     async def aprocess_doc(doc, include_summary: bool = True):
         """Process doc."""
         metadata = doc.metadata
-    
+
         date_tokens = metadata["created_at"].split("T")[0].split("-")
         year = int(date_tokens[0])
         month = int(date_tokens[1])
         day = int(date_tokens[2])
-    
+
         assignee = (
             "" if "assignee" not in doc.metadata else doc.metadata["assignee"]
         )
@@ -150,16 +142,16 @@ async def main():
             "assignee": assignee,
             "size": size,
         }
-    
+
         summary_index = SummaryIndex.from_documents([doc])
         query_str = "Give a one-sentence concise summary of this issue."
         query_engine = summary_index.as_query_engine(
-            llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+            llm=OllamaFunctionCallingAdapter(model="llama3.2")
         )
         summary_txt = query_engine.query(query_str)
         logger.success(format_json(summary_txt))
         summary_txt = str(summary_txt)
-    
+
         index_id = doc.metadata["index_id"]
         filters = MetadataFilters(
             filters=[
@@ -168,36 +160,35 @@ async def main():
                 ),
             ]
         )
-    
+
         index_node = IndexNode(
             text=summary_txt,
             metadata=new_metadata,
             obj=doc_index.as_retriever(filters=filters),
             index_id=doc.id_,
         )
-    
+
         return index_node
-    
-    
+
     async def aprocess_docs(docs):
         """Process metadata on docs."""
-    
+
         index_nodes = []
         tasks = []
         for doc in docs:
             task = aprocess_doc(doc)
             tasks.append(task)
-    
+
         index_nodes = await run_jobs(tasks, show_progress=True, workers=3)
         logger.success(format_json(index_nodes))
-    
+
         return index_nodes
-    
+
     index_nodes = await aprocess_docs(docs)
     logger.success(format_json(index_nodes))
-    
+
     index_nodes[5].metadata
-    
+
     """
     ## Create the Top-Level AutoRetriever
     
@@ -214,8 +205,7 @@ async def main():
     This goes into `LlamaIndex_auto`
     """
     logger.info("## Create the Top-Level AutoRetriever")
-    
-    
+
     auth_config = weaviate.AuthApiKey(
         api_key="XRa15cDIkYRT7AkrpqT6jLfE4wropK1c1TGk"
     )
@@ -223,23 +213,22 @@ async def main():
         "https://llama-index-test-v0oggsoz.weaviate.network",
         auth_client_secret=auth_config,
     )
-    
+
     class_name = "LlamaIndex_auto"
-    
+
     client.schema.delete_class(class_name)
-    
-    
+
     vector_store_auto = WeaviateVectorStore(
         weaviate_client=client, index_name=class_name
     )
     storage_context_auto = StorageContext.from_defaults(
         vector_store=vector_store_auto
     )
-    
+
     index = VectorStoreIndex(
         objects=index_nodes, storage_context=storage_context_auto
     )
-    
+
     """
     ## Setup Composable Auto-Retriever
     
@@ -254,9 +243,7 @@ async def main():
     ### 1. Define the Schema
     """
     logger.info("## Setup Composable Auto-Retriever")
-    
-    
-    
+
     vector_store_info = VectorStoreInfo(
         content_info="Github Issues",
         metadata_info=[
@@ -292,13 +279,12 @@ async def main():
             ),
         ],
     )
-    
+
     """
     ### 2. Instantiate VectorIndexAutoRetriever
     """
     logger.info("### 2. Instantiate VectorIndexAutoRetriever")
-    
-    
+
     retriever = VectorIndexAutoRetriever(
         index,
         vector_store_info=vector_store_info,
@@ -306,7 +292,7 @@ async def main():
         empty_query_top_k=10,  # if only metadata filters are specified, this is the limit
         verbose=True,
     )
-    
+
     """
     ## Try It Out
     
@@ -317,42 +303,41 @@ async def main():
     ### Try Out Retrieval
     """
     logger.info("## Try It Out")
-    
-    
-    nodes = retriever.retrieve(QueryBundle("Tell me about some issues on 01/11"))
-    
+
+    nodes = retriever.retrieve(QueryBundle(
+        "Tell me about some issues on 01/11"))
+
     """
     The result is the source chunks in the relevant docs. 
     
     Let's look at the date attached to the source chunk (was present in the original metadata).
     """
     logger.info("The result is the source chunks in the relevant docs.")
-    
+
     logger.debug(f"Number of source nodes: {len(nodes)}")
     nodes[0].node.metadata
-    
+
     """
     ### Plug into `RetrieverQueryEngine`
     
     We plug into RetrieverQueryEngine to synthesize a result.
     """
     logger.info("### Plug into `RetrieverQueryEngine`")
-    
-    
-    llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
-    
+
+    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+
     query_engine = RetrieverQueryEngine.from_args(retriever, llm=llm)
-    
+
     response = query_engine.query("Tell me about some issues on 01/11")
-    
+
     logger.debug(str(response))
-    
+
     response = query_engine.query(
         "Tell me about some open issues related to agents"
     )
-    
+
     logger.debug(str(response))
-    
+
     """
     ## Concluding Thoughts
     
@@ -363,7 +348,7 @@ async def main():
     The goal of this notebook is to show you how to apply structured querying in a multi-document setting. You can actually apply this auto-retrieval algorithm to our multi-agent setup too. The multi-agent setup is primarily focused on adding agentic reasoning across documents and per documents, alloinwg multi-part queries using chain-of-thought.
     """
     logger.info("## Concluding Thoughts")
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

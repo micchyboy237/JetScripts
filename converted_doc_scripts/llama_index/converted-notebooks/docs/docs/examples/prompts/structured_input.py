@@ -49,8 +49,8 @@ prompt = RichPromptTemplate(template_str)
 """
 Let's now try to format the input as a string, using different objects as `data`.
 """
-logger.info("Let's now try to format the input as a string, using different objects as `data`.")
-
+logger.info(
+    "Let's now try to format the input as a string, using different objects as `data`.")
 
 
 class User(BaseModel):
@@ -100,7 +100,7 @@ logger.info("### 3. Chat With an LLM")
 # os.environ["OPENAI_API_KEY"] = getpass()
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 response = llm.chat(prompt.format_messages(data=user))
 logger.success(format_json(response))
@@ -115,7 +115,6 @@ Combining structured input and structured output might really help to boost the 
 logger.info("### 4. Use Structured Input and Structured Output")
 
 
-
 class SocialAccounts(BaseModel):
     instagram: Optional[str] = Field(default=None)
     bluesky: Optional[str] = Field(default=None)
@@ -127,6 +126,7 @@ class ContactDetails(BaseModel):
     email: str
     phone: str
     social_accounts: SocialAccounts
+
 
 sllm = llm.as_structured_llm(ContactDetails)
 

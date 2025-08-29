@@ -119,7 +119,6 @@ We will use OllamaFunctionCallingAdapter for Generation step.
 logger.info("### Let's Build end to end RAG pipeline with Nomic v1.5 Embedding.")
 
 
-
 # os.environ["OPENAI_API_KEY"] = "<YOUR OPENAI API KEY>"
 
 embed_model = NomicEmbedding(
@@ -128,7 +127,7 @@ embed_model = NomicEmbedding(
     model_name="nomic-embed-text-v1.5",
 )
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 settings.llm = llm
 settings.embed_model = embed_model
@@ -146,7 +145,8 @@ logger.info("#### Download Data")
 """
 logger.info("#### Load data")
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
+documents = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
 
 """
 #### Index creation

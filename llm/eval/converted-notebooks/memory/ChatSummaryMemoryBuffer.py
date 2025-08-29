@@ -46,7 +46,7 @@ chat_history = [
 
 summarizer_model = "mistral"
 summarizer_llm = Ollama(
-    model=summarizer_model, request_timeout=300.0, context_window=4096)
+    model=summarizer_model)
 # tokenizer_fn = tiktoken.encoding_for_model(summarizer_llm.model).encode
 # tokenizer_fn = AutoTokenizer.from_pretrained(
 #     OLLAMA_HF_MODELS[summarizer_model]).encode

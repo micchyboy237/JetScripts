@@ -130,7 +130,7 @@ def create_modules(vector_store, docs=[], populate_vector_store=True):
     for idx, node in enumerate(nodes):
         node.id_ = f"node_{idx}"
 
-    llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+    llm = Ollama(model="llama3.1")
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     return storage_context, nodes, llm
 

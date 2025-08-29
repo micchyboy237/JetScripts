@@ -33,7 +33,7 @@ StockMarketDataQueryEnginePack = download_llama_pack(
 logger.info("#### Initialize Pack")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 stock_market_data_pack = StockMarketDataQueryEnginePack(
     ["MSFT", "AAPL", "GOOG", "AMZN", "NVDA", "META", "TSLA", "CRM", "AMD", "INTC"],
@@ -51,7 +51,8 @@ modules["stocks market data"][1]
 """
 logger.info("## Try Out Some Queries")
 
-response = stock_market_data_pack.run("What is the average closing price for MSFT?")
+response = stock_market_data_pack.run(
+    "What is the average closing price for MSFT?")
 
 response = stock_market_data_pack.run(
     "What is AAPL's trading volume on the day after Christmas?"

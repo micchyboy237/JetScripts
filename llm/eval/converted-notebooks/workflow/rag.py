@@ -144,7 +144,7 @@ class RAGWorkflow(Workflow):
     @step
     async def rerank(self, ctx: Context, ev: RetrieverEvent) -> RerankEvent:
         ranker = LLMRerank(
-            choice_batch_size=5, top_n=3, llm=Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+            choice_batch_size=5, top_n=3, llm=Ollama(model="llama3.1")
         )
         print(await ctx.get("query", default=None), flush=True)
         new_nodes = ranker.postprocess_nodes(

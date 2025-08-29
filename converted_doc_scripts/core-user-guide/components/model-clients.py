@@ -20,7 +20,8 @@ import os
 import tempfile
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -48,7 +49,6 @@ The logger name is {py:attr}`autogen_core.EVENT_LOGGER_NAME`, and the event type
 logger.info("# Model Clients")
 
 
-
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 logger.addHandler(logging.StreamHandler())
@@ -69,12 +69,12 @@ model_client = OllamaChatCompletionClient(
 
 async def run_async_code_75a3b6ab():
     async def run_async_code_4009c609():
-        result = await model_client.create([UserMessage(content="What is the capital of France?", source="user")])
+        result=await model_client.create([UserMessage(content="What is the capital of France?", source="user")])
         return result
-    result = asyncio.run(run_async_code_4009c609())
+    result=asyncio.run(run_async_code_4009c609())
     logger.success(format_json(result))
     return result
-result = asyncio.run(run_async_code_75a3b6ab())
+result=asyncio.run(run_async_code_75a3b6ab())
 logger.success(format_json(result))
 logger.debug(result)
 
@@ -87,20 +87,22 @@ chat completion request with streaming token chunks.
 logger.info("## Streaming Tokens")
 
 
-# model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)  # assuming OPENAI_API_KEY is set in the environment.
+# model_client = OllamaChatCompletionClient(model="llama3.1")  # assuming OPENAI_API_KEY is set in the environment.
 
-messages = [
-    UserMessage(content="Write a very short story about a dragon.", source="user"),
+messages=[
+    UserMessage(content="Write a very short story about a dragon.",
+                source="user"),
 ]
 
-stream = model_client.create_stream(messages=messages)
+stream=model_client.create_stream(messages=messages)
 
 logger.debug("Streamed responses:")
 async for chunk in stream:  # type: ignore
     if isinstance(chunk, str):
         logger.debug(chunk, flush=True, end="")
     else:
-        assert isinstance(chunk, CreateResult) and isinstance(chunk.content, str)
+        assert isinstance(chunk, CreateResult) and isinstance(
+            chunk.content, str)
         logger.debug("\n\n------------\n")
         logger.debug("The complete response:", flush=True)
         logger.debug(chunk.content, flush=True)
@@ -112,7 +114,7 @@ of the type {py:class}`~autogen_core.models.CreateResult`.
 ```
 
 ```{note}
-The default usage response is to return zero values. To enable usage, 
+The default usage response is to return zero values. To enable usage,
 see {py:meth}`~autogen_ext.models.openai.BaseOllamaChatCompletionClient.create_stream`
 for more details.
 ```
@@ -141,32 +143,31 @@ class AgentResponse(BaseModel):
     response: Literal["happy", "sad", "neutral"]
 
 
-model_client = OllamaChatCompletionClient(
+model_client=OllamaChatCompletionClient(
     model="llama3.1", request_timeout=300.0, context_window=4096,
     response_format=AgentResponse,  # type: ignore
 )
 
-messages = [
+messages=[
     UserMessage(content="I am happy.", source="user"),
 ]
 async def run_async_code_fbb22dd6():
     async def run_async_code_8a7414d3():
-        response = await model_client.create(messages=messages)
+        response=await model_client.create(messages=messages)
         return response
-    response = asyncio.run(run_async_code_8a7414d3())
+    response=asyncio.run(run_async_code_8a7414d3())
     logger.success(format_json(response))
     return response
-response = asyncio.run(run_async_code_fbb22dd6())
+response=asyncio.run(run_async_code_fbb22dd6())
 logger.success(format_json(response))
 assert isinstance(response.content, str)
-parsed_response = AgentResponse.model_validate_json(response.content)
+parsed_response=AgentResponse.model_validate_json(response.content)
 logger.debug(parsed_response.thoughts)
 logger.debug(parsed_response.response)
 
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
+    return=asyncio.run(run_async_code_0349fda4())
 logger.success(format_json())
 
 """
@@ -190,41 +191,39 @@ logger.info("## Caching Model Responses")
 
 async def main() -> None:
     with tempfile.TemporaryDirectory() as tmpdirname:
-        openai_model_client = OllamaChatCompletionClient(model="llama3.1", request_timeout=300.0, context_window=4096)
+        openai_model_client=OllamaChatCompletionClient(model="llama3.1")
 
-        cache_store = DiskCacheStore[CHAT_CACHE_VALUE_TYPE](Cache(tmpdirname))
-        cache_client = ChatCompletionCache(openai_model_client, cache_store)
+        cache_store=DiskCacheStore[CHAT_CACHE_VALUE_TYPE](Cache(tmpdirname))
+        cache_client=ChatCompletionCache(openai_model_client, cache_store)
 
         async def run_async_code_e23dea5e():
             async def run_async_code_ef3d363b():
-                response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
+                response=await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
                 return response
-            response = asyncio.run(run_async_code_ef3d363b())
+            response=asyncio.run(run_async_code_ef3d363b())
             logger.success(format_json(response))
             return response
-        response = asyncio.run(run_async_code_e23dea5e())
+        response=asyncio.run(run_async_code_e23dea5e())
         logger.success(format_json(response))
         logger.debug(response)  # Should print response from Ollama
         async def run_async_code_e23dea5e():
             async def run_async_code_ef3d363b():
-                response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
+                response=await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
                 return response
-            response = asyncio.run(run_async_code_ef3d363b())
+            response=asyncio.run(run_async_code_ef3d363b())
             logger.success(format_json(response))
             return response
-        response = asyncio.run(run_async_code_e23dea5e())
+        response=asyncio.run(run_async_code_e23dea5e())
         logger.success(format_json(response))
         logger.debug(response)  # Should print cached response
 
         async def run_async_code_54283016():
             await openai_model_client.close()
-            return 
-         = asyncio.run(run_async_code_54283016())
+            return =asyncio.run(run_async_code_54283016())
         logger.success(format_json())
         async def run_async_code_dba000a8():
             await cache_client.close()
-            return 
-         = asyncio.run(run_async_code_dba000a8())
+            return =asyncio.run(run_async_code_dba000a8())
         logger.success(format_json())
 
 
@@ -244,7 +243,7 @@ logger.info("## Build an Agent with a Model Client")
 
 
 
-@dataclass
+@ dataclass
 class Message:
     content: str
 
@@ -252,18 +251,19 @@ class Message:
 class SimpleAgent(RoutedAgent):
     def __init__(self, model_client: ChatCompletionClient) -> None:
         super().__init__("A simple agent")
-        self._system_messages = [SystemMessage(content="You are a helpful AI assistant.")]
-        self._model_client = model_client
+        self._system_messages=[SystemMessage(
+            content="You are a helpful AI assistant.")]
+        self._model_client=model_client
 
-    @message_handler
+    @ message_handler
     async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
-        user_message = UserMessage(content=message.content, source="user")
+        user_message=UserMessage(content=message.content, source="user")
         async def async_func_21():
-            response = await self._model_client.create(
+            response=await self._model_client.create(
                 self._system_messages + [user_message], cancellation_token=ctx.cancellation_token
             )
             return response
-        response = asyncio.run(async_func_21())
+        response=asyncio.run(async_func_21())
         logger.success(format_json(response))
         assert isinstance(response.content, str)
         return Message(content=response.content)
@@ -283,37 +283,35 @@ and can be used by the caller to cancel the handlers.
 logger.info("The `SimpleAgent` class is a subclass of the")
 
 
-model_client = OllamaChatCompletionClient(
+model_client=OllamaChatCompletionClient(
     model="llama3.1",
 )
 
-runtime = SingleThreadedAgentRuntime()
+runtime=SingleThreadedAgentRuntime()
 await SimpleAgent.register(
     runtime,
     "simple_agent",
     lambda: SimpleAgent(model_client=model_client),
 )
 runtime.start()
-message = Message("Hello, what are some fun things to do in Seattle?")
+message=Message("Hello, what are some fun things to do in Seattle?")
 async def run_async_code_b614784e():
     async def run_async_code_fdadd2c2():
-        response = await runtime.send_message(message, AgentId("simple_agent", "default"))
+        response=await runtime.send_message(message, AgentId("simple_agent", "default"))
         return response
-    response = asyncio.run(run_async_code_fdadd2c2())
+    response=asyncio.run(run_async_code_fdadd2c2())
     logger.success(format_json(response))
     return response
-response = asyncio.run(run_async_code_b614784e())
+response=asyncio.run(run_async_code_b614784e())
 logger.success(format_json(response))
 logger.debug(response.content)
 async def run_async_code_4aaa8dea():
     await runtime.stop()
-    return 
- = asyncio.run(run_async_code_4aaa8dea())
+    return=asyncio.run(run_async_code_4aaa8dea())
 logger.success(format_json())
 async def run_async_code_0349fda4():
     await model_client.close()
-    return 
- = asyncio.run(run_async_code_0349fda4())
+    return=asyncio.run(run_async_code_0349fda4())
 logger.success(format_json())
 
 """
@@ -327,8 +325,8 @@ See the [Model Context](./model-context.ipynb) page for more details.
 
 In the examples above, we show that you can provide the API key through the `api_key` argument. Importantly, the Ollama and Azure Ollama clients use the [openai package](https://github.com/openai/openai-python/blob/3f8d8205ae41c389541e125336b0ae0c5e437661/src/openai/__init__.py#L260), which will automatically read an api key from the environment variable if one is not provided.
 
-# - For Ollama, you can set the `OPENAI_API_KEY` environment variable.  
-# - For Azure Ollama, you can set the `AZURE_OPENAI_API_KEY` environment variable. 
+# - For Ollama, you can set the `OPENAI_API_KEY` environment variable.
+# - For Azure Ollama, you can set the `AZURE_OPENAI_API_KEY` environment variable.
 
 In addition, for Gemini (Beta), you can set the `GEMINI_API_KEY` environment variable.
 

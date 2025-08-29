@@ -63,7 +63,7 @@ async def main():
     cohere_llm = Cohere(model="command")
     mistral_llm = MistralAI(model="mistral-large-latest")
     openai_llm = OllamaFunctionCallingAdapter(
-        model="llama3.2", request_timeout=300.0, context_window=4096)
+        model="llama3.2")
 
     start = anthropic_llm.complete(
         "Please start a random story. Limit your response to 20 words."

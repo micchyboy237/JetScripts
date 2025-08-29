@@ -62,7 +62,8 @@ logger.info("#### Download Data")
 """
 logger.info("#### Load Documents")
 
-reader = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/")
+reader = SimpleDirectoryReader(
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/")
 documents = reader.load_data()
 
 """
@@ -137,7 +138,7 @@ keyword_table_index = load_index_from_storage(
 """
 logger.info("#### Test out some Queries")
 
-chatgpt = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+chatgpt = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 
 Settings.llm = chatgpt
 Settings.chunk_size = 1024

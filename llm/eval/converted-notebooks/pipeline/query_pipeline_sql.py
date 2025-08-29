@@ -119,7 +119,7 @@ Summary: """
 
 program = LLMTextCompletionProgram.from_defaults(
     output_cls=TableInfo,
-    llm=Ollama(model="llama3.2", request_timeout=300.0, context_window=4096),
+    llm=Ollama(model="llama3.2"),
     prompt_template_str=prompt_str,
 )
 
@@ -298,7 +298,7 @@ response_synthesis_prompt = PromptTemplate(
     response_synthesis_prompt_str,
 )
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 # Define Query Pipeline
 #

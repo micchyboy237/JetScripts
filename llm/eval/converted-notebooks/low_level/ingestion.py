@@ -176,7 +176,7 @@ print(nodes[0].get_content(metadata_mode="all"))
 # This will add more metadata to each Node.
 
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 extractors = [
     TitleExtractor(nodes=5, llm=llm),

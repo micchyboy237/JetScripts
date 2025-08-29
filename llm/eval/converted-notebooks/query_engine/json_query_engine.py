@@ -145,7 +145,7 @@ json_schema = {
 }
 
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 nl_query_engine = JSONQueryEngine(
     json_value=json_value,

@@ -72,7 +72,7 @@ prompt_template_str = """\
 Generate an example album, with an artist and a list of songs. \
 Using the movie {movie_name} as inspiration.\
 """
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 program = FunctionCallingProgram.from_defaults(
     output_cls=Album,
@@ -96,7 +96,7 @@ Generate example albums, with an artist and a list of songs, using each movie be
 Here are the movies:
 {movie_names}
 """
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 program = FunctionCallingProgram.from_defaults(
     output_cls=Album,

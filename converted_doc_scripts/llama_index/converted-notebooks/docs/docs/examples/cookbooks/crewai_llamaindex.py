@@ -112,13 +112,12 @@ logger.info("## Setup a Simple Financial Analyst Agent")
 # !wget "https://s23.q4cdn.com/407969754/files/doc_financials/2019/ar/Uber-Technologies-Inc-2019-Annual-Report.pdf" -O uber_10k.pdf
 
 
-
 reader = SimpleDirectoryReader(input_files=["uber_10k.pdf"])
 docs = reader.load_data()
 
 docs[1].get_content()
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 index = VectorStoreIndex.from_documents(docs)
 query_engine = index.as_query_engine(similarity_top_k=5, llm=llm)
 

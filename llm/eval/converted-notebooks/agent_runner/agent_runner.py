@@ -55,7 +55,7 @@ add_tool = FunctionTool.from_defaults(fn=add)
 
 tools = [multiply_tool, add_tool]
 
-llm = Ollama(model="llama3.2", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.2")
 
 # Test Ollama Agent
 #
@@ -103,7 +103,7 @@ print(str(response))
 #
 # We do the same experiments, but with ReAct.
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 
 
 agent = ReActAgent.from_tools(tools, llm=llm, verbose=True)

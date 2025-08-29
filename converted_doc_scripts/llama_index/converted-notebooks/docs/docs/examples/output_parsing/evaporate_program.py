@@ -55,7 +55,6 @@ logger.info("## Use `DFEvaporateProgram`")
 wiki_titles = ["Toronto", "Seattle", "Chicago", "Boston", "Houston"]
 
 
-
 for title in wiki_titles:
     response = requests.get(
         "https://en.wikipedia.org/w/api.php",
@@ -90,7 +89,7 @@ for wiki_title in wiki_titles:
 logger.info("### Parse Data")
 
 
-Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 Settings.chunk_size = 512
 
 city_nodes = {}
@@ -138,10 +137,9 @@ In this example, we use this program to parse gold medal counts.
 """
 logger.info("## Use `MultiValueEvaporateProgram`")
 
-Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
 Settings.chunk_size = 1024
 Settings.chunk_overlap = 0
-
 
 
 train_text = """

@@ -59,7 +59,7 @@ add_tool = FunctionTool.from_defaults(fn=add)
 ### gpt-3.5-turbo
 """
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 agent = ReActAgent.from_tools([multiply_tool, add_tool], llm=llm, verbose=True)
 
 response = agent.chat("What is 20+(2*4)? Calculate step by step ")
@@ -71,7 +71,7 @@ response_gen.print_response_stream()
 ### gpt-4
 """
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 agent = ReActAgent.from_tools([multiply_tool, add_tool], llm=llm, verbose=True)
 
 response = agent.chat("What is 2+2*4")
@@ -85,7 +85,7 @@ Let's take a look at the core system prompt powering the ReAct agent!
 Within the agent, the current conversation history is dumped below this line.
 """
 
-llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+llm = Ollama(model="llama3.1")
 agent = ReActAgent.from_tools([multiply_tool, add_tool], llm=llm, verbose=True)
 
 prompt_dict = agent.get_prompts()

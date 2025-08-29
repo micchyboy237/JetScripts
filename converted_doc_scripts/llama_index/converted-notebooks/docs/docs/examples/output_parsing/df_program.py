@@ -1,9 +1,9 @@
 from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
 from llama_index.core.program import (
-DFFullProgram,
-DataFrame,
-DataFrameRowsOnly,
+    DFFullProgram,
+    DataFrame,
+    DataFrameRowsOnly,
 )
 from llama_index.core.program import DFFullProgram, DFRowsProgram
 from llama_index.program.openai import OllamaFunctionCallingAdapterPydanticProgram
@@ -53,7 +53,7 @@ logger.info("# DataFrame Structured Data Extraction")
 
 program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=DataFrame,
-    llm=OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096),
+    llm=OllamaFunctionCallingAdapter(temperature=0, model="llama3.2"),
     prompt_template_str=(
         "Please extract the following query into a structured data according"
         " to: {input_str}.Please extract both the set of column names and a"
@@ -75,7 +75,7 @@ response_obj
 
 program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=DataFrameRowsOnly,
-    llm=OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096),
+    llm=OllamaFunctionCallingAdapter(temperature=0, model="llama3.2"),
     prompt_template_str=(
         "Please extract the following text into a structured data:"
         " {input_str}. The column names are the following: ['Name', 'Age',"

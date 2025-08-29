@@ -112,7 +112,7 @@ async def main():
     logger.info("## Setup Agent")
 
     agent = FunctionAgent(tools=query_engine_tools, llm=OllamaFunctionCallingAdapter(
-        model="llama3.2", request_timeout=300.0, context_window=4096))
+        model="llama3.2"))
 
     ctx = Context(agent)
 

@@ -9,8 +9,8 @@ from llama_index.core import StorageContext
 from llama_index.core.query_engine import RouterQueryEngine
 from llama_index.core.response_synthesizers import TreeSummarize
 from llama_index.core.selectors import (
-PydanticMultiSelector,
-PydanticSingleSelector,
+    PydanticMultiSelector,
+    PydanticSingleSelector,
 )
 from llama_index.core.selectors import LLMSingleSelector, LLMMultiSelector
 from llama_index.core.tools import QueryEngineTool
@@ -70,7 +70,6 @@ We first show how to convert a Document into a set of Nodes, and insert into a D
 logger.info("## Load Data")
 
 
-
 documents = SimpleDirectoryReader(
     input_files=["./gatsby_full.txt"]
 ).load_data()
@@ -81,7 +80,7 @@ documents = SimpleDirectoryReader(
 logger.info("## Define Query Engines")
 
 
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
 Settings.chunk_size = 1024
 
 nodes = Settings.node_parser.get_nodes_from_documents(documents)
@@ -141,7 +140,6 @@ logger.debug(response)
 logger.info("## Define Router Query Engine")
 
 
-
 keyword_tool = QueryEngineTool.from_defaults(
     query_engine=keyword_query_engine,
     description="Useful for answering questions about this essay",
@@ -182,16 +180,16 @@ query_engine = RouterQueryEngine(
 logger.info("## Experiment with Queries")
 
 response = query_engine.query(
-        "Describe and summarize the interactions between Gatsby and Daisy"
-    )
+    "Describe and summarize the interactions between Gatsby and Daisy"
+)
 logger.success(format_json(response))
 logger.debug(response)
 
 response.source_nodes
 
 response = query_engine.query(
-        "What part of his past is Gatsby trying to recapture?"
-    )
+    "What part of his past is Gatsby trying to recapture?"
+)
 logger.success(format_json(response))
 logger.debug(response)
 

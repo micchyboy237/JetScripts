@@ -73,7 +73,7 @@ documents = SimpleDirectoryReader(
 
 gpt35_llm = Ollama(model="llama3.2", request_timeout=300.0,
                    context_window=4096)
-gpt4_llm = Ollama(model="llama3.1", request_timeout=300.0, context_window=4096)
+gpt4_llm = Ollama(model="llama3.1")
 
 index = VectorStoreIndex.from_documents(documents)
 

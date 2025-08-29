@@ -18,7 +18,8 @@ import os
 import pandas as pd
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -71,7 +72,6 @@ vectorstore = Qdrant.from_documents(
 logger.info("## **Chromadb (Optional)**")
 
 
-
 """
 ## **Retriever**
 """
@@ -90,7 +90,8 @@ client = Client()
 prompt = client.pull_prompt("langchain-ai/rag-fusion-query-generation")
 
 generate_queries = (
-    prompt | ChatOllama(model="llama3.1") | StrOutputParser() | (lambda x: x.split("\n"))
+    prompt | ChatOllama(model="llama3.1") | StrOutputParser() | (
+        lambda x: x.split("\n"))
 )
 
 
@@ -109,6 +110,7 @@ def reciprocal_rank_fusion(results: list[list], k=60):
         for doc, score in sorted(fused_scores.items(), key=lambda x: x[1], reverse=True)
     ]
     return reranked_results
+
 
 chain = generate_queries | retriever.map() | reciprocal_rank_fusion
 
@@ -151,11 +153,13 @@ logger.info("## **Preparing Data for Evaluation**")
 question = ["what are points on a mortgage"]
 response = []
 contexts = []
-ground_truths = ["Points, sometimes also called a 'discount point', are a form of pre-paid interest."]
+ground_truths = [
+    "Points, sometimes also called a 'discount point', are a form of pre-paid interest."]
 
 for query in question:
-  response.append(rag_fusion_chain.invoke(query))
-  contexts.append([docs.page_content for docs in retriever.get_relevant_documents(query)])
+    response.append(rag_fusion_chain.invoke(query))
+    contexts.append(
+        [docs.page_content for docs in retriever.get_relevant_documents(query)])
 
 data = {
     "query": question,
@@ -191,6 +195,6 @@ AthinaApiKey.set_key(os.getenv('ATHINA_API_KEY'))
 
 dataset = Loader().load_dict(df_dict)
 
-RagasAnswerRelevancy(model="llama3.1", request_timeout=300.0, context_window=4096).run_batch(data=dataset).to_df()
+RagasAnswerRelevancy(model="llama3.1").run_batch(data=dataset).to_df()
 
 logger.info("\n\n[DONE]", bright=True)
