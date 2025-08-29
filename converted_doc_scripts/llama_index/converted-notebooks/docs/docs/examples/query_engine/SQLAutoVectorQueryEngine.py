@@ -1,7 +1,5 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SQLDatabase
 from llama_index.core import Settings
 from llama_index.core import StorageContext
@@ -10,10 +8,8 @@ from llama_index.core.query_engine import NLSQLTableQueryEngine
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.query_engine import SQLAutoVectorQueryEngine
 from llama_index.core.retrievers import VectorIndexAutoRetriever
-from llama_index.core.settings import Settings
 from llama_index.core.tools import QueryEngineTool
 from llama_index.core.vector_stores import MetadataInfo, VectorStoreInfo
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.readers.wikipedia import WikipediaReader
 from llama_index.vector_stores.pinecone import PineconeVectorStore
 from sqlalchemy import (
@@ -41,13 +37,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/query_engine/SQLAutoVectorQueryEngine.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -217,7 +206,7 @@ vector_auto_retriever = VectorIndexAutoRetriever(
 )
 
 retriever_query_engine = RetrieverQueryEngine.from_args(
-    vector_auto_retriever, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    vector_auto_retriever, llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 )
 
 
@@ -243,7 +232,7 @@ logger.info("### Define SQLAutoVectorQueryEngine")
 
 
 query_engine = SQLAutoVectorQueryEngine(
-    sql_tool, vector_tool, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    sql_tool, vector_tool, llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 )
 
 response = query_engine.query(

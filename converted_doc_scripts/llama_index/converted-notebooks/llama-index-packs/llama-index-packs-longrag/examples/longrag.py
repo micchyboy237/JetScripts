@@ -1,13 +1,9 @@
 from IPython.display import Markdown, display
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Settings
 from llama_index.core import StorageContext, load_index_from_storage
 from llama_index.core import VectorStoreIndex
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.packs.longrag import LongRAGPack
 import os
 import shutil
@@ -20,13 +16,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # LongRAG example
@@ -51,12 +40,12 @@ logger.info("# LongRAG example")
 """
 ## Usage
 
-Below shows the usage of `LongRAGPack` using the `qwen3-1.7b-4bit` LLM, which is able to handle long context inputs.
+Below shows the usage of `LongRAGPack` using the `gpt-4o` LLM, which is able to handle long context inputs.
 """
 logger.info("## Usage")
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+Settings.llm = OllamaFunctionCallingAdapter("gpt-4o")
 
 pack = LongRAGPack(data_dir="./data")
 

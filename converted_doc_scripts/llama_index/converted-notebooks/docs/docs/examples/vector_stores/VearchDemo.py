@@ -1,12 +1,9 @@
-from IPython.display import Markdown, display
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from IPython.display import Markdown, display
+from jet.logger import CustomLogger
 from llama_index import ServiceContext
 from llama_index import SimpleDirectoryReader, StorageContext, VectorStoreIndex
-from llama_index.core.settings import Settings
 from llama_index.embeddings import HuggingFaceEmbedding
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores import VearchVectorStore
 import logging
 import openai
@@ -21,13 +18,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -56,7 +46,7 @@ vector_store = VearchVectorStore(
 vearch standalone
 """
 
-embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-en-v1.5")
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 service_context = ServiceContext.from_defaults(embed_model=embed_model)
 storage_context = StorageContext.from_defaults(vector_store=vector_store)
 index = VectorStoreIndex.from_documents(

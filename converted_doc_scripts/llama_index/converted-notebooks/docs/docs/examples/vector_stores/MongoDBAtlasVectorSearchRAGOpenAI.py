@@ -1,10 +1,8 @@
+from jet.models.config import MODELS_CACHE_DIR
 from datasets import load_dataset
 from google.colab import userdata
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Document
 from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.core.node_parser import SentenceSplitter
@@ -28,21 +26,14 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
-# MongoDB Atlas + MLX RAG Example
+# MongoDB Atlas + OllamaFunctionCallingAdapter RAG Example
 """
-logger.info("# MongoDB Atlas + MLX RAG Example")
+logger.info("# MongoDB Atlas + OllamaFunctionCallingAdapter RAG Example")
 
 # !pip install llama-index
 # !pip install llama-index-vector-stores-mongodb
-# !pip install llama-index-embeddings-ollama
+# !pip install llama-index-embeddings-huggingface
 # !pip install pymongo
 # !pip install datasets
 # !pip install pandas
@@ -65,8 +56,8 @@ dataset_df = dataset_df.drop(columns=["plot_embedding"])
 dataset_df.head(5)
 
 
-embed_model = MLXEmbedding(model="mxbai-embed-large", dimensions=256)
-llm = MLXLlamaIndexLLMAdapter()
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+llm = OllamaFunctionCallingAdapter()
 
 Settings.llm = llm
 Settings.embed_model = embed_model

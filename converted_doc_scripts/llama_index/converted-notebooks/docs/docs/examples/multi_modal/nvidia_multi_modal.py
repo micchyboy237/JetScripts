@@ -1,16 +1,11 @@
-import asyncio
 from jet.transformers.formatters import format_json
 from PIL import Image
 from io import BytesIO
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.llms import ChatMessage
 from llama_index.core.multi_modal_llms.generic_utils import load_image_urls
 from llama_index.core.schema import ImageDocument
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.multi_modal_llms.nvidia import NVIDIAMultiModal
 import base64
 import os
@@ -24,13 +19,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/multi_modal/nvidia_multi_modal.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -112,13 +100,10 @@ stream_complete_response = llm.stream_complete(
 for r in stream_complete_response:
     logger.debug(r.text, end="")
 
-async def async_func_8():
-    stream_complete_response = llm.stream_complete(
+stream_complete_response = llm.stream_complete(
         prompt=f"What is this image?",
         image_documents=image_url_documents,
     )
-    return stream_complete_response
-stream_complete_response = asyncio.run(async_func_8())
 logger.success(format_json(stream_complete_response))
 
 last_element = None
@@ -285,8 +270,7 @@ for r in streaming_resp:
     logger.debug(r.delta, end="")
 
 
-async def async_func_19():
-    resp = llm.stream_chat(
+resp = llm.stream_chat(
         [
             ChatMessage(
                 role="user",
@@ -297,8 +281,6 @@ async def async_func_19():
             )
         ]
     )
-    return resp
-resp = asyncio.run(async_func_19())
 logger.success(format_json(resp))
 
 last_element = None

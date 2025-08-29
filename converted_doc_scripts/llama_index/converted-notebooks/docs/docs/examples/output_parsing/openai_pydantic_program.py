@@ -1,11 +1,7 @@
 from directory import DirectoryTree, Node
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.program.openai import MLXPydanticProgram
+from llama_index.program.openai import OllamaFunctionCallingAdapterPydanticProgram
 from pydantic import BaseModel
 from pydantic import BaseModel, Field
 from typing import List
@@ -20,19 +16,12 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/output_parsing/openai_pydantic_program.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# MLX Pydantic Program
+# OllamaFunctionCallingAdapter Pydantic Program
 
-This guide shows you how to generate structured data with [new MLX API](https://openai.com/blog/function-calling-and-other-api-updates) via LlamaIndex. The user just needs to specify a Pydantic object.
+This guide shows you how to generate structured data with [new OllamaFunctionCallingAdapter API](https://openai.com/blog/function-calling-and-other-api-updates) via LlamaIndex. The user just needs to specify a Pydantic object.
 
 We demonstrate two settings:
 - Extraction into an `Album` object (which can contain a list of Song objects)
@@ -44,7 +33,7 @@ This is a simple example of parsing an output into an `Album` schema, which can 
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
-logger.info("# MLX Pydantic Program")
+logger.info("# OllamaFunctionCallingAdapter Pydantic Program")
 
 # %pip install llama-index-llms-ollama
 # %pip install llama-index-program-openai
@@ -79,7 +68,7 @@ prompt_template_str = """\
 Generate an example album, with an artist and a list of songs. \
 Using the movie {movie_name} as inspiration.\
 """
-program = MLXPydanticProgram.from_defaults(
+program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=Album, prompt_template_str=prompt_template_str, verbose=True
 )
 
@@ -115,7 +104,7 @@ prompt_template_str = """\
 Generate an example album, with an artist and a list of songs. \
 Using the movie {movie_name} as inspiration.\
 """
-program = MLXPydanticProgram.from_defaults(
+program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=Album, prompt_template_str=prompt_template_str, verbose=True
 )
 
@@ -165,7 +154,7 @@ logger.info("Now we'll initialilze the program with prompt template")
 
 prompt_template_str = "Information about 3 characters from the movie: {movie}"
 
-program = MLXPydanticProgram.from_defaults(
+program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=Characters, prompt_template_str=prompt_template_str
 )
 
@@ -180,11 +169,11 @@ for partial_object in program.stream_partial_objects(movie="Harry Potter"):
 """
 ## Extracting List of `Album` (with Parallel Function Calling)
 
-With the latest [parallel function calling](https://platform.openai.com/docs/guides/function-calling/parallel-function-calling) feature from MLX, we can simultaneously extract multiple structured data from a single prompt!
+With the latest [parallel function calling](https://platform.openai.com/docs/guides/function-calling/parallel-function-calling) feature from OllamaFunctionCallingAdapter, we can simultaneously extract multiple structured data from a single prompt!
 
 To do this, we need to:
 1. pick one of the latest models (e.g. `gpt-3.5-turbo-1106`), and 
-2. set `allow_multiple` to True in our `MLXPydanticProgram` (if not, it will only return the first object, and raise a warning).
+2. set `allow_multiple` to True in our `OllamaFunctionCallingAdapterPydanticProgram` (if not, it will only return the first object, and raise a warning).
 """
 logger.info("## Extracting List of `Album` (with Parallel Function Calling)")
 
@@ -192,9 +181,9 @@ logger.info("## Extracting List of `Album` (with Parallel Function Calling)")
 prompt_template_str = """\
 Generate 4 albums about spring, summer, fall, and winter.
 """
-program = MLXPydanticProgram.from_defaults(
+program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=Album,
-    llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
     prompt_template_str=prompt_template_str,
     allow_multiple=True,
     verbose=True,
@@ -219,7 +208,7 @@ Full credits to this idea go to `openai_function_call` repo: https://github.com/
 logger.info("## Extraction into `Album` (Streaming)")
 
 prompt_template_str = "{input_str}"
-program = MLXPydanticProgram.from_defaults(
+program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=Album,
     prompt_template_str=prompt_template_str,
     verbose=False,
@@ -236,7 +225,7 @@ for obj in output:
 
 This is directly inspired by jxnl's awesome repo here: https://github.com/jxnl/openai_function_call.
 
-That repository shows how you can use MLX's function API to parse recursive Pydantic objects. The main requirement is that you want to "wrap" a recursive Pydantic object with a non-recursive one.
+That repository shows how you can use OllamaFunctionCallingAdapter's function API to parse recursive Pydantic objects. The main requirement is that you want to "wrap" a recursive Pydantic object with a non-recursive one.
 
 Here we show an example in a "directory" setting, where a `DirectoryTree` object wraps recursive `Node` objects, to parse a file structure.
 """
@@ -245,7 +234,7 @@ logger.info("## Extraction into `DirectoryTree` object")
 
 DirectoryTree.schema()
 
-program = MLXPydanticProgram.from_defaults(
+program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=DirectoryTree,
     prompt_template_str="{input_str}",
     verbose=True,

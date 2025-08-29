@@ -1,10 +1,9 @@
+from jet.models.config import MODELS_CACHE_DIR
 from IPython.display import Markdown, display
 from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import (
 SimpleDirectoryReader,
 StorageContext,
@@ -20,9 +19,8 @@ FilterOperator,
 FilterCondition,
 )
 from llama_index.core.vector_stores.types import VectorStoreQueryMode
-from llama_index.embeddings.azure_openai import AzureMLXEmbedding
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.llms.azure_openai import AzureMLX
+from llama_index.embeddings.azure_openai import AzureHuggingFaceEmbedding
+from llama_index.llms.azure_openai import AzureOllamaFunctionCallingAdapter
 from llama_index.vector_stores.azureaisearch import (
 IndexManagement,
 MetadataIndexFieldType,
@@ -42,13 +40,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/vector_stores/AzureAISearchIndexDemo.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
@@ -56,7 +47,7 @@ Settings.embed_model = HuggingFaceEmbedding(
 
 ## Basic Example
 
-In this notebook, we take a Paul Graham essay, split it into chunks, embed it using an Azure MLX embedding model, load it into an Azure AI Search index, and then query it.
+In this notebook, we take a Paul Graham essay, split it into chunks, embed it using an Azure OllamaFunctionCallingAdapter embedding model, load it into an Azure AI Search index, and then query it.
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
@@ -71,15 +62,15 @@ logger.info("# Azure AI Search")
 
 
 """
-## Setup Azure MLX
+## Setup Azure OllamaFunctionCallingAdapter
 """
-logger.info("## Setup Azure MLX")
+logger.info("## Setup Azure OllamaFunctionCallingAdapter")
 
 # aoai_api_key = "YOUR_AZURE_OPENAI_API_KEY"
 aoai_endpoint = "YOUR_AZURE_OPENAI_ENDPOINT"
 aoai_api_version = "2024-10-21"
 
-llm = AzureMLXLlamaIndexLLMAdapter(
+llm = AzureOllamaFunctionCallingAdapter(
     model="YOUR_AZURE_OPENAI_COMPLETION_MODEL_NAME",
     deployment_name="YOUR_AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME",
     api_key=aoai_api_key,
@@ -87,7 +78,7 @@ llm = AzureMLXLlamaIndexLLMAdapter(
     api_version=aoai_api_version,
 )
 
-embed_model = AzureMLXEmbedding(
+embed_model = AzureHuggingFaceEmbedding(
     model="YOUR_AZURE_OPENAI_EMBEDDING_MODEL_NAME",
     deployment_name="YOUR_AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME",
     api_key=aoai_api_key,

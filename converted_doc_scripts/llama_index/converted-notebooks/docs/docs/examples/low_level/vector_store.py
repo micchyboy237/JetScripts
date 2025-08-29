@@ -1,14 +1,11 @@
-from dataclasses import fields
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from dataclasses import fields
+from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex
 from llama_index.core.bridge.pydantic import Field
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.schema import BaseNode
 from llama_index.core.schema import TextNode, BaseNode
-from llama_index.core.settings import Settings
 from llama_index.core.vector_stores import (
 VectorStoreQuery,
 VectorStoreQueryResult,
@@ -32,17 +29,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/low_level/vector_store.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
@@ -65,10 +51,10 @@ We load in some documents, and parse them into Node objects - chunks that are re
 logger.info("# Building a (Very Simple) Vector Store from Scratch")
 
 # %pip install llama-index-readers-file pymupdf
-# %pip install llama-index-embeddings-ollama
+# %pip install llama-index-embeddings-huggingface
 
 # !mkdir data
-# !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O f"{GENERATED_DIR}/llama2.pdf"
+# !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
 # from llama_index.readers.file import PyMuPDFReader
 
@@ -90,7 +76,7 @@ nodes = node_parser.get_nodes_from_documents(documents)
 logger.info("#### Generate Embeddings for each Node")
 
 
-embed_model = MLXEmbedding()
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 for node in nodes:
     node_embedding = embed_model.get_text_embedding(
         node.get_content(metadata_mode="all")

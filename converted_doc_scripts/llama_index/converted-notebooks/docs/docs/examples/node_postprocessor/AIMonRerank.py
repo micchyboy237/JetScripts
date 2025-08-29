@@ -1,11 +1,7 @@
 from google.colab import userdata
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.response.pprint_utils import pprint_response
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.postprocessor.aimon_rerank import AIMonRerank
 import os
 import shutil
@@ -17,13 +13,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/drive/1N4agIVU1NTEHaO5mLPa-bGBNpY17AxsO#scrollTo=8n2pDnW7521g" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -40,9 +29,9 @@ logger.info("# AIMon Rerank")
 
 
 """
-An MLX and AIMon API key is required for this notebook. Import the AIMon and MLX API keys from Colab Secrets
+An OllamaFunctionCallingAdapter and AIMon API key is required for this notebook. Import the AIMon and OllamaFunctionCallingAdapter API keys from Colab Secrets
 """
-logger.info("An MLX and AIMon API key is required for this notebook. Import the AIMon and MLX API keys from Colab Secrets")
+logger.info("An OllamaFunctionCallingAdapter and AIMon API key is required for this notebook. Import the AIMon and OllamaFunctionCallingAdapter API keys from Colab Secrets")
 
 
 

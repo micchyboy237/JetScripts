@@ -1,13 +1,10 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
 from llama_index.core.llama_pack import download_llama_pack
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.response.notebook_utils import display_source_node
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.packs.node_parser_semantic_chunking import (
 SemanticChunkingQueryEnginePack,
@@ -24,13 +21,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Semantic Chunker
@@ -55,7 +45,7 @@ Caveats:
 logger.info("# Semantic Chunker")
 
 # %pip install llama-index-packs-node-parser-semantic-chunking
-# %pip install llama-index-embeddings-ollama
+# %pip install llama-index-embeddings-huggingface
 # %pip install llama-hub-llama-packs-node-parser-semantic-chunking-base
 
 
@@ -78,7 +68,7 @@ download_llama_pack(
 
 
 
-embed_model = MLXEmbedding()
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 splitter = SemanticChunker(
     buffer_size=1, breakpoint_percentile_threshold=95, embed_model=embed_model
 )

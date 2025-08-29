@@ -1,13 +1,10 @@
-import asyncio
 from jet.transformers.formatters import format_json
 from bs4 import BeautifulSoup
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from langchain.document_loaders import AsyncHtmlLoader
 from langchain.document_transformers import Html2TextTransformer
-from langchain.embeddings.openai import MLXEmbeddings
+from langchain.embeddings.openai import OllamaEmbeddings
 from llama_index.core import (
 VectorStoreIndex,
 SimpleDirectoryReader,
@@ -21,8 +18,6 @@ EmbeddingQAFinetuneDataset,
 from llama_index.core.evaluation import RetrieverEvaluator
 from llama_index.core.evaluation import generate_question_context_pairs
 from llama_index.core.node_parser import SimpleNodeParser
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.deeplake import DeepLakeVectorStore
 from urllib.parse import urljoin
 import os
@@ -39,19 +34,12 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 # Activeloop Deep Memory
 
 **How do we get +15% RAG hit_rate improvement for question answering on documentation?**
 
-Retrieval-Augmented Generators (RAGs) have recently gained significant attention. As advanced RAG techniques and agents emerge, they expand the potential of what RAGs can accomplish. However, several challenges may limit the integration of RAGs into production. The primary factors to consider when implementing RAGs in production settings are accuracy (recall), cost, and latency. For basic use cases, MLX's Ada model paired with a naive similarity search can produce satisfactory results. Yet, for higher accuracy or recall during searches, one might need to employ advanced retrieval techniques. These methods might involve varying data chunk sizes, rewriting queries multiple times, and more, potentially increasing latency and costs.  [Activeloop's](https://activeloop.ai/) [Deep Memory](https://www.activeloop.ai/resources/use-deep-memory-to-boost-rag-apps-accuracy-by-up-to-22/) a feature available to Activeloop Deep Lake users, addresses these issuea by introducing a tiny neural network layer trained to match user queries with relevant data from a corpus. While this addition incurs minimal latency during search, it can boost retrieval accuracy by up to 27
+Retrieval-Augmented Generators (RAGs) have recently gained significant attention. As advanced RAG techniques and agents emerge, they expand the potential of what RAGs can accomplish. However, several challenges may limit the integration of RAGs into production. The primary factors to consider when implementing RAGs in production settings are accuracy (recall), cost, and latency. For basic use cases, OllamaFunctionCallingAdapter's Ada model paired with a naive similarity search can produce satisfactory results. Yet, for higher accuracy or recall during searches, one might need to employ advanced retrieval techniques. These methods might involve varying data chunk sizes, rewriting queries multiple times, and more, potentially increasing latency and costs.  [Activeloop's](https://activeloop.ai/) [Deep Memory](https://www.activeloop.ai/resources/use-deep-memory-to-boost-rag-apps-accuracy-by-up-to-22/) a feature available to Activeloop Deep Lake users, addresses these issuea by introducing a tiny neural network layer trained to match user queries with relevant data from a corpus. While this addition incurs minimal latency during search, it can boost retrieval accuracy by up to 27
 % and remains cost-effective and simple to use, without requiring any additional advanced rag techniques.
 """
 logger.info("# Activeloop Deep Memory")
@@ -119,7 +107,7 @@ len(docs)
 
 
 
-# os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter your MLX API token: ")
+# os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter your OllamaFunctionCallingAdapter API token: ")
 # os.environ["ACTIVELOOP_TOKEN"] = getpass.getpass(
     "Enter your ActiveLoop API token: "
 )  # Get your API token from https://app.activeloop.ai, click on your profile picture in the top right corner, and select "API Tokens"
@@ -143,7 +131,7 @@ def create_modules(vector_store, docs=[], populate_vector_store=True):
     for idx, node in enumerate(nodes):
         node.id_ = f"node_{idx}"
 
-    llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     return storage_context, nodes, llm
 
@@ -238,7 +226,7 @@ test_queries[:3]
 test_relevance[:3]
 
 
-embeddings = MLXEmbeddings()
+embeddings = OllamaEmbeddings(model="mxbai-embed-large")
 
 
 job_id = vector_store.vectorstore.deep_memory.train(
@@ -312,12 +300,9 @@ dm_retriever_evaluator = RetrieverEvaluator.from_metric_names(
     ["mrr", "hit_rate"], retriever=deep_memory_retriever
 )
 
-async def async_func_9():
-    dm_eval_results = dm_retriever_evaluator.evaluate_dataset(
+dm_eval_results = dm_retriever_evaluator.evaluate_dataset(
         test_qa_dataset, retriever=dm_retriever_evaluator
     )
-    return dm_eval_results
-dm_eval_results = asyncio.run(async_func_9())
 logger.success(format_json(dm_eval_results))
 
 
@@ -326,12 +311,9 @@ naive_retriever_evaluator = RetrieverEvaluator.from_metric_names(
     ["mrr", "hit_rate"], retriever=naive_retriever
 )
 
-async def async_func_20():
-    naive_eval_results = naive_retriever_evaluator.evaluate_dataset(
+naive_eval_results = naive_retriever_evaluator.evaluate_dataset(
         test_qa_dataset, retriever=naive_retriever
     )
-    return naive_eval_results
-naive_eval_results = asyncio.run(async_func_20())
 logger.success(format_json(naive_eval_results))
 
 eval_results = {

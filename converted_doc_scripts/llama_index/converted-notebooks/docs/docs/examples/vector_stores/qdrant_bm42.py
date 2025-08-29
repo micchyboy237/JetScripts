@@ -1,13 +1,10 @@
-from fastembed import SparseTextEmbedding
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from fastembed import SparseTextEmbedding
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.logger import CustomLogger
 from llama_index.core import Document
 from llama_index.core import VectorStoreIndex
 from llama_index.core import VectorStoreIndex, StorageContext
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_parse import LlamaParse
@@ -22,17 +19,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Hybrid Search with Qdrant BM42
@@ -95,7 +81,7 @@ You can get a free api key for `llama-parse` by visiting [https://cloud.llamaind
 logger.info("## Construct our Hybrid Index")
 
 # !mkdir -p 'data/'
-# !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O f"{GENERATED_DIR}/llama2.pdf"
+# !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
 # import nest_asyncio
 
@@ -104,7 +90,7 @@ logger.info("## Construct our Hybrid Index")
 
 parser = LlamaParse(result_type="text", api_key="llx-...")
 
-json_data = parser.get_json_result(f"{GENERATED_DIR}/llama2.pdf")
+json_data = parser.get_json_result("data/llama2.pdf")
 
 documents = []
 for document_json in json_data:
@@ -154,7 +140,7 @@ vector_store = QdrantVectorStore(
 storage_context = StorageContext.from_defaults(vector_store=vector_store)
 index = VectorStoreIndex.from_documents(
     documents,
-    embed_model=MLXEmbedding(
+    embed_model=HuggingFaceEmbedding(
         model_name="mxbai-embed-large", api_key="sk-proj-..."
     ),
     storage_context=storage_context,
@@ -174,7 +160,7 @@ logger.info("## Test out the Index")
 
 chat_engine = index.as_chat_engine(
     chat_mode="condense_plus_context",
-    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", api_key="sk-proj-..."),
+    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, api_key="sk-proj-..."),
 )
 
 response = chat_engine.chat("What training hardware was used for Llama2?")
@@ -209,7 +195,7 @@ vector_store = QdrantVectorStore(
 
 loaded_index = VectorStoreIndex.from_vector_store(
     vector_store,
-    embed_model=MLXEmbedding(
+    embed_model=HuggingFaceEmbedding(
         model="mxbai-embed-large", api_key="sk-proj-..."
     ),
 )

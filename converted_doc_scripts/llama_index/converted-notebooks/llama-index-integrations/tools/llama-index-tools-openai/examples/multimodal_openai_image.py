@@ -1,13 +1,9 @@
 from IPython.display import display
 from PIL import Image
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index import SimpleDirectoryReader
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.multi_modal_llms.openai import MLXMultiModal
-from llama_index.tools.openai.image_generation import MLXImageGenerationToolSpec
+from llama_index.multi_modal_llms.openai import OllamaFunctionCallingAdapterMultiModal
+from llama_index.tools.openai.image_generation import OllamaFunctionCallingAdapterImageGenerationToolSpec
 import os
 import shutil
 
@@ -19,22 +15,15 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
-# Multi-Modal MLX Image Generation + GPT-4V
+# Multi-Modal OllamaFunctionCallingAdapter Image Generation + GPT-4V
 """
-logger.info("# Multi-Modal MLX Image Generation + GPT-4V")
+logger.info("# Multi-Modal OllamaFunctionCallingAdapter Image Generation + GPT-4V")
 
 
 
 
-image_generation_tool = MLXImageGenerationToolSpec(
+image_generation_tool = OllamaFunctionCallingAdapterImageGenerationToolSpec(
 #     api_key=os.environ["OPENAI_API_KEY"]
 )
 
@@ -47,8 +36,8 @@ image_path = image_generation_tool.image_generation(
 
 image_documents = SimpleDirectoryReader("../../../img_cache").load_data()
 
-openai_mm_llm = MLXMultiModal(
-    model="qwen3-1.7b-4bit",
+openai_mm_llm = OllamaFunctionCallingAdapterMultiModal(
+    model="llama3.2", request_timeout=300.0, context_window=4096,
 #     api_key=os.environ["OPENAI_API_KEY"],
     max_new_tokens=300,
 )

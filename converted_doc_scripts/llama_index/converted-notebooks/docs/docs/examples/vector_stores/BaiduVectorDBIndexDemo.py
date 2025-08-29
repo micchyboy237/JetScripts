@@ -1,14 +1,10 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import (
 VectorStoreIndex,
 SimpleDirectoryReader,
 StorageContext,
 )
-from llama_index.core.settings import Settings
 from llama_index.core.vector_stores import MetadataFilter, MetadataFilters
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.baiduvectordb import (
 BaiduVectorDB,
 TableParams,
@@ -26,13 +22,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Baidu VectorDB
@@ -59,14 +48,14 @@ logger.info("# Baidu VectorDB")
 
 
 """
-### Please provide MLX access key
+### Please provide OllamaFunctionCallingAdapter access key
 
-In order use embeddings by MLX you need to supply an MLX API Key:
+In order use embeddings by OllamaFunctionCallingAdapter you need to supply an OllamaFunctionCallingAdapter API Key:
 """
-logger.info("### Please provide MLX access key")
+logger.info("### Please provide OllamaFunctionCallingAdapter access key")
 
 
-# OPENAI_API_KEY = getpass.getpass("MLX API Key:")
+# OPENAI_API_KEY = getpass.getpass("OllamaFunctionCallingAdapter API Key:")
 # openai.api_key = OPENAI_API_KEY
 
 """

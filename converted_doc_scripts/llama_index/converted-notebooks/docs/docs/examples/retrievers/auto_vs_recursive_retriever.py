@@ -1,10 +1,7 @@
-import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import Markdown, display
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import StorageContext
 from llama_index.core import SummaryIndex
@@ -16,9 +13,7 @@ from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.retrievers import RecursiveRetriever
 from llama_index.core.retrievers import VectorIndexAutoRetriever
 from llama_index.core.schema import IndexNode
-from llama_index.core.settings import Settings
 from llama_index.core.vector_stores.types import MetadataInfo, VectorStoreInfo
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.weaviate import WeaviateVectorStore
 from pathlib import Path
 import logging
@@ -35,17 +30,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/retrievers/auto_vs_recursive_retriever.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -124,7 +108,7 @@ for title in wiki_titles:
 docs_dict = {}
 for wiki_title in wiki_titles:
     doc = SimpleDirectoryReader(
-        input_files=[ff"{GENERATED_DIR}/{wiki_title}.txt"]
+        input_files=[f"data/{wiki_title}.txt"]
     ).load_data()[0]
 
     doc.metadata.update(wiki_metadatas[wiki_title])
@@ -132,7 +116,7 @@ for wiki_title in wiki_titles:
 
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
 callback_manager = CallbackManager([LlamaDebugHandler()])
 splitter = SentenceSplitter(chunk_size=256)
 
@@ -260,12 +244,9 @@ for wiki_title in wiki_titles:
         summarizer = summary_index.as_query_engine(
             response_mode="tree_summarize", llm=llm
         )
-        async def async_func_25():
-            response = summarizer.query(
+        response = summarizer.query(
                 f"Give me a summary of {wiki_title}"
             )
-            return response
-        response = asyncio.run(async_func_25())
         logger.success(format_json(response))
 
         wiki_summary = response.response

@@ -1,12 +1,9 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.prompts import RichPromptTemplate
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import os
 import shutil
@@ -18,13 +15,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/customization/prompts/chat_prompts.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -99,8 +89,8 @@ logger.info("## Using the Prompts")
 # os.environ["OPENAI_API_KEY"] = "sk-proj-..."
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
-Settings.embed_model = MLXEmbedding(model_name="mxbai-embed-large")
+Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
+Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 """
 #### Download Data
@@ -111,8 +101,7 @@ logger.info("#### Download Data")
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
 
-documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 
 index = VectorStoreIndex.from_documents(documents)
 

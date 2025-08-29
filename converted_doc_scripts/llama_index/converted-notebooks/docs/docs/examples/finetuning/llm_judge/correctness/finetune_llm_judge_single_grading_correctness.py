@@ -1,9 +1,6 @@
-import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import VectorStoreIndex
 from llama_index.core.callbacks import CallbackManager
 from llama_index.core.evaluation import CorrectnessEvaluator
@@ -11,10 +8,8 @@ from llama_index.core.evaluation import DatasetGenerator
 from llama_index.core.evaluation import EvaluationResult
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.retrievers import VectorIndexRetriever
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.finetuning import MLXFinetuneEngine
-from llama_index.finetuning.callbacks import MLXFineTuningHandler
+from llama_index.finetuning import OllamaFunctionCallingAdapterFinetuneEngine
+from llama_index.finetuning.callbacks import OllamaFunctionCallingAdapterFineTuningHandler
 from llama_index.llms.huggingface_api import HuggingFaceInferenceAPI
 from llama_index.readers.wikipedia import WikipediaReader
 import numpy as np
@@ -29,13 +24,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Knowledge Distillation For Fine-Tuning A GPT-3.5 Judge (Correctness)
@@ -109,7 +97,7 @@ QUESTION_GEN_PROMPT = (
 )
 
 
-gpt_35_llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3)
+gpt_35_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 
 dataset_generator = DatasetGenerator.from_documents(
     documents,
@@ -175,30 +163,27 @@ for q, a in tqdm.tqdm(qrd.qr_pairs[:num_train_questions]):
 
 As mentioned a couple of times before, the point of this guide is fine-tune an LLM judge from a GPT-4 judge. So, in order to complete our `train_dataset` we now need to instantiate our GPT-4 judge and have it evaluate the answers that were provided by Llama-2. To do this, we will use the `CorrectnessEvaluator` class. What this judge will do then is it will compare the answer to a reference answer and provide a score between 1 and 5 (higher is better) on how close the provided answer aligns to the reference one.
 
-Note also that we use the `MLXFineTuningHandler` which will collect all the chat histories that we will eventually need to fine-tune GPT-3.5.
+Note also that we use the `OllamaFunctionCallingAdapterFineTuningHandler` which will collect all the chat histories that we will eventually need to fine-tune GPT-3.5.
 """
 logger.info("### Get GPT-4 Evaluations On The Mistral and LLama-2 Answers")
 
 
-finetuning_handler = MLXFineTuningHandler()
+finetuning_handler = OllamaFunctionCallingAdapterFineTuningHandler()
 callback_manager = CallbackManager([finetuning_handler])
-gpt_4_llm = MLXLlamaIndexLLMAdapter(
-    temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", callback_manager=callback_manager
+gpt_4_llm = OllamaFunctionCallingAdapter(
+    temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096, callback_manager=callback_manager
 )
 
 gpt4_judge = CorrectnessEvaluator(llm=gpt_4_llm)
 
 
 for data_entry in tqdm.tqdm(train_dataset):
-    async def async_func_16():
-        eval_result = gpt4_judge.evaluate(
+    eval_result = gpt4_judge.evaluate(
             query=data_entry["question"],
             response=data_entry["response_data"]["text"],
             context=data_entry["response_data"]["context"],
             reference=data_entry["reference"],
         )
-        return eval_result
-    eval_result = asyncio.run(async_func_16())
     logger.success(format_json(eval_result))
 
     judgement = {}
@@ -212,12 +197,12 @@ finetuning_handler.save_finetuning_events("correction_finetuning_events.jsonl")
 """
 ## Step 2 Perform knowledge distillation
 
-Okay, it's now time to distill some knowledge from GPT-4 to GPT-3.5 To do this, we will make use of the `MLXFinetuneEngine` class as well as the `correction_finetuning_events.jsonl` file that we just created.
+Okay, it's now time to distill some knowledge from GPT-4 to GPT-3.5 To do this, we will make use of the `OllamaFunctionCallingAdapterFinetuneEngine` class as well as the `correction_finetuning_events.jsonl` file that we just created.
 """
 logger.info("## Step 2 Perform knowledge distillation")
 
 
-finetune_engine = MLXFinetuneEngine(
+finetune_engine = OllamaFunctionCallingAdapterFinetuneEngine(
     "gpt-3.5-turbo",
     "correction_finetuning_events.jsonl",
 )
@@ -250,15 +235,12 @@ for q, a in tqdm.tqdm(qrd.qr_pairs[num_train_questions:]):
     test_dataset.append(data_entry)
 
 for data_entry in tqdm.tqdm(test_dataset):
-    async def async_func_15():
-        eval_result = gpt4_judge.evaluate(
+    eval_result = gpt4_judge.evaluate(
             query=data_entry["question"],
             response=data_entry["response_data"]["text"],
             context=data_entry["response_data"]["context"],
             reference=data_entry["reference"],
         )
-        return eval_result
-    eval_result = asyncio.run(async_func_15())
     logger.success(format_json(eval_result))
 
     judgement = {}
@@ -273,15 +255,12 @@ ft_llm = finetune_engine.get_finetuned_model()
 ft_gpt_3p5_judge = CorrectnessEvaluator(llm=ft_llm)
 
 for data_entry in tqdm.tqdm(test_dataset):
-    async def async_func_35():
-        eval_result = ft_gpt_3p5_judge.evaluate(
+    eval_result = ft_gpt_3p5_judge.evaluate(
             query=data_entry["question"],
             response=data_entry["response_data"]["text"],
             context=data_entry["response_data"]["context"],
             reference=data_entry["reference"],
         )
-        return eval_result
-    eval_result = asyncio.run(async_func_35())
     logger.success(format_json(eval_result))
 
     judgement = {}
@@ -290,20 +269,17 @@ for data_entry in tqdm.tqdm(test_dataset):
     judgement["text"] = eval_result.response
     data_entry["evaluations"] += [judgement]
 
-gpt_3p5_llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+gpt_3p5_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
 gpt_3p5_judge = CorrectnessEvaluator(llm=gpt_3p5_llm)
 
 for data_entry in tqdm.tqdm(test_dataset):
-    async def async_func_53():
-        eval_result = gpt_3p5_judge.evaluate(
+    eval_result = gpt_3p5_judge.evaluate(
             query=data_entry["question"],
             response=data_entry["response_data"]["text"],
             context=data_entry["response_data"]["context"],
             reference=data_entry["reference"],
         )
-        return eval_result
-    eval_result = asyncio.run(async_func_53())
     logger.success(format_json(eval_result))
 
     judgement = {}

@@ -1,8 +1,6 @@
-from eval_utils import evaluate, display_results
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from eval_utils import evaluate, display_results
+from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
 from llama_index.core.embeddings import LinearAdapterEmbeddingModel
@@ -13,7 +11,6 @@ from llama_index.core.evaluation import EmbeddingQAFinetuneDataset
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.schema import MetadataMode
 from llama_index.core.schema import TextNode
-from llama_index.core.settings import Settings
 from llama_index.embeddings.adapter import AdapterEmbeddingModel
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.finetuning import EmbeddingAdapterFinetuneEngine
@@ -36,20 +33,13 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/finetuning/embeddings/finetune_embedding_adapter.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 # Finetuning an Adapter on Top of any Black-Box Embedding Model
 
 
-We have capabilities in LlamaIndex allowing you to fine-tune an adapter on top of embeddings produced from any model (sentence_transformers, MLX, and more). 
+We have capabilities in LlamaIndex allowing you to fine-tune an adapter on top of embeddings produced from any model (sentence_transformers, OllamaFunctionCallingAdapter, and more). 
 
 This allows you to transform your embedding representations into a new latent space that's optimized for retrieval over your specific data and queries. This can lead to small increases in retrieval performance that in turn translate to better performing RAG systems.
 
@@ -64,7 +54,7 @@ We use our helper abstractions, `generate_qa_embedding_pairs`, to generate our t
 """
 logger.info("# Finetuning an Adapter on Top of any Black-Box Embedding Model")
 
-# %pip install llama-index-embeddings-ollama
+# %pip install llama-index-embeddings-huggingface
 # %pip install llama-index-embeddings-adapter
 # %pip install llama-index-finetuning
 
@@ -167,7 +157,7 @@ logger.info("## Evaluate Finetuned Model")
 
 
 
-ada = MLXEmbedding()
+ada = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 ada_val_results = evaluate(val_dataset, ada)
 
 display_results(["ada"], [ada_val_results])

@@ -1,12 +1,8 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Document
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex, StorageContext
-from llama_index.core.settings import Settings
 from llama_index.core.vector_stores import ExactMatchFilter, MetadataFilters
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.milvus import MilvusVectorStore
 import openai
 import os
@@ -19,17 +15,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/vector_stores/MilvusIndexDemo.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -66,11 +51,11 @@ logger.info("This notebook will use [Milvus Lite](https://milvus.io/docs/milvus_
 """
 > If you are using Google Colab, to enable dependencies just installed, you may need to **restart the runtime** (click on the "Runtime" menu at the top of the screen, and select "Restart session" from the dropdown menu).
 
-### Setup MLX
+### Setup OllamaFunctionCallingAdapter
 
 Lets first begin by adding the openai api key. This will allow us to access chatgpt.
 """
-logger.info("### Setup MLX")
+logger.info("### Setup OllamaFunctionCallingAdapter")
 
 
 openai.api_key = "sk-***********"
@@ -82,9 +67,9 @@ You can download sample data with the following commands:
 """
 logger.info("### Prepare data")
 
-# ! mkdir -p f"{GENERATED_DIR}/"
-# ! wget "https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt" -O f"{GENERATED_DIR}/paul_graham_essay.txt"
-# ! wget "https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/uber_2021.pdf" -O f"{GENERATED_DIR}/uber_2021.pdf"
+# ! mkdir -p "data/"
+# ! wget "https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt" -O "data/paul_graham_essay.txt"
+# ! wget "https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/10k/uber_2021.pdf" -O "data/uber_2021.pdf"
 
 """
 ## Getting Started

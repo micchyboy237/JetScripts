@@ -1,15 +1,11 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import ChatPromptTemplate, PromptTemplate
 from llama_index.core import VectorStoreIndex
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.response_synthesizers import Refine
 from llama_index.core.schema import BaseNode
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from pathlib import Path
 from typing import Dict
 from typing import List, Dict
@@ -28,17 +24,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/low_level/evaluation.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -59,7 +44,7 @@ logger.info("# Building Evaluation from Scratch")
 # %pip install llama-index-llms-ollama
 
 # !mkdir data
-# !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O f"{GENERATED_DIR}/llama2.pdf"
+# !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
 # from llama_index.readers.file import PyMuPDFReader
 
@@ -67,7 +52,7 @@ logger.info("# Building Evaluation from Scratch")
 documents = loader.load(file_path="./data/llama2.pdf")
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 node_parser = SentenceSplitter(chunk_size=1024)
 
 nodes = node_parser.get_nodes_from_documents(documents)
@@ -88,7 +73,7 @@ We define the functions that we will use for dataset generation:
 logger.info("## Dataset Generation")
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
 """
 We define `generate_answers_for_questions` to generate answers from questions given context.
@@ -108,7 +93,7 @@ QA_PROMPT = PromptTemplate(
 
 
 def generate_answers_for_questions(
-    questions: List[str], context: str, llm: MLX
+    questions: List[str], context: str, llm: OllamaFunctionCallingAdapter
 ) -> str:
     """Generate answers for questions given context."""
     answers = []
@@ -151,7 +136,7 @@ question_gen_template = ChatPromptTemplate(
 
 
 def generate_qa_pairs(
-    nodes: List[BaseNode], llm: MLX, num_questions_per_chunk: int = 10
+    nodes: List[BaseNode], llm: OllamaFunctionCallingAdapter, num_questions_per_chunk: int = 10
 ) -> List[Tuple[str, str]]:
     """Generate questions."""
     qa_pairs = []
@@ -270,7 +255,7 @@ def run_correctness_eval(
     query_str: str,
     reference_answer: str,
     generated_answer: str,
-    llm: MLX,
+    llm: OllamaFunctionCallingAdapter,
     threshold: float = 4.0,
 ) -> Dict:
     """Run correctness eval."""
@@ -294,7 +279,7 @@ Now let's try running this on some sample inputs with a chat model (GPT-4).
 """
 logger.info("Now let's try running this on some sample inputs with a chat model (GPT-4).")
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
 query_str = (
     "What is the specific name given to the fine-tuned LLMs optimized for"
@@ -381,7 +366,7 @@ logger.info("We now define our function below. Since we defined both a standard 
 def run_faithfulness_eval(
     generated_answer: str,
     contexts: List[str],
-    llm: MLX,
+    llm: OllamaFunctionCallingAdapter,
 ) -> Dict:
     """Run faithfulness eval."""
 
@@ -432,7 +417,7 @@ qa_pairs_sample = random.sample(qa_pairs, sample_size)
 
 
 
-def run_evals(qa_pairs: List[Tuple[str, str]], llm: MLX, query_engine):
+def run_evals(qa_pairs: List[Tuple[str, str]], llm: OllamaFunctionCallingAdapter, query_engine):
     results_list = []
     for question, reference_answer in qa_pairs:
         response = query_engine.query(question)

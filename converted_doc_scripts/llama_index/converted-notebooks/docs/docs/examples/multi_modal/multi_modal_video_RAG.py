@@ -1,15 +1,11 @@
 from PIL import Image
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import SimpleDirectoryReader, StorageContext
 from llama_index.core.indices import MultiModalVectorStoreIndex
 from llama_index.core.response.notebook_utils import display_source_node
 from llama_index.core.schema import ImageNode
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.multi_modal_llms.openai import MLXMultiModal
+from llama_index.multi_modal_llms.openai import OllamaFunctionCallingAdapterMultiModal
 from llama_index.vector_stores.lancedb import LanceDBVectorStore
 from moviepy.editor import VideoFileClip
 from pathlib import Path
@@ -29,19 +25,12 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/multi_modal/multi_modal_video_RAG.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# Multimodal RAG for processing videos using MLX GPT4V and LanceDB vectorstore
+# Multimodal RAG for processing videos using OllamaFunctionCallingAdapter GPT4V and LanceDB vectorstore
 
-In this notebook, we showcase a Multimodal RAG architecture designed for video processing. We utilize MLX GPT4V MultiModal LLM class that employs [CLIP](https://github.com/openai/CLIP) to generate multimodal embeddings. Furthermore, we use [LanceDBVectorStore](https://docs.llamaindex.ai/en/latest/examples/vector_stores/LanceDBIndexDemo.html#) for efficient vector storage.
+In this notebook, we showcase a Multimodal RAG architecture designed for video processing. We utilize OllamaFunctionCallingAdapter GPT4V MultiModal LLM class that employs [CLIP](https://github.com/openai/CLIP) to generate multimodal embeddings. Furthermore, we use [LanceDBVectorStore](https://docs.llamaindex.ai/en/latest/examples/vector_stores/LanceDBIndexDemo.html#) for efficient vector storage.
 
 
 
@@ -54,7 +43,7 @@ Steps:
 
 4. Using GPT4V for reasoning the correlations between the input query and augmented data and generating final response.
 """
-logger.info("# Multimodal RAG for processing videos using MLX GPT4V and LanceDB vectorstore")
+logger.info("# Multimodal RAG for processing videos using OllamaFunctionCallingAdapter GPT4V and LanceDB vectorstore")
 
 # %pip install llama-index-vector-stores-lancedb
 # %pip install llama-index-multi-modal-llms-openai
@@ -299,8 +288,8 @@ plot_images(img)
 logger.info("#### Generate final response using GPT4V")
 
 
-openai_mm_llm = MLXMultiModal(
-#     model="qwen3-1.7b-4bit", api_key=OPENAI_API_KEY, max_new_tokens=1500
+openai_mm_llm = OllamaFunctionCallingAdapterMultiModal(
+#     model="llama3.2", request_timeout=300.0, context_window=4096, api_key=OPENAI_API_KEY, max_new_tokens=1500
 )
 
 

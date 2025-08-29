@@ -1,10 +1,5 @@
-import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.nvidia import NVIDIA
 import os
 import shutil
@@ -16,13 +11,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # NVIDIA's LLM Text Completion API
@@ -126,11 +114,7 @@ There is also an async implementation which can be leveraged in the same way!
 """
 logger.info("#### Async Complete: `.acomplete()`")
 
-async def run_async_code_01833c5d():
-    llm.complete("# Function that does quicksort:")
-    return 
- = asyncio.run(run_async_code_01833c5d())
-logger.success(format_json())
+llm.complete("# Function that does quicksort:")
 
 """
 #### Streaming
@@ -147,12 +131,9 @@ for t in x:
 """
 logger.info("#### Async Streaming")
 
-async def async_func_0():
-    x = llm.stream_complete(
+x = llm.stream_complete(
         prompt="# Reverse program in python:", max_tokens=512
     )
-    return x
-x = asyncio.run(async_func_0())
 logger.success(format_json(x))
 
 async for t in x:

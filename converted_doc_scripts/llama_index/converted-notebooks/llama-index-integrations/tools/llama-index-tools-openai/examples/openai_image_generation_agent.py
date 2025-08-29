@@ -1,13 +1,9 @@
 from IPython.display import display
 from PIL import Image
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.agent import ReActAgent
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.tools import FunctionTool
-from llama_index.tools.openai.image_generation import MLXImageGenerationToolSpec
+from llama_index.tools.openai.image_generation import OllamaFunctionCallingAdapterImageGenerationToolSpec
 import os
 import shutil
 
@@ -19,17 +15,10 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
-# MLX Image Generation Agent (DALL-E-3)
+# OllamaFunctionCallingAdapter Image Generation Agent (DALL-E-3)
 """
-logger.info("# MLX Image Generation Agent (DALL-E-3)")
+logger.info("# OllamaFunctionCallingAdapter Image Generation Agent (DALL-E-3)")
 
 
 
@@ -43,7 +32,7 @@ def show_image(filename: str) -> Image:
     return display(img)
 
 
-image_generation_tool = MLXImageGenerationToolSpec(
+image_generation_tool = OllamaFunctionCallingAdapterImageGenerationToolSpec(
 #     api_key=os.environ["OPENAI_API_KEY"]
 )
 show_image_tool = FunctionTool.from_defaults(fn=show_image)

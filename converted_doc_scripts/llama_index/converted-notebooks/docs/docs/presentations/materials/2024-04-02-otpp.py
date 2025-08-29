@@ -1,17 +1,14 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
 from llama_index.core.bridge.pydantic import BaseModel, Field
 from llama_index.core.ingestion import IngestionPipeline
 from llama_index.core.node_parser import MarkdownElementNodeParser
 from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.program.openai import MLXPydanticProgram
+from llama_index.program.openai import OllamaFunctionCallingAdapterPydanticProgram
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_parse import LlamaParse
 import json
@@ -26,13 +23,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # LLMs and LlamaIndex ◦ April 2 2024 ◦ Ontario Teacher's Pension Plan
@@ -67,7 +57,7 @@ logger.info("#### Notebook Setup & Dependency Installation")
 logger.info("## Motivation")
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 response = llm.complete("What is Ontario Teacher's Pension Plan all about?")
 
 logger.debug(response)
@@ -127,7 +117,7 @@ vector_store = QdrantVectorStore(client=client, collection_name="test_store")
 pipeline = IngestionPipeline(
     transformations=[
         SentenceSplitter(),
-        MLXEmbedding(),
+        HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     ],
     vector_store=vector_store,
 )
@@ -237,7 +227,7 @@ with open("./mds/parsed.md", "w") as f:
     f.write(md_documents[0].text)
 
 md_node_parser = MarkdownElementNodeParser(
-    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
     num_workers=3,
     include_metadata=True,
 )
@@ -306,10 +296,10 @@ Here is the 2023 Annual Report for Ontario Teacher's Pension Plan:
 Provide the names of the Leadership Team.
 """
 
-program = MLXPydanticProgram.from_defaults(
+program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=LeadershipTeam,
     prompt_template_str=prompt_template_str,
-    llm=MLXLlamaIndexLLMAdapter("gpt-4-turbo-preview"),
+    llm=OllamaFunctionCallingAdapter("gpt-4-turbo-preview"),
     verbose=True,
 )
 

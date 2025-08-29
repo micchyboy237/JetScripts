@@ -1,16 +1,12 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.program import (
 DFFullProgram,
 DataFrame,
 DataFrameRowsOnly,
 )
 from llama_index.core.program import DFFullProgram, DFRowsProgram
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.program.openai import MLXPydanticProgram
+from llama_index.program.openai import OllamaFunctionCallingAdapterPydanticProgram
 import os
 import pandas as pd
 import shutil
@@ -23,13 +19,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/output_parsing/df_program.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
@@ -39,13 +28,13 @@ This demo shows how you can extract tabular DataFrames from raw text.
 
 This was directly inspired by jxnl's dataframe example here: https://github.com/jxnl/openai_function_call/blob/main/auto_dataframe.py.
 
-We show this with different levels of complexity, all backed by the MLX Function API:
-- (more code) How to build an extractor yourself using our MLXPydanticProgram
+We show this with different levels of complexity, all backed by the OllamaFunctionCallingAdapter Function API:
+- (more code) How to build an extractor yourself using our OllamaFunctionCallingAdapterPydanticProgram
 - (less code) Using our out-of-the-box `DFFullProgram` and `DFRowsProgram` objects
 
-## Build a DF Extractor Yourself (Using MLXPydanticProgram)
+## Build a DF Extractor Yourself (Using OllamaFunctionCallingAdapterPydanticProgram)
 
-Our MLXPydanticProgram is a wrapper around an MLX LLM that supports function calling - it will return structured
+Our OllamaFunctionCallingAdapterPydanticProgram is a wrapper around an OllamaFunctionCallingAdapter LLM that supports function calling - it will return structured
 outputs in the form of a Pydantic object.
 
 We import our `DataFrame` and `DataFrameRowsOnly` objects.
@@ -62,9 +51,9 @@ logger.info("# DataFrame Structured Data Extraction")
 # !pip install llama-index
 
 
-program = MLXPydanticProgram.from_defaults(
+program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=DataFrame,
-    llm=MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096),
     prompt_template_str=(
         "Please extract the following query into a structured data according"
         " to: {input_str}.Please extract both the set of column names and a"
@@ -84,9 +73,9 @@ response_obj = program(
 )
 response_obj
 
-program = MLXPydanticProgram.from_defaults(
+program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=DataFrameRowsOnly,
-    llm=MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096),
     prompt_template_str=(
         "Please extract the following text into a structured data:"
         " {input_str}. The column names are the following: ['Name', 'Age',"
@@ -109,7 +98,7 @@ program(
 """
 ## Use our DataFrame Programs
 
-We provide convenience wrappers for `DFFullProgram` and `DFRowsProgram`. This allows a simpler object creation interface than specifying all details through the `MLXPydanticProgram`.
+We provide convenience wrappers for `DFFullProgram` and `DFRowsProgram`. This allows a simpler object creation interface than specifying all details through the `OllamaFunctionCallingAdapterPydanticProgram`.
 """
 logger.info("## Use our DataFrame Programs")
 
@@ -124,7 +113,7 @@ df = pd.DataFrame(
 )
 
 df_rows_program = DFRowsProgram.from_defaults(
-    pydantic_program_cls=MLXPydanticProgram, df=df
+    pydantic_program_cls=OllamaFunctionCallingAdapterPydanticProgram, df=df
 )
 
 result_obj = df_rows_program(
@@ -140,7 +129,7 @@ result_obj = df_rows_program(
 result_obj.to_df(existing_df=df)
 
 df_full_program = DFFullProgram.from_defaults(
-    pydantic_program_cls=MLXPydanticProgram,
+    pydantic_program_cls=OllamaFunctionCallingAdapterPydanticProgram,
 )
 
 result_obj = df_full_program(
@@ -164,7 +153,7 @@ df = pd.DataFrame(
 )
 
 df_rows_program = DFRowsProgram.from_defaults(
-    pydantic_program_cls=MLXPydanticProgram, df=df
+    pydantic_program_cls=OllamaFunctionCallingAdapterPydanticProgram, df=df
 )
 
 input_text = """San Francisco is in California, has a population of 800,000.

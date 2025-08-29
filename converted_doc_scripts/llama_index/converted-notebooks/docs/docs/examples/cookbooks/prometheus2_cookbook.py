@@ -1,11 +1,8 @@
-import asyncio
+from jet.models.config import MODELS_CACHE_DIR
 from jet.transformers.formatters import format_json
 from IPython.display import Markdown, display
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
 from llama_index.core.callbacks import CallbackManager, TokenCountingHandler
@@ -17,7 +14,6 @@ RelevancyEvaluator,
 from llama_index.core.evaluation import PairwiseComparisonEvaluator
 from llama_index.core.llama_dataset import LabelledRagDataset
 from llama_index.core.llama_dataset import download_llama_dataset
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.huggingface_api import HuggingFaceInferenceAPI
 from typing import Tuple
@@ -33,13 +29,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/cookbooks/prometheus2_cookbook.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -110,7 +99,7 @@ reference = paul_graham_rag_dataset[0].reference_answer
 
 You need to deploy the model on huggingface or can load it locally. Here we deployed it using HF Inference Endpoints.
 
-We will use MLX Embedding model and LLM for building Index, prometheus LLM for evaluation.
+We will use OllamaFunctionCallingAdapter Embedding model and LLM for building Index, prometheus LLM for evaluation.
 """
 logger.info("### Setup LLM and Embedding model.")
 
@@ -131,8 +120,8 @@ prometheus_llm = HuggingFaceInferenceAPI(
 
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter()
-Settings.embed_model = MLXEmbedding()
+Settings.llm = OllamaFunctionCallingAdapter()
+Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 Settings.chunk_size = 512
 
 """
@@ -205,14 +194,11 @@ prometheus_pairwise_evaluator = PairwiseComparisonEvaluator(
     + prometheus_pairwise_eval_prompt_template,
 )
 
-async def async_func_66():
-    pairwise_result = prometheus_pairwise_evaluator.evaluate(
+pairwise_result = prometheus_pairwise_evaluator.evaluate(
         query,
         response=response1,
         second_response=response2,
     )
-    return pairwise_result
-pairwise_result = asyncio.run(async_func_66())
 logger.success(format_json(pairwise_result))
 
 pairwise_result

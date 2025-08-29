@@ -1,20 +1,16 @@
-from cleanlab_tlm import TrustworthyRAG, Eval, get_default_evals
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from cleanlab_tlm import TrustworthyRAG, Eval, get_default_evals
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.logger import CustomLogger
 from llama_index.core import Settings, VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.instrumentation import get_dispatcher
 from llama_index.core.instrumentation.event_handlers import BaseEventHandler
 from llama_index.core.instrumentation.events import BaseEvent
 from llama_index.core.instrumentation.events.llm import LLMPredictStartEvent
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from typing import List, ClassVar
 import os
-import os
-import re
+import os, re
 import pandas as pd
 import shutil
 
@@ -25,17 +21,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/evaluation/Cleanlab.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -52,7 +37,7 @@ Powered by [state-of-the-art uncertainty estimation](https://cleanlab.ai/blog/tr
 
 This tutorial requires a:
 - Cleanlab API Key: Sign up at [tlm.cleanlab.ai/](https://tlm.cleanlab.ai/) to get a free key
-- MLX API Key: To make completion requests to an LLM
+- OllamaFunctionCallingAdapter API Key: To make completion requests to an LLM
 
 Start by installing the required dependencies.
 """
@@ -61,21 +46,22 @@ logger.info("# Trustworthy RAG with LlamaIndex and Cleanlab")
 # %pip install llama-index cleanlab-tlm
 
 
+
+
 """
-Initialize the MLX client using its API key.
+Initialize the OllamaFunctionCallingAdapter client using its API key.
 """
-logger.info("Initialize the MLX client using its API key.")
+logger.info("Initialize the OllamaFunctionCallingAdapter client using its API key.")
 
 # os.environ["OPENAI_API_KEY"] = "<your-openai-api-key>"
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
-embed_model = MLXEmbedding(embed_batch_size=10)
+llm = OllamaFunctionCallingAdapter(model="llama3.2")
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 """
 Now, we initialize Cleanlab's client with default configurations. You can achieve better detection accuracy and latency by adjusting [optional configurations](https://help.cleanlab.ai/tlm/tutorials/tlm_advanced/).
 """
-logger.info(
-    "Now, we initialize Cleanlab's client with default configurations. You can achieve better detection accuracy and latency by adjusting [optional configurations](https://help.cleanlab.ai/tlm/tutorials/tlm_advanced/).")
+logger.info("Now, we initialize Cleanlab's client with default configurations. You can achieve better detection accuracy and latency by adjusting [optional configurations](https://help.cleanlab.ai/tlm/tutorials/tlm_advanced/).")
 
 os.environ["CLEANLAB_TLM_API_KEY"] = "<your-cleanlab-api-key"
 
@@ -95,7 +81,7 @@ logger.info("## Read data")
 # !mv NVIDIA_Financial_Results_Q1_FY2024.md data/
 
 with open(
-    f"{GENERATED_DIR}/NVIDIA_Financial_Results_Q1_FY2024.md", "r", encoding="utf-8"
+    "data/NVIDIA_Financial_Results_Q1_FY2024.md", "r", encoding="utf-8"
 ) as file:
     data = file.read()
 
@@ -104,7 +90,7 @@ logger.debug(data[:200])
 """
 ## Build a RAG pipeline
 
-Now let's build a simple RAG pipeline with LlamaIndex. We have already initialized the MLX API for both as LLM and Embedding model.
+Now let's build a simple RAG pipeline with LlamaIndex. We have already initialized the OllamaFunctionCallingAdapter API for both as LLM and Embedding model.
 """
 logger.info("## Build a RAG pipeline")
 
@@ -142,6 +128,7 @@ Cleanlab just needs the prompt sent to your LLM (including system instructions, 
 We define an event handler that stores the prompt that LlamaIndex sends to the LLM. Refer to the [instrumentation documentation](https://docs.llamaindex.ai/en/stable/examples/instrumentation/basic_usage/) for more details.
 """
 logger.info("Note that Cleanlab is agnostic to the index and the query engine used for RAG, and is compatible with any choices you make for these components of your system.")
+
 
 
 class PromptEventHandler(BaseEventHandler):
@@ -182,7 +169,6 @@ This response is indeed correct for our simple query. Let's see the document chu
 """
 logger.info("This response is indeed correct for our simple query. Let's see the document chunks that LlamaIndex retrieved for this query, from which we can easy verify this response was right.")
 
-
 def get_retrieved_context(response, print_chunks=False):
     if isinstance(response, list):
         texts = [node.text for node in response]
@@ -193,7 +179,6 @@ def get_retrieved_context(response, print_chunks=False):
         for idx, text in enumerate(texts):
             logger.debug(f"--- Chunk {idx + 1} ---\n{text[:200]}...")
     return "\n".join(texts)
-
 
 context_str = get_retrieved_context(response, True)
 
@@ -227,7 +212,6 @@ Let's define a helper function to run Cleanlab's detection.
 """
 logger.info("Each Eval returns a score between 0-1 (higher is better) that assesses a different aspect of your RAG system:")
 
-
 def get_eval(query, response, event_handler, evaluator):
     context = get_retrieved_context(response)
     pt = event_handler.PROMPT_TEMPLATE
@@ -254,7 +238,6 @@ def get_answer(query, evaluator=trustworthy_rag, event_handler=event_handler):
 
     get_eval(query, response, event_handler, evaluator)
 
-
 get_eval(query, response, event_handler, trustworthy_rag)
 
 """
@@ -273,8 +256,7 @@ get_answer(
 
 Let’s see how our RAG system responds to another *challenging* question.
 """
-logger.info(
-    "Let’s see how our RAG system responds to another *challenging* question.")
+logger.info("Let’s see how our RAG system responds to another *challenging* question.")
 
 get_answer(
     "How much did Nvidia's revenue decrease this quarter vs last quarter, in dollars?"
@@ -326,7 +308,7 @@ Beyond evaluating responses already generated from your LLM, Cleanlab can also g
 You can do this by calling `trustworthy_rag.generate(query=query, context=context, prompt=full_prompt)` <br />
 This replaces your own LLM within your RAG system and can be more convenient/accurate/faster.
 
-Let's replace our MLX LLM to call Cleanlab's endpoint instead:
+Let's replace our OllamaFunctionCallingAdapter LLM to call Cleanlab's endpoint instead:
 """
 logger.info("### Replace your LLM with Cleanlab's")
 
@@ -350,7 +332,6 @@ for metric, value in result.items():
 """
 While it remains hard to achieve a RAG application that will accurately answer *any* possible question, you can easily use Cleanlab to deploy a *trustworthy* RAG application which at least flags answers that are likely inaccurate.  Learn more about optional configurations you can adjust to improve accuracy/latency in the [Cleanlab documentation](https://help.cleanlab.ai/tlm/).
 """
-logger.info(
-    "While it remains hard to achieve a RAG application that will accurately answer *any* possible question, you can easily use Cleanlab to deploy a *trustworthy* RAG application which at least flags answers that are likely inaccurate.  Learn more about optional configurations you can adjust to improve accuracy/latency in the [Cleanlab documentation](https://help.cleanlab.ai/tlm/).")
+logger.info("While it remains hard to achieve a RAG application that will accurately answer *any* possible question, you can easily use Cleanlab to deploy a *trustworthy* RAG application which at least flags answers that are likely inaccurate.  Learn more about optional configurations you can adjust to improve accuracy/latency in the [Cleanlab documentation](https://help.cleanlab.ai/tlm/).")
 
 logger.info("\n\n[DONE]", bright=True)

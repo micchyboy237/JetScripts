@@ -1,11 +1,6 @@
-import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.llms import ChatMessage, MessageRole
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.friendli import Friendli
 import os
 import shutil
@@ -17,13 +12,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/llm/friendli.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -71,14 +59,8 @@ for r in resp:
 """
 logger.info("#### Async")
 
-async def run_async_code_35524c17():
-    async def run_async_code_4ef68c2f():
-        resp = llm.chat([message])
-        return resp
-    resp = asyncio.run(run_async_code_4ef68c2f())
-    logger.success(format_json(resp))
-    return resp
-resp = asyncio.run(run_async_code_35524c17())
+resp = llm.chat([message])
+logger.success(format_json(resp))
 logger.success(format_json(resp))
 
 logger.debug(resp)
@@ -88,14 +70,8 @@ logger.debug(resp)
 """
 logger.info("#### Async Streaming")
 
-async def run_async_code_cc7afffd():
-    async def run_async_code_bed1a751():
-        resp = llm.stream_chat([message])
-        return resp
-    resp = asyncio.run(run_async_code_bed1a751())
-    logger.success(format_json(resp))
-    return resp
-resp = asyncio.run(run_async_code_cc7afffd())
+resp = llm.stream_chat([message])
+logger.success(format_json(resp))
 logger.success(format_json(resp))
 async for r in resp:
     logger.debug(r.delta, end="")
@@ -124,14 +100,8 @@ for r in resp:
 """
 logger.info("#### Async")
 
-async def run_async_code_c0189c24():
-    async def run_async_code_a12fb04b():
-        resp = llm.complete(prompt)
-        return resp
-    resp = asyncio.run(run_async_code_a12fb04b())
-    logger.success(format_json(resp))
-    return resp
-resp = asyncio.run(run_async_code_c0189c24())
+resp = llm.complete(prompt)
+logger.success(format_json(resp))
 logger.success(format_json(resp))
 
 logger.debug(resp)
@@ -141,14 +111,8 @@ logger.debug(resp)
 """
 logger.info("#### Async Streaming")
 
-async def run_async_code_bd86587b():
-    async def run_async_code_f1192b9d():
-        resp = llm.stream_complete(prompt)
-        return resp
-    resp = asyncio.run(run_async_code_f1192b9d())
-    logger.success(format_json(resp))
-    return resp
-resp = asyncio.run(run_async_code_bd86587b())
+resp = llm.stream_complete(prompt)
+logger.success(format_json(resp))
 logger.success(format_json(resp))
 async for r in resp:
     logger.debug(r.delta, end="")

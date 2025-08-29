@@ -1,7 +1,5 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.callbacks.wandb import WandbCallbackHandler
 from llama_index.core import (
 VectorStoreIndex,
@@ -14,8 +12,6 @@ from llama_index.core import load_index_from_storage
 from llama_index.core import set_global_handler
 from llama_index.core.callbacks import CallbackManager
 from llama_index.core.callbacks import LlamaDebugHandler
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import llama_index.core
 import os
 import shutil
@@ -27,13 +23,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/observability/WandbCallbackHandler.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -53,13 +42,13 @@ logger.info("# Wandb Callback Handler")
 
 # if os.getenv("OPENAI_API_KEY") is None:
 #     os.environ["OPENAI_API_KEY"] = getpass(
-        "Paste your MLX key from:"
+        "Paste your OllamaFunctionCallingAdapter key from:"
         " https://platform.openai.com/account/api-keys\n"
     )
 # assert os.getenv("OPENAI_API_KEY", "").startswith(
     "sk-"
-), "This doesn't look like a valid MLX API key"
-logger.debug("MLX API key configured")
+), "This doesn't look like a valid OllamaFunctionCallingAdapter API key"
+logger.debug("OllamaFunctionCallingAdapter API key configured")
 
 
 """
@@ -68,7 +57,7 @@ logger.debug("MLX API key configured")
 logger.info("## Setup LLM")
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0)
+Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0)
 
 """
 ## W&B Callback Manager Setup

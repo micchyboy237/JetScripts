@@ -1,11 +1,7 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import QueryBundle
-from llama_index.core.settings import Settings
 from llama_index.core.tools import ToolMetadata
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.question_gen.openai import MLXQuestionGenerator
+from llama_index.question_gen.openai import OllamaFunctionCallingAdapterQuestionGenerator
 import os
 import shutil
 
@@ -17,39 +13,32 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/output_parsing/openai_sub_question.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# MLX function calling for Sub-Question Query Engine
+# OllamaFunctionCallingAdapter function calling for Sub-Question Query Engine
 
-In this notebook, we showcase how to use MLX function calling to improve the robustness of our sub-question query engine.
+In this notebook, we showcase how to use OllamaFunctionCallingAdapter function calling to improve the robustness of our sub-question query engine.
 
 The sub-question query engine is designed to accept swappable question generators that implement the `BaseQuestionGenerator` interface.  
-To leverage the power of openai function calling API, we implemented a new `MLXQuestionGenerator` (powered by our `MLXPydanticProgram`)
+To leverage the power of openai function calling API, we implemented a new `OllamaFunctionCallingAdapterQuestionGenerator` (powered by our `OllamaFunctionCallingAdapterPydanticProgram`)
 
-## MLX Question Generator
+## OllamaFunctionCallingAdapter Question Generator
 
-Unlike the default `LLMQuestionGenerator` that supports generic LLMs via the completion API, `MLXQuestionGenerator` only works with the latest MLX models that supports the function calling API. 
+Unlike the default `LLMQuestionGenerator` that supports generic LLMs via the completion API, `OllamaFunctionCallingAdapterQuestionGenerator` only works with the latest OllamaFunctionCallingAdapter models that supports the function calling API. 
 
 The benefit is that these models are fine-tuned to output JSON objects, so we can worry less about output parsing issues.
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
-logger.info("# MLX function calling for Sub-Question Query Engine")
+logger.info("# OllamaFunctionCallingAdapter function calling for Sub-Question Query Engine")
 
 # %pip install llama-index-question-gen-openai
 
 # !pip install llama-index
 
 
-question_gen = MLXQuestionGenerator.from_defaults()
+question_gen = OllamaFunctionCallingAdapterQuestionGenerator.from_defaults()
 
 """
 Let's test it out!

@@ -1,8 +1,6 @@
 from IPython.display import Markdown, display
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import PromptTemplate
 from llama_index.core import QueryBundle
 from llama_index.core.agent import ReActChatFormatter
@@ -15,11 +13,9 @@ PydanticMultiSelector,
 PydanticSingleSelector,
 )
 from llama_index.core.selectors import LLMSingleSelector, LLMMultiSelector
-from llama_index.core.settings import Settings
 from llama_index.core.tools import FunctionTool
 from llama_index.core.tools import ToolMetadata
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.question_gen.openai import MLXQuestionGenerator
+from llama_index.question_gen.openai import OllamaFunctionCallingAdapterQuestionGenerator
 import os
 import shutil
 
@@ -30,13 +26,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Query Transform Cookbook 
@@ -137,7 +126,7 @@ Queries:
 """
 query_gen_prompt = PromptTemplate(query_gen_str)
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
 
 def generate_queries(query: str, llm, num_queries: int = 4):
@@ -166,7 +155,7 @@ logger.info("### Query Rewriting (using QueryTransform)")
 
 
 hyde = HyDEQueryTransform(include_original=True)
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
 query_bundle = hyde.run("What is Bel?")
 
@@ -182,13 +171,13 @@ new_query.custom_embedding_strs
 
 Given a set of tools and a user query, decide both the 1) set of sub-questions to generate, and 2) the tools that each sub-question should run over.
 
-We run through an example using the `MLXQuestionGenerator`, which depends on function calling, and also the `LLMQuestionGenerator`, which depends on prompting.
+We run through an example using the `OllamaFunctionCallingAdapterQuestionGenerator`, which depends on function calling, and also the `LLMQuestionGenerator`, which depends on prompting.
 """
 logger.info("## Sub-Questions")
 
 
-llm = MLXLlamaIndexLLMAdapter()
-question_gen = MLXQuestionGenerator.from_defaults(llm=llm)
+llm = OllamaFunctionCallingAdapter()
+question_gen = OllamaFunctionCallingAdapterQuestionGenerator.from_defaults(llm=llm)
 
 display_prompt_dict(question_gen.get_prompts())
 
@@ -268,7 +257,7 @@ Next we get the output from the model.
 """
 logger.info("Next we get the output from the model.")
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
 response = llm.chat(input_msgs)
 

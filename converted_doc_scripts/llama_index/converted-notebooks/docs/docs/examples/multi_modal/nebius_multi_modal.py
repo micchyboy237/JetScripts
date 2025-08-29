@@ -1,14 +1,9 @@
-import asyncio
 from jet.transformers.formatters import format_json
 from PIL import Image
 from io import BytesIO
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.multi_modal_llms.generic_utils import load_image_urls
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.multi_modal_llms.nebius import NebiusMultiModal
 from llama_index.multi_modal_llms.openai.utils import (
 generate_openai_multi_modal_chat_message,
@@ -26,13 +21,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/multi_modal/nebius_multi_modal.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
@@ -40,7 +28,7 @@ Settings.embed_model = HuggingFaceEmbedding(
 
 This notebook demonstrates how to use multimodal models from [Nebius AI Studio](https://studio.nebius.ai/) with LlamaIndex. Nebius AI Studio implements all state-of-the-art multimodal models available for commercial use.
 
-First, let's install LlamaIndex and dependencies of Nebius AI Studio. Since AI Studio uses MLX-compatible MLX, installation of the MLX Multimodal package inside Llama-index is also required.
+First, let's install LlamaIndex and dependencies of Nebius AI Studio. Since AI Studio uses OllamaFunctionCallingAdapter-compatible OllamaFunctionCallingAdapter, installation of the OllamaFunctionCallingAdapter Multimodal package inside Llama-index is also required.
 """
 logger.info("# Multimodal models with Nebius")
 
@@ -156,13 +144,10 @@ for r in stream_chat_response:
 """
 logger.info("### Async Complete")
 
-async def async_func_0():
-    response_complete = mm_llm.complete(
+response_complete = mm_llm.complete(
         prompt="Describe the images as an alternative text",
         image_documents=image_documents,
     )
-    return response_acomplete
-response_acomplete = asyncio.run(async_func_0())
 logger.success(format_json(response_acomplete))
 
 logger.debug(response_acomplete)
@@ -172,13 +157,10 @@ logger.debug(response_acomplete)
 """
 logger.info("### Async Steam Complete")
 
-async def async_func_0():
-    response_stream_complete = mm_llm.stream_complete(
+response_stream_complete = mm_llm.stream_complete(
         prompt="Describe the images as an alternative text",
         image_documents=image_documents,
     )
-    return response_astream_complete
-response_astream_complete = asyncio.run(async_func_0())
 logger.success(format_json(response_astream_complete))
 
 for delta in response_stream_complete:
@@ -189,12 +171,9 @@ for delta in response_stream_complete:
 """
 logger.info("### Async Chat")
 
-async def async_func_0():
-    chat_response = mm_llm.chat(
+chat_response = mm_llm.chat(
         messages=chat_messages,
     )
-    return achat_response
-achat_response = asyncio.run(async_func_0())
 logger.success(format_json(achat_response))
 
 logger.debug(achat_response)
@@ -204,12 +183,9 @@ logger.debug(achat_response)
 """
 logger.info("### Async stream Chat")
 
-async def async_func_0():
-    stream_chat_response = mm_llm.stream_chat(
+stream_chat_response = mm_llm.stream_chat(
         messages=chat_messages,
     )
-    return astream_chat_response
-astream_chat_response = asyncio.run(async_func_0())
 logger.success(format_json(astream_chat_response))
 
 for delta in stream_chat_response:

@@ -1,10 +1,6 @@
 from google.colab import auth
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Settings
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.indices.managed.vertexai import VertexAIIndex
 from llama_index.llms.vertex import Vertex
 import os
@@ -18,17 +14,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/managed/VertexAIDemo.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -112,7 +97,7 @@ index = VertexAIIndex(
 logger.debug(f"Newly created corpus name is {index.corpus_name}.")
 
 file_name = index.insert_file(
-    file_path=f"{GENERATED_DIR}/paul_graham/paul_graham_essay.txt",
+    file_path="data/paul_graham/paul_graham_essay.txt",
     metadata={
         "display_name": "paul_graham_essay",
         "description": "Paul Graham essay",

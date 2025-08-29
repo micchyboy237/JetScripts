@@ -1,7 +1,5 @@
 from datetime import datetime
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import StorageContext
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.settings import Settings
@@ -11,7 +9,6 @@ MetadataFilter,
 ExactMatchFilter,
 )
 from llama_index.embeddings.cohere import CohereEmbedding
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.redis import RedisVectorStore
 from redis import Redis
 from redisvl.schema import IndexSchema
@@ -30,13 +27,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/vector_stores/RedisIndexDemo.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
@@ -48,7 +38,7 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 """
 logger.info("# Redis Vector Store")
 
-# %pip install -U llama-index llama-index-vector-stores-redis llama-index-embeddings-cohere llama-index-embeddings-ollama
+# %pip install -U llama-index llama-index-vector-stores-redis llama-index-embeddings-cohere llama-index-embeddings-huggingface
 
 # import getpass
 
@@ -71,12 +61,12 @@ docker run --name redis-vecdb -d -p 6379:6379 -p 8001:8001 redis/redis-stack:lat
 
 This will also launch the RedisInsight UI on port 8001 which you can view at http://localhost:8001.
 
-### Setup MLX
+### Setup OllamaFunctionCallingAdapter
 Lets first begin by adding the openai api key. This will allow us to access openai for embeddings and to use chatgpt.
 """
 logger.info("### Start Redis")
 
-# oai_api_key = getpass.getpass("MLX API Key:")
+# oai_api_key = getpass.getpass("OllamaFunctionCallingAdapter API Key:")
 # os.environ["OPENAI_API_KEY"] = oai_api_key
 
 """
@@ -124,7 +114,7 @@ index = VectorStoreIndex.from_documents(
 
 Now that we have our data stored in the index, we can ask questions against the index.
 
-The index will use the data as the knowledge base for an LLM. The default setting for as_query_engine() utilizes MLX embeddings and GPT as the language model. Therefore, an MLX key is required unless you opt for a customized or local language model.
+The index will use the data as the knowledge base for an LLM. The default setting for as_query_engine() utilizes OllamaFunctionCallingAdapter embeddings and GPT as the language model. Therefore, an OllamaFunctionCallingAdapter key is required unless you opt for a customized or local language model.
 
 Below we will test searches against out index and then full RAG with an LLM.
 """
@@ -319,7 +309,7 @@ Unlike other vector stores, Redis expects users to explicitly define the schema 
 1. Redis is used for many use cases, including real-time vector search, but also for standard document storage/retrieval, caching, messaging, pub/sub, session mangement, and more. Not all attributes on records need to be indexed for search. This is partially an efficiency thing, and partially an attempt to minimize user foot guns.
 2. All index schemas, when using Redis & LlamaIndex, must include the following fields `id`, `doc_id`, `text`, and `vector`, at a minimum.
 
-Instantiate your `RedisVectorStore` with the default schema (assumes MLX embeddings), or with a custom schema (see above).
+Instantiate your `RedisVectorStore` with the default schema (assumes OllamaFunctionCallingAdapter embeddings), or with a custom schema (see above).
 
 #### Prefix issues
 

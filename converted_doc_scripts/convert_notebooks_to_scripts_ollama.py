@@ -2,7 +2,7 @@ import os
 import hashlib
 import re
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Coroutine, Literal, Optional
 import codecs
 import json
 import shutil
@@ -14,17 +14,17 @@ from jet.utils.file import search_files
 
 REPLACE_OLLAMA_MAP = {
     "llama-index-llms-openai": "llama-index-llms-ollama",
-    "llama-index-embeddings-openai": "llama-index-embeddings-ollama",
-    "llama_index.llms.openai": "jet.llm.ollama.base",
-    "llama_index.embeddings.openai": "jet.llm.ollama.base",
+    "llama-index-embeddings-openai": "llama-index-embeddings-huggingface",
+    "llama_index.llms.openai": "jet.llm.ollama.adapters.ollama_llama_index_llm_adapter",
+    "llama_index.embeddings.openai": "llama_index.embeddings.huggingface",
     "langchain_openai": "jet.llm.ollama.base_langchain",
     "langchain_anthropic": "jet.llm.ollama.base_langchain",
     "langchain_ollama": "jet.llm.ollama.base_langchain",
     "OpenAIEmbeddings": "OllamaEmbeddings",
-    "OpenAIEmbedding": "OllamaEmbedding",
+    "OpenAIEmbedding": "HuggingFaceEmbedding",
+    "OpenAI": "OllamaFunctionCallingAdapter",
     "ChatOpenAI": "ChatOllama",
     "ChatAnthropic": "ChatOllama",
-    "OpenAI": "Ollama",
     "(\"gpt-4\")": "(model=\"llama3.2\")",
     "('gpt-4')": "(model=\"llama3.2\")",
     "(\"gpt-3.5\")": "(model=\"llama3.2\")",
@@ -196,7 +196,7 @@ def update_code_with_ollama(code: str) -> str:
     )
     updated_code = re.sub(
         r'OllamaEmbedding\s*\((.*?)\)',
-        r'OllamaEmbedding(model_name="mxbai-embed-large")',
+        r'OllamaEmbedding(model="mxbai-embed-large")',
         updated_code
     )
     updated_code = re.sub(
@@ -210,12 +210,21 @@ def update_code_with_ollama(code: str) -> str:
         updated_code
     )
     updated_code = re.sub(
+        r'HuggingFaceEmbedding\s*\((.*?)\)',
+        r'HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)',
+        updated_code
+    )
+    updated_code = re.sub(
         r'docs0\s*=\s*loader\.load_data\(file=Path\(".*?/llama2\.pdf"\)\)',
         'from llama_index.core.readers.file.base import SimpleDirectoryReader\n'
         'docs0 = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()',
         updated_code
     )
-    updated_code = re.sub(r'"data/', r'f"{GENERATED_DIR}/', updated_code)
+    updated_code = re.sub(
+        r'f+"{GENERATED_DIR}/',
+        r'f"{GENERATED_DIR}/',
+        updated_code
+    )
     return updated_code
 
 
@@ -309,6 +318,21 @@ def read_rst_file(file):
     return source_groups
 
 
+async def run_async_wrapper(code: str) -> str:
+    """Run async code in the current event loop and return the result as a string."""
+    try:
+        namespace = {}
+        exec(code, namespace)
+        for value in namespace.values():
+            if isinstance(value, Coroutine):
+                result = await value
+                return f"logger.success(format_json({result}))"
+        return ""
+    except Exception as e:
+        logger.error(f"Error executing async code: {e}")
+        return f"logger.error('Error: {e}')"
+
+
 def wrap_await_code_singleline_args(code: str) -> str:
     lines = code.splitlines()
     result_lines = []
@@ -331,16 +355,10 @@ def wrap_await_code_singleline_args(code: str) -> str:
             text_before_await = match.group(1).strip()
             await_leading_spaces = len(line) - len(line.lstrip())
             if text_before_await:
-                function_name = generate_unique_function_name(line)
                 indent = " " * await_leading_spaces
-                async_wrapped_code = "\n".join([
-                    f"{indent}async def {function_name}():",
-                    f"{indent}    {line.strip()}",
-                    f"{indent}    return {text_before_await}",
-                    f"{indent}{text_before_await} = asyncio.run({function_name}())",
-                    f"{indent}logger.success(format_json({text_before_await}))",
-                ])
-                result_lines.append(async_wrapped_code)
+                result_lines.append(f"{indent}{line.strip()}")
+                result_lines.append(
+                    f"{indent}logger.success(format_json({text_before_await}))")
             else:
                 result_lines.append(line)
         else:
@@ -356,28 +374,20 @@ def wrap_await_code_multiline_args(code: str) -> str:
         line = lines[line_idx].rstrip()
         if line.strip().startswith("async with"):
             leading_spaces = len(line) - len(line.lstrip())
-            async_fn_name = f"async_func_{line_idx}"
             variable = "result"
-            async_block = [
-                f"{' ' * leading_spaces}async def {async_fn_name}():"]
-            async_block.append(f"{' ' * (leading_spaces + 4)}{line.strip()}")
+            async_block = [f"{' ' * leading_spaces}{line.strip()}"]
             line_idx += 1
             while line_idx < len(lines):
                 next_line = lines[line_idx].rstrip()
                 next_leading_spaces = len(next_line) - len(next_line.lstrip())
                 if next_leading_spaces <= leading_spaces and next_line.strip():
                     break
-                relative_indent = next_leading_spaces - (leading_spaces + 4)
+                relative_indent = next_leading_spaces - leading_spaces
                 if relative_indent < 0:
                     relative_indent = 0
-                adjusted_indent = ' ' * (leading_spaces + 8 + relative_indent)
+                adjusted_indent = ' ' * (leading_spaces + 4 + relative_indent)
                 async_block.append(f"{adjusted_indent}{next_line.lstrip()}")
                 line_idx += 1
-            async_block.append(
-                f"{' ' * (leading_spaces + 4)}return {variable}")
-            async_block.append("")
-            async_block.append(
-                f"{' ' * leading_spaces}{variable} = asyncio.run({async_fn_name}())")
             async_block.append(
                 f"{' ' * leading_spaces}logger.success(format_json({variable}))")
             updated_lines.extend(async_block)
@@ -387,11 +397,7 @@ def wrap_await_code_multiline_args(code: str) -> str:
             if match:
                 variable = match.group(1).strip()
                 leading_spaces = len(line) - len(line.lstrip())
-                async_fn_name = f"async_func_{line_idx}"
-                async_block = [
-                    f"{' ' * leading_spaces}async def {async_fn_name}():"]
-                async_block.append(
-                    f"{' ' * (leading_spaces + 4)}{line.strip()}")
+                async_block = [f"{' ' * leading_spaces}{line.strip()}"]
                 open_parens = 1
                 line_idx += 1
                 while line_idx < len(lines) and open_parens > 0:
@@ -408,10 +414,6 @@ def wrap_await_code_multiline_args(code: str) -> str:
                     open_parens += next_line.count("(") - next_line.count(")")
                     line_idx += 1
                 async_block.append(
-                    f"{' ' * (leading_spaces + 4)}return {variable}")
-                async_block.append(
-                    f"{' ' * leading_spaces}{variable} = asyncio.run({async_fn_name}())")
-                async_block.append(
                     f"{' ' * leading_spaces}logger.success(format_json({variable}))")
                 updated_lines.extend(async_block)
             else:
@@ -422,15 +424,12 @@ def wrap_await_code_multiline_args(code: str) -> str:
             match = re.match(r'(.*?)(?=\s*= await)', line)
             text_before_await = match.group(1).strip() if match else ""
             leading_spaces = len(line) - len(line.lstrip())
-            async_fn_name = generate_unique_function_name(line)
-            async_block = [
-                f"{' ' * leading_spaces}async def {async_fn_name}():",
-                f"{' ' * (leading_spaces + 4)}{line.strip()}",
-                f"{' ' * (leading_spaces + 4)}return {text_before_await}",
-                f"{' ' * leading_spaces}{text_before_await} = asyncio.run({async_fn_name}())",
-                f"{' ' * leading_spaces}logger.success(format_json({text_before_await}))",
-            ]
-            updated_lines.extend(async_block)
+            if text_before_await:
+                updated_lines.append(f"{' ' * leading_spaces}{line.strip()}")
+                updated_lines.append(
+                    f"{' ' * leading_spaces}logger.success(format_json({text_before_await}))")
+            else:
+                updated_lines.append(line)
             line_idx += 1
             continue
         updated_lines.append(line)
@@ -544,8 +543,24 @@ def scrape_code(
                     source_code = replace_print_with_jet_logger(source_code)
                 if "format_json(" in source_code:
                     source_code = "from jet.transformers.formatters import format_json\n" + source_code
-                if "asyncio.run" in source_code:
-                    source_code = "import asyncio\n" + source_code
+                if "HuggingFaceEmbedding" in source_code:
+                    source_code = "from jet.models.config import MODELS_CACHE_DIR\n" + source_code
+                if "await " in source_code:
+                    source_code = "\n".join([
+                        "async def main():",
+                        *(f"    {line}" for line in source_code.splitlines()),
+                        "",
+                        "if __name__ == '__main__':",
+                        "    import asyncio",
+                        "    try:",
+                        "        loop = asyncio.get_event_loop()",
+                        "        if loop.is_running():",
+                        "            loop.create_task(main())",
+                        "        else:",
+                        "            loop.run_until_complete(main())",
+                        "    except RuntimeError:",
+                        "        asyncio.run(main())",
+                    ])
                 with open(output_code_path, "w", encoding='utf-8') as f:
                     f.write(source_code)
                 logger.log(

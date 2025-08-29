@@ -1,15 +1,11 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader, StorageContext
 from llama_index.core import VectorStoreIndex
-from llama_index.core.settings import Settings
 from llama_index.core.vector_stores import (
 MetadataFilter,
 MetadataFilters,
 FilterOperator,
 )
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.nile import NileVectorStore, IndexType
 import logging
 import os
@@ -22,17 +18,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Nile Vector Store (Multi-tenant PostgreSQL)
@@ -108,11 +93,11 @@ vector_store = NileVectorStore(
 )
 
 """
-### Setup MLX
+### Setup OllamaFunctionCallingAdapter
 
 You can set it in an .env file, or in Python directly
 """
-logger.info("### Setup MLX")
+logger.info("### Setup OllamaFunctionCallingAdapter")
 
 # %env OPENAI_API_KEY=sk-...
 
@@ -126,8 +111,8 @@ To demonstrate multi-tenant similarity search with LlamaIndex and Nile, we will 
 logger.info("## Multi-tenant similarity search")
 
 # !mkdir -p data
-# !wget "https://raw.githubusercontent.com/niledatabase/niledatabase/main/examples/ai/sales_insight/data/transcripts/nexiv-solutions__0_transcript.txt" -O f"{GENERATED_DIR}/nexiv-solutions__0_transcript.txt"
-# !wget "https://raw.githubusercontent.com/niledatabase/niledatabase/main/examples/ai/sales_insight/data/transcripts/modamart__0_transcript.txt" -O f"{GENERATED_DIR}/modamart__0_transcript.txt"
+# !wget "https://raw.githubusercontent.com/niledatabase/niledatabase/main/examples/ai/sales_insight/data/transcripts/nexiv-solutions__0_transcript.txt" -O "data/nexiv-solutions__0_transcript.txt"
+# !wget "https://raw.githubusercontent.com/niledatabase/niledatabase/main/examples/ai/sales_insight/data/transcripts/modamart__0_transcript.txt" -O "data/modamart__0_transcript.txt"
 
 """
 ### Load documents
@@ -137,11 +122,11 @@ We'll use LlamaIndex's `SimpleDirectoryReader` to load the documents. Because we
 logger.info("### Load documents")
 
 reader = SimpleDirectoryReader(
-    input_files=[f"{GENERATED_DIR}/nexiv-solutions__0_transcript.txt"]
+    input_files=["data/nexiv-solutions__0_transcript.txt"]
 )
 documents_nexiv = reader.load_data()
 
-reader = SimpleDirectoryReader(input_files=[f"{GENERATED_DIR}/modamart__0_transcript.txt"])
+reader = SimpleDirectoryReader(input_files=["data/modamart__0_transcript.txt"])
 documents_modamart = reader.load_data()
 
 """

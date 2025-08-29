@@ -1,7 +1,5 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
 from llama_index.core.node_parser import (
@@ -9,7 +7,6 @@ SentenceSplitter,
 SemanticSplitterNodeParser,
 )
 from llama_index.core.response.notebook_utils import display_source_node
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import os
 import shutil
@@ -21,13 +18,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/node_parsers/semantic_chunking.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -51,7 +41,7 @@ Caveats:
 """
 logger.info("# Semantic Chunker")
 
-# %pip install llama-index-embeddings-ollama
+# %pip install llama-index-embeddings-huggingface
 
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'pg_essay.txt'
 
@@ -67,7 +57,7 @@ logger.info("## Define Semantic Splitter")
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-embed_model = MLXEmbedding()
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 splitter = SemanticSplitterNodeParser(
     buffer_size=1, breakpoint_percentile_threshold=95, embed_model=embed_model
 )

@@ -1,10 +1,6 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.llama_pack import download_llama_pack
 from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.readers.wikipedia import WikipediaReader
 import os
 import shutil
@@ -16,13 +12,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Llama Pack - Resume Screener 📄
@@ -45,14 +34,14 @@ logger.info("# Llama Pack - Resume Screener 📄")
 """
 ### Setup Data
 
-We'll load some sample Wikipedia data for MLX, Sam, Mira, and Emmett. Why? No reason in particular :)
+We'll load some sample Wikipedia data for OllamaFunctionCallingAdapter, Sam, Mira, and Emmett. Why? No reason in particular :)
 """
 logger.info("### Setup Data")
 
 
 loader = WikipediaReader()
 documents = loader.load_data(
-    pages=["MLX", "Sam Altman", "Mira Murati", "Emmett Shear"],
+    pages=["OllamaFunctionCallingAdapter", "Sam Altman", "Mira Murati", "Emmett Shear"],
     auto_suggest=False,
 )
 
@@ -78,7 +67,7 @@ Here we download the resume screener pack class from LlamaHub.
 
 We'll use it for two use cases:
 - whether the candidate is a good fit for a front-end / full-stack engineering role.
-- whether the candidate is a good fit for the CEO of MLX.
+- whether the candidate is a good fit for the CEO of OllamaFunctionCallingAdapter.
 """
 logger.info("## Download Resume Screener Pack from LlamaHub")
 
@@ -137,20 +126,20 @@ logger.debug(str(response.overall_reasoning))
 logger.debug(str(response.overall_decision))
 
 """
-### Screen Candidate for CEO of MLX
+### Screen Candidate for CEO of OllamaFunctionCallingAdapter
 
-Jerry can't write Typescript, but can he be CEO of MLX?
+Jerry can't write Typescript, but can he be CEO of OllamaFunctionCallingAdapter?
 """
-logger.info("### Screen Candidate for CEO of MLX")
+logger.info("### Screen Candidate for CEO of OllamaFunctionCallingAdapter")
 
 job_description = f"""\
-We're looking to hire a CEO for MLX.
+We're looking to hire a CEO for OllamaFunctionCallingAdapter.
 
 Instead of listing a set of specific criteria, each "criteria" is instead a short biography of a previous CEO.\
 
 For each criteria/bio, outline if the candidate's experience matches or surpasses that of the candidate.
 
-Also, here's a description of MLX from Wikipedia:
+Also, here's a description of OllamaFunctionCallingAdapter from Wikipedia:
 {openai_node.get_content()}
 """
 

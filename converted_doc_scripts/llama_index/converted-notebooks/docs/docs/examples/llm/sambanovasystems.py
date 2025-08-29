@@ -1,14 +1,9 @@
-import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.base.llms.types import (
 ChatMessage,
 MessageRole,
 )
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.sambanovasystems import SambaNovaCloud
 from llama_index.llms.sambanovasystems import SambaStudio
 import os
@@ -21,13 +16,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # SambaNova Systems
@@ -156,14 +144,8 @@ logger.debug(ai_stream_msgs[-1])
 """
 logger.info("## Async")
 
-async def run_async_code_4b15ba9a():
-    async def run_async_code_e89bb483():
-        ai_msg = llm.chat(messages)
-        return ai_msg
-    ai_msg = asyncio.run(run_async_code_e89bb483())
-    logger.success(format_json(ai_msg))
-    return ai_msg
-ai_msg = asyncio.run(run_async_code_4b15ba9a())
+ai_msg = llm.chat(messages)
+logger.success(format_json(ai_msg))
 logger.success(format_json(ai_msg))
 ai_msg
 
@@ -174,14 +156,8 @@ logger.debug(ai_msg.message.content)
 """
 logger.info("### Complete")
 
-async def run_async_code_a18e5ace():
-    async def run_async_code_8e16651b():
-        ai_msg = llm.complete(user_msg.content)
-        return ai_msg
-    ai_msg = asyncio.run(run_async_code_8e16651b())
-    logger.success(format_json(ai_msg))
-    return ai_msg
-ai_msg = asyncio.run(run_async_code_a18e5ace())
+ai_msg = llm.complete(user_msg.content)
+logger.success(format_json(ai_msg))
 logger.success(format_json(ai_msg))
 ai_msg
 
@@ -318,14 +294,8 @@ logger.debug(ai_stream_msgs[-1])
 """
 logger.info("## Async")
 
-async def run_async_code_4b15ba9a():
-    async def run_async_code_e89bb483():
-        ai_msg = llm.chat(messages)
-        return ai_msg
-    ai_msg = asyncio.run(run_async_code_e89bb483())
-    logger.success(format_json(ai_msg))
-    return ai_msg
-ai_msg = asyncio.run(run_async_code_4b15ba9a())
+ai_msg = llm.chat(messages)
+logger.success(format_json(ai_msg))
 logger.success(format_json(ai_msg))
 ai_msg
 
@@ -336,14 +306,8 @@ logger.debug(ai_msg.message.content)
 """
 logger.info("### Complete")
 
-async def run_async_code_a18e5ace():
-    async def run_async_code_8e16651b():
-        ai_msg = llm.complete(user_msg.content)
-        return ai_msg
-    ai_msg = asyncio.run(run_async_code_8e16651b())
-    logger.success(format_json(ai_msg))
-    return ai_msg
-ai_msg = asyncio.run(run_async_code_a18e5ace())
+ai_msg = llm.complete(user_msg.content)
+logger.success(format_json(ai_msg))
 logger.success(format_json(ai_msg))
 ai_msg
 

@@ -1,11 +1,7 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.output_parsers import PydanticOutputParser
 from llama_index.core.program import FunctionCallingProgram
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.anthropic import Anthropic
 from llama_index.llms.mistralai import MistralAI
 from pydantic import BaseModel
@@ -21,20 +17,13 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 # Function Calling Program for Structured Extraction
 
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/output_parsing/function_program.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 This guide shows you how to do structured data extraction with our `FunctionCallingProgram`. Given a function-calling LLM as well as an output Pydantic class, generate a structured Pydantic object. We use three different function calling LLMs:
-- MLX
+- OllamaFunctionCallingAdapter
 - Anthropic Claude
 - Mistral
 
@@ -81,11 +70,11 @@ class Album(BaseModel):
 ## Define Function Calling Program
 
 We define a function calling program with three function-calling LLMs: 
-- MLX 
+- OllamaFunctionCallingAdapter 
 - Anthropic
 - Mistral
 
-### Function Calling Program with MLX
+### Function Calling Program with OllamaFunctionCallingAdapter
 
 Here we use gpt-3.5-turbo.
 
@@ -100,7 +89,7 @@ prompt_template_str = """\
 Generate an example album, with an artist and a list of songs. \
 Using the movie {movie_name} as inspiration.\
 """
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
 program = FunctionCallingProgram.from_defaults(
     output_cls=Album,
@@ -133,7 +122,7 @@ Generate example albums, with an artist and a list of songs, using each movie be
 Here are the movies:
 {movie_names}
 """
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
 program = FunctionCallingProgram.from_defaults(
     output_cls=Album,

@@ -2,12 +2,8 @@ from azure.identity import DefaultAzureCredential
 from azure.identity.aio import (
 DefaultAzureCredential as DefaultAzureCredentialAsync,
 )
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.llms import ChatMessage
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.azure_inference import AzureAICompletionsModel
 import os
 import shutil
@@ -19,13 +15,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/llm/azure_openai.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -64,7 +53,7 @@ Alternatively, you can use GitHub Models endpoints with this integration, includ
 
 Follow this steps to get the information you need from the model you want to use:
 
-1. Go to the [Azure AI studio](https://ai.azure.com/) or [Azure Machine Learning studio](https://ml.azure.com), depending on the product you are using.
+1. Go to the [Azure AI Foundry (formerly Azure AI Studio)](https://ai.azure.com/) or [Azure Machine Learning studio](https://ml.azure.com), depending on the product you are using.
 2. Go to deployments (endpoints in Azure Machine Learning) and select the model you have deployed as indicated in the prerequisites.
 3. Copy the endpoint URL and the key.
     

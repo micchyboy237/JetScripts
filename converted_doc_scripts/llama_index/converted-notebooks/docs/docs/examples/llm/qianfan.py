@@ -1,11 +1,6 @@
-import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.base.llms.types import ChatMessage
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.qianfan import Qianfan
 import asyncio
 import os
@@ -18,13 +13,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Client of Baidu Intelligent Cloud's Qianfan LLM Platform
@@ -95,14 +83,8 @@ async def async_chat():
     messages = [
         ChatMessage(role="user", content="Tell me an async joke."),
     ]
-    async def run_async_code_b5901de8():
-        async def run_async_code_5d238f30():
-            chat_response = llm.chat(messages)
-            return chat_response
-        chat_response = asyncio.run(run_async_code_5d238f30())
-        logger.success(format_json(chat_response))
-        return chat_response
-    chat_response = asyncio.run(run_async_code_b5901de8())
+    chat_response = llm.chat(messages)
+    logger.success(format_json(chat_response))
     logger.success(format_json(chat_response))
     logger.debug(chat_response.message.content)
 
@@ -122,14 +104,8 @@ async def async_stream_chat():
         ChatMessage(role="user", content="Tell me an async story."),
     ]
     content = ""
-    async def run_async_code_b338540c():
-        async def run_async_code_b0b33fe3():
-            response = llm.stream_chat(messages)
-            return response
-        response = asyncio.run(run_async_code_b0b33fe3())
-        logger.success(format_json(response))
-        return response
-    response = asyncio.run(run_async_code_b338540c())
+    response = llm.stream_chat(messages)
+    logger.success(format_json(response))
     logger.success(format_json(response))
     async for chat_response in response:
         content += chat_response.delta

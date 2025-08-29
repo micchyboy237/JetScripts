@@ -1,10 +1,8 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import StorageContext, VectorStoreIndex, Settings
 from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.gemini import Gemini
 from llama_index.vector_stores.objectbox import ObjectBoxVectorStore
@@ -19,13 +17,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # ObjectBox VectorStore Demo
@@ -77,7 +68,7 @@ HuggingFace hosts a variety of embedding models, which could be observed from th
 logger.info("## 4) Setup an embedding model for RAG (HuggingFace `bge-small-en-v1.5`)")
 
 
-hf_embedding = HuggingFaceEmbedding(model_name="BAAI/bge-base-en-v1.5")
+hf_embedding = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 embedding_dim = 384
 
 """

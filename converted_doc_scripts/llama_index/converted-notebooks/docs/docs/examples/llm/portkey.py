@@ -1,9 +1,5 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.llms import ChatMessage
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.portkey import Portkey
 import json
 import os
@@ -19,13 +15,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/llm/portkey.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -76,11 +65,11 @@ logger.info("# Portkey")
 """
 You do not need to install **any** other SDKs or import them in your Llamaindex app.
 
-#### **Step 1️⃣: Get your Portkey API Key and your Virtual Keys for MLX, Anthropic, and more**
+#### **Step 1️⃣: Get your Portkey API Key and your Virtual Keys for OllamaFunctionCallingAdapter, Anthropic, and more**
 
 **[Portkey API Key](https://app.portkey.ai/)**: Log into [Portkey here](https://app.portkey.ai/), then click on the profile icon on top left and "Copy API Key".
 """
-logger.info("#### **Step 1️⃣: Get your Portkey API Key and your Virtual Keys for MLX, Anthropic, and more**")
+logger.info("#### **Step 1️⃣: Get your Portkey API Key and your Virtual Keys for OllamaFunctionCallingAdapter, Anthropic, and more**")
 
 
 os.environ["PORTKEY_API_KEY"] = "PORTKEY_API_KEY"
@@ -88,7 +77,7 @@ os.environ["PORTKEY_API_KEY"] = "PORTKEY_API_KEY"
 """
 **[Virtual Keys](https://docs.portkey.ai/key-features/ai-provider-keys)**
 1. Navigate to the "Virtual Keys" page on [Portkey dashboard](https://app.portkey.ai/) and hit the "Add Key" button located at the top right corner.
-2. Choose your AI provider (MLX, Anthropic, Cohere, HuggingFace, etc.), assign a unique name to your key, and, if needed, jot down any relevant usage notes. Your virtual key is ready!
+2. Choose your AI provider (OllamaFunctionCallingAdapter, Anthropic, Cohere, HuggingFace, etc.), assign a unique name to your key, and, if needed, jot down any relevant usage notes. Your virtual key is ready!
 
 <img src="https://3798672042-files.gitbook.io/~/files/v0/b/gitbook-x-prod.appspot.com/o/spaces%2FeWEp2XRBGxs7C1jgAdk7%2Fuploads%2F66S1ik16Gle8jS1u6smr%2Fvirtual_keys.png?alt=media&token=2fec1c39-df4e-4c93-9549-7445a833321c" alt="header" width=600 />
 3. Now copy and paste the keys below - you can use them anywhere within the Portkey ecosystem and keep your original key secure and untouched.
@@ -147,18 +136,18 @@ portkey_client = Portkey(
 """
 #### **Step 3️⃣: Constructing the LLM**
 
-With the Portkey integration, constructing an LLM is simplified. Use the `LLMOptions` function for all providers, with the exact same keys you're accustomed to in your MLX or Anthropic constructors. The only new key is `weight`, essential for the load balancing feature.
+With the Portkey integration, constructing an LLM is simplified. Use the `LLMOptions` function for all providers, with the exact same keys you're accustomed to in your OllamaFunctionCallingAdapter or Anthropic constructors. The only new key is `weight`, essential for the load balancing feature.
 """
 logger.info("#### **Step 3️⃣: Constructing the LLM**")
 
 openai_llm = pk.LLMOptions(
     provider="openai",
-    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
+    model="llama3.2", request_timeout=300.0, context_window=4096,
     virtual_key=openai_virtual_key_a,
 )
 
 """
-The above code illustrates how to utilize the `LLMOptions` function to set up an LLM with the MLX provider and the GPT-4 model. This same function can be used for other providers as well, making the integration process streamlined and consistent across various providers.
+The above code illustrates how to utilize the `LLMOptions` function to set up an LLM with the OllamaFunctionCallingAdapter provider and the GPT-4 model. This same function can be used for other providers as well, making the integration process streamlined and consistent across various providers.
 
 #### **Step 4️⃣: Activate the Portkey Client**
 
@@ -232,7 +221,7 @@ Congratulations! 🎉 You've successfully set up and tested the Portkey integrat
 2. from llama_index.llms import Portkey
 3. Grab your Portkey API Key and create your virtual provider keys from [here](https://app.portkey.ai/).
 4. Construct your Portkey client and set mode: `portkey_client=Portkey(mode="fallback")`
-5. Construct your provider LLM with LLMOptions: `openai_llm = pk.LLMOptions(provider="openai", model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", virtual_key=openai_key_a)`
+5. Construct your provider LLM with LLMOptions: `openai_llm = pk.LLMOptions(provider="openai", model="llama3.2", request_timeout=300.0, context_window=4096, virtual_key=openai_key_a)`
 6. Add the LLM to Portkey with `portkey_client.add_llms(openai_llm)`
 7. Call the Portkey methods regularly like you would any other LLM, with `portkey_client.chat(messages)`
 
@@ -264,14 +253,14 @@ messages = [
 
 llm1 = pk.LLMOptions(
     provider="openai",
-    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
+    model="llama3.2", request_timeout=300.0, context_window=4096,
     retry_settings={"on_status_codes": [429, 500], "attempts": 2},
     virtual_key=openai_virtual_key_a,
 )
 
 llm2 = pk.LLMOptions(
     provider="openai",
-    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
+    model="llama3.2", request_timeout=300.0, context_window=4096,
     virtual_key=openai_virtual_key_b,
 )
 
@@ -304,14 +293,14 @@ messages = [
 
 llm1 = pk.LLMOptions(
     provider="openai",
-    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
+    model="llama3.2", request_timeout=300.0, context_window=4096,
     virtual_key=openai_virtual_key_a,
     weight=0.2,
 )
 
 llm2 = pk.LLMOptions(
     provider="openai",
-    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
+    model="llama3.2", request_timeout=300.0, context_window=4096,
     virtual_key=openai_virtual_key_a,
     weight=0.8,
 )
@@ -336,7 +325,7 @@ portkey_client = Portkey(mode="single")
 
 openai_llm = pk.LLMOptions(
     provider="openai",
-    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
+    model="llama3.2", request_timeout=300.0, context_window=4096,
     virtual_key=openai_virtual_key_a,
     cache_status="semantic",
 )
@@ -383,7 +372,7 @@ logger.info("Portkey's cache supports two more cache-critical functions - Force 
 
 openai_llm = pk.LLMOptions(
     provider="openai",
-    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
+    model="llama3.2", request_timeout=300.0, context_window=4096,
     virtual_key=openai_virtual_key_a,
     cache_force_refresh=True,
     cache_age=60,
@@ -411,7 +400,7 @@ portkey_client = Portkey(mode="single")
 
 openai_llm = pk.LLMOptions(
     provider="openai",
-    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
+    model="llama3.2", request_timeout=300.0, context_window=4096,
     virtual_key=openai_virtual_key_a,
     metadata=metadata,
     trace_id=trace_id,

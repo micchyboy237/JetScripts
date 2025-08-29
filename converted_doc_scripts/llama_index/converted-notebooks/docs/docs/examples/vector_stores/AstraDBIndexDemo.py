@@ -1,13 +1,10 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.logger import CustomLogger
 from llama_index.core import (
 VectorStoreIndex,
 SimpleDirectoryReader,
 StorageContext,
 )
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.astra_db import AstraDBVectorStore
 import os
@@ -20,13 +17,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/vector_stores/AstraDBIndexDemo.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -42,7 +32,7 @@ You should ensure you have `llama-index` and `astrapy` installed:
 logger.info("# Astra DB")
 
 # %pip install llama-index-vector-stores-astra-db
-# %pip install llama-index-embeddings-ollama
+# %pip install llama-index-embeddings-huggingface
 
 # !pip install llama-index
 # !pip install "astrapy>=1.0"
@@ -63,7 +53,7 @@ api_endpoint = input(
 )
 
 # os.environ["OPENAI_API_KEY"] = getpass.getpass(
-    "\nPlease enter your MLX API Key (e.g. 'sk-...'):"
+    "\nPlease enter your OllamaFunctionCallingAdapter API Key (e.g. 'sk-...'):"
 )
 
 """
@@ -111,7 +101,7 @@ astra_db_store = AstraDBVectorStore(
 """
 logger.info("### Build the Index from the Documents:")
 
-embed_model = MLXEmbedding(model_name="mxbai-embed-large")
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 storage_context = StorageContext.from_defaults(vector_store=astra_db_store)
 

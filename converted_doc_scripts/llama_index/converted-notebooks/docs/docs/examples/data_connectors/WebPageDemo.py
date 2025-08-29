@@ -1,11 +1,7 @@
 from IPython.display import Markdown, display
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SummaryIndex
 from llama_index.core import VectorStoreIndex
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.readers.web import AgentQLWebReader
 from llama_index.readers.web import BrowserbaseWebReader
 from llama_index.readers.web import FireCrawlWebReader
@@ -16,6 +12,7 @@ from llama_index.readers.web import ScrapflyReader
 from llama_index.readers.web import SimpleWebPageReader
 from llama_index.readers.web import SpiderWebReader
 from llama_index.readers.web import TrafilaturaWebReader
+from llama_index.readers.web import ZenRowsWebReader
 from llama_index.readers.web import ZyteWebReader
 from llama_index.readers.web.firecrawl_web.base import FireCrawlWebReader
 import logging
@@ -30,13 +27,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/data_connectors/WebPageDemo.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -480,5 +470,62 @@ documents = reader.load_data(
         ],
     },
 )
+
+"""
+# Using ZenRows Web Reader 🌐
+
+[ZenRows](https://www.zenrows.com/) is a powerful web scraping API that provides advanced features for bypassing anti-bot measures and extracting data from modern websites.
+
+Key Features:
+- **JavaScript Rendering**: Handle SPAs and dynamic content with headless browser rendering
+- **Premium Proxies**: Bypass anti-bot protection with 55M+ residential IPs from 190+ countries  
+- **Session Management**: Maintain the same IP across multiple requests
+- **Advanced Data Extraction**: Use CSS selectors or automatic parsing to extract specific data
+- **Multiple Output Formats**: Get results in HTML, Markdown, Text, or PDF format
+- **Geolocation Support**: Use proxies from specific countries for geo-restricted content
+
+**Prerequisites:** You need to have a ZenRows API key to use this reader. You can get one at [zenrows.com](https://app.zenrows.com/register).
+"""
+logger.info("# Using ZenRows Web Reader 🌐")
+
+
+zenrows_reader = ZenRowsWebReader(
+    api_key="YOUR_API_KEY",  # Get one at https://app.zenrows.com/register
+    response_type="markdown",
+)
+
+documents = zenrows_reader.load_data(["https://httpbin.io/html"])
+logger.debug(documents[0].text[:500])  # Print first 500 characters
+
+zenrows_advanced = ZenRowsWebReader(
+    api_key="YOUR_API_KEY",
+    js_render=True,  # Enable JavaScript rendering
+    premium_proxy=True,  # Use residential proxies
+    proxy_country="us",  # Optional: specify country
+)
+
+documents = zenrows_advanced.load_data(
+    ["https://www.scrapingcourse.com/antibot-challenge"]
+)
+logger.debug(f"Scraped {len(documents[0].text)} characters with advanced features")
+
+zenrows_reader = ZenRowsWebReader(
+    api_key="YOUR_API_KEY", js_render=True, response_type="markdown"
+)
+
+urls = ["https://example.com/", "https://httpbin.io/html"]
+
+documents = zenrows_reader.load_data(urls)
+
+index = SummaryIndex.from_documents(documents)
+query_engine = index.as_query_engine()
+response = query_engine.query("What content was found on these pages?")
+
+display(Markdown(f"<b>{response}</b>"))
+
+"""
+For more advanced features like custom headers, CSS data extraction, screenshot capabilities, and detailed configuration options, visit the [ZenRows documentation](https://docs.zenrows.com/universal-scraper-api/api-reference).
+"""
+logger.info("For more advanced features like custom headers, CSS data extraction, screenshot capabilities, and detailed configuration options, visit the [ZenRows documentation](https://docs.zenrows.com/universal-scraper-api/api-reference).")
 
 logger.info("\n\n[DONE]", bright=True)

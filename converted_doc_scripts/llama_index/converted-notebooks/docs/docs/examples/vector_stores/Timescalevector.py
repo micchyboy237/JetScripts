@@ -1,14 +1,11 @@
+from jet.models.config import MODELS_CACHE_DIR
 from datetime import datetime, timedelta
 from dotenv import load_dotenv, find_dotenv
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLXEmbedding
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader, StorageContext
 from llama_index.core import StorageContext
 from llama_index.core import VectorStoreIndex
 from llama_index.core.schema import TextNode, NodeRelationship, RelatedNodeInfo
-from llama_index.core.settings import Settings
 from llama_index.core.vector_stores import VectorStoreQuery, MetadataFilters
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.timescalevector import TimescaleVectorStore
@@ -29,13 +26,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/vector_stores/Timescalevector.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -72,17 +62,17 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 """
 logger.info("# Timescale Vector Store (PostgreSQL)")
 
-# %pip install llama-index-embeddings-ollama
+# %pip install llama-index-embeddings-huggingface
 # %pip install llama-index-vector-stores-timescalevector
 
 # !pip install llama-index
 
 
 """
-### Setup MLX API Key
-To create embeddings for documents loaded into the index, let's configure your MLX API key:
+### Setup OllamaFunctionCallingAdapter API Key
+To create embeddings for documents loaded into the index, let's configure your OllamaFunctionCallingAdapter API key:
 """
-logger.info("### Setup MLX API Key")
+logger.info("### Setup OllamaFunctionCallingAdapter API Key")
 
 
 _ = load_dotenv(find_dotenv())
@@ -366,12 +356,12 @@ def create_node(row):
 nodes = [create_node(row) for _, row in df.iterrows()]
 
 """
-Next we'll create vector embeddings of the content of each node so that we can perform similarity search on the text associated with each node. We'll use the `MLXEmbedding` model to create the embeddings.
+Next we'll create vector embeddings of the content of each node so that we can perform similarity search on the text associated with each node. We'll use the `HuggingFaceEmbedding` model to create the embeddings.
 """
-logger.info("Next we'll create vector embeddings of the content of each node so that we can perform similarity search on the text associated with each node. We'll use the `MLXEmbedding` model to create the embeddings.")
+logger.info("Next we'll create vector embeddings of the content of each node so that we can perform similarity search on the text associated with each node. We'll use the `HuggingFaceEmbedding` model to create the embeddings.")
 
 
-embedding_model = MLXEmbedding()
+embedding_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 for node in nodes:
     node_embedding = embedding_model.get_text_embedding(
@@ -421,7 +411,7 @@ First we define a query string and get the vector embedding for the query string
 logger.info("### Querying vectors by time and similarity")
 
 query_str = "What's new with TimescaleDB functions?"
-embed_model = MLXEmbedding()
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 query_embedding = embed_model.get_query_embedding(query_str)
 
 """

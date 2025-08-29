@@ -1,9 +1,6 @@
-import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Response
 from llama_index.core.evaluation import (
 FaithfulnessEvaluator,
@@ -13,8 +10,6 @@ CorrectnessEvaluator,
 from llama_index.core.evaluation import BatchEvalRunner
 from llama_index.core.evaluation import DatasetGenerator
 from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import openai
 import os
 import pandas as pd
@@ -28,13 +23,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 # BatchEvalRunner - Running Multiple Evaluations
 
@@ -44,7 +32,7 @@ The `BatchEvalRunner` class can be used to run a series of evaluations asynchron
 """
 logger.info("# BatchEvalRunner - Running Multiple Evaluations")
 
-# %pip install llama-index-llms-ollama llama-index-embeddings-ollama
+# %pip install llama-index-llms-ollama llama-index-embeddings-huggingface
 
 # import nest_asyncio
 
@@ -61,7 +49,7 @@ Using GPT-4 here for evaluation
 """
 logger.info("Using GPT-4 here for evaluation")
 
-gpt4 = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
 
 faithfulness_gpt4 = FaithfulnessEvaluator(llm=gpt4)
 relevancy_gpt4 = RelevancyEvaluator(llm=gpt4)
@@ -69,7 +57,7 @@ correctness_gpt4 = CorrectnessEvaluator(llm=gpt4)
 
 documents = SimpleDirectoryReader("./test_wiki_data/").load_data()
 
-llm = MLXLlamaIndexLLMAdapter(temperature=0.3, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(temperature=0.3, model="llama3.2", request_timeout=300.0, context_window=4096)
 splitter = SentenceSplitter(chunk_size=512)
 vector_index = VectorStoreIndex.from_documents(
     documents, transformations=[splitter]
@@ -104,12 +92,9 @@ runner = BatchEvalRunner(
     workers=8,
 )
 
-async def async_func_7():
-    eval_results = runner.evaluate_queries(
+eval_results = runner.evaluate_queries(
         vector_index.as_query_engine(llm=llm), queries=qas.questions
     )
-    return eval_results
-eval_results = asyncio.run(async_func_7())
 logger.success(format_json(eval_results))
 
 logger.debug(len([qr for qr in qas.qr_pairs]))

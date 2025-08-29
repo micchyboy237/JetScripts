@@ -1,10 +1,6 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.prompts import RichPromptTemplate
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import os
 import shutil
 
@@ -15,13 +11,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Build with RichPromptTemplate
@@ -54,8 +43,7 @@ prompt = RichPromptTemplate("Hello, {{ name }}!")
 """
 You can format the prompt into either a string or list of chat messages.
 """
-logger.info(
-    "You can format the prompt into either a string or list of chat messages.")
+logger.info("You can format the prompt into either a string or list of chat messages.")
 
 logger.debug(prompt.format(name="John"))
 
@@ -94,7 +82,7 @@ logger.info("## Prompts with Images and Audio")
 # !wget https://cdn.pixabay.com/photo/2016/07/07/16/46/dice-1502706_640.jpg -O image.png
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", api_key="sk-...")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", api_key="sk-...")
 
 prompt = RichPromptTemplate(
     """
@@ -122,8 +110,7 @@ Describe the following audio:
 )
 messages = prompt.format_messages(audio_path="./audio.wav")
 
-llm = MLXLlamaIndexLLMAdapter(
-    model="qwen3-1.7b-4bit-audio-preview", api_key="sk-...")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, api_key="sk-...")
 response = llm.chat(messages)
 logger.debug(response.message.content)
 

@@ -1,9 +1,7 @@
-from IPython.display import Markdown, display
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from IPython.display import Markdown, display
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.logger import CustomLogger
 from llama_index.core import (
 VectorStoreIndex,
 SimpleDirectoryReader,
@@ -13,10 +11,9 @@ from llama_index.core import KnowledgeGraphIndex, SimpleDirectoryReader
 from llama_index.core import Settings
 from llama_index.core import StorageContext
 from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.graph_stores.nebula import NebulaGraphStore
-from llama_index.llms.azure_openai import AzureMLX
+from llama_index.llms.azure_openai import AzureOllamaFunctionCallingAdapter
 from pyvis.network import Network
 import json
 import logging
@@ -33,20 +30,13 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 # Nebula Graph Store
 """
 logger.info("# Nebula Graph Store")
 
 # %pip install llama-index-llms-ollama
-# %pip install llama-index-embeddings-ollama
+# %pip install llama-index-embeddings-huggingface
 # %pip install llama-index-graph-stores-nebula
 # %pip install llama-index-llms-azure-openai
 
@@ -56,7 +46,7 @@ logger.info("# Nebula Graph Store")
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-llm = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
 
 Settings.llm = llm
 Settings.chunk_size = 512
@@ -76,7 +66,7 @@ openai.api_version = "2022-12-01"
 # os.environ["OPENAI_API_KEY"] = "<your-openai-key>"
 # openai.api_key = os.getenv("OPENAI_API_KEY")
 
-llm = AzureMLXLlamaIndexLLMAdapter(
+llm = AzureOllamaFunctionCallingAdapter(
     model="<foo-bar-model>",
     engine="<foo-bar-deployment>",
     temperature=0,
@@ -86,7 +76,7 @@ llm = AzureMLXLlamaIndexLLMAdapter(
     api_version=openai.api_version,
 )
 
-embedding_model = MLXEmbedding(
+embedding_model = HuggingFaceEmbedding(
     model="text-embedding-ada-002",
     deployment_name="<foo-bar-deployment>",
     api_key=openai.api_key,

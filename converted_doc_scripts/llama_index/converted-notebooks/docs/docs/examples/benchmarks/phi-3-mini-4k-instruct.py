@@ -1,6 +1,5 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.logger import CustomLogger
 from llama_index.core import SQLDatabase
 from llama_index.core import Settings
 from llama_index.core import SummaryIndex
@@ -12,7 +11,6 @@ from llama_index.core.program import LLMTextCompletionProgram
 from llama_index.core.query_engine import RouterQueryEngine
 from llama_index.core.query_engine import SubQuestionQueryEngine
 from llama_index.core.response.notebook_utils import display_response
-from llama_index.core.settings import Settings
 from llama_index.core.tools import FunctionTool
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
@@ -43,13 +41,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Feature Test for Phi-3-mini-4k-instruct
@@ -161,7 +152,7 @@ logger.info("## Basic Query Engine")
 
 query_engine = vector_index.as_query_engine(response_mode="compact")
 
-response = query_engine.query("How do MLX and Meta differ on AI tools?")
+response = query_engine.query("How do OllamaFunctionCallingAdapter and Meta differ on AI tools?")
 
 display_response(response)
 
@@ -172,7 +163,7 @@ logger.info("### Refine")
 
 query_engine = vector_index.as_query_engine(response_mode="refine")
 
-response = query_engine.query("How do MLX and Meta differ on AI tools?")
+response = query_engine.query("How do OllamaFunctionCallingAdapter and Meta differ on AI tools?")
 
 display_response(response)
 
@@ -183,7 +174,7 @@ logger.info("### Tree Summarize")
 
 query_engine = vector_index.as_query_engine(response_mode="tree_summarize")
 
-response = query_engine.query("How do MLX and Meta differ on AI tools?")
+response = query_engine.query("How do OllamaFunctionCallingAdapter and Meta differ on AI tools?")
 
 display_response(response)
 
@@ -273,7 +264,7 @@ query_engine = SubQuestionQueryEngine.from_defaults(
 )
 
 response = query_engine.query(
-    "What was mentioned about Meta? How Does it differ from how MLX is talked about?"
+    "What was mentioned about Meta? How Does it differ from how OllamaFunctionCallingAdapter is talked about?"
 )
 
 display_response(response)
@@ -332,7 +323,7 @@ logger.debug(response.metadata["sql_query"])
 """
 ## Programs
 
-Depending the LLM, you will have to test with either `MLXPydanticProgram` or `LLMTextCompletionProgram`
+Depending the LLM, you will have to test with either `OllamaFunctionCallingAdapterPydanticProgram` or `LLMTextCompletionProgram`
 """
 logger.info("## Programs")
 
@@ -372,7 +363,7 @@ logger.debug(output)
 """
 ## Data Agent
 
-Similar to programs, MLX LLMs will use `FunctionAgent`, while other LLMs will use `ReActAgent`.
+Similar to programs, OllamaFunctionCallingAdapter LLMs will use `FunctionAgent`, while other LLMs will use `ReActAgent`.
 """
 logger.info("## Data Agent")
 
@@ -390,7 +381,7 @@ logger.debug(response)
 logger.info("#### It does not use the tools to answer the query.")
 
 response = agent.chat(
-    "What was mentioned about Meta? How Does it differ from how MLX is talked about?"
+    "What was mentioned about Meta? How Does it differ from how OllamaFunctionCallingAdapter is talked about?"
 )
 logger.debug(response)
 

@@ -1,10 +1,7 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.logger import CustomLogger
 from llama_index.core import SummaryIndex
 from llama_index.core.node_parser import TokenTextSplitter
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.readers.pathway import PathwayReader
 from pathway.xpacks.llm.vector_store import VectorStoreServer
@@ -21,13 +18,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/data_connectors/PathwayReaderDemo.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -67,14 +57,14 @@ logging.basicConfig(stream=sys.stdout, level=logging.ERROR)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
 """
-Set up your MLX API key.
+Set up your OllamaFunctionCallingAdapter API key.
 """
-logger.info("Set up your MLX API key.")
+logger.info("Set up your OllamaFunctionCallingAdapter API key.")
 
 # import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#     os.environ["OPENAI_API_KEY"] = getpass.getpass("MLX API Key:")
+#     os.environ["OPENAI_API_KEY"] = getpass.getpass("OllamaFunctionCallingAdapter API Key:")
 
 """
 ## Create the reader and connect to a public pipeline
@@ -109,7 +99,7 @@ Install `pathway` package. Then download sample data.
 logger.info("## Building your own data processing pipeline")
 
 # %pip install pathway
-# %pip install llama-index-embeddings-ollama
+# %pip install llama-index-embeddings-huggingface
 
 # !mkdir -p 'data/'
 # !wget 'https://gist.githubusercontent.com/janchorowski/dd22a293f3d99d1b726eedc7d46d2fc0/raw/pathway_readme.md' -O 'data/pathway_readme.md'
@@ -139,12 +129,12 @@ data_sources.append(
 
 Let us create the document indexing pipeline. The `transformations` should be a list of `TransformComponent`s ending with an `Embedding` transformation.
 
-In this example, let's first split the text first using `TokenTextSplitter`, then embed with `MLXEmbedding`.
+In this example, let's first split the text first using `TokenTextSplitter`, then embed with `HuggingFaceEmbedding`.
 """
 logger.info("### Create the document indexing pipeline")
 
 
-embed_model = MLXEmbedding(embed_batch_size=10)
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 transformations_example = [
     TokenTextSplitter(

@@ -1,8 +1,6 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.logger import CustomLogger
 from llama_index.core import PropertyGraphIndex
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.embeddings import BaseEmbedding
@@ -15,7 +13,6 @@ CustomPGRetriever,
 VectorContextRetriever,
 TextToCypherRetriever,
 )
-from llama_index.core.settings import Settings
 from llama_index.core.vector_stores.types import VectorStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.graph_stores.neo4j import Neo4jPropertyGraphStore
@@ -31,13 +28,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Defining a Custom Property Graph Retriever
@@ -86,8 +76,8 @@ documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Project
 logger.info("#### Define Default LLMs")
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3)
-embed_model = MLXEmbedding(model_name="mxbai-embed-large")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 """
 #### Setup Neo4j

@@ -1,9 +1,7 @@
-from IPython.display import Markdown, display
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from IPython.display import Markdown, display
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.logger import CustomLogger
 from llama_index.core import PromptTemplate
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
@@ -13,7 +11,6 @@ from llama_index.core.evaluation import FaithfulnessEvaluator, DatasetGenerator
 from llama_index.core.postprocessor import LLMRerank
 from llama_index.core.selectors import LLMMultiSelector
 from llama_index.core.selectors import LLMSingleSelector
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import os
 import shutil
@@ -25,13 +22,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/prompts/prompt_mixin.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -52,8 +42,8 @@ logger.info("# Accessing/Customizing Prompts within Higher-Level Modules")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-Settings.embed_model = MLXEmbedding(model_name="mxbai-embed-large")
-Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
+Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
+Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
 
 """
 ## Setup: Load Data, Build Index, and Get Query Engine
@@ -70,13 +60,13 @@ logger.info("## Setup: Load Data, Build Index, and Get Query Engine")
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
 
 
-documents = SimpleDirectoryReader(
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
+documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 
 
 index = VectorStoreIndex.from_documents(documents)
 
 query_engine = index.as_query_engine(response_mode="tree_summarize")
+
 
 
 def display_prompt_dict(prompts_dict):
@@ -85,7 +75,6 @@ def display_prompt_dict(prompts_dict):
         display(Markdown(text_md))
         logger.debug(p.get_template())
         display(Markdown("<br><br>"))
-
 
 """
 ## Accessing Prompts
@@ -115,8 +104,7 @@ Here we try the default `compact` method.
 
 We'll see that the set of templates used are different; a QA template and a refine template.
 """
-logger.info(
-    "#### Checking `get_prompts` with a different response synthesis strategy")
+logger.info("#### Checking `get_prompts` with a different response synthesis strategy")
 
 query_engine = index.as_query_engine(response_mode="compact")
 

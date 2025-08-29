@@ -1,7 +1,5 @@
 from PIL import Image
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import StorageContext
@@ -22,10 +20,8 @@ MetadataMode,
 TextNode,
 )
 from llama_index.core.schema import ImageNode
-from llama_index.core.settings import Settings
 from llama_index.embeddings.cohere import CohereEmbedding
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.multi_modal_llms.openai import MLXMultiModal
+from llama_index.multi_modal_llms.openai import OllamaFunctionCallingAdapterMultiModal
 from llama_index.postprocessor.cohere_rerank import CohereRerank
 from llama_index.postprocessor.colpali_rerank import ColPaliRerank
 from llama_index.vector_stores.qdrant import QdrantVectorStore
@@ -46,13 +42,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/node_postprocessor/colpalirerank.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
@@ -68,11 +57,11 @@ For the demonstration, here are the steps:
 2. Build a Multi-Modal index for both texts and images using Cohere Multi-Modal Embeddings.
 3. Retrieve relevant text and images simultaneously using a Multi-Modal Retriever for a query.
 4. Rerank text nodes using Cohere Reranker and image nodes using ColPali.
-5. Generate responses using the Multi-Modal Query Engine for a query using qwen3-1.7b-4bit Multi-Modal LLM.
+5. Generate responses using the Multi-Modal Query Engine for a query using gpt-4o Multi-Modal LLM.
 
 ### Installation
 
-We will use Cohere MultiModal embeddings for retrieval, ColPali as reranker for image nodes, Cohere reranker for text nodes, Qdrant vector-store and MLX MultiModal LLM for response generation.
+We will use Cohere MultiModal embeddings for retrieval, ColPali as reranker for image nodes, Cohere reranker for text nodes, Qdrant vector-store and OllamaFunctionCallingAdapter MultiModal LLM for response generation.
 """
 logger.info("# Reranking using ColPali, Cohere Reranker and Multi-Modal Embeddings")
 
@@ -87,7 +76,7 @@ logger.info("# Reranking using ColPali, Cohere Reranker and Multi-Modal Embeddin
 
 Cohere - MultiModal Retrieval
 
-MLX - MultiModal LLM.
+OllamaFunctionCallingAdapter - MultiModal LLM.
 """
 logger.info("### Setup API Keys")
 
@@ -249,7 +238,7 @@ delete_large_images(data_path)
 """
 ### Set Embedding Model and LLM.
 
-Cohere MultiModal Embedding model for retrieval and MLX MultiModal LLM for response generation.
+Cohere MultiModal Embedding model for retrieval and OllamaFunctionCallingAdapter MultiModal LLM for response generation.
 """
 logger.info("### Set Embedding Model and LLM.")
 
@@ -259,7 +248,7 @@ Settings.embed_model = CohereEmbedding(
     model_name="embed-english-v3.0",  # current v3 models support multimodal embeddings
 )
 
-gpt_4o = MLXMultiModal(model="qwen3-1.7b-4bit", max_new_tokens=4096)
+gpt_4o = OllamaFunctionCallingAdapterMultiModal(model="llama3.2", request_timeout=300.0, context_window=4096, max_new_tokens=4096)
 
 """
 ### Setup Cohere Reranker
@@ -388,7 +377,7 @@ class MultimodalQueryEngine(CustomQueryEngine):
 
     qa_prompt: PromptTemplate
     retriever: BaseRetriever
-    multi_modal_llm: MLXMultiModal
+    multi_modal_llm: OllamaFunctionCallingAdapterMultiModal
 
     def __init__(
         self, qa_prompt: Optional[PromptTemplate] = None, **kwargs

@@ -1,97 +1,76 @@
-import asyncio
-from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
-from llama_index.core.agent.workflow import FunctionAgent
-from llama_index.core.settings import Settings
-from llama_index.core.workflow import Context
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.tools.code_interpreter.base import CodeInterpreterToolSpec
-import os
-import shutil
-
-
-OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
-# %pip install llama-index-agent-openai
-# %pip install llama-index-llms-ollama
-# %pip install llama-index-tools-code-interpreter
-
-# !pip install llama-index
-
-
-# os.environ["OPENAI_API_KEY"] = "sk-..."
-
-
-
-code_spec = CodeInterpreterToolSpec()
-
-tools = code_spec.to_tool_list()
-
-agent = FunctionAgent(
-    tools=tools,
-    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
-)
-
-ctx = Context(agent)
-
-logger.debug(
-    await agent.run(
-        "Can you help me write some python code to pass to the code_interpreter tool",
-        ctx=ctx
+async def main():
+    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.logger import CustomLogger
+    from llama_index.core.agent.workflow import FunctionAgent
+    from llama_index.core.workflow import Context
+    from llama_index.tools.code_interpreter.base import CodeInterpreterToolSpec
+    import os
+    import shutil
+    
+    
+    OUTPUT_DIR = os.path.join(
+        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+    log_file = os.path.join(OUTPUT_DIR, "main.log")
+    logger = CustomLogger(log_file, overwrite=True)
+    logger.info(f"Logs: {log_file}")
+    
+    # %pip install llama-index-agent-openai
+    # %pip install llama-index-llms-ollama
+    # %pip install llama-index-tools-code-interpreter
+    
+    # !pip install llama-index
+    
+    
+    # os.environ["OPENAI_API_KEY"] = "sk-..."
+    
+    
+    
+    code_spec = CodeInterpreterToolSpec()
+    
+    tools = code_spec.to_tool_list()
+    
+    agent = FunctionAgent(
+        tools=tools,
+        llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
     )
-)
-
-logger.debug(
-    await agent.run(
-        """There is a world_happiness_2016.csv file in the `data` directory (relative path).
-                 Can you write and execute code to tell me columns does it have?""",
-        ctx=ctx,
+    
+    ctx = Context(agent)
+    
+    logger.debug(
+        await agent.run(
+            "Can you help me write some python code to pass to the code_interpreter tool",
+            ctx=ctx
+        )
     )
-)
-
-async def run_async_code_ea5fed18():
+    
+    logger.debug(
+        await agent.run(
+            """There is a world_happiness_2016.csv file in the `data` directory (relative path).
+                     Can you write and execute code to tell me columns does it have?""",
+            ctx=ctx,
+        )
+    )
+    
     logger.debug(await agent.run("What are the top 10 happiest countries", ctx=ctx))
-    return 
- = asyncio.run(run_async_code_ea5fed18())
-logger.success(format_json())
-
-async def run_async_code_ea50ba74():
+    
     logger.debug(await agent.run("Can you make a graph of the top 10 happiest countries", ctx=ctx))
-    return 
- = asyncio.run(run_async_code_ea50ba74())
-logger.success(format_json())
-
-async def run_async_code_ea50ba74():
+    
     logger.debug(await agent.run("Can you make a graph of the top 10 happiest countries", ctx=ctx))
-    return 
- = asyncio.run(run_async_code_ea50ba74())
-logger.success(format_json())
-
-async def run_async_code_ee948054():
+    
     logger.debug(await agent.run("can you also plot the 10 lowest", ctx=ctx))
-    return 
- = asyncio.run(run_async_code_ee948054())
-logger.success(format_json())
-
-async def run_async_code_73b48003():
+    
     logger.debug(await agent.run("can you do it in one plot", ctx=ctx))
-    return 
- = asyncio.run(run_async_code_73b48003())
-logger.success(format_json())
+    
+    logger.info("\n\n[DONE]", bright=True)
 
-logger.info("\n\n[DONE]", bright=True)
+if __name__ == '__main__':
+    import asyncio
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.create_task(main())
+        else:
+            loop.run_until_complete(main())
+    except RuntimeError:
+        asyncio.run(main())

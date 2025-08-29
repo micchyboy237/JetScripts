@@ -1,18 +1,14 @@
-import asyncio
+from jet.models.config import MODELS_CACHE_DIR
 from jet.transformers.formatters import format_json
 from IPython.display import clear_output
 from copy import deepcopy
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Settings
 from llama_index.core import VectorStoreIndex
 from llama_index.core.llms import ChatMessage
 from llama_index.core.prompts import ChatPromptTemplate
 from llama_index.core.schema import TextNode
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.postprocessor.flag_embedding_reranker import (
 FlagEmbeddingReranker,
@@ -32,13 +28,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 # Examples of Structured Data Extraction in LlamaIndex
 
@@ -57,8 +46,8 @@ logger.info("# Examples of Structured Data Extraction in LlamaIndex")
 # nest_asyncio.apply()
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
-embed_model = MLXEmbedding(model="mxbai-embed-large")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 Settings.llm = llm
 Settings.embed_model = embed_model
 
@@ -109,14 +98,8 @@ logger.debug(output_obj)
 """
 logger.info("#### Async")
 
-async def run_async_code_a508c8e9():
-    async def run_async_code_2001c320():
-        output = sllm.chat([input_msg])
-        return output
-    output = asyncio.run(run_async_code_2001c320())
-    logger.success(format_json(output))
-    return output
-output = asyncio.run(run_async_code_a508c8e9())
+output = sllm.chat([input_msg])
+logger.success(format_json(output))
 logger.success(format_json(output))
 output_obj = output.raw
 logger.debug(str(output))
@@ -141,14 +124,8 @@ logger.debug(str(output))
 logger.info("#### Async Streaming")
 
 
-async def run_async_code_d9ef12ca():
-    async def run_async_code_712df855():
-        stream_output = sllm.stream_chat([input_msg])
-        return stream_output
-    stream_output = asyncio.run(run_async_code_712df855())
-    logger.success(format_json(stream_output))
-    return stream_output
-stream_output = asyncio.run(run_async_code_d9ef12ca())
+stream_output = sllm.stream_chat([input_msg])
+logger.success(format_json(stream_output))
 logger.success(format_json(stream_output))
 async for partial_output in stream_output:
     clear_output(wait=True)
@@ -170,7 +147,7 @@ chat_prompt_tmpl = ChatPromptTemplate(
     ]
 )
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 album = llm.structured_predict(
     Album, chat_prompt_tmpl, movie_name="Lord of the Rings"
 )

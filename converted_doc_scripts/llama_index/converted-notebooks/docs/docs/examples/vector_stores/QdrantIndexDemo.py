@@ -1,16 +1,11 @@
-import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import Markdown, display
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Settings
 from llama_index.core import StorageContext
 from llama_index.core import VectorStoreIndex
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
-from llama_index.core.settings import Settings
 from llama_index.embeddings.fastembed import FastEmbedEmbedding
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient, AsyncQdrantClient
 import logging
@@ -26,13 +21,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/vector_stores/QdrantIndexDemo.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -56,9 +44,9 @@ If running for the first, time, install the dependencies using:
 !pip install -U qdrant_client fastembed
 ```
 
-Set your MLX key for authenticating the LLM
+Set your OllamaFunctionCallingAdapter key for authenticating the LLM
 
-# Follow these set the MLX API key to the OPENAI_API_KEY environment variable -
+# Follow these set the OllamaFunctionCallingAdapter API key to the OPENAI_API_KEY environment variable -
 
 1. Using Terminal
 """
@@ -170,25 +158,16 @@ index = VectorStoreIndex.from_documents(
 logger.info("#### Async Query Index")
 
 query_engine = index.as_query_engine(use_async=True)
-async def run_async_code_dae6cd7b():
-    async def run_async_code_bee0f8eb():
-        response = query_engine.query("What did the author do growing up?")
-        return response
-    response = asyncio.run(run_async_code_bee0f8eb())
-    logger.success(format_json(response))
-    return response
-response = asyncio.run(run_async_code_dae6cd7b())
+response = query_engine.query("What did the author do growing up?")
+logger.success(format_json(response))
 logger.success(format_json(response))
 
 display(Markdown(f"<b>{response}</b>"))
 
 query_engine = index.as_query_engine(use_async=True)
-async def async_func_6():
-    response = query_engine.query(
+response = query_engine.query(
         "What did the author do after his time at Viaweb?"
     )
-    return response
-response = asyncio.run(async_func_6())
 logger.success(format_json(response))
 
 display(Markdown(f"<b>{response}</b>"))

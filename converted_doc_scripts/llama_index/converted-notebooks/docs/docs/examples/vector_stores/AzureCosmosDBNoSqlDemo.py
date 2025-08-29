@@ -1,16 +1,13 @@
-from azure.cosmos import CosmosClient, PartitionKey
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from azure.cosmos import CosmosClient, PartitionKey
+from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import StorageContext
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
-from llama_index.core.settings import Settings
-from llama_index.embeddings.azure_openai import AzureMLXEmbedding
+from llama_index.embeddings.azure_openai import AzureHuggingFaceEmbedding
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.llms.azure_openai import AzureMLX
+from llama_index.llms.azure_openai import AzureOllamaFunctionCallingAdapter
 from llama_index.vector_stores.azurecosmosnosql import (
 AzureCosmosDBNoSqlVectorSearch,
 )
@@ -28,13 +25,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 # Azure Cosmos DB No SQL Vector Store
 
@@ -44,20 +34,20 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 """
 logger.info("# Azure Cosmos DB No SQL Vector Store")
 
-# %pip install llama-index-embeddings-ollama
+# %pip install llama-index-embeddings-huggingface
 # %pip install llama-index-llms-azure-openai
 
 # !pip install llama-index
 
 
 """
-# Setup Azure MLX
+# Setup Azure OllamaFunctionCallingAdapter
 
 The first step is to configure the llm and the embeddings model. These models will be used to create embeddings for the documents loaded into the database and for llm completions.
 """
-logger.info("# Setup Azure MLX")
+logger.info("# Setup Azure OllamaFunctionCallingAdapter")
 
-llm = AzureMLXLlamaIndexLLMAdapter(
+llm = AzureOllamaFunctionCallingAdapter(
     model="AZURE_OPENAI_MODEL",
     deployment_name="AZURE_OPENAI_DEPLOYMENT_NAME",
     azure_endpoint="AZURE_OPENAI_BASE",
@@ -65,7 +55,7 @@ llm = AzureMLXLlamaIndexLLMAdapter(
     api_version="AZURE_OPENAI_VERSION",
 )
 
-embed_model = AzureMLXEmbedding(
+embed_model = AzureHuggingFaceEmbedding(
     model="AZURE_OPENAI_EMBEDDING_MODEL",
     deployment_name="AZURE_OPENAI_EMBEDDING_MODEL_DEPLOYMENT_NAME",
     azure_endpoint="AZURE_OPENAI_BASE",

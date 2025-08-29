@@ -1,15 +1,11 @@
 from IPython.display import Markdown, display
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader, KnowledgeGraphIndex
 from llama_index.core import StorageContext
 from llama_index.core.graph_stores import SimpleGraphStore
 from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from pyvis.network import Network
 import logging
 import os
@@ -23,13 +19,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Knowledge Graph Index
@@ -63,7 +52,7 @@ documents = SimpleDirectoryReader(
     "../../../../examples/paul_graham_essay/data"
 ).load_data()
 
-llm = MLXLlamaIndexLLMAdapter(temperature=0, model="text-davinci-002")
+llm = OllamaFunctionCallingAdapter(temperature=0, model="text-davinci-002")
 Settings.llm = llm
 Settings.chunk_size = 512
 

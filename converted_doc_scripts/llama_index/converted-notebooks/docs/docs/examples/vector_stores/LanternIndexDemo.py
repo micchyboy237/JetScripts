@@ -1,11 +1,8 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader, StorageContext
 from llama_index.core import VectorStoreIndex
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.lantern import LanternVectorStore
 from sqlalchemy import make_url
@@ -23,13 +20,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/vector_stores/LanternIndexDemo.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
@@ -41,16 +31,16 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 logger.info("# Lantern Vector Store")
 
 # %pip install llama-index-vector-stores-lantern
-# %pip install llama-index-embeddings-ollama
+# %pip install llama-index-embeddings-huggingface
 
 # !pip install psycopg2-binary llama-index asyncpg
 
 
 """
-### Setup MLX
+### Setup OllamaFunctionCallingAdapter
 The first step is to configure the openai key. It will be used to created embeddings for the documents loaded into the index
 """
-logger.info("### Setup MLX")
+logger.info("### Setup OllamaFunctionCallingAdapter")
 
 
 # os.environ["OPENAI_API_KEY"] = "<your_key>"
@@ -90,7 +80,7 @@ with conn.cursor() as c:
     c.execute(f"CREATE DATABASE {db_name}")
 
 
-Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
+Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 """
 ### Create the index

@@ -1,12 +1,8 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import ChatPromptTemplate
 from llama_index.core.llms import ChatMessage
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.program.openai import MLXPydanticProgram
+from llama_index.program.openai import OllamaFunctionCallingAdapterPydanticProgram
 from pydantic import BaseModel, Field
 from typing import List
 import json
@@ -21,35 +17,28 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
-# MLX JSON Mode vs. Function Calling for Data Extraction
+# OllamaFunctionCallingAdapter JSON Mode vs. Function Calling for Data Extraction
 
-MLX just released [JSON Mode](https://platform.openai.com/docs/guides/text-generation/json-mode): This new config constrain the LLM to only generate strings that parse into valid JSON (but no guarantee on validation against any schema).
+OllamaFunctionCallingAdapter just released [JSON Mode](https://platform.openai.com/docs/guides/text-generation/json-mode): This new config constrain the LLM to only generate strings that parse into valid JSON (but no guarantee on validation against any schema).
 
 Before this, the best way to extract structured data from text is via [function calling](https://platform.openai.com/docs/guides/function-calling).  
 
 In this notebook, we explore the tradeoff between the latest [JSON Mode](https://platform.openai.com/docs/guides/text-generation/json-mode) and function calling feature for structured output & extraction.
 
-*Update*: MLX has clarified that JSON mode is always enabled for function calling, it's opt-in for regular messages (https://community.openai.com/t/json-mode-vs-function-calling/476994/4)
+*Update*: OllamaFunctionCallingAdapter has clarified that JSON mode is always enabled for function calling, it's opt-in for regular messages (https://community.openai.com/t/json-mode-vs-function-calling/476994/4)
 
 ### Generate synthetic data
 
 We'll start by generating some synthetic data for our data extraction task. Let's ask our LLM for a hypothetical sales transcript.
 """
-logger.info("# MLX JSON Mode vs. Function Calling for Data Extraction")
+logger.info("# OllamaFunctionCallingAdapter JSON Mode vs. Function Calling for Data Extraction")
 
 # %pip install llama-index-llms-ollama
 # %pip install llama-index-program-openai
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 response = llm.complete(
     "Generate a sales call transcript, use real names, talk about a product, discuss some action items"
 )
@@ -82,7 +71,7 @@ class CallSummary(BaseModel):
 """
 ### Data extraction with function calling
 
-We can use the `MLXPydanticProgram` module in LlamaIndex to make things super easy, simply define a prompt template, and pass in the LLM and pydantic model we've definied.
+We can use the `OllamaFunctionCallingAdapterPydanticProgram` module in LlamaIndex to make things super easy, simply define a prompt template, and pass in the LLM and pydantic model we've definied.
 """
 logger.info("### Data extraction with function calling")
 
@@ -106,7 +95,7 @@ prompt = ChatPromptTemplate(
         ),
     ]
 )
-program = MLXPydanticProgram.from_defaults(
+program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=CallSummary,
     llm=llm,
     prompt=prompt,

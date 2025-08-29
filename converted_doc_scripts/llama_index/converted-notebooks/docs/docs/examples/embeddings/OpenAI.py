@@ -1,9 +1,6 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.logger import CustomLogger
 from llama_index.core import Settings
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import os
 import shutil
@@ -16,23 +13,16 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
-<a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/embeddings/MLX.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+<a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/embeddings/OllamaFunctionCallingAdapter.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# MLX Embeddings
+# OllamaFunctionCallingAdapter Embeddings
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
-logger.info("# MLX Embeddings")
+logger.info("# OllamaFunctionCallingAdapter Embeddings")
 
-# %pip install llama-index-embeddings-ollama
+# %pip install llama-index-embeddings-huggingface
 
 # !pip install llama-index
 
@@ -40,18 +30,18 @@ logger.info("# MLX Embeddings")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-embed_model = MLXEmbedding(embed_batch_size=10)
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 Settings.embed_model = embed_model
 
 """
-## Using MLX `text-embedding-3-large` and `mxbai-embed-large`
+## Using OllamaFunctionCallingAdapter `text-embedding-3-large` and `mxbai-embed-large`
 
 Note, you may have to update your openai client: `pip install -U openai`
 """
-logger.info("## Using MLX `text-embedding-3-large` and `mxbai-embed-large`")
+logger.info("## Using OllamaFunctionCallingAdapter `text-embedding-3-large` and `mxbai-embed-large`")
 
 
-embed_model = MLXEmbedding(model="text-embedding-3-large")
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 embeddings = embed_model.get_text_embedding(
     "Open AI new Embeddings models is great."
@@ -62,7 +52,7 @@ logger.debug(embeddings[:5])
 logger.debug(len(embeddings))
 
 
-embed_model = MLXEmbedding(
+embed_model = HuggingFaceEmbedding(
     model="mxbai-embed-large",
 )
 
@@ -74,13 +64,13 @@ logger.debug(len(embeddings))
 
 """
 ## Change the dimension of output embeddings
-Note: Make sure you have the latest MLX client
+Note: Make sure you have the latest OllamaFunctionCallingAdapter client
 """
 logger.info("## Change the dimension of output embeddings")
 
 
 
-embed_model = MLXEmbedding(
+embed_model = HuggingFaceEmbedding(
     model="text-embedding-3-large",
     dimensions=512,
 )

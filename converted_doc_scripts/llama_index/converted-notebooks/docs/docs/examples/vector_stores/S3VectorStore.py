@@ -1,7 +1,5 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.logger import CustomLogger
 from llama_index.core import (
 VectorStoreIndex,
 StorageContext,
@@ -9,7 +7,6 @@ SimpleDirectoryReader,
 Document,
 )
 from llama_index.core.schema import TextNode
-from llama_index.core.settings import Settings
 from llama_index.core.vector_stores.types import (
 MetadataFilters,
 MetadataFilter,
@@ -31,13 +28,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 # S3VectorStore Integration
 
@@ -51,7 +41,7 @@ This notebook will assume that you have already created a S3 vector bucket (and 
 """
 logger.info("# S3VectorStore Integration")
 
-# %pip install llama-index-vector-stores-s3 llama-index-embeddings-ollama
+# %pip install llama-index-vector-stores-s3 llama-index-embeddings-huggingface
 
 """
 ## Usage
@@ -106,7 +96,7 @@ documents = [
 index = VectorStoreIndex.from_documents(
     documents,
     storage_context=StorageContext.from_defaults(vector_store=vector_store),
-    embed_model=MLXEmbedding(model="mxbai-embed-large", api_key="..."),
+    embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
 )
 
 nodes = index.as_retriever(similarity_top_k=1).retrieve("Hello, world!")
@@ -147,7 +137,7 @@ nodes = [
     TextNode(text="Hello, world! 2"),
 ]
 
-embed_model = MLXEmbedding(model="mxbai-embed-large", api_key="...")
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 embeddings = embed_model.get_text_embedding_batch([n.text for n in nodes])
 for node, embedding in zip(nodes, embeddings):
     node.embedding = embedding

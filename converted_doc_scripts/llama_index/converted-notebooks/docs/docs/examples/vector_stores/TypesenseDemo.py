@@ -1,8 +1,6 @@
-from IPython.display import Markdown, display
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from IPython.display import Markdown, display
+from jet.logger import CustomLogger
 from llama_index.core import (
 VectorStoreIndex,
 SimpleDirectoryReader,
@@ -10,7 +8,6 @@ StorageContext,
 )
 from llama_index.core import QueryBundle
 from llama_index.core import Settings
-from llama_index.core.settings import Settings
 from llama_index.core.vector_stores.types import VectorStoreQueryMode
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.typesense import TypesenseVectorStore
@@ -26,13 +23,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/vector_stores/TypesenseDemo.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
@@ -42,7 +32,7 @@ Settings.embed_model = HuggingFaceEmbedding(
 """
 logger.info("# Typesense Vector Store")
 
-# %pip install llama-index-embeddings-ollama
+# %pip install llama-index-embeddings-huggingface
 # %pip install llama-index-vector-stores-typesense
 
 # !mkdir -p 'data/paul_graham/'
@@ -80,7 +70,7 @@ logger.info("#### Query Index")
 
 
 query_str = "What did the author do growing up?"
-embed_model = MLXEmbedding()
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 query_embedding = embed_model.get_agg_embedding_from_queries(query_str)
 query_bundle = QueryBundle(query_str, embedding=query_embedding)

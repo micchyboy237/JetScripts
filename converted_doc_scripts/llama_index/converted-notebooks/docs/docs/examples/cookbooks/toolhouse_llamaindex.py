@@ -1,11 +1,7 @@
-import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.agent import ReActAgent
 from llama_index.core.memory import ChatMemoryBuffer
-from llama_index.core.settings import Settings
 from llama_index.core.workflow import (
 Context,
 Event,
@@ -14,7 +10,6 @@ StopEvent,
 Workflow,
 step,
 )
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.groq import Groq
 from toolhouse import Toolhouse, Provider
 import os
@@ -27,13 +22,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/gist/iamdaniele/84cca60019384c4159df28e14e2dc61c/toolhouse-llamaindex-workflow.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -143,14 +131,8 @@ class SalesRepWorkflow(Workflow):
             LogEvent(msg=f"Getting the contents of {ev.url}…")
         )
         prompt = f"Get the contents of {ev.url}, then summarize its key value propositions in a few bullet points."
-        async def run_async_code_a5b1ffc6():
-            async def run_async_code_523b04a8():
-                contents = self.agent.chat(prompt)
-                return contents
-            contents = asyncio.run(run_async_code_523b04a8())
-            logger.success(format_json(contents))
-            return contents
-        contents = asyncio.run(run_async_code_a5b1ffc6())
+        contents = self.agent.chat(prompt)
+        logger.success(format_json(contents))
         logger.success(format_json(contents))
         return WebsiteContentEvent(contents=str(contents.response))
 
@@ -164,14 +146,8 @@ class SalesRepWorkflow(Workflow):
             )
         )
         prompt = f"With that you know about the business, perform a web search to find 5 tech companies who may benefit from the business's product. Only answer with the names of the companies you chose."
-        async def run_async_code_be5cf2ca():
-            async def run_async_code_c45cc5b7():
-                results = self.agent.chat(prompt)
-                return results
-            results = asyncio.run(run_async_code_c45cc5b7())
-            logger.success(format_json(results))
-            return results
-        results = asyncio.run(run_async_code_be5cf2ca())
+        results = self.agent.chat(prompt)
+        logger.success(format_json(results))
         logger.success(format_json(results))
         return WebSearchEvent(results=str(results.response))
 
@@ -185,14 +161,8 @@ class SalesRepWorkflow(Workflow):
             )
         )
         prompt = "Select one company that can benefit from the business's product. Only use your knowledge to select the company. Respond with just the name of the company. Do not use tools."
-        async def run_async_code_be5cf2ca():
-            async def run_async_code_c45cc5b7():
-                results = self.agent.chat(prompt)
-                return results
-            results = asyncio.run(run_async_code_c45cc5b7())
-            logger.success(format_json(results))
-            return results
-        results = asyncio.run(run_async_code_be5cf2ca())
+        results = self.agent.chat(prompt)
+        logger.success(format_json(results))
         logger.success(format_json(results))
         ctx.write_event_to_stream(
             LogEvent(
@@ -207,14 +177,8 @@ class SalesRepWorkflow(Workflow):
             LogEvent(msg=f"Drafting a short email for sales outreach…")
         )
         prompt = f"Draft a short cold sales outreach email for the company you picked. Do not use tools."
-        async def run_async_code_f83e7ee4():
-            async def run_async_code_0da59345():
-                email = self.agent.chat(prompt)
-                return email
-            email = asyncio.run(run_async_code_0da59345())
-            logger.success(format_json(email))
-            return email
-        email = asyncio.run(run_async_code_f83e7ee4())
+        email = self.agent.chat(prompt)
+        logger.success(format_json(email))
         logger.success(format_json(email))
         ctx.write_event_to_stream(
             LogEvent(msg=f"Here is the email: {email.response}")

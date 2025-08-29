@@ -1,8 +1,6 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import SimpleKeywordTableIndex
@@ -15,7 +13,6 @@ PydanticMultiSelector,
 PydanticSingleSelector,
 )
 from llama_index.core.selectors import LLMSingleSelector, LLMMultiSelector
-from llama_index.core.settings import Settings
 from llama_index.core.tools import QueryEngineTool
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import os
@@ -29,13 +26,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/query_engine/RouterQueryEngine.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
@@ -48,7 +38,7 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 """
 logger.info("# Router Query Engine")
 
-# %pip install llama-index-embeddings-ollama
+# %pip install llama-index-embeddings-huggingface
 # %pip install llama-index-llms-ollama
 
 # !pip install llama-index
@@ -66,8 +56,8 @@ logger.info("## Global Models")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.2)
-Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
+Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.2)
+Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 """
 ### Load Data
@@ -132,13 +122,13 @@ There are several selectors available, each with some distinct attributes.
 
 The LLM selectors use the LLM to output a JSON that is parsed, and the corresponding indexes are queried.
 
-The Pydantic selectors (currently only supported by `gpt-4-0613` and `gpt-3.5-turbo-0613` (the default)) use the MLX Function Call API to produce pydantic selection objects, rather than parsing raw JSON.
+The Pydantic selectors (currently only supported by `gpt-4-0613` and `gpt-3.5-turbo-0613` (the default)) use the OllamaFunctionCallingAdapter Function Call API to produce pydantic selection objects, rather than parsing raw JSON.
 
 For each type of selector, there is also the option to select 1 index to route to, or multiple.
 
 #### PydanticSingleSelector
 
-Use the MLX Function API to generate/parse pydantic objects under the hood for the router selector.
+Use the OllamaFunctionCallingAdapter Function API to generate/parse pydantic objects under the hood for the router selector.
 """
 logger.info("### Define Router Query Engine")
 
@@ -161,7 +151,7 @@ logger.debug(str(response))
 """
 #### LLMSingleSelector
 
-Use MLXLlamaIndexLLMAdapter(or any other LLM) to parse generated JSON under the hood to select a sub-index for routing.
+Use OllamaFunctionCallingAdapter (or any other LLM) to parse generated JSON under the hood to select a sub-index for routing.
 """
 logger.info("#### LLMSingleSelector")
 

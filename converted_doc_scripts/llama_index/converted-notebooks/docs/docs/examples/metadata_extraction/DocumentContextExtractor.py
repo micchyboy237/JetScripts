@@ -1,15 +1,13 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.core.extractors import DocumentContextExtractor
 from llama_index.core.node_parser import TokenTextSplitter
-from llama_index.core.settings import Settings
 from llama_index.core.storage.docstore.simple_docstore import (
-    SimpleDocumentStore,
+SimpleDocumentStore,
 )
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import os
@@ -22,13 +20,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Contextual Retrieval With Llama Index
@@ -55,13 +46,13 @@ logger.info("# Contextual Retrieval With Llama Index")
 
 """
 # Setup an LLM
-You can use the MockLLM or you can use a real LLM of your choice here. flash 2 and qwen3-1.7b-4bit-mini work well.
+You can use the MockLLM or you can use a real LLM of your choice here. flash 2 and llama3.2 work well.
 """
 logger.info("# Setup an LLM")
 
 
 # OPENAI_API_KEY = "sk-..."
-# llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", api_key=OPENAI_API_KEY)
+# llm = OllamaFunctionCallingAdapter(model="llama3.2", api_key=OPENAI_API_KEY)
 Settings.llm = llm
 
 """
@@ -75,7 +66,7 @@ logger.info("# Setup a data pipeline")
 
 
 docstore = SimpleDocumentStore()
-embed_model = HuggingFaceEmbedding(model_name="baai/bge-small-en-v1.5")
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 storage_context = StorageContext.from_defaults(docstore=docstore)
 storage_context_no_extra_context = StorageContext.from_defaults()

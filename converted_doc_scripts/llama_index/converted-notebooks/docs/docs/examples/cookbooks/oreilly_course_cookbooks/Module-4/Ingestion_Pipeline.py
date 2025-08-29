@@ -1,7 +1,5 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.logger import CustomLogger
 from llama_index.core import Document
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
@@ -9,7 +7,6 @@ from llama_index.core.extractors import TitleExtractor
 from llama_index.core.ingestion import IngestionPipeline, IngestionCache
 from llama_index.core.node_parser import TokenTextSplitter
 from llama_index.core.schema import TransformComponent
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 import os
@@ -24,13 +21,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Ingestion Pipeline
@@ -109,15 +99,15 @@ nodes = pipeline.run(documents=documents)
 nodes[0].metadata["document_title"]
 
 """
-### Text Splitter + Metadata Extractor + MLX Embedding
+### Text Splitter + Metadata Extractor + OllamaFunctionCallingAdapter Embedding
 """
-logger.info("### Text Splitter + Metadata Extractor + MLX Embedding")
+logger.info("### Text Splitter + Metadata Extractor + OllamaFunctionCallingAdapter Embedding")
 
 pipeline = IngestionPipeline(
     transformations=[
         TokenTextSplitter(chunk_size=1024, chunk_overlap=100),
         TitleExtractor(),
-        MLXEmbedding(),
+        HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     ]
 )
 nodes = pipeline.run(documents=documents)
@@ -160,15 +150,15 @@ logger.info("### Now it will run instantly due to the cache.")
 nodes = new_pipeline.run(documents=documents)
 
 """
-Now let's add embeddings to it. You will observe that the parsing of nodes, title extraction is loaded from cache and MLX embeddings are created now.
+Now let's add embeddings to it. You will observe that the parsing of nodes, title extraction is loaded from cache and OllamaFunctionCallingAdapter embeddings are created now.
 """
-logger.info("Now let's add embeddings to it. You will observe that the parsing of nodes, title extraction is loaded from cache and MLX embeddings are created now.")
+logger.info("Now let's add embeddings to it. You will observe that the parsing of nodes, title extraction is loaded from cache and OllamaFunctionCallingAdapter embeddings are created now.")
 
 pipeline = IngestionPipeline(
     transformations=[
         TokenTextSplitter(chunk_size=1024, chunk_overlap=100),
         TitleExtractor(),
-        MLXEmbedding(),
+        HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     ],
     cache=new_cache,
 )
@@ -183,7 +173,7 @@ pipeline = IngestionPipeline(
     transformations=[
         TokenTextSplitter(chunk_size=1024, chunk_overlap=100),
         TitleExtractor(),
-        MLXEmbedding(),
+        HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     ],
     cache=nodes_embedding_cache,
 )
@@ -207,7 +197,7 @@ pipeline = IngestionPipeline(
     transformations=[
         TokenTextSplitter(chunk_size=1024, chunk_overlap=100),
         TitleExtractor(),
-        MLXEmbedding(),
+        HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     ],
     cache=nodes_embedding_cache,
     vector_store=vector_store,
@@ -247,7 +237,7 @@ pipeline = IngestionPipeline(
     transformations=[
         TokenTextSplitter(chunk_size=1024, chunk_overlap=100),
         TextCleaner(),
-        MLXEmbedding(),
+        HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     ],
     cache=nodes_embedding_cache,
 )

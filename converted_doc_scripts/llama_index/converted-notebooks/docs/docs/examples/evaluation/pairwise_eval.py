@@ -1,14 +1,9 @@
-import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Response
 from llama_index.core.evaluation import PairwiseComparisonEvaluator
 from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import logging
 import os
 import pandas as pd
@@ -22,13 +17,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Pairwise Evaluator
@@ -55,7 +43,7 @@ Using GPT-4 here for evaluation
 """
 logger.info("Using GPT-4 here for evaluation")
 
-gpt4 = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
 
 evaluator_gpt4 = PairwiseComparisonEvaluator(llm=gpt4)
 
@@ -110,12 +98,9 @@ We try feeding in the candidate, reference pair, and then swap the order of the 
 """
 logger.info("By default, we enforce "consistency" in the pairwise comparison.")
 
-async def async_func_0():
-    eval_result = evaluator_gpt4.evaluate(
+eval_result = evaluator_gpt4.evaluate(
         query_str, response=response1, reference=response2
     )
-    return eval_result
-eval_result = asyncio.run(async_func_0())
 logger.success(format_json(eval_result))
 
 display_eval_df(query_str, response1, response2, eval_result)
@@ -131,22 +116,16 @@ evaluator_gpt4_nc = PairwiseComparisonEvaluator(
     llm=gpt4, enforce_consensus=False
 )
 
-async def async_func_4():
-    eval_result = evaluator_gpt4_nc.evaluate(
+eval_result = evaluator_gpt4_nc.evaluate(
         query_str, response=response1, reference=response2
     )
-    return eval_result
-eval_result = asyncio.run(async_func_4())
 logger.success(format_json(eval_result))
 
 display_eval_df(query_str, response1, response2, eval_result)
 
-async def async_func_10():
-    eval_result = evaluator_gpt4_nc.evaluate(
+eval_result = evaluator_gpt4_nc.evaluate(
         query_str, response=response2, reference=response1
     )
-    return eval_result
-eval_result = asyncio.run(async_func_10())
 logger.success(format_json(eval_result))
 
 display_eval_df(query_str, response2, response1, eval_result)
@@ -160,12 +139,9 @@ query_str = "Tell me about the arts and culture of NYC"
 response1 = str(query_engine1.query(query_str))
 response2 = str(query_engine2.query(query_str))
 
-async def async_func_4():
-    eval_result = evaluator_gpt4.evaluate(
+eval_result = evaluator_gpt4.evaluate(
         query_str, response=response1, reference=response2
     )
-    return eval_result
-eval_result = asyncio.run(async_func_4())
 logger.success(format_json(eval_result))
 
 display_eval_df(query_str, response1, response2, eval_result)

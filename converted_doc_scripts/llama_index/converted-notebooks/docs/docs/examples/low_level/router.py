@@ -1,18 +1,14 @@
 from dataclasses import fields
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import PromptTemplate
 from llama_index.core import SummaryIndex
 from llama_index.core import VectorStoreIndex
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.query_engine import CustomQueryEngine, BaseQueryEngine
 from llama_index.core.response_synthesizers import TreeSummarize
-from llama_index.core.settings import Settings
 from llama_index.core.types import BaseOutputParser
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.program.openai import MLXPydanticProgram
+from llama_index.program.openai import OllamaFunctionCallingAdapterPydanticProgram
 from pathlib import Path
 from pydantic import BaseModel
 from pydantic import Field
@@ -28,17 +24,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/low_level/router.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -101,7 +86,7 @@ Let's try this prompt on a set of toy questions and see what the output brings.
 logger.info("Let's try this prompt on a set of toy questions and see what the output brings.")
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
 def get_formatted_prompt(query_str):
     fmt_prompt = router_prompt0.format(
@@ -260,9 +245,9 @@ def route_query(
 
 In the previous section, we showed how to build a router with a text completion endpoint. This includes formatting the prompt to encourage the model output structured JSON, and a parse function to load in JSON.
 
-This process can feel a bit messy. Function calling endpoints (e.g. MLX) abstract away this complexity by allowing the model to natively output structured functions. This obviates the need to manually prompt + parse the outputs. 
+This process can feel a bit messy. Function calling endpoints (e.g. OllamaFunctionCallingAdapter) abstract away this complexity by allowing the model to natively output structured functions. This obviates the need to manually prompt + parse the outputs. 
 
-LlamaIndex offers an abstraction called a `PydanticProgram` that integrates with a function endpoint to produce a structured Pydantic object. We integrate with MLX and Guidance.
+LlamaIndex offers an abstraction called a `PydanticProgram` that integrates with a function endpoint to produce a structured Pydantic object. We integrate with OllamaFunctionCallingAdapter and Guidance.
 
 We redefine our `Answer` class with annotations, as well as an `Answers` class containing a list of answers.
 """
@@ -289,7 +274,7 @@ router_prompt1 = router_prompt0.partial_format(
     max_outputs=len(choices),
 )
 
-program = MLXPydanticProgram.from_defaults(
+program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=Answers,
     prompt=router_prompt1,
     verbose=True,
@@ -312,7 +297,7 @@ We load the Llama 2 paper as data.
 logger.info("## 4. Plug Router Module as part of a RAG pipeline")
 
 # !mkdir data
-# !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O f"{GENERATED_DIR}/llama2.pdf"
+# !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
 # from llama_index.readers.file import PyMuPDFReader
 
@@ -353,13 +338,13 @@ class RouterQueryEngine(CustomQueryEngine):
     choice_descriptions: List[str]
     verbose: bool = False
     router_prompt: PromptTemplate
-    llm: MLX
+    llm: OllamaFunctionCallingAdapter
     summarizer: TreeSummarize = Field(default_factory=TreeSummarize)
 
     def custom_query(self, query_str: str):
         """Define custom query."""
 
-        program = MLXPydanticProgram.from_defaults(
+        program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
             output_cls=Answers,
             prompt=router_prompt1,
             verbose=self.verbose,
@@ -402,7 +387,7 @@ router_query_engine = RouterQueryEngine(
     choice_descriptions=choices,
     verbose=True,
     router_prompt=router_prompt1,
-    llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
 )
 
 """

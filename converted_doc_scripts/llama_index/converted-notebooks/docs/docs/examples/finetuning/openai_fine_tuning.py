@@ -1,18 +1,14 @@
 from datasets import Dataset
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
 from llama_index.core.callbacks import CallbackManager
 from llama_index.core.evaluation import DatasetGenerator
 from llama_index.core.response.notebook_utils import display_response
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.finetuning import MLXFinetuneEngine
-from llama_index.finetuning.callbacks import MLXFineTuningHandler
+from llama_index.finetuning import OllamaFunctionCallingAdapterFinetuneEngine
+from llama_index.finetuning.callbacks import OllamaFunctionCallingAdapterFineTuningHandler
 from ragas import evaluate
 from ragas.metrics import answer_relevancy, faithfulness
 import openai
@@ -28,13 +24,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 # Fine Tuning GPT-3.5-Turbo
 
@@ -44,7 +33,7 @@ Specifically, we attempt to distill GPT-4's knowledge, by generating training da
 
 All training data is generated using two different sections of our index data, creating both a training and evalution set.
 
-We then finetune with our `MLXFinetuneEngine` wrapper abstraction.
+We then finetune with our `OllamaFunctionCallingAdapterFinetuneEngine` wrapper abstraction.
 
 Evaluation is done using the `ragas` library, which we will detail later on.
 """
@@ -76,7 +65,7 @@ We will generate 40 questions on different sections of the PDF we downloaded.
 
 We can use GPT-3.5 on the eval questions to get our baseline performance.
 
-Then, we will use GPT-4 on the train questions to generate our training data. The training data will be collected with out `MLXFineTuningHandler`.
+Then, we will use GPT-4 on the train questions to generate our training data. The training data will be collected with out `OllamaFunctionCallingAdapterFineTuningHandler`.
 
 This step is entirely optional if you don't want to spend the time/tokens -- the eval and training questions are also provided in this folder, as well as the training data!
 
@@ -93,7 +82,7 @@ documents = SimpleDirectoryReader(
 random.seed(42)
 random.shuffle(documents)
 
-gpt_35_llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3)
+gpt_35_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 
 question_gen_query = (
     "You are a Teacher/ Professor. Your task is to setup "
@@ -189,15 +178,15 @@ logger.debug(result)
 """
 ## GPT-4 to Collect Training Data
 
-Here, we use GPT-4 and the `MLXFineTuningHandler` to collect data that we want to train on.
+Here, we use GPT-4 and the `OllamaFunctionCallingAdapterFineTuningHandler` to collect data that we want to train on.
 """
 logger.info("## GPT-4 to Collect Training Data")
 
 
-finetuning_handler = MLXFineTuningHandler()
+finetuning_handler = OllamaFunctionCallingAdapterFineTuningHandler()
 callback_manager = CallbackManager([finetuning_handler])
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3)
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 llm.callback_manager = callback_manager
 
 questions = []
@@ -216,18 +205,18 @@ for question in questions:
     response = query_engine.query(question)
 
 """
-## Create `MLXFinetuneEngine`
+## Create `OllamaFunctionCallingAdapterFinetuneEngine`
 
-We create an `MLXFinetuneEngine`: the finetune engine will take care of launching a finetuning job, and returning an LLM model that you can directly plugin to the rest of LlamaIndex workflows.
+We create an `OllamaFunctionCallingAdapterFinetuneEngine`: the finetune engine will take care of launching a finetuning job, and returning an LLM model that you can directly plugin to the rest of LlamaIndex workflows.
 
 We use the default constructor, but we can also directly pass in our finetuning_handler into this engine with the `from_finetuning_handler` class method.
 """
-logger.info("## Create `MLXFinetuneEngine`")
+logger.info("## Create `OllamaFunctionCallingAdapterFinetuneEngine`")
 
 finetuning_handler.save_finetuning_events("finetuning_events.jsonl")
 
 
-finetune_engine = MLXFinetuneEngine(
+finetune_engine = OllamaFunctionCallingAdapterFinetuneEngine(
     "gpt-3.5-turbo",
     "finetuning_events.jsonl",
 )
@@ -309,7 +298,7 @@ logger.info("### Original")
 
 
 
-gpt_35_llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3)
+gpt_35_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 
 query_engine = index.as_query_engine(llm=gpt_35_llm)
 

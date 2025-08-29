@@ -1,11 +1,7 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from langfuse.llama_index import LlamaIndexInstrumentor
 from llama_index.core import Document
 from llama_index.core import VectorStoreIndex
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import os
 import shutil
 
@@ -16,13 +12,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/observability/Langfuse-Instrumentation.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -50,9 +39,9 @@ logger.info("# Cookbook LlamaIndex Integration (Instrumentation Module)")
 # %pip install langfuse llama_index --upgrade
 
 """
-Initialize the integration. Get your API keys from the Langfuse project settings. This example uses MLX for embeddings and chat completions. You can also use any other model supported by LlamaIndex.
+Initialize the integration. Get your API keys from the Langfuse project settings. This example uses OllamaFunctionCallingAdapter for embeddings and chat completions. You can also use any other model supported by LlamaIndex.
 """
-logger.info("Initialize the integration. Get your API keys from the Langfuse project settings. This example uses MLX for embeddings and chat completions. You can also use any other model supported by LlamaIndex.")
+logger.info("Initialize the integration. Get your API keys from the Langfuse project settings. This example uses OllamaFunctionCallingAdapter for embeddings and chat completions. You can also use any other model supported by LlamaIndex.")
 
 
 os.environ["LANGFUSE_PUBLIC_KEY"] = ""

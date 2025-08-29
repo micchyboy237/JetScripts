@@ -1,9 +1,6 @@
-import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Document
 from llama_index.core import VectorStoreIndex
 from llama_index.core.embeddings import resolve_embed_model
@@ -25,8 +22,6 @@ from llama_index.core.readers.file.base import SimpleDirectoryReader
 from llama_index.core.response.notebook_utils import display_source_node
 from llama_index.core.retrievers import RecursiveRetriever
 from llama_index.core.schema import IndexNode
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from pathlib import Path
 import copy
 import json
@@ -41,17 +36,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/retrievers/recursive_retriever_nodes.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -90,7 +74,7 @@ In this section we download the Llama 2 paper and create an initial set of nodes
 logger.info("## Load Data + Setup")
 
 # !mkdir -p 'data/'
-# !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O f"{GENERATED_DIR}/llama2.pdf"
+# !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
 # from llama_index.readers.file import PDFReader
 
@@ -110,7 +94,7 @@ for idx, node in enumerate(base_nodes):
 
 
 embed_model = resolve_embed_model("local:BAAI/bge-small-en")
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
 """
 ## Baseline Retriever
@@ -228,9 +212,9 @@ def load_metadata_dicts(path):
         data = json.load(fp)
     return data
 
-save_metadata_dicts(f"{GENERATED_DIR}/llama2_metadata_dicts.json", node_to_metadata)
+save_metadata_dicts("data/llama2_metadata_dicts.json", node_to_metadata)
 
-metadata_dicts = load_metadata_dicts(f"{GENERATED_DIR}/llama2_metadata_dicts.json")
+metadata_dicts = load_metadata_dicts("data/llama2_metadata_dicts.json")
 
 
 all_nodes = copy.deepcopy(base_nodes)
@@ -241,7 +225,7 @@ for node_id, metadata in node_to_metadata.items():
 all_nodes_dict = {n.node_id: n for n in all_nodes}
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
 vector_index_metadata = VectorStoreIndex(all_nodes)
 
@@ -292,13 +276,13 @@ logger.info("## Evaluation")
 # nest_asyncio.apply()
 
 eval_dataset = generate_question_context_pairs(
-    base_nodes, MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    base_nodes, OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 )
 
-eval_dataset.save_json(f"{GENERATED_DIR}/llama2_eval_dataset.json")
+eval_dataset.save_json("data/llama2_eval_dataset.json")
 
 eval_dataset = EmbeddingQAFinetuneDataset.from_json(
-    f"{GENERATED_DIR}/llama2_eval_dataset.json"
+    "data/llama2_eval_dataset.json"
 )
 
 """
@@ -348,12 +332,9 @@ retriever_chunk = RecursiveRetriever(
 retriever_evaluator = RetrieverEvaluator.from_metric_names(
     ["mrr", "hit_rate"], retriever=retriever_chunk
 )
-async def async_func_43():
-    results_chunk = retriever_evaluator.evaluate_dataset(
+results_chunk = retriever_evaluator.evaluate_dataset(
         eval_dataset, show_progress=True
     )
-    return results_chunk
-results_chunk = asyncio.run(async_func_43())
 logger.success(format_json(results_chunk))
 
 vector_retriever_metadata = vector_index_metadata.as_retriever(
@@ -368,24 +349,18 @@ retriever_metadata = RecursiveRetriever(
 retriever_evaluator = RetrieverEvaluator.from_metric_names(
     ["mrr", "hit_rate"], retriever=retriever_metadata
 )
-async def async_func_59():
-    results_metadata = retriever_evaluator.evaluate_dataset(
+results_metadata = retriever_evaluator.evaluate_dataset(
         eval_dataset, show_progress=True
     )
-    return results_metadata
-results_metadata = asyncio.run(async_func_59())
 logger.success(format_json(results_metadata))
 
 base_retriever = base_index.as_retriever(similarity_top_k=top_k)
 retriever_evaluator = RetrieverEvaluator.from_metric_names(
     ["mrr", "hit_rate"], retriever=base_retriever
 )
-async def async_func_67():
-    results_base = retriever_evaluator.evaluate_dataset(
+results_base = retriever_evaluator.evaluate_dataset(
         eval_dataset, show_progress=True
     )
-    return results_base
-results_base = asyncio.run(async_func_67())
 logger.success(format_json(results_base))
 
 full_results_df = get_retrieval_results_df(

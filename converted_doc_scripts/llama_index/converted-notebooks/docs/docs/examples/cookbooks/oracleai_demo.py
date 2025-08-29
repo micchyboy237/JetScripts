@@ -1,10 +1,6 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.schema import Document
 from llama_index.core.schema import Document, TextNode
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.embeddings.oracleai import OracleEmbeddings
 from llama_index.readers.oracleai import OracleReader
 from llama_index.readers.oracleai import OracleReader, OracleTextSplitter
@@ -24,13 +20,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Oracle AI Vector Search with Document Processing
@@ -205,7 +194,7 @@ except Exception as e:
     sys.exit(1)
 
 """
-With the inclusion of a demo user and a populated sample table, the remaining configuration involves setting up embedding and summary functionalities. Users are presented with multiple provider options, including local database solutions and third-party services such as Ocigenai, Hugging Face, and MLX. Should users opt for a third-party provider, they are required to establish credentials containing the necessary authentication details. Conversely, if selecting a database as the provider for embeddings, it is necessary to upload an ONNX model to the Oracle Database. No additional setup is required for summary functionalities when using the database option.
+With the inclusion of a demo user and a populated sample table, the remaining configuration involves setting up embedding and summary functionalities. Users are presented with multiple provider options, including local database solutions and third-party services such as Ocigenai, Hugging Face, and OllamaFunctionCallingAdapter. Should users opt for a third-party provider, they are required to establish credentials containing the necessary authentication details. Conversely, if selecting a database as the provider for embeddings, it is necessary to upload an ONNX model to the Oracle Database. No additional setup is required for summary functionalities when using the database option.
 
 ### Load ONNX Model
 

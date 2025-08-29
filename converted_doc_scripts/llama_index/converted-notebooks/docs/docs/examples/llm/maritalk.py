@@ -1,11 +1,6 @@
-import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.llms import ChatMessage
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.maritalk import Maritalk
 import asyncio
 import os
@@ -18,13 +13,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/llm/maritalk.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -75,14 +63,8 @@ logger.debug(response)
 
 
 async def get_dog_name(llm, messages):
-    async def run_async_code_c21ac29f():
-        async def run_async_code_65496cfb():
-            response = llm.chat(messages)
-            return response
-        response = asyncio.run(run_async_code_65496cfb())
-        logger.success(format_json(response))
-        return response
-    response = asyncio.run(run_async_code_c21ac29f())
+    response = llm.chat(messages)
+    logger.success(format_json(response))
     logger.success(format_json(response))
     logger.debug(response)
 
@@ -102,11 +84,7 @@ for chunk in response:
 
 
 async def get_dog_name_streaming(llm, messages):
-    async def run_async_code_b5433fad():
-        for chunk in llm.stream_chat(messages):
-        return 
-     = asyncio.run(run_async_code_b5433fad())
-    logger.success(format_json())
+    for chunk in llm.stream_chat(messages):
         logger.debug(chunk.delta, end="", flush=True)
 
 
@@ -135,14 +113,8 @@ logger.debug(response)
 
 
 async def classify_review(llm, prompt):
-    async def run_async_code_9b8fdb37():
-        async def run_async_code_4512bb86():
-            response = llm.complete(prompt)
-            return response
-        response = asyncio.run(run_async_code_4512bb86())
-        logger.success(format_json(response))
-        return response
-    response = asyncio.run(run_async_code_9b8fdb37())
+    response = llm.complete(prompt)
+    logger.success(format_json(response))
     logger.success(format_json(response))
     logger.debug(response)
 
@@ -155,11 +127,7 @@ for chunk in response:
 
 
 async def classify_review_streaming(llm, prompt):
-    async def run_async_code_d3eedec4():
-        for chunk in llm.stream_complete(prompt):
-        return 
-     = asyncio.run(run_async_code_d3eedec4())
-    logger.success(format_json())
+    for chunk in llm.stream_complete(prompt):
         logger.debug(chunk.delta, end="", flush=True)
 
 

@@ -1,3 +1,4 @@
+from jet.models.config import MODELS_CACHE_DIR
 from aimon import Client
 from aimon_llamaindex import build_index
 from aimon_llamaindex import build_retriever
@@ -8,13 +9,9 @@ from aimon_llamaindex.evaluators import GuidelineEvaluator
 from aimon_llamaindex.evaluators import HallucinationEvaluator
 from datasets import load_dataset
 from google.colab import userdata
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Document
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import json
 import os
@@ -27,13 +24,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1r5MH4aIzxT4cNOrEetH0ZvyTTY0UQRNP)
@@ -60,14 +50,15 @@ Let's get started by installing the dependencies and setting up the API keys.
 logger.info("## AIMon's LlamaIndex Extension for LLM Response Evaluation")
 
 # %%capture
-# !pip install requests datasets aimon-llamaindex llama-index-embeddings-ollama llama-index-llms-ollama
+# !pip install requests datasets aimon-llamaindex llama-index-embeddings-huggingface llama-index-llms-ollama
 
 """
-# Configure your `OPENAI_API_KEY` and `AIMON_API_KEY` in Google Collab secrets and provide them notebook access. We will use MLX for the LLM and embedding generation models. We will use AIMon for continuous monitoring of quality issues.
+# Configure your `OPENAI_API_KEY` and `AIMON_API_KEY` in Google Collab secrets and provide them notebook access. We will use OllamaFunctionCallingAdapter for the LLM and embedding generation models. We will use AIMon for continuous monitoring of quality issues.
 
 AIMon API key can be obtained [here](https://docs.aimon.ai/quickstart#1-api-key).
 """
-# logger.info("Configure your `OPENAI_API_KEY` and `AIMON_API_KEY` in Google Collab secrets and provide them notebook access. We will use MLX for the LLM and embedding generation models. We will use AIMon for continuous monitoring of quality issues.")
+# logger.info("Configure your `OPENAI_API_KEY` and `AIMON_API_KEY` in Google Collab secrets and provide them notebook access. We will use OllamaFunctionCallingAdapter for the LLM and embedding generation models. We will use AIMon for continuous monitoring of quality issues.")
+
 
 
 # os.environ["OPENAI_API_KEY"] = userdata.get("OPENAI_API_KEY")
@@ -89,6 +80,7 @@ This function helps extract transcripts and converts them into a list of objects
 logger.info("This function helps extract transcripts and converts them into a list of objects of type `llama_index.core.Document`.")
 
 
+
 def extract_and_create_documents(transcripts):
     documents = []
 
@@ -106,16 +98,15 @@ def extract_and_create_documents(transcripts):
 transcripts = [meeting["transcript"] for meeting in meetingbank["train"]]
 documents = extract_and_create_documents(
     transcripts[:5]
-)  # Using only 5 transcripts to keep this example fast and concise.
+)  ## Using only 5 transcripts to keep this example fast and concise.
 
 """
 Set up an embedding model. We will be using the `mxbai-embed-large` model here.
 """
-logger.info(
-    "Set up an embedding model. We will be using the `mxbai-embed-large` model here.")
+logger.info("Set up an embedding model. We will be using the `mxbai-embed-large` model here.")
 
 
-embedding_model = MLXEmbedding(
+embedding_model = HuggingFaceEmbedding(
     model="mxbai-embed-large", embed_batch_size=100, max_retries=3
 )
 
@@ -146,13 +137,13 @@ retriever = build_retriever(index, similarity_top_k=5)
 """
 ## Building the LLM Application
 
-Configure the Large Language Model. Here we choose MLX's `qwen3-1.7b-4bit-mini` model with temperature setting of 0.1.
+Configure the Large Language Model. Here we choose OllamaFunctionCallingAdapter's `llama3.2` model with temperature setting of 0.1.
 """
 logger.info("## Building the LLM Application")
 
 
-llm = MLXLlamaIndexLLMAdapter(
-    model="qwen3-1.7b-4bit",
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2",
     temperature=0.4,
     system_prompt="""
                     Please be professional and polite.
@@ -175,8 +166,7 @@ user_instructions = [
 """
 Update the LLM's system prompt with the user's instructions defined dynamically
 """
-logger.info(
-    "Update the LLM's system prompt with the user's instructions defined dynamically")
+logger.info("Update the LLM's system prompt with the user's instructions defined dynamically")
 
 llm.system_prompt += (
     f"Please comply to the following instructions {user_instructions}."
@@ -207,8 +197,7 @@ Using AIMon’s Instruction Adherence Model (a.k.a. Guideline Evaluator)
 
 This model evaluates if generated text adheres to given instructions, ensuring that LLMs follow the user’s guidelines and intent across various tasks for more accurate and relevant outputs.
 """
-logger.info(
-    "Using AIMon’s Instruction Adherence Model (a.k.a. Guideline Evaluator)")
+logger.info("Using AIMon’s Instruction Adherence Model (a.k.a. Guideline Evaluator)")
 
 
 guideline_evaluator = GuidelineEvaluator(aimon_client)

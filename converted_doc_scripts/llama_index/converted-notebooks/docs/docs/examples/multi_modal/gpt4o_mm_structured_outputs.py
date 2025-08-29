@@ -1,15 +1,11 @@
 from IPython.display import clear_output
 from PIL import Image
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader, Document
 from llama_index.core.bridge.pydantic import BaseModel, Field
 from llama_index.core.multi_modal_llms.generic_utils import load_image_urls
 from llama_index.core.program import MultiModalLLMCompletionProgram
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.multi_modal_llms.openai import MLXMultiModal
+from llama_index.multi_modal_llms.openai import OllamaFunctionCallingAdapterMultiModal
 from typing import List, Optional
 import matplotlib.pyplot as plt
 import numpy as np
@@ -26,13 +22,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/multi_modal/gpt4o_mm_structured_outputs.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -120,12 +109,12 @@ Use the attached PaperCard image to extract data from it and store into the
 provided data class.
 """
 
-gpt_4o = MLXMultiModal(model="qwen3-1.7b-4bit", max_new_tokens=4096)
+gpt_4o = OllamaFunctionCallingAdapterMultiModal(model="llama3.2", request_timeout=300.0, context_window=4096, max_new_tokens=4096)
 
-gpt_4v = MLXMultiModal(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", max_new_tokens=4096)
+gpt_4v = OllamaFunctionCallingAdapterMultiModal(model="llama3.2", request_timeout=300.0, context_window=4096, max_new_tokens=4096)
 
-gpt_4turbo = MLXMultiModal(
-    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", max_new_tokens=4096
+gpt_4turbo = OllamaFunctionCallingAdapterMultiModal(
+    model="llama3.2", request_timeout=300.0, context_window=4096, max_new_tokens=4096
 )
 
 multimodal_llms = {

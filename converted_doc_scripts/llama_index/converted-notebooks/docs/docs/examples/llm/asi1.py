@@ -1,15 +1,11 @@
-import asyncio
-from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.transformers.formatters import format_json
+from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.base.llms.types import ChatMessage
 from llama_index.core.llms import ChatMessage
 from llama_index.core.llms import ChatMessage, TextBlock, ImageBlock
 from llama_index.core.prompts import PromptTemplate
-from llama_index.core.settings import Settings
 from llama_index.core.tools import FunctionTool
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.indices.managed.llama_cloud import LlamaCloudIndex
@@ -27,13 +23,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/llm/asi1.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -55,7 +44,7 @@ logger.info("# ASI LLM")
 """
 ## Setting API Keys
 
-You'll need to set your API keys for ASI and optionally for MLX if you want to compare the two:
+You'll need to set your API keys for ASI and optionally for OllamaFunctionCallingAdapter if you want to compare the two:
 """
 logger.info("## Setting API Keys")
 
@@ -331,26 +320,14 @@ logger.info("## Async")
 
 llm = ASI(model="asi1-mini")
 
-async def run_async_code_049fa5da():
-    async def run_async_code_d405e1a8():
-        resp = llm.complete("who is Paul Graham")
-        return resp
-    resp = asyncio.run(run_async_code_d405e1a8())
-    logger.success(format_json(resp))
-    return resp
-resp = asyncio.run(run_async_code_049fa5da())
+resp = llm.complete("who is Paul Graham")
+logger.success(format_json(resp))
 logger.success(format_json(resp))
 
 logger.debug(resp)
 
-async def run_async_code_240f4fad():
-    async def run_async_code_506ce1e2():
-        resp = llm.stream_complete("Paul Graham is ")
-        return resp
-    resp = asyncio.run(run_async_code_506ce1e2())
-    logger.success(format_json(resp))
-    return resp
-resp = asyncio.run(run_async_code_240f4fad())
+resp = llm.stream_complete("Paul Graham is ")
+logger.success(format_json(resp))
 logger.success(format_json(resp))
 
 # import nest_asyncio
@@ -364,51 +341,27 @@ async for delta in resp:
 
 
 async def test_async():
-    async def run_async_code_a989c387():
-        async def run_async_code_89f14a51():
-            resp = llm.complete("Paul Graham is ")
-            return resp
-        resp = asyncio.run(run_async_code_89f14a51())
-        logger.success(format_json(resp))
-        return resp
-    resp = asyncio.run(run_async_code_a989c387())
+    resp = llm.complete("Paul Graham is ")
+    logger.success(format_json(resp))
     logger.success(format_json(resp))
     logger.debug(f"Async completion: {resp}")
 
-    async def run_async_code_fd99c2e7():
-        async def run_async_code_976ba852():
-            resp = llm.chat(messages)
-            return resp
-        resp = asyncio.run(run_async_code_976ba852())
-        logger.success(format_json(resp))
-        return resp
-    resp = asyncio.run(run_async_code_fd99c2e7())
+    resp = llm.chat(messages)
+    logger.success(format_json(resp))
     logger.success(format_json(resp))
     logger.debug(f"Async chat: {resp}")
 
     logger.debug("Async streaming completion: ", end="")
-    async def run_async_code_506ce1e2():
-        async def run_async_code_88162111():
-            resp = llm.stream_complete("Paul Graham is ")
-            return resp
-        resp = asyncio.run(run_async_code_88162111())
-        logger.success(format_json(resp))
-        return resp
-    resp = asyncio.run(run_async_code_506ce1e2())
+    resp = llm.stream_complete("Paul Graham is ")
+    logger.success(format_json(resp))
     logger.success(format_json(resp))
     async for delta in resp:
         logger.debug(delta.delta, end="")
     logger.debug()
 
     logger.debug("Async streaming chat: ", end="")
-    async def run_async_code_0bc31564():
-        async def run_async_code_3f1c3817():
-            resp = llm.stream_chat(messages)
-            return resp
-        resp = asyncio.run(run_async_code_3f1c3817())
-        logger.success(format_json(resp))
-        return resp
-    resp = asyncio.run(run_async_code_0bc31564())
+    resp = llm.stream_chat(messages)
+    logger.success(format_json(resp))
     logger.success(format_json(resp))
     async for delta in resp:
         logger.debug(delta.delta, end="")
@@ -424,7 +377,7 @@ Let's implement a simple RAG application with ASI:
 """
 logger.info("## Simple RAG")
 
-# %pip install llama-index-embeddings-ollama
+# %pip install llama-index-embeddings-huggingface
 
 
 # os.environ["OPENAI_API_KEY"] = "your-api-key"
@@ -436,7 +389,7 @@ documents = SimpleDirectoryReader("temp_data").load_data()
 llm = ASI(model="asi1-mini")
 index = VectorStoreIndex.from_documents(
     documents,
-    embed_model=MLXEmbedding(),  # Using MLX for embeddings
+    embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),  # Using OllamaFunctionCallingAdapter for embeddings
     llm=llm,  # Using ASI for generation
 )
 

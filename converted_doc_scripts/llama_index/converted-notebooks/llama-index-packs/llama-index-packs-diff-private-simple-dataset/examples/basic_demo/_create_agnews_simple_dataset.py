@@ -1,13 +1,9 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.llama_dataset.base import CreatedBy, CreatedByType
 from llama_index.core.llama_dataset.simple import (
 LabelledSimpleDataExample,
 LabelledSimpleDataset,
 )
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import os
 import pandas as pd
 import shutil
@@ -19,17 +15,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Creating the AGNEWs `LabelledSimpleDataset`
@@ -46,8 +31,8 @@ The dataset is also available from our public Dropbox.
 """
 logger.info("### Load data")
 
-# !mkdir -p f"{GENERATED_DIR}/agnews/"
-# !wget "https://www.dropbox.com/scl/fi/wzcuxuv2yo8gjp5srrslm/train.csv?rlkey=6kmofwjvsamlf9dj15m34mjw9&dl=1" -O f"{GENERATED_DIR}/agnews/train.csv"
+# !mkdir -p "data/agnews/"
+# !wget "https://www.dropbox.com/scl/fi/wzcuxuv2yo8gjp5srrslm/train.csv?rlkey=6kmofwjvsamlf9dj15m34mjw9&dl=1" -O "data/agnews/train.csv"
 
 df = pd.read_csv("./data/agnews/train.csv")
 

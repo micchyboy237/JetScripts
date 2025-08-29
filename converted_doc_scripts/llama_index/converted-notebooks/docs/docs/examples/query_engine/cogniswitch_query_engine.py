@@ -1,9 +1,5 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.query_engine import CogniswitchQueryEngine
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import os
 import shutil
 import warnings
@@ -15,13 +11,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 ## CogniswitchQueryEngine
@@ -52,9 +41,9 @@ logger.info("## CogniswitchQueryEngine")
 warnings.filterwarnings("ignore")
 
 """
-### Cogniswitch Credentials and MLX token
+### Cogniswitch Credentials and OllamaFunctionCallingAdapter token
 """
-logger.info("### Cogniswitch Credentials and MLX token")
+logger.info("### Cogniswitch Credentials and OllamaFunctionCallingAdapter token")
 
 
 

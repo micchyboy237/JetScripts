@@ -1,16 +1,12 @@
 from IPython.display import Markdown, display
 from IPython.display import display, HTML
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import QueryBundle
 from llama_index.core import Settings
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.postprocessor import LLMRerank
 from llama_index.core.retrievers import VectorIndexRetriever
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.huggingface import HuggingFaceLLM
 from llama_index.llms.huggingface_api import HuggingFaceInferenceAPI
 from llama_index.llms.ollama import Ollama
@@ -31,13 +27,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/node_postprocessor/rankGPT.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 # RankGPT Reranker Demonstration (Van Gogh Wiki)
@@ -52,7 +41,7 @@ the idea of `RankGPT`:
 
 In this example, we use Van Gogh's wikipedia as an example to compare the Retrieval results with/without RankGPT reranking.
 we showcase two models for RankGPT:
-* MLX `GPT3.5`
+* OllamaFunctionCallingAdapter `GPT3.5`
 * `Mistral` model.
 """
 logger.info("# RankGPT Reranker Demonstration (Van Gogh Wiki)")
@@ -81,7 +70,7 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 logger.info("## Load Data, Build Index")
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
 Settings.chunk_size = 512
 
 """
@@ -153,8 +142,8 @@ def get_retrieved_nodes(
 
     if with_reranker:
         reranker = RankGPTRerank(
-            llm=MLXLlamaIndexLLMAdapter(
-                model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
+            llm=OllamaFunctionCallingAdapter(
+                model="llama3.2", request_timeout=300.0, context_window=4096,
                 temperature=0.0,
 #                 api_key=OPENAI_API_KEY,
             ),

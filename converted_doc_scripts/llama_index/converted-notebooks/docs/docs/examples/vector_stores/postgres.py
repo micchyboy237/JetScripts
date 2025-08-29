@@ -1,19 +1,15 @@
 from datetime import datetime
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader, StorageContext
 from llama_index.core import VectorStoreIndex
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.response_synthesizers import CompactAndRefine
 from llama_index.core.retrievers import QueryFusionRetriever
 from llama_index.core.schema import TextNode
-from llama_index.core.settings import Settings
 from llama_index.core.vector_stores.types import (
 MetadataFilter,
 MetadataFilters,
 )
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.postgres import PGVectorStore
 from sqlalchemy import make_url
 import csv
@@ -30,17 +26,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/vector_stores/postgres.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -71,10 +56,10 @@ logger.info("Running the following cell will install Postgres with PGVector in C
 
 
 """
-### Setup MLX
+### Setup OllamaFunctionCallingAdapter
 The first step is to configure the openai key. It will be used to created embeddings for the documents loaded into the index
 """
-logger.info("### Setup MLX")
+logger.info("### Setup OllamaFunctionCallingAdapter")
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
@@ -279,7 +264,7 @@ logger.info("### Metadata filters")
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/csv/commit_history.csv' -O 'data/git_commits/commit_history.csv'
 
 
-with open(f"{GENERATED_DIR}/git_commits/commit_history.csv", "r") as f:
+with open("data/git_commits/commit_history.csv", "r") as f:
     commits = list(csv.DictReader(f))
 
 logger.debug(commits[0])

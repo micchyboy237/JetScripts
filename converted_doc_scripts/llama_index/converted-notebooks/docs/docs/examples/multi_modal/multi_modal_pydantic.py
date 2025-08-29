@@ -1,13 +1,9 @@
 from PIL import Image
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.output_parsers import PydanticOutputParser
 from llama_index.core.program import MultiModalLLMCompletionProgram
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.multi_modal_llms.openai import MLXMultiModal
+from llama_index.multi_modal_llms.openai import OllamaFunctionCallingAdapterMultiModal
 from llama_index.multi_modal_llms.replicate import ReplicateMultiModal
 from llama_index.multi_modal_llms.replicate.base import (
 REPLICATE_MULTI_MODAL_LLM_MODELS,
@@ -26,19 +22,12 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/multi_modal/multi_modal_pydantic.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 # Multi-Modal GPT4V Pydantic Program
 
-In this notebook, we show you how to generate `structured data` with new MLX GPT4V API via LlamaIndex. The user just needs to specify a Pydantic object.
+In this notebook, we show you how to generate `structured data` with new OllamaFunctionCallingAdapter GPT4V API via LlamaIndex. The user just needs to specify a Pydantic object.
 
 We also compared several Large Vision models for this task:
 * GPT4-V
@@ -86,15 +75,15 @@ class Restaurant(BaseModel):
     review: str
 
 """
-## Load MLX GPT4V Multi-Modal LLM Model
+## Load OllamaFunctionCallingAdapter GPT4V Multi-Modal LLM Model
 """
-logger.info("## Load MLX GPT4V Multi-Modal LLM Model")
+logger.info("## Load OllamaFunctionCallingAdapter GPT4V Multi-Modal LLM Model")
 
 
 image_documents = SimpleDirectoryReader("./restaurant_images").load_data()
 
-openai_mm_llm = MLXMultiModal(
-#     model="qwen3-1.7b-4bit", api_key=OPENAI_API_KEY, max_new_tokens=1000
+openai_mm_llm = OllamaFunctionCallingAdapterMultiModal(
+#     model="llama3.2", request_timeout=300.0, context_window=4096, api_key=OPENAI_API_KEY, max_new_tokens=1000
 )
 
 """

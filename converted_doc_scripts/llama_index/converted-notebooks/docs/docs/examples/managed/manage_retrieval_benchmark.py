@@ -2,10 +2,8 @@ from google.ai.generativelanguage import (
 GenerateAnswerRequest,
 )
 from google.oauth2 import service_account
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
@@ -16,9 +14,7 @@ from llama_index.core.postprocessor import SentenceTransformerRerank
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.response.notebook_utils import display_source_node
 from llama_index.core.retrievers import VectorIndexRetriever
-from llama_index.core.settings import Settings
 from llama_index.embeddings.gemini import GeminiEmbedding
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.indices.managed.colbert import ColbertIndex
 from llama_index.indices.managed.google import GoogleIndex
 from llama_index.indices.managed.vectara import VectaraIndex
@@ -39,13 +35,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/managed/manage_retrieval_benchmark.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -324,7 +313,7 @@ logger.debug(response.response)
 * The results are mostly partly correct without reranker.
 * After applying either `Gemini as LLM` or `SBERT as cross-encoder` reranker, the results are more comprehensive and accurate.
 
-## LlamaIndex Default Baseline with MLX embedding and GPT as LLM for Synthesizer
+## LlamaIndex Default Baseline with OllamaFunctionCallingAdapter embedding and GPT as LLM for Synthesizer
 """
 logger.info("### `Observation` for `Google Semantic Retrieval`")
 
@@ -460,7 +449,7 @@ sys.path.insert(0, "ColBERT/")
 logger.info("### Build ColBERT-V2 end-to-end Index")
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
 
 documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 index = ColbertIndex.from_documents(

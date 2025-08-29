@@ -1,16 +1,12 @@
 from IPython.display import Markdown, display
 from IPython.display import display, HTML
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import QueryBundle
 from llama_index.core import Settings
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.postprocessor import LLMRerank
 from llama_index.core.retrievers import VectorIndexRetriever
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.postprocessor.rankLLM_rerank import RankLLMRerank
 from pathlib import Path
 import logging
@@ -28,17 +24,10 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 # RankLLM Reranker Demonstration (Van Gogh Wiki)
 
-This demo showcases how to use RankLLM (https://github.com/castorini/rank_llm) to rerank passages. RankLLM offers a suite of listwise, pairwise, and pointwise rerankers, albeit with focus on open source LLMs finetuned for the task - RankVicuna and RankZephyr being two of them. It also features ranking with MLX and GenAI.
+This demo showcases how to use RankLLM (https://github.com/castorini/rank_llm) to rerank passages. RankLLM offers a suite of listwise, pairwise, and pointwise rerankers, albeit with focus on open source LLMs finetuned for the task - RankVicuna and RankZephyr being two of them. It also features ranking with OllamaFunctionCallingAdapter and GenAI.
 
 It compares query search results from Van Gogh’s wikipedia with just retrieval (using VectorIndexRetriever from llama-index) and retrieval+reranking with RankLLM. It demonstrates two models from RankLLM:
 
@@ -76,8 +65,7 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 # os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter(
-    temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
 Settings.chunk_size = 512
 
 """
@@ -178,12 +166,14 @@ stride: int = Field(
   default=10
 )
 use_azure_ollama: bool = Field(
-  description="Whether to use Azure MLX instead of the standard MLX API.",
+  description="Whether to use Azure OllamaFunctionCallingAdapter instead of the standard OllamaFunctionCallingAdapter API.",
   default=False
 )
 ```
 """
 logger.info("## Retrieval + RankLLM Reranking")
+
+
 
 
 def get_retrieved_nodes(
@@ -206,8 +196,7 @@ def get_retrieved_nodes(
         reranker = RankLLMRerank(
             model=model, top_n=reranker_top_n, window_size=window_size
         )
-        retrieved_nodes = reranker.postprocess_nodes(
-            retrieved_nodes, query_bundle)
+        retrieved_nodes = reranker.postprocess_nodes(retrieved_nodes, query_bundle)
 
         del reranker
         torch.cuda.empty_cache()
@@ -226,7 +215,6 @@ def visualize_retrieved_nodes(nodes) -> None:
         result_dicts.append(result_dict)
 
     pretty_logger.debug(pd.DataFrame(result_dicts))
-
 
 """
 ## Retrieval top 3 results without reranking
@@ -293,7 +281,7 @@ new_nodes = get_retrieved_nodes(
     vector_top_k=10,
     reranker_top_n=3,
     with_reranker=True,
-    model="qwen3-1.7b-4bit",
+    model="llama3.2",
 )
 
 visualize_retrieved_nodes(new_nodes)
@@ -304,6 +292,8 @@ visualize_retrieved_nodes(new_nodes)
 ## Sliding window example with RankZephyr.
 """
 logger.info("### The correct result is ranked 1st after RankGPT rerank.")
+
+
 
 
 def get_retrieved_nodes_mixed(
@@ -328,11 +318,9 @@ def get_retrieved_nodes_mixed(
             top_n=reranker_top_n,
             model=model,
         )
-        retrieved_nodes = reranker.postprocess_nodes(
-            retrieved_nodes, query_bundle)
+        retrieved_nodes = reranker.postprocess_nodes(retrieved_nodes, query_bundle)
 
     return retrieved_nodes
-
 
 """
 ### After retrieving the top 50 results and reversing the order, the correct result is ranked 47th/50.
@@ -355,8 +343,7 @@ visualize_retrieved_nodes(new_nodes)
 
 The sliding window size is 20, with a step size of 10.
 """
-logger.info(
-    "### Retrieve and Rerank reversed top 50 results using RankZephyr and return top 3")
+logger.info("### Retrieve and Rerank reversed top 50 results using RankZephyr and return top 3")
 
 new_nodes = get_retrieved_nodes_mixed(
     "Which date did Paul Gauguin arrive in Arles?",

@@ -1,9 +1,6 @@
-import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import display, HTML
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import (
 VectorStoreIndex,
 SummaryIndex,
@@ -24,10 +21,8 @@ from llama_index.core.selectors.pydantic_selectors import (
 PydanticMultiSelector,
 PydanticSingleSelector,
 )
-from llama_index.core.settings import Settings
 from llama_index.core.text_splitter import SentenceSplitter
 from llama_index.core.tools.query_engine import QueryEngineTool, ToolMetadata
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import logging
 import openai
 import os
@@ -41,17 +36,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Router QueryEngine and SubQuestion QueryEngine
@@ -114,7 +98,7 @@ logger.info("### Download Data")
 """
 logger.info("### Load Data")
 
-documents = SimpleDirectoryReader(f"{GENERATED_DIR}/paul_graham").load_data()
+documents = SimpleDirectoryReader("data/paul_graham").load_data()
 
 """
 ### Create Nodes
@@ -170,7 +154,7 @@ vector_tool = QueryEngineTool.from_defaults(
 
 Various selectors are at your disposal, each offering unique characteristics.
 
-Pydantic selectors, supported exclusively by gpt-4 and the default gpt-3.5-turbo, utilize the MLX Function Call API. Instead of interpreting raw JSON, they yield pydantic selection objects.
+Pydantic selectors, supported exclusively by gpt-4 and the default gpt-3.5-turbo, utilize the OllamaFunctionCallingAdapter Function Call API. Instead of interpreting raw JSON, they yield pydantic selection objects.
 
 On the other hand, LLM selectors employ the LLM to generate a JSON output, which is then parsed to query the relevant indexes.
 
@@ -178,7 +162,7 @@ For both selector types, you can opt to route to either a single index or multip
 
 ### PydanticSingleSelector
 
-Use the MLX Function API to generate/parse pydantic objects under the hood for the router selector.
+Use the OllamaFunctionCallingAdapter Function API to generate/parse pydantic objects under the hood for the router selector.
 """
 logger.info("### Define Router Query Engine")
 
@@ -198,7 +182,7 @@ display(HTML(f'<p style="font-size:20px">{response.response}</p>'))
 """
 ### LLMSingleSelector
 
-Utilize MLXLlamaIndexLLMAdapter(or another LLM) to internally interpret the generated JSON and determine a sub-index for routing.
+Utilize OllamaFunctionCallingAdapter (or another LLM) to internally interpret the generated JSON and determine a sub-index for routing.
 """
 logger.info("### LLMSingleSelector")
 
@@ -300,22 +284,16 @@ lyft_engine = lyft_index.as_query_engine(similarity_top_k=3)
 
 uber_engine = uber_index.as_query_engine(similarity_top_k=3)
 
-async def async_func_4():
-    response = lyft_engine.query(
+response = lyft_engine.query(
         "What is the revenue of Lyft in 2021? Answer in millions with page reference"
     )
-    return response
-response = asyncio.run(async_func_4())
 logger.success(format_json(response))
 
 display(HTML(f'<p style="font-size:20px">{response.response}</p>'))
 
-async def async_func_10():
-    response = uber_engine.query(
+response = uber_engine.query(
         "What is the revenue of Uber in 2021? Answer in millions, with page reference"
     )
-    return response
-response = asyncio.run(async_func_10())
 logger.success(format_json(response))
 
 display(HTML(f'<p style="font-size:20px">{response.response}</p>'))
@@ -357,12 +335,9 @@ sub_question_query_engine = SubQuestionQueryEngine.from_defaults(
 """
 logger.info("### Querying")
 
-async def async_func_0():
-    response = sub_question_query_engine.query(
+response = sub_question_query_engine.query(
         "Compare revenue growth of Uber and Lyft from 2020 to 2021"
     )
-    return response
-response = asyncio.run(async_func_0())
 logger.success(format_json(response))
 
 display(HTML(f'<p style="font-size:20px">{response.response}</p>'))

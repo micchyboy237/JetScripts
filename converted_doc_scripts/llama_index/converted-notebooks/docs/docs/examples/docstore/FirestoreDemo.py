@@ -1,7 +1,5 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import ComposableGraph
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader, StorageContext
@@ -10,8 +8,6 @@ from llama_index.core import VectorStoreIndex, SimpleKeywordTableIndex
 from llama_index.core import load_index_from_storage
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.response.notebook_utils import display_response
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.storage.docstore.firestore import FirestoreDocumentStore
 from llama_index.storage.index_store.firestore import FirestoreIndexStore
 from llama_index.storage.kvstore.firestore import FirestoreKVStore
@@ -27,13 +23,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Firestore Demo
@@ -152,7 +141,7 @@ keyword_table_index = load_index_from_storage(
 """
 logger.info("#### Test out some Queries")
 
-chatgpt = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+chatgpt = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
 Settings.llm = chatgpt
 Settings.chunk_size = 1024
 

@@ -1,9 +1,6 @@
-import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Settings
 from llama_index.core import VectorStoreIndex
 from llama_index.core.callbacks import CallbackManager
@@ -12,10 +9,8 @@ from llama_index.core.evaluation import EvaluationResult
 from llama_index.core.evaluation import PairwiseComparisonEvaluator
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.retrievers import VectorIndexRetriever
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.finetuning import MLXFinetuneEngine
-from llama_index.finetuning.callbacks import MLXFineTuningHandler
+from llama_index.finetuning import OllamaFunctionCallingAdapterFinetuneEngine
+from llama_index.finetuning.callbacks import OllamaFunctionCallingAdapterFineTuningHandler
 from llama_index.llms.huggingface_api import HuggingFaceInferenceAPI
 from llama_index.readers.wikipedia import WikipediaReader
 from sklearn.metrics import jaccard_score
@@ -34,13 +29,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Knowledge Distillation For Fine-Tuning A GPT-3.5 Judge (Pairwise)
@@ -152,7 +140,7 @@ With all that out of the way, let's spring into action. First, we will download 
 logger.info("With all that out of the way, let's spring into action. First, we will download the reference pdf document and create the set of questions against it.")
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3)
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 
 
 train_dataset_generator = DatasetGenerator.from_documents(
@@ -280,31 +268,28 @@ As mentioned a couple of times before, the point of this guide is fine-tune an L
 
 There is a bit of added nuance here since with pairwise evaluations, we have to be mindful of the potential for "position-bias". This is when the judge favours the first answer that was presented to it (within the prompt/context). To account for this position-bias, we invoke the GPT-4 judge to perform to evaluations per sample, where in the second evaluation, we switch the order of presentation of the two answers (i.e., first evaluation: Llama-2 then Mistral, second evaluation: Mistral then Llama-2).
 
-Finally, we also use the `MLXFineTuningHandler` which will collect all the chat histories that we will eventually need to fine-tune GPT-3.5.
+Finally, we also use the `OllamaFunctionCallingAdapterFineTuningHandler` which will collect all the chat histories that we will eventually need to fine-tune GPT-3.5.
 
-NOTE: this will take some time to generate the judgements. Again, you have the option to load the `train_qa.jsonl` as `train_dataset`. Moreover, we also stored the JSONL files that we passed to MLX to fine-tune GPT-3.5.
+NOTE: this will take some time to generate the judgements. Again, you have the option to load the `train_qa.jsonl` as `train_dataset`. Moreover, we also stored the JSONL files that we passed to OllamaFunctionCallingAdapter to fine-tune GPT-3.5.
 """
 logger.info("### Get GPT-4 Evaluations On The Mistral and LLama-2 Answers")
 
 
-main_finetuning_handler = MLXFineTuningHandler()
+main_finetuning_handler = OllamaFunctionCallingAdapterFineTuningHandler()
 callback_manager = CallbackManager([main_finetuning_handler])
 Settings.callback_manager = callback_manager
 
-llm_4 = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", callback_manager=callback_manager)
+llm_4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096, callback_manager=callback_manager)
 
 gpt4_judge = PairwiseComparisonEvaluator(llm=llm_4)
 
 for data_entry in tqdm.tqdm(train_dataset):
-    async def async_func_15():
-        final_eval_result = gpt4_judge.evaluate(
+    final_eval_result = gpt4_judge.evaluate(
             query=data_entry["question"],
             response=data_entry["answers"][0]["text"],
             second_response=data_entry["answers"][1]["text"],
             reference=data_entry["source"],
         )
-        return final_eval_result
-    final_eval_result = asyncio.run(async_func_15())
     logger.success(format_json(final_eval_result))
 
     judgement = {}
@@ -330,7 +315,7 @@ display_eval_df(
 """
 #### Special Care To The Fine-Tuning JSONL
 
-Since there are two evaluations (one for original order of presentation of the LLM answers and another for a flipped ordering), we need to be careful to choose the correct one to keep in our fine-tuning dataset. What this means is that we need to pick off the correct events that were collected by our `MLXFineTuningHandler` and then only use those to prepare the JSONL which we will pass to MLX's fine-tuning API.
+Since there are two evaluations (one for original order of presentation of the LLM answers and another for a flipped ordering), we need to be careful to choose the correct one to keep in our fine-tuning dataset. What this means is that we need to pick off the correct events that were collected by our `OllamaFunctionCallingAdapterFineTuningHandler` and then only use those to prepare the JSONL which we will pass to OllamaFunctionCallingAdapter's fine-tuning API.
 """
 logger.info("#### Special Care To The Fine-Tuning JSONL")
 
@@ -373,12 +358,12 @@ with open("resolved_pairwise_finetuning_events.jsonl", "w") as outfile:
 """
 ## Step 2 Perform knowledge distillation
 
-Okay, it's now time to distill some knowledge from GPT-4 to GPT-3.5 To do this, we will make use of the `MLXFinetuneEngine` class as well as the `resolved_pairwise_finetuning_events.jsonl` file that we just created.
+Okay, it's now time to distill some knowledge from GPT-4 to GPT-3.5 To do this, we will make use of the `OllamaFunctionCallingAdapterFinetuneEngine` class as well as the `resolved_pairwise_finetuning_events.jsonl` file that we just created.
 """
 logger.info("## Step 2 Perform knowledge distillation")
 
 
-finetune_engine = MLXFinetuneEngine(
+finetune_engine = OllamaFunctionCallingAdapterFinetuneEngine(
     "gpt-3.5-turbo",
     "resolved_pairwise_finetuning_events.jsonl",
 )
@@ -421,15 +406,12 @@ for q in tqdm.tqdm(test_questions):
     test_dataset.append(data_entry)
 
 for data_entry in tqdm.tqdm(test_dataset):
-    async def async_func_26():
-        final_eval_result = gpt4_judge.evaluate(
+    final_eval_result = gpt4_judge.evaluate(
             query=data_entry["question"],
             response=data_entry["answers"][0]["text"],
             second_response=data_entry["answers"][1]["text"],
             reference=data_entry["source"],
         )
-        return final_eval_result
-    final_eval_result = asyncio.run(async_func_26())
     logger.success(format_json(final_eval_result))
 
     judgement = {}
@@ -447,15 +429,12 @@ ft_gpt_3p5_judge = PairwiseComparisonEvaluator(llm=ft_llm)
 
 for data_entry in tqdm.tqdm(test_dataset):
     try:
-        async def async_func_49():
-            final_eval_result = ft_gpt_3p5_judge.evaluate(
+        final_eval_result = ft_gpt_3p5_judge.evaluate(
                 query=data_entry["question"],
                 response=data_entry["answers"][0]["text"],
                 second_response=data_entry["answers"][1]["text"],
                 reference=data_entry["source"],
             )
-            return final_eval_result
-        final_eval_result = asyncio.run(async_func_49())
         logger.success(format_json(final_eval_result))
     except:
         final_eval_result = EvaluationResult(
@@ -474,21 +453,18 @@ for data_entry in tqdm.tqdm(test_dataset):
     judgement["source"] = final_eval_result.pairwise_source
     data_entry["evaluations"] += [judgement]
 
-gpt_3p5_llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+gpt_3p5_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
 gpt_3p5_judge = PairwiseComparisonEvaluator(llm=gpt_3p5_llm)
 
 for data_entry in tqdm.tqdm(test_dataset):
     try:
-        async def async_func_78():
-            final_eval_result = gpt_3p5_judge.evaluate(
+        final_eval_result = gpt_3p5_judge.evaluate(
                 query=data_entry["question"],
                 response=data_entry["answers"][0]["text"],
                 second_response=data_entry["answers"][1]["text"],
                 reference=data_entry["source"],
             )
-            return final_eval_result
-        final_eval_result = asyncio.run(async_func_78())
         logger.success(format_json(final_eval_result))
     except:
         final_eval_result = EvaluationResult(

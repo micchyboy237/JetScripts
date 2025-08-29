@@ -2,16 +2,12 @@ from couchbase.auth import PasswordAuthenticator
 from couchbase.cluster import Cluster
 from couchbase.options import ClusterOptions
 from datetime import timedelta
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Settings
 from llama_index.core import StorageContext
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.schema import TextNode
-from llama_index.core.settings import Settings
 from llama_index.core.vector_stores import ExactMatchFilter, MetadataFilters
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.couchbase import CouchbaseSearchVectorStore
 import logging
 import os
@@ -25,13 +21,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 ## Couchbase Vector Store
@@ -184,13 +173,13 @@ SEARCH_INDEX_NAME = "vector-index"
 
 
 """
-For this tutorial, we will use MLX embeddings
+For this tutorial, we will use OllamaFunctionCallingAdapter embeddings
 """
-logger.info("For this tutorial, we will use MLX embeddings")
+logger.info("For this tutorial, we will use OllamaFunctionCallingAdapter embeddings")
 
 # import getpass
 
-# os.environ["OPENAI_API_KEY"] = getpass.getpass("MLX API Key:")
+# os.environ["OPENAI_API_KEY"] = getpass.getpass("OllamaFunctionCallingAdapter API Key:")
 
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)

@@ -1,15 +1,11 @@
 from PIL import Image
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import PromptTemplate
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import SimpleDirectoryReader, StorageContext
 from llama_index.core.indices import MultiModalVectorStoreIndex
 from llama_index.core.schema import ImageDocument
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.multi_modal_llms.openai import MLXMultiModal
+from llama_index.multi_modal_llms.openai import OllamaFunctionCallingAdapterMultiModal
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -27,13 +23,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/multi_modal/image_to_image_retrieval.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
@@ -43,7 +32,7 @@ In this notebook, we show how to build a Image to Image retrieval using LlamaInd
 
 LlamaIndex Image to Image Retrieval 
 
-- Images embedding index: [CLIP](https://github.com/openai/CLIP) embeddings from MLX for images
+- Images embedding index: [CLIP](https://github.com/openai/CLIP) embeddings from OllamaFunctionCallingAdapter for images
 
 
 Framework: [LlamaIndex](https://github.com/run-llama/llama_index)
@@ -215,8 +204,8 @@ for res_img in retrieved_images[1:]:
     image_documents.append(ImageDocument(image_path=res_img))
 
 
-openai_mm_llm = MLXMultiModal(
-#     model="qwen3-1.7b-4bit", api_key=OPENAI_API_KEY, max_new_tokens=1500
+openai_mm_llm = OllamaFunctionCallingAdapterMultiModal(
+#     model="llama3.2", request_timeout=300.0, context_window=4096, api_key=OPENAI_API_KEY, max_new_tokens=1500
 )
 response = openai_mm_llm.complete(
     prompt="Given the first image as the base image, what the other images correspond to?",
@@ -250,8 +239,8 @@ qa_tmpl_str = (
 qa_tmpl = PromptTemplate(qa_tmpl_str)
 
 
-openai_mm_llm = MLXMultiModal(
-#     model="qwen3-1.7b-4bit", api_key=OPENAI_API_KEY, max_new_tokens=1500
+openai_mm_llm = OllamaFunctionCallingAdapterMultiModal(
+#     model="llama3.2", request_timeout=300.0, context_window=4096, api_key=OPENAI_API_KEY, max_new_tokens=1500
 )
 
 query_engine = index.as_query_engine(

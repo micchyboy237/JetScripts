@@ -1,11 +1,7 @@
 from FlagEmbedding import BGEM3FlagModel
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import StorageContext, VectorStoreIndex
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.milvus import MilvusVectorStore
 from llama_index.vector_stores.milvus.utils import BGEM3SparseEmbeddingFunction
 from llama_index.vector_stores.milvus.utils import BM25BuiltInFunction
@@ -23,17 +19,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/vector_stores/MilvusHybridIndexDemo.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -53,7 +38,7 @@ Before getting started, make sure you have the following dependencies installed:
 logger.info("# Milvus Vector Store With Hybrid Search")
 
 # ! pip install llama-index-vector-stores-milvus
-# ! pip install llama-index-embeddings-ollama
+# ! pip install llama-index-embeddings-huggingface
 # ! pip install llama-index-llms-ollama
 
 """
@@ -61,9 +46,9 @@ logger.info("# Milvus Vector Store With Hybrid Search")
 
 **Set up accounts**
 
-This tutorial uses MLX for text embeddings and answer generation. You need to prepare the [MLX API key](https://platform.openai.com/api-keys).
+This tutorial uses OllamaFunctionCallingAdapter for text embeddings and answer generation. You need to prepare the [OllamaFunctionCallingAdapter API key](https://platform.openai.com/api-keys).
 """
-logger.info("This tutorial uses MLX for text embeddings and answer generation. You need to prepare the [MLX API key](https://platform.openai.com/api-keys).")
+logger.info("This tutorial uses OllamaFunctionCallingAdapter for text embeddings and answer generation. You need to prepare the [OllamaFunctionCallingAdapter API key](https://platform.openai.com/api-keys).")
 
 
 openai.api_key = "sk-"
@@ -80,9 +65,9 @@ URI = "http://localhost:19530"
 """
 **Load example data**
 
-Run the following commands to download sample documents into the f"{GENERATED_DIR}/paul_graham" directory:
+Run the following commands to download sample documents into the "data/paul_graham" directory:
 """
-logger.info("Run the following commands to download sample documents into the f"{GENERATED_DIR}/paul_graham" directory:")
+logger.info("Run the following commands to download sample documents into the "data/paul_graham" directory:")
 
 # ! mkdir -p 'data/paul_graham/'
 # ! wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
@@ -102,7 +87,7 @@ logger.debug("Example document:\n", documents[0])
 
 This section shows how to perform a hybrid search using BM25. To get started, we will initialize the `MilvusVectorStore` and create an index for the example documents. The default configuration uses:
 
-- Dense embeddings from the default embedding model (MLX's `text-embedding-ada-002`)
+- Dense embeddings from the default embedding model (OllamaFunctionCallingAdapter's `text-embedding-ada-002`)
 - BM25 for full-text search if enable_sparse is True
 - RRFRanker with k=60 for combining results if hybrid search is enabled
 """
@@ -193,9 +178,9 @@ logger.info("## Hybrid Search with Other Sparse Embedding")
 # ! pip install -q FlagEmbedding
 
 """
-Then let's build the vector store and index using the default MLX model for densen embedding and the built-in BGE-M3 for sparse embedding:
+Then let's build the vector store and index using the default OllamaFunctionCallingAdapter model for densen embedding and the built-in BGE-M3 for sparse embedding:
 """
-logger.info("Then let's build the vector store and index using the default MLX model for densen embedding and the built-in BGE-M3 for sparse embedding:")
+logger.info("Then let's build the vector store and index using the default OllamaFunctionCallingAdapter model for densen embedding and the built-in BGE-M3 for sparse embedding:")
 
 
 vector_store = MilvusVectorStore(

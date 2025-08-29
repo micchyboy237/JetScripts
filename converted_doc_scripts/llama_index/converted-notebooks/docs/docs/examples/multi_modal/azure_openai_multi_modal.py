@@ -1,17 +1,13 @@
 from IPython.display import HTML
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.llms import (
-    ChatMessage,
-    ImageBlock,
-    TextBlock,
-    MessageRole,
+ChatMessage,
+ImageBlock,
+TextBlock,
+MessageRole,
 )
 from llama_index.core.schema import Document, MediaResource
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.llms.azure_openai import AzureMLX
+from llama_index.llms.azure_openai import AzureOllamaFunctionCallingAdapter
 import base64
 import os
 import requests
@@ -25,21 +21,14 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/multi_modal/azure_openai_multi_modal.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# Multi-Modal LLM using Azure MLX GPT-4o mini for image reasoning
+# Multi-Modal LLM using Azure OllamaFunctionCallingAdapter GPT-4o mini for image reasoning
 
-In this notebook, we show how to use GPT-4o mini with the **Azure** MLX LLM class/abstraction for image understanding/reasoning. For a more complete example, please visit [this notebook](https://github.com/run-llama/llama_index/blob/main/docs/docs/examples/multi_modal/openai_multi_modal.ipynb).
+In this notebook, we show how to use GPT-4o mini with the **Azure** OllamaFunctionCallingAdapter LLM class/abstraction for image understanding/reasoning. For a more complete example, please visit [this notebook](https://github.com/run-llama/llama_index/blob/main/docs/docs/examples/multi_modal/openai_multi_modal.ipynb).
 """
-logger.info("# Multi-Modal LLM using Azure MLX GPT-4o mini for image reasoning")
+logger.info("# Multi-Modal LLM using Azure OllamaFunctionCallingAdapter GPT-4o mini for image reasoning")
 
 # %pip install llama-index-llms-azure-openai
 
@@ -47,9 +36,9 @@ logger.info("# Multi-Modal LLM using Azure MLX GPT-4o mini for image reasoning")
 ## Prerequisites
 
 1. Setup an Azure subscription - you can create one for free [here](https://azure.microsoft.com/en-us/free/cognitive-services/)
-2. Apply for access to Azure MLX Service [here](https://customervoice.microsoft.com/Pages/ResponsePage.aspx?id=v4j5cvGGr0GRqy180BHbR7en2Ais5pxKtso_Pz4b1_xUOFA5Qk1UWDRBMjg0WFhPMkIzTzhKQ1dWNyQlQCN0PWcu) 
-3. Create a resource in the Azure portal [here](https://portal.azure.com/?microsoft_azure_marketplace_ItemHideKey=microsoft_openai_tip#create/Microsoft.CognitiveServicesMLX)
-4. Deploy a model in Azure MLX Studio [here](https://oai.azure.com/)
+2. Apply for access to Azure OllamaFunctionCallingAdapter Service [here](https://customervoice.microsoft.com/Pages/ResponsePage.aspx?id=v4j5cvGGr0GRqy180BHbR7en2Ais5pxKtso_Pz4b1_xUOFA5Qk1UWDRBMjg0WFhPMkIzTzhKQ1dWNyQlQCN0PWcu) 
+3. Create a resource in the Azure portal [here](https://portal.azure.com/?microsoft_azure_marketplace_ItemHideKey=microsoft_openai_tip#create/Microsoft.CognitiveServicesOllamaFunctionCallingAdapter)
+4. Deploy a model in Azure OllamaFunctionCallingAdapter Studio [here](https://oai.azure.com/)
 
 
 You can find more details in [this guide.](https://learn.microsoft.com/en-us/azure/cognitive-services/openai/how-to/create-resource?pivots=web-portal)
@@ -66,17 +55,17 @@ os.environ["AZURE_OPENAI_ENDPOINT"] = "https://YOUR_URL.openai.azure.com/"
 os.environ["OPENAI_API_VERSION"] = "2024-02-15-preview"
 
 """
-## Initialize `AzureMLX` and Load Images from URLs
+## Initialize `AzureOllamaFunctionCallingAdapter` and Load Images from URLs
 
-Unlike regular `MLX`, you need to pass the `engine` argument in addition to `model`. The `engine` is the name you 
-gave to your model when you deployed it in Azure MLX Studio.
+Unlike regular `OllamaFunctionCallingAdapter`, you need to pass the `engine` argument in addition to `model`. The `engine` is the name you 
+gave to your model when you deployed it in Azure OllamaFunctionCallingAdapter Studio.
 """
-logger.info("## Initialize `AzureMLX` and Load Images from URLs")
+logger.info("## Initialize `AzureOllamaFunctionCallingAdapter` and Load Images from URLs")
 
 
-azure_openai_llm = AzureMLXLlamaIndexLLMAdapter(
-    engine="my-qwen3-1.7b-4bit-mini",
-    model="qwen3-1.7b-4bit",
+azure_openai_llm = AzureOllamaFunctionCallingAdapter(
+    engine="my-llama3.2",
+    model="llama3.2",
     max_new_tokens=300,
 )
 
@@ -85,11 +74,11 @@ Alternatively, you can also skip setting environment variables, and pass the par
 """
 logger.info("Alternatively, you can also skip setting environment variables, and pass the parameters in directly via constructor.")
 
-azure_openai_llm = AzureMLXLlamaIndexLLMAdapter(
+azure_openai_llm = AzureOllamaFunctionCallingAdapter(
     azure_endpoint="https://YOUR_URL.openai.azure.com/",
-    engine="my-qwen3-1.7b-4bit-mini",
+    engine="my-llama3.2",
     api_version="2024-02-15-preview",
-    model="qwen3-1.7b-4bit",
+    model="llama3.2",
     max_new_tokens=300,
     api_key="xxx",
     supports_content_blocks=True,

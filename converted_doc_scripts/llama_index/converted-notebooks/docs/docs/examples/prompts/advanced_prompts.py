@@ -1,12 +1,9 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.logger import CustomLogger
 from llama_index.core import Settings, VectorStoreIndex
 from llama_index.core.prompts import RichPromptTemplate
 from llama_index.core.schema import TextNode
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import os
 import shutil
@@ -18,13 +15,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/prompts/advanced_prompts.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -82,8 +72,7 @@ logger.debug(fmt_prompt)
 """
 We can also use `format_messages` to format the prompt into `ChatMessage` objects.
 """
-logger.info(
-    "We can also use `format_messages` to format the prompt into `ChatMessage` objects.")
+logger.info("We can also use `format_messages` to format the prompt into `ChatMessage` objects.")
 
 fmt_prompt = partial_prompt_tmpl.format_messages(
     context_str="In this work, we develop and release Llama 2, a collection of pretrained and fine-tuned large language models (LLMs) ranging in scale from 7 billion to 70 billion parameters",
@@ -197,15 +186,14 @@ SQL:
 """
 Given this prompt template, lets define and index some few-shot text-to-sql examples.
 """
-logger.info(
-    "Given this prompt template, lets define and index some few-shot text-to-sql examples.")
+logger.info("Given this prompt template, lets define and index some few-shot text-to-sql examples.")
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
-Settings.embed_model = MLXEmbedding(model="mxbai-embed-large")
+Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
+Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 example_nodes = [
     TextNode(
@@ -224,6 +212,7 @@ retriever = index.as_retriever(similarity_top_k=1)
 With our retriever, we can create our prompt template with function mappings to dynamically inject few-shot examples based on the query.
 """
 logger.info("With our retriever, we can create our prompt template with function mappings to dynamically inject few-shot examples based on the query.")
+
 
 
 def get_examples_fn(**kwargs):

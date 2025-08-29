@@ -1,10 +1,6 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core import set_global_handler
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import os
 import requests
 import shutil
@@ -16,13 +12,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Logging traces with Opik
@@ -71,7 +60,7 @@ logger.info("And configure the required environment variables:")
 
 # if "OPENAI_API_KEY" not in os.environ:
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass(
-        "Enter your MLX API key: "
+        "Enter your OllamaFunctionCallingAdapter API key: "
     )
 
 """

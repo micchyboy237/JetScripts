@@ -1,10 +1,7 @@
-import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import display, HTML
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import (
 SimpleDirectoryReader,
 VectorStoreIndex,
@@ -19,9 +16,7 @@ RetrieverEvaluator,
 generate_question_context_pairs,
 )
 from llama_index.core.response.notebook_utils import display_source_node
-from llama_index.core.settings import Settings
 from llama_index.core.text_splitter import SentenceSplitter
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import logging
 import os
 import pandas as pd
@@ -35,13 +30,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Evaluating RAG Systems
@@ -121,7 +109,7 @@ documents = reader.load_data()
 """
 logger.info("#### Generate Question")
 
-gpt4 = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.1)
+gpt4 = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
 
 dataset_generator = DatasetGenerator.from_documents(
     documents,
@@ -144,9 +132,9 @@ logger.info("To be consistent we will fix evaluation query")
 
 eval_query = "How did the author describe their early attempts at writing short stories?"
 
-gpt35 = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+gpt35 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
 
-gpt4 = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
 
 vector_index = VectorStoreIndex.from_documents(documents, llm=gpt35)
 
@@ -306,14 +294,8 @@ sample_expected = qa_dataset.relevant_docs[sample_id]
 eval_result = retriever_evaluator.evaluate(sample_query, sample_expected)
 logger.debug(eval_result)
 
-async def run_async_code_6d50bb40():
-    async def run_async_code_86bbaaaf():
-        eval_results = retriever_evaluator.evaluate_dataset(qa_dataset)
-        return eval_results
-    eval_results = asyncio.run(run_async_code_86bbaaaf())
-    logger.success(format_json(eval_results))
-    return eval_results
-eval_results = asyncio.run(run_async_code_6d50bb40())
+eval_results = retriever_evaluator.evaluate_dataset(qa_dataset)
+logger.success(format_json(eval_results))
 logger.success(format_json(eval_results))
 
 def display_results(name, eval_results):

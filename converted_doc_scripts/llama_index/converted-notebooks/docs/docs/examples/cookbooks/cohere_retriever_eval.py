@@ -1,9 +1,6 @@
-import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.evaluation import (
 generate_question_context_pairs,
@@ -13,9 +10,7 @@ from llama_index.core.evaluation import RetrieverEvaluator
 from llama_index.core.evaluation import generate_question_context_pairs
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.response.notebook_utils import display_source_node
-from llama_index.core.settings import Settings
 from llama_index.embeddings.cohere import CohereEmbedding
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import os
 import pandas as pd
 import shutil
@@ -27,13 +22,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/cookbooks/cohere_retriever_eval.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -117,7 +105,7 @@ for idx, node in enumerate(nodes):
 """
 logger.info("## Create retrievers for different embedding types")
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
 
 def cohere_embedding(
@@ -224,36 +212,24 @@ sample_expected = qa_dataset.relevant_docs[sample_id]
 eval_result = retriever_evaluator_float.evaluate(sample_query, sample_expected)
 logger.debug(eval_result)
 
-async def async_func_26():
-    eval_results_float = retriever_evaluator_float.evaluate_dataset(
+eval_results_float = retriever_evaluator_float.evaluate_dataset(
         qa_dataset
     )
-    return eval_results_float
-eval_results_float = asyncio.run(async_func_26())
 logger.success(format_json(eval_results_float))
 
-async def async_func_30():
-    eval_results_int8 = retriever_evaluator_int8.evaluate_dataset(
+eval_results_int8 = retriever_evaluator_int8.evaluate_dataset(
         qa_dataset
     )
-    return eval_results_int8
-eval_results_int8 = asyncio.run(async_func_30())
 logger.success(format_json(eval_results_int8))
 
-async def async_func_34():
-    eval_results_binary = retriever_evaluator_binary.evaluate_dataset(
+eval_results_binary = retriever_evaluator_binary.evaluate_dataset(
         qa_dataset
     )
-    return eval_results_binary
-eval_results_binary = asyncio.run(async_func_34())
 logger.success(format_json(eval_results_binary))
 
-async def async_func_38():
-    eval_results_ubinary = retriever_evaluator_ubinary.evaluate_dataset(
+eval_results_ubinary = retriever_evaluator_ubinary.evaluate_dataset(
         qa_dataset
     )
-    return eval_results_ubinary
-eval_results_ubinary = asyncio.run(async_func_38())
 logger.success(format_json(eval_results_ubinary))
 
 """

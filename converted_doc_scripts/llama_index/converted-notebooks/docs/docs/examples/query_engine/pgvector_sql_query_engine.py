@@ -1,13 +1,11 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.logger import CustomLogger
 from llama_index.core import PromptTemplate
 from llama_index.core import SQLDatabase
 from llama_index.core import Settings
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.query_engine import PGVectorSQLQueryEngine
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import insert, create_engine, String, text, Integer
@@ -22,13 +20,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/query_engine/pgvector_sql_query_engine.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -126,7 +117,7 @@ Base.metadata.create_all(engine)
 logger.info("#### Generate embedding for each Node with a sentence_transformers model")
 
 
-embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-en")
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 for node in nodes:
     text_embedding = embed_model.get_text_embedding(node.get_content())
@@ -215,7 +206,7 @@ logger.info("### Setup LLM, Embedding Model, and Misc.")
 
 sql_database = SQLDatabase(engine, include_tables=["sec_text_chunk"])
 
-Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 Settings.embed_model = embed_model
 
 

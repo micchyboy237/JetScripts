@@ -1,12 +1,7 @@
-import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.llms import ChatMessage
-from llama_index.core.settings import Settings
 from llama_index.core.tools import FunctionTool
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.perplexity import Perplexity
 import os
 import shutil
@@ -18,13 +13,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Perplexity
@@ -110,14 +98,8 @@ For asynchronous conversation processing, use the `chat` method to send messages
 """
 logger.info("## Async Chat")
 
-async def run_async_code_d8dceed1():
-    async def run_async_code_c21ac29f():
-        response = llm.chat(messages)
-        return response
-    response = asyncio.run(run_async_code_c21ac29f())
-    logger.success(format_json(response))
-    return response
-response = asyncio.run(run_async_code_d8dceed1())
+response = llm.chat(messages)
+logger.success(format_json(response))
 logger.success(format_json(response))
 
 logger.debug(response)
@@ -141,14 +123,8 @@ Similarly, for asynchronous streaming, the `astream_chat` method provides a way 
 """
 logger.info("## Async Stream Chat")
 
-async def run_async_code_548f10f2():
-    async def run_async_code_0bc31564():
-        resp = llm.stream_chat(messages)
-        return resp
-    resp = asyncio.run(run_async_code_0bc31564())
-    logger.success(format_json(resp))
-    return resp
-resp = asyncio.run(run_async_code_548f10f2())
+resp = llm.stream_chat(messages)
+logger.success(format_json(resp))
 logger.success(format_json(resp))
 
 async for delta in resp:

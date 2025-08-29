@@ -1,6 +1,5 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.logger import CustomLogger
 from llama_index.core import (
 SimpleDirectoryReader,
 VectorStoreIndex,
@@ -19,7 +18,6 @@ from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.prompts import PromptTemplate
 from llama_index.core.query_engine import RouterQueryEngine
 from llama_index.core.query_engine import SubQuestionQueryEngine
-from llama_index.core.settings import Settings
 from llama_index.core.tools import BaseTool, FunctionTool
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
@@ -49,13 +47,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Llama3 Cookbook with Ollama and Replicate
@@ -121,7 +112,7 @@ llm_replicate = Replicate(model="meta/meta-llama-3-70b-instruct")
 logger.info("### Setup Embedding Model")
 
 
-embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-en-v1.5")
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 """
 ### Define Global Settings Configuration

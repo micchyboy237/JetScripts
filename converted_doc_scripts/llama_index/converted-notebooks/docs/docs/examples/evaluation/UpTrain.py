@@ -1,9 +1,5 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from uptrain import Evals, EvalLlamaIndex, Settings as UpTrainSettings
 import httpx
 import openai
@@ -18,13 +14,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/evaluation/UpTrain.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -92,10 +81,10 @@ data = [
 ]
 
 """
-**This notebook uses the MLX API to generate text for prompts as well as to create the Vector Store Index. So, set openai.api_key to your MLX API key.**
+**This notebook uses the OllamaFunctionCallingAdapter API to generate text for prompts as well as to create the Vector Store Index. So, set openai.api_key to your OllamaFunctionCallingAdapter API key.**
 """
 
-openai.api_key = "sk-************************"  # your MLX API key
+openai.api_key = "sk-************************"  # your OllamaFunctionCallingAdapter API key
 
 """
 ## Create a query engine using LlamaIndex
@@ -127,7 +116,7 @@ You can choose between the following two alternatives for evaluating using UpTra
 
 # Alternative 1: Evaluate using UpTrain's Open-Source Software (OSS)
 
-You can use the open-source evaluation service to evaluate your model. In this case, you will need to provide an MLX API key. You can get yours [here](https://platform.openai.com/account/api-keys).
+You can use the open-source evaluation service to evaluate your model. In this case, you will need to provide an OllamaFunctionCallingAdapter API key. You can get yours [here](https://platform.openai.com/account/api-keys).
 
 In order to view your evaluations in the UpTrain dashboard, you will need to set it up by running the following commands in your terminal:
 

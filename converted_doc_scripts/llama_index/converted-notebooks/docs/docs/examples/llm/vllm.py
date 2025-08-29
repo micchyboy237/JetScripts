@@ -1,11 +1,5 @@
-import asyncio
-from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.llms import ChatMessage
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.vllm import Vllm
 from llama_index.llms.vllm import VllmServer
 import os
@@ -18,13 +12,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # vLLM  
@@ -102,7 +89,7 @@ llm.complete([" What is a black hole ?"])
 
 In this mode there is no need to install `vllm` model nor have CUDA available locally. To setup the vLLM API you can follow the guide present [here](https://docs.vllm.ai/en/latest/serving/distributed_serving.html). 
 Note: `llama-index-llms-vllm` module is a client for `vllm.entrypoints.api_server` which is only [a demo](https://github.com/vllm-project/vllm/blob/abfc4f3387c436d46d6701e9ba916de8f9ed9329/vllm/entrypoints/api_server.py#L2). <br>
-If vLLM server is launched with `vllm.entrypoints.openai.api_server` as [MLX Compatible Server](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server)  or via [Docker](https://docs.vllm.ai/en/latest/serving/deploying_with_docker.html) you need `MLXLike` class from `llama-index-llms-ollama-like` [module](localai.ipynb#llamaindex-interaction)
+If vLLM server is launched with `vllm.entrypoints.openai.api_server` as [OllamaFunctionCallingAdapter Compatible Server](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server)  or via [Docker](https://docs.vllm.ai/en/latest/serving/deploying_with_docker.html) you need `OllamaFunctionCallingAdapterLike` class from `llama-index-llms-ollama-like` [module](localai.ipynb#llamaindex-interaction)
 
 ### Completion Response
 """
@@ -133,28 +120,12 @@ message = [ChatMessage(content="what is a black hole", role="user")]
 """
 logger.info("### Async Response")
 
-async def run_async_code_fda572e1():
-    llm.complete("What is a black hole")
-    return 
- = asyncio.run(run_async_code_fda572e1())
-logger.success(format_json())
+llm.complete("What is a black hole")
 
-async def run_async_code_4c92d4fe():
-    llm.chat(message)
-    return 
- = asyncio.run(run_async_code_4c92d4fe())
-logger.success(format_json())
+llm.chat(message)
 
-async def run_async_code_a62dbd0e():
-    [x for x in llm.stream_complete("what is a black hole")][-1]
-    return 
- = asyncio.run(run_async_code_a62dbd0e())
-logger.success(format_json())
+[x for x in llm.stream_complete("what is a black hole")][-1]
 
-async def run_async_code_49c50b89():
-    [x for x in llm.stream_chat(message)][-1]
-    return 
- = asyncio.run(run_async_code_49c50b89())
-logger.success(format_json())
+[x for x in llm.stream_chat(message)][-1]
 
 logger.info("\n\n[DONE]", bright=True)

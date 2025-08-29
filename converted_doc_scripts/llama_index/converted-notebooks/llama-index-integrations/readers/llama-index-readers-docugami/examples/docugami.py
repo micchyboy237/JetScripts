@@ -1,11 +1,7 @@
 from base import DocugamiReader
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index import VectorStoreIndex
 from llama_index import download_loader
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import os
 import shutil
 
@@ -16,13 +12,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 # %load_ext autoreload
 # %autoreload 2
@@ -98,7 +87,7 @@ for node in response.source_nodes:
 
 One issue with large documents is that the correct answer to your question may depend on chunks that are far apart in the document. Typical chunking techniques, even with overlap, will struggle with providing the LLM sufficientcontext to answer such questions. With upcoming very large context LLMs, it may be possible to stuff a lot of tokens, perhaps even entire documents, inside the context but this will still hit limits at some point with very long documents, or a lot of documents.
 
-For example, if we ask a more complex question that requires the LLM to draw on chunks from different parts of the document, even MLX's powerful LLM is unable to answer correctly.
+For example, if we ask a more complex question that requires the LLM to draw on chunks from different parts of the document, even OllamaFunctionCallingAdapter's powerful LLM is unable to answer correctly.
 """
 logger.info("## Using Docugami to Add Metadata to Chunks for High Accuracy Document QA")
 

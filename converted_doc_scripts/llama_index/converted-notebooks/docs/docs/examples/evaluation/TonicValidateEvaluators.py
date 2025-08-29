@@ -1,14 +1,9 @@
-import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.llama_dataset import LabelledRagDataset
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.evaluation.tonic_validate import (
 AnswerConsistencyEvaluator,
 AnswerSimilarityEvaluator,
@@ -31,13 +26,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a target="_blank" href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/evaluation/TonicValidateEvaluators.ipynb">
@@ -75,15 +63,12 @@ The answer similarity score is a score between 0 and 5 that scores how well the 
 logger.info("The answer similarity score is a score between 0 and 5 that scores how well the LLM answer matches the reference answer. In this case, they do not match perfectly, so the answer similarity score is not a perfect 5.")
 
 answer_similarity_evaluator = AnswerSimilarityEvaluator()
-async def async_func_1():
-    score = answer_similarity_evaluator.evaluate(
+score = answer_similarity_evaluator.evaluate(
         question,
         llm_answer,
         retrieved_context_list,
         reference_response=reference_answer,
     )
-    return score
-score = asyncio.run(async_func_1())
 logger.success(format_json(score))
 score
 
@@ -94,12 +79,9 @@ logger.info("The answer consistency score is between 0.0 and 1.0, and measure wh
 
 answer_consistency_evaluator = AnswerConsistencyEvaluator()
 
-async def async_func_2():
-    score = answer_consistency_evaluator.evaluate(
+score = answer_consistency_evaluator.evaluate(
         question, llm_answer, retrieved_context_list
     )
-    return score
-score = asyncio.run(async_func_2())
 logger.success(format_json(score))
 score
 
@@ -110,12 +92,9 @@ logger.info("Augmentation accuracy measeures the percentage of the retrieved con
 
 augmentation_accuracy_evaluator = AugmentationAccuracyEvaluator()
 
-async def async_func_2():
-    score = augmentation_accuracy_evaluator.evaluate(
+score = augmentation_accuracy_evaluator.evaluate(
         question, llm_answer, retrieved_context_list
     )
-    return score
-score = asyncio.run(async_func_2())
 logger.success(format_json(score))
 score
 
@@ -126,12 +105,9 @@ logger.info("Augmentation precision measures whether the relevant retrieved cont
 
 augmentation_precision_evaluator = AugmentationPrecisionEvaluator()
 
-async def async_func_2():
-    score = augmentation_precision_evaluator.evaluate(
+score = augmentation_precision_evaluator.evaluate(
         question, llm_answer, retrieved_context_list
     )
-    return score
-score = asyncio.run(async_func_2())
 logger.success(format_json(score))
 score
 
@@ -142,12 +118,9 @@ logger.info("Retrieval precision measures the percentage of retrieved context is
 
 retrieval_precision_evaluator = RetrievalPrecisionEvaluator()
 
-async def async_func_2():
-    score = retrieval_precision_evaluator.evaluate(
+score = retrieval_precision_evaluator.evaluate(
         question, llm_answer, retrieved_context_list
     )
-    return score
-score = asyncio.run(async_func_2())
 logger.success(format_json(score))
 score
 
@@ -158,15 +131,12 @@ logger.info("The `TonicValidateEvaluator` can calculate all of Tonic Validate's 
 
 tonic_validate_evaluator = TonicValidateEvaluator()
 
-async def async_func_2():
-    scores = tonic_validate_evaluator.evaluate(
+scores = tonic_validate_evaluator.evaluate(
         question,
         llm_answer,
         retrieved_context_list,
         reference_response=reference_answer,
     )
-    return scores
-scores = asyncio.run(async_func_2())
 logger.success(format_json(scores))
 
 scores.score_dict
@@ -180,12 +150,9 @@ logger.info("You can also evaluate more than one query and response at once usin
 
 tonic_validate_evaluator = TonicValidateEvaluator()
 
-async def async_func_2():
-    scores = tonic_validate_evaluator.evaluate_run(
+scores = tonic_validate_evaluator.evaluate_run(
         [question], [llm_answer], [retrieved_context_list], [reference_answer]
     )
-    return scores
-scores = asyncio.run(async_func_2())
 logger.success(format_json(scores))
 scores.run_data[0].scores
 
@@ -227,12 +194,9 @@ tonic_validate_evaluator = TonicValidateEvaluator(
     metrics=[AnswerSimilarityMetric()], model_evaluator="gpt-4-1106-preview"
 )
 
-async def async_func_33():
-    scores = tonic_validate_evaluator.evaluate_run(
+scores = tonic_validate_evaluator.evaluate_run(
         questions, retrieved_context_lists, reference_answers, llm_answers
     )
-    return scores
-scores = asyncio.run(async_func_33())
 logger.success(format_json(scores))
 
 """

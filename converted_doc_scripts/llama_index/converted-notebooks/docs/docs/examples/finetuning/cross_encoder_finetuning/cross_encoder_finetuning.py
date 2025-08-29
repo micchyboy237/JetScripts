@@ -1,11 +1,8 @@
-import asyncio
 from jet.transformers.formatters import format_json
 from datasets import load_dataset
 from huggingface_hub import notebook_login
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Document
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
@@ -17,8 +14,6 @@ get_results_df,
 )
 from llama_index.core.postprocessor import SentenceTransformerRerank
 from llama_index.core.retrievers import VectorIndexRetriever
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.finetuning.cross_encoders import CrossEncoderFinetuneEngine
 from llama_index.finetuning.cross_encoders.dataset_gen import (
 generate_ce_fine_tuning_dataset,
@@ -41,13 +36,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/finetuning/cross_encoder_finetuning/cross_encoder_finetuning.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -84,9 +72,9 @@ logger.info("# How to Finetune a cross-encoder using LLamaIndex")
 - We finetuned the cross-encoder using helper utilities written in llamaindex and push it to HuggingFace Hub using the huggingface cli tokens login which can be found here:- https://huggingface.co/settings/tokens
 
 - We evaluate on both datasets using two metrics and three cases
-     1. Just MLX embeddings without any reranker
-     2. MLX embeddings combined with cross-encoder/ms-marco-MiniLM-L-12-v2 as reranker
-     3. MLX embeddings combined with our fine-tuned cross encoder model as reranker
+     1. Just OllamaFunctionCallingAdapter embeddings without any reranker
+     2. OllamaFunctionCallingAdapter embeddings combined with cross-encoder/ms-marco-MiniLM-L-12-v2 as reranker
+     3. OllamaFunctionCallingAdapter embeddings combined with our fine-tuned cross encoder model as reranker
 
 * Evaluation Criteria for each Eval Dataset
   - Hits metric:- For evaluating the Reranking Eval Dataset we just simply use the retriever+ post-processor functionalities of LLamaIndex to see in the different cases how many times does the relevant context gets retrieved and call it the hits metric.
@@ -458,7 +446,7 @@ base_reranker_scores = [base_reranker_hits]
 finetuned_reranker_scores = [finetuned_reranker_hits]
 reranker_eval_dict = {
     "Metric": "Hits",
-    "MLX_Embeddings": without_reranker_scores,
+    "OllamaFunctionCallingAdapter_Embeddings": without_reranker_scores,
     "Base_cross_encoder": base_reranker_scores,
     "Finetuned_cross_encoder": finetuned_reranker_hits,
     "Total Relevant Context": total_number_of_context,
@@ -485,7 +473,7 @@ df_test.head(1)
 """
 ### Baseline Evaluation
 
-Just using MLX Embeddings for retrieval without any re-ranker
+Just using OllamaFunctionCallingAdapter Embeddings for retrieval without any re-ranker
 
 #### Eval Method:-
 1. Iterate over each row of the test dataset:-
@@ -502,7 +490,7 @@ logger.info("### Baseline Evaluation")
 # os.environ["OPENAI_API_KEY"] = "sk-"
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 
-gpt4 = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
 
 evaluator_gpt4_pairwise = PairwiseComparisonEvaluator(llm=gpt4)
 
@@ -540,12 +528,9 @@ for index, row in df_test.iterrows():
             no_reranker_dict_list.append(no_reranker_dict)
 
 
-            async def async_func_54():
-                pairwise_eval_result = evaluator_gpt4_pairwise.evaluate(
+            pairwise_eval_result = evaluator_gpt4_pairwise.evaluate(
                     query, response=response, reference=reference
                 )
-                return pairwise_eval_result
-            pairwise_eval_result = asyncio.run(async_func_54())
             logger.success(format_json(pairwise_eval_result))
 
             pairwise_score = pairwise_eval_result.score
@@ -579,7 +564,7 @@ display(results_df)
 """
 ### Evaluate with base reranker
 
-MLX Embeddings +  `cross-encoder/ms-marco-MiniLM-L-12-v2` as reranker
+OllamaFunctionCallingAdapter Embeddings +  `cross-encoder/ms-marco-MiniLM-L-12-v2` as reranker
 
 #### Eval Method:-
 1. Iterate over each row of the test dataset:-
@@ -600,7 +585,7 @@ rerank = SentenceTransformerRerank(
     model="cross-encoder/ms-marco-MiniLM-L-12-v2", top_n=3
 )
 
-gpt4 = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
 
 evaluator_gpt4_pairwise = PairwiseComparisonEvaluator(llm=gpt4)
 
@@ -641,12 +626,9 @@ for index, row in df_test.iterrows():
             base_reranker_dict_list.append(base_reranker_dict)
 
 
-            async def async_func_56():
-                pairwise_eval_result = evaluator_gpt4_pairwise.evaluate(
+            pairwise_eval_result = evaluator_gpt4_pairwise.evaluate(
                     query=query, response=response, reference=reference
                 )
-                return pairwise_eval_result
-            pairwise_eval_result = asyncio.run(async_func_56())
             logger.success(format_json(pairwise_eval_result))
 
             pairwise_score = pairwise_eval_result.score
@@ -679,7 +661,7 @@ display(results_df)
 """
 ### Evaluate with Fine-Tuned re-ranker
 
-MLX Embeddings + `bpHigh/Cross-Encoder-LLamaIndex-Demo-v2` as reranker
+OllamaFunctionCallingAdapter Embeddings + `bpHigh/Cross-Encoder-LLamaIndex-Demo-v2` as reranker
 
 #### Eval Method:-
 1. Iterate over each row of the test dataset:-
@@ -701,7 +683,7 @@ rerank = SentenceTransformerRerank(
 )
 
 
-gpt4 = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
 
 evaluator_gpt4_pairwise = PairwiseComparisonEvaluator(llm=gpt4)
 
@@ -742,12 +724,9 @@ for index, row in df_test.iterrows():
             finetuned_reranker_dict_list.append(finetuned_reranker_dict)
 
 
-            async def async_func_57():
-                pairwise_eval_result = evaluator_gpt4_pairwise.evaluate(
+            pairwise_eval_result = evaluator_gpt4_pairwise.evaluate(
                     query, response=response, reference=reference
                 )
-                return pairwise_eval_result
-            pairwise_eval_result = asyncio.run(async_func_57())
             logger.success(format_json(pairwise_eval_result))
 
             pairwise_score = pairwise_eval_result.score

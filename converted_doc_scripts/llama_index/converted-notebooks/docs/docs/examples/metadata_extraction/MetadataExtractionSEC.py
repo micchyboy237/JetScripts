@@ -1,8 +1,6 @@
 from copy import deepcopy
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
 from llama_index.core.extractors import (
@@ -20,9 +18,7 @@ from llama_index.core.question_gen.prompts import (
 DEFAULT_SUB_QUESTION_PROMPT_TMPL,
 )
 from llama_index.core.schema import MetadataMode
-from llama_index.core.settings import Settings
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.extractors.entity import EntityExtractor
 import openai
 import os
@@ -35,17 +31,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/metadata_extraction/MetadataExtractionSEC.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -75,7 +60,7 @@ logger.info("# Extracting Metadata for Better Document Indexing and Understandin
 # os.environ["OPENAI_API_KEY"] = "YOUR_API_KEY_HERE"
 
 
-llm = MLXLlamaIndexLLMAdapter(temperature=0.1, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", max_tokens=512)
+llm = OllamaFunctionCallingAdapter(temperature=0.1, model="llama3.2", request_timeout=300.0, context_window=4096, max_tokens=512)
 
 """
 We create a node parser that extracts the document title and hypothetical question embeddings relevant to the document chunk.
@@ -120,10 +105,10 @@ We first load the 10k annual SEC report for Uber and Lyft for the years 2019 and
 logger.info("We first load the 10k annual SEC report for Uber and Lyft for the years 2019 and 2020 respectively.")
 
 # !mkdir -p data
-# !wget -O f"{GENERATED_DIR}/10k-132.pdf" "https://www.dropbox.com/scl/fi/6dlqdk6e2k1mjhi8dee5j/uber.pdf?rlkey=2jyoe49bg2vwdlz30l76czq6g&dl=1"
-# !wget -O f"{GENERATED_DIR}/10k-vFinal.pdf" "https://www.dropbox.com/scl/fi/qn7g3vrk5mqb18ko4e5in/lyft.pdf?rlkey=j6jxtjwo8zbstdo4wz3ns8zoj&dl=1"
+# !wget -O "data/10k-132.pdf" "https://www.dropbox.com/scl/fi/6dlqdk6e2k1mjhi8dee5j/uber.pdf?rlkey=2jyoe49bg2vwdlz30l76czq6g&dl=1"
+# !wget -O "data/10k-vFinal.pdf" "https://www.dropbox.com/scl/fi/qn7g3vrk5mqb18ko4e5in/lyft.pdf?rlkey=j6jxtjwo8zbstdo4wz3ns8zoj&dl=1"
 
-uber_docs = SimpleDirectoryReader(input_files=[f"{GENERATED_DIR}/10k-132.pdf"]).load_data()
+uber_docs = SimpleDirectoryReader(input_files=["data/10k-132.pdf"]).load_data()
 uber_front_pages = uber_docs[0:3]
 uber_content = uber_docs[63:69]
 uber_docs = uber_front_pages + uber_content
@@ -136,7 +121,7 @@ uber_nodes = pipeline.run(documents=uber_docs)
 uber_nodes[1].metadata
 
 lyft_docs = SimpleDirectoryReader(
-    input_files=[f"{GENERATED_DIR}/10k-vFinal.pdf"]
+    input_files=["data/10k-vFinal.pdf"]
 ).load_data()
 lyft_front_pages = lyft_docs[0:3]
 lyft_content = lyft_docs[68:73]
@@ -188,7 +173,7 @@ index_no_metadata = VectorStoreIndex(
     nodes=nodes_no_metadata,
 )
 engine_no_metadata = index_no_metadata.as_query_engine(
-    similarity_top_k=10, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+    similarity_top_k=10, llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 )
 
 final_engine_no_metadata = SubQuestionQueryEngine.from_defaults(
@@ -228,7 +213,7 @@ logger.debug(
 index = VectorStoreIndex(
     nodes=uber_nodes + lyft_nodes,
 )
-engine = index.as_query_engine(similarity_top_k=10, llm=MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"))
+engine = index.as_query_engine(similarity_top_k=10, llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096))
 
 final_engine = SubQuestionQueryEngine.from_defaults(
     query_engine_tools=[

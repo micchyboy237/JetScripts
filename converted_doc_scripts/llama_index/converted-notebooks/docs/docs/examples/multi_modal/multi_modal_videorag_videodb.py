@@ -1,10 +1,6 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import VectorStoreIndex
 from llama_index.core.schema import TextNode
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from videodb import SceneExtractionType
 from videodb import Segmenter
 from videodb import connect
@@ -19,13 +15,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/multi_modal/multi_modal_videorag_videodb.ipynb
@@ -55,7 +44,7 @@ In this notebook, we will develop a multimodal RAG for video using VideoDB and L
 
 To connect to VideoDB, simply get the API key and create a connection. This can be done by setting the `VIDEO_DB_API_KEY` environment variable. You can get it from 👉🏼 [VideoDB Console](https://console.videodb.io). ( Free for first 50 uploads, **No credit card required!** )
 
-# Get your `OPENAI_API_KEY` from MLX platform for `llama_index` response synthesizer.
+# Get your `OPENAI_API_KEY` from OllamaFunctionCallingAdapter platform for `llama_index` response synthesizer.
 
 # <!-- > Set the `OPENAI_API_KEY` & `VIDEO_DB_API_KEY` environment variable with your API keys. -->
 """
@@ -235,7 +224,7 @@ play_stream(stream_url)
 ## 🏃‍♂️ Next Steps
 ---
 
-In this guide, we built a Simple Multimodal RAG for Videos Using VideoDB, Llamaindex, and MLX
+In this guide, we built a Simple Multimodal RAG for Videos Using VideoDB, Llamaindex, and OllamaFunctionCallingAdapter
 
 You can optimize the pipeline by incorporating more advanced techniques like
 - Build a Search on Video Collection

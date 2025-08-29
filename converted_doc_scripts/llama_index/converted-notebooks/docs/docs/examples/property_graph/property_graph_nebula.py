@@ -1,13 +1,10 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.logger import CustomLogger
 from llama_index.core import Document
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.indices.property_graph import PropertyGraphIndex
-from llama_index.core.settings import Settings
 from llama_index.core.storage.storage_context import StorageContext
 from llama_index.core.vector_stores.simple import SimpleVectorStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
@@ -22,13 +19,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # NebulaGraph Property Graph Index
@@ -89,14 +79,14 @@ logger.info("## Env Setup")
 documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 
 """
-We choose using qwen3-1.7b-4bit and local embedding model intfloat/multilingual-e5-large . You can change to what you like, by editing the following lines:
+We choose using gpt-4o and local embedding model intfloat/multilingual-e5-large . You can change to what you like, by editing the following lines:
 """
-logger.info("We choose using qwen3-1.7b-4bit and local embedding model intfloat/multilingual-e5-large . You can change to what you like, by editing the following lines:")
+logger.info("We choose using gpt-4o and local embedding model intfloat/multilingual-e5-large . You can change to what you like, by editing the following lines:")
 
 # %pip install llama-index-embeddings-huggingface
 
 
-Settings.llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", temperature=0.3)
+Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 Settings.embed_model = HuggingFaceEmbedding(
     model_name="intfloat/multilingual-e5-large"
 )

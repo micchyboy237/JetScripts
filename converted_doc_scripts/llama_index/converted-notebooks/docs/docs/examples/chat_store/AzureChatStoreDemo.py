@@ -1,13 +1,9 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Settings
 from llama_index.core.chat_engine import SimpleChatEngine
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.response.notebook_utils import display_response
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.llms.azure_openai import AzureMLX
+from llama_index.llms.azure_openai import AzureOllamaFunctionCallingAdapter
 from llama_index.storage.chat_store.azure import AzureChatStore
 import logging
 import os
@@ -21,13 +17,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Demo: Azure Table Storage as a ChatStore
@@ -59,12 +48,12 @@ logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
 """
 # Define our models
 
-In staying with the Azure theme, let's define our Azure MLX embedding and LLM models.
+In staying with the Azure theme, let's define our Azure OllamaFunctionCallingAdapter embedding and LLM models.
 """
 logger.info("# Define our models")
 
-Settings.llm = AzureMLXLlamaIndexLLMAdapter(
-    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
+Settings.llm = AzureOllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096,
     deployment_name="gpt-4",
     api_key="",
     azure_endpoint="",

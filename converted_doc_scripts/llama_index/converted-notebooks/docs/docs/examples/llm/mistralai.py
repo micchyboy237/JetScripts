@@ -1,15 +1,10 @@
-import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import clear_output
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.bridge.pydantic import BaseModel
 from llama_index.core.llms import ChatMessage
 from llama_index.core.prompts import PromptTemplate
-from llama_index.core.settings import Settings
 from llama_index.core.tools import FunctionTool
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.mistralai import MistralAI
 from pprint import pprint
 import os
@@ -22,13 +17,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/llm/mistralai.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -181,8 +169,7 @@ You get the same result if you use the `async` variant (it will be faster since 
 """
 logger.info("You get the same result if you use the `async` variant (it will be faster since we do asyncio.gather under the hood).")
 
-async def async_func_0():
-    response = llm.predict_and_call(
+response = llm.predict_and_call(
         [mystery_tool, multiply_tool],
         user_msg=(
             """What happens if I run the mystery function on the following pairs of numbers? Generate a separate result for each row:
@@ -193,8 +180,6 @@ async def async_func_0():
         ),
         allow_parallel_tool_calls=True,
     )
-    return response
-response = asyncio.run(async_func_0())
 logger.success(format_json(response))
 for s in response.sources:
     logger.debug(f"Name: {s.tool_name}, Input: {s.raw_input}, Output: {str(s)}")
@@ -255,14 +240,8 @@ logger.info("## Async")
 
 
 llm = MistralAI()
-async def run_async_code_c3ecd675():
-    async def run_async_code_a989c387():
-        resp = llm.complete("Paul Graham is ")
-        return resp
-    resp = asyncio.run(run_async_code_a989c387())
-    logger.success(format_json(resp))
-    return resp
-resp = asyncio.run(run_async_code_c3ecd675())
+resp = llm.complete("Paul Graham is ")
+logger.success(format_json(resp))
 logger.success(format_json(resp))
 
 logger.debug(resp)

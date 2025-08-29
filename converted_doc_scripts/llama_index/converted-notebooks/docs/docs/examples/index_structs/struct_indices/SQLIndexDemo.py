@@ -1,11 +1,10 @@
-from IPython.display import Markdown, display
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from IPython.display import Markdown, display
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.logger import CustomLogger
 from llama_index.core import SQLDatabase
 from llama_index.core import VectorStoreIndex
-from llama_index.core.embeddings.openai import MLXEmbedding
+from llama_index.core.embeddings.openai import HuggingFaceEmbedding
 from llama_index.core.indices.struct_store.sql_query import (
 SQLTableRetrieverQueryEngine,
 )
@@ -19,8 +18,6 @@ from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.response.notebook_utils import display_source_node
 from llama_index.core.retrievers import NLSQLRetriever
 from llama_index.core.schema import TextNode
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from sqlalchemy import (
 create_engine,
 MetaData,
@@ -44,13 +41,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/index_structs/struct_indices/SQLIndexDemo.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
@@ -71,7 +61,7 @@ If you're opening this Notebook on colab, you will probably need to install Llam
 """
 logger.info("# Text-to-SQL Guide (Query Engine + Retriever)")
 
-# %pip install llama-index-core llama-index-llms-ollama llama-index-embeddings-ollama
+# %pip install llama-index-core llama-index-llms-ollama llama-index-embeddings-huggingface
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-.."
@@ -108,7 +98,7 @@ We first define our `SQLDatabase` abstraction (a light wrapper around SQLAlchemy
 logger.info("### Define SQL Database")
 
 
-llm = MLXLlamaIndexLLMAdapter(temperature=0.1, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(temperature=0.1, model="llama3.2", request_timeout=300.0, context_window=4096)
 
 sql_database = SQLDatabase(engine, include_tables=["city_stats"])
 
@@ -210,7 +200,7 @@ obj_index = ObjectIndex.from_objects(
     table_schema_objs,
     table_node_mapping,
     VectorStoreIndex,
-    embed_model=MLXEmbedding(model="mxbai-embed-large"),
+    embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
 )
 query_engine = SQLTableRetrieverQueryEngine(
     sql_database, obj_index.as_retriever(similarity_top_k=1)
@@ -260,7 +250,7 @@ with engine.connect() as connection:
 city_nodes = [TextNode(text=str(t)) for t in results]
 
 city_rows_index = VectorStoreIndex(
-    city_nodes, embed_model=MLXEmbedding(model="mxbai-embed-large")
+    city_nodes, embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 )
 city_rows_retriever = city_rows_index.as_retriever(similarity_top_k=1)
 
@@ -306,7 +296,7 @@ for column_name in ["city_name", "country"]:
     nodes = [TextNode(text=t[0]) for t in values]
 
     column_index = VectorStoreIndex(
-        nodes, embed_model=MLXEmbedding(model="mxbai-embed-large")
+        nodes, embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
     )
     column_retriever = column_index.as_retriever(similarity_top_k=1)
 

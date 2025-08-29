@@ -1,8 +1,6 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.logger import CustomLogger
 from llama_index.core import (
 Settings,
 set_global_handler,
@@ -10,11 +8,10 @@ set_global_handler,
 from llama_index.core import Settings
 from llama_index.core import VectorStoreIndex
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from phoenix.evals import (
 HallucinationEvaluator,
-MLXModel,
+OllamaFunctionCallingAdapterModel,
 QAEvaluator,
 RelevanceEvaluator,
 run_evals,
@@ -41,13 +38,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 # Observability with Arize Phoenix - Tracing and Evaluating a LlamaIndex Application
 
@@ -59,13 +49,13 @@ In this tutorial, you will:
 - Inspect the traces and spans of your application to identify sources of latency and cost,
 - Export your trace data as a pandas dataframe and run an [LLM Evals](https://docs.arize.com/phoenix/concepts/llm-evals).
 
-ℹ️ This notebook requires an MLX API key.
+ℹ️ This notebook requires an OllamaFunctionCallingAdapter API key.
 
 [Observability Documentation](https://docs.llamaindex.ai/en/stable/module_guides/observability/)
 
 ## 1. Install Dependencies and Import Libraries
 
-Install Phoenix, LlamaIndex, and MLX.
+Install Phoenix, LlamaIndex, and OllamaFunctionCallingAdapter.
 """
 logger.info("# Observability with Arize Phoenix - Tracing and Evaluating a LlamaIndex Application")
 
@@ -93,11 +83,11 @@ logger.info("## 2. Launch Phoenix")
 session = px.launch_app()
 
 """
-## 3. Configure Your MLX API Key
+## 3. Configure Your OllamaFunctionCallingAdapter API Key
 
-Set your MLX API key if it is not already set as an environment variable.
+Set your OllamaFunctionCallingAdapter API key if it is not already set as an environment variable.
 """
-logger.info("## 3. Configure Your MLX API Key")
+logger.info("## 3. Configure Your OllamaFunctionCallingAdapter API Key")
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
@@ -148,8 +138,8 @@ set_global_handler("arize_phoenix")
 logger.info("### Setup LLM and Embedding Model")
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.2)
-embed_model = MLXEmbedding()
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.2)
+embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 Settings.llm = llm
 Settings.embed_model = embed_model
@@ -212,8 +202,8 @@ Evaluators are built on top of language models and prompt the LLM to assess the 
 """
 logger.info("Next, define your evaluation model and your evaluators.")
 
-eval_model = MLXModel(
-    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
+eval_model = OllamaFunctionCallingAdapterModel(
+    model="llama3.2", request_timeout=300.0, context_window=4096,
 )
 hallucination_evaluator = HallucinationEvaluator(eval_model)
 qa_correctness_evaluator = QAEvaluator(eval_model)

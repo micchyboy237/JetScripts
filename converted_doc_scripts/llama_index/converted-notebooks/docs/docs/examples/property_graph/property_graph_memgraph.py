@@ -1,12 +1,9 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.logger import CustomLogger
 from llama_index.core import PropertyGraphIndex
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.indices.property_graph import SchemaLLMPathExtractor
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.graph_stores.memgraph import MemgraphPropertyGraphStore
 import os
@@ -20,17 +17,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Memgraph Property Graph Index
@@ -63,7 +49,7 @@ logger.info("## Environment setup")
 
 os.environ[
 #     "OPENAI_API_KEY"
-] = "sk-proj-..."  # Replace with your MLX API key
+] = "sk-proj-..."  # Replace with your OllamaFunctionCallingAdapter API key
 
 """
 Create the data directory and download the Paul Graham essay we'll be using as the input data for this example.
@@ -71,10 +57,10 @@ Create the data directory and download the Paul Graham essay we'll be using as t
 logger.info("Create the data directory and download the Paul Graham essay we'll be using as the input data for this example.")
 
 
-os.makedirs(f"{GENERATED_DIR}/paul_graham/", exist_ok=True)
+os.makedirs("data/paul_graham/", exist_ok=True)
 
 url = "https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt"
-output_path = f"{GENERATED_DIR}/paul_graham/paul_graham_essay.txt"
+output_path = "data/paul_graham/paul_graham_essay.txt"
 urllib.request.urlretrieve(url, output_path)
 
 # import nest_asyncio
@@ -121,10 +107,10 @@ logger.info("## Index Construction")
 
 index = PropertyGraphIndex.from_documents(
     documents,
-    embed_model=MLXEmbedding(model_name="text-embedding-ada-002"),
+    embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     kg_extractors=[
         SchemaLLMPathExtractor(
-            llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.0)
+            llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.0)
         )
     ],
     property_graph_store=graph_store,
@@ -177,13 +163,13 @@ If you have an existing graph (either created with LlamaIndex or otherwise), we 
 """
 logger.info("## Loading from an existing graph")
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.0)
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.0)
 kg_extractors = [SchemaLLMPathExtractor(llm=llm)]
 
 index = PropertyGraphIndex.from_existing(
     property_graph_store=graph_store,
     kg_extractors=kg_extractors,
-    embed_model=MLXEmbedding(model_name="text-embedding-ada-002"),
+    embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     show_progress=True,
 )
 

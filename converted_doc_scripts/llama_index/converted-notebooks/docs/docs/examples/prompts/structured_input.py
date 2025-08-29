@@ -1,13 +1,8 @@
-import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import Markdown, display
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.prompts import RichPromptTemplate
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from pydantic import BaseModel
 from pydantic import Field
 from typing import Dict
@@ -22,13 +17,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Structured Input for LLMs
@@ -112,16 +100,10 @@ logger.info("### 3. Chat With an LLM")
 # os.environ["OPENAI_API_KEY"] = getpass()
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
-async def run_async_code_0a0dbd7f():
-    async def run_async_code_db1ba9e6():
-        response = llm.chat(prompt.format_messages(data=user))
-        return response
-    response = asyncio.run(run_async_code_db1ba9e6())
-    logger.success(format_json(response))
-    return response
-response = asyncio.run(run_async_code_0a0dbd7f())
+response = llm.chat(prompt.format_messages(data=user))
+logger.success(format_json(response))
 logger.success(format_json(response))
 
 logger.debug(response.message.content)
@@ -149,14 +131,8 @@ class ContactDetails(BaseModel):
 
 sllm = llm.as_structured_llm(ContactDetails)
 
-async def run_async_code_3d531951():
-    async def run_async_code_7d8e1d8e():
-        structured_response = sllm.chat(prompt.format_messages(data=user))
-        return structured_response
-    structured_response = asyncio.run(run_async_code_7d8e1d8e())
-    logger.success(format_json(structured_response))
-    return structured_response
-structured_response = asyncio.run(run_async_code_3d531951())
+structured_response = sllm.chat(prompt.format_messages(data=user))
+logger.success(format_json(structured_response))
 logger.success(format_json(structured_response))
 
 logger.debug(structured_response.raw.email)

@@ -1,9 +1,5 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.packs.trulens_eval_packs import (
 TruLensRAGTriadPack,
 TruLensHarmlessPack,
@@ -21,13 +17,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <center>
@@ -65,9 +54,9 @@ logger.info("## Install and Import Dependencies")
 
 
 """
-This pack requires an MLX key. Configure your MLX API key.
+This pack requires an OllamaFunctionCallingAdapter key. Configure your OllamaFunctionCallingAdapter API key.
 """
-logger.info("This pack requires an MLX key. Configure your MLX API key.")
+logger.info("This pack requires an OllamaFunctionCallingAdapter key. Configure your OllamaFunctionCallingAdapter API key.")
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
@@ -132,7 +121,7 @@ tru.get_leaderboard(app_ids=["Query Engine v1: RAG Triad Evals"])
 """
 ## Start the TruLens Harmless Pack.
 
-This pack requires both MLX and Huggingface keys. Configure your MLX and Huggingface API keys.
+This pack requires both OllamaFunctionCallingAdapter and Huggingface keys. Configure your OllamaFunctionCallingAdapter and Huggingface API keys.
 """
 logger.info("## Start the TruLens Harmless Pack.")
 
@@ -167,7 +156,7 @@ tru.get_leaderboard(app_ids=["Query Engine v1: Harmless Evals"])
 """
 ## Start the TruLens Helpful Pack.
 
-This pack requires both MLX and Huggingface keys. Configure your MLX and Huggingface API keys.
+This pack requires both OllamaFunctionCallingAdapter and Huggingface keys. Configure your OllamaFunctionCallingAdapter and Huggingface API keys.
 """
 logger.info("## Start the TruLens Helpful Pack.")
 

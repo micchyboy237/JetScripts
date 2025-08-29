@@ -1,10 +1,7 @@
-import asyncio
 from jet.transformers.formatters import format_json
 from PIL import Image
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import PromptTemplate
 from llama_index.core import SimpleDirectoryReader, Document
 from llama_index.core.evaluation import CorrectnessEvaluator
@@ -25,9 +22,7 @@ display_query_and_multimodal_response,
 )
 from llama_index.core.schema import ImageDocument
 from llama_index.core.schema import TextNode, ImageNode
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.multi_modal_llms.openai import MLXMultiModal
+from llama_index.multi_modal_llms.openai import OllamaFunctionCallingAdapterMultiModal
 from llama_index.multi_modal_llms.replicate import ReplicateMultiModal
 import json
 import matplotlib.pyplot as plt
@@ -46,13 +41,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/evaluation/multi_modal/multi_modal_rag_evaluation.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -133,7 +121,7 @@ asl_index = MultiModalVectorStoreIndex(image_nodes + text_nodes)
 """
 ### Another RAG System For Consideration (GPT-4V Image Descriptions For Retrieval)
 
-With the previous `MultiModalVectorStoreIndex`, the default embedding model for images is MLX [CLIP](https://github.com/openai/CLIP). In order to draw comparisons with another RAG system (as is often a reason for performing RAG evaluation), we will standup another RAG system that uses a different embedding for images from the default one.
+With the previous `MultiModalVectorStoreIndex`, the default embedding model for images is OllamaFunctionCallingAdapter [CLIP](https://github.com/openai/CLIP). In order to draw comparisons with another RAG system (as is often a reason for performing RAG evaluation), we will standup another RAG system that uses a different embedding for images from the default one.
 
 In particular, we will prompt GPT-4V to write text-descriptions of every image, and then apply the usual text-embeddings to these descriptions and associate these embeddings to the images. That is, these text-description embeddings will be what's ultimately used in this RAG system to perform retrieval.
 """
@@ -143,7 +131,7 @@ load_previously_generated_text_descriptions = True
 
 
 if not load_previously_generated_text_descriptions:
-    openai_mm_llm = MLXMultiModal(model="qwen3-1.7b-4bit", max_new_tokens=300)
+    openai_mm_llm = OllamaFunctionCallingAdapterMultiModal(model="llama3.2", request_timeout=300.0, context_window=4096, max_new_tokens=300)
 
     image_with_text_documents = SimpleDirectoryReader(image_path).load_data()
 
@@ -208,8 +196,8 @@ qa_tmpl_str = (
 )
 qa_tmpl = PromptTemplate(qa_tmpl_str)
 
-openai_mm_llm = MLXMultiModal(
-    model="qwen3-1.7b-4bit",
+openai_mm_llm = OllamaFunctionCallingAdapterMultiModal(
+    model="llama3.2", request_timeout=300.0, context_window=4096,
     max_new_tokens=300,
 )
 
@@ -373,26 +361,17 @@ Now with our ground-truth data in hand, we can invoke the `evaluate_dataset` (or
 """
 logger.info("Now with our ground-truth data in hand, we can invoke the `evaluate_dataset` (or its `async` version) method of our `MultiModalRetrieverEvaluator`.")
 
-async def async_func_0():
-    eval_results_image = clip_retriever_evaluator.evaluate_dataset(
+eval_results_image = clip_retriever_evaluator.evaluate_dataset(
         qa_dataset_image
     )
-    return eval_results_image
-eval_results_image = asyncio.run(async_func_0())
 logger.success(format_json(eval_results_image))
-async def async_func_3():
-    eval_results_text = clip_retriever_evaluator.evaluate_dataset(
+eval_results_text = clip_retriever_evaluator.evaluate_dataset(
         qa_dataset_text
     )
-    return eval_results_text
-eval_results_text = asyncio.run(async_func_3())
 logger.success(format_json(eval_results_text))
-async def async_func_6():
-    eval_results_text_desc = text_desc_retriever_evaluator.evaluate_dataset(
+eval_results_text_desc = text_desc_retriever_evaluator.evaluate_dataset(
         qa_dataset_text_desc
     )
-    return eval_results_text_desc
-eval_results_text_desc = asyncio.run(async_func_6())
 logger.success(format_json(eval_results_text_desc))
 
 """
@@ -506,19 +485,19 @@ logger.info("### Correctness, Faithfulness, Relevancy")
 judges = {}
 
 judges["correctness"] = CorrectnessEvaluator(
-    llm=MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096),
 )
 
 judges["relevancy"] = MultiModalRelevancyEvaluator(
-    multi_modal_llm=MLXMultiModal(
-        model="qwen3-1.7b-4bit",
+    multi_modal_llm=OllamaFunctionCallingAdapterMultiModal(
+        model="llama3.2", request_timeout=300.0, context_window=4096,
         max_new_tokens=300,
     )
 )
 
 judges["faithfulness"] = MultiModalFaithfulnessEvaluator(
-    multi_modal_llm=MLXMultiModal(
-        model="qwen3-1.7b-4bit",
+    multi_modal_llm=OllamaFunctionCallingAdapterMultiModal(
+        model="llama3.2", request_timeout=300.0, context_window=4096,
         max_new_tokens=300,
     )
 )
@@ -546,14 +525,11 @@ if not load_previous_evaluations:
             letter = match.group(1)
             reference_answer = human_answers[letter]
             for rag_name, rag_response_data in data_entry["responses"].items():
-                async def async_func_52():
-                    correctness_result = judges["correctness"].evaluate(
+                correctness_result = judges["correctness"].evaluate(
                         query=data_entry["query"],
                         response=rag_response_data["response"],
                         reference=reference_answer,
                     )
-                    return correctness_result
-                correctness_result = asyncio.run(async_func_52())
                 logger.success(format_json(correctness_result))
 
                 relevancy_result = judges["relevancy"].evaluate(

@@ -1,15 +1,10 @@
-import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import display, Markdown
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex, StorageContext
-from llama_index.core.settings import Settings
 from llama_index.core.vector_stores import VectorStoreQueryResult
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient, AsyncQdrantClient
 from qdrant_client import models
@@ -27,17 +22,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/vector_stores/qdrant_hybrid.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
@@ -45,7 +29,7 @@ Settings.embed_model = HuggingFaceEmbedding(
 
 Qdrant supports hybrid search by combining search results from `sparse` and `dense` vectors.
 
-`dense` vectors are the ones you have probably already been using -- embedding models from MLX, BGE, SentenceTransformers, etc. are typically `dense` embedding models. They create a numerical representation of a piece of text, represented as a long list of numbers. These `dense` vectors can capture rich semantics across the entire piece of text.
+`dense` vectors are the ones you have probably already been using -- embedding models from OllamaFunctionCallingAdapter, BGE, SentenceTransformers, etc. are typically `dense` embedding models. They create a numerical representation of a piece of text, represented as a long list of numbers. These `dense` vectors can capture rich semantics across the entire piece of text.
 
 `sparse` vectors are slightly different. They use a specialized approach or model (TF-IDF, BM25, SPLADE, etc.) for generating vectors. These vectors are typically mostly zeros, making them `sparse` vectors. These `sparse` vectors are great at capturing specific keywords and similar small details.
 
@@ -63,7 +47,7 @@ logger.info("# Qdrant Hybrid Search")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 # !mkdir -p 'data/'
-# !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O f"{GENERATED_DIR}/llama2.pdf"
+# !wget --user-agent "Mozilla" "https://arxiv.org/pdf/2307.09288.pdf" -O "data/llama2.pdf"
 
 
 documents = SimpleDirectoryReader("./data/").load_data()
@@ -75,7 +59,7 @@ Now, we can index our data.
 
 Hybrid search with Qdrant must be enabled from the beginning -- we can simply set `enable_hybrid=True`.
 
-This will run sparse vector generation locally using the `"prithvida/Splade_PP_en_v1"` using fastembed, in addition to generating dense vectors with MLX.
+This will run sparse vector generation locally using the `"prithvida/Splade_PP_en_v1"` using fastembed, in addition to generating dense vectors with OllamaFunctionCallingAdapter.
 """
 logger.info("## Indexing Data")
 
@@ -171,12 +155,9 @@ index = VectorStoreIndex.from_documents(
 
 query_engine = index.as_query_engine(similarity_top_k=2, sparse_top_k=10)
 
-async def async_func_28():
-    response = query_engine.query(
+response = query_engine.query(
         "What baseline models are measured against in the paper?"
     )
-    return response
-response = asyncio.run(async_func_28())
 logger.success(format_json(response))
 
 """

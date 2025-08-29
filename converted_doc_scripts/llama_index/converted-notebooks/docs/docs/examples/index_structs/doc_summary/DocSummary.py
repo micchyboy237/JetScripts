@@ -1,7 +1,5 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import DocumentSummaryIndex
 from llama_index.core import SimpleDirectoryReader, get_response_synthesizer
 from llama_index.core import StorageContext
@@ -14,8 +12,6 @@ DocumentSummaryIndexLLMRetriever,
 )
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.query_engine import RetrieverQueryEngine
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from pathlib import Path
 import logging
 import openai
@@ -31,17 +27,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/index_structs/doc_summary/DocSummary.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -110,7 +95,7 @@ for title in wiki_titles:
 city_docs = []
 for wiki_title in wiki_titles:
     docs = SimpleDirectoryReader(
-        input_files=[ff"{GENERATED_DIR}/{wiki_title}.txt"]
+        input_files=[f"data/{wiki_title}.txt"]
     ).load_data()
     docs[0].doc_id = wiki_title
     city_docs.extend(docs)
@@ -124,7 +109,7 @@ We show two ways of building the index:
 """
 logger.info("### Build Document Summary Index")
 
-chatgpt = MLXLlamaIndexLLMAdapter(temperature=0, model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+chatgpt = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096)
 splitter = SentenceSplitter(chunk_size=1024)
 
 response_synthesizer = get_response_synthesizer(

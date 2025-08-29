@@ -1,20 +1,15 @@
-import asyncio
 from jet.transformers.formatters import format_json
 from IPython.display import Audio
 from IPython.display import clear_output
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_cloud.client import LlamaCloud
 from llama_index.core.llms import ChatMessage
 from llama_index.core.llms import ChatMessage, AudioBlock, TextBlock
 from llama_index.core.llms import ChatMessage, TextBlock, ImageBlock
 from llama_index.core.prompts import PromptTemplate
 from llama_index.core.response.notebook_utils import display_source_node
-from llama_index.core.settings import Settings
 from llama_index.core.tools import FunctionTool
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.indices.managed.llama_cloud import LlamaCloudIndex
 from pprint import pprint
 from pydantic import BaseModel
@@ -31,25 +26,18 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/llm/openai.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# MLX
+# OllamaFunctionCallingAdapter
 
-This notebook shows how to use the MLX LLM.
+This notebook shows how to use the OllamaFunctionCallingAdapter LLM.
 
-If you are looking to integrate with an MLX-Compatible API that is not the official MLX API, please see the [MLX-Compatible LLMs](https://docs.llamaindex.ai/en/stable/api_reference/llms/openai_like/#jet.llm.mlx.base_like.MLXLike) integration.
+If you are looking to integrate with an OllamaFunctionCallingAdapter-Compatible API that is not the official OllamaFunctionCallingAdapter API, please see the [OllamaFunctionCallingAdapter-Compatible LLMs](https://docs.llamaindex.ai/en/stable/api_reference/llms/openai_like/#jet.llm.ollama.adapters.ollama_llama_index_llm_adapter_like.OllamaFunctionCallingAdapterLike) integration.
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
-logger.info("# MLX")
+logger.info("# OllamaFunctionCallingAdapter")
 
 # %pip install llama-index llama-index-llms-ollama
 
@@ -62,8 +50,8 @@ logger.info("## Basic Usage")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-llm = MLXLlamaIndexLLMAdapter(
-    model="qwen3-1.7b-4bit",
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2",
 )
 
 """
@@ -127,7 +115,7 @@ for r in resp:
 logger.info("## Configure Model")
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
 resp = llm.complete("Paul Graham is ")
 
@@ -146,7 +134,7 @@ logger.debug(resp)
 """
 ## Image Support
 
-MLX has support for images in the input of chat messages for many models.
+OllamaFunctionCallingAdapter has support for images in the input of chat messages for many models.
 
 Using the content blocks feature of chat messages, you can easily combone text and images in a single LLM prompt.
 """
@@ -155,7 +143,7 @@ logger.info("## Image Support")
 # !wget https://cdn.pixabay.com/photo/2016/07/07/16/46/dice-1502706_640.jpg -O image.png
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
 messages = [
     ChatMessage(
@@ -173,15 +161,16 @@ logger.debug(resp.message.content)
 """
 ## Audio Support
 
-MLX has beta support for audio inputs and outputs, using their audio-preview models.
+OllamaFunctionCallingAdapter has beta support for audio inputs and outputs, using their audio-preview models.
 
-When using these models, you can configure the output modality (text or audio) using the `modalities` parameter. The output audio configuration can also be set using the `audio_config` parameter. See the [MLX docs](https://platform.openai.com/docs/guides/audio) for more information.
+When using these models, you can configure the output modality (text or audio) using the `modalities` parameter. The output audio configuration can also be set using the `audio_config` parameter. See the [OllamaFunctionCallingAdapter docs](https://platform.openai.com/docs/guides/audio) for more information.
 """
 logger.info("## Audio Support")
 
 
-llm = MLXLlamaIndexLLMAdapter(
-    model="qwen3-1.7b-4bit-audio-preview",
+
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096,
     modalities=["text", "audio"],
     audio_config={"voice": "alloy", "format": "wav"},
 )
@@ -204,8 +193,7 @@ Audio(base64.b64decode(resp.message.blocks[0].audio), rate=16000)
 """
 We can also use audio as input and get descriptions or transcriptions of the audio.
 """
-logger.info(
-    "We can also use audio as input and get descriptions or transcriptions of the audio.")
+logger.info("We can also use audio as input and get descriptions or transcriptions of the audio.")
 
 # !wget AUDIO_URL = "https://science.nasa.gov/wp-content/uploads/2024/04/sounds-of-mars-one-small-step-earth.wav" -O audio.wav
 
@@ -222,8 +210,8 @@ messages = [
     )
 ]
 
-llm = MLXLlamaIndexLLMAdapter(
-    model="qwen3-1.7b-4bit-audio-preview",
+llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", request_timeout=300.0, context_window=4096,
     modalities=["text"],
 )
 
@@ -233,11 +221,12 @@ logger.debug(resp)
 """
 ## Using Function/Tool Calling
 
-MLX models have native support for function calling. This conveniently integrates with LlamaIndex tool abstractions, letting you plug in any arbitrary Python function to the LLM.
+OllamaFunctionCallingAdapter models have native support for function calling. This conveniently integrates with LlamaIndex tool abstractions, letting you plug in any arbitrary Python function to the LLM.
 
 In the example below, we define a function to generate a Song object.
 """
 logger.info("## Using Function/Tool Calling")
+
 
 
 class Song(BaseModel):
@@ -255,14 +244,14 @@ def generate_song(name: str, artist: str) -> Song:
 tool = FunctionTool.from_defaults(fn=generate_song)
 
 """
-The `strict` parameter tells MLX whether or not to use constrained sampling when generating tool calls/structured outputs. This means that the generated tool call schema will always contain the expected fields.
+The `strict` parameter tells OllamaFunctionCallingAdapter whether or not to use constrained sampling when generating tool calls/structured outputs. This means that the generated tool call schema will always contain the expected fields.
 
 Since this seems to increase latency, it defaults to false.
 """
-logger.info("The `strict` parameter tells MLX whether or not to use constrained sampling when generating tool calls/structured outputs. This means that the generated tool call schema will always contain the expected fields.")
+logger.info("The `strict` parameter tells OllamaFunctionCallingAdapter whether or not to use constrained sampling when generating tool calls/structured outputs. This means that the generated tool call schema will always contain the expected fields.")
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit", strict=True)
+llm = OllamaFunctionCallingAdapter(model="llama3.2", strict=True)
 response = llm.predict_and_call(
     [tool],
     "Pick a random song for me",
@@ -274,16 +263,14 @@ We can also do multiple function calling.
 """
 logger.info("We can also do multiple function calling.")
 
-llm = MLXLlamaIndexLLMAdapter(
-    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 response = llm.predict_and_call(
     [tool],
     "Generate five songs from the Beatles",
     allow_parallel_tool_calls=True,
 )
 for s in response.sources:
-    logger.debug(
-        f"Name: {s.tool_name}, Input: {s.raw_input}, Output: {str(s)}")
+    logger.debug(f"Name: {s.tool_name}, Input: {s.raw_input}, Output: {str(s)}")
 
 """
 ### Manual Tool Calling
@@ -348,6 +335,7 @@ An important use case for function calling is extracting structured objects. Lla
 logger.info("## Structured Prediction")
 
 
+
 class MenuItem(BaseModel):
     """A menu item in a restaurant."""
 
@@ -364,8 +352,7 @@ class Restaurant(BaseModel):
     menu_items: List[MenuItem]
 
 
-llm = MLXLlamaIndexLLMAdapter(
-    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 prompt_tmpl = PromptTemplate(
     "Generate a restaurant in a given city {city_name}"
 )
@@ -402,31 +389,16 @@ restaurant_obj
 logger.info("## Async")
 
 
-llm = MLXLlamaIndexLLMAdapter(
-    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
-
-async def run_async_code_c3ecd675():
-    async def run_async_code_a989c387():
-        resp = llm.complete("Paul Graham is ")
-        return resp
-    resp = asyncio.run(run_async_code_a989c387())
-    logger.success(format_json(resp))
-    return resp
-resp = asyncio.run(run_async_code_c3ecd675())
+resp = llm.complete("Paul Graham is ")
+logger.success(format_json(resp))
 logger.success(format_json(resp))
 
 logger.debug(resp)
 
-
-async def run_async_code_240f4fad():
-    async def run_async_code_506ce1e2():
-        resp = llm.stream_complete("Paul Graham is ")
-        return resp
-    resp = asyncio.run(run_async_code_506ce1e2())
-    logger.success(format_json(resp))
-    return resp
-resp = asyncio.run(run_async_code_240f4fad())
+resp = llm.stream_complete("Paul Graham is ")
+logger.success(format_json(resp))
 logger.success(format_json(resp))
 
 async for delta in resp:
@@ -437,18 +409,9 @@ Async function calling is also supported.
 """
 logger.info("Async function calling is also supported.")
 
-llm = MLXLlamaIndexLLMAdapter(
-    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
-
-
-async def run_async_code_d4d0bf51():
-    async def run_async_code_bf5a731b():
-        response = llm.predict_and_call([tool], "Generate a song")
-        return response
-    response = asyncio.run(run_async_code_bf5a731b())
-    logger.success(format_json(response))
-    return response
-response = asyncio.run(run_async_code_d4d0bf51())
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
+response = llm.predict_and_call([tool], "Generate a song")
+logger.success(format_json(response))
 logger.success(format_json(response))
 logger.debug(str(response))
 
@@ -459,8 +422,7 @@ If desired, you can have separate LLM instances use separate API keys.
 logger.info("## Set API Key at a per-instance level")
 
 
-llm = MLXLlamaIndexLLMAdapter(
-    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", api_key="BAD_KEY")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, api_key="BAD_KEY")
 resp = llm.complete("Paul Graham is ")
 logger.debug(resp)
 
@@ -471,14 +433,12 @@ Rather than adding same parameters to each chat or completion call, you can set 
 logger.info("## Additional kwargs")
 
 
-llm = MLXLlamaIndexLLMAdapter(
-    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", additional_kwargs={"user": "your_user_id"})
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, additional_kwargs={"user": "your_user_id"})
 resp = llm.complete("Paul Graham is ")
 logger.debug(resp)
 
 
-llm = MLXLlamaIndexLLMAdapter(
-    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", additional_kwargs={"user": "your_user_id"})
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, additional_kwargs={"user": "your_user_id"})
 messages = [
     ChatMessage(
         role="system", content="You are a pirate with a colorful personality"
@@ -500,9 +460,9 @@ logger.info("## RAG with LlamaCloud")
 # %pip install llama-index-indices-managed-llama-cloud
 
 """
-### Setup MLX and LlamaCloud API Keys
+### Setup OllamaFunctionCallingAdapter and LlamaCloud API Keys
 """
-logger.info("### Setup MLX and LlamaCloud API Keys")
+logger.info("### Setup OllamaFunctionCallingAdapter and LlamaCloud API Keys")
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
@@ -525,9 +485,8 @@ logger.info("### Create a Pipeline.")
 embedding_config = {
     "type": "OPENAI_EMBEDDING",
     "component": {
-        #         "api_key": os.environ["OPENAI_API_KEY"],
-        # You can choose any MLX Embedding model
-        "model_name": "text-embedding-ada-002",
+#         "api_key": os.environ["OPENAI_API_KEY"],
+        "model_name": "text-embedding-ada-002",  # You can choose any OllamaFunctionCallingAdapter Embedding model
     },
 }
 

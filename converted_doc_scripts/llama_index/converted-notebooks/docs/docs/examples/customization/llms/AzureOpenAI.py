@@ -1,12 +1,9 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
-from llama_index.core.settings import Settings
-from llama_index.embeddings.azure_openai import AzureMLXEmbedding
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.llms.azure_openai import AzureMLX
+from llama_index.embeddings.azure_openai import AzureHuggingFaceEmbedding
+from llama_index.llms.azure_openai import AzureOllamaFunctionCallingAdapter
 import logging
 import os
 import shutil
@@ -20,17 +17,10 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
-<a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/customization/llms/AzureMLX.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+<a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/customization/llms/AzureOllamaFunctionCallingAdapter.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# Azure MLX
+# Azure OllamaFunctionCallingAdapter
 
 Azure openAI resources unfortunately differ from standard openAI resources as you can't generate embeddings unless you use an embedding model. The regions where these models are available can be found here: https://learn.microsoft.com/en-us/azure/cognitive-services/openai/concepts/models#embeddings-models
 
@@ -38,7 +28,7 @@ Furthermore the regions that support embedding models unfortunately don't suppor
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
-logger.info("# Azure MLX")
+logger.info("# Azure OllamaFunctionCallingAdapter")
 
 # %pip install llama-index-embeddings-azure-openai
 # %pip install llama-index-llms-azure-openai
@@ -54,7 +44,7 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 """
 Here, we setup the embedding model (for retrieval) and llm (for text generation).
 Note that you need not only model names (e.g. "text-embedding-ada-002"), but also model deployment names (the one you chose when deploying the model in Azure.
-You must pass the deployment name as a parameter when you initialize `AzureMLX` and `MLXEmbedding`.
+You must pass the deployment name as a parameter when you initialize `AzureOllamaFunctionCallingAdapter` and `HuggingFaceEmbedding`.
 """
 logger.info("Here, we setup the embedding model (for retrieval) and llm (for text generation).")
 
@@ -62,7 +52,7 @@ api_key = "<api-key>"
 azure_endpoint = "https://<your-resource-name>.openai.azure.com/"
 api_version = "2023-07-01-preview"
 
-llm = AzureMLXLlamaIndexLLMAdapter(
+llm = AzureOllamaFunctionCallingAdapter(
     model="gpt-35-turbo-16k",
     deployment_name="my-custom-llm",
     api_key=api_key,
@@ -70,7 +60,7 @@ llm = AzureMLXLlamaIndexLLMAdapter(
     api_version=api_version,
 )
 
-embed_model = AzureMLXEmbedding(
+embed_model = AzureHuggingFaceEmbedding(
     model="text-embedding-ada-002",
     deployment_name="my-custom-embedding",
     api_key=api_key,

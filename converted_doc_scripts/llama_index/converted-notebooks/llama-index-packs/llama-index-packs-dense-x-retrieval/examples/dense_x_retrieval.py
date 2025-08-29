@@ -1,13 +1,9 @@
 from IPython.display import Markdown, display
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import VectorStoreIndex
 from llama_index.core.llama_pack import download_llama_pack
 from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.readers.file import UnstructuredReader
 import os
 import shutil
@@ -19,17 +15,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 # Dense-X-Retrieval Pack
@@ -44,7 +29,7 @@ From the paper, a proposition is described as:
 Propositions are defined as atomic expressions within text, each encapsulating a distinct factoid and presented in a concise, self-contained natural language format.
 ```
 
-We use the provided MLX prompt from their paper to generate propositions, which are then embedded and used to retrieve their parent node chunks.
+We use the provided OllamaFunctionCallingAdapter prompt from their paper to generate propositions, which are then embedded and used to retrieve their parent node chunks.
 
 ## Setup
 """
@@ -64,7 +49,7 @@ logger.info("# Dense-X-Retrieval Pack")
 # !curl 'https://arxiv.org/pdf/2307.09288.pdf' -o 'data/llama2.pdf'
 
 
-documents = UnstructuredReader().load_data(f"{GENERATED_DIR}/llama2.pdf")
+documents = UnstructuredReader().load_data("data/llama2.pdf")
 
 """
 ## Run the DenseXRetrievalPack
@@ -79,8 +64,8 @@ DenseXRetrievalPack = download_llama_pack("DenseXRetrievalPack", "./dense_pack")
 
 dense_pack = DenseXRetrievalPack(
     documents,
-    proposition_llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", max_tokens=750),
-    query_llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", max_tokens=256),
+    proposition_llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, max_tokens=750),
+    query_llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, max_tokens=256),
     text_splitter=SentenceSplitter(chunk_size=1024),
 )
 dense_query_engine = dense_pack.query_engine

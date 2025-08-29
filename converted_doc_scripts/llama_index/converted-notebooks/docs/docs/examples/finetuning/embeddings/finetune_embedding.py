@@ -1,15 +1,12 @@
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
 from llama_index.core.evaluation import EmbeddingQAFinetuneDataset
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.schema import MetadataMode
 from llama_index.core.schema import TextNode
-from llama_index.core.settings import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.finetuning import SentenceTransformersFinetuneEngine
 from llama_index.finetuning import generate_qa_embedding_pairs
@@ -29,13 +26,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/finetuning/embeddings/finetune_embedding.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -57,7 +47,7 @@ logger.info("# Finetune Embeddings")
 
 # %pip install datasets
 # %pip install llama-index-llms-ollama
-# %pip install llama-index-embeddings-ollama
+# %pip install llama-index-embeddings-huggingface
 # %pip install llama-index-finetuning
 # %pip install llama-index-readers-file
 # %pip install llama-index-embeddings-huggingface
@@ -122,12 +112,12 @@ logger.info("### Generate synthetic queries")
 
 
 train_dataset = generate_qa_embedding_pairs(
-    llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
     nodes=train_nodes,
     output_path="train_dataset.json",
 )
 val_dataset = generate_qa_embedding_pairs(
-    llm=MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats"),
+    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096),
     nodes=val_nodes,
     output_path="val_dataset.json",
 )
@@ -158,7 +148,7 @@ embed_model
 ## Evaluate Finetuned Model
 
 In this section, we evaluate 3 different embedding models: 
-1. proprietary MLX embedding,
+1. proprietary OllamaFunctionCallingAdapter embedding,
 2. open source `BAAI/bge-small-en`, and
 3. our finetuned embedding model.
 
@@ -179,7 +169,7 @@ logger.info("## Evaluate Finetuned Model")
 * we retrieve top-k documents with the query,  and 
 * it's a **hit** if the results contain the relevant_doc.
 
-This approach is very simple and intuitive, and we can apply it to both the proprietary MLX embedding as well as our open source and fine-tuned embedding models.
+This approach is very simple and intuitive, and we can apply it to both the proprietary OllamaFunctionCallingAdapter embedding as well as our open source and fine-tuned embedding models.
 """
 logger.info("### Define eval function")
 
@@ -218,9 +208,9 @@ def evaluate(
 """
 **Option 2**: We use the `InformationRetrievalEvaluator` from sentence_transformers.
 
-This provides a more comprehensive suite of metrics, but we can only run it against the sentencetransformers compatible models (open source and our finetuned model, *not* the MLX embedding model).
+This provides a more comprehensive suite of metrics, but we can only run it against the sentencetransformers compatible models (open source and our finetuned model, *not* the OllamaFunctionCallingAdapter embedding model).
 """
-logger.info("This provides a more comprehensive suite of metrics, but we can only run it against the sentencetransformers compatible models (open source and our finetuned model, *not* the MLX embedding model).")
+logger.info("This provides a more comprehensive suite of metrics, but we can only run it against the sentencetransformers compatible models (open source and our finetuned model, *not* the OllamaFunctionCallingAdapter embedding model).")
 
 
 
@@ -244,13 +234,13 @@ def evaluate_st(
 """
 ### Run Evals
 
-#### MLX
+#### OllamaFunctionCallingAdapter
 
 Note: this might take a few minutes to run since we have to embed the corpus and queries
 """
 logger.info("### Run Evals")
 
-ada = MLXEmbedding()
+ada = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 ada_val_results = evaluate(val_dataset, ada)
 
 df_ada = pd.DataFrame(ada_val_results)
@@ -300,9 +290,9 @@ df_bge["model"] = "bge"
 df_finetuned["model"] = "fine_tuned"
 
 """
-We can see that fine-tuning our small open-source embedding model drastically improve its retrieval quality (even approaching the quality of the proprietary MLX embedding)!
+We can see that fine-tuning our small open-source embedding model drastically improve its retrieval quality (even approaching the quality of the proprietary OllamaFunctionCallingAdapter embedding)!
 """
-logger.info("We can see that fine-tuning our small open-source embedding model drastically improve its retrieval quality (even approaching the quality of the proprietary MLX embedding)!")
+logger.info("We can see that fine-tuning our small open-source embedding model drastically improve its retrieval quality (even approaching the quality of the proprietary OllamaFunctionCallingAdapter embedding)!")
 
 df_all = pd.concat([df_ada, df_bge, df_finetuned])
 df_all.groupby("model").mean("is_hit")

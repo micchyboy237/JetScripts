@@ -1,11 +1,7 @@
 from IPython.display import Image
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.llms import ChatMessage
-from llama_index.core.settings import Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.llms.azure_openai import AzureMLX
+from llama_index.llms.azure_openai import AzureOllamaFunctionCallingAdapter
 import os
 import shutil
 
@@ -17,21 +13,14 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
-
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/llm/azure_openai.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# Azure MLX
+# Azure OllamaFunctionCallingAdapter
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
-logger.info("# Azure MLX")
+logger.info("# Azure OllamaFunctionCallingAdapter")
 
 # %pip install llama-index-llms-azure-openai
 
@@ -41,9 +30,9 @@ logger.info("# Azure MLX")
 ## Prerequisites
 
 1. Setup an Azure subscription - you can create one for free [here](https://azure.microsoft.com/en-us/free/cognitive-services/)
-2. Apply for access to Azure MLX Service [here](https://customervoice.microsoft.com/Pages/ResponsePage.aspx?id=v4j5cvGGr0GRqy180BHbR7en2Ais5pxKtso_Pz4b1_xUOFA5Qk1UWDRBMjg0WFhPMkIzTzhKQ1dWNyQlQCN0PWcu) 
-3. Create a resource in the Azure portal [here](https://portal.azure.com/?microsoft_azure_marketplace_ItemHideKey=microsoft_openai_tip#create/Microsoft.CognitiveServicesMLX)
-4. Deploy a model in Azure MLX Studio [here](https://oai.azure.com/)
+2. Apply for access to Azure OllamaFunctionCallingAdapter Service [here](https://customervoice.microsoft.com/Pages/ResponsePage.aspx?id=v4j5cvGGr0GRqy180BHbR7en2Ais5pxKtso_Pz4b1_xUOFA5Qk1UWDRBMjg0WFhPMkIzTzhKQ1dWNyQlQCN0PWcu) 
+3. Create a resource in the Azure portal [here](https://portal.azure.com/?microsoft_azure_marketplace_ItemHideKey=microsoft_openai_tip#create/Microsoft.CognitiveServicesOllamaFunctionCallingAdapter)
+4. Deploy a model in Azure OllamaFunctionCallingAdapter Studio [here](https://oai.azure.com/)
 
 
 You can find more details in [this guide.](https://learn.microsoft.com/en-us/azure/cognitive-services/openai/how-to/create-resource?pivots=web-portal)
@@ -55,7 +44,7 @@ Note down the **"model name"** and **"deployment name"**, you'll need it when co
 ### Find your setup information - API base, API key, deployment name (i.e. engine), etc
 
 To find the setup information necessary, do the following setups:
-1. Go to the Azure MLX Studio [here](https://oai.azure.com/)
+1. Go to the Azure OllamaFunctionCallingAdapter Studio [here](https://oai.azure.com/)
 2. Go to the chat or completions playground (depending on which LLM you are setting up)
 3. Click "view code" (shown in image below)
 """
@@ -75,7 +64,7 @@ Image(filename="./azure_env.png")
 """
 ### Configure environment variables
 
-Using Azure deployment of MLX models is very similar to normal MLX. 
+Using Azure deployment of OllamaFunctionCallingAdapter models is very similar to normal OllamaFunctionCallingAdapter. 
 You just need to configure a couple more environment variables.
 
 - `OPENAI_API_VERSION`: set this to `2023-07-01-preview`
@@ -100,11 +89,11 @@ logger.info("## Use your LLM")
 
 
 """
-Unlike normal `MLX`, you need to pass a `engine` argument in addition to `model`. The `engine` is the name of your model deployment you selected in Azure MLX Studio. See previous section on "find your setup information" for more details.
+Unlike normal `OllamaFunctionCallingAdapter`, you need to pass a `engine` argument in addition to `model`. The `engine` is the name of your model deployment you selected in Azure OllamaFunctionCallingAdapter Studio. See previous section on "find your setup information" for more details.
 """
-logger.info("Unlike normal `MLX`, you need to pass a `engine` argument in addition to `model`. The `engine` is the name of your model deployment you selected in Azure MLX Studio. See previous section on "find your setup information" for more details.")
+logger.info("Unlike normal `OllamaFunctionCallingAdapter`, you need to pass a `engine` argument in addition to `model`. The `engine` is the name of your model deployment you selected in Azure OllamaFunctionCallingAdapter Studio. See previous section on "find your setup information" for more details.")
 
-llm = AzureMLXLlamaIndexLLMAdapter(
+llm = AzureOllamaFunctionCallingAdapter(
     engine="simon-llm", model="gpt-35-turbo-16k", temperature=0.0
 )
 
@@ -113,7 +102,7 @@ Alternatively, you can also skip setting environment variables, and pass the par
 """
 logger.info("Alternatively, you can also skip setting environment variables, and pass the parameters in directly via constructor.")
 
-llm = AzureMLXLlamaIndexLLMAdapter(
+llm = AzureOllamaFunctionCallingAdapter(
     engine="my-custom-llm",
     model="gpt-35-turbo-16k",
     temperature=0.0,
@@ -159,7 +148,7 @@ Rather than adding same parameters to each chat or completion call, you can set 
 """
 logger.info("Rather than adding same parameters to each chat or completion call, you can set them at a per-instance level with `additional_kwargs`.")
 
-llm = AzureMLXLlamaIndexLLMAdapter(
+llm = AzureOllamaFunctionCallingAdapter(
     engine="simon-llm",
     model="gpt-35-turbo-16k",
     temperature=0.0,

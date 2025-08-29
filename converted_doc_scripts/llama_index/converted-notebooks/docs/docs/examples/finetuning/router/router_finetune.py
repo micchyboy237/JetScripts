@@ -1,8 +1,6 @@
 from collections import defaultdict
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
-from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core import PromptTemplate
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import SummaryIndex
@@ -16,9 +14,7 @@ from llama_index.core.selectors import (
 EmbeddingSingleSelector,
 LLMSingleSelector,
 )
-from llama_index.core.settings import Settings
 from llama_index.core.tools import QueryEngineTool
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.finetuning import SentenceTransformersFinetuneEngine
 from pathlib import Path
 from tqdm.notebook import tqdm
@@ -36,17 +32,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/finetuning/router/router_finetune.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -123,11 +108,11 @@ for title in wiki_titles:
 city_docs = {}
 for wiki_title in wiki_titles:
     city_docs[wiki_title] = SimpleDirectoryReader(
-        input_files=[ff"{GENERATED_DIR}/{wiki_title}.txt"]
+        input_files=[f"data/{wiki_title}.txt"]
     ).load_data()
 
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats", temperature=0.3)
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 
 city_descs_dict = {}
 choices = []
@@ -154,7 +139,7 @@ for idx, wiki_title in enumerate(wiki_titles):
     choice_to_id_dict[idx * 2 + 1] = f"{wiki_title}_summary"
 
 
-llm = MLXLlamaIndexLLMAdapter(model_name="gpt-3.5-turbo")
+llm = OllamaFunctionCallingAdapter(model_name="gpt-3.5-turbo")
 
 summary_q_tmpl = """\
 You are a summary question generator. Given an existing question which asks for a summary of a given topic, \
@@ -344,7 +329,7 @@ base_matches = run_evals(
 np.mean(base_matches)
 
 
-eval_llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+eval_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
 llm_selector = LLMSingleSelector.from_defaults(
     llm=eval_llm,

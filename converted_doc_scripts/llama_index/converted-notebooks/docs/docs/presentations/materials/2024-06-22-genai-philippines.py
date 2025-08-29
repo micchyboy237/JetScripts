@@ -1,15 +1,13 @@
-from googleapiclient import discovery
-from jet.llm.mlx.adapters.mlx_llama_index_llm_adapter import MLXLlamaIndexLLMAdapter
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.base import MLXEmbedding
-from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
+from googleapiclient import discovery
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.logger import CustomLogger
 from llama_index.agent.introspective import (
 ToolInteractiveReflectionAgentWorker,
 )
 from llama_index.agent.introspective import IntrospectiveAgentWorker
 from llama_index.agent.multi_hop.planner import MultiHopPlannerAgent
-from llama_index.agent.openai import MLXAgent
+from llama_index.agent.openai import OllamaFunctionCallingAdapterAgent
 from llama_index.core import PropertyGraphIndex
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
@@ -25,7 +23,6 @@ SimpleComposableMemory,
 ChatMemoryBuffer,
 )
 from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.settings import Settings
 from llama_index.core.tools import FunctionTool
 from llama_index.core.tools import QueryEngineTool
 from llama_index.core.tools import ToolMetadata
@@ -54,13 +51,6 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
-
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=model_name,
-    cache_folder=MODELS_CACHE_DIR,
-)
-
 
 """
 **NOTE:** This notebook was written in 2024, and is not guaranteed to work with the latest version of llama-index. It is presented here for reference only.
@@ -131,7 +121,7 @@ logger.info("## Example: A Gang of LLMs Tell A Story")
 anthropic_llm = Anthropic(model="claude-3-opus-20240229")
 cohere_llm = Cohere(model="command")
 mistral_llm = MistralAI(model="mistral-large-latest")
-openai_llm = MLXLlamaIndexLLMAdapter(model="qwen3-1.7b-4bit")
+openai_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 
 theme = "over-the-top pizza toppings"
 start = anthropic_llm.complete(
@@ -240,7 +230,7 @@ vector_store = QdrantVectorStore(client=client, collection_name="test_store")
 pipeline = IngestionPipeline(
     transformations=[
         SentenceSplitter(),
-        MLXEmbedding(),
+        HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     ],
     vector_store=vector_store,
 )
@@ -309,7 +299,7 @@ logger.info("## Example: Graph RAG")
 index = PropertyGraphIndex.from_documents(
     documents[10:20],
     llm=openai_llm,
-    embed_model=MLXEmbedding(model_name="text-embedding-ada-002"),
+    embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     show_progress=True,
 )
 
@@ -356,7 +346,7 @@ def uniform_random_sample(n: int) -> List[float]:
 
 rs_tool = FunctionTool.from_defaults(fn=uniform_random_sample)
 
-agent = MLXAgent.from_tools([rs_tool], llm=openai_llm, verbose=True)
+agent = OllamaFunctionCallingAdapterAgent.from_tools([rs_tool], llm=openai_llm, verbose=True)
 
 response = agent.chat(
     "Can you please give me a sample of 10 uniformly random numbers?"
@@ -374,7 +364,7 @@ logger.info("## Example: Agent Ingredients — Composable Memory")
 
 vector_memory = VectorMemory.from_defaults(
     vector_store=None,  # leave as None to use default in-memory vector store
-    embed_model=MLXEmbedding(),
+    embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     retriever_kwargs={"similarity_top_k": 2},
 )
 
@@ -433,7 +423,7 @@ response = agent_without_memory.chat(
 """
 logger.info("#### With memory")
 
-llm = MLXLlamaIndexLLMAdapter(model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096)
 agent_worker = FunctionCallingAgentWorker.from_tools(
     [multiply_tool, mystery_tool], llm=openai_llm, verbose=True
 )
@@ -585,9 +575,9 @@ logger.info("### Build Agent To Reduce Toxicity of Harmful Text")
 
 verbose = True
 critique_agent_worker = FunctionCallingAgentWorker.from_tools(
-    tools=[pespective_tool], llm=MLXLlamaIndexLLMAdapter("gpt-3.5-turbo"), verbose=verbose
+    tools=[pespective_tool], llm=OllamaFunctionCallingAdapter("gpt-3.5-turbo"), verbose=verbose
 )
-correction_llm = MLXLlamaIndexLLMAdapter("gpt-4-turbo-preview")
+correction_llm = OllamaFunctionCallingAdapter("gpt-4-turbo-preview")
 
 
 def stopping_callable(critique_str: str) -> bool:
@@ -682,7 +672,7 @@ query_engine_tools = [
     ),
 ]
 
-agent = MLXAgent.from_tools(query_engine_tools, verbose=True)
+agent = OllamaFunctionCallingAdapterAgent.from_tools(query_engine_tools, verbose=True)
 
 response = agent.chat(query)
 
