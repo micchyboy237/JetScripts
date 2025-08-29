@@ -276,7 +276,10 @@ async def chat_loop():
 
 # Run all tests and chat loop in a single event loop
 if __name__ == "__main__":
-    asyncio.run(run_tests())
-    logger.info("Starting interactive chat loop")
-    asyncio.run(chat_loop())
-    logger.info("\n\n[DONE]", bright=True)
+    async def main():
+        await run_tests()
+        logger.info("Starting interactive chat loop")
+        await chat_loop()
+        logger.info("\n\n[DONE]", bright=True)
+
+    asyncio.run(main())
