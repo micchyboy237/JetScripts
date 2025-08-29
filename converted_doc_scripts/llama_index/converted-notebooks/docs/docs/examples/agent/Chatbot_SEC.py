@@ -14,6 +14,7 @@ from llama_index.core.tools import QueryEngineTool
 from llama_index.core.workflow import Context
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.readers.file import UnstructuredReader
+from llama_index.core.question_gen.llm_generators import LLMQuestionGenerator
 from pathlib import Path
 import os
 import shutil
@@ -177,6 +178,7 @@ logger.info("Now we can create the Sub Question Query Engine, which will allow u
 query_engine = SubQuestionQueryEngine.from_defaults(
     query_engine_tools=individual_query_engine_tools,
     llm=Settings.llm,
+    question_gen=LLMQuestionGenerator.from_defaults(llm=Settings.llm),
 )
 
 """
