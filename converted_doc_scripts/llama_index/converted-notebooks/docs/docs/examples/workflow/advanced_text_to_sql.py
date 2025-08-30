@@ -29,6 +29,7 @@ async def main():
     )
     from llama_index.utils.workflow import draw_all_possible_flows
     from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+    from llama_index.core.settings import Settings
     from pathlib import Path
     from sqlalchemy import (
         create_engine,
