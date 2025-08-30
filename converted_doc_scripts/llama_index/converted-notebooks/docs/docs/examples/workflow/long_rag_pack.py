@@ -22,6 +22,7 @@ async def main():
         Context,
     )
     from llama_index.core.workflow import Event
+    from llama_index.embeddings.huggingface import HuggingFaceEmbedding
     from typing import Iterable
     from typing import List, Dict, Optional, Set, FrozenSet
     import asyncio
@@ -36,6 +37,9 @@ async def main():
     log_file = os.path.join(LOG_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.orange(f"Logs: {log_file}")
+
+    Settings.embed_model = HuggingFaceEmbedding(
+        model_name="sentence-transformers/all-MiniLM-L6-v2")
 
     """
     # LongRAG Workflow
