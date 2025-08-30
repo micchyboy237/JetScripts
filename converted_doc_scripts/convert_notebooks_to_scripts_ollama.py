@@ -619,8 +619,9 @@ if __name__ == "__main__":
     include_files = [
         # "long_rag_pack",
         # "checkpointing_workflows",
-        "advanced_text_to_sql",
-        "workflows_cookbook",
+        # "advanced_text_to_sql",
+        # "workflows_cookbook",
+        "router_query_engine",
     ]
     exclude_files = [
         # "agent_workflow_research_assistant",
