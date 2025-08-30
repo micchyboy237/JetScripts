@@ -160,7 +160,9 @@ from jet.logger import CustomLogger
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
+LOG_DIR = f"{OUTPUT_DIR}/logs"
+
+log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.orange(f"Logs: {log_file}")
     """.strip()
@@ -602,14 +604,14 @@ if __name__ == "__main__":
         "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index",
     ]
     include_files = [
-        # "multi_document_agents-v1",
+        "code_act_agent",
     ]
     exclude_files = [
-        "agent_workflow_research_assistant",
-        "agent_workflow_basic",
-        "/code_act_agent",
-        "Chatbot_SEC",
-        "multi_document_agents-v1",
+        # "agent_workflow_research_assistant",
+        # "agent_workflow_basic",
+        # "Chatbot_SEC",
+        # "multi_document_agents-v1",
+        "from_scratch_code_act_agent",
     ]
     extension_mappings = [
         {"ext": [".ipynb"], "output_base_dir": "converted-notebooks"},

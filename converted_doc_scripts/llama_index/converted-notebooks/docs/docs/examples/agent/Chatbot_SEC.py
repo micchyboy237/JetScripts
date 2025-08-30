@@ -25,13 +25,16 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+LOG_DIR = f"{OUTPUT_DIR}/logs"
 DATA_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp"
-log_file = os.path.join(OUTPUT_DIR, "main.log")
+
+log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
+logger.orange(f"Logs: {log_file}")
 
 model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
+Settings.llm = OllamaFunctionCallingAdapter(
+    model="llama3.2", log_dir=f"{LOG_DIR}/chats")
 Settings.embed_model = HuggingFaceEmbedding(
     model_name=model_name,
     cache_folder=MODELS_CACHE_DIR,
@@ -216,7 +219,7 @@ logger.info(
 
 
 agent = FunctionAgent(
-    tools=tools, llm=OllamaFunctionCallingAdapter(model="llama3.2"))
+    tools=tools, llm=OllamaFunctionCallingAdapter(model="llama3.2", log_dir=f"{LOG_DIR}/agent_functions"))
 
 """
 ### Testing the Agent

@@ -86,17 +86,14 @@ async def main():
     class SimpleCodeExecutor:
         """
         A simple code executor that runs Python code with state persistence.
-
         This executor maintains a global and local state between executions,
         allowing for variables to persist across multiple code runs.
-
         NOTE: not safe for production use! Use with caution.
         """
 
         def __init__(self, locals: Dict[str, Any], globals: Dict[str, Any]):
             """
             Initialize the code executor.
-
             Args:
                 locals: Local variables to use in the execution context
                 globals: Global variables to use in the execution context
@@ -107,53 +104,56 @@ async def main():
         def execute(self, code: str) -> Tuple[bool, str, Any]:
             """
             Execute Python code and capture output and return values.
-
             Args:
                 code: Python code to execute
-
             Returns:
-                Dict with keys `success`, `output`, and `return_value`
+                Tuple of (success, output, return_value)
             """
+            logger.debug(f"Executing code: {code}")
+            logger.debug(f"Available locals: {list(self.locals.keys())}")
             stdout = io.StringIO()
             stderr = io.StringIO()
-
             output = ""
             return_value = None
+            success = False
             try:
-                with contextlib.redirect_stdout(
-                    stdout
-                ), contextlib.redirect_stderr(stderr):
-                    try:
-                        tree = ast.parse(code)
-                        last_node = tree.body[-1] if tree.body else None
+                # Validate code for undefined variables
+                tree = ast.parse(code)
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+                        if node.id not in self.locals and node.id not in self.globals and node.id not in __builtins__.__dict__:
+                            output = f"Error: NameError: name '{node.id}' is not defined"
+                            return False, output, None
 
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    exec_globals = self.globals.copy()
+                    exec_locals = self.locals.copy()
+                    try:
+                        last_node = tree.body[-1] if tree.body else None
                         if isinstance(last_node, ast.Expr):
                             last_line = code.rstrip().split("\n")[-1]
-                            exec_code = (
-                                code[: -len(last_line)]
-                                + "\n__result__ = "
-                                + last_line
-                            )
-
-                            exec(exec_code, self.globals, self.locals)
-                            return_value = self.locals.get("__result__")
+                            exec_code = code[: -len(last_line)] + \
+                                "\n__result__ = " + last_line
+                            exec(exec_code, exec_globals, exec_locals)
+                            return_value = exec_locals.get("__result__")
                         else:
-                            exec(code, self.globals, self.locals)
-                    except:
-                        exec(code, self.globals, self.locals)
-
-                output = stdout.getvalue()
+                            exec(code, exec_globals, exec_locals)
+                        self.locals.update(exec_locals)
+                        success = True
+                    except Exception as e:
+                        output = f"Error: {type(e).__name__}: {str(e)}\n"
+                        output += traceback.format_exc()
+                output += stdout.getvalue()
                 if stderr.getvalue():
                     output += "\n" + stderr.getvalue()
-
             except Exception as e:
                 output = f"Error: {type(e).__name__}: {str(e)}\n"
                 output += traceback.format_exc()
-
             if return_value is not None:
                 output += "\n\n" + str(return_value)
-
-            return output
+            logger.debug(
+                f"Execution result: success={success}, output={output}, return_value={return_value}")
+            return success, output, return_value
 
     code_executor = SimpleCodeExecutor(
         locals={
@@ -220,11 +220,11 @@ async def main():
             llm: LLM | None = None,
             **workflow_kwargs: Any,
         ) -> None:
-            super().__init__(**workflow_kwargs)
+            # Increase timeout to 120 seconds
+            super().__init__(timeout=120.0, **workflow_kwargs)
             self.fns = fns or []
             self.code_execute_fn = code_execute_fn
             self.llm = llm or OllamaFunctionCallingAdapter(model="llama3.2")
-
             self.fn_str = "\n\n".join(
                 f'def {fn.__name__}{str(inspect.signature(fn))}:\n    """ {fn.__doc__} """\n    ...'
                 for fn in self.fns
@@ -239,65 +239,50 @@ async def main():
                 r"<execute>(.*?)</execute>", response, re.DOTALL)
             if matches:
                 return "\n\n".join(matches)
-
             return None
 
         @step
-        async def prepare_chat_history(
-            self, ctx: Context, ev: StartEvent
-        ) -> InputEvent:
+        async def prepare_chat_history(self, ctx: Context, ev: StartEvent) -> InputEvent:
             memory = await ctx.store.get("memory", default=None)
             logger.success(format_json(memory))
             if not memory:
                 memory = ChatMemoryBuffer.from_defaults(llm=self.llm)
-
             user_input = ev.get("user_input")
             if user_input is None:
                 raise ValueError("user_input kwarg is required")
             user_msg = ChatMessage(role="user", content=user_input)
             memory.put(user_msg)
-
             chat_history = memory.get()
-
             await ctx.store.set("memory", memory)
-
             return InputEvent(input=[self.system_message, *chat_history])
 
         @step
-        async def handle_llm_input(
-            self, ctx: Context, ev: InputEvent
-        ) -> CodeExecutionEvent | StopEvent:
+        async def handle_llm_input(self, ctx: Context, ev: InputEvent) -> CodeExecutionEvent | StopEvent:
             chat_history = ev.input
-
-            # Use chat instead of stream_chat if streaming is not properly async
             response = await self.llm.achat(chat_history)
             ctx.write_event_to_stream(StreamEvent(
                 delta=response.message.content or ""))
-
             memory = await ctx.store.get("memory")
             logger.success(format_json(memory))
             memory.put(response.message)
             await ctx.store.set("memory", memory)
-
             code = self._parse_code(response.message.content)
-
             if not code:
                 return StopEvent(result=response)
             else:
                 return CodeExecutionEvent(code=code)
 
         @step
-        async def handle_code_execution(
-            self, ctx: Context, ev: CodeExecutionEvent
-        ) -> InputEvent:
+        async def handle_code_execution(self, ctx: Context, ev: CodeExecutionEvent) -> InputEvent:
             ctx.write_event_to_stream(ev)
-            output = self.code_execute_fn(ev.code)
-
+            success, output, return_value = self.code_execute_fn(ev.code)
             memory = await ctx.store.get("memory")
             logger.success(format_json(memory))
-            memory.put(ChatMessage(role="assistant", content=output))
+            content = output
+            if success and return_value is not None:
+                content = f"{output}\nResult: {return_value}"
+            memory.put(ChatMessage(role="assistant", content=content))
             await ctx.store.set("memory", memory)
-
             chat_history = memory.get()
             return InputEvent(input=[self.system_message, *chat_history])
 
