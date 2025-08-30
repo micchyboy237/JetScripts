@@ -191,14 +191,25 @@ def update_code_with_ollama(code: str) -> str:
     updated_code = re.sub(r'Ollama\s*\((.*?)\)', r'Ollama(\1)', updated_code)
     updated_code = re.sub(
         r'model=["\']gpt-4[^"\']*["\']',
-        'model="llama3.2"',
+        'model="llama3.2", log_dir=f"{LOG_DIR}/chats"',
         updated_code
     )
     updated_code = re.sub(
         r'model=["\']gpt-3\.5[^"\']*["\']',
-        'model="llama3.2"',
+        'model="llama3.2", log_dir=f"{LOG_DIR}/chats"',
         updated_code
     )
+    # Remove api_key arg
+    updated_code = re.sub(
+        r',\s*api_key\s*=\s*["\'][^"\']*["\']', '', updated_code
+    )
+    updated_code = re.sub(
+        r'api_key\s*=\s*["\'][^"\']*["\']\s*,\s*', '', updated_code
+    )
+    updated_code = re.sub(
+        r'api_key\s*=\s*["\'][^"\']*["\']', '', updated_code
+    )
+
     updated_code = re.sub(
         r'OllamaEmbedding\s*\((.*?)\)',
         r'OllamaEmbedding(model="mxbai-embed-large")',
@@ -604,14 +615,16 @@ if __name__ == "__main__":
         "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index",
     ]
     include_files = [
-        "code_act_agent",
+        # "agent_workflow_basic",
+        "agent_workflow_multi",
+        # "agents_as_tools",
     ]
     exclude_files = [
         # "agent_workflow_research_assistant",
         # "agent_workflow_basic",
         # "Chatbot_SEC",
         # "multi_document_agents-v1",
-        "from_scratch_code_act_agent",
+        # "from_scratch_code_act_agent",
     ]
     extension_mappings = [
         {"ext": [".ipynb"], "output_base_dir": "converted-notebooks"},

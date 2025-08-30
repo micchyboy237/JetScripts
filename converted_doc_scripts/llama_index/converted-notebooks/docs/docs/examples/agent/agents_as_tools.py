@@ -20,9 +20,11 @@ async def main():
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-    log_file = os.path.join(OUTPUT_DIR, "main.log")
+    LOG_DIR = f"{OUTPUT_DIR}/logs"
+    
+    log_file = os.path.join(LOG_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
-    logger.info(f"Logs: {log_file}")
+    logger.orange(f"Logs: {log_file}")
     
     """
     # Multi-Agent Report Generation using Agents as Tools
@@ -44,8 +46,8 @@ async def main():
     # %pip install llama-index
     
     
-    sub_agent_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, api_key="sk-...")
-    orchestrator_llm = OllamaFunctionCallingAdapter(model="o3-mini", api_key="sk-...")
+    sub_agent_llm = OllamaFunctionCallingAdapter(model="llama3.2", log_dir=f"{LOG_DIR}/chats")
+    orchestrator_llm = OllamaFunctionCallingAdapter(model="o3-mini")
     
     """
     ## System Design
@@ -68,7 +70,7 @@ async def main():
     
     async def search_web(query: str) -> str:
         """Useful for using the web to answer questions."""
-        client = AsyncTavilyClient(api_key="tvly-...")
+        client = AsyncTavilyClient()
         return str(await client.search(query))
     
     """
