@@ -617,15 +617,7 @@ if __name__ == "__main__":
         "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index",
     ]
     include_files = [
-        # "agent_workflow_basic",
-        # "agent_workflow_multi",
-        # "agents_as_tools",
-        # "custom_multi_agent",
-        # "return_direct_agent",
-        "chat_memory_buffer",
-        "composable_memory",
-        "summary_memory_buffer",
-        "vector_memory",
+        "long_rag_pack",
     ]
     exclude_files = [
         # "agent_workflow_research_assistant",
