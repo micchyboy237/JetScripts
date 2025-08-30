@@ -621,7 +621,11 @@ if __name__ == "__main__":
         # "agent_workflow_multi",
         # "agents_as_tools",
         # "custom_multi_agent",
-        "return_direct_agent",
+        # "return_direct_agent",
+        "chat_memory_buffer",
+        "composable_memory",
+        "summary_memory_buffer",
+        "vector_memory",
     ]
     exclude_files = [
         # "agent_workflow_research_assistant",

@@ -10,7 +10,7 @@ if __name__ == "__main__":
     includes = []
     excludes = []
     run_python_files_in_directory(
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/GenAI_Agents/converted-notebooks/all_agents_tutorials",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/llama_index/converted-notebooks/docs/docs/examples/agent/memory",
         includes=includes,
         excludes=excludes,
         output_dir=OUTPUT_DIR,
