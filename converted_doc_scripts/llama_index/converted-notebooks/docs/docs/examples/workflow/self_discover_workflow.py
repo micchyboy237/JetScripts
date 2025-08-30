@@ -6,25 +6,24 @@ async def main():
     from llama_index.core.llms import LLM
     from llama_index.core.prompts import PromptTemplate
     from llama_index.core.workflow import (
-    Workflow,
-    Context,
-    StartEvent,
-    StopEvent,
-    step,
+        Workflow,
+        Context,
+        StartEvent,
+        StopEvent,
+        step,
     )
     from llama_index.core.workflow import Event
     import asyncio
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     # Self-Discover Workflow
     
@@ -46,12 +45,11 @@ async def main():
     The implementation is inspired from the [codebase](https://github.com/catid/self-discover)
     """
     logger.info("# Self-Discover Workflow")
-    
+
     # %pip install -U llama-index
-    
-    
+
     # os.environ["OPENAI_API_KEY"] = "<Your OllamaFunctionCallingAdapter API Key>"
-    
+
     """
     Since workflows are async first, this all runs fine in a notebook. If you were running in your own code, you would want to use `asyncio.run()` to start an async event loop if one isn't already running.
     
@@ -68,8 +66,7 @@ async def main():
     Set up the reasoning modules and the prompt templates.
     """
     logger.info("## Setup")
-    
-    
+
     _REASONING_MODULES = [
         "1. How could I devise an experiment to help solve that problem?",
         "2. Make a list of ideas for solving this problem, and apply them one by one to the problem to see if any progress can be made.",
@@ -111,25 +108,25 @@ async def main():
         "38. Let’s think step by step ."
         "39. Let’s make a step by step plan and implement it with good notation and explanation.",
     ]
-    
+
     _REASONING_MODULES = "\n".join(_REASONING_MODULES)
-    
+
     SELECT_PRMOPT_TEMPLATE = PromptTemplate(
         "Given the task: {task}, which of the following reasoning modules are relevant? Do not elaborate on why.\n\n {reasoning_modules}"
     )
-    
+
     ADAPT_PROMPT_TEMPLATE = PromptTemplate(
         "Without working out the full solution, adapt the following reasoning modules to be specific to our task:\n{selected_modules}\n\nOur task:\n{task}"
     )
-    
+
     IMPLEMENT_PROMPT_TEMPLATE = PromptTemplate(
         "Without working out the full solution, create an actionable reasoning structure for the task using these adapted reasoning modules:\n{adapted_modules}\n\nTask Description:\n{task}"
     )
-    
+
     REASONING_PROMPT_TEMPLATE = PromptTemplate(
         "Using the following reasoning structure: {reasoning_structure}\n\nSolve this task, providing your final answer: {task}"
     )
-    
+
     """
     ## Designing the Workflow
     
@@ -146,39 +143,33 @@ async def main():
     3. `ReasoningStructureEvent`: Triggered after the reasoning structure is generated.
     """
     logger.info("## Designing the Workflow")
-    
-    
-    
+
     class GetModulesEvent(Event):
         """Event to get modules."""
-    
+
         task: str
         modules: str
-    
-    
+
     class RefineModulesEvent(Event):
         """Event to refine modules."""
-    
+
         task: str
         refined_modules: str
-    
-    
+
     class ReasoningStructureEvent(Event):
         """Event to create reasoning structure."""
-    
+
         task: str
         reasoning_structure: str
-    
+
     """
     Below is the code for the SELF-DISCOVER workflow:
     """
     logger.info("Below is the code for the SELF-DISCOVER workflow:")
-    
-    
-    
+
     class SelfDiscoverWorkflow(Workflow):
         """Self discover workflow."""
-    
+
         @step
         async def get_modules(
             self, ctx: Context, ev: StartEvent
@@ -186,19 +177,19 @@ async def main():
             """Get modules step."""
             task = ev.get("task")
             llm: LLM = ev.get("llm")
-    
+
             if task is None or llm is None:
                 raise ValueError("'task' and 'llm' arguments are required.")
-    
+
             await ctx.store.set("llm", llm)
-    
+
             prompt = SELECT_PRMOPT_TEMPLATE.format(
                 task=task, reasoning_modules=_REASONING_MODULES
             )
             result = llm.complete(prompt)
-    
+
             return GetModulesEvent(task=task, modules=str(result))
-    
+
         @step
         async def refine_modules(
             self, ctx: Context, ev: GetModulesEvent
@@ -207,15 +198,15 @@ async def main():
             task = ev.task
             modules = ev.modules
             llm: LLM = await ctx.store.get("llm")
-            logger.success(format_json(llm: LLM))
-    
+
             prompt = ADAPT_PROMPT_TEMPLATE.format(
                 task=task, selected_modules=modules
             )
             result = llm.complete(prompt)
-    
+            logger.success(format_json(result))
+
             return RefineModulesEvent(task=task, refined_modules=str(result))
-    
+
         @step
         async def create_reasoning_structure(
             self, ctx: Context, ev: RefineModulesEvent
@@ -224,17 +215,17 @@ async def main():
             task = ev.task
             refined_modules = ev.refined_modules
             llm: LLM = await ctx.store.get("llm")
-            logger.success(format_json(llm: LLM))
-    
+
             prompt = IMPLEMENT_PROMPT_TEMPLATE.format(
                 task=task, adapted_modules=refined_modules
             )
             result = llm.complete(prompt)
-    
+            logger.success(format_json(result))
+
             return ReasoningStructureEvent(
                 task=task, reasoning_structure=str(result)
             )
-    
+
         @step
         async def get_final_result(
             self, ctx: Context, ev: ReasoningStructureEvent
@@ -243,30 +234,28 @@ async def main():
             task = ev.task
             reasoning_structure = ev.reasoning_structure
             llm: LLM = await ctx.store.get("llm")
-            logger.success(format_json(llm: LLM))
-    
+
             prompt = REASONING_PROMPT_TEMPLATE.format(
                 task=task, reasoning_structure=reasoning_structure
             )
             result = llm.complete(prompt)
-    
+            logger.success(format_json(result))
+
             return StopEvent(result=result)
-    
+
     """
     ## Running the workflow
     """
     logger.info("## Running the workflow")
-    
-    
+
     workflow = SelfDiscoverWorkflow()
-    llm = OllamaFunctionCallingAdapter("gpt-4o")
-    
-    
+    llm = OllamaFunctionCallingAdapter("llama3.2")
+
     task = "Michael has 15 oranges. He gives 4 oranges to his brother and trades 3 oranges for 6 apples with his neighbor. Later in the day, he realizes some of his oranges are spoiled, so he discards 2 of them. Then, Michael goes to the market and buys 12 more oranges and 5 more apples. If Michael decides to give 2 apples to his friend, how many oranges and apples does Michael have now?"
     result = await workflow.run(task=task, llm=llm)
     logger.success(format_json(result))
     display(Markdown(str(result)))
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':
