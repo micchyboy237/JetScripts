@@ -1,12 +1,12 @@
 async def main():
     from jet.transformers.formatters import format_json
+    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import AgentStream, ToolCallResult
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.core.llms import ChatMessage
     from llama_index.core.tools import FunctionTool
     from llama_index.core.workflow import Context
-    from llama_index.llms.anthropic import Anthropic
     from pydantic import BaseModel
     from typing import Optional
     import os
@@ -16,9 +16,11 @@ async def main():
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-    log_file = os.path.join(OUTPUT_DIR, "main.log")
+    LOG_DIR = f"{OUTPUT_DIR}/logs"
+    
+    log_file = os.path.join(LOG_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
-    logger.info(f"Logs: {log_file}")
+    logger.orange(f"Logs: {log_file}")
     
     """
     # Controlling Agent Reasoning Loop with Return Direct Tools
@@ -112,7 +114,7 @@ async def main():
     logger.info("## A user has walked in! Let's help them make a booking")
     
     
-    llm = Anthropic(model="claude-3-sonnet-20240229", temperature=0.1)
+    llm = OllamaFunctionCallingAdapter(model="claude-3-sonnet-20240229", temperature=0.1)
     
     user = "user123"
     system_prompt = f"""You are now connected to the booking system and helping {user} with making a booking.

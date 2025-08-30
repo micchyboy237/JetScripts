@@ -16,7 +16,7 @@ async def main():
 
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-    shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+    # shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
@@ -46,12 +46,12 @@ async def main():
 
     try:
         storage_context = StorageContext.from_defaults(
-            persist_dir="./storage/lyft"
+            persist_dir=f"{OUTPUT_DIR}/storage/lyft"
         )
         lyft_index = load_index_from_storage(storage_context)
 
         storage_context = StorageContext.from_defaults(
-            persist_dir="./storage/uber"
+            persist_dir=f"{OUTPUT_DIR}/storage/uber"
         )
         uber_index = load_index_from_storage(storage_context)
 
@@ -81,8 +81,10 @@ async def main():
         lyft_index = VectorStoreIndex.from_documents(lyft_docs)
         uber_index = VectorStoreIndex.from_documents(uber_docs)
 
-        lyft_index.storage_context.persist(persist_dir="./storage/lyft")
-        uber_index.storage_context.persist(persist_dir="./storage/uber")
+        lyft_index.storage_context.persist(
+            persist_dir=f"{OUTPUT_DIR}/storage/lyft")
+        uber_index.storage_context.persist(
+            persist_dir=f"{OUTPUT_DIR}/storage/uber")
 
     lyft_engine = lyft_index.as_query_engine(similarity_top_k=3)
     uber_engine = uber_index.as_query_engine(similarity_top_k=3)

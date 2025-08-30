@@ -16,6 +16,7 @@ REPLACE_OLLAMA_MAP = {
     "llama-index-llms-openai": "llama-index-llms-ollama",
     "llama-index-embeddings-openai": "llama-index-embeddings-huggingface",
     "llama_index.llms.openai": "jet.llm.ollama.adapters.ollama_llama_index_llm_adapter",
+    "llama_index.llms.anthropic": "jet.llm.ollama.adapters.ollama_llama_index_llm_adapter",
     "llama_index.embeddings.openai": "llama_index.embeddings.huggingface",
     "llama_index.graph_stores.neo4j": "jet.vectors.adapters.neo4j_property_graph_adapter",
     "llama_index.postprocessor.cohere_rerank": "jet.models.embeddings.adapters.rerank_cross_encoder_llama_index_adapter",
@@ -25,6 +26,7 @@ REPLACE_OLLAMA_MAP = {
     "OpenAIEmbeddings": "OllamaEmbeddings",
     "OpenAIEmbedding": "HuggingFaceEmbedding",
     "OpenAI": "OllamaFunctionCallingAdapter",
+    "Anthropic": "OllamaFunctionCallingAdapter",
     "ChatOpenAI": "ChatOllama",
     "ChatAnthropic": "ChatOllama",
     "CohereRerank": "CrossEncoderRerank",
@@ -618,7 +620,8 @@ if __name__ == "__main__":
         # "agent_workflow_basic",
         # "agent_workflow_multi",
         # "agents_as_tools",
-        "custom_multi_agent",
+        # "custom_multi_agent",
+        "return_direct_agent",
     ]
     exclude_files = [
         # "agent_workflow_research_assistant",
