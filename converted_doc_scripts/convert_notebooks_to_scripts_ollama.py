@@ -621,7 +621,9 @@ if __name__ == "__main__":
         # "checkpointing_workflows",
         # "advanced_text_to_sql",
         # "workflows_cookbook",
-        "router_query_engine",
+        # "router_query_engine",
+        "multi_step_query_engine",
+        "multi_strategy_workflow",
     ]
     exclude_files = [
         # "agent_workflow_research_assistant",
