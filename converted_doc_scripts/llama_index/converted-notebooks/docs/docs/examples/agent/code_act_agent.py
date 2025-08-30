@@ -366,7 +366,7 @@ async def main():
         logger.debug(f"User:  {query}")
         async for event in handler.stream_events():
             if isinstance(event, StreamEvent):
-                logger.teal(f"\r{event.delta}", flush=True)
+                logger.teal(f"{event.delta}", flush=True)
             elif isinstance(event, CodeExecutionEvent):
                 logger.debug(f"\n-----------\nParsed code:\n{event.code}\n")
 

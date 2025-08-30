@@ -616,8 +616,9 @@ if __name__ == "__main__":
     ]
     include_files = [
         # "agent_workflow_basic",
-        "agent_workflow_multi",
+        # "agent_workflow_multi",
         # "agents_as_tools",
+        "custom_multi_agent",
     ]
     exclude_files = [
         # "agent_workflow_research_assistant",
