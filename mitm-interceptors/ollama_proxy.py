@@ -149,7 +149,7 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
 
         for item_idx, item in enumerate(prompts):
             prompt_msg = (
-                f"### {item.get('role').title()}\n\n"
+                f"### {item.get('role', '')}\n\n"
                 f"{item.get('content')}"
             ).strip()
             chat_msgs.append(prompt_msg)
@@ -211,7 +211,7 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     else:
         tools_str = ""
     prompt_log_str = (
-        f"## Prompts\n\n```markdown\n{prompt_log}\n```\n\n" if is_chat else f"## Prompt\n\n```markdown\n{prompt}\n```\n\n")
+        f"## Prompts\n\n{prompt_log}\n\n" if is_chat else f"## Prompt\n\n{prompt}\n\n")
 
     prompt_token_count = next(
         (field[1] for field in request_dict["headers"]
