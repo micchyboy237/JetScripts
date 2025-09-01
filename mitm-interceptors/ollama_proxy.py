@@ -224,7 +224,9 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     prompt_token_count = int(prompt_token_count)
     response_token_count = token_counter(
         final_response_content, request_content.get("model", request_dict.get("model", None)))
-    total_tokens = prompt_token_count + response_token_count
+    tools_token_count = token_counter(tools, request_content.get(
+        "tools", request_dict.get("tools", None)))
+    total_tokens = prompt_token_count + tools_token_count + response_token_count
 
     model_max_length = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
 
@@ -484,8 +486,15 @@ def request(flow: http.HTTPFlow):
                 logger.log(f"  {k}: <{type(v).__name__}>",
                            colors=["GRAY", "TEAL"])
         for key, value in request_dict["content"].items():
-            logger.log(f"REQUEST CONTENT {key}:",
-                       value, colors=["GRAY", "TEAL"])
+            if key == "messages":
+                logger.log(f"REQUEST CONTENT {key}: len={len(value) if value is not None else 0}", colors=[
+                           "GRAY", "TEAL"])
+            elif key == "tools":
+                logger.log(f"REQUEST CONTENT {key}: len={len(value) if value is not None else 0}", colors=[
+                           "GRAY", "TEAL"])
+            else:
+                logger.log(f"REQUEST CONTENT {key}:",
+                           value, colors=["GRAY", "TEAL"])
         logger.log("REQUEST HEADERS:")
         headers = request_dict["headers"]
         if isinstance(headers, dict) and "fields" in headers:
@@ -502,7 +511,7 @@ def request(flow: http.HTTPFlow):
         token_count = token_counter(messages, request_content.get(
             "model", request_dict.get("model", None)))
         tools_token_count = token_counter(tools, request_content.get(
-            "model", request_dict.get("model", None)))
+            "tools", request_dict.get("tools", None)))
         token_count += tools_token_count
 
         logger.newline()
@@ -562,8 +571,15 @@ def request(flow: http.HTTPFlow):
                 logger.log(f"  {k}: <{type(v).__name__}>",
                            colors=["GRAY", "TEAL"])
         for key, value in request_dict["content"].items():
-            logger.log(f"REQUEST CONTENT {key}:",
-                       value, colors=["GRAY", "TEAL"])
+            if key == "messages":
+                logger.log(f"REQUEST CONTENT {key}: len={len(value) if value is not None else 0}", colors=[
+                           "GRAY", "TEAL"])
+            elif key == "tools":
+                logger.log(f"REQUEST CONTENT {key}: len={len(value) if value is not None else 0}", colors=[
+                           "GRAY", "TEAL"])
+            else:
+                logger.log(f"REQUEST CONTENT {key}:",
+                           value, colors=["GRAY", "TEAL"])
         logger.log("REQUEST HEADERS:")
         headers = request_dict["headers"]
         if isinstance(headers, dict) and "fields" in headers:
@@ -573,7 +589,8 @@ def request(flow: http.HTTPFlow):
             logger.log(f"  {headers}", colors=["GRAY", "TEAL"])
 
         logger.gray("REQUEST OPTIONS:")
-        logger.debug(format_json(options))
+        for key, value in options.items():
+            logger.log(f"{key}:", value, colors=["GRAY", "DEBUG"])
 
         token_count = token_counter(prompt, request_content.get(
             "model", request_dict.get("model", None)))
@@ -683,6 +700,7 @@ def response(flow: http.HTTPFlow):
 
         messages = request_content.get(
             'messages', request_content.get('prompt', None))
+        tools = request_content.get("tools")
         prompt_token_count = next(
             (field[1] for field in request_dict["headers"]
              ["fields"] if field[0].lower() == "tokens"),
@@ -694,7 +712,9 @@ def response(flow: http.HTTPFlow):
         prompt_token_count = int(prompt_token_count)
         response_token_count = token_counter(
             final_response_content, request_content.get("model", request_dict.get("model", None)))
-        total_tokens = prompt_token_count + response_token_count
+        tools_token_count = token_counter(tools, request_content.get(
+            "tools", request_dict.get("tools", None)))
+        total_tokens = prompt_token_count + tools_token_count + response_token_count
         logger.newline()
         logger.log("Path:", flow.request.path, colors=["GRAY", "INFO"])
         logger.log("Stream:", request_content.get("stream", request_dict.get("stream", False)), colors=[
