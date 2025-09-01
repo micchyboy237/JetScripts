@@ -201,7 +201,15 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         response = f"```{response_type}\n{response}\n```"
 
     response_str = f"## Response\n\n{response}\n\n" if response else ""
-    tools_str = f"## Tools\n\n```json\n{format_json(tools)}\n```\n\n" if has_tools else ""
+    if has_tools:
+        formatted_tools = ""
+        for idx, tool in enumerate(tools, 1):
+            tool_name = tool.get("function", {}).get(
+                "name") if isinstance(tool, dict) else str(tool)
+            formatted_tools += f"{idx}. {tool_name}\n"
+        tools_str = f"## Tools\n\n```text\n{formatted_tools.strip()}\n```\n\n"
+    else:
+        tools_str = ""
     prompt_log_str = (
         f"## Prompts\n\n```markdown\n{prompt_log}\n```\n\n" if is_chat else f"## Prompt\n\n```markdown\n{prompt}\n```\n\n")
 
