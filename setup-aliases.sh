@@ -398,6 +398,7 @@ git_stats() {
     local depth=""
     local mode=""
     local type_filter=""
+    local file_pattern=""
 
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -405,6 +406,7 @@ git_stats() {
             -d) depth="$2"; shift 2;;
             -m) mode="$2"; shift 2;;
             -t) type_filter="$2"; shift 2;;
+            -p) file_pattern="$2"; shift 2;;
             *) base_dir="$1"; shift;;
         esac
     done
@@ -415,12 +417,14 @@ git_stats() {
     [[ -n "$depth" ]] && args+=("-d" "$depth")
     [[ -n "$mode" ]] && args+=("-m" "$mode")
     [[ -n "$type_filter" ]] && args+=("-t" "$type_filter")
+    [[ -n "$file_pattern" ]] && args+=("-p" "$file_pattern")
 
     python /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_notes/python_scripts/git_stats.py "${args[@]}"
 
     # Examples:
     # git_stats
     # git_stats -e ".py,.ipynb"
+    # git_stats -e ".py" -p "test_*.py"
     # git_stats -e ".py,.md" -t files -m file
     # git_stats -e ".py,.md" -t dirs -m git -d 3
     # git_stats -e ".py,.ipynb" -m auto
