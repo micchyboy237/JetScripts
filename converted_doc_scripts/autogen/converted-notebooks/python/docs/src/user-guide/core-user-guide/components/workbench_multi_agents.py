@@ -1,0 +1,245 @@
+import asyncio
+from jet.transformers.formatters import format_json
+from autogen_core import (
+    FunctionCall,
+    MessageContext,
+    RoutedAgent,
+    message_handler,
+)
+from autogen_core import AgentId, SingleThreadedAgentRuntime
+from autogen_core.model_context import BufferedChatCompletionContext
+from autogen_core.model_context import ChatCompletionContext
+from autogen_core.models import (
+    AssistantMessage,
+    ChatCompletionClient,
+    FunctionExecutionResult,
+    FunctionExecutionResultMessage,
+    LLMMessage,
+    SystemMessage,
+    UserMessage,
+)
+from autogen_core.tools import ToolResult, Workbench
+from autogen_ext.models.ollama import OllamaChatCompletionClient
+from autogen_ext.tools.mcp import McpWorkbench, SseServerParams
+from autogen_agentchat.teams import RoundRobinGroupChat
+from autogen_agentchat.conditions import TextMessageTermination
+from dataclasses import dataclass
+from jet.logger import CustomLogger
+from typing import List
+import json
+import os
+import shutil
+
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger = CustomLogger(log_file, overwrite=True)
+logger.info(f"Logs: {log_file}")
+
+"""
+# Workbench (and MCP)
+
+A {py:class}`~autogen_core.tools.Workbench` provides a collection of tools that share state and resources.
+Different from {py:class}`~autogen_core.tools.Tool`, which provides an interface
+to a single tool, a workbench provides an interface to call different tools
+and receive results as the same types.
+
+## Using Workbench
+
+Here is an example of how to create an agent using {py:class}`~autogen_core.tools.Workbench`.
+"""
+logger.info("# Workbench (and MCP)")
+
+
+@dataclass
+class Message:
+    content: str
+
+
+class WorkbenchAgent(RoutedAgent):
+    def __init__(
+        self, model_client: ChatCompletionClient, model_context: ChatCompletionContext, workbench: Workbench
+    ) -> None:
+        super().__init__("An agent with a workbench")
+        self._system_messages: List[LLMMessage] = [
+            SystemMessage(content="You are a helpful AI assistant.")]
+        self._model_client = model_client
+        self._model_context = model_context
+        self._workbench = workbench
+
+    @message_handler
+    async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
+        # Add user message to model context
+        await self._model_context.add_message(UserMessage(content=message.content, source="user"))
+        logger.success(format_json(message.content))
+        logger.debug("---------User Message-----------")
+        logger.debug(message.content)
+
+        # Create initial model response
+        create_result = await self._model_client.create(
+            messages=self._system_messages + (await self._model_context.get_messages()),
+            tools=(await self._workbench.list_tools()),
+            cancellation_token=ctx.cancellation_token,
+        )
+        logger.success(format_json(create_result))
+
+        # Loop while the model returns function calls
+        while isinstance(create_result.content, list) and all(
+            isinstance(call, FunctionCall) for call in create_result.content
+        ):
+            logger.debug("---------Function Calls-----------")
+            for call in create_result.content:
+                logger.debug(str(call))
+
+            # Add assistant message with function calls to context
+            await self._model_context.add_message(
+                AssistantMessage(content=create_result.content,
+                                 source="assistant")
+            )
+            logger.success(format_json([str(call)
+                           for call in create_result.content]))
+
+            logger.debug("---------Function Call Results-----------")
+            results: List[ToolResult] = []
+            for call in create_result.content:
+                result = await self._workbench.call_tool(
+                    call.name, arguments=json.loads(call.arguments), cancellation_token=ctx.cancellation_token
+                )
+                logger.success(format_json(result))
+                results.append(result)
+                logger.debug(str(result))
+
+            # Add function execution results to context
+            await self._model_context.add_message(
+                FunctionExecutionResultMessage(
+                    content=[
+                        FunctionExecutionResult(
+                            call_id=call.id,
+                            content=result.to_text(),
+                            is_error=result.is_error,
+                            name=result.name,
+                        )
+                        for call, result in zip(create_result.content, results, strict=False)
+                    ]
+                )
+            )
+
+            # Get next model response
+            create_result = await self._model_client.create(
+                messages=self._system_messages + (await self._model_context.get_messages()),
+                tools=(await self._workbench.list_tools()),
+                cancellation_token=ctx.cancellation_token,
+            )
+            logger.success(format_json(create_result))
+
+        assert isinstance(create_result.content, str)
+
+        logger.debug("---------Final Response-----------")
+        logger.debug(create_result.content)
+
+        # Add final assistant message to context
+        await self._model_context.add_message(
+            AssistantMessage(content=create_result.content, source="assistant")
+        )
+        logger.success(format_json(create_result.content))
+
+        return Message(content=create_result.content)
+
+
+"""
+In this example, the agent calls the tools provided by the workbench
+in a loop until the model returns a final answer.
+
+## MCP Workbench
+
+[Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is a protocol
+for providing tools and resources
+to language models. An MCP server hosts a set of tools and manages their state,
+while an MCP client operates from the side of the language model and
+communicates with the server to access the tools, and to provide the
+language model with the context it needs to use the tools effectively.
+
+In AutoGen, we provide {py:class}`~autogen_ext.tools.mcp.McpWorkbench`
+that implements an MCP client. You can use it to create an agent that
+uses tools provided by MCP servers.
+
+## Web Browsing Agent using Playwright MCP
+
+Here is an example of how we can use the [Playwright MCP server](https://github.com/microsoft/playwright-mcp)
+and the `WorkbenchAgent` class to create a web browsing agent.
+
+You may need to install the browser dependencies for Playwright.
+"""
+logger.info("## MCP Workbench")
+
+
+"""
+Start the Playwright MCP server in a terminal.
+"""
+logger.info("Start the Playwright MCP server in a terminal.")
+
+
+"""
+Then, create the agent using the `WorkbenchAgent` class and
+{py:class}`~autogen_ext.tools.mcp.McpWorkbench` with the Playwright MCP server URL.
+"""
+logger.info("Then, create the agent using the `WorkbenchAgent` class and")
+
+
+playwright_server_params = SseServerParams(
+    url="http://localhost:8931/sse",
+)
+
+
+async def async_func_9():
+    async with McpWorkbench(playwright_server_params) as web_workbench, McpWorkbench(metadata_server_params) as meta_workbench:
+        runtime = SingleThreadedAgentRuntime()
+
+        # Register Web Browsing Agent
+        await WorkbenchAgent.register(
+            runtime=runtime,
+            type="WebBrowsingAgent",
+            factory=lambda: WorkbenchAgent(
+                model_client=OllamaChatCompletionClient(
+                    model="llama3.2", host="http://localhost:11434"),
+                model_context=BufferedChatCompletionContext(buffer_size=10),
+                workbench=web_workbench,
+            ),
+        )
+
+        # Register Metadata Agent
+        await WorkbenchAgent.register(
+            runtime=runtime,
+            type="MetadataAgent",
+            factory=lambda: WorkbenchAgent(
+                model_client=OllamaChatCompletionClient(
+                    model="llama3.2", host="http://localhost:11434"),
+                model_context=BufferedChatCompletionContext(buffer_size=10),
+                workbench=meta_workbench,
+            ),
+        )
+
+        # Create a team with both agents
+        team = RoundRobinGroupChat(
+            agents=[
+                AgentId("WebBrowsingAgent", "default"),
+                AgentId("MetadataAgent", "default"),
+            ],
+            termination_condition=TextMessageTermination(
+                source="WebBrowsingAgent"),
+        )
+
+        runtime.start()
+        await runtime.send_message(
+            Message(
+                content="Use https://aniwatchtv.to to find out the watch link of Solo Leveling episode 12"
+            ),
+            recipient=team,
+        )
+        await runtime.stop()
+
+asyncio.run(async_func_9())
+
+logger.info("\n\n[DONE]", bright=True)

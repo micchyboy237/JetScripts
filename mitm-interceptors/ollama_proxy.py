@@ -460,15 +460,31 @@ def request(flow: http.HTTPFlow):
         if tools:
             logger.newline()
             logger.gray("REQUEST TOOLS:")
-            logger.orange(format_json(tools))
+            formatted_tools = ""
+            for idx, tool in enumerate(tools, 1):
+                tool_name = tool.get("function", {}).get(
+                    "name") if isinstance(tool, dict) else str(tool)
+                formatted_tools += f"{idx + 1}. {tool_name}\n"
+            logger.orange(formatted_tools.strip())
 
         logger.newline()
-        logger.log(f"REQUEST KEYS:", list(
-            request_dict.keys()), colors=["GRAY", "TEAL"])
-        logger.log(f"REQUEST CONTENT KEYS:", list(
-            request_dict["content"].keys()), colors=["GRAY", "TEAL"])
-        logger.log("REQUEST HEADERS:",
-                   json.dumps(request_dict["headers"]), colors=["GRAY", "TEAL"])
+        logger.log("REQUEST KEYS:")
+        for k, v in request_dict.items():
+            if isinstance(v, (str, int, float, bool, type(None))):
+                logger.log(f"  {k}: {v}", colors=["GRAY", "TEAL"])
+            else:
+                logger.log(f"  {k}: <{type(v).__name__}>",
+                           colors=["GRAY", "TEAL"])
+        for key, value in request_dict["content"].items():
+            logger.log(f"REQUEST CONTENT {key}:",
+                       value, colors=["GRAY", "TEAL"])
+        logger.log("REQUEST HEADERS:")
+        headers = request_dict["headers"]
+        if isinstance(headers, dict) and "fields" in headers:
+            for k, v in headers["fields"]:
+                logger.log(f"  {k}: {v}", colors=["GRAY", "TEAL"])
+        else:
+            logger.log(f"  {headers}", colors=["GRAY", "TEAL"])
 
         logger.newline()
         logger.gray("REQUEST OPTIONS:")
@@ -477,6 +493,9 @@ def request(flow: http.HTTPFlow):
 
         token_count = token_counter(messages, request_content.get(
             "model", request_dict.get("model", None)))
+        tools_token_count = token_counter(tools, request_content.get(
+            "model", request_dict.get("model", None)))
+        token_count += tools_token_count
 
         logger.newline()
         logger.log("STREAM:", request_content.get("stream", request_dict.get("stream", False)), colors=[
@@ -527,12 +546,23 @@ def request(flow: http.HTTPFlow):
         logger.gray("REQUEST PROMPT:")
         logger.info(prompt)
 
-        logger.log(f"REQUEST KEYS:", list(
-            request_dict.keys()), colors=["GRAY", "INFO"])
-        logger.log(f"REQUEST CONTENT KEYS:", list(
-            request_dict["content"].keys()), colors=["GRAY", "INFO"])
-        logger.log("REQUEST HEADERS:",
-                   json.dumps(request_dict["headers"]), colors=["GRAY", "INFO"])
+        logger.log("REQUEST KEYS:")
+        for k, v in request_dict.items():
+            if isinstance(v, (str, int, float, bool, type(None))):
+                logger.log(f"  {k}: {v}", colors=["GRAY", "TEAL"])
+            else:
+                logger.log(f"  {k}: <{type(v).__name__}>",
+                           colors=["GRAY", "TEAL"])
+        for key, value in request_dict["content"].items():
+            logger.log(f"REQUEST CONTENT {key}:",
+                       value, colors=["GRAY", "TEAL"])
+        logger.log("REQUEST HEADERS:")
+        headers = request_dict["headers"]
+        if isinstance(headers, dict) and "fields" in headers:
+            for k, v in headers["fields"]:
+                logger.log(f"  {k}: {v}", colors=["GRAY", "TEAL"])
+        else:
+            logger.log(f"  {headers}", colors=["GRAY", "TEAL"])
 
         logger.gray("REQUEST OPTIONS:")
         logger.debug(format_json(options))

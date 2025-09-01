@@ -1,18 +1,18 @@
 import argparse
 import os
-from typing import List
+from typing import List, Tuple
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.data.utils import generate_unique_id
 from jet.file.utils import save_file
 from jet.logger.config import colorize_log
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
-from jet.models.model_types import EmbedModelType, LLMModelType
+from jet.models.model_registry.transformers.cross_encoder_model_registry import CrossEncoderRegistry
+from jet.models.model_types import EmbedModelType
 from jet.models.tokenizer.base import get_tokenizer_fn
 from jet.utils.language import detect_lang
 from jet.utils.text import format_sub_dir
 from jet.vectors.reranker.bm25 import rerank_bm25
 from jet.vectors.semantic_search.file_vector_search import FileSearchResult, merge_results, search_files
-
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -27,42 +27,84 @@ def print_results(query: str, results: List[FileSearchResult], split_chunks: boo
         num_tokens = result["metadata"]["num_tokens"]
         score = result["score"]
         print(
-            f"{colorize_log(f"{num}.)", "ORANGE")} Score: {colorize_log(f'{score:.3f}', 'SUCCESS')} | Chunk: {chunk_idx} | Tokens: {num_tokens} | Start - End: {start_idx} - {end_idx}\nFile: {file_path}")
+            f"{colorize_log(f'{num}.)', 'ORANGE')} Score: {colorize_log(f'{score:.3f}', 'SUCCESS')} | Chunk: {chunk_idx} | Tokens: {num_tokens} | Start - End: {start_idx} - {end_idx}\nFile: {file_path}")
 
 
-def rerank_results(query: str, results: List[FileSearchResult]):
+def rerank_results(query: str, results: List[FileSearchResult]) -> Tuple[List[str], List[dict]]:
+    """Rerank search results using BM25."""
     texts = [result["text"] for result in results]
     ids = [generate_unique_id() for _ in texts]
     metadatas = [result["metadata"] for result in results]
-
     query_candidates, reranked_results = rerank_bm25(
         query, texts, ids=ids, metadatas=metadatas)
-
-    # Add embed_score and embed_rank from original results to each reranked_result
     id_to_embed_score = {id_: result.get(
         "score", None) for id_, result in zip(ids, results)}
-    # Compute embed_rank based on original order (1-based)
     id_to_embed_rank = {id_: rank for rank, id_ in enumerate(ids, start=1)}
     for reranked in reranked_results:
         reranked["embed_score"] = id_to_embed_score.get(reranked["id"], None)
         reranked["embed_rank"] = id_to_embed_rank.get(reranked["id"], None)
-
     return query_candidates, reranked_results
 
 
-def main(query, directories):
-    """Main function to demonstrate file search."""
-    output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
+def cross_encoder_rerank(query: str, results: List[FileSearchResult], top_n: int = 50) -> List[FileSearchResult]:
+    """Rerank search results using CrossEncoder."""
+    if not results:
+        return results
 
+    # Prepare input pairs for cross-encoder
+    input_pairs = [(query, result["text"]) for result in results[:top_n]]
+    try:
+        # Load cross-encoder model
+        cross_encoder = CrossEncoderRegistry.load_model(
+            model_id="cross-encoder/ms-marco-MiniLM-L6-v2",
+            device="mps" if os.uname().sysname == "Darwin" else "cpu"
+        )
+        # Get cross-encoder scores
+        scores = CrossEncoderRegistry.predict_scores(
+            input_pairs,
+            batch_size=32,
+            show_progress=True,
+            return_format="list"
+        )
+
+        # Combine cross-encoder scores with original scores
+        reranked_results = []
+        for idx, (result, ce_score) in enumerate(zip(results[:top_n], scores)):
+            # Normalize cross-encoder score (sigmoid output) and combine with original
+            normalized_ce_score = float(ce_score)
+            hybrid_score = 0.6 * result["score"] + 0.4 * normalized_ce_score
+            reranked_result = result.copy()
+            reranked_result["score"] = hybrid_score
+            reranked_result["metadata"] = result["metadata"].copy()
+            reranked_result["metadata"]["cross_encoder_score"] = normalized_ce_score
+            reranked_results.append(reranked_result)
+
+        # Sort by hybrid score
+        reranked_results.sort(key=lambda x: x["score"], reverse=True)
+
+        # Update ranks
+        for i, result in enumerate(reranked_results, 1):
+            result["rank"] = i
+
+        # Include any remaining results beyond top_n
+        if len(results) > top_n:
+            reranked_results.extend(results[top_n:])
+
+        return reranked_results
+    except Exception as e:
+        print(f"Cross-encoder reranking failed: {str(e)}")
+        return results
+
+
+def main(query: str, directories: List[str]):
+    """Main function to demonstrate file search with hybrid reranking."""
+    output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
     extensions = [".py"]
-    # embed_model_name: EmbedModelType = "static-retrieval-mrl-en-v1"
-    # embed_model_name: EmbedModelType = "mxbai-embed-large"
     embed_model_name: EmbedModelType = "all-MiniLM-L6-v2"
     truncate_dim = None
     max_seq_len = None
-
     top_k = None
-    threshold = 0.0  # Using default threshold
+    threshold = 0.0
     chunk_size = 500
     chunk_overlap = 100
 
@@ -77,11 +119,11 @@ def main(query, directories):
         return clean_markdown_links(text)
 
     split_chunks = True
-
     print(f"Search results for '{query}' in these dirs:")
     for d in directories:
         print(d)
 
+    # Initial vector search
     with_split_chunks_results = list(
         search_files(
             directories,
@@ -104,10 +146,14 @@ def main(query, directories):
             }
         )
     )
+
+    # Filter for English results
     with_split_chunks_results = [
         result for result in with_split_chunks_results
         if detect_lang(result["text"])["lang"] == "en"
     ]
+
+    # Save initial split chunk results
     save_file({
         "query": query,
         "count": len(with_split_chunks_results),
@@ -115,6 +161,27 @@ def main(query, directories):
         "results": with_split_chunks_results
     }, f"{output_dir}/search_results_split.json")
 
+    # BM25 reranking
+    top_n = 50
+    query_candidates, bm25_reranked_results = rerank_results(
+        query, with_split_chunks_results[:top_n])
+    save_file({
+        "query": query,
+        "candidates": query_candidates,
+        "count": len(bm25_reranked_results),
+        "results": bm25_reranked_results
+    }, f"{output_dir}/reranked_results_bm25_split.json")
+
+    # Cross-encoder reranking
+    cross_encoder_results = cross_encoder_rerank(
+        query, with_split_chunks_results, top_n)
+    save_file({
+        "query": query,
+        "count": len(cross_encoder_results),
+        "results": cross_encoder_results
+    }, f"{output_dir}/reranked_results_cross_encoder_split.json")
+
+    # Merge chunks
     split_chunks = False
     merged_results = merge_results(
         with_split_chunks_results, tokenizer=count_tokens)
@@ -125,47 +192,30 @@ def main(query, directories):
         "results": merged_results
     }, f"{output_dir}/search_results_merged.json")
 
-    # Rerank
-    top_n = 50
-    query_candidates, reranked_results = rerank_results(
-        query, with_split_chunks_results[:top_n])
-    save_file({
-        "query": query,
-        "candidates": query_candidates,
-        "count": len(reranked_results),
-        "results": reranked_results
-    }, f"{output_dir}/reranked_results_split.json")
-
-    query_candidates, reranked_results = rerank_results(
+    # BM25 reranking on merged results
+    query_candidates, bm25_reranked_merged = rerank_results(
         query, merged_results[:top_n])
     save_file({
         "query": query,
         "candidates": query_candidates,
-        "count": len(reranked_results),
-        "results": reranked_results
-    }, f"{output_dir}/reranked_results_merged.json")
+        "count": len(bm25_reranked_merged),
+        "results": bm25_reranked_merged
+    }, f"{output_dir}/reranked_results_bm25_merged.json")
 
-    print_results(query, merged_results, split_chunks)
+    # Cross-encoder reranking on merged results
+    cross_encoder_merged = cross_encoder_rerank(query, merged_results, top_n)
+    save_file({
+        "query": query,
+        "count": len(cross_encoder_merged),
+        "results": cross_encoder_merged
+    }, f"{output_dir}/reranked_results_cross_encoder_merged.json")
+
+    # Print final cross-encoder reranked merged results
+    print_results(query, cross_encoder_merged, split_chunks)
 
 
 def parse_arguments():
-    """Parse command line arguments for query and directories.
-
-    Usage:
-        Positional: python file_search.py "query" /path1 /path2
-        Named: python file_search.py --query "query" --directories /path1 /path2
-        Mixed: python file_search.py "query" --directories /path1
-        Default: python file_search.py
-
-    Sample Commands:
-        1. python file_search.py "neural network" /Users/jethroestrada/Desktop/AI/mlx
-        2. python file_search.py --query "embedding model" --directories /Users/jethroestrada/Desktop/AI/mlx
-        3. python file_search.py "function call" /Users/jethroestrada/Desktop/AI/mlx-lm
-
-    Notes:
-        - Defaults to "MLX Tools or Function Call" and predefined directories if not provided.
-        - Positional args must precede named args.
-    """
+    """Parse command line arguments for query and directories."""
     parser = argparse.ArgumentParser(
         description="File search with query and directories")
     parser.add_argument("query", type=str, nargs="?",
@@ -176,11 +226,9 @@ def parse_arguments():
                         default=None, help="Alternative query input")
     parser.add_argument("--directories", type=str, nargs="+", dest="directories_flag",
                         default=None, help="Alternative directories input")
-
     args = parser.parse_args()
     query = args.query_flag if args.query_flag is not None else args.query
     directories = args.directories_flag if args.directories_flag is not None else args.directories
-
     return argparse.Namespace(query=query, directories=directories)
 
 
