@@ -474,7 +474,7 @@ def request(flow: http.HTTPFlow):
             for idx, tool in enumerate(tools, 1):
                 tool_name = tool.get("function", {}).get(
                     "name") if isinstance(tool, dict) else str(tool)
-                formatted_tools += f"{idx + 1}. {tool_name}\n"
+                formatted_tools += f"{idx}. {tool_name}\n"
             logger.orange(formatted_tools.strip())
 
         logger.newline()
