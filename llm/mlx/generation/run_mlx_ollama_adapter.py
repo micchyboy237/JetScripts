@@ -1,3 +1,4 @@
+# JetScripts/llm/mlx/generation/run_mlx_ollama_adapter.py
 import os
 import shutil
 import argparse
@@ -13,8 +14,6 @@ from jet.logger import CustomLogger
 OUTPUT_DIR = os.path.join(os.path.dirname(
     __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-
-# Define logger
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 
@@ -65,11 +64,22 @@ def calculate(expression: str) -> float:
         The result of the evaluated expression.
     """
     try:
-        # Safe eval with restricted globals
         return eval(expression, {"__builtins__": {}}, {})
     except Exception as e:
         logger.error(f"Error evaluating expression '{expression}': {str(e)}")
         raise
+
+
+def multiply(a: float, b: float) -> float:
+    """
+    A function that multiplies two numbers.
+    Args:
+        a: The first number to multiply.
+        b: The second number to multiply.
+    Returns:
+        The product of the two numbers.
+    """
+    return a * b
 
 
 def run_mlx_ollama_adapter(
@@ -113,12 +123,8 @@ def run_mlx_ollama_adapter(
         mlx.client.cli_args.top_k = options.top_k or mlx.client.cli_args.top_k
         mlx.client.cli_args.stop = options.stop or mlx.client.cli_args.stop
         mlx.client.cli_args.repetition_penalty = options.repeat_penalty or mlx.client.cli_args.repetition_penalty
-
-    # Define available tools
-    tools = [calculate]
-
+    tools = [calculate, multiply]  # Add multiply to the tools list
     mlx_messages = convert_ollama_to_mlx_messages(messages)
-
     if stream:
         response = mlx.stream_chat(
             messages=mlx_messages,
@@ -142,38 +148,42 @@ def run_mlx_ollama_adapter(
             verbose=verbose,
             tools=tools
         )
-
-        # Check if response contains a tool call
+        # Check if the response contains a tool call
+        tool_call = None
         content = response.get("content", "")
         if "<tool_call>" in content:
             logger.gray("Processing tool call")
             tool_call = parse_tool_call(content)
+        elif response.get("choices", [{}])[0].get("message", {}).get("tool_calls"):
+            tool_call = response["choices"][0]["message"]["tool_calls"][0]["function"]
+            logger.gray("Processing tool call from response")
+        if tool_call:
             logger.debug(f"Tool call arguments: {tool_call['arguments']}")
-
-            # Execute the tool
             tool_result = None
-            if tool_call["name"] == "calculate":
+            tool_name = tool_call["name"]
+            if tool_name == "calculate":
                 tool_result = calculate(**tool_call["arguments"])
                 logger.success(f"Tool result: {tool_result}")
-
-            # Append tool result to messages and generate confirmation
+            elif tool_name == "multiply":
+                logger.debug(
+                    f"Type of a: {type(tool_call['arguments']['a'])}, Value: {tool_call['arguments']['a']}")
+                logger.debug(
+                    f"Type of b: {type(tool_call['arguments']['b'])}, Value: {tool_call['arguments']['b']}")
+                tool_result = multiply(**tool_call["arguments"])
+                logger.success(f"Tool result: {tool_result}")
             if tool_result is not None:
                 new_messages = messages if isinstance(messages, list) else [
                     {"role": "user", "content": messages}]
                 new_messages.append({
                     "role": "tool",
-                    "name": tool_call["name"],
+                    "name": tool_name,
                     "content": str(tool_result)
                 })
                 new_messages.append({
                     "role": "system",
                     "content": "Confirm the result of the calculation in a clear sentence."
                 })
-
-                # Convert updated messages to MLX format
                 mlx_new_messages = convert_ollama_to_mlx_messages(new_messages)
-
-                # Generate confirmation response
                 confirmation_response = mlx.chat(
                     messages=mlx_new_messages,
                     model=model,
@@ -184,7 +194,6 @@ def run_mlx_ollama_adapter(
                     verbose=verbose
                 )
                 return confirmation_response
-
         return response
 
 
@@ -219,9 +228,7 @@ if __name__ == "__main__":
                         default=False, help="Enable verbose logging (default: False)")
     args = parser.parse_args()
     mapped_model = ollama_mlx_model_mapping(args.model)
-
     logger.info(f"Logs: {log_file}")
-
     simple_prompt = "Hello, how can I assist you today?"
     print("\nExample 1: Simple string prompt")
     response = run_mlx_ollama_adapter(
@@ -243,7 +250,6 @@ if __name__ == "__main__":
     else:
         print(response["choices"][0]["message"]["content"])
         save_file(response, f"{OUTPUT_DIR}/simple_string_prompt_response.json")
-
     messages = [
         Message(role="system", content="You are a helpful AI assistant"),
         Message(role="user", content="What's the capital of France?")
@@ -268,16 +274,15 @@ if __name__ == "__main__":
     else:
         print(response["choices"][0]["message"]["content"])
         save_file(response, f"{OUTPUT_DIR}/system_user_messages_response.json")
-
     messages_with_tools = [
         Message(
             role="user",
-            content="Calculate 2 + 2",
+            content="Multiply 12234585 and 48838483920.",
             tool_calls=[
                 Message.ToolCall(
                     function=Message.ToolCall.Function(
-                        name="calculate",
-                        arguments={"expression": "2 + 2"}
+                        name="multiply",
+                        arguments={"a": 12234585, "b": 48838483920}
                     )
                 )
             ]

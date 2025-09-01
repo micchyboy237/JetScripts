@@ -364,10 +364,9 @@ large_folders() {
     python /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/find_large_folders.py "${args[@]}"
 
     # Example:
-    # large_folders -b ~ -s 200 -i "**/*" --save
     # large_folders -b . -s 50 -d 3 --save
-    # large_folders -b ~ -s 100 -i "*cache*,*tmp*,*Temp*,*.TemporaryItems,Temporary Files,.Spotlight-V100,.fseventsd,.DS_Store,Logs,DerivedData,.npm,.node-gyp,.Trash" -d 3 --save
     # large_folders -b . -s 100 -i "**/*" -e "node_modules,.venv" -d 2 -l 10 -f "out.json" --delete --direction forward --max-backward-depth 3 --save
+    # large_folders -b /Users/jethroestrada/.cache/huggingface/hub -s 200 -d 0 --save
 }
 
 last_updates() {
