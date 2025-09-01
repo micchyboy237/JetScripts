@@ -18,4 +18,4 @@ Tests should demonstrate human readable, easy to read real world example inputs 
 Before fixing, analyze provided test results carefully to determine whether the expected variables are correct in logic or if the code needs to be updated.
 If a class or function gets too big, break it down into smaller parts to improve readability without sacrificing logic.
 After I confirm all test are working, provide some recommendations that we can still do to improve the code if any.
-Only provide the updated parts, methods or tests if it gets too long, unless its new or specified otherwise to reduce your generation response.
+Only provide the updated or new lines, methods or tests, unless specified otherwise to reduce your generation response.
