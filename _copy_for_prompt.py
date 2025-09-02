@@ -29,13 +29,19 @@ exclude_files = [
     "jupyter",
     ".*",
     "_*",
+    # "generated",
     # Custom
+    "*response*",
+    "*.sh"
 ]
 include_files = [
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/all-rag-techniques/2_semantic_chunking.py",
+    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/vectors/semantic_search/file_vector_search.py",
+    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/vectors/semantic_search/text_vector_search.py",
+    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/servers/mcp/mcp_server.py",
 ]
 structure_include = [
-    # "*.py"
+    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/llm/mlx/tasks/*.py",
+    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data",
 ]
 structure_exclude = []
 
@@ -47,7 +53,7 @@ SHORTEN_FUNCTS = False
 INCLUDE_FILE_STRUCTURE = False
 
 DEFAULT_QUERY_MESSAGE = """
-Write a reusable chunker class given this code. Use the file name for the class name.
+Now update mcp_server to add a new tool search_texts using text_vector_search.
 """.strip()
 
 DEFAULT_INSTRUCTIONS_MESSAGE = """
@@ -55,12 +61,13 @@ DEFAULT_INSTRUCTIONS_MESSAGE = """
 
 DEFAULT_SYSTEM_MESSAGE = """
 Dont use prior artifact knowledge and memory.
+Only provide updated parts.
 """.strip()
 
 # For existing projects
 # DEFAULT_INSTRUCTIONS_MESSAGE += (
 #     "\n- Only respond with parts of the code that have been added or updated to keep it short and concise."
-# )
+# )z
 
 # For creating projects
 # DEFAULT_INSTRUCTIONS_MESSAGE += (
@@ -225,12 +232,12 @@ def main():
     clipboard_content_parts = []
 
     if system_message:
-        clipboard_content_parts.append(f"SYSTEM\n{system_message}")
+        clipboard_content_parts.append(f"System\n{system_message}")
     if instructions_message:
-        clipboard_content_parts.append(f"INSTRUCTIONS\n{instructions_message}")
-    clipboard_content_parts.append(f"QUERY\n{query_message}")
+        clipboard_content_parts.append(f"Instructions\n{instructions_message}")
+    clipboard_content_parts.append(f"Query\n{query_message}")
     if INCLUDE_FILE_STRUCTURE:
-        clipboard_content_parts.append(f"FILES STRUCTURE\n{files_structure}")
+        clipboard_content_parts.append(f"Files Structure\n{files_structure}")
 
     if clipboard_content:
         clipboard_content_parts.append(
