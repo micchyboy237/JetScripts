@@ -2,10 +2,13 @@
   "snowflake-arctic-embed-m": true,
   "snowflake-arctic-embed:137m": true,
   "snowflake-arctic-embed-s": true,
-  "bert-base-uncased": true,
+  "granite-embedding:278m": true,
+  "granite-embedding": true,
+  "jina-embeddings-v2-base": true,
+  "jina-embeddings-v2-small": true,
   "mxbai-embed-large": true,
   "nomic-embed-text": true,
-  "roberta-large": true,
   "all-MiniLM-L6-v2": true,
-  "multi-qa-MiniLM-L6-cos-v1": true
+  "multi-qa-MiniLM-L6-cos-v1": true,
+  "paraphrase-multilingual": true
 }

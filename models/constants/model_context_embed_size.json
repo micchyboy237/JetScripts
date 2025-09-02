@@ -1,5 +1,5 @@
 {
-  "model_id": "jinaai/jina-embeddings-v2-small-en",
-  "max_context": 8192,
-  "max_embeddings": 512
+  "model_id": "mlx-community/Mistral-7B-Instruct-v0.3-4bit",
+  "max_context": 32768,
+  "max_embeddings": 4096
 }
