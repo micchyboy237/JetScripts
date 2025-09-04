@@ -74,7 +74,7 @@ def process_document(chunks: List[Dict[str, Any]], embed_func) -> tuple[List[str
     return text_chunks, store
 
 
-def assess_feedback_relevance(query: str, doc_text: str, feedback: Dict[str, Any], mlx, model: str = "llama-3.2-1b-instruct-4bit") -> bool:
+def assess_feedback_relevance(query: str, doc_text: str, feedback: Dict[str, Any], mlx, model: str = "llama-3.2-3b-instruct-4bit") -> bool:
     """Assess if feedback is relevant to the query and document."""
     system_prompt = "Determine if the feedback is relevant to the query and document. Answer with 'yes' or 'no'."
     user_prompt = f"Query: {query}\nDocument: {doc_text[:500]}\nFeedback Query: {feedback['query']}\nFeedback Response: {feedback['response'][:200]}"
@@ -90,7 +90,7 @@ def assess_feedback_relevance(query: str, doc_text: str, feedback: Dict[str, Any
     return 'yes' in answer
 
 
-def adjust_relevance_scores(query: str, results: List[Dict[str, Any]], feedback_data: List[Dict[str, Any]], mlx, model: str = "llama-3.2-1b-instruct-4bit") -> List[Dict[str, Any]]:
+def adjust_relevance_scores(query: str, results: List[Dict[str, Any]], feedback_data: List[Dict[str, Any]], mlx, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
     """Adjust document relevance scores based on feedback history."""
     if not feedback_data:
         return results
@@ -268,7 +268,7 @@ def evaluate_feedback_loop(chunks: List[Dict[str, Any]], test_queries: List[str]
     }
 
 
-def compare_results(queries: List[str], round1_results: List[Dict[str, Any]], round2_results: List[Dict[str, Any]], reference_answers: List[str] = None, mlx=None, model: str = "llama-3.2-1b-instruct-4bit") -> List[Dict[str, Any]]:
+def compare_results(queries: List[str], round1_results: List[Dict[str, Any]], round2_results: List[Dict[str, Any]], reference_answers: List[str] = None, mlx=None, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
     """Compare results between rounds with and without feedback."""
     logger.debug("\n=== COMPARING RESULTS ===")
     comparisons = []

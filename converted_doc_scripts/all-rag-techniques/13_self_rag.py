@@ -35,7 +35,7 @@ def process_document(chunks: List[Dict[str, Any]], embed_func) -> SimpleVectorSt
     return store
 
 
-def determine_if_retrieval_needed(query: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> bool:
+def determine_if_retrieval_needed(query: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> bool:
     """Determine if document retrieval is necessary."""
     system_prompt = "Determine if retrieval from a document is necessary to answer this query accurately. Respond with 'yes' or 'no'."
     user_prompt = f"Query: {query}"
@@ -50,7 +50,7 @@ def determine_if_retrieval_needed(query: str, mlx, model: str = "llama-3.2-1b-in
     return response["choices"][0]["message"]["content"].strip().lower() == "yes"
 
 
-def evaluate_relevance(query: str, context: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def evaluate_relevance(query: str, context: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Evaluate document relevance to query."""
     max_context_length = 2000
     if len(context) > max_context_length:
@@ -68,7 +68,7 @@ def evaluate_relevance(query: str, context: str, mlx, model: str = "llama-3.2-1b
     return response["choices"][0]["message"]["content"].strip().lower()
 
 
-def assess_support(response: str, context: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def assess_support(response: str, context: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Assess if response is supported by context."""
     max_context_length = 2000
     if len(context) > max_context_length:
@@ -86,7 +86,7 @@ def assess_support(response: str, context: str, mlx, model: str = "llama-3.2-1b-
     return response["choices"][0]["message"]["content"].strip().lower()
 
 
-def rate_utility(query: str, response: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> int:
+def rate_utility(query: str, response: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> int:
     """Rate response utility."""
     system_prompt = "Rate the utility of the response to the query on a scale of 1 to 5, where 5 is highly useful. Provide only the number."
     user_prompt = f"Query: {query}\nResponse: {response}"
@@ -103,7 +103,7 @@ def rate_utility(query: str, response: str, mlx, model: str = "llama-3.2-1b-inst
     return int(rating_match.group()) if rating_match else 3
 
 
-def self_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, top_k: int = 3, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def self_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, top_k: int = 3, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Run Self-RAG with relevance and support checks."""
     logger.debug(f"\n=== Starting Self-RAG for query: {query} ===\n")
     logger.debug("Step 1: Determining if retrieval is necessary...")
@@ -180,7 +180,7 @@ def self_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, top_k
     }
 
 
-def run_self_rag_example(chunks: List[Dict[str, Any]], embed_func, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def run_self_rag_example(chunks: List[Dict[str, Any]], embed_func, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Run Self-RAG examples."""
     logger.debug("Processing document...")
     vector_store = process_document(chunks, embed_func)
@@ -215,7 +215,7 @@ def run_self_rag_example(chunks: List[Dict[str, Any]], embed_func, mlx, model: s
     }
 
 
-def traditional_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, top_k: int = 3, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def traditional_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, top_k: int = 3, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Run traditional RAG."""
     logger.debug(f"\n=== Running traditional RAG for query: {query} ===\n")
     logger.debug("Retrieving documents...")
@@ -225,7 +225,7 @@ def traditional_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx
     return generate_ai_response(query, "You are a helpful AI assistant. Provide a clear, accurate, and informative response to the query.", results, mlx, logger, model=model)
 
 
-def evaluate_rag_approaches(chunks: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def evaluate_rag_approaches(chunks: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Evaluate Self-RAG vs Traditional RAG."""
     logger.debug("=== Evaluating RAG Approaches ===")
     vector_store = process_document(chunks, embed_func)
@@ -256,7 +256,7 @@ def evaluate_rag_approaches(chunks: List[Dict[str, Any]], test_queries: List[str
     }
 
 
-def compare_responses(query: str, self_rag_response: str, trad_rag_response: str, reference: str = None, mlx=None, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def compare_responses(query: str, self_rag_response: str, trad_rag_response: str, reference: str = None, mlx=None, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Compare Self-RAG and Traditional RAG responses."""
     system_prompt = "You are an objective evaluator. Compare the two responses to the query and provide a concise evaluation. If a reference answer is provided, use it to assess accuracy and completeness."
     user_prompt = f"Query: {query}\n\nSelf-RAG Response:\n{self_rag_response}\n\nTraditional RAG Response:\n{trad_rag_response}"
@@ -273,7 +273,7 @@ def compare_responses(query: str, self_rag_response: str, trad_rag_response: str
     return response["choices"][0]["message"]["content"]
 
 
-def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Generate overall analysis of RAG approaches."""
     comparisons_summary = ""
     for i, result in enumerate(results):

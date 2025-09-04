@@ -28,7 +28,7 @@ def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[Di
     return chunks
 
 
-def extract_concepts(text: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> List[str]:
+def extract_concepts(text: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> List[str]:
     """Extract key concepts from text."""
     system_message = "You are an expert in knowledge extraction. Extract key concepts from the provided text. Return a JSON object with a 'concepts' key containing a list of strings."
     response = mlx.chat(
@@ -179,7 +179,7 @@ def graph_rag_pipeline(chunks: List[Dict[str, Any]], query: str, embed_func, mlx
         relevant_chunks,
         mlx,
         logger,
-        model="llama-3.2-1b-instruct-4bit"
+        model="llama-3.2-3b-instruct-4bit"
     )
     visualize_graph_traversal(graph, traversal_path)
     return {
@@ -207,7 +207,7 @@ def evaluate_graph_rag(chunks: List[Dict[str, Any]], test_queries: List[str], em
             relevant_chunks,
             mlx,
             logger,
-            model="llama-3.2-1b-instruct-4bit"
+            model="llama-3.2-3b-instruct-4bit"
         )
         reference = None
         comparison = None
@@ -236,7 +236,7 @@ def evaluate_graph_rag(chunks: List[Dict[str, Any]], test_queries: List[str], em
     }
 
 
-def compare_with_reference(response: str, reference: str, query: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def compare_with_reference(response: str, reference: str, query: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Compare response with reference answer."""
     system_message = "You are an evaluator. Compare the response to the reference answer, assessing accuracy and completeness for the query. Provide a concise comparison."
     prompt = f"Query: {query}\n\nResponse: {response}\n\nReference Answer: {reference}"

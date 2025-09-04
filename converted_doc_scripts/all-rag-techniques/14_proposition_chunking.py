@@ -26,7 +26,7 @@ def chunk_text(text: str, chunk_size: int = 800, overlap: int = 100) -> List[Dic
     return chunks
 
 
-def generate_propositions(chunk: Dict[str, Any], mlx, model: str = "llama-3.2-1b-instruct-4bit") -> List[str]:
+def generate_propositions(chunk: Dict[str, Any], mlx, model: str = "llama-3.2-3b-instruct-4bit") -> List[str]:
     """Generate propositions from a text chunk."""
     system_prompt = "Convert the provided text into concise propositions, each representing a single fact or idea. List each proposition on a new line."
     user_prompt = f"Text to convert into propositions:\n\n{chunk['text']}"
@@ -48,7 +48,7 @@ def generate_propositions(chunk: Dict[str, Any], mlx, model: str = "llama-3.2-1b
     return clean_propositions
 
 
-def evaluate_proposition(proposition: str, original_text: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, int]:
+def evaluate_proposition(proposition: str, original_text: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, int]:
     """Evaluate proposition quality."""
     system_prompt = "Evaluate the proposition based on accuracy, clarity, completeness, and conciseness on a scale of 0-10. Return a JSON object with these metrics."
     user_prompt = f"Proposition: {proposition}\nOriginal Text: {original_text}"
@@ -73,7 +73,7 @@ def evaluate_proposition(proposition: str, original_text: str, mlx, model: str =
         }
 
 
-def process_document_into_propositions(chunks: List[Dict[str, Any]], mlx, quality_thresholds: Dict[str, int] = None, model: str = "llama-3.2-1b-instruct-4bit") -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+def process_document_into_propositions(chunks: List[Dict[str, Any]], mlx, quality_thresholds: Dict[str, int] = None, model: str = "llama-3.2-3b-instruct-4bit") -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Process document into propositions with quality filtering."""
     if quality_thresholds is None:
         quality_thresholds = {
@@ -175,7 +175,7 @@ def compare_retrieval_approaches(query: str, chunk_store: SimpleVectorStore, pro
     }
 
 
-def evaluate_responses(query: str, prop_response: str, chunk_response: str, reference_answer: str = None, mlx=None, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def evaluate_responses(query: str, prop_response: str, chunk_response: str, reference_answer: str = None, mlx=None, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Evaluate proposition-based and chunk-based responses."""
     system_prompt = "You are an objective evaluator. Compare the two responses to the query and provide a concise evaluation. If a reference answer is provided, use it to assess accuracy and completeness."
     user_prompt = f"Query: {query}\n\nProposition-Based Response:\n{prop_response}\n\nChunk-Based Response:\n{chunk_response}"
@@ -192,7 +192,7 @@ def evaluate_responses(query: str, prop_response: str, chunk_response: str, refe
     return response["choices"][0]["message"]["content"]
 
 
-def run_proposition_chunking_evaluation(chunks: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def run_proposition_chunking_evaluation(chunks: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Run proposition chunking evaluation."""
     logger.debug("=== Starting Proposition Chunking Evaluation ===\n")
     chunks, propositions = process_document_into_propositions(
@@ -244,7 +244,7 @@ def run_proposition_chunking_evaluation(chunks: List[Dict[str, Any]], test_queri
     }
 
 
-def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Generate overall analysis of retrieval approaches."""
     evaluations_summary = ""
     for i, result in enumerate(results):

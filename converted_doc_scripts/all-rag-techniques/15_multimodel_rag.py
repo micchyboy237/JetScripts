@@ -124,7 +124,7 @@ def process_document(chunks: List[Dict[str, Any]], image_paths: List[Dict[str, A
     return vector_store, doc_info
 
 
-def query_multimodal_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 5, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def query_multimodal_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 5, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Run multimodal RAG query."""
     logger.debug(f"\n=== Processing query: {query} ===\n")
     query_embedding = embed_func(query)
@@ -169,7 +169,7 @@ def build_text_only_store(chunks: List[Dict[str, Any]], embed_func) -> SimpleVec
     return vector_store
 
 
-def evaluate_multimodal_vs_textonly(chunks: List[Dict[str, Any]], image_paths: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def evaluate_multimodal_vs_textonly(chunks: List[Dict[str, Any]], image_paths: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Evaluate multimodal RAG vs text-only RAG."""
     logger.debug("=== EVALUATING MULTI-MODAL RAG VS TEXT-ONLY RAG ===\n")
     logger.debug("\nProcessing document for multi-modal RAG...")
@@ -210,7 +210,7 @@ def evaluate_multimodal_vs_textonly(chunks: List[Dict[str, Any]], image_paths: L
     }
 
 
-def compare_responses(query: str, mm_response: str, text_response: str, reference: str = None, mlx=None, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def compare_responses(query: str, mm_response: str, text_response: str, reference: str = None, mlx=None, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Compare multimodal and text-only responses."""
     system_prompt = "You are an objective evaluator. Compare the two responses to the query and provide a concise evaluation. If a reference answer is provided, use it to assess accuracy and completeness."
     user_prompt = f"Query: {query}\n\nMulti-modal Response:\n{mm_response}\n\nText-only Response:\n{text_response}"
@@ -227,7 +227,7 @@ def compare_responses(query: str, mm_response: str, text_response: str, referenc
     return response["choices"][0]["message"]["content"]
 
 
-def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Generate overall analysis of RAG approaches."""
     evaluations_summary = ""
     for i, result in enumerate(results):

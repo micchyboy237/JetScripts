@@ -34,7 +34,7 @@ def process_document(chunks: List[Dict[str, Any]], embed_func) -> SimpleVectorSt
     return store
 
 
-def rerank_with_llm(query: str, results: List[Dict[str, Any]], mlx, top_n: int = 3, model: str = "llama-3.2-1b-instruct-4bit") -> List[Dict[str, Any]]:
+def rerank_with_llm(query: str, results: List[Dict[str, Any]], mlx, top_n: int = 3, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
     """Rerank search results using LLM scoring."""
     logger.debug(f"Reranking {len(results)} documents...")
     system_prompt = "You are an AI assistant. Score the relevance of the document to the query from 0 to 10, where 10 is highly relevant. Provide only the score."
@@ -98,7 +98,7 @@ def rerank_with_keywords(query: str, results: List[Dict[str, Any]], top_n: int =
     return reranked_results[:top_n]
 
 
-def rag_with_reranking(query: str, vector_store: SimpleVectorStore, embed_func, mlx, reranking_method: str = "llm", top_n: int = 3, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def rag_with_reranking(query: str, vector_store: SimpleVectorStore, embed_func, mlx, reranking_method: str = "llm", top_n: int = 3, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Run RAG with reranking."""
     query_embedding = embed_func(query)
     initial_results = vector_store.search(query_embedding, top_k=10)
@@ -125,7 +125,7 @@ def rag_with_reranking(query: str, vector_store: SimpleVectorStore, embed_func, 
     }
 
 
-def evaluate_reranking(query: str, standard_results: Dict[str, Any], reranked_results: Dict[str, Any], reference_answer: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def evaluate_reranking(query: str, standard_results: Dict[str, Any], reranked_results: Dict[str, Any], reference_answer: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Evaluate standard and reranked responses."""
     standard_score, standard_text = evaluate_ai_response(
         query, standard_results["response"], reference_answer, mlx, logger, model)

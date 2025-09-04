@@ -49,13 +49,14 @@ logger.info("## Setting Up the MLX API Client")
 
 client = MLX(
     base_url="https://api.studio.nebius.com/v1/",
-#     api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
+    #     api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
 )
 
 """
 ## Document Processing Functions
 """
 logger.info("## Document Processing Functions")
+
 
 def extract_text_from_pdf(pdf_path):
     """
@@ -77,6 +78,7 @@ def extract_text_from_pdf(pdf_path):
         text += page.get_text()
 
     return text
+
 
 def chunk_text(text, chunk_size=1000, overlap=200):
     """
@@ -115,15 +117,18 @@ def chunk_text(text, chunk_size=1000, overlap=200):
     logger.debug(f"Created {len(chunks)} text chunks")
     return chunks
 
+
 """
 ## Simple Vector Store Implementation
 """
 logger.info("## Simple Vector Store Implementation")
 
+
 class SimpleVectorStore:
     """
     A simple vector store implementation using NumPy.
     """
+
     def __init__(self):
         self.vectors = []
         self.texts = []
@@ -175,7 +180,8 @@ class SimpleVectorStore:
 
         similarities = []
         for i, vector in enumerate(self.vectors):
-            similarity = np.dot(query_vector, vector) / (np.linalg.norm(query_vector) * np.linalg.norm(vector))
+            similarity = np.dot(
+                query_vector, vector) / (np.linalg.norm(query_vector) * np.linalg.norm(vector))
             similarities.append((i, similarity))
 
         similarities.sort(key=lambda x: x[1], reverse=True)
@@ -191,10 +197,12 @@ class SimpleVectorStore:
 
         return results
 
+
 """
 ## Creating Embeddings
 """
 logger.info("## Creating Embeddings")
+
 
 def create_embeddings(texts, model="mxbai-embed-large"):
     """
@@ -234,10 +242,12 @@ def create_embeddings(texts, model="mxbai-embed-large"):
 
     return all_embeddings
 
+
 """
 ## Document Processing Pipeline
 """
 logger.info("## Document Processing Pipeline")
+
 
 def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
     """
@@ -266,10 +276,12 @@ def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
     logger.debug(f"Vector store created with {len(chunks)} chunks")
     return vector_store
 
+
 """
 ## Relevance Evaluation Function
 """
 logger.info("## Relevance Evaluation Function")
+
 
 def evaluate_document_relevance(query, document):
     """
@@ -293,10 +305,13 @@ def evaluate_document_relevance(query, document):
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.2-1b-instruct-4bit", log_dir=f"{OUTPUT_DIR}/chats",  # Specify the model to use
+            # Specify the model to use
+            model="llama-3.2-3b-instruct-4bit", log_dir=f"{OUTPUT_DIR}/chats",
             messages=[
-                {"role": "system", "content": system_prompt},  # System message to guide the assistant
-                {"role": "user", "content": user_prompt}  # User message with the query and document
+                # System message to guide the assistant
+                {"role": "system", "content": system_prompt},
+                # User message with the query and document
+                {"role": "user", "content": user_prompt}
             ],
             temperature=0,  # Set the temperature for response generation
             max_tokens=5  # Very short response needed
@@ -305,17 +320,20 @@ def evaluate_document_relevance(query, document):
         score_text = response.choices[0].message.content.strip()
         score_match = re.search(r'(\d+(\.\d+)?)', score_text)
         if score_match:
-            return float(score_match.group(1))  # Return the extracted score as a float
+            # Return the extracted score as a float
+            return float(score_match.group(1))
         return 0.5  # Default to middle value if parsing fails
 
     except Exception as e:
         logger.debug(f"Error evaluating document relevance: {e}")
         return 0.5  # Default to middle value on error
 
+
 """
 ## Web Search Function
 """
 logger.info("## Web Search Function")
+
 
 def duck_duck_go_search(query, num_results=3):
     """
@@ -381,6 +399,7 @@ def duck_duck_go_search(query, num_results=3):
             logger.debug(f"Backup search also failed: {backup_error}")
             return "Failed to retrieve search results.", []
 
+
 def rewrite_search_query(query):
     """
     Rewrite a query to be more suitable for web search.
@@ -399,10 +418,13 @@ def rewrite_search_query(query):
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.2-1b-instruct-4bit", log_dir=f"{OUTPUT_DIR}/chats",  # Specify the model to use
+            # Specify the model to use
+            model="llama-3.2-3b-instruct-4bit", log_dir=f"{OUTPUT_DIR}/chats",
             messages=[
-                {"role": "system", "content": system_prompt},  # System message to guide the assistant
-                {"role": "user", "content": f"Original query: {query}\n\nRewritten query:"}  # User message with the original query
+                # System message to guide the assistant
+                {"role": "system", "content": system_prompt},
+                # User message with the original query
+                {"role": "user", "content": f"Original query: {query}\n\nRewritten query:"}
             ],
             temperature=0.3,  # Set the temperature for response generation
             max_tokens=50  # Limit the response length
@@ -412,6 +434,7 @@ def rewrite_search_query(query):
     except Exception as e:
         logger.debug(f"Error rewriting search query: {e}")
         return query  # Return original query on error
+
 
 def perform_web_search(query):
     """
@@ -430,10 +453,12 @@ def perform_web_search(query):
 
     return results_text, sources
 
+
 """
 ## Knowledge Refinement Function
 """
 logger.info("## Knowledge Refinement Function")
+
 
 def refine_knowledge(text):
     """
@@ -453,10 +478,13 @@ def refine_knowledge(text):
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.2-1b-instruct-4bit", log_dir=f"{OUTPUT_DIR}/chats",  # Specify the model to use
+            # Specify the model to use
+            model="llama-3.2-3b-instruct-4bit", log_dir=f"{OUTPUT_DIR}/chats",
             messages=[
-                {"role": "system", "content": system_prompt},  # System message to guide the assistant
-                {"role": "user", "content": f"Text to refine:\n\n{text}"}  # User message with the text to refine
+                # System message to guide the assistant
+                {"role": "system", "content": system_prompt},
+                # User message with the text to refine
+                {"role": "user", "content": f"Text to refine:\n\n{text}"}
             ],
             temperature=0.3  # Set the temperature for response generation
         )
@@ -466,10 +494,12 @@ def refine_knowledge(text):
         logger.debug(f"Error refining knowledge: {e}")
         return text  # Return original text on error
 
+
 """
 ## Core CRAG Process
 """
 logger.info("## Core CRAG Process")
+
 
 def crag_process(query, vector_store, k=3):
     """
@@ -498,13 +528,15 @@ def crag_process(query, vector_store, k=3):
         logger.debug(f"Document scored {score:.2f} relevance")
 
     max_score = max(relevance_scores) if relevance_scores else 0
-    best_doc_idx = relevance_scores.index(max_score) if relevance_scores else -1
+    best_doc_idx = relevance_scores.index(
+        max_score) if relevance_scores else -1
 
     sources = []
     final_knowledge = ""
 
     if max_score > 0.7:
-        logger.debug(f"High relevance ({max_score:.2f}) - Using document directly")
+        logger.debug(
+            f"High relevance ({max_score:.2f}) - Using document directly")
         best_doc = retrieved_docs[best_doc_idx]["text"]
         final_knowledge = best_doc
         sources.append({
@@ -513,13 +545,15 @@ def crag_process(query, vector_store, k=3):
         })
 
     elif max_score < 0.3:
-        logger.debug(f"Low relevance ({max_score:.2f}) - Performing web search")
+        logger.debug(
+            f"Low relevance ({max_score:.2f}) - Performing web search")
         web_results, web_sources = perform_web_search(query)
         final_knowledge = refine_knowledge(web_results)
         sources.extend(web_sources)
 
     else:
-        logger.debug(f"Medium relevance ({max_score:.2f}) - Combining document with web search")
+        logger.debug(
+            f"Medium relevance ({max_score:.2f}) - Combining document with web search")
         best_doc = retrieved_docs[best_doc_idx]["text"]
         refined_doc = refine_knowledge(best_doc)
 
@@ -547,10 +581,12 @@ def crag_process(query, vector_store, k=3):
         "sources": sources
     }
 
+
 """
 ## Response Generation
 """
 logger.info("## Response Generation")
+
 
 def generate_response(query, knowledge, sources):
     """
@@ -595,7 +631,8 @@ def generate_response(query, knowledge, sources):
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.2-3b-instruct-4bit", log_dir=f"{OUTPUT_DIR}/chats",  # Using GPT-4 for high-quality responses
+            # Using GPT-4 for high-quality responses
+            model="llama-3.2-3b-instruct-4bit", log_dir=f"{OUTPUT_DIR}/chats",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -608,10 +645,12 @@ def generate_response(query, knowledge, sources):
         logger.debug(f"Error generating response: {e}")
         return f"I apologize, but I encountered an error while generating a response to your query: '{query}'. The error was: {str(e)}"
 
+
 """
 ## Evaluation Functions
 """
 logger.info("## Evaluation Functions")
+
 
 def evaluate_crag_response(query, response, reference_answer=None):
     """
@@ -673,6 +712,7 @@ def evaluate_crag_response(query, response, reference_answer=None):
             "summary": "Evaluation failed due to an error."
         }
 
+
 def compare_crag_vs_standard_rag(query, vector_store, reference_answer=None):
     """
     Compare CRAG against standard RAG for a query.
@@ -694,16 +734,19 @@ def compare_crag_vs_standard_rag(query, vector_store, reference_answer=None):
     retrieved_docs = vector_store.similarity_search(query_embedding, k=3)
     combined_text = "\n\n".join([doc["text"] for doc in retrieved_docs])
     standard_sources = [{"title": "Document", "url": ""}]
-    standard_response = generate_response(query, combined_text, standard_sources)
+    standard_response = generate_response(
+        query, combined_text, standard_sources)
 
     logger.debug("\n=== Evaluating CRAG response ===")
     crag_eval = evaluate_crag_response(query, crag_response, reference_answer)
 
     logger.debug("\n=== Evaluating standard RAG response ===")
-    standard_eval = evaluate_crag_response(query, standard_response, reference_answer)
+    standard_eval = evaluate_crag_response(
+        query, standard_response, reference_answer)
 
     logger.debug("\n=== Comparing approaches ===")
-    comparison = compare_responses(query, crag_response, standard_response, reference_answer)
+    comparison = compare_responses(
+        query, crag_response, standard_response, reference_answer)
 
     return {
         "query": query,
@@ -714,6 +757,7 @@ def compare_crag_vs_standard_rag(query, vector_store, reference_answer=None):
         "standard_evaluation": standard_eval,
         "comparison": comparison
     }
+
 
 def compare_responses(query, crag_response, standard_response, reference_answer=None):
     """
@@ -775,10 +819,12 @@ def compare_responses(query, crag_response, standard_response, reference_answer=
         logger.debug(f"Error comparing responses: {e}")
         return f"Error comparing responses: {str(e)}"
 
+
 """
 ## Complete Evaluation Pipeline
 """
 logger.info("## Complete Evaluation Pipeline")
+
 
 def run_crag_evaluation(pdf_path, test_queries, reference_answers=None):
     """
@@ -797,7 +843,8 @@ def run_crag_evaluation(pdf_path, test_queries, reference_answers=None):
     results = []
 
     for i, query in enumerate(test_queries):
-        logger.debug(f"\n\n===== Evaluating Query {i+1}/{len(test_queries)} =====")
+        logger.debug(
+            f"\n\n===== Evaluating Query {i+1}/{len(test_queries)} =====")
         logger.debug(f"Query: {query}")
 
         reference = None
@@ -816,6 +863,7 @@ def run_crag_evaluation(pdf_path, test_queries, reference_answers=None):
         "results": results,
         "overall_analysis": overall_analysis
     }
+
 
 def generate_overall_analysis(results):
     """
@@ -846,7 +894,8 @@ def generate_overall_analysis(results):
             crag_score = result['crag_evaluation'].get('overall_score', 'N/A')
             evaluations_summary += f"CRAG score: {crag_score}\n"
         if 'standard_evaluation' in result and 'overall_score' in result['standard_evaluation']:
-            std_score = result['standard_evaluation'].get('overall_score', 'N/A')
+            std_score = result['standard_evaluation'].get(
+                'overall_score', 'N/A')
             evaluations_summary += f"Standard RAG score: {std_score}\n"
         evaluations_summary += f"Comparison summary: {result['comparison'][:200]}...\n\n"
 
@@ -875,6 +924,7 @@ def generate_overall_analysis(results):
         logger.debug(f"Error generating overall analysis: {e}")
         return f"Error generating overall analysis: {str(e)}"
 
+
 """
 ## Evaluation of CRAG with Test Queries
 """
@@ -890,7 +940,8 @@ reference_answers = [
     "Machine learning differs from traditional programming by having computers learn patterns from data rather than following explicit instructions. In traditional programming, developers write specific rules for the computer to follow, while in machine learning",
 ]
 
-evaluation_results = run_crag_evaluation(pdf_path, test_queries, reference_answers)
+evaluation_results = run_crag_evaluation(
+    pdf_path, test_queries, reference_answers)
 logger.debug("\n=== Overall Analysis of CRAG vs Standard RAG ===")
 logger.debug(evaluation_results["overall_analysis"])
 

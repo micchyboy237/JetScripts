@@ -119,7 +119,7 @@ def process_document(chunks: List[Dict[str, Any]], embed_func) -> tuple[List[Dic
     return chunks, vector_store, bm25_index
 
 
-def answer_with_fusion_rag(query: str, chunks: List[Dict[str, Any]], vector_store: SimpleVectorStore, bm25_index: BM25Okapi, embed_func, mlx, k: int = 5, alpha: float = 0.5, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def answer_with_fusion_rag(query: str, chunks: List[Dict[str, Any]], vector_store: SimpleVectorStore, bm25_index: BM25Okapi, embed_func, mlx, k: int = 5, alpha: float = 0.5, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Answer query using fusion RAG."""
     retrieved_docs = fusion_retrieval(
         query, chunks, vector_store, bm25_index, embed_func, k, alpha)
@@ -138,7 +138,7 @@ def answer_with_fusion_rag(query: str, chunks: List[Dict[str, Any]], vector_stor
     }
 
 
-def vector_only_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 5, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def vector_only_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 5, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Answer query using vector-only RAG."""
     query_embedding = embed_func(query)
     retrieved_docs = vector_store.search(query_embedding, top_k=k)
@@ -157,7 +157,7 @@ def vector_only_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx
     }
 
 
-def bm25_only_rag(query: str, chunks: List[Dict[str, Any]], bm25_index: BM25Okapi, mlx, k: int = 5, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def bm25_only_rag(query: str, chunks: List[Dict[str, Any]], bm25_index: BM25Okapi, mlx, k: int = 5, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Answer query using BM25-only RAG."""
     retrieved_docs = bm25_search(bm25_index, chunks, query, k=k)
     response = generate_ai_response(
@@ -175,7 +175,7 @@ def bm25_only_rag(query: str, chunks: List[Dict[str, Any]], bm25_index: BM25Okap
     }
 
 
-def compare_retrieval_methods(query: str, chunks: List[Dict[str, Any]], vector_store: SimpleVectorStore, bm25_index: BM25Okapi, embed_func, mlx, k: int = 5, alpha: float = 0.5, reference_answer: str = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def compare_retrieval_methods(query: str, chunks: List[Dict[str, Any]], vector_store: SimpleVectorStore, bm25_index: BM25Okapi, embed_func, mlx, k: int = 5, alpha: float = 0.5, reference_answer: str = None, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Compare vector-only, BM25, and fusion retrieval methods."""
     logger.debug(f"\n=== Comparing retrieval methods for query: {query} ===\n")
     logger.debug("\nRunning vector-only RAG...")
@@ -205,7 +205,7 @@ def compare_retrieval_methods(query: str, chunks: List[Dict[str, Any]], vector_s
     }
 
 
-def evaluate_responses(query: str, vector_response: str, bm25_response: str, fusion_response: str, reference_answer: str = None, mlx=None, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def evaluate_responses(query: str, vector_response: str, bm25_response: str, fusion_response: str, reference_answer: str = None, mlx=None, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Evaluate responses from different retrieval methods."""
     system_prompt = "You are an objective evaluator. Compare the three responses to the query and provide a concise evaluation. If a reference answer is provided, use it to assess accuracy and completeness."
     user_prompt = f"Query: {query}\n\nVector-only Response:\n{vector_response}\n\nBM25 Response:\n{bm25_response}\n\nFusion Response:\n{fusion_response}"
@@ -222,7 +222,7 @@ def evaluate_responses(query: str, vector_response: str, bm25_response: str, fus
     return response["choices"][0]["message"]["content"]
 
 
-def evaluate_fusion_retrieval(chunks: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, k: int = 5, alpha: float = 0.5, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def evaluate_fusion_retrieval(chunks: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, k: int = 5, alpha: float = 0.5, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Evaluate fusion retrieval against vector-only and BM25."""
     logger.debug("=== EVALUATING FUSION RETRIEVAL ===\n")
     chunks, vector_store, bm25_index = process_document(chunks, embed_func)
@@ -261,7 +261,7 @@ def evaluate_fusion_retrieval(chunks: List[Dict[str, Any]], test_queries: List[s
     }
 
 
-def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Generate overall analysis of retrieval methods."""
     evaluations_summary = ""
     for i, result in enumerate(results):

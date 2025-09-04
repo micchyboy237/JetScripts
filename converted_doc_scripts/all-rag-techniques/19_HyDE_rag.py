@@ -51,7 +51,7 @@ def process_document(pages: List[Dict[str, Any]], embed_func, chunk_size: int = 
     return vector_store
 
 
-def generate_hypothetical_document(query: str, mlx, desired_length: int = 1000, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def generate_hypothetical_document(query: str, mlx, desired_length: int = 1000, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Generate a hypothetical document for the query."""
     system_prompt = "You are a helpful AI assistant. Generate a detailed document that answers the given question comprehensively."
     user_prompt = f"Question: {query}\n\nGenerate a document that fully answers this question:"
@@ -70,7 +70,7 @@ def generate_hypothetical_document(query: str, mlx, desired_length: int = 1000, 
     return response
 
 
-def hyde_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 5, should_generate_response: bool = True, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def hyde_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 5, should_generate_response: bool = True, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Run HyDE RAG pipeline."""
     logger.debug(f"\n=== Processing query with HyDE: {query} ===\n")
     logger.debug("Generating hypothetical document...")
@@ -101,7 +101,7 @@ def hyde_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: in
     return results
 
 
-def standard_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 5, should_generate_response: bool = True, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def standard_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 5, should_generate_response: bool = True, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Run standard RAG pipeline."""
     logger.debug(f"\n=== Processing query with Standard RAG: {query} ===\n")
     logger.debug("Creating embedding for query...")
@@ -127,7 +127,7 @@ def standard_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k
     return results
 
 
-def compare_approaches(query: str, vector_store: SimpleVectorStore, embed_func, mlx, reference_answer: str = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def compare_approaches(query: str, vector_store: SimpleVectorStore, embed_func, mlx, reference_answer: str = None, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Compare HyDE and standard RAG approaches."""
     hyde_result = hyde_rag(query, vector_store, embed_func, mlx, model=model)
     hyde_response = hyde_result["response"]
@@ -146,7 +146,7 @@ def compare_approaches(query: str, vector_store: SimpleVectorStore, embed_func, 
     }
 
 
-def compare_responses(query: str, hyde_response: str, standard_response: str, reference: str = None, mlx=None, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def compare_responses(query: str, hyde_response: str, standard_response: str, reference: str = None, mlx=None, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Compare HyDE and standard RAG responses."""
     system_prompt = "You are an objective evaluator. Compare the two responses to the query and provide a concise evaluation. If a reference answer is provided, use it to assess accuracy and completeness."
     user_prompt = f"Query: {query}\n\nHyDE Response:\n{hyde_response}\n\nStandard RAG Response:\n{standard_response}"
@@ -167,7 +167,7 @@ def compare_responses(query: str, hyde_response: str, standard_response: str, re
     return response
 
 
-def run_evaluation(pages: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, chunk_size: int = 1000, chunk_overlap: int = 200, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def run_evaluation(pages: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, chunk_size: int = 1000, chunk_overlap: int = 200, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Run evaluation of HyDE vs standard RAG."""
     vector_store = process_document(
         pages, embed_func, chunk_size, chunk_overlap)
@@ -189,7 +189,7 @@ def run_evaluation(pages: List[Dict[str, Any]], test_queries: List[str], embed_f
     }
 
 
-def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Generate overall analysis of RAG approaches."""
     evaluations_summary = ""
     for i, result in enumerate(results):

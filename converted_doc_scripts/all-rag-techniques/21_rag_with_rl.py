@@ -54,7 +54,7 @@ def construct_prompt(query: str, context_chunks: List[str]) -> str:
     return prompt
 
 
-def basic_rag_pipeline(query: str, vector_store: SimpleVectorStore, embed_func, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def basic_rag_pipeline(query: str, vector_store: SimpleVectorStore, embed_func, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Run basic RAG pipeline."""
     query_embedding = embed_func(query)
     relevant_chunks = vector_store.search(query_embedding, top_k=5)
@@ -109,7 +109,7 @@ def rewrite_query(
     query: str,
     context_chunks: List[str],
     mlx,
-    model: str = "llama-3.2-1b-instruct-4bit",
+    model: str = "llama-3.2-3b-instruct-4bit",
     max_tokens: int = 100,
     temperature: float = 0.3
 ) -> str:
@@ -183,7 +183,7 @@ def rl_step(
     vector_store: SimpleVectorStore,
     embed_func,
     mlx,
-    model: str = "llama-3.2-1b-instruct-4bit"
+    model: str = "llama-3.2-3b-instruct-4bit"
 ) -> tuple[dict, str, float, str]:
     """Execute one RL step."""
     action = policy_network(state, action_space)

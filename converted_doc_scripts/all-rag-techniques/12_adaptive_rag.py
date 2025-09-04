@@ -34,7 +34,7 @@ def process_document(chunks: List[Dict[str, Any]], embed_func) -> tuple[List[str
     return text_chunks, store
 
 
-def classify_query(query: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def classify_query(query: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Classify the query type."""
     system_prompt = "Classify the query as Factual, Analytical, Opinion, or Contextual. Respond with only the category name."
     user_prompt = f"Query: {query}"
@@ -51,7 +51,7 @@ def classify_query(query: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -
     return category if category in valid_categories else "Factual"
 
 
-def factual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model: str = "llama-3.2-1b-instruct-4bit") -> List[Dict[str, Any]]:
+def factual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
     """Factual retrieval strategy with query enhancement."""
     logger.debug(f"Executing Factual retrieval strategy for: '{query}'")
     system_prompt = "Enhance this factual query to improve retrieval accuracy. Respond with only the enhanced query."
@@ -82,7 +82,7 @@ def factual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embe
     return ranked_results[:k]
 
 
-def analytical_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model: str = "llama-3.2-1b-instruct-4bit") -> List[Dict[str, Any]]:
+def analytical_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
     """Analytical retrieval strategy with sub-queries."""
     logger.debug(f"Executing Analytical retrieval strategy for: '{query}'")
     system_prompt = "Generate a list of sub-questions for this analytical query, one per line."
@@ -120,7 +120,7 @@ def analytical_retrieval_strategy(query: str, vector_store: SimpleVectorStore, e
     return diverse_results[:k]
 
 
-def opinion_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model: str = "llama-3.2-1b-instruct-4bit") -> List[Dict[str, Any]]:
+def opinion_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
     """Opinion retrieval strategy with viewpoint diversity."""
     logger.debug(f"Executing Opinion retrieval strategy for: '{query}'")
     system_prompt = "Identify different perspectives on this query, one per line."
@@ -159,7 +159,7 @@ def opinion_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embe
     return selected_results[:k]
 
 
-def contextual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, user_context: str = None, model: str = "llama-3.2-1b-instruct-4bit") -> List[Dict[str, Any]]:
+def contextual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, user_context: str = None, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
     """Contextual retrieval strategy with context enhancement."""
     logger.debug(f"Executing Contextual retrieval strategy for: '{query}'")
     if not user_context:
@@ -203,7 +203,7 @@ def contextual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, e
     return ranked_results[:k]
 
 
-def score_document_relevance(query: str, document: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> float:
+def score_document_relevance(query: str, document: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> float:
     """Score document relevance to query."""
     doc_preview = document[:1500] + "..." if len(document) > 1500 else document
     system_prompt = "Score the relevance of the document to the query from 0 to 10, where 10 is highly relevant. Provide only the score."
@@ -221,7 +221,7 @@ def score_document_relevance(query: str, document: str, mlx, model: str = "llama
     return float(score_match.group(1)) if score_match else 5.0
 
 
-def score_document_context_relevance(query: str, context: str, document: str, mlx, model: str = "llama-3.2-1b-instruct-4bit") -> float:
+def score_document_context_relevance(query: str, context: str, document: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> float:
     """Score document relevance to query and context."""
     doc_preview = document[:1500] + "..." if len(document) > 1500 else document
     system_prompt = "Score the relevance of the document to the query and context from 0 to 10, where 10 is highly relevant. Provide only the score."
@@ -239,7 +239,7 @@ def score_document_context_relevance(query: str, context: str, document: str, ml
     return float(score_match.group(1)) if score_match else 5.0
 
 
-def adaptive_retrieval(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, user_context: str = None, model: str = "llama-3.2-1b-instruct-4bit") -> List[Dict[str, Any]]:
+def adaptive_retrieval(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, user_context: str = None, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
     """Perform adaptive retrieval based on query type."""
     query_type = classify_query(query, mlx, model)
     logger.debug(f"Query classified as: {query_type}")
@@ -261,7 +261,7 @@ def adaptive_retrieval(query: str, vector_store: SimpleVectorStore, embed_func, 
     return results
 
 
-def rag_with_adaptive_retrieval(chunks: List[Dict[str, Any]], query: str, embed_func, mlx, k: int = 4, user_context: str = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def rag_with_adaptive_retrieval(chunks: List[Dict[str, Any]], query: str, embed_func, mlx, k: int = 4, user_context: str = None, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Run RAG with adaptive retrieval."""
     logger.debug("\n=== RAG WITH ADAPTIVE RETRIEVAL ===")
     logger.debug(f"Query: {query}")
@@ -284,7 +284,7 @@ def rag_with_adaptive_retrieval(chunks: List[Dict[str, Any]], query: str, embed_
     return result
 
 
-def evaluate_adaptive_vs_standard(chunks: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = "llama-3.2-1b-instruct-4bit") -> Dict[str, Any]:
+def evaluate_adaptive_vs_standard(chunks: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Evaluate adaptive vs standard retrieval."""
     logger.debug("=== EVALUATING ADAPTIVE VS. STANDARD RETRIEVAL ===")
     text_chunks, vector_store = process_document(chunks, embed_func)
@@ -328,7 +328,7 @@ def evaluate_adaptive_vs_standard(chunks: List[Dict[str, Any]], test_queries: Li
     }
 
 
-def compare_responses(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-1b-instruct-4bit") -> str:
+def compare_responses(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Compare standard and adaptive responses."""
     comparison_text = ""
     system_prompt = "You are an objective evaluator. Compare the responses and provide a concise evaluation."

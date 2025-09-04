@@ -18,8 +18,8 @@ pd.set_option('display.max_rows', 100)
 warnings.filterwarnings('ignore', category=FutureWarning)
 
 EMBEDDING_MODEL = "mxbai-embed-large"
-GENERATION_MODEL = "llama-3.2-1b-instruct-4bit"
-EVALUATION_MODEL = "llama-3.2-1b-instruct-4bit"
+GENERATION_MODEL = "llama-3.2-3b-instruct-4bit"
+EVALUATION_MODEL = "llama-3.2-3b-instruct-4bit"
 GENERATION_TEMPERATURE = 0.1
 GENERATION_MAX_TOKENS = 400
 GENERATION_TOP_P = 0.9
