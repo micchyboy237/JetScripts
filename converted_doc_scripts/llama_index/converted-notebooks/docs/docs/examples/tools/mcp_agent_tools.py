@@ -1,53 +1,78 @@
-async def main():
-    from fastmcp import FastMCP
-    from jet.logger import CustomLogger
-    from jet.search.adapters.searxng_llama_index_tool import SearXNGSearchToolSpec
-    from typing import Any, Dict, List, Optional
-    import os
-    import shutil
+from typing import Any, Dict, List, Optional
+import os
+import shutil
+import asyncio
+from fastmcp import FastMCP
+from jet.logger import CustomLogger
+from jet.search.adapters.searxng_llama_index_tool import SearXNGSearchToolSpec
+from mcp.types import Implementation, InitializeRequest, ClientCapabilities
 
+
+async def main():
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    """
-    We have dozens of agent tools in [LlamaHub](https://llamahub.ai/?tab=tools) and they can all be instantly used as MCP tools! This notebook shows how that's done, using the [SearXNG Search Tool](https://llamahub.ai/l/tools/llama-index-tools-searxng) as an example.
-    First we install our tools, and our MCP server:
-    """
+
     logger.info("Bring in our dependencies:")
     logger.debug(
         "MCP fastMCP server and SearXNG tool dependencies imported successfully!")
-    """
-    Instantiate our SearXNG search tool with default settings:
-    """
+
     logger.info("Instantiate our SearXNG search tool with default settings:")
     searxng_tool_spec = SearXNGSearchToolSpec()
-    """
-    Let's see what tools are available:
-    """
+
     logger.info("Let's see what tools are available:")
     tools = searxng_tool_spec.to_tool_list()
     for i, tool in enumerate(tools):
         logger.debug(f"Tool {i+1}: {tool.metadata.name}")
-    """
-    Now we create and configure the fastMCP server, and register each tool:
-    """
+
     logger.info(
         "Now we create and configure the fastMCP server, and register each tool:")
-    mcp_server = FastMCP("MCP Agent Tools Server")
+    mcp_server = FastMCP(
+        name="MCP Agent Tools Server",
+        implementation=Implementation(
+            name="MCP Agent Tools",
+            version="0.1.0"
+        )
+    )
+
+    # Initialize MCP server with explicit protocol version and client capabilities
+    await mcp_server.initialize(
+        InitializeRequest(
+            method="initialize",
+            params={
+                "protocolVersion": "2025-06-18",
+                "capabilities": ClientCapabilities(
+                    tools=ToolsCapability(listChanged=True)
+                ),
+                "clientInfo": Implementation(
+                    name="MCP Client",
+                    version="0.1.0"
+                )
+            }
+        )
+    )
+
+    # Register tools with proper schema validation
     for tool in tools:
-        mcp_server.tool(
-            name=tool.metadata.name, description=tool.metadata.description
-        )(tool.real_fn)
-    """
-    Example usage of SearXNG search tool to explore recent AI advancements:
-    """
+        try:
+            mcp_server.tool(
+                name=tool.metadata.name,
+                description=tool.metadata.description,
+                input_schema=tool.metadata.inputSchema or {},
+                output_schema=tool.metadata.outputSchema or {}
+            )(tool.real_fn)
+            logger.debug(f"Successfully registered tool: {tool.metadata.name}")
+        except Exception as e:
+            logger.error(
+                f"Failed to register tool {tool.metadata.name}: {str(e)}")
+
     logger.info(
         "Example usage of SearXNG search tool to explore recent AI advancements:")
     try:
-        # Instant search for quick answers
         instant_results = searxng_tool_spec.searxng_instant_search(
             query="What are the latest breakthroughs in artificial intelligence 2025?"
         )
@@ -55,7 +80,6 @@ async def main():
         for i, result in enumerate(instant_results):
             logger.info(f"Answer {i+1}: {result['text'][:200]}...")
 
-        # Full search for detailed results
         full_results = searxng_tool_spec.searxng_full_search(
             query="recent advancements in artificial intelligence 2025",
             count=3
@@ -68,20 +92,13 @@ async def main():
                 logger.debug(f"Published: {result['publishedDate']}")
     except Exception as e:
         logger.error(f"Search failed: {str(e)}")
-    """
-    Now we can run our MCP server complete with our tools!
-    """
+
     logger.info("Now we can run our MCP server complete with our tools!")
-    await mcp_server.run_async(transport="streamable-http")
-    logger.info("\n\n[DONE]", bright=True)
+    try:
+        await mcp_server.run_async(transport="streamable-http")
+        logger.info("\n\n[DONE]", bright=True)
+    except Exception as e:
+        logger.error(f"MCP server failed to run: {str(e)}")
 
 if __name__ == '__main__':
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            loop.create_task(main())
-        else:
-            loop.run_until_complete(main())
-    except RuntimeError:
-        asyncio.run(main())
+    asyncio.run(main())

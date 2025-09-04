@@ -616,12 +616,12 @@ if __name__ == "__main__":
     input_base_dirs = [
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/all-rag-techniques",
     ]
     include_files = [
         # "multi_strategy_workflow",
         # "memory",
-        "tutorial/agents",
     ]
     exclude_files = [
         # "agent_workflow_research_assistant",
