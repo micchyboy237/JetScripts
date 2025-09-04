@@ -1,5 +1,5 @@
+from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
-from openai import OllamaFunctionCallingAdapter
 import fitz
 import json
 import numpy as np
@@ -10,11 +10,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
-
-log_file = os.path.join(LOG_DIR, "main.log")
+log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+logger.info(f"Logs: {log_file}")
+
+file_name = os.path.splitext(os.path.basename(__file__))[0]
+GENERATED_DIR = os.path.join("results", file_name)
+os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
 # Contextual Compression for Enhanced RAG Systems
@@ -86,14 +88,14 @@ def chunk_text(text, n=1000, overlap=200):
     return chunks  # Return the list of text chunks
 
 """
-## Setting Up the OllamaFunctionCallingAdapter API Client
-We initialize the OllamaFunctionCallingAdapter client to generate embeddings and responses.
+## Setting Up the MLX API Client
+We initialize the MLX client to generate embeddings and responses.
 """
-logger.info("## Setting Up the OllamaFunctionCallingAdapter API Client")
+logger.info("## Setting Up the MLX API Client")
 
-client = OllamaFunctionCallingAdapter(
+client = MLX(
     base_url="https://api.studio.nebius.com/v1/",
-#     api_key= os.environ.get("OPENAI_API_KEY") # Use your OllamaFunctionCallingAdapter API key
+#     api_key= os.environ.get("OPENAI_API_KEY") # Use your MLX API key
 )
 
 """
@@ -610,7 +612,7 @@ def evaluate_compression(pdf_path, query, reference_answer=None, compression_typ
 """
 logger.info("## Running Our Complete System (Custom Query)")
 
-pdf_path = "data/AI_Information.pdf"
+pdf_path = f"{GENERATED_DIR}/AI_Information.pdf"
 
 query = "What are the ethical concerns surrounding the use of AI in decision-making?"
 

@@ -1,8 +1,8 @@
 from IPython.display import HTML, display
 from collections import Counter
 from datasets import load_dataset
+from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
-from openai import OllamaFunctionCallingAdapter
 from pyvis.network import Network
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF, RDFS, XSD, SKOS # Added SKOS for altLabel
@@ -23,11 +23,9 @@ import time
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
-
-log_file = os.path.join(LOG_DIR, "main.log")
+log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+logger.info(f"Logs: {log_file}")
 
 """
 ## End-to-End Pipeline: Big Data with Knowledge Graph (Book-Referenced)
@@ -124,7 +122,7 @@ This block simply confirms that the necessary libraries have been imported witho
 
 **Theory:**
 Here, we instantiate the clients for our primary NLP tools:
-*   **OllamaFunctionCallingAdapter Client:** Configured to point to the Nebius API. This client will be used to send requests to the deployed LLM for tasks like entity extraction, relation extraction, and generating embeddings. A basic check is performed to see if the configuration parameters are set.
+*   **MLX Client:** Configured to point to the Nebius API. This client will be used to send requests to the deployed LLM for tasks like entity extraction, relation extraction, and generating embeddings. A basic check is performed to see if the configuration parameters are set.
 *   **spaCy Model:** We load `en_core_web_sm`, a small English model from spaCy. This model provides efficient capabilities for tokenization, part-of-speech tagging, lemmatization, and basic Named Entity Recognition (NER). It's useful for initial text exploration and can complement LLM-based approaches.
 """
 logger.info("#### Initialize LLM Client and spaCy Model")
@@ -132,16 +130,16 @@ logger.info("#### Initialize LLM Client and spaCy Model")
 client = None # Initialize client to None
 if NEBIUS_API_KEY != "YOUR_NEBIUS_API_KEY" and NEBIUS_BASE_URL != "YOUR_NEBIUS_BASE_URL" and TEXT_GEN_MODEL_NAME != "YOUR_TEXT_GENERATION_MODEL_NAME":
     try:
-        client = OllamaFunctionCallingAdapter(
+        client = MLX(
             base_url=NEBIUS_BASE_URL,
             api_key=NEBIUS_API_KEY
         )
-        logger.debug(f"OllamaFunctionCallingAdapter client initialized for base_url: {NEBIUS_BASE_URL} using model: {TEXT_GEN_MODEL_NAME}")
+        logger.debug(f"MLX client initialized for base_url: {NEBIUS_BASE_URL} using model: {TEXT_GEN_MODEL_NAME}")
     except Exception as e:
-        logger.debug(f"Error initializing OllamaFunctionCallingAdapter client: {e}")
+        logger.debug(f"Error initializing MLX client: {e}")
         client = None # Ensure client is None if initialization fails
 else:
-    logger.debug("Warning: OllamaFunctionCallingAdapter client not fully configured. LLM features will be disabled. Please set NEBIUS_API_KEY, NEBIUS_BASE_URL, and TEXT_GEN_MODEL_NAME.")
+    logger.debug("Warning: MLX client not fully configured. LLM features will be disabled. Please set NEBIUS_API_KEY, NEBIUS_BASE_URL, and TEXT_GEN_MODEL_NAME.")
 
 nlp_spacy = None # Initialize nlp_spacy to None
 try:
@@ -160,7 +158,7 @@ except OSError:
 
 """
 **Output Explanation:**
-This block prints messages indicating the status of the OllamaFunctionCallingAdapter client and spaCy model initialization. Warnings are shown if configurations are missing or models can't be loaded.
+This block prints messages indicating the status of the MLX client and spaCy model initialization. Warnings are shown if configurations are missing or models can't be loaded.
 
 #### Define RDF Namespaces
 
@@ -1146,7 +1144,7 @@ Embeddings transform symbolic entities (represented by URIs and labels) into num
 **Methodology:**
 The `get_embeddings_for_texts` function will:
 *   Take a list of unique entity texts (e.g., their normalized labels).
-*   Use the configured OllamaFunctionCallingAdapter/Nebius embedding API (with `EMBEDDING_MODEL_NAME`) to fetch pre-trained embeddings for these texts.
+*   Use the configured MLX/Nebius embedding API (with `EMBEDDING_MODEL_NAME`) to fetch pre-trained embeddings for these texts.
 *   Handle batching or individual requests as appropriate for the API.
 *   Return a dictionary mapping each input text to its embedding vector.
 These embeddings represent the semantic meaning of the entity names.

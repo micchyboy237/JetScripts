@@ -1,5 +1,5 @@
+from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
-from openai import OllamaFunctionCallingAdapter
 import fitz
 import json
 import numpy as np
@@ -11,11 +11,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
-
-log_file = os.path.join(LOG_DIR, "main.log")
+log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+logger.info(f"Logs: {log_file}")
+
+file_name = os.path.splitext(os.path.basename(__file__))[0]
+GENERATED_DIR = os.path.join("results", file_name)
+os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
 # Reranking for Enhanced RAG Systems
@@ -87,12 +89,12 @@ def chunk_text(text, n, overlap):
     return chunks  # Return the list of text chunks
 
 """
-## Setting Up the OllamaFunctionCallingAdapter API Client
-We initialize the OllamaFunctionCallingAdapter client to generate embeddings and responses.
+## Setting Up the MLX API Client
+We initialize the MLX client to generate embeddings and responses.
 """
-logger.info("## Setting Up the OllamaFunctionCallingAdapter API Client")
+logger.info("## Setting Up the MLX API Client")
 
-client = OllamaFunctionCallingAdapter(
+client = MLX(
     base_url="https://api.studio.nebius.com/v1/",
 #     api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
 )
@@ -169,7 +171,7 @@ logger.info("## Creating Embeddings")
 
 def create_embeddings(text, model="BAAI/bge-en-icl"):
     """
-    Creates embeddings for the given text using the specified OllamaFunctionCallingAdapter model.
+    Creates embeddings for the given text using the specified MLX model.
 
     Args:
     text (str): The input text for which embeddings are to be created.
@@ -232,7 +234,7 @@ def process_document(pdf_path, chunk_size=1000, chunk_overlap=200):
 
 """
 ## Implementing LLM-based Reranking
-Let's implement the LLM-based reranking function using the OllamaFunctionCallingAdapter API.
+Let's implement the LLM-based reranking function using the MLX API.
 """
 logger.info("## Implementing LLM-based Reranking")
 
@@ -450,7 +452,7 @@ query = data[0]['question']
 
 reference_answer = data[0]['ideal_answer']
 
-pdf_path = "data/AI_Information.pdf"
+pdf_path = f"{GENERATED_DIR}/AI_Information.pdf"
 
 vector_store = process_document(pdf_path)
 

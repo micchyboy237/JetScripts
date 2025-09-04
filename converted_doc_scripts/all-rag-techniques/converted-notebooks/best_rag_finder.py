@@ -1,5 +1,5 @@
+from jet.llm.mlx.base import MLX     # Client library for Nebius API interaction
 from jet.logger import CustomLogger
-from openai import OllamaFunctionCallingAdapter     # Client library for Nebius API interaction
 from sklearn.metrics.pairwise import cosine_similarity # For calculating similarity score
 from tqdm.notebook import tqdm # Library for displaying progress bars
 import faiss                  # Library for fast vector similarity search
@@ -17,11 +17,9 @@ import warnings               # For controlling warning messages
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
-
-log_file = os.path.join(LOG_DIR, "main.log")
+log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+logger.info(f"Logs: {log_file}")
 
 """
 # Learning RAG: Testing Configurations Step-by-Step
@@ -56,7 +54,7 @@ We'll focus on understanding *why* we perform each step and observing the outcom
 ### 1. Setup: Installing Libraries
 
 First, we need to install the Python packages required for this notebook. 
-- `openai`: Interacts with the Nebius API (which uses an OllamaFunctionCallingAdapter-compatible interface).
+- `openai`: Interacts with the Nebius API (which uses an MLX-compatible interface).
 - `pandas`: For creating and managing data tables (DataFrames).
 - `numpy`: For numerical operations, especially with vectors (embeddings).
 - `faiss-cpu`: For efficient similarity search on vectors (the retrieval part).
@@ -271,9 +269,9 @@ logger.debug("-" * 25)
 """
 ### 6. Core Component: Connecting to Nebius AI
 
-To use the Nebius AI models (for embedding, generation, evaluation), we need to establish a connection to their API. We use the `openai` Python library, which provides a convenient way to interact with OllamaFunctionCallingAdapter-compatible APIs like Nebius.
+To use the Nebius AI models (for embedding, generation, evaluation), we need to establish a connection to their API. We use the `openai` Python library, which provides a convenient way to interact with MLX-compatible APIs like Nebius.
 
-We instantiate an `OllamaFunctionCallingAdapter` client object, providing our API key and the specific Nebius API endpoint URL.
+We instantiate an `MLX` client object, providing our API key and the specific Nebius API endpoint URL.
 """
 logger.info("### 6. Core Component: Connecting to Nebius AI")
 
@@ -284,7 +282,7 @@ try:
     if not NEBIUS_API_KEY:
         raise ValueError("Nebius API Key is missing. Cannot initialize client.")
 
-    client = OllamaFunctionCallingAdapter(
+    client = MLX(
         api_key=NEBIUS_API_KEY,     # Pass the API key loaded earlier
         base_url=NEBIUS_BASE_URL  # Specify the Nebius API endpoint
     )
@@ -321,7 +319,7 @@ def calculate_cosine_similarity(text1, text2, client, embedding_model):
     Args:
         text1 (str): The first text string.
         text2 (str): The second text string.
-        client (OllamaFunctionCallingAdapter): The initialized Nebius AI client.
+        client (MLX): The initialized Nebius AI client.
         embedding_model (str): The name of the embedding model to use.
 
     Returns:

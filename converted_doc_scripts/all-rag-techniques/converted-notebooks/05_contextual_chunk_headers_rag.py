@@ -1,5 +1,5 @@
+from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
-from openai import OllamaFunctionCallingAdapter
 from tqdm import tqdm
 import fitz
 import json
@@ -11,11 +11,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
-
-log_file = os.path.join(LOG_DIR, "main.log")
+log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+logger.info(f"Logs: {log_file}")
+
+file_name = os.path.splitext(os.path.basename(__file__))[0]
+GENERATED_DIR = os.path.join("results", file_name)
+os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
 # Contextual Chunk Headers (CCH) in Simple RAG
@@ -66,12 +68,12 @@ def extract_text_from_pdf(pdf_path):
     return all_text  # Return the extracted text
 
 """
-## Setting Up the OllamaFunctionCallingAdapter API Client
-We initialize the OllamaFunctionCallingAdapter client to generate embeddings and responses.
+## Setting Up the MLX API Client
+We initialize the MLX client to generate embeddings and responses.
 """
-logger.info("## Setting Up the OllamaFunctionCallingAdapter API Client")
+logger.info("## Setting Up the MLX API Client")
 
-client = OllamaFunctionCallingAdapter(
+client = MLX(
     base_url="https://api.studio.nebius.com/v1/",
 #     api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
 )
@@ -133,7 +135,7 @@ Now, we load the PDF, extract text, and split it into chunks.
 """
 logger.info("## Extracting and Chunking Text from a PDF File")
 
-pdf_path = "data/AI_Information.pdf"
+pdf_path = f"{GENERATED_DIR}/AI_Information.pdf"
 
 extracted_text = extract_text_from_pdf(pdf_path)
 

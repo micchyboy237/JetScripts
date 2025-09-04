@@ -1,6 +1,6 @@
 from PIL import Image
+from jet.llm.mlx.base import MLX
 from jet.logger import CustomLogger
-from openai import OllamaFunctionCallingAdapter
 import base64
 import fitz
 import io
@@ -15,11 +15,13 @@ import tempfile
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
-
-log_file = os.path.join(LOG_DIR, "main.log")
+log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+logger.info(f"Logs: {log_file}")
+
+file_name = os.path.splitext(os.path.basename(__file__))[0]
+GENERATED_DIR = os.path.join("results", file_name)
+os.makedirs(GENERATED_DIR, exist_ok=True)
 
 """
 # Multi-Modal RAG with Image Captioning
@@ -40,12 +42,12 @@ logger.info("# Multi-Modal RAG with Image Captioning")
 
 
 """
-## Setting Up the OllamaFunctionCallingAdapter API Client
-We initialize the OllamaFunctionCallingAdapter client to generate embeddings and responses.
+## Setting Up the MLX API Client
+We initialize the MLX client to generate embeddings and responses.
 """
-logger.info("## Setting Up the OllamaFunctionCallingAdapter API Client")
+logger.info("## Setting Up the MLX API Client")
 
-client = OllamaFunctionCallingAdapter(
+client = MLX(
     base_url="https://api.studio.nebius.com/v1/",
 #     api_key=os.getenv("OPENAI_API_KEY")  # Retrieve the API key from environment variables
 )
@@ -178,9 +180,9 @@ def chunk_text(text_data, chunk_size=1000, overlap=200):
     return chunked_data  # Return the list of chunked data
 
 """
-## Image Captioning with OllamaFunctionCallingAdapter Vision
+## Image Captioning with MLX Vision
 """
-logger.info("## Image Captioning with OllamaFunctionCallingAdapter Vision")
+logger.info("## Image Captioning with MLX Vision")
 
 def encode_image(image_path):
     """
@@ -198,7 +200,7 @@ def encode_image(image_path):
 
 def generate_image_caption(image_path):
     """
-    Generate a caption for an image using OllamaFunctionCallingAdapter's vision capabilities.
+    Generate a caption for an image using MLX's vision capabilities.
 
     Args:
         image_path (str): Path to the image file
@@ -707,7 +709,7 @@ def generate_overall_analysis(results):
 """
 logger.info("## Evaluation on Multi-Modal RAG vs Text-Only RAG")
 
-pdf_path = "data/attention_is_all_you_need.pdf"
+pdf_path = f"{GENERATED_DIR}/attention_is_all_you_need.pdf"
 
 test_queries = [
     "What is the BLEU score of the Transformer (base model)?",

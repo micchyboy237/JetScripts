@@ -12,8 +12,8 @@ from jet.code.rst_code_extractor import rst_to_code_blocks
 from jet.logger import logger
 from jet.utils.file import search_files
 
-LARGE_MODEL = "qwen3-1.7b-4bit"
-SMALL_MODEL = "qwen3-0.6b-4bit"
+LARGE_MODEL = "llama-3.2-3b-instruct-4bit"
+SMALL_MODEL = "llama-3.2-1b-instruct-4bit"
 
 REPLACE_MLX_MAP = {
     "llama-index-llms-openai": "llama-index-llms-ollama",
@@ -28,16 +28,17 @@ REPLACE_MLX_MAP = {
     "ChatOpenAI": "ChatMLX",
     "ChatAnthropic": "ChatMLX",
     "OpenAI": "MLX",
-    "(\"gpt-4\")": "(model=\"qwen3-1.7b-4bit\", log_dir=f\"{OUTPUT_DIR}/chats\")",
-    "(\"gpt-4o\")": "(model=\"qwen3-1.7b-4bit\", log_dir=f\"{OUTPUT_DIR}/chats\")",
-    "(\"gpt-4o-mini\")": "(model=\"qwen3-1.7b-4bit\", log_dir=f\"{OUTPUT_DIR}/chats\")",
-    "(\"gpt-3.5\")": "(model=\"qwen3-0.6b-4bit\", log_dir=f\"{OUTPUT_DIR}/chats\")",
+    "(\"gpt-4\")": "(model=\"llama-3.2-3b-instruct-4bit\", log_dir=f\"{OUTPUT_DIR}/chats\")",
+    "(\"gpt-4o\")": "(model=\"llama-3.2-3b-instruct-4bit\", log_dir=f\"{OUTPUT_DIR}/chats\")",
+    "(\"gpt-4o-mini\")": "(model=\"llama-3.2-3b-instruct-4bit\", log_dir=f\"{OUTPUT_DIR}/chats\")",
+    "(\"gpt-3.5\")": "(model=\"llama-3.2-1b-instruct-4bit\", log_dir=f\"{OUTPUT_DIR}/chats\")",
     "openai:": "ollama:",
     "anthropic:": "ollama:",
-    "gpt-4o": "qwen3-1.7b-4bit",
-    "gpt-4o-mini": "qwen3-0.6b-4bit",
-    "claude-3-5-sonnet-latest": "qwen3-1.7b-4bit",
+    "gpt-4o": "llama-3.2-3b-instruct-4bit",
+    "gpt-4o-mini": "llama-3.2-1b-instruct-4bit",
+    "claude-3-5-sonnet-latest": "llama-3.2-3b-instruct-4bit",
     "text-embedding-3-small": "mxbai-embed-large",
+    "from openai": "from jet.llm.mlx.base",
 }
 
 REPLACE_ASYNC_MAP = {
@@ -243,12 +244,12 @@ def update_code_with_mlx(code: str) -> str:
     updated_code = re.sub(r'MLX\s*\((.*?)\)', r'MLX(\1)', updated_code)
     updated_code = re.sub(
         r'(?:model|llm)=["\']gpt-4[^"\']*["\']',
-        'model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats"',
+        'model="llama-3.2-3b-instruct-4bit", log_dir=f"{OUTPUT_DIR}/chats"',
         updated_code
     )
     updated_code = re.sub(
         r'(?:model|llm)=["\']gpt-3\.5[^"\']*["\']',
-        'model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats"',
+        'model="llama-3.2-1b-instruct-4bit", log_dir=f"{OUTPUT_DIR}/chats"',
         updated_code
     )
     updated_code = re.sub(
@@ -258,7 +259,7 @@ def update_code_with_mlx(code: str) -> str:
     )
     updated_code = re.sub(
         r'ChatOllama\s*\((.*?)\)',
-        r'ChatOllama(model="qwen3-1.7b-4bit")',
+        r'ChatOllama(model="llama-3.2-3b-instruct-4bit")',
         updated_code
     )
     updated_code = re.sub(
@@ -763,7 +764,8 @@ if __name__ == "__main__":
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/all-rag-techniques",
     ]
     include_files = []
     exclude_files = []
