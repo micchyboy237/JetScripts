@@ -34,37 +34,47 @@ def process_document(chunks: List[Dict[str, Any]], embed_func) -> tuple[List[str
     return text_chunks, store
 
 
-def classify_query(query: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
+def classify_query(query: str, mlx, model=None) -> str:
     """Classify the query type."""
     system_prompt = "Classify the query as Factual, Analytical, Opinion, or Contextual. Respond with only the category name."
     user_prompt = f"Query: {query}"
-    response = mlx.chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
         model=model,
+        max_tokens=512,
         temperature=0
-    )
-    category = response["choices"][0]["message"]["content"].strip()
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    category = response.strip()
     valid_categories = ["Factual", "Analytical", "Opinion", "Contextual"]
     return category if category in valid_categories else "Factual"
 
 
-def factual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
+def factual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model=None) -> List[Dict[str, Any]]:
     """Factual retrieval strategy with query enhancement."""
     logger.debug(f"Executing Factual retrieval strategy for: '{query}'")
     system_prompt = "Enhance this factual query to improve retrieval accuracy. Respond with only the enhanced query."
     user_prompt = f"Query: {query}"
-    response = mlx.chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
         model=model,
+        max_tokens=512,
         temperature=0
-    )
-    enhanced_query = response["choices"][0]["message"]["content"].strip()
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    enhanced_query = response.strip()
     logger.debug(f"Enhanced query: {enhanced_query}")
     query_embedding = embed_func(enhanced_query)
     initial_results = vector_store.search(query_embedding, top_k=k*2)
@@ -82,20 +92,25 @@ def factual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embe
     return ranked_results[:k]
 
 
-def analytical_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
+def analytical_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model=None) -> List[Dict[str, Any]]:
     """Analytical retrieval strategy with sub-queries."""
     logger.debug(f"Executing Analytical retrieval strategy for: '{query}'")
     system_prompt = "Generate a list of sub-questions for this analytical query, one per line."
     user_prompt = f"Query: {query}"
-    response = mlx.chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
         model=model,
-        temperature=0.3
-    )
-    sub_queries = response["choices"][0]["message"]["content"].strip().split(
+        max_tokens=512,
+        temperature=0
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    sub_queries = response.strip().split(
         '\n')
     sub_queries = [q.strip() for q in sub_queries if q.strip()]
     logger.debug(f"Generated sub-queries: {sub_queries}")
@@ -120,20 +135,25 @@ def analytical_retrieval_strategy(query: str, vector_store: SimpleVectorStore, e
     return diverse_results[:k]
 
 
-def opinion_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
+def opinion_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model=None) -> List[Dict[str, Any]]:
     """Opinion retrieval strategy with viewpoint diversity."""
     logger.debug(f"Executing Opinion retrieval strategy for: '{query}'")
     system_prompt = "Identify different perspectives on this query, one per line."
     user_prompt = f"Query: {query}"
-    response = mlx.chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
         model=model,
-        temperature=0.3
-    )
-    viewpoints = response["choices"][0]["message"]["content"].strip().split(
+        max_tokens=512,
+        temperature=0
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    viewpoints = response.strip().split(
         '\n')
     viewpoints = [v.strip() for v in viewpoints if v.strip()]
     logger.debug(f"Identified viewpoints: {viewpoints}")
@@ -159,33 +179,43 @@ def opinion_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embe
     return selected_results[:k]
 
 
-def contextual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, user_context: str = None, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
+def contextual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, user_context: str = None, model=None) -> List[Dict[str, Any]]:
     """Contextual retrieval strategy with context enhancement."""
     logger.debug(f"Executing Contextual retrieval strategy for: '{query}'")
     if not user_context:
         system_prompt = "Infer the implied context in this query. Respond with only the inferred context."
         user_prompt = f"Query: {query}"
-        response = mlx.chat(
-            [
+        response = ""
+        for chunk in mlx.stream_chat(
+            messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
             model=model,
-            temperature=0.1
-        )
-        user_context = response["choices"][0]["message"]["content"].strip()
+            max_tokens=512,
+            temperature=0
+        ):
+            content = chunk["choices"][0]["message"]["content"]
+            response += content
+            logger.success(content, flush=True)
+        user_context = response.strip()
         logger.debug(f"Inferred context: {user_context}")
     system_prompt = "Combine the query with the provided context to create a contextualized query."
     user_prompt = f"Query: {query}\nContext: {user_context}"
-    response = mlx.chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
         model=model,
+        max_tokens=512,
         temperature=0
-    )
-    contextualized_query = response["choices"][0]["message"]["content"].strip()
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    contextualized_query = response.strip()
     logger.debug(f"Contextualized query: {contextualized_query}")
     query_embedding = embed_func(contextualized_query)
     initial_results = vector_store.search(query_embedding, top_k=k*2)
@@ -203,43 +233,53 @@ def contextual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, e
     return ranked_results[:k]
 
 
-def score_document_relevance(query: str, document: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> float:
+def score_document_relevance(query: str, document: str, mlx, model=None) -> float:
     """Score document relevance to query."""
     doc_preview = document[:1500] + "..." if len(document) > 1500 else document
     system_prompt = "Score the relevance of the document to the query from 0 to 10, where 10 is highly relevant. Provide only the score."
     user_prompt = f"Query: {query}\nDocument: {doc_preview}"
-    response = mlx.chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
         model=model,
+        max_tokens=512,
         temperature=0
-    )
-    score_text = response["choices"][0]["message"]["content"].strip()
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    score_text = response.strip()
     score_match = re.search(r'\b(10|[0-9])\b', score_text)
     return float(score_match.group(1)) if score_match else 5.0
 
 
-def score_document_context_relevance(query: str, context: str, document: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> float:
+def score_document_context_relevance(query: str, context: str, document: str, mlx, model=None) -> float:
     """Score document relevance to query and context."""
     doc_preview = document[:1500] + "..." if len(document) > 1500 else document
     system_prompt = "Score the relevance of the document to the query and context from 0 to 10, where 10 is highly relevant. Provide only the score."
     user_prompt = f"Query: {query}\nContext: {context}\nDocument: {doc_preview}"
-    response = mlx.chat(
-        [
+    response = ""
+    for chunk in mlx.stream_chat(
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
         model=model,
+        max_tokens=512,
         temperature=0
-    )
-    score_text = response["choices"][0]["message"]["content"].strip()
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response += content
+        logger.success(content, flush=True)
+    score_text = response.strip()
     score_match = re.search(r'\b(10|[0-9])\b', score_text)
     return float(score_match.group(1)) if score_match else 5.0
 
 
-def adaptive_retrieval(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, user_context: str = None, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
+def adaptive_retrieval(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, user_context: str = None, model=None) -> List[Dict[str, Any]]:
     """Perform adaptive retrieval based on query type."""
     query_type = classify_query(query, mlx, model)
     logger.debug(f"Query classified as: {query_type}")
@@ -261,7 +301,7 @@ def adaptive_retrieval(query: str, vector_store: SimpleVectorStore, embed_func, 
     return results
 
 
-def rag_with_adaptive_retrieval(chunks: List[Dict[str, Any]], query: str, embed_func, mlx, k: int = 4, user_context: str = None, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
+def rag_with_adaptive_retrieval(chunks: List[Dict[str, Any]], query: str, embed_func, mlx, k: int = 4, user_context: str = None, model=None) -> Dict[str, Any]:
     """Run RAG with adaptive retrieval."""
     logger.debug("\n=== RAG WITH ADAPTIVE RETRIEVAL ===")
     logger.debug(f"Query: {query}")
@@ -284,7 +324,7 @@ def rag_with_adaptive_retrieval(chunks: List[Dict[str, Any]], query: str, embed_
     return result
 
 
-def evaluate_adaptive_vs_standard(chunks: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
+def evaluate_adaptive_vs_standard(chunks: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model=None) -> Dict[str, Any]:
     """Evaluate adaptive vs standard retrieval."""
     logger.debug("=== EVALUATING ADAPTIVE VS. STANDARD RETRIEVAL ===")
     text_chunks, vector_store = process_document(chunks, embed_func)
@@ -328,7 +368,7 @@ def evaluate_adaptive_vs_standard(chunks: List[Dict[str, Any]], test_queries: Li
     }
 
 
-def compare_responses(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
+def compare_responses(results: List[Dict[str, Any]], mlx, model=None) -> str:
     """Compare standard and adaptive responses."""
     comparison_text = ""
     system_prompt = "You are an objective evaluator. Compare the responses and provide a concise evaluation."
@@ -341,15 +381,20 @@ def compare_responses(results: List[Dict[str, Any]], mlx, model: str = "llama-3.
         comparison_text += f"**Standard Retrieval Response:**\n{result['standard_retrieval']['response']}\n\n"
         comparison_text += f"**Adaptive Retrieval Response:**\n{result['adaptive_retrieval']['response']}\n\n"
         user_prompt = f"Reference Answer: {result['reference_answer']}\n\nStandard Response:\n{result['standard_retrieval']['response']}\n\nAdaptive Response:\n{result['adaptive_retrieval']['response']}"
-        response = mlx.chat(
-            [
+        response = ""
+        for chunk in mlx.stream_chat(
+            messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
             model=model,
-            temperature=0.2
-        )
-        comparison_text += f"**Comparison Analysis:**\n{response['choices'][0]['message']['content']}\n\n"
+            max_tokens=512,
+            temperature=0
+        ):
+            content = chunk["choices"][0]["message"]["content"]
+            response += content
+            logger.success(content, flush=True)
+        comparison_text += f"**Comparison Analysis:**\n{response}\n\n"
     return comparison_text
 
 

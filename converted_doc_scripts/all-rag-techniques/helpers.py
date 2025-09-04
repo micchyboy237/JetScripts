@@ -5,14 +5,16 @@ from jet.models.embeddings.base import get_embedding_function
 import numpy as np
 from typing import List, Dict, Any, Callable, Tuple, TypedDict
 from jet.file.utils import load_file, save_file
-from jet.llm.mlx.base import MLX
 from jet.models.model_types import LLMModelType
+from jet.llm.mlx.base import MLX
+from jet.llm.mlx.remote import generation as gen
 from jet.logger import CustomLogger
 import re
 
 DATA_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/data/hybrid_reranker_data/anime/top_isekai_anime"
 DOCS_PATH = f"{DATA_DIR}/search_results.json"
-LLM_MODEL = "llama-3.2-3b-instruct-4bit"
+# LLM_MODEL = "llama-3.2-3b-instruct-4bit"
+LLM_MODEL = None
 
 
 class SearchResult(TypedDict):
@@ -90,9 +92,11 @@ def load_json_data(data_path: str, logger: CustomLogger) -> Tuple[List[str], Lis
 
 def initialize_mlx(logger: CustomLogger) -> Tuple[MLX, Callable[[str | List[str]], List[float] | List[List[float]]]]:
     logger.info("Initializing MLX and embedding function")
-    mlx = MLX()
-    embed_func = get_embedding_function("mxbai-embed-large")
-    return mlx, embed_func
+    # mlx = MLX()
+
+    embed_func = get_embedding_function(
+        "mxbai-embed-large", show_progress=True, return_format="list")
+    return gen, embed_func
 
 
 def generate_embeddings(
@@ -143,6 +147,7 @@ def generate_ai_response(
             {"role": "user", "content": user_prompt}
         ],
         model=model,
+        max_tokens=512,
         **kwargs
     ):
         content = chunk["choices"][0]["message"]["content"]
@@ -182,6 +187,7 @@ def evaluate_ai_response(
             {"role": "user", "content": evaluation_prompt}
         ],
         model=model,
+        max_tokens=512,
         **kwargs
     ):
         content = chunk["choices"][0]["message"]["content"]
