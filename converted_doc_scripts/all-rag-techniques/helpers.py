@@ -1,5 +1,6 @@
 import os
 import json
+from jet.code.markdown_types.markdown_parsed_types import HeaderSearchResult
 from jet.models.embeddings.base import get_embedding_function
 import numpy as np
 from typing import List, Dict, Any, Callable, Tuple, TypedDict
@@ -10,8 +11,8 @@ from jet.logger import CustomLogger
 import re
 
 DATA_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/data/hybrid_reranker_data/anime/top_isekai_anime"
-DOCS_PATH = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_split_header_docs/searched_html_myanimelist_net_Isekai/chunks.json"
-LLM_MODEL = "qwen3-1.7b-4bit-dwq-053125"
+DOCS_PATH = f"{DATA_DIR}/search_results.json"
+LLM_MODEL = "llama-3.2-3b-instruct-4bit"
 
 
 class SearchResult(TypedDict):
@@ -64,21 +65,27 @@ def setup_config(script_path: str) -> Tuple[str, str, str, CustomLogger]:
     return script_dir, generated_dir, log_file, logger
 
 
-def load_json_data(data_path: str, logger: CustomLogger) -> Tuple[List[str], List[Chunk]]:
+def load_json_data(data_path: str, logger: CustomLogger) -> Tuple[List[str], List[HeaderSearchResult]]:
     with open(data_path, 'r') as f:
-        data: ChunkData = json.load(f)
+        data: List[HeaderSearchResult] = json.load(f)["results"]
     formatted_chunks = []
-    for chunk in data["chunks"]:
+    for chunk in data:
+        text = f"{chunk['header']}\n{chunk['content']}"
+        chunk['text'] = text
         metadata = chunk["metadata"]
         meta_str = f"[doc_index: {metadata['doc_index']}]\n"
-        if metadata['header_level'] != 1:
-            meta_str += f"[parent_header: {metadata['parent_header']}]\n"
-        meta_str += f"[header: {metadata['header']}]"
-        formatted_chunks.append(f"{meta_str.strip()}\n\n{chunk['text']}")
+        # Add chunk_idx to meta_str
+        meta_str += f"[chunk_idx: {metadata['chunk_idx']}]\n"
+        # Use parent_header if header_level is not 1
+        if metadata.get('level', 1) != 1:
+            meta_str += f"[parent_header: {chunk.get('parent_header', '')}]\n"
+        meta_str += f"[header: {chunk['header']}]"
+
+        formatted_chunks.append(f"{meta_str.strip()}\n\n{text}")
     logger.debug(f"Number of text chunks: {len(formatted_chunks)}")
     logger.debug("\nFirst text chunk:")
     logger.debug(formatted_chunks[0])
-    return formatted_chunks, data["chunks"]
+    return formatted_chunks, data
 
 
 def initialize_mlx(logger: CustomLogger) -> Tuple[MLX, Callable[[str | List[str]], List[float] | List[List[float]]]]:

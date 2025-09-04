@@ -358,10 +358,30 @@ mlx, embed_func = initialize_mlx(logger)
 formatted_texts, original_chunks = load_json_data(DOCS_PATH, logger)
 logger.info("Loaded pre-chunked data from DOCS_PATH")
 test_queries = [
-    "What is Explainable AI (XAI)?",
+    "What are the most popular isekai anime of 2025?",
+    "Which 2025 isekai anime features a protagonist who is content with a low-profile life despite being overpowered?",
+    "What is the release date and studio for Onmyo Kaiten Re:Birth Verse?",
+    "Which 2025 isekai anime involves a yandere dark elf following the protagonist to Earth?",
+    "What unique mechanic does Welcome to Japan, Ms. Elf! use for world-hopping?",
+    "Which 2025 isekai anime has a protagonist reincarnated as a villainess in an otome game but struggles to act villainous?",
+    "What is the premise of The Beginning After the End, and why has its anime adaptation been disappointing?",
+    "Which 2025 isekai anime focuses on a protagonist using strategy game expertise to build an evil civilization?",
+    "What makes Lord of Mysteries stand out among 2025 isekai anime?",
+    "Which 2025 isekai anime sequel continues the story of a protagonist with an absurd skill for cooking?",
+    "What is the unique hook of Otherworldly Munchkin: Let's Speedrun the Dungeon with Only 1 HP!?",
 ]
 reference_answers = [
-    "Explainable AI (XAI) aims to make AI systems transparent and understandable by providing clear explanations of how decisions are made. This helps users trust and effectively manage AI technologies.",
+    "The most popular isekai anime of 2025, based on fan rankings and critical reception, include: \n1. **From Bureaucrat to Villainess: Dad's Been Reincarnated!** - Praised for its humorous take on the villainess subgenre, with a middle-aged dad reincarnated as an otome game villainess, becoming a fan favorite for its comedic charm (Ranker, 2025). \n2. **Lord of Mysteries** - A standout Donghua with a unique Victorian steampunk aesthetic and gorgeous animation, earning high praise for its intriguing narrative (CBR, 2025). \n3. **Apocalypse Bringer Mynoghra** - Noted for its strategy game-inspired premise and engaging world-building, appealing to fans of unique isekai settings (ScreenRant, 2025). \n4. **The Water Magician** - Popular for its cozy yet action-packed vibe and stunning visuals, offering a fresh take on the genre (ScreenRant, 2025). \n5. **The Beginning After the End** - Despite mixed reviews due to animation quality, its strong source material and fanbase make it highly anticipated (Ranker, 2025). \nThese titles have garnered significant attention for their innovative premises and engaging storytelling.",
+    "A Gatherer's Adventure in Isekai features a protagonist who, despite being incredibly overpowered, prefers to keep a low profile, complete quests, and live humbly.",
+    "Onmyo Kaiten Re:Birth Verse is set to release on July 2, 2025, and is produced by David Production.",
+    "Yandere Dark Elf: She Chased Me All the Way From Another World! is a reverse isekai anime where a yandere dark elf follows the male protagonist to Earth, released on April 7, 2025.",
+    "Welcome to Japan, Ms. Elf! uses a unique mechanic where Kazuhiro visits a fantasy world while dreaming and can bring someone back to Earth by holding them when he dies or sleeps in that realm.",
+    "From Bureaucrat to Villainess: Dad's Been Reincarnated! features a middle-aged man reincarnated as an otome game's villainess who tries to follow the story but ends up acting like a supportive dad instead.",
+    "The Beginning After the End follows a ruthless king reborn in a fantasy world with magic and a loving family, but the 2025 anime adaptation by Studio A-Cat has been disappointing due to lackluster animation and fast pacing.",
+    "Apocalypse Bringer Mynoghra, released on July 6, 2025, features Takuto Ira, who uses his strategy game expertise to build the evil civilization Mynoghra from scratch.",
+    "Lord of Mysteries, a Donghua released on June 28, 2025, stands out due to its Victorian-era steampunk and Gothic aesthetic, gorgeous animation, and intriguing storytelling.",
+    "Campfire Cooking in Another World with My Absurd Skill Season 2, produced by MAPPA, continues the story of a protagonist with a unique cooking ability.",
+    "Otherworldly Munchkin: Let's Speedrun the Dungeon with Only 1 HP! features a protagonist, a tabletop player, who uses a book granting dungeon and monster information to navigate an RPG world with only 1 HP, released in October 2025.",
 ]
 evaluation_results = evaluate_adaptive_vs_standard(
     original_chunks, test_queries, embed_func, mlx, reference_answers

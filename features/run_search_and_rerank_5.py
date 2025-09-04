@@ -20,11 +20,12 @@ from jet.models.embeddings.base import generate_embeddings
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
+from jet.models.utils import resolve_model_value
 from jet.models.tokenizer.base import get_tokenizer_fn, count_tokens
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.scrapers.utils import scrape_links, search_data
 from jet.vectors.semantic_search.header_vector_search import search_headers
-from jet.wordnet.analyzers.text_analysis import analyze_readability
+from jet.wordnet.analyzers.text_analysis import calculate_mtld, calculate_mtld_category
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -387,7 +388,7 @@ async def main(query):
                       f"{sub_output_dir}/markdown_tokens.json")
 
             original_docs: List[HeaderDoc] = derive_by_header_hierarchy(
-                doc_markdown)
+                doc_markdown, ignore_links=True)
 
             save_file(original_docs, f"{sub_output_dir}/docs.json")
 
@@ -414,9 +415,10 @@ async def main(query):
             for result in sub_results:
                 ltr = link_to_text_ratio(result["content"])
                 result["metadata"]["ltr_ratio"] = ltr
-                mtld_result = analyze_readability(result["content"])
-                result["metadata"]["mtld"] = mtld_result["mtld"]
-                result["metadata"]["mtld_category"] = mtld_result["mtld_category"]
+                mtld_result = calculate_mtld(result["content"])
+                result["metadata"]["mtld"] = mtld_result
+                result["metadata"]["mtld_category"] = calculate_mtld_category(
+                    mtld_result)
                 if (
                     result["score"] >= MEDIUM_QUALITY_SCORE
                     and result["metadata"]["mtld_category"] != "very_low"
@@ -444,11 +446,11 @@ async def main(query):
             )
 
             sub_mtld_score_values = [
-                analyze_readability(result["content"])["mtld"]
+                calculate_mtld(result["content"])
                 for result in filtered_sub_results
                 if (
                     result["score"] >= HIGH_QUALITY_SCORE
-                    and analyze_readability(result["content"])["mtld_category"]
+                    and calculate_mtld_category(calculate_mtld(result["content"]))
                 )
             ]
             sub_mtld_score_average = (
@@ -463,8 +465,8 @@ async def main(query):
                 "count": len(filtered_sub_results),
                 "max_score": max((result["score"] for result in filtered_sub_results), default=0.0),
                 "min_score": min((result["score"] for result in filtered_sub_results), default=0.0),
-                "mtld": analyze_readability(html)["mtld"],
-                "mtld_category": analyze_readability(html)["mtld_category"],
+                "mtld": calculate_mtld(html),
+                "mtld_category": calculate_mtld_category(calculate_mtld(html)),
                 "total_tokens": sub_total_tokens,
                 "high_score_tokens": sub_high_score_tokens,
                 "medium_score_tokens": sub_medium_score_tokens,
@@ -566,6 +568,12 @@ async def main(query):
         "high_score_tokens": headers_high_score_tokens,
         "medium_score_tokens": headers_medium_score_tokens,
         "mtld_score_average": headers_mtld_score_average,
+        "settings": {
+            "urls_limit": urls_limit,
+            "model": resolve_model_value(embed_model),
+            "chunk_size": chunk_size,
+            "overlap": chunk_overlap,
+        },
         "urls": sorted_urls,
         "results": search_results
     }, f"{query_output_dir}/search_results.json")
