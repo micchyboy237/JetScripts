@@ -6,7 +6,8 @@ def main():
     logger.info("=== Streaming Text Generation ===")
     for chunk in gen.stream_generate(
         "In the future, AI assistants will",
-        model="mlx-community/Llama-3.2-3B-Instruct-4bit",
+        model=None,
+        max_tokens=100
     ):
         if "choices" in chunk and chunk["choices"]:
             token = chunk["choices"][0].get("text")
