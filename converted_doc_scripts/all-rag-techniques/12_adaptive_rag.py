@@ -45,12 +45,13 @@ def classify_query(query: str, mlx, model=None) -> str:
             {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
         ],
         model=model,
+        verbose=True,
         max_tokens=512,
         temperature=0
     ):
         content = chunk["choices"][0]["message"]["content"]
         response += content
-        logger.success(content, flush=True)
+
     category = response.strip()
     valid_categories = ["Factual", "Analytical", "Opinion", "Contextual"]
     return category if category in valid_categories else "Factual"
@@ -67,12 +68,13 @@ def factual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embe
             {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
         ],
         model=model,
+        verbose=True,
         max_tokens=512,
         temperature=0
     ):
         content = chunk["choices"][0]["message"]["content"]
         response += content
-        logger.success(content, flush=True)
+
     enhanced_query = response.strip()
     logger.debug(f"Enhanced query: {enhanced_query}")
     query_embedding = embed_func(enhanced_query)
@@ -102,12 +104,13 @@ def analytical_retrieval_strategy(query: str, vector_store: SimpleVectorStore, e
             {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
         ],
         model=model,
+        verbose=True,
         max_tokens=512,
         temperature=0
     ):
         content = chunk["choices"][0]["message"]["content"]
         response += content
-        logger.success(content, flush=True)
+
     sub_queries = response.strip().split(
         '\n')
     sub_queries = [q.strip() for q in sub_queries if q.strip()]
@@ -144,12 +147,13 @@ def opinion_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embe
             {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
         ],
         model=model,
+        verbose=True,
         max_tokens=512,
         temperature=0
     ):
         content = chunk["choices"][0]["message"]["content"]
         response += content
-        logger.success(content, flush=True)
+
     viewpoints = response.strip().split(
         '\n')
     viewpoints = [v.strip() for v in viewpoints if v.strip()]
@@ -188,12 +192,13 @@ def contextual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, e
                 {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
             ],
             model=model,
+            verbose=True,
             max_tokens=512,
             temperature=0
         ):
             content = chunk["choices"][0]["message"]["content"]
             response += content
-            logger.success(content, flush=True)
+
         user_context = response.strip()
         logger.debug(f"Inferred context: {user_context}")
     system_prompt = "Combine the query with the provided context to create a contextualized query."
@@ -204,12 +209,13 @@ def contextual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, e
             {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
         ],
         model=model,
+        verbose=True,
         max_tokens=512,
         temperature=0
     ):
         content = chunk["choices"][0]["message"]["content"]
         response += content
-        logger.success(content, flush=True)
+
     contextualized_query = response.strip()
     logger.debug(f"Contextualized query: {contextualized_query}")
     query_embedding = embed_func(contextualized_query)
@@ -239,12 +245,13 @@ def score_document_relevance(query: str, document: str, mlx, model=None) -> floa
             {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
         ],
         model=model,
+        verbose=True,
         max_tokens=512,
         temperature=0
     ):
         content = chunk["choices"][0]["message"]["content"]
         response += content
-        logger.success(content, flush=True)
+
     score_text = response.strip()
     score_match = re.search(r'\b(10|[0-9])\b', score_text)
     return float(score_match.group(1)) if score_match else 5.0
@@ -261,12 +268,13 @@ def score_document_context_relevance(query: str, context: str, document: str, ml
             {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
         ],
         model=model,
+        verbose=True,
         max_tokens=512,
         temperature=0
     ):
         content = chunk["choices"][0]["message"]["content"]
         response += content
-        logger.success(content, flush=True)
+
     score_text = response.strip()
     score_match = re.search(r'\b(10|[0-9])\b', score_text)
     return float(score_match.group(1)) if score_match else 5.0
@@ -380,12 +388,13 @@ def compare_responses(results: List[Dict[str, Any]], mlx, model=None) -> str:
                 {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
             ],
             model=model,
+            verbose=True,
             max_tokens=512,
             temperature=0
         ):
             content = chunk["choices"][0]["message"]["content"]
             response += content
-            logger.success(content, flush=True)
+
         comparison_text += f"**Comparison Analysis:**\n{response}\n\n"
     return comparison_text
 

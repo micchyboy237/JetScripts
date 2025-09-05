@@ -146,12 +146,13 @@ def generate_ai_response(
             {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
         ],
         model=model,
+        verbose=True,
         max_tokens=512,
         **kwargs
     ):
         content = chunk["choices"][0]["message"]["content"]
         response += content
-        logger.success(content, flush=True)
+
     logger.success(f"AI Response:\n{response}")
     return response
 
@@ -185,12 +186,13 @@ def evaluate_ai_response(
             {"role": "user", "content": f"{evaluate_system_prompt}\n\n{evaluation_prompt}"}
         ],
         model=model,
+        verbose=True,
         max_tokens=512,
         **kwargs
     ):
         content = chunk["choices"][0]["message"]["content"]
         response += content
-        logger.success(content, flush=True)
+
     try:
         score = parse_score(response.strip())
     except ValueError:
