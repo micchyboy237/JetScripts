@@ -5,9 +5,7 @@ def main():
     print("=== Streaming Chat Completion ===")
     response = ""
     for chunk in gen.stream_chat(
-        "Explain the benefits of unit testing in Python.",
-        model=None,
-        max_tokens=100,
+        "Explain all the benefits of unit testing in Python.",
         verbose=True
     ):
         content = chunk["choices"][0]["message"]["content"]
