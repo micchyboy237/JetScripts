@@ -7,6 +7,7 @@ from helpers import (
     load_validation_data, generate_ai_response,
     load_json_data, SearchResult, SimpleVectorStore, DATA_DIR, DOCS_PATH
 )
+from jet.llm.mlx.remote import generation as gen
 
 
 def chunk_text(text: str, n: int, overlap: int) -> List[str]:
@@ -39,11 +40,11 @@ def classify_query(query: str, mlx, model=None) -> str:
     system_prompt = "Classify the query as Factual, Analytical, Opinion, or Contextual. Respond with only the category name."
     user_prompt = f"Query: {query}"
     response = ""
-    for chunk in mlx.stream_chat(
+    for chunk in gen.stream_chat(
         messages=[
-            {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
+        system_prompt=system_prompt,
         model=model,
         max_tokens=512,
         temperature=0
@@ -62,11 +63,11 @@ def factual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embe
     system_prompt = "Enhance this factual query to improve retrieval accuracy. Respond with only the enhanced query."
     user_prompt = f"Query: {query}"
     response = ""
-    for chunk in mlx.stream_chat(
+    for chunk in gen.stream_chat(
         messages=[
-            {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
+        system_prompt=system_prompt,
         model=model,
         max_tokens=512,
         temperature=0
@@ -98,11 +99,11 @@ def analytical_retrieval_strategy(query: str, vector_store: SimpleVectorStore, e
     system_prompt = "Generate a list of sub-questions for this analytical query, one per line."
     user_prompt = f"Query: {query}"
     response = ""
-    for chunk in mlx.stream_chat(
+    for chunk in gen.stream_chat(
         messages=[
-            {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
+        system_prompt=system_prompt,
         model=model,
         max_tokens=512,
         temperature=0
@@ -141,11 +142,11 @@ def opinion_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embe
     system_prompt = "Identify different perspectives on this query, one per line."
     user_prompt = f"Query: {query}"
     response = ""
-    for chunk in mlx.stream_chat(
+    for chunk in gen.stream_chat(
         messages=[
-            {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
+        system_prompt=system_prompt,
         model=model,
         max_tokens=512,
         temperature=0
@@ -186,11 +187,11 @@ def contextual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, e
         system_prompt = "Infer the implied context in this query. Respond with only the inferred context."
         user_prompt = f"Query: {query}"
         response = ""
-        for chunk in mlx.stream_chat(
+        for chunk in gen.stream_chat(
             messages=[
-                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
+            system_prompt=system_prompt,
             model=model,
             max_tokens=512,
             temperature=0
@@ -203,11 +204,11 @@ def contextual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, e
     system_prompt = "Combine the query with the provided context to create a contextualized query."
     user_prompt = f"Query: {query}\nContext: {user_context}"
     response = ""
-    for chunk in mlx.stream_chat(
+    for chunk in gen.stream_chat(
         messages=[
-            {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
+        system_prompt=system_prompt,
         model=model,
         max_tokens=512,
         temperature=0
@@ -239,11 +240,11 @@ def score_document_relevance(query: str, document: str, mlx, model=None) -> floa
     system_prompt = "Score the relevance of the document to the query from 0 to 10, where 10 is highly relevant. Provide only the score."
     user_prompt = f"Query: {query}\nDocument: {doc_preview}"
     response = ""
-    for chunk in mlx.stream_chat(
+    for chunk in gen.stream_chat(
         messages=[
-            {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
+        system_prompt=system_prompt,
         model=model,
         max_tokens=512,
         temperature=0
@@ -262,11 +263,11 @@ def score_document_context_relevance(query: str, context: str, document: str, ml
     system_prompt = "Score the relevance of the document to the query and context from 0 to 10, where 10 is highly relevant. Provide only the score."
     user_prompt = f"Query: {query}\nContext: {context}\nDocument: {doc_preview}"
     response = ""
-    for chunk in mlx.stream_chat(
+    for chunk in gen.stream_chat(
         messages=[
-            {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
+        system_prompt=system_prompt,
         model=model,
         max_tokens=512,
         temperature=0
@@ -382,11 +383,11 @@ def compare_responses(results: List[Dict[str, Any]], mlx, model=None) -> str:
         comparison_text += f"**Adaptive Retrieval Response:**\n{result['adaptive_retrieval']['response']}\n\n"
         user_prompt = f"Reference Answer: {result['reference_answer']}\n\nStandard Response:\n{result['standard_retrieval']['response']}\n\nAdaptive Response:\n{result['adaptive_retrieval']['response']}"
         response = ""
-        for chunk in mlx.stream_chat(
+        for chunk in gen.stream_chat(
             messages=[
-                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
+            system_prompt=system_prompt,
             model=model,
             max_tokens=512,
             temperature=0

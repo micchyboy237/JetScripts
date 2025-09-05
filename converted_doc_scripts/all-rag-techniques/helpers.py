@@ -141,11 +141,11 @@ def generate_ai_response(
     ])
     user_prompt = f"{context}\nQuestion: {query}"
     response = ""
-    for chunk in mlx.stream_chat(
+    for chunk in gen.stream_chat(
         messages=[
-            {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
+        system_prompt=system_prompt,
         model=model,
         max_tokens=512,
         **kwargs
@@ -179,13 +179,13 @@ def evaluate_ai_response(
         if match:
             return float(match.group())
         raise ValueError(f"No valid float found in text: {text}")
-    evaluation_prompt = f"User Query: {question}\nAI Response:\n{response}\nTrue Response: {true_answer}\n{evaluate_system_prompt}"
+    evaluation_prompt = f"User Query: {question}\nAI Response:\n{response}\nTrue Response: {true_answer}"
     response = ""
-    for chunk in mlx.stream_chat(
+    for chunk in gen.stream_chat(
         messages=[
-            {"role": "system", "content": "You are an objective evaluator. Return ONLY the numerical score."},
             {"role": "user", "content": evaluation_prompt}
         ],
+        system_prompt=evaluate_system_prompt,
         model=model,
         max_tokens=512,
         **kwargs
