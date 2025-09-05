@@ -22,46 +22,29 @@ Your goals:
 
 
 def main():
-    print("\n=== Straming Chat with Conversation History ===")
+    print("\n=== Streaming Chat with Conversation History ===")
     history = ChatHistory()
-
-    response = ""
-    for chunk in gen.stream_chat(
+    response1 = list(gen.stream_chat(
         "Hello, my name is Jethro Estrada",
         with_history=True,
         history=history,
         max_tokens=50,
         verbose=True,
         system_prompt=SYSTEM_PROMPT,
-    ):
-        if "choices" in chunk and chunk["choices"]:
-            content = chunk["choices"][0]["message"]["content"]
-            response += content
+    ))[-1]
     logger.debug("Assistant:")
-    response1 = {
-        **chunk,
-        "content": response
-    }
     logger.success(format_json(response1))
     save_file(response1, f"{OUTPUT_DIR}/response1.json")
 
-    response = ""
-    for chunk in gen.stream_chat(
+    response2 = list(gen.stream_chat(
         "Do you know my name?",
         with_history=True,
         history=history,
         max_tokens=50,
         verbose=True,
         system_prompt=SYSTEM_PROMPT,
-    ):
-        if "choices" in chunk and chunk["choices"]:
-            content = chunk["choices"][0]["message"]["content"]
-            response += content
+    ))[-1]
     logger.debug("Assistant:")
-    response2 = {
-        **chunk,
-        "content": response
-    }
     logger.success(format_json(response2))
     save_file(response2, f"{OUTPUT_DIR}/response2.json")
 

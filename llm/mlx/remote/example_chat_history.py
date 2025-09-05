@@ -20,12 +20,15 @@ Your goals:
 - Respond in plain text without unnecessary formatting unless explicitly requested.
 """
 
+BASE_URL = "http://localhost:8080"
+
 
 def main():
     print("\n=== Chat with Conversation History ===")
     history = ChatHistory()
     response1 = gen.chat(
-        "Hello, who are you?",
+        "Hello, my name is Jethro Estrada",
+        base_url=BASE_URL,
         with_history=True,
         history=history,
         max_tokens=50,
@@ -37,7 +40,8 @@ def main():
     save_file(response1, f"{OUTPUT_DIR}/response1.json")
 
     response2 = gen.chat(
-        "Can you remind me what I just asked?",
+        "Do you know my name?",
+        base_url=BASE_URL,
         with_history=True,
         history=history,
         max_tokens=50,
