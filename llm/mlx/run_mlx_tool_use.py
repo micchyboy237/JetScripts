@@ -5,7 +5,8 @@ from mlx_lm import generate, load
 from mlx_lm.models.cache import make_prompt_cache
 
 # Specify the checkpoint
-checkpoint = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125"
+checkpoint = "mlx-community/Llama-3.2-3B-Instruct-4bit"
+# checkpoint = "mlx-community/Mistral-7B-Instruct-v0.3-4bit"
 
 # Load the corresponding model and tokenizer
 model, tokenizer = load(path_or_hf_repo=checkpoint)

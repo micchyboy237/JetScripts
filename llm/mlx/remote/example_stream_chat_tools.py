@@ -3,9 +3,9 @@ from typing import List, Dict
 from jet.llm.mlx.remote.types import Message
 
 
-def llama_tool_example() -> None:
-    """Demonstrate tool usage with Llama-3.2-3B-Instruct-4bit model."""
-    print("=== Llama Chat Completion with Tools ===")
+def llama_stream_tool_example() -> None:
+    """Demonstrate streaming tool usage with Llama-3.2-3B-Instruct-4bit model."""
+    print("=== Llama Streaming Chat Completion with Tools ===")
     tools = [
         {
             "name": "get_weather",
@@ -20,23 +20,22 @@ def llama_tool_example() -> None:
     messages: List[Message] = [
         {"role": "user", "content": "What's the weather in London?", "tool_calls": []}
     ]
-    response = gen.chat(
+    for chunk in gen.stream_chat(
         messages=messages,
         model="mlx-community/llama-3.2-3b-instruct-4bit",
         tools=tools,
         max_tokens=100,
         verbose=True,
-    )
-    print("Response:")
-    print(f"Content: {response.get('content', 'No content')}")
-    print(f"Tool Calls: {response.get('tool_calls', 'No tool calls')}")
-    for choice in response["choices"]:
-        print(f"Choice {choice['index']}: {choice['message']}")
+    ):
+        if "choices" in chunk and chunk["choices"]:
+            if chunk.get("tool_calls"):
+                print(f"\nTool Calls: {chunk['tool_calls']}", flush=True)
+    print("\n--- Llama Stream End ---")
 
 
-def mistral_tool_example() -> None:
-    """Demonstrate tool usage with Mistral-7B-Instruct-v0.3-4bit model."""
-    print("=== Mistral Chat Completion with Tools ===")
+def mistral_stream_tool_example() -> None:
+    """Demonstrate streaming tool usage with Mistral-7B-Instruct-v0.3-4bit model."""
+    print("=== Mistral Streaming Chat Completion with Tools ===")
     tools = [
         {
             "name": "calculate",
@@ -51,25 +50,24 @@ def mistral_tool_example() -> None:
     messages: List[Message] = [
         {"role": "user", "content": "Calculate 2 + 2", "tool_calls": []}
     ]
-    response = gen.chat(
+    for chunk in gen.stream_chat(
         messages=messages,
         model="mlx-community/mistral-7b-instruct-v0.3-4bit",
         tools=tools,
         max_tokens=100,
         verbose=True,
-    )
-    print("Response:")
-    print(f"Content: {response.get('content', 'No content')}")
-    print(f"Tool Calls: {response.get('tool_calls', 'No tool calls')}")
-    for choice in response["choices"]:
-        print(f"Choice {choice['index']}: {choice['message']}")
+    ):
+        if "choices" in chunk and chunk["choices"]:
+            if chunk.get("tool_calls"):
+                print(f"\nTool Calls: {chunk['tool_calls']}")
+    print("\n--- Mistral Stream End ---")
 
 
 def main():
-    print("=== Chat Completion Examples with Tools ===")
-    llama_tool_example()
+    print("=== Streaming Chat Completion Examples with Tools ===")
+    llama_stream_tool_example()
     print("\n" + "="*50 + "\n")
-    mistral_tool_example()
+    mistral_stream_tool_example()
 
 
 if __name__ == "__main__":

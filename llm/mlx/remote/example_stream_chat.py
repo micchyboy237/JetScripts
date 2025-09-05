@@ -9,9 +9,8 @@ def main():
         max_tokens=100
     ):
         if "choices" in chunk and chunk["choices"]:
-            delta = chunk["choices"][0]["message"]["content"]
-            if delta:
-                print(delta, end="", flush=True)
+            content = chunk["choices"][0]["message"]["content"]
+            print(content, end="", flush=True)
     print("\n--- Stream End ---")
 
 
