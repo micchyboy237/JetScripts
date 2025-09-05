@@ -42,9 +42,8 @@ def classify_query(query: str, mlx, model=None) -> str:
     response = ""
     for chunk in gen.stream_chat(
         messages=[
-            {"role": "user", "content": user_prompt}
+            {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
         ],
-        system_prompt=system_prompt,
         model=model,
         max_tokens=512,
         temperature=0
@@ -65,9 +64,8 @@ def factual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embe
     response = ""
     for chunk in gen.stream_chat(
         messages=[
-            {"role": "user", "content": user_prompt}
+            {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
         ],
-        system_prompt=system_prompt,
         model=model,
         max_tokens=512,
         temperature=0
@@ -101,9 +99,8 @@ def analytical_retrieval_strategy(query: str, vector_store: SimpleVectorStore, e
     response = ""
     for chunk in gen.stream_chat(
         messages=[
-            {"role": "user", "content": user_prompt}
+            {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
         ],
-        system_prompt=system_prompt,
         model=model,
         max_tokens=512,
         temperature=0
@@ -144,9 +141,8 @@ def opinion_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embe
     response = ""
     for chunk in gen.stream_chat(
         messages=[
-            {"role": "user", "content": user_prompt}
+            {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
         ],
-        system_prompt=system_prompt,
         model=model,
         max_tokens=512,
         temperature=0
@@ -189,9 +185,8 @@ def contextual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, e
         response = ""
         for chunk in gen.stream_chat(
             messages=[
-                {"role": "user", "content": user_prompt}
+                {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
             ],
-            system_prompt=system_prompt,
             model=model,
             max_tokens=512,
             temperature=0
@@ -206,9 +201,8 @@ def contextual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, e
     response = ""
     for chunk in gen.stream_chat(
         messages=[
-            {"role": "user", "content": user_prompt}
+            {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
         ],
-        system_prompt=system_prompt,
         model=model,
         max_tokens=512,
         temperature=0
@@ -242,9 +236,8 @@ def score_document_relevance(query: str, document: str, mlx, model=None) -> floa
     response = ""
     for chunk in gen.stream_chat(
         messages=[
-            {"role": "user", "content": user_prompt}
+            {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
         ],
-        system_prompt=system_prompt,
         model=model,
         max_tokens=512,
         temperature=0
@@ -265,9 +258,8 @@ def score_document_context_relevance(query: str, context: str, document: str, ml
     response = ""
     for chunk in gen.stream_chat(
         messages=[
-            {"role": "user", "content": user_prompt}
+            {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
         ],
-        system_prompt=system_prompt,
         model=model,
         max_tokens=512,
         temperature=0
@@ -385,9 +377,8 @@ def compare_responses(results: List[Dict[str, Any]], mlx, model=None) -> str:
         response = ""
         for chunk in gen.stream_chat(
             messages=[
-                {"role": "user", "content": user_prompt}
+                {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
             ],
-            system_prompt=system_prompt,
             model=model,
             max_tokens=512,
             temperature=0

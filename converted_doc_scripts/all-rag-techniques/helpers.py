@@ -143,9 +143,8 @@ def generate_ai_response(
     response = ""
     for chunk in gen.stream_chat(
         messages=[
-            {"role": "user", "content": user_prompt}
+            {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
         ],
-        system_prompt=system_prompt,
         model=model,
         max_tokens=512,
         **kwargs
@@ -183,9 +182,8 @@ def evaluate_ai_response(
     response = ""
     for chunk in gen.stream_chat(
         messages=[
-            {"role": "user", "content": evaluation_prompt}
+            {"role": "user", "content": f"{evaluate_system_prompt}\n\n{evaluation_prompt}"}
         ],
-        system_prompt=evaluate_system_prompt,
         model=model,
         max_tokens=512,
         **kwargs
