@@ -5,7 +5,9 @@ import shutil
 import inspect
 from typing import (
     Any,
+    Dict,
     Callable,
+    TypedDict,
     Literal,
     Optional,
     Union,
@@ -96,6 +98,29 @@ def get_current_weather(location: str, format: str):
     pass
 
 
+class WeatherResult(TypedDict):
+    city: str
+    temperature: int
+    unit: str
+    condition: str
+
+
+def get_weather(city: str, unit: str) -> WeatherResult:
+    """
+    Get the weather for a specified city.
+
+    Args:
+        city: The city, e.g. San Francisco
+        unit: The temperature unit to use. Infer this from the users location. (choices: ["celsius", "fahrenheit"])
+
+    Returns:
+        WeatherResult: A dictionary with the following fields:
+            temperature: int, the temperature in the specified unit
+            condition: str, the weather condition (e.g., 'Sunny')
+    """
+    return {"city": city, "temperature": 20, "unit": unit, "condition": "Sunny"}
+
+
 def add_two_numbers(a: int, b: int) -> int:
     """
     Add two numbers
@@ -111,23 +136,34 @@ def add_two_numbers(a: int, b: int) -> int:
 
 
 json_schema = convert_type_hints_to_json_schema(get_current_weather)
-save_file(json_schema, f"{OUTPUT_DIR}/json_schema1.json")
+save_file(json_schema, f"{OUTPUT_DIR}/get_current_weather_json_schema.json")
 main_doc, param_descriptions, return_doc = parse_docstring(get_current_weather)
 save_file({
     "main_doc": main_doc,
     "param_descriptions": param_descriptions,
     "return_doc": return_doc,
-}, f"{OUTPUT_DIR}/parsed_docstring1.json")
+}, f"{OUTPUT_DIR}/get_current_weather_parsed_docstring.json")
 result = validate_json_schema(json_schema, get_current_weather)
-save_file(result, f"{OUTPUT_DIR}/result1.json")
+save_file(result, f"{OUTPUT_DIR}/get_current_weather_result.json")
+
+json_schema = convert_type_hints_to_json_schema(get_weather)
+save_file(json_schema, f"{OUTPUT_DIR}/get_weather_json_schema.json")
+main_doc, param_descriptions, return_doc = parse_docstring(get_weather)
+save_file({
+    "main_doc": main_doc,
+    "param_descriptions": param_descriptions,
+    "return_doc": return_doc,
+}, f"{OUTPUT_DIR}/get_weather_parsed_docstring.json")
+result = validate_json_schema(json_schema, get_weather)
+save_file(result, f"{OUTPUT_DIR}/get_weather_result.json")
 
 json_schema = convert_type_hints_to_json_schema(add_two_numbers)
-save_file(json_schema, f"{OUTPUT_DIR}/json_schema2.json")
+save_file(json_schema, f"{OUTPUT_DIR}/add_two_numbers_json_schema.json")
 main_doc, param_descriptions, return_doc = parse_docstring(add_two_numbers)
 save_file({
     "main_doc": main_doc,
     "param_descriptions": param_descriptions,
     "return_doc": return_doc,
-}, f"{OUTPUT_DIR}/parsed_docstring2.json")
+}, f"{OUTPUT_DIR}/add_two_numbers_parsed_docstring.json")
 result = validate_json_schema(json_schema, add_two_numbers)
-save_file(result, f"{OUTPUT_DIR}/result2.json")
+save_file(result, f"{OUTPUT_DIR}/add_two_numbers_result.json")
