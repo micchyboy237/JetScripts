@@ -1,20 +1,19 @@
 import os
 import json
-from jet.code.markdown_types.markdown_parsed_types import HeaderSearchResult
-from jet.models.embeddings.base import get_embedding_function
 import numpy as np
-from typing import List, Dict, Any, Callable, Tuple, TypedDict
+import fitz
+from typing import List, Dict, Any, Callable, Optional, Tuple, TypedDict
+from jet.code.markdown_types.markdown_parsed_types import HeaderSearchResult
 from jet.file.utils import load_file, save_file
-from jet.models.model_types import LLMModelType
 from jet.llm.mlx.base import MLX
-from jet.llm.mlx.remote import generation as gen
+from jet.llm.mlx.mlx_types import LLMModelType
+from jet.llm.utils.transformer_embeddings import get_embedding_function
 from jet.logger import CustomLogger
 import re
 
-DATA_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/data/hybrid_reranker_data/anime/top_isekai_anime"
-DOCS_PATH = f"{DATA_DIR}/search_results.json"
-# LLM_MODEL = "llama-3.2-3b-instruct-4bit"
-LLM_MODEL = None
+DATA_DIR = f"{os.path.dirname(__file__)}/data"
+# DOCS_PATH = f"{DATA_DIR}/search_results.json"
+DOCS_PATH = f"{DATA_DIR}/AI_Information.pdf"
 
 
 class SearchResult(TypedDict):
@@ -68,35 +67,34 @@ def setup_config(script_path: str) -> Tuple[str, str, str, CustomLogger]:
 
 
 def load_json_data(data_path: str, logger: CustomLogger) -> Tuple[List[str], List[HeaderSearchResult]]:
-    with open(data_path, 'r') as f:
-        data: List[HeaderSearchResult] = json.load(f)["results"]
-    formatted_chunks = []
-    for chunk in data:
-        text = f"{chunk['header']}\n{chunk['content']}"
-        chunk['text'] = text
-        metadata = chunk["metadata"]
-        meta_str = f"[doc_index: {metadata['doc_index']}]\n"
-        # Add chunk_idx to meta_str
-        meta_str += f"[chunk_idx: {metadata['chunk_idx']}]\n"
-        # Use parent_header if header_level is not 1
-        if metadata.get('level', 1) != 1:
-            meta_str += f"[parent_header: {chunk.get('parent_header', '')}]\n"
-        meta_str += f"[header: {chunk['header']}]"
+    # with open(data_path, 'r') as f:
+    #     data: List[HeaderSearchResult] = json.load(f)["results"]
+    # formatted_chunks = []
+    # for chunk in data:
+    #     text = f"{chunk['header']}\n{chunk['content']}"
+    #     chunk['text'] = text
+    #     metadata = chunk["metadata"]
+    #     meta_str = f"[doc_index: {metadata['doc_index']}]\n"
+    #     # Add chunk_idx to meta_str
+    #     meta_str += f"[chunk_idx: {metadata['chunk_idx']}]\n"
+    #     # Use parent_header if header_level is not 1
+    #     if metadata.get('level', 1) != 1:
+    #         meta_str += f"[parent_header: {chunk.get('parent_header', '')}]\n"
+    #     meta_str += f"[header: {chunk['header']}]"
 
-        formatted_chunks.append(f"{meta_str.strip()}\n\n{text}")
+    #     formatted_chunks.append(f"{meta_str.strip()}\n\n{text}")
+    formatted_chunks = chunk_document(data_path)
     logger.debug(f"Number of text chunks: {len(formatted_chunks)}")
     logger.debug("\nFirst text chunk:")
     logger.debug(formatted_chunks[0])
-    return formatted_chunks, data
+    return [], formatted_chunks
 
 
 def initialize_mlx(logger: CustomLogger) -> Tuple[MLX, Callable[[str | List[str]], List[float] | List[List[float]]]]:
     logger.info("Initializing MLX and embedding function")
-    # mlx = MLX()
-
-    embed_func = get_embedding_function(
-        "mxbai-embed-large", show_progress=True, return_format="list")
-    return gen, embed_func
+    mlx = MLX()
+    embed_func = get_embedding_function("mxbai-embed-large")
+    return mlx, embed_func
 
 
 def generate_embeddings(
@@ -131,28 +129,27 @@ def generate_ai_response(
     retrieved_chunks: List[SearchResult],
     mlx: MLX,
     logger: CustomLogger,
-    model: LLMModelType = LLM_MODEL,
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit",
     **kwargs
 ) -> str:
-    logger.info(f"Generating AI response for model: {model}")
+    logger.info("Generating AI response")
     context = "\n".join([
         f"Context {i+1}:\n{chunk['text']}\n=====================================\n"
         for i, chunk in enumerate(retrieved_chunks)
     ])
     user_prompt = f"{context}\nQuestion: {query}"
     response = ""
-    for chunk in gen.stream_chat(
+    for chunk in mlx.stream_chat(
         messages=[
-            {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
         ],
         model=model,
-        verbose=True,
-        max_tokens=512,
         **kwargs
     ):
         content = chunk["choices"][0]["message"]["content"]
         response += content
-
+        logger.success(content, flush=True)
     logger.success(f"AI Response:\n{response}")
     return response
 
@@ -163,7 +160,7 @@ def evaluate_ai_response(
     true_answer: str,
     mlx: MLX,
     logger: CustomLogger,
-    model: LLMModelType = LLM_MODEL,
+    model: LLMModelType = "llama-3.2-3b-instruct-4bit",
     **kwargs
 ) -> Tuple[float, str]:
     logger.info("Evaluating response")
@@ -179,20 +176,19 @@ def evaluate_ai_response(
         if match:
             return float(match.group())
         raise ValueError(f"No valid float found in text: {text}")
-    evaluation_prompt = f"User Query: {question}\nAI Response:\n{response}\nTrue Response: {true_answer}"
+    evaluation_prompt = f"{evaluate_system_prompt}\nUser Query: {question}\nAI Response:\n{response}\nTrue Response: {true_answer}"
     response = ""
-    for chunk in gen.stream_chat(
+    for chunk in mlx.stream_chat(
         messages=[
-            {"role": "user", "content": f"{evaluate_system_prompt}\n\n{evaluation_prompt}"}
+            {"role": "system", "content": "You are an objective evaluator. Return ONLY the numerical score."},
+            {"role": "user", "content": evaluation_prompt}
         ],
         model=model,
-        verbose=True,
-        max_tokens=512,
         **kwargs
     ):
         content = chunk["choices"][0]["message"]["content"]
         response += content
-
+        logger.success(content, flush=True)
     try:
         score = parse_score(response.strip())
     except ValueError:
@@ -200,6 +196,78 @@ def evaluate_ai_response(
             "Warning: Could not parse evaluation score, defaulting to 0")
         score = 0.0
     return score, response
+
+
+def extract_text_from_pdf(pdf_path):
+    """
+    Extracts text from a PDF file and prints the first `num_chars` characters.
+
+    Args:
+    pdf_path (str): Path to the PDF file.
+
+    Returns:
+    str: Extracted text from the PDF.
+    """
+    # Open the PDF file
+    mypdf = fitz.open(pdf_path)
+    all_text = ""  # Initialize an empty string to store the extracted text
+
+    # Iterate through each page in the PDF
+    for page_num in range(mypdf.page_count):
+        page = mypdf[page_num]  # Get the page
+        text = page.get_text("text")  # Extract text from the page
+        all_text += text  # Append the extracted text to the all_text string
+
+    return all_text  # Return the extracted text
+
+
+def chunk_text(text, n, overlap, doc_index=0):
+    """
+    Chunks the given text into segments of n characters with overlap.
+
+    Args:
+    text (str): The text to be chunked.
+    n (int): The number of characters in each chunk.
+    overlap (int): The number of overlapping characters between chunks.
+    doc_index (int): The document index to include in metadata.
+
+    Returns:
+    List[dict]: A list of dicts with 'text' and 'metadata' (containing 'doc_index').
+    """
+    chunks = []  # Initialize an empty list to store the chunks
+
+    # Loop through the text with a step size of (n - overlap)
+    for i in range(0, len(text), n - overlap):
+        # Append a chunk of text from index i to i + n to the chunks list
+        chunks.append(text[i:i + n])
+
+    # Return the list of text chunks with metadata including doc_index
+    return [{"text": chunk, "metadata": {"doc_index": doc_index}} for chunk in chunks]
+
+
+def chunk_document(pdf_path, chunk_size=1000, chunk_overlap=200):
+    """
+    Process a document for use with adaptive retrieval.
+
+    Args:
+    pdf_path (str): Path to the PDF file.
+    chunk_size (int): Size of each chunk in characters.
+    chunk_overlap (int): Overlap between chunks in characters.
+
+    Returns:
+    Tuple[List[str], SimpleVectorStore]: Document chunks and vector store.
+    """
+    # Extract text from the PDF file
+    print("Extracting text from PDF...")
+    extracted_text = extract_text_from_pdf(pdf_path)
+
+    # Chunk the extracted text
+    print("Chunking text...")
+    chunks = chunk_text(extracted_text, chunk_size, chunk_overlap)
+    print(f"Created {len(chunks)} text chunks")
+
+    # Return the chunks
+    return chunks
 
 
 class SimpleVectorStore:

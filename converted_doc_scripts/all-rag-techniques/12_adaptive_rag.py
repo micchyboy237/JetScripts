@@ -7,7 +7,6 @@ from helpers import (
     load_validation_data, generate_ai_response,
     load_json_data, SearchResult, SimpleVectorStore, DATA_DIR, DOCS_PATH
 )
-from jet.llm.mlx.remote import generation as gen
 
 
 def chunk_text(text: str, n: int, overlap: int) -> List[str]:
@@ -35,47 +34,37 @@ def process_document(chunks: List[Dict[str, Any]], embed_func) -> tuple[List[str
     return text_chunks, store
 
 
-def classify_query(query: str, mlx, model=None) -> str:
+def classify_query(query: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Classify the query type."""
     system_prompt = "Classify the query as Factual, Analytical, Opinion, or Contextual. Respond with only the category name."
     user_prompt = f"Query: {query}"
-    response = ""
-    for chunk in gen.stream_chat(
-        messages=[
-            {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
+    response = mlx.chat(
+        [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
         ],
         model=model,
-        verbose=True,
-        max_tokens=512,
         temperature=0
-    ):
-        content = chunk["choices"][0]["message"]["content"]
-        response += content
-
-    category = response.strip()
+    )
+    category = response["choices"][0]["message"]["content"].strip()
     valid_categories = ["Factual", "Analytical", "Opinion", "Contextual"]
     return category if category in valid_categories else "Factual"
 
 
-def factual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model=None) -> List[Dict[str, Any]]:
+def factual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
     """Factual retrieval strategy with query enhancement."""
     logger.debug(f"Executing Factual retrieval strategy for: '{query}'")
     system_prompt = "Enhance this factual query to improve retrieval accuracy. Respond with only the enhanced query."
     user_prompt = f"Query: {query}"
-    response = ""
-    for chunk in gen.stream_chat(
-        messages=[
-            {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
+    response = mlx.chat(
+        [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
         ],
         model=model,
-        verbose=True,
-        max_tokens=512,
         temperature=0
-    ):
-        content = chunk["choices"][0]["message"]["content"]
-        response += content
-
-    enhanced_query = response.strip()
+    )
+    enhanced_query = response["choices"][0]["message"]["content"].strip()
     logger.debug(f"Enhanced query: {enhanced_query}")
     query_embedding = embed_func(enhanced_query)
     initial_results = vector_store.search(query_embedding, top_k=k*2)
@@ -93,25 +82,20 @@ def factual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embe
     return ranked_results[:k]
 
 
-def analytical_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model=None) -> List[Dict[str, Any]]:
+def analytical_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
     """Analytical retrieval strategy with sub-queries."""
     logger.debug(f"Executing Analytical retrieval strategy for: '{query}'")
     system_prompt = "Generate a list of sub-questions for this analytical query, one per line."
     user_prompt = f"Query: {query}"
-    response = ""
-    for chunk in gen.stream_chat(
-        messages=[
-            {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
+    response = mlx.chat(
+        [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
         ],
         model=model,
-        verbose=True,
-        max_tokens=512,
-        temperature=0
-    ):
-        content = chunk["choices"][0]["message"]["content"]
-        response += content
-
-    sub_queries = response.strip().split(
+        temperature=0.3
+    )
+    sub_queries = response["choices"][0]["message"]["content"].strip().split(
         '\n')
     sub_queries = [q.strip() for q in sub_queries if q.strip()]
     logger.debug(f"Generated sub-queries: {sub_queries}")
@@ -136,25 +120,20 @@ def analytical_retrieval_strategy(query: str, vector_store: SimpleVectorStore, e
     return diverse_results[:k]
 
 
-def opinion_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model=None) -> List[Dict[str, Any]]:
+def opinion_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
     """Opinion retrieval strategy with viewpoint diversity."""
     logger.debug(f"Executing Opinion retrieval strategy for: '{query}'")
     system_prompt = "Identify different perspectives on this query, one per line."
     user_prompt = f"Query: {query}"
-    response = ""
-    for chunk in gen.stream_chat(
-        messages=[
-            {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
+    response = mlx.chat(
+        [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
         ],
         model=model,
-        verbose=True,
-        max_tokens=512,
-        temperature=0
-    ):
-        content = chunk["choices"][0]["message"]["content"]
-        response += content
-
-    viewpoints = response.strip().split(
+        temperature=0.3
+    )
+    viewpoints = response["choices"][0]["message"]["content"].strip().split(
         '\n')
     viewpoints = [v.strip() for v in viewpoints if v.strip()]
     logger.debug(f"Identified viewpoints: {viewpoints}")
@@ -180,43 +159,33 @@ def opinion_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embe
     return selected_results[:k]
 
 
-def contextual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, user_context: str = None, model=None) -> List[Dict[str, Any]]:
+def contextual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, user_context: str = None, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
     """Contextual retrieval strategy with context enhancement."""
     logger.debug(f"Executing Contextual retrieval strategy for: '{query}'")
     if not user_context:
         system_prompt = "Infer the implied context in this query. Respond with only the inferred context."
         user_prompt = f"Query: {query}"
-        response = ""
-        for chunk in gen.stream_chat(
-            messages=[
-                {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
+        response = mlx.chat(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
             ],
             model=model,
-            verbose=True,
-            max_tokens=512,
-            temperature=0
-        ):
-            content = chunk["choices"][0]["message"]["content"]
-            response += content
-
-        user_context = response.strip()
+            temperature=0.1
+        )
+        user_context = response["choices"][0]["message"]["content"].strip()
         logger.debug(f"Inferred context: {user_context}")
     system_prompt = "Combine the query with the provided context to create a contextualized query."
     user_prompt = f"Query: {query}\nContext: {user_context}"
-    response = ""
-    for chunk in gen.stream_chat(
-        messages=[
-            {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
+    response = mlx.chat(
+        [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
         ],
         model=model,
-        verbose=True,
-        max_tokens=512,
         temperature=0
-    ):
-        content = chunk["choices"][0]["message"]["content"]
-        response += content
-
-    contextualized_query = response.strip()
+    )
+    contextualized_query = response["choices"][0]["message"]["content"].strip()
     logger.debug(f"Contextualized query: {contextualized_query}")
     query_embedding = embed_func(contextualized_query)
     initial_results = vector_store.search(query_embedding, top_k=k*2)
@@ -234,53 +203,43 @@ def contextual_retrieval_strategy(query: str, vector_store: SimpleVectorStore, e
     return ranked_results[:k]
 
 
-def score_document_relevance(query: str, document: str, mlx, model=None) -> float:
+def score_document_relevance(query: str, document: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> float:
     """Score document relevance to query."""
     doc_preview = document[:1500] + "..." if len(document) > 1500 else document
     system_prompt = "Score the relevance of the document to the query from 0 to 10, where 10 is highly relevant. Provide only the score."
     user_prompt = f"Query: {query}\nDocument: {doc_preview}"
-    response = ""
-    for chunk in gen.stream_chat(
-        messages=[
-            {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
+    response = mlx.chat(
+        [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
         ],
         model=model,
-        verbose=True,
-        max_tokens=512,
         temperature=0
-    ):
-        content = chunk["choices"][0]["message"]["content"]
-        response += content
-
-    score_text = response.strip()
+    )
+    score_text = response["choices"][0]["message"]["content"].strip()
     score_match = re.search(r'\b(10|[0-9])\b', score_text)
     return float(score_match.group(1)) if score_match else 5.0
 
 
-def score_document_context_relevance(query: str, context: str, document: str, mlx, model=None) -> float:
+def score_document_context_relevance(query: str, context: str, document: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> float:
     """Score document relevance to query and context."""
     doc_preview = document[:1500] + "..." if len(document) > 1500 else document
     system_prompt = "Score the relevance of the document to the query and context from 0 to 10, where 10 is highly relevant. Provide only the score."
     user_prompt = f"Query: {query}\nContext: {context}\nDocument: {doc_preview}"
-    response = ""
-    for chunk in gen.stream_chat(
-        messages=[
-            {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
+    response = mlx.chat(
+        [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
         ],
         model=model,
-        verbose=True,
-        max_tokens=512,
         temperature=0
-    ):
-        content = chunk["choices"][0]["message"]["content"]
-        response += content
-
-    score_text = response.strip()
+    )
+    score_text = response["choices"][0]["message"]["content"].strip()
     score_match = re.search(r'\b(10|[0-9])\b', score_text)
     return float(score_match.group(1)) if score_match else 5.0
 
 
-def adaptive_retrieval(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, user_context: str = None, model=None) -> List[Dict[str, Any]]:
+def adaptive_retrieval(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 4, user_context: str = None, model: str = "llama-3.2-3b-instruct-4bit") -> List[Dict[str, Any]]:
     """Perform adaptive retrieval based on query type."""
     query_type = classify_query(query, mlx, model)
     logger.debug(f"Query classified as: {query_type}")
@@ -302,7 +261,7 @@ def adaptive_retrieval(query: str, vector_store: SimpleVectorStore, embed_func, 
     return results
 
 
-def rag_with_adaptive_retrieval(chunks: List[Dict[str, Any]], query: str, embed_func, mlx, k: int = 4, user_context: str = None, model=None) -> Dict[str, Any]:
+def rag_with_adaptive_retrieval(chunks: List[Dict[str, Any]], query: str, embed_func, mlx, k: int = 4, user_context: str = None, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Run RAG with adaptive retrieval."""
     logger.debug("\n=== RAG WITH ADAPTIVE RETRIEVAL ===")
     logger.debug(f"Query: {query}")
@@ -325,7 +284,7 @@ def rag_with_adaptive_retrieval(chunks: List[Dict[str, Any]], query: str, embed_
     return result
 
 
-def evaluate_adaptive_vs_standard(chunks: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model=None) -> Dict[str, Any]:
+def evaluate_adaptive_vs_standard(chunks: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Evaluate adaptive vs standard retrieval."""
     logger.debug("=== EVALUATING ADAPTIVE VS. STANDARD RETRIEVAL ===")
     text_chunks, vector_store = process_document(chunks, embed_func)
@@ -369,7 +328,7 @@ def evaluate_adaptive_vs_standard(chunks: List[Dict[str, Any]], test_queries: Li
     }
 
 
-def compare_responses(results: List[Dict[str, Any]], mlx, model=None) -> str:
+def compare_responses(results: List[Dict[str, Any]], mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Compare standard and adaptive responses."""
     comparison_text = ""
     system_prompt = "You are an objective evaluator. Compare the responses and provide a concise evaluation."
@@ -382,20 +341,15 @@ def compare_responses(results: List[Dict[str, Any]], mlx, model=None) -> str:
         comparison_text += f"**Standard Retrieval Response:**\n{result['standard_retrieval']['response']}\n\n"
         comparison_text += f"**Adaptive Retrieval Response:**\n{result['adaptive_retrieval']['response']}\n\n"
         user_prompt = f"Reference Answer: {result['reference_answer']}\n\nStandard Response:\n{result['standard_retrieval']['response']}\n\nAdaptive Response:\n{result['adaptive_retrieval']['response']}"
-        response = ""
-        for chunk in gen.stream_chat(
-            messages=[
-                {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}
+        response = mlx.chat(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
             ],
             model=model,
-            verbose=True,
-            max_tokens=512,
-            temperature=0
-        ):
-            content = chunk["choices"][0]["message"]["content"]
-            response += content
-
-        comparison_text += f"**Comparison Analysis:**\n{response}\n\n"
+            temperature=0.2
+        )
+        comparison_text += f"**Comparison Analysis:**\n{response['choices'][0]['message']['content']}\n\n"
     return comparison_text
 
 
@@ -404,30 +358,10 @@ mlx, embed_func = initialize_mlx(logger)
 formatted_texts, original_chunks = load_json_data(DOCS_PATH, logger)
 logger.info("Loaded pre-chunked data from DOCS_PATH")
 test_queries = [
-    "What are the most popular isekai anime of 2025?",
-    "Which 2025 isekai anime features a protagonist who is content with a low-profile life despite being overpowered?",
-    "What is the release date and studio for Onmyo Kaiten Re:Birth Verse?",
-    "Which 2025 isekai anime involves a yandere dark elf following the protagonist to Earth?",
-    "What unique mechanic does Welcome to Japan, Ms. Elf! use for world-hopping?",
-    "Which 2025 isekai anime has a protagonist reincarnated as a villainess in an otome game but struggles to act villainous?",
-    "What is the premise of The Beginning After the End, and why has its anime adaptation been disappointing?",
-    "Which 2025 isekai anime focuses on a protagonist using strategy game expertise to build an evil civilization?",
-    "What makes Lord of Mysteries stand out among 2025 isekai anime?",
-    "Which 2025 isekai anime sequel continues the story of a protagonist with an absurd skill for cooking?",
-    "What is the unique hook of Otherworldly Munchkin: Let's Speedrun the Dungeon with Only 1 HP!?",
+    "What is Explainable AI (XAI)?",
 ]
 reference_answers = [
-    "The most popular isekai anime of 2025, based on fan rankings and critical reception, include: \n1. **From Bureaucrat to Villainess: Dad's Been Reincarnated!** - Praised for its humorous take on the villainess subgenre, with a middle-aged dad reincarnated as an otome game villainess, becoming a fan favorite for its comedic charm (Ranker, 2025). \n2. **Lord of Mysteries** - A standout Donghua with a unique Victorian steampunk aesthetic and gorgeous animation, earning high praise for its intriguing narrative (CBR, 2025). \n3. **Apocalypse Bringer Mynoghra** - Noted for its strategy game-inspired premise and engaging world-building, appealing to fans of unique isekai settings (ScreenRant, 2025). \n4. **The Water Magician** - Popular for its cozy yet action-packed vibe and stunning visuals, offering a fresh take on the genre (ScreenRant, 2025). \n5. **The Beginning After the End** - Despite mixed reviews due to animation quality, its strong source material and fanbase make it highly anticipated (Ranker, 2025). \nThese titles have garnered significant attention for their innovative premises and engaging storytelling.",
-    "A Gatherer's Adventure in Isekai features a protagonist who, despite being incredibly overpowered, prefers to keep a low profile, complete quests, and live humbly.",
-    "Onmyo Kaiten Re:Birth Verse is set to release on July 2, 2025, and is produced by David Production.",
-    "Yandere Dark Elf: She Chased Me All the Way From Another World! is a reverse isekai anime where a yandere dark elf follows the male protagonist to Earth, released on April 7, 2025.",
-    "Welcome to Japan, Ms. Elf! uses a unique mechanic where Kazuhiro visits a fantasy world while dreaming and can bring someone back to Earth by holding them when he dies or sleeps in that realm.",
-    "From Bureaucrat to Villainess: Dad's Been Reincarnated! features a middle-aged man reincarnated as an otome game's villainess who tries to follow the story but ends up acting like a supportive dad instead.",
-    "The Beginning After the End follows a ruthless king reborn in a fantasy world with magic and a loving family, but the 2025 anime adaptation by Studio A-Cat has been disappointing due to lackluster animation and fast pacing.",
-    "Apocalypse Bringer Mynoghra, released on July 6, 2025, features Takuto Ira, who uses his strategy game expertise to build the evil civilization Mynoghra from scratch.",
-    "Lord of Mysteries, a Donghua released on June 28, 2025, stands out due to its Victorian-era steampunk and Gothic aesthetic, gorgeous animation, and intriguing storytelling.",
-    "Campfire Cooking in Another World with My Absurd Skill Season 2, produced by MAPPA, continues the story of a protagonist with a unique cooking ability.",
-    "Otherworldly Munchkin: Let's Speedrun the Dungeon with Only 1 HP! features a protagonist, a tabletop player, who uses a book granting dungeon and monster information to navigate an RPG world with only 1 HP, released in October 2025.",
+    "Explainable AI (XAI) aims to make AI systems transparent and understandable by providing clear explanations of how decisions are made. This helps users trust and effectively manage AI technologies.",
 ]
 evaluation_results = evaluate_adaptive_vs_standard(
     original_chunks, test_queries, embed_func, mlx, reference_answers

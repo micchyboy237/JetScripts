@@ -1,10 +1,11 @@
-from jet.llm.mlx.base import MLX
-from jet.llm.utils.embeddings import get_embedding_function
-from jet.logger import CustomLogger
 import pypdf  # Replace fitz with pypdf
 import json
 import numpy as np
 import os
+from jet.llm.mlx.base import MLX
+from jet.llm.utils.transformer_embeddings import get_embedding_function
+from jet.logger import CustomLogger
+from helpers import extract_text_from_pdf
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(
@@ -41,23 +42,23 @@ To implement RAG, we first need a source of textual data. In this case, we extra
 logger.info("## Extracting Text from a PDF File")
 
 
-def extract_text_from_pdf(pdf_path):
-    """
-    Extracts text from a PDF file.
+# def extract_text_from_pdf(pdf_path):
+#     """
+#     Extracts text from a PDF file.
 
-    Args:
-        pdf_path (str): Path to the PDF file.
+#     Args:
+#         pdf_path (str): Path to the PDF file.
 
-    Returns:
-        str: Extracted text from the PDF.
-    """
-    all_text = ""  # Initialize an empty string to store the extracted text
-    with open(pdf_path, "rb") as file:
-        reader = pypdf.PdfReader(file)  # Create a PdfReader object
-        for page in reader.pages:
-            text = page.extract_text() or ""  # Extract text from the page, handle None
-            all_text += text  # Append the extracted text to the all_text string
-    return all_text  # Return the extracted text
+#     Returns:
+#         str: Extracted text from the PDF.
+#     """
+#     all_text = ""  # Initialize an empty string to store the extracted text
+#     with open(pdf_path, "rb") as file:
+#         reader = pypdf.PdfReader(file)  # Create a PdfReader object
+#         for page in reader.pages:
+#             text = page.extract_text() or ""  # Extract text from the page, handle None
+#             all_text += text  # Append the extracted text to the all_text string
+#     return all_text  # Return the extracted text
 
 
 """
