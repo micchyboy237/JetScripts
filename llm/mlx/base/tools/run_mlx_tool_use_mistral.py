@@ -13,22 +13,27 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 model_id = "mlx-community/Mistral-7B-Instruct-v0.3-4bit"
 model, tokenizer = load(model_id)
 
+query = "What is three thousand four hundred twenty three plus 6 thousand nine hundred ninety nine?"
 
-def get_current_weather(location: str, format: str):
+
+def add_two_numbers(a: int, b: int) -> int:
     """
-    Get the current weather
+    Add two numbers
 
     Args:
-        location: The city and state, e.g. San Francisco, CA
-        format: The temperature unit to use. Infer this from the users location. (choices: ["celsius", "fahrenheit"])
+        a: The first number
+        b: The second number
+
+    Returns:
+        int: The sum of the two numbers
     """
-    pass
+    return int(a) + int(b)
 
 
 conversation = [
-    {"role": "user", "content": "What's the weather like in Paris?"}
+    {"role": "user", "content": query}
 ]
-tools = [get_current_weather]
+tools = [add_two_numbers]
 
 # Format and tokenize the tool use prompt
 prompt = tokenizer.apply_chat_template(

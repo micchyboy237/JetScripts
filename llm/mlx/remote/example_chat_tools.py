@@ -28,8 +28,8 @@ def llama_tool_example(query: str) -> None:
         Add two numbers
 
         Args:
-            a (int): The first number
-            b (int): The second number
+            a: The first number
+            b: The second number
 
         Returns:
             int: The sum of the two numbers
