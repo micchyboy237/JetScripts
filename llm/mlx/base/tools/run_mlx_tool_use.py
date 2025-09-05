@@ -32,17 +32,20 @@ Ensure the response is a single valid JSON, uses the keys exactly as specified. 
 """
 
 
-def main(model: LLMModelType):
+def main(query: str, model: LLMModelType):
     model_id = resolve_model_value(model)
     _model, tokenizer = load(model_id)
 
     def get_current_weather(location: str, format: str):
         """
-        Get the current weather
+        Retrieves the current weather for a specified location
 
         Args:
-            location: The city and state, e.g. San Francisco, CA
-            format: The temperature unit to use. Infer this from the users location. (choices: ["celsius", "fahrenheit"])
+            location (str): The city and state, e.g., San Francisco, CA
+            format (str): The temperature unit to use, either 'celsius' or 'fahrenheit'
+
+        Returns:
+            None: This function is a placeholder and does not return a value
         """
         pass
 
@@ -53,21 +56,15 @@ def main(model: LLMModelType):
         tool_description = "Available tools:\n"
         for tool in tools:
             tool_info = get_method_info(tool)
-            tool_description += (
-                f"{tool_info['name']}({', '.join(f'{key}: {value['type']}' for key, value in tool_info['parameters']['properties'].items())}): {
-                    tool_info['description']}\n"
-            )
-            for param_name, param_info in tool_info["parameters"]["properties"].items():
-                tool_description += f"  - {param_name}: {param_info['description']}\n"
-            if tool_info["parameters"]["required"]:
-                tool_description += f"  - Required parameters: {', '.join(tool_info['parameters']['required'])}\n"
+            tool_description += format_json(tool_info) + "\n"
+        tool_description = tool_description.rstrip()  # Remove trailing newline
     else:
         tool_description = ""
 
     messages = [
         {
             "role": "user",
-            "content": f"{SYSTEM_PROMPT}\n\n{tool_description}What's the weather like in Paris?"
+            "content": f"{SYSTEM_PROMPT}\n\n{tool_description}\n{query}"
         }
     ]
 
@@ -100,5 +97,6 @@ def main(model: LLMModelType):
 
 
 if __name__ == "__main__":
-    main("mlx-community/Llama-3.2-3B-Instruct-4bit")
-    main("mlx-community/Mistral-7B-Instruct-v0.3-4bit")
+    query = "What's the weather like in Paris?"
+    main(query, "mlx-community/Llama-3.2-3B-Instruct-4bit")
+    main(query, "mlx-community/Mistral-7B-Instruct-v0.3-4bit")
