@@ -10,6 +10,16 @@ OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(
     __file__)), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
+SYSTEM_PROMPT = """You are a helpful AI assistant engaged in a multi-turn conversation. 
+Your goals:
+- Be concise, clear, and friendly. 
+- Remember and use details from the conversation history (e.g., user’s name). 
+- Provide accurate and useful answers. 
+- If the user asks personal or contextual questions, answer based on what was previously shared in this conversation. 
+- Do not invent details that the user did not provide. 
+- Respond in plain text without unnecessary formatting unless explicitly requested.
+"""
+
 
 def main():
     print("\n=== Straming Chat with Conversation History ===")
@@ -17,11 +27,12 @@ def main():
 
     response = ""
     for chunk in gen.stream_chat(
-        "Hello, who are you?",
+        "Hello, my name is Jethro Estrada",
         with_history=True,
         history=history,
         max_tokens=50,
         verbose=True,
+        system_prompt=SYSTEM_PROMPT,
     ):
         if "choices" in chunk and chunk["choices"]:
             content = chunk["choices"][0]["message"]["content"]
@@ -36,11 +47,12 @@ def main():
 
     response = ""
     for chunk in gen.stream_chat(
-        "Can you remind me what I just asked?",
+        "Do you know my name?",
         with_history=True,
         history=history,
         max_tokens=50,
         verbose=True,
+        system_prompt=SYSTEM_PROMPT,
     ):
         if "choices" in chunk and chunk["choices"]:
             content = chunk["choices"][0]["message"]["content"]
