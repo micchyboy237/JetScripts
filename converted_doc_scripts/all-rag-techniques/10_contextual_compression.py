@@ -144,7 +144,7 @@ logger.info("Loaded pre-chunked data from DOCS_PATH")
 vector_store = process_document(original_chunks, embed_func)
 validation_data = load_validation_data(f"{DATA_DIR}/val.json", logger)
 query = validation_data[0]['question']
-reference_answer = validation_data[0]['answer']
+reference_answer = validation_data[0]['ideal_answer']
 logger.debug("Comparing retrieval methods...")
 logger.debug("\n=== STANDARD RETRIEVAL ===")
 standard_results = rag_with_reranking(

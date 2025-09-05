@@ -269,7 +269,7 @@ vector_store = process_document(original_chunks, embed_func)
 # Load validation data
 validation_data = load_validation_data(f"{DATA_DIR}/val.json", logger)
 query = validation_data[0]['question']
-reference_answer = validation_data[0]['answer']
+reference_answer = validation_data[0]['ideal_answer']
 
 # Run query transformations and log results
 logger.debug(f"Original Query: {query}")

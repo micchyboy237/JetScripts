@@ -188,7 +188,7 @@ class ChunkSizeSelector:
             f"Saved AI responses to {self.generated_dir}/ai_responses.json")
 
         self.logger.info("Evaluating responses")
-        true_answer = validation_data[3]['answer']
+        true_answer = validation_data[3]['ideal_answer']
         evaluation_scores = {}
 
         for size in [256, 128]:

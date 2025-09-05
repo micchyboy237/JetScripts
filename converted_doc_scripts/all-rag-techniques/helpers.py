@@ -176,7 +176,7 @@ def evaluate_ai_response(
         if match:
             return float(match.group())
         raise ValueError(f"No valid float found in text: {text}")
-    evaluation_prompt = f"{evaluate_system_prompt}\nUser Query: {question}\nAI Response:\n{response}\nTrue Response: {true_answer}"
+    evaluation_prompt = f"User Query: {question}\nAI Response:\n{response}\nTrue Response: {true_answer}\n{evaluate_system_prompt}"
     response = ""
     for chunk in mlx.stream_chat(
         messages=[

@@ -131,7 +131,7 @@ def main():
               f"{generated_dir}/ai_response.json")
     logger.info(f"Saved AI response to {generated_dir}/ai_response.json")
     logger.info("Evaluating response")
-    true_answer = validation_data[0]['answer']
+    true_answer = validation_data[0]['ideal_answer']
     evaluation_score, evaluation_text = evaluate_ai_response(
         query, ai_response, true_answer, mlx, logger)
     logger.success(f"Evaluation Score: {evaluation_score}")

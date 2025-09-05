@@ -198,7 +198,7 @@ formatted_texts, original_chunks = load_json_data(DOCS_PATH, logger)
 mlx, embed_func = initialize_mlx(logger)
 validation_data = load_validation_data(f"{DATA_DIR}/val.json", logger)
 query = validation_data[0]['question']
-reference_answer = validation_data[0]['answer']
+reference_answer = validation_data[0]['ideal_answer']
 results = evaluate_methods(
     formatted_texts, original_chunks, query, reference_answer)
 logger.info("\n\n[DONE]", bright=True)
