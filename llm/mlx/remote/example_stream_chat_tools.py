@@ -11,7 +11,7 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
-def stream_llama_tool_example(query: str, tools: List[Callable], model: str = "mlx-community/llama-3.2-3b-instruct-4bit") -> None:
+def stream_llama_tool_example(query: str, tools: List[Callable], model: str = "mlx-community/llama-3.2-3b-instruct-4bit"):
     """Demonstrate streaming tool usage with the specified model."""
     print(
         f"=== Streaming {model.split('/')[-1]} Chat Completion with Tools ===")
@@ -32,8 +32,7 @@ def stream_llama_tool_example(query: str, tools: List[Callable], model: str = "m
         if chunk.get("tool_execution"):
             print(f"Tool Execution: {chunk['tool_execution']}")
         output.append(chunk)
-    save_file(
-        output, f"{OUTPUT_DIR}/{model.split('/')[-1]}_stream_tool_example.json")
+    return output
 
 
 def main():
@@ -51,7 +50,9 @@ def main():
 
     query1 = "What is three thousand four hundred twenty three plus 6 thousand nine hundred ninety nine?"
     print("=== Example 1: Addition Tool ===")
-    stream_llama_tool_example(query1, [add_two_numbers])
+    output = stream_llama_tool_example(query1, [add_two_numbers])
+    save_file(
+        output, f"{OUTPUT_DIR}/add_two_numbers_stream_tool_example.json")
     print("\n" + "="*50 + "\n")
 
     # Example 2: Weather query tool
@@ -78,13 +79,17 @@ def main():
 
     query2 = "What's the weather like in Paris in Fahrenheit?"
     print("=== Example 2: Weather Tool ===")
-    stream_llama_tool_example(query2, [get_weather])
+    output = stream_llama_tool_example(query2, [get_weather])
+    save_file(
+        output, f"{OUTPUT_DIR}/get_weather_stream_tool_example.json")
     print("\n" + "="*50 + "\n")
 
     # Example 3: No tool needed
     query3 = "Tell me a fun fact."
     print("=== Example 3: No Tool ===")
-    stream_llama_tool_example(query3, [])
+    output = stream_llama_tool_example(query3, [])
+    save_file(
+        output, f"{OUTPUT_DIR}/no_tool_stream_example.json")
     print("\n" + "="*50 + "\n")
 
 
