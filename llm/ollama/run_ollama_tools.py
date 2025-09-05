@@ -1,4 +1,12 @@
+import os
+import shutil
 from ollama import ChatResponse, chat
+
+from jet.file.utils import save_file
+
+OUTPUT_DIR = os.path.join(os.path.dirname(
+    __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 
 def add_two_numbers(a: int, b: int) -> int:
@@ -57,6 +65,7 @@ response: ChatResponse = chat(
     messages=messages,
     tools=[add_two_numbers, subtract_two_numbers_tool],
 )
+save_file(response, f"{OUTPUT_DIR}/response1.json")
 
 if response.message.tool_calls:
     # There may be multiple tool calls in the response
@@ -80,6 +89,7 @@ if response.message.tool_calls:
     # Get final response from model with function outputs
     final_response = chat('llama3.2', messages=messages)
     print('Final response:', final_response.message.content)
+    save_file(final_response, f"{OUTPUT_DIR}/response2.json")
 
 else:
     print('No tool calls returned from model')
