@@ -83,11 +83,11 @@ def load_json_data(data_path: str, logger: CustomLogger) -> Tuple[List[str], Lis
     #     meta_str += f"[header: {chunk['header']}]"
 
     #     formatted_chunks.append(f"{meta_str.strip()}\n\n{text}")
-    formatted_chunks = chunk_document(data_path)
-    logger.debug(f"Number of text chunks: {len(formatted_chunks)}")
+    chunks = chunk_document(data_path)
+    logger.debug(f"Number of text chunks: {len(chunks)}")
     logger.debug("\nFirst text chunk:")
-    logger.debug(formatted_chunks[0])
-    return [], formatted_chunks
+    logger.debug(chunks[0])
+    return [chunk["text"] for chunk in chunks], chunks
 
 
 def initialize_mlx(logger: CustomLogger) -> Tuple[MLX, Callable[[str | List[str]], List[float] | List[List[float]]]]:
