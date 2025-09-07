@@ -1,3 +1,4 @@
+from collections import defaultdict
 import sqlite3
 from pathlib import Path
 import json

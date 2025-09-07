@@ -129,7 +129,7 @@ async def main():
                     name="AirbnbSearch",
                     description="Search for Airbnb accommodations using OpenBnB MCP server",
                     command="npx",
-                    args=["-y", "@openbnb/mcp-server-airbnb"],
+                    args=["-y", "@openbnb/mcp-server-airbnb", "--ignore-robots-txt"],
             ) as airbnb_plugin:
     
                 logger.debug("✅ MCP Plugin created and connected")
