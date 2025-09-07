@@ -11,7 +11,7 @@ if __name__ == "__main__":
     ]
     excludes = []
     rerun_mode: Literal["all", "failed",
-                        "unrun", "failed_and_unrun"] = "failed"
+                        "unrun", "failed_and_unrun"] = "all"
     run_python_files_in_directory(
         target_dir,
         includes=includes,
