@@ -59,12 +59,8 @@ async def main():
     
     load_dotenv()
     
-    
-    chat_completion_service = OllamaChatCompletion(
-        deployment_name=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"),
-        endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    #     api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    )
+    logger.debug("\n🤖 Creating Ollama service...")
+    chat_completion_service = OllamaChatCompletion(ai_model_id="llama3.2")
     
     """
     ## Understanding the OpenBnB MCP Integration
@@ -120,12 +116,12 @@ async def main():
             logger.debug("🚀 Starting with Azure Ollama...")
     
             logger.debug("🔍 Checking Azure environment variables...")
-    #         required_vars = ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_API_KEY"]
-            for var in required_vars:
-                if os.getenv(var):
-                    logger.debug(f"✅ {var} is set")
-                else:
-                    logger.debug(f"❌ {var} is NOT set")
+            # required_vars = ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_API_KEY"]
+            # for var in required_vars:
+            #     if os.getenv(var):
+            #         logger.debug(f"✅ {var} is set")
+            #     else:
+            #         logger.debug(f"❌ {var} is NOT set")
     
             logger.debug("\n🔧 Creating MCP Plugin...")
     
@@ -134,7 +130,6 @@ async def main():
                     description="Search for Airbnb accommodations using OpenBnB MCP server",
                     command="npx",
                     args=["-y", "@openbnb/mcp-server-airbnb"],
-            logger.success(format_json(result))
             ) as airbnb_plugin:
     
                 logger.debug("✅ MCP Plugin created and connected")
@@ -148,15 +143,8 @@ async def main():
                 except Exception as e:
                     logger.debug(f"⚠️ Could not list tools: {str(e)}")
     
-                logger.debug("\n🤖 Creating Azure Ollama service...")
-                service = OllamaChatCompletion(
-                    deployment_name=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"),
-                    endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    #                 api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-                )
-    
                 agent = ChatCompletionAgent(
-                    service=service,
+                    service=chat_completion_service,
                     name="AirbnbAgent",
                     instructions="""You are an Airbnb search assistant. Use the available functions to search for properties.
                     Format results in a clear HTML table with columns for property name, price, rating, and link.""",
