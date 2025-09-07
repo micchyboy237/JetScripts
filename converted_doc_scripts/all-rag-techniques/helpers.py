@@ -294,7 +294,7 @@ class SimpleVectorStore:
         self.metadata.append(metadata or {})
         self.ids.append(id if id is not None else str(len(self.ids)))
 
-    def search(self, query_embedding: List[float] | np.ndarray, top_k: int = 5) -> List[VectorStoreItem]:
+    def search(self, query_embedding: List[float] | np.ndarray, top_k: int = 5, filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None) -> List[VectorStoreItem]:
         if not self.vectors:
             return []
         query_vector = np.array(query_embedding).flatten()
@@ -306,7 +306,8 @@ class SimpleVectorStore:
             vector_norm = np.linalg.norm(vector)
             similarity = 0.0 if query_norm == 0 or vector_norm == 0 else dot_product / \
                 (query_norm * vector_norm)
-            similarities.append((i, similarity))
+            if filter_func is None or filter_func(self.metadata[i]):
+                similarities.append((i, similarity))
         similarities.sort(key=lambda x: -float('inf')
                           if np.isnan(x[1]) else x[1], reverse=True)
         results: List[VectorStoreItem] = []

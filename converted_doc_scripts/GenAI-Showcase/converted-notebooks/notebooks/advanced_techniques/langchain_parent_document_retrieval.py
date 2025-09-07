@@ -1,3 +1,7 @@
+from jet.adapters.langchain.pg_vector_parent_document_retriever import PgVectorParentDocumentRetriever
+from jet.db.postgres.pgvector import PgVectorClient
+
+
 async def main():
     from jet.transformers.formatters import format_json
     from datasets import load_dataset
@@ -10,16 +14,10 @@ async def main():
     from langchain_core.prompts import ChatPromptTemplate
     from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
     from langchain_core.runnables import RunnablePassthrough
-    from langchain_mongodb.retrievers import (
-    MongoDBAtlasParentDocumentRetriever,
-    )
     from langchain_text_splitters import RecursiveCharacterTextSplitter
     from langgraph.graph import END, START, StateGraph
     from langgraph.graph.message import add_messages
     from langgraph.prebuilt import ToolNode, tools_condition
-    from pymongo import MongoClient
-    from pymongo.errors import OperationFailure
-    from pymongo.operations import SearchIndexModel
     from typing import Annotated, Dict
     from typing import Generator, List
     from typing_extensions import TypedDict
@@ -27,17 +25,16 @@ async def main():
     import os
     import pandas as pd
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     LOG_DIR = f"{OUTPUT_DIR}/logs"
-    
+
     log_file = os.path.join(LOG_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.orange(f"Logs: {log_file}")
-    
+
     """
     [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mongodb-developer/GenAI-Showcase/blob/main/notebooks/advanced_techniques/langchain_parent_document_retrieval.ipynb)
     
@@ -64,9 +61,9 @@ async def main():
     - **langchain-ollama**: Python package to use Ollama models via LangChain
     """
     logger.info("# Parent Document Retrieval Using MongoDB and LangChain")
-    
+
     # ! pip install -qU datasets pymongo langchain langgraph langchain-mongodb langchain-ollama
-    
+
     """
     ## Step 2: Setup prerequisites
     
@@ -77,38 +74,46 @@ async def main():
     - **Set the Hugging Face token**: Steps to create a token are [here](https://huggingface.co/docs/hub/en/security-tokens#how-to-manage-user-access-tokens). You only need **read** token for this tutorial.
     """
     logger.info("## Step 2: Setup prerequisites")
-    
+
+    DB_USER = "jethroestrada"
+    DB_PASSWORD = ""
+    DB_HOST = "localhost"
+    DB_PORT = 5432
+    DB_NAME = "langchain"
+    COLLECTION_NAME = "parent_doc"
+
     # import getpass
-    
-    
+
     # os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter your Ollama API Key:")
-    
+
     # MONGODB_URI = getpass.getpass("Enter your MongoDB connection string:")
-    mongodb_client = MongoClient(
-        MONGODB_URI, appname="devrel.showcase.parent_doc_retrieval"
+    pgvector_client = PgVectorClient(
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        host=DB_HOST,
+        port=DB_PORT,
+        overwrite_db=True
     )
-    mongodb_client.admin.command("ping")
-    
+
     # os.environ["HF_TOKEN"] = getpass.getpass("Enter your HF Access Token:")
-    
+
     """
     ## Step 3: Load the dataset
     """
     logger.info("## Step 3: Load the dataset")
-    
-    
+
     data = load_dataset("mongodb-eai/docs", streaming=True, split="train")
     data_head = data.take(1000)
     df = pd.DataFrame(data_head)
-    
+
     df.head()
-    
+
     """
     ## Step 4: Convert dataset to LangChain Documents
     """
     logger.info("## Step 4: Convert dataset to LangChain Documents")
-    
-    
+
     docs = []
     metadata_fields = ["updated", "url", "title"]
     for _, row in df.iterrows():
@@ -117,29 +122,25 @@ async def main():
         for field in metadata_fields:
             metadata[field] = row[field]
         docs.append(Document(page_content=content, metadata=metadata))
-    
+
     docs[0]
-    
+
     len(docs)
-    
+
     """
     ## Step 5: Instantiate the retriever
     """
     logger.info("## Step 5: Instantiate the retriever")
-    
-    
+
     embedding_model = OllamaEmbeddings(model="mxbai-embed-large")
-    
-    DB_NAME = "langchain"
-    COLLECTION_NAME = "parent_doc"
-    
+
     def get_splitter(chunk_size: int) -> RecursiveCharacterTextSplitter:
         """
         Returns a token-based text splitter with overlap
-    
+
         Args:
             chunk_size (_type_): Chunk size in number of tokens
-    
+
         Returns:
             RecursiveCharacterTextSplitter: Recursive text splitter object
         """
@@ -148,126 +149,97 @@ async def main():
             chunk_size=chunk_size,
             chunk_overlap=0.15 * chunk_size,
         )
-    
+
     """
     ### Parent document retriever
     """
     logger.info("### Parent document retriever")
-    
-    parent_doc_retriever = MongoDBAtlasParentDocumentRetriever.from_connection_string(
-        connection_string=MONGODB_URI,
+
+    parent_doc_retriever = PgVectorParentDocumentRetriever(
+        client=pgvector_client,
         embedding_model=embedding_model,
         child_splitter=get_splitter(200),
         database_name=DB_NAME,
         collection_name=COLLECTION_NAME,
+        parent_table_name=f"{COLLECTION_NAME}_parent",
+        child_table_name=f"{COLLECTION_NAME}_child",
         text_key="page_content",
         search_kwargs={"top_k": 10},
     )
-    
-    
+
     """
     ## Step 6: Ingest documents into MongoDB
     """
     logger.info("## Step 6: Ingest documents into MongoDB")
-    
-    
+
     BATCH_SIZE = 256
     MAX_CONCURRENCY = 4
-    
+
     async def process_batch(batch: Generator, semaphore: asyncio.Semaphore) -> None:
         """
         Ingest batches of documents into MongoDB
-    
+
         Args:
             batch (Generator): Chunk of documents to ingest
             semaphore (as): Asyncio semaphore
         """
         async with semaphore:
-                await parent_doc_retriever.aadd_documents(batch)
-                logger.debug(f"Processed {len(batch)} documents")
-            
+            await parent_doc_retriever.aadd_documents(batch)
+            logger.debug(f"Processed {len(batch)} documents")
+
         logger.success(format_json(result))
+
     def get_batches(docs: List[Document], batch_size: int) -> Generator:
         """
         Return batches of documents to ingest into MongoDB
-    
+
         Args:
             docs (List[Document]): List of LangChain documents
             batch_size (int): Batch size
-    
+
         Yields:
             Generator: Batch of documents
         """
         for i in range(0, len(docs), batch_size):
-            yield docs[i : i + batch_size]
-    
+            yield docs[i: i + batch_size]
+
     async def process_docs(docs: List[Document]) -> List[None]:
         """
         Asynchronously ingest LangChain documents into MongoDB
-    
+
         Args:
             docs (List[Document]): List of LangChain documents
-    
+
         Returns:
             List[None]: Results of the task executions
         """
         semaphore = asyncio.Semaphore(MAX_CONCURRENCY)
         batches = get_batches(docs, BATCH_SIZE)
-    
+
         tasks = []
         for batch in batches:
             tasks.append(process_batch(batch, semaphore))
         results = await asyncio.gather(*tasks)
         logger.success(format_json(results))
         return results
-    
-    collection = mongodb_client[DB_NAME][COLLECTION_NAME]
-    collection.delete_many({})
+
+    pgvector_client.drop_all_rows(f"{COLLECTION_NAME}_parent")
+    pgvector_client.drop_all_rows(f"{COLLECTION_NAME}_child")
     logger.debug("Deletion complete.")
-    results = await process_docs(docs)
+    results = await parent_doc_retriever.aadd_documents(docs)
     logger.success(format_json(results))
-    
+
     """
-    ## Step 7: Create a vector search index
+    ## Step 7: Create a vector search index (Removed)
     """
-    logger.info("## Step 7: Create a vector search index")
-    
-    
-    VS_INDEX_NAME = "vector_index"
-    
-    model = SearchIndexModel(
-        definition={
-            "fields": [
-                {
-                    "type": "vector",
-                    "path": "embedding",
-                    "numDimensions": 1536,
-                    "similarity": "cosine",
-                }
-            ]
-        },
-        name=VS_INDEX_NAME,
-        type="vectorSearch",
-    )
-    
-    try:
-        collection.create_search_index(model=model)
-        logger.debug(
-            f"Successfully created index {VS_INDEX_NAME} for collection {COLLECTION_NAME}"
-        )
-    except OperationFailure:
-        logger.debug(
-            f"Duplicate index {VS_INDEX_NAME} found for collection {COLLECTION_NAME}. Skipping index creation."
-        )
-    
+
     """
     ## Step 8: Usage
     
     ### In a RAG application
     """
     logger.info("## Step 8: Usage")
-    
-    
+
     retrieve = {
         "context": parent_doc_retriever
         | (lambda docs: "\n\n".join([d.page_content for d in docs])),
@@ -282,33 +254,31 @@ async def main():
     llm = ChatOllama(model="llama3.2")
     parse_output = StrOutputParser()
     rag_chain = retrieve | prompt | llm | parse_output
-    
+
     logger.debug(rag_chain.invoke("How do I improve slow queries in MongoDB?"))
-    
+
     """
     ### In an AI agent
     """
     logger.info("### In an AI agent")
-    
-    
-    
+
     @tool
     def get_info_about_mongodb(user_query: str) -> str:
         """
         Retrieve information about MongoDB.
-    
+
         Args:
         user_query (str): The user's query string.
-    
+
         Returns:
         str: The retrieved information formatted as a string.
         """
         docs = parent_doc_retriever.invoke(user_query)
         context = "\n\n".join([d.page_content for d in docs])
         return context
-    
+
     tools = [get_info_about_mongodb]
-    
+
     llm = ChatOllama(model="llama3.2")
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -323,28 +293,29 @@ async def main():
             MessagesPlaceholder(variable_name="messages"),
         ]
     )
-    prompt = prompt.partial(tool_names=", ".join([tool.name for tool in tools]))
+    prompt = prompt.partial(tool_names=", ".join(
+        [tool.name for tool in tools]))
     llm_with_tools = prompt | llm.bind_tools(tools)
-    
+
     class GraphState(TypedDict):
         messages: Annotated[list, add_messages]
-    
+
     def agent(state: GraphState) -> Dict[str, List]:
         """
         Agent node
-    
+
         Args:
             state (GraphState): Graph state
-    
+
         Returns:
             Dict[str, List]: Updates to the graph state
         """
         messages = state["messages"]
         response = llm_with_tools.invoke(messages)
         return {"messages": [response]}
-    
+
     tool_node = ToolNode(tools)
-    
+
     graph = StateGraph(GraphState)
     graph.add_node("agent", agent)
     graph.add_node("tools", tool_node)
@@ -356,20 +327,20 @@ async def main():
         {"tools": "tools", END: END},
     )
     app = graph.compile()
-    
+
     inputs = {
         "messages": [
             ("user", "How do I improve slow queries in MongoDB?"),
         ]
     }
-    
+
     for output in app.stream(inputs):
         for key, value in output.items():
             logger.debug(f"Node {key}:")
             logger.debug(value)
     logger.debug("---FINAL ANSWER---")
     logger.debug(value["messages"][-1].content)
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':
