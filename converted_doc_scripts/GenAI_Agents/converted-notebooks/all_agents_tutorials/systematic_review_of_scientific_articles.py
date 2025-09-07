@@ -21,7 +21,7 @@ retry_if_exception_type
 from typing import TypedDict, Annotated, List, Dict, Any, Type
 from uuid import uuid4
 import ast
-import openai
+import ollama
 import operator
 import os
 import pymupdf4llm
@@ -33,15 +33,13 @@ import sys
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
+LOG_DIR = f"{OUTPUT_DIR}/logs"
+
+log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
+logger.orange(f"Logs: {log_file}")
 
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-# !pip install gradio grandalf huggingface-hub langchain langchain-community langchain-core langchain-openai langgraph langgraph-checkpoint langgraph-checkpoint-postgres langgraph-checkpoint-sqlite langsmith openai psycopg pydantic pydantic_core tiktoken langchain-huggingface pymupdf4llm
+# !pip install gradio grandalf huggingface-hub langchain langchain-community langchain-core langchain-ollama langgraph langgraph-checkpoint langgraph-checkpoint-postgres langgraph-checkpoint-sqlite langsmith ollama psycopg pydantic pydantic_core tiktoken langchain-huggingface pymupdf4llm
 
 """
 # Systematic Review Automation System
@@ -713,7 +711,7 @@ def article_download(state: AgentState):
                 if not os.path.exists('data'):
                     os.makedirs('data')
 
-                filename = ff"{GENERATED_DIR}/{url.split('/')[-1]}"
+                filename = f"data/{url.split('/')[-1]}"
                 if not filename.endswith('.pdf'):
                     filename += '.pdf'
 
@@ -851,14 +849,14 @@ logger.info("### E. Paper Writing Functions Explained")
 
 def _make_api_call(model, messages, temperature=0.1):
     @retry(
-        retry=retry_if_exception_type(openai.RateLimitError),
+        retry=retry_if_exception_type(ollama.RateLimitError),
         wait=wait_exponential(multiplier=1, min=4, max=60),
         stop=stop_after_attempt(5)
     )
     def _call():
         try:
             return model.invoke(messages, temperature=temperature)
-        except openai.RateLimitError as e:
+        except ollama.RateLimitError as e:
             logger.debug(f"Rate limit reached. Waiting before retry... ({e})")
             raise
     return _call()

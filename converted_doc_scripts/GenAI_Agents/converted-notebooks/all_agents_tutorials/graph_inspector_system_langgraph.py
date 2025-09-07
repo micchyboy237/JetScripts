@@ -27,9 +27,11 @@ import uuid
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
+LOG_DIR = f"{OUTPUT_DIR}/logs"
+
+log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
+logger.orange(f"Logs: {log_file}")
 
 """
 # LangGraph-Based Systems Inspector using LangGraph
@@ -96,7 +98,7 @@ Install and import necessary libraries and set up the environment.
 logger.info("# LangGraph-Based Systems Inspector using LangGraph")
 
 # %%capture --no-stderr
-# %pip install --quiet -U gradio networkx jinja2 langchain-core langchain-openai langgraph pydantic python-dotenv
+# %pip install --quiet -U gradio networkx jinja2 langchain-core langchain-ollama langgraph pydantic python-dotenv
 
 
 
@@ -840,6 +842,7 @@ builder.add_edge("run_test_cases", "analize_results")
 builder.add_conditional_edges("analize_results", more_results, {True: "analize_results", False: "__end__"})
 
 graph = builder.compile()
+
 
 """
 # Example Usage

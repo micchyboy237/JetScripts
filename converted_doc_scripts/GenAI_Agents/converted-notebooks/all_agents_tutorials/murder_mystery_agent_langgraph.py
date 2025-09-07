@@ -25,7 +25,7 @@ from rich.table import Table
 from rich.text import Text
 from typing import List, Optional, Annotated, Sequence
 from typing_extensions import TypedDict
-import openai
+import ollama
 import operator
 import os
 import random
@@ -35,9 +35,11 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
+LOG_DIR = f"{OUTPUT_DIR}/logs"
+
+log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
+logger.orange(f"Logs: {log_file}")
 
 """
 # Murder Mystery Game with LLM Agents
@@ -184,7 +186,7 @@ This notebook is organized into several key sections:
 2. Run the installation cell to install required packages:
    ```python
    !pip install -q -U langchain-cli langchain langchain_core langgraph langchain_community
-   !pip install -q openai jet.llm.ollama.base_langchain
+   !pip install -q ollama jet.llm.ollama.base_langchain
    ```
 
 #### Step 2: API Key Configuration
@@ -262,7 +264,7 @@ Remember, the goal is to solve the mystery by gathering information through inte
 logger.info("# Murder Mystery Game with LLM Agents")
 
 # !pip install -q -U langchain-cli langchain langchain_core langgraph langchain_community
-# !pip install -q openai jet.llm.ollama.base_langchain
+# !pip install -q ollama jet.llm.ollama.base_langchain
 
 """
 ## Import Libraries

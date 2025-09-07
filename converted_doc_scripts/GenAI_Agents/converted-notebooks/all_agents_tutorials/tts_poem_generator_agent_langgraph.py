@@ -2,7 +2,7 @@ from IPython.display import display, Audio, Markdown
 from dotenv import load_dotenv
 from jet.logger import CustomLogger
 from langgraph.graph import StateGraph, END
-from openai import Ollama
+from ollama import Client
 from typing import TypedDict
 import io
 import os
@@ -14,9 +14,11 @@ import tempfile
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
+LOG_DIR = f"{OUTPUT_DIR}/logs"
+
+log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
+logger.orange(f"Logs: {log_file}")
 
 """
 # Building an Intelligent Text-to-Speech Agent with LangGraph and Ollama
@@ -71,7 +73,7 @@ load_dotenv()
 """
 logger.info("## Initialize Ollama client and define state")
 
-client = Ollama()
+client = Client()
 
 class AgentState(TypedDict):
     input_text: str
@@ -87,14 +89,14 @@ logger.info("## Define Node Functions")
 
 def classify_content(state: AgentState) -> AgentState:
     """Classify the input text into one of four categories: general, poem, news, or joke."""
-    response = client.chat.completions.create(
+    response = client.chat(
         model="llama3.2",
         messages=[
             {"role": "system", "content": "Classify the content as one of: 'general', 'poem', 'news', 'joke'."},
             {"role": "user", "content": state["input_text"]}
         ]
     )
-    state["content_type"] = response.choices[0].message.content.strip().lower()
+    state["content_type"] = response.message.content.strip().lower()
     return state
 
 def process_general(state: AgentState) -> AgentState:
@@ -104,38 +106,38 @@ def process_general(state: AgentState) -> AgentState:
 
 def process_poem(state: AgentState) -> AgentState:
     """Process the input text as a poem, rewriting it in a poetic style."""
-    response = client.chat.completions.create(
+    response = client.chat(
         model="llama3.2",
         messages=[
             {"role": "system", "content": "Rewrite the following text as a short, beautiful poem:"},
             {"role": "user", "content": state["input_text"]}
         ]
     )
-    state["processed_text"] = response.choices[0].message.content.strip()
+    state["processed_text"] = response.message.content.strip()
     return state
 
 def process_news(state: AgentState) -> AgentState:
     """Process the input text as news, rewriting it in a formal news anchor style."""
-    response = client.chat.completions.create(
+    response = client.chat(
         model="llama3.2",
         messages=[
             {"role": "system", "content": "Rewrite the following text in a formal news anchor style:"},
             {"role": "user", "content": state["input_text"]}
         ]
     )
-    state["processed_text"] = response.choices[0].message.content.strip()
+    state["processed_text"] = response.message.content.strip()
     return state
 
 def process_joke(state: AgentState) -> AgentState:
     """Process the input text as a joke, turning it into a short, funny joke."""
-    response = client.chat.completions.create(
+    response = client.chat(
         model="llama3.2",
         messages=[
             {"role": "system", "content": "Turn the following text into a short, funny joke:"},
             {"role": "user", "content": state["input_text"]}
         ]
     )
-    state["processed_text"] = response.choices[0].message.content.strip()
+    state["processed_text"] = response.message.content.strip()
     return state
 
 

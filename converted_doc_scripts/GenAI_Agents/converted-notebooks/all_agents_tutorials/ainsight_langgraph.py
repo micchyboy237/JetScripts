@@ -14,9 +14,11 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
+LOG_DIR = f"{OUTPUT_DIR}/logs"
+
+log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
+logger.orange(f"Logs: {log_file}")
 
 """
 # AInsight: AI/ML Weekly News Reporter
@@ -87,7 +89,7 @@ First, let's install the required packages:
 """
 logger.info("# AInsight: AI/ML Weekly News Reporter")
 
-# !pip install langchain langchain-openai langgraph tavily-python python-dotenv
+# !pip install langchain langchain-ollama langgraph tavily-python python-dotenv
 
 """
 ### Environment Configuration
@@ -95,7 +97,7 @@ logger.info("# AInsight: AI/ML Weekly News Reporter")
 Create a `.env` file in your project directory with the following:
 
 ```plaintext
-# OPENAI_API_KEY=your-openai-api-key
+# OPENAI_API_KEY=your-ollama-api-key
 TAVILY_API_KEY=your-tavily-api-key
 ```
 """

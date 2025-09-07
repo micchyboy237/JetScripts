@@ -28,6 +28,7 @@ REPLACE_OLLAMA_MAP = {
     "OpenAI": "Ollama",
     "Anthropic": "Ollama",
     "AzureChatCompletion": "OllamaChatCompletion",
+    "openai": "ollama",
     "open_ai": "ollama",
     "ChatOpenAI": "ChatOllama",
     "ChatAnthropic": "ChatOllama",
@@ -621,7 +622,10 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/all-rag-techniques",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/ai-agents-for-beginners",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/RAG_Techniques",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/rag-cookbooks",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/GenAIExamples",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/GenAI-Showcase",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/GenAI_Agents",
     ]
     include_files = [
         # "multi_strategy_workflow",

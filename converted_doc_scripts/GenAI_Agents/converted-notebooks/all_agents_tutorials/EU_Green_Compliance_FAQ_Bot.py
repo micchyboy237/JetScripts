@@ -12,14 +12,14 @@ from langchain.prompts import PromptTemplate
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
 from langchain.vectorstores import FAISS
 from langchain_experimental.text_splitter import SemanticChunker
-from openai import Ollama
+from ollama import Ollama
 from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.metrics.pairwise import cosine_similarity
 from typing import List, Dict
 import base64
 import json
 import numpy as np
-import openai
+import ollama
 import os
 import os  # Add this import first
 import requests
@@ -31,9 +31,11 @@ import time
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
+LOG_DIR = f"{OUTPUT_DIR}/logs"
+
+log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
+logger.orange(f"Logs: {log_file}")
 
 """
 <a href="https://colab.research.google.com/github/Avtr99/GenAI_Agents/blob/main/EU_Green_Compliance_FAQ_Bot.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -94,7 +96,7 @@ Import the required libraries
 """
 logger.info("# **EU Green deal compliance FAQ Bot**")
 
-# !pip install langchain langchain-openai python-dotenv openai
+# !pip install langchain langchain-ollama python-dotenv ollama
 pip install langchain-experimental
 pip install faiss-cpu
 
@@ -236,7 +238,7 @@ class RetrieverAgent:
         self.vectorstore = vectorstore
         self.model = model
         self.temperature = temperature
-#         openai.api_key = os.getenv("OPENAI_API_KEY")  # Ensure the Ollama API key is set from environment variable
+#         ollama.api_key = os.getenv("OPENAI_API_KEY")  # Ensure the Ollama API key is set from environment variable
 
         self.llm = Ollama(model=self.model, temperature=self.temperature)
 
@@ -361,7 +363,7 @@ class SummarizerAgent:
             model (str): Ollama model to use for summarization (default: llama3.2)
         """
         self.model = model
-#         openai.api_key = os.getenv("OPENAI_API_KEY")  # Ensure the Ollama API key is set from environment variable
+#         ollama.api_key = os.getenv("OPENAI_API_KEY")  # Ensure the Ollama API key is set from environment variable
 
     def summarize_text(self, query: str, text: str) -> str:
         """
@@ -374,7 +376,7 @@ class SummarizerAgent:
         Returns:
             str: Concise and clear summary relevant to the query.
         """
-        url = "https://api.openai.com/v1/chat/completions"
+        url = "https://api.ollama.com/v1/chat/completions"
         headers = {
             "Content-Type": "application/json",
 #             "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}"  # Ensure the Ollama API key is set
@@ -638,7 +640,7 @@ logger.info("# **RelevanceSummarySystem Class**")
 
 
 class RelevanceSummarizationSystem:
-    def __init__(self, retriever_agent, summarizer_agent, evaluation_agent, relevance_threshold=0.6, openai_api_key=None):
+    def __init__(self, retriever_agent, summarizer_agent, evaluation_agent, relevance_threshold=0.6, ollama_api_key=None):
         """
         Initialize the Relevance Summarization System.
         """
@@ -646,19 +648,19 @@ class RelevanceSummarizationSystem:
         self.summarizer_agent = summarizer_agent
         self.evaluation_agent = evaluation_agent
         self.relevance_threshold = relevance_threshold
-#         self.openai_api_key = openai_api_key or os.getenv("OPENAI_API_KEY")
+#         self.ollama_api_key = ollama_api_key or os.getenv("OPENAI_API_KEY")
 
-        if not self.openai_api_key:
+        if not self.ollama_api_key:
             raise ValueError("Ollama API key is required for rephrasing queries.")
 
-    def _send_openai_request(self, prompt: str, model="llama3.2", temperature=0.7, max_tokens=150):
+    def _send_ollama_request(self, prompt: str, model="llama3.2", temperature=0.7, max_tokens=150):
         """
         Helper function to send a request to Ollama's API and handle the response.
         """
-        url = "https://api.openai.com/v1/chat/completions"
+        url = "https://api.ollama.com/v1/chat/completions"
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.openai_api_key}"
+            "Authorization": f"Bearer {self.ollama_api_key}"
         }
 
         data = {
@@ -684,7 +686,7 @@ class RelevanceSummarizationSystem:
         Rephrase the query using Ollama's API to improve retrieval accuracy.
         """
         prompt = f"You are a rephrasing expert. Rephrase the following question to make it clearer and more likely to retrieve relevant information: {query}"
-        rephrased_query = self._send_openai_request(prompt, model="llama3.2", max_tokens=60)
+        rephrased_query = self._send_ollama_request(prompt, model="llama3.2", max_tokens=60)
 
         if rephrased_query:
             logger.debug(f"🔄 Rephrased query: {rephrased_query}")

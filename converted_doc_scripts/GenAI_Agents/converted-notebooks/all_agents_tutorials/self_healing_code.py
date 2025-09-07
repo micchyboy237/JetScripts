@@ -18,9 +18,11 @@ import uuid
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
+LOG_DIR = f"{OUTPUT_DIR}/logs"
+
+log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
+logger.orange(f"Logs: {log_file}")
 
 """
 # Secret Agents: A Self-Healing Codebase Agentic Workflow
@@ -176,7 +178,7 @@ logger.info("# Secret Agents: A Self-Healing Codebase Agentic Workflow")
 # !pip install langgraph-checkpoint-sqlite
 # !pip install langchain-community
 # !pip install langchain-core
-# !pip install langchain-openai
+# !pip install langchain-ollama
 # !pip install chromadb
 
 

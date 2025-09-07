@@ -1,6 +1,6 @@
 from jet.llm.ollama.base_langchain import ChatOllama
 from jet.logger import CustomLogger
-from langchain.agents import AgentExecutor, create_openai_functions_agent
+from langchain.agents import AgentExecutor, create_ollama_functions_agent
 from langchain.tools import Tool
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain_community.utilities import SQLDatabase
@@ -25,13 +25,11 @@ import sys
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
+LOG_DIR = f"{OUTPUT_DIR}/logs"
 
-file_name = os.path.splitext(os.path.basename(__file__))[0]
-GENERATED_DIR = os.path.join("results", file_name)
-os.makedirs(GENERATED_DIR, exist_ok=True)
+log_file = os.path.join(LOG_DIR, "main.log")
+logger = CustomLogger(log_file, overwrite=True)
+logger.orange(f"Logs: {log_file}")
 
 """
 # DataScribe: AI-Powered Schema Explorer
@@ -102,7 +100,7 @@ Here is the architecture of the application.
 """
 logger.info("# DataScribe: AI-Powered Schema Explorer")
 
-# !pip install langgraph langchain langchain-openai langchain_community python-dotenv networkx matplotlib pydot networkx python-dotenv
+# !pip install langgraph langchain langchain-ollama langchain_community python-dotenv networkx matplotlib pydot networkx python-dotenv
 
 """
 # Import required libraries and export environment variables
@@ -112,7 +110,7 @@ logger.info("# Import required libraries and export environment variables")
 
 
 # os.environ["OPENAI_API_KEY"] = "put your own key here"
-os.environ["DATABASE"] = f"{GENERATED_DIR}/chinook.db"
+os.environ["DATABASE"] = "data/chinook.db"
 
 """
 # Test the connection to the sample database
@@ -152,7 +150,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-logging.getLogger("openai").setLevel(logging.WARNING)
+logging.getLogger("ollama").setLevel(logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 
@@ -165,10 +163,10 @@ logger.info("# Centralised config")
 
 class Config:
     def __init__(self):
-#         self.openai_api_key = os.getenv("OPENAI_API_KEY")
+#         self.ollama_api_key = os.getenv("OPENAI_API_KEY")
         self.db = os.getenv("DATABASE")
 
-        if not all([self.openai_api_key, self.db]):
+        if not all([self.ollama_api_key, self.db]):
 #             raise ValueError("Missing required environment variables: OPENAI_API_KEY, DATABASE")
 
         self.db_engine = SQLDatabase.from_uri(f"sqlite:///{self.db}")
@@ -200,7 +198,7 @@ class DiscoveryAgent:
         ])
 
         self.chat_prompt = self.create_chat_prompt()
-        self.agent = create_openai_functions_agent(
+        self.agent = create_ollama_functions_agent(
             llm=self.config.llm_gpt4,
             prompt=self.chat_prompt,
             tools=self.tools
@@ -381,7 +379,7 @@ class InferenceAgent:
         self.tools = self.toolkit.get_tools()
         self.chat_prompt = self.create_chat_prompt()
 
-        self.agent = create_openai_functions_agent(
+        self.agent = create_ollama_functions_agent(
             llm=self.config.llm,
             prompt=self.chat_prompt,
             tools=self.tools

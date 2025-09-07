@@ -3,14 +3,14 @@ from datetime import datetime
 from google.colab import userdata
 from jet.llm.ollama.base_langchain import AzureChatOllama
 from jet.logger import CustomLogger
-from langchain.output_parsers.openai_functions import JsonOutputFunctionsParser
+from langchain.output_parsers.ollama_functions import JsonOutputFunctionsParser
 from langchain_community.document_loaders import WikipediaLoader
 from langchain_community.retrievers import TavilySearchAPIRetriever
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage, get_buffer_string
 from langchain_core.tools import tool
-from langchain_core.utils.function_calling import convert_to_openai_function
+from langchain_core.utils.function_calling import convert_to_ollama_function
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.constants import Send
 from langgraph.graph import MessagesState
@@ -28,9 +28,11 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
+LOG_DIR = f"{OUTPUT_DIR}/logs"
+
+log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
+logger.orange(f"Logs: {log_file}")
 
 """
 <a href="https://colab.research.google.com/github/Alex112525/LangGraph-notebooks/blob/main/Project_Generate_podcast_AI.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -68,12 +70,12 @@ Automated content generation systems can significantly reduce the workload for p
 #### 3. **Sentiment Analysis**
    - **Modules/Functions**:
      - The code doesn't specifically list a sentiment analysis function, but it likely leverages LangChain or similar models to determine sentiment through natural language processing (NLP) techniques.
-     - You might use tools like `convert_to_openai_function` (from `langchain_core.utils.function_calling`) to integrate Ollama's models, which could analyze sentiment based on responses.
+     - You might use tools like `convert_to_ollama_function` (from `langchain_core.utils.function_calling`) to integrate Ollama's models, which could analyze sentiment based on responses.
 
 #### 4. **Response Generation**
    - **Classes/Methods**:
      - `ToolNode` (from `langgraph.prebuilt`) can be configured to generate responses based on query type and sentiment.
-     - Functions using LangChain's response parsers, like `JsonOutputFunctionsParser` (from `langchain.output_parsers.openai_functions`), could help in parsing and generating structured responses.
+     - Functions using LangChain's response parsers, like `JsonOutputFunctionsParser` (from `langchain.output_parsers.ollama_functions`), could help in parsing and generating structured responses.
 
 #### 5. **Escalation Mechanism**
    - **Class/Function**:
@@ -150,7 +152,7 @@ This notebook demonstrates a sophisticated approach to automated podcast content
 """
 logger.info("# Automated Podcast Generation System using LangGraph")
 
-pip install langgraph langgraph-sdk langgraph-checkpoint-sqlite langsmith langchain-community langchain-core langchain-openai tavily-python wikipedia google-generativeai
+pip install langgraph langgraph-sdk langgraph-checkpoint-sqlite langsmith langchain-community langchain-core langchain-ollama tavily-python wikipedia google-generativeai
 
 
 
@@ -164,8 +166,8 @@ Make sure to pass the necessary Keys:
 logger.info("Make sure to pass the necessary Keys:")
 
 genai.configure(api_key=userdata.get('GEMINI_API_KEY'))
-# os.environ["AZURE_OPENAI_API_KEY"] = userdata.get('Azure_openai')
-os.environ["AZURE_OPENAI_ENDPOINT"] = userdata.get('Endpoint_openai')
+# os.environ["AZURE_OPENAI_API_KEY"] = userdata.get('Azure_ollama')
+os.environ["AZURE_OPENAI_ENDPOINT"] = userdata.get('Endpoint_ollama')
 os.environ["TAVILY_API_KEY"] = userdata.get('Tavily_API_key')
 
 """
@@ -187,7 +189,7 @@ logger.info("## Get models")
 def get_model(model:str="Agent_test", temp:float=0.1, max_tokens:int=100):
   """Get model from Azure Ollama"""
   model = AzureChatOllama(
-        openai_api_version="2024-02-15-preview",
+        ollama_api_version="2024-02-15-preview",
         azure_deployment=model,
         temperature=temp,
         max_tokens=max_tokens,

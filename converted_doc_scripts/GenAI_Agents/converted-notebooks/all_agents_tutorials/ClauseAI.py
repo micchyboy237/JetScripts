@@ -31,9 +31,11 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
+LOG_DIR = f"{OUTPUT_DIR}/logs"
+
+log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
+logger.orange(f"Logs: {log_file}")
 
 """
 # Contract Analysis Assistant
@@ -93,7 +95,7 @@ Develop an AI-powered system for contract analysis, generating insights and prof
 logger.info("# Contract Analysis Assistant")
 
 # %%capture --no-stderr
-# %pip install --quiet -U langgraph langchain-community langchain-openai docx pinecone[grpc] ipywidgets PyPDF2 python-docx
+# %pip install --quiet -U langgraph langchain-community langchain-ollama docx pinecone[grpc] ipywidgets PyPDF2 python-docx
 
 
 # import os, getpass

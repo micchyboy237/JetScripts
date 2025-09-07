@@ -1,7 +1,7 @@
 from IPython.display import Image, display, Markdown, HTML
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.llm.ollama.base_langchain import AzureChatOllama, ChatOllama
 from jet.logger import CustomLogger
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph, START,END
@@ -17,9 +17,11 @@ import uuid
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
+LOG_DIR = f"{OUTPUT_DIR}/logs"
+
+log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
+logger.orange(f"Logs: {log_file}")
 
 """
 # Project Manager Assistant Agent
@@ -191,7 +193,7 @@ In the following section, we provide a detailed overview how to implement the Pr
 """
 logger.info("# Project Manager Assistant Agent")
 
-# !pip install langchain langgraph langchain-openai pandas plotly networkx pyvis openai python-dotenv -q
+# !pip install langchain langgraph langchain-ollama pandas plotly networkx pyvis ollama python-dotenv -q
 
 
 load_dotenv(override=True)
@@ -210,8 +212,8 @@ if model_provider == 'Azure':
         - OPENAI_API_VERSION
         - AZURE_OPENAI_ENDPOINT
     """
-    llm = ChatOllama(
-        model='llama3.2',  # Your actual deployment name
+    llm = AzureChatOllama(
+        deployment_name='llama3.2',  # Your actual deployment name
     )
 elif model_provider == 'Ollama':
     """
@@ -222,7 +224,6 @@ elif model_provider == 'Ollama':
     llm = ChatOllama(model="llama3.2")
 else:
     logger.debug('Implement your own llm loader')
-    llm = ChatOllama(model="llama3.2")
 
 llm.invoke("Hello, how are you?")
 
@@ -333,13 +334,15 @@ In this tutorial we have implemented the nodes based on th following pattern:
 
 ```
 def task_generation_node(state: AgentState):
- \"\"\"LangGraph node that will extract tasks from given project description\"\"\"
+ """
+logger.info("Well done, let's create the required nodes. As a quick recap:")LangGraph node that will extract tasks from given project description"""
     description = state["project_description"]
-    prompt = f\"\"\"You are an experienced project description analyzer. Analyze the 
+    prompt = f"""
+logger.info("description = state["project_description"]")You are an experienced project description analyzer. Analyze the 
     project description '{description}' and create a list of actionable and
     realistic tasks with estimated time (in days) to complete each task.
     If the task takes longer than 5 days, break it down into independent smaller tasks.
-    \"\"\"
+    """
     structure_llm = llm.with_structured_output(TaskList)
     tasks: TaskList = structure_llm.invoke(prompt)
     state['tasks'] = tasks
@@ -352,6 +355,7 @@ The .with_structured_output() method enables models with native APIs for structu
 
 The only exception is the insight_generation_node where only `str` as requested from the llm and the required interface only `llm.invoke(prompt)`
 """
+logger.info("structure_llm = llm.with_structured_output(TaskList)")
 
 def task_generation_node(state: AgentState):
     """LangGraph node that will extract tasks from given project description"""
@@ -579,9 +583,8 @@ def get_team(file_path:str):
 
     return team
 
-data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/GenAI_Agents/data"
-project_description = get_project_description(f"{data_dir}/project_manager_assistant/project_description.txt")
-team = get_team(f"{data_dir}/project_manager_assistant/team.csv")
+project_description = get_project_description("../data/project_manager_assistant/project_description.txt")
+team = get_team("../data/project_manager_assistant/team.csv")
 
 logger.debug(project_description)
 logger.debug(team)

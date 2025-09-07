@@ -11,9 +11,11 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
+LOG_DIR = f"{OUTPUT_DIR}/logs"
+
+log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
+logger.orange(f"Logs: {log_file}")
 
 """
 # Building a Conversational Agent with Context Awareness with PydanticAI
@@ -22,7 +24,7 @@ logger.info(f"Logs: {log_file}")
 
 ## PydanticAI
 
-[PydanticAI](https://ai.pydantic.dev/) is a new Python agent framework designed to make it less painful to build production grade applications with Generative AI. Developed by the team behind **Pydantic**, it brings the same robust validation and type-safety principles that have made Pydantic a cornerstone for many LLM libraries, including Ollama SDK, Anthropic SDK, LangChain, LlamaIndex, and more.
+[PydanticAI](https://ai.pydantic.dev/) is a new Python agent framework designed to make it less painful to build production grade applications with Generative AI. Developed by the team behind **Pydantic**, it brings the same robust validation and type-safety principles that have made Pydantic a cornerstone for many LLM libraries, including Ollama SDK, Ollama SDK, LangChain, LlamaIndex, and more.
 
 With PydanticAI, control flow and agent composition are handled using **vanilla Python**, allowing you to apply the same development best practices you’d use in any other (non-AI) project.
 

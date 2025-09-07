@@ -13,9 +13,11 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
+LOG_DIR = f"{OUTPUT_DIR}/logs"
+
+log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
+logger.orange(f"Logs: {log_file}")
 
 """
 # Building an Intelligent Customer Support Agent with LangGraph
@@ -52,7 +54,7 @@ The approach showcased here has broad applications beyond customer support, illu
 """
 logger.info("# Building an Intelligent Customer Support Agent with LangGraph")
 
-# !pip install -q langgraph langchain-core langchain-openai python-dotenv ipython
+# !pip install -q langgraph langchain-core langchain-ollama python-dotenv ipython
 
 """
 ## Import necessary libraries

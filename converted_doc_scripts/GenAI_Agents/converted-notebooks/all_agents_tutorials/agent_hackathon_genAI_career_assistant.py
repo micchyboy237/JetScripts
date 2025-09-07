@@ -4,16 +4,13 @@ from dotenv import load_dotenv
 from jet.logger import CustomLogger
 from langchain.agents import AgentExecutor
 from langchain.agents import create_tool_calling_agent
-from langchain_community.tools import DuckDuckGoSearchResults  # searching tools
+from langchain_community.tools import DuckDuckGoSearchResults #searching tools
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, trim_messages
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-# to visualize the graph of langgraph node and edges
-from langchain_core.runnables.graph import MermaidDrawMethod
-# from langchain_google_genai import ChatGoogleGenerativeAI
-from jet.llm.ollama.base_langchain import ChatOllama
-# Importing StateGraph, END, and START from langgraph.graph to define and manage state transitions within a conversational or generative AI workflow.
-from langgraph.graph import StateGraph, END, START
+from langchain_core.runnables.graph import MermaidDrawMethod # to visualize the graph of langgraph node and edges
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langgraph.graph import StateGraph, END, START #Importing StateGraph, END, and START from langgraph.graph to define and manage state transitions within a conversational or generative AI workflow.
 from typing import Dict, TypedDict
 import os
 import shutil
@@ -22,9 +19,11 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
+LOG_DIR = f"{OUTPUT_DIR}/logs"
+
+log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
-logger.info(f"Logs: {log_file}")
+logger.orange(f"Logs: {log_file}")
 
 """
 # GenAI Career Assistant Agent – Your Ultimate Guide to a Career in Generative AI!🚀
@@ -82,10 +81,9 @@ The GenAI Career Assistant is more than just a tool; it’s a comprehensive, per
 
 ### Before starting please install the below packages
 """
-logger.info(
-    "# GenAI Career Assistant Agent – Your Ultimate Guide to a Career in Generative AI!🚀")
+logger.info("# GenAI Career Assistant Agent – Your Ultimate Guide to a Career in Generative AI!🚀")
 
-# pip install langchain==0.3.7 langchain-community==0.3.7 langchain_google_genai==2.0.4 duckduckgo_search==6.3.4 langgraph==0.2.48 python-dotenv
+pip install langchain==0.3.7 langchain-community==0.3.7 langchain_google_genai==2.0.4 duckduckgo_search==6.3.4 langgraph==0.2.48 python-dotenv
 
 """
 ### Here we will import necessary packages:
@@ -96,15 +94,15 @@ This code imports necessary libraries to create and interact with a generative A
 logger.info("### Here we will import necessary packages:")
 
 
+
 load_dotenv()
 
 os.environ["GOOGLE_API_KEY"] = os.getenv('GOOGLE_API_KEY')
 
-# llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash",
-#                              verbose=True,
-#                              temperature=0.5,
-#                              google_api_key=os.getenv("GOOGLE_API_KEY"))
-llm = ChatOllama(model="llama3.2", temperature=0.5)
+llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash",
+                             verbose=True,
+                             temperature=0.5,
+                             google_api_key=os.getenv("GOOGLE_API_KEY"))
 
 """
 ### Defining a State class using TypedDict to specify the structure of state data in the workflow.
@@ -113,15 +111,12 @@ llm = ChatOllama(model="llama3.2", temperature=0.5)
 - `response`: a string holding the AI model's generated response to the query.
 This TypedDict ensures each state has a consistent data format for easier management and readability.
 """
-logger.info(
-    "### Defining a State class using TypedDict to specify the structure of state data in the workflow.")
-
+logger.info("### Defining a State class using TypedDict to specify the structure of state data in the workflow.")
 
 class State(TypedDict):
     query: str
     category: str
     response: str
-
 
 """
 ### First we are defining utilities we will require further
@@ -154,8 +149,7 @@ def trim_conversation(prompt):
 def save_file(data, filename):
     """Saves data to a markdown file with a timestamped filename."""
     folder_name = "Agent_output"  # Folder to store output files
-    # Creates the folder if it doesn't exist
-    os.makedirs(folder_name, exist_ok=True)
+    os.makedirs(folder_name, exist_ok=True)  # Creates the folder if it doesn't exist
 
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")  # Format: YYYYMMDDHHMMSS
     filename = f"{filename}_{timestamp}.md"
@@ -168,14 +162,12 @@ def save_file(data, filename):
 
     return file_path
 
-
 def show_md_file(file_path):
     """Displays the content of a markdown file as Markdown in the notebook."""
     with open(file_path, 'r', encoding='utf-8') as file:
         content = file.read()
 
     display(Markdown(content))
-
 
 """
 #### Now We will create class which will be Responsible for Learning(Tutorial and Q&A sessions)
@@ -194,30 +186,26 @@ def show_md_file(file_path):
    - **`TutorialAgent` Method**: Runs a search-based tutorial by invoking the model and saving the output as a timestamped Markdown file for review.
    - **`QueryBot` Method**: Conducts a Q&A loop with the user. The conversation is trimmed as it grows, and responses are generated based on updated inputs, with the user able to type 'exit' to end the session.
 """
-logger.info(
-    "#### Now We will create class which will be Responsible for Learning(Tutorial and Q&A sessions)")
+logger.info("#### Now We will create class which will be Responsible for Learning(Tutorial and Q&A sessions)")
 
 
 class LearningResourceAgent:
     def __init__(self, prompt):
-        self.model = llm
+        self.model = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
         self.prompt = prompt
         self.tools = [DuckDuckGoSearchResults()]
 
     def TutorialAgent(self, user_input):
         agent = create_tool_calling_agent(self.model, self.tools, self.prompt)
-        agent_executor = AgentExecutor(
-            agent=agent, tools=self.tools, verbose=True)
+        agent_executor = AgentExecutor(agent=agent, tools=self.tools, verbose=True)
         response = agent_executor.invoke({"input": user_input})
 
-        path = save_file(str(response.get('output')).replace(
-            "```markdown", "").strip(), 'Tutorial')
+        path = save_file(str(response.get('output')).replace("```markdown", "").strip(), 'Tutorial')
         logger.debug(f"Tutorial saved to {path}")
         return path
 
     def QueryBot(self, user_input):
-        logger.debug(
-            "\nStarting the Q&A session. Type 'exit' to end the session.\n")
+        logger.debug("\nStarting the Q&A session. Type 'exit' to end the session.\n")
         record_QA_session = []
         record_QA_session.append('User Query: %s \n' % user_input)
         self.prompt.append(HumanMessage(content=user_input))
@@ -225,8 +213,7 @@ class LearningResourceAgent:
             self.prompt = trim_conversation(self.prompt)
 
             response = self.model.invoke(self.prompt)
-            record_QA_session.append(
-                '\nExpert Response: %s \n' % response.content)
+            record_QA_session.append('\nExpert Response: %s \n' % response.content)
 
             self.prompt.append(AIMessage(content=response.content))
 
@@ -240,11 +227,9 @@ class LearningResourceAgent:
 
             if user_input.lower() == "exit":
                 logger.debug("Ending the chat session.")
-                path = save_file(''.join(record_QA_session),
-                                 'Q&A_Doubt_Session')
+                path = save_file(''.join(record_QA_session),'Q&A_Doubt_Session')
                 logger.debug(f"Q&A Session saved to {path}")
                 return path
-
 
 """
 ### Here we are creating Class for Interview handling(Interview Question Prep and MockInterview)
@@ -260,41 +245,31 @@ class LearningResourceAgent:
    - Simulates a mock interview by initiating a conversation loop. Responses from the model are displayed as "Interviewer" messages, and user inputs as "Candidate" messages.
    - The conversation is trimmed as it grows to maintain prompt size. The interview session ends when the user types "exit," returning a record of the entire interview.
 """
-logger.info(
-    "### Here we are creating Class for Interview handling(Interview Question Prep and MockInterview)")
-
+logger.info("### Here we are creating Class for Interview handling(Interview Question Prep and MockInterview)")
 
 class InterviewAgent:
     def __init__(self, prompt):
-        self.model = llm
+        self.model = ChatGoogleGenerativeAI(model="gemini-1.5-flash")
         self.prompt = prompt
-        # Web search tool for retrieving additional information
-        self.tools = [DuckDuckGoSearchResults()]
+        self.tools = [DuckDuckGoSearchResults()]  # Web search tool for retrieving additional information
 
     def Interview_questions(self, user_input):
         chat_history = []
         questions_bank = ''
-        self.agent = create_tool_calling_agent(
-            self.model, self.tools, self.prompt)
-        self.agent_executor = AgentExecutor(
-            agent=self.agent, tools=self.tools, verbose=True, handle_parsing_errors=True)
+        self.agent = create_tool_calling_agent(self.model, self.tools, self.prompt)
+        self.agent_executor = AgentExecutor(agent=self.agent, tools=self.tools, verbose=True, handle_parsing_errors=True)
         while True:
-            logger.debug(
-                "\nStarting the Interview question preparation. Type 'exit' to end the session.\n")
+            logger.debug("\nStarting the Interview question preparation. Type 'exit' to end the session.\n")
             if user_input.lower() == "exit":
                 logger.debug("Ending the conversation. Goodbye!")
                 break
 
-            response = self.agent_executor.invoke(
-                {"input": user_input, "chat_history": chat_history})
-            questions_bank += str(response.get('output')
-                                  ).replace("```markdown", "").strip() + "\n"
+            response = self.agent_executor.invoke({"input": user_input, "chat_history": chat_history})
+            questions_bank += str(response.get('output')).replace("```markdown", "").strip() + "\n"
 
-            chat_history.extend(
-                [HumanMessage(content=user_input), response["output"]])
+            chat_history.extend([HumanMessage(content=user_input), response["output"]])
             if len(chat_history) > 10:
-                # Keep only the last 10 messages
-                chat_history = chat_history[-10:]
+                chat_history = chat_history[-10:]  # Keep only the last 10 messages
 
             user_input = input("You: ")
 
@@ -303,8 +278,7 @@ class InterviewAgent:
         return path
 
     def Mock_Interview(self):
-        logger.debug(
-            "\nStarting the mock interview. Type 'exit' to end the session.\n")
+        logger.debug("\nStarting the mock interview. Type 'exit' to end the session.\n")
 
         initial_message = 'I am ready for the interview.\n'
         interview_record = []
@@ -328,10 +302,9 @@ class InterviewAgent:
 
             if user_input.lower() == "exit":
                 logger.debug("Ending the interview session.")
-                path = save_file(''.join(interview_record), 'Mock_Interview')
+                path = save_file(''.join(interview_record),'Mock_Interview')
                 logger.debug(f"Mock Interview saved to {path}")
                 return path
-
 
 """
 ### Now we will create class for Resume Making which will handle creating resume by chating with user
@@ -346,42 +319,33 @@ class InterviewAgent:
 """
 logger.info("### Now we will create class for Resume Making which will handle creating resume by chating with user")
 
-
 class ResumeMaker:
     def __init__(self, prompt):
-        self.model = llm
+        self.model = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
         self.prompt = prompt
-        # Search tool to gather additional information if needed
-        self.tools = [DuckDuckGoSearchResults()]
-        self.agent = create_tool_calling_agent(
-            self.model, self.tools, self.prompt)
-        self.agent_executor = AgentExecutor(
-            agent=self.agent, tools=self.tools, verbose=True, handle_parsing_errors=True)
+        self.tools = [DuckDuckGoSearchResults()]  # Search tool to gather additional information if needed
+        self.agent = create_tool_calling_agent(self.model, self.tools, self.prompt)
+        self.agent_executor = AgentExecutor(agent=self.agent, tools=self.tools, verbose=True, handle_parsing_errors=True)
 
     def Create_Resume(self, user_input):
         chat_history = []
         while True:
-            logger.debug(
-                "\nStarting the Resume create session. Type 'exit' to end the session.\n")
+            logger.debug("\nStarting the Resume create session. Type 'exit' to end the session.\n")
             if user_input.lower() == "exit":
                 logger.debug("Ending the conversation. Goodbye!")
                 break
 
-            response = self.agent_executor.invoke(
-                {"input": user_input, "chat_history": chat_history})
-            chat_history.extend(
-                [HumanMessage(content=user_input), response["output"]])
+            response = self.agent_executor.invoke({"input": user_input, "chat_history": chat_history})
+            chat_history.extend([HumanMessage(content=user_input), response["output"]])
 
             if len(chat_history) > 10:
                 chat_history = chat_history[-10:]
 
             user_input = input("You: ")
 
-        path = save_file(str(response.get('output')).replace(
-            "```markdown", "").strip(), 'Resume')
+        path = save_file(str(response.get('output')).replace("```markdown", "").strip(), 'Resume')
         logger.debug(f"Resume saved to {path}")
         return path
-
 
 """
 ### Code Explanation
@@ -396,24 +360,20 @@ class ResumeMaker:
 """
 logger.info("### Code Explanation")
 
-
 class JobSearch:
     def __init__(self, prompt):
-        self.model = llm
+        self.model = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
         self.prompt = prompt
-        # Search tool to find job listings or related information
-        self.tools = DuckDuckGoSearchResults()
+        self.tools = DuckDuckGoSearchResults()  # Search tool to find job listings or related information
 
     def find_jobs(self, user_input):
         results = self.tools.invoke(user_input)
         chain = self.prompt | self.model
         jobs = chain.invoke({"result": results}).content
 
-        path = save_file(str(jobs).replace(
-            "```markdown", "").strip(), 'Job_search')
+        path = save_file(str(jobs).replace("```markdown", "").strip(), 'Job_search')
         logger.debug(f"Jobs saved to {path}")
         return path
-
 
 """
 ### Now we are creating function which will help to categorize our user Input
@@ -430,9 +390,7 @@ class JobSearch:
    - Identifies if a user query in the interview category is about a mock interview or general interview questions.
    - Uses examples to instruct the AI on the difference, returning either "Mock" or "Question" to guide further interaction.
 """
-logger.info(
-    "### Now we are creating function which will help to categorize our user Input")
-
+logger.info("### Now we are creating function which will help to categorize our user Input")
 
 def categorize(state: State) -> State:
     """Categorizes the user query into one of four main categories: Learn Generative AI Technology, Resume Making, Interview Preparation, or Job Search."""
@@ -457,7 +415,6 @@ def categorize(state: State) -> State:
     category = chain.invoke({"query": state["query"]}).content
     return {"category": category}
 
-
 def handle_learning_resource(state: State) -> State:
     """Determines if the query is related to Tutorial creation or general Questions on generative AI topics."""
     prompt = ChatPromptTemplate.from_template(
@@ -481,7 +438,6 @@ def handle_learning_resource(state: State) -> State:
     response = chain.invoke({"query": state["query"]}).content
     return {"category": response}
 
-
 def handle_interview_preparation(state: State) -> State:
     """Determines if the query is related to Mock Interviews or general Interview Questions."""
     prompt = ChatPromptTemplate.from_template(
@@ -504,7 +460,6 @@ def handle_interview_preparation(state: State) -> State:
     response = chain.invoke({"query": state["query"]}).content
     return {"category": response}
 
-
 """
 ### Now we will create function for job search and Resume making
 
@@ -518,18 +473,15 @@ def handle_interview_preparation(state: State) -> State:
 """
 logger.info("### Now we will create function for job search and Resume making")
 
-
 def job_search(state: State) -> State:
     """Provide a job search response based on user query requirements."""
     prompt = ChatPromptTemplate.from_template('''Your task is to refactor and make .md file for the this content which includes
     the jobs available in the market. Refactor such that user can refer easily. Content: {result}''')
     jobSearch = JobSearch(prompt)
-    state["query"] = input(
-        'Please make sure to mention Job location you want,Job roles\n')
+    state["query"] = input('Please make sure to mention Job location you want,Job roles\n')
     path = jobSearch.find_jobs(state["query"])
     show_md_file(path)
     return {"response": path}
-
 
 def handle_resume_making(state: State) -> State:
     """Generate a customized resume based on user details for a tech role in AI and Generative AI."""
@@ -539,7 +491,7 @@ def handle_resume_making(state: State) -> State:
         Feel free to ask users for any necessary details such as skills, experience, or projects to complete the resume.
         Try to ask details step by step and try to ask all details within 4 to 5 steps.
         Ensure the final resume is in .md format.'''),
-        MessagesPlaceholder("chat_history"),
+       MessagesPlaceholder("chat_history"),
         ("human", "{input}"),
         ("placeholder", "{agent_scratchpad}"),
     ])
@@ -547,7 +499,6 @@ def handle_resume_making(state: State) -> State:
     path = resumeMaker.Create_Resume(state["query"])
     show_md_file(path)
     return {"response": path}
-
 
 """
 ### Next we will create a function for Q&A query bot and Tutorial maker
@@ -560,9 +511,7 @@ def handle_resume_making(state: State) -> State:
    - Generates comprehensive tutorial blogs on Generative AI topics with explanations, example code, and resources for further learning.
    - Saves the tutorial in Markdown (.md) format, designed for clarity and learning support.
 """
-logger.info(
-    "### Next we will create a function for Q&A query bot and Tutorial maker")
-
+logger.info("### Next we will create a function for Q&A query bot and Tutorial maker")
 
 def ask_query_bot(state: State) -> State:
     """Provide detailed answers to user queries related to Generative AI."""
@@ -578,7 +527,6 @@ def ask_query_bot(state: State) -> State:
     show_md_file(path)
     return {"response": path}
 
-
 def tutorial_agent(state: State) -> State:
     """Generate a tutorial blog for Generative AI based on user requirements."""
     system_message = '''You are a knowledgeable assistant specializing as a Senior Generative AI Developer with extensive experience in both development and tutoring.
@@ -587,15 +535,13 @@ def tutorial_agent(state: State) -> State:
          Ensure tutorial includes clear explanations, well-structured python code, comments, and fully functional code examples.
          Provide resource reference links at the end of each tutorial for further learning.'''
     prompt = ChatPromptTemplate.from_messages([("system", system_message),
-                                               ("placeholder",
-                                                "{chat_history}"),
-                                               ("human", "{input}"),
-                                               ("placeholder", "{agent_scratchpad}"),])
+            ("placeholder", "{chat_history}"),
+            ("human", "{input}"),
+            ("placeholder", "{agent_scratchpad}"),])
     learning_agent = LearningResourceAgent(prompt)
     path = learning_agent.TutorialAgent(state["query"])
     show_md_file(path)
     return {"response": path}
-
 
 """
 ### Finally we will create function Interview Question prep and Mock interview
@@ -608,9 +554,7 @@ def tutorial_agent(state: State) -> State:
    - Conducts a simulated Generative AI job interview, interacting with the user in real-time.
    - Provides a post-interview evaluation, summarizing the candidate's performance.
 """
-logger.info(
-    "### Finally we will create function Interview Question prep and Mock interview")
-
+logger.info("### Finally we will create function Interview Question prep and Mock interview")
 
 def interview_topics_questions(state: State) -> State:
     """Provide a curated list of interview questions related to Generative AI based on user input."""
@@ -619,15 +563,14 @@ def interview_topics_questions(state: State) -> State:
                      Provide top questions with references and links if possible. You may ask for clarification if needed.
                      Generate a .md document containing the questions.'''
     prompt = ChatPromptTemplate.from_messages([
-        ("system", system_message),
-        MessagesPlaceholder("chat_history"),
-        ("human", "{input}"),
-        ("placeholder", "{agent_scratchpad}"),])
+                        ("system", system_message),
+                        MessagesPlaceholder("chat_history"),
+                        ("human", "{input}"),
+                        ("placeholder", "{agent_scratchpad}"),])
     interview_agent = InterviewAgent(prompt)
     path = interview_agent.Interview_questions(state["query"])
     show_md_file(path)
     return {"response": path}
-
 
 def mock_interview(state: State) -> State:
     """Conduct a mock interview for a Generative AI position, including evaluation at the end."""
@@ -640,7 +583,6 @@ def mock_interview(state: State) -> State:
     path = interview_agent.Mock_Interview()
     show_md_file(path)
     return {"response": path}
-
 
 """
 ### Here, We are creating routing function which will be responsible for conditional edge to give direction after categorization.
@@ -659,21 +601,17 @@ def mock_interview(state: State) -> State:
 """
 logger.info("### Here, We are creating routing function which will be responsible for conditional edge to give direction after categorization.")
 
-
 def route_query(state: State):
     """Route the query based on its category to the appropriate handler."""
     if '1' in state["category"]:
         logger.debug('Category: handle_learning_resource')
-        # Directs queries about learning generative AI to the learning resource handler
-        return "handle_learning_resource"
+        return "handle_learning_resource"  # Directs queries about learning generative AI to the learning resource handler
     elif '2' in state["category"]:
         logger.debug('Category: handle_resume_making')
-        # Directs queries about resume making to the resume handler
-        return "handle_resume_making"
+        return "handle_resume_making"  # Directs queries about resume making to the resume handler
     elif '3' in state["category"]:
         logger.debug('Category: handle_interview_preparation')
-        # Directs queries about interview preparation to the interview handler
-        return "handle_interview_preparation"
+        return "handle_interview_preparation"  # Directs queries about interview preparation to the interview handler
     elif '4' in state["category"]:
         logger.debug('Category: job_search')
         return "job_search"  # Directs job search queries to the job search handler
@@ -681,20 +619,17 @@ def route_query(state: State):
         logger.debug("Please ask your question based on my description.")
         return False  # Returns False if the category does not match any predefined options
 
-
 def route_interview(state: State) -> str:
     """Route the query to the appropriate interview-related handler."""
     if 'Question'.lower() in state["category"].lower():
         logger.debug('Category: interview_topics_questions')
-        # Directs to the handler for interview topic questions
-        return "interview_topics_questions"
+        return "interview_topics_questions"  # Directs to the handler for interview topic questions
     elif 'Mock'.lower() in state["category"].lower():
         logger.debug('Category: mock_interview')
         return "mock_interview"  # Directs to the mock interview handler
     else:
         logger.debug('Category: mock_interview')
         return "mock_interview"  # Defaults to mock interview if category does not clearly match
-
 
 def route_learning(state: State):
     """Route the query based on the learning path category."""
@@ -705,10 +640,8 @@ def route_learning(state: State):
         logger.debug('Category: tutorial_agent')
         return "tutorial_agent"  # Directs queries to the tutorial creation agent
     else:
-        logger.debug(
-            "Please ask your question based on my interview description.")
+        logger.debug("Please ask your question based on my interview description.")
         return False  # Returns False if no clear category match is found
-
 
 """
 ### Now all set lets create workflow graphs adding edges and nodes.
@@ -732,21 +665,14 @@ logger.info("### Now all set lets create workflow graphs adding edges and nodes.
 workflow = StateGraph(State)
 
 workflow.add_node("categorize", categorize)  # Initial categorization node
-# Handles learning-related queries
-workflow.add_node("handle_learning_resource", handle_learning_resource)
-# Handles resume-making queries
-workflow.add_node("handle_resume_making", handle_resume_making)
-# Handles interview prep queries
-workflow.add_node("handle_interview_preparation", handle_interview_preparation)
+workflow.add_node("handle_learning_resource", handle_learning_resource)  # Handles learning-related queries
+workflow.add_node("handle_resume_making", handle_resume_making)  # Handles resume-making queries
+workflow.add_node("handle_interview_preparation", handle_interview_preparation)  # Handles interview prep queries
 workflow.add_node("job_search", job_search)  # Handles job search queries
-# Handles mock interview sessions
-workflow.add_node("mock_interview", mock_interview)
-# Handles interview topic questions
-workflow.add_node("interview_topics_questions", interview_topics_questions)
-# Tutorial agent for generative AI learning resources
-workflow.add_node("tutorial_agent", tutorial_agent)
-# General query bot for learning resources
-workflow.add_node("ask_query_bot", ask_query_bot)
+workflow.add_node("mock_interview", mock_interview)  # Handles mock interview sessions
+workflow.add_node("interview_topics_questions", interview_topics_questions)  # Handles interview topic questions
+workflow.add_node("tutorial_agent", tutorial_agent)  # Tutorial agent for generative AI learning resources
+workflow.add_node("ask_query_bot", ask_query_bot)  # General query bot for learning resources
 
 workflow.add_edge(START, "categorize")
 
@@ -802,8 +728,7 @@ logger.info("### Lets Visualize our graph")
 display(
     Image(
         app.get_graph().draw_mermaid_png(
-            # Uses Mermaid's API to generate the PNG image of the workflow graph
-            draw_method=MermaidDrawMethod.API,
+            draw_method=MermaidDrawMethod.API,  # Uses Mermaid's API to generate the PNG image of the workflow graph
         )
     )
 )
@@ -812,7 +737,6 @@ display(
 ### Final function to Processes a user query using the LangGraph workflow and returns a dictionary containing the query's category and response.
 """
 logger.info("### Final function to Processes a user query using the LangGraph workflow and returns a dictionary containing the query's category and response.")
-
 
 def run_user_query(query: str) -> Dict[str, str]:
     """Process a user query through the LangGraph workflow.
@@ -835,8 +759,7 @@ def run_user_query(query: str) -> Dict[str, str]:
 
 ## TEST CASE 1: Creating Tutorials
 """
-logger.info(
-    "# ---------------------------Testing Different Scenarios------------------------------")
+logger.info("# ---------------------------Testing Different Scenarios------------------------------")
 
 query = "I want to learn Langchain and langgraph.With usage and concept. Also give coding example implementation for both.Create tutorial for this."
 result = run_user_query(query)
