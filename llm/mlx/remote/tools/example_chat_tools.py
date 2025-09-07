@@ -78,13 +78,13 @@ def main():
 
     tools = [add_two_numbers]
 
-    print("=== Chat Completion Examples with Tools ===")
+    print("=== Llama-3.2-3B-Instruct Chat Completion Examples with Tools ===")
     llama_tool_example(query, tools)
     print("\n" + "="*50 + "\n")
-    mistral_tool_example(query, tools)
-
-    print("=== Chat Completion Examples no Tools ===")
     llama_no_tool_example(query)
+
+    print("=== Mistral-7B-Instruct Chat Completion Examples with Tools ===")
+    mistral_tool_example(query, tools)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ from jet.executor.python_runner import run_python_files_in_directory
 
 
 if __name__ == "__main__":
-    target_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/remote/response_format"
+    target_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/mlx/remote/tools"
     output_dir = f"{target_dir}/generated/runner_status"
     includes = [
         # "file_name.py",

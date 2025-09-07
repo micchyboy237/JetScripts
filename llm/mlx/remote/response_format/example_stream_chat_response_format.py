@@ -16,18 +16,13 @@ def stream_chat_text_response_example(query: str, model: str = "mlx-community/ll
     print(
         f"=== Streaming {model.split('/')[-1]} Chat Completion with Text Response ===")
     messages: List[Message] = [{"role": "user", "content": query}]
-    chunks = gen.stream_chat(
+    output = list(gen.stream_chat(
         messages=messages,
         model=model,
         max_tokens=100,
         response_format="text",
         verbose=True,
-    )
-    output = []
-    for chunk in chunks:
-        if chunk.get("content"):
-            print(f"Content: {chunk['content']}")
-        output.append(chunk)
+    ))[-1]
     save_file(output, f"{OUTPUT_DIR}/text_response_stream_example.json")
 
 
@@ -36,18 +31,13 @@ def stream_chat_json_response_example(query: str, model: str = "mlx-community/ll
     print(
         f"=== Streaming {model.split('/')[-1]} Chat Completion with JSON Response ===")
     messages: List[Message] = [{"role": "user", "content": query}]
-    chunks = gen.stream_chat(
+    output = list(gen.stream_chat(
         messages=messages,
         model=model,
         max_tokens=100,
         response_format="json",
         verbose=True,
-    )
-    output = []
-    for chunk in chunks:
-        if chunk.get("content"):
-            print(f"Content: {chunk['content']}")
-        output.append(chunk)
+    ))[-1]
     save_file(output, f"{OUTPUT_DIR}/json_response_stream_example.json")
 
 
@@ -68,18 +58,13 @@ def stream_chat_json_schema_response_example(query: str, model: str = "mlx-commu
         "required": ["fact", "source"]
     }
     messages: List[Message] = [{"role": "user", "content": query}]
-    chunks = gen.stream_chat(
+    output = list(gen.stream_chat(
         messages=messages,
         model=model,
         max_tokens=100,
         response_format=json_schema,
         verbose=True,
-    )
-    output = []
-    for chunk in chunks:
-        if chunk.get("content"):
-            print(f"Content: {chunk['content']}")
-        output.append(chunk)
+    ))[-1]
     save_file(output, f"{OUTPUT_DIR}/json_schema_response_stream_example.json")
 
 
