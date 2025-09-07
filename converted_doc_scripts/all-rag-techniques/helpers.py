@@ -14,6 +14,8 @@ import re
 DATA_DIR = f"{os.path.dirname(__file__)}/data"
 # DOCS_PATH = f"{DATA_DIR}/search_results.json"
 DOCS_PATH = f"{DATA_DIR}/AI_Information.pdf"
+# LLM_MODEL = "llama-3.2-3b-instruct-4bit"
+LLM_MODEL = None
 
 
 class SearchResult(TypedDict):
