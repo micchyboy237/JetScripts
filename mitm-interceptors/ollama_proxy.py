@@ -82,9 +82,19 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
 
     local_chunks = chunks.copy()
 
-    response_info = local_chunks.pop()
-    if "context" in response_info:
-        response_info.pop("context")
+    response_info = {}
+    if local_chunks:  # Check if local_chunks is not empty
+        response_info = local_chunks.pop()
+        if "context" in response_info:
+            response_info.pop("context")
+    else:
+        # Fallback to response data if available
+        response_dict = make_serializable(flow.response.data)
+        if isinstance(response_dict, dict) and "response" in response_dict:
+            response_info = {"response": response_dict["response"]}
+        elif isinstance(response_dict, dict) and "content" in response_dict:
+            response_info = {"content": response_dict["content"]}
+        logger.warning("No chunks available for log entry; using fallback response info")
 
     request_dict = make_serializable(flow.request.data)
     request_content: dict = request_dict["content"].copy()
@@ -624,7 +634,6 @@ def response(flow: http.HTTPFlow):
     # Check for error status codes in the response
     if flow.response and flow.response.status_code >= 400:
         error_type = "Client Error" if flow.response.status_code < 500 else "Server Error"
-        # Decode reason from bytes to string, handle potential decoding errors
         try:
             reason = flow.response.data.reason.decode('utf-8')
         except (UnicodeDecodeError, AttributeError):
@@ -643,11 +652,21 @@ def response(flow: http.HTTPFlow):
     elif any(path in flow.request.path for path in ["/chat", "/generate"]):
         logger.log("\n")
         # Get response info
-        response_info = local_chunks.pop()
-        if "context" in response_info:
-            response_info.pop("context")
-        response_dict: OllamaChatResponse = make_serializable(
-            flow.response.data)
+        response_info = {}
+        if local_chunks:  # Check if local_chunks is not empty
+            response_info = local_chunks.pop()
+            if "context" in response_info:
+                response_info.pop("context")
+        else:
+            logger.warning("No chunks available for response processing")
+            # Fallback to response data if available
+            response_dict = make_serializable(flow.response.data)
+            if isinstance(response_dict, dict) and "response" in response_dict:
+                response_info = {"response": response_dict["response"]}
+            elif isinstance(response_dict, dict) and "content" in response_dict:
+                response_info = {"content": response_dict["content"]}
+
+        response_dict: OllamaChatResponse = make_serializable(flow.response.data)
 
         if isinstance(response_dict, dict):
             logger.log(f"RESPONSE KEYS:", list(
@@ -749,7 +768,7 @@ def response(flow: http.HTTPFlow):
             save_file(log_entry, log_file_path)
 
     chunks = []  # Clean up to avoid memory issues
-
+    
 
 def responseheaders(flow):
     """
