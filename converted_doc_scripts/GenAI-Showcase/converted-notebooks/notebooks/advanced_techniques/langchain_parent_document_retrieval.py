@@ -104,7 +104,7 @@ async def main():
     logger.info("## Step 3: Load the dataset")
 
     data = load_dataset("mongodb-eai/docs", streaming=True, split="train")
-    data_head = data.take(1000)
+    data_head = data.take(100)
     df = pd.DataFrame(data_head)
 
     df.head()
