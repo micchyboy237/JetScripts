@@ -25,8 +25,10 @@ REPLACE_OLLAMA_MAP = {
     "langchain_ollama": "jet.llm.ollama.base_langchain",
     "OpenAIEmbeddings": "OllamaEmbeddings",
     "OpenAIEmbedding": "HuggingFaceEmbedding",
-    "OpenAI": "OllamaFunctionCallingAdapter",
-    "Anthropic": "OllamaFunctionCallingAdapter",
+    "OpenAI": "Ollama",
+    "Anthropic": "Ollama",
+    "AzureChatCompletion": "OllamaChatCompletion",
+    "open_ai": "ollama",
     "ChatOpenAI": "ChatOllama",
     "ChatAnthropic": "ChatOllama",
     "CohereRerank": "CrossEncoderRerank",
@@ -617,7 +619,8 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/all-rag-techniques",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/all-rag-techniques",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/ai-agents-for-beginners",
     ]
     include_files = [
         # "multi_strategy_workflow",

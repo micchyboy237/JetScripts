@@ -765,7 +765,8 @@ if __name__ == "__main__":
     input_base_dirs = [
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/all-rag-techniques",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/all-rag-techniques",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/ai-agents-for-beginners",
     ]
     include_files = []
     exclude_files = []
