@@ -73,12 +73,6 @@ def main():
         return a + b
 
     query1 = "What is three thousand four hundred twenty three plus 6 thousand nine hundred ninety nine?"
-    print("=== Example 1: Mistral - Addition Tool ===")
-    output = stream_mistral_tool_example(query1, [add_two_numbers])
-    save_file(
-        output, f"{OUTPUT_DIR}/add_two_numbers_stream_tool_mistral_example.json")
-    print("\n" + "="*50 + "\n")
-
     print("=== Example 1: Llama - Addition Tool ===")
     output = stream_llama_tool_example(query1, [add_two_numbers])
     save_file(
@@ -120,6 +114,12 @@ def main():
     output = stream_llama_tool_example(query3, [])
     save_file(
         output, f"{OUTPUT_DIR}/no_tool_stream_llama_example.json")
+    print("\n" + "="*50 + "\n")
+
+    print("=== Example 1: Mistral - Addition Tool ===")
+    output = stream_mistral_tool_example(query1, [add_two_numbers])
+    save_file(
+        output, f"{OUTPUT_DIR}/add_two_numbers_stream_tool_mistral_example.json")
     print("\n" + "="*50 + "\n")
 
 
