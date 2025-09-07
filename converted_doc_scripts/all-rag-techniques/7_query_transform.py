@@ -19,7 +19,7 @@ class SearchResult(TypedDict):
     metadata: Dict[str, Any]
 
 
-def rewrite_query(original_query: str, mlx, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> str:
+def rewrite_query(original_query: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Rewrite query to be more specific and detailed."""
     system_prompt = "You are an AI assistant specialized in improving search queries. Your task is to rewrite user queries to be more specific, detailed, and likely to retrieve relevant information."
     response = ""
@@ -37,7 +37,7 @@ def rewrite_query(original_query: str, mlx, model: str = "meta-llama/Llama-3.2-3
     return response
 
 
-def generate_step_back_query(original_query: str, mlx, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> str:
+def generate_step_back_query(original_query: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Generate a broader version of the query."""
     system_prompt = "You are an AI assistant specialized in search strategies. Your task is to generate broader, more general versions of specific queries to retrieve relevant background information."
     response = ""
@@ -55,7 +55,7 @@ def generate_step_back_query(original_query: str, mlx, model: str = "meta-llama/
     return response
 
 
-def decompose_query(original_query: str, mlx, num_subqueries: int = None, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> List[str]:
+def decompose_query(original_query: str, mlx, num_subqueries: int = None, model: str = "llama-3.2-3b-instruct-4bit") -> List[str]:
     """Decompose query into sub-questions."""
     current_date = datetime.now().strftime("%B %d, %Y")
     system_prompt = (
@@ -188,7 +188,7 @@ def transformed_search(query: str, vector_store: SimpleVectorStore, embed_func, 
     return results
 
 
-def compare_responses(results: Dict[str, Any], reference_answer: str, mlx, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> str:
+def compare_responses(results: Dict[str, Any], reference_answer: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Compare responses from different transformations."""
     comparison_text = f"Reference Answer: {reference_answer}\n\n"
     for technique, result in results.items():

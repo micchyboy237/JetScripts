@@ -27,7 +27,7 @@ def process_document(chunks: List[Dict[str, Any]], embed_func) -> SimpleVectorSt
     return store
 
 
-def rerank_with_llm(query: str, results: List[SearchResult], mlx, top_n: int = 3, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> List[SearchResult]:
+def rerank_with_llm(query: str, results: List[SearchResult], mlx, top_n: int = 3, model: str = "llama-3.2-3b-instruct-4bit") -> List[SearchResult]:
     """Rerank search results using LLM scoring."""
     logger.debug(f"Reranking {len(results)} documents...")
     system_prompt = "You are an AI assistant. Score the relevance of the document to the query from 0 to 10, where 10 is highly relevant. Provide only the score."
@@ -102,7 +102,7 @@ def rerank_with_keywords(query: str, results: List[SearchResult], top_n: int = 3
     return reranked_results
 
 
-def rag_with_reranking(query: str, vector_store: SimpleVectorStore, embed_func, mlx, reranking_method: str = "llm", top_n: int = 3, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> Dict[str, Any]:
+def rag_with_reranking(query: str, vector_store: SimpleVectorStore, embed_func, mlx, reranking_method: str = "llm", top_n: int = 3, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Run RAG with reranking."""
     raw_embedding = embed_func(query)
     logger.debug(
@@ -172,7 +172,7 @@ def rag_with_reranking(query: str, vector_store: SimpleVectorStore, embed_func, 
     }
 
 
-def evaluate_reranking(query: str, standard_results: Dict[str, Any], reranked_results: Dict[str, Any], reference_answer: str, mlx, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> Dict[str, Any]:
+def evaluate_reranking(query: str, standard_results: Dict[str, Any], reranked_results: Dict[str, Any], reference_answer: str, mlx, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Evaluate standard and reranked responses."""
     standard_score, standard_text = evaluate_ai_response(
         query, standard_results["response"], reference_answer, mlx, logger)

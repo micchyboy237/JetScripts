@@ -420,7 +420,10 @@ git_stats() {
 
     python /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_notes/python_scripts/git_stats.py "${args[@]}"
 
-    # Examples:
+    # Examples for dirs mode:
+    # git_stats . -d 1 -t dirs
+
+    # General Examples
     # git_stats
     # git_stats -e ".py,.ipynb"
     # git_stats -e ".py" -p "test_*.py"

@@ -234,17 +234,26 @@ def chunk_text(text, n, overlap, doc_index=0):
     doc_index (int): The document index to include in metadata.
 
     Returns:
-    List[dict]: A list of dicts with 'text' and 'metadata' (containing 'doc_index').
+    List[dict]: A list of dicts with 'text' and 'metadata' (containing 'doc_index', 'chunk_id', 'start_char', 'end_char').
     """
-    chunks = []  # Initialize an empty list to store the chunks
-
-    # Loop through the text with a step size of (n - overlap)
+    chunks = []
+    chunk_id = 1
     for i in range(0, len(text), n - overlap):
-        # Append a chunk of text from index i to i + n to the chunks list
-        chunks.append(text[i:i + n])
-
-    # Return the list of text chunks with metadata including doc_index
-    return [{"text": chunk, "metadata": {"doc_index": doc_index}} for chunk in chunks]
+        chunk = text[i:i + n]
+        if chunk:
+            start_char = i
+            end_char = i + len(chunk)
+            chunks.append({
+                "text": chunk,
+                "metadata": {
+                    "doc_index": doc_index,
+                    "chunk_id": chunk_id,
+                    "start_char": start_char,
+                    "end_char": end_char
+                }
+            })
+            chunk_id += 1
+    return chunks
 
 
 def chunk_document(pdf_path, chunk_size=1000, chunk_overlap=200):

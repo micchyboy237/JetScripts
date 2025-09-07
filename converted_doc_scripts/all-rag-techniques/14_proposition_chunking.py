@@ -91,7 +91,7 @@ def process_document_into_propositions(chunks: List[Dict[str, Any]], mlx, qualit
         for prop in chunk_propositions:
             proposition_data = {
                 "text": prop,
-                "source_chunk_id": chunk["chunk_id"],
+                "source_chunk_id": chunk["metadata"]["chunk_id"],
                 "source_text": chunk["text"]
             }
             all_propositions.append(proposition_data)
@@ -125,7 +125,7 @@ def build_vector_stores(chunks: List[Dict[str, Any]], propositions: List[Dict[st
     chunk_texts = [chunk["text"] for chunk in chunks]
     logger.debug(f"Creating embeddings for {len(chunk_texts)} chunks...")
     chunk_embeddings = generate_embeddings(chunk_texts, embed_func, logger)
-    chunk_metadata = [{"chunk_id": chunk["chunk_id"],
+    chunk_metadata = [{"chunk_id": chunk["metadata"]["chunk_id"],
                        "type": "chunk"} for chunk in chunks]
     chunk_store.add_items(chunk_texts, chunk_embeddings, chunk_metadata)
     prop_store = SimpleVectorStore()

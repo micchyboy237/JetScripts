@@ -620,7 +620,8 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/all-rag-techniques",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/ai-agents-for-beginners",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/ai-agents-for-beginners",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/RAG_Techniques",
     ]
     include_files = [
         # "multi_strategy_workflow",

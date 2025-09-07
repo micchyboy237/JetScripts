@@ -178,7 +178,7 @@ logger.info("## Generating a Response Based on Retrieved Chunks")
 system_prompt = "You are an AI assistant that strictly answers based on the given context. If the answer cannot be derived directly from the provided context, respond with: 'I do not have enough information to answer that.'"
 
 
-def generate_response(system_prompt, user_message, model="meta-llama/Llama-3.2-3B-Instruct"):
+def generate_response(system_prompt, user_message, model="llama-3.2-3b-instruct-4bit"):
     response = mlx.chat(
         [
             {"role": "system", "content": system_prompt},

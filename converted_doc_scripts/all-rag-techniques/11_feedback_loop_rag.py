@@ -154,7 +154,7 @@ def fine_tune_index(current_store: SimpleVectorStore, chunks: List[str], feedbac
     return new_store
 
 
-def rag_with_feedback_loop(query: str, vector_store: SimpleVectorStore, feedback_data: List[Dict[str, Any]], embed_func, mlx, k: int = 5, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> Dict[str, Any]:
+def rag_with_feedback_loop(query: str, vector_store: SimpleVectorStore, feedback_data: List[Dict[str, Any]], embed_func, mlx, k: int = 5, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Run RAG with feedback loop."""
     logger.debug(f"\n=== Processing query with feedback-enhanced RAG ===")
     logger.debug(f"Query: {query}")
@@ -300,10 +300,10 @@ mlx, embed_func = initialize_mlx(logger)
 formatted_texts, original_chunks = load_json_data(DOCS_PATH, logger)
 logger.info("Loaded pre-chunked data from DOCS_PATH")
 test_queries = [
-    "What is an isekai anime?",
+    "What is a neural network and how does it function?",
 ]
 reference_answers = [
-    "An isekai anime is a genre of Japanese animation where the protagonist is transported, reincarnated, or trapped in a parallel or fantasy world. These stories typically focus on the character adapting to their new environment, often gaining special powers or abilities, and embarking on adventures in that alternate realm.",
+    "A neural network is a series of algorithms that attempt to recognize underlying relationships in a set of data through a process that mimics the way the human brain operates. It consists of layers of nodes, with each node representing a neuron. Neural networks function by adjusting the weights of connections between nodes based on the error of the output compared to the expected result.",
 ]
 evaluation_results = evaluate_feedback_loop(
     original_chunks, test_queries, embed_func, mlx, reference_answers

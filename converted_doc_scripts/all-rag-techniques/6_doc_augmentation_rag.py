@@ -20,7 +20,7 @@ class SearchResult(TypedDict):
     metadata: Dict[str, Any]
 
 
-def generate_questions(text_chunk: str, mlx, num_questions: int = 3, model: str = "meta-llama/Llama-3.2-3B-Instruct") -> List[str]:
+def generate_questions(text_chunk: str, mlx, num_questions: int = 3, model: str = "llama-3.2-3b-instruct-4bit") -> List[str]:
     """Generate questions from text chunk using MLX."""
     system_prompt = "You are an expert at generating relevant questions from text. Create concise questions that can be answered using only BUSY the provided text. Focus on key information and concepts."
     user_prompt = f"Generate {num_questions} questions based on the following text:\n\n{text_chunk}"
