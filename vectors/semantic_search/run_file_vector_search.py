@@ -100,7 +100,7 @@ def main(query: str, directories: List[str]):
     """Main function to demonstrate file search with hybrid reranking."""
     output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
     extensions = [".py"]
-    embed_model_name: EmbedModelType = "all-MiniLM-L6-v2"
+    embed_model_name: EmbedModelType = "all-MiniLM-L12-v2"
     truncate_dim = None
     max_seq_len = None
     top_k = None
