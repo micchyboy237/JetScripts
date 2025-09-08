@@ -12,17 +12,16 @@ async def main():
     import os
     import random
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     LOG_DIR = f"{OUTPUT_DIR}/logs"
-    
+
     log_file = os.path.join(LOG_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.orange(f"Logs: {log_file}")
-    
+
     """
     # Semantic Kernel 
     
@@ -33,13 +32,7 @@ async def main():
     ## Import the Needed Python Packages
     """
     logger.info("# Semantic Kernel")
-    
-    
-    
-    
-    
-    
-    
+
     """
     ## Creating the Client
     
@@ -50,12 +43,10 @@ async def main():
     For us to use the `Azure Inference SDK` that is used for the `base_url` for GitHub Models, we will use the `OllamaChatCompletion` connector within Semantic Kernel. There are also other [available connectors](https://learn.microsoft.com/semantic-kernel/concepts/ai-services/chat-completion) to use Semantic Kernel for other model providers.
     """
     logger.info("## Creating the Client")
-    
-    
-    
+
     class DestinationsPlugin:
         """A List of Random Destinations for a vacation."""
-    
+
         def __init__(self):
             self.destinations = [
                 "Barcelona, Spain",
@@ -70,30 +61,27 @@ async def main():
                 "Bali, Indonesia"
             ]
             self.last_destination = None
-    
+
         @kernel_function(description="Provides a random vacation destination.")
         def get_random_destination(self) -> Annotated[str, "Returns a random vacation destination."]:
             available_destinations = self.destinations.copy()
             if self.last_destination and len(available_destinations) > 1:
                 available_destinations.remove(self.last_destination)
-    
+
             destination = random.choice(available_destinations)
-    
+
             self.last_destination = destination
-    
+
             return destination
-    
+
     load_dotenv()
     client = AsyncOllama(
         api_key=os.environ.get("GITHUB_TOKEN"),
         base_url="https://models.inference.ai.azure.com/",
     )
-    
-    chat_completion_service = OllamaChatCompletion(
-        ai_model_id="llama3.2",
-        async_client=client,
-    )
-    
+
+    chat_completion_service = OllamaChatCompletion(ai_model_id="llama3.2")
+
     """
     ## Creating the Agent 
     
@@ -102,7 +90,7 @@ async def main():
     For this example, we are using very simple instructions. You can change these instructions to see how the agent responds differently.
     """
     logger.info("## Creating the Agent")
-    
+
     AGENT_INSTRUCTIONS = """You are a helpful AI Agent that can help plan vacations for customers.
     
     Important: When users specify a destination, always plan for that location. Only suggest random destinations when the user hasn't specified a preference.
@@ -118,14 +106,14 @@ async def main():
     
     Always prioritize user preferences. If they mention a specific destination like "Bali" or "Paris," focus your planning on that location rather than suggesting alternatives.
     """
-    
+
     agent = ChatCompletionAgent(
         service=chat_completion_service,
         plugins=[DestinationsPlugin()],
         name="TravelAgent",
         instructions=AGENT_INSTRUCTIONS,
     )
-    
+
     """
     ## Running the Agents 
     
@@ -136,29 +124,29 @@ async def main():
     Feel free to change this message to see how the agent responds differently.
     """
     logger.info("## Running the Agents")
-    
+
     user_inputs = [
         "Plan me a day trip.",
         "I don't like that destination. Plan me another vacation.",
     ]
-    
+
     async def main():
         thread: ChatHistoryAgentThread | None = None
-    
+
         for user_input in user_inputs:
             html_output = (
                 f"<div style='margin-bottom:10px'>"
                 f"<div style='font-weight:bold'>User:</div>"
                 f"<div style='margin-left:20px'>{user_input}</div></div>"
             )
-    
+
             agent_name = None
             full_response: list[str] = []
             function_calls: list[str] = []
-    
+
             current_function_name = None
             argument_buffer = ""
-    
+
             async for response in agent.invoke_stream(
                 messages=user_input,
                 thread=thread,
@@ -166,12 +154,12 @@ async def main():
                 thread = response.thread
                 agent_name = response.name
                 content_items = list(response.items)
-    
+
                 for item in content_items:
                     if isinstance(item, FunctionCallContent):
                         if item.function_name:
                             current_function_name = item.function_name
-    
+
                         if isinstance(item.arguments, str):
                             argument_buffer += item.arguments
                     elif isinstance(item, FunctionResultContent):
@@ -182,15 +170,17 @@ async def main():
                                 formatted_args = json.dumps(parsed_args)
                             except Exception:
                                 pass  # leave as raw string
-    
-                            function_calls.append(f"Calling function: {current_function_name}({formatted_args})")
+
+                            function_calls.append(
+                                f"Calling function: {current_function_name}({formatted_args})")
                             current_function_name = None
                             argument_buffer = ""
-    
-                        function_calls.append(f"\nFunction Result:\n\n{item.result}")
+
+                        function_calls.append(
+                            f"\nFunction Result:\n\n{item.result}")
                     elif isinstance(item, StreamingTextContent) and item.text:
                         full_response.append(item.text)
-    
+
             if function_calls:
                 html_output += (
                     "<div style='margin-bottom:10px'>"
@@ -201,17 +191,17 @@ async def main():
                     f"{chr(10).join(function_calls)}"
                     "</div></details></div>"
                 )
-    
+
             html_output += (
                 "<div style='margin-bottom:20px'>"
                 f"<div style='font-weight:bold'>{agent_name or 'Assistant'}:</div>"
                 f"<div style='margin-left:20px; white-space:pre-wrap'>{''.join(full_response)}</div></div><hr>"
             )
-    
+
             display(HTML(html_output))
-    
+
     await main()
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

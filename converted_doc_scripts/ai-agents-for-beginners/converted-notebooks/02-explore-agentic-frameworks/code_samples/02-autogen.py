@@ -6,23 +6,22 @@ async def main():
     from autogen_agentchat.ui import Console
     from autogen_core import CancellationToken
     from autogen_core.models import UserMessage
-    from autogen_ext.models.azure import AzureAIChatCompletionClient
+    from autogen_ext.models.ollama import OllamaChatCompletionClient
     from azure.core.credentials import AzureKeyCredential
     from dotenv import load_dotenv
     from jet.logger import CustomLogger
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     LOG_DIR = f"{OUTPUT_DIR}/logs"
-    
+
     log_file = os.path.join(LOG_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.orange(f"Logs: {log_file}")
-    
+
     """
     # AutoGen Basic Sample 
     
@@ -33,10 +32,7 @@ async def main():
     ## Import the Needed Python Packages
     """
     logger.info("# AutoGen Basic Sample")
-    
-    
-    
-    
+
     """
     ## Create the Client 
     
@@ -47,24 +43,14 @@ async def main():
     As a quick test, we will just run a simple prompt - `What is the capital of France`.
     """
     logger.info("## Create the Client")
-    
+
     load_dotenv()
-    client = AzureAIChatCompletionClient(
-        model="llama3.2",
-        endpoint="https://models.inference.ai.azure.com",
-        credential=AzureKeyCredential(os.getenv("GITHUB_TOKEN")),
-        model_info={
-            "json_output": True,
-            "function_calling": True,
-            "vision": True,
-            "family": "unknown",
-        },
-    )
-    
+    client = OllamaChatCompletionClient(model="llama3.2")
+
     result = await client.create([UserMessage(content="What is the capital of France?", source="user")])
     logger.success(format_json(result))
     logger.debug(result)
-    
+
     """
     ## Defining the Agent 
     
@@ -77,14 +63,14 @@ async def main():
     You can change the system message to see how the LLM responds. We will cover `tools` in Lesson #4.
     """
     logger.info("## Defining the Agent")
-    
+
     agent = AssistantAgent(
         name="assistant",
         model_client=client,
         tools=[],
         system_message="You are a travel agent that plans great vacations",
     )
-    
+
     """
     ## Run the Agent 
     
@@ -95,32 +81,30 @@ async def main():
     You can change the message content to see how the LLM responds differently.
     """
     logger.info("## Run the Agent")
-    
-    
-    
+
     async def assistant_run():
         user_query = "Plan me a great sunny vacation"
-    
+
         html_output = "<div style='margin-bottom:10px'>"
         html_output += "<div style='font-weight:bold'>User:</div>"
         html_output += f"<div style='margin-left:20px'>{user_query}</div>"
         html_output += "</div>"
-    
+
         response = await agent.on_messages(
-                [TextMessage(content=user_query, source="user")],
-                cancellation_token=CancellationToken(),
-            )
+            [TextMessage(content=user_query, source="user")],
+            cancellation_token=CancellationToken(),
+        )
         logger.success(format_json(response))
-    
+
         html_output += "<div style='margin-bottom:20px'>"
         html_output += "<div style='font-weight:bold'>Assistant:</div>"
         html_output += f"<div style='margin-left:20px; white-space:pre-wrap'>{response.chat_message.content}</div>"
         html_output += "</div>"
-    
+
         display(HTML(html_output))
-    
+
     await assistant_run()
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':
