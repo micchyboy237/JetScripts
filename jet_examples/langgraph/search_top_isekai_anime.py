@@ -1,6 +1,7 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.file.utils import save_file
 from jet.logger import logger
+from jet.transformers.object import make_serializable
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain.prompts import PromptTemplate
 from langchain.schema import Document
@@ -34,6 +35,8 @@ class GraphState(TypedDict):
     question: str
     generation: List[str]
     documents: List[str]
+    search_query: str  # Added to store the search query
+    search_results: List[dict]  # Added to store raw Tavily search results
 
 
 # Initialize LLM and tools
@@ -59,14 +62,19 @@ def web_search(state):
     Args:
         state (dict): The current graph state
     Returns:
-        state (dict): Updated state with web search results
+        state (dict): Updated state with web search results, query, and raw results
     """
     logger.debug("---WEB SEARCH---")
     question = state["question"]
     docs = web_search_tool.invoke({"query": question})
     web_results = "\n".join([d["content"] for d in docs])
     web_results = Document(page_content=web_results)
-    return {"documents": [web_results], "question": question}
+    return {
+        "documents": [web_results],
+        "question": question,
+        "search_query": question,
+        "search_results": make_serializable(docs)
+    }
 
 
 def generate(state):
@@ -102,5 +110,12 @@ inputs = {"question": "top 10 isekai anime 2025"}
 config = {"configurable": {"thread_id": "1"}}  # Add config for checkpointer
 state = app.invoke(inputs, config)
 save_file(state, f"{OUTPUT_DIR}/workflow_state.json")
+save_file(
+    {
+        "search_query": state["search_query"],
+        "search_results": state["search_results"]
+    },
+    f"{OUTPUT_DIR}/search_data.json"
+)
 logger.debug(f"Generated anime list: {state['generation']}")
 logger.info("\n\n[DONE]", bright=True)

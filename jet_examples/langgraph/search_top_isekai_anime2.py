@@ -35,12 +35,13 @@ class AnimeList(BaseModel):
 
 
 # Define graph state
-
 class GraphState(TypedDict):
     question: str
     generation: str
     documents: List[str]
     anime_list: AnimeList
+    search_query: str
+    search_results: List[dict]
 
 
 # Initialize tools and LLM
@@ -55,9 +56,8 @@ prompt = PromptTemplate(
 )
 question_router = prompt | llm | JsonOutputParser()
 
+
 # Web search node
-
-
 def web_search(state: GraphState):
     logger.debug("---WEB SEARCH---")
     question = state["question"]
@@ -65,10 +65,20 @@ def web_search(state: GraphState):
         docs = web_search_tool.invoke({"query": question})
         web_results = "\n".join([d["content"] for d in docs])
         web_results = Document(page_content=web_results)
-        return {"documents": [web_results], "question": question}
+        return {
+            "documents": [web_results],
+            "question": question,
+            "search_query": question,
+            "search_results": docs  # Raw search results with metadata
+        }
     except Exception as e:
         logger.error(f"Web search failed: {str(e)}")
-        return {"documents": [], "question": question}
+        return {
+            "documents": [],
+            "question": question,
+            "search_query": question,
+            "search_results": []
+        }
 
 
 # Generate structured anime list
@@ -206,13 +216,26 @@ render_mermaid_graph(app, f"{OUTPUT_DIR}/graph_output.png", xray=True)
 
 # Execute query
 inputs = {"question": "What are the top 10 isekai anime for 2025?"}
+final_state = None
 for output in app.stream(inputs):
     for key, value in output.items():
-        logger.debug(f"Node '{key}':")
-        logger.debug(value)
-if value.get("anime_list"):
-    logger.info("Top 10 Isekai Anime for 2025:")
-    for anime in value["anime_list"].animes:
-        logger.info(f"- {anime.title}: {anime.description}")
-save_file(app, f"{OUTPUT_DIR}/workflow_state.json")
-logger.info("\n\n[DONE]", bright=True)
+        if key != "__end__":
+            final_state = value
+            logger.debug(f"Node '{key}':")
+            logger.debug(value)
+
+# Save final state including web search query and results
+if final_state:
+    save_file(final_state, f"{OUTPUT_DIR}/final_state.json")
+    if final_state.get("anime_list"):
+        logger.info("Top 10 Isekai Anime for 2025:")
+        for anime in final_state["anime_list"].animes:
+            logger.info(f"- {anime.title}: {anime.description}")
+        logger.info(
+            f"Web Search Query: {final_state.get('search_query', 'N/A')}")
+        logger.info(
+            f"Web Search Results Count: {len(final_state.get('search_results', []))}")
+    else:
+        logger.warning("No anime list generated.")
+else:
+    logger.warning("No final state available.")
