@@ -1,5 +1,5 @@
 import shutil
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from jet.llm.ollama.base import initialize_ollama_settings
 from typing import Dict, TypedDict

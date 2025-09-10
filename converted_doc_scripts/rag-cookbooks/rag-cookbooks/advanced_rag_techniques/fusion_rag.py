@@ -3,8 +3,8 @@ from athina.keys import AthinaApiKey, OpenAiApiKey
 from athina.loaders import Loader
 from datasets import Dataset
 from google.colab import userdata
-from jet.llm.ollama.base_langchain import ChatOllama
-from jet.llm.ollama.base_langchain import OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain.document_loaders import CSVLoader
 from langchain.load import dumps, loads

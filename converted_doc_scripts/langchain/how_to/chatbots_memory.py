@@ -1,7 +1,7 @@
 from jet.logger import CustomLogger
 from jet.llm.ollama.base import initialize_ollama_settings
 import os
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.checkpoint.memory import MemorySaver

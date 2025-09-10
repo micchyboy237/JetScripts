@@ -3,7 +3,7 @@ from jet.llm.ollama.base import initialize_ollama_settings
 import os
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 from langchain.agents import AgentType
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta

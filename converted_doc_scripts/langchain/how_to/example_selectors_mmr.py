@@ -6,7 +6,7 @@ from langchain_core.example_selectors import (
     SemanticSimilarityExampleSelector,
 )
 from langchain_core.prompts import FewShotPromptTemplate, PromptTemplate
-from jet.llm.ollama.base_langchain import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 
 initialize_ollama_settings()
 

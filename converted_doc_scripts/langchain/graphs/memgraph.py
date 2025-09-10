@@ -4,7 +4,7 @@ import os
 from langchain_community.chains.graph_qa.memgraph import MemgraphQAChain
 from langchain_community.graphs import MemgraphGraph
 from langchain_core.prompts import PromptTemplate
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langchain_core.documents import Document
 from langchain_experimental.graph_transformers import LLMGraphTransformer
 from jet.transformers.formatters import format_json

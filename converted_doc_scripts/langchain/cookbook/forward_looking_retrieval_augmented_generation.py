@@ -9,7 +9,7 @@ from langchain.callbacks.manager import (
 from langchain_community.utilities import GoogleSerperAPIWrapper
 from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langchain.globals import set_verbose
 from langchain.chains import FlareChain
 

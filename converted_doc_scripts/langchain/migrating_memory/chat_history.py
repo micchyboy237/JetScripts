@@ -4,7 +4,7 @@ import os
 import uuid
 from langchain_core.chat_history import InMemoryChatMessageHistory
 import uuid
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langchain_core.messages import BaseMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import START, MessagesState, StateGraph

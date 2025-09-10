@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 from evaluation.evalute_rag import *
 from helper_functions import *
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.docstore.document import Document
 from langchain.embeddings import OllamaEmbeddings
@@ -15,7 +15,8 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -125,9 +126,6 @@ logger.info("# Adaptive Retrieval-Augmented Generation (RAG) System")
 sys.path.append('RAG_TECHNIQUES')
 
 
-
-
-
 load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
@@ -137,8 +135,10 @@ load_dotenv()
 """
 logger.info("### Define the query classifer class")
 
+
 class categories_options(BaseModel):
-        category: str = Field(description="The category of the query, the options are: Factual, Analytical, Opinion, or Contextual", example="Factual")
+    category: str = Field(
+        description="The category of the query, the options are: Factual, Analytical, Opinion, or Contextual", example="Factual")
 
 
 class QueryClassifier:
@@ -148,17 +148,20 @@ class QueryClassifier:
             input_variables=["query"],
             template="Classify the following query into one of these categories: Factual, Analytical, Opinion, or Contextual.\nQuery: {query}\nCategory:"
         )
-        self.chain = self.prompt | self.llm.with_structured_output(categories_options)
-
+        self.chain = self.prompt | self.llm.with_structured_output(
+            categories_options)
 
     def classify(self, query):
         logger.debug("clasiffying query")
         return self.chain.invoke(query).category
 
+
 """
 ### Define the Base Retriever class, such that the complex ones will inherit from it
 """
-logger.info("### Define the Base Retriever class, such that the complex ones will inherit from it")
+logger.info(
+    "### Define the Base Retriever class, such that the complex ones will inherit from it")
+
 
 class BaseRetrievalStrategy:
     def __init__(self, texts):
@@ -168,17 +171,20 @@ class BaseRetrievalStrategy:
         self.db = FAISS.from_documents(self.documents, self.embeddings)
         self.llm = ChatOllama(model="llama3.1")
 
-
     def retrieve(self, query, k=4):
         return self.db.similarity_search(query, k=k)
+
 
 """
 ### Define Factual retriever strategy
 """
 logger.info("### Define Factual retriever strategy")
 
+
 class relevant_score(BaseModel):
-        score: float = Field(description="The relevance score of the document to the query", example=8.0)
+    score: float = Field(
+        description="The relevance score of the document to the query", example=8.0)
+
 
 class FactualRetrievalStrategy(BaseRetrievalStrategy):
     def retrieve(self, query, k=4):
@@ -197,7 +203,8 @@ class FactualRetrievalStrategy(BaseRetrievalStrategy):
             input_variables=["query", "doc"],
             template="On a scale of 1-10, how relevant is this document to the query: '{query}'?\nDocument: {doc}\nRelevance score:"
         )
-        ranking_chain = ranking_prompt | self.llm.with_structured_output(relevant_score)
+        ranking_chain = ranking_prompt | self.llm.with_structured_output(
+            relevant_score)
 
         ranked_docs = []
         logger.debug("ranking docs")
@@ -209,16 +216,22 @@ class FactualRetrievalStrategy(BaseRetrievalStrategy):
         ranked_docs.sort(key=lambda x: x[1], reverse=True)
         return [doc for doc, _ in ranked_docs[:k]]
 
+
 """
 ### Define Analytical reriever strategy
 """
 logger.info("### Define Analytical reriever strategy")
 
+
 class SelectedIndices(BaseModel):
-    indices: List[int] = Field(description="Indices of selected documents", example=[0, 1, 2, 3])
+    indices: List[int] = Field(
+        description="Indices of selected documents", example=[0, 1, 2, 3])
+
 
 class SubQueries(BaseModel):
-    sub_queries: List[str] = Field(description="List of sub-queries for comprehensive analysis", example=["What is the population of New York?", "What is the GDP of New York?"])
+    sub_queries: List[str] = Field(description="List of sub-queries for comprehensive analysis", example=[
+                                   "What is the population of New York?", "What is the GDP of New York?"])
+
 
 class AnalyticalRetrievalStrategy(BaseRetrievalStrategy):
     def retrieve(self, query, k=4):
@@ -229,7 +242,8 @@ class AnalyticalRetrievalStrategy(BaseRetrievalStrategy):
         )
 
         llm = ChatOllama(model="llama3.1")
-        sub_queries_chain = sub_queries_prompt | llm.with_structured_output(SubQueries)
+        sub_queries_chain = sub_queries_prompt | llm.with_structured_output(
+            SubQueries)
 
         input_data = {"query": query, "k": k}
         sub_queries = sub_queries_chain.invoke(input_data).sub_queries
@@ -244,18 +258,22 @@ class AnalyticalRetrievalStrategy(BaseRetrievalStrategy):
             template="""Select the most diverse and relevant set of {k} documents for the query: '{query}'\nDocuments: {docs}\n
             Return only the indices of selected documents as a list of integers."""
         )
-        diversity_chain = diversity_prompt | self.llm.with_structured_output(SelectedIndices)
-        docs_text = "\n".join([f"{i}: {doc.page_content[:50]}..." for i, doc in enumerate(all_docs)])
+        diversity_chain = diversity_prompt | self.llm.with_structured_output(
+            SelectedIndices)
+        docs_text = "\n".join(
+            [f"{i}: {doc.page_content[:50]}..." for i, doc in enumerate(all_docs)])
         input_data = {"query": query, "docs": docs_text, "k": k}
         selected_indices_result = diversity_chain.invoke(input_data).indices
         logger.debug(f'selected diverse and relevant documents')
 
         return [all_docs[i] for i in selected_indices_result if i < len(all_docs)]
 
+
 """
 ### Define Opinion retriever strategy
 """
 logger.info("### Define Opinion retriever strategy")
+
 
 class OpinionRetrievalStrategy(BaseRetrievalStrategy):
     def retrieve(self, query, k=3):
@@ -271,25 +289,30 @@ class OpinionRetrievalStrategy(BaseRetrievalStrategy):
 
         all_docs = []
         for viewpoint in viewpoints:
-            all_docs.extend(self.db.similarity_search(f"{query} {viewpoint}", k=2))
+            all_docs.extend(self.db.similarity_search(
+                f"{query} {viewpoint}", k=2))
 
         opinion_prompt = PromptTemplate(
             input_variables=["query", "docs", "k"],
             template="Classify these documents into distinct opinions on '{query}' and select the {k} most representative and diverse viewpoints:\nDocuments: {docs}\nSelected indices:"
         )
-        opinion_chain = opinion_prompt | self.llm.with_structured_output(SelectedIndices)
+        opinion_chain = opinion_prompt | self.llm.with_structured_output(
+            SelectedIndices)
 
-        docs_text = "\n".join([f"{i}: {doc.page_content[:100]}..." for i, doc in enumerate(all_docs)])
+        docs_text = "\n".join(
+            [f"{i}: {doc.page_content[:100]}..." for i, doc in enumerate(all_docs)])
         input_data = {"query": query, "docs": docs_text, "k": k}
         selected_indices = opinion_chain.invoke(input_data).indices
         logger.debug(f'selected diverse and relevant documents')
 
         return [all_docs[int(i)] for i in selected_indices.split() if i.isdigit() and int(i) < len(all_docs)]
 
+
 """
 ### Define Contextual retriever strategy
 """
 logger.info("### Define Contextual retriever strategy")
+
 
 class ContextualRetrievalStrategy(BaseRetrievalStrategy):
     def retrieve(self, query, k=4, user_context=None):
@@ -299,7 +322,8 @@ class ContextualRetrievalStrategy(BaseRetrievalStrategy):
             template="Given the user context: {context}\nReformulate the query to best address the user's needs: {query}"
         )
         context_chain = context_prompt | self.llm
-        input_data = {"query": query, "context": user_context or "No specific context provided"}
+        input_data = {"query": query,
+                      "context": user_context or "No specific context provided"}
         contextualized_query = context_chain.invoke(input_data).content
         logger.debug(f'contextualized query: {contextualized_query}')
 
@@ -309,24 +333,27 @@ class ContextualRetrievalStrategy(BaseRetrievalStrategy):
             input_variables=["query", "context", "doc"],
             template="Given the query: '{query}' and user context: '{context}', rate the relevance of this document on a scale of 1-10:\nDocument: {doc}\nRelevance score:"
         )
-        ranking_chain = ranking_prompt | self.llm.with_structured_output(relevant_score)
+        ranking_chain = ranking_prompt | self.llm.with_structured_output(
+            relevant_score)
         logger.debug("ranking docs")
 
         ranked_docs = []
         for doc in docs:
-            input_data = {"query": contextualized_query, "context": user_context or "No specific context provided", "doc": doc.page_content}
+            input_data = {"query": contextualized_query,
+                          "context": user_context or "No specific context provided", "doc": doc.page_content}
             score = float(ranking_chain.invoke(input_data).score)
             ranked_docs.append((doc, score))
-
 
         ranked_docs.sort(key=lambda x: x[1], reverse=True)
 
         return [doc for doc, _ in ranked_docs[:k]]
 
+
 """
 ### Define the Adapive retriever class
 """
 logger.info("### Define the Adapive retriever class")
+
 
 class AdaptiveRetriever:
     def __init__(self, texts: List[str]):
@@ -343,10 +370,13 @@ class AdaptiveRetriever:
         strategy = self.strategies[category]
         return strategy.retrieve(query)
 
+
 """
 ### Define aditional retriever that inherits from langchain BaseRetriever
 """
-logger.info("### Define aditional retriever that inherits from langchain BaseRetriever")
+logger.info(
+    "### Define aditional retriever that inherits from langchain BaseRetriever")
+
 
 class PydanticAdaptiveRetriever(BaseRetriever):
     adaptive_retriever: AdaptiveRetriever = Field(exclude=True)
@@ -360,15 +390,18 @@ class PydanticAdaptiveRetriever(BaseRetriever):
     async def aget_relevant_documents(self, query: str) -> List[Document]:
         return self.get_relevant_documents(query)
 
+
 """
 ### Define the Adaptive RAG class
 """
 logger.info("### Define the Adaptive RAG class")
 
+
 class AdaptiveRAG:
     def __init__(self, texts: List[str]):
         adaptive_retriever = AdaptiveRetriever(texts)
-        self.retriever = PydanticAdaptiveRetriever(adaptive_retriever=adaptive_retriever)
+        self.retriever = PydanticAdaptiveRetriever(
+            adaptive_retriever=adaptive_retriever)
         self.llm = ChatOllama(model="llama3.1")
 
         prompt_template = """Use the following pieces of context to answer the question at the end.
@@ -378,16 +411,17 @@ class AdaptiveRAG:
 
         Question: {question}
         Answer:"""
-        prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
+        prompt = PromptTemplate(template=prompt_template, input_variables=[
+                                "context", "question"])
 
         self.llm_chain = prompt | self.llm
 
-
-
     def answer(self, query: str) -> str:
         docs = self.retriever.get_relevant_documents(query)
-        input_data = {"context": "\n".join([doc.page_content for doc in docs]), "question": query}
+        input_data = {"context": "\n".join(
+            [doc.page_content for doc in docs]), "question": query}
         return self.llm_chain.invoke(input_data)
+
 
 """
 ### Demonstrate use of this model
@@ -396,7 +430,7 @@ logger.info("### Demonstrate use of this model")
 
 texts = [
     "The Earth is the third planet from the Sun and the only astronomical object known to harbor life."
-    ]
+]
 rag_system = AdaptiveRAG(texts)
 
 """
@@ -404,16 +438,20 @@ rag_system = AdaptiveRAG(texts)
 """
 logger.info("### Showcase the four different types of queries")
 
-factual_result = rag_system.answer("What is the distance between the Earth and the Sun?").content
+factual_result = rag_system.answer(
+    "What is the distance between the Earth and the Sun?").content
 logger.debug(f"Answer: {factual_result}")
 
-analytical_result = rag_system.answer("How does the Earth's distance from the Sun affect its climate?").content
+analytical_result = rag_system.answer(
+    "How does the Earth's distance from the Sun affect its climate?").content
 logger.debug(f"Answer: {analytical_result}")
 
-opinion_result = rag_system.answer("What are the different theories about the origin of life on Earth?").content
+opinion_result = rag_system.answer(
+    "What are the different theories about the origin of life on Earth?").content
 logger.debug(f"Answer: {opinion_result}")
 
-contextual_result = rag_system.answer("How does the Earth's position in the Solar System influence its habitability?").content
+contextual_result = rag_system.answer(
+    "How does the Earth's position in the Solar System influence its habitability?").content
 logger.debug(f"Answer: {contextual_result}")
 
 logger.info("\n\n[DONE]", bright=True)

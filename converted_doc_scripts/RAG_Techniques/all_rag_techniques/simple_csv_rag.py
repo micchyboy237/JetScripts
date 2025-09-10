@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama,OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -14,7 +14,8 @@ import os
 import pandas as pd
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -93,7 +94,7 @@ os.makedirs('data', exist_ok=True)
 # !wget -O data/customers-100.csv https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/customers-100.csv
 
 
-file_path = ('data/customers-100.csv') # insert the path of the csv file
+file_path = ('data/customers-100.csv')  # insert the path of the csv file
 data = pd.read_csv(file_path)
 
 data.head()
@@ -113,7 +114,8 @@ logger.info("Initiate faiss vector store and openai embedding")
 
 
 embeddings = OllamaEmbeddings(model="mxbai-embed-large")
-index = faiss.IndexFlatL2(len(OllamaEmbeddings(model="mxbai-embed-large").embed_query(" ")))
+index = faiss.IndexFlatL2(len(OllamaEmbeddings(
+    model="mxbai-embed-large").embed_query(" ")))
 vector_store = FAISS(
     embedding_function=OllamaEmbeddings(model="mxbai-embed-large"),
     index=index,
@@ -160,7 +162,8 @@ Query the rag bot with a question based on the CSV data
 """
 logger.info("Query the rag bot with a question based on the CSV data")
 
-answer= rag_chain.invoke({"input": "which company does sheryl Baxter work for?"})
+answer = rag_chain.invoke(
+    {"input": "which company does sheryl Baxter work for?"})
 answer['answer']
 
 logger.info("\n\n[DONE]", bright=True)

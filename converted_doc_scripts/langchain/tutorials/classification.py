@@ -1,9 +1,9 @@
 from jet.logger import logger
 from jet.llm.ollama.base import initialize_ollama_settings
 # import ChatModelTabs from "@theme/ChatModelTabs";
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from pydantic import BaseModel, Field
 
 initialize_ollama_settings()

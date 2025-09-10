@@ -2,9 +2,9 @@ from jet.logger import logger
 from jet.llm.ollama.base import initialize_ollama_settings
 import os
 # import ChatModelTabs from "@theme/ChatModelTabs";
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 # import EmbeddingTabs from "@theme/EmbeddingTabs";
-from jet.llm.ollama.base_langchain import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 # import VectorStoreTabs from "@theme/VectorStoreTabs";
 from langchain_core.vectorstores import InMemoryVectorStore
 import bs4

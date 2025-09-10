@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from IPython.display import display, Markdown
 from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage, AIMessage
 from langchain_core.tools import BaseTool, tool
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.graph.message import add_messages

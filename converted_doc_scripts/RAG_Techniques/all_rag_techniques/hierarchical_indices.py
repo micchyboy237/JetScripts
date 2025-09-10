@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from evaluation.evalute_rag import *
 from helper_functions import *
 from helper_functions import encode_pdf, encode_from_string
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.chains.summarize.chain import load_summarize_chain
 from langchain.docstore.document import Document
@@ -13,7 +13,8 @@ import os
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -104,7 +105,6 @@ logger.info("# Hierarchical Indices in Document Retrieval")
 sys.path.append('RAG_TECHNIQUES')
 
 
-
 load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
@@ -124,7 +124,9 @@ path = f"{GENERATED_DIR}/Understanding_Climate_Change.pdf"
 """
 ### Function to encode to both summary and chunk levels, sharing the page metadata
 """
-logger.info("### Function to encode to both summary and chunk levels, sharing the page metadata")
+logger.info(
+    "### Function to encode to both summary and chunk levels, sharing the page metadata")
+
 
 async def encode_pdf_hierarchical(path, chunk_size=1000, chunk_overlap=200, is_string=False):
     """
@@ -144,6 +146,7 @@ async def encode_pdf_hierarchical(path, chunk_size=1000, chunk_overlap=200, is_s
 
     if not is_string:
         loader = PyPDFLoader(path)
+
         async def run_async_code_2eb41ac0():
             async def run_async_code_64d57633():
                 documents = await asyncio.to_thread(loader.load)
@@ -161,7 +164,6 @@ async def encode_pdf_hierarchical(path, chunk_size=1000, chunk_overlap=200, is_s
             is_separator_regex=False,
         )
         documents = text_splitter.create_documents([path])
-
 
     summary_llm = ChatOllama(model="llama3.1")
     summary_chain = load_summarize_chain(summary_llm, chain_type="map_reduce")
@@ -188,13 +190,15 @@ async def encode_pdf_hierarchical(path, chunk_size=1000, chunk_overlap=200, is_s
         summary = summary_output['output_text']
         return Document(
             page_content=summary,
-            metadata={"source": path, "page": doc.metadata["page"], "summary": True}
+            metadata={"source": path,
+                "page": doc.metadata["page"], "summary": True}
         )
 
     batch_size = 5  # Adjust this based on your rate limits
     summaries = []
     for i in range(0, len(documents), batch_size):
         batch = documents[i:i+batch_size]
+
         async def run_async_code_bac78b97():
             async def run_async_code_2db24c6e():
                 batch_summaries = await asyncio.gather(*[summarize_doc(doc) for doc in batch])
@@ -205,9 +209,10 @@ async def encode_pdf_hierarchical(path, chunk_size=1000, chunk_overlap=200, is_s
         batch_summaries = asyncio.run(run_async_code_bac78b97())
         logger.success(format_json(batch_summaries))
         summaries.extend(batch_summaries)
+
         async def run_async_code_d7f88492():
             await asyncio.sleep(1)  # Short pause between batches
-            return 
+            return
          = asyncio.run(run_async_code_d7f88492())
         logger.success(format_json())
 

@@ -7,7 +7,7 @@ from langchain.schema import (
     HumanMessage,
     SystemMessage,
 )
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 
 initialize_ollama_settings()
 

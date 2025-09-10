@@ -15,7 +15,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 import asyncio
 from jet.llm.ollama.base import initialize_ollama_settings
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.transformers.formatters import format_json
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.memory import MemorySaver
@@ -24,7 +24,7 @@ import os
 import os
 from langchain_community.tools.tavily_search import TavilySearchResults
 # import ChatModelTabs from "@theme/ChatModelTabs";
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langchain_core.messages import HumanMessage
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver

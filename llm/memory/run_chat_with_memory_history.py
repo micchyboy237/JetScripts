@@ -10,7 +10,7 @@ from langchain_core.prompts.chat import (
     HumanMessagePromptTemplate,
     MessagesPlaceholder,
 )
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 import uuid
 from IPython.display import Image, display
 from langchain_core.messages import HumanMessage
@@ -23,11 +23,11 @@ from langchain_core.messages import (
     SystemMessage,
     trim_messages,
 )
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 from langchain_core.tools import tool
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 
 
 def setup_logger():

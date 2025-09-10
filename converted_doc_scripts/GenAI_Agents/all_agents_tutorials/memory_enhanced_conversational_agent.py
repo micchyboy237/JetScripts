@@ -1,7 +1,7 @@
 import os
 from jet.logger import CustomLogger
 from jet.llm.ollama.base import initialize_ollama_settings
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain.memory import ChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder

@@ -2,7 +2,7 @@ from athina.evals import RagasContextRelevancy
 from athina.keys import AthinaApiKey, OpenAiApiKey
 from athina.loaders import Loader
 from google.colab import userdata
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.llm.ollama.base_langchain import OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain import hub

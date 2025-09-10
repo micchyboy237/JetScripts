@@ -10,7 +10,7 @@ import plotly.express as px
 from datetime import datetime, timedelta
 from typing import List, TypedDict
 from pydantic import BaseModel, Field
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 from IPython.display import Image, display, Markdown, HTML

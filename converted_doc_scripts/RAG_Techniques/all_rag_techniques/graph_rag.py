@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
 from evaluation.evalute_rag import *
 from helper_functions import *
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.callbacks import get_openai_callback
 from langchain.prompts import PromptTemplate
@@ -28,7 +28,8 @@ import spacy
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -131,16 +132,10 @@ logger.info("# GraphRAG: Graph-Enhanced Retrieval-Augmented Generation")
 sys.path.append('RAG_TECHNIQUES')
 
 
-
-
-
-
-
-
 load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
-os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 nltk.download('punkt', quiet=True)
 nltk.download('wordnet', quiet=True)
@@ -149,6 +144,7 @@ nltk.download('wordnet', quiet=True)
 ### Define the document processor class
 """
 logger.info("### Define the document processor class")
+
 
 class DocumentProcessor:
     def __init__(self):
@@ -159,7 +155,8 @@ class DocumentProcessor:
         - text_splitter: An instance of RecursiveCharacterTextSplitter with specified chunk size and overlap.
         - embeddings: An instance of OllamaEmbeddings used for embedding documents.
         """
-        self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        self.text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000, chunk_overlap=200)
         self.embeddings = OllamaEmbeddings(model="mxbai-embed-large")
 
     def process_documents(self, documents):
@@ -208,13 +205,16 @@ class DocumentProcessor:
         """
         return cosine_similarity(embeddings)
 
+
 """
 ### Define the knowledge graph class
 """
 logger.info("### Define the knowledge graph class")
 
+
 class Concepts(BaseModel):
     concepts_list: List[str] = Field(description="List of concepts")
+
 
 class KnowledgeGraph:
     def __init__(self):
@@ -322,14 +322,17 @@ class KnowledgeGraph:
             return self.concept_cache[content]
 
         doc = self.nlp(content)
-        named_entities = [ent.text for ent in doc.ents if ent.label_ in ["PERSON", "ORG", "GPE", "WORK_OF_ART"]]
+        named_entities = [ent.text for ent in doc.ents if ent.label_ in [
+            "PERSON", "ORG", "GPE", "WORK_OF_ART"]]
 
         concept_extraction_prompt = PromptTemplate(
             input_variables=["text"],
             template="Extract key concepts (excluding named entities) from the following text:\n\n{text}\n\nKey concepts:"
         )
-        concept_chain = concept_extraction_prompt | llm.with_structured_output(Concepts)
-        general_concepts = concept_chain.invoke({"text": content}).concepts_list
+        concept_chain = concept_extraction_prompt | llm.with_structured_output(
+            Concepts)
+        general_concepts = concept_chain.invoke(
+            {"text": content}).concepts_list
 
         all_concepts = list(set(named_entities + general_concepts))
 
@@ -373,8 +376,10 @@ class KnowledgeGraph:
             for node2 in range(node1 + 1, num_nodes):
                 similarity_score = similarity_matrix[node1][node2]
                 if similarity_score > self.edges_threshold:
-                    shared_concepts = set(self.graph.nodes[node1]['concepts']) & set(self.graph.nodes[node2]['concepts'])
-                    edge_weight = self._calculate_edge_weight(node1, node2, similarity_score, shared_concepts)
+                    shared_concepts = set(self.graph.nodes[node1]['concepts']) & set(
+                        self.graph.nodes[node2]['concepts'])
+                    edge_weight = self._calculate_edge_weight(
+                        node1, node2, similarity_score, shared_concepts)
                     self.graph.add_edge(node1, node2, weight=edge_weight,
                                         similarity=similarity_score,
                                         shared_concepts=list(shared_concepts))
@@ -394,8 +399,10 @@ class KnowledgeGraph:
         Returns:
         - float: The calculated weight of the edge.
         """
-        max_possible_shared = min(len(self.graph.nodes[node1]['concepts']), len(self.graph.nodes[node2]['concepts']))
-        normalized_shared_concepts = len(shared_concepts) / max_possible_shared if max_possible_shared > 0 else 0
+        max_possible_shared = min(len(self.graph.nodes[node1]['concepts']), len(
+            self.graph.nodes[node2]['concepts']))
+        normalized_shared_concepts = len(
+            shared_concepts) / max_possible_shared if max_possible_shared > 0 else 0
         return alpha * similarity_score + beta * normalized_shared_concepts
 
     def _lemmatize_concept(self, concept):
@@ -410,6 +417,7 @@ class KnowledgeGraph:
         """
         return ' '.join([self.lemmatizer.lemmatize(word) for word in concept.lower().split()])
 
+
 """
 ### Define the Query Engine class
 """
@@ -420,9 +428,13 @@ os.makedirs('data', exist_ok=True)
 # !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
 # !wget -O data/Understanding_Climate_Change.pdf https://raw.githubusercontent.com/NirDiamant/RAG_TECHNIQUES/main/data/Understanding_Climate_Change.pdf
 
+
 class AnswerCheck(BaseModel):
-    is_complete: bool = Field(description="Whether the current context provides a complete answer to the query")
-    answer: str = Field(description="The current answer based on the context, if any")
+    is_complete: bool = Field(
+        description="Whether the current context provides a complete answer to the query")
+    answer: str = Field(
+        description="The current answer based on the context, if any")
+
 
 class QueryEngine:
     def __init__(self, vector_store, knowledge_graph, llm):
@@ -461,10 +473,9 @@ class QueryEngine:
           - is_complete (bool): Whether the context provides a complete answer.
           - answer (str): The answer based on the context, if complete.
         """
-        response = self.answer_check_chain.invoke({"query": query, "context": context})
+        response = self.answer_check_chain.invoke(
+            {"query": query, "context": context})
         return response.is_complete, response.answer
-
-
 
     def _expand_context(self, query: str, relevant_docs) -> Tuple[str, List[int], Dict[int, str], str]:
         """
@@ -514,15 +525,18 @@ class QueryEngine:
         final_answer = ""
 
         priority_queue = []
-        distances = {}  # Stores the best known "distance" (inverse of connection strength) to each node
+        # Stores the best known "distance" (inverse of connection strength) to each node
+        distances = {}
 
         logger.debug("\nTraversing the knowledge graph:")
 
         for doc in relevant_docs:
-            closest_nodes = self.vector_store.similarity_search_with_score(doc.page_content, k=1)
+            closest_nodes = self.vector_store.similarity_search_with_score(
+                doc.page_content, k=1)
             closest_node_content, similarity_score = closest_nodes[0]
 
-            closest_node = next(n for n in self.knowledge_graph.graph.nodes if self.knowledge_graph.graph.nodes[n]['content'] == closest_node_content.page_content)
+            closest_node = next(
+                n for n in self.knowledge_graph.graph.nodes if self.knowledge_graph.graph.nodes[n]['content'] == closest_node_content.page_content)
 
             priority = 1 / similarity_score
             heapq.heappush(priority_queue, (priority, closest_node))
@@ -549,12 +563,14 @@ class QueryEngine:
                 logger.debug(f"Concepts: {', '.join(node_concepts)}")
                 logger.debug("-" * 50)
 
-                is_complete, answer = self._check_answer(query, expanded_context)
+                is_complete, answer = self._check_answer(
+                    query, expanded_context)
                 if is_complete:
                     final_answer = answer
                     break
 
-                node_concepts_set = set(self.knowledge_graph._lemmatize_concept(c) for c in node_concepts)
+                node_concepts_set = set(
+                    self.knowledge_graph._lemmatize_concept(c) for c in node_concepts)
                 if not node_concepts_set.issubset(visited_concepts):
                     visited_concepts.update(node_concepts_set)
 
@@ -566,7 +582,8 @@ class QueryEngine:
 
                         if distance < distances.get(neighbor, float('inf')):
                             distances[neighbor] = distance
-                            heapq.heappush(priority_queue, (distance, neighbor))
+                            heapq.heappush(
+                                priority_queue, (distance, neighbor))
 
                             if neighbor not in traversal_path:
                                 step += 1
@@ -577,19 +594,25 @@ class QueryEngine:
                                 filtered_content[neighbor] = neighbor_content
                                 expanded_context += "\n" + neighbor_content if expanded_context else neighbor_content
 
-                                logger.debug(f"\nStep {step} - Node {neighbor} (neighbor of {current_node}):")
-                                logger.debug(f"Content: {neighbor_content[:100]}...")
-                                logger.debug(f"Concepts: {', '.join(neighbor_concepts)}")
+                                logger.debug(
+                                    f"\nStep {step} - Node {neighbor} (neighbor of {current_node}):")
+                                logger.debug(
+                                    f"Content: {neighbor_content[:100]}...")
+                                logger.debug(
+                                    f"Concepts: {', '.join(neighbor_concepts)}")
                                 logger.debug("-" * 50)
 
-                                is_complete, answer = self._check_answer(query, expanded_context)
+                                is_complete, answer = self._check_answer(
+                                    query, expanded_context)
                                 if is_complete:
                                     final_answer = answer
                                     break
 
-                                neighbor_concepts_set = set(self.knowledge_graph._lemmatize_concept(c) for c in neighbor_concepts)
+                                neighbor_concepts_set = set(
+                                    self.knowledge_graph._lemmatize_concept(c) for c in neighbor_concepts)
                                 if not neighbor_concepts_set.issubset(visited_concepts):
-                                    visited_concepts.update(neighbor_concepts_set)
+                                    visited_concepts.update(
+                                        neighbor_concepts_set)
 
                 if final_answer:
                     break
@@ -622,7 +645,8 @@ class QueryEngine:
         with get_openai_callback() as cb:
             logger.debug(f"\nProcessing query: {query}")
             relevant_docs = self._retrieve_relevant_documents(query)
-            expanded_context, traversal_path, filtered_content, final_answer = self._expand_context(query, relevant_docs)
+            expanded_context, traversal_path, filtered_content, final_answer = self._expand_context(
+                query, relevant_docs)
 
             if not final_answer:
                 logger.debug("\nGenerating final answer...")
@@ -657,10 +681,13 @@ class QueryEngine:
         - list: A list of relevant documents.
         """
         logger.debug("\nRetrieving relevant documents...")
-        retriever = self.vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 5})
+        retriever = self.vector_store.as_retriever(
+            search_type="similarity", search_kwargs={"k": 5})
         compressor = LLMChainExtractor.from_llm(self.llm)
-        compression_retriever = ContextualCompressionRetriever(base_compressor=compressor, base_retriever=retriever)
+        compression_retriever = ContextualCompressionRetriever(
+            base_compressor=compressor, base_retriever=retriever)
         return compression_retriever.invoke(query)
+
 
 """
 ### Define the Visualizer class
@@ -693,7 +720,8 @@ class Visualizer:
         pos = nx.spring_layout(traversal_graph, k=1, iterations=50)
 
         edges = traversal_graph.edges()
-        edge_weights = [traversal_graph[u][v].get('weight', 0.5) for u, v in edges]
+        edge_weights = [traversal_graph[u][v].get(
+            'weight', 0.5) for u, v in edges]
         nx.draw_networkx_edges(traversal_graph, pos,
                                edgelist=edges,
                                edge_color=edge_weights,
@@ -713,8 +741,10 @@ class Visualizer:
             start_pos = pos[start]
             end_pos = pos[end]
 
-            mid_point = ((start_pos[0] + end_pos[0]) / 2, (start_pos[1] + end_pos[1]) / 2)
-            control_point = (mid_point[0] + edge_offset, mid_point[1] + edge_offset)
+            mid_point = ((start_pos[0] + end_pos[0]) / 2,
+                         (start_pos[1] + end_pos[1]) / 2)
+            control_point = (mid_point[0] + edge_offset,
+                             mid_point[1] + edge_offset)
 
             arrow = patches.FancyArrowPatch(start_pos, end_pos,
                                             connectionstyle=f"arc3,rad={0.3}",
@@ -737,7 +767,8 @@ class Visualizer:
                 concepts = graph.nodes[node].get('concepts', [])
                 labels[node] = concepts[0] if concepts else ''
 
-        nx.draw_networkx_labels(traversal_graph, pos, labels, font_size=8, font_weight="bold", ax=ax)
+        nx.draw_networkx_labels(traversal_graph, pos,
+                                labels, font_size=8, font_weight="bold", ax=ax)
 
         start_node = traversal_path[0]
         end_node = traversal_path[-1]
@@ -757,16 +788,23 @@ class Visualizer:
         ax.set_title("Graph Traversal Flow")
         ax.axis('off')
 
-        sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues, norm=plt.Normalize(vmin=min(edge_weights), vmax=max(edge_weights)))
+        sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues, norm=plt.Normalize(
+            vmin=min(edge_weights), vmax=max(edge_weights)))
         sm.set_array([])
-        cbar = fig.colorbar(sm, ax=ax, orientation='vertical', fraction=0.046, pad=0.04)
+        cbar = fig.colorbar(sm, ax=ax, orientation='vertical',
+                            fraction=0.046, pad=0.04)
         cbar.set_label('Edge Weight', rotation=270, labelpad=15)
 
-        regular_line = plt.Line2D([0], [0], color='blue', linewidth=2, label='Regular Edge')
-        traversal_line = plt.Line2D([0], [0], color='red', linewidth=2, linestyle='--', label='Traversal Path')
-        start_point = plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='lightgreen', markersize=15, label='Start Node')
-        end_point = plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='lightcoral', markersize=15, label='End Node')
-        legend = plt.legend(handles=[regular_line, traversal_line, start_point, end_point], loc='upper left', bbox_to_anchor=(0, 1), ncol=2)
+        regular_line = plt.Line2D(
+            [0], [0], color='blue', linewidth=2, label='Regular Edge')
+        traversal_line = plt.Line2D(
+            [0], [0], color='red', linewidth=2, linestyle='--', label='Traversal Path')
+        start_point = plt.Line2D([0], [0], marker='o', color='w',
+                                 markerfacecolor='lightgreen', markersize=15, label='Start Node')
+        end_point = plt.Line2D([0], [0], marker='o', color='w',
+                               markerfacecolor='lightcoral', markersize=15, label='End Node')
+        legend = plt.legend(handles=[regular_line, traversal_line, start_point,
+                            end_point], loc='upper left', bbox_to_anchor=(0, 1), ncol=2)
         legend.get_frame().set_alpha(0.8)
 
         plt.tight_layout()
@@ -784,16 +822,21 @@ class Visualizer:
         Returns:
         - None
         """
-        logger.debug("\nFiltered content of visited nodes in order of traversal:")
+        logger.debug(
+            "\nFiltered content of visited nodes in order of traversal:")
         for i, node in enumerate(traversal_path):
             logger.debug(f"\nStep {i + 1} - Node {node}:")
-            logger.debug(f"Filtered Content: {filtered_content.get(node, 'No filtered content available')[:200]}...")  # Print first 200 characters
+            # Print first 200 characters
+            logger.debug(
+                f"Filtered Content: {filtered_content.get(node, 'No filtered content available')[:200]}...")
             logger.debug("-" * 50)
+
 
 """
 ### Define the graph RAG class
 """
 logger.info("### Define the graph RAG class")
+
 
 class GraphRAG:
     def __init__(self):
@@ -826,9 +869,12 @@ class GraphRAG:
         Returns:
         - None
         """
-        splits, vector_store = self.document_processor.process_documents(documents)
-        self.knowledge_graph.build_graph(splits, self.llm, self.embedding_model)
-        self.query_engine = QueryEngine(vector_store, self.knowledge_graph, self.llm)
+        splits, vector_store = self.document_processor.process_documents(
+            documents)
+        self.knowledge_graph.build_graph(
+            splits, self.llm, self.embedding_model)
+        self.query_engine = QueryEngine(
+            vector_store, self.knowledge_graph, self.llm)
 
     def query(self, query: str):
         """
@@ -840,14 +886,17 @@ class GraphRAG:
         Returns:
         - str: The response to the query.
         """
-        response, traversal_path, filtered_content = self.query_engine.query(query)
+        response, traversal_path, filtered_content = self.query_engine.query(
+            query)
 
         if traversal_path:
-            self.visualizer.visualize_traversal(self.knowledge_graph.graph, traversal_path)
+            self.visualizer.visualize_traversal(
+                self.knowledge_graph.graph, traversal_path)
         else:
             logger.debug("No traversal path to visualize.")
 
         return response
+
 
 """
 ### Define documents path
@@ -882,7 +931,8 @@ graph_rag.process_documents(documents)
 """
 ### Input a query and get the retrieved information from the graph RAG
 """
-logger.info("### Input a query and get the retrieved information from the graph RAG")
+logger.info(
+    "### Input a query and get the retrieved information from the graph RAG")
 
 query = "what is the main cause of climate change?"
 response = graph_rag.query(query)

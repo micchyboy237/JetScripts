@@ -7,7 +7,7 @@ from jet.llm.ollama.base import initialize_ollama_settings
 # import CodeBlock from "@theme/CodeBlock";
 import os
 # import ChatModelTabs from "@theme/ChatModelTabs";
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import AIMessage
 from langgraph.checkpoint.memory import MemorySaver

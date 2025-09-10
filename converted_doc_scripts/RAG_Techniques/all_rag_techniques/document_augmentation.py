@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 from enum import Enum
 from helper_functions import *
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.docstore.document import Document
 from langchain.embeddings.openai import OllamaEmbeddings
@@ -12,7 +12,8 @@ import re
 import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -95,7 +96,8 @@ Be aware that this implementation uses Ollama's API, which may incur costs based
 
 The cell below installs all necessary packages required to run this notebook.
 """
-logger.info("# Document Augmentation through Question Generation for Enhanced Retrieval")
+logger.info(
+    "# Document Augmentation through Question Generation for Enhanced Retrieval")
 
 # !pip install faiss-cpu langchain langchain-openai python-dotenv
 
@@ -103,13 +105,9 @@ logger.info("# Document Augmentation through Question Generation for Enhanced Re
 sys.path.append('RAG_TECHNIQUES')
 
 
-
 load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
-
-
-
 
 
 class QuestionGeneration(Enum):
@@ -122,6 +120,7 @@ class QuestionGeneration(Enum):
     """
     DOCUMENT_LEVEL = 1
     FRAGMENT_LEVEL = 2
+
 
 DOCUMENT_MAX_TOKENS = 4000
 DOCUMENT_OVERLAP_TOKENS = 100
@@ -137,8 +136,10 @@ QUESTIONS_PER_DOCUMENT = 40
 """
 logger.info("### Define classes and functions used by this pipeline")
 
+
 class QuestionList(BaseModel):
-    question_list: List[str] = Field(..., title="List of questions generated for the document or fragment")
+    question_list: List[str] = Field(
+        ..., title="List of questions generated for the document or fragment")
 
 
 class OllamaEmbeddingsWrapper(OllamaEmbeddings):
@@ -158,6 +159,7 @@ class OllamaEmbeddingsWrapper(OllamaEmbeddings):
         """
         return self.embed_query(query)
 
+
 def clean_and_filter_questions(questions: List[str]) -> List[str]:
     """
     Cleans and filters a list of questions.
@@ -174,6 +176,7 @@ def clean_and_filter_questions(questions: List[str]) -> List[str]:
         if cleaned_question.endswith('?'):
             cleaned_questions.append(cleaned_question)
     return cleaned_questions
+
 
 def generate_questions(text: str) -> List[str]:
     """
@@ -202,6 +205,7 @@ def generate_questions(text: str) -> List[str]:
     filtered_questions = clean_and_filter_questions(questions)
     return list(set(filtered_questions))
 
+
 def generate_answer(content: str, question: str) -> str:
     """
     Generates an answer to a given question based on the provided context using Ollama.
@@ -218,9 +222,10 @@ def generate_answer(content: str, question: str) -> str:
         input_variables=["context", "question"],
         template="Using the context data: {context}\n\nProvide a brief and precise answer to the question: {question}"
     )
-    chain =  prompt | llm
+    chain = prompt | llm
     input_data = {"context": content, "question": question}
     return chain.invoke(input_data)
+
 
 def split_document(document: str, chunk_size: int, chunk_overlap: int) -> List[str]:
     """
@@ -243,6 +248,7 @@ def split_document(document: str, chunk_size: int, chunk_overlap: int) -> List[s
             break
     return [" ".join(chunk) for chunk in chunks]
 
+
 def print_document(comment: str, document: Any) -> None:
     """
     Prints a comment followed by the content of a document.
@@ -254,7 +260,9 @@ def print_document(comment: str, document: Any) -> None:
     Returns:
         None
     """
-    logger.debug(f'{comment} (type: {document.metadata["type"]}, index: {document.metadata["index"]}): {document.page_content}')
+    logger.debug(
+        f'{comment} (type: {document.metadata["type"]}, index: {document.metadata["index"]}): {document.page_content}')
+
 
 """
 ### Example usage
@@ -290,6 +298,7 @@ logger.debug("Query Embedding (first 5 elements):", query_embedding[:5])
 """
 logger.info("### Main pipeline")
 
+
 def process_documents(content: str, embedding_model: OllamaEmbeddings):
     """
     Process the document content, split it into fragments, generate questions,
@@ -302,48 +311,59 @@ def process_documents(content: str, embedding_model: OllamaEmbeddings):
     Returns:
         VectorStoreRetriever: A retriever for the most relevant FAISS document.
     """
-    text_documents = split_document(content, DOCUMENT_MAX_TOKENS, DOCUMENT_OVERLAP_TOKENS)
+    text_documents = split_document(
+        content, DOCUMENT_MAX_TOKENS, DOCUMENT_OVERLAP_TOKENS)
     logger.debug(f'Text content split into: {len(text_documents)} documents')
 
     documents = []
     counter = 0
     for i, text_document in enumerate(text_documents):
-        text_fragments = split_document(text_document, FRAGMENT_MAX_TOKENS, FRAGMENT_OVERLAP_TOKENS)
-        logger.debug(f'Text document {i} - split into: {len(text_fragments)} fragments')
+        text_fragments = split_document(
+            text_document, FRAGMENT_MAX_TOKENS, FRAGMENT_OVERLAP_TOKENS)
+        logger.debug(
+            f'Text document {i} - split into: {len(text_fragments)} fragments')
 
         for j, text_fragment in enumerate(text_fragments):
             documents.append(Document(
                 page_content=text_fragment,
-                metadata={"type": "ORIGINAL", "index": counter, "text": text_document}
+                metadata={"type": "ORIGINAL",
+                          "index": counter, "text": text_document}
             ))
             counter += 1
 
             if QUESTION_GENERATION == QuestionGeneration.FRAGMENT_LEVEL:
                 questions = generate_questions(text_fragment)
                 documents.extend([
-                    Document(page_content=question, metadata={"type": "AUGMENTED", "index": counter + idx, "text": text_document})
+                    Document(page_content=question, metadata={
+                             "type": "AUGMENTED", "index": counter + idx, "text": text_document})
                     for idx, question in enumerate(questions)
                 ])
                 counter += len(questions)
-                logger.debug(f'Text document {i} Text fragment {j} - generated: {len(questions)} questions')
+                logger.debug(
+                    f'Text document {i} Text fragment {j} - generated: {len(questions)} questions')
 
         if QUESTION_GENERATION == QuestionGeneration.DOCUMENT_LEVEL:
             questions = generate_questions(text_document)
             documents.extend([
-                Document(page_content=question, metadata={"type": "AUGMENTED", "index": counter + idx, "text": text_document})
+                Document(page_content=question, metadata={
+                         "type": "AUGMENTED", "index": counter + idx, "text": text_document})
                 for idx, question in enumerate(questions)
             ])
             counter += len(questions)
-            logger.debug(f'Text document {i} - generated: {len(questions)} questions')
+            logger.debug(
+                f'Text document {i} - generated: {len(questions)} questions')
 
     for document in documents:
         print_document("Dataset", document)
 
-    logger.debug(f'Creating store, calculating embeddings for {len(documents)} FAISS documents')
+    logger.debug(
+        f'Creating store, calculating embeddings for {len(documents)} FAISS documents')
     vectorstore = FAISS.from_documents(documents, embedding_model)
 
-    logger.debug("Creating retriever returning the most relevant FAISS document")
+    logger.debug(
+        "Creating retriever returning the most relevant FAISS document")
     return vectorstore.as_retriever(search_kwargs={"k": 1})
+
 
 """
 ### Example
@@ -373,7 +393,7 @@ logger.debug(f"Retrieved document: {retrieved_docs[0].page_content}")
 logger.info("### Find the most relevant FAISS document in the store. In most cases, this will be an augmented question rather than the original text document.")
 
 query = "How do freshwater ecosystems change due to alterations in climatic factors?"
-print (f'Question:{os.linesep}{query}{os.linesep}')
+print(f'Question:{os.linesep}{query}{os.linesep}')
 retrieved_documents = document_query_retriever.invoke(query)
 
 for doc in retrieved_documents:
@@ -385,7 +405,7 @@ for doc in retrieved_documents:
 logger.info("### Find the parent text document and use it as context for the generative model to generate an answer to the question.")
 
 context = doc.metadata['text']
-print (f'{os.linesep}Context:{os.linesep}{context}')
+print(f'{os.linesep}Context:{os.linesep}{context}')
 answer = generate_answer(context, query)
 logger.debug(f'{os.linesep}Answer:{os.linesep}{answer}')
 

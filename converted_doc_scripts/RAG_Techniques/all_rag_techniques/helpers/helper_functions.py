@@ -1,6 +1,6 @@
 from jet.file.utils import load_file
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from jet.llm.ollama.base_langchain import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from langchain.vectorstores import FAISS
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain import PromptTemplate
@@ -359,5 +359,5 @@ def get_langchain_embedding_provider(provider: EmbeddingProvider, model_id: str 
     Raises:
         ValueError: If the specified provider is not supported.
     """
-    from jet.llm.ollama.base_langchain import OllamaEmbeddings
+    from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
     return OllamaEmbeddings(model="mxbai-embed-large")

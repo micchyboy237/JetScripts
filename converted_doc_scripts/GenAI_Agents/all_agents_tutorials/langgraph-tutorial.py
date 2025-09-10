@@ -4,7 +4,7 @@ import os
 from typing import TypedDict, List
 from langgraph.graph import StateGraph, END
 from langchain.prompts import PromptTemplate
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langchain.schema import HumanMessage
 from langchain_core.runnables.graph import MermaidDrawMethod
 from IPython.display import display, Image

@@ -1,5 +1,5 @@
 from collections import defaultdict
-from jet.llm.ollama.base_langchain import ChatOllama, OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
@@ -11,7 +11,8 @@ import numpy as np
 import os
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -105,13 +106,13 @@ Import the necessary libraries and dependencies.
 logger.info("Import the necessary libraries and dependencies.")
 
 
-
 """
 Find your Public Endpoint and Token (i.e., API Key) on the Zilliz Cloud page.
 
 ![](../images/zilliz_interface.png)
 """
-logger.info("Find your Public Endpoint and Token (i.e., API Key) on the Zilliz Cloud page.")
+logger.info(
+    "Find your Public Endpoint and Token (i.e., API Key) on the Zilliz Cloud page.")
 
 milvus_client = MilvusClient(
     uri="YOUR_ZILLIZ_PUBLIC_ENDPOINT",
@@ -169,7 +170,8 @@ nano_dataset = [
             ],
             ["Jakob Bernoulli", "is known for", "the Bernoulli numbers"],
             ["Jakob Bernoulli", "is known for", "the Bernoulli theorem"],
-            ["The Bernoulli theorem", "is a precursor to", "the law of large numbers"],
+            ["The Bernoulli theorem", "is a precursor to",
+                "the law of large numbers"],
             ["Jakob Bernoulli", "was the older brother of", "Johann Bernoulli"],
         ],
     },
@@ -330,6 +332,7 @@ Insert the data with their metadata information into Milvus collections, includi
 """
 logger.info("Insert the data with their metadata information into Milvus collections, including entity, relation, and passage collections. The metadata information includes the passage id and the adjacency entity or relation id.")
 
+
 def milvus_insert(
     collection_name: str,
     text_list: list[str],
@@ -347,7 +350,7 @@ def milvus_insert(
     """
     batch_size = 512
     for row_id in tqdm(range(0, len(text_list), batch_size), desc="Inserting"):
-        batch_texts = text_list[row_id : row_id + batch_size]
+        batch_texts = text_list[row_id: row_id + batch_size]
         batch_embeddings = embedding_model.embed_documents(batch_texts)
 
         batch_ids = [row_id + j for j in range(len(batch_texts))]
@@ -524,7 +527,8 @@ filtered_hit_entity_ids = [
 
 for filtered_hit_entity_id in filtered_hit_entity_ids:
     expanded_relations_from_entity.update(
-        entity_relation_adj_target_degree[filtered_hit_entity_id].nonzero()[1].tolist()
+        entity_relation_adj_target_degree[filtered_hit_entity_id].nonzero()[
+            1].tolist()
     )
 
 relation_candidate_ids = list(
@@ -608,6 +612,7 @@ Now we implement the core reranking function that processes candidate relationsh
 """
 logger.info("#### Implement the Reranking Function")
 
+
 def rerank_relations(
     query: str, relation_candidate_texts: list[str], relation_candidate_ids: list[str]
 ) -> list[int]:
@@ -652,10 +657,11 @@ def rerank_relations(
     rerank_relation_lines = rerank_res["useful_relationships"]
     id_2_lines = {}
     for line in rerank_relation_lines:
-        id_ = int(line[line.find("[") + 1 : line.find("]")])
+        id_ = int(line[line.find("[") + 1: line.find("]")])
         id_2_lines[id_] = line.strip()
         rerank_relation_ids.append(id_)
     return rerank_relation_ids
+
 
 """
 #### Execute the Reranking Process

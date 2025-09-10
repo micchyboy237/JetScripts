@@ -1,6 +1,6 @@
 from typing import Literal
 
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langchain_core.messages import SystemMessage, RemoveMessage
 from langchain_core.messages.human import HumanMessage
 from langgraph.checkpoint.memory import MemorySaver

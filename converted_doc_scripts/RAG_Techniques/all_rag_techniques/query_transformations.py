@@ -1,11 +1,12 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 import os
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -92,7 +93,6 @@ logger.info("# Query Transformations for Improved Retrieval in RAG Systems")
 # !pip install langchain langchain-openai python-dotenv
 
 
-
 load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
@@ -100,7 +100,8 @@ load_dotenv()
 """
 ### 1 - Query Rewriting: Reformulating queries to improve retrieval.
 """
-logger.info("### 1 - Query Rewriting: Reformulating queries to improve retrieval.")
+logger.info(
+    "### 1 - Query Rewriting: Reformulating queries to improve retrieval.")
 
 re_write_llm = ChatOllama(model="llama3.1")
 
@@ -118,6 +119,7 @@ query_rewrite_prompt = PromptTemplate(
 
 query_rewriter = query_rewrite_prompt | re_write_llm
 
+
 def rewrite_query(original_query):
     """
     Rewrite the original query to improve retrieval.
@@ -130,6 +132,7 @@ def rewrite_query(original_query):
     """
     response = query_rewriter.invoke(original_query)
     return response.content
+
 
 """
 ### Demonstrate on a use case
@@ -144,7 +147,8 @@ logger.debug("\nRewritten query:", rewritten_query)
 """
 ### 2 - Step-back Prompting: Generating broader queries for better context retrieval.
 """
-logger.info("### 2 - Step-back Prompting: Generating broader queries for better context retrieval.")
+logger.info(
+    "### 2 - Step-back Prompting: Generating broader queries for better context retrieval.")
 
 step_back_llm = ChatOllama(model="llama3.1")
 
@@ -163,6 +167,7 @@ step_back_prompt = PromptTemplate(
 
 step_back_chain = step_back_prompt | step_back_llm
 
+
 def generate_step_back_query(original_query):
     """
     Generate a step-back query to retrieve broader context.
@@ -175,6 +180,7 @@ def generate_step_back_query(original_query):
     """
     response = step_back_chain.invoke(original_query)
     return response.content
+
 
 """
 ### Demonstrate on a use case
@@ -189,7 +195,8 @@ logger.debug("\nStep-back query:", step_back_query)
 """
 ### 3- Sub-query Decomposition: Breaking complex queries into simpler sub-queries.
 """
-logger.info("### 3- Sub-query Decomposition: Breaking complex queries into simpler sub-queries.")
+logger.info(
+    "### 3- Sub-query Decomposition: Breaking complex queries into simpler sub-queries.")
 
 sub_query_llm = ChatOllama(model="llama3.1")
 
@@ -214,6 +221,7 @@ subquery_decomposition_prompt = PromptTemplate(
 
 subquery_decomposer_chain = subquery_decomposition_prompt | sub_query_llm
 
+
 def decompose_query(original_query: str):
     """
     Decompose the original query into simpler sub-queries.
@@ -225,8 +233,10 @@ def decompose_query(original_query: str):
     List[str]: A list of simpler sub-queries
     """
     response = subquery_decomposer_chain.invoke(original_query).content
-    sub_queries = [q.strip() for q in response.split('\n') if q.strip() and not q.strip().startswith('Sub-queries:')]
+    sub_queries = [q.strip() for q in response.split(
+        '\n') if q.strip() and not q.strip().startswith('Sub-queries:')]
     return sub_queries
+
 
 """
 ### Demonstrate on a use case

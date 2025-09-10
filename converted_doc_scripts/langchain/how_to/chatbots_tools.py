@@ -2,7 +2,7 @@ from jet.logger import logger
 from jet.llm.ollama.base import initialize_ollama_settings
 import os
 from langchain_community.tools.tavily_search import TavilySearchResults
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import AIMessage, HumanMessage

@@ -3,7 +3,7 @@ from jet.llm.ollama.base import initialize_ollama_settings
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import StateGraph, END
 from langchain.schema import HumanMessage
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 import chromadb
 from pydantic import BaseModel
 from typing import Optional, Callable

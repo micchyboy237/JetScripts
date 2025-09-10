@@ -1,11 +1,11 @@
 from jet.logger import logger
 from jet.llm.ollama.base import initialize_ollama_settings
 import dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
-from jet.llm.ollama.base_langchain import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage

@@ -2,7 +2,7 @@ from jet.logger import CustomLogger
 from jet.llm.ollama.base import initialize_ollama_settings
 import os
 from typing import Literal
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import MessagesState, StateGraph, START, END

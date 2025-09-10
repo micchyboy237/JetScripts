@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain import PromptTemplate
 from langchain.chains import LLMChain
@@ -12,7 +12,8 @@ import numpy as np
 import os
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
+log_file = os.path.join(
+    script_dir, f"{os.path.splitext(os.path.basename(__file__))[0]}.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
@@ -26,12 +27,15 @@ load_dotenv()
 
 llm = ChatOllama(model="llama3.1")
 
+
 class ResultScore(BaseModel):
-    score: float = Field(..., description="The score of the result, ranging from 0 to 1 where 1 is the best possible score.")
+    score: float = Field(
+        ..., description="The score of the result, ranging from 0 to 1 where 1 is the best possible score.")
+
 
 correctness_prompt = PromptTemplate(
-input_variables=["question", "ground_truth", "generated_answer"],
-template="""
+    input_variables=["question", "ground_truth", "generated_answer"],
+    template="""
 Question: {question}
 Ground Truth: {ground_truth}
 Generated Answer: {generated_answer}
@@ -43,7 +47,8 @@ any score between 0 and 1 is acceptable and depends on how correct the generated
 Score:
 """
 )
-correctness_chain = correctness_prompt | llm.with_structured_output(ResultScore)
+correctness_chain = correctness_prompt | llm.with_structured_output(
+    ResultScore)
 
 
 def evaluate_correctness(question, ground_truth, generated_answer):
@@ -57,8 +62,10 @@ def evaluate_correctness(question, ground_truth, generated_answer):
     Returns:
         A float between 0 and 1, where 1 is the best possible score.
     """
-    result = correctness_chain.invoke({"question": question, "ground_truth": ground_truth, "generated_answer": generated_answer})
+    result = correctness_chain.invoke(
+        {"question": question, "ground_truth": ground_truth, "generated_answer": generated_answer})
     return result.score
+
 
 question = "What is the capital of France and Spain?"
 ground_truth = "Paris and Barcelona"
@@ -68,8 +75,8 @@ score = evaluate_correctness(question, ground_truth, generated_answer)
 score
 
 faithfulness_prompt = PromptTemplate(
-input_variables=["question","context", "generated_answer"],
-template="""
+    input_variables=["question", "context", "generated_answer"],
+    template="""
 Question: {question}
 Context: {context}
 Generated Answer: {generated_answer}
@@ -122,7 +129,9 @@ Generated Answer: 4.
 In this case, the context states '4', but it does not provide information to deduce the answer to 'What is 2+2?', so the score should be *0*.
 """
 )
-faithfulness_chain = faithfulness_prompt | llm.with_structured_output(ResultScore)
+faithfulness_chain = faithfulness_prompt | llm.with_structured_output(
+    ResultScore)
+
 
 def evaluate_faithfulness(question, context, generated_answer):
     """Evaluates if the generate answer to the question can be deduced from the context.
@@ -135,8 +144,10 @@ def evaluate_faithfulness(question, context, generated_answer):
     Returns:
         A float between 0 and 1, where 1 is the best possible score.
     """
-    result = faithfulness_chain.invoke({"question": question, "context": context, "generated_answer": generated_answer})
+    result = faithfulness_chain.invoke(
+        {"question": question, "context": context, "generated_answer": generated_answer})
     return result.score, result.explanation
+
 
 question = "what is 3+3?"
 context = "6"
@@ -163,7 +174,9 @@ Consider: Relevance, Directness, Completeness, Accuracy
 Final Score: [Average of all scores]
 """
 )
-ratio_of_relevant_docs_chain = ratio_of_relevant_docs_prompt | llm.with_structured_output(ResultScore)
+ratio_of_relevant_docs_chain = ratio_of_relevant_docs_prompt | llm.with_structured_output(
+    ResultScore)
+
 
 def evaluate_ratio_of_relevant_docs(question, contexts):
     """Evaluates the ratio of relevant documents in the contexts to the question.
@@ -175,8 +188,10 @@ def evaluate_ratio_of_relevant_docs(question, contexts):
     Returns:
         A float between 0 and 1, where 1 is the best possible score.
     """
-    result = ratio_of_relevant_docs_chain.invoke({"question": question, "contexts": contexts})
+    result = ratio_of_relevant_docs_chain.invoke(
+        {"question": question, "contexts": contexts})
     return result.score
+
 
 question = "What is the capital of France?"
 contexts = ["Paris.", "i was traveling in France."]

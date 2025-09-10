@@ -1,7 +1,7 @@
 from jet.logger import logger
 from jet.llm.ollama.base import initialize_ollama_settings
 # import ChatModelTabs from "@theme/ChatModelTabs";
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langchain_core.documents import Document
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate

@@ -4,8 +4,8 @@ from athina.loaders import Loader
 from collections import Counter
 from datasets import Dataset
 from google.colab import userdata
-from jet.llm.ollama.base_langchain import ChatOllama
-from jet.llm.ollama.base_langchain import OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema import Document
