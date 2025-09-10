@@ -536,7 +536,8 @@ def scrape_code(
                     source_code = "from jet.transformers.formatters import format_json\n" + source_code
                 if "HuggingFaceEmbedding" in source_code:
                     source_code = "from jet.models.config import MODELS_CACHE_DIR\n" + source_code
-                if "await " in source_code:
+                # Check if 'await' is the first word on any line in source_code (do not strip)
+                if any(line.startswith("await ") for line in source_code.splitlines()):
                     # Move all import lines to the top of the code block, outside async def main
                     lines = source_code.splitlines()
                     import_lines = []

@@ -30,271 +30,276 @@ PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
 os.makedirs(PERSIST_DIR, exist_ok=True)
 
 
-async def main():
-    """
-    # Plan-and-Execute
+"""
+# Plan-and-Execute
 
-    This notebook shows how to create a "plan-and-execute" style agent. This is heavily inspired by the [Plan-and-Solve](https://arxiv.org/abs/2305.04091) paper as well as the [Baby-AGI](https://github.com/yoheinakajima/babyagi) project.
+This notebook shows how to create a "plan-and-execute" style agent. This is heavily inspired by the [Plan-and-Solve](https://arxiv.org/abs/2305.04091) paper as well as the [Baby-AGI](https://github.com/yoheinakajima/babyagi) project.
 
-    The core idea is to first come up with a multi-step plan, and then go through that plan one item at a time.
-    After accomplishing a particular task, you can then revisit the plan and modify as appropriate.
-
-
-    The general computational graph looks like the following:
-
-    ![plan-and-execute diagram](attachment:86cf6404-3d9b-41cb-ab97-5e451f576620.png)
+The core idea is to first come up with a multi-step plan, and then go through that plan one item at a time.
+After accomplishing a particular task, you can then revisit the plan and modify as appropriate.
 
 
-    This compares to a typical [ReAct](https://arxiv.org/abs/2210.03629) style agent where you think one step at a time.
-    The advantages of this "plan-and-execute" style agent are:
+The general computational graph looks like the following:
 
-    1. Explicit long term planning (which even really strong LLMs can struggle with)
-    2. Ability to use smaller/weaker models for the execution step, only using larger/better models for the planning step
+![plan-and-execute diagram](attachment:86cf6404-3d9b-41cb-ab97-5e451f576620.png)
 
 
-    The following walkthrough demonstrates how to do so in LangGraph. The resulting agent will leave a trace like the following example: ([link](https://smith.langchain.com/public/d46e24d3-dda6-44d5-9550-b618fca4e0d4/r)).
+This compares to a typical [ReAct](https://arxiv.org/abs/2210.03629) style agent where you think one step at a time.
+The advantages of this "plan-and-execute" style agent are:
 
-    ## Setup
+1. Explicit long term planning (which even really strong LLMs can struggle with)
+2. Ability to use smaller/weaker models for the execution step, only using larger/better models for the planning step
 
-    First, we need to install the packages required.
-    """
-    logger.info("# Plan-and-Execute")
 
-    # %%capture --no-stderr
-    # %pip install --quiet -U langgraph langchain-community langchain-ollama tavily-python
+The following walkthrough demonstrates how to do so in LangGraph. The resulting agent will leave a trace like the following example: ([link](https://smith.langchain.com/public/d46e24d3-dda6-44d5-9550-b618fca4e0d4/r)).
 
-    """
-    Next, we need to set API keys for Ollama(the LLM we will use) and Tavily (the search tool we will use)
-    """
-    logger.info(
-        "Next, we need to set API keys for Ollama(the LLM we will use) and Tavily (the search tool we will use)")
+## Setup
 
-    # import getpass
+First, we need to install the packages required.
+"""
+logger.info("# Plan-and-Execute")
 
-    # def _set_env(var: str):
-    #     if not os.environ.get(var):
-    #         os.environ[var] = getpass.getpass(f"{var}: ")
+# %%capture --no-stderr
+# %pip install --quiet -U langgraph langchain-community langchain-ollama tavily-python
 
-    # _set_env("OPENAI_API_KEY")
-    # _set_env("TAVILY_API_KEY")
+"""
+Next, we need to set API keys for Ollama(the LLM we will use) and Tavily (the search tool we will use)
+"""
+logger.info(
+    "Next, we need to set API keys for Ollama(the LLM we will use) and Tavily (the search tool we will use)")
 
-    """
-    <div class="admonition tip">
-        <p class="admonition-title">Set up <a href="https://smith.langchain.com">LangSmith</a> for LangGraph development</p>
-        <p style="padding-top: 5px;">
-            Sign up for LangSmith to quickly spot issues and improve the performance of your LangGraph projects. LangSmith lets you use trace data to debug, test, and monitor your LLM apps built with LangGraph — read more about how to get started <a href="https://docs.smith.langchain.com">here</a>. 
-        </p>
-    </div>
-    
-    ## Define Tools
-    
-    We will first define the tools we want to use. For this simple example, we will use a built-in search tool via Tavily. However, it is really easy to create your own tools - see documentation [here](https://python.langchain.com/docs/how_to/custom_tools) on how to do that.
-    """
-    logger.info("## Define Tools")
+# import getpass
 
-    tools = [TavilySearchResults(max_results=3)]
+# def _set_env(var: str):
+#     if not os.environ.get(var):
+#         os.environ[var] = getpass.getpass(f"{var}: ")
 
-    """
-    ## Define our Execution Agent
-    
-    Now we will create the execution agent we want to use to execute tasks. 
-    Note that for this example, we will be using the same execution agent for each task, but this doesn't HAVE to be the case.
-    """
-    logger.info("## Define our Execution Agent")
+# _set_env("OPENAI_API_KEY")
+# _set_env("TAVILY_API_KEY")
 
-    llm = ChatOllama(model="llama3.2")
-    prompt = "You are a helpful assistant."
-    agent_executor = create_react_agent(llm, tools, prompt=prompt)
+"""
+<div class="admonition tip">
+    <p class="admonition-title">Set up <a href="https://smith.langchain.com">LangSmith</a> for LangGraph development</p>
+    <p style="padding-top: 5px;">
+        Sign up for LangSmith to quickly spot issues and improve the performance of your LangGraph projects. LangSmith lets you use trace data to debug, test, and monitor your LLM apps built with LangGraph — read more about how to get started <a href="https://docs.smith.langchain.com">here</a>. 
+    </p>
+</div>
 
-    agent_executor.invoke(
-        {"messages": [("user", "who is the winnner of the us open")]})
+## Define Tools
 
-    """
-    ## Define the State
-    
-    Let's now start by defining the state the track for this agent.
-    
-    First, we will need to track the current plan. Let's represent that as a list of strings.
-    
-    Next, we should track previously executed steps. Let's represent that as a list of tuples (these tuples will contain the step and then the result)
-    
-    Finally, we need to have some state to represent the final response as well as the original input.
-    """
-    logger.info("## Define the State")
+We will first define the tools we want to use. For this simple example, we will use a built-in search tool via Tavily. However, it is really easy to create your own tools - see documentation [here](https://python.langchain.com/docs/how_to/custom_tools) on how to do that.
+"""
+logger.info("## Define Tools")
 
-    class PlanExecute(TypedDict):
-        input: str
-        plan: List[str]
-        past_steps: Annotated[List[Tuple], operator.add]
-        response: str
+tools = [TavilySearchResults(max_results=3)]
 
-    """
-    ## Planning Step
-    
-    Let's now think about creating the planning step. This will use function calling to create a plan.
-    
-    <div class="admonition note">
-        <p class="admonition-title">Using Pydantic with LangChain</p>
-        <p>
-            This notebook uses Pydantic v2 <code>BaseModel</code>, which requires <code>langchain-core >= 0.3</code>. Using <code>langchain-core < 0.3</code> will result in errors due to mixing of Pydantic v1 and v2 <code>BaseModels</code>.
-        </p>
-    </div>
-    """
-    logger.info("## Planning Step")
+"""
+## Define our Execution Agent
 
-    class Plan(BaseModel):
-        """Plan to follow in future"""
+Now we will create the execution agent we want to use to execute tasks. 
+Note that for this example, we will be using the same execution agent for each task, but this doesn't HAVE to be the case.
+"""
+logger.info("## Define our Execution Agent")
 
-        steps: List[str] = Field(
-            description="different steps to follow, should be in sorted order"
-        )
+llm = ChatOllama(model="llama3.2")
+prompt = "You are a helpful assistant."
+agent_executor = create_react_agent(llm, tools, prompt=prompt)
 
-    planner_prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                """For the given objective, come up with a simple step by step plan. \
-    This plan should involve individual tasks, that if executed correctly will yield the correct answer. Do not add any superfluous steps. \
-    The result of the final step should be the final answer. Make sure that each step has all the information needed - do not skip steps.""",
-            ),
-            ("placeholder", "{messages}"),
+agent_executor.invoke(
+    {"messages": [("user", "who is the winnner of the us open")]})
+
+"""
+## Define the State
+
+Let's now start by defining the state the track for this agent.
+
+First, we will need to track the current plan. Let's represent that as a list of strings.
+
+Next, we should track previously executed steps. Let's represent that as a list of tuples (these tuples will contain the step and then the result)
+
+Finally, we need to have some state to represent the final response as well as the original input.
+"""
+logger.info("## Define the State")
+
+
+class PlanExecute(TypedDict):
+    input: str
+    plan: List[str]
+    past_steps: Annotated[List[Tuple], operator.add]
+    response: str
+
+
+"""
+## Planning Step
+
+Let's now think about creating the planning step. This will use function calling to create a plan.
+
+<div class="admonition note">
+    <p class="admonition-title">Using Pydantic with LangChain</p>
+    <p>
+        This notebook uses Pydantic v2 <code>BaseModel</code>, which requires <code>langchain-core >= 0.3</code>. Using <code>langchain-core < 0.3</code> will result in errors due to mixing of Pydantic v1 and v2 <code>BaseModels</code>.
+    </p>
+</div>
+"""
+logger.info("## Planning Step")
+
+
+class Plan(BaseModel):
+    """Plan to follow in future"""
+
+    steps: List[str] = Field(
+        description="different steps to follow, should be in sorted order"
+    )
+
+
+planner_prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """For the given objective, come up with a simple step by step plan. \
+This plan should involve individual tasks, that if executed correctly will yield the correct answer. Do not add any superfluous steps. \
+The result of the final step should be the final answer. Make sure that each step has all the information needed - do not skip steps.""",
+        ),
+        ("placeholder", "{messages}"),
+    ]
+)
+planner = planner_prompt | ChatOllama(
+    model="llama3.2", temperature=0
+).with_structured_output(Plan)
+
+planner.invoke(
+    {
+        "messages": [
+            ("user", "what is the hometown of the current Australia open winner?")
         ]
-    )
-    planner = planner_prompt | ChatOllama(
-        model="llama3.2", temperature=0
-    ).with_structured_output(Plan)
+    }
+)
 
-    planner.invoke(
-        {
-            "messages": [
-                ("user", "what is the hometown of the current Australia open winner?")
-            ]
-        }
-    )
+"""
+## Re-Plan Step
 
-    """
-    ## Re-Plan Step
-    
-    Now, let's create a step that re-does the plan based on the result of the previous step.
-    """
-    logger.info("## Re-Plan Step")
+Now, let's create a step that re-does the plan based on the result of the previous step.
+"""
+logger.info("## Re-Plan Step")
 
-    class Response(BaseModel):
-        """Response to user."""
 
-        response: str
+class Response(BaseModel):
+    """Response to user."""
 
-    class Act(BaseModel):
-        """Action to perform."""
+    response: str
 
-        action: Union[Response, Plan] = Field(
-            description="Action to perform. If you want to respond to user, use Response. "
-            "If you need to further use tools to get the answer, use Plan."
-        )
 
-    replanner_prompt = ChatPromptTemplate.from_template(
-        """For the given objective, come up with a simple step by step plan. \
-    This plan should involve individual tasks, that if executed correctly will yield the correct answer. Do not add any superfluous steps. \
-    The result of the final step should be the final answer. Make sure that each step has all the information needed - do not skip steps.
-    
-    Your objective was this:
-    {input}
-    
-    Your original plan was this:
-    {plan}
-    
-    You have currently done the follow steps:
-    {past_steps}
-    
-    Update your plan accordingly. If no more steps are needed and you can return to the user, then respond with that. Otherwise, fill out the plan. Only add steps to the plan that still NEED to be done. Do not return previously done steps as part of the plan."""
+class Act(BaseModel):
+    """Action to perform."""
+
+    action: Union[Response, Plan] = Field(
+        description="Action to perform. If you want to respond to user, use Response. "
+        "If you need to further use tools to get the answer, use Plan."
     )
 
-    replanner = replanner_prompt | ChatOllama(
-        model="llama3.2", temperature=0
-    ).with_structured_output(Act)
 
-    """
-    ## Create the Graph
-    
-    We can now create the graph!
-    """
-    logger.info("## Create the Graph")
+replanner_prompt = ChatPromptTemplate.from_template(
+    """For the given objective, come up with a simple step by step plan. \
+This plan should involve individual tasks, that if executed correctly will yield the correct answer. Do not add any superfluous steps. \
+The result of the final step should be the final answer. Make sure that each step has all the information needed - do not skip steps.
 
-    async def execute_step(state: PlanExecute):
-        plan = state["plan"]
-        plan_str = "\n".join(f"{i + 1}. {step}" for i, step in enumerate(plan))
-        task = plan[0]
-        task_formatted = f"""For the following plan:
-    {plan_str}\n\nYou are tasked with executing step {1}, {task}."""
-        agent_response = await agent_executor.ainvoke(
-            {"messages": [("user", task_formatted)]}
-        )
-        logger.success(format_json(agent_response))
-        return {
-            "past_steps": [(task, agent_response["messages"][-1].content)],
-        }
+Your objective was this:
+{input}
 
-    async def plan_step(state: PlanExecute):
-        plan = await planner.ainvoke({"messages": [("user", state["input"])]})
-        logger.success(format_json(plan))
-        return {"plan": plan.steps}
+Your original plan was this:
+{plan}
 
-    async def replan_step(state: PlanExecute):
-        output = await replanner.ainvoke(state)
-        logger.success(format_json(output))
-        if isinstance(output.action, Response):
-            return {"response": output.action.response}
-        else:
-            return {"plan": output.action.steps}
+You have currently done the follow steps:
+{past_steps}
 
-    def should_end(state: PlanExecute):
-        if "response" in state and state["response"]:
-            return END
-        else:
-            return "agent"
+Update your plan accordingly. If no more steps are needed and you can return to the user, then respond with that. Otherwise, fill out the plan. Only add steps to the plan that still NEED to be done. Do not return previously done steps as part of the plan."""
+)
 
-    workflow = StateGraph(PlanExecute)
+replanner = replanner_prompt | ChatOllama(
+    model="llama3.2", temperature=0
+).with_structured_output(Act)
 
-    workflow.add_node("planner", plan_step)
+"""
+## Create the Graph
 
-    workflow.add_node("agent", execute_step)
+We can now create the graph!
+"""
+logger.info("## Create the Graph")
 
-    workflow.add_node("replan", replan_step)
 
-    workflow.add_edge(START, "planner")
-
-    workflow.add_edge("planner", "agent")
-
-    workflow.add_edge("agent", "replan")
-
-    workflow.add_conditional_edges(
-        "replan",
-        should_end,
-        ["agent", END],
+async def execute_step(state: PlanExecute):
+    plan = state["plan"]
+    plan_str = "\n".join(f"{i + 1}. {step}" for i, step in enumerate(plan))
+    task = plan[0]
+    task_formatted = f"""For the following plan:
+{plan_str}\n\nYou are tasked with executing step {1}, {task}."""
+    agent_response = agent_executor.invoke(
+        {"messages": [("user", task_formatted)]}
     )
+    logger.success(format_json(agent_response))
+    return {
+        "past_steps": [(task, agent_response["messages"][-1].content)],
+    }
 
-    app = workflow.compile()
 
-    config = {"recursion_limit": 50}
-    inputs = {
-        "input": "what is the hometown of the mens 2024 Australia open winner?"}
-    for event in app.stream(inputs, config=config):
-        for k, v in event.items():
-            if k != "__end__":
-                logger.debug(v)
+def plan_step(state: PlanExecute):
+    plan = planner.invoke({"messages": [("user", state["input"])]})
+    logger.success(format_json(plan))
+    return {"plan": plan.steps}
 
-    """
-    ## Conclusion
-    
-    Congrats on making a plan-and-execute agent! One known limitations of the above design is that each task is still executed in sequence, meaning embarrassingly parallel operations all add to the total execution time. You could improve on this by having each task represented as a DAG (similar to LLMCompiler), rather than a regular list.
-    """
-    logger.info("## Conclusion")
 
-    return app
+async def replan_step(state: PlanExecute):
+    output = replanner.invoke(state)
+    logger.success(format_json(output))
+    if isinstance(output.action, Response):
+        return {"response": output.action.response}
+    else:
+        return {"plan": output.action.steps}
 
-if __name__ == '__main__':
-    import asyncio
-    app = asyncio.run(main())
-    render_mermaid_graph(app, f"{OUTPUT_DIR}/graph_output.png", xray=True)
 
-    logger.info("\n\n[DONE]", bright=True)
+def should_end(state: PlanExecute):
+    if "response" in state and state["response"]:
+        return END
+    else:
+        return "agent"
+
+
+workflow = StateGraph(PlanExecute)
+
+workflow.add_node("planner", plan_step)
+
+workflow.add_node("agent", execute_step)
+
+workflow.add_node("replan", replan_step)
+
+workflow.add_edge(START, "planner")
+
+workflow.add_edge("planner", "agent")
+
+workflow.add_edge("agent", "replan")
+
+workflow.add_conditional_edges(
+    "replan",
+    should_end,
+    ["agent", END],
+)
+
+app = workflow.compile()
+render_mermaid_graph(app, f"{OUTPUT_DIR}/graph_output.png", xray=True)
+
+config = {"recursion_limit": 50}
+inputs = {
+    "input": "what is the hometown of the mens 2024 Australia open winner?"}
+for event in app.stream(inputs, config=config):
+    for k, v in event.items():
+        if k != "__end__":
+            logger.debug(v)
+
+"""
+## Conclusion
+
+Congrats on making a plan-and-execute agent! One known limitations of the above design is that each task is still executed in sequence, meaning embarrassingly parallel operations all add to the total execution time. You could improve on this by having each task represented as a DAG (similar to LLMCompiler), rather than a regular list.
+"""
+logger.info("## Conclusion")
+
+logger.info("\n\n[DONE]", bright=True)
