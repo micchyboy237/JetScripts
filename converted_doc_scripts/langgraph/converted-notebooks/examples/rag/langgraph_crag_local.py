@@ -333,6 +333,8 @@ def predict_custom_agent_local_answer(example: dict):
 
 example = {"input": "What are the types of agent memory?"}
 response = predict_custom_agent_local_answer(example)
+save_file(
+    response, f"{OUTPUT_DIR}/predict_custom_agent_local_answer_response.json")
 
 """
 Trace:
@@ -482,6 +484,7 @@ experiment_results = evaluate(
     max_concurrency=1,
     metadata={"version": metadata},
 )
+save_file(experiment_results, f"{OUTPUT_DIR}/experiment_results.json")
 
 """
 We can see the results benchmarked against `GPT-4o` and `Llama-3-70b` using `Custom` agent (as shown here) and ReAct.
