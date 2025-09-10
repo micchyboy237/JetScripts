@@ -1,3 +1,6 @@
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
+
+
 async def main():
     from jet.transformers.formatters import format_json
     from autogen_agentchat.agents import AssistantAgent
@@ -8,10 +11,10 @@ async def main():
     from autogen_core import Image
     from autogen_core.model_context import BufferedChatCompletionContext
     from autogen_core.tools import FunctionTool
-    from autogen_ext.models.ollama import OllamaChatCompletionClient
     from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
     from io import BytesIO
     from jet.logger import CustomLogger
+    from jet.search.duckduckgo import search_web
     from pydantic import BaseModel
     from typing import Literal
     import PIL
@@ -60,7 +63,7 @@ async def main():
     
     async def web_search(query: str) -> str:
         """Find information on the web"""
-        return "AutoGen is a programming framework for building multi-agent applications."
+        return search_web(query)
     
     
     model_client = OllamaChatCompletionClient(

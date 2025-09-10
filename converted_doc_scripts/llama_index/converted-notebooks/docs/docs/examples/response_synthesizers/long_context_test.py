@@ -1,12 +1,14 @@
+from jet.token.token_utils import token_counter
+
+
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import SimpleDirectoryReader, Document
     from llama_index.core import SummaryIndex
     from llama_index.core.evaluation import CorrectnessEvaluator
     from llama_index.core.utils import globals_helper
-    from llama_index.llms.anthropic import Anthropic
     import os
     import shutil
 
@@ -59,7 +61,7 @@ async def main():
     """
     logger.info("We print the number of tokens below. Note that this overflows the context window of existing LLMs, requiring response synthesis strategies.")
 
-    num_tokens = len(globals_helper.tokenizer(uber_doc.get_content()))
+    num_tokens = token_counter(uber_doc.get_content(), "llama3.2")
     logger.debug(f"NUM TOKENS: {num_tokens}")
 
     """
@@ -100,8 +102,7 @@ async def main():
     async def run_experiments(
         doc, position_percentiles, context_str, query, llm, response_mode="compact"
     ):
-        eval_llm = OllamaFunctionCallingAdapter(
-            model="llama3.2")
+        eval_llm = OllamaFunctionCalling(model="llama3.2")
 
         correctness_evaluator = CorrectnessEvaluator(llm=eval_llm)
         eval_scores = {}
@@ -134,8 +135,7 @@ async def main():
     position_percentiles = [0.0, 0.1, 0.2,
                             0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
-    llm = OllamaFunctionCallingAdapter(
-        model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     eval_scores_gpt4 = await run_experiments(
         [uber_doc],
@@ -147,8 +147,7 @@ async def main():
     )
     logger.success(format_json(eval_scores_gpt4))
 
-    llm = OllamaFunctionCallingAdapter(
-        model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
     eval_scores_gpt4_ts = await run_experiments(
         [uber_doc],
         position_percentiles,
@@ -159,14 +158,14 @@ async def main():
     )
     logger.success(format_json(eval_scores_gpt4_ts))
 
-    llm = Anthropic(model="claude-2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     eval_scores_anthropic = await run_experiments(
         [uber_doc], position_percentiles, context_str, query_str, llm
     )
     logger.success(format_json(eval_scores_anthropic))
 
-    llm = Anthropic(model="claude-2")
+    llm = OllamaFunctionCalling(model="llama3.2")
     eval_scores_anthropic = await run_experiments(
         [uber_doc],
         position_percentiles,
