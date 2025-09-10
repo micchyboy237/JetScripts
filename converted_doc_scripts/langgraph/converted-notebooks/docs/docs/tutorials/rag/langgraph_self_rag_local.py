@@ -1,4 +1,5 @@
-from jet.logger import CustomLogger
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
+from jet.logger import logger
 from langchain import hub
 from langchain.prompts import PromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -7,7 +8,6 @@ from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.vectorstores import Chroma
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.output_parsers import StrOutputParser
-from langchain_nomic.embeddings import NomicEmbeddings
 from langgraph.graph import END, StateGraph, START
 from pprint import pprint
 from typing import List
@@ -19,9 +19,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Self-RAG using local LLMs
@@ -132,7 +136,7 @@ doc_splits = text_splitter.split_documents(docs_list)
 vectorstore = Chroma.from_documents(
     documents=doc_splits,
     collection_name="rag-chroma",
-    embedding=NomicEmbeddings(model="nomic-embed-text-v1.5", inference_mode="local"),
+    embedding=OllamaEmbeddings(model="mxbai-embed-large"),
 )
 retriever = vectorstore.as_retriever()
 

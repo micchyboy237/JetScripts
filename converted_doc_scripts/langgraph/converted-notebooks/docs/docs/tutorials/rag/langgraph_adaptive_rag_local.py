@@ -1,13 +1,13 @@
 from IPython.display import Image, display
-from jet.llm.ollama.base_langchain import ChatOllama
-from jet.logger import CustomLogger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
+from jet.logger import logger
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.vectorstores import SKLearnVectorStore
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_nomic.embeddings import NomicEmbeddings
 from langgraph.graph import END
 from langgraph.graph import StateGraph
 from typing import List, Annotated
@@ -21,9 +21,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 # %%capture --no-stderr
 # %pip install --quiet -U langchain langchain_community tiktoken langchain-nomic "nomic[local]" langchain-ollama scikit-learn langgraph tavily-python bs4
@@ -115,7 +119,7 @@ doc_splits = text_splitter.split_documents(docs_list)
 
 vectorstore = SKLearnVectorStore.from_documents(
     documents=doc_splits,
-    embedding=NomicEmbeddings(model="nomic-embed-text-v1.5", inference_mode="local"),
+    embedding=OllamaEmbeddings(model="mxbai-embed-large"),
 )
 
 retriever = vectorstore.as_retriever(k=3)
@@ -267,7 +271,7 @@ answer_grader_prompt = """QUESTION: \n\n {question} \n\n STUDENT ANSWER: {genera
 Return JSON with two two keys, binary_score is 'yes' or 'no' score to indicate whether the STUDENT ANSWER meets the criteria. And a key, explanation, that contains an explanation of the score."""
 
 question = "What are the vision models released today as part of Llama 3.2?"
-answer = "The Llama 3.2 models released today include two vision models: Llama 3.2 11B Vision Instruct and Llama 3.2 90B Vision Instruct, which are available on Azure AI Model Catalog via managed compute. These models are part of Meta's first foray into multimodal AI and rival closed models like Anthropic's Claude 3 Haiku and Ollama's GPT-4o mini in visual reasoning. They replace the older text-only Llama 3.1 models."
+answer = "The Llama 3.2 models released today include two vision models: Llama 3.2 11B Vision Instruct and Llama 3.2 90B Vision Instruct, which are available on Azure AI Model Catalog via managed compute. These models are part of Meta's first foray into multimodal AI and rival closed models like Ollama's Claude 3 Haiku and Ollama's GPT-4o mini in visual reasoning. They replace the older text-only Llama 3.1 models."
 
 answer_grader_prompt_formatted = answer_grader_prompt.format(
     question=question, generation=answer

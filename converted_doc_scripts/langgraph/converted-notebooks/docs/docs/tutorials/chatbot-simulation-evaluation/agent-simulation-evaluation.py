@@ -1,6 +1,6 @@
-from jet.llm.ollama.base_langchain import ChatOllama
-from jet.logger import CustomLogger
-from langchain_community.adapters.openai import convert_message_to_dict
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.logger import logger
+from langchain_community.adapters.ollama import convert_message_to_dict
 from langchain_core.messages import AIMessage
 from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -9,7 +9,7 @@ from langgraph.graph.message import add_messages
 from typing import Annotated
 from typing import List
 from typing_extensions import TypedDict
-import openai
+import ollama
 import os
 import shutil
 
@@ -17,9 +17,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Chat Bot Evaluation as Multi-agent Simulation
@@ -41,7 +45,7 @@ First, let's install the required packages and set our API keys
 logger.info("# Chat Bot Evaluation as Multi-agent Simulation")
 
 # %%capture --no-stderr
-# %pip install -U langgraph langchain jet.llm.ollama.base_langchain
+# %pip install -U langgraph langchain jet.adapters.langchain.chat_ollama
 
 # import getpass
 
@@ -79,8 +83,8 @@ def my_chat_bot(messages: List[dict]) -> dict:
         "content": "You are a customer support agent for an airline.",
     }
     messages = [system_message] + messages
-    completion = openai.chat.completions.create(
-        messages=messages, model="llama3.2", request_timeout=300.0, context_window=4096
+    completion = ollama.chat.completions.create(
+        messages=messages, model="llama3.2"
     )
     return completion.choices[0].message.model_dump()
 

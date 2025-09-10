@@ -20,10 +20,12 @@ REPLACE_OLLAMA_MAP = {
     "llama_index.embeddings.openai": "llama_index.embeddings.huggingface",
     "llama_index.graph_stores.neo4j": "jet.vectors.adapters.neo4j_property_graph_adapter",
     "llama_index.postprocessor.cohere_rerank": "jet.models.embeddings.adapters.rerank_cross_encoder_llama_index_adapter",
-    "langchain_openai": "jet.llm.ollama.base_langchain",
-    "langchain_anthropic": "jet.llm.ollama.base_langchain",
-    "langchain_ollama": "jet.llm.ollama.base_langchain",
+    "langchain_openai": "jet.adapters.langchain.chat_ollama",
+    "langchain_anthropic": "jet.adapters.langchain.chat_ollama",
+    "langchain_ollama": "jet.adapters.langchain.chat_ollama",
+    "langchain_nomic.embeddings": "jet.adapters.langchain.ollama_embeddings",
     "OpenAIEmbeddings": "OllamaEmbeddings",
+    "NomicEmbeddings": "OllamaEmbeddings",
     "OpenAIEmbedding": "HuggingFaceEmbedding",
     "OpenAI": "Ollama",
     "Anthropic": "Ollama",
@@ -160,16 +162,18 @@ def add_jet_logger(code: str):
     import_code = """\
 import os
 import shutil
-from jet.logger import CustomLogger
+from jet.logger import logger
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
     """.strip()
     log_done_code = 'logger.info("\\n\\n[DONE]", bright=True)'
     return "\n\n".join([import_code, code, log_done_code])
@@ -513,7 +517,7 @@ def scrape_code(
                 output_code_path = os.path.join(joined_dir, f"{file_name}.py")
                 for source_group in source_groups:
                     if source_group['type'] == 'text':
-                        source_group['code'] = f'"""\n{source_group['code']}\n"""'
+                        source_group['code'] = f'"""\n{source_group["code"]}\n"""'
                     if source_group['type'] == 'text':
                         source_group['code'] = wrap_triple_double_quoted_comments_in_log(
                             source_group['code'])
@@ -533,9 +537,20 @@ def scrape_code(
                 if "HuggingFaceEmbedding" in source_code:
                     source_code = "from jet.models.config import MODELS_CACHE_DIR\n" + source_code
                 if "await " in source_code:
-                    source_code = "\n".join([
+                    # Move all import lines to the top of the code block, outside async def main
+                    lines = source_code.splitlines()
+                    import_lines = []
+                    non_import_lines = []
+                    for line in lines:
+                        if line.strip().startswith("import ") or line.strip().startswith("from "):
+                            import_lines.append(line)
+                        else:
+                            non_import_lines.append(line)
+                    main_body = "\n".join(
+                        [f"    {line}" for line in non_import_lines])
+                    source_code = "\n".join(import_lines) + "\n\n" + "\n".join([
                         "async def main():",
-                        *(f"    {line}" for line in source_code.splitlines()),
+                        main_body,
                         "",
                         "if __name__ == '__main__':",
                         "    import asyncio",
@@ -626,19 +641,15 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/GenAIExamples",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/GenAI-Showcase",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/GenAI_Agents",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langgraph",
     ]
     include_files = [
-        "agents.ipynb",
         # "multi_strategy_workflow",
         # "memory",
     ]
     exclude_files = [
-        # "agent_workflow_research_assistant",
-        # "agent_workflow_basic",
-        # "Chatbot_SEC",
-        # "multi_document_agents-v1",
-        # "from_scratch_code_act_agent",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/langgraph/converted-notebooks/examples/rag/*"
     ]
     extension_mappings = [
         {"ext": [".ipynb"], "output_base_dir": "converted-notebooks"},

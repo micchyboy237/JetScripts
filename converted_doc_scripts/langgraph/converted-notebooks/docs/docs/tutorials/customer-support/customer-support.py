@@ -1,7 +1,7 @@
 from IPython.display import Image, display
 from datetime import date, datetime
-from jet.llm.ollama.base_langchain import ChatOllama
-from jet.logger import CustomLogger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.logger import logger
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.messages import ToolMessage
 from langchain_core.prompts import ChatPromptTemplate
@@ -24,7 +24,7 @@ from typing import Optional
 from typing import Optional, Union
 from typing_extensions import TypedDict
 import numpy as np
-import openai
+import ollama
 import os
 import pandas as pd
 import pytz
@@ -38,9 +38,13 @@ import uuid
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Build a Customer Support Bot
@@ -66,7 +70,7 @@ We'll be using Claude as our LLM and define a number of custom tools. While most
 logger.info("# Build a Customer Support Bot")
 
 # %%capture --no-stderr
-# %pip install -U langgraph langchain-community langchain-anthropic tavily-python pandas openai
+# %pip install -U langgraph langchain-community langchain-anthropic tavily-python pandas ollama
 
 # import getpass
 
@@ -203,7 +207,7 @@ class VectorStoreRetriever:
         ]
 
 
-retriever = VectorStoreRetriever.from_docs(docs, openai.Client())
+retriever = VectorStoreRetriever.from_docs(docs, ollama.Client())
 
 
 @tool

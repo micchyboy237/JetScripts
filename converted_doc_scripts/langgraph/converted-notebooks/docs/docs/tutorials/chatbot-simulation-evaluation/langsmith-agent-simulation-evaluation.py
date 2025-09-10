@@ -1,6 +1,6 @@
-from jet.llm.ollama.base_langchain import ChatOllama
-from jet.logger import CustomLogger
-from langchain_community.adapters.openai import convert_message_to_dict
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.logger import logger
+from langchain_community.adapters.ollama import convert_message_to_dict
 from langchain_core.messages import AIMessage, AnyMessage, BaseMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import Runnable, RunnableLambda
@@ -10,11 +10,11 @@ from langsmith import Client
 from pydantic import BaseModel, Field
 from simulation_utils import create_chat_simulator
 from simulation_utils import create_simulated_user
-from simulation_utils import langchain_to_openai_messages
+from simulation_utils import langchain_to_ollama_messages
 from typing import Annotated, Any, Callable, Dict, List, Optional, Union
 from typing_extensions import TypedDict
 import functools
-import openai
+import ollama
 import os
 import shutil
 
@@ -22,9 +22,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Chat Bot Benchmarking using Simulation
@@ -38,7 +42,7 @@ First, let's install the required packages and set our API keys
 logger.info("# Chat Bot Benchmarking using Simulation")
 
 # %%capture --no-stderr
-# %pip install -U langgraph langchain langsmith jet.llm.ollama.base_langchain langchain_community
+# %pip install -U langgraph langchain langsmith jet.adapters.langchain.chat_ollama langchain_community
 
 # import getpass
 
@@ -72,16 +76,16 @@ Place the following code in a file called `simulation_utils.py` and ensure that 
 
 
 
-    def langchain_to_openai_messages(messages: List[BaseMessage]):
+    def langchain_to_ollama_messages(messages: List[BaseMessage]):
         """
 logger.info("## Simulation Utils")
-        Convert a list of langchain base messages to a list of openai messages.
+        Convert a list of langchain base messages to a list of ollama messages.
 
         Parameters:
             messages (List[BaseMessage]): A list of langchain base messages.
 
         Returns:
-            List[dict]: A list of openai messages.
+            List[dict]: A list of ollama messages.
         """
 
         return [
@@ -304,19 +308,19 @@ Next, define your assistant. You can put any logic in this function.
 logger.info("## Define your assistant")
 
 
-openai_client = openai.Client()
+ollama_client = ollama.Client()
 
 
 def assistant(messages: list) -> str:
-    oai_messages = langchain_to_openai_messages(messages)
+    oai_messages = langchain_to_ollama_messages(messages)
     system_message = {
         "role": "system",
         "content": "You are a customer support agent for an airline."
         " Be as helpful as possible, but don't invent any unknown information.",
     }
     messages = [system_message] + oai_messages
-    completion = openai_client.chat.completions.create(
-        messages=messages, model="llama3.2", request_timeout=300.0, context_window=4096
+    completion = ollama_client.chat.completions.create(
+        messages=messages, model="llama3.2"
     )
     return completion.choices[0].message.content
 

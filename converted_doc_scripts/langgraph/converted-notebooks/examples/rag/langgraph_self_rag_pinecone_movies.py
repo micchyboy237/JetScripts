@@ -1,6 +1,6 @@
-from jet.llm.ollama.base_langchain import ChatOllama
-from jet.llm.ollama.base_langchain import OllamaEmbeddings
-from jet.logger import CustomLogger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.logger import logger
 from langchain import hub
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_pinecone import PineconeVectorStore
@@ -15,9 +15,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Self RAG
@@ -32,7 +36,7 @@ Self-RAG is a strategy for RAG that incorporates self-reflection / self-grading 
 """
 logger.info("# Self RAG")
 
-# %pip install -qU langchain-pinecone langchain-openai langchainhub langgraph
+# %pip install -qU langchain-pinecone langchain-ollama langchainhub langgraph
 
 """
 ### Tracing
@@ -95,6 +99,7 @@ structured_llm_grader = llm.with_structured_output(GradeDocuments)
 
 retrieval_grader = grade_prompt | structured_llm_grader
 
+
 """
 # Generation Step
 
@@ -139,6 +144,7 @@ logger.debug(question)
 logger.debug(generation)
 answer_grader.invoke({"question": question, "generation": generation})
 
+
 """
 # Graph 
 
@@ -164,6 +170,7 @@ class GraphState(TypedDict):
     question: str
     generation: str
     documents: List[str]
+
 
 
 

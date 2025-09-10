@@ -1,6 +1,6 @@
 from IPython.display import Image, display
-from jet.llm.ollama.base_langchain import ChatOllama
-from jet.logger import CustomLogger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.logger import logger
 from langchain import hub
 from langchain_community.retrievers import BM25Retriever
 from langchain_core.language_models import BaseChatModel
@@ -31,9 +31,13 @@ import zipfile
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Competitive Programming
@@ -70,7 +74,7 @@ First, let's install the required packages and set our API keys
 logger.info("# Competitive Programming")
 
 # %%capture --no-stderr
-# %pip install -U langgraph langsmith jet.llm.ollama.base_langchain datasets langchain langchainhub
+# %pip install -U langgraph langsmith jet.adapters.langchain.chat_ollama datasets langchain langchainhub
 
 # import getpass
 

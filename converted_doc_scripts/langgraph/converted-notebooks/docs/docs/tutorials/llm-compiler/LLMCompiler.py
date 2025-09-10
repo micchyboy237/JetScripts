@@ -1,8 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor, wait
-from jet.llm.ollama.base_langchain import ChatOllama
-from jet.logger import CustomLogger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.logger import logger
 from langchain import hub
-from langchain.chains.openai_functions import create_structured_output_runnable
+from langchain.chains.ollama_functions import create_structured_output_runnable
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.exceptions import OutputParserException
 from langchain_core.language_models import BaseChatModel
@@ -59,9 +59,13 @@ import traceback
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # LLMCompiler
@@ -89,7 +93,7 @@ First, let's install the required packages and set our API keys
 logger.info("# LLMCompiler")
 
 # %%capture --no-stderr
-# %pip install -U --quiet jet.llm.ollama.base_langchain langsmith langgraph langchain numexpr
+# %pip install -U --quiet jet.adapters.langchain.chat_ollama langsmith langgraph langchain numexpr
 
 # import getpass
 

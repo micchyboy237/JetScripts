@@ -1,5 +1,5 @@
-from jet.llm.ollama.base_langchain import ChatOllama
-from jet.logger import CustomLogger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.logger import logger
 from langchain_core.messages import BaseMessage
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.func import entrypoint
@@ -12,9 +12,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # How to add thread-level persistence (functional API)
@@ -97,12 +101,12 @@ First we need to install the packages required
 logger.info("# How to add thread-level persistence (functional API)")
 
 # %%capture --no-stderr
-# %pip install --quiet -U langgraph jet.llm.ollama.base_langchain
+# %pip install --quiet -U langgraph jet.adapters.langchain.chat_ollama
 
 """
-Next, we need to set API key for Anthropic (the LLM we will use).
+Next, we need to set API key for Ollama(the LLM we will use).
 """
-logger.info("Next, we need to set API key for Anthropic (the LLM we will use).")
+logger.info("Next, we need to set API key for Ollama(the LLM we will use).")
 
 # import getpass
 

@@ -1,10 +1,10 @@
 from IPython.display import Image, display
-from jet.llm.ollama.base_langchain import ChatOllama
-from jet.logger import CustomLogger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.logger import logger
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 from langchain_core.messages import HumanMessage, ToolMessage
-from langchain_core.output_parsers.openai_tools import PydanticToolsParser
+from langchain_core.output_parsers.ollama_tools import PydanticToolsParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import StructuredTool
 from langgraph.graph import END, StateGraph, START
@@ -24,9 +24,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Reflexion
@@ -47,13 +51,13 @@ To skip to the graph definition, see the [Construct Graph section](#Construct-Gr
 
 ## Setup
 
-Install `langgraph` (for the framework), `jet.llm.ollama.base_langchain` (for the LLM), and `langchain` + `tavily-python` (for the search engine).
+Install `langgraph` (for the framework), `jet.adapters.langchain.chat_ollama` (for the LLM), and `langchain` + `tavily-python` (for the search engine).
 
 We will use tavily search as a tool. You can get an API key [here](https://app.tavily.com/sign-in) or replace with a different tool of your choosing.
 """
 logger.info("# Reflexion")
 
-# %pip install -U --quiet langgraph jet.llm.ollama.base_langchain tavily-python
+# %pip install -U --quiet langgraph jet.adapters.langchain.chat_ollama tavily-python
 
 # import getpass
 

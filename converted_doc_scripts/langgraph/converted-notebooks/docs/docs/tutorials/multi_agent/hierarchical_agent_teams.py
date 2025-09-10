@@ -1,6 +1,6 @@
 from IPython.display import Image, display
-from jet.llm.ollama.base_langchain import ChatOllama
-from jet.logger import CustomLogger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.logger import logger
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage
@@ -25,9 +25,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Hierarchical Agent Teams
@@ -58,7 +62,7 @@ First, let's install our required packages and set our API keys
 logger.info("# Hierarchical Agent Teams")
 
 # %%capture --no-stderr
-# %pip install -U langgraph langchain_community jet.llm.ollama.base_langchain langchain-tavily langchain_experimental
+# %pip install -U langgraph langchain_community jet.adapters.langchain.chat_ollama langchain-tavily langchain_experimental
 
 # import getpass
 

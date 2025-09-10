@@ -1,5 +1,5 @@
-from jet.logger import CustomLogger
-from langchain_core.messages import convert_to_openai_messages, BaseMessage
+from jet.logger import logger
+from langchain_core.messages import convert_to_ollama_messages, BaseMessage
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.func import entrypoint, task
 from langgraph.graph import add_messages
@@ -11,9 +11,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # How to integrate LangGraph (functional API) with AutoGen, CrewAI, and other frameworks
@@ -124,7 +128,7 @@ logger.info("## Create the workflow")
 
 @task
 def call_autogen_agent(messages: list[BaseMessage]):
-    messages = convert_to_openai_messages(messages)
+    messages = convert_to_ollama_messages(messages)
     response = user_proxy.initiate_chat(
         autogen_agent,
         message=messages[-1],

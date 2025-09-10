@@ -1,4 +1,4 @@
-from jet.logger import CustomLogger
+from jet.logger import logger
 from langchain.schema import Document
 from langgraph.graph import END, StateGraph, START
 from typing import List
@@ -11,9 +11,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Adaptive RAG Cohere Command R
@@ -44,7 +48,8 @@ We'll use [Command R](https://cohere.com/blog/command-r), a recent release from 
 """
 logger.info("# Adaptive RAG Cohere Command R")
 
-# ! pip install --quiet langchain langchain_cohere langchain-openai tiktoken langchainhub chromadb langgraph
+# ! pip install --quiet langchain langchain_cohere langchain-ollama tiktoken langchainhub chromadb langgraph
+
 
 
 
@@ -66,10 +71,12 @@ logger.info("## LLMs")
 
 
 
+
 """
 Generate
 """
 logger.info("Generate")
+
 
 
 
@@ -373,6 +380,7 @@ workflow.add_conditional_edges(
 workflow.add_edge("llm_fallback", END)
 
 app = workflow.compile()
+
 
 """
 Trace:
