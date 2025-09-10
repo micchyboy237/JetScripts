@@ -240,7 +240,7 @@ while True:
         {"messages": [HumanMessage(content=user)]}, config=config, stream_mode="updates"
     ):
         last_message = next(iter(output.values()))["messages"][-1]
-        last_message.pretty_logger.debug()
+        logger.debug(last_message)
 
     if output and "prompt" in output:
         logger.debug("Done!")
