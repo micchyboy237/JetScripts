@@ -1,6 +1,7 @@
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.messages import SystemMessage
 from langgraph.checkpoint.memory import InMemorySaver
@@ -53,10 +54,10 @@ logger.info("# Prompt Generation from User Requirements")
 
 def _set_env(var: str):
     if not os.environ.get(var):
-#         os.environ[var] = getpass.getpass(f"{var}: ")
+        #         os.environ[var] = getpass.getpass(f"{var}: ")
 
+        # _set_env("OPENAI_API_KEY")
 
-# _set_env("OPENAI_API_KEY")
 
 """
 <div class="admonition tip">
@@ -78,8 +79,6 @@ First, let's define the part of the graph that will gather user requirements. Th
 </div>
 """
 logger.info("## Gather information")
-
-
 
 
 template = """Your job is to get information from a user about what type of prompt template they want to create.
@@ -118,6 +117,7 @@ def info_chain(state):
     response = llm_with_tool.invoke(messages)
     return {"messages": [response]}
 
+
 """
 ## Generate Prompt
 
@@ -150,6 +150,7 @@ def prompt_gen_chain(state):
     response = llm.invoke(messages)
     return {"messages": [response]}
 
+
 """
 ## Define the state logic
 
@@ -162,8 +163,6 @@ Otherwise, we are in the "info gathering" (`info`) state.
 logger.info("## Define the state logic")
 
 
-
-
 def get_state(state):
     messages = state["messages"]
     if isinstance(messages[-1], AIMessage) and messages[-1].tool_calls:
@@ -172,6 +171,7 @@ def get_state(state):
         return END
     return "info"
 
+
 """
 ## Create the graph
 
@@ -179,7 +179,6 @@ We can now the create the graph.
 We will use a SqliteSaver to persist conversation history.
 """
 logger.info("## Create the graph")
-
 
 
 class State(TypedDict):
@@ -204,14 +203,15 @@ def add_tool_message(state: State):
     }
 
 
-workflow.add_conditional_edges("info", get_state, ["add_tool_message", "info", END])
+workflow.add_conditional_edges(
+    "info", get_state, ["add_tool_message", "info", END])
 workflow.add_edge("add_tool_message", "prompt")
 workflow.add_edge("prompt", END)
 workflow.add_edge(START, "info")
 graph = workflow.compile(checkpointer=memory)
 
 
-display(Image(graph.get_graph().draw_mermaid_png()))
+render_mermaid_graph(graph, f"{OUTPUT_DIR}/graph_output.png")
 
 """
 ## Use the graph
@@ -221,7 +221,8 @@ We can now use the created chatbot.
 logger.info("## Use the graph")
 
 
-cached_human_responses = ["hi!", "rag prompt", "1 rag, 2 none, 3 no, 4 no", "red", "q"]
+cached_human_responses = ["hi!", "rag prompt",
+                          "1 rag, 2 none, 3 no, 4 no", "red", "q"]
 cached_response_index = 0
 config = {"configurable": {"thread_id": str(uuid.uuid4())}}
 while True:
