@@ -347,19 +347,19 @@ def interceptor_callback(data: bytes) -> bytes | Iterable[bytes]:
     try:
         decoded_data = data.decode('utf-8')
     except UnicodeDecodeError:
-        logger.warning("Failed to decode data as UTF-8:", data)
+        logger.warning("Failed to decode data as UTF-8")
         return data
 
     try:
         chunk_dict = json.loads(decoded_data)
     except json.JSONDecodeError:
-        logger.warning("Failed to parse JSON from data:", decoded_data)
+        logger.warning("Failed to parse JSON from decoded data")
         return data
 
     # Ensure chunk_dict is a dictionary
     if not isinstance(chunk_dict, dict):
         logger.warning(
-            f"Unexpected chunk type: {type(chunk_dict).__name__}, value: {chunk_dict}")
+            f"Unexpected chunk type: {type(chunk_dict).__name__}")
         return data
 
     if not chunks:

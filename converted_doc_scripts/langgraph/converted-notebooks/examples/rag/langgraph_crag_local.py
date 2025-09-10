@@ -1,6 +1,7 @@
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
+from jet.file import save_file
 from jet.logger import logger
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain import hub
@@ -15,6 +16,8 @@ from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.output_parsers import StrOutputParser
 # from langchain_mistralai.chat_models import ChatMistralAI
 # from langchain_nomic.embeddings import NomicEmbeddings  # local
+from langchain_core.runnables import RunnableConfig
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, END, StateGraph
 from langsmith import Client
 from langsmith.evaluation import evaluate
@@ -163,9 +166,9 @@ prompt = PromptTemplate(
     Explain your reasoning in a step-by-step manner internally, but do not include the explanation in the output.
     Question: {question}
     Fact: {documents}
-    Provide the binary score as a JSON object with a single key 'score' containing 'yes' or 'no'. Return only the JSON object, with no additional text, explanation, or preamble.
-    Example output: {{"score": "yes"}}
-    """,
+    Provide the binary score as a JSON object with a single key 'score' containing 1 or 0. Return only the JSON object, with no additional text, explanation, or preamble.
+    Example output: {{"score": 1}}
+    """.strip(),
     input_variables=["question", "documents"],
 )
 retrieval_grader = prompt | llm | JsonOutputParser()
@@ -344,13 +347,12 @@ def decide_to_generate(state):
         return "generate"
 
 
+# Ensure custom_graph is compiled with a checkpointer
 workflow = StateGraph(GraphState)
-
-workflow.add_node("retrieve", retrieve)  # retrieve
-workflow.add_node("grade_documents", grade_documents)  # grade documents
-workflow.add_node("generate", generate)  # generate
-workflow.add_node("web_search", web_search)  # web search
-
+workflow.add_node("retrieve", retrieve)
+workflow.add_node("grade_documents", grade_documents)
+workflow.add_node("generate", generate)
+workflow.add_node("web_search", web_search)
 workflow.add_edge(START, "retrieve")
 workflow.add_edge("retrieve", "grade_documents")
 workflow.add_conditional_edges(
@@ -363,8 +365,38 @@ workflow.add_conditional_edges(
 )
 workflow.add_edge("web_search", "generate")
 workflow.add_edge("generate", END)
+custom_graph = workflow.compile(checkpointer=MemorySaver())
 
-custom_graph = workflow.compile()
+# Get and save workflow state
+config: RunnableConfig = {"configurable": {
+    "thread_id": str(uuid.uuid4())}, "recursion_limit": 100}
+# Run the graph to populate the state
+example = {"input": "What are the types of agent memory?"}
+state = custom_graph.invoke(
+    {"question": example["input"], "steps": []}, config)
+# Convert StateSnapshot to a JSON-serializable dict
+state_dict = {
+    "values": {
+        **state["values"],
+        "documents": [
+            {"page_content": doc.page_content, "metadata": doc.metadata}
+            for doc in state["values"].get("documents", [])
+        ],
+        "steps": state["values"].get("steps", [])
+    },
+    "next": list(state["next"]),
+    "config": {
+        "configurable": {
+            "thread_id": state["config"]["configurable"].get("thread_id"),
+            "checkpoint_id": state["config"]["configurable"].get("checkpoint_id"),
+            "checkpoint_ns": state["config"]["configurable"].get("checkpoint_ns", "")
+        }
+    },
+    "metadata": state["metadata"],
+    "created_at": state["created_at"],
+    "parent_config": state["parent_config"]
+}
+save_file(state_dict, f"{OUTPUT_DIR}/workflow_state.json")
 
 # display(Image(custom_graph.get_graph(xray=True).draw_mermaid_png()))
 render_mermaid_graph(custom_graph, f"{OUTPUT_DIR}/graph_output.png", xray=True)
@@ -380,7 +412,6 @@ def predict_custom_agent_local_answer(example: dict):
 
 example = {"input": "What are the types of agent memory?"}
 response = predict_custom_agent_local_answer(example)
-response
 
 """
 Trace: 
