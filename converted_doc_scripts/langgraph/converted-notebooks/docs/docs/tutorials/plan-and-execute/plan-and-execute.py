@@ -229,9 +229,6 @@ logger.info("## Create the Graph")
 
 def execute_step(state: PlanExecute):
     plan = state["plan"]
-    if not plan:  # Check if plan is empty
-        logger.info("No steps remain in the plan, proceeding to replan.")
-        return {"past_steps": []}
     plan_str = "\n".join(f"{i + 1}. {step}" for i, step in enumerate(plan))
     task = plan[0]
     task_formatted = f"""For the following plan:
@@ -257,14 +254,7 @@ def replan_step(state: PlanExecute):
     if isinstance(output.action, Response):
         return {"response": output.action.response}
     else:
-        if not output.action.steps:  # Handle empty plan
-            # Fallback response using past steps
-            past_steps_str = "\n".join(
-                [f"Step: {step}\nResult: {result}" for step, result in state.get("past_steps", [])])
-            fallback_response = f"Planning complete. Summary of executed steps:\n{past_steps_str}\nNo further steps required."
-            return {"response": fallback_response}
-        else:
-            return {"plan": output.action.steps}
+        return {"plan": output.action.steps}
 
 
 def should_end(state: PlanExecute):
