@@ -1,7 +1,6 @@
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
-from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import StateGraph
@@ -57,14 +56,15 @@ logger.info("# Tree of Thoughts")
 # import getpass
 
 
-# def _set_env(var: str):
-#     if not os.environ.get(var):
+def _set_env(var: str):
+    if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
-#         _set_env("OPENAI_API_KEY")
+
+# _set_env("OPENAI_API_KEY")
 trace = True
 if trace:
-    # _set_env("LANGSMITH_API_KEY")
+    _set_env("LANGSMITH_API_KEY")
     os.environ["LANGSMITH_PROJECT"] = "ToT Tutorial"
 
 """
@@ -77,6 +77,7 @@ logger.info("## Task Definition")
 
 OperatorType = Literal["+", "-", "*", "/"]
 TokenType = Union[float, OperatorType]
+
 
 
 class Equation(BaseModel):
@@ -116,6 +117,8 @@ class GuessEquations(BaseModel):
     )
 
 
+
+
 class Candidate(NamedTuple):
     candidate: Equation
     score: Optional[float] = None
@@ -134,7 +137,6 @@ class ScoredCandidate(Candidate):
     candidate: Equation
     score: float
     feedback: str
-
 
 """
 #### Fetch data
@@ -161,6 +163,7 @@ the previous search.
 You can update this section to match your own task requirements. The expander can be arbitrarily complex. All that's required is that it accepts the problem and an optional previous attempt (or attempts) and returns a new result.
 """
 logger.info("## Expander")
+
 
 
 prompt = ChatPromptTemplate.from_messages(
@@ -190,7 +193,6 @@ You can update this function to match your own task requirements.
 """
 logger.info("# Scorer")
 
-
 def compute_score(problem: str, candidate: Candidate) -> ScoredCandidate:
     numbers = list(map(int, problem.split()))
     used_numbers = [
@@ -213,13 +215,14 @@ def compute_score(problem: str, candidate: Candidate) -> ScoredCandidate:
         candidate=candidate.candidate, score=score, feedback=feedback
     )
 
-
 """
 ## Graph
 
 Now it's time to create our graph.
 """
 logger.info("## Graph")
+
+
 
 
 def update_candidates(
@@ -339,15 +342,14 @@ builder.add_node(prune)
 
 builder.add_edge("expand", "score")
 builder.add_edge("score", "prune")
-builder.add_conditional_edges(
-    "prune", should_terminate, path_map=["expand", "__end__"])
+builder.add_conditional_edges("prune", should_terminate, path_map=["expand", "__end__"])
 
 builder.add_edge("__start__", "expand")
 
 graph = builder.compile(checkpointer=InMemorySaver())
 
 
-render_mermaid_graph(graph, f"{OUTPUT_DIR}/graph_output.png", xray=True)
+display(Image(graph.get_graph().draw_mermaid_png()))
 
 """
 ## Run
@@ -367,8 +369,7 @@ final_state = graph.get_state({"configurable": {"thread_id": "test_1"}})
 winning_solution = final_state.values["candidates"][0]
 search_depth = final_state.values["depth"]
 if winning_solution[1] == 1:
-    logger.debug(
-        f"Found a winning solution in {search_depth} steps: {winning_solution}")
+    logger.debug(f"Found a winning solution in {search_depth} steps: {winning_solution}")
 else:
     logger.debug(
         f"Failed to find a winning solution in {search_depth} steps. Best guess: {winning_solution}"
