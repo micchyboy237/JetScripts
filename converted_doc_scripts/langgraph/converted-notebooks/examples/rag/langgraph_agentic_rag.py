@@ -1,7 +1,10 @@
 from IPython.display import Image, display
-from jet.llm.ollama.base_langchain import ChatOllama, OllamaEmbeddings
-from jet.models.embeddings.adapters.embed_ollama_langchain_adapter import OllamaEmbeddingsLangchainAdapter
-from jet.logger import CustomLogger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
+# from jet.models.embeddings.adapters.embed_ollama_langchain_adapter import OllamaEmbeddingsLangchainAdapter
+from jet.file.utils import save_file
+from jet.logger import logger
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain import hub
 from langchain.tools.retriever import create_retriever_tool
 from langchain_community.document_loaders import WebBaseLoader
@@ -26,9 +29,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Agentic RAG
@@ -86,11 +93,13 @@ text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
     chunk_size=100, chunk_overlap=50
 )
 doc_splits = text_splitter.split_documents(docs_list)
+doc_splits = doc_splits[:10]  # Temporary line for faster testing
 
 vectorstore = Chroma.from_documents(
     documents=doc_splits,
     collection_name="rag-chroma",
-    embedding=OllamaEmbeddingsLangchainAdapter(model="mxbai-embed-large"),
+    embedding=OllamaEmbeddings(model="mxbai-embed-large"),
+    persist_directory=PERSIST_DIR
 )
 retriever = vectorstore.as_retriever()
 
@@ -318,12 +327,12 @@ workflow.add_edge("rewrite", "agent")
 
 graph = workflow.compile()
 
+# try:
+#     display(Image(graph.get_graph(xray=True).draw_mermaid_png()))
+# except Exception:
+#     pass
 
-try:
-    display(Image(graph.get_graph(xray=True).draw_mermaid_png()))
-except Exception:
-    pass
-
+render_mermaid_graph(graph, f"{OUTPUT_DIR}/graph_output.png", xray=True)
 
 inputs = {
     "messages": [
@@ -337,5 +346,7 @@ for output in graph.stream(state):
         pprint.pprint("---")
         pprint.pprint(value, indent=2, width=80, depth=None)
     pprint.pprint("\n---\n")
+
+save_file(state, f"{OUTPUT_DIR}/agent_state.json")
 
 logger.info("\n\n[DONE]", bright=True)
