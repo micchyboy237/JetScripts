@@ -216,8 +216,10 @@ render_mermaid_graph(app, f"{OUTPUT_DIR}/graph_output.png", xray=True)
 
 # Execute query
 inputs = {"question": "What are the top 10 isekai anime for 2025?"}
+# Add thread_id for checkpointer
+config = {"configurable": {"thread_id": "isekai_anime_2025"}}
 final_state = None
-for output in app.stream(inputs):
+for output in app.stream(inputs, config=config):  # Pass config to stream
     for key, value in output.items():
         if key != "__end__":
             final_state = value
