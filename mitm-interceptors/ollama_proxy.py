@@ -94,7 +94,8 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
             response_info = {"response": response_dict["response"]}
         elif isinstance(response_dict, dict) and "content" in response_dict:
             response_info = {"content": response_dict["content"]}
-        logger.warning("No chunks available for log entry; using fallback response info")
+        logger.warning(
+            "No chunks available for log entry; using fallback response info")
 
     request_dict = make_serializable(flow.request.data)
     request_content: dict = request_dict["content"].copy()
@@ -340,8 +341,26 @@ def interceptor_callback(data: bytes) -> bytes | Iterable[bytes]:
         logger.warning("Streaming stopped:", data)
         return b""
 
-    decoded_data = data.decode('utf-8')
-    chunk_dict = {}
+    if not data:  # Handle empty data
+        return b""
+
+    try:
+        decoded_data = data.decode('utf-8')
+    except UnicodeDecodeError:
+        logger.warning("Failed to decode data as UTF-8:", data)
+        return data
+
+    try:
+        chunk_dict = json.loads(decoded_data)
+    except json.JSONDecodeError:
+        logger.warning("Failed to parse JSON from data:", decoded_data)
+        return data
+
+    # Ensure chunk_dict is a dictionary
+    if not isinstance(chunk_dict, dict):
+        logger.warning(
+            f"Unexpected chunk type: {type(chunk_dict).__name__}, value: {chunk_dict}")
+        return data
 
     if not chunks:
         # logger.log("Stream started")
@@ -350,8 +369,6 @@ def interceptor_callback(data: bytes) -> bytes | Iterable[bytes]:
         pass
 
     try:
-        chunk_dict = json.loads(decoded_data)
-
         # Check if "message" is a dictionary and if it contains the expected key
         if isinstance(chunk_dict.get("message"), dict):
             if chunk_dict["message"].get("role") == "assistant":
@@ -366,8 +383,9 @@ def interceptor_callback(data: bytes) -> bytes | Iterable[bytes]:
         if chunk_dict.get("done"):
             chunks.append(chunk_dict)
 
-    except json.JSONDecodeError:
-        pass
+    except Exception as e:
+        logger.error(f"Error processing chunk: {e}")
+        logger.debug(f"Chunk data: {chunk_dict}")
 
     return data
 
@@ -397,41 +415,16 @@ def request(flow: http.HTTPFlow):
         flow.response = http.Response.make(400, b"Cancelled stream")
     elif any(path in flow.request.path for path in ["/embed", "/embeddings"]):
         request_content: dict = request_dict["content"].copy()
-
-        if isinstance(request_content["input"], list):
-            input_texts = []
-            char_count = 0
-            truncated = False
-
-            for item in request_content["input"]:
-                if not isinstance(item, str):
-                    continue  # Skip non-string items
-
-                if char_count + len(item) > 100:
-                    remaining = 100 - char_count
-                    if remaining > 0:
-                        input_texts.append(item[:remaining] + "...")
-                        char_count += remaining
-                        truncated = True
-                    break
-                else:
-                    input_texts.append(item)
-                    char_count += len(item)
-
-            # Edge case: exactly 100 chars and not truncated
-            if not truncated and char_count == 100:
-                input_texts[-1] += "..."
-
+        input_texts = request_content["input"]
+        if isinstance(input_texts, list):
+            token_count = sum(token_counter(item, request_content.get("model"))
+                              for item in input_texts if isinstance(item, str))
         else:
-            input_text = request_content["input"]
-            if len(input_text) > 100:
-                input_texts = input_text[:100] + "..."
-            else:
-                input_texts = input_text
-        request_content["input"] = input_texts
+            token_count = token_counter(
+                input_texts, request_content.get("model"))
 
-        logger.debug(f"REQUEST EMBEDDING:")
-        logger.info(format_json(request_dict["content"]))
+        logger.debug(f"EMBEDDING REQUEST: {token_count} tokens")
+        logger.success("Embedding request received")
 
     elif any(path in flow.request.path for path in ["/chat"]):
         logger.log("\n")
@@ -666,7 +659,8 @@ def response(flow: http.HTTPFlow):
             elif isinstance(response_dict, dict) and "content" in response_dict:
                 response_info = {"content": response_dict["content"]}
 
-        response_dict: OllamaChatResponse = make_serializable(flow.response.data)
+        response_dict: OllamaChatResponse = make_serializable(
+            flow.response.data)
 
         if isinstance(response_dict, dict):
             logger.log(f"RESPONSE KEYS:", list(
@@ -768,7 +762,7 @@ def response(flow: http.HTTPFlow):
             save_file(log_entry, log_file_path)
 
     chunks = []  # Clean up to avoid memory issues
-    
+
 
 def responseheaders(flow):
     """

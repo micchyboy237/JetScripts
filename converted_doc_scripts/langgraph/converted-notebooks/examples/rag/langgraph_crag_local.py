@@ -1,7 +1,8 @@
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
-from jet.logger import CustomLogger
+from jet.logger import logger
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain import hub
 from langchain.prompts import PromptTemplate
 from langchain.schema import Document
@@ -28,8 +29,9 @@ import uuid
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
 
 """
@@ -76,7 +78,7 @@ logger.info("# Corrective RAG (CRAG) using local LLMs")
 
 
 # def _set_env(key: str):
-    # if key not in os.environ:
+# if key not in os.environ:
 #         os.environ[key] = getpass.getpass(f"{key}:")
 
 
@@ -146,37 +148,10 @@ logger.info("## Define Tools")
 
 llm = ChatOllama(model="llama3.2")
 
-prompt = PromptTemplate(
-    template="""You are a teacher grading a quiz. You will be given:
-    1/ a QUESTION
-    2/ A FACT provided by the student
-
-    You are grading RELEVANCE RECALL:
-    A score of 1 means that ANY of the statements in the FACT are relevant to the QUESTION.
-    A score of 0 means that NONE of the statements in the FACT are relevant to the QUESTION.
-    1 is the highest (best) score. 0 is the lowest score you can give.
-
-    Explain your reasoning in a step-by-step manner. Ensure your reasoning and conclusion are correct.
-
-    Avoid simply stating the correct answer at the outset.
-
-    Question: {question} \n
-    Fact: \n\n {documents} \n\n
-
-    Give a binary score 'yes' or 'no' score to indicate whether the document is relevant to the question. \n
-    Provide the binary score as a JSON with a single key 'score' and no premable or explanation.
-    """,
-    input_variables=["question", "documents"],
-)
-
-retrieval_grader = prompt | llm | JsonOutputParser()
 question = "agent memory"
 docs = retriever.invoke(question)
 doc_txt = docs[1].page_content
-logger.debug(retrieval_grader.invoke({"question": question, "documents": doc_txt}))
 
-
-# Update retrieval_grader prompt
 prompt = PromptTemplate(
     template="""You are a teacher grading a quiz. You will be given:
     1/ a QUESTION
@@ -186,10 +161,30 @@ prompt = PromptTemplate(
     A score of 0 means that NONE of the statements in the FACT are relevant to the QUESTION.
     1 is the highest (best) score. 0 is the lowest score you can give.
     Explain your reasoning in a step-by-step manner internally, but do not include the explanation in the output.
-    Question: {question} \n
-    Fact: \n\n {documents} \n\n
+    Question: {question}
+    Fact: {documents}
     Provide the binary score as a JSON object with a single key 'score' containing 'yes' or 'no'. Return only the JSON object, with no additional text, explanation, or preamble.
-    Example output: {"score": "yes"}
+    Example output: {{"score": "yes"}}
+    """,
+    input_variables=["question", "documents"],
+)
+retrieval_grader = prompt | llm | JsonOutputParser()
+generation = retrieval_grader.invoke(
+    {"question": question, "documents": doc_txt})
+logger.debug(generation)
+
+
+prompt = PromptTemplate(
+    template="""You are an assistant for question-answering tasks. 
+    
+    Use the following documents to answer the question. 
+    
+    If you don't know the answer, just say that you don't know. 
+    
+    Use three sentences maximum and keep the answer concise:
+    Question: {question} 
+    Documents: {documents} 
+    Answer: 
     """,
     input_variables=["question", "documents"],
 )
@@ -210,7 +205,6 @@ web_search_tool = TavilySearchResults(k=3)
 Here we'll explicitly define the majority of the control flow, only using an LLM to define a single branch point following grading.
 """
 logger.info("## Create the Graph")
-
 
 
 class GraphState(TypedDict):
@@ -261,7 +255,8 @@ def generate(state):
 
     question = state["question"]
     documents = state["documents"]
-    generation = rag_chain.invoke({"documents": documents, "question": question})
+    generation = rag_chain.invoke(
+        {"documents": documents, "question": question})
     steps = state["steps"]
     steps.append("generate_answer")
     return {
@@ -371,8 +366,8 @@ workflow.add_edge("generate", END)
 
 custom_graph = workflow.compile()
 
-display(Image(custom_graph.get_graph(xray=True).draw_mermaid_png()))
-
+# display(Image(custom_graph.get_graph(xray=True).draw_mermaid_png()))
+render_mermaid_graph(custom_graph, f"{OUTPUT_DIR}/graph_output.png", xray=True)
 
 
 def predict_custom_agent_local_answer(example: dict):
@@ -435,7 +430,8 @@ if not client.has_dataset(dataset_name=dataset_name):
     inputs, outputs = zip(
         *[({"input": text}, {"output": label}) for text, label in examples]
     )
-    client.create_examples(inputs=inputs, outputs=outputs, dataset_id=dataset.id)
+    client.create_examples(
+        inputs=inputs, outputs=outputs, dataset_id=dataset.id)
 
 """
 Now, we'll use an `LLM as a grader` to compare both agent responses to our ground truth reference answer.
@@ -472,6 +468,7 @@ def answer_evaluator(run, example) -> dict:
     score = score["Score"]
     return {"key": "answer_v_reference_score", "score": score}
 
+
 """
 ### Trajectory
 
@@ -499,7 +496,8 @@ def find_tool_calls_react(messages):
     """
     Find all tool calls in the messages returned
     """
-    tool_calls = [tc['name'] for m in messages['messages'] for tc in getattr(m, 'tool_calls', [])]
+    tool_calls = [tc['name'] for m in messages['messages']
+                  for tc in getattr(m, 'tool_calls', [])]
     return tool_calls
 
 
