@@ -196,12 +196,12 @@ def update_code_with_ollama(code: str) -> str:
     updated_code = re.sub(r'Ollama\s*\((.*?)\)', r'Ollama(\1)', updated_code)
     updated_code = re.sub(
         r'model=["\']gpt-4[^"\']*["\']',
-        'model="llama3.2", log_dir=f"{LOG_DIR}/chats"',
+        'model="llama3.2"',
         updated_code
     )
     updated_code = re.sub(
         r'model=["\']gpt-3\.5[^"\']*["\']',
-        'model="llama3.2", log_dir=f"{LOG_DIR}/chats"',
+        'model="llama3.2"',
         updated_code
     )
     # Remove api_key arg
@@ -623,11 +623,13 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/all-rag-techniques",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/ai-agents-for-beginners",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/rag-cookbooks",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/GenAIExamples",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/GenAI-Showcase",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/GenAI_Agents",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/GenAIExamples",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/GenAI-Showcase",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/GenAI_Agents",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
     ]
     include_files = [
+        "agents.ipynb",
         # "multi_strategy_workflow",
         # "memory",
     ]
