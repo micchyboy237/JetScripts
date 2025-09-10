@@ -76,12 +76,12 @@ logger.info("# Self-RAG using local LLMs")
 # import getpass
 
 
-def _set_env(key: str):
-    if key not in os.environ:
-        #         os.environ[key] = getpass.getpass(f"{key}:")
+# def _set_env(key: str):
+#     if key not in os.environ:
+#         os.environ[key] = getpass.getpass(f"{key}:")
 
 
-_set_env("NOMIC_API_KEY")
+# _set_env("NOMIC_API_KEY")
 
 """
 <div class="admonition tip">
