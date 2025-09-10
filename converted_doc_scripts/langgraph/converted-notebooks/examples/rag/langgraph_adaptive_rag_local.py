@@ -26,6 +26,9 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
 
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
+
 """
 # Adaptive RAG using local LLMs
 
@@ -92,9 +95,9 @@ Follow the documentation [here](https://docs.gpt4all.io/gpt4all_python_embedding
 ollama pull mistral
 ```
 """
-logger.info("### LLMs")
+# logger.info("### LLMs")
 
-local_llm = "mistral"
+# local_llm = "mistral"
 
 """
 ## Create Index
@@ -115,11 +118,13 @@ text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
     chunk_size=250, chunk_overlap=0
 )
 doc_splits = text_splitter.split_documents(docs_list)
+doc_splits = doc_splits[:10]  # temporary line for faster testing
 
 vectorstore = Chroma.from_documents(
     documents=doc_splits,
     collection_name="rag-chroma",
     embedding=OllamaEmbeddings(model="nomic-embed-text"),
+    persist_directory=PERSIST_DIR
 )
 retriever = vectorstore.as_retriever()
 

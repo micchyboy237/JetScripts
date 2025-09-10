@@ -103,6 +103,8 @@ text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
     chunk_size=250, chunk_overlap=0
 )
 doc_splits = text_splitter.split_documents(docs_list)
+doc_splits = doc_splits[:10]  # temporary line for faster testing
+
 
 """
 embedding=NomicEmbeddings(
