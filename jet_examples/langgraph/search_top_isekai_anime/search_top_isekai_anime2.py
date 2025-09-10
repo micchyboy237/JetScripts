@@ -9,7 +9,7 @@ from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph, START
 from pydantic import BaseModel, Field
-from typing import List, TypedDict
+from typing import List, TypedDict, Literal
 import os
 import shutil
 
@@ -23,8 +23,7 @@ logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
 
 
-# Define structured output for anime list
-
+# Define structured output for anime list (unchanged)
 class Anime(BaseModel):
     title: str = Field(description="The title of the isekai anime")
     description: str = Field(description="A brief description of the anime")
@@ -33,8 +32,30 @@ class Anime(BaseModel):
 class AnimeList(BaseModel):
     animes: List[Anime] = Field(description="List of top 10 isekai anime")
 
+# Define structured output for question routing (unchanged)
+
+
+class RouteResponse(BaseModel):
+    datasource: str = Field(
+        description="The datasource to route to, always 'web_search' for isekai anime")
+
+# Define structured output for grading
+
+
+class GradeResponse(BaseModel):
+    score: Literal["yes", "no"] = Field(
+        description="Binary score: 'yes' if the list has exactly 10 relevant isekai anime for 2025, otherwise 'no'")
+
+# Define structured output for query rewriting
+
+
+class RewrittenQuery(BaseModel):
+    question: str = Field(
+        description="Rewritten question optimized for web search")
 
 # Define graph state
+
+
 class GraphState(TypedDict):
     question: str
     generation: str
@@ -48,14 +69,6 @@ class GraphState(TypedDict):
 llm = ChatOllama(model="llama3.2")
 # Increased to 5 for broader results
 web_search_tool = TavilySearchResults(k=5)
-
-
-# Define structured output for question routing
-
-class RouteResponse(BaseModel):
-    datasource: str = Field(
-        description="The datasource to route to, always 'web_search' for isekai anime")
-
 
 # Question router to always use web search for isekai anime
 prompt = PromptTemplate(
@@ -92,7 +105,7 @@ def web_search(state: GraphState):
 
 # Generate structured anime list
 prompt = PromptTemplate(
-    template="""You are an expert in anime recommendations. Based on the provided context, generate a list of the top 10 isekai anime for 2025. Each anime should have a title and a brief description. Return the result as a JSON object with a key 'animes' containing a list of objects with 'title' and 'description' fields.
+    template="""You are an expert in anime recommendations. Based on the provided context, generate a list of the top 10 isekai anime for 2025. Each anime should have a title and a brief description. Return the result as a JSON object with a key 'animes' containing a list of objects with 'title' and 'description' fields. Do NOT include any code or explanations, only the JSON object.
 
 Context:
 {context}
@@ -100,16 +113,17 @@ Context:
 Question: {question}
 
 Output format:
-{{
+{
     "animes": [
         {{"title": "Anime Name", "description": "Brief description"}},
         ...
     ]
-}}
+}
 """,
     input_variables=["context", "question"],
 )
-rag_chain = prompt | llm | JsonOutputParser()
+rag_chain = prompt | llm.with_structured_output(
+    AnimeList)  # Use structured output
 
 
 def generate(state: GraphState):
@@ -118,38 +132,57 @@ def generate(state: GraphState):
     documents = state["documents"]
     context = "\n\n".join(doc.page_content for doc in documents)
     try:
-        generation = rag_chain.invoke(
+        anime_list = rag_chain.invoke(
             {"context": context, "question": question})
-        anime_list = AnimeList(**generation)
         if len(anime_list.animes) != 10:
             logger.debug("---GENERATION: INCOMPLETE ANIME LIST, RETRY---")
-            return {"documents": documents, "question": question, "generation": "", "anime_list": None}
-        return {"documents": documents, "question": question, "generation": generation, "anime_list": anime_list}
+            return {
+                "documents": documents,
+                "question": question,
+                "generation": anime_list.dict(),  # Serialize Pydantic object to dict
+                "anime_list": None
+            }
+        return {
+            "documents": documents,
+            "question": question,
+            "generation": anime_list.dict(),  # Serialize Pydantic object to dict
+            "anime_list": anime_list
+        }
     except Exception as e:
         logger.error(f"Generation failed: {str(e)}")
-        return {"documents": documents, "question": question, "generation": "", "anime_list": None}
+        return {
+            "documents": documents,
+            "question": question,
+            "generation": "",
+            "anime_list": None
+        }
 
 
 # Grade generation for completeness and relevance
 prompt = PromptTemplate(
-    template="""You are a grader assessing whether a generated list of top 10 isekai anime is complete and relevant to the question. The list should contain exactly 10 anime with titles and descriptions relevant to isekai anime for 2025.
+    template="""You are a grader assessing whether a generated list of top 10 isekai anime is complete and relevant to the question. The list should contain exactly 10 anime with titles and descriptions relevant to isekai anime for 2025. Do NOT write any code, functions, or explanations. Respond ONLY with a JSON object.
 
 Here is the question: {question}
-Here is the generated list: {generation}
+Here is the generated list (as JSON string): {generation}
 
-Return a JSON with a single key 'score' and value 'yes' if the list has exactly 10 relevant isekai anime, otherwise 'no'.""",
+Respond with ONLY this JSON format, nothing else:
+{{"score": "yes"}}  (if exactly 10 relevant isekai anime)
+or
+{{"score": "no"}}  (otherwise)
+""",
     input_variables=["question", "generation"],
 )
-answer_grader = prompt | llm | JsonOutputParser()
+answer_grader = prompt | llm.with_structured_output(
+    GradeResponse)  # Use structured output
 
 
 def grade_generation(state: GraphState):
     logger.debug("---GRADE GENERATION---")
     question = state["question"]
     generation = state["generation"]
-    score = answer_grader.invoke(
-        {"question": question, "generation": generation})
-    grade = score["score"]
+    score = answer_grader.invoke({"question": question, "generation": str(
+        generation)})  # Convert generation to string
+    grade = score.score  # Use attribute access
     if grade == "yes":
         logger.debug("---DECISION: GENERATION IS COMPLETE AND RELEVANT---")
         return "useful"
@@ -160,19 +193,24 @@ def grade_generation(state: GraphState):
 
 # Transform query if generation fails
 re_write_prompt = PromptTemplate(
-    template="""You are a question re-writer optimizing for web search. Convert the input question to a more specific version for retrieving top isekai anime for 2025.
+    template="""You are a question re-writer optimizing for web search. Convert the input question to a more specific version for retrieving top isekai anime for 2025. Do NOT include any preamble or explanations, only the rewritten question as a JSON object with a single key 'question'.
 
 Here is the initial question: {question}
-Improved question with no preamble: Top 10 isekai anime for 2025 with titles and descriptions""",
+
+Output format:
+{{"question": "Top 10 isekai anime for 2025 with titles and descriptions"}}
+""",
     input_variables=["question"],
 )
-question_rewriter = re_write_prompt | llm | StrOutputParser()
+question_rewriter = re_write_prompt | llm.with_structured_output(
+    RewrittenQuery)  # Use structured output
 
 
 def transform_query(state: GraphState):
     logger.debug("---TRANSFORM QUERY---")
     question = state["question"]
-    better_question = question_rewriter.invoke({"question": question})
+    rewritten = question_rewriter.invoke({"question": question})
+    better_question = rewritten.question  # Use attribute access
     return {"documents": state["documents"], "question": better_question}
 
 

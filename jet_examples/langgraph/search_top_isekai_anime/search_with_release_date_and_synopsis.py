@@ -54,14 +54,13 @@ web_search_tool = TavilySearchResults(k=5)
 prompt = PromptTemplate(
     template="""You are an expert in anime recommendations. Based on the provided web search results, generate a list of the top 10 isekai anime for 2025. \n
     Here are the search results: \n\n {documents} \n\n
-    For each anime, provide the title, release date (e.g., January 2025), and a brief synopsis (1-2 sentences describing the premise). Return a JSON object with a single key 'titles' containing a list of 10 objects, each with 'title', 'release_date', and 'synopsis' keys. If insufficient data is available, infer plausible titles, release dates, and synopses based on trends, ensuring exactly 10 entries. \n
-    Return ONLY the JSON object, with no additional text, preamble, or explanations. \n
-    Example output: {{"titles": [{{"title": "Anime1", "release_date": "January 2025", "synopsis": "A hero is transported to a fantasy world."}}, {{"title": "Anime2", "release_date": "February 2025", "synopsis": "A gamer reincarnates as a villain."}}, ...]}}""",
+    For each anime, provide the title, release date (e.g., January 2025), and a brief synopsis (1-2 sentences describing the premise). Ensure exactly 10 entries. If insufficient data is available, infer plausible titles, release dates, and synopses based on trends. \n
+    Return a structured response with a list of 10 anime, each with 'title', 'release_date', and 'synopsis' fields.""",
     input_variables=["documents"],
 )
 
 # Chain for generating the anime list
-anime_chain = prompt | llm | JsonOutputParser()
+anime_chain = prompt | llm.with_structured_output(AnimeList)
 
 
 def web_search(state):
@@ -103,7 +102,7 @@ def generate(state):
         "question": question,
         "search_query": state["search_query"],
         "search_results": state["search_results"],
-        "generation": generation["titles"]
+        "generation": generation.titles  # Extract titles list from AnimeList
     }
 
 
