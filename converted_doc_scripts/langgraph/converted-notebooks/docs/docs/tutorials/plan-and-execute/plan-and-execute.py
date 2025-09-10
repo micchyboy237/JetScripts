@@ -227,7 +227,7 @@ We can now create the graph!
 logger.info("## Create the Graph")
 
 
-async def execute_step(state: PlanExecute):
+def execute_step(state: PlanExecute):
     plan = state["plan"]
     plan_str = "\n".join(f"{i + 1}. {step}" for i, step in enumerate(plan))
     task = plan[0]
@@ -248,7 +248,7 @@ def plan_step(state: PlanExecute):
     return {"plan": plan.steps}
 
 
-async def replan_step(state: PlanExecute):
+def replan_step(state: PlanExecute):
     output = replanner.invoke(state)
     logger.success(format_json(output))
     if isinstance(output.action, Response):
