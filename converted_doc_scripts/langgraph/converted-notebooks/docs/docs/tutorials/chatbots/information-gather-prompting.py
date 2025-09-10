@@ -221,28 +221,42 @@ We can now use the created chatbot.
 logger.info("## Use the graph")
 
 
-cached_human_responses = ["hi!", "rag prompt",
-                          "1 rag, 2 none, 3 no, 4 no", "red", "q"]
-cached_response_index = 0
+# Real-world sample inputs: Simulate a conversation for generating a RAG prompt
+sample_inputs = [
+    "hi!",
+    "I want a prompt for RAG application.",
+    "Objective: Answer user query using provided context. Variables: context and query. No constraints beyond accuracy. Requirements: Structured JSON output."
+]
+
 config = {"configurable": {"thread_id": str(uuid.uuid4())}}
-while True:
-    try:
-        user = input("User (q/Q to quit): ")
-    except:
-        user = cached_human_responses[cached_response_index]
-        cached_response_index += 1
-    logger.debug(f"User (q/Q to quit): {user}")
-    if user in {"q", "Q"}:
-        logger.debug("AI: Byebye")
-        break
+
+for user_input in sample_inputs:
+    logger.info(f"User: {user_input}")
     output = None
     for output in graph.stream(
-        {"messages": [HumanMessage(content=user)]}, config=config, stream_mode="updates"
+        {"messages": [HumanMessage(content=user_input)]}, config=config, stream_mode="updates"
     ):
         last_message = next(iter(output.values()))["messages"][-1]
-        logger.debug(last_message)
+        logger.info(f"AI: {last_message.content}")
 
     if output and "prompt" in output:
-        logger.debug("Done!")
+        logger.success(output)
+        logger.info("Prompt generation complete!")
+
+# Additional real-world sample: Marketing email prompt
+logger.info("\n--- New Thread: Marketing Email Prompt ---")
+config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+sample_inputs2 = [
+    "Hello, I need a prompt for generating marketing emails.",
+    "Objective: Create engaging promotional content. Variables: product_name, target_audience, key_features. Constraints: Avoid spam language. Requirements: Include call to action, be persuasive."
+]
+
+for user_input in sample_inputs2:
+    logger.info(f"User: {user_input}")
+    for output in graph.stream(
+        {"messages": [HumanMessage(content=user_input)]}, config=config, stream_mode="updates"
+    ):
+        last_message = next(iter(output.values()))["messages"][-1]
+        logger.success(f"AI: {last_message.content}")
 
 logger.info("\n\n[DONE]", bright=True)
