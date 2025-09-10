@@ -1,0 +1,15 @@
+import os
+
+from jet.cache.redis.data_utils import get_redis_data
+from jet.file.utils import save_file
+from jet.logger import logger
+
+# Set up logging
+OUTPUT_DIR = os.path.join(os.path.dirname(
+    __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger = logger.basicConfig(filename=log_file, overwrite=True)
+
+if __name__ == "__main__":
+    results = get_redis_data(port=3103)
+    save_file(results, f"{OUTPUT_DIR}/redis_data.json")

@@ -1,10 +1,10 @@
+from jet.adapters.langchain.tavily_search_tool import TavilySearchResults
 from jet.file.utils import save_file
 from jet.logger import logger
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain.prompts import PromptTemplate
 from langchain.schema import Document
-from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph, START
