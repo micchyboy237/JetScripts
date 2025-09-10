@@ -1,13 +1,15 @@
-from jet.logger import CustomLogger
+from jet.logger import logger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain import hub
 from langchain.prompts import PromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.chat_models import ChatOllama
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.vectorstores import Chroma
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.output_parsers import StrOutputParser
-from langchain_nomic.embeddings import NomicEmbeddings
+# from langchain_nomic.embeddings import NomicEmbeddings
 from langgraph.graph import END, StateGraph, START
 from pprint import pprint
 from typing import List
@@ -19,9 +21,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Self-RAG using local LLMs
@@ -72,7 +78,7 @@ logger.info("# Self-RAG using local LLMs")
 
 def _set_env(key: str):
     if key not in os.environ:
-#         os.environ[key] = getpass.getpass(f"{key}:")
+        #         os.environ[key] = getpass.getpass(f"{key}:")
 
 
 _set_env("NOMIC_API_KEY")
@@ -132,7 +138,7 @@ doc_splits = text_splitter.split_documents(docs_list)
 vectorstore = Chroma.from_documents(
     documents=doc_splits,
     collection_name="rag-chroma",
-    embedding=NomicEmbeddings(model="nomic-embed-text-v1.5", inference_mode="local"),
+    embedding=OllamaEmbeddings(model="nomic-embed-text"),
 )
 retriever = vectorstore.as_retriever()
 
@@ -159,7 +165,8 @@ retrieval_grader = prompt | llm | JsonOutputParser()
 question = "agent memory"
 docs = retriever.get_relevant_documents(question)
 doc_txt = docs[1].page_content
-logger.debug(retrieval_grader.invoke({"question": question, "document": doc_txt}))
+logger.debug(retrieval_grader.invoke(
+    {"question": question, "document": doc_txt}))
 
 
 prompt = hub.pull("rlm/rag-prompt")
@@ -232,8 +239,6 @@ Capture the flow in as a graph.
 logger.info("# Graph")
 
 
-
-
 class GraphState(TypedDict):
     """
     Represents the state of our graph.
@@ -247,6 +252,7 @@ class GraphState(TypedDict):
     question: str
     generation: str
     documents: List[str]
+
 
 def retrieve(state):
     """
@@ -332,8 +338,6 @@ def transform_query(state):
     return {"documents": documents, "question": better_question}
 
 
-
-
 def decide_to_generate(state):
     """
     Determines whether to generate an answer, or re-generate a question.
@@ -383,17 +387,21 @@ def grade_generation_v_documents_and_question(state):
     if grade == "yes":
         logger.debug("---DECISION: GENERATION IS GROUNDED IN DOCUMENTS---")
         logger.debug("---GRADE GENERATION vs QUESTION---")
-        score = answer_grader.invoke({"question": question, "generation": generation})
+        score = answer_grader.invoke(
+            {"question": question, "generation": generation})
         grade = score["score"]
         if grade == "yes":
             logger.debug("---DECISION: GENERATION ADDRESSES QUESTION---")
             return "useful"
         else:
-            logger.debug("---DECISION: GENERATION DOES NOT ADDRESS QUESTION---")
+            logger.debug(
+                "---DECISION: GENERATION DOES NOT ADDRESS QUESTION---")
             return "not useful"
     else:
-        logger.debug("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
+        logger.debug(
+            "---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
         return "not supported"
+
 
 """
 ## Build Graph
@@ -432,6 +440,7 @@ workflow.add_conditional_edges(
 )
 
 app = workflow.compile()
+render_mermaid_graph(app, f"{OUTPUT_DIR}/graph_output.png", xray=True)
 
 """
 ## Run
@@ -442,10 +451,10 @@ logger.info("## Run")
 inputs = {"question": "Explain how the different types of agent memory work?"}
 for output in app.stream(inputs):
     for key, value in output.items():
-        plogger.debug(f"Node '{key}':")
-    plogger.debug("\n---\n")
+        logger.debug(f"Node '{key}':")
+    logger.debug("\n---\n")
 
-plogger.debug(value["generation"])
+logger.debug(value["generation"])
 
 """
 Trace: 

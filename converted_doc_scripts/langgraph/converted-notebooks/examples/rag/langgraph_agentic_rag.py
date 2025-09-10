@@ -342,10 +342,10 @@ inputs = {
 state = AgentState(messages=inputs["messages"])
 for output in graph.stream(state):
     for key, value in output.items():
-        pprint.pprint(f"Output from node '{key}':")
-        pprint.pprint("---")
-        pprint.pprint(value, indent=2, width=80, depth=None)
-    pprint.pprint("\n---\n")
+        logger.debug(f"Output from node '{key}':")
+        logger.debug("---")
+        logger.debug(value, indent=2, width=80, depth=None)
+    logger.debug("\n---\n")
 
 save_file(state, f"{OUTPUT_DIR}/agent_state.json")
 

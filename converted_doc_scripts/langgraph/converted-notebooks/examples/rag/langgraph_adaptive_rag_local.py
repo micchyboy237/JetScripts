@@ -1,5 +1,6 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from jet.logger import logger
 from langchain import hub
 from langchain.prompts import PromptTemplate
@@ -509,15 +510,16 @@ workflow.add_conditional_edges(
 )
 
 app = workflow.compile()
+render_mermaid_graph(app, f"{OUTPUT_DIR}/graph_output.png", xray=True)
 
 
 inputs = {"question": "What is the AlphaCodium paper about?"}
 for output in app.stream(inputs):
     for key, value in output.items():
-        plogger.debug(f"Node '{key}':")
-    plogger.debug("\n---\n")
+        logger.debug(f"Node '{key}':")
+    logger.debug("\n---\n")
 
-plogger.debug(value["generation"])
+logger.debug(value["generation"])
 
 """
 Trace: 
