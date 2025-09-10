@@ -6,7 +6,7 @@ from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import CharacterTextSplitter
 from jet.llm.ollama.base_langchain import OllamaEmbeddings
 from langchain_community.vectorstores import DeepLake
-from langchain.chains import ConversationalRetrievalChain
+from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
 from jet.llm.ollama.base_langchain import ChatOllama
 
 initialize_ollama_settings()

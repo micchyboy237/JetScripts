@@ -1,15 +1,15 @@
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain import hub
 from langchain.prompts import PromptTemplate
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.chat_models import ChatOllama
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.vectorstores import Chroma
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.output_parsers import StrOutputParser
-from langchain_nomic.embeddings import NomicEmbeddings
 from langgraph.graph import END, StateGraph, START
 from pprint import pprint
 from typing import List
@@ -57,13 +57,13 @@ logger.info("# Adaptive RAG using local LLMs")
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+# if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
-_set_env("TAVILY_API_KEY")
-_set_env("NOMIC_API_KEY")
+# _set_env("TAVILY_API_KEY")
+# _set_env("NOMIC_API_KEY")
 
 """
 <div class="admonition tip">
@@ -118,7 +118,7 @@ doc_splits = text_splitter.split_documents(docs_list)
 vectorstore = Chroma.from_documents(
     documents=doc_splits,
     collection_name="rag-chroma",
-    embedding=NomicEmbeddings(model="nomic-embed-text-v1.5", inference_mode="local"),
+    embedding=OllamaEmbeddings(model="nomic-embed-text"),
 )
 retriever = vectorstore.as_retriever()
 
@@ -166,7 +166,8 @@ retrieval_grader = prompt | llm | JsonOutputParser()
 question = "agent memory"
 docs = retriever.get_relevant_documents(question)
 doc_txt = docs[1].page_content
-logger.debug(retrieval_grader.invoke({"question": question, "document": doc_txt}))
+logger.debug(retrieval_grader.invoke(
+    {"question": question, "document": doc_txt}))
 
 
 prompt = hub.pull("rlm/rag-prompt")
@@ -248,8 +249,6 @@ Capture the flow in as a graph.
 logger.info("# Graph")
 
 
-
-
 class GraphState(TypedDict):
     """
     Represents the state of our graph.
@@ -263,7 +262,6 @@ class GraphState(TypedDict):
     question: str
     generation: str
     documents: List[str]
-
 
 
 def retrieve(state):
@@ -371,8 +369,6 @@ def web_search(state):
     return {"documents": web_results, "question": question}
 
 
-
-
 def route_question(state):
     """
     Route question to web search or RAG.
@@ -447,17 +443,21 @@ def grade_generation_v_documents_and_question(state):
     if grade == "yes":
         logger.debug("---DECISION: GENERATION IS GROUNDED IN DOCUMENTS---")
         logger.debug("---GRADE GENERATION vs QUESTION---")
-        score = answer_grader.invoke({"question": question, "generation": generation})
+        score = answer_grader.invoke(
+            {"question": question, "generation": generation})
         grade = score["score"]
         if grade == "yes":
             logger.debug("---DECISION: GENERATION ADDRESSES QUESTION---")
             return "useful"
         else:
-            logger.debug("---DECISION: GENERATION DOES NOT ADDRESS QUESTION---")
+            logger.debug(
+                "---DECISION: GENERATION DOES NOT ADDRESS QUESTION---")
             return "not useful"
     else:
-        plogger.debug("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
+        plogger.debug(
+            "---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
         return "not supported"
+
 
 """
 ## Build Graph

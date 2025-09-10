@@ -1,6 +1,6 @@
 from IPython.display import Image, display
-from jet.llm.ollama.base_langchain import ChatOllama
-from jet.llm.ollama.base_langchain import OllamaEmbeddings  # api
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain import hub
 from langchain.prompts import PromptTemplate
@@ -12,8 +12,8 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.vectorstores import SKLearnVectorStore
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.output_parsers import StrOutputParser
-from langchain_mistralai.chat_models import ChatMistralAI
-from langchain_nomic.embeddings import NomicEmbeddings  # local
+# from langchain_mistralai.chat_models import ChatMistralAI
+# from langchain_nomic.embeddings import NomicEmbeddings  # local
 from langgraph.graph import START, END, StateGraph
 from langsmith import Client
 from langsmith.evaluation import evaluate
@@ -75,13 +75,13 @@ logger.info("# Corrective RAG (CRAG) using local LLMs")
 # import getpass
 
 
-def _set_env(key: str):
-    if key not in os.environ:
+# def _set_env(key: str):
+    # if key not in os.environ:
 #         os.environ[key] = getpass.getpass(f"{key}:")
 
 
 # _set_env("OPENAI_API_KEY")
-_set_env("TAVILY_API_KEY")
+# _set_env("TAVILY_API_KEY")
 
 """
 <div class="admonition tip">
@@ -130,7 +130,7 @@ embedding=NomicEmbeddings(
     inference_mode="local",
 )
 """
-embedding = OllamaEmbeddings(model="mxbai-embed-large")
+embedding = OllamaEmbeddings(model="nomic-embed-text")
 
 vectorstore = SKLearnVectorStore.from_documents(
     documents=doc_splits,

@@ -3,8 +3,9 @@
 # from athina.loaders import Loader
 from datasets import Dataset
 # from google.colab import userdata
-from jet.llm.ollama.base_langchain import ChatOllama
-from jet.llm.ollama.base_langchain import OllamaEmbeddings
+from jet.adapters.langchain.ragas_context_relevancy import RagasContextRelevancy
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain.document_loaders import CSVLoader
 from langchain.prompts import ChatPromptTemplate
@@ -151,9 +152,9 @@ We will use **Context Relevancy** eval here. It Measures the relevancy of the re
 logger.info("## **Evaluation in Athina AI**")
 
 # OpenAiApiKey.set_key(os.getenv('OPENAI_API_KEY'))
-AthinaApiKey.set_key(os.getenv('ATHINA_API_KEY'))
+# AthinaApiKey.set_key(os.getenv('ATHINA_API_KEY'))
 
-dataset = Loader().load_dict(df_dict)
+dataset = Dataset.from_dict(df_dict)
 
 RagasContextRelevancy(model="llama3.1", request_timeout=300.0,
                       context_window=4096).run_batch(data=dataset).to_df()
