@@ -33,7 +33,7 @@ class Anime(BaseModel):
 
 
 class AnimeList(BaseModel):
-    titles: List[Anime] = Field(
+    data: List[Anime] = Field(
         description="List of top 10 isekai anime for 2025")
 
 
@@ -102,7 +102,7 @@ def generate(state):
         "question": question,
         "search_query": state["search_query"],
         "search_results": state["search_results"],
-        "generation": generation.titles  # Extract titles list from AnimeList
+        "generation": generation.data  # Extract data list from AnimeList
     }
 
 
