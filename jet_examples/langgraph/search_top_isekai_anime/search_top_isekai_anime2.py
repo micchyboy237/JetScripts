@@ -49,12 +49,21 @@ llm = ChatOllama(model="llama3.2")
 # Increased to 5 for broader results
 web_search_tool = TavilySearchResults(k=5)
 
+
+# Define structured output for question routing
+
+class RouteResponse(BaseModel):
+    datasource: str = Field(
+        description="The datasource to route to, always 'web_search' for isekai anime")
+
+
 # Question router to always use web search for isekai anime
 prompt = PromptTemplate(
-    template="""Always route questions about isekai anime to web search. Return JSON with a single key 'datasource' set to 'web_search'.""",
+    template="""Always route questions about isekai anime to web search. Return a structured JSON object with a single key 'datasource' set to 'web_search'.""",
     input_variables=["question"],
 )
-question_router = prompt | llm | JsonOutputParser()
+# Use structured output instead of JsonOutputParser
+question_router = prompt | llm.with_structured_output(RouteResponse)
 
 
 # Web search node
@@ -181,7 +190,7 @@ def route_question(state: GraphState):
     logger.debug(question)
     source = question_router.invoke({"question": question})
     logger.debug(source)
-    if source["datasource"] == "web_search":
+    if source.datasource == "web_search":  # Use attribute access instead of dictionary
         logger.debug("---ROUTE QUESTION TO WEB SEARCH---")
         return "web_search"
     else:

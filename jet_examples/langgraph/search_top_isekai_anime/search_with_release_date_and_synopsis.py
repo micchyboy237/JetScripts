@@ -1,0 +1,135 @@
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.file.utils import save_file
+from jet.logger import logger
+from jet.transformers.object import make_serializable
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
+from langchain.prompts import PromptTemplate
+from langchain.schema import Document
+from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_core.output_parsers import JsonOutputParser
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import END, StateGraph, START
+from pydantic import BaseModel, Field
+from typing import List
+from typing_extensions import TypedDict
+import os
+import shutil
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
+
+
+# Define structured output model for anime list
+class Anime(BaseModel):
+    title: str = Field(description="Title of the isekai anime")
+    release_date: str = Field(
+        description="Release date of the anime (e.g., January 2025)")
+    synopsis: str = Field(description="Brief synopsis of the anime")
+
+
+class AnimeList(BaseModel):
+    titles: List[Anime] = Field(
+        description="List of top 10 isekai anime for 2025")
+
+
+# Define graph state
+class GraphState(TypedDict):
+    question: str
+    generation: List[Anime]  # Updated to List[Anime]
+    documents: List[str]
+    search_query: str
+    search_results: List[dict]
+
+
+# Initialize LLM and tools
+llm = ChatOllama(model="llama3.2", temperature=0)
+web_search_tool = TavilySearchResults(k=5)
+
+# Define prompt for generating the top 10 isekai anime list
+prompt = PromptTemplate(
+    template="""You are an expert in anime recommendations. Based on the provided web search results, generate a list of the top 10 isekai anime for 2025. \n
+    Here are the search results: \n\n {documents} \n\n
+    For each anime, provide the title, release date (e.g., January 2025), and a brief synopsis (1-2 sentences describing the premise). Return a JSON object with a single key 'titles' containing a list of 10 objects, each with 'title', 'release_date', and 'synopsis' keys. If insufficient data is available, infer plausible titles, release dates, and synopses based on trends, ensuring exactly 10 entries. \n
+    Return ONLY the JSON object, with no additional text, preamble, or explanations. \n
+    Example output: {{"titles": [{{"title": "Anime1", "release_date": "January 2025", "synopsis": "A hero is transported to a fantasy world."}}, {{"title": "Anime2", "release_date": "February 2025", "synopsis": "A gamer reincarnates as a villain."}}, ...]}}""",
+    input_variables=["documents"],
+)
+
+# Chain for generating the anime list
+anime_chain = prompt | llm | JsonOutputParser()
+
+
+def web_search(state):
+    """
+    Perform web search to fetch recent isekai anime data for 2025.
+    Args:
+        state (dict): The current graph state
+    Returns:
+        state (dict): Updated state with web search results, query, and raw results
+    """
+    logger.debug("---WEB SEARCH---")
+    question = state["question"]
+    docs = web_search_tool.invoke({"query": question})
+    web_results = "\n".join([d["content"] for d in docs])
+    web_results = Document(page_content=web_results)
+    return {
+        "documents": [web_results],
+        "question": question,
+        "search_query": question,
+        "search_results": make_serializable(docs)
+    }
+
+
+def generate(state):
+    """
+    Generate the top 10 isekai anime list based on web search results.
+    Args:
+        state (dict): The current graph state
+    Returns:
+        state (dict): Updated state with generated anime list
+    """
+    logger.debug("---GENERATE ANIME LIST---")
+    question = state["question"]
+    documents = state["documents"]
+    generation = anime_chain.invoke(
+        {"documents": [doc.page_content for doc in documents]})
+    return {
+        "documents": documents,
+        "question": question,
+        "search_query": state["search_query"],
+        "search_results": state["search_results"],
+        "generation": generation["titles"]
+    }
+
+
+# Define the workflow
+workflow = StateGraph(GraphState)
+workflow.add_node("web_search", web_search)
+workflow.add_node("generate", generate)
+workflow.add_edge(START, "web_search")
+workflow.add_edge("web_search", "generate")
+workflow.add_edge("generate", END)
+
+# Compile the graph
+app = workflow.compile(checkpointer=MemorySaver())
+render_mermaid_graph(app, f"{OUTPUT_DIR}/graph_output.png", xray=True)
+
+# Execute the query
+inputs = {"question": "top 10 isekai anime 2025"}
+config = {"configurable": {"thread_id": "1"}}  # Add config for checkpointer
+state = app.invoke(inputs, config)
+save_file(state, f"{OUTPUT_DIR}/workflow_state.json")
+save_file(
+    {
+        "search_query": state["search_query"],
+        "search_results": state["search_results"]
+    },
+    f"{OUTPUT_DIR}/search_data.json"
+)
+logger.debug(f"Generated anime list: {state['generation']}")
+logger.info("\n\n[DONE]", bright=True)
