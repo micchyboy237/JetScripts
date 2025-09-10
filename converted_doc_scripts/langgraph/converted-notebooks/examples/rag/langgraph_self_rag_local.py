@@ -1,3 +1,4 @@
+from jet.file.utils import save_file
 from jet.logger import logger
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
@@ -10,6 +11,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.output_parsers import StrOutputParser
 # from langchain_nomic.embeddings import NomicEmbeddings
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph, START
 from pprint import pprint
 from typing import List
@@ -61,8 +63,6 @@ In the [paper](https://arxiv.org/abs/2310.11511), a few decisions are made:
 * Output: `{5, 4, 3, 2, 1}`
 
 We will implement some of these ideas from scratch using [LangGraph](https://langchain-ai.github.io/langgraph/).
-
-![Screenshot 2024-04-01 at 12.42.59 PM.png](attachment:5fca0a3e-d13d-4bfa-95ea-58203640cc7a.png)
 
 ## Setup
 
@@ -441,7 +441,7 @@ workflow.add_conditional_edges(
     },
 )
 
-app = workflow.compile()
+app = workflow.compile(checkpointer=MemorySaver())
 render_mermaid_graph(app, f"{OUTPUT_DIR}/graph_output.png", xray=True)
 
 """
@@ -457,6 +457,8 @@ for output in app.stream(inputs):
     logger.debug("\n---\n")
 
 logger.debug(value["generation"])
+
+save_file(app, f"{OUTPUT_DIR}/workflow_state.json")
 
 """
 Trace: 

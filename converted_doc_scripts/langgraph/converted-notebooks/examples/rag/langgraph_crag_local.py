@@ -51,8 +51,6 @@ We will implement some of these ideas from scratch using [LangGraph](https://lan
 * We'll skip the knowledge refinement, but this can be added back as a node if desired.
 * We'll use [Tavily Search](https://python.langchain.com/v0.2/docs/integrations/tools/tavily_search/) for web search.
 
-![Screenshot 2024-06-24 at 3.03.16 PM.png](attachment:b77a7d3b-b28a-4dcf-9f1a-861f2f2c5f6c.png)
-
 ## Setup
 
 We'll use [Ollama](https://ollama.ai/) to access a local LLM:
@@ -488,8 +486,6 @@ save_file(experiment_results, f"{OUTPUT_DIR}/experiment_results.json")
 
 """
 We can see the results benchmarked against `GPT-4o` and `Llama-3-70b` using `Custom` agent (as shown here) and ReAct.
-
-![Screenshot 2024-06-24 at 4.14.04 PM.png](attachment:80e86604-7734-4aeb-a200-d1413870c3cb.png)
 
 The `local custom agent` performs well in terms of tool calling reliability: it follows the expected reasoning traces.
 

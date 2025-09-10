@@ -1,5 +1,6 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
+from jet.file.utils import save_file
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from jet.logger import logger
 from langchain import hub
@@ -11,6 +12,7 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.vectorstores import Chroma
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.output_parsers import StrOutputParser
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph, START
 from pprint import pprint
 from typing import List
@@ -47,8 +49,6 @@ In our implementation, we will route between:
 
 * Web search: for questions related to recent events
 * Self-corrective RAG: for questions related to our index
-
-![Screenshot 2024-04-01 at 1.29.15 PM.png](attachment:3755396d-c4a8-45bd-87d4-00cb56339fe5.png)
 
 ## Setup
 
@@ -509,7 +509,7 @@ workflow.add_conditional_edges(
     },
 )
 
-app = workflow.compile()
+app = workflow.compile(checkpointer=MemorySaver())
 render_mermaid_graph(app, f"{OUTPUT_DIR}/graph_output.png", xray=True)
 
 
@@ -520,6 +520,8 @@ for output in app.stream(inputs):
     logger.debug("\n---\n")
 
 logger.debug(value["generation"])
+
+save_file(app, f"{OUTPUT_DIR}/workflow_state.json")
 
 """
 Trace: 

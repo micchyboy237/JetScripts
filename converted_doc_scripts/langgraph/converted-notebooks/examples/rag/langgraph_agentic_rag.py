@@ -143,8 +143,6 @@ We can lay out an agentic RAG graph like this:
 * The state is a set of messages
 * Each node will update (append to) state
 * Conditional edges decide which node to visit next
-
-![Screenshot 2024-02-14 at 3.43.58 PM.png](attachment:7ad1a116-28d7-473f-8cff-5f2efd0bf118.png)
 """
 logger.info("## Nodes and Edges")
 
