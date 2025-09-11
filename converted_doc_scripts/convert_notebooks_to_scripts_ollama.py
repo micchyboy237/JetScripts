@@ -2,7 +2,7 @@ import os
 import hashlib
 import re
 from pathlib import Path
-from typing import Coroutine, Literal, Optional
+from typing import Coroutine, List, Literal, Optional
 import codecs
 import json
 import shutil
@@ -11,6 +11,7 @@ from jet.code.python_code_extractor import remove_comments
 from jet.code.rst_code_extractor import rst_to_code_blocks
 from jet.logger import logger
 from jet.utils.file import search_files
+from jet.utils.file_utils.search import find_files
 
 REPLACE_OLLAMA_MAP = {
     "llama-index-llms-openai": "llama-index-llms-ollama",
@@ -343,6 +344,20 @@ def read_rst_file(file):
     return source_groups
 
 
+def read_python_file(file, remove_triple_quoted_definitions: bool = False):
+    if not file.endswith('.py'):
+        raise ValueError("File must have .py extension")
+    with open(file, 'r', encoding='utf-8') as f:
+        source = f.read()
+    # Remove comments to clean up the code
+    source = remove_comments(source, remove_triple_quoted_definitions)
+    # Treat the entire file as a single code block
+    return [{
+        "type": "code",
+        "code": source.strip()
+    }]
+
+
 async def run_async_wrapper(code: str) -> str:
     """Run async code in the current event loop and return the result as a string."""
     try:
@@ -471,26 +486,78 @@ def merge_consecutive_same_type(source_groups, separator="\n\n"):
     return merged_groups
 
 
+def _wrap_async_code(source_code: str) -> str:
+    """Wrap code containing 'await' in an async main function."""
+    if not any(line.startswith("await ") for line in source_code.splitlines()):
+        return source_code
+
+    lines = source_code.splitlines()
+    import_lines = [line for line in lines if line.strip(
+    ).startswith(("import ", "from "))]
+    non_import_lines = [
+        line for line in lines if not line.strip().startswith(("import ", "from "))]
+    main_body = "\n".join(f"    {line}" for line in non_import_lines)
+    return "\n".join(import_lines) + "\n\n" + "\n".join([
+        "async def main():",
+        main_body,
+        "",
+        "if __name__ == '__main__':",
+        "    import asyncio",
+        "    try:",
+        "        loop = asyncio.get_event_loop()",
+        "        if loop.is_running():",
+        "            loop.create_task(main())",
+        "        else:",
+        "            loop.run_until_complete(main())",
+        "    except RuntimeError:",
+        "        asyncio.run(main())",
+    ])
+
+
 def scrape_code(
     input_base_dir: str,
-    extensions: list[str],
-    include_files: list[str] = [],
-    exclude_files: list[str] = [],
+    extensions: List[str],
+    include_files: List[str] = [],
+    exclude_files: List[str] = [],
+    include_content_patterns: List[str] = [],
+    exclude_content_patterns: List[str] = [],
+    case_sensitive: bool = False,
     with_markdown: bool = True,
     with_ollama: bool = True,
     output_dir: Optional[str] = None,
-    types: list[Literal['text', 'python']] = [],
-):
-    files = search_files(input_base_dir, extensions,
-                         include_files, exclude_files)
-    if include_files:
-        files = [file for file in files if any(
-            include.lower() in os.path.basename(file).lower() for include in include_files)]
-    if exclude_files:
-        files = [file for file in files if not any(
-            exclude.lower() in os.path.basename(file).lower() for exclude in exclude_files)]
-    logger.info(f"Found {len(files)} {extensions} files")
+    types: List[Literal['text', 'python']] = [],
+) -> List[dict]:
+    """
+    Scrape and process code files from a directory, optionally transforming and saving them.
+
+    Args:
+        input_base_dir (str): The root directory to search for files.
+        extensions (List[str]): File extensions to include (e.g., "py", ".ipynb").
+        include_files (List[str]): Patterns or paths to include.
+        exclude_files (List[str]): Patterns or paths to exclude.
+        include_content_patterns (List[str]): Patterns to match in file content.
+        exclude_content_patterns (List[str]): Patterns to exclude in file content.
+        case_sensitive (bool): Whether content matching is case-sensitive. Defaults to False.
+        with_markdown (bool): Include markdown cells from notebooks. Defaults to True.
+        with_ollama (bool): Apply Ollama transformations to code. Defaults to True.
+        output_dir (Optional[str]): Directory to save processed files. Defaults to None.
+        types (List[Literal['text', 'python']]): Filter source group types. Defaults to [].
+
+    Returns:
+        List[dict]: List of dictionaries containing file metadata and processed code.
+    """
+    files = find_files(
+        input_base_dir,
+        include=include_files,
+        exclude=exclude_files,
+        include_content_patterns=include_content_patterns,
+        exclude_content_patterns=exclude_content_patterns,
+        case_sensitive=case_sensitive,
+        extensions=extensions
+    )
+    logger.info(f"Found {len(files)} files with extensions {extensions}")
     results = []
+
     for file in files:
         file_name = os.path.splitext(os.path.basename(file))[0]
         try:
@@ -501,13 +568,41 @@ def scrape_code(
                 source_groups = read_markdown_file(file)
             elif file.endswith('.rst'):
                 source_groups = read_rst_file(file)
+            elif file.endswith('.py'):
+                source_groups = read_python_file(file)
             else:
                 continue
+
             if types:
                 source_groups = [
                     group for group in source_groups if group['type'] in types]
-            merged_source_groups = merge_consecutive_same_type(source_groups)
-            source_groups = merged_source_groups
+            source_groups = merge_consecutive_same_type(source_groups)
+
+            for source_group in source_groups:
+                if source_group['type'] == 'text':
+                    source_group['code'] = f'"""\n{source_group["code"]}\n"""'
+                    source_group['code'] = wrap_triple_double_quoted_comments_in_log(
+                        source_group['code'])
+                elif source_group['type'] == 'code':
+                    source_group['code'] = wrap_await_code(
+                        source_group['code'])
+
+            source_code = "\n\n".join(group['code'] for group in source_groups)
+
+            if with_ollama:
+                source_code = update_code_with_ollama(source_code)
+                source_code = add_general_initializer_code(source_code)
+                source_code = add_jet_logger(source_code)
+                source_code = move_all_imports_on_top(source_code)
+                source_code = replace_print_with_jet_logger(source_code)
+
+            if "format_json(" in source_code:
+                source_code = "from jet.transformers.formatters import format_json\n" + source_code
+            if "HuggingFaceEmbedding" in source_code:
+                source_code = "from jet.models.config import MODELS_CACHE_DIR\n" + source_code
+
+            source_code = _wrap_async_code(source_code)
+
             if output_dir:
                 os.makedirs(output_dir, exist_ok=True)
                 subfolders = os.path.dirname(file).replace(
@@ -515,68 +610,25 @@ def scrape_code(
                 joined_dir = os.path.join(output_dir, subfolders)
                 os.makedirs(joined_dir, exist_ok=True)
                 output_code_path = os.path.join(joined_dir, f"{file_name}.py")
-                for source_group in source_groups:
-                    if source_group['type'] == 'text':
-                        source_group['code'] = f'"""\n{source_group["code"]}\n"""'
-                    if source_group['type'] == 'text':
-                        source_group['code'] = wrap_triple_double_quoted_comments_in_log(
-                            source_group['code'])
-                    if source_group['type'] == 'code':
-                        source_group['code'] = wrap_await_code(
-                            source_group['code'])
-                source_code = "\n\n".join(group['code']
-                                          for group in source_groups)
-                if with_ollama:
-                    source_code = update_code_with_ollama(source_code)
-                    source_code = add_general_initializer_code(source_code)
-                    source_code = add_jet_logger(source_code)
-                    source_code = move_all_imports_on_top(source_code)
-                    source_code = replace_print_with_jet_logger(source_code)
-                if "format_json(" in source_code:
-                    source_code = "from jet.transformers.formatters import format_json\n" + source_code
-                if "HuggingFaceEmbedding" in source_code:
-                    source_code = "from jet.models.config import MODELS_CACHE_DIR\n" + source_code
-                # Check if 'await' is the first word on any line in source_code (do not strip)
-                if any(line.startswith("await ") for line in source_code.splitlines()):
-                    # Move all import lines to the top of the code block, outside async def main
-                    lines = source_code.splitlines()
-                    import_lines = []
-                    non_import_lines = []
-                    for line in lines:
-                        if line.strip().startswith("import ") or line.strip().startswith("from "):
-                            import_lines.append(line)
-                        else:
-                            non_import_lines.append(line)
-                    main_body = "\n".join(
-                        [f"    {line}" for line in non_import_lines])
-                    source_code = "\n".join(import_lines) + "\n\n" + "\n".join([
-                        "async def main():",
-                        main_body,
-                        "",
-                        "if __name__ == '__main__':",
-                        "    import asyncio",
-                        "    try:",
-                        "        loop = asyncio.get_event_loop()",
-                        "        if loop.is_running():",
-                        "            loop.create_task(main())",
-                        "        else:",
-                        "            loop.run_until_complete(main())",
-                        "    except RuntimeError:",
-                        "        asyncio.run(main())",
-                    ])
                 with open(output_code_path, "w", encoding='utf-8') as f:
                     f.write(source_code)
                 logger.log(
                     "Saved code:", output_code_path, colors=["GRAY", "BRIGHT_DEBUG"],
                 )
-                result = {
+                results.append({
                     "data_file": file,
                     "code_file": output_code_path,
                     "code": source_code,
-                }
-                results.append(result)
+                })
+            else:
+                results.append({
+                    "data_file": file,
+                    "code_file": None,
+                    "code": source_code,
+                })
         except Exception as e:
             logger.error(f"Failed to process file {file_name}: {e}")
+
     return results
 
 
@@ -633,29 +685,17 @@ if __name__ == "__main__":
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/all-rag-techniques",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/ai-agents-for-beginners",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/rag-cookbooks",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/GenAIExamples",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/GenAI-Showcase",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/GenAI_Agents",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langgraph",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents",
     ]
-    include_files = [
-        # "multi_strategy_workflow",
-        # "memory",
-    ]
-    exclude_files = [
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/langgraph/converted-notebooks/examples/rag/*"
-    ]
+    include_files = []
+    exclude_files = []
+    include_content_patterns = []
+    exclude_content_patterns = []
+    case_sensitive = False
     extension_mappings = [
         {"ext": [".ipynb"], "output_base_dir": "converted-notebooks"},
-        # {"ext": [".md"], "output_base_dir": "converted-markdown-docs"},
         {"ext": [".mdx"], "output_base_dir": "converted-markdown-extended"},
+        {"ext": [".py"], "output_base_dir": "converted-python"},
     ]
     all_extensions = [
         ext for mapping in extension_mappings for ext in mapping["ext"]]
@@ -674,7 +714,6 @@ if __name__ == "__main__":
             continue
         for ext_mapping in extension_mappings:
             extensions = ext_mapping["ext"]
-            # Calculate relative path from matching_repo_dir to input_base_dir
             repo_path = os.path.join(
                 [base for base in repo_base_dir if input_base_dir.startswith(
                     os.path.join(base, matching_repo_dir))][0],
@@ -692,6 +731,9 @@ if __name__ == "__main__":
                 extensions,
                 include_files=include_files,
                 exclude_files=exclude_files,
+                include_content_patterns=include_content_patterns,
+                exclude_content_patterns=exclude_content_patterns,
+                case_sensitive=case_sensitive,
                 with_markdown=True,
                 with_ollama=True,
                 output_dir=output_dir,
