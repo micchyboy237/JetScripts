@@ -129,7 +129,7 @@ We will need to install `langgraph`:
 """
 logger.info("### Orchestration via LangGraph")
 
-pip install - qU langgraph
+# pip install - qU langgraph
 
 
 token_max = 1000

@@ -1,7 +1,9 @@
+from jet.file.utils import save_file
 from jet.transformers.formatters import format_json
 from IPython.display import Image
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -95,7 +97,7 @@ We will need to install `langgraph`:
 """
 logger.info("## Create graph")
 
-pip install - qU langgraph
+# pip install - qU langgraph
 
 
 summarize_prompt = ChatPromptTemplate(
@@ -171,8 +173,8 @@ LangGraph allows the graph structure to be plotted to help visualize its functio
 logger.info(
     "LangGraph allows the graph structure to be plotted to help visualize its function:")
 
-
-Image(app.get_graph().draw_mermaid_png())
+# Image(app.get_graph().draw_mermaid_png())
+render_mermaid_graph(app, f"{OUTPUT_DIR}/graph_output.png")
 
 """
 ## Invoke graph
@@ -187,6 +189,8 @@ for step in app.stream(
 ):
     if summary := step.get("summary"):
         logger.debug(summary)
+
+save_file(app, f"{OUTPUT_DIR}/app_state.json")
 
 """
 The final `step` contains the summary as synthesized from the entire set of documents.
