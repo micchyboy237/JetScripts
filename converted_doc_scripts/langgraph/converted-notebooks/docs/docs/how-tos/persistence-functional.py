@@ -111,8 +111,8 @@ logger.info("Next, we need to set API key for Ollama(the LLM we will use).")
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
@@ -140,8 +140,8 @@ model = ChatOllama(model="llama3.2")
 """
 Now we can define our task and workflow. To add in persistence, we need to pass in a [Checkpointer](https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.checkpoint.base.BaseCheckpointSaver) to the [entrypoint()][langgraph.func.entrypoint] decorator.
 """
-logger.info("Now we can define our task and workflow. To add in persistence, we need to pass in a [Checkpointer](https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.checkpoint.base.BaseCheckpointSaver) to the [entrypoint()][langgraph.func.entrypoint] decorator.")
-
+logger.info(
+    "Now we can define our task and workflow. To add in persistence, we need to pass in a [Checkpointer](https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.checkpoint.base.BaseCheckpointSaver) to the [entrypoint()][langgraph.func.entrypoint] decorator.")
 
 
 @task
@@ -160,6 +160,7 @@ def workflow(inputs: list[BaseMessage], *, previous: list[BaseMessage]):
 
     response = call_model(inputs).result()
     return entrypoint.final(value=response, save=add_messages(inputs, response))
+
 
 """
 If we try to use this workflow, the context of the conversation will be persisted across interactions:

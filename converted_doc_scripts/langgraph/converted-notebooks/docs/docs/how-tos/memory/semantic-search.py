@@ -42,8 +42,8 @@ logger.info("# How to add semantic search to your agent's memory")
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
@@ -71,7 +71,8 @@ logger.info("Now let's store some memories:")
 store.put(("user_123", "memories"), "1", {"text": "I love pizza"})
 store.put(("user_123", "memories"), "2", {"text": "I prefer Italian food"})
 store.put(("user_123", "memories"), "3", {"text": "I don't like spicy food"})
-store.put(("user_123", "memories"), "3", {"text": "I am studying econometrics"})
+store.put(("user_123", "memories"), "3", {
+          "text": "I am studying econometrics"})
 store.put(("user_123", "memories"), "3", {"text": "I am a plumber"})
 
 """
@@ -79,10 +80,12 @@ Search memories using natural language:
 """
 logger.info("Search memories using natural language:")
 
-memories = store.search(("user_123", "memories"), query="I like food?", limit=5)
+memories = store.search(("user_123", "memories"),
+                        query="I like food?", limit=5)
 
 for memory in memories:
-    logger.debug(f"Memory: {memory.value['text']} (similarity: {memory.score})")
+    logger.debug(
+        f"Memory: {memory.value['text']} (similarity: {memory.score})")
 
 """
 ## Using in your agent
@@ -90,8 +93,6 @@ for memory in memories:
 Add semantic search to any node by injecting the store.
 """
 logger.info("## Using in your agent")
-
-
 
 
 llm = init_chat_model("ollama:llama3.2")
@@ -129,9 +130,6 @@ for message, metadata in graph.stream(
 Add semantic search to your tool calling agent by injecting the store in the `prompt` function. You can also use the store in a tool to let your agent manually store or search for memories.
 """
 logger.info("## Using in `create_react_agent` {#using-in-create-react-agent}")
-
-
-
 
 
 def prepare_messages(state, *, store: BaseStore):
@@ -184,7 +182,8 @@ Store and search different aspects of memories separately to improve recall or o
 logger.info("## Advanced Usage")
 
 store = InMemoryStore(
-    index={"embed": embeddings, "dims": 1536, "fields": ["memory", "emotional_context"]}
+    index={"embed": embeddings, "dims": 1536,
+           "fields": ["memory", "emotional_context"]}
 )
 store.put(
     ("user_123", "memories"),
@@ -251,7 +250,8 @@ store.put(
 store.put(
     ("user_123", "memories"),
     "mem2",
-    {"memory": "The restaurant was too loud", "context": "Dinner at an Italian place"},
+    {"memory": "The restaurant was too loud",
+        "context": "Dinner at an Italian place"},
     index=["context"],  # Override: only embed the context
 )
 
@@ -281,7 +281,8 @@ Some memories shouldn't be searchable by content. You can disable indexing for t
 """
 logger.info("#### Disable Indexing for Specific Memories")
 
-store = InMemoryStore(index={"embed": embeddings, "dims": 1536, "fields": ["memory"]})
+store = InMemoryStore(
+    index={"embed": embeddings, "dims": 1536, "fields": ["memory"]})
 
 store.put(
     ("user_123", "memories"),
@@ -297,14 +298,16 @@ store.put(
 )
 
 logger.debug("Expect mem1")
-results = store.search(("user_123", "memories"), query="what food preferences", limit=1)
+results = store.search(("user_123", "memories"),
+                       query="what food preferences", limit=1)
 for r in results:
     logger.debug(f"Item: {r.key}; Score ({r.score})")
     logger.debug(f"Memory: {r.value['memory']}")
     logger.debug(f"Type: {r.value['type']}\n")
 
 logger.debug("Expect low score (mem2 not indexed)")
-results = store.search(("user_123", "memories"), query="onboarding status", limit=1)
+results = store.search(("user_123", "memories"),
+                       query="onboarding status", limit=1)
 for r in results:
     logger.debug(f"Item: {r.key}; Score ({r.score})")
     logger.debug(f"Memory: {r.value['memory']}")

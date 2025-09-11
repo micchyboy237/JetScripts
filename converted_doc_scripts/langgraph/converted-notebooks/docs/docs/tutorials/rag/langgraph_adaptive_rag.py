@@ -62,8 +62,8 @@ logger.info("# Adaptive RAG")
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
@@ -85,7 +85,6 @@ Input URLs of blog posts related to agents, prompt engineering, and large langua
 Generate vector indices for use in Retrieval-Augmented Generation (RAG).
 """
 logger.info("## Create Index")
-
 
 
 embd = OllamaEmbeddings(model="mxbai-embed-large")
@@ -132,9 +131,6 @@ While you could automate this process by having the LLM summarize the RAG docume
 logger.info("## LLMs")
 
 
-
-
-
 class RouteQuery(BaseModel):
     """Route a user query to the most relevant datasource."""
 
@@ -163,7 +159,8 @@ logger.debug(
         {"question": "Who will the Bears draft first in the NFL draft?"}
     )
 )
-logger.debug(question_router.invoke({"question": "What are the types of agent memory?"}))
+logger.debug(question_router.invoke(
+    {"question": "What are the types of agent memory?"}))
 
 """
 ### Retrieval Grader
@@ -173,6 +170,7 @@ After performing retrieval, evaluate the results. Although you initially decided
 For this, rely on the LLM to evaluate the relevance, providing a binary ‘yes’ or ‘no’ decision.
 """
 logger.info("### Retrieval Grader")
+
 
 class GradeDocuments(BaseModel):
     """Binary score for relevance check on retrieved documents."""
@@ -192,7 +190,8 @@ system = """You are a grader assessing relevance of a retrieved document to a us
 grade_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system),
-        ("human", "Retrieved document: \n\n {document} \n\n User question: {question}"),
+        ("human",
+         "Retrieved document: \n\n {document} \n\n User question: {question}"),
     ]
 )
 
@@ -200,7 +199,8 @@ retrieval_grader = grade_prompt | structured_llm_grader
 question = "agent memory"
 docs = retriever.invoke(question)
 doc_txt = docs[1].page_content
-logger.debug(retrieval_grader.invoke({"question": question, "document": doc_txt}))
+logger.debug(retrieval_grader.invoke(
+    {"question": question, "document": doc_txt}))
 
 
 prompt = hub.pull("rlm/rag-prompt")
@@ -226,6 +226,7 @@ Provide the LLM’s evaluation in a binary ‘yes’ or ‘no’ format.
 """
 logger.info("### Hallucination Grader")
 
+
 class GradeHallucinations(BaseModel):
     """Binary score for hallucination present in generation answer."""
 
@@ -242,7 +243,8 @@ system = """You are a grader assessing whether an LLM generation is grounded in 
 hallucination_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system),
-        ("human", "Set of facts: \n\n {documents} \n\n LLM generation: {generation}"),
+        ("human",
+         "Set of facts: \n\n {documents} \n\n LLM generation: {generation}"),
     ]
 )
 
@@ -255,6 +257,7 @@ hallucination_grader.invoke({"documents": docs, "generation": generation})
 Evaluate the answer finally.
 """
 logger.info("### Answer Grader")
+
 
 class GradeAnswer(BaseModel):
     """Binary score to assess answer addresses question."""
@@ -272,7 +275,8 @@ system = """You are a grader assessing whether an answer addresses / resolves a 
 answer_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system),
-        ("human", "User question: \n\n {question} \n\n LLM generation: {generation}"),
+        ("human",
+         "User question: \n\n {question} \n\n LLM generation: {generation}"),
     ]
 )
 
@@ -325,8 +329,6 @@ Capture the flow in as a graph.
 logger.info("## Construct the Graph")
 
 
-
-
 class GraphState(TypedDict):
     """
     Represents the state of our graph.
@@ -341,12 +343,11 @@ class GraphState(TypedDict):
     generation: str
     documents: List[str]
 
+
 """
 ### Define Graph Flow
 """
 logger.info("### Define Graph Flow")
-
-
 
 
 def retrieve(state):
@@ -455,8 +456,6 @@ def web_search(state):
     return {"documents": web_results, "question": question}
 
 
-
-
 def route_question(state):
     """
     Route question to web search or RAG.
@@ -528,17 +527,21 @@ def grade_generation_v_documents_and_question(state):
     if grade == "yes":
         logger.debug("---DECISION: GENERATION IS GROUNDED IN DOCUMENTS---")
         logger.debug("---GRADE GENERATION vs QUESTION---")
-        score = answer_grader.invoke({"question": question, "generation": generation})
+        score = answer_grader.invoke(
+            {"question": question, "generation": generation})
         grade = score.binary_score
         if grade == "yes":
             logger.debug("---DECISION: GENERATION ADDRESSES QUESTION---")
             return "useful"
         else:
-            logger.debug("---DECISION: GENERATION DOES NOT ADDRESS QUESTION---")
+            logger.debug(
+                "---DECISION: GENERATION DOES NOT ADDRESS QUESTION---")
             return "not useful"
     else:
-        plogger.debug("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
+        plogger.debug(
+            "---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
         return "not supported"
+
 
 """
 ### Compile Graph

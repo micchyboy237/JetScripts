@@ -53,8 +53,8 @@ logger.info("# How to create a ReAct agent from scratch (Functional API)")
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
@@ -124,6 +124,7 @@ def call_tool(tool_call):
     observation = tool.invoke(tool_call["args"])
     return ToolMessage(content=observation, tool_call_id=tool_call["id"])
 
+
 """
 ### Define entrypoint
 
@@ -133,7 +134,6 @@ Our [entrypoint](../../concepts/functional_api/#entrypoint) will handle the orch
     Note that because tasks return future-like objects, the below implementation executes tools in parallel.
 """
 logger.info("### Define entrypoint")
-
 
 
 @entrypoint()
@@ -154,6 +154,7 @@ def agent(messages):
 
     return llm_response
 
+
 """
 ## Usage
 
@@ -161,7 +162,8 @@ To use our agent, we invoke it with a messages list. Based on our implementation
 """
 logger.info("## Usage")
 
-user_message = {"role": "user", "content": "What's the weather in san francisco?"}
+user_message = {"role": "user",
+                "content": "What's the weather in san francisco?"}
 logger.debug(user_message)
 
 for step in agent.stream([user_message]):
@@ -212,6 +214,7 @@ def agent(messages, previous):
     messages = add_messages(messages, llm_response)
     return entrypoint.final(value=llm_response, save=messages)
 
+
 """
 We will now need to pass in a config when running our application. The config will specify an identifier for the conversational thread.
 
@@ -226,9 +229,11 @@ config = {"configurable": {"thread_id": "1"}}
 """
 We start a thread the same way as before, this time passing in the config:
 """
-logger.info("We start a thread the same way as before, this time passing in the config:")
+logger.info(
+    "We start a thread the same way as before, this time passing in the config:")
 
-user_message = {"role": "user", "content": "What's the weather in san francisco?"}
+user_message = {"role": "user",
+                "content": "What's the weather in san francisco?"}
 logger.debug(user_message)
 
 for step in agent.stream([user_message], config):
@@ -243,7 +248,8 @@ When we ask a follow-up conversation, the model uses the prior context to infer 
 """
 logger.info("When we ask a follow-up conversation, the model uses the prior context to infer that we are asking about the weather:")
 
-user_message = {"role": "user", "content": "How does it compare to Boston, MA?"}
+user_message = {"role": "user",
+                "content": "How does it compare to Boston, MA?"}
 logger.debug(user_message)
 
 for step in agent.stream([user_message], config):

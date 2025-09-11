@@ -84,8 +84,8 @@ logger.info("# How to handle large numbers of tools")
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
@@ -106,8 +106,6 @@ Let's consider a toy example in which we have one tool for each publicly traded 
 We first construct a registry that associates a unique identifier with a schema for each tool. We will represent the tools using JSON schema, which can be bound directly to chat models supporting tool calling.
 """
 logger.info("## Define the tools")
-
-
 
 
 def create_tool(company: str) -> dict:
@@ -159,7 +157,8 @@ tool_documents = [
     for id, tool in tool_registry.items()
 ]
 
-vector_store = InMemoryVectorStore(embedding=OllamaEmbeddings(model="mxbai-embed-large"))
+vector_store = InMemoryVectorStore(
+    embedding=OllamaEmbeddings(model="mxbai-embed-large"))
 document_ids = vector_store.add_documents(tool_documents)
 
 """
@@ -172,9 +171,6 @@ We will use a typical React agent graph (e.g., as used in the [quickstart](https
 - We bind the selected subset of tools to the chat model within the `agent` node.
 """
 logger.info("### Incorporating with an agent")
-
-
-
 
 
 class State(TypedDict):
@@ -207,7 +203,8 @@ builder.add_node("select_tools", select_tools)
 tool_node = ToolNode(tools=tools)
 builder.add_node("tools", tool_node)
 
-builder.add_conditional_edges("agent", tools_condition, path_map=["tools", "__end__"])
+builder.add_conditional_edges(
+    "agent", tools_condition, path_map=["tools", "__end__"])
 builder.add_edge("tools", "agent")
 builder.add_edge("select_tools", "agent")
 builder.add_edge(START, "select_tools")
@@ -245,8 +242,6 @@ We implement this change below. For demonstration purposes, we simulate an error
 logger.info("## Repeating tool selection")
 
 
-
-
 class QueryForTools(BaseModel):
     """Generate a query for additional tools."""
 
@@ -261,7 +256,8 @@ def select_tools(state: State):
     the LLM to generate tool suggestions.
     """
     last_message = state["messages"][-1]
-    hack_remove_tool_condition = False  # Simulate an error in the first tool selection
+    # Simulate an error in the first tool selection
+    hack_remove_tool_condition = False
 
     if isinstance(last_message, HumanMessage):
         query = last_message.content

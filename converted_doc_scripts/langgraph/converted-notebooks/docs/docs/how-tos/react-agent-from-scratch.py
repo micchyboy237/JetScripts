@@ -1,6 +1,8 @@
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.file.utils import save_file
 from jet.logger import logger
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain_core.messages import BaseMessage
 from langchain_core.messages import ToolMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
@@ -8,9 +10,9 @@ from langchain_core.tools import tool
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from typing import (
-Annotated,
-Sequence,
-TypedDict,
+    Annotated,
+    Sequence,
+    TypedDict,
 )
 import json
 import os
@@ -53,12 +55,12 @@ logger.info("# How to create a ReAct agent from scratch")
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
+#         _set_env("OPENAI_API_KEY")
 
-# _set_env("OPENAI_API_KEY")
 
 """
 <div class="admonition tip">
@@ -81,11 +83,11 @@ For your specific use case, feel free to add any other state keys that you need.
 logger.info("## Create ReAct agent")
 
 
-
 class AgentState(TypedDict):
     """The state of the agent."""
 
     messages: Annotated[Sequence[BaseMessage], add_messages]
+
 
 """
 ### Define model and tools
@@ -127,7 +129,8 @@ tools_by_name = {tool.name: tool for tool in tools}
 def tool_node(state: AgentState):
     outputs = []
     for tool_call in state["messages"][-1].tool_calls:
-        tool_result = tools_by_name[tool_call["name"]].invoke(tool_call["args"])
+        tool_result = tools_by_name[tool_call["name"]].invoke(
+            tool_call["args"])
         outputs.append(
             ToolMessage(
                 content=json.dumps(tool_result),
@@ -157,6 +160,7 @@ def should_continue(state: AgentState):
     else:
         return "continue"
 
+
 """
 ### Define the graph
 
@@ -185,11 +189,12 @@ workflow.add_edge("tools", "agent")
 
 graph = workflow.compile()
 
+# try:
+#     display(Image(graph.get_graph().draw_mermaid_png()))
+# except Exception:
+#     pass
 
-try:
-    display(Image(graph.get_graph().draw_mermaid_png()))
-except Exception:
-    pass
+render_mermaid_graph(graph, f"{OUTPUT_DIR}/graph_output.png")
 
 """
 ## Use ReAct agent
@@ -198,17 +203,20 @@ Now that we have created our react agent, let's actually put it to the test!
 """
 logger.info("## Use ReAct agent")
 
+
 def print_stream(stream):
     for s in stream:
         message = s["messages"][-1]
         if isinstance(message, tuple):
             logger.debug(message)
         else:
-            message.pretty_logger.debug()
+            logger.teal(message)
 
 
 inputs = {"messages": [("user", "what is the weather in sf")]}
 print_stream(graph.stream(inputs, stream_mode="values"))
+
+save_file(graph, f"{OUTPUT_DIR}/workflow_state.json")
 
 """
 Perfect! The graph correctly calls the `get_weather` tool and responds to the user after receiving the information from the tool.

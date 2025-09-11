@@ -54,13 +54,13 @@ logger.info("# Code generation with RAG and self-correction")
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
+#         _set_env("OPENAI_API_KEY")
+#         _set_env("ANTHROPIC_API_KEY")
 
-# _set_env("OPENAI_API_KEY")
-# _set_env("ANTHROPIC_API_KEY")
 
 """
 <div class="admonition tip">
@@ -108,7 +108,6 @@ We will create a `code_gen_chain` w/ either Ollama or Claude and test them here.
 logger.info("## LLMs")
 
 
-
 code_gen_prompt = ChatPromptTemplate.from_messages(
     [
         (
@@ -142,7 +141,6 @@ solution = code_gen_chain_oai.invoke(
 solution
 
 
-
 code_gen_prompt_claude = ChatPromptTemplate.from_messages(
     [
         (
@@ -160,8 +158,8 @@ code_gen_prompt_claude = ChatPromptTemplate.from_messages(
 
 expt_llm = "claude-3-opus-20240229"
 llm = ChatOllama(
-    model=expt_llm,
-    default_headers={"anthropic-beta": "tools-2024-04-04"},
+    model="llama3.2",
+    # default_headers={"anthropic-beta": "tools-2024-04-04"},
 )
 
 structured_llm_claude = llm.with_structured_output(code, include_raw=True)
@@ -240,7 +238,6 @@ Our state is a dict that will contain keys (errors, question, code generation) r
 logger.info("## State")
 
 
-
 class GraphState(TypedDict):
     """
     Represents the state of our graph.
@@ -257,6 +254,7 @@ class GraphState(TypedDict):
     generation: str
     iterations: int
 
+
 """
 ## Graph 
 
@@ -266,7 +264,6 @@ logger.info("## Graph")
 
 max_iterations = 3
 flag = "do not reflect"
-
 
 
 def generate(state: GraphState):
@@ -332,7 +329,8 @@ def code_check(state: GraphState):
         exec(imports)
     except Exception as e:
         logger.debug("---CODE IMPORT CHECK: FAILED---")
-        error_message = [("user", f"Your solution failed the import test: {e}")]
+        error_message = [
+            ("user", f"Your solution failed the import test: {e}")]
         messages += error_message
         return {
             "generation": code_solution,
@@ -345,7 +343,8 @@ def code_check(state: GraphState):
         exec(imports + "\n" + code)
     except Exception as e:
         logger.debug("---CODE BLOCK CHECK: FAILED---")
-        error_message = [("user", f"Your solution failed the code execution test: {e}")]
+        error_message = [
+            ("user", f"Your solution failed the code execution test: {e}")]
         messages += error_message
         return {
             "generation": code_solution,
@@ -380,14 +379,12 @@ def reflect(state: GraphState):
     iterations = state["iterations"]
     code_solution = state["generation"]
 
-
     reflections = code_gen_chain.invoke(
         {"context": concatenated_content, "messages": messages}
     )
-    messages += [("assistant", f"Here are reflections on the error: {reflections}")]
+    messages += [("assistant",
+                  f"Here are reflections on the error: {reflections}")]
     return {"generation": code_solution, "messages": messages, "iterations": iterations}
-
-
 
 
 def decide_to_finish(state: GraphState):
@@ -435,7 +432,8 @@ workflow.add_edge("reflect", "generate")
 app = workflow.compile()
 
 question = "How can I directly pass a string to a runnable and use it to construct the input needed for my prompt?"
-solution = app.invoke({"messages": [("user", question)], "iterations": 0, "error": ""})
+solution = app.invoke(
+    {"messages": [("user", question)], "iterations": 0, "error": ""})
 
 solution["generation"]
 
@@ -467,7 +465,6 @@ Custom evals.
 logger.info("Custom evals.")
 
 
-
 def check_import(run: Run, example: Example) -> dict:
     imports = run.outputs.get("imports")
     try:
@@ -486,15 +483,18 @@ def check_execution(run: Run, example: Example) -> dict:
     except Exception:
         return {"key": "code_execution_check", "score": 0}
 
+
 """
 Compare LangGraph to Context Stuffing.
 """
 logger.info("Compare LangGraph to Context Stuffing.")
 
+
 def predict_base_case(example: dict):
     """Context stuffing"""
     solution = code_gen_chain.invoke(
-        {"context": concatenated_content, "messages": [("user", example["question"])]}
+        {"context": concatenated_content, "messages": [
+            ("user", example["question"])]}
     )
     return {"imports": solution.imports, "code": solution.code}
 
@@ -502,7 +502,8 @@ def predict_base_case(example: dict):
 def predict_langgraph(example: dict):
     """LangGraph"""
     graph = app.invoke(
-        {"messages": [("user", example["question"])], "iterations": 0, "error": ""}
+        {"messages": [("user", example["question"])],
+         "iterations": 0, "error": ""}
     )
     solution = graph["generation"]
     return {"imports": solution.imports, "code": solution.code}
@@ -550,6 +551,7 @@ except:
 
 https://smith.langchain.com/public/78a3d858-c811-4e46-91cb-0f10ef56260b/d
 """
-logger.info("https://smith.langchain.com/public/78a3d858-c811-4e46-91cb-0f10ef56260b/d")
+logger.info(
+    "https://smith.langchain.com/public/78a3d858-c811-4e46-91cb-0f10ef56260b/d")
 
 logger.info("\n\n[DONE]", bright=True)

@@ -3,33 +3,33 @@ from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import (
-AIMessage,
-AnyMessage,
-BaseMessage,
-HumanMessage,
-ToolCall,
+    AIMessage,
+    AnyMessage,
+    BaseMessage,
+    HumanMessage,
+    ToolCall,
 )
 from langchain_core.prompt_values import PromptValue
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import (
-Runnable,
-RunnableLambda,
+    Runnable,
+    RunnableLambda,
 )
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ValidationNode
 from pydantic import BaseModel, Field, field_validator
 from typing import (
-Annotated,
-Any,
-Callable,
-Dict,
-List,
-Literal,
-Optional,
-Sequence,
-Type,
-Union,
+    Annotated,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Type,
+    Union,
 )
 from typing import List, Optional
 from typing_extensions import TypedDict
@@ -75,8 +75,8 @@ logger.info("# Complex data extraction with function calling")
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
@@ -103,9 +103,6 @@ The techniques differ only on step (3). In this first step, we will prompt the o
 ### Define the Validator + Retry Graph
 """
 logger.info("## Regular Extraction with Retries")
-
-
-
 
 
 def _default_aggregator(messages: Sequence[AnyMessage]) -> AIMessage:
@@ -197,7 +194,8 @@ def _bind_validator_with_retries(
         """Get the messages from the state."""
         return x["messages"]
 
-    model = dedict | llm | (lambda msg: {"messages": [msg], "attempt_number": 1})
+    model = dedict | llm | (
+        lambda msg: {"messages": [msg], "attempt_number": 1})
     fbrunnable = retry_strategy.get("fallback")
     if fbrunnable is None:
         fb_runnable = llm
@@ -206,7 +204,8 @@ def _bind_validator_with_retries(
     else:
         fb_runnable = RunnableLambda(fbrunnable)
     fallback = (
-        dedict | fb_runnable | (lambda msg: {"messages": [msg], "attempt_number": 1})
+        dedict | fb_runnable | (
+            lambda msg: {"messages": [msg], "attempt_number": 1})
     )
 
     def count_messages(state: State) -> dict:
@@ -216,11 +215,12 @@ def _bind_validator_with_retries(
     builder.add_node("llm", model)
     builder.add_node("fallback", fallback)
 
-    select_messages = retry_strategy.get("aggregate_messages") or _default_aggregator
+    select_messages = retry_strategy.get(
+        "aggregate_messages") or _default_aggregator
 
     def select_generated_messages(state: State) -> list:
         """Select only the messages generated within this loop."""
-        selected = state["messages"][state["initial_num_messages"] :]
+        selected = state["messages"][state["initial_num_messages"]:]
         return [select_messages(selected)]
 
     def endict_validator_output(x: Sequence[AnyMessage]) -> dict:
@@ -254,7 +254,8 @@ def _bind_validator_with_retries(
                 }
             }
 
-    builder.add_node("finalizer", Finalizer(retry_strategy.get("aggregate_messages")))
+    builder.add_node("finalizer", Finalizer(
+        retry_strategy.get("aggregate_messages")))
 
     builder.add_edge(START, "count_messages")
     builder.add_edge("count_messages", "llm")
@@ -349,6 +350,7 @@ def bind_validator_with_retries(
         retry_strategy=retry_strategy,
     ).with_config(metadata={"retry_strategy": "default"})
 
+
 """
 ### Try it out
 
@@ -364,11 +366,11 @@ Now we'll ask our model to call a function. We'll add a validator to illustrate 
 logger.info("### Try it out")
 
 
-
 class Respond(BaseModel):
     """Use to generate the response. Always use when responding to the user"""
 
-    reason: str = Field(description="Step-by-step justification for the answer.")
+    reason: str = Field(
+        description="Step-by-step justification for the answer.")
     answer: str
 
     @field_validator("answer")
@@ -412,7 +414,6 @@ Not so much. Let's try it out on a complex nested schema.
 logger.info("#### Nested Examples")
 
 
-
 class OutputFormat(BaseModel):
     sources: str = Field(
         ...,
@@ -422,7 +423,8 @@ class OutputFormat(BaseModel):
 
 
 class Moment(BaseModel):
-    quote: str = Field(..., description="The relevant quote from the transcript.")
+    quote: str = Field(...,
+                       description="The relevant quote from the transcript.")
     description: str = Field(..., description="A description of the moment.")
     expressed_preference: OutputFormat = Field(
         ..., description="The preference expressed in the moment."
@@ -449,7 +451,8 @@ class KeyMoments(BaseModel):
         ..., description="Moments where things where everyone was downtrodden."
     )
     background_info: list[BackgroundInfo]
-    moments_summary: str = Field(..., description="A summary of the key moments.")
+    moments_summary: str = Field(...,
+                                 description="A summary of the key moments.")
 
 
 class Member(BaseModel):
@@ -465,7 +468,8 @@ class InsightfulQuote(BaseModel):
     quote: OutputFormat = Field(
         ..., description="An insightful quote from the transcript."
     )
-    speaker: str = Field(..., description="The name of the speaker who said the quote.")
+    speaker: str = Field(...,
+                         description="The name of the speaker who said the quote.")
     analysis: str = Field(
         ..., description="An analysis of the quote and its significance."
     )
@@ -499,6 +503,7 @@ class TranscriptSummary(BaseModel):
         ..., description="A list of next steps or action items based on the interview."
     )
     other_stuff: List[OutputFormat]
+
 
 """
 Let's see how it does on this made up transcript.
@@ -583,7 +588,8 @@ formatted = "\n".join(f"{x[0]}: {x[1]}" for x in transcript)
 """
 Now, run our model. We **expect** GPT turbo to still fail on this challenging template.
 """
-logger.info("Now, run our model. We **expect** GPT turbo to still fail on this challenging template.")
+logger.info(
+    "Now, run our model. We **expect** GPT turbo to still fail on this challenging template.")
 
 tools = [TranscriptSummary]
 bound_llm = bind_validator_with_retries(
@@ -754,7 +760,8 @@ def bind_validator_with_jsonpatch_retries(
     def format_exception(error: BaseException, call: ToolCall, schema: Type[BaseModel]):
         return (
             f"Error:\n\n```\n{repr(error)}\n```\n"
-            "Expected Parameter Schema:\n\n" + f"```json\n{schema.schema_json()}\n```\n"
+            "Expected Parameter Schema:\n\n" +
+            f"```json\n{schema.schema_json()}\n```\n"
             f"Please respond with a JSONPatch to correct the error for tool_call_id=[{call['id']}]."
         )
 
@@ -773,6 +780,7 @@ def bind_validator_with_jsonpatch_retries(
         retry_strategy=retry_strategy,
         tool_choice=tool_choice,
     ).with_config(metadata={"retry_strategy": "jsonpatch"})
+
 
 bound_llm = bind_validator_with_jsonpatch_retries(llm, tools=tools)
 

@@ -83,8 +83,8 @@ logger.info("# define an agent")
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
@@ -112,7 +112,6 @@ This is a fully-connected network - every agent can talk to any other agent.
 First, let's create some of the tools that the agents will be using:
 """
 logger.info("## Travel agent example")
-
 
 
 @tool
@@ -143,6 +142,7 @@ def transfer_to_hotel_advisor():
 def transfer_to_travel_advisor():
     """Ask travel advisor agent for help."""
     return "Successfully transferred to travel advisor"
+
 
 """
 !!! note "Transfer tools"
@@ -205,7 +205,8 @@ def workflow(messages):
     while True:
         agent_messages = call_active_agent(messages).result()
         messages = add_messages(messages, agent_messages)
-        ai_msg = next(m for m in reversed(agent_messages) if isinstance(m, AIMessage))
+        ai_msg = next(m for m in reversed(agent_messages)
+                      if isinstance(m, AIMessage))
         if not ai_msg.tool_calls:
             break
 
@@ -215,15 +216,16 @@ def workflow(messages):
         elif tool_call["name"] == "transfer_to_hotel_advisor":
             call_active_agent = call_hotel_advisor
         else:
-            raise ValueError(f"Expected transfer tool, got '{tool_call['name']}'")
+            raise ValueError(
+                f"Expected transfer tool, got '{tool_call['name']}'")
 
     return messages
+
 
 """
 Lastly, let's define a helper to render the agent outputs:
 """
 logger.info("Lastly, let's define a helper to render the agent outputs:")
-
 
 
 def pretty_print_messages(update):
@@ -244,10 +246,12 @@ def pretty_print_messages(update):
             m.pretty_logger.debug()
         logger.debug("\n")
 
+
 """
 Let's test it out using the same input as our original multi-agent system:
 """
-logger.info("Let's test it out using the same input as our original multi-agent system:")
+logger.info(
+    "Let's test it out using the same input as our original multi-agent system:")
 
 for chunk in workflow.stream(
     [

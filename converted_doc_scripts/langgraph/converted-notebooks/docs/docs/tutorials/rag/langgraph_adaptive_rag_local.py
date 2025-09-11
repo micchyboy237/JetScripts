@@ -78,8 +78,8 @@ logger.info("### Search")
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
@@ -307,7 +307,6 @@ See conceptual docs [here](https://langchain-ai.github.io/langgraph/concepts/low
 logger.info("# Graph")
 
 
-
 class GraphState(TypedDict):
     """
     Graph state is a dictionary that contains information we want to propagate to, and modify in, each graph node.
@@ -320,6 +319,7 @@ class GraphState(TypedDict):
     answers: int  # Number of answers generated
     loop_step: Annotated[int, operator.add]
     documents: List[str]  # List of retrieved documents
+
 
 """
 Each node in our graph is simply a function that:
@@ -337,7 +337,6 @@ Each edge routes between nodes in the graph.
 See conceptual docs [here](https://langchain-ai.github.io/langgraph/concepts/low_level/#edges).
 """
 logger.info("Each node in our graph is simply a function that:")
-
 
 
 def retrieve(state):
@@ -373,7 +372,8 @@ def generate(state):
     loop_step = state.get("loop_step", 0)
 
     docs_txt = format_docs(documents)
-    rag_prompt_formatted = rag_prompt.format(context=docs_txt, question=question)
+    rag_prompt_formatted = rag_prompt.format(
+        context=docs_txt, question=question)
     generation = llm.invoke([HumanMessage(content=rag_prompt_formatted)])
     return {"generation": generation, "loop_step": loop_step + 1}
 
@@ -435,8 +435,6 @@ def web_search(state):
     web_results = Document(page_content=web_results)
     documents.append(web_results)
     return {"documents": documents}
-
-
 
 
 def route_question(state):
@@ -531,17 +529,20 @@ def grade_generation_v_documents_and_question(state):
             logger.debug("---DECISION: GENERATION ADDRESSES QUESTION---")
             return "useful"
         elif state["loop_step"] <= max_retries:
-            logger.debug("---DECISION: GENERATION DOES NOT ADDRESS QUESTION---")
+            logger.debug(
+                "---DECISION: GENERATION DOES NOT ADDRESS QUESTION---")
             return "not useful"
         else:
             logger.debug("---DECISION: MAX RETRIES REACHED---")
             return "max retries"
     elif state["loop_step"] <= max_retries:
-        logger.debug("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
+        logger.debug(
+            "---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
         return "not supported"
     else:
         logger.debug("---DECISION: MAX RETRIES REACHED---")
         return "max retries"
+
 
 """
 ## Control Flow

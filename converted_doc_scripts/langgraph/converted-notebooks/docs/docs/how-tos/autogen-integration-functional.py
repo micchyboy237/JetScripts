@@ -66,15 +66,16 @@ In this guide we show how to build a LangGraph chatbot that integrates with Auto
 
 ## Setup
 """
-logger.info("# How to integrate LangGraph (functional API) with AutoGen, CrewAI, and other frameworks")
+logger.info(
+    "# How to integrate LangGraph (functional API) with AutoGen, CrewAI, and other frameworks")
 
 # %pip install autogen langgraph
 
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
@@ -106,7 +107,8 @@ user_proxy = autogen.UserProxyAgent(
     name="user_proxy",
     human_input_mode="NEVER",
     max_consecutive_auto_reply=10,
-    is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
+    is_termination_msg=lambda x: x.get(
+        "content", "").rstrip().endswith("TERMINATE"),
     code_execution_config={
         "work_dir": "web",
         "use_docker": False,
@@ -123,7 +125,6 @@ user_proxy = autogen.UserProxyAgent(
 We will now create a LangGraph chatbot graph that calls AutoGen agent.
 """
 logger.info("## Create the workflow")
-
 
 
 @task
@@ -146,6 +147,7 @@ def workflow(messages: list[BaseMessage], previous: list[BaseMessage]):
     messages = add_messages(previous or [], messages)
     response = call_autogen_agent(messages).result()
     return entrypoint.final(value=response, save=add_messages(messages, response))
+
 
 """
 ## Run the graph

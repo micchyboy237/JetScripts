@@ -95,12 +95,11 @@ First, let's install the required packages
 logger.info("# define an agent")
 
 
-
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
@@ -123,8 +122,7 @@ We will create 2 agents:
 
 This is a fully-connected network - every agent can talk to any other agent.
 """
-logger.info("Sign up for LangSmith to quickly spot issues and improve the performance of your LangGraph projects. LangSmith lets you use trace data to debug, test, and monitor your LLM apps built with LangGraph — read more about how to get started <a href="https://docs.smith.langchain.com">here</a>.")
-
+logger.info("Sign up for LangSmith to quickly spot issues and improve the performance of your LangGraph projects. LangSmith lets you use trace data to debug, test, and monitor your LLM apps built with LangGraph — read more about how to get started <a href="https: // docs.smith.langchain.com">here</a>.")
 
 
 @tool
@@ -156,6 +154,7 @@ def transfer_to_travel_advisor():
     """Ask travel advisor agent for help."""
     return "Successfully transferred to travel advisor"
 
+
 """
 !!! note "Transfer tools"
 
@@ -166,7 +165,6 @@ def transfer_to_travel_advisor():
 Let's now create our agents using the prebuilt [`create_react_agent`][langgraph.prebuilt.chat_agent_executor.create_react_agent] and our multi-agent workflow. Note that will be calling [`interrupt`][langgraph.types.interrupt] every time after we get the final response from each of the agents.
 """
 logger.info("You might have noticed that we're using `@tool(return_direct=True)` in the transfer tools. This is done so that individual agents (e.g., `travel_advisor`) can exit the ReAct loop early once these tools are called. This is the desired behavior, as we want to detect when the agent calls this tool and hand control off _immediately_ to a different agent.")
-
 
 
 model = ChatOllama(model="llama3.2")
@@ -225,7 +223,8 @@ def multi_turn_graph(messages, previous):
     while True:
         agent_messages = call_active_agent(messages).result()
         messages = add_messages(messages, agent_messages)
-        ai_msg = next(m for m in reversed(agent_messages) if isinstance(m, AIMessage))
+        ai_msg = next(m for m in reversed(agent_messages)
+                      if isinstance(m, AIMessage))
         if not ai_msg.tool_calls:
             user_input = interrupt(value="Ready for user input.")
             human_message = {
@@ -242,9 +241,11 @@ def multi_turn_graph(messages, previous):
         elif tool_call["name"] == "transfer_to_travel_advisor":
             call_active_agent = call_travel_advisor
         else:
-            raise ValueError(f"Expected transfer tool, got '{tool_call['name']}'")
+            raise ValueError(
+                f"Expected transfer tool, got '{tool_call['name']}'")
 
     return entrypoint.final(value=agent_messages[-1], save=messages)
+
 
 """
 ## Test multi-turn conversation

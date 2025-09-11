@@ -3,15 +3,15 @@ from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_core.messages import RemoveMessage
 from langchain_core.messages.utils import (
-# highlight-next-line
-trim_messages,
-# highlight-next-line
-count_tokens_approximately
-# highlight-next-line
+    # highlight-next-line
+    trim_messages,
+    # highlight-next-line
+    count_tokens_approximately
+    # highlight-next-line
 )
 from langchain_core.messages.utils import (
-trim_messages,
-count_tokens_approximately,
+    trim_messages,
+    count_tokens_approximately,
 )
 from langchain_core.messages.utils import count_tokens_approximately
 from langgraph.checkpoint.memory import InMemorySaver
@@ -146,8 +146,8 @@ logger.info("# How to manage conversation history in a ReAct Agent")
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
@@ -198,8 +198,6 @@ Our implementation will wrap the `trim_messages` call and return the trimmed mes
 logger.info("Now let's implement `pre_model_hook` — a function that will be added as a new node and called every time **before** the node that calls the LLM (the `agent` node).")
 
 
-
-
 def pre_model_hook(state):
     trimmed_messages = trim_messages(
         state["messages"],
@@ -228,6 +226,7 @@ We'll also define a utility to render the agent outputs nicely:
 """
 logger.info("We'll also define a utility to render the agent outputs nicely:")
 
+
 def print_stream(stream, output_messages_key="llm_input_messages"):
     for chunk in stream:
         for node, update in chunk.items():
@@ -243,10 +242,12 @@ def print_stream(stream, output_messages_key="llm_input_messages"):
 
         logger.debug("\n\n")
 
+
 """
 Now let's run the agent with a few different queries to reach the specified max tokens limit:
 """
-logger.info("Now let's run the agent with a few different queries to reach the specified max tokens limit:")
+logger.info(
+    "Now let's run the agent with a few different queries to reach the specified max tokens limit:")
 
 config = {"configurable": {"thread_id": "1"}}
 
@@ -288,7 +289,6 @@ assert [(m.type, m.content) for m in updated_messages[: len(messages)]] == [
 Let's now change the `pre_model_hook` to **overwrite** the message history in the graph state. To do this, we’ll return the updated messages under `messages` key. We’ll also include a special `RemoveMessage(REMOVE_ALL_MESSAGES)` object, which tells `create_react_agent` to remove previous messages from the graph state:
 """
 logger.info("## Overwrite the original message history")
-
 
 
 def pre_model_hook(state):

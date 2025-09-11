@@ -75,8 +75,8 @@ logger.info("# Build a Customer Support Bot")
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
@@ -97,7 +97,6 @@ _set_env("TAVILY_API_KEY")
 Run the next script to fetch a `sqlite` DB we've prepared for this tutorial and update it to look like it's current. The details are unimportant.
 """
 logger.info("#### Populate the database")
-
 
 
 db_url = "https://storage.googleapis.com/benchmarks-artifacts/travel-db/travel2.sqlite"
@@ -131,7 +130,8 @@ def update_dates(file):
     time_diff = current_time - example_time
 
     tdf["bookings"]["book_date"] = (
-        pd.to_datetime(tdf["bookings"]["book_date"].replace("\\N", pd.NaT), utc=True)
+        pd.to_datetime(tdf["bookings"]["book_date"].replace(
+            "\\N", pd.NaT), utc=True)
         + time_diff
     )
 
@@ -143,7 +143,8 @@ def update_dates(file):
     ]
     for column in datetime_columns:
         tdf["flights"][column] = (
-            pd.to_datetime(tdf["flights"][column].replace("\\N", pd.NaT)) + time_diff
+            pd.to_datetime(tdf["flights"][column].replace(
+                "\\N", pd.NaT)) + time_diff
         )
 
     for table_name, df in tdf.items():
@@ -169,7 +170,6 @@ aren't important, so feel free to run the code below and jump to [Part 1](#part-
 The assistant retrieve policy information to answer user questions. Note that _enforcement_ of these policies still must be done within the tools/APIs themselves, since the LLM can always ignore this.
 """
 logger.info("## Tools")
-
 
 
 response = requests.get(
@@ -217,6 +217,7 @@ def lookup_policy(query: str) -> str:
     docs = retriever.query(query, k=2)
     return "\n\n".join([doc["page_content"] for doc in docs])
 
+
 """
 #### Flights
 
@@ -232,8 +233,6 @@ We then can [access the RunnableConfig](https://python.langchain.com/docs/how_to
 </div>
 """
 logger.info("#### Flights")
-
-
 
 
 @tool
@@ -353,7 +352,8 @@ def update_ticket_to_new_flight(
         return f"Not permitted to reschedule to a flight that is less than 3 hours from the current time. Selected flight is at {departure_time}."
 
     cursor.execute(
-        "SELECT flight_id FROM ticket_flights WHERE ticket_no = ?", (ticket_no,)
+        "SELECT flight_id FROM ticket_flights WHERE ticket_no = ?", (
+            ticket_no,)
     )
     current_flight = cursor.fetchone()
     if not current_flight:
@@ -393,7 +393,8 @@ def cancel_ticket(ticket_no: str, *, config: RunnableConfig) -> str:
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT flight_id FROM ticket_flights WHERE ticket_no = ?", (ticket_no,)
+        "SELECT flight_id FROM ticket_flights WHERE ticket_no = ?", (
+            ticket_no,)
     )
     existing_ticket = cursor.fetchone()
     if not existing_ticket:
@@ -411,12 +412,14 @@ def cancel_ticket(ticket_no: str, *, config: RunnableConfig) -> str:
         conn.close()
         return f"Current signed-in passenger with ID {passenger_id} not the owner of ticket {ticket_no}"
 
-    cursor.execute("DELETE FROM ticket_flights WHERE ticket_no = ?", (ticket_no,))
+    cursor.execute(
+        "DELETE FROM ticket_flights WHERE ticket_no = ?", (ticket_no,))
     conn.commit()
 
     cursor.close()
     conn.close()
     return "Ticket successfully cancelled."
+
 
 """
 #### Car Rental Tools
@@ -424,7 +427,6 @@ def cancel_ticket(ticket_no: str, *, config: RunnableConfig) -> str:
 Once a user books a flight, they likely will want to organize transportation. Define some "car rental" tools to let the user search for and reserve a car at their destination.
 """
 logger.info("#### Car Rental Tools")
-
 
 
 @tool
@@ -484,7 +486,8 @@ def book_car_rental(rental_id: int) -> str:
     conn = sqlite3.connect(db)
     cursor = conn.cursor()
 
-    cursor.execute("UPDATE car_rentals SET booked = 1 WHERE id = ?", (rental_id,))
+    cursor.execute(
+        "UPDATE car_rentals SET booked = 1 WHERE id = ?", (rental_id,))
     conn.commit()
 
     if cursor.rowcount > 0:
@@ -522,7 +525,8 @@ def update_car_rental(
         )
     if end_date:
         cursor.execute(
-            "UPDATE car_rentals SET end_date = ? WHERE id = ?", (end_date, rental_id)
+            "UPDATE car_rentals SET end_date = ? WHERE id = ?", (
+                end_date, rental_id)
         )
 
     conn.commit()
@@ -549,7 +553,8 @@ def cancel_car_rental(rental_id: int) -> str:
     conn = sqlite3.connect(db)
     cursor = conn.cursor()
 
-    cursor.execute("UPDATE car_rentals SET booked = 0 WHERE id = ?", (rental_id,))
+    cursor.execute(
+        "UPDATE car_rentals SET booked = 0 WHERE id = ?", (rental_id,))
     conn.commit()
 
     if cursor.rowcount > 0:
@@ -559,12 +564,14 @@ def cancel_car_rental(rental_id: int) -> str:
         conn.close()
         return f"No car rental found with ID {rental_id}."
 
+
 """
 #### Hotels
 
 The user has to sleep! Define some tools to search for and manage hotel reservations.
 """
 logger.info("#### Hotels")
+
 
 @tool
 def search_hotels(
@@ -656,7 +663,8 @@ def update_hotel(
 
     if checkin_date:
         cursor.execute(
-            "UPDATE hotels SET checkin_date = ? WHERE id = ?", (checkin_date, hotel_id)
+            "UPDATE hotels SET checkin_date = ? WHERE id = ?", (
+                checkin_date, hotel_id)
         )
     if checkout_date:
         cursor.execute(
@@ -698,12 +706,14 @@ def cancel_hotel(hotel_id: int) -> str:
         conn.close()
         return f"No hotel found with ID {hotel_id}."
 
+
 """
 #### Excursions
 
 Finally, define some tools to let the user search for things to do (and make reservations) once they arrive.
 """
 logger.info("#### Excursions")
+
 
 @tool
 def search_trip_recommendations(
@@ -736,7 +746,8 @@ def search_trip_recommendations(
         params.append(f"%{name}%")
     if keywords:
         keyword_list = keywords.split(",")
-        keyword_conditions = " OR ".join(["keywords LIKE ?" for _ in keyword_list])
+        keyword_conditions = " OR ".join(
+            ["keywords LIKE ?" for _ in keyword_list])
         query += f" AND ({keyword_conditions})"
         params.extend([f"%{keyword.strip()}%" for keyword in keyword_list])
 
@@ -765,7 +776,8 @@ def book_excursion(recommendation_id: int) -> str:
     cursor = conn.cursor()
 
     cursor.execute(
-        "UPDATE trip_recommendations SET booked = 1 WHERE id = ?", (recommendation_id,)
+        "UPDATE trip_recommendations SET booked = 1 WHERE id = ?", (
+            recommendation_id,)
     )
     conn.commit()
 
@@ -821,7 +833,8 @@ def cancel_excursion(recommendation_id: int) -> str:
     cursor = conn.cursor()
 
     cursor.execute(
-        "UPDATE trip_recommendations SET booked = 0 WHERE id = ?", (recommendation_id,)
+        "UPDATE trip_recommendations SET booked = 0 WHERE id = ?", (
+            recommendation_id,)
     )
     conn.commit()
 
@@ -832,14 +845,13 @@ def cancel_excursion(recommendation_id: int) -> str:
         conn.close()
         return f"No trip recommendation found with ID {recommendation_id}."
 
+
 """
 #### Utilities
 
 Define helper functions to pretty print the messages in the graph while we debug it and to give our tool node error handling (by adding the error to the chat history).
 """
 logger.info("#### Utilities")
-
-
 
 
 def handle_tool_error(state) -> dict:
@@ -877,6 +889,7 @@ def _print_event(event: dict, _printed: set, max_length=1500):
             logger.debug(msg_repr)
             _printed.add(message.id)
 
+
 """
 ## Part 1: Zero-shot Agent
 
@@ -897,11 +910,9 @@ Define our `StateGraph`'s state as a typed dictionary containing an append-only 
 logger.info("## Part 1: Zero-shot Agent")
 
 
-
-
-
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
+
 
 """
 #### Agent
@@ -909,7 +920,6 @@ class State(TypedDict):
 Next, define the assistant function. This function takes the graph state, formats it into a prompt, and then calls an LLM for it to predict the best response.
 """
 logger.info("#### Agent")
-
 
 
 class Assistant:
@@ -927,7 +937,8 @@ class Assistant:
                 or isinstance(result.content, list)
                 and not result.content[0].get("text")
             ):
-                messages = state["messages"] + [("user", "Respond with a real output.")]
+                messages = state["messages"] + \
+                    [("user", "Respond with a real output.")]
                 state = {**state, "messages": messages}
             else:
                 break
@@ -972,7 +983,8 @@ part_1_tools = [
     update_excursion,
     cancel_excursion,
 ]
-part_1_assistant_runnable = primary_assistant_prompt | llm.bind_tools(part_1_tools)
+part_1_assistant_runnable = primary_assistant_prompt | llm.bind_tools(
+    part_1_tools)
 
 """
 #### Define Graph
@@ -1082,9 +1094,6 @@ Our graph state and LLM calling is nearly identical to Part 1 except Exception:
 logger.info("#### Part 1 Review")
 
 
-
-
-
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
     user_info: str
@@ -1102,7 +1111,8 @@ class Assistant:
                 or isinstance(result.content, list)
                 and not result.content[0].get("text")
             ):
-                messages = state["messages"] + [("user", "Respond with a real output.")]
+                messages = state["messages"] + \
+                    [("user", "Respond with a real output.")]
                 state = {**state, "messages": messages}
             else:
                 break
@@ -1272,9 +1282,6 @@ As always, start by defining the graph state. Our state and LLM calling **are id
 logger.info("#### Part 2 Review")
 
 
-
-
-
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
     user_info: str
@@ -1292,7 +1299,8 @@ class Assistant:
                 or isinstance(result.content, list)
                 and not result.content[0].get("text")
             ):
-                messages = state["messages"] + [("user", "Respond with a real output.")]
+                messages = state["messages"] + \
+                    [("user", "Respond with a real output.")]
                 state = {**state, "messages": messages}
             else:
                 break
@@ -1354,7 +1362,6 @@ Now, create the graph. Our graph is almost identical to part 2 **except** we spl
 logger.info("#### Define Graph")
 
 
-
 builder = StateGraph(State)
 
 
@@ -1365,7 +1372,8 @@ def user_info(state: State):
 builder.add_node("fetch_user_info", user_info)
 builder.add_edge(START, "fetch_user_info")
 builder.add_node("assistant", Assistant(part_3_assistant_runnable))
-builder.add_node("safe_tools", create_tool_node_with_fallback(part_3_safe_tools))
+builder.add_node(
+    "safe_tools", create_tool_node_with_fallback(part_3_safe_tools))
 builder.add_node(
     "sensitive_tools", create_tool_node_with_fallback(part_3_sensitive_tools)
 )
@@ -1502,9 +1510,6 @@ Add a `dialog_state` list to the `State` below. Any time a `node` is run and ret
 logger.info("#### Part 3 Review")
 
 
-
-
-
 def update_dialog_stack(left: list[str], right: Optional[str]) -> list[str]:
     """Push or pop the state."""
     if right is None:
@@ -1529,6 +1534,7 @@ class State(TypedDict):
         ],
         update_dialog_stack,
     ]
+
 
 """
 #### Assistants
@@ -1557,8 +1563,6 @@ Each *specialized* / delegated assistant additionally can call the `CompleteOrEs
 logger.info("#### Assistants")
 
 
-
-
 class Assistant:
     def __init__(self, runnable: Runnable):
         self.runnable = runnable
@@ -1572,7 +1576,8 @@ class Assistant:
                 or isinstance(result.content, list)
                 and not result.content[0].get("text")
             ):
-                messages = state["messages"] + [("user", "Respond with a real output.")]
+                messages = state["messages"] + \
+                    [("user", "Respond with a real output.")]
                 state = {**state, "messages": messages}
             else:
                 break
@@ -1601,7 +1606,6 @@ class CompleteOrEscalate(BaseModel):
                 "reason": "I need to search the user's emails or calendar for more information.",
             },
         }
-
 
 
 flight_booking_prompt = ChatPromptTemplate.from_messages(
@@ -1720,7 +1724,8 @@ book_excursion_prompt = ChatPromptTemplate.from_messages(
 ).partial(time=datetime.now)
 
 book_excursion_safe_tools = [search_trip_recommendations]
-book_excursion_sensitive_tools = [book_excursion, update_excursion, cancel_excursion]
+book_excursion_sensitive_tools = [
+    book_excursion, update_excursion, cancel_excursion]
 book_excursion_tools = book_excursion_safe_tools + book_excursion_sensitive_tools
 book_excursion_runnable = book_excursion_prompt | llm.bind_tools(
     book_excursion_tools + [CompleteOrEscalate]
@@ -1849,8 +1854,6 @@ Create a function to make an "entry" node for each workflow, stating "the curren
 logger.info("#### Create Assistant")
 
 
-
-
 def create_entry_node(assistant_name: str, new_dialog_state: str) -> Callable:
     def entry_node(state: State) -> dict:
         tool_call_id = state["messages"][-1].tool_calls[0]["id"]
@@ -1870,13 +1873,13 @@ def create_entry_node(assistant_name: str, new_dialog_state: str) -> Callable:
 
     return entry_node
 
+
 """
 #### Define Graph
 
 Now it's time to start building our graph. As before, we'll start with a node to pre-populate the state with the user's current information.
 """
 logger.info("#### Define Graph")
-
 
 
 builder = StateGraph(State)
@@ -1902,7 +1905,8 @@ Because of their similarities, we _could_ define a factory function to generate 
 
 First, make the **flight booking assistant** dedicated to managing the user journey for updating and canceling flights.
 """
-logger.info("Now we'll start adding our specialized workflows. Each mini-workflow looks very similar to our full graph in [Part 3](#part-3-conditional-interrupt), employing 5 nodes:")
+logger.info(
+    "Now we'll start adding our specialized workflows. Each mini-workflow looks very similar to our full graph in [Part 3](#part-3-conditional-interrupt), employing 5 nodes:")
 
 builder.add_node(
     "enter_update_flight",
@@ -1927,7 +1931,8 @@ def route_update_flight(
     if route == END:
         return END
     tool_calls = state["messages"][-1].tool_calls
-    did_cancel = any(tc["name"] == CompleteOrEscalate.__name__ for tc in tool_calls)
+    did_cancel = any(
+        tc["name"] == CompleteOrEscalate.__name__ for tc in tool_calls)
     if did_cancel:
         return "leave_skill"
     safe_toolnames = [t.name for t in update_flight_safe_tools]
@@ -1971,7 +1976,8 @@ builder.add_edge("leave_skill", "primary_assistant")
 """
 Next, create the **car rental assistant** graph to own all car rental needs.
 """
-logger.info("Next, create the **car rental assistant** graph to own all car rental needs.")
+logger.info(
+    "Next, create the **car rental assistant** graph to own all car rental needs.")
 
 builder.add_node(
     "enter_book_car_rental",
@@ -1996,7 +2002,8 @@ def route_book_car_rental(
     if route == END:
         return END
     tool_calls = state["messages"][-1].tool_calls
-    did_cancel = any(tc["name"] == CompleteOrEscalate.__name__ for tc in tool_calls)
+    did_cancel = any(
+        tc["name"] == CompleteOrEscalate.__name__ for tc in tool_calls)
     if did_cancel:
         return "leave_skill"
     safe_toolnames = [t.name for t in book_car_rental_safe_tools]
@@ -2024,7 +2031,8 @@ Then define the **hotel booking** workflow.
 logger.info("Then define the **hotel booking** workflow.")
 
 builder.add_node(
-    "enter_book_hotel", create_entry_node("Hotel Booking Assistant", "book_hotel")
+    "enter_book_hotel", create_entry_node(
+        "Hotel Booking Assistant", "book_hotel")
 )
 builder.add_node("book_hotel", Assistant(book_hotel_runnable))
 builder.add_edge("enter_book_hotel", "book_hotel")
@@ -2045,7 +2053,8 @@ def route_book_hotel(
     if route == END:
         return END
     tool_calls = state["messages"][-1].tool_calls
-    did_cancel = any(tc["name"] == CompleteOrEscalate.__name__ for tc in tool_calls)
+    did_cancel = any(
+        tc["name"] == CompleteOrEscalate.__name__ for tc in tool_calls)
     if did_cancel:
         return "leave_skill"
     tool_names = [t.name for t in book_hotel_safe_tools]
@@ -2090,7 +2099,8 @@ def route_book_excursion(
     if route == END:
         return END
     tool_calls = state["messages"][-1].tool_calls
-    did_cancel = any(tc["name"] == CompleteOrEscalate.__name__ for tc in tool_calls)
+    did_cancel = any(
+        tc["name"] == CompleteOrEscalate.__name__ for tc in tool_calls)
     if did_cancel:
         return "leave_skill"
     tool_names = [t.name for t in book_excursion_safe_tools]
@@ -2114,7 +2124,8 @@ logger.info("Finally, create the **primary assistant**.")
 
 builder.add_node("primary_assistant", Assistant(assistant_runnable))
 builder.add_node(
-    "primary_assistant_tools", create_tool_node_with_fallback(primary_assistant_tools)
+    "primary_assistant_tools", create_tool_node_with_fallback(
+        primary_assistant_tools)
 )
 
 

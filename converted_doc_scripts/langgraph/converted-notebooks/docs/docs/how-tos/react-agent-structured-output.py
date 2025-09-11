@@ -101,8 +101,8 @@ logger.info("# How to force tool-calling agent to structure output")
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
@@ -125,7 +125,6 @@ To use structured output, we will use the `with_structured_output` method from L
 We are going to use a single tool in this example for finding the weather, and will return a structured weather response to the user.
 """
 logger.info("## Define model, tools, and graph state")
-
 
 
 class WeatherResponse(BaseModel):
@@ -251,7 +250,6 @@ Let's now dive into how we would use a second LLM to force structured output.
 We can now define our graph:
 """
 logger.info("## Option 2: 2 LLMs")
-
 
 
 def call_model(state: AgentState):

@@ -52,13 +52,14 @@ logger.info("# How to wait for user input using `interrupt`")
 """
 Next, we need to set API keys for Ollama and / or Ollama(the LLM(s) we will use)
 """
-logger.info("Next, we need to set API keys for Ollama and / or Ollama(the LLM(s) we will use)")
+logger.info(
+    "Next, we need to set API keys for Ollama and / or Ollama(the LLM(s) we will use)")
 
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
@@ -83,8 +84,6 @@ Steps:
 3. **Use `Command(resume=...)`** to provide the requested value to the **`human_feedback`** node and resume execution.
 """
 logger.info("## Simple Usage")
-
-
 
 
 class State(TypedDict):
@@ -173,8 +172,6 @@ For this example, we’ll use Ollama's chat model along with a **mock tool** (pu
 logger.info("## Agent")
 
 
-
-
 @tool
 def search(query: str):
     """Call to surf the web."""
@@ -188,7 +185,6 @@ tool_node = ToolNode(tools)
 model = ChatOllama(model="llama3.2")
 
 
-
 class AskHuman(BaseModel):
     """Ask the human a question"""
 
@@ -196,7 +192,6 @@ class AskHuman(BaseModel):
 
 
 model = model.bind_tools(tools + [AskHuman])
-
 
 
 def should_continue(state):
@@ -220,10 +215,9 @@ def ask_human(state):
     tool_call_id = state["messages"][-1].tool_calls[0]["id"]
     ask = AskHuman.model_validate(state["messages"][-1].tool_calls[0]["args"])
     location = interrupt(ask.question)
-    tool_message = [{"tool_call_id": tool_call_id, "type": "tool", "content": location}]
+    tool_message = [{"tool_call_id": tool_call_id,
+                     "type": "tool", "content": location}]
     return {"messages": tool_message}
-
-
 
 
 workflow = StateGraph(MessagesState)
@@ -281,7 +275,7 @@ app.get_state(config).next
 """
 You can see that our graph got interrupted inside the `ask_human` node, which is now waiting for a `location` to be provided. We can provide this value by invoking the graph with a `Command(resume="<location>")` input:
 """
-logger.info("You can see that our graph got interrupted inside the `ask_human` node, which is now waiting for a `location` to be provided. We can provide this value by invoking the graph with a `Command(resume="<location>")` input:")
+logger.info("You can see that our graph got interrupted inside the `ask_human` node, which is now waiting for a `location` to be provided. We can provide this value by invoking the graph with a `Command(resume=" < location > ")` input:")
 
 for event in app.stream(
     Command(resume="san francisco"),
